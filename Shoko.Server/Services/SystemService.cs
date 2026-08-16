@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -12,12 +11,11 @@ using MessagePack;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NLog.Extensions.Logging;
 using NLog.Web;
-using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Connectivity.Services;
@@ -415,6 +413,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IFuzzySearchService, FuzzySearchService>();
             services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
+            services.AddSingleton<IActionService>(sp => sp.GetRequiredService<ActionService>());
             services.AddSingleton<AnimeSeriesService>();
             services.AddSingleton<AnimeGroupService>();
             services.AddSingleton<ShokoGroupManager>();
@@ -438,15 +437,6 @@ public class SystemService : ISystemService
             services.AddSingleton<IImageManager, ImageManager>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
             services.AddScoped<AnimeGroupCreator>();
-
-            // Register all core-provided executable actions as transient services, resolved
-            // fresh from DI per execution. Plugin-provided actions are registered in
-            // PluginManager.RegisterPlugins.
-            foreach (var actionType in typeof(SystemService).Assembly.GetTypes()
-                         .Where(type => type is { IsClass: true, IsAbstract: false } && typeof(IExecutableAction).IsAssignableFrom(type)))
-            {
-                services.TryAddTransient(actionType);
-            }
 
             services.AddRepositories();
             services.AddSentryConfig(settingsProvider);

@@ -103,7 +103,7 @@ public class ActionController : BaseController
         if (_actionService.GetActionInfo(actionId) is null)
             return NotFound("Action not found.");
 
-        var validation = await _actionService.InvokeAsync(actionId, scopeEntity: null, User, token);
+        var validation = await _actionService.InvokeAsync(actionId, User, token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 

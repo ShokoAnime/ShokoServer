@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Actions;
-using Shoko.Server.Services;
 
 namespace Shoko.Server.API.v3.Models.Action;
 

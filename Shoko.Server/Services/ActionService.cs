@@ -7,10 +7,12 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
@@ -33,7 +35,7 @@ using Shoko.Server.Settings;
 
 namespace Shoko.Server.Services;
 
-public class ActionService
+public class ActionService : IActionService
 {
     private readonly ILogger<ActionService> _logger;
 
@@ -68,7 +70,15 @@ public class ActionService
     ///   <see cref="AddParts"/>. A fresh transient instance is resolved from
     ///   DI for every validation and execution.
     /// </summary>
-    private readonly Dictionary<Guid, ExecutableActionInfo> _actions = new();
+    private readonly Dictionary<Guid, RegisteredAction> _actions = new();
+
+    /// <summary>
+    ///   A registered action type paired with the metadata exposed to plugins.
+    ///   The concrete type is deliberately not part of
+    ///   <see cref="ExecutableActionInfo"/> so the abstraction surface never
+    ///   leaks server internals.
+    /// </summary>
+    private sealed record RegisteredAction(ExecutableActionInfo Info, Type ActionType);
 
     private readonly VideoLocalRepository _videoLocals;
 
@@ -218,18 +228,17 @@ public class ActionService
                 ? _pluginManager.GetPluginInfo(pluginId)?.Name ?? actionType.Assembly.GetName().Name
                 : probe.Category.ToString();
 
-            _actions[id] = new ExecutableActionInfo(
+            _actions[id] = new RegisteredAction(new ExecutableActionInfo(
                 id,
-                actionType,
-                scope,
-                pluginId,
                 probe.Name,
                 probe.Description,
                 probe.Category,
                 categoryName,
+                scope,
                 probe.Permission,
-                probe.RequiresConfirmation
-            );
+                probe.RequiresConfirmation,
+                pluginId
+            ), actionType);
         }
     }
 
@@ -238,22 +247,50 @@ public class ActionService
     ///   required partition — omitting it lists every action. Non-admin callers
     ///   only see actions they may invoke.
     /// </summary>
-    public IEnumerable<ExecutableActionInfo> GetActions(ActionScope? scope, ActionPermission? callerPermission)
+    public IReadOnlyList<ExecutableActionInfo> GetActions(ActionScope? scope = null, ActionPermission? callerPermission = null)
         => _actions.Values
+            .Select(a => a.Info)
             .Where(a => (scope is null || a.Scope == scope) &&
                         (callerPermission != ActionPermission.User || a.Permission == ActionPermission.User))
             .OrderBy(a => a.Category)
             .ThenBy(a => a.CategoryName)
-            .ThenBy(a => a.Name);
+            .ThenBy(a => a.Name)
+            .ToList();
 
     public ExecutableActionInfo? GetActionInfo(Guid actionId)
-        => _actions.TryGetValue(actionId, out var info) ? info : null;
+        => _actions.TryGetValue(actionId, out var info) ? info.Info : null;
 
     public string GetActionName(Guid actionId)
-        => _actions.TryGetValue(actionId, out var info) ? info.Name : actionId.ToString();
+        => _actions.TryGetValue(actionId, out var info) ? info.Info.Name : actionId.ToString();
 
     /// <summary>
-    ///   The invoke entry point. Scope-agnostic on purpose — the controller
+    ///   The concrete action type for an action ID. Kept internal — plugins
+    ///   work with <see cref="ExecutableActionInfo"/> and IDs only, while the
+    ///   execution job uses this to resolve a fresh instance from DI.
+    /// </summary>
+    internal Type GetActionType(Guid actionId)
+        => _actions.TryGetValue(actionId, out var info)
+            ? info.ActionType
+            : throw new KeyNotFoundException($"No action registered for {actionId}");
+
+    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IUser? caller = null, CancellationToken token = default)
+        => InvokeCoreAsync(actionId, scopeEntity: null, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoGroup, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoGroup group, IUser? caller = null, CancellationToken token = default)
+        => InvokeCoreAsync(actionId, group, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoSeries, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoSeries series, IUser? caller = null, CancellationToken token = default)
+        => InvokeCoreAsync(actionId, series, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoEpisode, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IUser? caller = null, CancellationToken token = default)
+        => InvokeCoreAsync(actionId, episode, caller, token);
+
+    /// <summary>
+    ///   The invoke entry point. Scope-agnostic on purpose — the caller
     ///   resolves <paramref name="scopeEntity"/> (an <see cref="AnimeSeries"/>,
     ///   <see cref="AnimeGroup"/>, <see cref="AnimeEpisode"/>, or
     ///   <see langword="null"/> for Global) before calling this.
@@ -263,22 +300,48 @@ public class ActionService
     ///   rejection reason — mapped to a 400 by the controller — when the
     ///   invocation was refused without ever touching the queue.
     /// </returns>
-    public async Task<ActionValidationResult?> InvokeAsync(Guid actionId, object? scopeEntity, IUser caller, CancellationToken token)
+    private async Task<ActionValidationResult?> InvokeCoreAsync(Guid actionId, object? scopeEntity, IUser? caller, CancellationToken token)
     {
-        if (!_actions.TryGetValue(actionId, out var info))
+        if (!_actions.TryGetValue(actionId, out var registered))
             throw new KeyNotFoundException($"No action registered for {actionId}");
 
-        if (info.Permission is ActionPermission.Admin && !caller.IsAdmin)
+        var info = registered.Info;
+
+        // Reject invocations via the wrong scope (e.g. a series-scoped action invoked
+        // with no series, or a global action invoked with one) instead of letting the
+        // context cast fail later in the job.
+        var expectedScope = scopeEntity switch
+        {
+            AnimeSeries => ActionScope.Series,
+            AnimeGroup => ActionScope.Group,
+            AnimeEpisode => ActionScope.Episode,
+            _ => ActionScope.Global,
+        };
+        if (info.Scope != expectedScope)
+        {
+            return new ActionValidationResult(
+                $"The action '{info.Name}' ({info.Id}) is not applicable to the {expectedScope.ToString().ToLowerInvariant()} scope."
+            );
+        }
+
+        // Trusted programmatic calls (no caller) skip the permission gate; HTTP
+        // invocations always pass the authenticated user.
+        if (caller is not null && info.Permission is ActionPermission.Admin && !caller.IsAdmin)
             return new ActionValidationResult("Administrator privileges are required for this action.");
 
         // Gap 24: Validate runs synchronously, before anything touches the queue.
         // Needs a real instance (not just JobDataJson) since Validate isn't queued —
         // resolved, context-populated, and discarded, same lifetime rules as Gap 9.
-        var probe = (IExecutableAction)_services.GetRequiredService(info.ActionType);
+        var probe = (IExecutableAction)_services.GetRequiredService(registered.ActionType);
         if (probe is IScopedAction scoped && scopeEntity is not null)
             scoped.SetContext(scopeEntity);
         if (probe is IActionCaller callerAware)
+        {
+            if (caller is null)
+                return new ActionValidationResult($"The action '{info.Name}' requires a calling user.");
+
             callerAware.SetCaller(caller);
+        }
 
         var validation = await probe.Validate(token);
         if (validation is not null)
@@ -297,7 +360,7 @@ public class ActionService
                 _ => null,
             };
             j.Scope = info.Scope;
-            j.CallerUserId = caller.ID;
+            j.CallerUserId = caller?.ID ?? 0;
         }, ct: token);
 
         // Gap 7: bare ack — no tracking ID.

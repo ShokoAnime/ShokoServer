@@ -472,15 +472,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var supplementaryMetadataService = ISystemService.StaticServices.GetRequiredService<SupplementaryMetadataService>();
         supplementaryMetadataService.AddParts(GetExports<ISupplementaryMetadataProvider>());
 
-        // Register the discovered executable actions — plugin-provided types first,
-        // then core-provided types from this assembly, all validated at load time.
         var actionService = ISystemService.StaticServices.GetRequiredService<ActionService>();
         actionService.AddParts(GetTypes<IExecutableAction>()
             .Where(type => type is { IsClass: true, IsAbstract: false })
             .Select(type => (GetPluginInfo(type.Assembly)!.ID, type)));
-        actionService.AddParts(typeof(PluginManager).Assembly.GetExportedTypes()
-            .Where(type => type is { IsClass: true, IsAbstract: false } && typeof(IExecutableAction).IsAssignableFrom(type))
-            .Select(type => (CorePlugin.StaticID, type)));
     }
 
     private IEnumerable<(string?, string[], bool)> GetPluginDirectories()

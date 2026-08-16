@@ -76,7 +76,7 @@ public class ActionExecutionJob(
         _logger.LogInformation("Executing action \"{ActionName}\" ({ActionId})", info.Name, ActionId);
 
         // Gap 9: transient — a fresh instance per execution, resolved from DI.
-        var action = (IExecutableAction)services.GetRequiredService(info.ActionType);
+        var action = (IExecutableAction)services.GetRequiredService(actionService.GetActionType(ActionId));
 
         if (action is IScopedAction scoped)
         {
