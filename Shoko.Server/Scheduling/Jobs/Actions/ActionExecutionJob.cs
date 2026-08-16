@@ -86,7 +86,7 @@ public class ActionExecutionJob(
             scoped.SetContext(ResolveScopeEntity(info.Scope, entityId));
         }
 
-        if (action is IActionCaller callerAware)
+        if (CallerUserId > 0 && action is IActionCaller callerAware)
         {
             var caller = users.GetByID(CallerUserId)
                 ?? throw new InvalidOperationException($"User not found: {CallerUserId}");

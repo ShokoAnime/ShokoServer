@@ -225,7 +225,7 @@ public class ActionService : IActionService
             // collision-free by construction since plugin names are unique. Anything else
             // falls back to the category's own name.
             var categoryName = probe.Category is ActionCategory.PluginInferred
-                ? _pluginManager.GetPluginInfo(pluginId)?.Name ?? actionType.Assembly.GetName().Name
+                ? _pluginManager.GetPluginInfo(pluginId)?.Name ?? actionType.Assembly.GetName().Name!
                 : probe.Category.ToString();
 
             _actions[id] = new RegisteredAction(new ExecutableActionInfo(
