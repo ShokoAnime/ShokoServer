@@ -25,26 +25,79 @@ runs:
       shell: bash
       run: |
         version=$(dotnet msbuild "${{ inputs.project-file-path }}" -nologo -getProperty:Version)
+        packageId=$(dotnet msbuild "${{ inputs.project-file-path }}" -nologo -getProperty:PackageId)
         echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "package-id=$packageId" >> "$GITHUB_OUTPUT"
         echo "tag=${TAG_FORMAT/\*/$version}" >> "$GITHUB_OUTPUT"
       env:
         TAG_FORMAT: ${{ inputs.tag-format }}
 
+    # Matches brandedoutcast/publish-nuget's original gating: skip publishing entirely
+    # if this version is already on NuGet.org.
+    - name: Check if version is already published
+      id: check
+      shell: bash
+      run: |
+        set -euo pipefail
+        package_id_lower=$(echo "${{ steps.version.outputs.package-id }}" | tr '[:upper:]' '[:lower:]')
+        status=$(curl -s -o /tmp/nuget-versions.json -w '%{http_code}' \
+          "https://api.nuget.org/v3-flatcontainer/${package_id_lower}/index.json")
+
+        if [ "$status" = "404" ]; then
+          echo "already-published=false" >> "$GITHUB_OUTPUT" # package has no published versions yet
+        elif [ "$status" = "200" ]; then
+          if jq -e --arg v "${{ steps.version.outputs.version }}" '.versions | index($v)' /tmp/nuget-versions.json > /dev/null; then
+            echo "already-published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already-published=false" >> "$GITHUB_OUTPUT"
+          fi
+        else
+          echo "::error::Unexpected HTTP $status querying NuGet.org for ${{ steps.version.outputs.package-id }}"
+          exit 1
+        fi
+
     - name: Pack
+      if: steps.check.outputs.already-published != 'true'
       shell: bash
       run: dotnet pack -c Release "${{ inputs.project-file-path }}" -o ./nupkg
 
     - name: Push
+      if: steps.check.outputs.already-published != 'true'
       shell: bash
       run: dotnet nuget push "./nupkg/*.nupkg" --api-key "${{ inputs.nuget-key }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
 
     - name: Clean up package output
+      if: steps.check.outputs.already-published != 'true'
       shell: bash
       run: rm -rf ./nupkg
 
+    # Queries the remote tag instead of the local checkout, which has no tag history.
+    # For an annotated tag, ls-remote also returns its peeled ^{} commit ref — tail -1
+    # picks that commit SHA over the tag object's own SHA.
+    - name: Check remote tag state
+      id: tagcheck
+      if: steps.check.outputs.already-published != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        tag="${{ steps.version.outputs.tag }}"
+        remote_sha=$(git ls-remote origin "refs/tags/${tag}" "refs/tags/${tag}^{}" | tail -1 | cut -f1)
+
+        if [ -n "$remote_sha" ]; then
+          if [ "$remote_sha" = "${{ github.sha }}" ]; then
+            echo "Tag '${tag}' already points at this commit — nothing to do."
+            echo "should-tag=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "::error::Tag '${tag}' already exists on the remote and points at a different commit ($remote_sha) than this build (${{ github.sha }}). Refusing to overwrite it."
+          exit 1
+        fi
+
+        echo "should-tag=true" >> "$GITHUB_OUTPUT"
+
     - name: Tag release
+      if: steps.check.outputs.already-published != 'true' && steps.tagcheck.outputs.should-tag == 'true'
       uses: rickstaa/action-create-tag@v1
       with:
         tag: ${{ steps.version.outputs.tag }}
         message: "${{ inputs.project-file-path }} v${{ steps.version.outputs.version }}"
-        force_push_tag: true
