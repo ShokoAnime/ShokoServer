@@ -142,7 +142,7 @@ public class FilterFactory
         switch (expression)
         {
             case IWithBoolParameter parameter:
-                result.Parameter = parameter.ToString()!.ToLower();
+                result.Parameter = parameter.Parameter.ToString().ToLower();
                 break;
             case IWithStringParameter parameter:
                 result.Parameter = parameter.Parameter;
