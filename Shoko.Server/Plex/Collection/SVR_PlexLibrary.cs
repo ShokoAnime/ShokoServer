@@ -21,7 +21,7 @@ internal class SVR_PlexLibrary : PlexLibrary
         var (_, data) = Helper.RequestFromPlexAsync($"/library/metadata/{RatingKey}/allLeaves").GetAwaiter()
             .GetResult();
         return JsonConvert
-            .DeserializeObject<MediaContainer<MediaContainer>>(data, Helper.SerializerSettings)
+            .DeserializeObject<MediaContainer<MediaContainer>>(data, Helper.SerializerSettings)!
             .Container.Metadata;
     }
 }

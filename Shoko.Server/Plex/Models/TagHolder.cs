@@ -4,5 +4,5 @@ namespace Shoko.Server.Plex.Models;
 
 public class TagHolder
 {
-    [DataMember(Name = "tag")] public string Tag { get; set; }
+    [DataMember(Name = "tag")] public string Tag { get; set; } = null!;
 }

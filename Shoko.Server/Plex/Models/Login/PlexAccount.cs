@@ -4,5 +4,5 @@ namespace Shoko.Server.Plex.Models.Login;
 
 public class PlexAccount
 {
-    [DataMember(Name = "user")] public User User { get; set; }
+    [DataMember(Name = "user")] public User User { get; set; } = null!;
 }

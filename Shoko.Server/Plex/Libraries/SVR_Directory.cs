@@ -21,7 +21,7 @@ internal class SVR_Directory : Directory
         var (_, json) = Helper.RequestFromPlexAsync($"/library/sections/{Key}/all").ConfigureAwait(false)
             .GetAwaiter().GetResult();
         return JsonConvert
-            .DeserializeObject<MediaContainer<MediaContainer>>(json, Helper.SerializerSettings)
+            .DeserializeObject<MediaContainer<MediaContainer>>(json, Helper.SerializerSettings)!
             .Container.Metadata;
     }
 }

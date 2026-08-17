@@ -5,5 +5,5 @@ namespace Shoko.Server.Plex.Models;
 [DataContract]
 public class MediaContainer<T>
 {
-    [DataMember(Name = "MediaContainer")] public T Container { get; set; }
+    [DataMember(Name = "MediaContainer")] public T Container { get; set; } = default!;
 }

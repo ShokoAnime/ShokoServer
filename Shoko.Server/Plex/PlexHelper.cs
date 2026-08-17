@@ -34,20 +34,20 @@ public class PlexHelper
     private static readonly ConcurrentDictionary<int, PlexHelper> Cache = new();
 
     private readonly int _userId;
-    private JMMUser _user => RepoFactory.JMMUser.GetByID(_userId);
+    private JMMUser _user => RepoFactory.JMMUser.GetByID(_userId)!;
 
     private readonly string _version = PluginManager.GetVersionInformation().Version.ToSemanticVersioningString();
 
     internal readonly JsonSerializerSettings SerializerSettings = new();
 
-    private Connection _cachedConnection;
-    private PlexKey _key;
+    private Connection? _cachedConnection;
+    private PlexKey? _key;
     private DateTime _lastCacheTime = DateTime.MinValue;
     private DateTime _lastMediaCacheTime = DateTime.MinValue;
 
-    private MediaDevice[] _plexMediaDevices;
+    private MediaDevice[]? _plexMediaDevices;
 
-    private MediaDevice _mediaDevice;
+    private MediaDevice? _mediaDevice;
 
     private PlexHelper(JMMUser user)
     {
@@ -62,7 +62,7 @@ public class PlexHelper
             var settings = ISettingsProvider.Instance.GetSettings();
             if (string.IsNullOrEmpty(settings.Plex.Server))
             {
-                return null;
+                return null!;
             }
 
             if (DateTime.Now - TimeSpan.FromHours(1) >= _lastMediaCacheTime)
@@ -85,7 +85,7 @@ public class PlexHelper
 
             if (!settings.Plex.Server.Contains(':'))
             {
-                return null;
+                return null!;
             }
 
 
@@ -98,7 +98,7 @@ public class PlexHelper
             }
 
             _lastMediaCacheTime = DateTime.Now;
-            return _mediaDevice;
+            return _mediaDevice!;
         }
         private set
         {
@@ -108,7 +108,7 @@ public class PlexHelper
         }
     }
 
-    private Connection ConnectionCache
+    private Connection? ConnectionCache
     {
         get
         {
@@ -155,7 +155,7 @@ public class PlexHelper
         }
     }
 
-    private Dictionary<string, string> AuthenticationHeaders => new() { { "X-Plex-Token", GetPlexToken() } };
+    private Dictionary<string, string> AuthenticationHeaders => new() { { "X-Plex-Token", GetPlexToken()! } };
 
     private DateTime? _lastAuthenticated = null;
 
@@ -196,13 +196,13 @@ public class PlexHelper
     }
 
     public string LoginUrl => $"https://app.plex.tv/auth#?clientID={ClientIdentifier}" +
-                              $"&code={GetPlexKey().Code}"; /* +
+                              $"&code={GetPlexKey()!.Code}"; /* +
                                   "&context%5Bdevice%5D%5Bproduct%5D=Shoko%20Server" +
                                   $"&context%5Bdevice%5D%5Bplatform%5D={WebUtility.UrlEncode(Environment.OSVersion.Platform.ToString())}" +
                                   $"&context%5Bdevice%5D%5BplatformVersion%5D={WebUtility.UrlEncode(Environment.OSVersion.VersionString)}" +
                                   $"&context%5Bdevice%5D%5Bversion%5D={WebUtility.UrlEncode(Assembly.GetEntryAssembly().GetName().Version.ToString())}";*/
 
-    private PlexKey GetPlexKey()
+    private PlexKey? GetPlexKey()
     {
         if (_key != null && _key.ExpiresAt > DateTime.Now) return _key;
 
@@ -210,7 +210,7 @@ public class PlexHelper
         return _key = JsonConvert.DeserializeObject<PlexKey>(content);
     }
 
-    private string GetPlexToken()
+    private string? GetPlexToken()
     {
         if (!string.IsNullOrEmpty(_user?.PlexToken)) return _user.PlexToken;
 
@@ -218,7 +218,7 @@ public class PlexHelper
         if (_key == null) return null;
         if (_key.AuthToken != null) return _key.AuthToken;
 
-        string content = null;
+        string? content = null;
         try
         {
             (_, content) = RequestAsync($"https://plex.tv/api/v2/pins/{_key.Id}", HttpMethod.Get).Result;
@@ -248,8 +248,8 @@ public class PlexHelper
     }
 
     private async Task<(HttpStatusCode status, string content)> RequestAsync(string url, HttpMethod method,
-        IDictionary<string, string> headers = default, string content = null, bool xml = false,
-        Action<HttpRequestMessage> configureRequest = null)
+        IDictionary<string, string>? headers = default, string? content = null, bool xml = false,
+        Action<HttpRequestMessage>? configureRequest = null)
     {
         //headers["Accept"] = xml ? "application/xml" : "application/json";
         Logger.Trace($"Requesting from plex: {method.Method} {url}");
@@ -336,7 +336,7 @@ public class PlexHelper
         var settings = ISettingsProvider.Instance.GetSettings();
         if (server == null)
         {
-            settings.Plex.Server = null;
+            settings.Plex.Server = null!;
             return;
         }
 
@@ -361,7 +361,7 @@ public class PlexHelper
         {
             var (_, data) = RequestFromPlexAsync("/library/sections").Result;
             return JsonConvert
-                .DeserializeObject<MediaContainer<Models.Libraries.MediaContainer>>(data, SerializerSettings)
+                .DeserializeObject<MediaContainer<Models.Libraries.MediaContainer>>(data, SerializerSettings)!
                 .Container.Directory ?? Array.Empty<Directory>();
         }
         catch (Exception) //I really just don't care now.
@@ -371,9 +371,9 @@ public class PlexHelper
     }
 
     public Task<(HttpStatusCode status, string content)> RequestFromPlexAsync(string path,
-        HttpMethod method = null)
+        HttpMethod? method = null)
     {
-        return RequestAsync($"{ConnectionCache.Uri}{path}", method ?? HttpMethod.Get,
+        return RequestAsync($"{ConnectionCache!.Uri}{path}", method ?? HttpMethod.Get,
             new Dictionary<string, string> { { "X-Plex-Token", ServerCache.AccessToken } });
     }
 

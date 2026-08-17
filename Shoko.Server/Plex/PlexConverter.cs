@@ -18,15 +18,15 @@ internal class PlexConverter : JsonConverter
         _helper = helper;
     }
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
         throw new NotSupportedException();
     }
 
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
+    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue,
         JsonSerializer serializer)
     {
-        object instance = null;
+        object? instance = null;
         if (objectType == typeof(Directory))
         {
             instance = new SVR_Directory(_helper);
@@ -41,7 +41,7 @@ internal class PlexConverter : JsonConverter
         }
 
         //var instance = objectType.GetConstructor(new[] { typeof(PlexHelper) })?.Invoke(new object[] { _helper });
-        serializer.Populate(reader, instance);
+        serializer.Populate(reader, instance!);
         return instance;
     }
 

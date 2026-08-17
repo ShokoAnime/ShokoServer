@@ -71,7 +71,7 @@ public class PlexWebhook : BaseController
     #region Plex events
 
     [NonAction]
-    private async Task Scrobble(PlexEvent data, JMMUser user)
+    private async Task Scrobble(PlexEvent data, JMMUser? user)
     {
         var metadata = data.Metadata;
         var (episode, anime) = GetEpisode(metadata);
@@ -82,7 +82,7 @@ public class PlexWebhook : BaseController
             return;
         }
 
-        _logger.LogTrace("Got anime: {Anime}, ep: {EpisodeNumber}", anime, episode.AniDB_Episode.EpisodeNumber);
+        _logger.LogTrace("Got anime: {Anime}, ep: {EpisodeNumber}", anime, episode.AniDB_Episode!.EpisodeNumber);
 
         user ??= RepoFactory.JMMUser.GetAll().FirstOrDefault(u => u.GetPlexUsers().Contains(data.Account.Title));
         if (user == null)
@@ -97,7 +97,7 @@ public class PlexWebhook : BaseController
     #endregion
 
     [NonAction]
-    private (AnimeEpisode, AnimeSeries) GetEpisode(PlexEvent.PlexMetadata metadata)
+    private (AnimeEpisode?, AnimeSeries?) GetEpisode(PlexEvent.PlexMetadata metadata)
     {
         var guid = new Uri(metadata.Guid);
         if (guid.Scheme != "com.plexapp.agents.shoko" && guid.Scheme != "com.plexapp.agents.shokorelay")
@@ -148,14 +148,14 @@ public class PlexWebhook : BaseController
         }
 
 
-        var animeEps = anime
+        var animeEps = anime!
             .AnimeEpisodes.Where(a => a.EpisodeType == episodeType && a.AniDB_Episode?.EpisodeNumber == episodeNumber).ToList();
 
         //if only one possible match
         if (animeEps.Count == 1) return (animeEps.First(), anime);
 
         // Check for Tmdb matches
-        AnimeEpisode result;
+        AnimeEpisode? result;
         if ((result = animeEps.FirstOrDefault(a => a.TmdbEpisodes.Any(e => e.SeasonNumber == series))) != null)
         {
             return (result, anime);
@@ -222,7 +222,7 @@ public class PlexWebhook : BaseController
     public async Task<ActionResult> SyncForUser(int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
-        if (string.IsNullOrEmpty(user.PlexToken))
+        if (string.IsNullOrEmpty(user!.PlexToken))
         {
             return BadRequest("Invalid User ID");
         }
@@ -289,9 +289,9 @@ public class PlexWebhook : BaseController
 
     [Authorize]
     [HttpGet("libraries/{libraryID}")]
-    public PlexLibrary[] GetShowsForDirectory(int libraryID)
+    public PlexLibrary[]? GetShowsForDirectory(int libraryID)
     {
-        return CallPlexHelper(h => ((SVR_Directory)h.GetDirectories().FirstOrDefault(d => d.Key == libraryID))?.GetShows());
+        return CallPlexHelper(h => ((SVR_Directory?)h.GetDirectories().FirstOrDefault(d => d.Key == libraryID))?.GetShows());
     }
 #endif
 
@@ -310,39 +310,39 @@ public class PlexWebhook : BaseController
     public class PlexEvent
     {
         [Required, DataMember(Name = "event")]
-        public string Event;
+        public string Event = null!;
 
         [DataMember(Name = "user")] public bool User;
 
         [DataMember(Name = "owner")] public bool Owner;
 
         [Required, DataMember(Name = "Account")]
-        public PlexAccount Account;
+        public PlexAccount Account = null!;
 
         [Required, DataMember(Name = "Server")]
-        public PlexBasicInfo Server;
+        public PlexBasicInfo Server = null!;
 
-        [DataMember(Name = "Player")] public PlexPlayerInfo Player;
+        [DataMember(Name = "Player")] public PlexPlayerInfo Player = null!;
 
         [Required, DataMember(Name = "Metadata")]
-        public PlexMetadata Metadata;
+        public PlexMetadata Metadata = null!;
 
         [DataContract]
         public class PlexAccount
         {
             [DataMember(Name = "id")] public int Id;
 
-            [DataMember(Name = "thumb")] public string Thumbnail;
+            [DataMember(Name = "thumb")] public string Thumbnail = null!;
 
-            [DataMember(Name = "title")] public string Title;
+            [DataMember(Name = "title")] public string Title = null!;
         }
 
         [DataContract]
         public class PlexBasicInfo
         {
-            [DataMember(Name = "title")] public string Title;
+            [DataMember(Name = "title")] public string Title = null!;
 
-            [DataMember(Name = "uuid")] public string Uuid;
+            [DataMember(Name = "uuid")] public string Uuid = null!;
         }
 
         [DataContract]
@@ -350,7 +350,7 @@ public class PlexWebhook : BaseController
         {
             [DataMember(Name = "local")] public bool Local;
 
-            [DataMember(Name = "publicAddress")] public string PublicAddress;
+            [DataMember(Name = "publicAddress")] public string PublicAddress = null!;
         }
 
         [DataContract]
@@ -359,42 +359,42 @@ public class PlexWebhook : BaseController
             #region Library information
 
             [DataMember(Name = "librarySectionType")]
-            public string LibrarySectionType;
+            public string LibrarySectionType = null!;
 
             [DataMember(Name = "librarySectionTitle")]
-            public string LibrarySectionTitle;
+            public string LibrarySectionTitle = null!;
 
             [DataMember(Name = "librarySectionId")]
             public int LibrarySectionId;
 
             [DataMember(Name = "librarySectionKey")]
-            public string LibrarySectionKey;
+            public string LibrarySectionKey = null!;
 
             #endregion
 
             #region Item information
 
-            [Required, DataMember(Name = "guid")] public string Guid;
+            [Required, DataMember(Name = "guid")] public string Guid = null!;
 
-            [DataMember(Name = "key")] public string Key;
+            [DataMember(Name = "key")] public string Key = null!;
 
             [DataMember(Name = "index")] public int? Index;
 
-            [DataMember(Name = "type")] public string Type;
+            [DataMember(Name = "type")] public string Type = null!;
 
-            [DataMember(Name = "contentRating")] public string ContentRating;
+            [DataMember(Name = "contentRating")] public string ContentRating = null!;
 
-            [DataMember(Name = "studio")] public string Studio;
+            [DataMember(Name = "studio")] public string Studio = null!;
 
-            [DataMember(Name = "title")] public string Title;
+            [DataMember(Name = "title")] public string Title = null!;
 
-            [DataMember(Name = "originalTitle")] public string OriginalTitle;
+            [DataMember(Name = "originalTitle")] public string OriginalTitle = null!;
 
-            [DataMember(Name = "summary")] public string Summary;
+            [DataMember(Name = "summary")] public string Summary = null!;
 
-            [DataMember(Name = "thumb")] public string Thumbnail;
+            [DataMember(Name = "thumb")] public string Thumbnail = null!;
 
-            [DataMember(Name = "art")] public string Art;
+            [DataMember(Name = "art")] public string Art = null!;
 
             [DataMember(Name = "addedAt")] public int AddedAt;
 
@@ -406,38 +406,38 @@ public class PlexWebhook : BaseController
 
             [DataMember(Name = "duration")] public int? Duration;
 
-            [DataMember(Name = "Guid")] public PlexProviderInfo[] Providers;
+            [DataMember(Name = "Guid")] public PlexProviderInfo[] Providers = null!;
 
             #endregion
 
             #region Parent item information
 
             [Required, DataMember(Name = "parentGuid")]
-            public string ParentGuid;
+            public string ParentGuid = null!;
 
             [DataMember(Name = "parentIndex")] public int ParentIndex;
 
-            [DataMember(Name = "parentTitle")] public string ParentTitle;
+            [DataMember(Name = "parentTitle")] public string ParentTitle = null!;
 
-            [DataMember(Name = "parentThumb")] public string ParentThumbnail;
+            [DataMember(Name = "parentThumb")] public string ParentThumbnail = null!;
 
             #endregion
 
             #region Grand-parent item information
 
             [Required, DataMember(Name = "grandParentGuid")]
-            public string GrandParentGuid;
+            public string GrandParentGuid = null!;
 
             [DataMember(Name = "grandParentTitle")]
-            public string GrandParentTitle;
+            public string GrandParentTitle = null!;
 
             [DataMember(Name = "grandparentThumb")]
-            public string GrandParentThumbnail;
+            public string GrandParentThumbnail = null!;
 
-            [DataMember(Name = "grandparentArt")] public string GrandparentArt;
+            [DataMember(Name = "grandparentArt")] public string GrandparentArt = null!;
 
             [DataMember(Name = "grandparentTheme")]
-            public string GrandparentTheme;
+            public string GrandparentTheme = null!;
 
             #endregion
         }
@@ -445,7 +445,7 @@ public class PlexWebhook : BaseController
         [DataContract]
         public class PlexProviderInfo
         {
-            [DataMember(Name = "id")] public string Id;
+            [DataMember(Name = "id")] public string Id = null!;
         }
     }
 }

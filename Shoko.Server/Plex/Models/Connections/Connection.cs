@@ -8,14 +8,14 @@ namespace Shoko.Server.Plex.Models.Connections;
 public class Connection
 {
     [XmlAttribute(AttributeName = "protocol")]
-    public string Protocol { get; set; }
+    public string Protocol { get; set; } = null!;
 
     [XmlAttribute(AttributeName = "address")]
-    public string Address { get; set; }
+    public string Address { get; set; } = null!;
 
-    [XmlAttribute(AttributeName = "port")] public string Port { get; set; }
-    [XmlAttribute(AttributeName = "uri")] public string Uri { get; set; }
+    [XmlAttribute(AttributeName = "port")] public string Port { get; set; } = null!;
+    [XmlAttribute(AttributeName = "uri")] public string Uri { get; set; } = null!;
 
     [XmlAttribute(AttributeName = "local")]
-    public string Local { get; set; }
+    public string Local { get; set; } = null!;
 }

@@ -16,7 +16,7 @@ internal class SVR_Episode : Episode
         Helper = helper;
     }
 
-    public AnimeEpisode AnimeEpisode
+    public AnimeEpisode? AnimeEpisode
     {
         get
         {
@@ -38,7 +38,7 @@ internal class SVR_Episode : Episode
                 .GetAll()
                 .FirstOrDefault(location => location.Path?.EndsWith(filenameWithParent, StringComparison.OrdinalIgnoreCase) ?? false);
 
-            return file is null ? null : RepoFactory.AnimeEpisode.GetByHash(file.VideoLocal?.Hash).FirstOrDefault();
+            return file is null ? null : RepoFactory.AnimeEpisode.GetByHash(file.VideoLocal?.Hash!).FirstOrDefault();
 
         }
     }
