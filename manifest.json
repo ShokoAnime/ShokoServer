@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.417",
+      "tag": "v6.0.0-dev.417",
+      "commit": "d59d532dee9ed85e9488757a5606d4a7f76f0800",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.417/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-17T07:02:30Z",
+      "releaseNotes": "\n`chore` (`api`): **Tidy up controller route parameters and annotations (take 2)**:\n\n`processId`/`threadId` become `processID`/`threadID` across the logging\nquery parameters, the v3 and abstractions models, and the SignalR event.\nThe on-disk JSON keys keep their spelling - they are the log file's\nformat rather than an API surface.\n"
+    },
+    {
       "version": "6.0.0.416",
       "tag": "v6.0.0-dev.416",
       "commit": "cb78b1bdbb5894f133aa5104a8dc32c746f4e1b3",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.388/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-26T09:22:46Z",
       "releaseNotes": "\n`refactor` (`api`): **Rename release management controllers and flatten routes** ([#1396](https://github.com/ShokoAnime/ShokoServer/pull/1396)).\n"
-    },
-    {
-      "version": "6.0.0.387",
-      "tag": "v6.0.0-dev.387",
-      "commit": "4379c17cbc5868f0fcbc42dd1934b0920c1376f4",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.387/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-25T22:50:14Z",
-      "releaseNotes": "\n`fix` (`api`): **Filter release groups to only existing files in series file summary**:\n\n`Overview.ReleaseGroups` in the WebUI series file summary included\nrelease groups from all `StoredReleaseInfo` records for the anime,\nregardless of whether the corresponding files still existed on disk.\nFiltered the release groups to only those whose (ED2K, file size) key\nmatches a file with a valid physical location, matching the behavior of\n`StoredReleaseInfoRepository.GetUsedReleaseGroups()`.\n\n`fix` (`api`): **Persist new group before updating children in group manager**:\n\nWhen creating a new group via the group manager, the group was not\nsaved to the database before its children/series relationships were\nupdated, causing foreign key failures. Saved the group first when its\n`AnimeGroupID` is 0 (new entity).\n"
     }
   ]
 }
