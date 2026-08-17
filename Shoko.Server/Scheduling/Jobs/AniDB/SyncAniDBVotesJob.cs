@@ -83,7 +83,7 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
             if (vote is null && !userData.HasUserRating)
                 continue;
 
-            var voteType = vote!.VoteType is VoteType.AnimePermanent
+            var voteType = vote is { VoteType: VoteType.AnimePermanent }
                 ? SeriesVoteType.Permanent
                 : SeriesVoteType.Temporary;
             if (vote is null)
