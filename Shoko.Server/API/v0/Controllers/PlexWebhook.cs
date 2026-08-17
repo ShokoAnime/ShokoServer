@@ -218,10 +218,10 @@ public class PlexWebhook : BaseController
     }
 
     [Authorize("admin")]
-    [HttpGet("sync/{id:int}")]
-    public async Task<ActionResult> SyncForUser(int id)
+    [HttpGet("sync/{userID:int}")]
+    public async Task<ActionResult> SyncForUser(int userID)
     {
-        var user = RepoFactory.JMMUser.GetByID(id);
+        var user = RepoFactory.JMMUser.GetByID(userID);
         if (string.IsNullOrEmpty(user.PlexToken))
         {
             return BadRequest("Invalid User ID");
@@ -288,10 +288,10 @@ public class PlexWebhook : BaseController
 #if DEBUG
 
     [Authorize]
-    [HttpGet("libraries/{id}")]
-    public PlexLibrary[] GetShowsForDirectory(int id)
+    [HttpGet("libraries/{libraryID}")]
+    public PlexLibrary[] GetShowsForDirectory(int libraryID)
     {
-        return CallPlexHelper(h => ((SVR_Directory)h.GetDirectories().FirstOrDefault(d => d.Key == id))?.GetShows());
+        return CallPlexHelper(h => ((SVR_Directory)h.GetDirectories().FirstOrDefault(d => d.Key == libraryID))?.GetShows());
     }
 #endif
 

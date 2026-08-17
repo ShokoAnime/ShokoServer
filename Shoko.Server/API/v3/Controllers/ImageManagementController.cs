@@ -574,16 +574,16 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <summary>
     ///   Get an image cross-reference by its ID.
     /// </summary>
-    /// <param name="id">The cross-reference ID.</param>
+    /// <param name="xrefID">The cross-reference ID.</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
     /// <returns>The cross-reference if found, otherwise 404.</returns>
-    [HttpGet("CrossReference/{id:int}")]
+    [HttpGet("CrossReference/{xrefID:int}")]
     public ActionResult<ImageCrossReference> GetImageCrossReferenceByID(
-        [FromRoute, Range(1, int.MaxValue)] int id,
+        [FromRoute, Range(1, int.MaxValue)] int xrefID,
         [FromQuery] bool includeImage = false
     )
     {
-        var xref = imageManager.GetImageCrossReferenceByID(id);
+        var xref = imageManager.GetImageCrossReferenceByID(xrefID);
         if (xref is null)
             return NotFound(CrossReferenceNotFound);
         return new ImageCrossReference(xref, includeImage);
@@ -740,17 +740,17 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <summary>
     ///   Set an image cross-reference as the preferred image for its entity and type.
     /// </summary>
-    /// <param name="id">The cross-reference ID.</param>
+    /// <param name="xrefID">The cross-reference ID.</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
     /// <returns>The updated cross-reference.</returns>
     [Authorize("admin")]
-    [HttpPut("CrossReference/{id:int}/Preferred")]
+    [HttpPut("CrossReference/{xrefID:int}/Preferred")]
     public ActionResult<ImageCrossReference> SetPreferredImageForEntity(
-        [FromRoute, Range(1, int.MaxValue)] int id,
+        [FromRoute, Range(1, int.MaxValue)] int xrefID,
         [FromQuery] bool includeImage = false
     )
     {
-        var xref = imageManager.GetImageCrossReferenceByID(id);
+        var xref = imageManager.GetImageCrossReferenceByID(xrefID);
         if (xref is null)
             return NotFound(CrossReferenceNotFound);
         var updated = imageManager.SetPreferredImageForEntity(xref);
@@ -760,13 +760,13 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <summary>
     ///   Unset an image cross-reference as the preferred image for its entity and type.
     /// </summary>
-    /// <param name="id">The cross-reference ID.</param>
+    /// <param name="xrefID">The cross-reference ID.</param>
     /// <returns>No content.</returns>
     [Authorize("admin")]
-    [HttpDelete("CrossReference/{id:int}/Preferred")]
-    public ActionResult UnsetPreferredImageForEntity([FromRoute, Range(1, int.MaxValue)] int id)
+    [HttpDelete("CrossReference/{xrefID:int}/Preferred")]
+    public ActionResult UnsetPreferredImageForEntity([FromRoute, Range(1, int.MaxValue)] int xrefID)
     {
-        var xref = imageManager.GetImageCrossReferenceByID(id);
+        var xref = imageManager.GetImageCrossReferenceByID(xrefID);
         if (xref is null)
             return NotFound(CrossReferenceNotFound);
         if (!imageManager.UnsetPreferredImageForEntity(xref))

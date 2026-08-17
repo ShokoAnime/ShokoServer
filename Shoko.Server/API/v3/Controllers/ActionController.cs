@@ -95,15 +95,15 @@ public class ActionController : BaseController
     ///   a reason when the action's validation (or the caller's permission)
     ///   rejects the invocation.
     /// </summary>
-    /// <param name="actionId">Action ID.</param>
+    /// <param name="actionID">Action ID.</param>
     /// <param name="token">Cancellation token.</param>
-    [HttpPost("{actionId:guid}")]
-    public async Task<ActionResult> Invoke([FromRoute] Guid actionId, CancellationToken token)
+    [HttpPost("{actionID:guid}")]
+    public async Task<ActionResult> Invoke([FromRoute] Guid actionID, CancellationToken token)
     {
-        if (_actionService.GetActionInfo(actionId) is null)
+        if (_actionService.GetActionInfo(actionID) is null)
             return NotFound("Action not found.");
 
-        var validation = await _actionService.InvokeAsync(actionId, User, token);
+        var validation = await _actionService.InvokeAsync(actionID, User, token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 
@@ -420,7 +420,7 @@ public class ActionController : BaseController
             .Where(file => !file.IsEmpty() && file.MediaInfo != null)
             .Select(file => (Video: file, AniDB: file.ReleaseInfo))
             .Where(tuple => tuple.AniDB is { ProviderName: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
-            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.Path, tuple.Video))
+            .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.Path!, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
             .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
         foreach (var (fileId, filePath) in mismatchedFiles)

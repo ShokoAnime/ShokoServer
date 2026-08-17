@@ -187,14 +187,14 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// <summary>
     /// Get the current configuration with the given id.
     /// </summary>
-    /// <param name="id">Configuration id</param>
+    /// <param name="configID">Configuration id</param>
     /// <returns></returns>
     [Produces("application/json")]
-    [HttpGet("{id:guid}")]
-    public ActionResult GetConfiguration(Guid id)
+    [HttpGet("{configID:guid}")]
+    public ActionResult GetConfiguration(Guid configID)
     {
-        if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
-            return NotFound($"Configuration '{id}' not found!");
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
 
         try
         {
@@ -221,14 +221,14 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// <summary>
     /// Overwrite the contents of the configuration with the given id.
     /// </summary>
-    /// <param name="id">Configuration id</param>
+    /// <param name="configID">Configuration id</param>
     /// <param name="body">Configuration data</param>
     /// <returns></returns>
-    [HttpPut("{id:guid}")]
-    public ActionResult<ConfigurationActionResult> UpdateConfiguration(Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JToken body)
+    [HttpPut("{configID:guid}")]
+    public ActionResult<ConfigurationActionResult> UpdateConfiguration(Guid configID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JToken body)
     {
-        if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
-            return NotFound($"Configuration '{id}' not found!");
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
 
         try
         {
@@ -255,14 +255,14 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// <summary>
     /// Patches the configuration with the given id using a JSON patch document.
     /// </summary>
-    /// <param name="id">Configuration id</param>
+    /// <param name="configID">Configuration id</param>
     /// <param name="patchDocument">JSON patch document with operations to apply.</param>
     /// <returns></returns>
-    [HttpPatch("{id:guid}")]
-    public ActionResult<ConfigurationActionResult> PartiallyUpdateConfiguration(Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument patchDocument)
+    [HttpPatch("{configID:guid}")]
+    public ActionResult<ConfigurationActionResult> PartiallyUpdateConfiguration(Guid configID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument patchDocument)
     {
-        if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
-            return NotFound($"Configuration '{id}' not found!");
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
 
         try
         {
@@ -288,13 +288,13 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// <summary>
     /// Get the information about the current configuration with the given id.
     /// </summary>
-    /// <param name="id">Configuration id</param>
+    /// <param name="configID">Configuration id</param>
     /// <returns></returns>
-    [HttpGet("{id:guid}/Info")]
-    public ActionResult<ConfigurationInfo> GetConfigurationInfo(Guid id)
+    [HttpGet("{configID:guid}/Info")]
+    public ActionResult<ConfigurationInfo> GetConfigurationInfo(Guid configID)
     {
-        if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
-            return NotFound($"Configuration '{id}' not found!");
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
 
         return new ConfigurationInfo(configInfo);
     }
@@ -302,14 +302,14 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// <summary>
     /// Get the schema for the current configuration with the given id.
     /// </summary>
-    /// <param name="id">Configuration id</param>
+    /// <param name="configID">Configuration id</param>
     /// <returns></returns>
     [Produces("application/json")]
-    [HttpGet("{id:guid}/Schema")]
-    public ActionResult SchemaConfiguration(Guid id)
+    [HttpGet("{configID:guid}/Schema")]
+    public ActionResult SchemaConfiguration(Guid configID)
     {
-        if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
-            return NotFound($"Configuration '{id}' not found!");
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
 
         return Content(configurationService.GetSchema(configInfo), "application/json");
     }
@@ -320,16 +320,16 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     ///   defined by the configuration schema. If the configuration supports a
     ///   custom new factory, the result is further tailored to the current user.
     /// </summary>
-    /// <param name="id">Configuration id</param>
+    /// <param name="configID">Configuration id</param>
     /// <returns>
     ///   The default configuration object serialized as JSON.
     /// </returns>
     [Produces("application/json")]
-    [HttpGet("{id:guid}/Default")]
-    public ActionResult NewConfiguration(Guid id)
+    [HttpGet("{configID:guid}/Default")]
+    public ActionResult NewConfiguration(Guid configID)
     {
-        if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
-            return NotFound($"Configuration '{id}' not found!");
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
 
         var config = configurationService.New(configInfo);
         var json = configurationService.Serialize(config);
@@ -349,16 +349,16 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// <summary>
     /// Validate the configuration with the given id.
     /// </summary>
-    /// <param name="id">Configuration id</param>
+    /// <param name="configID">Configuration id</param>
     /// <param name="body">Configuration data</param>
     /// <returns></returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
-    [HttpPost("{id:guid}/Validate")]
-    public ActionResult<ConfigurationActionResult> ValidateConfiguration(Guid id, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JToken body)
+    [HttpPost("{configID:guid}/Validate")]
+    public ActionResult<ConfigurationActionResult> ValidateConfiguration(Guid configID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JToken body)
     {
-        if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
-            return NotFound($"Configuration '{id}' not found!");
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
 
         var json = body.ToString(Formatting.None, new StringEnumConverter());
         var errors = configurationService.Validate(configInfo, json);
@@ -379,16 +379,16 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// <summary>
     /// Perform an action on the configuration with the given id.
     /// </summary>
-    /// <param name="id">Configuration id</param>
+    /// <param name="configID">Configuration id</param>
     /// <param name="body">Optional. Configuration data to perform the action on.</param>
     /// <param name="actionName">Action to perform</param>
     /// <param name="path">Path to the configuration</param>
     /// <returns></returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
-    [HttpPost("{id:guid}/PerformAction")]
+    [HttpPost("{configID:guid}/PerformAction")]
     public ActionResult<ConfigurationActionResult> PerformActionOnConfiguration(
-        Guid id,
+        Guid configID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body,
         [FromQuery] string path = "",
         [FromQuery] string actionName = ""
@@ -397,8 +397,8 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         if (string.IsNullOrEmpty(actionName))
             return ValidationProblem("Missing 'actionName' parameter for custom action!", "actionName");
 
-        if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
-            return NotFound($"Configuration '{id}' not found!");
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
 
         try
         {
@@ -421,23 +421,23 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     /// <summary>
     /// Perform an action on the configuration with the given id.
     /// </summary>
-    /// <param name="id">Configuration id</param>
+    /// <param name="configID">Configuration id</param>
     /// <param name="body">Optional. Configuration data to perform the action on.</param>
     /// <param name="reactiveEventType">Reactive event type to perform the action on.</param>
     /// <param name="path">Path to the configuration</param>
     /// <returns></returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
-    [HttpPost("{id:guid}/LiveEdit")]
+    [HttpPost("{configID:guid}/LiveEdit")]
     public ActionResult<ConfigurationActionResult> PerformActionOnConfiguration(
-        Guid id,
+        Guid configID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JToken body,
         [FromQuery] ReactiveEventType reactiveEventType = ReactiveEventType.All,
         [FromQuery] string path = ""
     )
     {
-        if (configurationService.GetConfigurationInfo(id) is not { } configInfo)
-            return NotFound($"Configuration '{id}' not found!");
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
 
         try
         {

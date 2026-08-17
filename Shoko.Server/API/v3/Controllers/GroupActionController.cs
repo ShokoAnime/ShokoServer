@@ -12,7 +12,7 @@ using Shoko.Server.Services;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/Group/{groupId:int}/Action")]
+[Route("/api/v{version:apiVersion}/Group/{groupID:int}/Action")]
 [ApiV3]
 [Authorize]
 public class GroupActionController(ActionService actionService, AnimeGroupRepository groups, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
@@ -24,12 +24,12 @@ public class GroupActionController(ActionService actionService, AnimeGroupReposi
     ///   the action's validation (or the caller's permission) rejects the
     ///   invocation.
     /// </summary>
-    /// <param name="groupId">Group ID.</param>
+    /// <param name="groupID">Group ID.</param>
     /// <param name="actionId">Action ID.</param>
     /// <param name="token">Cancellation token.</param>
     [HttpPost("{actionId:guid}")]
     public async Task<ActionResult> Invoke(
-        [FromRoute, Range(1, int.MaxValue)] int groupId,
+        [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] Guid actionId,
         CancellationToken token
     )
@@ -37,7 +37,7 @@ public class GroupActionController(ActionService actionService, AnimeGroupReposi
         if (actionService.GetActionInfo(actionId) is null)
             return NotFound("Action not found.");
 
-        var groupEntity = groups.GetByID(groupId);
+        var groupEntity = groups.GetByID(groupID);
         if (groupEntity is null)
             return NotFound("Group not found.");
 

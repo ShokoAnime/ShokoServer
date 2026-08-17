@@ -12,7 +12,7 @@ using Shoko.Server.Services;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/Episode/{episodeId:int}/Action")]
+[Route("/api/v{version:apiVersion}/Episode/{episodeID:int}/Action")]
 [ApiV3]
 [Authorize]
 public class EpisodeActionController(ActionService actionService, AnimeEpisodeRepository episodes, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
@@ -24,24 +24,24 @@ public class EpisodeActionController(ActionService actionService, AnimeEpisodeRe
     ///   the action's validation (or the caller's permission) rejects the
     ///   invocation.
     /// </summary>
-    /// <param name="episodeId">Episode ID.</param>
-    /// <param name="actionId">Action ID.</param>
+    /// <param name="episodeID">Episode ID.</param>
+    /// <param name="actionID">Action ID.</param>
     /// <param name="token">Cancellation token.</param>
-    [HttpPost("{actionId:guid}")]
+    [HttpPost("{actionID:guid}")]
     public async Task<ActionResult> Invoke(
-        [FromRoute, Range(1, int.MaxValue)] int episodeId,
-        [FromRoute] Guid actionId,
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromRoute] Guid actionID,
         CancellationToken token
     )
     {
-        if (actionService.GetActionInfo(actionId) is null)
+        if (actionService.GetActionInfo(actionID) is null)
             return NotFound("Action not found.");
 
-        var episodeEntity = episodes.GetByID(episodeId);
+        var episodeEntity = episodes.GetByID(episodeID);
         if (episodeEntity is null)
             return NotFound("Episode not found.");
 
-        var validation = await actionService.InvokeAsync(actionId, episodeEntity, User, token);
+        var validation = await actionService.InvokeAsync(actionID, episodeEntity, User, token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 }

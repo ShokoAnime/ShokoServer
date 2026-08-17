@@ -76,12 +76,12 @@ public class DebugController : BaseController
     /// <summary>
     /// Fetch a specific AniDB message by the provided ID.
     /// </summary>
-    /// <param name="id">Message ID</param>
+    /// <param name="messageID">Message ID</param>
     /// <returns></returns>
-    [HttpGet("FetchAniDBMessage/{id}")]
-    public async Task<ActionResult> FetchAniDBMessage(int id)
+    [HttpGet("FetchAniDBMessage/{messageID}")]
+    public async Task<ActionResult> FetchAniDBMessage(int messageID)
     {
-        await _scheduler.StartJob<GetAniDBMessageJob>(r => r.MessageID = id, prioritize: true).ConfigureAwait(false);
+        await _scheduler.StartJob<GetAniDBMessageJob>(r => r.MessageID = messageID, prioritize: true).ConfigureAwait(false);
         return Ok();
     }
 

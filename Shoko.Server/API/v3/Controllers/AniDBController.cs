@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.API.Annotations;
@@ -74,12 +75,12 @@ public class AniDBController(
     /// <summary>
     /// Get an anidb release group by id.
     /// </summary>
-    /// <param name="id">The release group id.</param>
+    /// <param name="groupID">The release group id.</param>
     /// <returns></returns>
-    [HttpGet("ReleaseGroup/{id}")]
-    public ActionResult<ReleaseGroup> GetReleaseGroup(int id)
+    [HttpGet("ReleaseGroup/{groupID}")]
+    public ActionResult<ReleaseGroup> GetReleaseGroup(int groupID)
     {
-        if (storedReleaseInfos.GetByGroupAndProviderIDs(id.ToString(), "AniDB") is not IReleaseInfo { Group.Source: "AniDB" } releaseInfo)
+        if (storedReleaseInfos.GetByGroupAndProviderIDs(groupID.ToString(), "AniDB") is not IReleaseInfo { Group.Source: "AniDB" } releaseInfo)
             return NotFound();
 
         return new ReleaseGroup(releaseInfo.Group);
@@ -100,7 +101,7 @@ public class AniDBController(
     {
         if (!string.IsNullOrEmpty(query))
             return anidbCreators.GetAll()
-                .Search(query, c => [c.Name, c.OriginalName])
+                .Search(query, c => new string?[] { c.Name, c.OriginalName }.WhereNotNull())
                 .ToListResult(c => new AnidbCreator(c.Result), page, pageSize);
 
         return anidbCreators.GetAll()
@@ -110,12 +111,12 @@ public class AniDBController(
     /// <summary>
     /// Get an anidb creator by id.
     /// </summary>
-    /// <param name="id">The creator id.</param>
+    /// <param name="creatorID">The creator id.</param>
     /// <returns></returns>
-    [HttpGet("Creator/{id}")]
-    public ActionResult<AnidbCreator> GetCreator(int id)
+    [HttpGet("Creator/{creatorID}")]
+    public ActionResult<AnidbCreator> GetCreator(int creatorID)
     {
-        var creator = anidbCreators.GetByCreatorID(id);
+        var creator = anidbCreators.GetByCreatorID(creatorID);
         if (creator == null)
             return NotFound();
 
@@ -163,12 +164,12 @@ public class AniDBController(
     /// <summary>
     /// Get an anidb character by id.
     /// </summary>
-    /// <param name="id">The character id.</param>
+    /// <param name="characterID">The character id.</param>
     /// <returns></returns>
-    [HttpGet("Character/{id}")]
-    public ActionResult<AnidbCharacter> GetCharacter(int id)
+    [HttpGet("Character/{characterID}")]
+    public ActionResult<AnidbCharacter> GetCharacter(int characterID)
     {
-        var character = anidbCharacters.GetByCharacterID(id);
+        var character = anidbCharacters.GetByCharacterID(characterID);
         if (character == null)
             return NotFound();
 
