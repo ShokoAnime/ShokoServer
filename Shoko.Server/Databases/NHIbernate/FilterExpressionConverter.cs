@@ -19,17 +19,17 @@ public class FilterExpressionConverter : TypeConverter, IUserType
 {
     private static readonly ISerializationBinder _binder = new SimpleNameSerializationBinder(typeof(FilterExpression));
 
-    public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+    public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
     {
         return typeof(FilterExpression<bool>).IsAssignableFrom(sourceType);
     }
 
-    public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
+    public override bool CanConvertTo(ITypeDescriptorContext? context, Type? destinationType)
     {
         return destinationType == typeof(string);
     }
 
-    public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture,
+    public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture,
         object value)
     {
         var s = value as string ?? throw new ArgumentException("Can only convert from string");
@@ -59,8 +59,8 @@ public class FilterExpressionConverter : TypeConverter, IUserType
     /// </returns>
     /// <exception cref="T:System.ArgumentNullException">The <paramref name="destinationType"/> parameter is <see langword="null"/>.</exception>
     /// <exception cref="T:System.NotSupportedException">The conversion could not be performed.</exception>
-    public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture,
-        object value, Type destinationType)
+    public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture,
+        object? value, Type destinationType)
     {
         if (value == null) return null;
         return JsonConvert.SerializeObject(value, new JsonSerializerSettings
@@ -80,7 +80,7 @@ public class FilterExpressionConverter : TypeConverter, IUserType
     /// <returns>
     /// An <see cref="T:System.Object"/> of type bool. It always returns 'true' for this converter.
     /// </returns>
-    public override object CreateInstance(ITypeDescriptorContext context, IDictionary propertyValues)
+    public override object CreateInstance(ITypeDescriptorContext? context, IDictionary propertyValues)
     {
         return true;
     }
@@ -152,10 +152,10 @@ public class FilterExpressionConverter : TypeConverter, IUserType
     /// <param name="owner">the containing entity</param>
     /// <returns></returns>
     /// <exception cref="T:HibernateException">HibernateException</exception>
-    public object NullSafeGet(DbDataReader rs, string[] names, ISessionImplementor impl, object owner)
+    public object? NullSafeGet(DbDataReader rs, string[] names, ISessionImplementor impl, object owner)
     {
         var rawValue = NHibernateUtil.String.NullSafeGet(rs, names[0], impl);
-        return rawValue == null ? null : ConvertFrom(null!, null!, rawValue);
+        return rawValue == null ? null : ConvertFrom(null, null, rawValue);
     }
 
     /// <summary>

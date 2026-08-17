@@ -36,7 +36,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     private static string GetDatabaseFilePath()
         => Path.Combine(DatabasePath, ISettingsProvider.Instance.GetSettings().Database.SQLite_DatabaseFile);
 
-    private static string _databasePath;
+    private static string? _databasePath;
 
     private static string DatabasePath
     {
@@ -53,16 +53,16 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         }
     }
 
-    protected override Tuple<bool, string> ExecuteCommand(SqliteConnection connection, string command)
+    protected override Tuple<bool, string?> ExecuteCommand(SqliteConnection connection, string command)
     {
         try
         {
             Execute(connection, command);
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
         catch (Exception ex)
         {
-            return new Tuple<bool, string>(false, ex.ToString());
+            return new Tuple<bool, string?>(false, ex.ToString());
         }
     }
 
@@ -81,7 +81,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     protected override long ExecuteScalar(SqliteConnection connection, string command)
     {
         using var sqCommand = new SqliteCommand(command, connection) { CommandTimeout = 0 };
-        return long.Parse(sqCommand.ExecuteScalar().ToString());
+        return long.Parse(sqCommand.ExecuteScalar()!.ToString()!);
     }
 
     protected override List<object[]> ExecuteReader(SqliteConnection connection, string command)
@@ -950,12 +950,12 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
 
     #region Tables | SQLite Helpers
 
-    private static Tuple<bool, string> DropLanguage(object connection)
+    private static Tuple<bool, string?> DropLanguage(object connection)
     {
         try
         {
             var myConn = (SqliteConnection)connection;
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
 
             var addCommand = "ALTER TABLE CrossRef_Languages_AniDB_File ADD LanguageName TEXT NOT NULL DEFAULT '';";
             var updateCommand = "UPDATE CrossRef_Languages_AniDB_File SET LanguageName = l.LanguageName FROM CrossRef_Languages_AniDB_File c INNER JOIN Language l ON l.LanguageID = c.LanguageID WHERE c.LanguageName = '';";
@@ -978,17 +978,17 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
 
-        return new Tuple<bool, string>(true, null);
+        return new Tuple<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> DropAniDB_AnimeColumns(object connection)
+    private static Tuple<bool, string?> DropAniDB_AnimeColumns(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Anime",
@@ -1046,17 +1046,17 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
 
-        return new Tuple<bool, string>(true, null);
+        return new Tuple<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> DropAniDB_Anime_CharacterColumns(object connection)
+    private static Tuple<bool, string?> DropAniDB_Anime_CharacterColumns(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Anime_Character",
@@ -1078,17 +1078,17 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
 
-        return new Tuple<bool, string>(true, null);
+        return new Tuple<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> DropAniDB_CharacterColumns(object connection)
+    private static Tuple<bool, string?> DropAniDB_CharacterColumns(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Character",
@@ -1110,17 +1110,17 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
 
-        return new Tuple<bool, string>(true, null);
+        return new Tuple<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> AlterAniDB_GroupStatus(object connection)
+    private static Tuple<bool, string?> AlterAniDB_GroupStatus(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.Execute((SqliteConnection)connection, [
                 "ALTER TABLE AniDB_GroupStatus RENAME TO AniDB_GroupStatus_old;",
                 "CREATE TABLE AniDB_GroupStatus ( AniDB_GroupStatusID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, GroupID INTEGER NOT NULL, GroupName TEXT NOT NULL, CompletionState INTEGER NOT NULL, LastEpisodeNumber INTEGER NOT NULL, Rating decimal(6,2) NOT NULL, Votes INTEGER NOT NULL, EpisodeRange TEXT NOT NULL ); ",
@@ -1134,17 +1134,17 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
 
-        return new Tuple<bool, string>(true, null);
+        return new Tuple<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> DropAniDB_FileColumns(object connection)
+    private static Tuple<bool, string?> DropAniDB_FileColumns(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_File",
@@ -1193,17 +1193,17 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
 
-        return new Tuple<bool, string>(true, null);
+        return new Tuple<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> DropAnimeEpisode_UserColumns(object connection)
+    private static Tuple<bool, string?> DropAnimeEpisode_UserColumns(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AnimeEpisode_User",
@@ -1228,17 +1228,17 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
 
-        return new Tuple<bool, string>(true, null);
+        return new Tuple<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> DropVideoLocal_Media(object connection)
+    private static Tuple<bool, string?> DropVideoLocal_Media(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "VideoLocal",
@@ -1275,19 +1275,19 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                     "CREATE UNIQUE INDEX UIX2_VideoLocal_Hash on VideoLocal(Hash)",
                 ]
             );
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
     }
 
-    private static Tuple<bool, string> DropAniDB_EpisodeTitles(object connection)
+    private static Tuple<bool, string?> DropAniDB_EpisodeTitles(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Episode",
@@ -1312,19 +1312,19 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                     "CREATE UNIQUE INDEX UIX_AniDB_Episode_EpisodeID on AniDB_Episode (EpisodeID)",
                 ]
             );
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
     }
 
-    private static Tuple<bool, string> RenameCrossRef_AniDB_TvDB_Episode(object connection)
+    private static Tuple<bool, string?> RenameCrossRef_AniDB_TvDB_Episode(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.Execute((SqliteConnection)connection, [
                 """
                     CREATE TABLE CrossRef_AniDB_TvDB_Episode_Override(
@@ -1337,19 +1337,19 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                 "INSERT INTO CrossRef_AniDB_TvDB_Episode_Override ( AniDBEpisodeID, TvDBEpisodeID ) SELECT AniDBEpisodeID, TvDBEpisodeID FROM CrossRef_AniDB_TvDB_Episode; ",
                 "DROP TABLE CrossRef_AniDB_TvDB_Episode;"
             ]);
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
     }
 
-    private static Tuple<bool, string> DropAniDB_AnimeAllCategories(object connection)
+    private static Tuple<bool, string?> DropAniDB_AnimeAllCategories(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "AniDB_Anime",
@@ -1395,19 +1395,19 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                     "CREATE UNIQUE INDEX [UIX2_AniDB_Anime_AnimeID] ON [AniDB_Anime] ([AnimeID]);",
                 ]
             );
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
     }
 
-    private static Tuple<bool, string> DropVideoLocalColumns(object connection)
+    private static Tuple<bool, string?> DropVideoLocalColumns(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "VideoLocal",
@@ -1443,19 +1443,19 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                     "CREATE UNIQUE INDEX UIX2_VideoLocal_Hash on VideoLocal(Hash)"
                 ]
             );
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
     }
 
-    private static Tuple<bool, string> DropTvDB_EpisodeFirstAiredColumn(object connection)
+    private static Tuple<bool, string?> DropTvDB_EpisodeFirstAiredColumn(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.DropColumns(
                 (SqliteConnection)connection,
                 "TvDB_Episode",
@@ -1484,19 +1484,19 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                     "CREATE UNIQUE INDEX UIX_TvDB_Episode_Id ON TvDB_Episode(Id);",
                 ]
             );
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
     }
 
-    private static Tuple<bool, string> AlterVideoLocalUser(object connection)
+    private static Tuple<bool, string?> AlterVideoLocalUser(object connection)
     {
         try
         {
-            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
             factory.Alter(
                 (SqliteConnection)connection,
                 "VideoLocal_User",
@@ -1513,15 +1513,15 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                     "CREATE UNIQUE INDEX UIX2_VideoLocal_User_User_VideoLocalID ON VideoLocal_User(JMMUserID, VideoLocalID);",
                 ]
             );
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
         catch (Exception e)
         {
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
     }
 
-    private void DropColumns(SqliteConnection db, string tableName, IReadOnlyList<string> colsToRemove, string createCommand, IReadOnlyList<string> indexCommands = null)
+    private void DropColumns(SqliteConnection db, string tableName, IReadOnlyList<string> colsToRemove, string createCommand, IReadOnlyList<string>? indexCommands = null)
     {
         indexCommands ??= [];
         var columnsSeparated = GetTableColumns(db, tableName)
@@ -1560,7 +1560,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         }
     }
 
-    private void Alter(SqliteConnection db, string tableName, string createCommand, IReadOnlyList<string> indexCommands = null)
+    private void Alter(SqliteConnection db, string tableName, string createCommand, IReadOnlyList<string>? indexCommands = null)
     {
         indexCommands ??= [];
         var columnsSeparated = GetTableColumns(db, tableName).Join(',');

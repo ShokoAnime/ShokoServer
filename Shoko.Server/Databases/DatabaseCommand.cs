@@ -6,9 +6,9 @@ public class DatabaseCommand
 {
     public int Version { get; }
     public int Revision { get; }
-    public string Command { get; }
-    public Func<object, Tuple<bool, string>> UpdateCommand { get; }
-    public Action DatabaseFix { get; }
+    public string? Command { get; }
+    public Func<object, Tuple<bool, string?>>? UpdateCommand { get; }
+    public Action? DatabaseFix { get; }
 
     public DatabaseCommandType Type
     {
@@ -42,14 +42,14 @@ public class DatabaseCommand
         DatabaseFix = databaseFix;
     }
 
-    public DatabaseCommand(int version, int revision, Func<object, Tuple<bool, string>> updateCommand = null)
+    public DatabaseCommand(int version, int revision, Func<object, Tuple<bool, string?>>? updateCommand = null)
     {
         Version = version;
         Revision = revision;
         UpdateCommand = updateCommand ?? DatabaseFixes.NoOperation;
     }
 
-    public DatabaseCommand(Func<object, Tuple<bool, string>> updateCommand)
+    public DatabaseCommand(Func<object, Tuple<bool, string?>> updateCommand)
     {
         UpdateCommand = updateCommand;
     }
@@ -73,7 +73,7 @@ public class DatabaseCommand
                 return "[" + DatabaseFix.Method.Name + "]";
             }
 
-            return Command;
+            return Command!;
         }
     }
 }

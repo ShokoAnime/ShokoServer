@@ -63,16 +63,16 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         return false;
     }
 
-    protected override Tuple<bool, string> ExecuteCommand(MySqlConnection connection, string command)
+    protected override Tuple<bool, string?> ExecuteCommand(MySqlConnection connection, string command)
     {
         try
         {
             Execute(connection, command);
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
         catch (Exception ex)
         {
-            return new Tuple<bool, string>(false, ex.ToString());
+            return new Tuple<bool, string?>(false, ex.ToString());
         }
     }
 
@@ -88,7 +88,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         using var cmd = new MySqlCommand(command, connection);
         cmd.CommandTimeout = 0;
         var result = cmd.ExecuteScalar();
-        return long.Parse(result.ToString());
+        return long.Parse(result!.ToString()!);
     }
 
     protected override List<object[]> ExecuteReader(MySqlConnection connection, string command)
@@ -151,7 +151,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         using var conn = new MySqlConnection(connStr);
         var com = new MySqlCommand(sql, conn);
         conn.Open();
-        var count = (long)com.ExecuteScalar();
+        var count = (long)com.ExecuteScalar()!;
         return count > 0;
     }
 
@@ -1272,14 +1272,14 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
             $"WHERE table_schema = '{settings.Database.Schema}' " +
             "AND collation_name != 'utf8mb4_unicode_ci'";
         using var conn = new MySqlConnection(ConnectionString);
-        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
         conn.Open();
         var rows = mySQL.ExecuteReader(conn, sql);
         if (rows.Count > 0)
         {
             foreach (var row in rows)
             {
-                var alter = row[3].ToString().ToLowerInvariant() switch
+                var alter = row[3].ToString()!.ToLowerInvariant() switch
                 {
                     "text" or
                     "mediumtext" or
@@ -1292,7 +1292,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         }
     }
 
-    private static Tuple<bool, string> MySQLFixUTF8MB4(object connection)
+    private static Tuple<bool, string?> MySQLFixUTF8MB4(object connection)
     {
         var settings = ISettingsProvider.Instance.GetSettings();
         var sql =
@@ -1301,13 +1301,13 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
             $"WHERE table_schema = '{settings.Database.Schema}' " +
             "AND collation_name IN ('utf8_general_ci', 'utf8mb3_general_ci')";
         var conn = (MySqlConnection)connection;
-        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
         var rows = mySQL.ExecuteReader(conn, sql);
         if (rows.Count > 0)
         {
             foreach (var row in rows)
             {
-                var alter = row[3].ToString().ToLowerInvariant() switch
+                var alter = row[3].ToString()!.ToLowerInvariant() switch
                 {
                     "text" or
                     "mediumtext" or
@@ -1318,17 +1318,17 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
                 mySQL.Execute(conn, alter);
             }
         }
-        return new Tuple<bool, string>(true, null);
+        return new Tuple<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> SetDefaultCollationToUTF8MB4(object connection)
+    private static Tuple<bool, string?> SetDefaultCollationToUTF8MB4(object connection)
     {
         var settings = ISettingsProvider.Instance.GetSettings();
 
         var conn = (MySqlConnection)connection;
-        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+        var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
         mySQL.Execute(conn, $"ALTER DATABASE `{settings.Database.Schema}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
-        return new Tuple<bool, string>(true, null);
+        return new Tuple<bool, string?>(true, null);
     }
 
     #endregion

@@ -15,7 +15,7 @@ namespace Shoko.Server.Databases.NHibernate;
 
 public class TitleLanguageConverter : TypeConverter, IUserType
 {
-    public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+    public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
     {
         // any integer type is accepted. No fractional types like float/double.
         return sourceType.FullName switch
@@ -25,10 +25,10 @@ public class TitleLanguageConverter : TypeConverter, IUserType
         };
     }
 
-    public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
+    public override bool CanConvertTo(ITypeDescriptorContext? context, Type? destinationType)
     {
         // any integer type is accepted. No fractional types like float/double.
-        switch (destinationType.FullName)
+        switch (destinationType!.FullName)
         {
             case "System.String":
             case "System.Int32":
@@ -39,7 +39,7 @@ public class TitleLanguageConverter : TypeConverter, IUserType
         }
     }
 
-    public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture,
+    public override object ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture,
         object value)
     {
         return value switch
@@ -64,8 +64,8 @@ public class TitleLanguageConverter : TypeConverter, IUserType
     /// </returns>
     /// <exception cref="T:System.ArgumentNullException">The <paramref name="destinationType"/> parameter is <see langword="null"/>.</exception>
     /// <exception cref="T:System.NotSupportedException">The conversion could not be performed.</exception>
-    public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture,
-        object value, Type destinationType)
+    public override object ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture,
+        object? value, Type destinationType)
     {
         if (value == null)
         {
@@ -95,7 +95,7 @@ public class TitleLanguageConverter : TypeConverter, IUserType
     /// <returns>
     /// An <see cref="T:System.Object"/> of type bool. It always returns 'true' for this converter.
     /// </returns>
-    public override object CreateInstance(ITypeDescriptorContext context, IDictionary propertyValues)
+    public override object CreateInstance(ITypeDescriptorContext? context, IDictionary propertyValues)
     {
         return true;
     }
@@ -167,10 +167,10 @@ public class TitleLanguageConverter : TypeConverter, IUserType
     /// <param name="owner">the containing entity</param>
     /// <returns></returns>
     /// <exception cref="T:HibernateException">HibernateException</exception>
-    public object NullSafeGet(DbDataReader rs, string[] names, ISessionImplementor impl, object owner)
+    public object? NullSafeGet(DbDataReader rs, string[] names, ISessionImplementor impl, object owner)
     {
         var rawValue = NHibernateUtil.String.NullSafeGet(rs, names[0], impl);
-        return rawValue == null ? null : ConvertFrom(null!, null!, rawValue);
+        return rawValue == null ? null : ConvertFrom(null, null, rawValue);
     }
 
     /// <summary>

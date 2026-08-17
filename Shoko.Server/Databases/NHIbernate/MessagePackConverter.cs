@@ -19,17 +19,17 @@ namespace Shoko.Server.Databases.NHibernate;
 
 public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
 {
-    public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
+    public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType)
     {
         return typeof(T).IsAssignableFrom(sourceType);
     }
 
-    public override bool CanConvertTo(ITypeDescriptorContext context, Type destinationType)
+    public override bool CanConvertTo(ITypeDescriptorContext? context, Type? destinationType)
     {
         return destinationType == typeof(byte[]) || destinationType == typeof(MessagePackConverter<T>);
     }
 
-    public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture,
+    public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture,
         object value)
     {
         var s = value as byte[] ?? throw new ArgumentException("Can only convert from byte[]");
@@ -59,8 +59,8 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
     /// </returns>
     /// <exception cref="T:System.ArgumentNullException">The <paramref name="destinationType"/> parameter is <see langword="null"/>.</exception>
     /// <exception cref="T:System.NotSupportedException">The conversion could not be performed.</exception>
-    public override object ConvertTo(ITypeDescriptorContext context, CultureInfo culture,
-        object value, Type destinationType)
+    public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture,
+        object? value, Type destinationType)
     {
         if (value == null) return null;
         try
@@ -85,7 +85,7 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
     /// <returns>
     /// An <see cref="T:System.Object"/> of type bool. It always returns 'true' for this converter.
     /// </returns>
-    public override object CreateInstance(ITypeDescriptorContext context, IDictionary propertyValues)
+    public override object CreateInstance(ITypeDescriptorContext? context, IDictionary propertyValues)
     {
         return true;
     }
@@ -157,10 +157,10 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
     /// <param name="owner">the containing entity</param>
     /// <returns></returns>
     /// <exception cref="T:HibernateException">HibernateException</exception>
-    public object NullSafeGet(DbDataReader rs, string[] names, ISessionImplementor impl, object owner)
+    public object? NullSafeGet(DbDataReader rs, string[] names, ISessionImplementor impl, object owner)
     {
         var rawValue = NHibernateUtil.BinaryBlob.NullSafeGet(rs, names[0], impl);
-        return rawValue == null ? null : ConvertFrom(null!, null!, rawValue);
+        return rawValue == null ? null : ConvertFrom(null, null, rawValue);
     }
 
     /// <summary>

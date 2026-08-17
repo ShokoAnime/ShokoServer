@@ -60,7 +60,7 @@ public class DatabaseFixes
 {
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-    public static Tuple<bool, string> NoOperation(object connection) { return new Tuple<bool, string>(true, null); }
+    public static Tuple<bool, string?> NoOperation(object connection) { return new Tuple<bool, string?>(true, null); }
 
     public static void UpdateAllStats()
     {
@@ -113,7 +113,7 @@ public class DatabaseFixes
                 InvisibleInClients = (int)fields[7]
             };
             var conditions = JsonConvert.DeserializeObject<List<CL_GroupFilterCondition>>((string)fields[8]);
-            filters[filter] = conditions;
+            filters[filter] = conditions!;
         }
 
         var idMappings = new Dictionary<int, int>();
@@ -125,19 +125,19 @@ public class DatabaseFixes
             idMappings[key.GroupFilterID] = filter.FilterPresetID;
         }
 
-        var filtersToProcess = filters.Keys.Where(a => !idMappings.ContainsKey(a.GroupFilterID) && idMappings.ContainsKey(a.ParentGroupFilterID.Value))
+        var filtersToProcess = filters.Keys.Where(a => !idMappings.ContainsKey(a.GroupFilterID) && idMappings.ContainsKey(a.ParentGroupFilterID!.Value))
             .ToList();
         while (filtersToProcess.Count > 0)
         {
             foreach (var key in filtersToProcess)
             {
                 var filter = legacyConverter.FromLegacy(key, filters[key]);
-                filter.ParentFilterPresetID = idMappings[key.ParentGroupFilterID.Value];
+                filter.ParentFilterPresetID = idMappings[key.ParentGroupFilterID!.Value];
                 RepoFactory.FilterPreset.Save(filter);
                 idMappings[key.GroupFilterID] = filter.FilterPresetID;
             }
 
-            filtersToProcess = filters.Keys.Where(a => !idMappings.ContainsKey(a.GroupFilterID) && idMappings.ContainsKey(a.ParentGroupFilterID.Value))
+            filtersToProcess = filters.Keys.Where(a => !idMappings.ContainsKey(a.GroupFilterID) && idMappings.ContainsKey(a.ParentGroupFilterID!.Value))
                 .ToList();
         }
     }
@@ -285,7 +285,7 @@ public class DatabaseFixes
             {
                 // Check if the episode user record contains the same date and only update it if it does not.
                 if (!episodeUserRecord.WatchedDate.HasValue ||
-                    !episodeUserRecord.WatchedDate.Value.Equals(fileUserRecord.WatchedDate.Value))
+                    !episodeUserRecord.WatchedDate.Value.Equals(fileUserRecord.WatchedDate!.Value))
                 {
                     episodeUserRecord.WatchedDate = fileUserRecord.WatchedDate;
                     if (episodeUserRecord.WatchedCount == 0)
@@ -338,7 +338,7 @@ public class DatabaseFixes
         }
 
         var groupService = ISystemService.StaticServices.GetRequiredService<AnimeGroupService>();
-        var groups = seriesList.Select(a => a.Item1.AnimeGroup).WhereNotNull().DistinctBy(a => a.AnimeGroupID);
+        var groups = seriesList.Select(a => a.Item1!.AnimeGroup).WhereNotNull().DistinctBy(a => a.AnimeGroupID);
         foreach (var group in groups)
         {
             groupService.UpdateStatsFromTopLevel(group, true, true);
@@ -368,7 +368,7 @@ public class DatabaseFixes
             ResponseGetAnime response;
             try
             {
-                response = animeParser.Parse(anime.AnimeID, xml);
+                response = animeParser.Parse(anime.AnimeID, xml)!;
                 if (response is null) throw new NullReferenceException(nameof(response));
             }
             catch (Exception e)
@@ -470,7 +470,7 @@ public class DatabaseFixes
             ResponseGetAnime response;
             try
             {
-                response = animeParser.Parse(anime.AnimeID, xml);
+                response = animeParser.Parse(anime.AnimeID, xml)!;
                 if (response is null) throw new NullReferenceException(nameof(response));
             }
             catch (Exception e)
@@ -734,7 +734,7 @@ public class DatabaseFixes
             ResponseGetAnime response;
             try
             {
-                response = animeParser.Parse(anime.AnimeID, xml);
+                response = animeParser.Parse(anime.AnimeID, xml)!;
                 if (response is null) throw new NullReferenceException(nameof(response));
             }
             catch (Exception e)
@@ -1170,7 +1170,7 @@ public class DatabaseFixes
 
                 storedReleaseInfo.ID = $"{AnidbReleaseProvider.IdPrefix}{ed2k}+{fileSize}";
                 storedReleaseInfo.ProviderName = anidbProvider.Name;
-                storedReleaseInfo.ReleaseURI = $"{AnidbReleaseProvider.ReleasePrefix}{anidbFile.FileID}";
+                storedReleaseInfo.ReleaseURI = $"{AnidbReleaseProvider.ReleasePrefix}{anidbFile!.FileID}";
                 storedReleaseInfo.Version = anidbFile.FileVersion;
                 storedReleaseInfo.Comment = string.IsNullOrEmpty(anidbFile.File_Description) ? null : anidbFile.File_Description;
                 storedReleaseInfo.OriginalFilename = anidbFile.FileName;
@@ -1255,11 +1255,11 @@ public class DatabaseFixes
         session.CreateSQLQuery("ALTER TABLE VideoLocal DROP COLUMN CRC32;").ExecuteUpdate();
     }
 
-    private static string _defaultScriptName = null;
+    private static string? _defaultScriptName = null;
 
-    public static Tuple<bool, string> MigrateRenamers(object _)
+    public static Tuple<bool, string?> MigrateRenamers(object _)
     {
-        var factory = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance;
+        var factory = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
         var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
         var renamerService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
         var sessionFactory = factory.CreateSessionFactory();
@@ -1271,12 +1271,12 @@ public class DatabaseFixes
             const string SelectCommand2 = "SELECT Name, Type, Settings FROM RenamerInstance;";
             const string InsertCommand = "INSERT INTO StoredRelocationPipe (ProviderID, Name, Configuration) VALUES (:ProviderID, :Name, :Configuration);";
             const string DropCommand = "DROP TABLE IF EXISTS RenameScript; DROP TABLE IF EXISTS RenamerInstance;";
-            string defaultName = null;
+            string? defaultName = null;
             var rawPresets = new List<StoredRelocationPreset>();
             var webAomRenamer = renamerService.GetProviderInfo<WebAOMRenamer>();
             var renamersByKey = renamerService.GetAvailableProviders()
                 .Where(a => a.Provider.GetType().FullName is { Length: > 0 })
-                .ToDictionary(a => a.Provider.GetType().FullName);
+                .ToDictionary(a => a.Provider.GetType().FullName!);
             var defaultRenamerConfigName = SettingsMigrations.MigratedDefaultRenamer;
             try
             {
@@ -1325,7 +1325,7 @@ public class DatabaseFixes
                                         }
                                     )
                                 );
-                                rawPresets.Add(new() { Name = renamerScript.ScriptName, ProviderID = providerInfo.ID, Configuration = configuration, IsDefault = renamerScript.ScriptName == defaultRenamerConfigName });
+                                rawPresets.Add(new() { Name = renamerScript.ScriptName, ProviderID = providerInfo!.ID, Configuration = configuration, IsDefault = renamerScript.ScriptName == defaultRenamerConfigName });
                                 continue;
                             }
 
@@ -1478,10 +1478,10 @@ public class DatabaseFixes
         catch (Exception e)
         {
             transaction.Rollback();
-            return new Tuple<bool, string>(false, e.ToString());
+            return new Tuple<bool, string?>(false, e.ToString());
         }
 
-        return new Tuple<bool, string>(true, null);
+        return new Tuple<bool, string?>(true, null);
     }
 
     private static string GetFailedMigrationsBasePath()
@@ -2100,7 +2100,7 @@ public class DatabaseFixes
         foreach (var old in oldUserAvatars)
         {
             // Parse AvatarImageMetadata JSON to get ContentType, Width, Height
-            DNF_UserAvatarMetadata metadata;
+            DNF_UserAvatarMetadata? metadata;
             try
             {
                 metadata = JsonConvert.DeserializeObject<DNF_UserAvatarMetadata>(old.AvatarImageMetadata);
@@ -2568,7 +2568,7 @@ public class DatabaseFixes
 
     private class DNF_UserAvatarMetadata
     {
-        public string ContentType { get; set; }
+        public string ContentType { get; set; } = null!;
         public int Width { get; set; }
         public int Height { get; set; }
     }
@@ -2577,25 +2577,25 @@ public class DatabaseFixes
     {
         public int VideoLocalID { get; set; }
 
-        public string ED2K { get; set; }
+        public string ED2K { get; set; } = null!;
 
-        public string MD5 { get; set; }
+        public string? MD5 { get; set; }
 
-        public string SHA1 { get; set; }
+        public string? SHA1 { get; set; }
 
-        public string CRC32 { get; set; }
+        public string? CRC32 { get; set; }
     }
 
     public class DBF_AniDB_File
     {
         public int FileID { get; set; }
-        public string ED2k { get; set; }
+        public string ED2k { get; set; } = null!;
         public int GroupID { get; set; }
-        public string File_Source { get; set; }
-        public string File_Description { get; set; }
+        public string File_Source { get; set; } = null!;
+        public string File_Description { get; set; } = null!;
         public DateTime? File_ReleaseDate { get; set; }
         public DateTime DateTimeUpdated { get; set; }
-        public string FileName { get; set; }
+        public string FileName { get; set; } = null!;
         public long FileSize { get; set; }
         public int FileVersion { get; set; }
         public bool? IsCensored { get; set; }
@@ -2607,13 +2607,13 @@ public class DatabaseFixes
     private class DBF_AniDB_ReleaseGroup
     {
         public int GroupID { get; set; }
-        public string GroupName { get; set; }
-        public string GroupNameShort { get; set; }
+        public string GroupName { get; set; } = null!;
+        public string GroupNameShort { get; set; } = null!;
     }
 
     private class DBF_AniDB_FileUpdate
     {
-        public string ED2K { get; set; }
+        public string ED2K { get; set; } = null!;
         public long FileSize { get; set; }
         public bool HasResponse { get; set; }
         public DateTime UpdatedAt { get; set; }
@@ -2649,8 +2649,8 @@ public class DatabaseFixes
         public bool IsEnabled { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
-        public string Language { get; set; }
-        public string RemoteFileName { get; set; }
+        public string Language { get; set; } = null!;
+        public string RemoteFileName { get; set; } = null!;
         public double UserRating { get; set; }
         public int UserVotes { get; set; }
     }
@@ -2658,7 +2658,7 @@ public class DatabaseFixes
     private class DNF_TMDB_Image_Entity
     {
         public int TMDB_Image_EntityID { get; set; }
-        public string RemoteFileName { get; set; }
+        public string RemoteFileName { get; set; } = null!;
         public ImageEntityType ImageType { get; set; }
         public int TmdbEntityType { get; set; }
         public int TmdbEntityID { get; set; }
@@ -2679,8 +2679,8 @@ public class DatabaseFixes
     private class DNF_UserAvatar
     {
         public int JMMUserID { get; set; }
-        public byte[] AvatarImageBlob { get; set; }
-        public string AvatarImageMetadata { get; set; }
+        public byte[] AvatarImageBlob { get; set; } = null!;
+        public string AvatarImageMetadata { get; set; } = null!;
     }
 
 }

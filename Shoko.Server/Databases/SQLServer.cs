@@ -34,16 +34,16 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         .Concat(_patchCommands)
         .Max(x => x.Version);
 
-    protected override Tuple<bool, string> ExecuteCommand(SqlConnection connection, string command)
+    protected override Tuple<bool, string?> ExecuteCommand(SqlConnection connection, string command)
     {
         try
         {
             Execute(connection, command);
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
         catch (Exception ex)
         {
-            return new Tuple<bool, string>(false, ex.ToString());
+            return new Tuple<bool, string?>(false, ex.ToString());
         }
     }
 
@@ -59,7 +59,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         using var cmd = new SqlCommand(command, connection);
         cmd.CommandTimeout = 0;
         var result = cmd.ExecuteScalar();
-        return long.Parse(result.ToString());
+        return long.Parse(result.ToString()!);
     }
 
     protected override List<object[]> ExecuteReader(SqlConnection connection, string command)
@@ -1115,17 +1115,17 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         transaction.Commit();
     }
 
-    private static Tuple<bool, string> DropDefaultsOnAnimeEpisode_User(object connection)
+    private static Tuple<bool, string?> DropDefaultsOnAnimeEpisode_User(object connection)
     {
         DropDefaultConstraint("AnimeEpisode_User", "ContractSize");
         DropDefaultConstraint("AnimeEpisode_User", "ContractVersion");
-        return Tuple.Create<bool, string>(true, null);
+        return Tuple.Create<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> DropDefaultOnChaptered(object connection)
+    private static Tuple<bool, string?> DropDefaultOnChaptered(object connection)
     {
         DropDefaultConstraint("AniDB_File", "IsChaptered");
-        return Tuple.Create<bool, string>(true, null);
+        return Tuple.Create<bool, string?>(true, null);
     }
 
     private static void DropVideoLocalMediaSize()
@@ -1201,23 +1201,23 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         session.CreateSQLQuery(query).ExecuteUpdate();
         trans.Commit();
     }
-    private static Tuple<bool, string> DropDefaultOnCreatorLastUpdatedAt(object connection)
+    private static Tuple<bool, string?> DropDefaultOnCreatorLastUpdatedAt(object connection)
     {
         DropDefaultConstraint("AniDB_Creator", "LastUpdatedAt");
-        return Tuple.Create<bool, string>(true, null);
+        return Tuple.Create<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> DropDefaultOnTMDBShowMovieKeywords(object connection)
+    private static Tuple<bool, string?> DropDefaultOnTMDBShowMovieKeywords(object connection)
     {
         DropDefaultConstraint("TMDB_Show", "Keywords");
         DropDefaultConstraint("TMDB_Movie", "Keywords");
-        return Tuple.Create<bool, string>(true, null);
+        return Tuple.Create<bool, string?>(true, null);
     }
 
-    private static Tuple<bool, string> DropLastEpisodeUpdateDefaultOnAnimeSeries_User(object connection)
+    private static Tuple<bool, string?> DropLastEpisodeUpdateDefaultOnAnimeSeries_User(object connection)
     {
         DropDefaultConstraint("AnimeSeries_User", "LastEpisodeUpdate");
-        return Tuple.Create<bool, string>(true, null);
+        return Tuple.Create<bool, string?>(true, null);
     }
 
     #endregion

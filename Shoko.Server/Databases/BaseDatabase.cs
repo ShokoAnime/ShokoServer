@@ -31,7 +31,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
     protected static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     // ReSharper disable once StaticMemberInGenericType
-    private static string _databaseBackupDirectoryPath;
+    private static string? _databaseBackupDirectoryPath;
     private static string DatabaseBackupDirectoryPath
     {
         get
@@ -70,7 +70,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
     }
 
 
-    protected abstract Tuple<bool, string> ExecuteCommand(T connection, string command);
+    protected abstract Tuple<bool, string?> ExecuteCommand(T connection, string command);
     protected abstract void Execute(T connection, string command);
     protected abstract long ExecuteScalar(T connection, string command);
     protected abstract List<object[]> ExecuteReader(T connection, string command);
@@ -88,7 +88,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
 
     protected abstract void ConnectionWrapper(string connectionstring, Action<T> action);
 
-    protected Dictionary<(string Version, string Revision), Versions> AllVersions { get; set; }
+    protected Dictionary<(string Version, string Revision), Versions> AllVersions { get; set; } = null!;
     protected List<DatabaseCommand> Fixes = new();
 
 
@@ -127,7 +127,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
         var t = ExecuteCommand(connection, cmd);
         if (!t.Item1)
         {
-            throw new DatabaseCommandException(t.Item2, cmd);
+            throw new DatabaseCommandException(t.Item2!, cmd);
         }
     }
 
@@ -184,7 +184,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
                 Logger.Info($"Starting Server: {message}");
                 SystemService.StartupMessage = message;
 
-                cmd.DatabaseFix();
+                cmd.DatabaseFix!();
                 AddVersion(cmd.Version.ToString(), cmd.Revision.ToString(), cmd.CommandName);
             }
             catch (Exception e)
@@ -200,14 +200,14 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
     }
 
 
-    public Tuple<bool, string> ExecuteCommand(T connection, DatabaseCommand cmd)
+    public Tuple<bool, string?> ExecuteCommand(T connection, DatabaseCommand cmd)
     {
         if (cmd.Version != 0 && cmd.Revision != 0 && AllVersions.ContainsKey((cmd.Version.ToString(), cmd.Revision.ToString())))
         {
-            return new Tuple<bool, string>(true, null);
+            return new Tuple<bool, string?>(true, null);
         }
 
-        Tuple<bool, string> ret;
+        Tuple<bool, string?> ret;
 
         var message = cmd.CommandName;
         if (message.Length > 42)
@@ -221,22 +221,22 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
         switch (cmd.Type)
         {
             case DatabaseCommandType.CodedCommand:
-                ret = cmd.UpdateCommand(connection);
+                ret = cmd.UpdateCommand!(connection!);
                 break;
             case DatabaseCommandType.PostDatabaseFix:
                 try
                 {
                     AddFix(cmd);
-                    ret = new Tuple<bool, string>(true, null);
+                    ret = new Tuple<bool, string?>(true, null);
                 }
                 catch (Exception e)
                 {
-                    ret = new Tuple<bool, string>(false, e.ToString());
+                    ret = new Tuple<bool, string?>(false, e.ToString());
                 }
 
                 break;
             default:
-                ret = ExecuteCommand(connection, cmd.Command);
+                ret = ExecuteCommand(connection, cmd.Command!);
                 break;
         }
 
