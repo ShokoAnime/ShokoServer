@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.422",
+      "tag": "v6.0.0-dev.422",
+      "commit": "ad1a3f6cfda037cbf59151c58d2abdf909d39f33",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.422/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-17T16:12:10Z",
+      "releaseNotes": "\n`fix` (`api`): **Serialize AniDB status update type as a string**:\n\nUpdateType in AniDBStatusUpdateSignalRModel was serialized as an\ninteger by SignalR because it lacked a string enum converter, unlike the\nv3 API models. Added a StringEnumConverter attribute so the\nudp.stateUpdate and http.stateUpdate events match the v3 convention.\n"
+    },
+    {
       "version": "6.0.0.421",
       "tag": "v6.0.0-dev.421",
       "commit": "9a4c746a29066ae6033bd76980ad365312f5850d",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.393/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-27T16:08:42Z",
       "releaseNotes": "\n`fix` (`api`): **Reject path traversal in external subtitle filename** ([#1385](https://github.com/ShokoAnime/ShokoServer/pull/1385)).\n"
-    },
-    {
-      "version": "6.0.0.392",
-      "tag": "v6.0.0-dev.392",
-      "commit": "a9126a4170b260837aba928ed0b5da04c1bbe084",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.392/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-27T02:38:15Z",
-      "releaseNotes": "\n`misc`: **Speed up tag filters**.\n"
     }
   ]
 }
