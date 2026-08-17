@@ -1325,7 +1325,7 @@ public class DatabaseFixes
                                         }
                                     )
                                 );
-                                rawPresets.Add(new() { Name = renamerScript.ScriptName, ProviderID = providerInfo!.ID, Configuration = configuration, IsDefault = renamerScript.ScriptName == defaultRenamerConfigName });
+                                rawPresets.Add(new() { Name = renamerScript.ScriptName, ProviderID = webAomRenamer.ID, Configuration = configuration, IsDefault = renamerScript.ScriptName == defaultRenamerConfigName });
                                 continue;
                             }
 
