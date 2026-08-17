@@ -243,8 +243,8 @@ public class LogServiceTests : IDisposable
         {
             Offset = 0,
             Limit = 10,
-            ProcessId = 10,
-            ThreadId = 20,
+            ProcessID = 10,
+            ThreadID = 20,
         });
 
         Assert.Single(result.Entries);
