@@ -123,8 +123,9 @@ public class FileController(
     /// <param name="query">An optional search query to filter files based on their absolute paths.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
     /// <returns>A sliced part of the results for the current query.</returns>
+    [Obsolete("Use Search?query= instead")]
     [HttpGet("Search/{*query}")]
-    public ActionResult<ListResult<File>> Search(
+    public ActionResult<ListResult<File>> LegacySearch(
         [FromRoute] string query,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
@@ -134,13 +135,48 @@ public class FileController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? releaseProviders = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
         [FromQuery] bool fuzzy = true)
+        => Search(query, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder, fuzzy);
+
+    /// <summary>
+    /// Get or search through the files accessible to the current user.
+    /// </summary>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
+    /// <param name="skipSort">Indicates that sorting should be skipped.</param>
+    /// <param name="releaseProviders">Filter to only include files from certain release providers. Append <c>!</c> to the provider name to exclude the files</param>
+    /// <param name="query">An optional search query to filter files based on their absolute paths.</param>
+    /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
+    /// <returns>A sliced part of the results for the current query.</returns>
+    [HttpGet("Search")]
+    public ActionResult<ListResult<File>> Search(
+        [FromQuery] string? query = null,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? releaseProviders = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null,
+        [FromQuery] bool? skipSort = null,
+        [FromQuery] bool fuzzy = true)
     {
-        // Search.
-        var searched = _videoLocals.GetAll()
-            .Search(query, tuple => tuple.Places.Select(place => place?.RelativePath).WhereNotNull(), fuzzy)
-            .Select(result => result.Result)
-            .ToList();
-        return ModelHelper.FilterFiles(searched, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder, skipSort: true);
+        var videos = _videoLocals.GetAll() as IEnumerable<VideoLocal>;
+        if (!string.IsNullOrEmpty(query))
+            videos = videos
+                .Search(
+                    query,
+                    include?.Contains(FileNonDefaultIncludeType.AbsolutePaths) ?? false
+                        ? video => video.Places.Select(place => place.Path ?? place.RelativePath)
+                        : video => video.Places.Select(place => place.RelativePath),
+                    fuzzy
+                )
+                .Select(result => result.Result)
+                .ToList();
+        return ModelHelper.FilterFiles(videos, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder, skipSort: skipSort ?? !string.IsNullOrEmpty(query));
     }
 
     /// <summary>
