@@ -125,7 +125,7 @@ public class MediaContainer : IMediaInfo
     string IMediaInfo.FileExtension => GeneralStream.FileExtension;
 
     [IgnoreMember]
-    string IMediaInfo.ContainerName => GeneralStream.Format;
+    string IMediaInfo.ContainerName => GeneralStream.Format!;
 
     [IgnoreMember]
     int IMediaInfo.ContainerVersion =>
@@ -196,11 +196,11 @@ public class MediaContainer : IMediaInfo
 public class Media
 {
     [Key(0)]
-    public List<Stream> track { get; set; }
+    public List<Stream>? track { get; set; }
 
-    protected bool Equals(Media other) => track.SequenceEqual(other.track);
+    protected bool Equals(Media other) => track!.SequenceEqual(other.track!);
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is null) return false;
         if (ReferenceEquals(this, obj)) return true;
@@ -233,64 +233,64 @@ public abstract class Stream : IStream
     /// 235274903222604292645173588053004470927, and I don't have a 128-bit CPU...
     /// This isn't generally needed, anyway
     /// </summary>
-    public string UniqueID { get; set; }
+    public string? UniqueID { get; set; }
 
     public int ID { get; set; }
 
     public abstract StreamType type { get; }
 
-    public string Title { get; set; }
+    public string? Title { get; set; }
 
     public int StreamOrder { get; set; }
 
-    public string Format { get; set; }
+    public string? Format { get; set; }
 
-    public string Format_Profile { get; set; }
+    public string? Format_Profile { get; set; }
 
-    public string Format_Settings { get; set; }
+    public string? Format_Settings { get; set; }
 
-    public string Format_Level { get; set; }
+    public string? Format_Level { get; set; }
 
-    public string Format_Commercial_IfAny { get; set; }
+    public string? Format_Commercial_IfAny { get; set; }
 
-    public string Format_Tier { get; set; }
+    public string? Format_Tier { get; set; }
 
-    public string Format_AdditionalFeatures { get; set; }
+    public string? Format_AdditionalFeatures { get; set; }
 
-    public string Format_Settings_Endianness { get; set; }
+    public string? Format_Settings_Endianness { get; set; }
 
-    public string Codec { get; set; }
+    public string? Codec { get; set; }
 
-    public string CodecID { get; set; }
+    public string? CodecID { get; set; }
 
     /// <summary>
     /// The Language code (ISO 639-1 in everything I've seen) from MediaInfo
     /// </summary>
-    public string Language { get; set; }
+    public string? Language { get; set; }
 
     /// <summary>
     /// This is the 3 character language code
     /// This is mapped from the Language, it is not MediaInfo data
     /// </summary>
-    public string LanguageCode { get; set; }
+    public string? LanguageCode { get; set; }
 
     /// <summary>
     /// This is the Language Name, "English"
     /// This is mapped from the Language, it is not MediaInfo data
     /// </summary>
-    public string LanguageName { get; set; }
+    public string? LanguageName { get; set; }
 
     public bool Default { get; set; }
 
     public bool Forced { get; set; }
 
-    string IStream.UID => UniqueID;
+    string? IStream.UID => UniqueID;
     int IStream.ID => ID;
     int IStream.Order => StreamOrder;
     bool IStream.IsDefault => Default;
     bool IStream.IsForced => Forced;
     TitleLanguage IStream.Language => Language?.GetTitleLanguage() ?? TitleLanguage.None;
-    string IStream.LanguageCode => Language;
+    string? IStream.LanguageCode => Language;
     IStreamCodecInfo IStream.Codec => new StreamCodecInfoImpl(this);
     IStreamFormatInfo IStream.Format => new StreamFormatInfoImpl(this);
 
@@ -300,7 +300,7 @@ public abstract class Stream : IStream
         && Format_AdditionalFeatures == other.Format_AdditionalFeatures && Format_Settings_Endianness == other.Format_Settings_Endianness && Codec == other.Codec && CodecID == other.CodecID
         && Language == other.Language && LanguageCode == other.LanguageCode && LanguageName == other.LanguageName && Default == other.Default && Forced == other.Forced;
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
@@ -346,7 +346,7 @@ public class GeneralStream : Stream
 
     public int OverallBitRate { get; set; }
 
-    public string FileExtension { get; set; }
+    public string FileExtension { get; set; } = null!;
 
     public int Format_Version { get; set; }
 
@@ -356,13 +356,13 @@ public class GeneralStream : Stream
 
     public DateTime? Encoded_Date { get; set; }
 
-    public GeneralExtra extra { get; }
+    public GeneralExtra? extra { get; }
 
     protected bool Equals(GeneralStream other) =>
         base.Equals(other) && Duration.Equals(other.Duration) && OverallBitRate == other.OverallBitRate && FileExtension == other.FileExtension && Format_Version == other.Format_Version
         && FrameRate == other.FrameRate && IsStreamable == other.IsStreamable && Nullable.Equals(Encoded_Date, other.Encoded_Date);
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
@@ -391,7 +391,7 @@ public class GeneralStream : Stream
 [MessagePackObject(true)]
 public class GeneralExtra
 {
-    public string Attachments { get; set; }
+    public string? Attachments { get; set; }
 }
 
 [MessagePackObject(true)]
@@ -405,7 +405,7 @@ public class VideoStream : Stream, IVideoStream
 
     public bool Format_Settings_QPel { get; set; }
 
-    public string Format_Settings_GMC { get; set; }
+    public string? Format_Settings_GMC { get; set; }
 
     public int Format_Settings_RefFrames { get; set; }
 
@@ -419,47 +419,50 @@ public class VideoStream : Stream, IVideoStream
 
     public decimal FrameRate { get; set; }
 
-    public string FrameRate_Mode { get; set; }
+    public string? FrameRate_Mode { get; set; }
 
     public int FrameCount { get; set; }
 
-    public string ColorSpace { get; set; }
+    public string? ColorSpace { get; set; }
 
-    public string ChromaSubsampling { get; set; }
+    public string? ChromaSubsampling { get; set; }
 
     public int BitDepth { get; set; }
 
-    public string ScanType { get; set; }
+    public string? ScanType { get; set; }
 
-    public string Encoded_Library_Name { get; set; }
+    public string? Encoded_Library_Name { get; set; }
 
-    public string MuxingMode { get; set; }
+    public string? MuxingMode { get; set; }
 
     // HDR stuff. Can be on SD, but not as common, and not very useful
 
-    public string HDR_Format { get; set; }
+    public string? HDR_Format { get; set; }
 
-    public string HDR_Format_Compatibility { get; set; }
+    public string? HDR_Format_Compatibility { get; set; }
 
-    public string colour_range { get; set; }
+    public string? colour_range { get; set; }
 
-    public string colour_primaries { get; set; }
+    public string? colour_primaries { get; set; }
 
-    public string transfer_characteristics { get; set; }
+    public string? transfer_characteristics { get; set; }
 
-    public string matrix_coefficients { get; set; }
+    public string? matrix_coefficients { get; set; }
 
-    public string MasteringDisplay_ColorPrimaries { get; set; }
+    public string? MasteringDisplay_ColorPrimaries { get; set; }
 
-    public string MasteringDisplay_Luminance { get; set; }
+    public string? MasteringDisplay_Luminance { get; set; }
 
-    public string MaxCLL { get; set; }
+    public string? MaxCLL { get; set; }
 
-    public string MaxFALL { get; set; }
+    public string? MaxFALL { get; set; }
 
-    string IVideoStream.MatrixCoefficients => matrix_coefficients;
-    string IVideoStream.FrameRateMode => FrameRate_Mode;
-    string IVideoStream.Resolution => MediaInfoUtility.GetStandardResolution(Tuple.Create(Width, Height));
+    string? IVideoStream.MatrixCoefficients => matrix_coefficients;
+    string IVideoStream.FrameRateMode => FrameRate_Mode!;
+    string IVideoStream.ScanType => ScanType!;
+    string IVideoStream.ColorSpace => ColorSpace!;
+    string IVideoStream.ChromaSubsampling => ChromaSubsampling!;
+    string IVideoStream.Resolution => MediaInfoUtility.GetStandardResolution(Tuple.Create(Width, Height))!;
     IStreamMuxingInfo IVideoStream.Muxing => new StreamMuxingInfoImpl(this);
 
     protected bool Equals(VideoStream other) =>
@@ -471,7 +474,7 @@ public class VideoStream : Stream, IVideoStream
         && transfer_characteristics == other.transfer_characteristics && matrix_coefficients == other.matrix_coefficients && MasteringDisplay_ColorPrimaries == other.MasteringDisplay_ColorPrimaries
         && MasteringDisplay_Luminance == other.MasteringDisplay_Luminance && MaxCLL == other.MaxCLL && MaxFALL == other.MaxFALL;
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
@@ -524,31 +527,32 @@ public class AudioStream : Stream, IAudioStream
 
     public int Channels { get; set; }
 
-    public string ChannelLayout { get; set; }
+    public string? ChannelLayout { get; set; }
 
     public int SamplesPerFrame { get; set; }
 
     public int SamplingRate { get; set; }
 
-    public string Compression_Mode { get; set; }
+    public string? Compression_Mode { get; set; }
 
     public int BitRate { get; set; }
 
-    public string BitRate_Mode { get; set; }
+    public string? BitRate_Mode { get; set; }
 
     public int BitDepth { get; set; }
 
-    public AudioExtra extra { get; set; }
+    public AudioExtra? extra { get; set; }
 
-    string IAudioStream.CompressionMode => Compression_Mode;
-    string IAudioStream.BitRateMode => BitRate_Mode;
+    string IAudioStream.ChannelLayout => ChannelLayout!;
+    string IAudioStream.CompressionMode => Compression_Mode!;
+    string? IAudioStream.BitRateMode => BitRate_Mode;
     double? IAudioStream.DialNorm => extra?.dialnorm;
 
     protected bool Equals(AudioStream other) =>
         base.Equals(other) && Channels == other.Channels && ChannelLayout == other.ChannelLayout && SamplesPerFrame == other.SamplesPerFrame && SamplingRate == other.SamplingRate
         && Compression_Mode == other.Compression_Mode && BitRate == other.BitRate && BitRate_Mode == other.BitRate_Mode && BitDepth == other.BitDepth && Equals(extra, other.extra);
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
@@ -582,7 +586,7 @@ public class AudioExtra
     /// <summary>
     /// Atmos or other 3D audio
     /// </summary>
-    public string NumberOfDynamicObjects { get; set; }
+    public string? NumberOfDynamicObjects { get; set; }
 
     public int bsid { get; set; }
 
@@ -624,7 +628,7 @@ public class AudioExtra
         && compr_Minimum.Equals(other.compr_Minimum) && compr_Maximum.Equals(other.compr_Maximum) && compr_Count == other.compr_Count && dynrng_Average.Equals(other.dynrng_Average)
         && dynrng_Minimum.Equals(other.dynrng_Minimum) && dynrng_Maximum.Equals(other.dynrng_Maximum) && dynrng_Count == other.dynrng_Count;
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
@@ -666,7 +670,7 @@ public class TextStream : Stream, ITextStream
     /// <summary>
     /// Not a subtitle, but a secondary title
     /// </summary>
-    public string SubTitle { get; set; }
+    public string? SubTitle { get; set; }
 
     /// <summary>
     /// Not From MediaInfo. Is this an external sub file
@@ -676,14 +680,14 @@ public class TextStream : Stream, ITextStream
     /// <summary>
     /// Not from MediaInfo, this is the name of the external sub file
     /// </summary>
-    public string Filename { get; set; }
+    public string? Filename { get; set; }
 
     bool ITextStream.IsExternal => External;
-    string ITextStream.ExternalFilename => External && !string.IsNullOrEmpty(Filename) ? Filename : null;
+    string? ITextStream.ExternalFilename => External && !string.IsNullOrEmpty(Filename) ? Filename : null;
 
     protected bool Equals(TextStream other) => base.Equals(other) && SubTitle == other.SubTitle && External == other.External && Filename == other.Filename;
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;
@@ -712,11 +716,11 @@ public class MenuStream : Stream
     /// <summary>
     /// Chapters are stored in the format "_hh_mm_ss_fff" : "Chapter Name"
     /// </summary>
-    public Dictionary<string, string> extra { get; set; }
+    public Dictionary<string, string>? extra { get; set; }
 
-    protected bool Equals(MenuStream other) => base.Equals(other) && extra.SequenceEqual(other.extra);
+    protected bool Equals(MenuStream other) => base.Equals(other) && extra!.SequenceEqual(other.extra!);
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;

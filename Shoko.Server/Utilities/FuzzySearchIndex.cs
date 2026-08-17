@@ -82,7 +82,7 @@ public class FuzzySearchIndex<T>
     {
         foreach (var (item, titles) in _items)
         {
-            SeriesSearch.SearchResult<T> best = null;
+            SeriesSearch.SearchResult<T>? best = null;
             foreach (var (original, normalized) in titles)
             {
                 var idx = normalized.IndexOf(normalizedQuery, StringComparison.Ordinal);
@@ -124,7 +124,7 @@ public class FuzzySearchIndex<T>
         foreach (var itemIdx in candidateSet)
         {
             var (item, titles) = _items[itemIdx];
-            SeriesSearch.SearchResult<T> best = null;
+            SeriesSearch.SearchResult<T>? best = null;
 
             foreach (var (original, normalized) in titles)
             {

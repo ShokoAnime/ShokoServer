@@ -18,7 +18,7 @@ internal class SubStream : Stream
 
     public delegate void CrossPositionHandler(long position);
 
-    public event CrossPositionHandler CrossPositionCrossed;
+    public event CrossPositionHandler? CrossPositionCrossed;
 
 
     public override void Close()

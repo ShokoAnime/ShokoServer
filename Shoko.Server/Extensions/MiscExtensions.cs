@@ -110,7 +110,7 @@ public static class MiscExtensions
 
     public class SearchInfo<T>
     {
-        public T Result { get; set; }
+        public T Result { get; set; } = default!;
         public int Index { get; set; }
         public double Distance { get; set; }
         public bool ExactMatch { get; set; }
@@ -120,7 +120,7 @@ public static class MiscExtensions
             return Index == other.Index && Math.Abs(Distance - other.Distance) < 0.0001D && ExactMatch == other.ExactMatch;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(null, obj)) return false;
             if (ReferenceEquals(this, obj)) return true;

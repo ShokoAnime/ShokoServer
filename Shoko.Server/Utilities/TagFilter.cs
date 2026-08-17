@@ -618,12 +618,12 @@ public class TagFilter<T> where T : class
         _lookup = lookup;
     }
 
-    private string GetTagName(T tag)
+    private string? GetTagName(T tag)
     {
         return _nameSelector(tag)?.ToLowerInvariant();
     }
 
-    private T GetTag(string name)
+    private T? GetTag(string name)
     {
         return _lookup(name) ?? _ctor(name);
     }
@@ -664,20 +664,20 @@ public class TagFilter<T> where T : class
         // Add the _original work_ tag if no source tags are present and we either want to only include the source tags or want to not exclude the source tags.
         // evaluates like an xor because of how invert works
         var includeSource = flags.HasFlag(TagFilter.Filter.Source) == flags.HasFlag(TagFilter.Filter.Invert);
-        var addOriginal = includeSource && !tags.Select(GetTagName).Any(TagFilter.TagBlackListSource.Contains);
+        var addOriginal = includeSource && !tags.Select(GetTagName).Any(tag => tag is not null && TagFilter.TagBlackListSource.Contains(tag));
         var addSourceMaterial = flags.HasFlag(TagFilter.Filter.AnidbInternal) != flags.HasFlag(TagFilter.Filter.Invert);
         if (addOriginal)
         {
-            tags.Add(GetTag("original work"));
+            tags.Add(GetTag("original work")!);
             var includeHelpers = flags.HasFlag(TagFilter.Filter.AnidbInternal) == flags.HasFlag(TagFilter.Filter.Invert);
-            if (includeHelpers && !tags.Select(GetTagName).Contains("source material") && addSourceMaterial) tags.Add(GetTag("source material"));
+            if (includeHelpers && !tags.Select(GetTagName).Contains("source material") && addSourceMaterial) tags.Add(GetTag("source material")!);
         }
     }
 
     private void MarkTagsForRemoval(T sourceTag, TagFilter.Filter flags, ConcurrentBag<T> toRemove)
     {
         var sourceName = GetTagName(sourceTag);
-        if (!TagFilter.IsTagBlackListed(sourceName, flags)) return;
+        if (!TagFilter.IsTagBlackListed(sourceName!, flags)) return;
 
         toRemove.Add(sourceTag);
     }

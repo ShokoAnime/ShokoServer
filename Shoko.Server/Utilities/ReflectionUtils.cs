@@ -58,7 +58,7 @@ internal class ReflectionUtils
             argsExp[i] = Expression.Convert(Expression.ArrayIndex(param, Expression.Constant(i)), parameterType);
         }
 
-        Expression instanceExp = Expression.Parameter(type, "instance");
+        Expression instanceExp = Expression.Parameter(type!, "instance");
         var mtdExp = Expression.Call(instanceExp, mtd, argsExp);
         LambdaExpression lambda = Expression.Lambda<ObjectMethodActivator<T>>(mtdExp, param);
         return (ObjectMethodActivator<T>)lambda.Compile();
@@ -66,6 +66,6 @@ internal class ReflectionUtils
 
     public static ObjectMethodActivator<T> GetMethodActivator<T>(Type type, string methodName)
     {
-        return GetMethodActivator<T>(type.GetMethod(methodName));
+        return GetMethodActivator<T>(type.GetMethod(methodName)!);
     }
 }

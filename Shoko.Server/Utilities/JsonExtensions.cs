@@ -40,7 +40,7 @@ public static class JsonExtensions
     /// <typeparam name="T"></typeparam>
     /// <param name="json"></param>
     /// <returns></returns>
-    public static T FromJSON<T>(this string json)
+    public static T? FromJSON<T>(this string json)
     {
         if (string.IsNullOrEmpty(json))
         {

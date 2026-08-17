@@ -8,7 +8,7 @@ namespace Shoko.Server;
 
 public class AsyncObservableCollection<T> : ObservableCollection<T>
 {
-    private readonly SynchronizationContext _synchronizationContext;
+    private readonly SynchronizationContext? _synchronizationContext;
 
     public AsyncObservableCollection()
     {
@@ -32,9 +32,9 @@ public class AsyncObservableCollection<T> : ObservableCollection<T>
         }
     }
 
-    private void RaiseCollectionChanged(object param)
+    private void RaiseCollectionChanged(object? param)
     {
-        base.OnCollectionChanged((NotifyCollectionChangedEventArgs)param);
+        base.OnCollectionChanged((NotifyCollectionChangedEventArgs)param!);
     }
 
     protected override void OnPropertyChanged(PropertyChangedEventArgs e)
@@ -49,8 +49,8 @@ public class AsyncObservableCollection<T> : ObservableCollection<T>
         }
     }
 
-    private void RaisePropertyChanged(object param)
+    private void RaisePropertyChanged(object? param)
     {
-        base.OnPropertyChanged((PropertyChangedEventArgs)param);
+        base.OnPropertyChanged((PropertyChangedEventArgs)param!);
     }
 }

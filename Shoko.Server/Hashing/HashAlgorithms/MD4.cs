@@ -125,7 +125,7 @@ public class MD4Managed : MD4
         /* Pad out to 56 mod 64. */
         var index = (_count[0] >> 3) & 0x3f;
         var padLen = (int)(index < 56 ? 56 - index : 120 - index);
-        HashCore(Padding(padLen), 0, padLen);
+        HashCore(Padding(padLen)!, 0, padLen);
 
         /* Append length (before padding) */
         HashCore(bits, 0, 8);
@@ -141,7 +141,7 @@ public class MD4Managed : MD4
 
     //--- private methods ---------------------------------------------------
 
-    private byte[] Padding(int nLength)
+    private byte[]? Padding(int nLength)
     {
         if (nLength > 0)
         {

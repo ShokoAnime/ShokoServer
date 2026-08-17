@@ -9,7 +9,7 @@ namespace Shoko.Server.Utilities;
 
 public static class LinuxFS
 {
-    private static UnixUserInfo RealUser;
+    private static UnixUserInfo? RealUser;
 
     private static bool CanRun()
     {

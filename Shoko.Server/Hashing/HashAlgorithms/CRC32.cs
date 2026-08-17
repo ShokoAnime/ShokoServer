@@ -71,7 +71,7 @@ public class CRC32 : HashAlgorithm
         return HashValue;
     }
 
-    public uint CrcValue => (uint)((HashValue[0] << 24) | (HashValue[1] << 16) | (HashValue[2] << 8) | HashValue[3]);
+    public uint CrcValue => (uint)((HashValue![0] << 24) | (HashValue[1] << 16) | (HashValue[2] << 8) | HashValue[3]);
 
     public override int HashSize => 32;
 }

@@ -58,7 +58,7 @@ public static class SeriesSearch
 
     private static readonly IStringDistance DiceSearch = new SorensenDice();
 
-    private static volatile FuzzySearchIndex<AnimeSeries> _seriesIndex;
+    private static volatile FuzzySearchIndex<AnimeSeries>? _seriesIndex;
     private static volatile bool _isDirty = true;
     private static readonly object _indexLock = new();
 
@@ -252,7 +252,7 @@ public static class SeriesSearch
         ParallelQuery<SearchResult<T>> enumerable = items
             .Select(t =>
             {
-                SearchResult<T> best = null;
+                SearchResult<T>? best = null;
                 foreach (var title in selector(t))
                 {
                     if (string.IsNullOrWhiteSpace(title))
@@ -321,6 +321,7 @@ public static class SeriesSearch
                 return best;
             })
             .Where(a => a != null && !string.IsNullOrEmpty(a.Match))
+            .Select(a => a!)
             .OrderBy(a => a);
 
         if (skip.HasValue && skip.Value > 0)
@@ -359,13 +360,13 @@ public static class SeriesSearch
             var series = RepoFactory.AnimeSeries.GetByAnimeID(animeID);
             var anime = series?.AniDB_Anime;
             var tags = anime?.GetAllTags();
-            if (anime != null && !tags.FindInEnumerable(forbiddenTags))
+            if (anime != null && !tags!.FindInEnumerable(forbiddenTags))
                 return
                 [
                     new()
                     {
                         ExactMatch = true,
-                        Match = series.AniDB_ID.ToString(),
+                        Match = series!.AniDB_ID.ToString(),
                         Result = series,
                     },
                 ];
@@ -378,10 +379,10 @@ public static class SeriesSearch
         {
             SearchFlags.Titles => SearchTitles(query, limit, forbiddenTags, fuzzy: false),
             SearchFlags.Fuzzy | SearchFlags.Titles => SearchTitles(query, limit, forbiddenTags, fuzzy: true),
-            SearchFlags.Tags => SearchTagsExact(query, limit, forbiddenTags, allTags),
-            SearchFlags.Fuzzy | SearchFlags.Tags => SearchTagsFuzzy(query, limit, forbiddenTags, allTags),
-            SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTagsCombined(query, limit, forbiddenTags, allTags, fuzzy: false),
-            SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTagsCombined(query, limit, forbiddenTags, allTags, fuzzy: true),
+            SearchFlags.Tags => SearchTagsExact(query, limit, forbiddenTags, allTags!),
+            SearchFlags.Fuzzy | SearchFlags.Tags => SearchTagsFuzzy(query, limit, forbiddenTags, allTags!),
+            SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTagsCombined(query, limit, forbiddenTags, allTags!, fuzzy: false),
+            SearchFlags.Fuzzy | SearchFlags.Tags | SearchFlags.Titles => SearchTitleAndTagsCombined(query, limit, forbiddenTags, allTags!, fuzzy: true),
             _ => [],
         };
     }
@@ -393,7 +394,7 @@ public static class SeriesSearch
             {
                 var anime = r.Result.AniDB_Anime;
                 var tags = anime?.GetAllTags();
-                return anime != null && (tags.Count == 0 || !tags.FindInEnumerable(forbiddenTags));
+                return anime != null && (tags!.Count == 0 || !tags.FindInEnumerable(forbiddenTags));
             })
             .Take(limit)
             .ToList();
@@ -422,14 +423,14 @@ public static class SeriesSearch
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
                     var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
-                    if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
+                    if (anime == null || tags!.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
                     return new SearchResult<AnimeSeries>
                     {
                         ExactMatch = true,
                         Match = tag.TagName,
-                        Result = series,
+                        Result = series!,
                     };
                 })
                 .WhereNotNull()
@@ -448,7 +449,7 @@ public static class SeriesSearch
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                     var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
-                    if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
+                    if (anime == null || tags!.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
                     return new SearchResult<AnimeSeries>
@@ -456,7 +457,7 @@ public static class SeriesSearch
                         ExactMatch = true,
                         Distance = (600 - xref.Weight) / 600D,
                         Match = tag.TagName,
-                        Result = series,
+                        Result = series!,
                     };
                 })
                 .WhereNotNull()
@@ -493,7 +494,7 @@ public static class SeriesSearch
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID);
                     var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
-                    if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
+                    if (anime == null || tags!.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
                     return new SearchResult<AnimeSeries>
@@ -503,7 +504,7 @@ public static class SeriesSearch
                         Distance = tag.Distance,
                         LengthDifference = tag.LengthDifference,
                         Match = tag.Result.TagName,
-                        Result = series,
+                        Result = series!,
                     };
                 })
                 .WhereNotNull()
@@ -531,7 +532,7 @@ public static class SeriesSearch
                     var series = RepoFactory.AnimeSeries.GetByAnimeID(xref.AnimeID);
                     var anime = series?.AniDB_Anime;
                     var tags = anime?.GetAllTags();
-                    if (anime == null || tags.Count == 0 || tags.FindInEnumerable(forbiddenTags))
+                    if (anime == null || tags!.Count == 0 || tags.FindInEnumerable(forbiddenTags))
                         return null;
 
                     return new SearchResult<AnimeSeries>
@@ -541,7 +542,7 @@ public static class SeriesSearch
                         Distance = (tag.Distance + (600 - xref.Weight) / 600D) / 2,
                         LengthDifference = tag.LengthDifference,
                         Match = tag.Result.TagName,
-                        Result = series,
+                        Result = series!,
                     };
                 })
                 .WhereNotNull()
@@ -600,7 +601,7 @@ public static class SeriesSearch
         /// <summary>
         /// Represents the result object associated with the match.
         /// </summary>
-        public T Result { get; set; }
+        public T Result { get; set; } = default!;
 
         /// <summary>
         /// Compares the current SearchResult instance with another SearchResult instance.
@@ -613,7 +614,7 @@ public static class SeriesSearch
         /// </summary>
         /// <param name="other">The SearchResult instance to compare with the current instance.</param>
         /// <returns>A negative, zero, or positive integer indicating the relative order of the objects being compared.</returns>
-        public int CompareTo(SearchResult<T> other)
+        public int CompareTo(SearchResult<T>? other)
         {
             if (other == null)
                 return -1;

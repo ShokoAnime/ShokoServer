@@ -509,7 +509,7 @@ public static class MediaInfoUtility
             throw new Exception($"Unable to deserialize MediaInfo response: {json}");
         }
 
-        m.media.track.ForEach(a =>
+        m.media.track!.ForEach(a =>
         {
             // Stream should never be null, but here we are
             if (string.IsNullOrEmpty(a?.Language))

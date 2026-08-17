@@ -77,7 +77,7 @@ public class Scanner
 
         RepoFactory.ScanFile.Delete(RepoFactory.ScanFile.GetByScanID(ActiveScan.ScanID));
         RepoFactory.Scan.Delete(ActiveScan);
-        MainThreadDispatch(() => { Scans.Remove(ActiveScan); });
+        MainThreadDispatch(() => { Scans.Remove(ActiveScan!); });
         ActiveScan = null;
     }
 
@@ -110,9 +110,9 @@ public class Scanner
     public bool QueuePaused => ActiveScan != null && ActiveScan.Status is ScanStatus.Standby;
     public bool QueueRunning => ActiveScan != null && ActiveScan.Status is ScanStatus.Running;
     public bool Exists => ActiveScan != null;
-    private Scan activeScan;
+    private Scan? activeScan;
 
-    public Scan ActiveScan
+    public Scan? ActiveScan
     {
         get => activeScan;
         set
@@ -176,7 +176,7 @@ public class Scanner
             files.ForEach(file =>
             {
                 var place = RepoFactory.VideoLocalPlace.GetByID(file.VideoLocal_Place_ID);
-                vlpService.RemoveAndDeleteFileWithOpenTransaction(session, place, seriesToUpdate).GetAwaiter().GetResult();
+                vlpService.RemoveAndDeleteFileWithOpenTransaction(session, place!, seriesToUpdate).GetAwaiter().GetResult();
             });
             // update everything we modified
             Task.WhenAll(seriesToUpdate.Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID))).GetAwaiter().GetResult();
@@ -187,9 +187,9 @@ public class Scanner
 
     private bool cancelIntegrityCheck;
 
-    internal Scan RunScan;
+    internal Scan? RunScan;
 
-    private void WorkerIntegrityScanner_DoWork(object sender, DoWorkEventArgs e)
+    private void WorkerIntegrityScanner_DoWork(object? sender, DoWorkEventArgs e)
     {
         if (RunScan != null && RunScan.Status != ScanStatus.Finished)
         {
@@ -279,7 +279,7 @@ public class Scanner
 
     private delegate void DispatchHandler(Action a);
 
-    private static event DispatchHandler OnDispatch;
+    private static event DispatchHandler? OnDispatch;
 
     private static void MainThreadDispatch(Action a)
     {
