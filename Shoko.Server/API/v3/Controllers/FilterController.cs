@@ -91,8 +91,8 @@ public class FilterController(
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            filterPresetRepository.Save(filterPreset);
-            return factory.GetFilter(filterPreset, true);
+            filterPresetRepository.Save(filterPreset!);
+            return factory.GetFilter(filterPreset!, true);
         }
         catch (ArgumentException e)
         {
@@ -141,8 +141,8 @@ public class FilterController(
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            filterPresetRepository.Save(filterPreset);
-            return factory.GetFilter(filterPreset, true);
+            filterPresetRepository.Save(filterPreset!);
+            return factory.GetFilter(filterPreset!, true);
         }
         catch (ArgumentException e)
         {
@@ -169,8 +169,8 @@ public class FilterController(
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
-            filterPresetRepository.Save(filterPreset);
-            return factory.GetFilter(filterPreset, true);
+            filterPresetRepository.Save(filterPreset!);
+            return factory.GetFilter(filterPreset!, true);
         }
         catch (ArgumentException e)
         {
@@ -530,7 +530,7 @@ public class FilterController(
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return GetFilteredGroups(filterPreset, pageSize, page, topLevelOnly, includeEmpty, randomImages);
+        return GetFilteredGroups(filterPreset!, pageSize, page, topLevelOnly, includeEmpty, randomImages);
     }
 
     /// <summary>
@@ -560,7 +560,7 @@ public class FilterController(
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return GetFilteredSeries(filterPreset, pageSize, page, includeMissing, randomImages);
+        return GetFilteredSeries(filterPreset!, pageSize, page, includeMissing, randomImages);
     }
 
     /// <summary>
@@ -581,7 +581,7 @@ public class FilterController(
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var results = filteringService.Engine.EvaluateFilterWithTuples(filterPreset, User, cancellationToken: HttpContext.RequestAborted);
+        var results = filteringService.Engine.EvaluateFilterWithTuples(filterPreset!, User, cancellationToken: HttpContext.RequestAborted);
         return results
             .Select(tuple => tuple.SeriesID)
             .ToList();
@@ -610,7 +610,7 @@ public class FilterController(
         if (!User.AllowedGroup(group))
             return Forbid(GroupController.GroupForbiddenForUser);
 
-        return GetFilteredSubGroups(group, filterPreset, randomImages, includeEmpty);
+        return GetFilteredSubGroups(group, filterPreset!, randomImages, includeEmpty);
     }
 
     /// <summary>
@@ -644,7 +644,7 @@ public class FilterController(
         if (!user.AllowedGroup(group))
             return Forbid(GroupController.GroupForbiddenForUser);
 
-        return GetSeriesInFilteredGroup(group, filterPreset, recursive, includeMissing, randomImages, includeDataFrom);
+        return GetSeriesInFilteredGroup(group, filterPreset!, recursive, includeMissing, randomImages, includeDataFrom);
     }
 
     #endregion

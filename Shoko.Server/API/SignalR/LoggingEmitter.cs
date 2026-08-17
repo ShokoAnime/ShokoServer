@@ -9,7 +9,7 @@ namespace Shoko.Server.API.SignalR;
 public class LoggingEmitter : IDisposable
 {
     private IHubContext<LoggingHub> Hub { get; set; }
-    public SignalRTarget Target { get; set; }
+    public SignalRTarget? Target { get; set; }
 
     public LoggingEmitter(IHubContext<LoggingHub> hub)
     {
@@ -31,6 +31,6 @@ public class LoggingEmitter : IDisposable
 
     public async void OnLog(LogEvent e)
     {
-        await Hub.Clients.All.SendAsync(Target.LogMethodName, e);
+        await Hub.Clients.All.SendAsync(Target!.LogMethodName, e);
     }
 }

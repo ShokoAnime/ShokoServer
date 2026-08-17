@@ -34,25 +34,26 @@ public static class APIHelper
     // is disposed.
     private static readonly ConditionalWeakTable<ClaimsPrincipal, JMMUser> _userTable = [];
 
-    public static JMMUser GetUser(this ClaimsPrincipal identity)
+    // Returns null when unauthenticated or before the server starts, but is declared non-nullable
+    // because every call site treats it as guaranteed; widening it is a repo-wide change.
+    public static JMMUser GetUser(this ClaimsPrincipal? identity)
     {
         var systemService = ISystemService.StaticServices.GetRequiredService<ISystemService>();
         if (!systemService.IsStarted)
         {
             if (systemService.InSetupMode || systemService.StartupFailedException is not null)
                 return InitUser.Instance;
-            return null;
+            return null!;
         }
 
-        var authenticated = identity?.Identity?.IsAuthenticated ?? false;
-        if (!authenticated) return null;
+        if (identity?.Identity?.IsAuthenticated is not true) return null!;
         if (_userTable.TryGetValue(identity, out var user))
             return user;
 
         var nameIdentifier = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-        if (nameIdentifier == null) return null;
-        if (!int.TryParse(nameIdentifier, out var id) || id == 0) return null;
-        user = RepoFactory.JMMUser.GetByID(id);
+        if (nameIdentifier == null) return null!;
+        if (!int.TryParse(nameIdentifier, out var id) || id == 0) return null!;
+        user = RepoFactory.JMMUser.GetByID(id)!;
         _userTable.AddOrUpdate(identity, user);
         return user;
     }
@@ -62,7 +63,7 @@ public static class APIHelper
         return ctx.User.GetUser();
     }
 
-    public static string GetToken(this HttpContext ctx)
+    public static string? GetToken(this HttpContext ctx)
     {
         var token = ctx.User.Claims.FirstOrDefault(c => c.Type == "apikey")?.Value;
         if (!string.IsNullOrEmpty(token))

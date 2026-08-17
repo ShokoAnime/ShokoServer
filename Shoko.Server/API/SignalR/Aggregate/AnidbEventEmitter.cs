@@ -30,7 +30,7 @@ public class AnidbEventEmitter : BaseEventEmitter, IDisposable
         HttpHandler.AniDBStateUpdate -= OnHttpStateUpdate;
     }
 
-    private async void OnUDPStateUpdate(object sender, AniDBStateUpdate e)
+    private async void OnUDPStateUpdate(object? sender, AniDBStateUpdate e)
     {
         try
         {
@@ -42,7 +42,7 @@ public class AnidbEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    private async void OnHttpStateUpdate(object sender, AniDBStateUpdate e)
+    private async void OnHttpStateUpdate(object? sender, AniDBStateUpdate e)
     {
         try
         {

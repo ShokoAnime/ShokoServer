@@ -142,13 +142,13 @@ public class AnidbAnime
             AirDate = anime.AirDate;
             EndDate = anime.EndDate;
         }
-        else if ((result ??= TitleHelper.SearchAnimeID(animeId)) is not null)
+        else if ((result ??= TitleHelper.SearchAnimeID(animeId)) is { } titleResult)
         {
             Type = AnimeType.Unknown;
-            Title = result.Title;
+            Title = titleResult.Title;
             Titles = includeTitles
-                ? result.Titles.Select(
-                    title => new Title(title, result.DefaultTitle.Value, Title)
+                ? titleResult.Titles.Select(
+                    title => new Title(title, titleResult.DefaultTitle.Value, Title)
                     {
                         Language = title.LanguageCode,
                         Name = title.Title,

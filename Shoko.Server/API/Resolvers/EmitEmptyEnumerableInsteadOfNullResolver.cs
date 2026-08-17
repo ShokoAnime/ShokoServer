@@ -21,7 +21,7 @@ public class EmitEmptyEnumerableInsteadOfNullAttribute : ActionFilterAttribute
         ObjectCreationHandling = ObjectCreationHandling.Replace
     };
 
-    internal static MvcOptions MvcOptions { get; set; }
+    internal static MvcOptions MvcOptions { get; set; } = null!;
 
     public override void OnActionExecuted(ActionExecutedContext ctx)
     {
@@ -69,7 +69,7 @@ public class EmitEmptyEnumerableInsteadOfNullResolver : DefaultContractResolver
     private class EmptyListValueProvider : IValueProvider
     {
         private readonly IValueProvider _innerProvider;
-        private readonly object _defaultValue;
+        private readonly object? _defaultValue;
 
         public EmptyListValueProvider(IValueProvider innerProvider, Type listType)
         {
@@ -78,7 +78,7 @@ public class EmitEmptyEnumerableInsteadOfNullResolver : DefaultContractResolver
             _defaultValue = GetDefault(listType);
         }
 
-        private object GetDefault(Type t)
+        private object? GetDefault(Type t)
         {
             // Get parameterless constructor
             var constructorInfo = t.GetConstructor(Type.EmptyTypes);
@@ -100,7 +100,7 @@ public class EmitEmptyEnumerableInsteadOfNullResolver : DefaultContractResolver
             }
 
             // most of the rest have a constructor that takes a single IEnumerable, ex ReadOnly...
-            Type enumerableInnerType = null;
+            Type? enumerableInnerType = null;
             constructorInfo = t.GetConstructors().FirstOrDefault(a =>
             {
                 var para = a.GetParameters();
@@ -128,17 +128,17 @@ public class EmitEmptyEnumerableInsteadOfNullResolver : DefaultContractResolver
             return constructorInfo.Invoke(new object[] { Array.CreateInstance(enumerableInnerType, 0) });
         }
 
-        private object GetNullOrDefault(Type t)
+        private object? GetNullOrDefault(Type t)
         {
             return t.GetTypeInfo().IsValueType ? Activator.CreateInstance(t) : null;
         }
 
-        public void SetValue(object target, object value)
+        public void SetValue(object target, object? value)
         {
             _innerProvider.SetValue(target, value ?? _defaultValue);
         }
 
-        public object GetValue(object target)
+        public object? GetValue(object target)
         {
             return _innerProvider.GetValue(target) ?? _defaultValue;
         }

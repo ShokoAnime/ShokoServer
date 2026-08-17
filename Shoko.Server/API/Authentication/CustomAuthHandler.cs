@@ -55,7 +55,7 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
 
         // Collect auth tokens from the request headers and query parameters.
         var authKeys = Request.Headers["apikey"]
-            .Union(Request.Headers.Authorization.Where(a => a.StartsWith(BearerPrefix)).Select(a => a[BearerPrefix.Length..]))
+            .Union(Request.Headers.Authorization.OfType<string>().Where(a => a.StartsWith(BearerPrefix)).Select(a => a[BearerPrefix.Length..]))
             .Union(Request.Query["apikey"])
             .ToList();
 
@@ -76,7 +76,7 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
             new(ClaimTypes.Role, "user"),
             new(ClaimTypes.NameIdentifier, user.JMMUserID.ToString()),
             new(ClaimTypes.AuthenticationMethod, "apikey"),
-            new("apikey", token.Token),
+            new("apikey", token!.Token),
         };
         if (user.IsAdmin is 1)
             claims.Add(new Claim(ClaimTypes.Role, "admin"));
@@ -88,7 +88,7 @@ public class CustomAuthHandler : AuthenticationHandler<CustomAuthOptions>
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
 
-    private (JMMUser user, AuthTokens apikey) GetUserForKey(string token)
+    private (JMMUser? user, AuthTokens? apikey) GetUserForKey(string? token)
     {
         if (!_systemService.IsStarted)
             return (null, null);

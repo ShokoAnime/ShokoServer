@@ -40,7 +40,7 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
     /// <returns></returns>
     [HttpGet("Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodes(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeAbsolutePaths = false,
@@ -67,10 +67,10 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
     /// <returns></returns>
     [HttpGet("Series")]
     public ActionResult<ListResult<Series.WithEpisodeCount>> GetSeriesWithMultipleReleases(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
         [FromQuery] bool collecting = false,
         [FromQuery] bool onlyFinishedSeries = false,
-        [FromQuery] string search = null,
+        [FromQuery] string? search = null,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
@@ -111,7 +111,7 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
     [HttpGet("Series/{seriesID}/Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodesForSeries(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeAbsolutePaths = false,

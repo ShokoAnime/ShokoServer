@@ -42,7 +42,7 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         _metadataService.MovieRemoved -= OnMovieUpdated;
     }
 
-    private async void OnSeriesUpdated(object sender, SeriesInfoUpdatedEventArgs e)
+    private async void OnSeriesUpdated(object? sender, SeriesInfoUpdatedEventArgs e)
     {
         try
         {
@@ -55,7 +55,7 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    private async void OnEpisodeUpdated(object sender, EpisodeInfoUpdatedEventArgs e)
+    private async void OnEpisodeUpdated(object? sender, EpisodeInfoUpdatedEventArgs e)
     {
         try
         {
@@ -68,7 +68,7 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    private async void OnMovieUpdated(object sender, MovieInfoUpdatedEventArgs e)
+    private async void OnMovieUpdated(object? sender, MovieInfoUpdatedEventArgs e)
     {
         try
         {

@@ -112,7 +112,7 @@ public class InitController : BaseController
     public ServerStatus GetServerStatus()
     {
         var isLoggedIn = User is not null;
-        var message = (string)null;
+        string? message = null;
         var state = ServerStatus.StartupState.Waiting;
         if (_systemService.IsStarted)
         {
@@ -126,7 +126,7 @@ public class InitController : BaseController
         else if (!_systemService.InSetupMode)
         {
             message = _systemService.StartupMessage;
-            if (message.Equals("Complete!")) message = null;
+            if (message!.Equals("Complete!")) message = null;
             state = ServerStatus.StartupState.Starting;
         }
         if (!isLoggedIn)

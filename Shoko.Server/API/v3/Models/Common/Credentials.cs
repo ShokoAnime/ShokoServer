@@ -8,11 +8,11 @@ public class Credentials
     /// A generic Username field
     /// </summary>
     [Required]
-    public string Username { get; set; }
+    public string Username { get; set; } = null!;
 
     /// <summary>
     /// A generic password field
     /// </summary>
     [Required(AllowEmptyStrings = true)]
-    public string Password { get; set; }
+    public string Password { get; set; } = null!;
 }

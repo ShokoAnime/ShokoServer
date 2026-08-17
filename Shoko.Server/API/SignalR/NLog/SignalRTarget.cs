@@ -29,7 +29,7 @@ public class SignalRTarget : TargetWithLayout
 
     public delegate void OnLog(LogEvent e);
 
-    public event OnLog LogEventHandler;
+    public event OnLog? LogEventHandler;
 
     public SignalRTarget()
     {

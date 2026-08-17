@@ -26,7 +26,7 @@ public class GroupEventEmitter : BaseEventEmitter, IDisposable
         ShokoEventHandler.Instance.GroupsRecreated -= OnGroupsRecreated;
     }
 
-    private async void OnGroupUpdated(object sender, GroupInfoUpdatedEventArgs e)
+    private async void OnGroupUpdated(object? sender, GroupInfoUpdatedEventArgs e)
     {
         try
         {
@@ -39,7 +39,7 @@ public class GroupEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    private async void OnSeriesMoved(object sender, SeriesMovedEventArgs e)
+    private async void OnSeriesMoved(object? sender, SeriesMovedEventArgs e)
     {
         try
         {
@@ -51,7 +51,7 @@ public class GroupEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    private async void OnGroupsRecreated(object sender, EventArgs e)
+    private async void OnGroupsRecreated(object? sender, EventArgs e)
     {
         try
         {

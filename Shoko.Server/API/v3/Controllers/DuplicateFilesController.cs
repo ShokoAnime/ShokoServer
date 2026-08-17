@@ -38,7 +38,7 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
     /// <returns></returns>
     [HttpGet("Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodes(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
@@ -94,15 +94,15 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
     /// <returns></returns>
     [HttpGet("Series")]
     public ActionResult<ListResult<Series.WithEpisodeCount>> GetSeriesWithDuplicateFiles(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
         [FromQuery] bool onlyFinishedSeries = false,
-        [FromQuery] string search = null,
+        [FromQuery] string? search = null,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
         var enumerable = _animeSeries.GetWithDuplicateFiles();
         if (onlyFinishedSeries)
-            enumerable = enumerable.Where(a => a.AniDB_Anime.GetFinishedAiring());
+            enumerable = enumerable.Where(a => a.AniDB_Anime!.GetFinishedAiring());
         if (!string.IsNullOrWhiteSpace(search))
         {
             var normalizedSearch = AniDB_Anime_TitleRepository.NormalizeForSearch(search);
@@ -129,7 +129,7 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
     [HttpGet("Series/{seriesID}/Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodesForSeries(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,

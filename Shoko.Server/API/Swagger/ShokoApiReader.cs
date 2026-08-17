@@ -20,7 +20,7 @@ public class ShokoApiReader(bool enableV1, bool enableV2) : IApiVersionReader
     ];
     public void AddParameters(IApiVersionParameterDescriptionContext context)
     {
-        context.AddParameter(null, ApiVersionParameterLocation.Path);
+        context.AddParameter(null!, ApiVersionParameterLocation.Path);
     }
 
     public IReadOnlyList<string> Read(HttpRequest request)

@@ -50,7 +50,7 @@ public class UserController(IUserService userService, ISettingsProvider settings
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return user;
+        return user!;
     }
 
     /// <summary>
@@ -80,7 +80,7 @@ public class UserController(IUserService userService, ISettingsProvider settings
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return result;
+        return result!;
     }
 
     /// <summary>
@@ -97,7 +97,7 @@ public class UserController(IUserService userService, ISettingsProvider settings
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return result;
+        return result!;
     }
 
     /// <summary>
@@ -154,7 +154,7 @@ public class UserController(IUserService userService, ISettingsProvider settings
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return result;
+        return result!;
     }
 
     /// <summary>
@@ -179,7 +179,7 @@ public class UserController(IUserService userService, ISettingsProvider settings
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        return result;
+        return result!;
     }
 
     /// <summary>
@@ -225,7 +225,7 @@ public class UserController(IUserService userService, ISettingsProvider settings
         ChangePassword(userService.GetUserByID(userID), body);
 
     [NonAction]
-    private async Task<ActionResult> ChangePassword(IUser user, User.Input.ChangePasswordBody body)
+    private async Task<ActionResult> ChangePassword(IUser? user, User.Input.ChangePasswordBody body)
     {
         if (user == null)
             return NotFound(UserByIdNotFound);

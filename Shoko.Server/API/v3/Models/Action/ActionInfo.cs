@@ -19,7 +19,7 @@ public class ActionInfo
     ///   The action's display name.
     /// </summary>
     [Required]
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
     /// <summary>
     ///   The action's description.
@@ -38,7 +38,7 @@ public class ActionInfo
     ///   category's own name.
     /// </summary>
     [Required]
-    public string CategoryName { get; set; }
+    public required string CategoryName { get; set; }
 
     /// <summary>
     ///   The entity level the action is bound to.

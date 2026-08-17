@@ -55,7 +55,7 @@ public class ApiInUseAttribute : Attribute, IAlwaysRunResultFilter
         }
     }
 
-    private static void TimerElapsed(object sender, ElapsedEventArgs e)
+    private static void TimerElapsed(object? sender, ElapsedEventArgs e)
     {
         lock (OpenConnections)
         {

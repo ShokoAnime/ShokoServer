@@ -25,7 +25,7 @@ public class NetworkEventEmitter : BaseEventEmitter, IDisposable
         EventHandler.NetworkAvailabilityChanged -= OnNetworkAvailabilityChanged;
     }
 
-    private async void OnNetworkAvailabilityChanged(object sender, NetworkAvailabilityChangedEventArgs eventArgs)
+    private async void OnNetworkAvailabilityChanged(object? sender, NetworkAvailabilityChangedEventArgs eventArgs)
     {
         try
         {

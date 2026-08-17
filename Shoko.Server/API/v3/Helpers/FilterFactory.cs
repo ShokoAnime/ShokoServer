@@ -37,7 +37,7 @@ public class FilterFactory
 
     public FilterFactory(IHttpContextAccessor context, IFilteringEngine evaluator)
     {
-        _context = context.HttpContext;
+        _context = context.HttpContext!;
         _evaluator = evaluator;
     }
 
@@ -110,7 +110,7 @@ public class FilterFactory
         return filters;
     }
 
-    public Filter.FilterCondition GetExpressionTree(FilterExpression expression)
+    public Filter.FilterCondition? GetExpressionTree(FilterExpression? expression)
     {
         if (expression is null) return null;
         var result = new Filter.FilterCondition
@@ -142,7 +142,7 @@ public class FilterFactory
         switch (expression)
         {
             case IWithBoolParameter parameter:
-                result.Parameter = parameter.ToString().ToLower();
+                result.Parameter = parameter.ToString()!.ToLower();
                 break;
             case IWithStringParameter parameter:
                 result.Parameter = parameter.Parameter;
@@ -189,12 +189,12 @@ public class FilterFactory
         return result;
     }
 
-    public FilterExpression<T> GetExpressionTree<T>(Filter.FilterCondition condition)
+    public FilterExpression<T>? GetExpressionTree<T>(Filter.FilterCondition? condition)
     {
         if (condition is null) return null;
         if (!s_expressionTypes.TryGetValue(condition.Type.TrimEnd("Expression").TrimEnd("Function").TrimEnd("Selector").Trim(), out var type))
             throw new ArgumentException($"FilterCondition type {condition.Type} was not found");
-        var result = (FilterExpression<T>)Activator.CreateInstance(type);
+        var result = (FilterExpression<T>)Activator.CreateInstance(type)!;
 
         // Left/First
         switch (result)
@@ -241,7 +241,7 @@ public class FilterFactory
                     : default;
                 break;
             case IWithStringSetParameter parameter:
-                parameter.Parameter = condition.Parameter?[1..^1].Split("|||").ToHashSet();
+                parameter.Parameter = condition.Parameter?[1..^1].Split("|||").ToHashSet()!;
                 break;
         }
 
@@ -266,14 +266,14 @@ public class FilterFactory
         switch (result)
         {
             case IWithSecondStringParameter right:
-                right.SecondParameter = condition.SecondParameter;
+                right.SecondParameter = condition.SecondParameter!;
                 break;
         }
 
         return result;
     }
 
-    public Filter.SortingCriteria GetSortingCriteria(SortingExpression expression)
+    public Filter.SortingCriteria GetSortingCriteria(SortingExpression? expression)
     {
         if (expression == null) return new Filter.SortingCriteria { Type = "Name", IsInverted = false };
 
@@ -335,7 +335,7 @@ public class FilterFactory
         return result;
     }
 
-    public FilterPreset GetFilterPreset(Filter.Input.CreateOrUpdateFilterBody filter, ModelStateDictionary modelState = null, FilterPreset existing = null)
+    public FilterPreset? GetFilterPreset(Filter.Input.CreateOrUpdateFilterBody filter, ModelStateDictionary? modelState = null, FilterPreset? existing = null)
     {
         existing ??= new FilterPreset();
 

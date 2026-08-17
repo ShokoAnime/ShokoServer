@@ -8,7 +8,7 @@ public abstract class BaseModel
     /// The server's title. This will use overrides, the naming settings, MainTitle if all else fails. This is a guaranteed fallback
     /// </summary>
     [Required]
-    public string Name { get; set; }
+    public string Name { get; set; } = null!;
 
     /// <summary>
     /// number of direct children (number of series in group, eps in series, etc)

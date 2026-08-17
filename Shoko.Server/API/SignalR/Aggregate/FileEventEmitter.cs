@@ -31,7 +31,7 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
         _videoService.VideoFileDeleted -= OnFileDeleted;
     }
 
-    private async void OnFileDetected(object sender, VideoFileDetectedEventArgs e)
+    private async void OnFileDetected(object? sender, VideoFileDetectedEventArgs e)
     {
         try
         {
@@ -43,7 +43,7 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    private async void OnVideoFileHashed(object sender, VideoFileHashedEventArgs e)
+    private async void OnVideoFileHashed(object? sender, VideoFileHashedEventArgs e)
     {
         try
         {
@@ -55,7 +55,7 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    private async void OnFileRelocated(object sender, VideoFileRelocatedEventArgs e)
+    private async void OnFileRelocated(object? sender, VideoFileRelocatedEventArgs e)
     {
         try
         {
@@ -67,7 +67,7 @@ public class FileEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    private async void OnFileDeleted(object sender, VideoFileEventArgs e)
+    private async void OnFileDeleted(object? sender, VideoFileEventArgs e)
     {
         try
         {

@@ -84,7 +84,7 @@ public class FolderController : BaseController
                 if (_excludedFormats.Contains(driveFormat))
                     return null;
 
-                ChildItems childItems = null;
+                ChildItems? childItems = null;
                 try
                 {
                     childItems = d.IsReady
@@ -125,7 +125,7 @@ public class FolderController : BaseController
         return root.GetDirectories()
             .Select(dir =>
             {
-                ChildItems childItems = null;
+                ChildItems? childItems = null;
                 try
                 {
                     childItems = new ChildItems()

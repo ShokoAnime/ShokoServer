@@ -432,6 +432,9 @@ public class PluginController(
     /// <param name="purgeConfiguration">
     ///   Whether to purge the plugin configuration.
     /// </param>
+    /// <param name="force">
+    ///   Whether to also uninstall any dependent plugins.
+    /// </param>
     /// <returns>
     ///   No content.
     /// </returns>
@@ -632,6 +635,9 @@ public class PluginController(
     /// <param name="purgeConfiguration">
     ///   Whether to purge the plugin configuration.
     /// </param>
+    /// <param name="force">
+    ///   Whether to also uninstall any dependent plugins.
+    /// </param>
     /// <returns>
     ///   No content.
     /// </returns>
@@ -692,6 +698,9 @@ public class PluginController(
     /// </param>
     /// <param name="purgeConfiguration">
     ///   Whether to purge the plugin configuration.
+    /// </param>
+    /// <param name="force">
+    ///   Whether to also uninstall any dependent plugins.
     /// </param>
     /// <returns>
     ///   No content.

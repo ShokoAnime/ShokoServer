@@ -152,7 +152,7 @@ public class ReverseTreeController : BaseController
     /// <returns></returns>
     [HttpGet("Episode/{episodeID}/Series")]
     public ActionResult<Series> GetSeriesFromEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
         var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
@@ -191,7 +191,7 @@ public class ReverseTreeController : BaseController
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType> includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
@@ -200,7 +200,7 @@ public class ReverseTreeController : BaseController
         }
 
         var episodes = file.AnimeEpisodes;
-        if (!episodes.All(episode => User.AllowedSeries(episode.AnimeSeries)))
+        if (!episodes.All(episode => User.AllowedSeries(episode.AnimeSeries!)))
         {
             return Forbid(FileController.FileForbiddenForUser);
         }

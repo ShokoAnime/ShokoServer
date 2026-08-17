@@ -23,7 +23,7 @@ public class AvdumpEventEmitter : BaseEventEmitter, IDisposable
         ShokoEventHandler.Instance.AvdumpEvent -= OnAVDumpEvent;
     }
 
-    private async void OnAVDumpEvent(object sender, AnidbAvdumpEventArgs eventArgs)
+    private async void OnAVDumpEvent(object? sender, AnidbAvdumpEventArgs eventArgs)
     {
         try
         {

@@ -476,6 +476,7 @@ public static partial class APIExtensions
                 c.PreSerializeFilters.Add((swaggerDoc, _) =>
                 {
                     var commonPrefix = LongestCommonPathPrefix(swaggerDoc.Paths.Keys);
+                    swaggerDoc.Servers ??= [];
                     if (commonPrefix.Length > 0 && commonPrefix != "/")
                         swaggerDoc.Servers.Add(new() { Url = commonPrefix });
                     else

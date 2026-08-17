@@ -29,7 +29,7 @@ public class ReleaseEventEmitter : BaseEventEmitter, IDisposable
         _videoService.SearchCompleted -= OnSearchCompleted;
     }
 
-    private async void OnReleaseSaved(object sender, VideoReleaseSavedEventArgs e)
+    private async void OnReleaseSaved(object? sender, VideoReleaseSavedEventArgs e)
     {
         try
         {
@@ -41,7 +41,7 @@ public class ReleaseEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    private async void OnReleaseDeleted(object sender, VideoReleaseDeletedEventArgs e)
+    private async void OnReleaseDeleted(object? sender, VideoReleaseDeletedEventArgs e)
     {
         try
         {
@@ -53,7 +53,7 @@ public class ReleaseEventEmitter : BaseEventEmitter, IDisposable
         }
     }
 
-    private async void OnSearchCompleted(object sender, VideoReleaseSearchCompletedEventArgs e)
+    private async void OnSearchCompleted(object? sender, VideoReleaseSearchCompletedEventArgs e)
     {
         try
         {

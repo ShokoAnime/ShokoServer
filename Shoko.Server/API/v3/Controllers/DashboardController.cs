@@ -367,7 +367,7 @@ public class DashboardController(
 
                 return true;
             })
-            .ToListResult(a => new Series(a, User.JMMUserID), page, pageSize);
+            .ToListResult(a => new Series(a!, User.JMMUserID), page, pageSize);
     }
 
     /// <summary>
@@ -409,8 +409,8 @@ public class DashboardController(
             })
             .Select(series =>
             {
-                var (episode, video, videoUserData) = _seriesService.GetActiveEpisode(series, user.JMMUserID, includeSpecials, includeOthers);
-                return (series, episode, video, videoUserData);
+                var (episode, video, videoUserData) = _seriesService.GetActiveEpisode(series!, user.JMMUserID, includeSpecials, includeOthers);
+                return (series: series!, episode, video, videoUserData);
             })
             .Where(tuple => tuple.episode is not null && tuple.video is not null)
             .OrderByDescending(tuple => tuple.videoUserData!.LastUpdated)
@@ -463,7 +463,8 @@ public class DashboardController(
             })
             .Select(tuple =>
             {
-                var (series, seriesUserData) = tuple;
+                var series = tuple.series!;
+                var seriesUserData = tuple.record;
                 var (episode, video) = _seriesService.GetNextUpEpisode(
                     series,
                     user.JMMUserID,

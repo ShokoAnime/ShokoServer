@@ -23,7 +23,7 @@ public class Rating
     /// AniDB, etc
     /// </summary>
     [Required]
-    public string Source { get; set; }
+    public string Source { get; set; } = null!;
 
     /// <summary>
     /// number of votes
@@ -35,5 +35,5 @@ public class Rating
     /// for temporary vs permanent, or any other situations that may arise later
     /// </summary>
     [Required]
-    public string Type { get; set; }
+    public string Type { get; set; } = null!;
 }

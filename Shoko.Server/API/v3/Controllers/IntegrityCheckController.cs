@@ -26,24 +26,24 @@ public class IntegrityCheckController : BaseController
     [HttpPost]
     public ActionResult<IntegrityCheck> AddScan(IntegrityCheck check)
     {
-        var scan = check.ID is > 0 ? _scans.GetByID(check.ID) : new()
+        var scan = (check.ID is > 0 ? _scans.GetByID(check.ID) : new()
         {
             Status = check.Status,
             ImportFolders = check.ManagedFolderIDs.Select(a => a.ToString()).Join(','),
             CreationTIme = DateTime.Now,
-        };
+        })!;
         if (scan.ScanID == 0)
             _scans.Save(scan);
 
         var files = scan.ImportFolders.Split(',')
             .Select(int.Parse)
             .SelectMany(_videoLocalPlaces.GetByManagedFolderID)
-            .Select(p => new { p, v = p.VideoLocal })
+            .Select(p => new { p, v = p.VideoLocal! })
             .Select(t => new ScanFile
             {
                 Hash = t.v.Hash,
                 FileSize = t.v.FileSize,
-                FullName = t.p.Path,
+                FullName = t.p.Path!,
                 ScanID = scan.ScanID,
                 Status = ScanFileStatus.Waiting,
                 ImportFolderID = t.p.ManagedFolderID,

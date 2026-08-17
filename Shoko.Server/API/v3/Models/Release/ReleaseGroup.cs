@@ -18,7 +18,8 @@ public class ReleaseGroup : IReleaseGroup
     public string Name { get; init; }
 
     /// <summary>
-    /// The Release Group's Name (UTW)
+    /// The Release Group's Short Name (UTW)
+    /// </summary>
     public string? ShortName { get; init; }
 
     /// <summary>

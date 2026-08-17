@@ -133,7 +133,7 @@ public class AuthController(
 
         // Attempt to invalidate token.
         token ??= HttpContext.GetToken();
-        if (await userService.InvalidateApiToken(token))
+        if (await userService.InvalidateApiToken(token!))
             return Ok();
 
         return BadRequest("Unable to invalidate token.");

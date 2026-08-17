@@ -15,11 +15,11 @@ public class LoggingHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        if ((_loggingEmitter?.Target?.MaxLogsCount ?? 0) <= 0)
+        if (_loggingEmitter.Target is not { MaxLogsCount: > 0 } target)
         {
             return;
         }
 
-        await Clients.Caller.SendAsync(_loggingEmitter.Target.ConnectMethodName, _loggingEmitter.Target.Logs.ToArray());
+        await Clients.Caller.SendAsync(target.ConnectMethodName, target.Logs.ToArray());
     }
 }

@@ -13,7 +13,7 @@ public class AniDBStatusUpdateSignalRModel
     /// <summary>
     /// Auxiliary Message for some states
     /// </summary>
-    public string Message { get; set; }
+    public string? Message { get; set; }
 
     /// <summary>
     /// Update type, Ban, Invalid Session, Waiting on Response, etc

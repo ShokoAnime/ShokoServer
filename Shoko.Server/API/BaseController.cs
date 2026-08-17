@@ -27,7 +27,7 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
     }
 
     [NonAction]
-    protected ActionResult Forbid(string message = null)
+    protected ActionResult Forbid(string? message = null)
     {
         if (message == null)
         {
@@ -38,7 +38,7 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
     }
 
     [NonAction]
-    protected ActionResult InternalError(string message = null)
+    protected ActionResult InternalError(string? message = null)
     {
         if (message == null)
         {
@@ -49,7 +49,7 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
     }
 
     [NonAction]
-    protected ActionResult ValidationProblem(IEnumerable<KeyValuePair<string, IReadOnlyList<string>>> errors, string fieldName = null)
+    protected ActionResult ValidationProblem(IEnumerable<KeyValuePair<string, IReadOnlyList<string>>> errors, string? fieldName = null)
     {
         var prefix = string.IsNullOrEmpty(fieldName) ? string.Empty : fieldName + ".";
         foreach (var (key, errorsList) in errors)

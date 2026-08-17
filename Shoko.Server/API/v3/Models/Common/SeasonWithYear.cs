@@ -14,7 +14,7 @@ public class SeasonWithYear(int year, YearlySeason animeSeason) : IComparable<Se
     [Required, JsonConverter(typeof(StringEnumConverter))]
     public YearlySeason AnimeSeason { get; } = animeSeason;
 
-    public int CompareTo(SeasonWithYear other)
+    public int CompareTo(SeasonWithYear? other)
     {
         if (ReferenceEquals(this, other))
         {
