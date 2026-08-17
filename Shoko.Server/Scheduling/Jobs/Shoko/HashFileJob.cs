@@ -16,7 +16,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyGroup(JobKeyGroup.Import)]
 public class HashFileJob(IVideoHashingService videoHashingService) : BaseJob
 {
-    public string FilePath { get; set; }
+    public required string FilePath { get; set; }
 
     public bool ForceHash { get; set; }
 

@@ -57,8 +57,8 @@ public class VideoReleaseGroupingService(
     /// against — either because it's likely to produce more than one release candidate,
     /// or because a single candidate would still surface the grouper's "ambiguous
     /// full-collision" case (two distinct files covering the same episode with nothing
-    /// to distinguish them, e.g. an untagged v2 — see <see cref="ReleaseCandidate.EpisodeCoverage"/>
-    /// PlaceIDs). Inspects SRI group keys, source, and MediaInfo-based hard separators
+    /// to distinguish them, e.g. an untagged v2 — see <c>ReleaseCandidate.EpisodeCoverage[].PlaceIDs</c>).
+    /// Inspects SRI group keys, source, and MediaInfo-based hard separators
     /// (codec, resolution, bit depth) so it catches the common case of the same group
     /// publishing both 1080p and 720p (or HEVC and H264) at the same version without
     /// running the full grouper.

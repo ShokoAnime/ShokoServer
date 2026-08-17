@@ -53,8 +53,8 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
         var request = requestFactory.Create<RequestVotes>(
             r =>
             {
-                r.Username = settings.AniDb.Username;
-                r.Password = settings.AniDb.Password;
+                r.Username = settings.AniDb.Username!;
+                r.Password = settings.AniDb.Password!;
             }
         );
         var response = request.Send();
@@ -83,7 +83,7 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
             if (vote is null && !userData.HasUserRating)
                 continue;
 
-            var voteType = vote.VoteType is VoteType.AnimePermanent
+            var voteType = vote!.VoteType is VoteType.AnimePermanent
                 ? SeriesVoteType.Permanent
                 : SeriesVoteType.Temporary;
             if (vote is null)
@@ -91,8 +91,8 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
                 await scheduler.StartJob<VoteAniDBAnimeJob>(c =>
                 {
                     c.AnimeID = series.AniDB_ID;
-                    c.VoteValue = userData.UserRating.Value;
-                    c.VoteType = userData.UserRatingVoteType.Value is SeriesVoteType.Permanent
+                    c.VoteValue = userData.UserRating!.Value;
+                    c.VoteType = userData.UserRatingVoteType!.Value is SeriesVoteType.Permanent
                         ? VoteType.AnimePermanent
                         : VoteType.AnimeTemporary;
                 });
@@ -134,7 +134,7 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
                 await scheduler.StartJob<VoteAniDBEpisodeJob>(c =>
                 {
                     c.EpisodeID = episode.AniDB_EpisodeID;
-                    c.VoteValue = userData.UserRating.Value;
+                    c.VoteValue = userData.UserRating!.Value;
                 });
             }
             else if (!userData.HasUserRating)

@@ -19,9 +19,9 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBHttpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetRemoteAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbService anidbService, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimes) : BaseJob<AniDB_Anime>
+public class GetRemoteAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbService anidbService, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimes) : BaseJob<AniDB_Anime?>
 {
-    private string _animeName;
+    private string? _animeName;
 
     /// <summary>
     /// The ID of the AniDB anime to update.
@@ -138,7 +138,7 @@ public class GetRemoteAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbSer
             { "Remote Only", true }
         };
 
-    public override async Task<AniDB_Anime> Process()
+    public override async Task<AniDB_Anime?> Process()
     {
         _logger.LogInformation("Processing {JobName} for {Anime}: AniDB ID {ID}", nameof(GetRemoteAniDBAnimeJob), _animeName ?? AnimeID.ToString(), AnimeID);
         return await anidbService.Process(AnimeID, RefreshMethod, RelDepth).ConfigureAwait(false);

@@ -33,7 +33,7 @@ public class AddFileToMyListJob(IRequestFactory requestFactory, IQueueScheduler 
 {
     private VideoLocal? _videoLocal;
 
-    public string Hash { get; set; }
+    public required string Hash { get; set; }
 
     public bool ReadStates { get; set; } = true;
 
@@ -175,7 +175,7 @@ public class AddFileToMyListJob(IRequestFactory requestFactory, IQueueScheduler 
                     {
                         ProgressPosition = TimeSpan.Zero,
                         LastPlayedAt = newWatchedDate ?? DateTime.Now,
-                        LastUpdatedAt = response.Response.UpdatedAt ?? DateTime.Now,
+                        LastUpdatedAt = response!.Response!.UpdatedAt ?? DateTime.Now,
                     }, "AniDB").ConfigureAwait(false);
                 }
                 else if (settings.AniDb.MyList_ReadUnwatched && !watched && watchedLocally)
@@ -184,7 +184,7 @@ public class AddFileToMyListJob(IRequestFactory requestFactory, IQueueScheduler 
                     {
                         ProgressPosition = TimeSpan.Zero,
                         LastPlayedAt = null,
-                        LastUpdatedAt = response.Response.UpdatedAt ?? DateTime.Now,
+                        LastUpdatedAt = response!.Response!.UpdatedAt ?? DateTime.Now,
                     }, "AniDB").ConfigureAwait(false);
                 }
             }

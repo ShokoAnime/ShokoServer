@@ -10,5 +10,5 @@ public class ScheduledUpdate
 
     public DateTime LastUpdate { get; set; }
 
-    public string UpdateDetails { get; set; }
+    public string UpdateDetails { get; set; } = null!;
 }

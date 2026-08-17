@@ -1078,7 +1078,7 @@ public class VideoReleaseService(
         }
 
         // If we have an existing release from the group with valid names, use that.
-        var existingReleasesForGroup = releaseInfoRepository.GetByGroupAndProviderIDs(releaseInfo.GroupID, releaseInfo.GroupSource)
+        var existingReleasesForGroup = releaseInfoRepository.GetByGroupAndProviderIDs(releaseInfo.GroupID!, releaseInfo.GroupSource)
             .Where(rI => !string.IsNullOrEmpty(rI.GroupName) && !string.IsNullOrEmpty(rI.GroupShortName))
             .OrderByDescending(rI => rI.LastUpdatedAt)
             .ToList();

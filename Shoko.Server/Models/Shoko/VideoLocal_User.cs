@@ -88,7 +88,7 @@ public class VideoLocal_User : IVideoUserData
     internal void ClearClientDataInternal() => _clientData.Clear();
 
     public JMMUser User
-        => RepoFactory.JMMUser.GetByID(JMMUserID);
+        => RepoFactory.JMMUser.GetByID(JMMUserID)!;
 
     /// <summary>
     /// Get the related <see cref="Shoko.VideoLocal"/>.

@@ -242,7 +242,7 @@ public class AnimeGroupCreator
     /// <param name="mainAnimeId">The ID of the anime whose name will represent the group if <paramref name="mainSeries"/> is <c>null</c>.</param>
     /// <param name="now">The current date/time.</param>
     /// <returns>The created <see cref="AnimeGroup"/>.</returns>
-    private AnimeGroup CreateAnimeGroup(AnimeSeries mainSeries, int mainAnimeId,
+    private AnimeGroup CreateAnimeGroup(AnimeSeries? mainSeries, int mainAnimeId,
         DateTime now)
     {
         var animeGroup = new AnimeGroup();
@@ -257,7 +257,7 @@ public class AnimeGroupCreator
         {
             var mainAnime = _aniDbAnimeRepo.GetByAnimeID(mainAnimeId);
 
-            animeGroup.Populate(mainAnime, now);
+            animeGroup.Populate(mainAnime!, now);
             groupName = animeGroup.GroupName;
         }
 
@@ -281,7 +281,7 @@ public class AnimeGroupCreator
             throw new ArgumentNullException(nameof(series));
         }
 
-        AnimeGroup animeGroup;
+        AnimeGroup? animeGroup;
 
         if (_autoGroupSeries)
         {
@@ -354,7 +354,7 @@ public class AnimeGroupCreator
             throw new ArgumentNullException(nameof(anime));
         }
 
-        AnimeGroup animeGroup;
+        AnimeGroup? animeGroup;
 
         if (_autoGroupSeries)
         {
@@ -434,7 +434,7 @@ public class AnimeGroupCreator
             _logger.LogInformation("Beginning re-creation of all groups");
 
             var animeSeries = _animeSeriesRepo.GetAll();
-            AnimeGroup tempGroup = null;
+            AnimeGroup tempGroup;
 
             {
                 using var trans = session.BeginTransaction();

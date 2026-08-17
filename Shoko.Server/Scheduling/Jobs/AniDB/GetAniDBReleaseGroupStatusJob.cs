@@ -29,8 +29,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper, IQueueScheduler scheduler, AniDB_AnimeRepository anidbAnimes, AniDB_EpisodeRepository anidbEpisodes, AniDB_GroupStatusRepository anidbGroupStatuses, AnimeSeriesRepository animeSeries) : BaseJob
 {
-    private AniDB_Anime _anime;
-    private string _animeName;
+    private AniDB_Anime? _anime;
+    private string? _animeName;
     public int AnimeID { get; set; }
     public bool ForceRefresh { get; set; }
 

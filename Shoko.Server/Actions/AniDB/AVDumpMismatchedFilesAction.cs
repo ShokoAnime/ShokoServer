@@ -42,7 +42,7 @@ public sealed class AVDumpMismatchedFilesAction(
             .Where(tuple => tuple.AniDB is { ProviderName: "AniDB", IsCorrupted: false } && tuple.Video.MediaInfo?.MenuStreams.Count != 0 != tuple.AniDB.IsChaptered)
             .Select(tuple => (Path: tuple.Video.FirstResolvedPlace?.Path, tuple.Video))
             .Where(tuple => !string.IsNullOrEmpty(tuple.Path))
-            .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path);
+            .ToDictionary(tuple => tuple.Video.VideoLocalID, tuple => tuple.Path!);
         foreach (var (fileId, filePath) in mismatchedFiles)
             await scheduler.Enqueue<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath } }, ct: token);
 

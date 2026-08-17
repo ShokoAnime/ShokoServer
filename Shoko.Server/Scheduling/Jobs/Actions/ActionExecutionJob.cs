@@ -16,7 +16,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 /// <summary>
 ///   The one generic wrapper job that executes every registered action.
-///   Enqueued by <see cref="ActionService.InvokeAsync"/> with the action ID,
+///   Enqueued by <see cref="ActionService.InvokeAsync(Guid, IUser?, System.Threading.CancellationToken)"/> with the action ID,
 ///   scope, scope entity ID, and calling user ID populated from
 ///   <c>JobDataJson</c> — the same mechanism every other
 ///   <see cref="IQueueJob"/> in this codebase already uses.

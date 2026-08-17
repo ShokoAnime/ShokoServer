@@ -607,7 +607,7 @@ public class AnimeSeries : IShokoSeries
     /// <summary>
     /// Gets the direct parent AnimeGroup this series belongs to
     /// </summary>
-    public AnimeGroup AnimeGroup => RepoFactory.AnimeGroup.GetByID(AnimeGroupID);
+    public AnimeGroup AnimeGroup => RepoFactory.AnimeGroup.GetByID(AnimeGroupID)!;
 
     /// <summary>
     /// Gets the very top level AnimeGroup which this series belongs to

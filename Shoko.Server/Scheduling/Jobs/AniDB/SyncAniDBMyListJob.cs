@@ -68,8 +68,8 @@ public class SyncAniDBMyListJob(
         var request = requestFactory.Create<RequestMyList>(
             r =>
             {
-                r.Username = settings.AniDb.Username;
-                r.Password = settings.AniDb.Password;
+                r.Username = settings.AniDb.Username!;
+                r.Password = settings.AniDb.Password!;
             }
         );
         var response = request.Send();

@@ -711,7 +711,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         }
     }
 
-    private int? AnimeRecentlyUpdated(AniDB_Anime? anime, AniDB_AnimeUpdate update)
+    private int? AnimeRecentlyUpdated(AniDB_Anime? anime, AniDB_AnimeUpdate? update)
     {
         if (anime != null && update != null)
         {
@@ -1011,7 +1011,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             _anidbAnimeTitleRepository.Delete(titles);
             _anidbEpisodeTitleRepository.Delete(episodeTitles);
             _anidbEpisodeRepository.Delete(anidbEpisodes);
-            _anidbAnimeUpdateRepository.Delete(update);
+            _anidbAnimeUpdateRepository.Delete(update!);
 
             // Explicitly remove image cross references through the image manager.
             PurgeImageXrefsForEntity(DataEntityType.Anime, anidbAnimeID);

@@ -14,8 +14,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class GetAniDBImagesJob(AniDBTitleHelper titleHelper, AnidbService anidbService, AniDB_AnimeRepository anidbAnimes) : BaseJob
 {
-    private AniDB_Anime _anime;
-    private string _title;
+    private AniDB_Anime? _anime;
+    private string? _title;
 
     public int AnimeID { get; set; }
     public bool ForceDownload { get; set; }

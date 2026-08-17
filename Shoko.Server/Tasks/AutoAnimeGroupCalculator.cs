@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +29,8 @@ public class AutoAnimeGroupCalculator
     private readonly Dictionary<int, int> _animeGroupMap = new();
     private readonly AutoGroupExclude _exclusions;
     private readonly AnimeRelationType _relationsToFuzzyTitleTest;
-    private readonly Func<Dictionary<int, RelationNode>, HashSet<RelationEdge>, int> _mainAnimeSelector;
+    // Assigned by the constructor's switch over every declared MainAnimeSelectionStrategy value.
+    private readonly Func<Dictionary<int, RelationNode>, HashSet<RelationEdge>, int> _mainAnimeSelector = null!;
 
     /// <summary>
     /// Initializes a new <see cref="AutoAnimeGroupCalculator"/> instance.
@@ -306,8 +308,8 @@ public class AutoAnimeGroupCalculator
     /// <param name="edges">Returns the graph edges.</param>
     /// <returns><c>true</c> if a graph was built; otherwise, <c>false</c>
     /// (e.g. if the specified anime has no relations).</returns>
-    private bool BuildGroupGraph(int rootAnimeId, out Dictionary<int, RelationNode> nodes,
-        out HashSet<RelationEdge> edges)
+    private bool BuildGroupGraph(int rootAnimeId, [NotNullWhen(true)] out Dictionary<int, RelationNode>? nodes,
+        [NotNullWhen(true)] out HashSet<RelationEdge>? edges)
     {
         var toVisit = new Queue<int>();
         var first = true;
@@ -337,9 +339,9 @@ public class AutoAnimeGroupCalculator
 
                 var relEdge = new RelationEdge(relation.RelationType, relation.FromId, relation.ToId);
 
-                edges.Add(relEdge);
+                edges!.Add(relEdge);
 
-                if (nodes.ContainsKey(relation.ToId))
+                if (nodes!.ContainsKey(relation.ToId))
                 {
                     continue; // We've already visited this anime
                 }
@@ -434,7 +436,7 @@ public class AutoAnimeGroupCalculator
     [DebuggerDisplay("{AnimeNode.AnimeId} (Score: {Score})")]
     private sealed class AnimeRelationStats
     {
-        public RelationNode AnimeNode;
+        public required RelationNode AnimeNode;
         public int Sequels;
         public int AlternativeVersions;
         public int FullStory;
@@ -536,12 +538,12 @@ public class AutoAnimeGroupCalculator
             }
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return Equals(obj as RelationEdge);
         }
 
-        public bool Equals(RelationEdge other)
+        public bool Equals(RelationEdge? other)
         {
             if (ReferenceEquals(null, other))
             {
@@ -585,11 +587,11 @@ public class AutoAnimeGroupCalculator
     {
         public int FromId;
         public AnimeType FromType;
-        public string FromMainTitle;
+        public required string FromMainTitle;
         public PartialDateOnly? FromAirDate;
         public int ToId;
         public AnimeType ToType;
-        public string ToMainTitle;
+        public required string ToMainTitle;
         public PartialDateOnly? ToAirDate;
         public AnimeRelationType RelationType;
     }

@@ -23,7 +23,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class DeleteFileFromMyListJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider) : BaseJob
 {
-    public string Hash { get; set; }
+    public string Hash { get; set; } = string.Empty;
     public long FileSize { get; set; }
     public EpisodeType EpisodeType { get; set; }
     public int EpisodeNumber { get; set; }

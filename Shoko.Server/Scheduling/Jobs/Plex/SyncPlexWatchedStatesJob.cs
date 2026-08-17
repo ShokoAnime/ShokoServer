@@ -25,7 +25,7 @@ namespace Shoko.Server.Scheduling.Jobs.Plex;
 [JobKeyGroup(JobKeyGroup.Actions)]
 public class SyncPlexWatchedStatesJob(ISettingsProvider settingsProvider, VideoLocal_UserRepository vlUsers, IUserDataService userDataService) : BaseJob
 {
-    public JMMUser User { get; set; }
+    public required JMMUser User { get; set; }
 
     public override string TypeName => "Sync Plex States for User";
 
@@ -55,7 +55,7 @@ public class SyncPlexWatchedStatesJob(ISettingsProvider settingsProvider, VideoL
                     var animeEpisode = episode.AnimeEpisode;
 
 
-                    _logger.LogInformation("Processing episode {Title} of {SeriesName}", episode.Title, series.Title);
+                    _logger.LogInformation("Processing episode {Title} of {SeriesName}", episode.Title, series!.Title);
                     if (animeEpisode == null)
                     {
                         var filePath = episode.Media[0].Part[0].File;
@@ -75,7 +75,7 @@ public class SyncPlexWatchedStatesJob(ISettingsProvider settingsProvider, VideoL
                     var video = animeEpisode.VideoLocals?.FirstOrDefault();
                     if (video == null) continue;
 
-                    var alreadyWatched = animeEpisode.VideoLocals
+                    var alreadyWatched = animeEpisode.VideoLocals!
                         .Select(a => vlUsers.GetByUserAndVideoLocalID(User.JMMUserID, a.VideoLocalID))
                         .WhereNotNull()
                         .Any(x => x.WatchedDate is not null || x.WatchedCount > 0);

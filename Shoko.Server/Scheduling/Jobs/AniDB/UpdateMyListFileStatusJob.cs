@@ -25,8 +25,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettingsProvider settingsProvider, AnimeSeriesService seriesService, AnimeEpisodeRepository animeEpisodes, FileNameHashRepository fileNameHashes, VideoLocalRepository videoLocals) : BaseJob
 {
-    private string FullFileName { get; set; }
-    public string Hash { get; set; }
+    private string? FullFileName { get; set; }
+    public required string Hash { get; set; }
     public bool? Watched { get; set; }
     public bool UpdateSeriesStats { get; set; }
     public DateTime? WatchedDate { get; set; }
@@ -42,13 +42,13 @@ public class UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettings
     public override Dictionary<string, object> Details => FullFileName != null ? new()
     {
         { "Filename", FullFileName},
-        { "Watched", Watched },
-        { "Date", WatchedDate }
+        { "Watched", Watched! },
+        { "Date", WatchedDate! }
     } : new()
     {
         { "Hash", Hash },
-        { "Watched", Watched },
-        { "Date", WatchedDate }
+        { "Watched", Watched! },
+        { "Date", WatchedDate! }
     };
 
     public override async Task Execute()
@@ -104,7 +104,7 @@ public class UpdateMyListFileStatusJob(IRequestFactory requestFactory, ISettings
 
         // update watched stats
         var eps = animeEpisodes.GetByHash(vid.Hash);
-        if (eps.Count > 0) await Task.WhenAll(eps.DistinctBy(a => a.AnimeSeriesID).Select(a => seriesService.QueueUpdateStats(a.AnimeSeries)));
+        if (eps.Count > 0) await Task.WhenAll(eps.DistinctBy(a => a.AnimeSeriesID).Select(a => seriesService.QueueUpdateStats(a.AnimeSeries!)));
     }
 
 }

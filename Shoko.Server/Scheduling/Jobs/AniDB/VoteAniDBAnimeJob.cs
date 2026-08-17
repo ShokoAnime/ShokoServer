@@ -20,7 +20,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class VoteAniDBAnimeJob(IRequestFactory requestFactory, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimes) : BaseJob
 {
-    private string _animeName;
+    private string _animeName = null!;
 
     public int AnimeID { get; set; }
     public VoteType VoteType { get; set; }

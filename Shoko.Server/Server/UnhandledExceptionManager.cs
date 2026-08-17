@@ -13,8 +13,8 @@ namespace Shoko.Server.Server;
 
 public sealed class UnhandledExceptionManager
 {
-    private static Assembly _objParentAssembly;
-    private static string _strException;
+    private static Assembly? _objParentAssembly;
+    private static string _strException = null!;
 
     private static Assembly ParentAssembly()
     {
@@ -99,20 +99,20 @@ public sealed class UnhandledExceptionManager
     private static string StackFrameToString(StackFrame sf)
     {
         var sb = new StringBuilder();
-        MemberInfo mi = sf.GetMethod();
+        MemberInfo mi = sf.GetMethod()!;
 
         var _with1 = sb;
         //-- build method name
         _with1.Append("   ");
-        _with1.Append(mi.DeclaringType.Namespace);
+        _with1.Append(mi.DeclaringType!.Namespace);
         _with1.Append(".");
-        _with1.Append(mi.DeclaringType.Name);
+        _with1.Append(mi.DeclaringType!.Name);
         _with1.Append(".");
         _with1.Append(mi.Name);
 
         //-- build method params
-        var objParameters = sf.GetMethod().GetParameters();
-        ParameterInfo objParameter = null;
+        var objParameters = sf.GetMethod()!.GetParameters();
+        ParameterInfo? objParameter = null;
         _with1.Append("(");
         var intParam = 0;
         foreach (var objParameter_loopVariable in objParameters)
@@ -134,7 +134,7 @@ public sealed class UnhandledExceptionManager
 
         //-- if source code is available, append location info
         _with1.Append("       ");
-        if (sf.GetFileName() == null || sf.GetFileName().Length == 0)
+        if (sf.GetFileName() == null || sf.GetFileName()!.Length == 0)
         {
             _with1.Append(Path.GetFileName(ParentAssembly().Location));
             //-- native code offset is always available
@@ -176,9 +176,9 @@ public sealed class UnhandledExceptionManager
         for (intFrame = 0; intFrame <= objStackTrace.FrameCount - 1; intFrame++)
         {
             var sf = objStackTrace.GetFrame(intFrame);
-            MemberInfo mi = sf.GetMethod();
+            MemberInfo mi = sf!.GetMethod()!;
 
-            if (!string.IsNullOrEmpty(strSkipClassName) && mi.DeclaringType.Name.IndexOf(strSkipClassName) > -1)
+            if (!string.IsNullOrEmpty(strSkipClassName) && mi.DeclaringType!.Name.IndexOf(strSkipClassName) > -1)
             {
                 //-- don't include frames with this name
             }
@@ -477,7 +477,7 @@ public sealed class UnhandledExceptionManager
         _with6.Append("Exception Target Site: ");
         try
         {
-            _with6.Append(objException.TargetSite.Name);
+            _with6.Append(objException.TargetSite!.Name);
         }
         catch (Exception e)
         {

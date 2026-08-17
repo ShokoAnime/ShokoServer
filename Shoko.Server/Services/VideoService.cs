@@ -1203,7 +1203,7 @@ public class VideoService : IVideoService
         {
             var subs = SubtitleHelper.GetSubtitleStreams(path);
             if (subs.Count > 0)
-                mediaInfo.media.track.AddRange(subs);
+                mediaInfo.media!.track!.AddRange(subs);
 
             return mediaInfo;
         }
@@ -1227,7 +1227,7 @@ public class VideoService : IVideoService
         {
             var subs = !string.IsNullOrEmpty(path) ? SubtitleHelper.GetSubtitleStreams(path) : [];
             if (subs.Count > 0)
-                mediaInfo.media.track.AddRange(subs);
+                mediaInfo.media!.track!.AddRange(subs);
 
             return mediaInfo;
         }
@@ -1269,7 +1269,7 @@ public class VideoService : IVideoService
             {
                 var subs = SubtitleHelper.GetSubtitleStreams(path);
                 if (subs.Count > 0)
-                    mediaInfo.media.track.AddRange(subs);
+                    mediaInfo.media!.track!.AddRange(subs);
 
                 video.MediaInfo = mediaInfo;
                 video.MediaVersion = VideoLocal.MEDIA_VERSION;
