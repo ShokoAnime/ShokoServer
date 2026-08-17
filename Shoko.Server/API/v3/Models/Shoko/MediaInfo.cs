@@ -333,7 +333,7 @@ public class MediaInfo
         /// <summary>
         /// Standardized resolution.
         /// </summary>
-        public string Resolution { get; }
+        public string? Resolution { get; }
 
         /// <summary>
         /// Pixel aspect-ratio.
@@ -348,7 +348,7 @@ public class MediaInfo
         /// <summary>
         /// Frame-rate mode.
         /// </summary>
-        public string FrameRateMode { get; }
+        public string? FrameRateMode { get; }
 
         /// <summary>
         /// Total number of frames in the video stream.
@@ -358,17 +358,17 @@ public class MediaInfo
         /// <summary>
         /// Scan-type. Interlaced or progressive.
         /// </summary>
-        public string ScanType { get; }
+        public string? ScanType { get; }
 
         /// <summary>
         /// Color-space.
         /// </summary>
-        public string ColorSpace { get; }
+        public string? ColorSpace { get; }
 
         /// <summary>
         /// Chroma sub-sampling.
         /// </summary>
-        public string ChromaSubsampling { get; }
+        public string? ChromaSubsampling { get; }
 
         /// <summary>
         /// Matrix co-efficiencies.
@@ -414,7 +414,7 @@ public class MediaInfo
         /// A text representation of the layout of the channels available in the
         /// audio stream.
         /// </summary>
-        public string ChannelLayout { get; }
+        public string? ChannelLayout { get; }
 
         /// <summary>
         /// Samples per frame.
@@ -429,7 +429,7 @@ public class MediaInfo
         /// <summary>
         /// Compression mode used.
         /// </summary>
-        public string CompressionMode { get; }
+        public string? CompressionMode { get; }
 
         /// <summary>
         /// Bit-rate of the audio-stream.

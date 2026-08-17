@@ -19,7 +19,7 @@ public interface IVideoStream : IStream
     /// <summary>
     /// Standardized resolution.
     /// </summary>
-    string Resolution { get; }
+    string? Resolution { get; }
 
     /// <summary>
     /// Pixel aspect-ratio.
@@ -34,7 +34,7 @@ public interface IVideoStream : IStream
     /// <summary>
     /// Frame-rate mode.
     /// </summary>
-    string FrameRateMode { get; }
+    string? FrameRateMode { get; }
 
     /// <summary>
     /// Total number of frames in the video stream.
@@ -44,17 +44,17 @@ public interface IVideoStream : IStream
     /// <summary>
     /// Scan-type. Interlaced or progressive.
     /// </summary>
-    string ScanType { get; }
+    string? ScanType { get; }
 
     /// <summary>
     /// Color-space.
     /// </summary>
-    string ColorSpace { get; }
+    string? ColorSpace { get; }
 
     /// <summary>
     /// Chroma sub-sampling.
     /// </summary>
-    string ChromaSubsampling { get; }
+    string? ChromaSubsampling { get; }
 
     /// <summary>
     /// Matrix co-efficiency.

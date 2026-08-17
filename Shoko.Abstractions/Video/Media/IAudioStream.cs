@@ -15,7 +15,7 @@ public interface IAudioStream : IStream
     /// A text representation of the layout of the channels available in the
     /// audio stream.
     /// </summary>
-    string ChannelLayout { get; }
+    string? ChannelLayout { get; }
 
     /// <summary>
     /// Samples per frame.
@@ -30,7 +30,7 @@ public interface IAudioStream : IStream
     /// <summary>
     /// Compression mode used.
     /// </summary>
-    string CompressionMode { get; }
+    string? CompressionMode { get; }
 
     /// <summary>
     /// Dial norm of the audio stream, if available.

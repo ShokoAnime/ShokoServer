@@ -458,11 +458,8 @@ public class VideoStream : Stream, IVideoStream
     public string? MaxFALL { get; set; }
 
     string? IVideoStream.MatrixCoefficients => matrix_coefficients;
-    string IVideoStream.FrameRateMode => FrameRate_Mode!;
-    string IVideoStream.ScanType => ScanType!;
-    string IVideoStream.ColorSpace => ColorSpace!;
-    string IVideoStream.ChromaSubsampling => ChromaSubsampling!;
-    string IVideoStream.Resolution => MediaInfoUtility.GetStandardResolution(Tuple.Create(Width, Height))!;
+    string? IVideoStream.FrameRateMode => FrameRate_Mode;
+    string? IVideoStream.Resolution => MediaInfoUtility.GetStandardResolution(Tuple.Create(Width, Height));
     IStreamMuxingInfo IVideoStream.Muxing => new StreamMuxingInfoImpl(this);
 
     protected bool Equals(VideoStream other) =>
@@ -543,8 +540,7 @@ public class AudioStream : Stream, IAudioStream
 
     public AudioExtra? extra { get; set; }
 
-    string IAudioStream.ChannelLayout => ChannelLayout!;
-    string IAudioStream.CompressionMode => Compression_Mode!;
+    string? IAudioStream.CompressionMode => Compression_Mode;
     string? IAudioStream.BitRateMode => BitRate_Mode;
     double? IAudioStream.DialNorm => extra?.dialnorm;
 
