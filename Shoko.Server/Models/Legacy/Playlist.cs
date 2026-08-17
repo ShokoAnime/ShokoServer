@@ -4,9 +4,9 @@ namespace Shoko.Server.Models.Legacy;
 public class Playlist
 {
     public int PlaylistID { get; set; }
-    public string PlaylistName { get; set; }
+    public string PlaylistName { get; set; } = null!;
 
-    public string PlaylistItems { get; set; }
+    public string PlaylistItems { get; set; } = null!;
 
     public int DefaultPlayOrder { get; set; }
 

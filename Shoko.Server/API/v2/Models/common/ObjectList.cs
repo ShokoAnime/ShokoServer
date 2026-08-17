@@ -4,11 +4,11 @@ namespace Shoko.Server.API.v2.Models.common;
 
 public class ObjectList
 {
-    public List<object> list { get; private set; }
+    public List<object> list { get; private set; } = null!;
 
-    public string name { get; set; }
+    public string name { get; set; } = null!;
     public long size { get; set; }
-    public string type { get; set; }
+    public string type { get; set; } = null!;
 
     public ObjectList()
     {

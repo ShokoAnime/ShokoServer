@@ -25,7 +25,7 @@ public class ArtCollection
 public class Art
 {
     [DataMember(IsRequired = true, EmitDefaultValue = true)]
-    public string url { get; set; }
+    public string url { get; set; } = null!;
 
     [DataMember(IsRequired = true, EmitDefaultValue = true)]
     public int index { get; set; }

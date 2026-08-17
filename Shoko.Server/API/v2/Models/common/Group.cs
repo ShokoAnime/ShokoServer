@@ -35,7 +35,7 @@ public class Group : BaseDirectory
     }
 
     public static Group GenerateFromAnimeGroup(HttpContext ctx, AnimeGroup ag, int uid, bool noCast, bool noTag, int level,
-        bool all, int filterID, bool allPic, int pic, TagFilter.Filter tagFilter, List<int> evaluatedSeriesIDs = null)
+        bool all, int filterID, bool allPic, int pic, TagFilter.Filter tagFilter, List<int>? evaluatedSeriesIDs = null)
     {
         var g = new Group
         {
@@ -49,7 +49,7 @@ public class Group : BaseDirectory
         {
             var filter = RepoFactory.FilterPreset.GetByID(filterID);
             var evaluator = ctx.RequestServices.GetRequiredService<IFilteringEngine>();
-            evaluatedSeriesIDs = evaluator.EvaluateFilterWithGrouping(filter, ctx.GetUser()).FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList();
+            evaluatedSeriesIDs = evaluator.EvaluateFilterWithGrouping(filter!, ctx.GetUser()).FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList();
         }
 
         var allAnime = evaluatedSeriesIDs is not null
@@ -77,7 +77,7 @@ public class Group : BaseDirectory
                 .Select(id => RepoFactory.AnimeSeries.GetByID(id))
                 .ToList();
             ael = series
-                .SelectMany(ser => ser?.AnimeEpisodes)
+                .SelectMany(ser => ser?.AnimeEpisodes!)
                 .WhereNotNull()
                 .ToList();
             g.size = series.Count;
@@ -85,7 +85,7 @@ public class Group : BaseDirectory
         else
         {
             var series = ag.AllSeries;
-            ael = series.SelectMany(a => a?.AnimeEpisodes).WhereNotNull().ToList();
+            ael = series.SelectMany(a => a?.AnimeEpisodes!).WhereNotNull().ToList();
             g.size = series.Count;
         }
 
@@ -114,7 +114,7 @@ public class Group : BaseDirectory
             // we already sorted allAnime, so no need to sort
             foreach (var ada in allAnime.Select(a => RepoFactory.AnimeSeries.GetByAnimeID(a.AnimeID)))
             {
-                g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada, uid, noCast, noTag, level - 1, all, allPic, pic, tagFilter));
+                g.series.Add(Serie.GenerateFromAnimeSeries(ctx, ada!, uid, noCast, noTag, level - 1, all, allPic, pic, tagFilter));
             }
         }
 
@@ -189,7 +189,7 @@ public class Group : BaseDirectory
                 group.art.thumb.Add(new Art
                 {
                     index = 0,
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster),
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster!),
                 });
                 if (backdrops.Count > 0)
                 {

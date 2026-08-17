@@ -13,7 +13,7 @@ public class ScanFile
 
     public int VideoLocal_Place_ID { get; set; }
 
-    public string FullName { get; set; }
+    public string FullName { get; set; } = null!;
 
     public long FileSize { get; set; }
 
@@ -21,7 +21,7 @@ public class ScanFile
 
     public DateTime? CheckDate { get; set; }
 
-    public string Hash { get; set; }
+    public string Hash { get; set; } = null!;
 
-    public string HashResult { get; set; }
+    public string HashResult { get; set; } = null!;
 }

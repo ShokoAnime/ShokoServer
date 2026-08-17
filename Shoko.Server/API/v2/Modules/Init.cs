@@ -261,7 +261,7 @@ public class Init : BaseController
         {
             return new Credentials
             {
-                login = _settings.AniDb.Username,
+                login = _settings.AniDb.Username!,
                 port = _settings.AniDb.ClientPort,
                 apiport = _settings.AniDb.AVDumpClientPort
             };
@@ -294,7 +294,7 @@ public class Init : BaseController
     /// <returns></returns>
     [Authorize("init")]
     [HttpPost("database")]
-    public ActionResult SetDatabaseSettings([FromBody] JToken body = null)
+    public ActionResult SetDatabaseSettings([FromBody] JToken? body = null)
     {
         return APIStatus.BadRequest("Disabled. Use APIv3 to tweak the database settings instead.");
     }
@@ -343,7 +343,7 @@ public class Init : BaseController
     [Authorize("init")]
     [HttpPost("config")]
     [Obsolete]
-    public ActionResult ImportConfig([FromBody] JToken body = null)
+    public ActionResult ImportConfig([FromBody] JToken? body = null)
     {
         return BadRequest("The model that this method takes is deprecated and will break the settings file. Use APIv3");
     }
@@ -354,7 +354,7 @@ public class Init : BaseController
     /// <returns></returns>
     [Authorize("init")]
     [HttpGet("setting")]
-    public ActionResult<object> GetSetting([FromBody] JToken body = null)
+    public ActionResult<object> GetSetting([FromBody] JToken? body = null)
     {
         return APIStatus.BadRequest("Disabled. Use APIv3 to get the settings instead.");
     }
@@ -365,7 +365,7 @@ public class Init : BaseController
     /// <returns></returns>
     [Authorize("init")]
     [HttpPatch("setting")]
-    public ActionResult SetSetting([FromBody] JToken body = null)
+    public ActionResult SetSetting([FromBody] JToken? body = null)
     {
         return APIStatus.BadRequest("Disabled. Use APIv3 to set the settings instead.");
     }

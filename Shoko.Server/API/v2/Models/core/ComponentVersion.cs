@@ -2,6 +2,6 @@
 
 public class ComponentVersion
 {
-    public string name { get; set; }
-    public string version { get; set; }
+    public string name { get; set; } = null!;
+    public string? version { get; set; }
 }

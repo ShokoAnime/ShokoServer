@@ -9,7 +9,7 @@ public class QueueInfo
     public int count { get; set; }
 
     [DataMember(IsRequired = true, EmitDefaultValue = true)]
-    public string state { get; set; }
+    public string state { get; set; } = null!;
 
     [DataMember(IsRequired = true, EmitDefaultValue = true)]
     public bool isrunning { get; set; }

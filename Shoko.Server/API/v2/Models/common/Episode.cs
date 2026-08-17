@@ -23,7 +23,7 @@ public class Episode : BaseDirectory
     public override string type => string.Intern("ep");
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string season { get; set; }
+    public string season { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
     public int view { get; set; }
@@ -31,7 +31,7 @@ public class Episode : BaseDirectory
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
     public DateTime? view_date { get; set; }
 
-    [DataMember] public string eptype { get; set; }
+    [DataMember] public string eptype { get; set; } = null!;
 
     [DataMember] public int epnumber { get; set; }
 
@@ -42,7 +42,7 @@ public class Episode : BaseDirectory
     public int eid { get; set; }
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public List<RawFile> files { get; set; }
+    public List<RawFile> files { get; set; } = null!;
 
     internal static Episode GenerateFromAnimeEpisodeID(HttpContext ctx, int anime_episode_id, int uid, int level,
         int pic = 1)
@@ -51,7 +51,7 @@ public class Episode : BaseDirectory
 
         if (anime_episode_id > 0)
         {
-            ep = GenerateFromAnimeEpisode(ctx, RepoFactory.AnimeEpisode.GetByID(anime_episode_id), uid,
+            ep = GenerateFromAnimeEpisode(ctx, RepoFactory.AnimeEpisode.GetByID(anime_episode_id)!, uid,
                 level, pic);
         }
 
@@ -90,8 +90,8 @@ public class Episode : BaseDirectory
             ep.name = cae.AniDB_EnglishName;
             ep.summary = cae.Description;
 
-            ep.year = cae.AniDB_AirDate?.Year.ToString(CultureInfo.InvariantCulture);
-            ep.air = cae.AniDB_AirDate?.ToISO8601Date();
+            ep.year = cae.AniDB_AirDate?.Year.ToString(CultureInfo.InvariantCulture)!;
+            ep.air = cae.AniDB_AirDate?.ToISO8601Date()!;
 
             ep.votes = cae.AniDB_Votes;
             ep.rating = cae.AniDB_Rating;
@@ -160,7 +160,7 @@ public class Episode : BaseDirectory
 
         if (string.IsNullOrEmpty(ep.year))
         {
-            ep.year = aep.AnimeSeries.AirDate?.Year.ToString(CultureInfo.InvariantCulture) ?? "1";
+            ep.year = aep.AnimeSeries!.AirDate?.Year.ToString(CultureInfo.InvariantCulture) ?? "1";
         }
 
         if (level > 0)

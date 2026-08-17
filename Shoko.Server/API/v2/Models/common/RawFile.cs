@@ -20,16 +20,16 @@ public class RawFile : BaseDirectory
     public override string type => "file";
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string crc32 { get; set; }
+    public string crc32 { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string ed2khash { get; set; }
+    public string ed2khash { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string md5 { get; set; }
+    public string md5 { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string sha1 { get; set; }
+    public string sha1 { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
     [JsonConverter(typeof(IsoDateTimeConverter))]
@@ -43,16 +43,16 @@ public class RawFile : BaseDirectory
     public long duration { get; set; }
 
     [DataMember(IsRequired = true, EmitDefaultValue = true)]
-    public string filename { get; set; }
+    public string filename { get; set; } = null!;
 
     [DataMember(IsRequired = true, EmitDefaultValue = true)]
-    public string server_path { get; set; }
+    public string server_path { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
     public new long size { get; set; }
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string hash { get; set; }
+    public string hash { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
     public int hash_source { get; set; }
@@ -61,13 +61,13 @@ public class RawFile : BaseDirectory
     public int is_ignored { get; set; }
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public MediaInfo media { get; set; }
+    public MediaInfo media { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string group_full { get; set; }
+    public string group_full { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string group_short { get; set; }
+    public string group_short { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
     public int group_id { get; set; }
@@ -101,7 +101,7 @@ public class RawFile : BaseDirectory
 
         public RecentFile() { }
 
-        public RecentFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode e = null) : base(ctx,
+        public RecentFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode? e = null) : base(ctx,
             vl, level, uid, e)
         {
         }
@@ -111,7 +111,7 @@ public class RawFile : BaseDirectory
     {
     }
 
-    public RawFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode e = null)
+    public RawFile(HttpContext ctx, VideoLocal vl, int level, int uid, AnimeEpisode? e = null)
     {
         if (vl == null)
         {
@@ -148,7 +148,7 @@ public class RawFile : BaseDirectory
         if (place != null)
         {
             filename = place.RelativePath;
-            server_path = place.Path;
+            server_path = place.Path!;
             videolocal_place_id = place.ID;
             import_folder_id = place.ManagedFolderID;
         }

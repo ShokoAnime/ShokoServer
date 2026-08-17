@@ -126,7 +126,7 @@ public class Core : BaseController
     {
         var imagepath = new ImagePath
         {
-            path = _settings.ImagesPath,
+            path = _settings.ImagesPath!,
             isdefault = _settings.ImagesPath == ApplicationPaths.DefaultImagePath
         };
         return imagepath;
@@ -247,8 +247,8 @@ public class Core : BaseController
     {
         return new Credentials
         {
-            login = _settings.AniDb.Username,
-            password = _settings.AniDb.Password,
+            login = _settings.AniDb.Username!,
+            password = _settings.AniDb.Password!,
             port = _settings.AniDb.ClientPort
         };
     }
@@ -345,7 +345,7 @@ public class Core : BaseController
     {
         public int AniDBEpisodeType { get; set; }
         public int AniDBEpisodeNumber { get; set; }
-        public string AniDBEpisodeName { get; set; }
+        public string? AniDBEpisodeName { get; set; }
 
         protected bool Equals(AniEpSummary other)
         {
@@ -353,7 +353,7 @@ public class Core : BaseController
                    string.Equals(AniDBEpisodeName, other.AniDBEpisodeName);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (ReferenceEquals(null, obj))
             {
@@ -429,7 +429,7 @@ public class Core : BaseController
         }
         catch
         {
-            return null;
+            return null!;
         }
     }
 
@@ -441,7 +441,7 @@ public class Core : BaseController
     public async Task<ActionResult> CreateUser(CL_JMMUser body)
     {
         var service = ISystemService.StaticServices.GetRequiredService<IUserService>();
-        JMMUser user = null;
+        JMMUser? user = null;
         var tags = body.HideCategories?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .SelectMany(RepoFactory.AniDB_Tag.GetByName)
             .WhereNotNull()

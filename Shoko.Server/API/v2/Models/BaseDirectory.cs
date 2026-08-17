@@ -10,16 +10,16 @@ public abstract class BaseDirectory
 {
     [DataMember] public int id { get; set; }
 
-    [DataMember] public string name { get; set; }
+    [DataMember] public string name { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public List<AnimeTitle> titles { get; set; }
+    public List<AnimeTitle> titles { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string summary { get; set; }
+    public string summary { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string url { get; set; }
+    public string url { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
     public DateTime added { get; set; }
@@ -28,10 +28,10 @@ public abstract class BaseDirectory
     public DateTime edited { get; set; }
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string year { get; set; }
+    public string year { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string air { get; set; }
+    public string air { get; set; } = null!;
 
     [DataMember] public int size { get; set; }
 
@@ -39,33 +39,33 @@ public abstract class BaseDirectory
     public int localsize { get; set; }
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public Sizes total_sizes { get; set; }
+    public Sizes total_sizes { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public Sizes local_sizes { get; set; }
+    public Sizes local_sizes { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public Sizes watched_sizes { get; set; }
+    public Sizes watched_sizes { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
     public int viewed { get; set; }
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string rating { get; set; }
+    public string rating { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string votes { get; set; }
+    public string votes { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string userrating { get; set; }
+    public string userrating { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public List<string> roles { get; set; }
+    public List<string> roles { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public List<string> tags { get; set; }
+    public List<string> tags { get; set; } = null!;
 
-    [DataMember(IsRequired = false)] public ArtCollection art { get; set; }
+    [DataMember(IsRequired = false)] public ArtCollection art { get; set; } = null!;
 
     [DataMember(IsRequired = true)] public abstract string type { get; }
 }

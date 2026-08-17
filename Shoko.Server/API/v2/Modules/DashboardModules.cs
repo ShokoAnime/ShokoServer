@@ -72,7 +72,7 @@ public class DashboardModules : BaseController
             tags = RepoFactory.AniDB_Anime_Tag.GetAllForLocalSeries().GroupBy(a => a.TagID)
                 .ToDictionary(a => a.Key, a => a.Count()).OrderByDescending(a => a.Value)
                 .Select(a => RepoFactory.AniDB_Tag.GetByTagID(a.Key)?.TagName)
-                .Where(a => a != null && !user.GetHideCategories().Contains(a)).ToList();
+                .Where(a => a != null && !user.GetHideCategories().Contains(a)).ToList()!;
             var tagfilter = TagFilter.Filter.AnidbInternal | TagFilter.Filter.Misc | TagFilter.Filter.Source;
             tags = TagFilter.String.ProcessTags(tagfilter, tags).Take(10).ToList();
         }

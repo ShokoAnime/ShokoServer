@@ -53,7 +53,7 @@ public class LegacyFilterConverter
 
     public CL_GroupFilter ToClient(FilterPreset filter)
     {
-        if (filter == null) return null;
+        if (filter == null) return null!;
         var groupIds = new Dictionary<int, HashSet<int>>();
         var seriesIds = new Dictionary<int, HashSet<int>>();
         if ((filter.Expression?.UserDependent ?? false) || (filter.SortingExpression?.UserDependent ?? false))
@@ -125,8 +125,8 @@ public class LegacyFilterConverter
             var seriesIdSet = kv.Value.SelectMany(a => a).ToHashSet();
             foreach (var user in RepoFactory.JMMUser.GetAll())
             {
-                groupIds[user.JMMUserID] = groupIdSet.Where(a => user.AllowedGroup(RepoFactory.AnimeGroup.GetByID(a))).ToHashSet();
-                seriesIds[user.JMMUserID] = seriesIdSet.Where(a => user.AllowedSeries(RepoFactory.AnimeSeries.GetByID(a))).ToHashSet();
+                groupIds[user.JMMUserID] = groupIdSet.Where(a => user.AllowedGroup(RepoFactory.AnimeGroup.GetByID(a)!)).ToHashSet();
+                seriesIds[user.JMMUserID] = seriesIdSet.Where(a => user.AllowedSeries(RepoFactory.AnimeSeries.GetByID(a)!)).ToHashSet();
             }
 
             LegacyConditionConverter.TryConvertToConditions(filter, out var conditions, out var baseCondition);

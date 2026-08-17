@@ -48,7 +48,7 @@ public static class LegacyConditionConverter
         if (expression is NotExpression not)
         {
             baseCondition = CL_GroupFilterBaseCondition.Exclude;
-            if (TryGetConditionsRecursive<OrExpression>(not.Left, results))
+            if (TryGetConditionsRecursive<OrExpression>(not.Left!, results))
             {
                 conditions = results;
                 return true;
@@ -62,7 +62,7 @@ public static class LegacyConditionConverter
             return true;
         }
 
-        conditions = null;
+        conditions = null!;
         return false;
     }
 
@@ -83,7 +83,7 @@ public static class LegacyConditionConverter
             return true;
         }
 
-        if (expression is T and) return TryGetConditionsRecursive<T>(and.Left, conditions) && TryGetConditionsRecursive<T>(and.Right, conditions);
+        if (expression is T and) return TryGetConditionsRecursive<T>(and.Left!, conditions) && TryGetConditionsRecursive<T>(and.Right!, conditions);
         return false;
     }
 
@@ -93,12 +93,12 @@ public static class LegacyConditionConverter
         if (expression is NotExpression not)
         {
             conditionOperator = CL_GroupFilterOperator.Exclude;
-            expression = not.Left;
+            expression = not.Left!;
         }
 
         if (expression is not HasNameExpression nameExpression)
         {
-            condition = null;
+            condition = null!;
             return false;
         }
 
@@ -117,10 +117,10 @@ public static class LegacyConditionConverter
         if (expression is NotExpression not)
         {
             conditionOperator = CL_GroupFilterOperator.Exclude;
-            expression = not.Left;
+            expression = not.Left!;
         }
 
-        condition = null;
+        condition = null!;
         var type = expression.GetType();
         if (type == typeof(HasMissingEpisodesExpression))
         {
@@ -271,7 +271,7 @@ public static class LegacyConditionConverter
         if (expression is NotExpression not)
         {
             conditionOperator = CL_GroupFilterOperator.NotIn;
-            expression = not.Left;
+            expression = not.Left!;
         }
 
         if (IsInTag(expression, out var tags))
@@ -406,13 +406,13 @@ public static class LegacyConditionConverter
             return true;
         }
 
-        condition = null;
+        condition = null!;
         return false;
     }
 
     private static bool TryGetComparatorCondition(FilterExpression expression, out CL_GroupFilterCondition condition)
     {
-        condition = null;
+        condition = null!;
         if (IsAirDate(expression, out var airDatePara, out var airDateOperator))
         {
             var para = airDatePara is DateTime date ? date.ToString("yyyyMMdd") : airDatePara.ToString();
@@ -625,10 +625,10 @@ public static class LegacyConditionConverter
 
     private static bool TryParseIn<T>(FilterExpression expression, Type type, List<T> parameters)
     {
-        if (expression is OrExpression or) return TryParseIn(or.Left, type, parameters) && TryParseIn(or.Right, type, parameters);
+        if (expression is OrExpression or) return TryParseIn(or.Left!, type, parameters) && TryParseIn(or.Right!, type, parameters);
         if (expression.GetType() != type) return false;
 
-        if (typeof(T) == typeof(string) && expression is IWithStringParameter withString) parameters.Add((T)(object)withString.Parameter);
+        if (typeof(T) == typeof(string) && expression is IWithStringParameter withString) parameters.Add((T)(object)withString.Parameter!);
         else if (typeof(T) == typeof(DateTime) && expression is IWithDateParameter withDate) parameters.Add((T)(object)withDate.Parameter);
         else if (typeof(T) == typeof(double) && expression is IWithNumberParameter withNumber) parameters.Add((T)(object)withNumber.Parameter);
         else if (typeof(T) == typeof(TimeSpan) && expression is IWithTimeSpanParameter withTimeSpan) parameters.Add((T)(object)withTimeSpan.Parameter);
@@ -639,17 +639,17 @@ public static class LegacyConditionConverter
 
     private static bool TryParseIn<T, T1>(FilterExpression expression, Type type, List<(T, T1)> parameters)
     {
-        if (expression is OrExpression or) return TryParseIn(or.Left, type, parameters) && TryParseIn(or.Right, type, parameters);
+        if (expression is OrExpression or) return TryParseIn(or.Left!, type, parameters) && TryParseIn(or.Right!, type, parameters);
         if (expression.GetType() != type) return false;
 
-        T first = default;
-        T1 second = default;
-        if (typeof(T) == typeof(string) && expression is IWithStringParameter withString) first = (T)(object)withString.Parameter;
+        T first = default!;
+        T1 second = default!;
+        if (typeof(T) == typeof(string) && expression is IWithStringParameter withString) first = (T)(object)withString.Parameter!;
         else if (typeof(T) == typeof(DateTime) && expression is IWithDateParameter withDate) first = (T)(object)withDate.Parameter;
         else if (typeof(T) == typeof(int) && expression is IWithNumberParameter withInt) first = (T)(object)Convert.ToInt32(withInt.Parameter);
         else if (typeof(T) == typeof(double) && expression is IWithNumberParameter withNumber) first = (T)(object)withNumber.Parameter;
         else if (typeof(T) == typeof(TimeSpan) && expression is IWithTimeSpanParameter withTimeSpan) first = (T)(object)withTimeSpan.Parameter;
-        if (typeof(T1) == typeof(string) && expression is IWithSecondStringParameter withSecondString) second = (T1)(object)withSecondString.SecondParameter;
+        if (typeof(T1) == typeof(string) && expression is IWithSecondStringParameter withSecondString) second = (T1)(object)withSecondString.SecondParameter!;
         if (!EqualityComparer<T>.Default.Equals(first, default) && !EqualityComparer<T1>.Default.Equals(second, default)) parameters.Add((first, second));
 
         return true;
@@ -661,7 +661,7 @@ public static class LegacyConditionConverter
         // comparators share a similar format:
         // Expression(selector, selector) or Expression(selector, parameter)
         gfOperator = 0;
-        parameter = null;
+        parameter = null!;
         switch (expression)
         {
             // These are inverted because the parameter is second, as compared to the Legacy method, which evaluated as parameter operator selector
@@ -779,9 +779,9 @@ public static class LegacyConditionConverter
     public static FilterExpression<bool> GetExpression(List<CL_GroupFilterCondition> conditions, CL_GroupFilterBaseCondition baseCondition, bool suppressErrors = false)
     {
         // forward compatibility is easier. Just map the old conditions to an expression
-        if (conditions == null || conditions.Count < 1) return null;
+        if (conditions == null || conditions.Count < 1) return null!;
         var first = conditions.Select((a, index) => new { Expression = GetExpression(a, suppressErrors), Index = index }).FirstOrDefault(a => a.Expression != null);
-        if (first == null) return null;
+        if (first == null) return null!;
         if (baseCondition == CL_GroupFilterBaseCondition.Exclude)
         {
             return new NotExpression(conditions.Count == 1 ? first.Expression : conditions.Skip(first.Index + 1).Aggregate(first.Expression, (a, b) =>
@@ -885,7 +885,7 @@ public static class LegacyConditionConverter
             case CL_GroupFilterConditionType.UserRating:
                 return LegacyMappings.GetUserRatingExpression(op, parameter, suppressErrors);
             case CL_GroupFilterConditionType.AssignedMALInfo:
-                return suppressErrors ? null : throw new NotSupportedException("MAL is Deprecated");
+                return suppressErrors ? null! : throw new NotSupportedException("MAL is Deprecated");
             case CL_GroupFilterConditionType.EpisodeCount:
                 return LegacyMappings.GetEpisodeCountExpression(op, parameter, suppressErrors);
             case CL_GroupFilterConditionType.Year:
@@ -893,14 +893,14 @@ public static class LegacyConditionConverter
             case CL_GroupFilterConditionType.Season:
                 return LegacyMappings.GetSeasonExpression(op, parameter, suppressErrors);
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(condition), $@"ConditionType {(CL_GroupFilterConditionType)condition.ConditionType} is not valid");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(condition), $@"ConditionType {(CL_GroupFilterConditionType)condition.ConditionType} is not valid");
         }
     }
 
     public static SortingExpression GetSortingExpression(List<LegacyGroupFilterSortingCriteria> sorting)
     {
-        SortingExpression expression = null;
-        SortingExpression result = null;
+        SortingExpression? expression = null;
+        SortingExpression? result = null;
         foreach (var criteria in sorting)
         {
             SortingExpression expr = criteria.SortType switch

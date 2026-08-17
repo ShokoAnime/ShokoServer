@@ -99,8 +99,8 @@ public class Filter : Filters
         }
 
         if (level > 0)
-            groups.AddRange(groupsList.Select(ag => Group.GenerateFromAnimeGroup(ctx, ag, uid, noCast, noTag, level - 1, all, filter.id, allPic, pic, tagFilter,
-                evaluatedResults?.FirstOrDefault(a => a.Key == ag.AnimeGroupID)?.ToList())));
+            groups.AddRange(groupsList.Select(ag => Group.GenerateFromAnimeGroup(ctx, ag!, uid, noCast, noTag, level - 1, all, filter.id, allPic, pic, tagFilter,
+                evaluatedResults?.FirstOrDefault(a => a.Key == ag!.AnimeGroupID)?.ToList())));
 
         if (groups.Count > 0) filter.groups = groups;
 

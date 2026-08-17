@@ -14,7 +14,7 @@ public class Scan
 
     public DateTime CreationTIme { get; set; }
 
-    public string ImportFolders { get; set; }
+    public string ImportFolders { get; set; } = null!;
 
     public ScanStatus Status { get; set; }
 

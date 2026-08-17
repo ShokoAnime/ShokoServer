@@ -23,10 +23,10 @@ public class Serie : BaseDirectory, IComparable
     public int aid { get; set; }
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public string season { get; set; }
+    public string season { get; set; } = null!;
 
     [DataMember(IsRequired = false, EmitDefaultValue = false)]
-    public List<Episode> eps { get; set; }
+    public List<Episode> eps { get; set; } = null!;
 
     [DataMember(IsRequired = true, EmitDefaultValue = true)]
     public int ismovie { get; set; }
@@ -109,7 +109,7 @@ public class Serie : BaseDirectory, IComparable
     public static Serie GenerateFromAnimeSeries(HttpContext ctx, AnimeSeries ser, int uid, bool noCast, bool noTag,
         int level, bool all, bool allPictures, int maxPictures, TagFilter.Filter tagFilter)
     {
-        var sr = GenerateFromAniDBAnime(ctx, ser.AniDB_Anime, uid, noCast, noTag, allPictures, maxPictures, tagFilter);
+        var sr = GenerateFromAniDBAnime(ctx, ser.AniDB_Anime!, uid, noCast, noTag, allPictures, maxPictures, tagFilter);
 
         var ael = ser.AnimeEpisodes;
 
@@ -141,7 +141,7 @@ public class Serie : BaseDirectory, IComparable
 
         if (!noTag)
         {
-            var tags = ser.AniDB_Anime.GetAllTags();
+            var tags = ser.AniDB_Anime!.GetAllTags();
             if (tags is not null)
             {
                 sr.tags = TagFilter.String.ProcessTags(tagFilter, tags.ToList());
@@ -160,7 +160,7 @@ public class Serie : BaseDirectory, IComparable
                         continue;
                     }
 
-                    var new_ep = Episode.GenerateFromAnimeEpisode(ctx, ae, uid, level - 1, maxPictures);
+                    var new_ep = Episode.GenerateFromAnimeEpisode(ctx, ae!, uid, level - 1, maxPictures);
                     if (new_ep is null)
                     {
                         continue;
@@ -353,7 +353,7 @@ public class Serie : BaseDirectory, IComparable
     public static void PopulateArtFromAniDBAnime(HttpContext ctx, AniDB_Anime anime, Serie sr, bool allPictures,
         int maxPictures)
     {
-        var rand = (Random)ctx.Items["Random"];
+        var rand = (Random)ctx.Items["Random"]!;
         // Use AnimeSeries for image lookups — it implements IShokoSeries, which causes
         // ImageManager to traverse TMDB-linked entities for backdrops and banners.
         // Calling GetImages directly on AniDB_Anime only returns AniDB-native images
@@ -411,7 +411,7 @@ public class Serie : BaseDirectory, IComparable
             sr.art.thumb.Add(new Art
             {
                 index = 0,
-                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster),
+                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster!),
             });
             if (backdrops.Count > 0)
             {
@@ -436,7 +436,7 @@ public class Serie : BaseDirectory, IComparable
         }
     }
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
         if (obj is not Serie a)
         {

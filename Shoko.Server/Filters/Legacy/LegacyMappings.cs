@@ -49,12 +49,12 @@ public class LegacyMappings
 
     public static FilterExpression<bool> GetTagExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
-        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
+        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null! : throw new ArgumentNullException(nameof(parameter));
         var tags = parameter.Split(new[]
         {
             '|', ','
         }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        if (tags.Length == 0) return suppressErrors ? null : throw new ArgumentException(@$"Parameter {parameter} was invalid", nameof(parameter));
+        if (tags.Length == 0) return suppressErrors ? null! : throw new ArgumentException(@$"Parameter {parameter} was invalid", nameof(parameter));
         switch (op)
         {
             case CL_GroupFilterOperator.Include:
@@ -74,14 +74,14 @@ public class LegacyMappings
                 return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasTagExpression(b))));
             }
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op),
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op),
                     $@"ConditionOperator {op} not applicable for Tags");
         }
     }
 
     public static FilterExpression<bool> GetCustomTagExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
-        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
+        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null! : throw new ArgumentNullException(nameof(parameter));
         var tags = parameter.Split(new[]
         {
             '|', ','
@@ -105,7 +105,7 @@ public class LegacyMappings
                 return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasCustomTagExpression(b))));
             }
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op),
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op),
                     $@"ConditionOperator {op} not applicable for Tags");
         }
     }
@@ -137,13 +137,13 @@ public class LegacyMappings
 
     private static FilterExpression<bool> GetDateExpression(FilterExpression<DateTime?> selector, CL_GroupFilterOperator op, string parameter, bool suppressErrors)
     {
-        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
+        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null! : throw new ArgumentNullException(nameof(parameter));
         switch (op)
         {
             case CL_GroupFilterOperator.LastXDays:
             {
                 if (!int.TryParse(parameter, out var lastX))
-                    return suppressErrors ? null : throw new ArgumentException(@"Parameter is not a number", nameof(parameter));
+                    return suppressErrors ? null! : throw new ArgumentException(@"Parameter is not a number", nameof(parameter));
                 return new DateGreaterThanEqualsExpression(selector,
                     new DateDiffFunction(new DateAddFunction(new TodayFunction(), TimeSpan.FromDays(1) - TimeSpan.FromMilliseconds(1)),
                         TimeSpan.FromDays(lastX)));
@@ -152,7 +152,7 @@ public class LegacyMappings
             {
                 if (!TryParseDate(parameter, out var date))
                     return suppressErrors
-                        ? null
+                        ? null!
                         : throw new ArgumentException($@"Parameter {parameter} was not a date in format of yyyyMMdd", nameof(parameter));
                 return new DateGreaterThanExpression(selector, date);
             }
@@ -160,13 +160,13 @@ public class LegacyMappings
             {
                 if (!TryParseDate(parameter, out var date))
                     return suppressErrors
-                        ? null
+                        ? null!
                         : throw new ArgumentException($@"Parameter {parameter} was not a date in format of yyyyMMdd", nameof(parameter));
                 return new DateGreaterThanExpression(selector, date);
             }
             default:
                 return suppressErrors
-                    ? null
+                    ? null!
                     : throw new ArgumentOutOfRangeException(nameof(op),
                         $@"ConditionOperator {op} not applicable for Date filters");
         }
@@ -174,7 +174,7 @@ public class LegacyMappings
 
     public static FilterExpression<bool> GetVideoQualityExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
-        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
+        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null! : throw new ArgumentNullException(nameof(parameter));
         var tags = parameter.Split(new[]
         {
             '|', ','
@@ -212,13 +212,13 @@ public class LegacyMappings
                 return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasSharedVideoSourceExpression(b))));
             }
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Video Quality");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Video Quality");
         }
     }
 
     public static FilterExpression<bool> GetAudioLanguageExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
-        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
+        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null! : throw new ArgumentNullException(nameof(parameter));
         var tags = parameter.Split(new[]
         {
             '|', ','
@@ -242,13 +242,13 @@ public class LegacyMappings
                 return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasAudioLanguageExpression(b))));
             }
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Audio Languages");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Audio Languages");
         }
     }
 
     public static FilterExpression<bool> GetSubtitleLanguageExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
-        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
+        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null! : throw new ArgumentNullException(nameof(parameter));
         var tags = parameter.Split(new[]
         {
             '|', ','
@@ -272,13 +272,13 @@ public class LegacyMappings
                 return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasSubtitleLanguageExpression(b))));
             }
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Subtitle Languages");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Subtitle Languages");
         }
     }
 
     public static FilterExpression<bool> GetAnimeTypeExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
-        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
+        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null! : throw new ArgumentNullException(nameof(parameter));
         var tags = parameter.Split(new[]
         {
             '|', ','
@@ -302,13 +302,13 @@ public class LegacyMappings
                 return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) => new OrExpression(a, new HasAnimeTypeExpression(b.Replace(" ", "")))));
             }
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Anime Type");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Anime Type");
         }
     }
 
     public static FilterExpression<bool> GetGroupExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
-        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
+        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null! : throw new ArgumentNullException(nameof(parameter));
         var groups = parameter.Split(new[]
         {
             '|', ','
@@ -357,14 +357,14 @@ public class LegacyMappings
                 return new NotExpression(new HasNameExpression(groups[0]));
             }
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Group Name");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Group Name");
         }
     }
 
     public static FilterExpression<bool> GetRatingExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
         if (!double.TryParse(parameter, out var rating))
-            return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
+            return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
         switch (op)
         {
             // These are reversed because we would consider that parameter is greater than the rating, but the expression takes a constant as the second operand
@@ -373,14 +373,14 @@ public class LegacyMappings
             case CL_GroupFilterOperator.LessThan:
                 return new NumberGreaterThanExpression(new AverageAniDBRatingSelector(), rating);
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Rating");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Rating");
         }
     }
 
     public static FilterExpression<bool> GetUserRatingExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
         if (!double.TryParse(parameter, out var rating))
-            return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
+            return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
         switch (op)
         {
             // These are reversed because we would consider that parameter is greater than the rating, but the expression takes a constant as the second operand
@@ -389,14 +389,14 @@ public class LegacyMappings
             case CL_GroupFilterOperator.LessThan:
                 return new NumberGreaterThanExpression(new HighestUserRatingSelector(), rating);
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for User Rating");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for User Rating");
         }
     }
 
     public static FilterExpression<bool> GetEpisodeCountExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
         if (!int.TryParse(parameter, out var count))
-            return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
+            return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
         switch (op)
         {
             case CL_GroupFilterOperator.GreaterThan:
@@ -404,13 +404,13 @@ public class LegacyMappings
             case CL_GroupFilterOperator.LessThan:
                 return new NumberGreaterThanExpression(new EpisodeCountSelector(), count);
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Episode Count");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Episode Count");
         }
     }
 
     public static FilterExpression<bool> GetYearExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
-        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
+        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null! : throw new ArgumentNullException(nameof(parameter));
         var tags = parameter.Split(new[]
         {
             '|', ','
@@ -421,14 +421,14 @@ public class LegacyMappings
             case CL_GroupFilterOperator.Include:
             {
                 if (!int.TryParse(tags[0], out var firstYear))
-                    return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
+                    return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
                 if (tags.Length <= 1) return new InYearExpression(firstYear);
 
                 FilterExpression<bool> first = new InYearExpression(firstYear);
                 return tags.Skip(1).Aggregate(first, (a, b) =>
                 {
                     if (!int.TryParse(b, out var year))
-                        return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
+                        return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
                     return new OrExpression(a, new InYearExpression(year));
                 });
             }
@@ -436,25 +436,25 @@ public class LegacyMappings
             case CL_GroupFilterOperator.Exclude:
             {
                 if (!int.TryParse(tags[0], out var firstYear))
-                    return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
+                    return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
                 if (tags.Length <= 1) return new NotExpression(new InYearExpression(firstYear));
 
                 FilterExpression<bool> first = new InYearExpression(firstYear);
                 return new NotExpression(tags.Skip(1).Aggregate(first, (a, b) =>
                 {
                     if (!int.TryParse(b, out var year))
-                        return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
+                        return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} is not a number", nameof(parameter));
                     return new OrExpression(a, new InYearExpression(year));
                 }));
             }
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Years");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Years");
         }
     }
 
     public static FilterExpression<bool> GetSeasonExpression(CL_GroupFilterOperator op, string parameter, bool suppressErrors = false)
     {
-        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null : throw new ArgumentNullException(nameof(parameter));
+        if (string.IsNullOrEmpty(parameter)) return suppressErrors ? null! : throw new ArgumentNullException(nameof(parameter));
         var tags = parameter.Split(new[]
         {
             '|', ','
@@ -466,9 +466,9 @@ public class LegacyMappings
             {
                 var firstParts = tags[0].Split(' ');
                 if (!int.TryParse(firstParts[1], out var firstYear))
-                    return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} does not have a valid year", nameof(parameter));
+                    return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} does not have a valid year", nameof(parameter));
                 if (!Enum.TryParse<YearlySeason>(firstParts[0], out var firstSeason))
-                    return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} does not have a valid season", nameof(parameter));
+                    return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} does not have a valid season", nameof(parameter));
                 if (tags.Length <= 1) return new InSeasonExpression(firstYear, firstSeason);
 
                 FilterExpression<bool> first = new InYearExpression(firstYear);
@@ -476,9 +476,9 @@ public class LegacyMappings
                 {
                     var parts = b.Split(' ');
                     if (!int.TryParse(parts[1], out var year))
-                        return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} does not have a valid year", nameof(parameter));
+                        return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} does not have a valid year", nameof(parameter));
                     if (!Enum.TryParse<YearlySeason>(parts[0], out var season))
-                        return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} does not have a valid season", nameof(parameter));
+                        return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} does not have a valid season", nameof(parameter));
                     return new OrExpression(a, new InSeasonExpression(year, season));
                 });
             }
@@ -487,9 +487,9 @@ public class LegacyMappings
             {
                 var firstParts = tags[0].Split(' ');
                 if (!int.TryParse(firstParts[1], out var firstYear))
-                    return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} does not have a valid year", nameof(parameter));
+                    return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} does not have a valid year", nameof(parameter));
                 if (!Enum.TryParse<YearlySeason>(firstParts[0], out var firstSeason))
-                    return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} does not have a valid season", nameof(parameter));
+                    return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} does not have a valid season", nameof(parameter));
                 if (tags.Length <= 1) return new NotExpression(new InSeasonExpression(firstYear, firstSeason));
 
                 FilterExpression<bool> first = new InYearExpression(firstYear);
@@ -497,14 +497,14 @@ public class LegacyMappings
                 {
                     var parts = b.Split(' ');
                     if (!int.TryParse(parts[1], out var year))
-                        return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} does not have a valid year", nameof(parameter));
+                        return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} does not have a valid year", nameof(parameter));
                     if (!Enum.TryParse<YearlySeason>(parts[0], out var season))
-                        return suppressErrors ? null : throw new ArgumentException($@"Parameter {parameter} does not have a valid season", nameof(parameter));
+                        return suppressErrors ? null! : throw new ArgumentException($@"Parameter {parameter} does not have a valid season", nameof(parameter));
                     return new OrExpression(a, new InSeasonExpression(year, season));
                 }));
             }
             default:
-                return suppressErrors ? null : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Seasons");
+                return suppressErrors ? null! : throw new ArgumentOutOfRangeException(nameof(op), $@"ConditionOperator {op} not applicable for Seasons");
         }
     }
 }

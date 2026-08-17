@@ -507,7 +507,7 @@ public class Common : BaseController
     {
         var user = HttpContext.GetUser();
 
-        var query = para.query.ToLowerInvariant();
+        var query = para.query!.ToLowerInvariant();
         if (para.limit == 0)
         {
             //hardcoded
@@ -520,7 +520,7 @@ public class Common : BaseController
             var searchGroup = new Group { name = para.query, series = new List<Serie>() };
             searchGroup.series = Search(query, para.limit, para.limit_tag, (int)para.offset,
                 para.tags, user.JMMUserID, para.nocast != 0, para.notag != 0, para.level, para.all != 0,
-                para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter).Value.ToList();
+                para.fuzzy != 0, para.allpics != 0, para.pic, para.tagfilter).Value!.ToList();
             searchGroup.size = searchGroup.series.Count();
             searchFilter.groups.Add(searchGroup);
             searchFilter.size = searchFilter.groups.Count();
@@ -540,7 +540,7 @@ public class Common : BaseController
     {
         var user = HttpContext.GetUser();
 
-        var query = para.query.ToLowerInvariant();
+        var query = para.query!.ToLowerInvariant();
         if (para.limit == 0)
         {
             //hardcoded
@@ -588,9 +588,9 @@ public class Common : BaseController
     public async Task<ActionResult<Dictionary<string, QueueInfo>>> GetQueue()
     {
         var queues = new Dictionary<string, QueueInfo>();
-        queues.Add("hasher", (await GetHasherQueue()).Value);
-        queues.Add("general", (await GetGeneralQueue()).Value);
-        queues.Add("images", (await GetImagesQueue()).Value);
+        queues.Add("hasher", (await GetHasherQueue()).Value!);
+        queues.Add("general", (await GetGeneralQueue()).Value!);
+        queues.Add("images", (await GetImagesQueue()).Value!);
         return queues;
     }
 
@@ -794,9 +794,9 @@ public class Common : BaseController
             .ToDictionary(a => a, a => a.ReleaseInfo);
         return allVideos.Keys.Select(vid => new { vid, anidb = allVideos[vid] })
             .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
-            .Where(tuple => !tuple.anidb.IsCorrupted)
-            .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
-            .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
+            .Where(tuple => !tuple.anidb!.IsCorrupted)
+            .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb!.IsChaptered)
+            .Select(tuple => GetFileById(tuple.vid.VideoLocalID, level, user.JMMUserID).Value).ToList()!;
     }
 
     /// <summary>
@@ -822,8 +822,8 @@ public class Common : BaseController
                 anidb = allVideos[vid],
             })
             .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
-            .Where(tuple => !tuple.anidb.IsCorrupted)
-            .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb.IsChaptered)
+            .Where(tuple => !tuple.anidb!.IsCorrupted)
+            .Where(tuple => tuple.vid.MediaInfo?.MenuStreams.Count != 0 != tuple.anidb!.IsChaptered)
             .Select(_tuple => new
             {
                 Path = _tuple.vid.FirstResolvedPlace?.Path,
@@ -831,7 +831,7 @@ public class Common : BaseController
             })
             .Where(obj => !string.IsNullOrEmpty(obj.Path)).ToDictionary(a => a.Video.VideoLocalID, a => a.Path);
         foreach (var (fileId, filePath) in list)
-            await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath } });
+            await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = new() { { fileId, filePath! } });
 
         logger.Info($"Queued {list.Count} files for avdumping.");
 
@@ -849,7 +849,7 @@ public class Common : BaseController
 
         var allVideos = RepoFactory.VideoLocal.GetAll()
             .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderName: "AniDB", IsCorrupted: true }).ToList();
-        return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList();
+        return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList()!;
     }
 
     /// <summary>
@@ -874,7 +874,7 @@ public class Common : BaseController
                     continue;
                 }
 
-                Serie serie = null;
+                Serie? serie = null;
                 if (results.ContainsKey(series.AnimeSeriesID))
                 {
                     serie = results[series.AnimeSeriesID];
@@ -883,8 +883,8 @@ public class Common : BaseController
                 serie ??= Serie.GenerateFromAnimeSeries(HttpContext, series, userID, para.nocast == 1,
                     para.notag == 1, 0, false, para.allpics != 0, para.pic, para.tagfilter);
                 serie.eps ??= new List<Episode>();
-                var episode = Episode.GenerateFromAnimeEpisode(HttpContext, ep, userID, 0);
-                var vls = ep.VideoLocals.ToList();
+                var episode = Episode.GenerateFromAnimeEpisode(HttpContext, ep!, userID, 0);
+                var vls = ep!.VideoLocals.ToList();
                 if (vls.Count <= 0)
                 {
                     continue;
@@ -1256,7 +1256,7 @@ public class Common : BaseController
         foreach (var ser in lookup)
         {
             var series = RepoFactory.AnimeSeries.GetByID(ser.Key);
-            if (series.AniDB_Anime?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? false)
+            if (series!.AniDB_Anime?.GetAllTags().FindInEnumerable(user.GetHideCategories()) ?? false)
             {
                 continue;
             }
@@ -1493,7 +1493,7 @@ public class Common : BaseController
         var aep = RepoFactory.AnimeEpisode.GetByID(id);
         if (aep != null)
         {
-            if (!user.AllowedSeries(aep.AnimeSeries))
+            if (!user.AllowedSeries(aep.AnimeSeries!))
             {
                 return NotFound();
             }
@@ -1561,7 +1561,7 @@ public class Common : BaseController
             {
                 var anime = RepoFactory.AniDB_Anime.GetByAnimeID(ser.AniDB_ID);
                 // It might end today, but that's okay
-                if (anime.EndDate is { } endDate)
+                if (anime!.EndDate is { } endDate)
                 {
                     if (now > endDate && now - endDate > new TimeSpan(16, 0, 0))
                     {
@@ -1585,7 +1585,7 @@ public class Common : BaseController
             series = result,
             size = result.Count,
             summary = "Based on AniDB Episode Air Dates. Incorrect info falls on AniDB to be corrected.",
-            url = HttpContext.Request.Path.Value
+            url = HttpContext.Request.Path.Value!
         };
     }
 
@@ -1602,7 +1602,7 @@ public class Common : BaseController
             series = [],
             size = 0,
             summary = "Based on AniDB Episode Air Dates. Incorrect info falls on AniDB to be corrected.",
-            url = HttpContext.Request.Path.Value
+            url = HttpContext.Request.Path.Value!
         };
 
     /// <summary>
@@ -1653,7 +1653,7 @@ public class Common : BaseController
 
         var allSeries = RepoFactory.AniDB_Anime.GetAll().AsParallel()
             .Where(a => a.AirDate != null && a.AirDate.Value > now &&
-                        !a.GetAllTags().FindInEnumerable(user.GetHideCategories())).OrderBy(a => a.AirDate.Value)
+                        !a.GetAllTags().FindInEnumerable(user.GetHideCategories())).OrderBy(a => a.AirDate!.Value)
             .ToList();
         var offset_count = 0;
         var anime_count = 0;
@@ -1661,7 +1661,7 @@ public class Common : BaseController
         {
             if (para.query?.ToLower().Contains("d") == true &&
                 int.TryParse(para.query.Substring(0, para.query.Length - 1), out var days) &&
-                now.AddDays(days) > anime.AirDate.Value)
+                now.AddDays(days) > anime.AirDate!.Value)
             {
                 return false;
             }
@@ -1689,7 +1689,7 @@ public class Common : BaseController
             series = result,
             size = result.Count,
             summary = "Based on AniDB Episode Air Dates. Incorrect info falls on AniDB to be corrected.",
-            url = HttpContext.Request.Path.Value
+            url = HttpContext.Request.Path.Value!
         };
     }
 
@@ -1979,18 +1979,18 @@ public class Common : BaseController
         public int id { get; set; }
         public long filesize { get; set; }
         public int size { get; set; }
-        public List<SeriesInfo> series { get; set; }
+        public List<SeriesInfo> series { get; set; } = null!;
     }
 
     private class SeriesInfo : IComparable
     {
-        public string name { get; set; }
+        public string name { get; set; } = null!;
         public int id { get; set; }
         public long filesize { get; set; }
         public int size { get; set; }
-        public List<string> paths { get; set; }
+        public List<string> paths { get; set; } = null!;
 
-        public int CompareTo(object obj)
+        public int CompareTo(object? obj)
         {
             if (obj is SeriesInfo info)
             {
@@ -2023,19 +2023,19 @@ public class Common : BaseController
                 continue;
             }
 
-            if (string.IsNullOrEmpty(place.RelativePath))
+            if (string.IsNullOrEmpty(place!.RelativePath))
             {
                 continue;
             }
 
             // There's usually only one, but shit happens
-            var seriesList = vl.AnimeEpisodes.Select(a => a.AnimeSeries).DistinctBy(a => a.AnimeSeriesID)
+            var seriesList = vl.AnimeEpisodes.Select(a => a.AnimeSeries).DistinctBy(a => a!.AnimeSeriesID)
                 .ToList();
 
             var path = (Path.GetDirectoryName(place.RelativePath) ?? string.Empty) + "/";
             foreach (var series in seriesList)
             {
-                if (output.TryGetValue(series.AnimeSeriesID, out var value))
+                if (output.TryGetValue(series!.AnimeSeriesID, out var value))
                 {
                     var ser = value;
 
@@ -2099,7 +2099,7 @@ public class Common : BaseController
 
         foreach (var vl in vlpall)
         {
-            var ser = Serie.GenerateFromVideoLocal(HttpContext, vl, uid, true, true, 2, false, false, 0, tagfilter);
+            var ser = Serie.GenerateFromVideoLocal(HttpContext, vl!, uid, true, true, 2, false, false, 0, tagfilter);
 
             var objl = new ObjectList(ser.name, ObjectList.ListType.SERIE, ser.filesize);
             if (ser.name != null)
@@ -2152,7 +2152,7 @@ public class Common : BaseController
         var aep = RepoFactory.AnimeEpisode.GetByID(id);
         if (aep != null)
         {
-            return Serie.GenerateFromAnimeSeries(HttpContext, aep.AnimeSeries, uid, nocast, notag, level, all,
+            return Serie.GenerateFromAnimeSeries(HttpContext, aep.AnimeSeries!, uid, nocast, notag, level, all,
                 allpic, pic, tagfilter);
         }
 
@@ -2216,7 +2216,7 @@ public class Common : BaseController
     {
         var user = HttpContext.GetUser();
         var ser = RepoFactory.AnimeSeries.GetByID(series_id);
-        if (!user.AllowedSeries(ser))
+        if (!user.AllowedSeries(ser!))
         {
             return NotFound();
         }
@@ -2344,14 +2344,14 @@ public class Common : BaseController
         }
 
         var anime = a.AniDB_Anime;
-        var titles = anime.GetAllTitles();
+        var titles = anime!.GetAllTitles();
         if ((titles?.Count ?? 0) == 0)
         {
             return;
         }
 
         var match = string.Empty;
-        foreach (var title in titles)
+        foreach (var title in titles!)
         {
             if (string.IsNullOrEmpty(title))
             {
@@ -2561,7 +2561,7 @@ public class Common : BaseController
     {
         var gf = id < 0 ? RepoFactory.FilterPreset.GetAllFiltersForLegacy().FirstOrDefault(a => a.FilterPresetID == id) : RepoFactory.FilterPreset.GetByID(id);
 
-        if (gf.IsDirectory)
+        if (gf!.IsDirectory)
         {
             // if it's a directory, it IS a filter-inception;
             var fgs = APIFilters.GenerateFromGroupFilter(HttpContext, gf, uid, nocast, notag, level, all, allpic, pic, tagfilter);
@@ -2637,7 +2637,7 @@ public class Common : BaseController
 
         if (para.query != string.Empty)
         {
-            return SearchGroupName(para.query, para.limit, (int)para.offset, user.JMMUserID,
+            return SearchGroupName(para.query!, para.limit, (int)para.offset, user.JMMUserID,
                 para.nocast != 0, para.notag != 0, para.level, para.all != 0, para.fuzzy != 0, para.allpics != 0,
                 para.pic, para.tagfilter);
         }
@@ -2667,7 +2667,7 @@ public class Common : BaseController
         foreach (var gr in allGrps)
         {
             var ag = RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
-            var grp = Group.GenerateFromAnimeGroup(HttpContext, ag, uid, nocast, notag, level, all, 0, allpics, pic,
+            var grp = Group.GenerateFromAnimeGroup(HttpContext, ag!, uid, nocast, notag, level, all, 0, allpics, pic,
                 tagfilter);
             grps.Add(grp);
         }
@@ -2761,7 +2761,7 @@ public class Common : BaseController
             return;
         }
 
-        var result = SeriesSearch.DiceFuzzySearch(a.GroupName, query, a);
+        var result = SeriesSearch.DiceFuzzySearch(a.GroupName, query!, a);
         if (result.Index == -1)
         {
             return;
@@ -2916,7 +2916,7 @@ public class Common_v2_1 : BaseController
             .Where(v => filename.Equals(v.RelativePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                 StringComparison.InvariantCultureIgnoreCase))
             .Where(a => a.VideoLocal is not null)
-            .Select(a => a.VideoLocal.AnimeEpisodes)
+            .Select(a => a.VideoLocal!.AnimeEpisodes)
             .Where(a => a is not null && a.Count is not 0)
             .Select(a => a.First())
             .Select(aep => Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, level, pic)).ToList();
