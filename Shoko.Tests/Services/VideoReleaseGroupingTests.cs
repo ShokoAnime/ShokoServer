@@ -1444,7 +1444,7 @@ public class VideoReleaseGroupingTests
         var pure    = candidates.Single(c => c.GroupShortName == "Baka" && !c.IsMixed);
         var gapFill = candidates.Single(c => c.IsMixed);
 
-        Assert.Equal(1, pure.Places.Count);
+        Assert.Single(pure.Places);
         Assert.False(pure.HasPartialCoverage);
 
         Assert.Equal("Exiled", gapFill.GroupShortName);

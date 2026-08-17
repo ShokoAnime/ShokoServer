@@ -30,7 +30,7 @@ public class TestServerSettings
     public DataSource EpisodeTitleSource { get; set; } = DataSource.AniDB;
     public DataSource SeriesDescriptionSource { get; set; } = DataSource.AniDB;
     public DataSource SeriesNameSource { get; set; } = DataSource.AniDB;
-    public string ImagesPath { get; set; }
+    public string ImagesPath { get; set; } = null!;
     public string UpdateChannel { get; set; } = "Stable";
     public LinuxSettings Linux { get; set; } = new();
 }

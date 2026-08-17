@@ -49,7 +49,7 @@ public class TmdbRateLimiterTests
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
 
-        await Task.Delay(300);
+        await Task.Delay(300, TestContext.Current.CancellationToken);
 
         var sw = Stopwatch.StartNew();
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
@@ -179,7 +179,7 @@ public class TmdbRateLimiterTests
         limiter.Notify5xxError();
 
         // Let the first error age out of the 100ms window before firing two more.
-        await Task.Delay(150);
+        await Task.Delay(150, TestContext.Current.CancellationToken);
 
         limiter.Notify5xxError();
         limiter.Notify5xxError();
@@ -197,7 +197,7 @@ public class TmdbRateLimiterTests
         limiter.NotifyRateLimitExceeded(TimeSpan.FromMilliseconds(200));
 
         // Wait for the backoff to elapse.
-        await Task.Delay(300);
+        await Task.Delay(300, TestContext.Current.CancellationToken);
 
         // Success after pause — ramp should reset. We verify by confirming NotifySuccess
         // doesn't throw and that subsequent EnsureRateAsync proceeds immediately.

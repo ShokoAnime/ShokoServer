@@ -36,7 +36,7 @@ public class RequestGetCreatorTests
         var result = _request.ParseResponse(response);
 
         Assert.Equal(UDPReturnCode.CREATOR, result.Code);
-        Assert.Equal(42, result.Response.ID);
+        Assert.Equal(42, result.Response!.ID);
         Assert.Equal("TranscribedName", result.Response.Name);
         Assert.Equal("OriginalName", result.Response.OriginalName);
         Assert.Equal(CreatorType.Person, result.Response.Type);
@@ -59,7 +59,7 @@ public class RequestGetCreatorTests
 
         var result = _request.ParseResponse(response);
 
-        Assert.Equal("Name'With'Backticks", result.Response.OriginalName);
+        Assert.Equal("Name'With'Backticks", result.Response!.OriginalName);
         Assert.Equal("Transcribed'Name", result.Response.Name);
     }
 
@@ -74,7 +74,7 @@ public class RequestGetCreatorTests
 
         var result = _request.ParseResponse(response);
 
-        Assert.Null(result.Response.ImagePath);
+        Assert.Null(result.Response!.ImagePath);
         Assert.Equal("jp", result.Response.JapaneseHomepageUrl);
         Assert.Null(result.Response.EnglishHomepageUrl);
         Assert.Null(result.Response.EnglishWikiUrl);
@@ -93,7 +93,7 @@ public class RequestGetCreatorTests
                 Code = UDPReturnCode.CREATOR,
                 Response = $"1|Name|Name|{typeValue}||||||0"
             };
-            Assert.Equal(expected, r.ParseResponse(resp).Response.Type);
+            Assert.Equal(expected, r.ParseResponse(resp).Response!.Type);
         }
 
         TestType(1, CreatorType.Person);

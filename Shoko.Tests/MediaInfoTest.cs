@@ -26,11 +26,11 @@ namespace Shoko.Tests
             stopwatch.Stop();
             Debug.WriteLine(stopwatch.Elapsed);
             stopwatch.Restart();
-            var serialized = MessagePackSerializer.Serialize(obj);
+            var serialized = MessagePackSerializer.Serialize(obj, cancellationToken: TestContext.Current.CancellationToken);
             stopwatch.Stop();
             Debug.WriteLine(stopwatch.Elapsed);
             stopwatch.Restart();
-            var deserialized = MessagePackSerializer.Deserialize<MediaContainer>(serialized);
+            var deserialized = MessagePackSerializer.Deserialize<MediaContainer>(serialized, cancellationToken: TestContext.Current.CancellationToken);
             stopwatch.Stop();
             Debug.WriteLine(stopwatch.Elapsed);
             Assert.Equal(obj, deserialized);

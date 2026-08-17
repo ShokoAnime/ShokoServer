@@ -17,8 +17,8 @@ public class TestFilterableUserInfo : IFilterableUserInfo
     public DateTime? LastWatchedDate { get; init; }
     public double LowestUserRating { get; init; }
     public double HighestUserRating { get; init; }
-    public EpisodeCounts WatchedEpisodeCounts { get; init; }
-    public IReadOnlySet<string> UserTags { get; init; }
+    public EpisodeCounts WatchedEpisodeCounts { get; init; } = null!;
+    public IReadOnlySet<string> UserTags { get; init; } = null!;
     public int SeriesVoteCount { get; init; }
     public int SeriesTemporaryVoteCount { get; init; }
     public int SeriesPermanentVoteCount { get; init; }

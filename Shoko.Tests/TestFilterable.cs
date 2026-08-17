@@ -8,33 +8,33 @@ namespace Shoko.Tests;
 
 public class TestFilterable : IFilterableInfo
 {
-    public string Name { get; init; }
-    public string MainName { get; init; }
-    public string OriginalName { get; init; }
-    public string SortName { get; init; }
-    public IReadOnlySet<string> Names { get; init; }
-    public IReadOnlySet<string> PreferredNames { get; init; }
-    public string Description { get; init; }
-    public IReadOnlySet<string> Descriptions { get; init; }
-    public IReadOnlySet<string> SeriesIDs { get; init; }
+    public string Name { get; init; } = null!;
+    public string MainName { get; init; } = null!;
+    public string OriginalName { get; init; } = null!;
+    public string SortName { get; init; } = null!;
+    public IReadOnlySet<string> Names { get; init; } = null!;
+    public IReadOnlySet<string> PreferredNames { get; init; } = null!;
+    public string Description { get; init; } = null!;
+    public IReadOnlySet<string> Descriptions { get; init; } = null!;
+    public IReadOnlySet<string> SeriesIDs { get; init; } = null!;
     public int GroupID { get; init; }
     public int TopLevelGroupID { get; init; }
-    public IReadOnlySet<string> GroupIDs { get; init; }
-    public IReadOnlySet<string> AnidbAnimeIDs { get; init; }
+    public IReadOnlySet<string> GroupIDs { get; init; } = null!;
+    public IReadOnlySet<string> AnidbAnimeIDs { get; init; } = null!;
     public int SeriesCount { get; init; }
     public int GroupCount { get; init; }
     public int TotalGroupCount { get; init; }
     public int MissingEpisodes { get; init; }
     public int MissingEpisodesCollecting { get; init; }
     public int VideoFiles { get; init; }
-    public IReadOnlySet<string> AnidbTagIDs { get; init; }
-    public IReadOnlySet<string> AnidbTags { get; init; }
-    public IReadOnlySet<string> CustomTagIDs { get; init; }
-    public IReadOnlySet<string> CustomTags { get; init; }
-    public IReadOnlySet<int> Years { get; init; }
-    public IReadOnlySet<(int year, YearlySeason season)> Seasons { get; init; }
-    public IReadOnlySet<ImageEntityType> AvailableImageTypes { get; }
-    public IReadOnlySet<ImageEntityType> PreferredImageTypes { get; }
+    public IReadOnlySet<string> AnidbTagIDs { get; init; } = null!;
+    public IReadOnlySet<string> AnidbTags { get; init; } = null!;
+    public IReadOnlySet<string> CustomTagIDs { get; init; } = null!;
+    public IReadOnlySet<string> CustomTags { get; init; } = null!;
+    public IReadOnlySet<int> Years { get; init; } = null!;
+    public IReadOnlySet<(int year, YearlySeason season)> Seasons { get; init; } = null!;
+    public IReadOnlySet<ImageEntityType> AvailableImageTypes { get; } = null!;
+    public IReadOnlySet<ImageEntityType> PreferredImageTypes { get; } = null!;
     public bool HasTmdbLink { get; init; }
     public bool HasTmdbAutoLinkingDisabled { get; init; }
     public bool HasMissingTmdbLink { get; init; }
@@ -59,38 +59,38 @@ public class TestFilterable : IFilterableInfo
     public int EpisodeCount { get; init; }
     public int TotalEpisodeCount { get; init; }
     public int HiddenEpisodes { get; init; }
-    public EpisodeCounts EpisodeCounts { get; init; }
-    public EpisodeCounts LocalEpisodeCounts { get; init; }
-    public EpisodeCounts MissingEpisodeCounts { get; init; }
-    public EpisodeCounts UnairedEpisodeCounts { get; init; }
-    public FileSourceCounts FileSourceCounts { get; init; }
-    public IReadOnlyDictionary<string, int> ReleaseProviderCounts { get; init; }
+    public EpisodeCounts EpisodeCounts { get; init; } = null!;
+    public EpisodeCounts LocalEpisodeCounts { get; init; } = null!;
+    public EpisodeCounts MissingEpisodeCounts { get; init; } = null!;
+    public EpisodeCounts UnairedEpisodeCounts { get; init; } = null!;
+    public FileSourceCounts FileSourceCounts { get; init; } = null!;
+    public IReadOnlyDictionary<string, int> ReleaseProviderCounts { get; init; } = null!;
     public double LowestAniDBRating { get; init; }
     public double AverageAniDBRating { get; init; }
     public double HighestAniDBRating { get; init; }
-    public IReadOnlySet<string> VideoSources { get; init; }
-    public IReadOnlySet<string> SharedVideoSources { get; init; }
-    public IReadOnlySet<AnimeType> AnimeTypes { get; init; }
-    public IReadOnlySet<string> AudioLanguages { get; init; }
-    public IReadOnlySet<string> SharedAudioLanguages { get; init; }
-    public IReadOnlySet<string> SubtitleLanguages { get; init; }
-    public IReadOnlySet<string> SharedSubtitleLanguages { get; init; }
-    public IReadOnlySet<string> Resolutions { get; init; }
-    public IReadOnlySet<string> ManagedFolderIDs { get; init; }
-    public IReadOnlySet<string> ManagedFolderNames { get; init; }
-    public IReadOnlySet<string> FilePaths { get; init; }
-    public IReadOnlySet<string> AbsoluteFilePaths { get; init; }
-    public IReadOnlySet<string> ContainingFolderPaths { get; init; }
-    public IReadOnlySet<string> CharacterIDs { get; init; }
-    public IReadOnlyDictionary<CastRoleType, IReadOnlySet<string>> CharacterAppearances { get; init; }
-    public IReadOnlySet<string> CreatorIDs { get; init; }
-    public IReadOnlyDictionary<CrewRoleType, IReadOnlySet<string>> CreatorRoles { get; init; }
-    public IReadOnlySet<string> ReleaseGroupNames { get; init; }
-    public IReadOnlySet<string> ReleaseProviderNames { get; init; }
-    public IReadOnlySet<string> TmdbMovieKeywords { get; init; }
-    public IReadOnlySet<string> TmdbMovieGenres { get; init; }
-    public IReadOnlySet<string> TmdbShowKeywords { get; init; }
-    public IReadOnlySet<string> TmdbShowGenres { get; init; }
-    public IReadOnlySet<string> TmdbKeywords { get; init; }
-    public IReadOnlySet<string> TmdbGenres { get; init; }
+    public IReadOnlySet<string> VideoSources { get; init; } = null!;
+    public IReadOnlySet<string> SharedVideoSources { get; init; } = null!;
+    public IReadOnlySet<AnimeType> AnimeTypes { get; init; } = null!;
+    public IReadOnlySet<string> AudioLanguages { get; init; } = null!;
+    public IReadOnlySet<string> SharedAudioLanguages { get; init; } = null!;
+    public IReadOnlySet<string> SubtitleLanguages { get; init; } = null!;
+    public IReadOnlySet<string> SharedSubtitleLanguages { get; init; } = null!;
+    public IReadOnlySet<string> Resolutions { get; init; } = null!;
+    public IReadOnlySet<string> ManagedFolderIDs { get; init; } = null!;
+    public IReadOnlySet<string> ManagedFolderNames { get; init; } = null!;
+    public IReadOnlySet<string> FilePaths { get; init; } = null!;
+    public IReadOnlySet<string> AbsoluteFilePaths { get; init; } = null!;
+    public IReadOnlySet<string> ContainingFolderPaths { get; init; } = null!;
+    public IReadOnlySet<string> CharacterIDs { get; init; } = null!;
+    public IReadOnlyDictionary<CastRoleType, IReadOnlySet<string>> CharacterAppearances { get; init; } = null!;
+    public IReadOnlySet<string> CreatorIDs { get; init; } = null!;
+    public IReadOnlyDictionary<CrewRoleType, IReadOnlySet<string>> CreatorRoles { get; init; } = null!;
+    public IReadOnlySet<string> ReleaseGroupNames { get; init; } = null!;
+    public IReadOnlySet<string> ReleaseProviderNames { get; init; } = null!;
+    public IReadOnlySet<string> TmdbMovieKeywords { get; init; } = null!;
+    public IReadOnlySet<string> TmdbMovieGenres { get; init; } = null!;
+    public IReadOnlySet<string> TmdbShowKeywords { get; init; } = null!;
+    public IReadOnlySet<string> TmdbShowGenres { get; init; } = null!;
+    public IReadOnlySet<string> TmdbKeywords { get; init; } = null!;
+    public IReadOnlySet<string> TmdbGenres { get; init; } = null!;
 }

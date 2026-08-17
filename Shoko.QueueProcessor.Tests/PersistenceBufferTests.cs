@@ -73,7 +73,7 @@ public class PersistenceBufferTests
         repo.Setup(r => r.DeleteBatchAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        await buffer.FlushNowAsync();
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
 
         repo.Verify(r => r.InsertBatchAsync(It.IsAny<IReadOnlyCollection<QueuedJob>>(), It.IsAny<CancellationToken>()), Times.Never);
         repo.Verify(r => r.DeleteBatchAsync(It.IsAny<IReadOnlyCollection<Guid>>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -93,7 +93,7 @@ public class PersistenceBufferTests
             .Returns(Task.CompletedTask);
 
         buffer.OnEnqueue(job);
-        await buffer.FlushNowAsync();
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(capturedInserts);
         Assert.Contains(capturedInserts!, j => j.Id == job.Id);
@@ -114,7 +114,7 @@ public class PersistenceBufferTests
             .Returns(Task.CompletedTask);
 
         buffer.OnComplete(id);
-        await buffer.FlushNowAsync();
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(capturedDeletes);
         Assert.Contains(capturedDeletes!, i => i == id);
@@ -142,7 +142,7 @@ public class PersistenceBufferTests
         buffer.OnComplete(fastJob.Id);  // cancel out
         buffer.OnComplete(oldJob.Id);
 
-        await buffer.FlushNowAsync();
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
 
         repo.Verify(r => r.InsertBatchAsync(
             It.Is<IReadOnlyCollection<QueuedJob>>(jobs =>
@@ -177,7 +177,7 @@ public class PersistenceBufferTests
         buffer.OnEnqueue(FakeJob()); // this triggers the force flush
 
         // Give the async flush a moment (it's fire-and-forget)
-        await Task.Delay(100);
+        await Task.Delay(100, TestContext.Current.CancellationToken);
 
         Assert.Equal(3, insertedCount);
 

@@ -60,7 +60,7 @@ public class JobChainContextRepositoryTests
         var (keeper, _, repo) = await CreateAsync();
         await using (keeper)
         {
-            var result = await repo.GetAsync(Guid.NewGuid());
+            var result = await repo.GetAsync(Guid.NewGuid(), TestContext.Current.CancellationToken);
             Assert.Null(result);
         }
     }
@@ -72,9 +72,9 @@ public class JobChainContextRepositoryTests
         await using (keeper)
         {
             var chainId = Guid.NewGuid();
-            await repo.GetOrCreateAsync(chainId);
+            await repo.GetOrCreateAsync(chainId, TestContext.Current.CancellationToken);
 
-            var loaded = await FreshRepo(cs).GetAsync(chainId);
+            var loaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
 
             Assert.NotNull(loaded);
             Assert.Equal(chainId, loaded.ChainId);
@@ -91,7 +91,7 @@ public class JobChainContextRepositoryTests
         {
             var chainId = Guid.NewGuid();
 
-            var result = await repo.GetOrCreateAsync(chainId);
+            var result = await repo.GetOrCreateAsync(chainId, TestContext.Current.CancellationToken);
 
             Assert.Equal(chainId, result.ChainId);
             Assert.Equal(ChainStatus.Active, result.Status);
@@ -105,11 +105,11 @@ public class JobChainContextRepositoryTests
         await using (keeper)
         {
             var chainId = Guid.NewGuid();
-            var first = await repo.GetOrCreateAsync(chainId);
+            var first = await repo.GetOrCreateAsync(chainId, TestContext.Current.CancellationToken);
             first.SetData("answer", 42);
-            await repo.SaveAsync(first);
+            await repo.SaveAsync(first, TestContext.Current.CancellationToken);
 
-            var second = await FreshRepo(cs).GetOrCreateAsync(chainId);
+            var second = await FreshRepo(cs).GetOrCreateAsync(chainId, TestContext.Current.CancellationToken);
 
             Assert.Equal(42, second.GetData<int>("answer"));
         }
@@ -126,9 +126,9 @@ public class JobChainContextRepositoryTests
             var chainId = Guid.NewGuid();
             var context = new JobChainContext(chainId);
 
-            await repo.SaveAsync(context);
+            await repo.SaveAsync(context, TestContext.Current.CancellationToken);
 
-            var loaded = await FreshRepo(cs).GetAsync(chainId);
+            var loaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
             Assert.NotNull(loaded);
             Assert.Equal(chainId, loaded.ChainId);
         }
@@ -141,13 +141,13 @@ public class JobChainContextRepositoryTests
         await using (keeper)
         {
             var chainId = Guid.NewGuid();
-            await repo.GetOrCreateAsync(chainId);
+            await repo.GetOrCreateAsync(chainId, TestContext.Current.CancellationToken);
 
-            var loaded = await FreshRepo(cs).GetAsync(chainId);
+            var loaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
             loaded!.SetData("updated", true);
-            await FreshRepo(cs).SaveAsync(loaded);
+            await FreshRepo(cs).SaveAsync(loaded, TestContext.Current.CancellationToken);
 
-            var reloaded = await FreshRepo(cs).GetAsync(chainId);
+            var reloaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
             Assert.True(reloaded!.GetData<bool>("updated"));
         }
     }
@@ -165,9 +165,9 @@ public class JobChainContextRepositoryTests
             context.SetData("greeting", "hello world");
             context.SetData("count", 99);
 
-            await repo.SaveAsync(context);
+            await repo.SaveAsync(context, TestContext.Current.CancellationToken);
 
-            var loaded = await FreshRepo(cs).GetAsync(chainId);
+            var loaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
             Assert.Equal("hello world", loaded!.GetData<string>("greeting"));
             Assert.Equal(99, loaded.GetData<int>("count"));
         }
@@ -182,13 +182,13 @@ public class JobChainContextRepositoryTests
             var chainId = Guid.NewGuid();
             var context = new JobChainContext(chainId);
             context.SetData("key", "original");
-            await repo.SaveAsync(context);
+            await repo.SaveAsync(context, TestContext.Current.CancellationToken);
 
-            var loaded = await FreshRepo(cs).GetAsync(chainId);
+            var loaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
             loaded!.SetData<string?>("key", null);
-            await FreshRepo(cs).SaveAsync(loaded);
+            await FreshRepo(cs).SaveAsync(loaded, TestContext.Current.CancellationToken);
 
-            var reloaded = await FreshRepo(cs).GetAsync(chainId);
+            var reloaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
             Assert.Null(reloaded!.GetData<string>("key"));
         }
     }
@@ -205,9 +205,9 @@ public class JobChainContextRepositoryTests
             {
                 var chainId = Guid.NewGuid();
                 var context = new JobChainContext(chainId, status);
-                await FreshRepo(cs).SaveAsync(context);
+                await FreshRepo(cs).SaveAsync(context, TestContext.Current.CancellationToken);
 
-                var loaded = await FreshRepo(cs).GetAsync(chainId);
+                var loaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
                 Assert.Equal(status, loaded!.Status);
             }
         }
@@ -222,7 +222,7 @@ public class JobChainContextRepositoryTests
         await using (keeper)
         {
             var chainId = Guid.NewGuid();
-            await repo.GetOrCreateAsync(chainId);
+            await repo.GetOrCreateAsync(chainId, TestContext.Current.CancellationToken);
 
             var outcomes = new[]
             {
@@ -230,9 +230,9 @@ public class JobChainContextRepositoryTests
                 MakeOutcome("TypeB", JobOutcomeStatus.Failed),
                 MakeOutcome("TypeC", JobOutcomeStatus.Aborted),
             };
-            await FreshRepo(cs).AddOutcomesAsync(chainId, outcomes);
+            await FreshRepo(cs).AddOutcomesAsync(chainId, outcomes, TestContext.Current.CancellationToken);
 
-            var loaded = await FreshRepo(cs).GetAsync(chainId);
+            var loaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
             var all = loaded!.GetAllOutcomes();
             Assert.Equal(3, all.Count);
             Assert.Contains(all, o => o.JobType == "TypeA" && o.Status == JobOutcomeStatus.Succeeded);
@@ -248,7 +248,7 @@ public class JobChainContextRepositoryTests
         await using (keeper)
         {
             var ex = await Record.ExceptionAsync(
-                () => repo.AddOutcomesAsync(Guid.NewGuid(), [MakeOutcome("T")]));
+                () => repo.AddOutcomesAsync(Guid.NewGuid(), [MakeOutcome("T")], TestContext.Current.CancellationToken));
 
             Assert.Null(ex);
         }
@@ -261,10 +261,10 @@ public class JobChainContextRepositoryTests
         await using (keeper)
         {
             var chainId = Guid.NewGuid();
-            await repo.GetOrCreateAsync(chainId);
+            await repo.GetOrCreateAsync(chainId, TestContext.Current.CancellationToken);
 
             var ex = await Record.ExceptionAsync(
-                () => FreshRepo(cs).AddOutcomesAsync(chainId, []));
+                () => FreshRepo(cs).AddOutcomesAsync(chainId, [], TestContext.Current.CancellationToken));
 
             Assert.Null(ex);
         }
@@ -279,11 +279,11 @@ public class JobChainContextRepositoryTests
         await using (keeper)
         {
             var chainId = Guid.NewGuid();
-            await repo.GetOrCreateAsync(chainId);
+            await repo.GetOrCreateAsync(chainId, TestContext.Current.CancellationToken);
 
-            await FreshRepo(cs).DeleteAsync(chainId);
+            await FreshRepo(cs).DeleteAsync(chainId, TestContext.Current.CancellationToken);
 
-            var loaded = await FreshRepo(cs).GetAsync(chainId);
+            var loaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
             Assert.Null(loaded);
         }
     }
@@ -294,7 +294,7 @@ public class JobChainContextRepositoryTests
         var (keeper, _, repo) = await CreateAsync();
         await using (keeper)
         {
-            var ex = await Record.ExceptionAsync(() => repo.DeleteAsync(Guid.NewGuid()));
+            var ex = await Record.ExceptionAsync(() => repo.DeleteAsync(Guid.NewGuid(), TestContext.Current.CancellationToken));
             Assert.Null(ex);
         }
     }
@@ -308,12 +308,12 @@ public class JobChainContextRepositoryTests
         await using (keeper)
         {
             var chainId = Guid.NewGuid();
-            await repo.GetOrCreateAsync(chainId);
+            await repo.GetOrCreateAsync(chainId, TestContext.Current.CancellationToken);
 
             var outcome = MakeOutcome("TypeA");
-            await FreshRepo(cs).AddOutcomesAsync(chainId, [outcome]);
+            await FreshRepo(cs).AddOutcomesAsync(chainId, [outcome], TestContext.Current.CancellationToken);
 
-            var loaded = await FreshRepo(cs).GetAsync(chainId);
+            var loaded = await FreshRepo(cs).GetAsync(chainId, TestContext.Current.CancellationToken);
             var found = loaded!.GetOutcome(outcome.JobId);
             Assert.NotNull(found);
             Assert.Equal(outcome.JobId, found.JobId);

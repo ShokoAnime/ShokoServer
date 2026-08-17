@@ -1,4 +1,3 @@
-using System.Linq;
 using Shoko.Server.Models.Release;
 using Xunit;
 
@@ -113,7 +112,7 @@ public class MatchAttemptTests
     public void AttemptedProviderNames_EmptyEmbedded_ReturnsEmpty()
     {
         var attempt = new StoredReleaseInfo_MatchAttempt { EmbeddedAttemptProviderNames = string.Empty };
-        Assert.Empty(attempt.AttemptedProviderNames.Where(n => !string.IsNullOrEmpty(n)));
+        Assert.DoesNotContain(attempt.AttemptedProviderNames, n => !string.IsNullOrEmpty(n));
     }
 
     [Fact]

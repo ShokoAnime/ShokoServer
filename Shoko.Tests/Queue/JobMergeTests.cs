@@ -177,7 +177,7 @@ public class PersistenceBufferUpdateTests
         buffer.OnEnqueue(job);
         buffer.OnUpdate(job.Id, """{"Flag":true}""");
 
-        await buffer.FlushNowAsync();
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
 
         // INSERT fired with the updated JSON — no separate UpdateDataBatchAsync call.
         repo.Verify(r => r.InsertBatchAsync(
@@ -205,13 +205,13 @@ public class PersistenceBufferUpdateTests
 
         // Simulate: job was in DB (flush before complete), then completed.
         buffer.OnEnqueue(job);
-        await buffer.FlushNowAsync();     // job now "in DB"; _pendingInserts cleared
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);     // job now "in DB"; _pendingInserts cleared
         repo.Invocations.Clear();         // reset call counters
 
         buffer.OnComplete(job.Id);        // → _pendingDeletes
         buffer.OnUpdate(job.Id, """{"Flag":true}""");  // should be no-op
 
-        await buffer.FlushNowAsync();
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
 
         repo.Verify(r => r.DeleteBatchAsync(
             It.Is<IReadOnlyCollection<Guid>>(ids => ids.Count == 1),
@@ -229,11 +229,11 @@ public class PersistenceBufferUpdateTests
 
         // Job is "in DB" — flush the insert so _pendingInserts is cleared.
         buffer.OnEnqueue(job);
-        await buffer.FlushNowAsync();
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
         repo.Invocations.Clear();
 
         buffer.OnUpdate(job.Id, """{"Flag":true}""");
-        await buffer.FlushNowAsync();
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
 
         repo.Verify(r => r.UpdateDataBatchAsync(
             It.Is<IReadOnlyCollection<(Guid Id, string? NewJson)>>(updates =>
@@ -260,12 +260,12 @@ public class PersistenceBufferUpdateTests
 
         // Job is in DB.
         buffer.OnEnqueue(job);
-        await buffer.FlushNowAsync();
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
         repo.Invocations.Clear();
 
         buffer.OnUpdate(job.Id, """{"Flag":true}""");  // → _pendingUpdates
         buffer.OnComplete(job.Id);                     // DELETE supersedes; _pendingUpdates stripped
-        await buffer.FlushNowAsync();
+        await buffer.FlushNowAsync(TestContext.Current.CancellationToken);
 
         repo.Verify(r => r.DeleteBatchAsync(
             It.Is<IReadOnlyCollection<Guid>>(ids => ids.Count == 1),
@@ -368,9 +368,9 @@ public class QueueOrchestratorMergeTests
         var (orchestrator, _, pool, _) = CreateOrchestrator(typeof(MergeableFlagJob));
 
         // First enqueue: Flag = false.
-        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = false; }));
+        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = false; }), TestContext.Current.CancellationToken);
         // Collision: same key (Id=1), Flag = true → should be merged into the waiting job.
-        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = true; }));
+        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = true; }), TestContext.Current.CancellationToken);
 
         var snapshot = pool.GetWaitingSnapshot();
         Assert.Single(snapshot);
@@ -388,8 +388,8 @@ public class QueueOrchestratorMergeTests
         // MergeableFlagJob.TryMerge uses OR-semantics: it only upgrades false → true.
         // Existing has Flag = true; incoming has Flag = false → TryMerge returns false, no change.
         // If the system incorrectly overwrote with the incoming value, Flag would become false.
-        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = true; }));
-        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = false; }));
+        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = true; }), TestContext.Current.CancellationToken);
+        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = false; }), TestContext.Current.CancellationToken);
 
         var snapshot = pool.GetWaitingSnapshot();
         Assert.Single(snapshot);
@@ -412,8 +412,8 @@ public class QueueOrchestratorMergeTests
             return false;
         });
 
-        await orchestrator.EnqueueAsync(BuildContext<FlagJob>(j => { j.Id = 1; j.Flag = false; }));
-        await orchestrator.EnqueueAsync(BuildContext<FlagJob>(j => { j.Id = 1; j.Flag = true; }));
+        await orchestrator.EnqueueAsync(BuildContext<FlagJob>(j => { j.Id = 1; j.Flag = false; }), TestContext.Current.CancellationToken);
+        await orchestrator.EnqueueAsync(BuildContext<FlagJob>(j => { j.Id = 1; j.Flag = true; }), TestContext.Current.CancellationToken);
 
         var snapshot = pool.GetWaitingSnapshot();
         Assert.Single(snapshot);
@@ -429,8 +429,8 @@ public class QueueOrchestratorMergeTests
         // FlagJob does NOT implement IJobMerge and no handler is registered.
         var (orchestrator, _, pool, _) = CreateOrchestrator(typeof(FlagJob));
 
-        await orchestrator.EnqueueAsync(BuildContext<FlagJob>(j => { j.Id = 1; j.Flag = false; }));
-        await orchestrator.EnqueueAsync(BuildContext<FlagJob>(j => { j.Id = 1; j.Flag = true; }));
+        await orchestrator.EnqueueAsync(BuildContext<FlagJob>(j => { j.Id = 1; j.Flag = false; }), TestContext.Current.CancellationToken);
+        await orchestrator.EnqueueAsync(BuildContext<FlagJob>(j => { j.Id = 1; j.Flag = true; }), TestContext.Current.CancellationToken);
 
         // Still exactly one job, with the original data.
         var snapshot = pool.GetWaitingSnapshot();
@@ -460,9 +460,9 @@ public class QueueOrchestratorMergeTests
         });
 
         // First enqueue: Flag = true.
-        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = true; }));
+        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = true; }), TestContext.Current.CancellationToken);
         // Collision: incoming Flag = false → registered handler applies AND-semantics → Flag becomes false.
-        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = false; }));
+        await orchestrator.EnqueueAsync(BuildContext<MergeableFlagJob>(j => { j.Id = 1; j.Flag = false; }), TestContext.Current.CancellationToken);
 
         Assert.True(handlerInvoked);
 

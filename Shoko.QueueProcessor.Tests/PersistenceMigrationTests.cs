@@ -57,7 +57,7 @@ public class PersistenceMigrationTests
         keeper.Open();
         await using var ctx = new SqliteQueueDbContext(cs);
 
-        await ctx.GetService<IMigrator>().MigrateAsync("20260528013231_InitialCreate");
+        await ctx.GetService<IMigrator>().MigrateAsync("20260528013231_InitialCreate", TestContext.Current.CancellationToken);
 
         var tables = await GetTablesAsync(keeper);
         Assert.Contains("Jobs", tables);
@@ -79,7 +79,7 @@ public class PersistenceMigrationTests
         keeper.Open();
         await using var ctx = new SqliteQueueDbContext(cs);
 
-        await ctx.Database.MigrateAsync();
+        await ctx.Database.MigrateAsync(TestContext.Current.CancellationToken);
 
         var tables = await GetTablesAsync(keeper);
         Assert.Contains("Jobs", tables);
@@ -104,9 +104,9 @@ public class PersistenceMigrationTests
         keeper.Open();
         await using var ctx = new SqliteQueueDbContext(cs);
 
-        await ctx.Database.MigrateAsync();
+        await ctx.Database.MigrateAsync(TestContext.Current.CancellationToken);
 
-        var ex = await Record.ExceptionAsync(() => ctx.Database.MigrateAsync());
+        var ex = await Record.ExceptionAsync(() => ctx.Database.MigrateAsync(TestContext.Current.CancellationToken));
         Assert.Null(ex);
     }
 
@@ -118,12 +118,12 @@ public class PersistenceMigrationTests
         keeper.Open();
         await using var ctx = new SqliteQueueDbContext(cs);
 
-        await ctx.Database.MigrateAsync();
+        await ctx.Database.MigrateAsync(TestContext.Current.CancellationToken);
 
         // Every migration defined in the assembly must be recorded as applied, in the same order —
         // no hardcoded count/names, so newly added migrations are covered automatically.
         var defined = ctx.Database.GetMigrations().ToList();
-        var applied = (await ctx.Database.GetAppliedMigrationsAsync()).ToList();
+        var applied = (await ctx.Database.GetAppliedMigrationsAsync(TestContext.Current.CancellationToken)).ToList();
 
         Assert.NotEmpty(defined);
         Assert.Equal(defined, applied);
@@ -138,14 +138,14 @@ public class PersistenceMigrationTests
         using var keeper = new SqliteConnection(cs);
         keeper.Open();
         await using var ctx = new SqliteQueueDbContext(cs);
-        await ctx.Database.MigrateAsync();
+        await ctx.Database.MigrateAsync(TestContext.Current.CancellationToken);
 
         using var first = keeper.CreateCommand();
         first.CommandText = "INSERT INTO Jobs (Id, JobType, JobKey, Priority, QueuedAt, RetryCount, IsChainFinally) VALUES (randomblob(16), 'T', 'dup-key', 0, 0, 0, 0)";
-        await first.ExecuteNonQueryAsync();
+        await first.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
 
         using var second = keeper.CreateCommand();
         second.CommandText = "INSERT INTO Jobs (Id, JobType, JobKey, Priority, QueuedAt, RetryCount, IsChainFinally) VALUES (randomblob(16), 'T', 'dup-key', 0, 0, 0, 0)";
-        await Assert.ThrowsAnyAsync<Exception>(() => second.ExecuteNonQueryAsync());
+        await Assert.ThrowsAnyAsync<Exception>(() => second.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
     }
 }

@@ -164,7 +164,7 @@ public class RunAfterCurrentTests
 
         // Enqueue child at normal priority through the proper path so the key is in _jobKeyIndex
         var childJobKey = JobKeyBuilder<ChildJob>.Create().Build();
-        await orchestrator.EnqueueAsync(MakeChildContext(jobKey: childJobKey, priority: 0));
+        await orchestrator.EnqueueAsync(MakeChildContext(jobKey: childJobKey, priority: 0), TestContext.Current.CancellationToken);
         Assert.Equal(1, childPool.WaitingCount);
 
         var parentJob = MakeJob(typeof(ParentJob));
@@ -193,7 +193,7 @@ public class RunAfterCurrentTests
 
         // Enqueue and acquire child through the proper path so its key is in _jobKeyIndex
         var childJobKey = JobKeyBuilder<ChildJob>.Create().Build();
-        await orchestrator.EnqueueAsync(MakeChildContext(jobKey: childJobKey));
+        await orchestrator.EnqueueAsync(MakeChildContext(jobKey: childJobKey), TestContext.Current.CancellationToken);
         childPool.TryAcquire();  // moves from sub-queue to _executingSet; key stays in _jobKeyIndex
 
         // RegisterAfterParent should be a no-op since child is executing
@@ -238,7 +238,7 @@ public class RunAfterCurrentTests
         orchestrator.RegisterAfterParent(parentId, MakeChildContext(jobKey: jobKey));
 
         // A concurrent Enqueue for the same key should be deduplicated (no-op)
-        await orchestrator.EnqueueAsync(MakeChildContext(jobKey: jobKey));
+        await orchestrator.EnqueueAsync(MakeChildContext(jobKey: jobKey), TestContext.Current.CancellationToken);
 
         orchestrator.OnComplete(parentId);
 
@@ -259,7 +259,7 @@ public class RunAfterCurrentTests
         Assert.True(orchestrator.IsQueued(childCtx.Job.JobKey));
 
         // Real failure (incrementRetry: true, but MaxRetries=0 → discard)
-        await orchestrator.OnFailureAsync(parentId, new Exception("test failure"), incrementRetry: true);
+        await orchestrator.OnFailureAsync(parentId, new Exception("test failure"), incrementRetry: true, TestContext.Current.CancellationToken);
 
         // Child should have been discarded and key freed
         Assert.Equal(0, childPool.WaitingCount);
@@ -278,7 +278,7 @@ public class RunAfterCurrentTests
         orchestrator.RegisterAfterParent(parentId, childCtx);
 
         // Transient failure — parent re-queues with same ID (incrementRetry: false)
-        await orchestrator.OnFailureAsync(parentId, new Exception("transient"), incrementRetry: false);
+        await orchestrator.OnFailureAsync(parentId, new Exception("transient"), incrementRetry: false, TestContext.Current.CancellationToken);
 
         // Child registration preserved; child not yet in pool
         Assert.Equal(0, childPool.WaitingCount);
@@ -313,7 +313,7 @@ public class RunAfterCurrentTests
         orchestrator.RegisterAfterParent(parentId, childCtx);
         Assert.True(orchestrator.IsQueued(childCtx.Job.JobKey));
 
-        await orchestrator.ClearAsync();
+        await orchestrator.ClearAsync(TestContext.Current.CancellationToken);
 
         // Child key should be freed after clear
         Assert.False(orchestrator.IsQueued(childCtx.Job.JobKey));
