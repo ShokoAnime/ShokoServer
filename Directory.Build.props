@@ -1,0 +1,13 @@
+<Project>
+
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!--
+      NuGet audit advisories are published out-of-band, so a new CVE against an existing
+      dependency would otherwise break the build with no change on our side. Keep them
+      visible as warnings instead.
+    -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1900;NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+  </PropertyGroup>
+
+</Project>
