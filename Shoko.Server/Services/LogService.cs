@@ -481,8 +481,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             Caller = options.Caller,
             Message = options.Message,
             Exception = options.Exception,
-            ProcessId = options.ProcessId,
-            ThreadId = options.ThreadId,
+            ProcessID = options.ProcessID,
+            ThreadID = options.ThreadID,
         };
         var entries = ReadRange(readOpts).Entries;
         var stream = CreateFormattedStream(entries, options.Format);
@@ -545,12 +545,12 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
                 ? ts.ToUniversalTime()
                 : DateTime.UtcNow;
 
-            var threadId = root.TryGetProperty("threadId", out var threadIdElement) &&
+            var threadID = root.TryGetProperty("threadId", out var threadIdElement) &&
                 threadIdElement.GetString() is { } threadIdString && int.TryParse(threadIdString, out var parsedThreadId)
                 ? parsedThreadId
                 : 0;
 
-            var processId = root.TryGetProperty("processId", out var processIdElement) &&
+            var processID = root.TryGetProperty("processId", out var processIdElement) &&
                 processIdElement.GetString() is { } processIdString && int.TryParse(processIdString, out var parsedProcessId)
                 ? parsedProcessId
                 : 0;
@@ -574,8 +574,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
                 Level = parsedLevel,
                 Logger = root.TryGetProperty("logger", out var loggerElement) ? loggerElement.GetString() ?? string.Empty : string.Empty,
                 Caller = root.TryGetProperty("caller", out var callerElement) ? callerElement.GetString() ?? string.Empty : string.Empty,
-                ThreadId = threadId,
-                ProcessId = processId,
+                ThreadID = threadID,
+                ProcessID = processID,
                 Message = root.TryGetProperty("message", out var messageElement) ? messageElement.GetString() ?? string.Empty : string.Empty,
                 Exception = root.TryGetProperty("exception", out var exceptionElement) ? exceptionElement.GetString() : null,
             };
@@ -716,9 +716,9 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
                 return false;
             if (options.Levels is { Count: > 0 } && !options.Levels.Contains(parsedEntry.Level))
                 return false;
-            if (options.ProcessId.HasValue && parsedEntry.ProcessId != options.ProcessId.Value)
+            if (options.ProcessID.HasValue && parsedEntry.ProcessID != options.ProcessID.Value)
                 return false;
-            if (options.ThreadId.HasValue && parsedEntry.ThreadId != options.ThreadId.Value)
+            if (options.ThreadID.HasValue && parsedEntry.ThreadID != options.ThreadID.Value)
                 return false;
             if (options.Logger is { } lc && !LogFilterMatchField(parsedEntry.Logger, lc))
                 return false;
@@ -788,8 +788,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
             From = baseOptions.From?.ToUniversalTime(),
             To = baseOptions.To?.ToUniversalTime(),
             Levels = baseOptions.Levels,
-            ProcessId = baseOptions.ProcessId,
-            ThreadId = baseOptions.ThreadId,
+            ProcessID = baseOptions.ProcessID,
+            ThreadID = baseOptions.ThreadID,
             Logger = logger,
             Caller = caller,
             Message = message,
@@ -988,8 +988,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         public DateTime? From { get; init; }
         public DateTime? To { get; init; }
         public IReadOnlyList<ELogLevel>? Levels { get; init; }
-        public int? ProcessId { get; init; }
-        public int? ThreadId { get; init; }
+        public int? ProcessID { get; init; }
+        public int? ThreadID { get; init; }
         public CompiledTextCriterion? Logger { get; init; }
         public CompiledTextCriterion? Caller { get; init; }
         public CompiledTextCriterion? Message { get; init; }

@@ -23,12 +23,12 @@ public class LogEvent : EventArgs
     /// <summary>
     ///   Thread ID associated with the entry.
     /// </summary>
-    public int ThreadId { get; init; }
+    public int ThreadID { get; init; }
 
     /// <summary>
     ///   Process ID associated with the entry.
     /// </summary>
-    public int ProcessId { get; init; }
+    public int ProcessID { get; init; }
 
     /// <summary>
     ///   Logger category or name.
@@ -51,7 +51,7 @@ public class LogEvent : EventArgs
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public string? Exception { get; init; }
 
-    internal LogEvent(LogEventInfo eventInfo, string renderedMessage, int threadId, int processId)
+    internal LogEvent(LogEventInfo eventInfo, string renderedMessage, int threadID, int processID)
     {
         Level = eventInfo.Level.Ordinal switch
         {
@@ -66,8 +66,8 @@ public class LogEvent : EventArgs
         TimeStamp = eventInfo.TimeStamp.ToUniversalTime();
         Logger = eventInfo.LoggerName;
         Caller = $"{eventInfo.CallerClassName}.{eventInfo.CallerMemberName}";
-        ProcessId = processId;
-        ThreadId = threadId;
+        ProcessID = processID;
+        ThreadID = threadID;
         Message = renderedMessage;
         Exception = eventInfo.Exception?.ToString();
     }

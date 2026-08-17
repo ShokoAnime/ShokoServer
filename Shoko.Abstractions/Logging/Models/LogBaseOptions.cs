@@ -85,12 +85,12 @@ public class LogBaseOptions
     /// <summary>
     ///   If set, the entry process id must equal this value.
     /// </summary>
-    public int? ProcessId { get; set; }
+    public int? ProcessID { get; set; }
 
     /// <summary>
     ///   If set, the entry thread id must equal this value.
     /// </summary>
-    public int? ThreadId { get; set; }
+    public int? ThreadID { get; set; }
 
     /// <summary>
     ///   Indicates whether any filters are set.
@@ -103,6 +103,6 @@ public class LogBaseOptions
         Caller is not null ||
         Message is not null ||
         Exception is not null ||
-        ProcessId.HasValue ||
-        ThreadId.HasValue;
+        ProcessID.HasValue ||
+        ThreadID.HasValue;
 }

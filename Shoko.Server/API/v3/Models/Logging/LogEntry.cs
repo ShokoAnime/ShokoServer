@@ -39,13 +39,13 @@ public class LogEntry
     /// Thread ID for the entry.
     /// </summary>
     [Required]
-    public int ThreadId { get; }
+    public int ThreadID { get; }
 
     /// <summary>
     /// Process ID for the entry.
     /// </summary>
     [Required]
-    public int ProcessId { get; }
+    public int ProcessID { get; }
 
     /// <summary>
     /// Rendered log message.
@@ -65,8 +65,8 @@ public class LogEntry
         Level = entry.Level.ToString();
         Logger = entry.Logger;
         Caller = entry.Caller;
-        ThreadId = entry.ThreadId;
-        ProcessId = entry.ProcessId;
+        ThreadID = entry.ThreadID;
+        ProcessID = entry.ProcessID;
         Message = entry.Message;
         Exception = entry.Exception;
     }

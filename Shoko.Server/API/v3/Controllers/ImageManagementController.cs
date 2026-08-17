@@ -800,19 +800,19 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <summary>
     ///   Update an image cross-reference with partial data. Only explicitly set properties are updated.
     /// </summary>
-    /// <param name="id">The cross-reference ID.</param>
+    /// <param name="xrefID">The cross-reference ID.</param>
     /// <param name="body">The update data containing properties to modify.</param>
     /// <param name="includeImage">Include the associated image in the response (default false).</param>
     /// <returns>The updated cross-reference.</returns>
     [Authorize("admin")]
-    [HttpPatch("CrossReference/{id:int}")]
+    [HttpPatch("CrossReference/{xrefID:int}")]
     public ActionResult<ImageCrossReference> UpdateImageCrossReference(
-        [FromRoute, Range(1, int.MaxValue)] int id,
+        [FromRoute, Range(1, int.MaxValue)] int xrefID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateImageCrossReferenceBody body,
         [FromQuery] bool includeImage = false
     )
     {
-        var xref = imageManager.GetImageCrossReferenceByID(id);
+        var xref = imageManager.GetImageCrossReferenceByID(xrefID);
         if (xref is null)
             return NotFound(CrossReferenceNotFound);
         var updated = imageManager.UpdateImageCrossReference(xref, body.ToImageCrossReferenceUpdateData());
@@ -822,13 +822,13 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <summary>
     ///   Remove an image cross-reference.
     /// </summary>
-    /// <param name="id">The cross-reference ID.</param>
+    /// <param name="xrefID">The cross-reference ID.</param>
     /// <returns>No content.</returns>
     [Authorize("admin")]
-    [HttpDelete("CrossReference/{id:int}")]
-    public ActionResult RemoveImageCrossReference([FromRoute, Range(1, int.MaxValue)] int id)
+    [HttpDelete("CrossReference/{xrefID:int}")]
+    public ActionResult RemoveImageCrossReference([FromRoute, Range(1, int.MaxValue)] int xrefID)
     {
-        var xref = imageManager.GetImageCrossReferenceByID(id);
+        var xref = imageManager.GetImageCrossReferenceByID(xrefID);
         if (xref is null)
             return NotFound(CrossReferenceNotFound);
         if (!imageManager.RemoveImageCrossReference(xref))

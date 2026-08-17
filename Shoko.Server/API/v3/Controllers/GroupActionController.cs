@@ -25,23 +25,23 @@ public class GroupActionController(ActionService actionService, AnimeGroupReposi
     ///   invocation.
     /// </summary>
     /// <param name="groupID">Group ID.</param>
-    /// <param name="actionId">Action ID.</param>
+    /// <param name="actionID">Action ID.</param>
     /// <param name="token">Cancellation token.</param>
-    [HttpPost("{actionId:guid}")]
+    [HttpPost("{actionID:guid}")]
     public async Task<ActionResult> Invoke(
         [FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromRoute] Guid actionId,
+        [FromRoute] Guid actionID,
         CancellationToken token
     )
     {
-        if (actionService.GetActionInfo(actionId) is null)
+        if (actionService.GetActionInfo(actionID) is null)
             return NotFound("Action not found.");
 
         var groupEntity = groups.GetByID(groupID);
         if (groupEntity is null)
             return NotFound("Group not found.");
 
-        var validation = await actionService.InvokeAsync(actionId, groupEntity, User, token);
+        var validation = await actionService.InvokeAsync(actionID, groupEntity, User, token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 }

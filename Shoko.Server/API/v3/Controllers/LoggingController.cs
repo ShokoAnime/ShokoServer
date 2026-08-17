@@ -65,8 +65,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     /// <param name="caller">Optional DSL filter on caller; inactive when omitted. See remarks.</param>
     /// <param name="message">Optional DSL filter on message; inactive when omitted. See remarks.</param>
     /// <param name="exception">Optional DSL filter on exception text (<c>entry.Exception ?? ""</c>); inactive when omitted. See remarks.</param>
-    /// <param name="processId">Exact process id.</param>
-    /// <param name="threadId">Exact thread id.</param>
+    /// <param name="processID">Exact process id.</param>
+    /// <param name="threadID">Exact thread id.</param>
     /// <returns>The paged log read result.</returns>
     [HttpGet("Range/Read")]
     public ActionResult<LogReadResult> GetLogRange(
@@ -80,8 +80,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         [FromQuery] string? caller = null,
         [FromQuery] string? message = null,
         [FromQuery] string? exception = null,
-        [FromQuery] int? processId = null,
-        [FromQuery] int? threadId = null
+        [FromQuery] int? processID = null,
+        [FromQuery] int? threadID = null
     )
     {
         if (from.HasValue && to.HasValue && from > to)
@@ -91,7 +91,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
             return ValidationProblem(ModelState);
         }
 
-        if (!TryBuildLogReadOptions(from, to, offset, limit, descending, level, logger, caller, message, exception, processId, threadId, out var readOptions, out var dslError))
+        if (!TryBuildLogReadOptions(from, to, offset, limit, descending, level, logger, caller, message, exception, processID, threadID, out var readOptions, out var dslError))
             return ValidationProblem(dslError);
 
         return new LogReadResult(logService.ReadRange(readOptions));
@@ -120,8 +120,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     /// <param name="caller">Optional DSL filter on caller; inactive when omitted. See remarks.</param>
     /// <param name="message">Optional DSL filter on message; inactive when omitted. See remarks.</param>
     /// <param name="exception">Optional DSL filter on exception text; inactive when omitted. See remarks.</param>
-    /// <param name="processId">Exact process id.</param>
-    /// <param name="threadId">Exact thread id.</param>
+    /// <param name="processID">Exact process id.</param>
+    /// <param name="threadID">Exact thread id.</param>
     /// <returns>The generated download response.</returns>
     [HttpGet("Range/Download")]
     public ActionResult DownloadLogRange(
@@ -133,8 +133,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         [FromQuery] string? caller = null,
         [FromQuery] string? message = null,
         [FromQuery] string? exception = null,
-        [FromQuery] int? processId = null,
-        [FromQuery] int? threadId = null
+        [FromQuery] int? processID = null,
+        [FromQuery] int? threadID = null
     )
     {
         if (from.HasValue && to.HasValue && from > to)
@@ -144,7 +144,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
             return ValidationProblem(ModelState);
         }
 
-        if (!TryBuildLogDownloadOptions(from, to, format, level, logger, caller, message, exception, processId, threadId, out var downloadOptions, out var dslError))
+        if (!TryBuildLogDownloadOptions(from, to, format, level, logger, caller, message, exception, processID, threadID, out var downloadOptions, out var dslError))
             return ValidationProblem(dslError);
 
         var download = logService.DownloadRange(downloadOptions);
@@ -193,8 +193,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     /// <param name="caller">Optional DSL filter on caller; inactive when omitted. See remarks.</param>
     /// <param name="message">Optional DSL filter on message; inactive when omitted. See remarks.</param>
     /// <param name="exception">Optional DSL filter on exception text; inactive when omitted. See remarks.</param>
-    /// <param name="processId">Exact process id.</param>
-    /// <param name="threadId">Exact thread id.</param>
+    /// <param name="processID">Exact process id.</param>
+    /// <param name="threadID">Exact thread id.</param>
     /// <returns>The paged log read result.</returns>
     [HttpGet("File/Current/Read")]
     public ActionResult<LogReadResult> GetCurrentLogs(
@@ -208,8 +208,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         [FromQuery] string? caller = null,
         [FromQuery] string? message = null,
         [FromQuery] string? exception = null,
-        [FromQuery] int? processId = null,
-        [FromQuery] int? threadId = null
+        [FromQuery] int? processID = null,
+        [FromQuery] int? threadID = null
     )
     {
         if (from.HasValue && to.HasValue && from > to)
@@ -223,7 +223,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         if (fileInfo.Format is not LogFileFormat.JsonL)
             return ValidationProblem("Only JSONL logs support offset/limit reads.");
 
-        if (!TryBuildLogReadOptions(from, to, offset, limit, descending, level, logger, caller, message, exception, processId, threadId, out var readOptions, out var dslError))
+        if (!TryBuildLogReadOptions(from, to, offset, limit, descending, level, logger, caller, message, exception, processID, threadID, out var readOptions, out var dslError))
             return ValidationProblem(dslError);
 
         return new LogReadResult(logService.ReadLogFile(fileInfo, readOptions));
@@ -253,8 +253,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     /// <param name="caller">Optional DSL filter on caller; inactive when omitted. See remarks.</param>
     /// <param name="message">Optional DSL filter on message; inactive when omitted. See remarks.</param>
     /// <param name="exception">Optional DSL filter on exception text; inactive when omitted. See remarks.</param>
-    /// <param name="processId">Exact process id.</param>
-    /// <param name="threadId">Exact thread id.</param>
+    /// <param name="processID">Exact process id.</param>
+    /// <param name="threadID">Exact thread id.</param>
     /// <returns>The current log file download response.</returns>
     [HttpGet("File/Current/Download")]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
@@ -267,8 +267,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         [FromQuery] string? caller = null,
         [FromQuery] string? message = null,
         [FromQuery] string? exception = null,
-        [FromQuery] int? processId = null,
-        [FromQuery] int? threadId = null
+        [FromQuery] int? processID = null,
+        [FromQuery] int? threadID = null
     )
     {
         if (from.HasValue && to.HasValue && from > to)
@@ -278,7 +278,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
             return ValidationProblem(ModelState);
         }
 
-        if (!TryBuildLogDownloadOptions(from, to, format, level, logger, caller, message, exception, processId, threadId, out var downloadOptions, out var dslError))
+        if (!TryBuildLogDownloadOptions(from, to, format, level, logger, caller, message, exception, processID, threadID, out var downloadOptions, out var dslError))
             return ValidationProblem(dslError);
 
         var fileInfo = logService.GetCurrentLogFile();
@@ -327,8 +327,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     /// <param name="caller">Optional DSL filter on caller; inactive when omitted. See remarks.</param>
     /// <param name="message">Optional DSL filter on message; inactive when omitted. See remarks.</param>
     /// <param name="exception">Optional DSL filter on exception text; inactive when omitted. See remarks.</param>
-    /// <param name="processId">Exact process id.</param>
-    /// <param name="threadId">Exact thread id.</param>
+    /// <param name="processID">Exact process id.</param>
+    /// <param name="threadID">Exact thread id.</param>
     /// <returns>The paged log read result.</returns>
     [HttpGet("File/{fileID}/Read")]
     public ActionResult<LogReadResult> GetLogFileById(
@@ -343,8 +343,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         [FromQuery] string? caller = null,
         [FromQuery] string? message = null,
         [FromQuery] string? exception = null,
-        [FromQuery] int? processId = null,
-        [FromQuery] int? threadId = null
+        [FromQuery] int? processID = null,
+        [FromQuery] int? threadID = null
     )
     {
         if (from.HasValue && to.HasValue && from > to)
@@ -360,7 +360,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         if (fileInfo.Format is not LogFileFormat.JsonL)
             return ValidationProblem("Only JSONL logs support offset/limit reads.");
 
-        if (!TryBuildLogReadOptions(from, to, offset, limit, descending, level, logger, caller, message, exception, processId, threadId, out var readOptions, out var dslError))
+        if (!TryBuildLogReadOptions(from, to, offset, limit, descending, level, logger, caller, message, exception, processID, threadID, out var readOptions, out var dslError))
             return ValidationProblem(dslError);
 
         return new LogReadResult(logService.ReadLogFile(fileInfo, readOptions));
@@ -391,8 +391,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
     /// <param name="caller">Optional DSL filter on caller; inactive when omitted. See remarks.</param>
     /// <param name="message">Optional DSL filter on message; inactive when omitted. See remarks.</param>
     /// <param name="exception">Optional DSL filter on exception text; inactive when omitted. See remarks.</param>
-    /// <param name="processId">Exact process id.</param>
-    /// <param name="threadId">Exact thread id.</param>
+    /// <param name="processID">Exact process id.</param>
+    /// <param name="threadID">Exact thread id.</param>
     /// <returns>The file response.</returns>
     [HttpGet("File/{fileID}/Download")]
     [ProducesResponseType(typeof(FileStreamResult), 200)]
@@ -406,8 +406,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         [FromQuery] string? caller = null,
         [FromQuery] string? message = null,
         [FromQuery] string? exception = null,
-        [FromQuery] int? processId = null,
-        [FromQuery] int? threadId = null
+        [FromQuery] int? processID = null,
+        [FromQuery] int? threadID = null
     )
     {
         if (from.HasValue && to.HasValue && from > to)
@@ -422,7 +422,7 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
 
         try
         {
-            if (!TryBuildLogDownloadOptions(from, to, format, level, logger, caller, message, exception, processId, threadId, out var downloadOptions, out var dslError))
+            if (!TryBuildLogDownloadOptions(from, to, format, level, logger, caller, message, exception, processID, threadID, out var downloadOptions, out var dslError))
                 return ValidationProblem(dslError);
 
             var download = logService.DownloadLogFile(fileInfo, downloadOptions);
@@ -471,8 +471,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         string? caller,
         string? message,
         string? exception,
-        int? processId,
-        int? threadId,
+        int? processID,
+        int? threadID,
         out LogReadOptions options,
         [NotNullWhen(false)] out Dictionary<string, IReadOnlyList<string>>? errors
     )
@@ -489,8 +489,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
             Caller = caller,
             Message = message,
             Exception = exception,
-            ProcessId = processId,
-            ThreadId = threadId,
+            ProcessID = processID,
+            ThreadID = threadID,
         };
         if (!LogService.TryCompileLogEntryFilter(options, out _, out errors))
             return false;
@@ -507,8 +507,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
         string? caller,
         string? message,
         string? exception,
-        int? processId,
-        int? threadId,
+        int? processID,
+        int? threadID,
         out LogDownloadOptions options,
         [NotNullWhen(false)] out Dictionary<string, IReadOnlyList<string>>? errors
     )
@@ -523,8 +523,8 @@ public class LoggingController(ISettingsProvider settingsProvider, ILogService l
             Caller = caller,
             Message = message,
             Exception = exception,
-            ProcessId = processId,
-            ThreadId = threadId,
+            ProcessID = processID,
+            ThreadID = threadID,
         };
         if (!LogService.TryCompileLogEntryFilter(options, out _, out errors))
             return false;

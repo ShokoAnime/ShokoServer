@@ -30,12 +30,12 @@ public class LogEntry
     /// <summary>
     ///   Thread ID associated with the entry.
     /// </summary>
-    public required int ThreadId { get; init; }
+    public required int ThreadID { get; init; }
 
     /// <summary>
     ///   Process ID associated with the entry.
     /// </summary>
-    public required int ProcessId { get; init; }
+    public required int ProcessID { get; init; }
 
     /// <summary>
     ///   Logger category or name.
@@ -77,7 +77,7 @@ public class LogEntry
         => format switch
         {
             LogSerializeFormat.Simple => $"[{TimeStamp:yyyy-MM-dd HH:mm:ss.fff}] [{Level.ToShortString()}] {Logger.Split('.').Last()}: {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
-            LogSerializeFormat.Full => $"[{TimeStamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level.ToShortString()}] [{ThreadId:000}] {Logger}: {Message}{(Exception is { Length: > 0 } ? Environment.NewLine + Exception : string.Empty)}",
+            LogSerializeFormat.Full => $"[{TimeStamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level.ToShortString()}] [{ThreadID:000}] {Logger}: {Message}{(Exception is { Length: > 0 } ? Environment.NewLine + Exception : string.Empty)}",
             LogSerializeFormat.Json => JsonSerializer.Serialize(this),
             LogSerializeFormat.Legacy => $"[{TimeStamp:yyyy-MM-dd HH:mm:ss.fff}] {Level.ToNLogString()}|{Logger} > {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
             LogSerializeFormat.Console => $"[{TimeStamp:HH:mm:ss}| {Logger.Split('.').Last()} --- {Message}{(Exception is { Length: > 0 } ? $": {Exception}" : string.Empty)}",
