@@ -1,4 +1,6 @@
 using System;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Server.Providers.AniDB;
 
 namespace Shoko.Server.API.SignalR.Models;
@@ -18,6 +20,7 @@ public class AniDBStatusUpdateSignalRModel
     /// <summary>
     /// Update type, Ban, Invalid Session, Waiting on Response, etc
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public UpdateType UpdateType { get; set; }
 
     /// <summary>
