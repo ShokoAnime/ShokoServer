@@ -313,10 +313,10 @@ public class ReadPluginIdentityFromSource : Microsoft.Build.Utilities.Task
                 continue;
 
             // Get the first argument
-            if (inv.ArgumentList?.Arguments.Count < 1)
+            if (inv is not { ArgumentList.Arguments.Count: > 0 })
                 continue;
 
-            var arg = inv.ArgumentList!.Arguments[0].Expression;
+            var arg = inv.ArgumentList.Arguments[0].Expression;
 
             // typeof(Plugin).FullName or typeof(Plugin).FullName!
             if (arg is MemberAccessExpressionSyntax memberAccess)
