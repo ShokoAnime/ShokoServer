@@ -536,7 +536,12 @@ public class HttpAnimeParser
             try
             {
                 var staff = ParseStaff(animeID, node);
-                creators.Add(staff!);
+                if (staff == null)
+                {
+                    continue;
+                }
+
+                creators.Add(staff);
             }
             catch (Exception ex)
             {
@@ -584,7 +589,12 @@ public class HttpAnimeParser
             try
             {
                 var chr = ParseCharacter(animeID, node);
-                chars.Add(chr!);
+                if (chr == null)
+                {
+                    continue;
+                }
+
+                chars.Add(chr);
             }
             catch (Exception ex)
             {
@@ -848,11 +858,11 @@ public class HttpAnimeParser
             return null;
         }
 
-        string? result = null;
+        var result = xml;
         // 5 as a maximum depth is arbitrary, but if we have data that is escaped 5 levels deep, then there's a serious issue.
         for (var i = 0; i < 5; i++)
         {
-            var temp = HttpUtility.HtmlDecode(xml);
+            var temp = HttpUtility.HtmlDecode(result);
             if (temp.Equals(result))
             {
                 return result;
@@ -861,7 +871,7 @@ public class HttpAnimeParser
             result = temp;
         }
 
-        return result!;
+        return result;
     }
 
     #endregion
