@@ -9,7 +9,7 @@ using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories;
 
-public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRepository<T, S> where T : class
+public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRepository<T, S> where T : class where S : notnull
 {
     protected readonly DatabaseFactory _databaseFactory;
 
@@ -18,25 +18,25 @@ public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRe
         _databaseFactory = databaseFactory;
     }
 
-    public Action<T> BeginDeleteCallback { get; set; }
-    public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
-    public Action<T> EndDeleteCallback { get; set; }
-    public Action<T> BeginSaveCallback { get; set; }
-    public Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
-    public Action<T> EndSaveCallback { get; set; }
+    public Action<T>? BeginDeleteCallback { get; set; }
+    public Action<ISession, T>? DeleteWithOpenTransactionCallback { get; set; }
+    public Action<T>? EndDeleteCallback { get; set; }
+    public Action<T>? BeginSaveCallback { get; set; }
+    public Action<ISessionWrapper, T>? SaveWithOpenTransactionCallback { get; set; }
+    public Action<T>? EndSaveCallback { get; set; }
 
-    public virtual T GetByID(S id)
+    public virtual T? GetByID(S id)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         return session.Get<T>(id);
     }
 
-    public virtual T GetByID(ISession session, S id)
+    public virtual T? GetByID(ISession session, S id)
     {
         return session.Get<T>(id);
     }
 
-    public virtual T GetByID(ISessionWrapper session, S id)
+    public virtual T? GetByID(ISessionWrapper session, S id)
     {
         return session.Get<T>(id);
     }
@@ -60,7 +60,8 @@ public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRe
 
     public virtual void Delete(S id)
     {
-        Delete(GetByID(id));
+        // Deliberately not null-guarded; overrides may throw on a missing entity, as they did before.
+        Delete(GetByID(id)!);
     }
 
     public virtual void Delete(T cr)

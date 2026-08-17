@@ -6,7 +6,7 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class ScheduledUpdateRepository : BaseDirectRepository<ScheduledUpdate, int>
 {
-    public ScheduledUpdate GetByUpdateType(int uptype)
+    public ScheduledUpdate? GetByUpdateType(int uptype)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         return session.Query<ScheduledUpdate>()

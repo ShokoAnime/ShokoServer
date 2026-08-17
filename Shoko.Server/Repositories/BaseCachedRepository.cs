@@ -18,25 +18,27 @@ namespace Shoko.Server.Repositories;
 // ReSharper disable once InconsistentNaming
 public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedRepository, IRepository<T, S>
     where T : class, new()
+    where S : notnull
 {
     protected readonly DatabaseFactory _databaseFactory;
 
     // A hack to not have to pass the system service to every cached repository.
     protected SystemService SystemService => field ??= ISystemService.StaticServices.GetRequiredService<SystemService>();
 
-    public PocoCache<S, T> Cache;
+    // Assigned by Populate() during startup, before any consumer can read it.
+    public PocoCache<S, T> Cache = null!;
 
-    public Action<T> BeginDeleteCallback { get; set; }
+    public Action<T>? BeginDeleteCallback { get; set; }
 
-    public Action<ISession, T> DeleteWithOpenTransactionCallback { get; set; }
+    public Action<ISession, T>? DeleteWithOpenTransactionCallback { get; set; }
 
-    public Action<T> EndDeleteCallback { get; set; }
+    public Action<T>? EndDeleteCallback { get; set; }
 
-    public Action<T> BeginSaveCallback { get; set; }
+    public Action<T>? BeginSaveCallback { get; set; }
 
-    public Action<ISessionWrapper, T> SaveWithOpenTransactionCallback { get; set; }
+    public Action<ISessionWrapper, T>? SaveWithOpenTransactionCallback { get; set; }
 
-    public Action<T> EndSaveCallback { get; set; }
+    public Action<T>? EndSaveCallback { get; set; }
 
     protected BaseCachedRepository(DatabaseFactory databaseFactory)
     {
@@ -74,18 +76,18 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     }
 
     // ReSharper disable once InconsistentNaming
-    public virtual T GetByID(S id)
+    public virtual T? GetByID(S id)
     {
         if (Equals(default(S), id)) throw new InvalidStateException($"Trying to lookup a {typeof(T).Name} by an ID of 0");
         return GetByIDUnsafe(id);
     }
 
-    public T GetByID(ISession session, S id)
+    public T? GetByID(ISession session, S id)
     {
         return GetByID(id);
     }
 
-    public T GetByID(ISessionWrapper session, S id)
+    public T? GetByID(ISessionWrapper session, S id)
     {
         return GetByID(id);
     }
@@ -112,7 +114,8 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     public virtual void Delete(S id)
     {
-        Delete(GetByID(id));
+        // Deliberately not null-guarded; overrides may throw on a missing entity, as they did before.
+        Delete(GetByID(id)!);
     }
 
     public virtual void Delete(T cr)
@@ -293,7 +296,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         Cache.Clear();
     }
 
-    protected virtual T GetByIDUnsafe(S id)
+    protected virtual T? GetByIDUnsafe(S id)
     {
         return Cache.Get(id);
     }

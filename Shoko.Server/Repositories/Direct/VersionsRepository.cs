@@ -14,6 +14,6 @@ public class VersionsRepository(DatabaseFactory databaseFactory) : BaseDirectRep
             .Query<Versions>()
             .Where(a => a.VersionType == vertype).ToList()
             .GroupBy(a => (a.VersionValue ?? string.Empty, a.VersionRevision ?? string.Empty))
-            .ToDictionary(a => a.Key, a => a.FirstOrDefault());
+            .ToDictionary(a => a.Key, a => a.First());
     }
 }

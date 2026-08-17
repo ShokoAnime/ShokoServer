@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace Shoko.Server.Repositories;
 
-public class ChangeTracker<T>
+public class ChangeTracker<T> where T : notnull
 {
     private readonly Dictionary<T, DateTime> _changes = new();
     private readonly Dictionary<T, DateTime> _removals = new();

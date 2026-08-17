@@ -6,7 +6,7 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdate, int>
 {
-    public AniDB_AnimeUpdate GetByAnimeID(int id)
+    public AniDB_AnimeUpdate? GetByAnimeID(int id)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         var cats = session.Query<AniDB_AnimeUpdate>()
@@ -14,7 +14,8 @@ public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdat
             .OrderByDescending(a => a.UpdatedAt).ToList();
 
         var cat = cats.FirstOrDefault();
-        cats.Remove(cat);
+        if (cat is not null)
+            cats.Remove(cat);
         if (cats.Count > 1)
         {
             cats.ForEach(Delete);

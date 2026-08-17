@@ -9,7 +9,7 @@ namespace Shoko.Server.Repositories.Direct;
 
 public class AniDB_NotifyQueueRepository : BaseDirectRepository<AniDB_NotifyQueue, int>
 {
-    public AniDB_NotifyQueue GetByTypeID(AniDBNotifyType type, int id)
+    public AniDB_NotifyQueue? GetByTypeID(AniDBNotifyType type, int id)
     {
         using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
         return session.Query<AniDB_NotifyQueue>()

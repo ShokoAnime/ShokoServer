@@ -7,11 +7,11 @@ using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories;
 
-public interface IRepository<T, in S>
+public interface IRepository<T, in S> where T : class where S : notnull
 {
-    T GetByID(S id);
-    T GetByID(ISession session, S id);
-    T GetByID(ISessionWrapper session, S id);
+    T? GetByID(S id);
+    T? GetByID(ISession session, S id);
+    T? GetByID(ISessionWrapper session, S id);
     IReadOnlyList<T> GetAll();
     IReadOnlyList<T> GetAll(ISession session);
     IReadOnlyList<T> GetAll(ISessionWrapper session);

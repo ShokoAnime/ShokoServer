@@ -95,12 +95,12 @@ public static class RepositoryStartup
     private static void AddDirectRepository<Repo>(this IServiceCollection services) where Repo : class, IDirectRepository
     {
         services.AddSingleton<IDirectRepository, Repo>();
-        services.AddSingleton(s => (Repo)s.GetServices(typeof(IDirectRepository)).FirstOrDefault(a => a?.GetType() == typeof(Repo)));
+        services.AddSingleton(s => (Repo)s.GetServices(typeof(IDirectRepository)).FirstOrDefault(a => a?.GetType() == typeof(Repo))!);
     }
 
     private static void AddCachedRepository<Repo>(this IServiceCollection services) where Repo : class, ICachedRepository
     {
         services.AddSingleton<ICachedRepository, Repo>();
-        services.AddSingleton(typeof(Repo), s => (Repo)s.GetServices(typeof(ICachedRepository)).FirstOrDefault(a => a?.GetType() == typeof(Repo)));
+        services.AddSingleton(typeof(Repo), s => (Repo)s.GetServices(typeof(ICachedRepository)).FirstOrDefault(a => a?.GetType() == typeof(Repo))!);
     }
 }
