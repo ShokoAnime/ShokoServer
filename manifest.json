@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.420",
+      "tag": "v6.0.0-dev.420",
+      "commit": "a2abe6fa81682de73de79eb4324ee0823db237cb",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.420/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-17T09:45:31Z",
+      "releaseNotes": "\n`fix` (`actions`): **Let a scoped action's metadata reach the interface**:\n\n`Description`, `Category`, `RequiresConfirmation` and `Validate` are\ndefault interface members that `SeriesAction`, `GroupAction` and\n`EpisodeAction` never declared, so a derived action's own copies were\nunrelated members and nothing read them. All 17 series actions reported\n`Miscellaneous`, no description and no confirmation. The base classes\ndeclare the four `virtual`; 45 derived members gain `override`.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.81**.\n"
+    },
+    {
       "version": "6.0.0.419",
       "tag": "v6.0.0-dev.419",
       "commit": "8079a0e8f86fbd6587995250425700e1fcd127bd",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.391/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-27T01:58:48Z",
       "releaseNotes": "\n`fix`: **Correct season and year classification for anime with partial or overlapping dates**:\n\nSeason windows overlapped a full month with the next season, double-counting\nlate-season premieres. A null EndDate was also treated as \"still airing\" for\nMovie/OVA/Web/Other/MusicVideo, which AniDB rarely populates for those types,\nspreading them across every season/year up to the present. Added\n`AniDB_Anime.EffectiveEndDateForSeasons` to fall back to AirDate for those\ntypes, and fixed the same duplicated null-EndDate bug in Years/Stat_AllYears.\n"
-    },
-    {
-      "version": "6.0.0.390",
-      "tag": "v6.0.0-dev.390",
-      "commit": "d0caa513c4263931c0ec744fcb4ce3fab8419895",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.390/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-26T15:17:40Z",
-      "releaseNotes": "\n`fix`: **Add ISO 639-3 code \"cmn\" (Mandarin Chinese) to language mapping**:\n\nAdded \"CMN\" to the existing Chinese mapping in `GetTitleLanguage()` to\nhandle metadata sources that emit the ISO 639-3 form for Mandarin\nChinese instead of the shorter two-letter code.\n\n`misc`: **Correct url param name for APIv3 group controller**.\n"
     }
   ]
 }
