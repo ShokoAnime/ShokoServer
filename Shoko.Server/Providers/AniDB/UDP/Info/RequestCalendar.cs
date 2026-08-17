@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
@@ -17,7 +17,7 @@ public class RequestCalendar : UDPRequest<ResponseCalendar>
         var receivedData = response.Response;
         if (code == UDPReturnCode.CALENDAR_EMPTY)
         {
-            return new UDPResponse<ResponseCalendar> { Response = null, Code = code };
+            return new UDPResponse<ResponseCalendar> { Response = null!, Code = code };
         }
 
         var calendar = new ResponseCalendar

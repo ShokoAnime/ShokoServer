@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -32,7 +32,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
         }
     }
 
-    public string Hash { get; set; }
+    public string Hash { get; set; } = null!;
     public long Size { get; set; }
 
     // https://wiki.anidb.net/UDP_API_Definition#FILE:_Retrieve_File_Data
@@ -177,7 +177,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
 
                                 return new ResponseGetFile.EpisodeXRef { EpisodeID = epid, Percentage = per };
                             }
-                        ).Where(a => a != null).ToArray();
+                        ).OfType<ResponseGetFile.EpisodeXRef>().ToArray();
                         if (tempXrefs.Length > 0)
                         {
                             otherXrefs.AddRange(tempXrefs);
@@ -202,7 +202,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
 
                                 return new ResponseGetFile.EpisodeXRef { EpisodeID = epid, Percentage = per };
                             }
-                        ).Where(a => a != null).ToArray();
+                        ).OfType<ResponseGetFile.EpisodeXRef>().ToArray();
                         if (tempXrefs.Length > 0)
                         {
                             otherXrefs.AddRange(tempXrefs);
@@ -246,7 +246,7 @@ public class RequestGetFile : UDPRequest<ResponseGetFile>
                 };
             }
             case UDPReturnCode.NO_SUCH_FILE:
-                return new UDPResponse<ResponseGetFile> { Code = code, Response = null };
+                return new UDPResponse<ResponseGetFile> { Code = code, Response = null! };
         }
 
         throw new UnexpectedUDPResponseException(code, receivedData, Command);

@@ -38,7 +38,7 @@ public class RequestGetAnime : HttpRequest<ResponseGetAnime>
         await _xmlUtils.WriteAnimeHTTPToFile(AnimeID, rawXml);
 
         var response = _parser.Parse(AnimeID, receivedData.Response);
-        return new HttpResponse<ResponseGetAnime> { Code = receivedData.Code, Response = response };
+        return new HttpResponse<ResponseGetAnime> { Code = receivedData.Code, Response = response! };
     }
 
     private static void UpdateAccessTime(int animeId)

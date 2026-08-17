@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -28,9 +28,9 @@ public class AniDBTitleHelper(ISettingsProvider settingsProvider, IApplicationPa
 
     private DateTime? _nextUpdate = null;
 
-    private ResponseAniDBTitles _cache;
+    private ResponseAniDBTitles? _cache;
 
-    private volatile FuzzySearchIndex<ResponseAniDBTitles.Anime> _titleIndex;
+    private volatile FuzzySearchIndex<ResponseAniDBTitles.Anime>? _titleIndex;
 
     public IEnumerable<ResponseAniDBTitles.Anime> GetAll()
     {
@@ -56,7 +56,7 @@ public class AniDBTitleHelper(ISettingsProvider settingsProvider, IApplicationPa
         return new List<ResponseAniDBTitles.Anime>();
     }
 
-    public ResponseAniDBTitles.Anime SearchAnimeID(int animeID)
+    public ResponseAniDBTitles.Anime? SearchAnimeID(int animeID)
     {
         try
         {

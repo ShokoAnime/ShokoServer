@@ -20,7 +20,7 @@ public class ResponseEpisode
 
     public EpisodeType EpisodeType { get; set; }
 
-    public string Description { get; set; }
+    public string Description { get; set; } = null!;
 
     public DateTime? AirDate { get; set; }
 

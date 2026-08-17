@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -9,8 +9,8 @@ namespace Shoko.Server.Providers.AniDB.UDP.Connection;
 
 public class RequestLogin : UDPRequest<ResponseLogin>
 {
-    public string Username { get; set; }
-    public string Password { get; set; }
+    public string Username { get; set; } = null!;
+    public string Password { get; set; } = null!;
     public bool UseUnicode { get; set; }
 
     protected override string BaseCommand =>
@@ -42,7 +42,7 @@ public class RequestLogin : UDPRequest<ResponseLogin>
         };
     }
 
-    protected override void PreExecute(string sessionID)
+    protected override void PreExecute(string? sessionID)
     {
         // Override to prevent attaching our non-existent sessionID
     }

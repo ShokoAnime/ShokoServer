@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -52,7 +52,7 @@ public class RequestGetEpisode : UDPRequest<ResponseGetEpisode>
                 };
             }
             case UDPReturnCode.NO_SUCH_EPISODE:
-                return new UDPResponse<ResponseGetEpisode> { Code = code, Response = null };
+                return new UDPResponse<ResponseGetEpisode> { Code = code, Response = null! };
         }
 
         throw new UnexpectedUDPResponseException(code, receivedData, Command);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -50,7 +50,7 @@ public class AnimeCreator
     {
         _logger.LogTrace("Updating anime {AnimeID}", response?.Anime?.AnimeID);
         if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, false, []);
-        var lockObj = _updatingIDs.GetOrAdd(response.Anime.AnimeID, new object());
+        var lockObj = _updatingIDs.GetOrAdd(response!.Anime.AnimeID, new object());
         Monitor.Enter(lockObj);
         try
         {
@@ -523,7 +523,7 @@ public class AnimeCreator
             // The series exists and the episode mapping is correct, continue.
             if ((
                     shokoSeriesDict.TryGetValue(shokoEpisode.AnimeSeriesID, out var actualSeries) ||
-                    shokoSeriesDict.TryAdd(shokoEpisode.AnimeSeriesID, actualSeries = RepoFactory.AnimeSeries.GetByID(shokoEpisode.AnimeSeriesID))
+                    shokoSeriesDict.TryAdd(shokoEpisode.AnimeSeriesID, actualSeries = RepoFactory.AnimeSeries.GetByID(shokoEpisode.AnimeSeriesID)!)
                 ) && actualSeries != null && actualSeries.AniDB_ID == episode.AnimeID)
                 continue;
 
@@ -1303,7 +1303,7 @@ public class AnimeCreator
                     if (string.IsNullOrEmpty(anime.Site_JP))
                         anime.Site_JP = resource.ResourceID;
                     else
-                        anime.Site_JP = string.Join("|", anime.Site_JP.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID).Distinct());
+                        anime.Site_JP = string.Join("|", anime.Site_JP.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID!).Distinct());
                     break;
                 }
                 case ResourceLinkType.Site_EN:
@@ -1311,7 +1311,7 @@ public class AnimeCreator
                     if (string.IsNullOrEmpty(anime.Site_EN))
                         anime.Site_EN = resource.ResourceID;
                     else
-                        anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID).Distinct());
+                        anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID!).Distinct());
                     break;
                 }
                 case ResourceLinkType.Wiki_EN:
@@ -1422,7 +1422,7 @@ public class AnimeCreator
             if (raw.AnimeID != animeID || raw.RelatedAnimeID <= 0)
                 continue;
 
-            var relation = existingRelations.Contains(raw.RelatedAnimeID) ? existingRelations[raw.RelatedAnimeID].FirstOrDefault() : new();
+            var relation = existingRelations.Contains(raw.RelatedAnimeID) ? existingRelations[raw.RelatedAnimeID].FirstOrDefault()! : new();
             if (relation.AniDB_Anime_RelationID is not 0)
                 toSkip.Add(relation.AniDB_Anime_RelationID);
 
@@ -1472,7 +1472,7 @@ public class AnimeCreator
             if (raw.AnimeID != animeID || raw.Approval < 0 || raw.SimilarAnimeID <= 0 || raw.Total < 0)
                 continue;
 
-            var similar = existingSimilar.Contains(raw.SimilarAnimeID) ? existingSimilar[raw.SimilarAnimeID].FirstOrDefault() : new();
+            var similar = existingSimilar.Contains(raw.SimilarAnimeID) ? existingSimilar[raw.SimilarAnimeID].FirstOrDefault()! : new();
             if (similar.AniDB_Anime_SimilarID is not 0)
                 toKeep.Add(similar.AniDB_Anime_SimilarID);
 

@@ -7,5 +7,5 @@ public class HttpResponse<T> : IResponse<T> where T : class
 {
     public HttpStatusCode Code { get; set; }
 
-    public T Response { get; set; }
+    public T Response { get; set; } = null!;
 }

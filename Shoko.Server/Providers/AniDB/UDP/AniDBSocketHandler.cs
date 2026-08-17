@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -12,8 +12,8 @@ namespace Shoko.Server.Providers.AniDB.UDP;
 
 public class AniDBSocketHandler : IAniDBSocketHandler
 {
-    private IPEndPoint _localIpEndPoint;
-    private IPEndPoint _remoteIpEndPoint;
+    private IPEndPoint _localIpEndPoint = null!;
+    private IPEndPoint _remoteIpEndPoint = null!;
     private readonly Socket _aniDBSocket;
     private readonly string _serverHost;
     private readonly ushort _serverPort;

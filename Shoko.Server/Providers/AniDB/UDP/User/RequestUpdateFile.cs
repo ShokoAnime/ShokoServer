@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -35,7 +35,7 @@ public class RequestUpdateFile : UDPRequest<Void>
         }
     }
 
-    public string Hash { get; set; }
+    public string Hash { get; set; } = null!;
     public long Size { get; set; }
 
     public MyList_State State { get; set; }

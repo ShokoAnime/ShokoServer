@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -15,7 +15,7 @@ public class RequestRemoveFile : UDPRequest<Void>
     // These are dependent on context
     protected override string BaseCommand => $"MYLISTDEL size={Size}&ed2k={Hash}";
 
-    public string Hash { get; set; }
+    public string Hash { get; set; } = null!;
 
     public long Size { get; set; }
 

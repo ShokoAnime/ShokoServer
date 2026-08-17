@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -35,7 +35,7 @@ public class RequestGetEpisode : UDPRequest<ResponseMyListFile>
         switch (code)
         {
             case UDPReturnCode.NO_SUCH_ENTRY:
-                return new UDPResponse<ResponseMyListFile> { Code = code, Response = null };
+                return new UDPResponse<ResponseMyListFile> { Code = code, Response = null! };
             case UDPReturnCode.MYLIST:
             {
                 /* Response Format

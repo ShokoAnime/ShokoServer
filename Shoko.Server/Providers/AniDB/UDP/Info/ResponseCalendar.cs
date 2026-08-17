@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Info;
@@ -37,6 +37,6 @@ public class ResponseCalendar
         public CalendarFlags DateFlags { get; set; }
     }
 
-    public List<CalendarEntry> Next25Anime { get; set; }
-    public List<CalendarEntry> Previous25Anime { get; set; }
+    public List<CalendarEntry> Next25Anime { get; set; } = null!;
+    public List<CalendarEntry> Previous25Anime { get; set; } = null!;
 }

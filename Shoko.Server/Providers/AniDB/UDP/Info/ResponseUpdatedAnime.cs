@@ -7,5 +7,5 @@ public class ResponseUpdatedAnime
 {
     public int Count { get; set; }
     public DateTime LastUpdated { get; set; }
-    public List<int> AnimeIDs { get; set; }
+    public List<int> AnimeIDs { get; set; } = null!;
 }

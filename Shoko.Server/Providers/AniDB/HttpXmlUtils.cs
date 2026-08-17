@@ -11,7 +11,7 @@ public class HttpXmlUtils(ILogger<HttpXmlUtils> logger, IApplicationPaths applic
 
     public string AnimeXmlDirectory => Path.Combine(applicationPaths.DataPath, "Anime_HTTP");
 
-    public async Task<string> LoadAnimeHTTPFromFile(int animeID)
+    public async Task<string?> LoadAnimeHTTPFromFile(int animeID)
     {
         var filePath = AnimeXmlDirectory;
         var fileName = $"AnimeDoc_{animeID}.xml";

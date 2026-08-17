@@ -8,12 +8,12 @@ public class ResponseAnime
     public int EpisodeCount { get; set; }
     public PartialDateOnly? AirDate { get; set; }
     public PartialDateOnly? EndDate { get; set; }
-    public string URL { get; set; }
-    public string Picname { get; set; }
+    public string URL { get; set; } = null!;
+    public string Picname { get; set; } = null!;
     public int BeginYear { get; set; }
     public int EndYear { get; set; }
-    public string MainTitle { get; set; }
-    public string Description { get; set; }
+    public string MainTitle { get; set; } = null!;
+    public string Description { get; set; } = null!;
     public int EpisodeCountNormal { get; set; }
     public int Rating { get; set; }
     public int VoteCount { get; set; }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -15,7 +15,7 @@ public class RequestGetFile : UDPRequest<ResponseMyListFile>
     // These are dependent on context
     protected override string BaseCommand => $"MYLIST size={Size}&ed2k={Hash}";
 
-    public string Hash { get; set; }
+    public string Hash { get; set; } = null!;
 
     public long Size { get; set; }
 
@@ -32,7 +32,7 @@ public class RequestGetFile : UDPRequest<ResponseMyListFile>
         switch (code)
         {
             case UDPReturnCode.NO_SUCH_ENTRY:
-                return new UDPResponse<ResponseMyListFile> { Code = code, Response = null };
+                return new UDPResponse<ResponseMyListFile> { Code = code, Response = null! };
             case UDPReturnCode.MYLIST:
             {
                 /* Response Format

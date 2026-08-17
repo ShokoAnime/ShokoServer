@@ -11,7 +11,7 @@ public class AniDBStateUpdate : EventArgs
     /// <summary>
     /// Auxiliary Message for some states
     /// </summary>
-    public string Message { get; set; }
+    public string? Message { get; set; }
     /// <summary>
     /// Update type, Ban, Invalid Session, Waiting on Response, etc
     /// </summary>
@@ -27,7 +27,7 @@ public class AniDBStateUpdate : EventArgs
 
     protected bool Equals(AniDBStateUpdate other) => Value == other.Value && Message == other.Message && UpdateType == other.UpdateType && UpdateTime.Equals(other.UpdateTime) && PauseTimeSecs == other.PauseTimeSecs;
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (ReferenceEquals(null, obj)) return false;
         if (ReferenceEquals(this, obj)) return true;

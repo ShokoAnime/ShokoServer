@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
@@ -47,7 +47,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         return parsedResponse;
     }
 
-    protected virtual void PreExecute(string sessionID)
+    protected virtual void PreExecute(string? sessionID)
     {
         if (s_commandRegex.IsMatch(Command))
         {
@@ -59,7 +59,7 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         }
     }
 
-    protected virtual void PostExecute(string sessionID, UDPResponse<T> response)
+    protected virtual void PostExecute(string? sessionID, UDPResponse<T> response)
     {
     }
 

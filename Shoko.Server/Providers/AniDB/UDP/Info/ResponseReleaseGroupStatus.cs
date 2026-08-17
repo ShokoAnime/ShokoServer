@@ -7,14 +7,14 @@ public class ResponseReleaseGroupStatus
 {
     public int AnimeID { get; set; }
     public int GroupID { get; set; }
-    public string GroupName { get; set; }
+    public string GroupName { get; set; } = null!;
     public Group_CompletionStatus CompletionState { get; set; }
     public int LastEpisodeNumber { get; set; }
     public decimal Rating { get; set; }
     public int Votes { get; set; }
 
     /// string because S1 is a thing
-    public List<string> ReleasedEpisodes { get; set; }
+    public List<string> ReleasedEpisodes { get; set; } = null!;
 
     public bool HasReleaseGaps
     {

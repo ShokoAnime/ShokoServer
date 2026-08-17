@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
@@ -94,7 +94,7 @@ public class RequestGetMessageContent : UDPRequest<ResponseMessageContent>
             }
             case UDPReturnCode.NO_SUCH_MESSAGE:
             {
-                return new UDPResponse<ResponseMessageContent> { Code = code, Response = null };
+                return new UDPResponse<ResponseMessageContent> { Code = code, Response = null! };
             }
             default:
             {

@@ -10,8 +10,8 @@ public class ResponseTag
     public bool Verified { get; set; }
     public bool LocalSpoiler { get; set; }
     public bool GlobalSpoiler { get; set; }
-    public string TagName { get; set; }
-    public string TagDescription { get; set; }
+    public string TagName { get; set; } = null!;
+    public string TagDescription { get; set; } = null!;
     public int Weight { get; set; }
     public DateTime LastUpdated { get; set; }
 }

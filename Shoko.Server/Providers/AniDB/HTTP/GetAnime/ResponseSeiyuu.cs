@@ -3,6 +3,6 @@
 public class ResponseSeiyuu
 {
     public int SeiyuuID { get; set; }
-    public string SeiyuuName { get; set; }
-    public string PicName { get; set; }
+    public string SeiyuuName { get; set; } = null!;
+    public string PicName { get; set; } = null!;
 }

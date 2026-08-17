@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User;
@@ -18,7 +18,7 @@ public class ResponseMessageContent
     /// <summary>
     /// Sender's name
     /// </summary>
-    public string SenderName { get; set; }
+    public string SenderName { get; set; } = null!;
 
     /// <summary>
     /// Time at which the message has been sent
@@ -33,10 +33,10 @@ public class ResponseMessageContent
     /// <summary>
     /// Message title
     /// </summary>
-    public string Title { get; set; }
+    public string Title { get; set; } = null!;
 
     /// <summary>
     /// Message body/content
     /// </summary>
-    public string Body { get; set; }
+    public string Body { get; set; } = null!;
 }

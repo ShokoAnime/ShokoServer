@@ -7,13 +7,13 @@ public class ResponseCharacter
 {
     public int CharacterID { get; set; }
     public int AnimeID { get; set; }
-    public string PicName { get; set; }
-    public string CharacterName { get; set; }
-    public string CharacterKanjiName { get; set; }
-    public string CharacterDescription { get; set; }
-    public string CharacterAppearanceType { get; set; }
-    public string CharacterType { get; set; }
-    public string Gender { get; set; }
-    public List<ResponseSeiyuu> Seiyuus { get; set; }
+    public string PicName { get; set; } = null!;
+    public string CharacterName { get; set; } = null!;
+    public string? CharacterKanjiName { get; set; }
+    public string CharacterDescription { get; set; } = null!;
+    public string CharacterAppearanceType { get; set; } = null!;
+    public string CharacterType { get; set; } = null!;
+    public string Gender { get; set; } = null!;
+    public List<ResponseSeiyuu> Seiyuus { get; set; } = null!;
     public DateTime LastUpdated { get; set; }
 }

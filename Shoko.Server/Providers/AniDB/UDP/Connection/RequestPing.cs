@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
@@ -21,7 +21,7 @@ public class RequestPing : UDPRequest<Void>
         return new UDPResponse<Void> { Code = code };
     }
 
-    protected override void PreExecute(string sessionID)
+    protected override void PreExecute(string? sessionID)
     {
         // Don't set the session for pings
     }

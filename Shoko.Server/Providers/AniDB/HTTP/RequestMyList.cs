@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,8 +14,8 @@ public class RequestMyList : HttpRequest<List<ResponseMyList>>
     protected override string BaseCommand =>
         $"httpapi?client=animeplugin&clientver=1&protover=1&request=mylist&user={Username}&pass={Password}";
 
-    public string Username { private get; set; }
-    public string Password { private get; set; }
+    public string Username { private get; set; } = null!;
+    public string Password { private get; set; } = null!;
 
     protected override Task<HttpResponse<List<ResponseMyList>>> ParseResponse(HttpResponse<string> data)
     {
@@ -28,7 +28,7 @@ public class RequestMyList : HttpRequest<List<ResponseMyList>>
                 var error = doc.Descendants("error").FirstOrDefault();
                 if (error != null)
                 {
-                    var errorCode = (int)error.Attribute("value");
+                    var errorCode = (int)error.Attribute("value")!;
                     if (errorCode == 330) // 'mylist empty'
                     {
                         Logger.LogTrace("Mylist is empty.");
@@ -86,7 +86,7 @@ public class RequestMyList : HttpRequest<List<ResponseMyList>>
         catch (Exception ex)
         {
             Logger.LogError(ex, ex.Message);
-            return Task.FromResult(new HttpResponse<List<ResponseMyList>> { Code = data.Code, Response = null });
+            return Task.FromResult(new HttpResponse<List<ResponseMyList>> { Code = data.Code, Response = null! });
         }
     }
 

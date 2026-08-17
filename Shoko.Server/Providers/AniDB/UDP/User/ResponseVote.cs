@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User;
 
@@ -31,5 +31,5 @@ public class ResponseVote
     /// <summary>
     /// The name, Anime or Episode. Can be used for quick validation and logging
     /// </summary>
-    public string EntityName { get; set; }
+    public string EntityName { get; set; } = null!;
 }

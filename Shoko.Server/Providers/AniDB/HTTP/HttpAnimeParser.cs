@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -23,7 +24,7 @@ public class HttpAnimeParser
         _logger = logger;
     }
 
-    public ResponseGetAnime Parse(int animeId, string input)
+    public ResponseGetAnime? Parse(int animeId, string input)
     {
         var xml = ParseXml(input);
         if (xml == null)
@@ -70,7 +71,7 @@ public class HttpAnimeParser
 
     #region Parse Anime Details
 
-    private ResponseAnime ParseAnime(int animeID, List<ResponseTitle> titles, XmlDocument docAnime)
+    private ResponseAnime? ParseAnime(int animeID, List<ResponseTitle> titles, XmlDocument docAnime)
     {
         // most of the general anime data will be overwritten by the UDP command
         var anime = new ResponseAnime { AnimeID = animeID };
@@ -82,7 +83,7 @@ public class HttpAnimeParser
             return null;
         }
 
-        anime.Description = TryGetProperty(docAnime, "anime", "description")?.Replace('`', '\'');
+        anime.Description = TryGetProperty(docAnime, "anime", "description").Replace('`', '\'');
         var type = TryGetProperty(docAnime, "anime", "type");
         anime.AnimeType = type.ToLowerInvariant() switch
         {
@@ -103,7 +104,7 @@ public class HttpAnimeParser
 
         ParseDates(docAnime, anime);
 
-        var restricted = docAnime["anime"].Attributes["restricted"]?.Value;
+        var restricted = docAnime["anime"]!.Attributes["restricted"]?.Value;
         if (bool.TryParse(restricted, out var res))
         {
             anime.IsRestricted = res;
@@ -116,12 +117,14 @@ public class HttpAnimeParser
         anime.URL = TryGetProperty(docAnime, "anime", "url");
         anime.Picname = TryGetProperty(docAnime, "anime", "picture");
 
-        anime.MainTitle = titles.FirstOrDefault(t => t.TitleType == TitleType.Main)?.Title;
-        if (string.IsNullOrWhiteSpace(anime.MainTitle))
+        var mainTitle = titles.FirstOrDefault(t => t.TitleType == TitleType.Main)?.Title;
+        if (string.IsNullOrWhiteSpace(mainTitle))
         {
             _logger.LogWarning("AniDB ProcessAnimeDetails - Could not find a main title");
             return null;
         }
+
+        anime.MainTitle = mainTitle;
 
         ParseRatings(docAnime, anime);
 
@@ -161,7 +164,7 @@ public class HttpAnimeParser
         const NumberStyles style = NumberStyles.Number;
         var culture = CultureInfo.CreateSpecificCulture("en-GB");
 
-        var ratingItems = docAnime["anime"]["ratings"]?.ChildNodes;
+        var ratingItems = docAnime["anime"]!["ratings"]?.ChildNodes;
         if (ratingItems == null)
         {
             return;
@@ -169,7 +172,12 @@ public class HttpAnimeParser
 
         foreach (XmlNode node in ratingItems)
         {
-            var name = node?.Name.Trim().ToLower();
+            if (node is null)
+            {
+                continue;
+            }
+
+            var name = node.Name.Trim().ToLower();
             if (string.IsNullOrEmpty(name))
             {
                 continue;
@@ -209,7 +217,7 @@ public class HttpAnimeParser
 
     #region Parse Titles
 
-    private List<ResponseTitle> ParseTitles(XmlNodeList titleElements)
+    private List<ResponseTitle> ParseTitles(XmlNodeList? titleElements)
     {
         var titles = new List<ResponseTitle>();
 
@@ -381,7 +389,7 @@ public class HttpAnimeParser
 
         var dateString = TryGetProperty(node, "airdate");
         var airDate = GetDate(dateString, true);
-        var description = TryGetProperty(node, "summary")?.Replace('`', '\'');
+        var description = TryGetProperty(node, "summary").Replace('`', '\'');
 
         return new ResponseEpisode
         {
@@ -472,7 +480,7 @@ public class HttpAnimeParser
         return tags;
     }
 
-    private static ResponseTag ParseTag(int animeID, XmlNode node)
+    private static ResponseTag? ParseTag(int animeID, XmlNode node)
     {
         if (!int.TryParse(TryGetAttribute(node, "id"), out var tagID))
         {
@@ -485,7 +493,7 @@ public class HttpAnimeParser
             return null;
         }
 
-        var tagDescription = TryGetProperty(node, "description")?.Replace('`', '\'');
+        var tagDescription = TryGetProperty(node, "description").Replace('`', '\'');
         int.TryParse(TryGetAttribute(node, "parentid"), out var parentTagID);
         int.TryParse(TryGetAttribute(node, "weight"), out var weight);
         bool.TryParse(TryGetAttribute(node, "verified"), out var verified);
@@ -528,7 +536,7 @@ public class HttpAnimeParser
             try
             {
                 var staff = ParseStaff(animeID, node);
-                creators.Add(staff);
+                creators.Add(staff!);
             }
             catch (Exception ex)
             {
@@ -539,7 +547,7 @@ public class HttpAnimeParser
         return creators;
     }
 
-    private static ResponseStaff ParseStaff(int animeID, XmlNode node)
+    private static ResponseStaff? ParseStaff(int animeID, XmlNode node)
     {
         if (!int.TryParse(TryGetAttribute(node, "id"), out var creatorID))
         {
@@ -576,7 +584,7 @@ public class HttpAnimeParser
             try
             {
                 var chr = ParseCharacter(animeID, node);
-                chars.Add(chr);
+                chars.Add(chr!);
             }
             catch (Exception ex)
             {
@@ -587,7 +595,7 @@ public class HttpAnimeParser
         return chars;
     }
 
-    private static ResponseCharacter ParseCharacter(int animeID, XmlNode node)
+    private static ResponseCharacter? ParseCharacter(int animeID, XmlNode node)
     {
         if (!int.TryParse(TryGetAttribute(node, "id"), out var charID))
         {
@@ -596,9 +604,9 @@ public class HttpAnimeParser
 
         var characterType = TryGetProperty(node, "charactertype") ?? "Character";
         var characterAppearanceType = TryGetAttribute(node, "type");
-        var charName = TryGetProperty(node, "name")?.Replace('`', '\'');
-        var charGender = TryGetProperty(node, "gender")?.Replace('`', '\'');
-        var charDescription = TryGetProperty(node, "description")?.Replace('`', '\'');
+        var charName = TryGetProperty(node, "name").Replace('`', '\'');
+        var charGender = TryGetProperty(node, "gender").Replace('`', '\'');
+        var charDescription = TryGetProperty(node, "description").Replace('`', '\'');
         var picName = TryGetProperty(node, "picture");
         if (!DateTime.TryParse(TryGetAttribute(node, "update"), out var lastUpdated))
             lastUpdated = DateTime.UnixEpoch;
@@ -776,7 +784,7 @@ public class HttpAnimeParser
 
     #region XML Utils
 
-    private static string TryGetProperty(XmlNode doc, string keyName, string propertyName)
+    private static string TryGetProperty(XmlNode? doc, string keyName, string propertyName)
     {
         if (doc == null || string.IsNullOrEmpty(keyName) || string.IsNullOrEmpty(propertyName))
         {
@@ -786,7 +794,7 @@ public class HttpAnimeParser
         return UnescapeXml(doc[keyName]?[propertyName]?.InnerText.Trim()) ?? string.Empty;
     }
 
-    private static string TryGetProperty(XmlNode node, string propertyName)
+    private static string TryGetProperty(XmlNode? node, string propertyName)
     {
         if (node == null || string.IsNullOrEmpty(propertyName))
         {
@@ -796,7 +804,7 @@ public class HttpAnimeParser
         return UnescapeXml(node[propertyName]?.InnerText.Trim()) ?? string.Empty;
     }
 
-    private static string TryGetAttribute(XmlNode parentnode, string nodeName, string attName)
+    private static string TryGetAttribute(XmlNode? parentnode, string nodeName, string attName)
     {
         if (parentnode == null || string.IsNullOrEmpty(nodeName) || string.IsNullOrEmpty(attName))
         {
@@ -806,7 +814,7 @@ public class HttpAnimeParser
         return parentnode[nodeName]?.Attributes[attName]?.Value ?? string.Empty;
     }
 
-    private static string TryGetAttribute(XmlNode node, string attName)
+    private static string TryGetAttribute(XmlNode? node, string attName)
     {
         if (node == null || string.IsNullOrEmpty(attName))
         {
@@ -816,7 +824,7 @@ public class HttpAnimeParser
         return node.Attributes?[attName]?.Value ?? string.Empty;
     }
 
-    private static DateTime? GetDate(string dateXml, bool isStartDate)
+    private static DateTime? GetDate(string? dateXml, bool isStartDate)
     {
         // eg "2008-12-31" or "2008-12" or "2008"
         if (dateXml == null || dateXml.Trim().Length < 4)
@@ -832,14 +840,15 @@ public class HttpAnimeParser
         return new DateTime(year, month, day, 0, 0, 0);
     }
 
-    private static string UnescapeXml(string xml)
+    [return: NotNullIfNotNull(nameof(xml))]
+    private static string? UnescapeXml(string? xml)
     {
         if (xml == null)
         {
             return null;
         }
 
-        string result = null;
+        string? result = null;
         // 5 as a maximum depth is arbitrary, but if we have data that is escaped 5 levels deep, then there's a serious issue.
         for (var i = 0; i < 5; i++)
         {
@@ -852,7 +861,7 @@ public class HttpAnimeParser
             result = temp;
         }
 
-        return result;
+        return result!;
     }
 
     #endregion

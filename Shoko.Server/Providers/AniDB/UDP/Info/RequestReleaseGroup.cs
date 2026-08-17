@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
@@ -94,7 +94,7 @@ public class RequestReleaseGroup : UDPRequest<ResponseReleaseGroup>
             }
             case UDPReturnCode.NO_SUCH_GROUP:
             {
-                return new UDPResponse<ResponseReleaseGroup>() { Code = code, Response = null };
+                return new UDPResponse<ResponseReleaseGroup>() { Code = code, Response = null! };
             }
             default: throw new UnexpectedUDPResponseException(code, receivedData, Command);
         }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
@@ -119,9 +119,9 @@ public class RequestReleaseGroupStatus : UDPRequest<List<ResponseReleaseGroupSta
 
                 return new UDPResponse<List<ResponseReleaseGroupStatus>> { Code = response.Code, Response = groups };
             case UDPReturnCode.NO_SUCH_ANIME:
-                return new UDPResponse<List<ResponseReleaseGroupStatus>> { Code = response.Code, Response = null };
+                return new UDPResponse<List<ResponseReleaseGroupStatus>> { Code = response.Code, Response = null! };
             case UDPReturnCode.NO_GROUPS_FOUND:
-                return new UDPResponse<List<ResponseReleaseGroupStatus>> { Code = response.Code, Response = null };
+                return new UDPResponse<List<ResponseReleaseGroupStatus>> { Code = response.Code, Response = null! };
             default: throw new UnexpectedUDPResponseException(code, receivedData, Command);
         }
     }

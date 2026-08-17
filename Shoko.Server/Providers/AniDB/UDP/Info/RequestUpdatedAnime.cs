@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
@@ -18,7 +18,7 @@ public class RequestUpdatedAnime : UDPRequest<ResponseUpdatedAnime>
         var code = response.Code;
         if (code != UDPReturnCode.UPDATED)
         {
-            return new UDPResponse<ResponseUpdatedAnime> { Code = code, Response = null };
+            return new UDPResponse<ResponseUpdatedAnime> { Code = code, Response = null! };
         }
 
         var fields = response.Response.Split('|');

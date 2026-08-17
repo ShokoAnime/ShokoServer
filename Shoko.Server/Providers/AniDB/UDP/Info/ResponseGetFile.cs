@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Info;
@@ -14,14 +14,14 @@ public class ResponseGetFile
     /// AniDB Release Group ID, if available
     public int? GroupID { get; set; }
 
-    public string GroupName { get; set; }
+    public string GroupName { get; set; } = null!;
 
-    public string GroupShortName { get; set; }
+    public string GroupShortName { get; set; } = null!;
 
     // AniDB Episode IDs for episodes that this file may link to. The eid is listed here as 100%
-    public List<EpisodeXRef> EpisodeIDs { get; set; }
+    public List<EpisodeXRef> EpisodeIDs { get; set; } = null!;
 
-    public List<EpisodeXRef> OtherEpisodes { get; set; }
+    public List<EpisodeXRef> OtherEpisodes { get; set; } = null!;
 
     // Is the file deprecated/replaced
     public bool Deprecated { get; set; }
@@ -45,16 +45,16 @@ public class ResponseGetFile
     public GetFile_Source Source { get; set; }
 
     // Audio Languages
-    public List<string> AudioLanguages { get; set; }
+    public List<string> AudioLanguages { get; set; } = null!;
 
     // Subtitle Languages
-    public List<string> SubtitleLanguages { get; set; }
+    public List<string> SubtitleLanguages { get; set; } = null!;
 
     // Description of the file. Usually blank
-    public string Description { get; set; }
+    public string Description { get; set; } = null!;
 
     // Filename as reported in AVDump
-    public string Filename { get; set; }
+    public string Filename { get; set; } = null!;
 
     public DateOnly? ReleasedAt { get; set; }
 
