@@ -219,10 +219,10 @@ public class PlexWebhook : BaseController
 
     [Authorize("admin")]
     [HttpGet("sync/{userID:int}")]
-    public async Task<ActionResult> SyncForUser(int userID)
+    public async Task<ActionResult> SyncForUser([Range(1, int.MaxValue)] int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
-        if (string.IsNullOrEmpty(user!.PlexToken))
+        if (string.IsNullOrEmpty(user?.PlexToken))
         {
             return BadRequest("Invalid User ID");
         }
