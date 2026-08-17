@@ -147,7 +147,7 @@ internal static class ExpressionDiscovery
 
             nameof(HasReleaseGroupNameExpression) =>
             (
-                RepoFactory.StoredReleaseInfo.GetUsedReleaseGroups()
+                RepoFactory.StoredReleaseInfo.GetUsedReleaseGroups(null)
                     .Select(r => r.Name)
                     .ToArray(),
                 null,

@@ -126,7 +126,7 @@ public partial class ShokoServiceImplementation
     [HttpGet("ReleaseGroups")]
     public List<string> GetAllReleaseGroups()
     {
-        return RepoFactory.StoredReleaseInfo.GetUsedReleaseGroups().Select(r => r.Name).ToList();
+        return RepoFactory.StoredReleaseInfo.GetUsedReleaseGroups(null).Select(r => r.Name).ToList();
     }
 
     [HttpGet("File/DeleteMultipleFilesWithPreferences/{userID}")]

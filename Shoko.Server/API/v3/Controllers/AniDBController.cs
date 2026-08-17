@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
@@ -55,19 +56,21 @@ public class AniDBController(
     /// <param name="page">The page index.</param>
     /// <param name="includeMissing">Include missing release groups.</param>
     /// <returns></returns>
+    [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
     [HttpGet("ReleaseGroup")]
     public ActionResult<ListResult<ReleaseGroup>> GetReleaseGroups(
         [FromQuery, Range(0, 1000)] int pageSize = 20,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False)
     {
+        var anidb = new HashSet<string> { "AniDB" };
         return includeMissing switch
         {
-            IncludeOnlyFilter.False => storedReleaseInfos.GetUsedReleaseGroups()
+            IncludeOnlyFilter.False => storedReleaseInfos.GetUsedReleaseGroups(anidb)
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            IncludeOnlyFilter.Only => storedReleaseInfos.GetUnusedReleaseGroups()
+            IncludeOnlyFilter.Only => storedReleaseInfos.GetUnusedReleaseGroups(anidb)
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
-            _ => storedReleaseInfos.GetReleaseGroups()
+            _ => storedReleaseInfos.GetReleaseGroups(anidb)
                 .ToListResult(g => new ReleaseGroup(g), page, pageSize),
         };
     }
@@ -77,6 +80,7 @@ public class AniDBController(
     /// </summary>
     /// <param name="groupID">The release group id.</param>
     /// <returns></returns>
+    [Obsolete("Deprecated in favor of the release info API. Will be removed in a future version.")]
     [HttpGet("ReleaseGroup/{groupID}")]
     public ActionResult<ReleaseGroup> GetReleaseGroup(int groupID)
     {

@@ -22,6 +22,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
 using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
+using ReleaseGroup = Shoko.Server.API.v3.Models.Release.ReleaseGroup;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -32,11 +33,12 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="pluginManager">Plugin manager.</param>
 /// <param name="videoReleaseService">Video release service.</param>
 /// <param name="videoRepository">Video repository.</param>
+/// <param name="storedReleaseInfos">Stored release info repository.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginManager pluginManager, IVideoReleaseService videoReleaseService, VideoLocalRepository videoRepository) : BaseController(settingsProvider)
+public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginManager pluginManager, IVideoReleaseService videoReleaseService, VideoLocalRepository videoRepository, StoredReleaseInfoRepository storedReleaseInfos) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Gets a summary of the release information service's properties.
@@ -379,5 +381,50 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     )
         => videoReleaseService.GetAllReleases(releaseProviders)
             .ToListResult(r => new ReleaseInfo(r), page, pageSize);
+
+    /// <summary>
+    /// Get the known release groups stored in Shoko.
+    /// </summary>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="includeMissing">Include missing release groups.</param>
+    /// <param name="source">Optional. Filter to only include release groups from the given sources.</param>
+    /// <returns>A sliced part of the results for the current query.</returns>
+    [HttpGet("ReleaseGroup")]
+    public ActionResult<ListResult<ReleaseGroup>> GetReleaseGroups(
+        [FromQuery, Range(0, 1000)] int pageSize = 20,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? source = null)
+    {
+        var sources = source is { Count: > 0 } ? source.ToHashSet() : null;
+        return includeMissing switch
+        {
+            IncludeOnlyFilter.False => storedReleaseInfos.GetUsedReleaseGroups(sources)
+                .ToListResult(g => new ReleaseGroup(g), page, pageSize),
+            IncludeOnlyFilter.Only => storedReleaseInfos.GetUnusedReleaseGroups(sources)
+                .ToListResult(g => new ReleaseGroup(g), page, pageSize),
+            _ => storedReleaseInfos.GetReleaseGroups(sources)
+                .ToListResult(g => new ReleaseGroup(g), page, pageSize),
+        };
+    }
+
+    /// <summary>
+    /// Get a release group by its source and ID.
+    /// </summary>
+    /// <param name="source">The release group source.</param>
+    /// <param name="groupID">The release group ID.</param>
+    /// <returns>The release group, or a 404 response if it was not found.</returns>
+    [ProducesResponseType(404)]
+    [ProducesResponseType(typeof(ReleaseGroup), 200)]
+    [HttpGet("ReleaseGroup/{source}/{groupID}")]
+    public ActionResult<ReleaseGroup> GetReleaseGroup([FromRoute] string source, [FromRoute] string groupID)
+    {
+        var releaseInfo = storedReleaseInfos.GetByGroupAndProviderIDs(groupID, source).FirstOrDefault();
+        if (releaseInfo is not IReleaseInfo { Group: { } group })
+            return NotFound();
+
+        return new ReleaseGroup(group);
+    }
 }
 

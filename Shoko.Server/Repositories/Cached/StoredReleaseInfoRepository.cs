@@ -77,29 +77,22 @@ public class StoredReleaseInfoRepository : BaseCachedRepository<StoredReleaseInf
             ? _anidbAnimeIDs!.GetMultiple(animeId)
             : [];
 
-    public IReadOnlyList<IReleaseGroup> GetReleaseGroups()
-        => GetAll()
-            .Select(a => a is IReleaseInfo { Group.Source: "AniDB" } releaseInfo ? releaseInfo.Group : null)
-            .WhereNotNull()
-            .DistinctBy(g => (g.ID, g.Source))
-            .OrderBy(g => g.Name)
-            .ThenBy(g => g.ShortName)
-            .ThenBy(g => g.ID)
-            .ToList();
+    public IReadOnlyList<IReleaseGroup> GetReleaseGroups(IReadOnlySet<string>? sources)
+        => GetReleaseGroupsCore(sources, null);
 
-    public IReadOnlyList<IReleaseGroup> GetUsedReleaseGroups()
-        => GetAll()
-            .Select(a => a is IReleaseInfo { Group.Source: "AniDB" } releaseInfo && RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize) is { } ? releaseInfo.Group : null)
-            .WhereNotNull()
-            .DistinctBy(g => (g.ID, g.Source))
-            .OrderBy(g => g.Name)
-            .ThenBy(g => g.ShortName)
-            .ThenBy(g => g.ID)
-            .ToList();
+    public IReadOnlyList<IReleaseGroup> GetUsedReleaseGroups(IReadOnlySet<string>? sources)
+        => GetReleaseGroupsCore(sources, true);
 
-    public IReadOnlyList<IReleaseGroup> GetUnusedReleaseGroups()
+    public IReadOnlyList<IReleaseGroup> GetUnusedReleaseGroups(IReadOnlySet<string>? sources)
+        => GetReleaseGroupsCore(sources, false);
+
+    private IReadOnlyList<IReleaseGroup> GetReleaseGroupsCore(IReadOnlySet<string>? sources, bool? isUsed)
         => GetAll()
-            .Select(a => a is IReleaseInfo { Group.Source: "AniDB" } releaseInfo && RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize) is not { } ? releaseInfo.Group : null)
+            .Select(a => a is IReleaseInfo { Group: { } group }
+                && (sources is null || sources.Contains(group.Source))
+                && (isUsed is null || RepoFactory.VideoLocal.GetByEd2kAndSize(a.ED2K, a.FileSize) is { } == isUsed.Value)
+                ? group
+                : null)
             .WhereNotNull()
             .DistinctBy(g => (g.ID, g.Source))
             .OrderBy(g => g.Name)
