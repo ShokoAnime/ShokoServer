@@ -14,9 +14,9 @@ public sealed class RelocateGroupFilesAction(IVideoRelocationService relocationS
 {
     public override string Name => "Relocate Files";
 
-    public string? Description => "Renames and/or moves every file associated with the group.";
+    public override string? Description => "Renames and/or moves every file associated with the group.";
 
-    public ActionCategory Category => ActionCategory.Import;
+    public override ActionCategory Category => ActionCategory.Import;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

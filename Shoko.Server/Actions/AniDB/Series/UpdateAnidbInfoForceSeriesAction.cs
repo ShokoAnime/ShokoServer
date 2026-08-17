@@ -14,13 +14,13 @@ public sealed class UpdateAnidbInfoForceSeriesAction(IAnidbService anidbService)
 {
     public override string Name => "Update AniDB Info - Force";
 
-    public string? Description => "Forces a complete update from AniDB, bypassing usual checks and bans.";
+    public override string? Description => "Forces a complete update from AniDB, bypassing usual checks and bans.";
 
-    public ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.AniDB;
 
     public override ActionPermission Permission => ActionPermission.User;
 
-    public bool RequiresConfirmation => true;
+    public override bool RequiresConfirmation => true;
 
     public override Task Execute(CancellationToken token = default)
         => anidbService.ScheduleRefreshOfAnimeByID(Series.AnidbAnimeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.IgnoreTimeCheck | AnidbRefreshMethod.IgnoreHttpBans);

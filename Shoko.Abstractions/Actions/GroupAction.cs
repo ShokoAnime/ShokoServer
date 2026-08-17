@@ -30,8 +30,21 @@ public abstract class GroupAction : IExecutableAction, IScopedAction
     /// <inheritdoc cref="IExecutableAction.Name"/>
     public abstract string Name { get; }
 
+    /// <inheritdoc cref="IExecutableAction.Description"/>
+    public virtual string? Description => null;
+
+    /// <inheritdoc cref="IExecutableAction.Category"/>
+    public virtual ActionCategory Category => ActionCategory.Miscellaneous;
+
     /// <inheritdoc cref="IExecutableAction.Permission"/>
     public abstract ActionPermission Permission { get; }
+
+    /// <inheritdoc cref="IExecutableAction.RequiresConfirmation"/>
+    public virtual bool RequiresConfirmation => false;
+
+    /// <inheritdoc cref="IExecutableAction.Validate"/>
+    public virtual Task<ActionValidationResult?> Validate(CancellationToken token = default)
+        => Task.FromResult<ActionValidationResult?>(null);
 
     /// <inheritdoc cref="IExecutableAction.Execute"/>
     public abstract Task Execute(CancellationToken token = default);

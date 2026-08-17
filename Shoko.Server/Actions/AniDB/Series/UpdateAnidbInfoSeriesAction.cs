@@ -14,9 +14,9 @@ public sealed class UpdateAnidbInfoSeriesAction(IAnidbService anidbService) : Se
 {
     public override string Name => "Update AniDB Info";
 
-    public string? Description => "Gets the latest series information from the AniDB database.";
+    public override string? Description => "Gets the latest series information from the AniDB database.";
 
-    public ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.AniDB;
 
     public override ActionPermission Permission => ActionPermission.User;
 

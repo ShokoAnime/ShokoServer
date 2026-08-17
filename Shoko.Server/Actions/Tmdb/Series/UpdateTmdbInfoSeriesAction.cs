@@ -13,9 +13,9 @@ public sealed class UpdateTmdbInfoSeriesAction(IQueueScheduler scheduler) : Seri
 {
     public override string Name => "Update TMDB Info";
 
-    public string? Description => "Gets the latest series information from TMDB.";
+    public override string? Description => "Gets the latest series information from TMDB.";
 
-    public ActionCategory Category => ActionCategory.TMDB;
+    public override ActionCategory Category => ActionCategory.TMDB;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

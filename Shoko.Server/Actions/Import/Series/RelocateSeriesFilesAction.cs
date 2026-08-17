@@ -13,9 +13,9 @@ public sealed class RelocateSeriesFilesAction(IVideoRelocationService relocation
 {
     public override string Name => "Relocate Files";
 
-    public string? Description => "Renames and/or moves every file associated with the series.";
+    public override string? Description => "Renames and/or moves every file associated with the series.";
 
-    public ActionCategory Category => ActionCategory.Import;
+    public override ActionCategory Category => ActionCategory.Import;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

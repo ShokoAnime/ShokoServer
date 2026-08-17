@@ -13,13 +13,13 @@ public sealed class DeleteSeriesKeepFilesAction(AnimeSeriesService seriesService
 {
     public override string Name => "Delete Series - Keep Files";
 
-    public string? Description => "Deletes the series from Shoko but does not delete the files. Cached AniDB data is preserved.";
+    public override string? Description => "Deletes the series from Shoko but does not delete the files. Cached AniDB data is preserved.";
 
-    public ActionCategory Category => ActionCategory.Destructive;
+    public override ActionCategory Category => ActionCategory.Destructive;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 
-    public bool RequiresConfirmation => true;
+    public override bool RequiresConfirmation => true;
 
     public override Task Execute(CancellationToken token = default)
         => seriesService.DeleteSeries((AnimeSeries)Series, deleteFiles: false, updateGroups: true, completelyRemove: false);

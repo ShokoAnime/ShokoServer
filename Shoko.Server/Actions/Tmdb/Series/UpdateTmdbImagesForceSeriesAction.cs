@@ -13,9 +13,9 @@ public sealed class UpdateTmdbImagesForceSeriesAction(IQueueScheduler scheduler)
 {
     public override string Name => "Update TMDB Images - Force";
 
-    public string? Description => "Forces a complete redownload of images from TMDB.";
+    public override string? Description => "Forces a complete redownload of images from TMDB.";
 
-    public ActionCategory Category => ActionCategory.TMDB;
+    public override ActionCategory Category => ActionCategory.TMDB;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

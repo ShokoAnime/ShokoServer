@@ -13,9 +13,9 @@ public sealed class UpdateAnidbInfoXmlCacheSeriesAction(IAnidbService anidbServi
 {
     public override string Name => "Update AniDB Info - XML Cache";
 
-    public string? Description => "Updates AniDB data using information from local XML cache.";
+    public override string? Description => "Updates AniDB data using information from local XML cache.";
 
-    public ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.AniDB;
 
     public override ActionPermission Permission => ActionPermission.User;
 

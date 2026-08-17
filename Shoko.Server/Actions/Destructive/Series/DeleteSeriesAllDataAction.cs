@@ -13,13 +13,13 @@ public sealed class DeleteSeriesAllDataAction(AnimeSeriesService seriesService) 
 {
     public override string Name => "Delete Series - All Series Data and Files";
 
-    public string? Description => "Removes ALL DATA AND FILES relating to the series. Use with caution, as you may get temp banned from AniDB if it's abused.";
+    public override string? Description => "Removes ALL DATA AND FILES relating to the series. Use with caution, as you may get temp banned from AniDB if it's abused.";
 
-    public ActionCategory Category => ActionCategory.Destructive;
+    public override ActionCategory Category => ActionCategory.Destructive;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 
-    public bool RequiresConfirmation => true;
+    public override bool RequiresConfirmation => true;
 
     public override Task Execute(CancellationToken token = default)
         => seriesService.DeleteSeries((AnimeSeries)Series, deleteFiles: true, updateGroups: true, completelyRemove: true);

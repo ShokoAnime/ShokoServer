@@ -14,9 +14,9 @@ public sealed class RehashSeriesFilesAction(IQueueScheduler scheduler) : SeriesA
 {
     public override string Name => "Rehash Files";
 
-    public string? Description => "Rehashes every file associated with the series.";
+    public override string? Description => "Rehashes every file associated with the series.";
 
-    public ActionCategory Category => ActionCategory.Import;
+    public override ActionCategory Category => ActionCategory.Import;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

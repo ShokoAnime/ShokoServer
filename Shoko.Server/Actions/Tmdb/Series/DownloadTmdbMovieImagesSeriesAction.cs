@@ -13,9 +13,9 @@ public sealed class DownloadTmdbMovieImagesSeriesAction(IQueueScheduler schedule
 {
     public override string Name => "Download TMDB Movie Images";
 
-    public string? Description => "Download any missing images for linked TMDB movies.";
+    public override string? Description => "Download any missing images for linked TMDB movies.";
 
-    public ActionCategory Category => ActionCategory.TMDB;
+    public override ActionCategory Category => ActionCategory.TMDB;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

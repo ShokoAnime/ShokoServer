@@ -13,9 +13,9 @@ public sealed class RefreshTmdbMoviesSeriesAction(IQueueScheduler scheduler) : S
 {
     public override string Name => "Refresh TMDB Movies";
 
-    public string? Description => "Refresh all linked TMDB movie metadata.";
+    public override string? Description => "Refresh all linked TMDB movie metadata.";
 
-    public ActionCategory Category => ActionCategory.TMDB;
+    public override ActionCategory Category => ActionCategory.TMDB;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

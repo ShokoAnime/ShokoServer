@@ -14,9 +14,9 @@ public sealed class UpdateAnidbInfoRemoteSeriesAction(IAnidbService anidbService
 {
     public override string Name => "Update AniDB Info - Remote";
 
-    public string? Description => "Gets the latest series information from the AniDB remote API, respecting usual checks.";
+    public override string? Description => "Gets the latest series information from the AniDB remote API, respecting usual checks.";
 
-    public ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.AniDB;
 
     public override ActionPermission Permission => ActionPermission.User;
 

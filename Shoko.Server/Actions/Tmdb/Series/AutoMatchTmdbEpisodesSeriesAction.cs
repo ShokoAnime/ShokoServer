@@ -12,9 +12,9 @@ public sealed class AutoMatchTmdbEpisodesSeriesAction(TmdbLinkingService linking
 {
     public override string Name => "Auto-Match TMDB Episodes";
 
-    public string? Description => "Automatically matches Shoko episodes with TMDB episodes.";
+    public override string? Description => "Automatically matches Shoko episodes with TMDB episodes.";
 
-    public ActionCategory Category => ActionCategory.TMDB;
+    public override ActionCategory Category => ActionCategory.TMDB;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

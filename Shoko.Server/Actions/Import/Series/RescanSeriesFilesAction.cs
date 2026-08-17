@@ -13,9 +13,9 @@ public sealed class RescanSeriesFilesAction(IVideoReleaseService releaseService)
 {
     public override string Name => "Rescan Files";
 
-    public string? Description => "Rescans every file associated with the series.";
+    public override string? Description => "Rescans every file associated with the series.";
 
-    public ActionCategory Category => ActionCategory.Import;
+    public override ActionCategory Category => ActionCategory.Import;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

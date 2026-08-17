@@ -12,9 +12,9 @@ public sealed class AutoSearchTmdbSeriesAction(TmdbMetadataService tmdbService) 
 {
     public override string Name => "Auto-Search TMDB Match";
 
-    public string? Description => "Automatically searches for a TMDB match.";
+    public override string? Description => "Automatically searches for a TMDB match.";
 
-    public ActionCategory Category => ActionCategory.TMDB;
+    public override ActionCategory Category => ActionCategory.TMDB;
 
     public override ActionPermission Permission => ActionPermission.User;
 

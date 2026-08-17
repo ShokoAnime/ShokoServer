@@ -15,9 +15,9 @@ public sealed class RehashGroupFilesAction(IQueueScheduler scheduler) : GroupAct
 {
     public override string Name => "Rehash Files";
 
-    public string? Description => "Rehashes every file associated with the group.";
+    public override string? Description => "Rehashes every file associated with the group.";
 
-    public ActionCategory Category => ActionCategory.Import;
+    public override ActionCategory Category => ActionCategory.Import;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

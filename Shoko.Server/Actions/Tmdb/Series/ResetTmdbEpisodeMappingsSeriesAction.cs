@@ -12,13 +12,13 @@ public sealed class ResetTmdbEpisodeMappingsSeriesAction(TmdbLinkingService link
 {
     public override string Name => "Reset TMDB Episode Mappings";
 
-    public string? Description => "Reset all TMDB episode mappings for the series.";
+    public override string? Description => "Reset all TMDB episode mappings for the series.";
 
-    public ActionCategory Category => ActionCategory.TMDB;
+    public override ActionCategory Category => ActionCategory.TMDB;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 
-    public bool RequiresConfirmation => true;
+    public override bool RequiresConfirmation => true;
 
     public override Task Execute(CancellationToken token = default)
     {

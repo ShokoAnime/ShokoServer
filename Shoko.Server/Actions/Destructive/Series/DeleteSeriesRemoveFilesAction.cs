@@ -13,13 +13,13 @@ public sealed class DeleteSeriesRemoveFilesAction(AnimeSeriesService seriesServi
 {
     public override string Name => "Delete Series - Remove Files";
 
-    public string? Description => "Deletes the series from Shoko along with the files.";
+    public override string? Description => "Deletes the series from Shoko along with the files.";
 
-    public ActionCategory Category => ActionCategory.Destructive;
+    public override ActionCategory Category => ActionCategory.Destructive;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 
-    public bool RequiresConfirmation => true;
+    public override bool RequiresConfirmation => true;
 
     public override Task Execute(CancellationToken token = default)
         => seriesService.DeleteSeries((AnimeSeries)Series, deleteFiles: true, updateGroups: true, completelyRemove: false);
