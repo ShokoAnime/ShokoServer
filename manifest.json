@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.421",
+      "tag": "v6.0.0-dev.421",
+      "commit": "9a4c746a29066ae6033bd76980ad365312f5850d",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.421/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-17T11:47:42Z",
+      "releaseNotes": "\n`feat` (`api`): **Move release group endpoints into ReleaseInfo with source filtering** ([#1410](https://github.com/ShokoAnime/ShokoServer/pull/1410)):\n\n* feat(api): move release group endpoints into ReleaseInfo with source filtering\n\nMoved the AniDB release group endpoints into `ReleaseInfoController` and\ngeneralized them so they are no longer hardcoded to AniDB groups.\n\n- Added `GET /api/v3/ReleaseInfo/ReleaseGroup` — lists release groups using\n  the existing `includeMissing` filter plus a new comma-delimited `source`\n  filter that defaults to all sources.\n- Added `GET /api/v3/ReleaseInfo/ReleaseGroup/{source}/{groupID}` — returns a\n  single release group by source and ID.\n- Marked `GET /api/v3/AniDB/ReleaseGroup` and\n  `GET /api/v3/AniDB/ReleaseGroup/{groupID}` as obsolete.\n- Parameterized the release group queries in `StoredReleaseInfoRepository`\n  (`GetReleaseGroups`, `GetUsedReleaseGroups`, `GetUnusedReleaseGroups`) with\n  an optional source filter, consolidating the AniDB-only bodies into a shared\n  core.\n- Updated `ExpressionDiscovery` and the v1 `ReleaseGroups` endpoint to return\n  used release groups from all sources instead of only AniDB.\n\n* fix(api): keep the v1 ReleaseGroups endpoint limited to AniDB groups\n\nReverted the v1 `ReleaseGroups` endpoint to return only AniDB used release\ngroups. Only `ExpressionDiscovery` now includes groups from all sources.\n"
+    },
+    {
       "version": "6.0.0.420",
       "tag": "v6.0.0-dev.420",
       "commit": "a2abe6fa81682de73de79eb4324ee0823db237cb",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.392/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-27T02:38:15Z",
       "releaseNotes": "\n`misc`: **Speed up tag filters**.\n"
-    },
-    {
-      "version": "6.0.0.391",
-      "tag": "v6.0.0-dev.391",
-      "commit": "b1397d0b15bfecb70e18dbee5a08d32db5a232e0",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.391/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-27T01:58:48Z",
-      "releaseNotes": "\n`fix`: **Correct season and year classification for anime with partial or overlapping dates**:\n\nSeason windows overlapped a full month with the next season, double-counting\nlate-season premieres. A null EndDate was also treated as \"still airing\" for\nMovie/OVA/Web/Other/MusicVideo, which AniDB rarely populates for those types,\nspreading them across every season/year up to the present. Added\n`AniDB_Anime.EffectiveEndDateForSeasons` to fall back to AirDate for those\ntypes, and fixed the same duplicated null-EndDate bug in Years/Stat_AllYears.\n"
     }
   ]
 }
