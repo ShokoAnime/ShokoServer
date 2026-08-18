@@ -29,6 +29,7 @@ using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
@@ -864,6 +865,10 @@ public class VideoReleaseService(
         {
             logger.LogError(ex, "Got an error scheduling metadata after release saved.");
         }
+
+        // Refresh missing-episode/watched stats for the affected anime now that a file is linked.
+        foreach (var animeId in legacyXrefs.Select(x => x.AnimeID).Distinct())
+            await schedulerFactory.RunAfterCurrent<RefreshAnimeStatsJob>(c => c.AnimeID = animeId);
 
         SetWatchedStateIfNeeded(video, releaseInfo);
 
