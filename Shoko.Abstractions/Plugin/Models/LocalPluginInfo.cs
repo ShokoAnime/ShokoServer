@@ -69,21 +69,10 @@ public sealed class LocalPluginInfo
     /// </summary>
     public required DateTime InstalledAt { get; init; }
 
-    private DateTime? _uninstalledAt;
-
     /// <summary>
     /// When the plugin was uninstalled from the local system.
     /// </summary>
-    public DateTime? UninstalledAt
-    {
-        get => _uninstalledAt;
-        set
-        {
-            if (value is null || _uninstalledAt is not null)
-                return;
-            _uninstalledAt = value;
-        }
-    }
+    public DateTime? UninstalledAt { get; internal set; }
 
     /// <summary>
     ///   Indicates the plugin is currently installed. Will be <c>false</c>
@@ -96,12 +85,12 @@ public sealed class LocalPluginInfo
     ///   Indicates the plugin is currently enabled for use in the current
     ///   session or for the next session.
     /// </summary>
-    public required bool IsEnabled { get; set; }
+    public bool IsEnabled { get; internal set; }
 
     /// <summary>
     ///   Indicates the current version of the plugin is pinned.
     /// </summary>
-    public required bool IsPinned { get; set; }
+    public bool IsPinned { get; internal set; }
 
     /// <summary>
     ///   Indicates the plugin is currently loaded in the current session.
