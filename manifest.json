@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.424",
+      "tag": "v6.0.0-dev.424",
+      "commit": "460c13e6ea2c02c5b4559c1c6f4e0bc82014b61c",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.424/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-18T20:38:22Z",
+      "releaseNotes": "\n`fix` (`plugin`): **Verify declared dependencies at startup**:\n\n`ScanForPlugins` parsed `PackageDependencies` and then nobody read them, so only\ninstall and enable/disable enforced them. A Kahn pass over the winning entry per\nid now ranks `LoadOrder` so dependencies register first, and clears `CanLoad` on\nanything whose required dependency is absent, disabled, unloadable, out of range\nor itself refused, cycles included. Both turn `internal set` (which drops\n`required`) so a plugin cannot rewrite the verdict handed to it.\n\n`refactor` (`abstractions`): **Let only the core write plugin state**:\n\n`IsEnabled` and `IsPinned` follow `CanLoad` and `LoadOrder` to `internal set`,\nnow that the core is the only friend assembly that can reach them. That takes\nthe hand-written backing field for `UninstalledAt` with it: the setter swallowed\na null and an overwrite to defend a field plugins can no longer touch, and the\none writer already re-checks `IsInstalled` under `lock (_pluginTypes)`.\n"
+    },
+    {
       "version": "6.0.0.423",
       "tag": "v6.0.0-dev.423",
       "commit": "fecf6c4a5248fc80088d7facb274eb0e4209c6d5",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.395/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-28T01:33:12Z",
       "releaseNotes": "\n`feat` (`api`): **Show variations that fit an existing release candidate**:\n\nVariations (`VideoLocal.IsVariation`) were previously excluded wholesale\nfrom `ReleaseManagementController`'s candidate grouping unless\n`includeVariations=true`, even when a variation covered the same episode\nas a file already shown in a candidate. That's the same \"two valid files\nfor one episode\" situation as a multi-part release, just caused by an\nunmarked re-release rather than an intentional split — it should be\nvisible the same way.\n\n`VideoReleaseGroupingService.GetFileDisplaySignals` computes a single\nvideo's quality signals and episode coverage outside the grouping\npipeline (factored out of `BuildSignature` via a shared `ComputeQualityCalc`\nhelper so the two paths can't drift). `ReleaseManagementController` uses it\nto build `ReleaseCandidate.DisplayOnlyFile` entries for a series' variation\nvideos; `ReleaseCandidate.FromCandidate` attaches one to a candidate only\nwhen its episode coverage overlaps that candidate's own, tagged via the new\n`File.IsVariation` flag. A variation matching none of a series' candidates\nstays hidden, same as today, unless `includeVariations=true`.\n\nThis is deliberately display-only: variations attached this way are always\n`IsRedundant = false` and never enter `ComputeCandidates`'s\ngrouping/redundancy pipeline, so `Preview`/`Execute` deletion and the\nbackground auto-management job are unaffected — they already ignore\nvariations unconditionally.\n"
-    },
-    {
-      "version": "6.0.0.394",
-      "tag": "v6.0.0-dev.394",
-      "commit": "58195c5f6a128bba0680f94f87c6bb6ab0b78890",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.394/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-28T01:04:18Z",
-      "releaseNotes": "\n`feat` (`api`): **Expose PlaceIDs per episode on ReleaseCandidate**:\n\nWhen a single release candidate has multiple files covering the same\nepisode (a multi-part release, or the grouper's \"ambiguous\" full-collision\ncase such as an untagged v2), `EpisodeCoverage` previously gave no way for\na client to tell there was more than one file without cross-referencing\nevery `File.Episodes` list. `PlaceIDs` now lists every `File.PlaceID` that\ncovers each episode, so a client can show all included files instead of\nonly surfacing one.\n"
     }
   ]
 }
