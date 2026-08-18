@@ -217,7 +217,8 @@ GROUP BY
 
     // Group_CompletionStatus.Complete = 3, Group_CompletionStatus.Finished = 5
     // EpisodeType.Episode = 1
-    // AirDate is stored as Unix timestamp (seconds). LastEpisodeNumber >= EpisodeNumber approximates HasGroupReleasedEpisode.
+    // AirDate = 0 means unknown; kept as a candidate here and resolved exactly via HasAired in GetMissing().
+    // LastEpisodeNumber >= EpisodeNumber approximates HasGroupReleasedEpisode.
     // GS.GroupID (int) = SRI.GroupID (varchar) relies on implicit int↔string coercion present in SQLite, MySQL, and SQL Server.
     private const string MissingEpisodesQuery = @"
 SELECT AE.AnimeEpisodeID
@@ -225,8 +226,7 @@ FROM AnimeEpisode AE
 INNER JOIN AniDB_Episode ADBE ON AE.AniDB_EpisodeID = ADBE.EpisodeID
 WHERE AE.IsHidden = 0
   AND ADBE.EpisodeType = 1
-  AND ADBE.AirDate != 0
-  AND ADBE.AirDate < :currentTime
+  AND (ADBE.AirDate = 0 OR ADBE.AirDate < :currentTime)
   AND NOT EXISTS (SELECT 1 FROM CrossRef_File_Episode CFE WHERE CFE.EpisodeID = ADBE.EpisodeID)
   AND (
       NOT EXISTS (SELECT 1 FROM AniDB_GroupStatus GS WHERE GS.AnimeID = ADBE.AnimeID)
@@ -244,8 +244,7 @@ FROM AnimeEpisode AE
 INNER JOIN AniDB_Episode ADBE ON AE.AniDB_EpisodeID = ADBE.EpisodeID
 WHERE AE.IsHidden = 0
   AND ADBE.EpisodeType = 1
-  AND ADBE.AirDate != 0
-  AND ADBE.AirDate < :currentTime
+  AND (ADBE.AirDate = 0 OR ADBE.AirDate < :currentTime)
   AND ADBE.AnimeID = :animeID
   AND NOT EXISTS (SELECT 1 FROM CrossRef_File_Episode CFE WHERE CFE.EpisodeID = ADBE.EpisodeID)
   AND (
@@ -264,8 +263,7 @@ FROM AnimeEpisode AE
 INNER JOIN AniDB_Episode ADBE ON AE.AniDB_EpisodeID = ADBE.EpisodeID
 WHERE AE.IsHidden = 0
   AND ADBE.EpisodeType = 1
-  AND ADBE.AirDate != 0
-  AND ADBE.AirDate < :currentTime
+  AND (ADBE.AirDate = 0 OR ADBE.AirDate < :currentTime)
   AND NOT EXISTS (SELECT 1 FROM CrossRef_File_Episode CFE WHERE CFE.EpisodeID = ADBE.EpisodeID)
   AND EXISTS (
       SELECT 1 FROM AniDB_GroupStatus GS
@@ -290,8 +288,7 @@ FROM AnimeEpisode AE
 INNER JOIN AniDB_Episode ADBE ON AE.AniDB_EpisodeID = ADBE.EpisodeID
 WHERE AE.IsHidden = 0
   AND ADBE.EpisodeType = 1
-  AND ADBE.AirDate != 0
-  AND ADBE.AirDate < :currentTime
+  AND (ADBE.AirDate = 0 OR ADBE.AirDate < :currentTime)
   AND ADBE.AnimeID = :animeID
   AND NOT EXISTS (SELECT 1 FROM CrossRef_File_Episode CFE WHERE CFE.EpisodeID = ADBE.EpisodeID)
   AND EXISTS (
@@ -345,6 +342,7 @@ WHERE AE.IsHidden = 0
         return ids
             .Select(GetByID)
             .WhereNotNull()
+            .Where(e => e.AniDB_Episode is { HasAired: true })
             .OrderBy(e => e.AniDB_Episode?.AnimeID)
             .ThenBy(e => e.AniDB_Episode?.EpisodeType)
             .ThenBy(e => e.AniDB_Episode?.EpisodeNumber);
