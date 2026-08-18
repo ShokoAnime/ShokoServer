@@ -148,6 +148,42 @@ public static class SeriesSearch
         return min;
     }
 
+    /// <summary>
+    /// Computes the edit distance between a normalized query and a normalized title,
+    /// treating leading and trailing slop on whichever of the two is longer as free.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="MinEditDistInText"/> only skips a free prefix/suffix in the text, so a
+    /// query carrying tokens the title lacks — e.g. "Sousou no Frieren (2023)" against
+    /// "Sousou no Frieren" — is charged for every extra character and blows past
+    /// <see cref="GetMaxErrors"/>. Searching the longer of the two for the shorter one
+    /// makes the comparison symmetric, at the cost of needing a length guard so a
+    /// two-letter title such as "GK" doesn't match nearly every query.
+    /// </remarks>
+    /// <param name="normalizedQuery">The normalized query.</param>
+    /// <param name="normalizedTitle">The normalized title.</param>
+    /// <param name="distance">The resulting distance, if the two are comparable.</param>
+    /// <returns><c>true</c> if the two are comparable in length, otherwise <c>false</c>.</returns>
+    internal static bool TryGetFuzzyDistance(string normalizedQuery, string normalizedTitle, out int distance)
+    {
+        if (normalizedTitle.Length >= normalizedQuery.Length)
+        {
+            distance = MinEditDistInText(normalizedQuery, normalizedTitle);
+            return true;
+        }
+
+        // Ignoring the query's slop is only reasonable while the title still accounts for
+        // most of the query; otherwise every short title matches every long query.
+        if (normalizedTitle.Length * 2 < normalizedQuery.Length)
+        {
+            distance = 0;
+            return false;
+        }
+
+        distance = MinEditDistInText(normalizedTitle, normalizedQuery);
+        return true;
+    }
+
     public static SearchResult<T> DiceFuzzySearch<T>(string text, string pattern, T value)
     {
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(pattern))
@@ -293,9 +329,8 @@ public static class SeriesSearch
                                 Result = t,
                             };
                         }
-                        else if (fuzzy && IsLatinScript(normalizedTitle) && normalizedTitle.Length >= normalizedSearch.Length - maxErrors)
+                        else if (fuzzy && IsLatinScript(normalizedTitle) && TryGetFuzzyDistance(normalizedSearch, normalizedTitle, out var dist))
                         {
-                            var dist = MinEditDistInText(normalizedSearch, normalizedTitle);
                             if (dist > maxErrors)
                                 continue;
                             result = new SearchResult<T>
