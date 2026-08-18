@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.423",
+      "tag": "v6.0.0-dev.423",
+      "commit": "fecf6c4a5248fc80088d7facb274eb0e4209c6d5",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.423/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-18T17:28:59Z",
+      "releaseNotes": "\n`fix` (`api`): **Stop excluding unknown-air-date episodes from missing-episodes query**:\n\n`GetMissing()` required `AirDate != 0`, silently dropping episodes with an\nunknown air date even when the anime has already finished airing. This\ndisagreed with `AniDB_Episode.HasAired`, which treats an unknown air date\non a finished anime as aired. Loosened the SQL to a coarse pre-filter and\nadded the exact `HasAired` check in C#, matching `AnimeSeriesService.UpdateStats`.\n\n`fix` (`core`): **Refresh anime stats after a release is saved**:\n\n`SaveReleaseForVideo` never triggered a stats recalculation for the anime\na file was just linked to. `AnimeSeries.MissingEpisodeCount` (and other\ncached stats) only refreshed via AniDB MyList sync, group-status refresh,\nor a manual API call — never via the normal file-import pipeline. This let\nthe dashboard's missing-episode count go stale as soon as a previously\nmissing episode's file was imported, disagreeing with the live\n`MissingEpisodes/Series` query. Enqueues `RefreshAnimeStatsJob` for each\naffected anime after a release is saved, same job used by\n`GetAniDBReleaseGroupStatusJob`.\n"
+    },
+    {
       "version": "6.0.0.422",
       "tag": "v6.0.0-dev.422",
       "commit": "ad1a3f6cfda037cbf59151c58d2abdf909d39f33",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.394/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-28T01:04:18Z",
       "releaseNotes": "\n`feat` (`api`): **Expose PlaceIDs per episode on ReleaseCandidate**:\n\nWhen a single release candidate has multiple files covering the same\nepisode (a multi-part release, or the grouper's \"ambiguous\" full-collision\ncase such as an untagged v2), `EpisodeCoverage` previously gave no way for\na client to tell there was more than one file without cross-referencing\nevery `File.Episodes` list. `PlaceIDs` now lists every `File.PlaceID` that\ncovers each episode, so a client can show all included files instead of\nonly surfacing one.\n"
-    },
-    {
-      "version": "6.0.0.393",
-      "tag": "v6.0.0-dev.393",
-      "commit": "0ab913866d84e9e72d05b34680a3a0f3c3f46cf1",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.393/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-27T16:08:42Z",
-      "releaseNotes": "\n`fix` (`api`): **Reject path traversal in external subtitle filename** ([#1385](https://github.com/ShokoAnime/ShokoServer/pull/1385)).\n"
     }
   ]
 }
