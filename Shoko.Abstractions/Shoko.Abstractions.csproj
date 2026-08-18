@@ -26,6 +26,7 @@
 
     <ItemGroup>
       <InternalsVisibleTo Include="Shoko.Server" />
+      <InternalsVisibleTo Include="Shoko.Tests" />
     </ItemGroup>
 
     <ItemGroup>

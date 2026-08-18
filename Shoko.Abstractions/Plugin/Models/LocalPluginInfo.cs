@@ -54,9 +54,10 @@ public sealed class LocalPluginInfo
     public required IReadOnlyList<string> Tags { get; init; }
 
     /// <summary>
-    ///   The order in which the plugin was loaded.
+    ///   The order in which the plugin was loaded. Dependencies are always
+    ///   ordered before the plugins depending upon them.
     /// </summary>
-    public required int LoadOrder { get; init; }
+    public int LoadOrder { get; internal set; }
 
     /// <summary>
     ///   The thumbnail for the plugin, if it is available for the plugin.
@@ -115,9 +116,10 @@ public sealed class LocalPluginInfo
 
     /// <summary>
     ///   Indicates the plugin can be loaded by the current runtime. Missing
-    ///   assemblies or incompatible ABI versions will prevent loading.
+    ///   assemblies, incompatible ABI versions or unsatisfied plugin
+    ///   dependencies will prevent loading.
     /// </summary>
-    public required bool CanLoad { get; init; }
+    public bool CanLoad { get; internal set; }
 
     /// <summary>
     ///   Indicates if the plugin can be uninstalled by the user.

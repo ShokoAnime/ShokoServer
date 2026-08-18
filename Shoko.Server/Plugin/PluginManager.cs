@@ -356,13 +356,122 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 });
             }
         }
+
+        ApplyDependencyGraph(_pluginTypes, logger);
+    }
+
+    internal static void ApplyDependencyGraph(List<LocalPluginInfo> plugins, ILogger logger)
+    {
+        var installed = new Dictionary<Guid, LocalPluginInfo>();
+        var enabled = new Dictionary<Guid, LocalPluginInfo>();
+        var position = new Dictionary<Guid, int>();
+        for (var i = 0; i < plugins.Count; i++)
+        {
+            var pluginInfo = plugins[i];
+            installed.TryAdd(pluginInfo.ID, pluginInfo);
+            if (pluginInfo.IsEnabled && enabled.TryAdd(pluginInfo.ID, pluginInfo))
+                position[pluginInfo.ID] = i;
+        }
+
+        var inDegree = enabled.Keys.ToDictionary(id => id, _ => 0);
+        var dependents = enabled.Keys.ToDictionary(id => id, _ => new List<Guid>());
+        foreach (var (id, pluginInfo) in enabled)
+            foreach (var dependency in pluginInfo.Dependencies)
+                if (dependents.TryGetValue(dependency.PluginID, out var list) && !list.Contains(id))
+                {
+                    list.Add(id);
+                    inDegree[id]++;
+                }
+
+        var queue = new PriorityQueue<Guid, int>();
+        foreach (var (id, degree) in inDegree)
+            if (degree is 0)
+                queue.Enqueue(id, position[id]);
+
+        var rank = enabled.Keys.ToDictionary(id => id, _ => 0);
+        var ordered = new List<Guid>(enabled.Count);
+        while (queue.TryDequeue(out var id, out _))
+        {
+            ordered.Add(id);
+            foreach (var dependent in dependents[id])
+            {
+                if (rank[dependent] <= rank[id])
+                    rank[dependent] = rank[id] + 1;
+                if (--inDegree[dependent] is 0)
+                    queue.Enqueue(dependent, position[dependent]);
+            }
+        }
+
+        var refused = new HashSet<Guid>();
+        string? GetUnsatisfiedReason(PluginDependency dependency)
+        {
+            if (!enabled.TryGetValue(dependency.PluginID, out var target))
+                return installed.ContainsKey(dependency.PluginID) ? "is installed but disabled" : "is not installed";
+            if (!PluginVersionRange.IsSatisfied(dependency.VersionRange, target.Version.Version))
+                return $"is installed at version {target.Version.Version}, which does not satisfy \"{dependency.VersionRange}\"";
+            if (refused.Contains(dependency.PluginID))
+                return "was itself refused";
+            if (!target.CanLoad)
+                return "cannot be loaded";
+            return null;
+        }
+
+        if (ordered.Count != enabled.Count)
+        {
+            var cyclic = enabled.Keys.Where(id => inDegree[id] > 0).ToList();
+            var participants = string.Join(", ", cyclic.Select(id => $"\"{enabled[id].Name}\" ({id})"));
+            foreach (var cyclicId in cyclic)
+            {
+                logger.LogWarning("Refusing to load plugin \"{Name}\" ({PluginID}) because it is part of, or behind, a dependency cycle between {Participants}.", enabled[cyclicId].Name, cyclicId, participants);
+                enabled[cyclicId].CanLoad = false;
+                refused.Add(cyclicId);
+            }
+        }
+
+        foreach (var orderedId in ordered)
+        {
+            var pluginInfo = enabled[orderedId];
+            var isRefused = false;
+            foreach (var dependency in pluginInfo.Dependencies)
+            {
+                if (GetUnsatisfiedReason(dependency) is not { } reason)
+                    continue;
+
+                if (dependency.IsOptional)
+                {
+                    logger.LogInformation("Ignoring optional dependency {DependencyID} of plugin \"{Name}\" ({PluginID}) because it {Reason}.", dependency.PluginID, pluginInfo.Name, orderedId, reason);
+                    continue;
+                }
+
+                logger.LogWarning("Refusing to load plugin \"{Name}\" ({PluginID}) because its required dependency {DependencyID} {Reason}.", pluginInfo.Name, orderedId, dependency.PluginID, reason);
+                isRefused = true;
+            }
+
+            if (!isRefused)
+                continue;
+
+            pluginInfo.CanLoad = false;
+            refused.Add(orderedId);
+        }
+
+        var reordered = plugins
+            .Select((pluginInfo, index) => (pluginInfo, index, rank: rank.GetValueOrDefault(pluginInfo.ID)))
+            .OrderBy(tuple => tuple.rank)
+            .ThenBy(tuple => tuple.index)
+            .Select(tuple => tuple.pluginInfo)
+            .ToList();
+        plugins.Clear();
+        plugins.AddRange(reordered);
+        // InitPlugins indexes into the list by LoadOrder, so the two must stay in sync.
+        for (var i = 0; i < plugins.Count; i++)
+            plugins[i].LoadOrder = i;
     }
 
     public void RegisterPlugins(IServiceCollection serviceCollection)
     {
         // Register the plugins in order of priority & then register their services.
         var registrationPlugins = _pluginTypes
-            .Where(a => a.ServiceRegistrationType is not null)
+            .Where(a => a is { CanLoad: true, ServiceRegistrationType: not null })
             .ToList();
         if (registrationPlugins.Count > 0)
             logger.LogTrace("Registering services for {Count} plugins.", registrationPlugins.Count);
@@ -377,7 +486,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         // Scan every loaded plugin assembly for IQueueJob implementations.
         // Plugins don't need to call AddQueueJobsFromAssembly themselves.
-        foreach (var pluginInfo in _pluginTypes.Where(a => a.PluginType is not null))
+        foreach (var pluginInfo in _pluginTypes.Where(a => a is { CanLoad: true, PluginType: not null }))
         {
             var assembly = pluginInfo.PluginType!.Assembly;
             if (assembly == typeof(PluginManager).Assembly)
@@ -390,6 +499,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         // Register plugin-provided executable actions as transient services so the
         // action execution job can resolve them fresh from DI per execution.
         foreach (var actionType in _pluginTypes
+                     .Where(pluginInfo => pluginInfo.CanLoad)
                      .SelectMany(pluginInfo => pluginInfo.Types)
                      .Where(type => type is { IsClass: true, IsAbstract: false } && typeof(IExecutableAction).IsAssignableFrom(type)))
         {
@@ -410,6 +520,12 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             {
                 if (localPluginInfo.CanLoad)
                     logger.LogInformation("Skipping disabled plugin \"{Name}\". ({DllName}, {Version})", localPluginInfo.Name, dllName, localPluginInfo.Version);
+                continue;
+            }
+
+            if (!localPluginInfo.CanLoad)
+            {
+                logger.LogWarning("Skipping enabled plugin \"{Name}\" because it cannot be loaded. ({DllName}, {Version})", localPluginInfo.Name, dllName, localPluginInfo.Version);
                 continue;
             }
 

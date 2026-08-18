@@ -76,7 +76,7 @@ public class PluginDependencyResolver : IPluginDependencyResolver
     }
 
     public bool IsVersionSatisfied(string versionRange, Version candidate)
-        => TryParseVersionRange(versionRange, out var range) && IsSatisfied(range, candidate);
+        => PluginVersionRange.IsSatisfied(versionRange, candidate);
 
     #region Lifecycle Validation
 
@@ -117,81 +117,6 @@ public class PluginDependencyResolver : IPluginDependencyResolver
                 CollectDependents(candidate.ID, allPlugins, cascade, visited);
             }
         }
-    }
-
-    #endregion
-
-    #region Version Range Parsing
-
-    private enum RangeOperator
-    {
-        Exact,
-        GreaterOrEqual,
-        MinorRange,   // ^
-        PatchRange,   // ~
-    }
-
-    private sealed record VersionRange(RangeOperator Operator, Version Version);
-
-    private static bool TryParseVersionRange(string spec, out VersionRange range)
-    {
-        range = null!;
-
-        if (string.IsNullOrWhiteSpace(spec))
-            return false;
-
-        spec = spec.Trim();
-
-        if (spec.StartsWith(">="))
-        {
-            if (Version.TryParse(spec[2..], out var v))
-            {
-                range = new VersionRange(RangeOperator.GreaterOrEqual, v);
-                return true;
-            }
-        }
-        else if (spec.StartsWith("^"))
-        {
-            if (Version.TryParse(spec[1..], out var v))
-            {
-                range = new VersionRange(RangeOperator.MinorRange, v);
-                return true;
-            }
-        }
-        else if (spec.StartsWith("~"))
-        {
-            if (Version.TryParse(spec[1..], out var v))
-            {
-                range = new VersionRange(RangeOperator.PatchRange, v);
-                return true;
-            }
-        }
-        else
-        {
-            // Exact version or plain number
-            if (Version.TryParse(spec, out var v))
-            {
-                range = new VersionRange(RangeOperator.Exact, v);
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool IsSatisfied(VersionRange range, Version candidate)
-    {
-        return range.Operator switch
-        {
-            RangeOperator.Exact => candidate == range.Version,
-            RangeOperator.GreaterOrEqual => candidate >= range.Version,
-            RangeOperator.MinorRange => candidate.Major == range.Version.Major
-                                        && candidate >= range.Version,
-            RangeOperator.PatchRange => candidate.Major == range.Version.Major
-                                        && candidate.Minor == range.Version.Minor
-                                        && candidate >= range.Version,
-            _ => false,
-        };
     }
 
     #endregion
