@@ -52,6 +52,8 @@ shoko-build [options] [-- <msbuild-args>]
 | `--url <url>` | `-u` | **Required.** Download URL recorded for the archive in the manifest. Supports `{runtime}`, `{version}`, `{name}`, `{abstraction}` and `{tag}` templates. Recorded as given after substitution. |
 | `--output <path>` | `-o` | **Required.** Output path for the packed `.zip` archive. Supports `{runtime}`, `{version}`, `{name}`, `{abstraction}` and `{tag}` templates. Intermediate directories are created. |
 | `--channel <name>` | | Release channel for the manifest entry: `Stable`, `Dev` or `Debug`, case-insensitive. An unrecognised name is an error. See below for more info. |
+| `--release-notes <text>` | | Release notes recorded on the manifest entry. See below. |
+| `--release-notes-path <path>` | | Read the release notes from a file instead. Mutually exclusive with `--release-notes`. |
 
 Both templates are evaluated per runtime identifier, so one invocation
 covers a whole matrix:
@@ -69,6 +71,27 @@ All other arguments are forwarded to MSBuild. Common forwarded args:
 | `-p:Version=1.0.5` | Override the version. |
 | `--no-restore` | Skip the restore. Same meaning as `dotnet build --no-restore`. |
 | `-p:ReleaseChannel=Dev` | The channel this build belongs to. `Shoko.BuildTools.Targets` stamps it into the assembly as `ReleaseChannel`; this tool records it in the manifest entry. `--channel` overrides it. |
+
+### Release notes
+
+Three ways in, highest precedence first:
+
+| Source | |
+|--------|--|
+| `--release-notes <text>` | Inline. |
+| `--release-notes-path <path>` | From a file, so notes with newlines survive a shell. |
+| `RELEASE_NOTES` | Environment variable, for CI that already has the notes in one. |
+
+Passing both flags is an error rather than a precedence question, and a
+path that cannot be read stops the build — recording no notes quietly is
+the outcome this exists to prevent.
+
+Leading and trailing whitespace is trimmed, and notes that are empty or
+whitespace-only are recorded as `null` rather than `""`.
+
+Notes are only written when supplied. A second runtime's archive joining
+an existing release therefore does not blank the notes the first one
+set, and re-running without the flag leaves what is already recorded.
 
 ### Release channel
 

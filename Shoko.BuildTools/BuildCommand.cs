@@ -20,6 +20,7 @@ internal static class BuildCommand
         string outputZip,
         string? channel,
         string? tagOverride,
+        string? releaseNotes,
         string[] forwardArgs)
     {
         try
@@ -318,7 +319,8 @@ internal static class BuildCommand
                         archiveUrl,
                         checksum,
                         resolvedChannel,
-                        releaseTagOrVersion);
+                        releaseTagOrVersion,
+                        releaseNotes);
                 }
 
                 completed.Add(rid);

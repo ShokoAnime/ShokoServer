@@ -3,7 +3,7 @@ using Shoko.BuildTools;
 // ── Argument parsing ───────────────────────────────────────────────────
 // Our args: --manifest|-m <path>, --prune|-p <count>, --prune-method <channel|global>,
 //           --url <download-url>, --output <zip-path>, --channel <stable|dev|debug>,
-//           --tag|-t <tag>
+//           --tag|-t <tag>, --release-notes <text>, --release-notes-path <path>
 // Everything else is forwarded to dotnet build.
 
 var argsList = args.ToList();
@@ -14,6 +14,8 @@ var downloadUrl = (string?)null;
 var outputZip = (string?)null;
 var channel = (string?)null;
 var releaseTag = (string?)null;
+var releaseNotes = (string?)null;
+var releaseNotesPath = (string?)null;
 var forwardArgs = new List<string>();
 
 for (var i = 0; i < argsList.Count; i++)
@@ -57,11 +59,50 @@ for (var i = 0; i < argsList.Count; i++)
     {
         releaseTag = argsList[++i];
     }
+    else if (arg is "--release-notes" && i + 1 < argsList.Count)
+    {
+        releaseNotes = argsList[++i];
+    }
+    else if (arg is "--release-notes-path" && i + 1 < argsList.Count)
+    {
+        releaseNotesPath = argsList[++i];
+    }
     else
     {
         forwardArgs.Add(arg);
     }
 }
+
+// ── Release notes ──────────────────────────────────────────────────────
+// --release-notes, then --release-notes-path, then RELEASE_NOTES. Both
+// flags at once is a contradiction, and an unreadable path is fatal:
+// recording no notes silently is what this flag exists to prevent.
+if (releaseNotes is not null && releaseNotesPath is not null)
+{
+    Console.Error.WriteLine("--release-notes and --release-notes-path are mutually exclusive.");
+    return 1;
+}
+
+if (releaseNotesPath is not null)
+{
+    try
+    {
+        releaseNotes = await File.ReadAllTextAsync(releaseNotesPath);
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Could not read --release-notes-path '{releaseNotesPath}': {ex.Message}");
+        return 1;
+    }
+}
+
+releaseNotes ??= Environment.GetEnvironmentVariable("RELEASE_NOTES");
+
+// Empty is absent; a manifest says "no notes" with null.
+if (string.IsNullOrWhiteSpace(releaseNotes))
+    releaseNotes = null;
+else
+    releaseNotes = releaseNotes.Trim();
 
 var missingArgs = new List<string>();
 if (string.IsNullOrWhiteSpace(downloadUrl))
@@ -92,6 +133,7 @@ var exitCode = await BuildCommand.RunAsync(
     outputZip!,
     channel,
     releaseTag,
+    releaseNotes,
     [.. forwardArgs]
 );
 

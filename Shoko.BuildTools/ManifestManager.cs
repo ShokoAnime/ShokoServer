@@ -186,7 +186,8 @@ internal static class ManifestManager
         string? archiveUrl = null,
         string? checksum = null,
         ReleaseChannel? channel = null,
-        string? tag = null)
+        string? tag = null,
+        string? releaseNotes = null)
     {
         manifest.Releases ??= [];
 
@@ -206,6 +207,7 @@ internal static class ManifestManager
                 Tag = tag ?? $"v{versionStr}",
                 ReleasedAt = DateTime.UtcNow,
                 Channel = channel ?? (version.Revision > 0 ? ReleaseChannel.Dev : ReleaseChannel.Stable),
+                ReleaseNotes = releaseNotes,
                 Archives = [],
                 Dependencies = dependencies.Select(d => new ManifestDependency
                 {
@@ -222,6 +224,10 @@ internal static class ManifestManager
                 release.Channel = channel.Value;
             if (tag is not null)
                 release.Tag = tag;
+            // Only when supplied, so a second runtime joining an existing
+            // release does not blank the notes the first one set.
+            if (releaseNotes is not null)
+                release.ReleaseNotes = releaseNotes;
         }
 
         // Add or update archive for this runtime
