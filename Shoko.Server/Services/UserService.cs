@@ -66,7 +66,12 @@ public class UserService(
         => UpdateUser(user, new() { Password = string.Empty });
 
     public Task ChangeUserPassword(IUser user, string newPassword)
-        => UpdateUser(user, new() { Password = newPassword });
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        ArgumentNullException.ThrowIfNull(newPassword);
+
+        return UpdateUser(user, new() { Password = newPassword });
+    }
 
     public Task<IUser> UpdateUser(IUser user, UserUpdate updateData)
         => UpdateUserInternal((JMMUser)user, updateData);
