@@ -361,6 +361,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                         { "path", visibilityAttribute.ToggleWhenMemberIsSet },
                         { "value", Convert(visibilityAttribute.ToggleWhenSetTo, _currentType!) },
                         { "visibility", Convert(visibilityAttribute.ToggleVisibilityTo) },
+                        { "inverseCondition", visibilityAttribute.InverseToggleCondition },
                     };
                     visibilityDict.Add(ActionVisibilityToggle, toggleDict);
                 }
