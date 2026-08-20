@@ -104,7 +104,7 @@ public class UserService(
         if (updateData.Password is { Length: > 1024 })
             AddModelError(nameof(updateData.Password), "Password cannot be longer than 1024 characters. Why the fuck do you need more than 1024 characters in your password?");
         if (user.JMMUserID is 0 && user.Password is null)
-            AddModelError(nameof(updateData.Username), "A new user must have a password set.");
+            AddModelError(nameof(updateData.Password), "A new user must have a password set.");
 
         if (_userRepository.GetByUsername(updateData.Username) is { } existingUser && existingUser.JMMUserID != user.JMMUserID)
             AddModelError(nameof(updateData.Username), "The username is unavailable.");
