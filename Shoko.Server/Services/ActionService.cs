@@ -17,6 +17,7 @@ using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
+using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
@@ -184,7 +185,7 @@ public class ActionService : IActionService
     {
         foreach (var (pluginId, actionType) in discoveredActions)
         {
-            // Reject any type implementing IScopedAction that isn't one of the three base
+            // Reject any type implementing IScopedAction that isn't one of the four base
             // classes. The guard is redundant — IScopedAction is internal, so a plugin
             // assembly cannot implement it — but it is intentionally kept so misuse fails
             // fast at startup instead of at execution time.
@@ -192,11 +193,12 @@ public class ActionService : IActionService
             if (typeof(IScopedAction).IsAssignableFrom(actionType) &&
                 baseType != typeof(SeriesAction) &&
                 baseType != typeof(GroupAction) &&
-                baseType != typeof(EpisodeAction))
+                baseType != typeof(EpisodeAction) &&
+                baseType != typeof(VideoAction))
             {
                 throw new InvalidOperationException(
                     $"Action type '{actionType.FullName}' implements IScopedAction but does not derive from " +
-                    $"{nameof(SeriesAction)}, {nameof(GroupAction)}, or {nameof(EpisodeAction)}."
+                    $"{nameof(SeriesAction)}, {nameof(GroupAction)}, {nameof(EpisodeAction)}, or {nameof(VideoAction)}."
                 );
             }
 
@@ -207,6 +209,7 @@ public class ActionService : IActionService
             var scope = actionType.IsAssignableTo(typeof(SeriesAction)) ? ActionScope.Series
                 : actionType.IsAssignableTo(typeof(GroupAction)) ? ActionScope.Group
                 : actionType.IsAssignableTo(typeof(EpisodeAction)) ? ActionScope.Episode
+                : actionType.IsAssignableTo(typeof(VideoAction)) ? ActionScope.Video
                 : ActionScope.Global;
 
             var probe = (IExecutableAction)_services.GetRequiredService(actionType);
@@ -323,11 +326,20 @@ public class ActionService : IActionService
     public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
         => InvokeCoreAsync(actionId, episode, parameters, caller, token);
 
+    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IVideo, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IVideo video, IUser? caller = null, CancellationToken token = default)
+        => InvokeCoreAsync(actionId, video, parameters: null, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IVideo, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
+        => InvokeCoreAsync(actionId, video, parameters, caller, token);
+
     /// <summary>
     ///   The invoke entry point. Scope-agnostic on purpose — the caller
     ///   resolves <paramref name="scopeEntity"/> (an <see cref="AnimeSeries"/>,
-    ///   <see cref="AnimeGroup"/>, <see cref="AnimeEpisode"/>, or
-    ///   <see langword="null"/> for Global) before calling this.
+    ///   <see cref="AnimeGroup"/>, <see cref="AnimeEpisode"/>,
+    ///   <see cref="VideoLocal"/>, or <see langword="null"/> for Global) before
+    ///   calling this.
     /// </summary>
     /// <returns>
     ///   <see langword="null"/> when the action was accepted and enqueued, or a
@@ -349,6 +361,7 @@ public class ActionService : IActionService
             AnimeSeries => ActionScope.Series,
             AnimeGroup => ActionScope.Group,
             AnimeEpisode => ActionScope.Episode,
+            VideoLocal => ActionScope.Video,
             _ => ActionScope.Global,
         };
         if (info.Scope != expectedScope)
@@ -396,6 +409,7 @@ public class ActionService : IActionService
                 AnimeSeries series => series.AnimeSeriesID,
                 AnimeGroup group => group.AnimeGroupID,
                 AnimeEpisode episode => episode.AnimeEpisodeID,
+                VideoLocal video => video.VideoLocalID,
                 _ => null,
             };
             j.Scope = info.Scope;

@@ -30,7 +30,8 @@ public class ActionExecutionJob(
     JMMUserRepository users,
     AnimeSeriesRepository series,
     AnimeGroupRepository groups,
-    AnimeEpisodeRepository episodes
+    AnimeEpisodeRepository episodes,
+    VideoLocalRepository videos
 ) : BaseJob
 {
     [JobKeyMember(index: 0)]
@@ -127,6 +128,7 @@ public class ActionExecutionJob(
         ActionScope.Series => series.GetByID(entityId) ?? throw new KeyNotFoundException($"Series not found: {entityId}"),
         ActionScope.Group => groups.GetByID(entityId) ?? throw new KeyNotFoundException($"Group not found: {entityId}"),
         ActionScope.Episode => episodes.GetByID(entityId) ?? throw new KeyNotFoundException($"Episode not found: {entityId}"),
+        ActionScope.Video => videos.GetByID(entityId) ?? throw new KeyNotFoundException($"Video not found: {entityId}"),
         _ => throw new InvalidOperationException("Global actions have no scope entity."),
     };
 }

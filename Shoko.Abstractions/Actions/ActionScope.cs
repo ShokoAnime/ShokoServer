@@ -9,14 +9,15 @@ namespace Shoko.Abstractions.Actions;
 /// <remarks>
 ///   <para>
 ///     Global actions implement <see cref="IExecutableAction"/> directly.
-///     Scoped actions derive from one of the three base classes
+///     Scoped actions derive from one of the four base classes
 ///     (<see cref="SeriesAction"/>, <see cref="GroupAction"/>,
-///     <see cref="EpisodeAction"/>), which fix the scope at compile time.
+///     <see cref="EpisodeAction"/>, <see cref="VideoAction"/>), which fix the
+///     scope at compile time.
 ///   </para>
 ///   <para>
 ///     Actions available for a given scope do not vary by <em>which</em>
-///     series/group/episode is being viewed, only by which entity type it is,
-///     so listings are scope-filtered, not entity-filtered.
+///     series/group/episode/video is being viewed, only by which entity type
+///     it is, so listings are scope-filtered, not entity-filtered.
 ///   </para>
 /// </remarks>
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -42,4 +43,9 @@ public enum ActionScope
     ///   The action operates on an episode.
     /// </summary>
     Episode,
+
+    /// <summary>
+    ///   The action operates on a video.
+    /// </summary>
+    Video,
 }

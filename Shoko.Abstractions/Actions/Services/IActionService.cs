@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
+using Shoko.Abstractions.Video;
 
 namespace Shoko.Abstractions.Actions.Services;
 
@@ -133,4 +134,23 @@ public interface IActionService
     /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default);
+
+    /// <summary>
+    ///   Invoke a video-scoped action by its ID.
+    /// </summary>
+    /// <param name="actionId">Action ID.</param>
+    /// <param name="video">The video to scope the action to.</param>
+    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="token">Cancellation token.</param>
+    Task<ActionValidationResult?> InvokeAsync(Guid actionId, IVideo video, IUser? caller = null, CancellationToken token = default);
+
+    /// <summary>
+    ///   Invoke a video-scoped action by its ID with free-form invocation parameters.
+    /// </summary>
+    /// <param name="actionId">Action ID.</param>
+    /// <param name="video">The video to scope the action to.</param>
+    /// <param name="parameters">The action's free-form invocation parameters. See the global overload for details.</param>
+    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="token">Cancellation token.</param>
+    Task<ActionValidationResult?> InvokeAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default);
 }
