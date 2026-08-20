@@ -88,8 +88,14 @@ public class UserService(
             errorDict[key].Add(message);
         }
 
+        // Normalise the input rather than the entity. Assigning to `user`
+        // here mutated a cached, live user before anything had validated it,
+        // with no rollback on the throw below - and it trimmed, while the
+        // uniqueness check and the assignment further down both used the
+        // untrimmed value, so a name with surrounding whitespace was checked
+        // one way and saved another.
         if (!string.IsNullOrEmpty(updateData.Username))
-            user.Username = updateData.Username.Trim();
+            updateData.Username = updateData.Username.Trim();
         if ((user.JMMUserID is 0 || string.IsNullOrEmpty(user.Username)) && string.IsNullOrWhiteSpace(updateData.Username))
             AddModelError(nameof(updateData.Username), "A new user must have a username set.");
         if (updateData.Username is not null && string.IsNullOrWhiteSpace(updateData.Username))
