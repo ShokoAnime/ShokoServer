@@ -21,7 +21,8 @@ auto-discovery of service interfaces, and manifest management.
 6. **Computes** a SHA256 checksum of the zip.
 7. **Updates** `manifest.json` — creates or updates a release entry with the
    archive URL, checksum, runtime, ABI version, and dependencies.
-8. **Prunes** old releases if `--prune` is set (per-channel or globally).
+8. **Prunes** old releases if `--prune` is set (per-channel or globally), naming
+   every dropped version and its channel on stdout.
 
 ## Installation
 

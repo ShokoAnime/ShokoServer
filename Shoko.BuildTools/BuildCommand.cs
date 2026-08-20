@@ -328,7 +328,16 @@ internal static class BuildCommand
             if (manifest is not null && manifestFullPath is not null && completed.Count > 0)
             {
                 if (pruneCount.HasValue)
-                    ManifestManager.PruneReleases(manifest, pruneCount.Value, pruneMethod);
+                {
+                    var pruned = ManifestManager.PruneReleases(manifest, pruneCount.Value, pruneMethod);
+                    if (pruned.Count > 0)
+                    {
+                        var scope = pruneMethod == "global" ? "in total" : "per channel";
+                        Console.WriteLine($"Pruned {pruned.Count} releases, keeping {pruneCount.Value} {scope}:");
+                        foreach (var release in pruned)
+                            Console.WriteLine($"  {release.Version} ({release.Channel})");
+                    }
+                }
 
                 ManifestManager.Save(manifest, manifestFullPath);
                 Console.WriteLine($"Updated manifest: {manifestFullPath}");

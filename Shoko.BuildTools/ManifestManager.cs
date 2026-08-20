@@ -249,31 +249,31 @@ internal static class ManifestManager
 
     /// <summary>
     ///   Prune releases, keeping only the N most recent per channel or
-    ///   globally.
+    ///   globally. Returns the dropped releases, newest first.
     /// </summary>
-    public static void PruneReleases(Manifest manifest, int count, string method)
+    public static IReadOnlyList<ManifestRelease> PruneReleases(Manifest manifest, int count, string method)
     {
         if (manifest.Releases is null || manifest.Releases.Count <= count)
-            return;
+            return [];
 
-        if (method == "global")
-        {
-            // Keep the N most recent releases regardless of channel
-            manifest.Releases = manifest.Releases
+        var kept = method == "global"
+            ? manifest.Releases
                 .OrderByDescending(r => r.ReleasedAt ?? DateTime.MinValue)
                 .Take(count)
-                .ToList();
-        }
-        else
-        {
-            // Per-channel: keep N most recent per channel
-            manifest.Releases = manifest.Releases
+                .ToList()
+            : manifest.Releases
                 .GroupBy(r => r.Channel)
                 .SelectMany(g => g
                     .OrderByDescending(r => r.ReleasedAt ?? DateTime.MinValue)
                     .Take(count))
                 .OrderByDescending(r => r.ReleasedAt ?? DateTime.MinValue)
                 .ToList();
-        }
+
+        var dropped = manifest.Releases
+            .Where(r => !kept.Contains(r))
+            .OrderByDescending(r => r.ReleasedAt ?? DateTime.MinValue)
+            .ToList();
+        manifest.Releases = kept;
+        return dropped;
     }
 }
