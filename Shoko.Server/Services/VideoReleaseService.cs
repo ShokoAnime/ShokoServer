@@ -46,7 +46,8 @@ public class VideoReleaseService(
     QueueJobTypeRegistry jobTypeRegistry,
     IRequestFactory requestFactory,
     IUserService userService,
-    IServiceProvider serviceProvider,
+    Lazy<IUserDataService> userDataService,
+    Lazy<ReleaseAutoManagementService> releaseAutoManagementService,
     IPluginManager pluginManager,
     IVideoRelocationService relocationService,
     VideoLocalRepository videoRepository,
@@ -57,13 +58,9 @@ public class VideoReleaseService(
     AnimeMetadataOrchestrator animeMetadataOrchestrator
 ) : IVideoReleaseService
 {
-    // We need to lazy init. the user data service since otherwise there will be
-    // a circular dependency between this service, the user data service, and
-    // the anime series service (which in turn depend on this service). So we
-    // lazy init the user data service to break the circle.
-    private IUserDataService? _userDataService;
-
-    private ReleaseAutoManagementService? _releaseAutoManagementService;
+    // The user data service, the anime series service and this one form a
+    // dependency cycle, so those two arrive as Lazy<T> and are resolved on first
+    // use rather than during construction.
 
     private IServerSettings _settings => settingsProvider.GetSettings();
 
@@ -470,8 +467,7 @@ public class VideoReleaseService(
         {
             // Run auto-management before any post-import actions so we know whether the
             // incoming file itself was identified as redundant and deleted.
-            _releaseAutoManagementService ??= serviceProvider.GetRequiredService<ReleaseAutoManagementService>();
-            wasDeleted = await _releaseAutoManagementService.CheckAndAutoManage(video);
+            wasDeleted = await releaseAutoManagementService.Value.CheckAndAutoManage(video);
         }
 
         var allProviders = GetAvailableProviders()
@@ -723,8 +719,7 @@ public class VideoReleaseService(
             {
                 // Run auto-management before any post-import actions so we know whether the
                 // incoming file itself was identified as redundant and deleted.
-                _releaseAutoManagementService ??= serviceProvider.GetRequiredService<ReleaseAutoManagementService>();
-                videoDeleted = await _releaseAutoManagementService.CheckAndAutoManage(video);
+                    videoDeleted = await releaseAutoManagementService.Value.CheckAndAutoManage(video);
             }
 
             var completedArgs = new VideoReleaseSearchCompletedEventArgs()
@@ -896,8 +891,7 @@ public class VideoReleaseService(
         // If auto-management is enabled and this release was saved outside a search, then run it now.
         if (autoManagement)
         {
-            _releaseAutoManagementService ??= serviceProvider.GetRequiredService<ReleaseAutoManagementService>();
-            var wasDeleted = await _releaseAutoManagementService.CheckAndAutoManage(video);
+            var wasDeleted = await releaseAutoManagementService.Value.CheckAndAutoManage(video);
         }
 
         return releaseInfo;
@@ -1155,16 +1149,15 @@ public class VideoReleaseService(
         if (otherVideos.Count == 0)
             return;
 
-        _userDataService ??= serviceProvider.GetRequiredService<IUserDataService>();
         foreach (var user in userService.GetUsers())
         {
             var watchedVideo = otherVideos
-                .FirstOrDefault(video => _userDataService.GetVideoUserData(video, user)?.LastPlayedAt is not null);
+                .FirstOrDefault(video => userDataService.Value.GetVideoUserData(video, user)?.LastPlayedAt is not null);
             if (watchedVideo is null)
                 continue;
 
-            var watchedRecord = _userDataService.GetVideoUserData(watchedVideo, user)!;
-            _userDataService.ImportVideoUserData(video, user, new(watchedRecord), "Video", false);
+            var watchedRecord = userDataService.Value.GetVideoUserData(watchedVideo, user)!;
+            userDataService.Value.ImportVideoUserData(video, user, new(watchedRecord), "Video", false);
         }
     }
 

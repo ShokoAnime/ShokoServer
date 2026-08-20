@@ -38,6 +38,7 @@ using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Filters;
 using Shoko.QueueProcessor.Scheduling;
+using Shoko.Server.Utilities;
 using Shoko.Server.API;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -433,6 +434,9 @@ public class SystemService : ISystemService
             services.AddTransient<RelocationPresetMigrationService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
             services.AddSingleton<IUserService, UserService>();
+            // lets a service in a dependency cycle take a Lazy<T> rather than
+            // injecting IServiceProvider and resolving by hand on first use
+            services.AddTransient(typeof(Lazy<>), typeof(LazyResolver<>));
             services.AddSingleton<IUserDataService, UserDataService>();
             services.AddSingleton<IImageManager, ImageManager>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
