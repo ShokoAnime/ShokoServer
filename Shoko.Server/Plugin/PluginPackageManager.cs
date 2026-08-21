@@ -867,6 +867,14 @@ public partial class PluginPackageManager(
     {
         var (document, lastFetchedAt) = await FetchManifestAsync(httpClient, manifestUrl, cancellationToken).ConfigureAwait(false);
         var manifests = new List<(RemotePackageManifestInfo Manifest, DateTime fetchedAt)>();
+        // Keyed by package *and* source, not by package alone. One package
+        // legitimately appears more than once in a repository - a stable
+        // manifest and a dev manifest are the same package at two addresses,
+        // and GetAvailablePackageManifests below is built to union their
+        // releases. What is never meaningful is the same package read twice
+        // from the same address: that is a repository listing an entry
+        // twice, and ingesting it duplicates every release it carries.
+        var seen = new HashSet<(Guid PackageID, string Source)>();
         try
         {
             var rootElement = document.RootElement;
@@ -883,10 +891,11 @@ public partial class PluginPackageManager(
                         if (manifest is { IsReference: true })
                         {
                             var subManifests = await GetRemoteManifestAsync(httpClient, manifest.ManifestUrl, allowArray: false, cancellationToken: cancellationToken).ConfigureAwait(false);
-                            manifests.AddRange(subManifests);
+                            foreach (var subManifest in subManifests)
+                                AddUnlessSeen(subManifest.Manifest, subManifest.fetchedAt, manifest.ManifestUrl);
                         }
                         else if (manifest is not null)
-                            manifests.Add((manifest, lastFetchedAt));
+                            AddUnlessSeen(manifest, lastFetchedAt, manifestUrl);
                     }
                     catch (Exception ex)
                     {
@@ -900,7 +909,7 @@ public partial class PluginPackageManager(
                     ?? throw new InvalidOperationException("Failed to parse repository manifest as object.");
                 if (manifest.IsReference)
                     throw new InvalidOperationException("A single-repository manifest cannot reference another manifest.");
-                manifests.Add((manifest, lastFetchedAt));
+                AddUnlessSeen(manifest, lastFetchedAt, manifestUrl);
             }
             else
                 throw new InvalidOperationException($"Unexpected JSON structure in repository manifest: {rootElement.ValueKind}.");
@@ -914,6 +923,17 @@ public partial class PluginPackageManager(
             throw new OperationCanceledException("Repository sync cancelled during manifest processing.");
 
         return manifests;
+
+        void AddUnlessSeen(RemotePackageManifestInfo manifest, DateTime fetchedAt, string source)
+        {
+            if (!seen.Add((manifest.PackageID, source)))
+            {
+                _logger.LogDebug("Skipped a duplicate manifest for package {PackageId} from {Source}.", manifest.PackageID, source);
+                return;
+            }
+
+            manifests.Add((manifest, fetchedAt));
+        }
     }
 
     private async Task<(JsonDocument Document, DateTime LastFetchedAt)> FetchManifestAsync(HttpClient httpClient, string manifestUrl, CancellationToken cancellationToken)
