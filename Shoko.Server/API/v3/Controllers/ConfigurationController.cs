@@ -12,11 +12,13 @@ using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.UI;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.Plugin;
+using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -312,6 +314,29 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             return NotFound($"Configuration '{configID}' not found!");
 
         return Content(configurationService.GetSchema(configInfo), "application/json");
+    }
+
+    /// <summary>
+    ///   <strong>Proof of concept.</strong> Get a render-ready UI definition for
+    ///   the configuration with the given id.
+    /// </summary>
+    /// <remarks>
+    ///   Unlike <c>/Schema</c>, the returned document is meant to be sufficient
+    ///   on its own: every element carries a concrete element kind, its label,
+    ///   its default and the constraints needed for a cheap client-side
+    ///   pre-check. The schema remains the authority for server-side
+    ///   validation, and still carries the <c>x-uiDefinition</c> bag the
+    ///   configuration validator reads back.
+    /// </remarks>
+    /// <param name="configID">Configuration id</param>
+    /// <returns>The UI definition for the configuration.</returns>
+    [HttpGet("{configID:guid}/UiDefinition")]
+    public ActionResult<UiDefinition> GetConfigurationUiDefinition(Guid configID)
+    {
+        if (configurationService.GetConfigurationInfo(configID) is not { } configInfo)
+            return NotFound($"Configuration '{configID}' not found!");
+
+        return configInfo.UiDefinition;
     }
 
     /// <summary>
