@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.426",
+      "tag": "v6.0.0-dev.426",
+      "commit": "18b202b1ae5ba56df47e2f4a6b547378e76c8fb3",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.426/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-22T18:37:01Z",
+      "releaseNotes": "\n`repo`: **Remove opencode.json from VCS**. (_Skip CI_)\n\n`feat` (`actions`): **Add ConfirmationMessage support for destructive actions** ([#1413](https://github.com/ShokoAnime/ShokoServer/pull/1413)):\n\n* feat(actions): add custom confirmation messages for destructive actions\n\nAdded `ConfirmationMessage` property to `IExecutableAction` interface,\nallowing actions to provide custom confirmation prompts for destructive\noperations. The property flows through `ExecutableActionInfo`, `ActionService`,\nand the `ActionInfo` API model.\n\n- Added `string? ConfirmationMessage { get => null; }` default interface property\n- Propagated through `ExecutableActionInfo` record and `ActionService` mapping\n- Exposed in `ActionInfo` API response model\n- Added virtual overrides in all 4 scoped base classes (`SeriesAction`,\n  `GroupAction`, `EpisodeAction`, `VideoAction`)\n\nWebUI can now display custom confirmation messages when present, falling\nback to generic prompts when `null`. Only meaningful when\n`RequiresConfirmation` is `true`.\n\n* feat(actions): add confirmation messages to destructive actions\n\nAdded `ConfirmationMessage` overrides to all 15 actions that set\n`RequiresConfirmation` to `true`, phrased as questions suitable for a\nconfirm/cancel prompt in clients.\n\n* refactor(actions): apply review feedback on confirmation messages\n\n- Switched `Description` and `RequiresConfirmation` on\n  `IExecutableAction` to accessor syntax (`{ get => ...; }`)\n- Switched `ConfirmationMessage` in the scoped base classes to\n  expression-bodied properties\n- Clarified the AniDB MyList sync is two-way\n- Warned that a forced AniDB info refresh may extend an existing ban\n- Dropped parentheticals from the purge-release messages\n"
+    },
+    {
       "version": "6.0.0.425",
       "tag": "v6.0.0-dev.425",
       "commit": "775bbe9d9e7954444ec0e5514346a13b64a9c934",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.397/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-28T23:36:11Z",
       "releaseNotes": "\n`misc`: **Add more data for Mix and Match**.\n"
-    },
-    {
-      "version": "6.0.0.396",
-      "tag": "v6.0.0-dev.396",
-      "commit": "12069ded6a9d978f6c136919185c6e9ba8b52555",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.396/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-28T23:08:01Z",
-      "releaseNotes": "\n`fix` (`api`): **Surface series whose only candidate has ambiguous per-episode coverage**:\n\n`VideoReleaseGroupingService.Group()` correctly collapses files that agree\non group/version/location into a single candidate, but `MightHaveMultipleCandidates`,\n`ComputeCandidates`, and the `Series` list endpoint all required more than\none candidate before a series would surface in Release Management. That\nhid series whose files merge into one candidate but still leave an episode\ncovered by more than one file with nothing to distinguish them (an\nuntagged v2) — observed live with `Sousou no Frieren (2026)`, whose\nepisodes 9 and 10 each had 2 files from the same release and never\nappeared at all.\n\n`MightHaveMultipleCandidates` now flags any episode covered by two\ndistinct video files regardless of version/location agreement, and the\nnew `HasAmbiguousEpisodeCoverage` lets `ComputeCandidates` keep a\nsingle-candidate series when that candidate has such an episode, so\n`ReleaseCandidate.EpisodeCoverage`'s `PlaceIDs` can do what it was built\nfor. Removed the now-unused `VideoLocal_PlaceRepository` dependency from\nthe grouping service.\n"
     }
   ]
 }
