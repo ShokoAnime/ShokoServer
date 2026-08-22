@@ -34,13 +34,17 @@ public class VideoReleaseOverride
     public IReadOnlyList<TitleLanguage> AudioLanguages { get; init; } = [];
     public IReadOnlyList<TitleLanguage> SubtitleLanguages { get; init; } = [];
 
-    /// <summary>True when this group's files do not cover every known episode.</summary>
+    /// <summary>
+    /// True when this group's files do not cover every known episode.
+    /// </summary>
     public bool HasPartialCoverage { get; init; }
 
     public IReadOnlyList<VideoReleaseOverrideFile> Files { get; init; } = [];
 }
 
-/// <summary>A single file within a <see cref="VideoReleaseOverride"/>.</summary>
+/// <summary>
+/// A single file within a <see cref="VideoReleaseOverride"/>.
+/// </summary>
 public class VideoReleaseOverrideFile
 {
     public required VideoLocal_Place Place { get; init; }

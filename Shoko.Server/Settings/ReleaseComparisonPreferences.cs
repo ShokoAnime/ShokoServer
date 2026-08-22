@@ -28,16 +28,24 @@ public class ReleaseComparisonPreferences
         ReleaseSignalType.Censored,
     ];
 
-    /// <summary>Ordered source preference: first entry is most preferred.</summary>
+    /// <summary>
+    /// Ordered source preference: first entry is most preferred.
+    /// </summary>
     public List<string> SourceOrder { get; set; } = ["BluRay", "DVD", "TV", "Web", "Unknown"];
 
-    /// <summary>Ordered resolution preference: first entry is most preferred.</summary>
+    /// <summary>
+    /// Ordered resolution preference: first entry is most preferred.
+    /// </summary>
     public List<string> ResolutionOrder { get; set; } = ["2160p", "1440p", "1080p", "720p", "480p"];
 
-    /// <summary>Ordered video codec preference: first entry is most preferred.</summary>
+    /// <summary>
+    /// Ordered video codec preference: first entry is most preferred.
+    /// </summary>
     public List<string> VideoCodecOrder { get; set; } = ["HEVC", "H264", "AV1", "MPEG4", "VC1", "MPEG2"];
 
-    /// <summary>Ordered audio codec preference: first entry is most preferred.</summary>
+    /// <summary>
+    /// Ordered audio codec preference: first entry is most preferred.
+    /// </summary>
     public List<string> AudioCodecOrder { get; set; } = ["FLAC", "DCA", "AAC", "AC3", "MP3"];
 
     /// <summary>
@@ -62,7 +70,9 @@ public class ReleaseComparisonPreferences
     /// </summary>
     public List<string> SubGroupOrder { get; set; } = [];
 
-    /// <summary>When true, 10-bit video is preferred over 8-bit; when false, the opposite.</summary>
+    /// <summary>
+    /// When true, 10-bit video is preferred over 8-bit; when false, the opposite.
+    /// </summary>
     public bool PreferHigherBitDepth { get; set; } = true;
 
     /// <summary>
@@ -100,7 +110,9 @@ public class ReleaseComparisonPreferences
     public EpisodeTypeScope EpisodeTypeScope { get; set; } = EpisodeTypeScope.KeepTogether;
 }
 
-/// <summary>Signals available for sequential release comparison.</summary>
+/// <summary>
+/// Signals available for sequential release comparison.
+/// </summary>
 [JsonConverter(typeof(StringEnumConverter))]
 public enum ReleaseSignalType
 {

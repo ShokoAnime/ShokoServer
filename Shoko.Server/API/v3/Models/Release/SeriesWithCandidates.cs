@@ -8,15 +8,21 @@ namespace Shoko.Server.API.v3.Models.Release;
 /// </summary>
 public class SeriesWithCandidates
 {
-    /// <summary>Shoko series ID.</summary>
+    /// <summary>
+    /// Shoko series ID.
+    /// </summary>
     [Required]
     public required int SeriesID { get; init; }
 
-    /// <summary>Display title for the series.</summary>
+    /// <summary>
+    /// Display title for the series.
+    /// </summary>
     [Required]
     public required string SeriesTitle { get; init; }
 
-    /// <summary>AniDB anime ID.</summary>
+    /// <summary>
+    /// AniDB anime ID.
+    /// </summary>
     [Required]
     public required int AnidbAnimeID { get; init; }
 

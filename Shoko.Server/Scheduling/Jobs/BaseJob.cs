@@ -60,7 +60,9 @@ public abstract class BaseJob : IQueueJob
         }
     }
 
-    /// <summary>Implement job logic here. Exceptions propagate to the retry policy.</summary>
+    /// <summary>
+    /// Implement job logic here. Exceptions propagate to the retry policy.
+    /// </summary>
     public abstract Task Execute();
 
     public virtual void PostInit() { }

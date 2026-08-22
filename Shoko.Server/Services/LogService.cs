@@ -975,7 +975,9 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         public required LogTextMatchMode Mode { get; init; }
         public required bool Inverse { get; init; }
         public required bool IgnoreCase { get; init; }
-        /// <summary>For non-regex modes: pattern / substring.</summary>
+        /// <summary>
+        /// For non-regex modes: pattern / substring.
+        /// </summary>
         public required string Payload { get; init; }
         public Regex? CompiledRegex { get; init; }
     }

@@ -65,7 +65,9 @@ public class ReleaseOverride
     [Required]
     public required bool HasPartialCoverage { get; init; }
 
-    /// <summary>All file locations belonging to this release group.</summary>
+    /// <summary>
+    /// All file locations belonging to this release group.
+    /// </summary>
     [Required]
     public required IReadOnlyList<OverrideFile> Files { get; init; }
 
@@ -175,14 +177,20 @@ public class ReleaseOverride
         return string.Join(" ", parts);
     }
 
-    /// <summary>A single file location within a release override group.</summary>
+    /// <summary>
+    /// A single file location within a release override group.
+    /// </summary>
     public class OverrideFile
     {
-        /// <summary>VideoLocal_Place ID.</summary>
+        /// <summary>
+        /// VideoLocal_Place ID.
+        /// </summary>
         [Required]
         public required int PlaceID { get; init; }
 
-        /// <summary>VideoLocal ID (unique file identity, based on ED2K hash + size).</summary>
+        /// <summary>
+        /// VideoLocal ID (unique file identity, based on ED2K hash + size).
+        /// </summary>
         [Required]
         public required int VideoLocalID { get; init; }
 
@@ -191,27 +199,41 @@ public class ReleaseOverride
         /// </summary>
         public string? AbsolutePath { get; init; }
 
-        /// <summary>File size in bytes.</summary>
+        /// <summary>
+        /// File size in bytes.
+        /// </summary>
         [Required]
         public required long FileSize { get; init; }
 
-        /// <summary>Release version number from the provider. 0 when unknown.</summary>
+        /// <summary>
+        /// Release version number from the provider. 0 when unknown.
+        /// </summary>
         public int Version { get; init; }
 
-        /// <summary>Whether the file has chapter marks, or null if unknown.</summary>
+        /// <summary>
+        /// Whether the file has chapter marks, or null if unknown.
+        /// </summary>
         public bool? IsChaptered { get; init; }
 
-        /// <summary>The release date reported by the release provider, if known.</summary>
+        /// <summary>
+        /// The release date reported by the release provider, if known.
+        /// </summary>
         public DateOnly? ReleasedAt { get; init; }
 
-        /// <summary>When this file was imported into Shoko's library, if known.</summary>
+        /// <summary>
+        /// When this file was imported into Shoko's library, if known.
+        /// </summary>
         [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime? ImportedAt { get; init; }
 
-        /// <summary>The release's original filename as reported by the provider, if known.</summary>
+        /// <summary>
+        /// The release's original filename as reported by the provider, if known.
+        /// </summary>
         public string? OriginalFilename { get; init; }
 
-        /// <summary>Episodes this specific file covers.</summary>
+        /// <summary>
+        /// Episodes this specific file covers.
+        /// </summary>
         [Required]
         public required IReadOnlyList<ReleaseCandidate.EpisodeCoverage> Episodes { get; init; }
     }

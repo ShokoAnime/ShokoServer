@@ -212,7 +212,9 @@ public class VideoReleaseCandidate
     public bool HasPartialCoverage { get; init; }
 }
 
-/// <summary>Per-file quality signals for a single <see cref="VideoLocal_Place"/>.</summary>
+/// <summary>
+/// Per-file quality signals for a single <see cref="VideoLocal_Place"/>.
+/// </summary>
 public record PlaceQualitySignals(
     bool? IsChaptered,
     bool? IsCensored,

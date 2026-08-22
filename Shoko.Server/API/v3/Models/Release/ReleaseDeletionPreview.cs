@@ -8,23 +8,33 @@ namespace Shoko.Server.API.v3.Models.Release;
 /// </summary>
 public class ReleaseDeletionPreview
 {
-    /// <summary>Shoko series ID.</summary>
+    /// <summary>
+    /// Shoko series ID.
+    /// </summary>
     [Required]
     public required int SeriesID { get; init; }
 
-    /// <summary>Display title for the series.</summary>
+    /// <summary>
+    /// Display title for the series.
+    /// </summary>
     [Required]
     public required string SeriesTitle { get; init; }
 
-    /// <summary>AniDB anime ID.</summary>
+    /// <summary>
+    /// AniDB anime ID.
+    /// </summary>
     [Required]
     public required int AnidbAnimeID { get; init; }
 
-    /// <summary>Number of files that would be deleted.</summary>
+    /// <summary>
+    /// Number of files that would be deleted.
+    /// </summary>
     [Required]
     public required int TotalFilesToDelete { get; init; }
 
-    /// <summary>Total size in bytes of files that would be deleted.</summary>
+    /// <summary>
+    /// Total size in bytes of files that would be deleted.
+    /// </summary>
     [Required]
     public required long TotalSizeToDelete { get; init; }
 
@@ -41,11 +51,15 @@ public class ReleaseDeletionPreview
     /// </summary>
     public class FileLocation
     {
-        /// <summary>VideoLocal_Place ID — use this in the execute body.</summary>
+        /// <summary>
+        /// VideoLocal_Place ID — use this in the execute body.
+        /// </summary>
         [Required]
         public required int PlaceID { get; init; }
 
-        /// <summary>VideoLocal ID.</summary>
+        /// <summary>
+        /// VideoLocal ID.
+        /// </summary>
         [Required]
         public required int VideoLocalID { get; init; }
 
@@ -54,7 +68,9 @@ public class ReleaseDeletionPreview
         /// </summary>
         public string? AbsolutePath { get; init; }
 
-        /// <summary>File size in bytes.</summary>
+        /// <summary>
+        /// File size in bytes.
+        /// </summary>
         [Required]
         public required long FileSize { get; init; }
     }

@@ -545,11 +545,15 @@ public class ReleaseCandidate
     /// </summary>
     public class File
     {
-        /// <summary>VideoLocal_Place ID.</summary>
+        /// <summary>
+        /// VideoLocal_Place ID.
+        /// </summary>
         [Required]
         public required int PlaceID { get; init; }
 
-        /// <summary>VideoLocal ID (unique file identity, based on ED2K hash + size).</summary>
+        /// <summary>
+        /// VideoLocal ID (unique file identity, based on ED2K hash + size).
+        /// </summary>
         [Required]
         public required int VideoLocalID { get; init; }
 
@@ -558,7 +562,9 @@ public class ReleaseCandidate
         /// </summary>
         public string? AbsolutePath { get; init; }
 
-        /// <summary>File size in bytes.</summary>
+        /// <summary>
+        /// File size in bytes.
+        /// </summary>
         [Required]
         public required long FileSize { get; init; }
 
@@ -580,14 +586,20 @@ public class ReleaseCandidate
         [Required]
         public required bool IsRedundant { get; init; }
 
-        /// <summary>The release date reported by the release provider, if known.</summary>
+        /// <summary>
+        /// The release date reported by the release provider, if known.
+        /// </summary>
         public DateOnly? ReleasedAt { get; init; }
 
-        /// <summary>When this file was imported into Shoko's library, if known.</summary>
+        /// <summary>
+        /// When this file was imported into Shoko's library, if known.
+        /// </summary>
         [JsonConverter(typeof(IsoDateTimeConverter))]
         public DateTime? ImportedAt { get; init; }
 
-        /// <summary>The release's original filename as reported by the provider, if known.</summary>
+        /// <summary>
+        /// The release's original filename as reported by the provider, if known.
+        /// </summary>
         public string? OriginalFilename { get; init; }
 
         /// <summary>
@@ -596,43 +608,69 @@ public class ReleaseCandidate
         /// </summary>
         public bool? IsChaptered { get; init; }
 
-        /// <summary>True if this file is marked as censored by the release provider.</summary>
+        /// <summary>
+        /// True if this file is marked as censored by the release provider.
+        /// </summary>
         public bool? IsCensored { get; init; }
 
-        /// <summary>True if this file is marked as creditless by the release provider.</summary>
+        /// <summary>
+        /// True if this file is marked as creditless by the release provider.
+        /// </summary>
         public bool? IsCreditless { get; init; }
 
-        /// <summary>True if this file is marked as corrupted by the release provider.</summary>
+        /// <summary>
+        /// True if this file is marked as corrupted by the release provider.
+        /// </summary>
         public bool IsCorrupted { get; init; }
 
-        /// <summary>Release source for this specific file (e.g. "BluRay", "Web").</summary>
+        /// <summary>
+        /// Release source for this specific file (e.g. "BluRay", "Web").
+        /// </summary>
         public string? Source { get; init; }
 
-        /// <summary>Video resolution for this specific file (e.g. "1080p", "720p").</summary>
+        /// <summary>
+        /// Video resolution for this specific file (e.g. "1080p", "720p").
+        /// </summary>
         public string? Resolution { get; init; }
 
-        /// <summary>Video codec for this specific file (e.g. "HEVC", "H264").</summary>
+        /// <summary>
+        /// Video codec for this specific file (e.g. "HEVC", "H264").
+        /// </summary>
         public string? VideoCodec { get; init; }
 
-        /// <summary>Video bit depth for this specific file.</summary>
+        /// <summary>
+        /// Video bit depth for this specific file.
+        /// </summary>
         public int BitDepth { get; init; }
 
-        /// <summary>Primary audio codec for this specific file (e.g. "AAC", "AC3").</summary>
+        /// <summary>
+        /// Primary audio codec for this specific file (e.g. "AAC", "AC3").
+        /// </summary>
         public string? AudioCodec { get; init; }
 
-        /// <summary>Number of audio streams in this specific file.</summary>
+        /// <summary>
+        /// Number of audio streams in this specific file.
+        /// </summary>
         public int AudioStreamCount { get; init; }
 
-        /// <summary>Number of subtitle streams in this specific file.</summary>
+        /// <summary>
+        /// Number of subtitle streams in this specific file.
+        /// </summary>
         public int SubtitleStreamCount { get; init; }
 
-        /// <summary>Release version for this specific file.</summary>
+        /// <summary>
+        /// Release version for this specific file.
+        /// </summary>
         public int Version { get; init; }
 
-        /// <summary>Audio languages embedded in this file, from the release provider or MediaInfo.</summary>
+        /// <summary>
+        /// Audio languages embedded in this file, from the release provider or MediaInfo.
+        /// </summary>
         public IReadOnlyList<string> AudioLanguages { get; init; } = [];
 
-        /// <summary>Subtitle languages embedded in this file, from the release provider or MediaInfo.</summary>
+        /// <summary>
+        /// Subtitle languages embedded in this file, from the release provider or MediaInfo.
+        /// </summary>
         public IReadOnlyList<string> SubtitleLanguages { get; init; } = [];
 
         /// <summary>

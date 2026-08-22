@@ -247,7 +247,9 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
         return new CompareDecision(0, null, null, null, null);
     }
 
-    /// <summary>Compares a single quality signal between two candidates using aggregate signals.</summary>
+    /// <summary>
+    /// Compares a single quality signal between two candidates using aggregate signals.
+    /// </summary>
     private static int CompareSignalAggregate(
         ReleaseSignalType signal, VideoReleaseCandidate a, VideoReleaseCandidate b,
         ReleaseComparisonPreferences prefs) => signal switch
@@ -412,7 +414,9 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
             : a.BitDepth.CompareTo(b.BitDepth);  // lower is better
     }
 
-    /// <summary>Higher count wins. Zero on either side is treated as unknown (skip).</summary>
+    /// <summary>
+    /// Higher count wins. Zero on either side is treated as unknown (skip).
+    /// </summary>
     private static int CompareHigherInt(int a, int b)
     {
         if (a == 0 || b == 0) return 0;

@@ -22,13 +22,19 @@ public sealed class PurgeAllTmdbLinksAction(ITmdbLinkingService linkingService) 
 
     public string? ConfirmationMessage => "Are you sure you want to remove all AniDB-TMDB links from the database?";
 
-    /// <summary>Whether to remove show links.</summary>
+    /// <summary>
+    /// Whether to remove show links.
+    /// </summary>
     public bool RemoveShowLinks { get; set; } = true;
 
-    /// <summary>Whether to remove movie links.</summary>
+    /// <summary>
+    /// Whether to remove movie links.
+    /// </summary>
     public bool RemoveMovieLinks { get; set; } = true;
 
-    /// <summary>Whether to reset the auto-linking state.</summary>
+    /// <summary>
+    /// Whether to reset the auto-linking state.
+    /// </summary>
     public bool? ResetAutoLinkingState { get; set; }
 
     public Task Execute(CancellationToken token = default)

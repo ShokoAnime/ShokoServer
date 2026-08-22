@@ -49,13 +49,19 @@ public class PrimaryReleaseInfo
     public string? RunnerUpValue { get; init; }
 }
 
-/// <summary>Why a release candidate was selected as the primary for an episode.</summary>
+/// <summary>
+/// Why a release candidate was selected as the primary for an episode.
+/// </summary>
 public enum PrimaryReleaseReason
 {
-    /// <summary>Only one release covers this episode — no comparison was needed.</summary>
+    /// <summary>
+    /// Only one release covers this episode — no comparison was needed.
+    /// </summary>
     OnlyRelease,
 
-    /// <summary>Multiple candidates were compared; this one ranked highest.</summary>
+    /// <summary>
+    /// Multiple candidates were compared; this one ranked highest.
+    /// </summary>
     Ranked,
 }
 
@@ -65,7 +71,9 @@ public enum PrimaryReleaseReason
 /// </summary>
 public class ReleaseCandidateSummary
 {
-    /// <summary>Quality-signal fingerprint of the candidate.</summary>
+    /// <summary>
+    /// Quality-signal fingerprint of the candidate.
+    /// </summary>
     public string Key { get; init; } = string.Empty;
 
     public string? GroupName { get; init; }
@@ -94,7 +102,9 @@ public class ReleaseCandidateSummary
 
     public int Version { get; init; }
 
-    /// <summary>Number of files in this candidate.</summary>
+    /// <summary>
+    /// Number of files in this candidate.
+    /// </summary>
     public int FileCount { get; init; }
 
     /// <summary>

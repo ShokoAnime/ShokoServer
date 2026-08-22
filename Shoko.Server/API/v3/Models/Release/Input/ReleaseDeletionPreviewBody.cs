@@ -33,7 +33,9 @@ public class ReleaseDeletionPreviewBody
     /// </summary>
     public class SeriesCandidateOverride
     {
-        /// <summary>Shoko series ID.</summary>
+        /// <summary>
+        /// Shoko series ID.
+        /// </summary>
         [Required]
         public required int SeriesID { get; set; }
 

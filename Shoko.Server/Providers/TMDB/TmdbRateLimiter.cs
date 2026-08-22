@@ -170,7 +170,9 @@ public sealed class TmdbRateLimiter : IDisposable
 
     internal static TimeSpan Jitter() => TimeSpan.FromMilliseconds(Random.Shared.Next(0, 50));
 
-    /// <summary>Exposes the raw backoff deadline for unit tests.</summary>
+    /// <summary>
+    /// Exposes the raw backoff deadline for unit tests.
+    /// </summary>
     internal long BackoffUntilTicks => Interlocked.Read(ref _backoffUntilTicks);
 
     /// <summary>
@@ -212,7 +214,9 @@ public sealed class TmdbRateLimiter : IDisposable
     /// </summary>
     public bool Is5xxPaused => _is5xxPaused;
 
-    /// <summary>Fired when <see cref="Is5xxPaused"/> transitions between true and false.</summary>
+    /// <summary>
+    /// Fired when <see cref="Is5xxPaused"/> transitions between true and false.
+    /// </summary>
     public event EventHandler? PauseStateChanged;
 
     /// <summary>

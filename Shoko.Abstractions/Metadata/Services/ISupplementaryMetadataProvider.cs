@@ -11,13 +11,19 @@ namespace Shoko.Abstractions.Metadata.Services;
 /// </summary>
 public interface ISupplementaryMetadataProvider
 {
-    /// <summary>Display name for this provider.</summary>
+    /// <summary>
+    /// Display name for this provider.
+    /// </summary>
     string Name { get; }
 
-    /// <summary>Optional description.</summary>
+    /// <summary>
+    /// Optional description.
+    /// </summary>
     string? Description => null;
 
-    /// <summary>Provider version, defaults to the assembly version.</summary>
+    /// <summary>
+    /// Provider version, defaults to the assembly version.
+    /// </summary>
     Version Version => GetType().Assembly.GetName().Version ?? new Version(0, 0, 0, 0);
 
     /// <summary>
@@ -46,5 +52,7 @@ public interface ISupplementaryMetadataProvider
 public interface ISupplementaryMetadataProvider<TConfiguration> : ISupplementaryMetadataProvider
     where TConfiguration : ISupplementaryMetadataProviderConfiguration { }
 
-/// <summary>Marker interface for supplementary provider configuration types.</summary>
+/// <summary>
+/// Marker interface for supplementary provider configuration types.
+/// </summary>
 public interface ISupplementaryMetadataProviderConfiguration { }

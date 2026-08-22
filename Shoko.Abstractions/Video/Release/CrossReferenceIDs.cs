@@ -6,9 +6,13 @@ namespace Shoko.Abstractions.Video.Release;
 /// </summary>
 public static class CrossReferenceIDs
 {
-    /// <summary>Key for an AniDB anime ID.</summary>
+    /// <summary>
+    /// Key for an AniDB anime ID.
+    /// </summary>
     public const string AniDB_Anime = "AniDB_Anime";
 
-    /// <summary>Key for an AniDB episode ID.</summary>
+    /// <summary>
+    /// Key for an AniDB episode ID.
+    /// </summary>
     public const string AniDB_Episode = "AniDB_Episode";
 }
