@@ -60,6 +60,13 @@ public class ActionInfo
     public bool RequiresConfirmation { get; set; }
 
     /// <summary>
+    ///   Optional custom message shown to the user when the WebUI prompts for
+    ///   confirmation. When <see langword="null"/>, the WebUI uses a generic
+    ///   fallback prompt.
+    /// </summary>
+    public string? ConfirmationMessage { get; set; }
+
+    /// <summary>
     ///   Maps a registered action to its API representation.
     /// </summary>
     public static ActionInfo FromExecutableActionInfo(ExecutableActionInfo info) => new()
@@ -72,5 +79,6 @@ public class ActionInfo
         Scope = info.Scope,
         Permission = info.Permission,
         RequiresConfirmation = info.RequiresConfirmation,
+        ConfirmationMessage = info.ConfirmationMessage,
     };
 }

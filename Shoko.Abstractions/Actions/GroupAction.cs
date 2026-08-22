@@ -42,6 +42,9 @@ public abstract class GroupAction : IExecutableAction, IScopedAction
     /// <inheritdoc cref="IExecutableAction.RequiresConfirmation"/>
     public virtual bool RequiresConfirmation => false;
 
+    /// <inheritdoc cref="IExecutableAction.ConfirmationMessage"/>
+    public virtual string? ConfirmationMessage { get => null; }
+
     /// <inheritdoc cref="IExecutableAction.Validate"/>
     public virtual Task<ActionValidationResult?> Validate(CancellationToken token = default)
         => Task.FromResult<ActionValidationResult?>(null);
