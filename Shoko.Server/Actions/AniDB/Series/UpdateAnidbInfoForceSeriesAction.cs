@@ -22,7 +22,7 @@ public sealed class UpdateAnidbInfoForceSeriesAction(IAnidbService anidbService)
 
     public override bool RequiresConfirmation => true;
 
-    public override string? ConfirmationMessage => "Are you sure you want to force a complete update of the AniDB info for this series, bypassing time checks and bans? This may take a while.";
+    public override string? ConfirmationMessage => "Are you sure you want to force a complete update of the AniDB info for this series, bypassing time checks? This may take a while and may extend an existing ban.";
 
     public override Task Execute(CancellationToken token = default)
         => anidbService.ScheduleRefreshOfAnimeByID(Series.AnidbAnimeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.IgnoreTimeCheck | AnidbRefreshMethod.IgnoreHttpBans);

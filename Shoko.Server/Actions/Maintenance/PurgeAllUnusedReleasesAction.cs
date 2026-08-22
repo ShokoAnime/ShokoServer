@@ -21,7 +21,7 @@ public sealed class PurgeAllUnusedReleasesAction(IVideoReleaseService videoRelea
 
     public bool RequiresConfirmation => true;
 
-    public string? ConfirmationMessage => "Are you sure you want to remove all unused (unlinked) releases from the database?";
+    public string? ConfirmationMessage => "Are you sure you want to remove all unused releases from the database?";
 
     public Task Execute(CancellationToken token = default)
         => videoReleaseService.PurgeUnusedReleases(providerNames: null, skipEvents: false);

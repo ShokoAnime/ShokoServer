@@ -37,7 +37,7 @@ public interface IExecutableAction
     /// <summary>
     ///   The description of the action.
     /// </summary>
-    string? Description => null;
+    string? Description { get => null; }
 
     /// <summary>
     ///   The category of the action. Defaults to
@@ -59,7 +59,7 @@ public interface IExecutableAction
     /// <summary>
     ///   Whether this action requires confirmation before invocation.
     /// </summary>
-    bool RequiresConfirmation => false;
+    bool RequiresConfirmation { get => false; }
 
     /// <summary>
     ///   Optional custom message shown to the user when the WebUI prompts for
