@@ -10,12 +10,12 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Force.DeepCloner;
 using Microsoft.Extensions.Logging;
+using NJsonSchema;
+using NJsonSchema.Validation;
 using Namotion.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
-using NJsonSchema;
-using NJsonSchema.Validation;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
@@ -25,6 +25,9 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
+using Shoko.Abstractions.UI;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Extensions;
@@ -53,7 +56,11 @@ public partial class ConfigurationService : IConfigurationService
 
     private readonly ConcurrentDictionary<Guid, ConfigurationInfo> _configurationTypes = [];
 
+    private readonly UiDefinitionBuilder _uiDefinitionBuilder;
+
     private readonly ConcurrentDictionary<ConfigurationInfo, string> _serializedSchemas = [];
+
+    private readonly ConcurrentDictionary<Guid, WrappedJsonSchema> _wrappedSchemas = [];
 
     private readonly ConcurrentDictionary<Guid, IConfiguration> _loadedConfigurations = [];
 
@@ -79,27 +86,14 @@ public partial class ConfigurationService : IConfigurationService
         _loggerFactory = loggerFactory;
         _applicationPaths = applicationPaths;
         _pluginManager = pluginManager;
-        _newtonsoftJsonSerializerSettings = new()
-        {
-            Formatting = Formatting.Indented,
-            ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-            DefaultValueHandling = DefaultValueHandling.Include,
-            ObjectCreationHandling = ObjectCreationHandling.Replace,
-            MissingMemberHandling = MissingMemberHandling.Ignore,
-            Converters = [new StringEnumConverter()]
-        };
-        _systemTextJsonSerializerOptions = new()
-        {
-            AllowTrailingCommas = true,
-            WriteIndented = true,
-            PreferredObjectCreationHandling = JsonObjectCreationHandling.Replace,
-            ReferenceHandler = ReferenceHandler.IgnoreCycles,
-        };
-        _systemTextJsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        _newtonsoftJsonSerializerSettings = ShokoJsonSerializers.CreateNewtonsoftSettings();
+        _systemTextJsonSerializerOptions = ShokoJsonSerializers.CreateSystemTextJsonOptions();
         _jsonSchemaGenerator = new(_newtonsoftJsonSerializerSettings, _systemTextJsonSerializerOptions);
+        _uiDefinitionBuilder = new(loggerFactory.CreateLogger<UiDefinitionBuilder>());
 
         var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(typeof(ServerSettings));
         wrappedSchema.Schema.Id = GetID(typeof(ServerSettings)).ToString();
+        _wrappedSchemas[Guid.Empty] = wrappedSchema;
         _configurationTypes[Guid.Empty] = new(this)
         {
             // We first map the server settings to the empty guid because the id
@@ -156,6 +150,8 @@ public partial class ConfigurationService : IConfigurationService
         _configurationTypes.TryRemove(Guid.Empty, out _);
         _serializedSchemas[_configurationTypes[serverSettingsID]] = _serializedSchemas[serverSettingsInfo];
         _serializedSchemas.TryRemove(serverSettingsInfo, out _);
+        _wrappedSchemas[serverSettingsID] = _wrappedSchemas[Guid.Empty];
+        _wrappedSchemas.TryRemove(Guid.Empty, out _);
         _loadedConfigurations[serverSettingsID] = _loadedConfigurations[Guid.Empty];
         _loadedConfigurations.TryRemove(Guid.Empty, out _);
         if (InternalLoadedEnvironmentVariables.TryGetValue(Guid.Empty, out var envVarDict))
@@ -174,6 +170,7 @@ public partial class ConfigurationService : IConfigurationService
             var contextualType = configurationType.ToContextualType();
             var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(configurationType);
             wrappedSchema.Schema.Id = id.ToString();
+            _wrappedSchemas[id] = wrappedSchema;
             var description = TypeReflectionExtensions.GetDescription(contextualType);
             var name = wrappedSchema.Schema.Title!;
             string? path = null;
@@ -997,6 +994,29 @@ public partial class ConfigurationService : IConfigurationService
         var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(type);
         wrappedSchema.Schema.Id = id.ToString();
         return wrappedSchema.Schema;
+    }
+
+    /// <remarks>
+    ///   Deliberately stateless and keyed on nothing: the type does not have to
+    ///   be a registered configuration, so there is no configuration identity
+    ///   to cache against and a plugin calling this with a form model of its own
+    ///   must not populate a cache keyed on one.
+    ///   <see cref="ConfigurationInfo.UiDefinition"/> holds the per-configuration
+    ///   cache instead.
+    /// </remarks>
+    public UiDefinition GenerateUiDefinition(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+
+        var id = GetID(type);
+        var wrappedSchema = _jsonSchemaGenerator.GetSchemaForType(type);
+        wrappedSchema.Schema.Id = id.ToString();
+        // Both come off the type the same way `AddParts` derives them for a
+        // configuration, so a registered configuration is described identically
+        // whichever way it is reached.
+        var name = wrappedSchema.Schema.Title ?? type.Name;
+        var description = TypeReflectionExtensions.GetDescription(type.ToContextualType());
+        return _uiDefinitionBuilder.Build(id, name, description, wrappedSchema);
     }
 
     private void EnsureSchemaExists(ConfigurationInfo info)

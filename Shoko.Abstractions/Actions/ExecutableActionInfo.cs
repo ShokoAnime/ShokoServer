@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.UI;
 
 namespace Shoko.Abstractions.Actions;
 
@@ -40,6 +41,27 @@ namespace Shoko.Abstractions.Actions;
 /// <param name="PluginId">
 ///   The ID of the plugin that owns the action.
 /// </param>
+/// <param name="Parameters">
+///   A render-ready description of the action's invocation parameters, or
+///   <see langword="null"/> when the action declares none.
+/// </param>
+/// <remarks>
+///   <para>
+///     An action's parameters are simply its own settable, serialized
+///     properties — the caller's payload is populated straight onto the action
+///     instance — so they are described by the very same
+///     <see cref="UiDefinition"/> a configuration is described by. A client
+///     renders an invocation form from it exactly as it renders a
+///     configuration editor.
+///   </para>
+///   <para>
+///     The action's own metadata surface (<see cref="Name"/>,
+///     <see cref="Description"/>, <see cref="Category"/>,
+///     <see cref="Permission"/>, <see cref="RequiresConfirmation"/>,
+///     <see cref="Scope"/> and the scoped context) is deliberately not part of
+///     it; those are described by this record instead.
+///   </para>
+/// </remarks>
 public sealed record ExecutableActionInfo(
     Guid Id,
     string Name,
@@ -50,5 +72,6 @@ public sealed record ExecutableActionInfo(
     ActionPermission Permission,
     bool RequiresConfirmation,
     string? ConfirmationMessage,
-    Guid PluginId
+    Guid PluginId,
+    UiDefinition? Parameters = null
 );
