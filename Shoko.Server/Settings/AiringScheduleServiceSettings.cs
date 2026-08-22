@@ -6,6 +6,8 @@ using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Services;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
 
 namespace Shoko.Server.Settings;
 

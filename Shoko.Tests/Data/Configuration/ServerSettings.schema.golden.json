@@ -1,0 +1,2704 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Core Settings",
+  "type": "object",
+  "description": "Core Settings for the server.",
+  "properties": {
+    "SettingsVersion": {
+      "title": "Settings Version",
+      "type": "integer",
+      "description": "Settings version. Will be incremented by the system. DO NOT TOUCH.",
+      "format": "int32"
+    },
+    "ImagesPath": {
+      "title": "Images Path",
+      "type": [
+        "null",
+        "string"
+      ],
+      "description": "Path where the images are stored. If set to `null` then it will use\nthe default location.",
+      "x-uiDefinition": {
+        "elementType": "auto",
+        "requiresRestart": true,
+        "envVar": "SHOKO_IMAGES_PATH",
+        "envVarOverridable": true
+      }
+    },
+    "Culture": {
+      "title": "Culture",
+      "type": "string",
+      "description": "The culture to use when formatting strings."
+    },
+    "FirstRun": {
+      "title": "First Run",
+      "type": "boolean",
+      "description": "Indicates this the first time the server has been started.",
+      "x-uiDefinition": {
+        "elementType": "auto",
+        "requiresRestart": false,
+        "envVar": "SHOKO_FIRST_RUN",
+        "envVarOverridable": true
+      }
+    },
+    "AutoGroupSeries": {
+      "title": "Auto Group Series",
+      "type": "boolean",
+      "description": "Auto group series based on the detected relation."
+    },
+    "AutoGroupSeriesRelationExclusions": {
+      "title": "Auto Group Series Relation Exclusions",
+      "type": "array",
+      "description": "The list of relation types to exclude from auto grouping.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "AutoGroupSeriesUseScoreAlgorithm": {
+      "title": "Auto Group Series Use Score Algorithm",
+      "type": "boolean",
+      "description": "Use the score algorithm for auto grouping."
+    },
+    "Image": {
+      "title": "Image",
+      "description": "Configure the image settings for Shoko.",
+      "$ref": "#/definitions/Image"
+    },
+    "CachingDatabaseTimeout": {
+      "title": "Caching Database Timeout (seconds)",
+      "type": "integer",
+      "description": "The maximum number of seconds to cache a repository during startup.",
+      "format": "int32",
+      "maximum": 600.0,
+      "minimum": 1.0,
+      "x-uiDefinition": {
+        "elementType": "auto",
+        "requiresRestart": false,
+        "envVar": "DB_CACHING_TIMEOUT",
+        "envVarOverridable": false
+      }
+    },
+    "ThreadPoolMinThreads": {
+      "title": "Thread Pool Minimum Threads",
+      "type": "integer",
+      "description": "Minimum number of .NET thread pool worker/I-O completion threads to\nkeep warm. Raising this avoids the runtime's gradual \"hill-climbing\"\nthread injection delay under bursts of concurrent, blocking, or\nsynchronous work. Set to 0 to leave the runtime's own default\nuntouched. Positive values are used directly. Negative values are\ntreated as a multiplier against the CPU count, offset by one, e.g.\n-1 means CPU count x 2, -2 means CPU count x 3, up to -9 meaning\nCPU count x 10.",
+      "format": "int32",
+      "maximum": 2147483647.0,
+      "minimum": -9.0,
+      "x-uiDefinition": {
+        "elementType": "auto",
+        "requiresRestart": true,
+        "envVar": "THREADPOOL_MIN_THREADS",
+        "envVarOverridable": false
+      }
+    },
+    "Import": {
+      "title": "Import",
+      "description": "The import settings.",
+      "$ref": "#/definitions/Import"
+    },
+    "AniDb": {
+      "title": "AniDB",
+      "description": "Configure the information Shoko retrieves from AniDB for the series in\nyour collection, and set your preferences for MyList options and the\ngeneral updating of AniDB data.",
+      "$ref": "#/definitions/AniDb"
+    },
+    "TMDB": {
+      "title": "TMDB",
+      "description": "Configure the information Shoko retrieves from TMDB for the series in\nyour collection.",
+      "$ref": "#/definitions/TMDB"
+    },
+    "Database": {
+      "title": "Database",
+      "description": "Configure the main database settings. These settings will not affect the\nqueue database.",
+      "$ref": "#/definitions/Database"
+    },
+    "Queue": {
+      "title": "Queue",
+      "description": "The queue processor settings.",
+      "$ref": "#/definitions/QueueProcessor"
+    },
+    "Connectivity": {
+      "title": "Connectivity",
+      "description": "The connectivity settings.",
+      "$ref": "#/definitions/Connectivity"
+    },
+    "Language": {
+      "title": "Language",
+      "description": "The language settings.",
+      "$ref": "#/definitions/Language"
+    },
+    "Plex": {
+      "title": "Plex",
+      "description": "The Plex settings.",
+      "$ref": "#/definitions/Plex"
+    },
+    "Plugins": {
+      "title": "Plugins",
+      "description": "The plugin settings.",
+      "$ref": "#/definitions/Plugin"
+    },
+    "ReleaseComparisonPreferences": {
+      "title": "Release Comparison Preferences",
+      "description": "Release-level comparison preferences used by the release management system.",
+      "$ref": "#/definitions/ReleaseComparisonPreferences"
+    },
+    "Logging": {
+      "title": "Logging",
+      "description": "The logging settings.",
+      "$ref": "#/definitions/Logging"
+    },
+    "Linux": {
+      "title": "Linux",
+      "description": "Linux runtime settings. Windows users can ignore this.",
+      "$ref": "#/definitions/Linux"
+    },
+    "Web": {
+      "title": "Web",
+      "description": "Configure settings related to the HTTP(S) hosting.",
+      "$ref": "#/definitions/Web"
+    },
+    "WebUI_Settings": {
+      "title": "Settings",
+      "type": "string",
+      "description": "The web UI settings, as a stringified JSON object.",
+      "x-uiDefinition": {
+        "elementType": "code-block",
+        "requiresRestart": false,
+        "envVar": "SHOKO_WEBUI_SETTINGS",
+        "envVarOverridable": true
+      }
+    },
+    "DumpSettingsOnStart": {
+      "title": "Dump Settings On Start",
+      "type": "boolean",
+      "description": "Dump the settings to the log file on startup.",
+      "default": true,
+      "x-uiDefinition": {
+        "elementType": "auto",
+        "requiresRestart": false,
+        "envVar": "SHOKO_DUMP_SETTINGS_ON_START",
+        "envVarOverridable": false
+      }
+    },
+    "SentryOptOut": {
+      "title": "Sentry Opt-Out",
+      "type": "boolean",
+      "description": "Disable Sentry error reporting in the server. This will not affect the\nweb UI error reporting.",
+      "x-uiDefinition": {
+        "elementType": "auto",
+        "requiresRestart": true,
+        "envVar": "SENTRY_OPT_OUT",
+        "envVarOverridable": false
+      }
+    }
+  },
+  "definitions": {
+    "Image": {
+      "type": "object",
+      "properties": {
+        "ImageTemplateUrls": {
+          "title": "Image Template Urls",
+          "type": "array",
+          "description": "List of user-registered image template URLs.\n            ",
+          "items": {
+            "$ref": "#/definitions/ImageTemplateUrl"
+          }
+        },
+        "AutoPurge": {
+          "title": "Auto Purge Orphaned Images",
+          "type": "boolean",
+          "description": "Automatically purge orphaned images on a periodic schedule (every 24 hours).\nOrphaned images are no longer referenced by any entity in the database.\n            "
+        },
+        "AutoValidate": {
+          "title": "Auto Validate Image Integrity",
+          "type": "boolean",
+          "description": "Automatically validate the integrity of all available images on a periodic schedule\n(every 24 hours). Invalid images will be re-downloaded.\n            "
+        }
+      }
+    },
+    "ImageTemplateUrl": {
+      "type": "object",
+      "description": "Configuration for the image template URL.\n            ",
+      "required": [
+        "ImageSource"
+      ],
+      "properties": {
+        "ImageSource": {
+          "title": "Image Source",
+          "description": "The image source.\n            ",
+          "default": "AniDB",
+          "$ref": "#/definitions/DataSource",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "AniDB",
+                "aliasValues": ""
+              },
+              {
+                "value": "TMDB",
+                "aliasValues": ""
+              },
+              {
+                "value": "TvDB",
+                "aliasValues": ""
+              },
+              {
+                "value": "AniList",
+                "aliasValues": ""
+              },
+              {
+                "value": "Animeshon",
+                "aliasValues": ""
+              },
+              {
+                "value": "Kitsu",
+                "aliasValues": ""
+              },
+              {
+                "value": "MAL",
+                "aliasValues": ""
+              },
+              {
+                "value": "FanartTV",
+                "aliasValues": ""
+              },
+              {
+                "value": "IMDB",
+                "aliasValues": ""
+              },
+              {
+                "value": "OMDB",
+                "aliasValues": ""
+              },
+              {
+                "value": "TraktTv",
+                "aliasValues": ""
+              },
+              {
+                "value": "TPDB",
+                "aliasValues": ""
+              },
+              {
+                "value": "MediUX",
+                "aliasValues": ""
+              },
+              {
+                "value": "SimKL",
+                "aliasValues": ""
+              },
+              {
+                "value": "Plugin",
+                "aliasValues": ""
+              },
+              {
+                "value": "LocallyGenerated",
+                "aliasValues": ""
+              },
+              {
+                "value": "None",
+                "aliasValues": ""
+              },
+              {
+                "value": "User",
+                "aliasValues": ""
+              },
+              {
+                "value": "Shoko",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "TemplateUrl": {
+          "title": "Image Template URL",
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "DataSource": {
+      "type": "string",
+      "description": "The data source.\n            ",
+      "x-enumNames": [
+        "AniDB",
+        "TMDB",
+        "TvDB",
+        "AniList",
+        "Animeshon",
+        "Kitsu",
+        "MAL",
+        "FanartTV",
+        "IMDB",
+        "OMDB",
+        "TraktTv",
+        "TPDB",
+        "MediUX",
+        "SimKL",
+        "Plugin",
+        "LocallyGenerated",
+        "None",
+        "User",
+        "Shoko"
+      ],
+      "enum": [
+        "AniDB",
+        "TMDB",
+        "TvDB",
+        "AniList",
+        "Animeshon",
+        "Kitsu",
+        "MAL",
+        "FanartTV",
+        "IMDB",
+        "OMDB",
+        "TraktTv",
+        "TPDB",
+        "MediUX",
+        "SimKL",
+        "Plugin",
+        "LocallyGenerated",
+        "None",
+        "User",
+        "Shoko"
+      ]
+    },
+    "Import": {
+      "type": "object",
+      "properties": {
+        "VideoExtensions": {
+          "title": "Video Extensions",
+          "type": "array",
+          "description": "List of video file extensions to import.",
+          "default": [
+            "MKV",
+            "AVI",
+            "MP4",
+            "MOV",
+            "OGM",
+            "WMV",
+            "MPG",
+            "MPEG",
+            "MK3D",
+            "M4V"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "Exclude": {
+          "title": "Exclude Regex Patterns",
+          "type": "array",
+          "description": "List of regular expression patterns to exclude any files that match on the full path.",
+          "default": [
+            "[\\\\\\/]\\$RECYCLE\\.BIN[\\\\\\/]",
+            "[\\\\\\/]\\.Recycle\\.Bin[\\\\\\/]",
+            "[\\\\\\/]\\.Trash-\\d+[\\\\\\/]"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "RunOnStart": {
+          "title": "Run Import on Startup",
+          "type": "boolean",
+          "description": "Run the import scheduled task on startup."
+        },
+        "ScanDropFoldersOnStart": {
+          "title": "Scan Source Managed Folders on Startup",
+          "type": "boolean",
+          "description": "Scan all source managed folders on server startup."
+        },
+        "CleanUpStructure": {
+          "title": "Clean Up Structure on Managed Folder Scan",
+          "type": "boolean",
+          "description": "Determines if we should clean up the managed folder structure when doing\na scan of the folder by default if it's not overridden on a per job\nbasis."
+        },
+        "CheckFileSize": {
+          "title": "Check File Size on Managed Folder Scan",
+          "type": "boolean",
+          "description": "Check the file size when scanning managed folders. This has a higher\ncost than not checking the file size, as it will check the file size on\nEVERY file in the folder at the path to scan."
+        },
+        "MaxAutoScanAttemptsPerFile": {
+          "title": "Max auto-scan attempts per file",
+          "type": "integer",
+          "description": "Max auto-scan attempts per file for unrecognized files.",
+          "format": "int32",
+          "default": 15,
+          "maximum": 100.0,
+          "minimum": 0.0
+        },
+        "UseExistingFileWatchedStatus": {
+          "title": "Use Existing Watched Status",
+          "type": "boolean",
+          "description": "Use the existing episode watched status when importing files."
+        },
+        "AutomaticallyDeleteDuplicatesOnImport": {
+          "title": "Automatically Delete Duplicates on Import",
+          "type": "boolean",
+          "description": "Automatically delete duplicate files on import after hashing them."
+        },
+        "FileLockChecking": {
+          "title": "Use File Lock Checking",
+          "type": "boolean",
+          "description": "Check if a file is currently being written to when reacting to events in the file watcher.",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true
+          }
+        },
+        "FileLockWaitTimeMS": {
+          "title": "File Lock Wait Time (ms)",
+          "type": "integer",
+          "description": "Time between each check to see if a file is currently being written to.",
+          "format": "int32",
+          "default": 4000,
+          "maximum": 60000.0,
+          "minimum": 1000.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true
+          }
+        },
+        "AggressiveFileLockChecking": {
+          "title": "Use Aggressive File Lock Checking",
+          "type": "boolean",
+          "description": "For file systems without proper locking, with this option enabled, Shoko\nwill try to use a more aggressive method to check if a file is currently\nbeing written to.",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true
+          }
+        },
+        "AggressiveFileLockWaitTimeSeconds": {
+          "title": "Aggressive File Lock Wait Time (seconds)",
+          "type": "integer",
+          "description": "Time between each check to see if a file is currently being written to.",
+          "format": "int32",
+          "default": 8,
+          "maximum": 60.0,
+          "minimum": 0.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true
+          }
+        },
+        "SkipDiskSpaceChecks": {
+          "title": "Skip Disk Space Checks",
+          "type": "boolean",
+          "description": "Skip disk space checks during the move/rename of files.",
+          "default": false
+        },
+        "MediaInfoPath": {
+          "title": "Override MediaInfo Path",
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional. Custom path to MediaInfo executable."
+        },
+        "MediaInfoTimeoutMinutes": {
+          "title": "MediaInfo Timeout (minutes)",
+          "type": "integer",
+          "description": "Timeout for wait for MediaInfo to finish scanning a file before killing\nit.",
+          "format": "int32",
+          "default": 5,
+          "maximum": 60.0,
+          "minimum": 1.0
+        }
+      }
+    },
+    "AniDb": {
+      "type": "object",
+      "required": [
+        "HTTPServerUrl"
+      ],
+      "properties": {
+        "Username": {
+          "title": "Username",
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "AniDB username.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "ANIDB_USER",
+            "envVarOverridable": false
+          }
+        },
+        "Password": {
+          "title": "Password",
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "AniDB password.",
+          "x-uiDefinition": {
+            "elementType": "password",
+            "requiresRestart": false,
+            "envVar": "ANIDB_PASS",
+            "envVarOverridable": false
+          }
+        },
+        "DownloadCharacters": {
+          "title": "Download Character Images",
+          "type": "boolean",
+          "description": "Download character images from AniDB."
+        },
+        "DownloadCreators": {
+          "title": "Download Creator Images & Data",
+          "type": "boolean",
+          "description": "Download creator images and extra data from AniDB. The extra data is\nneeded for staff to get images and to properly detect studios among\nother staff, etc.."
+        },
+        "DownloadRelatedAnime": {
+          "title": "Always Download Related Anime",
+          "type": "boolean",
+          "description": "Always download related anime, regardless of if the auto-group setting\nis enabled."
+        },
+        "MaxRelationDepth": {
+          "title": "Max Relation Depth",
+          "type": "integer",
+          "description": "Max relation depth when scheduling anime to be updated/fetched.",
+          "format": "int32",
+          "maximum": 5.0,
+          "minimum": 0.0
+        },
+        "MinimumHoursToRedownloadAnimeInfo": {
+          "title": "Minimum Hours To Redownload Anime Info",
+          "type": "integer",
+          "description": "The minimum number of hours to wait before attempting to re-downloading\nan AniDB anime.",
+          "format": "int32",
+          "default": 24,
+          "maximum": 48.0,
+          "minimum": 0.0
+        },
+        "AutomaticallyImportSeries": {
+          "title": "Automatically Import Series",
+          "type": "boolean",
+          "description": "Automatically create a Shoko Series for each AniDB anime."
+        },
+        "MyList_AddFiles": {
+          "title": "Add Files",
+          "type": "boolean"
+        },
+        "MyList_ReadWatched": {
+          "title": "Read Watched",
+          "type": "boolean"
+        },
+        "MyList_ReadUnwatched": {
+          "title": "Read Unwatched",
+          "type": "boolean"
+        },
+        "MyList_SetWatched": {
+          "title": "Set Watched",
+          "type": "boolean"
+        },
+        "MyList_SetUnwatched": {
+          "title": "Set Unwatched",
+          "type": "boolean"
+        },
+        "MyList_StorageState": {
+          "title": "Storage State",
+          "$ref": "#/definitions/MyList_State",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Unknown",
+                "aliasValues": ""
+              },
+              {
+                "value": "HDD",
+                "aliasValues": ""
+              },
+              {
+                "value": "Disk",
+                "aliasValues": ""
+              },
+              {
+                "value": "Deleted",
+                "aliasValues": ""
+              },
+              {
+                "value": "Remote",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "MyList_DeleteType": {
+          "title": "Delete Type",
+          "$ref": "#/definitions/AniDBFileDeleteType",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Delete",
+                "aliasValues": ""
+              },
+              {
+                "value": "DeleteLocalOnly",
+                "aliasValues": ""
+              },
+              {
+                "value": "MarkDeleted",
+                "aliasValues": ""
+              },
+              {
+                "value": "MarkExternalStorage",
+                "aliasValues": ""
+              },
+              {
+                "value": "MarkUnknown",
+                "aliasValues": ""
+              },
+              {
+                "value": "MarkDisk",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "MyList_RetainedBackupCount": {
+          "title": "Retained Backup Count",
+          "type": "integer",
+          "description": "Number of days to retain backups of the downloaded MyList for the user.",
+          "format": "int32",
+          "maximum": 99.0,
+          "minimum": 0.0
+        },
+        "Calendar_UpdateFrequency": {
+          "title": "Calendar",
+          "description": "Check which AniDB anime is currently airing in the next/previous week,\nand schedule an update for all of them, adding them to the local\ncollection if they're not already part of it.",
+          "$ref": "#/definitions/ScheduledUpdateFrequency",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Never",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursSix",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursTwelve",
+                "aliasValues": ""
+              },
+              {
+                "value": "Daily",
+                "aliasValues": ""
+              },
+              {
+                "value": "WeekOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "MonthOne",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "Anime_UpdateFrequency": {
+          "title": "Anime Updates",
+          "description": "Check which AniDB anime has been updated since the last time we asked,\nand schedule an update for any in the local collection.",
+          "$ref": "#/definitions/ScheduledUpdateFrequency",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Never",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursSix",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursTwelve",
+                "aliasValues": ""
+              },
+              {
+                "value": "Daily",
+                "aliasValues": ""
+              },
+              {
+                "value": "WeekOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "MonthOne",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "File_UpdateFrequency": {
+          "title": "Files with missing info",
+          "description": "Check for any files with missing info and schedule them for a re-check.",
+          "$ref": "#/definitions/ScheduledUpdateFrequency",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Never",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursSix",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursTwelve",
+                "aliasValues": ""
+              },
+              {
+                "value": "Daily",
+                "aliasValues": ""
+              },
+              {
+                "value": "WeekOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "MonthOne",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "MyList_UpdateFrequency": {
+          "title": "MyList",
+          "description": "Sync the MyList with the local collection.",
+          "$ref": "#/definitions/ScheduledUpdateFrequency",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Never",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursSix",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursTwelve",
+                "aliasValues": ""
+              },
+              {
+                "value": "Daily",
+                "aliasValues": ""
+              },
+              {
+                "value": "WeekOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "MonthOne",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "Notification_UpdateFrequency": {
+          "title": "Notifications & Messages",
+          "description": "Check for any unread notifications and messages and download them if\nthere are any.",
+          "$ref": "#/definitions/ScheduledUpdateFrequency",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Never",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursSix",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursTwelve",
+                "aliasValues": ""
+              },
+              {
+                "value": "Daily",
+                "aliasValues": ""
+              },
+              {
+                "value": "WeekOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "MonthOne",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "Notification_HandleMovedFiles": {
+          "title": "Handle Moved Files",
+          "type": "boolean",
+          "description": "Handle 'File has been moved' messages from AniDB."
+        },
+        "ImageCdnUrl": {
+          "title": "Image CDN URL",
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The base URL or URL template for the image CDN to use.",
+          "format": "uri",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "ANIDB_IMAGE_CDN_URL",
+            "envVarOverridable": false
+          }
+        },
+        "TitleCacheUrl": {
+          "title": "Title Cache URL",
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The full URL for where to fetch the title cache used for the \"remote\"\nAniDB search capabilities within Shoko.",
+          "format": "uri",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "ANIDB_TITLE_CACHE_URL",
+            "envVarOverridable": false
+          }
+        },
+        "HTTPServerUrl": {
+          "title": "HTTP API Server URL",
+          "type": "string",
+          "description": "HTTP API server to communicate with.",
+          "format": "uri",
+          "minLength": 1,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "ANIDB_HTTP_API_URL",
+            "envVarOverridable": false
+          }
+        },
+        "HTTPRateLimit": {
+          "title": "Rate Limiting",
+          "description": "Settings for rate limiting the HTTP API.",
+          "$ref": "#/definitions/AnidbRateLimit"
+        },
+        "UDPServerAddress": {
+          "title": "Server Address",
+          "type": "string",
+          "description": "UDP server to communicate with.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "ANIDB_UDP_API_ADDRESS",
+            "envVarOverridable": false
+          }
+        },
+        "UDPServerPort": {
+          "title": "Server Port",
+          "type": "integer",
+          "description": "UDP server port to communicate with.",
+          "maximum": 65535.0,
+          "minimum": 1.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "ANIDB_UDP_API_PORT",
+            "envVarOverridable": false
+          }
+        },
+        "ClientPort": {
+          "title": "Client Port",
+          "type": "integer",
+          "description": "UDP client port to communicate with.",
+          "maximum": 65535.0,
+          "minimum": 1.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true
+          }
+        },
+        "UDPPingFrequency": {
+          "title": "Ping Frequency (seconds)",
+          "type": "integer",
+          "description": "How often to ping the UDP server to keep the session alive.",
+          "format": "int32",
+          "maximum": 120.0,
+          "minimum": 30.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true
+          }
+        },
+        "UDPRateLimit": {
+          "title": "Rate Limiting",
+          "description": "Settings for rate limiting the UDP API.",
+          "$ref": "#/definitions/AnidbRateLimit"
+        },
+        "AVDumpKey": {
+          "title": "API Key",
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The API key to use when using AVDump to dump files for AniDB. The key is\ncreated on their site and is separate from the username and password.",
+          "x-uiDefinition": {
+            "elementType": "password",
+            "requiresRestart": false,
+            "envVar": "ANIDB_AVDUMP_API_KEY",
+            "envVarOverridable": false
+          }
+        },
+        "AVDumpClientPort": {
+          "title": "Client Port",
+          "type": "integer",
+          "description": "The client port to prefer binding to when using AVDump to dump files for\nAniDB."
+        },
+        "AVDump": {
+          "title": "Advanced AVDump Settings",
+          "description": "AVDump settings",
+          "$ref": "#/definitions/AVDump"
+        }
+      }
+    },
+    "MyList_State": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "Unknown",
+        "HDD",
+        "Disk",
+        "Deleted",
+        "Remote"
+      ],
+      "enum": [
+        "Unknown",
+        "HDD",
+        "Disk",
+        "Deleted",
+        "Remote"
+      ]
+    },
+    "AniDBFileDeleteType": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "Delete",
+        "DeleteLocalOnly",
+        "MarkDeleted",
+        "MarkExternalStorage",
+        "MarkUnknown",
+        "MarkDisk"
+      ],
+      "enum": [
+        "Delete",
+        "DeleteLocalOnly",
+        "MarkDeleted",
+        "MarkExternalStorage",
+        "MarkUnknown",
+        "MarkDisk"
+      ]
+    },
+    "ScheduledUpdateFrequency": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "Never",
+        "HoursSix",
+        "HoursTwelve",
+        "Daily",
+        "WeekOne",
+        "MonthOne"
+      ],
+      "enum": [
+        "Never",
+        "HoursSix",
+        "HoursTwelve",
+        "Daily",
+        "WeekOne",
+        "MonthOne"
+      ]
+    },
+    "AnidbRateLimit": {
+      "type": "object",
+      "description": "Settings for rate limiting the Anidb provider.",
+      "properties": {
+        "BaseRateInSeconds": {
+          "title": "Base Rate (seconds)",
+          "type": "integer",
+          "description": "Base rate in seconds for request and the multipliers.",
+          "format": "int32",
+          "maximum": 60.0,
+          "minimum": 2.0
+        },
+        "SlowRateMultiplier": {
+          "title": "Slow Rate Multiplier",
+          "type": "integer",
+          "description": "Slow rate multiplier applied to the Base Rate.",
+          "format": "int32",
+          "maximum": 99.0,
+          "minimum": 2.0
+        },
+        "SlowRatePeriodMultiplier": {
+          "title": "Slow Rate Period Multiplier",
+          "type": "integer",
+          "description": "Slow rate period multiplier applied to the Base Rate.",
+          "format": "int32",
+          "maximum": 99.0,
+          "minimum": 2.0
+        },
+        "ResetPeriodMultiplier": {
+          "title": "Reset Period Multiplier",
+          "type": "integer",
+          "description": "Reset period multiplier applied to the Base Rate.",
+          "format": "int32",
+          "maximum": 99.0,
+          "minimum": 2.0
+        }
+      }
+    },
+    "AVDump": {
+      "type": "object",
+      "properties": {
+        "MaxConcurrency": {
+          "title": "Max Concurrency",
+          "type": "integer",
+          "description": "Max concurrent hashing jobs to run in AVDump at the same time.",
+          "format": "int32",
+          "maximum": 64.0,
+          "minimum": 0.0
+        },
+        "CreqTimeout": {
+          "title": "Creq Timeout",
+          "type": "integer",
+          "description": "Sets the timeout for a creq upload before retrying or bailing.",
+          "format": "int32",
+          "maximum": 300.0,
+          "minimum": 20.0
+        },
+        "CreqMaxRetries": {
+          "title": "Creq Max Retries",
+          "type": "integer",
+          "description": "Sets the max retry attempts for a creq upload before bailing.",
+          "format": "int32",
+          "maximum": 20.0,
+          "minimum": 1.0
+        }
+      }
+    },
+    "TMDB": {
+      "type": "object",
+      "properties": {
+        "AutoLink": {
+          "title": "Auto Link",
+          "type": "boolean",
+          "description": "Automagically link AniDB anime to TMDB shows and movies."
+        },
+        "AutoLinkRestricted": {
+          "title": "Auto Link Restricted",
+          "type": "boolean",
+          "description": "Automagically link restricted AniDB anime to TMDB shows and movies.\nAutoLink also needs to be set for this setting to take\neffect."
+        },
+        "ConsiderExistingOtherLinks": {
+          "title": "Consider Existing Other Links",
+          "type": "boolean",
+          "description": "Determines whether to consider existing cross-reference links to other\nAniDB anime when linking an AniDB anime to a TMDB show."
+        },
+        "DownloadAllTitles": {
+          "title": "Download All Titles",
+          "type": "boolean",
+          "description": "Indicates that all titles should be stored locally for the TMDB entity,\notherwise it will use\n or\n depending\non the entity type to determine which titles to store locally."
+        },
+        "DownloadAllOverviews": {
+          "title": "Download All Overviews",
+          "type": "boolean",
+          "description": "Indicates that all overviews should be stored locally for the TMDB\nentity, otherwise it will use\n to determine\nwhich overviews should be stored locally."
+        },
+        "DownloadAllContentRatings": {
+          "title": "Download All Content Ratings",
+          "type": "boolean",
+          "description": "Indicates that all content-ratings should be stored locally for the TMDB\nentity, otherwise it will use\n or\n depending\non the entity type to determine which content-ratings to store locally."
+        },
+        "ImageLanguageOrder": {
+          "title": "Image Language Order",
+          "type": "array",
+          "description": "Image language preference order, in text form for storage.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "AutoDownloadCrewAndCast": {
+          "title": "Auto Download Crew And Cast",
+          "type": "boolean",
+          "description": "Automagically download crew and cast for movies and tv shows in the\nlocal collection."
+        },
+        "AutoDownloadCollections": {
+          "title": "Auto Download Collections",
+          "type": "boolean",
+          "description": "Automagically download collections for movies and tv shows in the local\ncollection."
+        },
+        "AutoDownloadAlternateOrdering": {
+          "title": "Auto Download Alternate Ordering",
+          "type": "boolean",
+          "description": "Automagically download episode groups to use with alternate ordering\nfor tv shows."
+        },
+        "AutoDownloadNetworks": {
+          "title": "Auto Download Networks",
+          "type": "boolean",
+          "description": "Automagically download networks for tv shows in the local collection."
+        },
+        "AutoDownloadBackdrops": {
+          "title": "Auto Download Backdrops",
+          "type": "boolean",
+          "description": "Automagically download backdrops for TMDB entities that supports\nbackdrops up to  images per entity."
+        },
+        "MaxAutoBackdrops": {
+          "title": "Max Auto Backdrops",
+          "type": "integer",
+          "description": "The maximum number of backdrops to download for each TMDB entity that\nsupports backdrops.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadPosters": {
+          "title": "Auto Download Posters",
+          "type": "boolean",
+          "description": "Automagically download posters for TMDB entities that supports\nposters up to  images per entity."
+        },
+        "MaxAutoPosters": {
+          "title": "Max Auto Posters",
+          "type": "integer",
+          "description": "The maximum number of posters to download for each TMDB entity that\nsupports posters.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadLogos": {
+          "title": "Auto Download Logos",
+          "type": "boolean",
+          "description": "Automagically download logos for TMDB entities that supports\nlogos up to  images per entity."
+        },
+        "MaxAutoLogos": {
+          "title": "Max Auto Logos",
+          "type": "integer",
+          "description": "The maximum number of logos to download for each TMDB entity that\nsupports logos.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadThumbnails": {
+          "title": "Auto Download Thumbnails",
+          "type": "boolean",
+          "description": "Automagically download thumbnail images for TMDB entities that supports\nthumbnails."
+        },
+        "MaxAutoThumbnails": {
+          "title": "Max Auto Thumbnails",
+          "type": "integer",
+          "description": "The maximum number of thumbnail images to download for each TMDB entity\nthat supports thumbnail images.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadStaffImages": {
+          "title": "Auto Download Staff Images",
+          "type": "boolean",
+          "description": "Automagically download staff member and voice-actor images."
+        },
+        "MaxAutoStaffImages": {
+          "title": "Max Auto Staff Images",
+          "type": "integer",
+          "description": "The maximum number of staff member and voice-actor images to download\nfor each TMDB entity that supports staff member and voice-actor images.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadStudioImages": {
+          "title": "Auto Download Studio Images",
+          "type": "boolean",
+          "description": "Automagically download studio and company images."
+        },
+        "UserApiKey": {
+          "title": "User Api Key",
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "Optional. User provided TMDB API key to use.",
+          "x-uiDefinition": {
+            "elementType": "password",
+            "requiresRestart": true,
+            "envVar": "TMDB_API_KEY",
+            "envVarOverridable": false
+          }
+        },
+        "ImageCdnUrl": {
+          "title": "Image CDN URL",
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The base URL or URL template for the image CDN to use.",
+          "format": "uri",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "TMDB_IMAGE_CDN_URL",
+            "envVarOverridable": false
+          }
+        },
+        "IncrementalChangesWindowDays": {
+          "title": "Incremental Changes Window Days",
+          "type": "integer",
+          "description": "The number of days to check for incremental changes. Set to `0` to\ndisable incremental changes.",
+          "format": "int32",
+          "default": 1,
+          "maximum": 14.0,
+          "minimum": 0.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "TMDB_CHANGES_WINDOW_DAYS",
+            "envVarOverridable": false
+          }
+        },
+        "AutoSearchShowCandidateCount": {
+          "title": "Auto Search Show Candidate Count",
+          "type": "integer",
+          "description": "The maximum number of TMDB search candidates to evaluate per auto-search\nattempt for shows. Each candidate that passes the animation filter is fetched\nin full (title translations + episode count) and scored; the highest-scoring\nresult is used. Higher values improve accuracy at the cost of more TMDB\nAPI calls. All calls are paced by `TmdbRateLimiter` (sliding-window,\n~40 req/sec) with automatic 429 backoff, so increasing this value slows\nsearches but will not trigger rate-limit errors.\nThe year-free candidate pool cap is `2 × this value`. At the minimum\nof 1, year-free searches collect at most 2 candidates total — sufficient for\nmost titles, but edge cases may benefit from a higher value.",
+          "format": "int32",
+          "maximum": 10.0,
+          "minimum": 1.0
+        },
+        "AutoSearchMovieCandidateCount": {
+          "title": "Auto Search Movie Candidate Count",
+          "type": "integer",
+          "description": "The maximum number of TMDB search candidates to evaluate per auto-search\nattempt for movies. Each candidate that passes the animation filter is fetched\nin full (title translations + release dates) and scored; the highest-scoring\nresult is used. Higher values improve accuracy at the cost of more TMDB\nAPI calls. All calls are paced by `TmdbRateLimiter` (sliding-window,\n~40 req/sec) with automatic 429 backoff, so increasing this value slows\nsearches but will not trigger rate-limit errors.\nThe year-free candidate pool cap is `2 × this value`. At the minimum\nof 1, year-free searches collect at most 2 candidates total — sufficient for\nmost titles, but edge cases may benefit from a higher value.",
+          "format": "int32",
+          "maximum": 10.0,
+          "minimum": 1.0
+        },
+        "RateLimit": {
+          "title": "Rate Limit",
+          "description": "Rate limit settings for the TMDB API.",
+          "$ref": "#/definitions/TmdbRateLimit"
+        },
+        "AutoPurgeUnlinkedAfterDays": {
+          "title": "Auto Purge Unlinked After Days",
+          "type": "integer",
+          "description": "Number of days a TMDB show or movie can remain in the local database\nwithout any AniDB cross-reference before it is automatically purged.\nSet to `0` to disable automatic purging.",
+          "format": "int32",
+          "default": 14,
+          "maximum": 365.0,
+          "minimum": 0.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "TMDB_AUTO_PURGE_UNLINKED_AFTER_DAYS",
+            "envVarOverridable": false
+          }
+        }
+      }
+    },
+    "TmdbRateLimit": {
+      "type": "object",
+      "description": "Settings for rate limiting the TMDB provider.",
+      "properties": {
+        "MaxRequestsPerWindow": {
+          "title": "Max Requests Per Window",
+          "type": "integer",
+          "description": "Maximum number of requests allowed within the rate limit window.\nTMDB enforces a maximum of 40 requests per second; this defaults to 10 to avoid overwhelming\nend-user hardware with API requests and the data processing that follows each one.\n            ",
+          "format": "int32",
+          "maximum": 40.0,
+          "minimum": 1.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "TMDB_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW",
+            "envVarOverridable": false
+          }
+        },
+        "WindowDurationMs": {
+          "title": "Window Duration (ms)",
+          "type": "integer",
+          "description": "Duration of the sliding rate limit window in milliseconds.",
+          "format": "int32",
+          "maximum": 10000.0,
+          "minimum": 100.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "TMDB_RATE_LIMIT_WINDOW_DURATION_MS",
+            "envVarOverridable": false
+          }
+        }
+      }
+    },
+    "Database": {
+      "type": "object",
+      "required": [
+        "Type"
+      ],
+      "properties": {
+        "Type": {
+          "title": "Database Type",
+          "description": "Determines the database backend to use for the main Shoko database.",
+          "$ref": "#/definitions/DatabaseType",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": true,
+            "envVar": "DB_TYPE",
+            "envVarOverridable": false,
+            "enumDefinitions": [
+              {
+                "value": "SQLite",
+                "aliasValues": ""
+              },
+              {
+                "value": "MSSQL",
+                "aliasValues": "SQLServer, "
+              },
+              {
+                "value": "MySQL",
+                "aliasValues": "MariaDB"
+              }
+            ]
+          }
+        },
+        "SQLite_DatabaseFile": {
+          "title": "Filename",
+          "type": "string",
+          "description": "File name of the SQLite database file.",
+          "pattern": ".+\\.(?:db3?|sqlite3?)$",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "DB_SQLITE_FILENAME",
+            "envVarOverridable": false
+          }
+        },
+        "MySqliteDirectory": {
+          "title": "Directory",
+          "type": "string",
+          "description": "Directory where the SQLite database file is stored.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "DB_SQLITE_DIRECTORY",
+            "envVarOverridable": false
+          }
+        },
+        "Host": {
+          "title": "Host",
+          "type": "string",
+          "description": "SQL Server or MySQL/MariaDB host address, optionally with port if it's\nnot the default port for the database type.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "DB_HOST",
+            "envVarOverridable": false
+          }
+        },
+        "Username": {
+          "title": "Username",
+          "type": "string",
+          "description": "SQL Server or MySQL/MariaDB username.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "DB_USER",
+            "envVarOverridable": false
+          }
+        },
+        "Password": {
+          "title": "Password",
+          "type": "string",
+          "description": "SQL Server or MySQL/MariaDB password.",
+          "x-uiDefinition": {
+            "elementType": "password",
+            "requiresRestart": true,
+            "envVar": "DB_PASS",
+            "envVarOverridable": false
+          }
+        },
+        "Schema": {
+          "title": "Database Name",
+          "type": "string",
+          "description": "SQL Server or MySQL/MariaDB database name.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "DB_NAME",
+            "envVarOverridable": false
+          }
+        },
+        "OverrideConnectionString": {
+          "title": "Connection String",
+          "type": "string",
+          "description": "Advanced SQL Server or MySQL/MariaDB connection string.",
+          "x-uiDefinition": {
+            "elementType": "text-area",
+            "requiresRestart": true,
+            "envVar": "DB_CONNECTION_STRING",
+            "envVarOverridable": false
+          }
+        },
+        "DatabaseBackupDirectory": {
+          "title": "Backup Directory",
+          "type": "string",
+          "description": "Directory for where to store the backups during database migrations.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "DB_BACKUP_DIRECTORY",
+            "envVarOverridable": false
+          }
+        },
+        "LogSqlInConsole": {
+          "title": "Log SQL to Console",
+          "type": "boolean",
+          "description": "Log SQL statements to standard output. They will not appear in the log file or Web UI live log.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "DB_LOG_TO_CONSOLE",
+            "envVarOverridable": false
+          }
+        }
+      }
+    },
+    "DatabaseType": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "SQLite",
+        "SQLServer",
+        "SQLServer",
+        "MySQL",
+        "MariaDB"
+      ],
+      "enum": [
+        "SQLite",
+        "MSSQL",
+        "SQLServer",
+        "MySQL",
+        "MariaDB"
+      ]
+    },
+    "QueueProcessor": {
+      "type": "object",
+      "properties": {
+        "Provider": {
+          "title": "Database Type",
+          "description": "Determines the database backend to use for the queue.",
+          "$ref": "#/definitions/DatabaseProvider",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": true,
+            "envVar": "QUEUE_DB_TYPE",
+            "envVarOverridable": false,
+            "enumDefinitions": [
+              {
+                "value": "SQLite",
+                "aliasValues": ""
+              },
+              {
+                "value": "MySQL",
+                "aliasValues": ""
+              },
+              {
+                "value": "SqlServer",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "SQLiteFilePath": {
+          "title": "Database File",
+          "type": "string",
+          "description": "Path to the SQLite queue database file. Relative paths are resolved against\nthe application data directory. Only used when Provider is SQLite.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "QUEUE_SQLITE_FILE",
+            "envVarOverridable": false
+          }
+        },
+        "ConnectionString": {
+          "title": "Connection String",
+          "type": "string",
+          "description": "The connection string for the queue database. For SQLite, this can be used to append additional options to the connection string. For all other providers this is a required field.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "QUEUE_CONNECTION_STRING",
+            "envVarOverridable": false
+          }
+        },
+        "MaxTotalWorkers": {
+          "title": "Max Total Workers",
+          "type": "integer",
+          "description": "Maximum total concurrent workers across all pools. Defaults to CPU count + 4.",
+          "format": "int32",
+          "maximum": 2147483647.0,
+          "minimum": -1.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "QUEUE_MAX_WORKERS",
+            "envVarOverridable": false
+          }
+        },
+        "FlushIntervalMs": {
+          "title": "Flush Interval (ms)",
+          "type": "integer",
+          "description": "Milliseconds between coalesced DB flush operations.",
+          "format": "int32",
+          "maximum": 30000.0,
+          "minimum": 100.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "QUEUE_FLUSH_INTERVAL",
+            "envVarOverridable": false
+          }
+        },
+        "MaxFlushBatch": {
+          "title": "Max Flush Batch",
+          "type": "integer",
+          "description": "Maximum number of jobs to flush in a single DB batch.",
+          "format": "int32",
+          "maximum": 10000.0,
+          "minimum": 1.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "QUEUE_MAX_FLUSH_BATCH",
+            "envVarOverridable": false
+          }
+        },
+        "LimitedConcurrencyOverrides": {
+          "title": "Limited Concurrency Overrides",
+          "type": "object",
+          "description": "A map of job type name to the number of allowed concurrent workers of that type.",
+          "additionalProperties": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "x-uiDefinition": {
+            "elementType": "record",
+            "requiresRestart": true,
+            "envVar": "QUEUE_CONCURRENCY_LIMITS",
+            "envVarOverridable": false
+          }
+        }
+      }
+    },
+    "DatabaseProvider": {
+      "type": "string",
+      "description": "Supported database providers for the queue.",
+      "x-enumNames": [
+        "SQLite",
+        "MySQL",
+        "SqlServer"
+      ],
+      "enum": [
+        "SQLite",
+        "MySQL",
+        "SqlServer"
+      ]
+    },
+    "Connectivity": {
+      "type": "object",
+      "properties": {
+        "MonitorDefinitions": {
+          "title": "Monitor Definitions",
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "The list of connectivity monitor definitions used for WAN availability checks.\nWhen `null`, the built-in defaults are used.",
+          "items": {
+            "$ref": "#/definitions/ConnectivityMonitorDefinition"
+          }
+        }
+      }
+    },
+    "ConnectivityMonitorDefinition": {
+      "type": "object",
+      "description": "A concrete connectivity monitor definition used for WAN availability checks.",
+      "required": [
+        "Name",
+        "Address"
+      ],
+      "properties": {
+        "Key": {
+          "title": "Key",
+          "type": "string",
+          "default": "New Monitor"
+        },
+        "Name": {
+          "title": "Monitor Name",
+          "type": "string",
+          "description": "A unique, human-readable name for this monitor.",
+          "default": "",
+          "minLength": 1
+        },
+        "Type": {
+          "title": "Check Type",
+          "description": "The type of HTTP request to perform against the Address.",
+          "default": "HEAD",
+          "$ref": "#/definitions/ConnectivityCheckType",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "GET",
+                "aliasValues": ""
+              },
+              {
+                "value": "HEAD",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "Address": {
+          "title": "URL",
+          "type": "string",
+          "description": "The URL to check for connectivity.",
+          "format": "uri",
+          "default": "",
+          "minLength": 1
+        }
+      }
+    },
+    "ConnectivityCheckType": {
+      "type": "string",
+      "description": "The type of HTTP request to use for a connectivity check.",
+      "x-enumNames": [
+        "Get",
+        "Head"
+      ],
+      "enum": [
+        "GET",
+        "HEAD"
+      ]
+    },
+    "Language": {
+      "type": "object",
+      "properties": {
+        "UseSynonyms": {
+          "title": "Use Synonyms",
+          "type": "boolean",
+          "description": "Use synonyms when selecting the preferred language from AniDB."
+        },
+        "SeriesTitleLanguageOrder": {
+          "title": "Series Title Language Order",
+          "type": "array",
+          "description": "Series / group title language preference order.",
+          "items": {
+            "type": "string"
+          },
+          "x-uiDefinition": {
+            "elementType": "list",
+            "requiresRestart": true
+          }
+        },
+        "SeriesTitleSourceOrder": {
+          "title": "Series Title Source Order",
+          "type": "array",
+          "description": "Series / group title source preference order.",
+          "items": {
+            "$ref": "#/definitions/DataSource"
+          },
+          "x-uiDefinition": {
+            "elementType": "list",
+            "requiresRestart": true
+          }
+        },
+        "EpisodeTitleLanguageOrder": {
+          "title": "Episode Title Language Order",
+          "type": "array",
+          "description": "Episode / season title language preference order.",
+          "items": {
+            "type": "string"
+          },
+          "x-uiDefinition": {
+            "elementType": "list",
+            "requiresRestart": true
+          }
+        },
+        "EpisodeTitleSourceOrder": {
+          "title": "Episode Title Source Order",
+          "type": "array",
+          "description": "Episode / season title source preference order.",
+          "items": {
+            "$ref": "#/definitions/DataSource"
+          },
+          "x-uiDefinition": {
+            "elementType": "list",
+            "requiresRestart": true
+          }
+        },
+        "DescriptionLanguageOrder": {
+          "title": "Description Language Order",
+          "type": "array",
+          "description": "Description language preference order.",
+          "items": {
+            "type": "string"
+          },
+          "x-uiDefinition": {
+            "elementType": "list",
+            "requiresRestart": true
+          }
+        },
+        "DescriptionSourceOrder": {
+          "title": "Description Source Order",
+          "type": "array",
+          "description": "Description source preference order.",
+          "items": {
+            "$ref": "#/definitions/DataSource"
+          },
+          "x-uiDefinition": {
+            "elementType": "list",
+            "requiresRestart": true
+          }
+        }
+      }
+    },
+    "Plex": {
+      "type": "object",
+      "properties": {
+        "Libraries": {
+          "title": "Libraries",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "Server": {
+          "title": "Server",
+          "type": "string"
+        }
+      }
+    },
+    "Plugin": {
+      "type": "object",
+      "properties": {
+        "EnabledPlugins": {
+          "title": "Enabled Plugins",
+          "type": "object",
+          "description": "A list of all known plugins, with their enabled state.",
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "x-uiDefinition": {
+            "elementType": "record",
+            "requiresRestart": true,
+            "envVar": "SHOKO_ENABLED_PLUGINS",
+            "envVarOverridable": true
+          }
+        },
+        "Priority": {
+          "title": "Plugin Load Order",
+          "type": "array",
+          "description": "Load order of plugins. It will show both enabled and disabled, but\ndisabled plugins will not be loaded.",
+          "items": {
+            "type": "string"
+          },
+          "x-uiDefinition": {
+            "elementType": "list",
+            "requiresRestart": true,
+            "envVar": "SHOKO_PLUGIN_LOAD_ORDER",
+            "envVarOverridable": true
+          }
+        },
+        "Renamer": {
+          "title": "Renamer",
+          "description": "Settings for renamers.\n            ",
+          "$ref": "#/definitions/Relocation"
+        },
+        "Updates": {
+          "title": "Updates",
+          "description": "Settings for plugin updates.\n            ",
+          "$ref": "#/definitions/PluginUpdates"
+        }
+      }
+    },
+    "Relocation": {
+      "type": "object",
+      "properties": {
+        "RenameOnImport": {
+          "title": "Rename On Import",
+          "type": "boolean",
+          "description": "Indicates that we should rename a video file on import, and after metadata\nupdates when the metadata related to the file may have changed."
+        },
+        "MoveOnImport": {
+          "title": "Move On Import",
+          "type": "boolean",
+          "description": "Indicates that we should move a video file on import, and after metadata\nupdates when the metadata related to the file may have changed."
+        },
+        "AllowRelocationInsideDestinationOnImport": {
+          "title": "Allow Relocation Inside Destination On Import",
+          "type": "boolean",
+          "description": "Indicates that we should relocate a video file that lives inside a\ndrop destination managed folder that's not also a drop source on import."
+        }
+      }
+    },
+    "PluginUpdates": {
+      "type": "object",
+      "properties": {
+        "IsAutoSyncEnabled": {
+          "title": "Is Auto Sync Enabled",
+          "type": "boolean",
+          "description": "Whether automatic repository syncing is enabled.\n            ",
+          "default": false
+        },
+        "IsAutoUpgradeEnabled": {
+          "title": "Is Auto Upgrade Enabled",
+          "type": "boolean",
+          "description": "Whether automatic plugin upgrades are enabled.\n            ",
+          "default": false
+        },
+        "AutoUpdateFrequency": {
+          "title": "Auto Update Frequency",
+          "description": "How often to automatically check for and apply plugin updates if enabled.\nDefaults to every 6 hours.\n            ",
+          "default": "HoursSix",
+          "$ref": "#/definitions/ScheduledUpdateFrequency",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Never",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursSix",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursTwelve",
+                "aliasValues": ""
+              },
+              {
+                "value": "Daily",
+                "aliasValues": ""
+              },
+              {
+                "value": "WeekOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "MonthOne",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "DefaultRepositoryStaleTime": {
+          "title": "Default Repository Stale Time",
+          "type": "string",
+          "description": "Default time before a repository's packages are considered stale.\nDefaults to 12 hours.\n            ",
+          "format": "duration",
+          "default": "12:00:00.000000"
+        },
+        "InactivePluginVersionRetention": {
+          "title": "Inactive Plugin Version Retention",
+          "type": "string",
+          "description": "Time to retain old plugin versions before auto-cleanup. Defaults to\n30 days.\n            ",
+          "format": "duration",
+          "default": "720.00:00.000000"
+        }
+      }
+    },
+    "ReleaseComparisonPreferences": {
+      "type": "object",
+      "properties": {
+        "SignalPriority": {
+          "title": "Signal Priority",
+          "type": "array",
+          "description": "Ordered list of quality signals used to rank release candidates.\nComparison stops at the first signal where the two candidates differ.",
+          "items": {
+            "$ref": "#/definitions/ReleaseSignalType"
+          }
+        },
+        "SourceOrder": {
+          "title": "Source Order",
+          "type": "array",
+          "description": "Ordered source preference: first entry is most preferred.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ResolutionOrder": {
+          "title": "Resolution Order",
+          "type": "array",
+          "description": "Ordered resolution preference: first entry is most preferred.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "VideoCodecOrder": {
+          "title": "Video Codec Order",
+          "type": "array",
+          "description": "Ordered video codec preference: first entry is most preferred.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "AudioCodecOrder": {
+          "title": "Audio Codec Order",
+          "type": "array",
+          "description": "Ordered audio codec preference: first entry is most preferred.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "AudioLanguageOrder": {
+          "title": "Audio Language Order",
+          "type": "array",
+          "description": "Ordered audio language preference: first entry is most preferred.\nCandidates are compared against this list in order — the first preferred\nlanguage present in one candidate but not the other decides the winner.\nEmpty list means no language preference — audio language comparison is always a tie.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "SubtitleLanguageOrder": {
+          "title": "Subtitle Language Order",
+          "type": "array",
+          "description": "Ordered subtitle language preference: first entry is most preferred.\nCandidates are compared against this list in order — the first preferred\nlanguage present in one candidate but not the other decides the winner.\nEmpty list means no language preference — subtitle language comparison is always a tie.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "SubGroupOrder": {
+          "title": "Sub Group Order",
+          "type": "array",
+          "description": "Ordered release-group preference: first entry is most preferred.\nEmpty list means no group preference — subgroup comparison is always a tie.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "PreferHigherBitDepth": {
+          "title": "Prefer Higher Bit Depth",
+          "type": "boolean",
+          "description": "When true, 10-bit video is preferred over 8-bit; when false, the opposite."
+        },
+        "AutoDeleteOnImport": {
+          "title": "Auto Delete On Import",
+          "type": "boolean",
+          "description": "When true, the auto-management check runs at the end of every import.\nWhen false, no redundancy check is triggered on import; the check can\nstill be invoked manually via the API."
+        },
+        "AllowDeletion": {
+          "title": "Allow Deletion",
+          "type": "boolean",
+          "description": "When true, redundant release candidates are automatically deleted.\nWhen false, the check still runs but only logs what would be removed\n(preview/display mode). Requires AutoDeleteOnImport to\nbe true for the deletion to trigger automatically on import."
+        },
+        "PerFileDeletionForAiringSeries": {
+          "title": "Per File Deletion For Airing Series",
+          "type": "boolean",
+          "description": "When true and a series is still airing, redundancy is evaluated per-file\nrather than per-candidate. Individual files whose episode coverage is\nalready provided by a higher-ranked candidate are deleted, while the\nremaining files in that candidate (covering episodes the primary has not\nyet reached) are retained.\n            \nWhen false (or when the series has finished airing), the existing\nwhole-candidate rule applies: a secondary candidate is only deleted if\nits entire episode coverage is already subsumed by the primary."
+        },
+        "EpisodeTypeScope": {
+          "title": "Episode Type Scope",
+          "description": "Controls how episode coverage is measured for mixed-type releases\n(releases that contain both regular episodes and specials).",
+          "$ref": "#/definitions/EpisodeTypeScope",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "KeepTogether",
+                "aliasValues": ""
+              },
+              {
+                "value": "BestPerType",
+                "aliasValues": ""
+              }
+            ]
+          }
+        }
+      }
+    },
+    "ReleaseSignalType": {
+      "type": "string",
+      "description": "Signals available for sequential release comparison.",
+      "x-enumNames": [
+        "Source",
+        "Resolution",
+        "VideoCodec",
+        "BitDepth",
+        "AudioStreams",
+        "SubtitleStreams",
+        "AudioCodec",
+        "Chaptered",
+        "SubGroup",
+        "Version",
+        "Corrupted",
+        "Censored",
+        "Creditless",
+        "GroupHomogeneity",
+        "AudioLanguage",
+        "SubtitleLanguage"
+      ],
+      "enum": [
+        "Source",
+        "Resolution",
+        "VideoCodec",
+        "BitDepth",
+        "AudioStreams",
+        "SubtitleStreams",
+        "AudioCodec",
+        "Chaptered",
+        "SubGroup",
+        "Version",
+        "Corrupted",
+        "Censored",
+        "Creditless",
+        "GroupHomogeneity",
+        "AudioLanguage",
+        "SubtitleLanguage"
+      ]
+    },
+    "EpisodeTypeScope": {
+      "type": "string",
+      "description": "Controls whether releases covering mixed episode types (regular + specials)\nare treated as a single unit or ranked independently per type.",
+      "x-enumNames": [
+        "KeepTogether",
+        "BestPerType"
+      ],
+      "enum": [
+        "KeepTogether",
+        "BestPerType"
+      ]
+    },
+    "Logging": {
+      "type": "object",
+      "properties": {
+        "RotationEnabled": {
+          "title": "Use Log Rotation",
+          "type": "boolean",
+          "description": "Indicates that the log rotation should be used.",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "LOGGING_ROTATION_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "RotationCompress": {
+          "title": "Rotation Compress",
+          "type": "boolean",
+          "description": "Indicates that we should compress the log files.",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "LOGGING_ROTATION_COMPRESS",
+            "envVarOverridable": false
+          }
+        },
+        "RotationDeleteEnabled": {
+          "title": "Rotation Delete Enabled",
+          "type": "boolean",
+          "description": "Indicates that we should delete older log files.",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "LOGGING_ROTATION_DELETE_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "RotationDeleteDays": {
+          "title": "Keep period (days)",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Number of days to keep log files before deleting.",
+          "format": "int32",
+          "maximum": 2147483647.0,
+          "minimum": 0.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "LOGGING_ROTATION_DELETE_DAYS",
+            "envVarOverridable": false
+          }
+        },
+        "TraceLog": {
+          "title": "Enable Trace Logging",
+          "type": "boolean",
+          "description": "Enable trace logging in the log file and web UI live console.",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "SHOKO_TRACE_LOG",
+            "envVarOverridable": false
+          }
+        },
+        "DefaultFileLogLevel": {
+          "title": "Default File Log Level",
+          "description": "Default log level for file output.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/LogLevel"
+            }
+          ],
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "envVar": "LOGGING_FILE_LOG_LEVEL",
+            "envVarOverridable": true,
+            "enumDefinitions": [
+              {
+                "value": "Trace",
+                "aliasValues": ""
+              },
+              {
+                "value": "Debug",
+                "aliasValues": ""
+              },
+              {
+                "value": "Information",
+                "aliasValues": ""
+              },
+              {
+                "value": "Warning",
+                "aliasValues": ""
+              },
+              {
+                "value": "Error",
+                "aliasValues": ""
+              },
+              {
+                "value": "Critical",
+                "aliasValues": ""
+              },
+              {
+                "value": "None",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "DefaultSignalRLogLevel": {
+          "title": "Default SignalR Log Level",
+          "description": "Default log level for SignalR output.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/LogLevel"
+            }
+          ],
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "envVar": "LOGGING_SIGNALR_LOG_LEVEL",
+            "envVarOverridable": true,
+            "enumDefinitions": [
+              {
+                "value": "Trace",
+                "aliasValues": ""
+              },
+              {
+                "value": "Debug",
+                "aliasValues": ""
+              },
+              {
+                "value": "Information",
+                "aliasValues": ""
+              },
+              {
+                "value": "Warning",
+                "aliasValues": ""
+              },
+              {
+                "value": "Error",
+                "aliasValues": ""
+              },
+              {
+                "value": "Critical",
+                "aliasValues": ""
+              },
+              {
+                "value": "None",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "DefaultConsoleLogLevel": {
+          "title": "Default Console Log Level",
+          "description": "Default log level for console output.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/LogLevel"
+            }
+          ],
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "envVar": "LOGGING_CONSOLE_LOG_LEVEL",
+            "envVarOverridable": true,
+            "enumDefinitions": [
+              {
+                "value": "Trace",
+                "aliasValues": ""
+              },
+              {
+                "value": "Debug",
+                "aliasValues": ""
+              },
+              {
+                "value": "Information",
+                "aliasValues": ""
+              },
+              {
+                "value": "Warning",
+                "aliasValues": ""
+              },
+              {
+                "value": "Error",
+                "aliasValues": ""
+              },
+              {
+                "value": "Critical",
+                "aliasValues": ""
+              },
+              {
+                "value": "None",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "ConsoleFormat": {
+          "title": "Console Format",
+          "description": "Console layout format for runtime logs.",
+          "default": "console",
+          "$ref": "#/definitions/LogSerializeFormat",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "envVar": "LOGGING_CONSOLE_FORMAT",
+            "envVarOverridable": false,
+            "enumDefinitions": [
+              {
+                "value": "simple",
+                "aliasValues": ""
+              },
+              {
+                "value": "full",
+                "aliasValues": ""
+              },
+              {
+                "value": "json",
+                "aliasValues": ""
+              },
+              {
+                "value": "legacy",
+                "aliasValues": ""
+              },
+              {
+                "value": "console",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "LogLevelRules": {
+          "title": "Log Level Rules",
+          "type": "array",
+          "description": "Optional user-defined log level override rules keyed by logger pattern.",
+          "items": {
+            "$ref": "#/definitions/LogLevelRule"
+          },
+          "x-uiDefinition": {
+            "elementType": "list",
+            "requiresRestart": false,
+            "envVar": "LOGGING_LOG_LEVEL_RULES",
+            "envVarOverridable": true
+          }
+        }
+      }
+    },
+    "LogLevel": {
+      "type": "string",
+      "description": "Defines logging severity levels.",
+      "x-enumNames": [
+        "Trace",
+        "Debug",
+        "Information",
+        "Warning",
+        "Error",
+        "Critical",
+        "None"
+      ],
+      "enum": [
+        "Trace",
+        "Debug",
+        "Information",
+        "Warning",
+        "Error",
+        "Critical",
+        "None"
+      ]
+    },
+    "LogSerializeFormat": {
+      "type": "string",
+      "description": "Serialization layout for a LogEntry and for log downloads.\n            ",
+      "x-enumNames": [
+        "Simple",
+        "Full",
+        "Json",
+        "Legacy",
+        "Console"
+      ],
+      "enum": [
+        "simple",
+        "full",
+        "json",
+        "legacy",
+        "console"
+      ]
+    },
+    "LogLevelRule": {
+      "type": "object",
+      "description": "Configuration for per-logger max level override rules.",
+      "required": [
+        "LoggerNamePattern"
+      ],
+      "properties": {
+        "Key": {
+          "title": "Key",
+          "type": "string",
+          "default": "New Log Level Rule"
+        },
+        "LoggerNamePattern": {
+          "title": "Pattern",
+          "type": "string",
+          "description": "Logger name pattern targeted by this rule.",
+          "default": "",
+          "minLength": 1
+        },
+        "MaxLevel": {
+          "title": "Max Level",
+          "description": "Optional max level for this logger rule.",
+          "default": "Information",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/definitions/LogLevel"
+            }
+          ],
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Trace",
+                "aliasValues": ""
+              },
+              {
+                "value": "Debug",
+                "aliasValues": ""
+              },
+              {
+                "value": "Information",
+                "aliasValues": ""
+              },
+              {
+                "value": "Warning",
+                "aliasValues": ""
+              },
+              {
+                "value": "Error",
+                "aliasValues": ""
+              },
+              {
+                "value": "Critical",
+                "aliasValues": ""
+              },
+              {
+                "value": "None",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "Final": {
+          "title": "Final",
+          "type": "boolean",
+          "description": "Whether this rule should stop processing later rules.",
+          "default": true
+        }
+      }
+    },
+    "Linux": {
+      "type": "object",
+      "properties": {
+        "UID": {
+          "title": "UID",
+          "type": "integer",
+          "format": "int32"
+        },
+        "GID": {
+          "title": "GID",
+          "type": "integer",
+          "format": "int32"
+        },
+        "Permission": {
+          "title": "Permission",
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "Web": {
+      "type": "object",
+      "description": "Configure settings related to the HTTP(S) hosting.",
+      "properties": {
+        "Port": {
+          "title": "Server Port",
+          "type": "integer",
+          "description": "The port to listen on.",
+          "default": 8111,
+          "maximum": 65535.0,
+          "minimum": 1.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_PORT",
+            "envVarOverridable": false
+          }
+        },
+        "AutoReplaceWebUIWithIncluded": {
+          "title": "Auto Replace Web UI With Included Version",
+          "type": "boolean",
+          "description": "Automagically replace the current web ui with the included version if\nthe current version is older then the included version.",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_WEBUI_AUTO_REPLACE",
+            "envVarOverridable": false
+          }
+        },
+        "EnableWebUI": {
+          "title": "Enable Web UI",
+          "type": "boolean",
+          "description": "Enable the Web UI. Disabling this will run the server in \"headless\"\nmode.",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_WEBUI_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "WebUIPrefix": {
+          "title": "Web UI Prefix",
+          "type": "string",
+          "description": "The public path prefix for where to mount the Web UI.",
+          "default": "webui",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_WEBUI_PREFIX",
+            "envVarOverridable": false
+          }
+        },
+        "WebUIPath": {
+          "title": "Web UI Path",
+          "type": "string",
+          "description": "A relative path from the DataPath\nto where the Web UI is installed, or an absolute path if you have it\nsomewhere else. Will be used to populate the\nWebPath field.",
+          "default": "webui",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_WEBUI_PATH",
+            "envVarOverridable": false
+          }
+        },
+        "EnableSwaggerUI": {
+          "title": "Enable Swagger UI",
+          "type": "boolean",
+          "description": "Enable the Swagger UI.",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_SWAGGER_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "SwaggerUIPrefix": {
+          "title": "Swagger UI Prefix",
+          "type": "string",
+          "description": "The public path prefix for where to mount the Swagger UI.",
+          "default": "swagger",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_SWAGGER_PREFIX",
+            "envVarOverridable": false
+          }
+        },
+        "EnableIndexRedirect": {
+          "title": "Enable Index Redirect",
+          "type": "boolean",
+          "description": "Enable the built-in index redirect available at `/`, redirecting\nthe user to the .\n            ",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_API_INDEX_REDIRECT_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "EnableSignalR": {
+          "title": "Enable SignalR",
+          "type": "boolean",
+          "description": "Enable the built-in SignalR hubs available at `/signalr`.\n            ",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_API_SIGNALR_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "EnableAPIv1": {
+          "title": "Enable API v1",
+          "type": "boolean",
+          "description": "Enable the deprecated API v1 endpoints.",
+          "default": false,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_API_V1_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "EnableAPIv2": {
+          "title": "Enable API v2",
+          "type": "boolean",
+          "description": "Enable the API v2 endpoints.",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_API_V2_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "EnableAPIv3": {
+          "title": "Enable API v3",
+          "type": "boolean",
+          "description": "Enable the API v3 endpoints.",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_API_V3_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "EnableLegacyPlexAPI": {
+          "title": "Enable Legacy Plex API",
+          "type": "boolean",
+          "description": "Enable the built-in legacy Plex API available at `/plex`, once\npart of APIv2, but separated so that it can be toggled separately.\n            ",
+          "default": true,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_API_PLEX_LEGACY_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "AllowAnonymousFileStreamingInAPIv3": {
+          "title": "Allow Anonymous File Streaming in API v3",
+          "type": "boolean",
+          "description": "Allow anonymous file streaming in API v3.",
+          "default": false,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_API_V3_ALLOW_ANONYMOUS_FILE_STREAMING",
+            "envVarOverridable": false
+          }
+        },
+        "AlwaysUseDeveloperExceptions": {
+          "title": "Always Use Developer Exceptions",
+          "type": "boolean",
+          "description": "Always use the developer exceptions page, even in production.",
+          "default": false,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "SHOKO_WEB_DEVELOPER_EXCEPTIONS",
+            "envVarOverridable": false
+          }
+        },
+        "ClientManifestUrl": {
+          "title": "Client Manifest URL",
+          "type": "string",
+          "description": "The manifest URL for the Web UI component updates.",
+          "default": "https://raw.githubusercontent.com/ShokoAnime/Shoko-WebUI/metadata/manifest.json",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "SHOKO_CLIENT_MANIFEST_URL",
+            "envVarOverridable": false
+          }
+        },
+        "ServerManifestUrl": {
+          "title": "Server Manifest URL",
+          "type": "string",
+          "description": "The manifest URL for the server updates.",
+          "default": "https://raw.githubusercontent.com/ShokoAnime/ShokoServer/metadata/manifest.json",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "SHOKO_SERVER_MANIFEST_URL",
+            "envVarOverridable": false
+          }
+        }
+      }
+    }
+  }
+}

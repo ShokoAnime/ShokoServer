@@ -5,10 +5,14 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -16,7 +20,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/File/{fileID:int}/Action"), Tags("Action")]
 [ApiV3]
 [Authorize]
-public class FileActionController(IActionService actionService, VideoLocalRepository videos, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
+public class FileActionController(ActionService actionService, VideoLocalRepository videos, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
     /// <summary>
     ///   Invoke a video-scoped action by its ID. Entity existence is
@@ -27,11 +31,16 @@ public class FileActionController(IActionService actionService, VideoLocalReposi
     /// </summary>
     /// <param name="fileID">File ID.</param>
     /// <param name="actionID">Action ID.</param>
+    /// <param name="parameters">
+    ///   Optional. The action's invocation parameters. Omit the body entirely
+    ///   for an action that takes none.
+    /// </param>
     /// <param name="token">Cancellation token.</param>
     [HttpPost("{actionID:guid}")]
     public async Task<ActionResult> Invoke(
         [FromRoute, Range(1, int.MaxValue)] int fileID,
         [FromRoute] Guid actionID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JObject? parameters,
         CancellationToken token
     )
     {
@@ -42,7 +51,15 @@ public class FileActionController(IActionService actionService, VideoLocalReposi
         if (videoEntity is null)
             return NotFound("File not found.");
 
-        var validation = await actionService.InvokeAsync(actionID, videoEntity, User, token);
+        if (actionService.ValidateParameters(actionID, parameters) is { Count: > 0 } errors)
+            return ValidationProblem(errors);
+
+        // No body takes the same overload it always has, so an action that
+        // declares no parameters is invoked exactly as before.
+        var parameterMap = parameters.ToParameters();
+        var validation = parameterMap is null
+            ? await actionService.InvokeAsync(actionID, videoEntity, User, token)
+            : await actionService.InvokeAsync(actionID, videoEntity, parameterMap, User, token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 }
