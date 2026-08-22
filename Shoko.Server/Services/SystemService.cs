@@ -477,6 +477,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IMetadataFilteringService, MetadataFilteringService>();
             services.AddSingleton<IFilterPresetManager, FilterPresetManager>();
             services.AddSingleton<IFuzzySearchService, FuzzySearchService>();
+            services.AddSingleton<ActionUiDefinitionBuilder>();
             services.AddSingleton<ActionService>();
             services.AddSingleton<IActionService>(sp => sp.GetRequiredService<ActionService>());
             // Every recurring job of the core runs as a scheduled action, whose
