@@ -183,3 +183,6 @@ UpgradeLog*.htm
 
 # Python
 __pycache__
+
+# OpenCode
+opencode.json
