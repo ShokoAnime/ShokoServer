@@ -20,6 +20,8 @@ public sealed class PurgeAllTmdbLinksAction(ITmdbLinkingService linkingService) 
 
     public bool RequiresConfirmation => true;
 
+    public string? ConfirmationMessage => "Are you sure you want to remove all AniDB-TMDB links from the database?";
+
     /// <summary>Whether to remove show links.</summary>
     public bool RemoveShowLinks { get; set; } = true;
 

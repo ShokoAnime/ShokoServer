@@ -21,6 +21,8 @@ public sealed class PurgeAllUnusedTmdbImagesAction(IImageManager imageManager) :
 
     public bool RequiresConfirmation => true;
 
+    public string? ConfirmationMessage => "Are you sure you want to remove all unused TMDB images from the database?";
+
     public Task Execute(CancellationToken token = default)
         => imageManager.SchedulePurgeOfOrphanedImages(0, DataSource.TMDB);
 }

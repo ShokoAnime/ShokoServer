@@ -20,6 +20,8 @@ public sealed class ResetTmdbEpisodeMappingsSeriesAction(TmdbLinkingService link
 
     public override bool RequiresConfirmation => true;
 
+    public override string? ConfirmationMessage => "Are you sure you want to reset all TMDB episode mappings for this series?";
+
     public override Task Execute(CancellationToken token = default)
     {
         linkingService.ResetAllEpisodeLinks(Series.AnidbAnimeID, true);

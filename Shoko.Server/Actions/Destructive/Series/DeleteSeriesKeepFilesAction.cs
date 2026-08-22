@@ -21,6 +21,8 @@ public sealed class DeleteSeriesKeepFilesAction(AnimeSeriesService seriesService
 
     public override bool RequiresConfirmation => true;
 
+    public override string? ConfirmationMessage => "Are you sure you want to permanently delete this series from Shoko while keeping the files on disk?";
+
     public override Task Execute(CancellationToken token = default)
         => seriesService.DeleteSeries((AnimeSeries)Series, deleteFiles: false, updateGroups: true, completelyRemove: false);
 }

@@ -34,6 +34,9 @@ namespace Shoko.Abstractions.Actions;
 /// <param name="RequiresConfirmation">
 ///   UI hint for destructive actions.
 /// </param>
+/// <param name="ConfirmationMessage">
+///   Optional custom confirmation message for the WebUI prompt.
+/// </param>
 /// <param name="PluginId">
 ///   The ID of the plugin that owns the action.
 /// </param>
@@ -46,5 +49,6 @@ public sealed record ExecutableActionInfo(
     ActionScope Scope,
     ActionPermission Permission,
     bool RequiresConfirmation,
+    string? ConfirmationMessage,
     Guid PluginId
 );

@@ -37,7 +37,7 @@ public interface IExecutableAction
     /// <summary>
     ///   The description of the action.
     /// </summary>
-    string? Description => null;
+    string? Description { get => null; }
 
     /// <summary>
     ///   The category of the action. Defaults to
@@ -57,11 +57,18 @@ public interface IExecutableAction
     ActionPermission Permission { get; }
 
     /// <summary>
-    ///   UI hint for destructive actions. The server does not enforce a
-    ///   confirmation step; the WebUI is expected to prompt before invoking
-    ///   the action when this is <see langword="true"/>.
+    ///   Whether this action requires confirmation before invocation.
     /// </summary>
-    bool RequiresConfirmation => false;
+    bool RequiresConfirmation { get => false; }
+
+    /// <summary>
+    ///   Optional custom message shown to the user when the WebUI prompts for
+    ///   confirmation before invoking a destructive action. When
+    ///   <see langword="null"/>, the WebUI falls back to a generic prompt.
+    ///   Only meaningful when <see cref="RequiresConfirmation"/> is
+    ///   <see langword="true"/>.
+    /// </summary>
+    string? ConfirmationMessage { get => null; }
 
     /// <summary>
     ///   Optional synchronous pre-check, run by the API before the action is

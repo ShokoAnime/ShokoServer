@@ -241,6 +241,7 @@ public class ActionService : IActionService
                 scope,
                 probe.Permission,
                 probe.RequiresConfirmation,
+                probe.ConfirmationMessage,
                 pluginId
             ), actionType);
         }
