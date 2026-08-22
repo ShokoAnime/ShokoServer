@@ -20,6 +20,8 @@ public sealed class PurgeAllUnusedTmdbMoviesAction(TmdbMetadataService tmdbServi
 
     public bool RequiresConfirmation => true;
 
+    public string? ConfirmationMessage => "Are you sure you want to remove all unused TMDB movies from the database?";
+
     public Task Execute(CancellationToken token = default)
         => tmdbService.PurgeAllUnusedMovies();
 }

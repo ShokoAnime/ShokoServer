@@ -21,6 +21,8 @@ public sealed class SyncAnidbMyListAction(IQueueScheduler scheduler) : IExecutab
 
     public bool RequiresConfirmation => true;
 
+    public string? ConfirmationMessage => "Are you sure you want to sync all local state to the AniDB MyList for all series? This can overwrite AniDB data irreversibly.";
+
     public Task Execute(CancellationToken token = default)
         => scheduler.Enqueue<SyncAniDBMyListJob>(j => j.ForceRefresh = true, ct: token);
 }

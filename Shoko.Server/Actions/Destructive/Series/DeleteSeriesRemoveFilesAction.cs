@@ -21,6 +21,8 @@ public sealed class DeleteSeriesRemoveFilesAction(AnimeSeriesService seriesServi
 
     public override bool RequiresConfirmation => true;
 
+    public override string? ConfirmationMessage => "Are you sure you want to permanently delete this series and remove all associated files from disk?";
+
     public override Task Execute(CancellationToken token = default)
         => seriesService.DeleteSeries((AnimeSeries)Series, deleteFiles: true, updateGroups: true, completelyRemove: false);
 }

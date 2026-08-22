@@ -21,6 +21,8 @@ public sealed class RecreateAllGroupsAction(AnimeGroupCreator groupCreator) : IE
 
     public bool RequiresConfirmation => true;
 
+    public string? ConfirmationMessage => "Are you sure you want to rebuild all groups from scratch?";
+
     public Task Execute(CancellationToken token = default)
         => groupCreator.RecreateAllGroups();
 }

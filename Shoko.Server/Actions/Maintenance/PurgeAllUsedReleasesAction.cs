@@ -21,6 +21,8 @@ public sealed class PurgeAllUsedReleasesAction(IVideoReleaseService videoRelease
 
     public bool RequiresConfirmation => true;
 
+    public string? ConfirmationMessage => "Are you sure you want to remove all used (linked) releases from the database?";
+
     public Task Execute(CancellationToken token = default)
         => videoReleaseService.PurgeUsedReleases(providerNames: null, skipEvents: false);
 }

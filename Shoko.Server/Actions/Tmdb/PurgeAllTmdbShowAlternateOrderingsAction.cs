@@ -20,6 +20,8 @@ public sealed class PurgeAllTmdbShowAlternateOrderingsAction(TmdbMetadataService
 
     public bool RequiresConfirmation => true;
 
+    public string? ConfirmationMessage => "Are you sure you want to remove all TMDB show alternate orderings from the database?";
+
     public Task Execute(CancellationToken token = default)
     {
         tmdbService.PurgeAllShowEpisodeGroups();
