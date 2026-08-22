@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Inheriting",
+  "type": "object",
+  "properties": {
+    "Name": {
+      "title": "Inherited Name",
+      "type": "string",
+      "x-uiDefinition": {
+        "elementType": "auto",
+        "requiresRestart": true,
+        "envVar": "INHERITED_NAME",
+        "envVarOverridable": false
+      }
+    },
+    "Mode": {
+      "title": "Mode",
+      "$ref": "#/definitions/TwinMode",
+      "x-uiDefinition": {
+        "elementType": "enum",
+        "requiresRestart": false,
+        "enumDefinitions": [
+          {
+            "value": "slow-and-steady",
+            "aliasValues": ""
+          },
+          {
+            "value": "balanced",
+            "aliasValues": ""
+          },
+          {
+            "value": "fast",
+            "aliasValues": ""
+          }
+        ]
+      }
+    },
+    "Endpoints": {
+      "title": "Endpoints",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/TwinEndpoint"
+      }
+    },
+    "Count": {
+      "title": "Derived Count",
+      "type": "integer",
+      "format": "int32"
+    }
+  },
+  "definitions": {
+    "TwinMode": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "Slow",
+        "Balanced",
+        "Fast"
+      ],
+      "x-enum-descriptions": [
+        "Takes its time.",
+        null,
+        null
+      ],
+      "enum": [
+        "slow-and-steady",
+        "balanced",
+        "fast"
+      ]
+    },
+    "TwinEndpoint": {
+      "type": "object",
+      "properties": {
+        "ID": {
+          "title": "ID",
+          "type": "string"
+        },
+        "Url": {
+          "title": "Url",
+          "type": "string",
+          "format": "uri"
+        },
+        "Mode": {
+          "title": "Mode",
+          "$ref": "#/definitions/TwinMode",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "slow-and-steady",
+                "aliasValues": ""
+              },
+              {
+                "value": "balanced",
+                "aliasValues": ""
+              },
+              {
+                "value": "fast",
+                "aliasValues": ""
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

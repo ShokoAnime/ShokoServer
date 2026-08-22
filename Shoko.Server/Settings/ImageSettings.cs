@@ -4,6 +4,8 @@ using System.Linq;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
 
 namespace Shoko.Server.Settings;
 
