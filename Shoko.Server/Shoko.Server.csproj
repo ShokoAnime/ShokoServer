@@ -112,6 +112,17 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <!--
+      Referenced as a project rather than as the Shoko.BuildTools.Analyzers package so the in-tree
+      configurations are checked by the analyzer as it is being developed. Plugin authors consume
+      the published package instead.
+    -->
+    <ProjectReference Include="..\Shoko.BuildTools.Analyzers\Shoko.BuildTools.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
   <!--
     The build tools' tasks are built from this repository and run from there, so the core is stamped
     by the current ones whatever the NuGet cache holds. They build for no runtime and into their own

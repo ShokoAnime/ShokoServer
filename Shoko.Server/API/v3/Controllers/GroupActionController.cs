@@ -5,10 +5,14 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.API.v3.Controllers;
 
@@ -16,7 +20,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/Group/{groupID:int}/Action"), Tags("Action")]
 [ApiV3]
 [Authorize]
-public class GroupActionController(IActionService actionService, AnimeGroupRepository groups, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
+public class GroupActionController(ActionService actionService, AnimeGroupRepository groups, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
     /// <summary>
     ///   Invoke a group-scoped action by its ID. Entity existence is
@@ -27,11 +31,16 @@ public class GroupActionController(IActionService actionService, AnimeGroupRepos
     /// </summary>
     /// <param name="groupID">Group ID.</param>
     /// <param name="actionID">Action ID.</param>
+    /// <param name="parameters">
+    ///   Optional. The action's invocation parameters. Omit the body entirely
+    ///   for an action that takes none.
+    /// </param>
     /// <param name="token">Cancellation token.</param>
     [HttpPost("{actionID:guid}")]
     public async Task<ActionResult> Invoke(
         [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] Guid actionID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JObject? parameters,
         CancellationToken token
     )
     {
@@ -42,7 +51,12 @@ public class GroupActionController(IActionService actionService, AnimeGroupRepos
         if (groupEntity is null)
             return NotFound("Group not found.");
 
-        var validation = await actionService.InvokeAsync(actionID, groupEntity, caller: User, token: token);
+        if (actionService.ValidateParameters(actionID, parameters) is { Count: > 0 } errors)
+            return ValidationProblem(errors);
+
+        // Parameters are an argument like any other now, and null is what an
+        // action taking none has always been invoked with.
+        var validation = await actionService.InvokeAsync(actionID, groupEntity, parameters.ToParameters(), caller: User, token: token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 }
