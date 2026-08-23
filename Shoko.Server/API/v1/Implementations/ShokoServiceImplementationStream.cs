@@ -3,13 +3,17 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NLog;
+using Shoko.Abstractions.Video.Services;
+using Shoko.Abstractions.Video.Streaming;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
@@ -20,7 +24,10 @@ namespace Shoko.Server.API.v1.Implementations;
 [ApiController]
 [Route("/Stream")]
 [ApiVersion("1.0", Deprecated = true)]
-public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
+public class ShokoServiceImplementationStream(
+    IVideoStreamPipelineService _streamPipelineService,
+    VideoStreamSessionManager _streamSessionManager
+) : Controller, IHttpContextAccessor
 {
     public new HttpContext HttpContext { get; set; }
 
@@ -32,11 +39,12 @@ public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(typeof(FileStreamResult), 206)]
     [ProducesResponseType(404)]
-    public object StreamVideo(int videoLocalId, int? userId, bool? autoWatch, string fakeName)
+    public async Task<object> StreamVideo(int videoLocalId, int? userId, bool? autoWatch, string fakeName)
     {
         var r = ResolveVideoLocal(videoLocalId, userId, autoWatch);
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent) return StatusCode((int)r.Status, r.StatusDescription);
-        if (!string.IsNullOrEmpty(fakeName)) return StreamInfoResult(r, autoWatch);
+        if (!string.IsNullOrEmpty(fakeName))
+            return await TransformedResult(r, headOnly: false) ?? StreamInfoResult(r, autoWatch);
 
         var subs = r.VideoLocal.MediaInfo.TextStreams.Where(a => a.External).ToList();
         if (subs.Count == 0) return StatusCode(404);
@@ -57,6 +65,160 @@ public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
         }
 
         return StreamInfoResult(r, autoWatch);
+    }
+
+    /// <summary>
+    ///   Serves this video through the selected <see cref="IVideoStreamTransform"/>, or returns
+    ///   <c>null</c> if none applies and the caller should fall through to the raw file.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     This route predates the stream pipeline and used to hand back the file on disk and
+    ///     nothing else, so an enabled transform did nothing for any client still using it.
+    ///     Everywhere else the pipeline works by minting a session and redirecting the client
+    ///     to a session-scoped URL; that is not available here, because these routes are
+    ///     unauthenticated and the v3 session route is not (unless
+    ///     <c>Web.AllowAnonymousFileStreamingInAPIv3</c> is on), so the redirect would land on
+    ///     a 401. The session is therefore looked up by a key composed from the request rather
+    ///     than carried in it -- see <see cref="VideoStreamSessionManager.TryGetSessionByKey"/>
+    ///     for what that costs.
+    ///   </para>
+    ///   <para>
+    ///     Only progressive transforms can be served here. An HLS one needs a manifest and a
+    ///     segment namespace, which this single-file route has nowhere to put, so it falls
+    ///     through to the original file rather than pretending.
+    ///   </para>
+    /// </remarks>
+    [NonAction]
+    private async Task<object> TransformedResult(InfoResult r, bool headOnly)
+    {
+        // The by-filename routes resolve a path, not a library entry, so there is no IVideo to
+        // select a transform for. Raw file is the only thing they can serve.
+        if (r.VideoLocal is not { } video)
+            return null;
+
+        var context = new VideoStreamTransformContext { User = r.User, QueryParameters = Request.Query };
+        VideoStreamTransformInfo transformInfo;
+        try
+        {
+            transformInfo = _streamPipelineService.SelectTransform(video, context);
+        }
+        catch (Exception ex)
+        {
+            // Selection runs plugin code (SupportsVideo). A plugin that throws must not take
+            // playback with it -- the original file is always a valid answer here.
+            _logger.Error(ex, "Video stream transform selection failed for video {0}; serving the original file", video.VideoLocalID);
+            return null;
+        }
+
+        if (transformInfo is null || transformInfo.Transform.DeliveryMode is not StreamDeliveryMode.Progressive)
+            return null;
+
+        // Keyed per video, per user and per transform: the finest distinction this route
+        // offers. Two players sharing all three share a rendition and will fight over its
+        // position; nothing in the URL can tell them apart.
+        var key = $"v1:{video.VideoLocalID}:{r.User?.JMMUserID ?? 0}:{transformInfo.ID}";
+        // Request.HttpContext, NOT this class's own HttpContext property: that one shadows
+        // ControllerBase's with `new` (the class implements IHttpContextAccessor) and MVC
+        // never assigns it, so it is null on every request. Reading the token from it would
+        // compile, never throw, and silently never cancel -- leaving a rendition still being
+        // read after the player has gone.
+        var cancellationToken = Request.HttpContext.RequestAborted;
+        StreamSession session;
+        try
+        {
+            session = await _streamSessionManager.GetOrCreateSessionAsync(
+                key,
+                video,
+                async token => await transformInfo.Transform.GetRenditionAsync(video, context, token),
+                cancellationToken
+            );
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return new EmptyResult();
+        }
+        catch (Exception ex)
+        {
+            // A transform that cannot start is worth reporting rather than silently papering
+            // over: falling back to the original file here would look like the transform is
+            // enabled and doing nothing, which is the hardest thing to diagnose.
+            _logger.Error(ex, "Video stream transform \"{0}\" could not start a rendition for video {1}", transformInfo.Name, video.VideoLocalID);
+            return StatusCode((int)HttpStatusCode.InternalServerError, $"Transform \"{transformInfo.Name}\" could not start a rendition: {ex.Message}");
+        }
+
+        if (session?.Rendition is not IProgressiveStreamRendition rendition)
+            return StatusCode((int)HttpStatusCode.InternalServerError, $"Transform \"{transformInfo.Name}\" reports progressive delivery but its rendition does not implement IProgressiveStreamRendition.");
+
+        // A rendition that will not declare a length cannot answer a byte range: a 206 has to
+        // name a concrete last-byte-position and there is none. Serve it whole instead, the
+        // same rule the v3 route applies.
+        var totalSize = rendition.EstimatedTotalBytes;
+        var rangeStart = totalSize is null ? null : ParseRangeStart(Request.Headers.Range.FirstOrDefault());
+
+        Response.Headers.Append("Server", SERVER_VERSION);
+        // Only when it can actually be honoured -- see below. Claiming range support and
+        // then serving every request from byte 0 makes a seeking player restart playback
+        // silently on each attempt, which looks like a stream that cannot keep up rather
+        // than one that cannot seek.
+        if (totalSize is not null)
+            Response.Headers.Append("Accept-Ranges", "bytes");
+        Response.ContentType = rendition.ContainerMimeType;
+        if (totalSize is { } total)
+        {
+            var start = Math.Clamp(rangeStart ?? 0, 0, Math.Max(0, total - 1));
+            if (rangeStart is not null)
+            {
+                Response.StatusCode = (int)HttpStatusCode.PartialContent;
+                Response.Headers.Append("Content-Range", $"bytes {start}-{total - 1}/{total}");
+            }
+            else
+            {
+                Response.StatusCode = (int)HttpStatusCode.OK;
+            }
+            Response.ContentLength = total - start;
+        }
+        else
+        {
+            Response.StatusCode = (int)HttpStatusCode.OK;
+        }
+
+        // HEAD wants the framing above and nothing else. Opening the stream would start the
+        // conversion producing bytes for a body that is never sent.
+        //
+        // EmptyResult, not Ok(): OkResult is a StatusCodeResult and would write 200 over the
+        // 206 just set above.
+        if (headOnly)
+            return new EmptyResult();
+
+        Stream stream;
+        try
+        {
+            stream = await rendition.OpenAsync(rangeStart, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return new EmptyResult();
+        }
+
+        return stream ?? (object)StatusCode((int)HttpStatusCode.NotFound);
+    }
+
+    /// <summary>First byte of a Range header, or null. Only the start is meaningful against a
+    /// stream still being produced -- an explicit end, or a suffix ("last N bytes"), asks about
+    /// bytes whose existence nothing can vouch for yet.</summary>
+    [NonAction]
+    private static long? ParseRangeStart(string rangeValue)
+    {
+        if (string.IsNullOrEmpty(rangeValue))
+            return null;
+
+        var spec = rangeValue.Replace("bytes=", string.Empty).Split(',')[0];
+        var dash = spec.IndexOf('-');
+        if (dash <= 0)
+            return null;
+
+        return long.TryParse(spec[..dash].Trim(), out var start) && start >= 0 ? start : null;
     }
 
     [NonAction]
@@ -147,13 +309,18 @@ public class ShokoServiceImplementationStream : Controller, IHttpContextAccessor
     }
 
     [HttpHead("{videoLocalId}/{userId?}/{autoWatch?}/{fakeName?}")]
-    public object InfoVideo(int videoLocalId, int? userId, bool? autoWatch, string fakeName)
+    public async Task<object> InfoVideo(int videoLocalId, int? userId, bool? autoWatch, string fakeName)
     {
         var r = ResolveVideoLocal(videoLocalId, userId, autoWatch);
         if (r.Status != HttpStatusCode.OK && r.Status != HttpStatusCode.PartialContent)
         {
             return StatusCode((int)r.Status, r.StatusDescription);
         }
+
+        // Must go through the transform too, or a player probes the ORIGINAL file's size and
+        // then requests ranges against a stream of an entirely different length.
+        if (await TransformedResult(r, headOnly: true) is { } transformed)
+            return transformed;
 
         Response.Headers.Append("Server", SERVER_VERSION);
         Response.Headers.Append("Accept-Ranges", "bytes");

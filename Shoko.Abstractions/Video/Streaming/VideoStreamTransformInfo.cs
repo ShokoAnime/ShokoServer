@@ -10,9 +10,15 @@ namespace Shoko.Abstractions.Video.Streaming;
 public class VideoStreamTransformInfo
 {
     /// <summary>
-    /// The unique ID of the transform.
+    /// The unique ID of the transform, e.g. <c>ShokoPlugin.RifeInterpolation:RifeDrbaTransform</c>.
+    ///
+    /// Deliberately a readable string rather than a GUID: it is a persisted config key
+    /// (<c>video-stream-pipeline.json</c>) and a URL segment, so a human has to be able to
+    /// tell which transform an entry refers to without cross-referencing anything. Derived
+    /// from the declaring assembly and type name, so it is stable across versions and
+    /// unique without a registry.
     /// </summary>
-    public required Guid ID { get; init; }
+    public required string ID { get; init; }
 
     /// <summary>
     /// The version of the video stream transform.

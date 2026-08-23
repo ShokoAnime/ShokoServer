@@ -752,7 +752,7 @@ public class FileController(
     /// <returns>The HLS VOD manifest.</returns>
     [AllowAnonymous]
     [HttpGet("{fileID}/Stream/Hls/master.m3u8")]
-    public async Task<ActionResult> GetFileStreamHlsManifest([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] Guid? transformId = null)
+    public async Task<ActionResult> GetFileStreamHlsManifest([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] string? transformId = null)
     {
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
@@ -789,7 +789,7 @@ public class FileController(
     /// <param name="transformId">Optional. An explicit transform to use. If not set, the highest-priority applicable transform is selected automatically.</param>
     [AllowAnonymous]
     [HttpGet("{fileID}/Stream/Direct")]
-    public async Task<ActionResult> GetFileStreamDirectStart([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] Guid? transformId = null)
+    public async Task<ActionResult> GetFileStreamDirectStart([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] string? transformId = null)
     {
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
@@ -806,7 +806,19 @@ public class FileController(
         if (transformInfo.Transform.DeliveryMode is not StreamDeliveryMode.Progressive)
             return BadRequest("This transform delivers via StreamDeliveryMode.Hls -- request Stream/Hls/master.m3u8 instead of Stream/Direct.");
 
-        var rendition = await transformInfo.Transform.GetRenditionAsync(file, context, HttpContext.RequestAborted);
+        IStreamRendition rendition;
+        try
+        {
+            rendition = await transformInfo.Transform.GetRenditionAsync(file, context, HttpContext.RequestAborted);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // A rendition may do real work here -- reaching a remote service, starting a
+            // process -- and failing at this point is the useful place to fail, because the
+            // reason can still be reported. Left unhandled it would surface as a bare 500.
+            return InternalError($"Transform \"{transformInfo.Name}\" could not start a rendition: {ex.Message}");
+        }
+
         if (rendition is not IProgressiveStreamRendition)
             return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Progressive but its rendition does not implement IProgressiveStreamRendition.");
 
@@ -837,7 +849,12 @@ public class FileController(
         if (session.Rendition is not IProgressiveStreamRendition rendition)
             return InternalError("Stream session's rendition is not a progressive rendition.");
 
-        var rangeStart = ParseRangeStart(Request);
+        // The rendition owns the declared length, and a rendition that has no length to
+        // declare cannot answer a byte range honestly -- a 206 must name a concrete
+        // last-byte-position, and there is none to name for an open-ended stream. Serve
+        // it from the start instead of inventing one.
+        var estimatedTotalBytes = rendition.EstimatedTotalBytes;
+        var rangeStart = estimatedTotalBytes is null ? null : ParseRangeStart(Request);
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_streamSessionManager.SegmentRequestTimeoutSeconds));
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted, timeoutCts.Token);
 
@@ -853,10 +870,6 @@ public class FileController(
 
         if (stream is null)
             return NotFound();
-
-        var estimatedTotalBytes = session.Video.MediaInfo is { } mediaInfo && rendition.EstimatedBytesPerSecond > 0
-            ? (long)(mediaInfo.Duration.TotalSeconds * rendition.EstimatedBytesPerSecond)
-            : (long?)null;
 
         return new ProgressiveTransformStreamResult(session.Video, User, stream, rendition.ContainerMimeType, rangeStart, estimatedTotalBytes);
     }

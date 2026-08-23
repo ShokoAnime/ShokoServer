@@ -16,7 +16,7 @@ public class VideoStreamTransform(VideoStreamTransformInfo info)
     /// The unique ID of the transform.
     /// </summary>
     [Required]
-    public Guid ID { get; init; } = info.ID;
+    public string ID { get; init; } = info.ID;
 
     /// <summary>
     /// The version of the video stream transform.

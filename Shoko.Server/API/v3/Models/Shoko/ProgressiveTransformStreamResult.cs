@@ -21,17 +21,21 @@ namespace Shoko.Server.API.v3.Models.Shoko;
 ///   already-known-length physical file and so can't be reused here.
 /// </summary>
 /// <remarks>
-///   <see cref="IProgressiveStreamRendition.EstimatedBytesPerSecond"/> is only
+///   <see cref="IProgressiveStreamRendition.EstimatedTotalBytes"/> is only
 ///   ever an estimate (real output bitrate is rarely perfectly constant), so
 ///   the <c>Content-Length</c>/<c>Content-Range</c> total this declares may
 ///   not exactly match the number of bytes the underlying rendition actually
-///   produces before its stream ends -- a disclosed, not-yet-real-world-
-///   validated trade-off of this delivery mode (see
-///   <see cref="IProgressiveStreamRendition"/>'s own remarks). If the
-///   rendition's stream ends before the declared length, the response body
-///   simply ends short; if a client/player handles that poorly, tightening
-///   this (e.g. falling back to an unbounded <c>Content-Range: .../*</c> when
-///   duration is uncertain) is the first thing to try.
+///   produces before its stream ends. That number comes from the rendition
+///   and is passed through untouched: it is the scale the rendition's own
+///   byte-to-time mapping (and, where one exists, the served container's seek
+///   index) was built at, so a total computed here instead would put every
+///   seek out by the ratio between the two.
+///
+///   If the rendition's stream ends before the declared length, the response
+///   body simply ends short. <c>null</c> means the rendition declined to
+///   declare a length at all, in which case there is no <c>Content-Length</c>
+///   and no <c>Range</c> handling -- see the interface's own remarks for why
+///   those two go together.
 /// </remarks>
 public class ProgressiveTransformStreamResult(
     IVideo video,
@@ -44,18 +48,25 @@ public class ProgressiveTransformStreamResult(
     public override async Task ExecuteResultAsync(ActionContext context)
     {
         var response = context.HttpContext.Response;
-        response.Headers.AcceptRanges = "bytes";
+        // Only claim range support when it can actually be honoured. Advertising it while
+        // serving every request from byte 0 is worse than not advertising it: the client
+        // keeps seeking, keeps getting a 200 with the start of the stream, and silently
+        // restarts playback each time -- which presents as a stream that cannot keep up
+        // rather than as a stream that cannot seek.
+        if (estimatedTotalBytes is not null)
+            response.Headers.AcceptRanges = "bytes";
         response.ContentType = contentType;
 
         var start = rangeStart ?? 0;
-        if (rangeStart is not null)
+        // The two halves go together deliberately. A 206 must name a concrete
+        // last-byte-position -- "bytes 500-*/*" is not expressible -- so a range is only
+        // ever honoured when the rendition declared a length to derive it from, which is
+        // the same condition the controller applies before it forwards one.
+        if (rangeStart is not null && estimatedTotalBytes is { } total)
         {
             response.StatusCode = StatusCodes.Status206PartialContent;
-            var totalText = estimatedTotalBytes is { } total ? total.ToString() : "*";
-            var endText = estimatedTotalBytes is { } declaredEnd ? (declaredEnd - 1).ToString() : "*";
-            response.Headers.ContentRange = $"bytes {start}-{endText}/{totalText}";
-            if (estimatedTotalBytes is { } length)
-                response.ContentLength = Math.Max(0, length - start);
+            response.Headers.ContentRange = $"bytes {start}-{total - 1}/{total}";
+            response.ContentLength = Math.Max(0, total - start);
         }
         else
         {

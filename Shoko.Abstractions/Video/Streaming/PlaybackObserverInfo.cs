@@ -10,9 +10,11 @@ namespace Shoko.Abstractions.Video.Streaming;
 public class PlaybackObserverInfo
 {
     /// <summary>
-    /// The unique ID of the observer.
+    /// The unique ID of the observer, e.g. <c>Shoko.Server:MyObserver</c>. A readable
+    /// string for the same reason as <see cref="VideoStreamTransformInfo.ID"/> -- it is a
+    /// persisted config key and a URL segment.
     /// </summary>
-    public required Guid ID { get; init; }
+    public required string ID { get; init; }
 
     /// <summary>
     /// The version of the playback observer.

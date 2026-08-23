@@ -16,7 +16,7 @@ public class PlaybackObserver(PlaybackObserverInfo info)
     /// The unique ID of the observer.
     /// </summary>
     [Required]
-    public Guid ID { get; init; } = info.ID;
+    public string ID { get; init; } = info.ID;
 
     /// <summary>
     /// The version of the playback observer.

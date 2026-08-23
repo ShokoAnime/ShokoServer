@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
@@ -19,19 +18,19 @@ public class VideoStreamPipelineSettings : INewtonsoftJsonConfiguration, IHidden
     /// A dictionary containing the enabled state of each transform by id.
     /// </summary>
     [Visibility(DisplayVisibility.ReadOnly)]
-    public Dictionary<Guid, bool> TransformEnabled { get; set; } = [];
+    public Dictionary<string, bool> TransformEnabled { get; set; } = [];
 
     /// <summary>
     /// A list of transform ids in order of priority.
     /// </summary>
     [Visibility(DisplayVisibility.ReadOnly)]
-    public List<Guid> TransformPriority { get; set; } = [];
+    public List<string> TransformPriority { get; set; } = [];
 
     /// <summary>
     /// A dictionary containing the enabled state of each playback observer by id.
     /// </summary>
     [Visibility(DisplayVisibility.ReadOnly)]
-    public Dictionary<Guid, bool> ObserverEnabled { get; set; } = [];
+    public Dictionary<string, bool> ObserverEnabled { get; set; } = [];
 
     /// <summary>
     /// The nominal HLS segment duration to request from transforms, in seconds.

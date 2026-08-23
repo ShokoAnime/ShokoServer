@@ -63,12 +63,12 @@ public interface IVideoStreamPipelineService
     /// <param name="context">The stream transform context.</param>
     /// <param name="explicitTransformId">Optional. An explicit transform to use.</param>
     /// <returns>The selected transform info, or <c>null</c> if none is applicable.</returns>
-    VideoStreamTransformInfo? SelectTransform(IVideo video, VideoStreamTransformContext context, Guid? explicitTransformId = null);
+    VideoStreamTransformInfo? SelectTransform(IVideo video, VideoStreamTransformContext context, string? explicitTransformId = null);
 
     /// <summary>
     ///   Gets the <see cref="VideoStreamTransformInfo"/> for the specified ID.
     /// </summary>
-    VideoStreamTransformInfo? GetTransformInfo(Guid transformID);
+    VideoStreamTransformInfo? GetTransformInfo(string transformID);
 
     /// <summary>
     ///   Edit the settings for one or more transforms, such as whether it's
@@ -85,7 +85,7 @@ public interface IVideoStreamPipelineService
     /// <summary>
     ///   Gets the <see cref="PlaybackObserverInfo"/> for the specified ID.
     /// </summary>
-    PlaybackObserverInfo? GetObserverInfo(Guid observerID);
+    PlaybackObserverInfo? GetObserverInfo(string observerID);
 
     /// <summary>
     ///   Edit the enabled state for one or more playback observers.

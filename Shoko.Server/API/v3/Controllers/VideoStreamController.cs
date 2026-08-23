@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
@@ -80,7 +79,7 @@ public class VideoStreamController(ISettingsProvider settingsProvider, IVideoStr
     /// <param name="transformID">The ID of the video stream transform to get.</param>
     /// <returns>A <see cref="VideoStreamTransform"/>.</returns>
     [HttpGet("Transforms/{transformID}")]
-    public ActionResult<VideoStreamTransform> GetTransformByID(Guid transformID)
+    public ActionResult<VideoStreamTransform> GetTransformByID(string transformID)
     {
         if (streamPipelineService.GetTransformInfo(transformID) is not { } info)
             return NotFound($"Video Stream Transform '{transformID}' not found!");
@@ -98,7 +97,7 @@ public class VideoStreamController(ISettingsProvider settingsProvider, IVideoStr
     [ProducesResponseType(404)]
     [ProducesResponseType(200)]
     [HttpPut("Transforms/{transformID}")]
-    public ActionResult<VideoStreamTransform> UpdateTransformByID([FromRoute] Guid transformID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateSingleTransformBody body)
+    public ActionResult<VideoStreamTransform> UpdateTransformByID([FromRoute] string transformID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateSingleTransformBody body)
     {
         if (streamPipelineService.GetTransformInfo(transformID) is not { } info)
             return NotFound($"Video Stream Transform '{transformID}' not found!");
@@ -142,7 +141,7 @@ public class VideoStreamController(ISettingsProvider settingsProvider, IVideoStr
     [ProducesResponseType(404)]
     [ProducesResponseType(200)]
     [HttpPut("Observers/{observerID}")]
-    public ActionResult<PlaybackObserver> UpdateObserverByID([FromRoute] Guid observerID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateObserverBody body)
+    public ActionResult<PlaybackObserver> UpdateObserverByID([FromRoute] string observerID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateObserverBody body)
     {
         if (streamPipelineService.GetObserverInfo(observerID) is not { } info)
             return NotFound($"Playback Observer '{observerID}' not found!");

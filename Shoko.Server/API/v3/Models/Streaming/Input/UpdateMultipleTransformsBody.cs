@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace Shoko.Server.API.v3.Models.Streaming.Input;
@@ -6,7 +5,7 @@ namespace Shoko.Server.API.v3.Models.Streaming.Input;
 public class UpdateMultipleTransformsBody
 {
     [Required]
-    public Guid ID { get; set; }
+    public string ID { get; set; } = string.Empty;
 
     public int? Priority { get; set; }
 

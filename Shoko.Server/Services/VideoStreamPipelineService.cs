@@ -7,8 +7,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Plugin.Models;
-using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Video.Streaming;
@@ -26,9 +24,9 @@ public class VideoStreamPipelineService(
 {
     private readonly Lock _lock = new();
 
-    private Dictionary<Guid, VideoStreamTransformInfo> _transformInfos = [];
+    private Dictionary<string, VideoStreamTransformInfo> _transformInfos = [];
 
-    private Dictionary<Guid, PlaybackObserverInfo> _observerInfos = [];
+    private Dictionary<string, PlaybackObserverInfo> _observerInfos = [];
 
     private bool _transformsLoaded;
 
@@ -55,7 +53,7 @@ public class VideoStreamPipelineService(
                 {
                     var transformType = transform.GetType();
                     var pluginInfo = pluginManager.GetPluginInfo(transformType.Assembly)!;
-                    var id = GetTransformID(transformType, pluginInfo);
+                    var id = GetPartID(transformType);
                     var isEnabled = enabled.TryGetValue(id, out var enabledValue) && enabledValue;
                     var description = transform.Description?.CleanDescription() ?? string.Empty;
                     var configurationType = transformType.GetInterfaces()
@@ -97,7 +95,7 @@ public class VideoStreamPipelineService(
         => GetAvailableTransforms(onlyEnabled)
             .Where(info => info.Transform.SupportsVideo(video, context));
 
-    public VideoStreamTransformInfo? SelectTransform(IVideo video, VideoStreamTransformContext context, Guid? explicitTransformId = null)
+    public VideoStreamTransformInfo? SelectTransform(IVideo video, VideoStreamTransformContext context, string? explicitTransformId = null)
     {
         if (explicitTransformId is { } id)
         {
@@ -108,7 +106,7 @@ public class VideoStreamPipelineService(
         return GetApplicableTransforms(video, context, onlyEnabled: true).FirstOrDefault();
     }
 
-    public VideoStreamTransformInfo? GetTransformInfo(Guid transformID)
+    public VideoStreamTransformInfo? GetTransformInfo(string transformID)
         => _transformInfos.TryGetValue(transformID, out var info) ? CopyTransform(info) : null;
 
     public void UpdateTransforms(params VideoStreamTransformInfo[] transforms)
@@ -184,13 +182,44 @@ public class VideoStreamPipelineService(
         Priority = priority ?? info.Priority,
     };
 
-    private Guid GetTransformID(Type transformType)
-        => _transformsLoaded && pluginManager.GetPluginInfo(transformType.Assembly) is { } pluginInfo
-            ? GetTransformID(transformType, pluginInfo)
-            : Guid.Empty;
+    private string GetTransformID(Type transformType)
+        => _transformsLoaded && pluginManager.GetPluginInfo(transformType.Assembly) is not null
+            ? GetPartID(transformType)
+            : string.Empty;
 
-    private static Guid GetTransformID(Type type, LocalPluginInfo pluginInfo)
-        => UuidUtility.GetV5($"VideoStreamTransform={type.FullName!}", pluginInfo.ID);
+    /// <summary>
+    ///   The identifier a transform or observer is known by, e.g.
+    ///   <c>ShokoPlugin.RifeInterpolation:RifeDrbaTransform</c>.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     Readable on purpose. This lands in <c>video-stream-pipeline.json</c> as a key and
+    ///     in <c>/api/v3/VideoStream/Transforms/{id}</c> as a URL segment, and both are things
+    ///     a person reads and edits. The previous form was a v5 UUID derived from the same
+    ///     inputs, which was unique and stable but told a reader nothing -- an entry like
+    ///     <c>"ea48d55c-ddef-524b-8ac3-ad1793fd415a": false</c> cannot be acted on without
+    ///     first asking a running server what it means.
+    ///   </para>
+    ///   <para>
+    ///     Composed of the declaring assembly and the type's name within it, so it is unique
+    ///     without a registry (a full type name is unique in an assembly, and stripping a
+    ///     fixed prefix keeps distinct names distinct) and stable across versions (it moves
+    ///     only if the type is renamed or moved, exactly as the old UUID did, since that was
+    ///     seeded from the same string). The assembly name is also what
+    ///     <c>Settings.Plugins.EnabledPlugins</c> is already keyed by, so the two config files
+    ///     name plugins the same way.
+    ///   </para>
+    /// </remarks>
+    private static string GetPartID(Type type)
+    {
+        var assemblyName = type.Assembly.GetName().Name ?? string.Empty;
+        var typeName = type.FullName ?? type.Name;
+        // Namespaces normally begin with the assembly name; repeating it would give
+        // "ShokoPlugin.RifeInterpolation:ShokoPlugin.RifeInterpolation.RifeDrbaTransform".
+        if (assemblyName.Length > 0 && typeName.StartsWith(assemblyName + ".", StringComparison.Ordinal))
+            typeName = typeName[(assemblyName.Length + 1)..];
+        return assemblyName.Length > 0 ? $"{assemblyName}:{typeName}" : typeName;
+    }
 
     #endregion Transforms
 
@@ -210,7 +239,7 @@ public class VideoStreamPipelineService(
                 {
                     var observerType = observer.GetType();
                     var pluginInfo = pluginManager.GetPluginInfo(observerType.Assembly)!;
-                    var id = GetObserverID(observerType, pluginInfo);
+                    var id = GetPartID(observerType);
                     var isEnabled = enabled.TryGetValue(id, out var enabledValue) && enabledValue;
                     var description = observer.Description?.CleanDescription() ?? string.Empty;
                     return new PlaybackObserverInfo()
@@ -236,7 +265,7 @@ public class VideoStreamPipelineService(
             .Where(info => !onlyEnabled || info.Enabled)
             .Select(info => CopyObserver(info));
 
-    public PlaybackObserverInfo? GetObserverInfo(Guid observerID)
+    public PlaybackObserverInfo? GetObserverInfo(string observerID)
         => _observerInfos.TryGetValue(observerID, out var info) ? CopyObserver(info) : null;
 
     public void UpdateObservers(params PlaybackObserverInfo[] observers)
@@ -304,13 +333,10 @@ public class VideoStreamPipelineService(
         Enabled = info.Enabled,
     };
 
-    private Guid GetObserverID(Type observerType)
-        => _observersLoaded && pluginManager.GetPluginInfo(observerType.Assembly) is { } pluginInfo
-            ? GetObserverID(observerType, pluginInfo)
-            : Guid.Empty;
-
-    private static Guid GetObserverID(Type type, LocalPluginInfo pluginInfo)
-        => UuidUtility.GetV5($"PlaybackObserver={type.FullName!}", pluginInfo.ID);
+    private string GetObserverID(Type observerType)
+        => _observersLoaded && pluginManager.GetPluginInfo(observerType.Assembly) is not null
+            ? GetPartID(observerType)
+            : string.Empty;
 
     #endregion Observers
 }
