@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.427",
+      "tag": "v6.0.0-dev.427",
+      "commit": "b6fdba59b6154860948c6fba03f8809ed35894cc",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.427/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-22T21:49:13Z",
+      "releaseNotes": "\n`repo` (`deps`): **Bump `Shoko.BuildTools.Targets` to 0.2.1**:\n\nThe server was pinned to 0.1.0 while the package had moved on to 0.2.1,\nso nothing in 0.2.x reached the server build. Matters now that the\npackage is about to start carrying analyzers.\n\n`chore`: **Expand the one-line XML summaries to the house style**:\n\nSeventy-two summaries were written as a single `/// <summary>text</summary>`\nline against roughly 3,700 written as the three-line block, so the\noutliers read as oversights rather than as a second convention. Most of\nthem sit together in the v3 release models.\n\nComment text is unchanged; the diff contains no non-comment lines.\n"
+    },
+    {
       "version": "6.0.0.426",
       "tag": "v6.0.0-dev.426",
       "commit": "18b202b1ae5ba56df47e2f4a6b547378e76c8fb3",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.398/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-30T15:24:42Z",
       "releaseNotes": "\n`chore` (`deps`): **Update NuGet packages to latest versions**.\n"
-    },
-    {
-      "version": "6.0.0.397",
-      "tag": "v6.0.0-dev.397",
-      "commit": "342cb8d88847c62fe8b4ccf051a83ebe5c38de06",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.397/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-28T23:36:11Z",
-      "releaseNotes": "\n`misc`: **Add more data for Mix and Match**.\n"
     }
   ]
 }
