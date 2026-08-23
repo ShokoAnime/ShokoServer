@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.User.Services;
@@ -18,7 +20,6 @@ using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
@@ -43,6 +44,7 @@ public class VideoReleaseService(
     ISettingsProvider settingsProvider,
     ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
     IQueueScheduler schedulerFactory,
+    IMyListService mylistService,
     QueueJobTypeRegistry jobTypeRegistry,
     IRequestFactory requestFactory,
     IUserService userService,
@@ -869,11 +871,7 @@ public class VideoReleaseService(
 
         // Sync to MyList if needed.
         if (!skipEvents && !releaseUriMatches && _settings.AniDb.MyList_AddFiles)
-            await schedulerFactory.StartJob<AddFileToMyListJob>(c =>
-            {
-                c.Hash = video.ED2K;
-                c.ReadStates = true;
-            });
+            await mylistService.ScheduleAddVideo(video);
 
         // Rename and/or move the physical file(s) if needed.
         await relocationService.ChainAutoRelocationForVideo(video).ConfigureAwait(false);
@@ -1234,7 +1232,7 @@ public class VideoReleaseService(
 
     private async Task RemoveFromMyList(StoredReleaseInfo releaseInfo, IReleaseInfo? replacingRelease = null)
     {
-        if (_settings.AniDb.MyList_DeleteType is AniDBFileDeleteType.DeleteLocalOnly)
+        if (_settings.AniDb.MyList_DeleteType is MyListDeleteType.DeleteLocalOnly)
         {
             logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
             return;
@@ -1244,33 +1242,40 @@ public class VideoReleaseService(
         if (replacingRelease?.ReleaseURI is not null && replacingRelease.ReleaseURI == releaseInfo.ReleaseURI)
             return;
 
-        if (releaseInfo is { ReleaseURI: not null } && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
+        if (HasDedicatedMyListEntry(releaseInfo))
         {
-            await schedulerFactory.StartJob<DeleteFileFromMyListJob>(c =>
-            {
-                c.Hash = releaseInfo.ED2K;
-                c.FileSize = releaseInfo.FileSize;
-            });
+            await mylistService.ScheduleDisposeEntry(releaseInfo.ED2K, releaseInfo.FileSize);
+            return;
         }
-        else
+
+        foreach (var xref in releaseInfo.CrossReferences)
         {
-            foreach (var xref in releaseInfo.CrossReferences)
+            if (xref.AnidbAnimeID is not { } anidbAnimeId || anidbAnimeId is 0)
+                continue;
+
+            if (anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID) is not { } anidbEpisode)
+                continue;
+
+            // a generic entry covers the episode rather than this one file, so it
+            // has to stay while another manually linked release still relies on it
+            if (releaseInfoRepository.GetByAnidbEpisodeID(xref.AnidbEpisodeID).Any(other => other.StoredReleaseInfoID != releaseInfo.StoredReleaseInfoID && !HasDedicatedMyListEntry(other)))
             {
-                if (xref.AnidbAnimeID is not { } anidbAnimeId || anidbAnimeId is 0)
-                    continue;
-
-                if (anidbEpisodeRepository.GetByEpisodeID(xref.AnidbEpisodeID) is not { } anidbEpisode)
-                    continue;
-
-                await schedulerFactory.StartJob<DeleteFileFromMyListJob>(c =>
-                {
-                    c.AnimeID = anidbAnimeId;
-                    c.EpisodeType = anidbEpisode.EpisodeType;
-                    c.EpisodeNumber = anidbEpisode.EpisodeNumber;
-                });
+                logger.LogInformation(
+                    "Keeping the generic AniDB MyList entry, another manually linked release still uses it: AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
+                    anidbAnimeId, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber);
+                continue;
             }
+
+            await mylistService.ScheduleDisposeEntry(anidbAnimeId, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber);
         }
     }
+
+    /// <summary>
+    /// Whether the release has a MyList entry of its own, rather than relying on
+    /// the generic entry shared by every manual link to the same episode.
+    /// </summary>
+    private static bool HasDedicatedMyListEntry(IReleaseInfo releaseInfo)
+        => releaseInfo.ReleaseURI is { } releaseUri && releaseUri.StartsWith(AnidbReleaseProvider.ReleasePrefix);
 
     #endregion Clear Release
 

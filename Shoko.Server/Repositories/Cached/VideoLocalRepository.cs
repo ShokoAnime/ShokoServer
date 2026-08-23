@@ -462,7 +462,4 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 
     public IReadOnlyList<VideoLocal> GetIgnoredVideos()
         => _ignored!.GetMultiple(true);
-
-    public VideoLocal? GetByMyListID(int myListID)
-        => Cache.GetAll().FirstOrDefault(a => a.MyListID == myListID);
 }

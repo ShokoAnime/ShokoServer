@@ -52,6 +52,8 @@ public enum ScheduledUpdateFrequency
     WeekOne = 5,
     [Display(Name = "Once a month")]
     MonthOne = 6,
+    [Display(Name = "Every hour")]
+    EveryHour = 7,
 }
 
 public static class ScheduledUpdateFrequencyExtensions
@@ -66,6 +68,7 @@ public static class ScheduledUpdateFrequencyExtensions
                 ScheduledUpdateFrequency.Daily => 24,
                 ScheduledUpdateFrequency.WeekOne => 24 * 7,
                 ScheduledUpdateFrequency.MonthOne => 24 * 30,
+                ScheduledUpdateFrequency.EveryHour => 1,
                 _ => int.MaxValue,
             };
     }

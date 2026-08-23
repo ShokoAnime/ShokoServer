@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +7,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Models;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Video.Services;
@@ -44,6 +46,8 @@ public class ActionController : BaseController
     private readonly IVideoService _videoService;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly IQueueScheduler _scheduler;
+
+    private readonly IMyListService _myListService;
     private readonly IImageManager _imageManager;
     private readonly VideoLocalRepository _videoLocals;
     private readonly JMMUserRepository _jmmUsers;
@@ -53,6 +57,7 @@ public class ActionController : BaseController
         TmdbMetadataService tmdbMetadataService,
         TmdbLinkingService tmdbLinkingService,
         IQueueScheduler scheduler,
+        IMyListService myListService,
         IVideoService videoService,
         IVideoReleaseService videoReleaseService,
         ISettingsProvider settingsProvider,
@@ -70,6 +75,7 @@ public class ActionController : BaseController
         _videoService = videoService;
         _videoReleaseService = videoReleaseService;
         _scheduler = scheduler;
+        _myListService = myListService;
         _actionService = actionService;
         _groupCreator = groupCreator;
         _groupService = groupService;
@@ -475,7 +481,7 @@ public class ActionController : BaseController
     [HttpGet("SyncMyList")]
     public async Task<ActionResult> SyncMyList()
     {
-        await _scheduler.StartJob<SyncAniDBMyListJob>(c => c.ForceRefresh = true);
+        await _myListService.ScheduleSync(new MyListSyncOptions { FetchMode = MyListFetchMode.IgnoreTimeCheck });
         return Ok();
     }
 
@@ -619,13 +625,9 @@ public class ActionController : BaseController
     [HttpGet("AddAllManualLinksToMyList")]
     public async Task<ActionResult> AddAllManualLinksToMyList()
     {
-        var files = _videoLocals.GetManuallyLinkedVideos();
-        foreach (var vl in files)
-        {
-            await _scheduler.StartJob<AddFileToMyListJob>(c => c.Hash = vl.Hash);
-        }
+        await _myListService.ScheduleAddAllManualLinks();
 
-        return Ok($"Saved {files.Count} AddToMyList Commands");
+        return Ok();
     }
 
     /// <summary>

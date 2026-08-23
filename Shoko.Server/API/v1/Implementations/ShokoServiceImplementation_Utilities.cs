@@ -14,17 +14,12 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Release;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Providers.AniDB.HTTP;
-using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
@@ -407,135 +402,11 @@ public partial class ShokoServiceImplementation
     }
 
     [HttpGet("AniDB/MyList/Missing/{userID}")]
-    public List<CL_MissingFile> GetMyListFilesForRemoval(int userID)
-    {
-        // TODO maybe rework this
-        var contracts = new List<CL_MissingFile>();
-        var animeCache = new Dictionary<int, AniDB_Anime>();
-        var animeSeriesCache = new Dictionary<int, AnimeSeries>();
-
-        try
-        {
-            var requestFactory = HttpContext.RequestServices.GetRequiredService<IRequestFactory>();
-            var settings = _settingsProvider.GetSettings();
-            var request = requestFactory.Create<RequestMyList>(
-                r =>
-                {
-                    r.Username = settings.AniDb.Username;
-                    r.Password = settings.AniDb.Password;
-                }
-            );
-            var response = request.Send();
-            if (response.Response != null)
-            {
-                foreach (var myitem in response.Response)
-                {
-                    // let's check if the file on AniDB actually exists in the user's local collection
-                    var hash = string.Empty;
-
-                    var anifile = RepoFactory.StoredReleaseInfo.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myitem.FileID}");
-                    if (anifile != null)
-                        hash = anifile.ED2K;
-                    else
-                    {
-                        // look for manually linked files
-                        var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(myitem.EpisodeID.Value);
-                        foreach (var xref in xrefs)
-                        {
-                            hash = xref.Hash;
-                            break;
-                        }
-                    }
-
-                    bool fileMissing;
-                    if (string.IsNullOrEmpty(hash))
-                        fileMissing = true;
-                    else
-                    {
-                        // now check if the file actually exists on disk
-                        var v = RepoFactory.VideoLocal.GetByEd2k(hash);
-                        fileMissing = true;
-                        if (v == null) break;
-                        foreach (var p in v.Places)
-                        {
-                            if (System.IO.File.Exists(p.Path))
-                            {
-                                fileMissing = false;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (fileMissing)
-                    {
-                        // this means we can't find the file
-                        AniDB_Anime anime;
-                        if (myitem.AnimeID != null)
-                        {
-                            if (animeCache.ContainsKey(myitem.AnimeID.Value))
-                                anime = animeCache[myitem.AnimeID.Value];
-                            else
-                            {
-                                anime = RepoFactory.AniDB_Anime.GetByAnimeID(myitem.AnimeID.Value);
-                                animeCache[myitem.AnimeID.Value] = anime;
-                            }
-
-                            AnimeSeries ser;
-                            if (animeSeriesCache.ContainsKey(myitem.AnimeID.Value))
-                                ser = animeSeriesCache[myitem.AnimeID.Value];
-                            else
-                            {
-                                ser = RepoFactory.AnimeSeries.GetByAnimeID(myitem.AnimeID.Value);
-                                animeSeriesCache[myitem.AnimeID.Value] = ser;
-                            }
-
-
-                            var missingFile = new CL_MissingFile { AnimeID = myitem.AnimeID.Value, AnimeTitle = "Data Missing" };
-                            if (anime != null) missingFile.AnimeTitle = anime.MainTitle;
-                            missingFile.EpisodeID = myitem.EpisodeID ?? 0;
-                            var ep = myitem.EpisodeID == null ? null : RepoFactory.AniDB_Episode.GetByEpisodeID(myitem.EpisodeID.Value);
-                            missingFile.EpisodeNumber = -1;
-                            missingFile.EpisodeType = 1;
-                            if (ep != null)
-                            {
-                                missingFile.EpisodeNumber = ep.EpisodeNumber;
-                                missingFile.EpisodeType = (int)ep.EpisodeType;
-                            }
-
-                            missingFile.FileID = myitem.FileID ?? 0;
-
-                            missingFile.AnimeSeries = ser == null ? null : _legacyV1Service.GetV1UserContract(ser, userID);
-                            contracts.Add(missingFile);
-                        }
-                    }
-                }
-            }
-            contracts = contracts.OrderBy(a => a.AnimeTitle).ThenBy(a => a.EpisodeID).ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Ex}", ex.ToString());
-        }
-        return contracts;
-    }
+    public List<object> GetMyListFilesForRemoval(int userID)
+        => [];
 
     [HttpDelete("AniDB/MyList/Missing")]
-    public void RemoveMissingMyListFiles(List<CL_MissingFile> myListFiles)
-    {
-        // TODO maybe rework this
-        foreach (var missingFile in myListFiles)
-        {
-            var vl = RepoFactory.VideoLocal.GetByMyListID(missingFile.FileID);
-            if (vl == null) continue;
-            _scheduler.StartJob<DeleteFileFromMyListJob>(
-                c =>
-                {
-                    c.Hash = vl.Hash;
-                    c.FileSize = vl.FileSize;
-                }
-            ).GetAwaiter().GetResult();
-        }
-    }
+    public void RemoveMissingMyListFiles(List<object> myListFiles) { }
 
     [HttpGet("Series/WithoutFiles/{userID}")]
     public List<CL_AnimeSeries_User> GetSeriesWithoutAnyFiles(int userID)

@@ -25,7 +25,6 @@ public class VideoLocalMap : ClassMap<VideoLocal>
         Map(x => x.IsVariation).Not.Nullable();
         Map(x => x.MediaVersion).Not.Nullable();
         Map(x => x.MediaInfo).Nullable().Column("MediaBlob").CustomType<MessagePackConverter<MediaContainer>>();
-        Map(x => x.MyListID).Not.Nullable();
         Map(x => x.LastAVDumped);
         Map(x => x.LastAVDumpVersion);
     }

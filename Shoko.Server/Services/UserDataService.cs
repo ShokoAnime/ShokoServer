@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Enums;
@@ -29,6 +31,7 @@ public class UserDataService(
     ILogger<UserDataService> logger,
     ISettingsProvider settingsProvider,
     IQueueScheduler schedulerFactory,
+    IServiceProvider serviceProvider,
     VideoLocal_UserRepository videoUserDataRepository,
     AnimeEpisode_UserRepository episodeUserDataRepository,
     AnimeSeries_UserRepository seriesUserDataRepository,
@@ -36,6 +39,10 @@ public class UserDataService(
     JMMUserRepository userRepository
 ) : IUserDataService
 {
+    // Lazy init. to prevent a circular dependency between this service, the
+    // MyList service, and the services those depend on in turn.
+    private IMyListService? _myListService;
+
     #region Video User Data
 
     public event EventHandler<VideoUserDataSavedEventArgs>? VideoUserDataSaved;
@@ -331,13 +338,12 @@ public class UserDataService(
                 ((userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetWatched) || (!userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetUnwatched));
             if (syncAnidb)
             {
-                await schedulerFactory.StartJob<UpdateMyListFileStatusJob>(c =>
+                _myListService ??= serviceProvider.GetRequiredService<IMyListService>();
+                await _myListService.ScheduleUpdateVideo(video, new()
                 {
-                    c.Hash = video.ED2K;
-                    c.Watched = userDataUpdate.LastPlayedAt.HasValue;
-                    c.UpdateSeriesStats = false;
-                    c.WatchedDate = userDataUpdate.LastPlayedAt?.ToUniversalTime();
-                });
+                    IsViewed = userDataUpdate.LastPlayedAt.HasValue,
+                    ViewedAt = userDataUpdate.LastPlayedAt?.ToUniversalTime(),
+                }, updateSeriesStats: false);
             }
         }
 

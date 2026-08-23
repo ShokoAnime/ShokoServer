@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
@@ -50,6 +51,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class FileController(
     IQueueScheduler _schedulerFactory,
+    IMyListService _myListService,
     IVideoService _videoService,
     IVideoReleaseService _videoReleaseService,
     IUserDataService _userDataService,
@@ -1283,7 +1285,7 @@ public class FileController(
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
-        await _schedulerFactory.StartJob<AddFileToMyListJob>(c => c.Hash = file.Hash, prioritize: true).ConfigureAwait(false);
+        await _myListService.ScheduleAddEntry(file.Hash, file.FileSize, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }

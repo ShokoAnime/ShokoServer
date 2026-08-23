@@ -1,15 +1,16 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling.Jobs.AniDB;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Models;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Sync all local state to the AniDB MyList. This overwrites AniDB data.
 /// </summary>
-public sealed class SyncAnidbMyListAction(IQueueScheduler scheduler) : IExecutableAction
+public sealed class SyncAnidbMyListAction(IMyListService myListService) : IExecutableAction
 {
     public string Name => "Sync AniDB MyList";
 
@@ -24,5 +25,5 @@ public sealed class SyncAnidbMyListAction(IQueueScheduler scheduler) : IExecutab
     public string? ConfirmationMessage => "Are you sure you want to sync local state with the AniDB MyList for all series? This may take a while.";
 
     public Task Execute(CancellationToken token = default)
-        => scheduler.Enqueue<SyncAniDBMyListJob>(j => j.ForceRefresh = true, ct: token);
+        => myListService.ScheduleSync(new MyListSyncOptions { FetchMode = MyListFetchMode.IgnoreTimeCheck });
 }

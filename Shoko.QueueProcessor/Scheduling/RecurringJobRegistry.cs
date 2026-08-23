@@ -79,11 +79,18 @@ public class RecurringJobRegistry : IHostedService, IDisposable
     }
 
     /// <summary>
-    /// Updates the interval for an already-registered job. If the job has not been registered
-    /// yet (e.g. it was initially skipped because its frequency was set to Never), it is
-    /// registered now with <paramref name="interval"/> and <c>runImmediately = false</c>.
+    /// Changes a registered job's interval, or registers it with
+    /// <c>runImmediately = false</c> when it was never registered in the first
+    /// place (e.g. it was skipped because its frequency was set to Never).
     /// </summary>
-    public void Reschedule<T>(TimeSpan interval) where T : class, IQueueJob
+    /// <typeparam name="T">The job type.</typeparam>
+    /// <param name="interval">How often to (re-)enqueue the job.</param>
+    /// <param name="configure">
+    /// Optional job data configurator, used only when this call has to register
+    /// the job. An already-registered job keeps the configurator it was
+    /// registered with, so pass the same one the original registration used.
+    /// </param>
+    public void Reschedule<T>(TimeSpan interval, Action<T>? configure = null) where T : class, IQueueJob
     {
         lock (_lock)
         {
@@ -95,7 +102,7 @@ public class RecurringJobRegistry : IHostedService, IDisposable
         }
 
         // Job was never registered (e.g. initial frequency was Never). Register it now.
-        Register<T>(interval, runImmediately: false);
+        Register(interval, configure, runImmediately: false);
     }
 
     /// <summary>

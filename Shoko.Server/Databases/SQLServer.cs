@@ -1097,6 +1097,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(180, 36, "ALTER TABLE TMDB_Show_Network ADD CONSTRAINT PK_TMDB_Show_Network PRIMARY KEY CLUSTERED (TMDB_Show_NetworkID);"),
         new(180, 37, "ALTER TABLE TMDB_Title ADD CONSTRAINT PK_TMDB_Title PRIMARY KEY CLUSTERED (TMDB_TitleID);"),
         new(180, 38, "ALTER TABLE VideoLocal_HashDigest ADD CONSTRAINT PK_VideoLocal_HashDigest PRIMARY KEY CLUSTERED (VideoLocal_HashDigestID);"),
+        new(181,  1, DropVideoLocalMyListID),
     ];
 
     #endregion
@@ -1126,6 +1127,11 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
     {
         DropDefaultConstraint("AniDB_File", "IsChaptered");
         return Tuple.Create<bool, string?>(true, null);
+    }
+
+    private static void DropVideoLocalMyListID()
+    {
+        DropColumnWithDefaultConstraint("VideoLocal", "MyListID");
     }
 
     private static void DropVideoLocalMediaSize()

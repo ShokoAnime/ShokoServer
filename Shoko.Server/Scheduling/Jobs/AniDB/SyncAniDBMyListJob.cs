@@ -1,349 +1,174 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Threading.Tasks;
-using Iesi.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Models;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
-using Shoko.QueueProcessor.Scheduling;
-using Shoko.Server.Extensions;
-using Shoko.Server.Models.Release;
-using Shoko.Server.Models.Shoko;
-using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.HTTP;
-using Shoko.Server.Providers.AniDB.Interfaces;
-using Shoko.Server.Providers.AniDB.Release;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Server;
-using Shoko.Server.Services;
-using Shoko.Server.Settings;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
 [AniDBHttpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
+[DisallowConcurrentExecution]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class SyncAniDBMyListJob(
-    IRequestFactory requestFactory,
-    IQueueScheduler scheduler,
-    ISettingsProvider settingsProvider,
-    AnimeSeriesService seriesService,
-    VideoLocal_UserRepository vlUsers,
-    IUserDataService userDataService,
-    IApplicationPaths applicationPaths,
-    JMMUserRepository users,
-    ScheduledUpdateRepository scheduledUpdates,
-    StoredReleaseInfoRepository storedReleaseInfos,
-    VideoLocalRepository videoLocals
-) : BaseJob
+public class SyncAniDBMyListJob(IMyListService mylistService) : BaseJob, IJobMerge
 {
-    public bool ForceRefresh { get; set; }
+    [JobKeyIgnore]
+    public MyListFetchMode FetchMode { get; set; } = MyListFetchMode.Auto;
+
+    [JobKeyIgnore]
+    public bool ReadWatched { get; set; } = true;
+
+    [JobKeyIgnore]
+    public bool ReadUnwatched { get; set; } = true;
+
+    [JobKeyIgnore]
+    public bool SetWatched { get; set; } = true;
+
+    [JobKeyIgnore]
+    public bool SetUnwatched { get; set; } = true;
+
+    [JobKeyIgnore]
+    public MyListWatchedSyncMode WatchedSyncMode { get; set; } = MyListWatchedSyncMode.TrustRemote;
+
+    [JobKeyIgnore]
+    public bool UpdateStates { get; set; } = true;
+
+    [JobKeyIgnore]
+    public MyListState StorageState { get; set; } = MyListState.HDD;
+
+    [JobKeyIgnore]
+    public MyListDeleteType DeleteType { get; set; } = MyListDeleteType.MarkUnknown;
+
+    /// <summary>
+    /// The sync options to run with, reconstructed on the fly from the
+    /// flattened properties above.
+    /// </summary>
+    public virtual MyListSyncOptions Options
+    {
+        get => new()
+        {
+            FetchMode = FetchMode,
+            ReadWatched = ReadWatched,
+            ReadUnwatched = ReadUnwatched,
+            SetWatched = SetWatched,
+            SetUnwatched = SetUnwatched,
+            WatchedSyncMode = WatchedSyncMode,
+            UpdateStates = UpdateStates,
+            StorageState = StorageState,
+            DeleteType = DeleteType,
+        };
+        set
+        {
+            FetchMode = value.FetchMode ?? MyListFetchMode.Auto;
+            ReadWatched = value.ReadWatched ?? true;
+            ReadUnwatched = value.ReadUnwatched ?? true;
+            SetWatched = value.SetWatched ?? true;
+            SetUnwatched = value.SetUnwatched ?? true;
+            WatchedSyncMode = value.WatchedSyncMode ?? MyListWatchedSyncMode.TrustRemote;
+            UpdateStates = value.UpdateStates ?? true;
+            StorageState = value.StorageState ?? MyListState.HDD;
+            DeleteType = value.DeleteType ?? MyListDeleteType.MarkUnknown;
+        }
+    }
 
     public override string TypeName => "Sync AniDB MyList";
 
     public override string Title => "Syncing AniDB MyList";
 
+    public override Dictionary<string, object> Details
+    {
+        get
+        {
+            var details = new Dictionary<string, object>();
+            if (FetchMode is not MyListFetchMode.Auto)
+                details["Fetch Mode"] = FetchMode.ToString();
+
+            if (ReadWatched)
+                details["Read Watched"] = true;
+
+            if (ReadUnwatched)
+                details["Read Unwatched"] = true;
+
+            if (SetWatched)
+                details["Set Watched"] = true;
+
+            if (SetUnwatched)
+                details["Set Unwatched"] = true;
+
+            details["Watched Sync Mode"] = WatchedSyncMode;
+
+            if (UpdateStates)
+                details["Update States"] = true;
+
+            details["Storage State"] = StorageState;
+            details["Delete Type"] = DeleteType;
+
+            return details;
+        }
+    }
+
     public override async Task Execute()
     {
-        _logger.LogInformation("Processing {Job}", nameof(SyncAniDBMyListJob));
-
-        if (!ShouldRun()) return;
-        var settings = settingsProvider.GetSettings();
-
-        // Get the list from AniDB
-        var request = requestFactory.Create<RequestMyList>(
-            r =>
-            {
-                r.Username = settings.AniDb.Username!;
-                r.Password = settings.AniDb.Password!;
-            }
-        );
-        var response = request.Send();
-
-        if (response.Response == null)
-        {
-            _logger.LogWarning("AniDB did not return a successful code: {Code}", response.Code);
-            return;
-        }
-
-        await CreateMyListBackup(response, settings);
-
-        var totalItems = 0;
-        var watchedItems = 0;
-        var modifiedItems = 0;
-
-        // Add missing files on AniDB
-        // these patterns have been tested
-        var onlineFiles = response.Response
-            .Where(a => a.FileID is not null and not 0)
-            .ToLookup(a => a.FileID!.Value);
-        var localFiles = storedReleaseInfos.GetAll()
-            .Where(r => !string.IsNullOrEmpty(r.ReleaseURI) && r.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
-            .ToLookup(a => a.ED2K);
-
-        var missingFiles = await AddMissingFiles(localFiles, onlineFiles);
-
-        var aniDBUser = users.GetAniDBUser();
-        var modifiedSeries = new LinkedHashSet<AnimeSeries>();
-
-        // Remove Missing Files and update watched states (single loop)
-        var filesToRemove = new HashSet<int>();
-
-        foreach (var myItem in onlineFiles.SelectMany(a => a))
-        {
-            try
-            {
-                totalItems++;
-                if (myItem.ViewedAt.HasValue) watchedItems++;
-
-                // the null is checked in the collection
-                var aniFile = storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myItem.FileID}");
-
-                // the AniDB_File should never have a null hash, but just in case
-                var vl = aniFile?.ED2K is null ? null : videoLocals.GetByEd2k(aniFile.ED2K);
-
-                if (vl != null)
-                {
-                    // We have it, so process watched states and update storage states if needed
-                    modifiedItems = await ProcessStates(aniDBUser, vl, myItem, modifiedItems, modifiedSeries, settings);
-                    continue;
-                }
-
-                // we don't have it by hash. It could be generic. We can try to sync by episode
-                // For now, we're just skipping them
-                // TODO actually handle the generic files where possible
-                // if it has a FileState other than Normal, it's a generic file.
-                if (myItem.FileState != MyList_FileState.Normal) continue;
-
-                // We don't have the file
-                // If it's local only, then we don't update. The rest update in one way or another
-                if (settings.AniDb.MyList_DeleteType == AniDBFileDeleteType.DeleteLocalOnly)
-                    continue;
-                filesToRemove.Add(myItem.FileID!.Value);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "A MyList Item threw an error while syncing");
-            }
-        }
-
-        // Actually remove the files
-        if (filesToRemove.Count > 0)
-        {
-            foreach (var id in filesToRemove)
-            {
-                await scheduler.StartJob<DeleteFileFromMyListJob>(a => a.FileID = id);
-            }
-        }
-
-        if (filesToRemove.Count > 0)
-            _logger.LogInformation("MYLIST Missing Files: {Count} added to queue for deletion",
-                filesToRemove.Count);
-
-        await Task.WhenAll(modifiedSeries.Select(a => seriesService.QueueUpdateStats(a)));
-
-        _logger.LogInformation(
-            "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified",
-            totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems);
+        await mylistService.SyncAsync(Options);
     }
 
-    private async Task CreateMyListBackup(HttpResponse<List<ResponseMyList>> response, IServerSettings settings)
+    /// <summary>
+    /// Absorbs a colliding request rather than dropping it. The options do not
+    /// form part of the job key, so two syncs asking for different things
+    /// collide by design; without merging, whichever arrived second would be
+    /// silently discarded along with whatever extra work it wanted.
+    /// </summary>
+    public bool TryMerge(IQueueJob incoming)
     {
-        var serialized = JsonConvert.SerializeObject(response.Response, Formatting.Indented);
-        var myListDirectory = new DirectoryInfo(Path.Combine(applicationPaths.DataPath, "MyList"));
-        myListDirectory.Create();
+        if (incoming is not SyncAniDBMyListJob other) return false;
+        var changed = false;
 
-        var currentBackupPath = Path.Join(myListDirectory.FullName, "mylist.json");
-        await File.WriteAllTextAsync(currentBackupPath, serialized);
+        // OR-semantics: a flag enabled by either request survives the merge, so
+        // the merged sync does at least as much as either asked for
+        if (!ReadWatched && other.ReadWatched) { ReadWatched = true; changed = true; }
+        if (!ReadUnwatched && other.ReadUnwatched) { ReadUnwatched = true; changed = true; }
+        if (!SetWatched && other.SetWatched) { SetWatched = true; changed = true; }
+        if (!SetUnwatched && other.SetUnwatched) { SetUnwatched = true; changed = true; }
+        if (!UpdateStates && other.UpdateStates) { UpdateStates = true; changed = true; }
 
-        // Create timestamped MyList zip archive
-        // Backup rotation depends on filename being universally sortable ("u" format specifier)
-        var archivePath = Path.Join(myListDirectory.FullName, DateTimeOffset.UtcNow.ToString("u").Replace(':', '_') + ".zip");
-        await using var backupFs = new FileStream(archivePath, FileMode.OpenOrCreate);
-        using var archive = new ZipArchive(backupFs, ZipArchiveMode.Create);
-        archive.CreateEntryFromFile(currentBackupPath, Path.GetFileName(currentBackupPath));
-
-        // Delete oldest backups when more than 30 exist
-        // Only gets zip files that start with ISO 8601 date format YYYY-MM-DD
-        var backupFiles = myListDirectory.GetFiles("????-??-?? *.zip").OrderByDescending(f => f.Name).ToList();
-        var backUpFilesToDelete = backupFiles.Skip(settings.AniDb.MyList_RetainedBackupCount).ToList();
-        foreach (var file in backUpFilesToDelete)
+        // the fetch mode is a flag set, so the union is the more capable request.
+        // Auto is a sentinel rather than a bit pattern, so it cannot be OR-ed
+        if (FetchMode is not MyListFetchMode.Auto && other.FetchMode is not MyListFetchMode.Auto && (FetchMode | other.FetchMode) != FetchMode)
         {
-            try
-            {
-                file.Delete();
-            }
-            catch
-            {
-                // ignored
-            }
+            FetchMode |= other.FetchMode;
+            changed = true;
         }
+
+        // the least destructive delete type wins. Merging is not a request the
+        // user made, so it must never escalate one sync's disposal into a
+        // harder one than either caller asked for
+        if (Rank(other.DeleteType) < Rank(DeleteType)) { DeleteType = other.DeleteType; changed = true; }
+
+        // WatchedSyncMode and StorageState have no "does more work" ordering, so
+        // the existing job keeps its own rather than guessing
+        return changed;
     }
 
-    private async Task<int> ProcessStates(
-        JMMUser? aniDBUser,
-        VideoLocal video,
-        ResponseMyList myItem,
-        int modifiedItems,
-        ISet<AnimeSeries> modifiedSeries,
-        IServerSettings settings
-    )
-    {
-        // check watched states, read the states if needed, and update differences
-        // aggregate and assume if one AniDB User has watched it, it should be marked
-        // if multiple have, then take the latest
-        // compare the states and update if needed
-        var localWatchedDate = aniDBUser is null ? null : vlUsers.GetByUserAndVideoLocalID(aniDBUser.JMMUserID, video.VideoLocalID)?.WatchedDate;
-        if (localWatchedDate is not null && localWatchedDate.Value.Millisecond > 0)
-            localWatchedDate = localWatchedDate.Value.AddMilliseconds(-localWatchedDate.Value.Millisecond);
-
-        var localState = settings.AniDb.MyList_StorageState;
-        var shouldUpdate = false;
-        var updateDate = myItem.ViewedAt;
-
-        // we don't support multiple AniDB accounts, so we can just only iterate to set states
-        if (settings.AniDb.MyList_ReadWatched && localWatchedDate == null && updateDate != null)
+    /// <summary>
+    /// How destructive a delete type is, lowest first.
+    /// </summary>
+    private static int Rank(MyListDeleteType deleteType)
+        => deleteType switch
         {
-            if (aniDBUser is not null)
-            {
-                modifiedItems++;
-                await userDataService.ImportVideoUserData(video, aniDBUser, new()
-                {
-                    ProgressPosition = TimeSpan.Zero,
-                    LastPlayedAt = updateDate,
-                    LastUpdatedAt = myItem.UpdatedAt,
-                }, "AniDB", false).ConfigureAwait(false);
-                video.AnimeEpisodes
-                    .DistinctBy(a => a.AnimeSeriesID)
-                    .Select(a => a.AnimeSeries)
-                    .WhereNotNull()
-                    .ForEach(a => modifiedSeries.Add(a));
-            }
-        }
-        // if we did the previous, then we don't want to undo it
-        else if (settings.AniDb.MyList_ReadUnwatched && localWatchedDate != null && updateDate == null)
-        {
-            if (aniDBUser is not null)
-            {
-                modifiedItems++;
-                await userDataService.ImportVideoUserData(video, aniDBUser, new()
-                {
-                    ProgressPosition = TimeSpan.Zero,
-                    LastPlayedAt = null,
-                    LastUpdatedAt = myItem.UpdatedAt,
-                }, "AniDB", false).ConfigureAwait(false);
-                video.AnimeEpisodes
-                    .DistinctBy(a => a.AnimeSeriesID)
-                    .Select(a => a.AnimeSeries)
-                    .WhereNotNull()
-                    .ForEach(a => modifiedSeries.Add(a));
-            }
-        }
-        else if (settings.AniDb.MyList_SetUnwatched && localWatchedDate == null && updateDate != null)
-        {
-            shouldUpdate = true;
-            updateDate = null;
-        }
-        else if (settings.AniDb.MyList_SetWatched && localWatchedDate != null && !localWatchedDate.Equals(updateDate))
-        {
-            shouldUpdate = true;
-            updateDate = localWatchedDate.Value.ToUniversalTime();
-        }
-
-        // check if the state needs to be updated
-        if ((int)myItem.State != (int)localState) shouldUpdate = true;
-
-        if (!shouldUpdate) return modifiedItems;
-
-        await scheduler.StartJob<UpdateMyListFileStatusJob>(a =>
-        {
-            a.Hash = video.Hash;
-            a.Watched = updateDate != null;
-            a.WatchedDate = updateDate;
-            a.UpdateSeriesStats = false;
-        });
-
-        return modifiedItems;
-    }
-
-    private bool ShouldRun()
-    {
-        // we will always assume that an anime was downloaded via http first
-        var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBMyListSync);
-        if (schedule == null)
-        {
-            schedule = new()
-            {
-                UpdateType = (int)ScheduledUpdateType.AniDBMyListSync,
-                UpdateDetails = string.Empty
-            };
-        }
-        else
-        {
-            var freqHours = settingsProvider.GetSettings().AniDb.MyList_UpdateFrequency.Hours;
-
-            // if we have run this in the last 24 hours and are not forcing it, then exit
-            var lastRan = DateTime.Now - schedule.LastUpdate;
-            if (lastRan.TotalHours < freqHours && !ForceRefresh)
-                return false;
-        }
-
-        schedule.LastUpdate = DateTime.Now;
-        scheduledUpdates.Save(schedule);
-
-        return true;
-    }
-
-    private async Task<int> AddMissingFiles(
-        ILookup<string, StoredReleaseInfo> localFiles,
-        ILookup<int, ResponseMyList> onlineFiles
-    )
-    {
-        if (!settingsProvider.GetSettings().AniDb.MyList_AddFiles) return 0;
-        var missingFiles = 0;
-        foreach (var vid in videoLocals.GetAll())
-        {
-            // Does it have a linked AniFile
-            if (TryGetFileID(localFiles, vid.Hash, out var fileID))
-            {
-                // Is it in MyList
-                if (onlineFiles.Contains(fileID)) continue;
-
-                // means we have found a file in our local collection, which is not recorded online
-                missingFiles++;
-            }
-            else continue;
-
-            await scheduler.StartJob<AddFileToMyListJob>(a => a.Hash = vid.Hash);
-        }
-
-        _logger.LogInformation(
-            "MYLIST Missing Files: {MissingFiles} Added to queue for inclusion",
-            missingFiles);
-        return missingFiles;
-    }
-
-    private static bool TryGetFileID(ILookup<string, StoredReleaseInfo> localFiles, string hash, out int fileID)
-    {
-        fileID = 0;
-        if (!localFiles.Contains(hash)) return false;
-        var file = localFiles[hash].FirstOrDefault();
-        if (file == null) return false;
-        if (!int.TryParse(file.ReleaseURI![AnidbReleaseProvider.ReleasePrefix.Length..], out fileID)) return false;
-        return fileID != 0;
-    }
+            MyListDeleteType.DeleteLocalOnly => 0,
+            MyListDeleteType.MarkUnknown => 1,
+            MyListDeleteType.MarkDisk => 2,
+            MyListDeleteType.MarkExternalStorage => 3,
+            MyListDeleteType.MarkDeleted => 4,
+            MyListDeleteType.Delete => 5,
+            _ => 5,
+        };
 }

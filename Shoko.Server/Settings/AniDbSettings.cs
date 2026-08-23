@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Server;
@@ -139,11 +140,43 @@ public class AniDbSettings
 
     [Display(Name = "Storage State")]
     [SectionName("MyList")]
-    public MyList_State MyList_StorageState { get; set; } = MyList_State.HDD;
+    public MyListState MyList_StorageState { get; set; } = MyListState.HDD;
+
+    /// <summary>
+    /// Update the desired state of existing MyList entries during a sync.
+    /// When disabled, only new files are added with the desired state and
+    /// existing entries are left as-is.
+    /// </summary>
+    [Display(Name = "Update States")]
+    [SectionName("MyList")]
+    public bool MyList_UpdateStates { get; set; } = true;
+
+    /// <summary>
+    /// How to resolve watched-state conflicts during a MyList sync when the
+    /// entry was updated on the same day as the local watch. Older
+    /// differences are governed by the read/set settings instead.
+    /// </summary>
+    [Display(Name = "Watched State Sync")]
+    [SectionName("MyList")]
+    public MyListWatchedSyncMode MyList_WatchedSyncMode { get; set; } = MyListWatchedSyncMode.TrustRemote;
 
     [Display(Name = "Delete Type")]
     [SectionName("MyList")]
-    public AniDBFileDeleteType MyList_DeleteType { get; set; } = AniDBFileDeleteType.MarkUnknown;
+    public MyListDeleteType MyList_DeleteType { get; set; } = MyListDeleteType.MarkUnknown;
+
+    /// <summary>
+    /// Consult a third-party index of generic file IDs during a sync. AniDB's
+    /// MyList export does not mark generic entries, and the file state is only
+    /// a convention a generic entry may not follow, so without the index the
+    /// sync can mistake a generic entry for a file it no longer has. Turn this
+    /// off to keep the sync entirely between this server and AniDB, at the cost
+    /// of the sync no longer disposing of missing entries at all — it refuses to
+    /// act on an entry it cannot classify, and without the index it cannot
+    /// classify any of them.
+    /// </summary>
+    [Display(Name = "Use Generic File Index")]
+    [SectionName("MyList")]
+    public bool MyList_UseGenericFileIndex { get; set; } = true;
 
     /// <summary>
     /// Number of days to retain backups of the downloaded MyList for the user.
@@ -188,6 +221,14 @@ public class AniDbSettings
         DisableWhenSetTo = ScheduledUpdateFrequency.Never
     )]
     public ScheduledUpdateFrequency MyList_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
+
+    /// <summary>
+    /// How to fetch MyList entries from AniDB.
+    /// </summary>
+    [SectionName("MyList")]
+    [Display(Name = "Fetch Mode")]
+    [DeniedValues(MyListFetchMode.Auto, MyListFetchMode.None)]
+    public MyListFetchMode MyList_FetchMode { get; set; } = MyListFetchMode.Default;
 
     /// <summary>
     /// Check for any unread notifications and messages and download them if

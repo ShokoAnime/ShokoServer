@@ -62,29 +62,6 @@ public enum UpdateType
     LoginFailed = 6,
 }
 
-public enum MyList_State
-{
-    Unknown = 0,
-    HDD = 1,
-    Disk = 2,
-    Deleted = 3,
-    Remote = 4,
-}
-
-public enum MyList_FileState
-{
-    Normal = 0,
-    Corrupted = 1,
-    SelfEdited = 2,
-    SelfRipped = 10,
-    OnDVD = 11,
-    OnVHS = 12,
-    OnTV = 13,
-    InTheaters = 14,
-    Streamed = 15,
-    Other = 100,
-}
-
 public enum UDPReturnCode
 {
     LOGIN_ACCEPTED = 200,
@@ -363,14 +340,4 @@ public enum ResourceLinkType
     Funimation = 34, // See Crunchyroll comment ☝
     Bangumi = 38, // Japanese site
     HiDive = 42, // Streaming service, series page.
-}
-
-public enum AniDBFileDeleteType
-{
-    Delete = 0,
-    DeleteLocalOnly = 1,
-    MarkDeleted = 2,
-    MarkExternalStorage = 3,
-    MarkUnknown = 4,
-    MarkDisk = 5
 }

@@ -9,6 +9,7 @@ using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
 using NHibernate;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
@@ -26,7 +27,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services.Ogg;
 using Shoko.Server.Settings;
@@ -64,6 +64,8 @@ public class VideoService : IVideoService
     private readonly IVideoRelocationService _relocationService;
 
     private readonly IQueueScheduler _scheduler;
+
+    private readonly IMyListService _myListService;
 
     private readonly ISettingsProvider _settingsProvider;
 
@@ -107,6 +109,7 @@ public class VideoService : IVideoService
         IVideoReleaseService videoReleaseService,
         IVideoRelocationService relocationService,
         IQueueScheduler schedulerFactory,
+        IMyListService myListService,
         ISettingsProvider settingsProvider,
         DatabaseFactory databaseFactory,
         FileSystemHelpers fileSystemHelpers
@@ -126,6 +129,7 @@ public class VideoService : IVideoService
         _videoReleaseService = videoReleaseService;
         _relocationService = relocationService;
         _scheduler = schedulerFactory;
+        _myListService = myListService;
         _settingsProvider = settingsProvider;
         _databaseFactory = databaseFactory;
         _fileSystemHelpers = fileSystemHelpers;
@@ -789,12 +793,7 @@ public class VideoService : IVideoService
     {
         if (_storedReleaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize) is { ReleaseURI: not null } releaseInfo && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
         {
-            await _scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                {
-                    c.Hash = video.Hash;
-                    c.FileSize = video.FileSize;
-                }
-            );
+            await _myListService.ScheduleDisposeEntry(video.Hash, video.FileSize);
         }
         else
         {
@@ -808,13 +807,7 @@ public class VideoService : IVideoService
                 if (ep is null)
                     continue;
 
-                await _scheduler.StartJob<DeleteFileFromMyListJob>(c =>
-                    {
-                        c.AnimeID = xref.AnimeID;
-                        c.EpisodeType = ep.EpisodeType;
-                        c.EpisodeNumber = ep.EpisodeNumber;
-                    }
-                );
+                await _myListService.ScheduleDisposeEntry(xref.AnimeID, ep.EpisodeType, ep.EpisodeNumber);
             }
         }
     }

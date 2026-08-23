@@ -63,8 +63,6 @@ public class VideoLocal : IVideo
 
     #endregion
 
-    public int MyListID { get; set; }
-
     /// <summary>
     /// Playback duration in milliseconds.
     /// </summary>

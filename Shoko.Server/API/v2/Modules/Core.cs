@@ -17,6 +17,8 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Logging.Models;
 using Shoko.Abstractions.Logging.Services;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.QueueProcessor.Abstractions;
@@ -43,6 +45,8 @@ public class Core : BaseController
 
     private readonly IQueueScheduler _scheduler;
 
+    private readonly IMyListService _myListService;
+
     private readonly IUserService _userService;
 
     private readonly IAnidbService _anidbService;
@@ -54,12 +58,14 @@ public class Core : BaseController
     public Core(
         ISettingsProvider settingsProvider,
         IQueueScheduler scheduler,
+        IMyListService myListService,
         IUserService userService,
         IAnidbService anidbService,
         ActionService actionService
     ) : base(settingsProvider)
     {
         _scheduler = scheduler;
+        _myListService = myListService;
         _userService = userService;
         _anidbService = anidbService;
         _actionService = actionService;
@@ -273,7 +279,7 @@ public class Core : BaseController
     [HttpGet("anidb/list/sync")]
     public async Task<ActionResult> SyncAniDBList()
     {
-        await _scheduler.StartJob<SyncAniDBMyListJob>();
+        await _myListService.ScheduleSync(new MyListSyncOptions { FetchMode = MyListFetchMode.IgnoreTimeCheck });
         return APIStatus.OK();
     }
 

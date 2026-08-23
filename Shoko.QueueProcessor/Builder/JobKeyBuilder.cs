@@ -107,7 +107,7 @@ public class JobKeyBuilder<T> where T : class, IQueueJob
         else
         {
             members = allProperties
-                .Where(p => IsEligible(p.PropertyType))
+                .Where(p => IsEligible(p.PropertyType) && p.GetCustomAttribute<JobKeyIgnoreAttribute>() is null)
                 .Select(p => (Prop: p, Attr: (JobKeyMemberAttribute?)null))
                 .ToArray();
         }
@@ -170,7 +170,7 @@ public class JobKeyBuilder<T> where T : class, IQueueJob
         else
         {
             members = allProperties
-                .Where(p => IsEligible(p.PropertyType))
+                .Where(p => IsEligible(p.PropertyType) && p.GetCustomAttribute<JobKeyIgnoreAttribute>() is null)
                 .Select(p => (Prop: p, Attr: (JobKeyMemberAttribute?)null))
                 .ToArray();
         }

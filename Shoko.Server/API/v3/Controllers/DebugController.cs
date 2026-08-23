@@ -135,10 +135,19 @@ public class DebugController : BaseController
             switch (returnCode)
             {
                 case UDPReturnCode.INVALID_SESSION:
-                case UDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
                 {
                     _udpHandler.IsInvalidSession = true;
                     return new() { Code = UDPReturnCode.NOT_LOGGED_IN };
+                }
+                // 505 covers a malformed parameter as well as an actual access
+                // denial, and probing this endpoint is exactly how you hit the
+                // former. Report what AniDB said rather than claiming we are
+                // logged out, and leave the session alone so one bad parameter
+                // does not take the whole UDP channel down with it.
+                case UDPReturnCode.ILLEGAL_INPUT_OR_ACCESS_DENIED:
+                {
+                    _logger.LogWarning("AniDB rejected the command as illegal input or denied access: {Command}", request.Command);
+                    return new() { Code = returnCode, Response = fullResponse };
                 }
                 case UDPReturnCode.INTERNAL_SERVER_ERROR:
                 case UDPReturnCode.ANIDB_OUT_OF_SERVICE:

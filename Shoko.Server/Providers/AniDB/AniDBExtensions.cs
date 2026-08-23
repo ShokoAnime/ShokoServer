@@ -19,6 +19,15 @@ public static class AniDBExtensions
     public static PartialDateOnly? GetAniDBDateAsPartialDateOnly(int secs)
         => GetAniDBDateAsDate(secs) is { Year: > 0, Month: > 0, Day: > 0 } date ? PartialDateOnly.FromDateTime(date) : null;
 
+    /// <summary>
+    /// Drops sub-second precision, which the AniDB wire format — unix seconds —
+    /// cannot carry. Applying this to a date before sending it means the value
+    /// held locally is exactly the value AniDB will report back, so an
+    /// optimistically cached entry compares equal to the fetched one.
+    /// </summary>
+    public static DateTime? TruncateToAniDBPrecision(DateTime? dtDate)
+        => dtDate is { } date ? new DateTime(date.Ticks - date.Ticks % TimeSpan.TicksPerSecond, date.Kind) : null;
+
     public static int GetAniDBDateAsSeconds(DateTime? dtDate)
     {
         if (dtDate == null) return 0;
