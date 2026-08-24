@@ -144,6 +144,8 @@ public class PersistenceBufferUpdateTests
 
         var sp = new Mock<IServiceProvider>();
         sp.Setup(x => x.GetService(typeof(IJobRepository))).Returns(repo.Object);
+        sp.Setup(x => x.GetService(It.Is<Type>(t => typeof(IQueueJob).IsAssignableFrom(t))))
+            .Returns((Type t) => Activator.CreateInstance(t)!);
 
         var scope = new Mock<IServiceScope>();
         scope.Setup(x => x.ServiceProvider).Returns(sp.Object);
@@ -325,7 +327,7 @@ public class QueueOrchestratorMergeTests
 
         orchestrator.Initialize([], [pool]);
 
-        var scheduler = new QueueScheduler(orchestrator, chainRegistry);
+        var scheduler = new QueueScheduler(orchestrator, chainRegistry, factory.Object);
 
         return (orchestrator, scheduler, pool, repo);
     }

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
@@ -21,11 +21,14 @@ public sealed class QueueScheduler : IQueueScheduler
 {
     private readonly QueueOrchestrator _orchestrator;
     private readonly IChainScopeRegistry _chainScopeRegistry;
+    private readonly IServiceScopeFactory _scopeFactory;
 
-    public QueueScheduler(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry)
+    public QueueScheduler(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry,
+        IServiceScopeFactory scopeFactory)
     {
         _orchestrator = orchestrator;
         _chainScopeRegistry = chainScopeRegistry;
+        _scopeFactory = scopeFactory;
     }
 
     public bool IsPaused => _orchestrator.IsPaused;
@@ -39,11 +42,13 @@ public sealed class QueueScheduler : IQueueScheduler
         if (configure != null) keyBuilder.UsingJobData(configure);
         var key = keyBuilder.Build();
 
-        // RuntimeHelpers.GetUninitializedObject bypasses constructors so jobs are not required
-        // to have a parameterless constructor — injected services are constructor parameters,
-        // not settable properties, and are irrelevant for serialisation.
-        IQueueJob instance = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
-        configure?.Invoke((T)instance);
+        // Built through DI, as the worker builds it: BuildContext reads Title, Details and
+        // TypeName off the instance, and those may read injected services. The scope has to
+        // outlive that read. Only public read/write properties are serialised, so nothing
+        // the constructor injects reaches the stored job data.
+        using var scope = _scopeFactory.CreateScope();
+        var instance = (T)scope.ServiceProvider.GetRequiredService(typeof(T));
+        configure?.Invoke(instance);
 
         return _orchestrator.EnqueueAsync(
             BuildContext(typeof(T), key, instance, prioritize ? 10 : 0, scheduledAt),
@@ -63,8 +68,9 @@ public sealed class QueueScheduler : IQueueScheduler
         if (configure != null) keyBuilder.UsingJobData(configure);
         var key = keyBuilder.Build();
 
-        IQueueJob instance = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
-        configure?.Invoke((T)instance);
+        using var scope = _scopeFactory.CreateScope();
+        var instance = (T)scope.ServiceProvider.GetRequiredService(typeof(T));
+        configure?.Invoke(instance);
 
         var completionTask = _orchestrator.PrepareAndEnqueueImmediate(
             BuildContext(typeof(T), key, instance, int.MaxValue, null));
@@ -86,8 +92,9 @@ public sealed class QueueScheduler : IQueueScheduler
         if (configure != null) keyBuilder.UsingJobData(configure);
         var key = keyBuilder.Build();
 
-        IQueueJob instance = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
-        configure?.Invoke((T)instance);
+        using var scope = _scopeFactory.CreateScope();
+        var instance = (T)scope.ServiceProvider.GetRequiredService(typeof(T));
+        configure?.Invoke(instance);
 
         if (parentId == Guid.Empty)
             return _orchestrator.EnqueueAsync(BuildContext(typeof(T), key, instance, 10, null), ct);
@@ -101,6 +108,7 @@ public sealed class QueueScheduler : IQueueScheduler
         CancellationToken ct = default)
     {
         var contexts = new List<EnqueueContext>();
+        using var scope = _scopeFactory.CreateScope();
         foreach (var (jobType, jobKey, dataJson, priority, scheduledAt) in jobs)
         {
             if (_orchestrator.IsQueued(jobKey)) continue;
@@ -108,7 +116,7 @@ public sealed class QueueScheduler : IQueueScheduler
             // No live instance was provided — rehydrate one to read TypeName/Title/Details once.
             // We still serialize from `instance` rather than reuse `dataJson` so the canonical
             // round-trip happens in one place.
-            var instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+            var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
             JobDataSerializer.Apply(instance, dataJson);
 
             contexts.Add(BuildContext(jobType, jobKey, instance, priority, scheduledAt));
@@ -151,7 +159,7 @@ public sealed class QueueScheduler : IQueueScheduler
         };
     }
 
-    public IJobChainBuilder CreateJobChain() => new JobChainBuilder(_orchestrator, _chainScopeRegistry);
+    public IJobChainBuilder CreateJobChain() => new JobChainBuilder(_orchestrator, _chainScopeRegistry, _scopeFactory);
 
     public bool IsJobTypeBlocked(Type jobType) => _orchestrator.IsJobTypeBlocked(jobType);
 
@@ -160,7 +168,8 @@ public sealed class QueueScheduler : IQueueScheduler
         var data = JobDataSerializer.DiffFromDefaultUntyped(jobType, configure);
         var key = JobKeyBuilder<IQueueJob>.BuildForType(jobType, data);
 
-        var instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        using var scope = _scopeFactory.CreateScope();
+        var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
         configure?.Invoke(instance);
 
         return _orchestrator.EnqueueAsync(
@@ -174,7 +183,8 @@ public sealed class QueueScheduler : IQueueScheduler
         var data = JobDataSerializer.DiffFromDefaultUntyped(jobType, configure);
         var key = JobKeyBuilder<IQueueJob>.BuildForType(jobType, data);
 
-        var instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        using var scope = _scopeFactory.CreateScope();
+        var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
         configure?.Invoke(instance);
 
         if (parentId == Guid.Empty)
@@ -232,13 +242,16 @@ internal sealed class JobChainBuilder : IJobChainBuilder
 {
     private readonly QueueOrchestrator _orchestrator;
     private readonly IChainScopeRegistry _chainScopeRegistry;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly List<EnqueueContext> _entries = [];
     private readonly Guid _chainId = Guid.CreateVersion7();
 
-    internal JobChainBuilder(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry)
+    internal JobChainBuilder(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry,
+        IServiceScopeFactory scopeFactory)
     {
         _orchestrator = orchestrator;
         _chainScopeRegistry = chainScopeRegistry;
+        _scopeFactory = scopeFactory;
     }
 
     public IJobChainBuilder Then<T>(Action<T>? configure = null) where T : class, IQueueJob
@@ -247,8 +260,9 @@ internal sealed class JobChainBuilder : IJobChainBuilder
         if (configure != null) keyBuilder.UsingJobData(configure);
         var key = keyBuilder.Build();
 
-        IQueueJob instance = (T)RuntimeHelpers.GetUninitializedObject(typeof(T));
-        configure?.Invoke((T)instance);
+        using var scope = _scopeFactory.CreateScope();
+        var instance = (T)scope.ServiceProvider.GetRequiredService(typeof(T));
+        configure?.Invoke(instance);
 
         var ctx = QueueScheduler.BuildContext(typeof(T), key, instance, int.MaxValue, null);
         ctx.Job.ChainId = _chainId;
@@ -262,7 +276,8 @@ internal sealed class JobChainBuilder : IJobChainBuilder
         var data = JobDataSerializer.DiffFromDefaultUntyped(jobType, configure);
         var key = JobKeyBuilder<IQueueJob>.BuildForType(jobType, data);
 
-        var instance = (IQueueJob)RuntimeHelpers.GetUninitializedObject(jobType);
+        using var scope = _scopeFactory.CreateScope();
+        var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
         configure?.Invoke(instance);
 
         var ctx = QueueScheduler.BuildContext(jobType, key, instance, int.MaxValue, null);
