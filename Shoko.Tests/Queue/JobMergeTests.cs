@@ -24,6 +24,32 @@ namespace Shoko.Tests.Queue;
 // different Flag values collide on the same key — which is the scenario the merge
 // system is designed to handle.
 
+public interface IJobTitleSource
+{
+    string Describe(Guid id);
+}
+
+public sealed class StubJobTitleSource : IJobTitleSource
+{
+    public string Describe(Guid id) => $"Action {id}";
+}
+
+/// <summary>
+/// Shaped like ActionExecutionJob: the display members read an injected
+/// service rather than the job's own properties.
+/// </summary>
+public class TitleFromServiceJob(IJobTitleSource source) : IQueueJob
+{
+    [JobKeyMember]
+    public Guid ActionId { get; set; }
+
+    public string TypeName => "TitleFromService";
+    public string Title => source.Describe(ActionId);
+    public Dictionary<string, object> Details => new() { ["Action"] = source.Describe(ActionId) };
+    public void PostInit() { }
+    public Task Process() => Task.CompletedTask;
+}
+
 public class FlagJob : IQueueJob
 {
     [JobKeyMember]
@@ -144,8 +170,11 @@ public class PersistenceBufferUpdateTests
 
         var sp = new Mock<IServiceProvider>();
         sp.Setup(x => x.GetService(typeof(IJobRepository))).Returns(repo.Object);
+        var jobDeps = new ServiceCollection()
+            .AddSingleton<IJobTitleSource>(new StubJobTitleSource())
+            .BuildServiceProvider();
         sp.Setup(x => x.GetService(It.Is<Type>(t => typeof(IQueueJob).IsAssignableFrom(t))))
-            .Returns((Type t) => Activator.CreateInstance(t)!);
+            .Returns((Type t) => ActivatorUtilities.CreateInstance(jobDeps, t));
 
         var scope = new Mock<IServiceScope>();
         scope.Setup(x => x.ServiceProvider).Returns(sp.Object);
@@ -282,6 +311,25 @@ public class PersistenceBufferUpdateTests
 
 public class QueueOrchestratorMergeTests
 {
+    /// <summary>
+    /// Enqueue built the instance with GetUninitializedObject and then read
+    /// Title off it, so a job whose display members touch an injected service
+    /// threw before anything was persisted. Every action invocation was a 500.
+    /// </summary>
+    [Fact]
+    public async Task AJobWhoseTitleReadsAnInjectedServiceCanBeEnqueued()
+    {
+        var (_, scheduler, _, repo) = CreateOrchestrator(typeof(TitleFromServiceJob));
+        var actionId = Guid.NewGuid();
+
+        await scheduler.Enqueue<TitleFromServiceJob>(
+            j => j.ActionId = actionId, ct: TestContext.Current.CancellationToken);
+
+        repo.Verify(r => r.InsertBatchAsync(
+            It.Is<IReadOnlyCollection<QueuedJob>>(jobs => jobs.Count == 1),
+            It.IsAny<CancellationToken>()), Times.AtMostOnce);
+    }
+
     private static (QueueOrchestrator Orchestrator, QueueScheduler Scheduler, WorkerPool Pool, Mock<IJobRepository> Repo)
         CreateOrchestrator(params Type[] jobTypes)
     {
@@ -299,6 +347,11 @@ public class QueueOrchestratorMergeTests
 
         var sp = new Mock<IServiceProvider>();
         sp.Setup(x => x.GetService(typeof(IJobRepository))).Returns(repo.Object);
+        var jobDeps = new ServiceCollection()
+            .AddSingleton<IJobTitleSource>(new StubJobTitleSource())
+            .BuildServiceProvider();
+        sp.Setup(x => x.GetService(It.Is<Type>(t => typeof(IQueueJob).IsAssignableFrom(t))))
+            .Returns((Type t) => ActivatorUtilities.CreateInstance(jobDeps, t));
 
         var scope = new Mock<IServiceScope>();
         scope.Setup(x => x.ServiceProvider).Returns(sp.Object);
