@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.429",
+      "tag": "v6.0.0-dev.429",
+      "commit": "f1cbdc9168abb2632ef3adf047f8ed2e13a07e8f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.429/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-24T13:47:25Z",
+      "releaseNotes": "\n`fix` (`queue`): **Build jobs through DI so display members can read services**:\n\nEnqueue built the instance with GetUninitializedObject and then read\nTitle, Details and TypeName off it, so a job whose display members touch\nan injected service threw NullReferenceException before anything was\npersisted. ActionExecutionJob.Title does exactly that, which made every\naction invocation a 500 with nothing queued to retry. Only public\nread/write properties are serialised, so this does not change job data.\n"
+    },
+    {
       "version": "6.0.0.428",
       "tag": "v6.0.0-dev.428",
       "commit": "91178a5ca0556d3a60abde8150e5a3980bddf743",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.400/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-01T04:03:55Z",
       "releaseNotes": "\n`misc`: **Don't return not found if the series exists in Release Management**.\n"
-    },
-    {
-      "version": "6.0.0.399",
-      "tag": "v6.0.0-dev.399",
-      "commit": "cd0542fda6517332e01f1f7aeef6e5b9b4f8d2e7",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.399/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-30T15:26:08Z",
-      "releaseNotes": "\n`repo` (`workflows`): **Bump actions/setup-dotnet and actions/setup-node**:\n\nBumps actions/setup-dotnet v5->v6 and actions/setup-node v6->v7 across\nbuild-daily, build-release, integration-tests, and tray-standalone-manual\nworkflows.\n"
     }
   ]
 }
