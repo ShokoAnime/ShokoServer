@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.428",
+      "tag": "v6.0.0-dev.428",
+      "commit": "91178a5ca0556d3a60abde8150e5a3980bddf743",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.428/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-24T00:37:47Z",
+      "releaseNotes": "\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.82**.\n"
+    },
+    {
       "version": "6.0.0.427",
       "tag": "v6.0.0-dev.427",
       "commit": "b6fdba59b6154860948c6fba03f8809ed35894cc",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.399/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-07-30T15:26:08Z",
       "releaseNotes": "\n`repo` (`workflows`): **Bump actions/setup-dotnet and actions/setup-node**:\n\nBumps actions/setup-dotnet v5->v6 and actions/setup-node v6->v7 across\nbuild-daily, build-release, integration-tests, and tray-standalone-manual\nworkflows.\n"
-    },
-    {
-      "version": "6.0.0.398",
-      "tag": "v6.0.0-dev.398",
-      "commit": "090946f9be4d0578322c50ae42548ed8e2fd68e0",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.398/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-07-30T15:24:42Z",
-      "releaseNotes": "\n`chore` (`deps`): **Update NuGet packages to latest versions**.\n"
     }
   ]
 }
