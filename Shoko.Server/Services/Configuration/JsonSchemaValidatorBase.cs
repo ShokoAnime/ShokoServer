@@ -386,9 +386,43 @@ public class JsonSchemaValidatorBase
         if (schema.IsNullable(schemaType) && token.Type is JTokenType.Null)
             return;
 
-        if (schema.Enumeration.Count > 0 && schema.Enumeration.All(v => v?.ToString() != token?.ToString()))
+        if (schema.Enumeration.Count is 0)
+            return;
+
+        // Both JSON deserializers match string enum members case-insensitively, so accept any casing here as well.
+        var value = token.ToString();
+        var isExactMatch = false;
+        string? enumerationValue = null;
+        foreach (var enumeration in schema.Enumeration)
+        {
+            if (enumeration?.ToString() is not { } candidate)
+                continue;
+
+            if (string.Equals(candidate, value, StringComparison.Ordinal))
+            {
+                enumerationValue = candidate;
+                isExactMatch = true;
+                break;
+            }
+
+            enumerationValue ??= string.Equals(candidate, value, StringComparison.OrdinalIgnoreCase) ? candidate : null;
+        }
+
+        if (enumerationValue is null)
+        {
             errors.Add(new ValidationError(ValidationErrorKind.NotInEnumeration, propertyName, propertyPath, token, schema));
+            return;
+        }
+
+        if (!isExactMatch)
+            NormalizeEnum(token, enumerationValue, schema, propertyName, propertyPath);
     }
+
+    /// <summary>
+    /// Called when a value only matched an enumeration member case-insensitively, so an extending class can rewrite the
+    /// token to the casing the member is declared with. Does nothing by default, keeping validation free of side effects.
+    /// </summary>
+    protected virtual void NormalizeEnum(JToken token, string enumerationValue, JsonSchema schema, string? propertyName, string propertyPath) { }
 
     #endregion
 

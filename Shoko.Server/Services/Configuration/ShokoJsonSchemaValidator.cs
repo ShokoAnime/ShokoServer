@@ -77,14 +77,8 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
                         {
                             if (envVar.Length > 2 && ((envVar[0] == '"' && envVar[^1] == '"') || (envVar[0] == '\'' && envVar[^1] == '\'')))
                                 envVar = envVar[1..^1];
-                            foreach (var enumDefinition in enumDefinitions)
-                            {
-                                if (enumDefinition["aliasValues"].Split(",").Except([string.Empty]).Any(aliasValue => string.Equals(envVar, aliasValue, StringComparison.OrdinalIgnoreCase)))
-                                {
-                                    envVar = enumDefinition["value"];
-                                    break;
-                                }
-                            }
+                            if (ShokoJsonSchemaGenerator.TryResolveEnumAlias(enumDefinitions, envVar, out var enumValue))
+                                envVar = enumValue;
                             envVar = $"\"{envVar}\"";
                         }
                         else if (
@@ -152,6 +146,15 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
         }
         errors.AddRange(base.Validate(parentToken, token, schema, schemaType, propertyName, propertyPath));
         return errors;
+    }
+
+    protected override void NormalizeEnum(JToken token, string enumerationValue, JsonSchema schema, string? propertyName, string propertyPath)
+    {
+        if (token.Parent is null || string.Equals(token.ToString(), enumerationValue, StringComparison.Ordinal))
+            return;
+
+        _logger.LogTrace("Normalizing the casing of the enum value at {PropertyPath} from {OldValue} to {NewValue}.", propertyPath, token.ToString(), enumerationValue);
+        token.Replace(new JValue(enumerationValue));
     }
 
     private JToken? GetPropertyPath(string propertyPath)

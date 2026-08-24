@@ -94,6 +94,7 @@ public partial class ConfigurationService : IConfigurationService
             WriteIndented = true,
             PreferredObjectCreationHandling = JsonObjectCreationHandling.Replace,
             ReferenceHandler = ReferenceHandler.IgnoreCycles,
+            PropertyNameCaseInsensitive = true,
         };
         _systemTextJsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         _jsonSchemaGenerator = new(_newtonsoftJsonSerializerSettings, _systemTextJsonSerializerOptions);

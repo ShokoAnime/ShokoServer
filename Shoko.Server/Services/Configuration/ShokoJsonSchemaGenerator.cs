@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -297,7 +298,28 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     internal const string EnumDefinitions = "enumDefinitions";
 
+    internal const string EnumAliasSeparator = ", ";
+
     private const string EnumIsFlag = "enumIsFlag";
+
+    /// <summary>
+    /// Resolves a value to the enumeration member it is an alias of, if any. Aliases are matched case-insensitively,
+    /// in the same way the JSON deserializers match string enum members.
+    /// </summary>
+    internal static bool TryResolveEnumAlias(IEnumerable<Dictionary<string, string>> enumDefinitions, string value, [NotNullWhen(true)] out string? enumValue)
+    {
+        foreach (var enumDefinition in enumDefinitions)
+        {
+            if (enumDefinition["aliasValues"].Split(EnumAliasSeparator, StringSplitOptions.RemoveEmptyEntries).Any(aliasValue => string.Equals(value, aliasValue, StringComparison.OrdinalIgnoreCase)))
+            {
+                enumValue = enumDefinition["value"];
+                return true;
+            }
+        }
+
+        enumValue = null;
+        return false;
+    }
 
     #endregion
 
@@ -567,8 +589,8 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                     if (schema.Enumeration.Contains(value))
                     {
                         var enumDict = enumList.First(x => x["value"] == value);
-                        enumDict["alias"] = enumDict["alias"].Split(", ", StringSplitOptions.None | StringSplitOptions.RemoveEmptyEntries).Append(title).Except([enumDict["title"]]).Distinct().Join(", ");
-                        enumDict["aliasValues"] = enumDict["aliasValues"].Split(", ", StringSplitOptions.None | StringSplitOptions.RemoveEmptyEntries).Append(aliasValue).Except([enumDict["value"]]).Distinct().Join(", ");
+                        enumDict["alias"] = enumDict["alias"].Split(EnumAliasSeparator, StringSplitOptions.RemoveEmptyEntries).Append(title).Except([enumDict["title"]]).Distinct().Join(EnumAliasSeparator);
+                        enumDict["aliasValues"] = enumDict["aliasValues"].Split(EnumAliasSeparator, StringSplitOptions.RemoveEmptyEntries).Append(aliasValue).Except([enumDict["value"]]).Distinct().Join(EnumAliasSeparator);
                     }
                     else
                     {
