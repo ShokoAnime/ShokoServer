@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.430",
+      "tag": "v6.0.0-dev.430",
+      "commit": "f0d478844f76552f69f3d22779927b8ecff69daf",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.430/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-24T14:50:06Z",
+      "releaseNotes": "\n`fix` (`config`): **Accept string enum values regardless of casing**:\n\nThe JSON schema validator compared enum values ordinally while both\n`StringEnumConverter` and `JsonStringEnumConverter` match string enum\nmembers case-insensitively, so a hand-written `\"mysql\"` threw a\n`ConfigurationValidationException` on load even though the deserializer\nwould have parsed it to `DatabaseType.MySQL` without complaint.\n\n- Matched enum values case-insensitively in `ValidateEnum`, preferring an\n  exact match so a correctly cased value can never be claimed by a member\n  that only differs in casing\n- Added a `NormalizeEnum` hook, overridden in `ShokoJsonSchemaValidator`,\n  that rewrites a loosely matched value to the casing the member is\n  declared with, so the stored configuration is canonical again after the\n  next save\n- Set `PropertyNameCaseInsensitive` on the `System.Text.Json` options to\n  match Newtonsoft, which silently fell back to the default value for a\n  property whose name did not match exactly\n- Moved the alias lookup into `ShokoJsonSchemaGenerator.TryResolveEnumAlias`\n  next to the code that builds the list, fixing an environment variable\n  override splitting `aliasValues` on `\",\"` where it was joined with `\", \"`\n"
+    },
+    {
       "version": "6.0.0.429",
       "tag": "v6.0.0-dev.429",
       "commit": "f1cbdc9168abb2632ef3adf047f8ed2e13a07e8f",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.401/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-02T23:33:22Z",
       "releaseNotes": "\n`fix`: **Contain aggregate hub emitter exceptions**:\n\nWrapped every async void event handler in the aggregate hub emitters in\ntry/catch so exceptions can no longer escape into the threadpool as\nunhandled exceptions and crash the server. Made the file deleted event\ntolerate unresolvable managed folders.\n\n- Added ILogger + try/catch to all 12 event emitters (34 handlers total), including converting the expression-bodied handlers in PluginEventEmitter to block bodies\n- Made `ShokoEventHandler.OnFileDeleted` accept a nullable `IManagedFolder` and skip the event when the folder cannot be resolved\n- Stopped passing null-forgiven `place.ManagedFolder!` from `VideoService.RemoveRecord` and `RemoveRecordWithOpenTransaction`\n"
-    },
-    {
-      "version": "6.0.0.400",
-      "tag": "v6.0.0-dev.400",
-      "commit": "9317b99d1f1aee39d088be3f9a10e8a449b54785",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.400/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-01T04:03:55Z",
-      "releaseNotes": "\n`misc`: **Don't return not found if the series exists in Release Management**.\n"
     }
   ]
 }
