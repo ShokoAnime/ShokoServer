@@ -789,28 +789,8 @@ public class VideoService : IVideoService
         }
     }
 
-    public async Task ScheduleRemovalFromMyList(VideoLocal video)
-    {
-        if (_storedReleaseInfoRepository.GetByEd2kAndFileSize(video.Hash, video.FileSize) is { ReleaseURI: not null } releaseInfo && releaseInfo.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
-        {
-            await _myListService.ScheduleDisposeEntry(video.Hash, video.FileSize);
-        }
-        else
-        {
-            var xrefs = video.EpisodeCrossReferences;
-            foreach (var xref in xrefs)
-            {
-                if (xref.AnimeID is 0)
-                    continue;
-
-                var ep = _anidbEpisodeRepository.GetByEpisodeID(xref.EpisodeID);
-                if (ep is null)
-                    continue;
-
-                await _myListService.ScheduleDisposeEntry(xref.AnimeID, ep.EpisodeType, ep.EpisodeNumber);
-            }
-        }
-    }
+    public Task ScheduleRemovalFromMyList(VideoLocal video)
+        => _myListService.ScheduleDisposeVideo(video);
 
     #endregion
 

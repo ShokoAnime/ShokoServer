@@ -1331,7 +1331,48 @@ public class MyListService(
             () => ScheduleRemoveEntry(animeID, episodeType, episodeNumber, fetchMode, prioritize)
         );
 
+    public async Task ScheduleDisposeVideo(IVideo video, MyListDeleteType? deleteType = null, MyListFetchMode fetchMode = MyListFetchMode.Auto, bool prioritize = false)
+    {
+        if (videoLocals.GetByID(video.ID) is not { } videoLocal)
+            return;
+
+        if (videoLocal.ReleaseInfo is { } releaseInfo && (releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false))
+        {
+            await ScheduleDisposeEntry(videoLocal.Hash, videoLocal.FileSize, deleteType, fetchMode, prioritize);
+            return;
+        }
+
+        // a manual link has no entry of its own, so what covers it is the generic
+        // entry of each linked episode
+        foreach (var episode in videoLocal.EpisodeCrossReferences.Select(xref => xref.AniDBEpisode).WhereNotNull())
+        {
+            // that generic entry covers the episode rather than this one file, so
+            // it has to stay while another manually linked release still relies on it
+            if (SharesGenericEntry(videoLocal, episode.EpisodeID))
+            {
+                _logger.LogInformation(
+                    "Keeping the generic AniDB MyList entry, another manually linked release still uses it. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})",
+                    episode.AnimeID, episode.EpisodeType, episode.EpisodeNumber);
+                continue;
+            }
+
+            await ScheduleDisposeEntry(episode.AnimeID, episode.EpisodeType, episode.EpisodeNumber, deleteType, fetchMode, prioritize);
+        }
+    }
+
     #region Remove | Private
+
+    /// <summary>
+    /// Whether another release still maps to the episode and would lose its
+    /// MyList coverage if the episode's generic entry went away. Only manual
+    /// links count; a release with an AniDB file ID has an entry of its own.
+    /// The video being disposed of is excluded, whether or not its release has
+    /// already been deleted by the time this runs.
+    /// </summary>
+    private bool SharesGenericEntry(VideoLocal video, int anidbEpisodeID)
+        => storedReleaseInfos.GetByAnidbEpisodeID(anidbEpisodeID)
+            .Any(other => (other.ED2K != video.Hash || other.FileSize != video.FileSize)
+                && !(other.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false));
 
     /// <summary>
     /// Applies a delete type by picking between the two entry-level operations:

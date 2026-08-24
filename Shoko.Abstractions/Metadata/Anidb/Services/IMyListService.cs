@@ -977,6 +977,30 @@ public interface IMyListService
     /// </param>
     Task ScheduleDisposeEntry(int animeID, EpisodeType episodeType, int episodeNumber, MyListDeleteType? deleteType = null, MyListFetchMode fetchMode = MyListFetchMode.Auto, bool prioritize = false);
 
+    /// <summary>
+    ///   Disposes of the MyList entries covering a video, applying the
+    ///   configured delete type. A video with an AniDB release is disposed of
+    ///   by its own entry; a manually linked one is disposed of through the
+    ///   generic entry of each linked episode, which is left alone when
+    ///   another manual link still relies on it.
+    /// </summary>
+    /// <param name="video">
+    ///   The video to dispose of the MyList entries for.
+    /// </param>
+    /// <param name="deleteType">
+    ///   Optional. The delete type to apply. Defaults to the configured one.
+    /// </param>
+    /// <param name="fetchMode">
+    ///   Optional. How to fetch entries from AniDB.
+    /// </param>
+    /// <param name="prioritize">
+    ///   Optional. Whether to prioritize the job in the queue.
+    /// </param>
+    /// <returns>
+    ///   A task representing the asynchronous operation.
+    /// </returns>
+    Task ScheduleDisposeVideo(IVideo video, MyListDeleteType? deleteType = null, MyListFetchMode fetchMode = MyListFetchMode.Auto, bool prioritize = false);
+
     #endregion
 
     #region Sync
