@@ -6,10 +6,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.UI;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
@@ -91,19 +94,59 @@ public class ActionController : BaseController
             .Select(ActionInfo.FromExecutableActionInfo));
 
     /// <summary>
+    ///   Get a render-ready UI definition for the parameters of the action with
+    ///   the given ID, in the same shape a configuration editor is described by.
+    /// </summary>
+    /// <remarks>
+    ///   One endpoint covers every scope: an action's parameters come off the
+    ///   action type, which does not vary by the entity it is invoked against,
+    ///   so a series-scoped action is described here the same as a global one.
+    ///   Ask only when the listing said <see cref="ActionInfo.HasParameters"/>.
+    /// </remarks>
+    /// <param name="actionID">Action ID.</param>
+    /// <returns>The UI definition for the action's parameters.</returns>
+    [HttpGet("{actionID:guid}/UiDefinition")]
+    public ActionResult<UiDefinition> GetActionUiDefinition([FromRoute] Guid actionID)
+    {
+        if (_actionService.GetActionInfo(actionID) is not { } info)
+            return NotFound("Action not found.");
+
+        if (info.Parameters is not { } parameters)
+            return NotFound("Action does not take any parameters.");
+
+        return parameters;
+    }
+
+    /// <summary>
     ///   Invoke a global action by its ID. Returns 200 (accepted), or 400 with
     ///   a reason when the action's validation (or the caller's permission)
     ///   rejects the invocation.
     /// </summary>
     /// <param name="actionID">Action ID.</param>
+    /// <param name="parameters">
+    ///   Optional. The action's invocation parameters. Omit the body entirely
+    ///   for an action that takes none.
+    /// </param>
     /// <param name="token">Cancellation token.</param>
     [HttpPost("{actionID:guid}")]
-    public async Task<ActionResult> Invoke([FromRoute] Guid actionID, CancellationToken token)
+    public async Task<ActionResult> Invoke(
+        [FromRoute] Guid actionID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JObject? parameters,
+        CancellationToken token
+    )
     {
         if (_actionService.GetActionInfo(actionID) is null)
             return NotFound("Action not found.");
 
-        var validation = await _actionService.InvokeAsync(actionID, User, token);
+        if (_actionService.ValidateParameters(actionID, parameters) is { Count: > 0 } errors)
+            return ValidationProblem(errors);
+
+        // No body takes the same overload it always has, so an action that
+        // declares no parameters is invoked exactly as before.
+        var parameterMap = parameters.ToParameters();
+        var validation = parameterMap is null
+            ? await _actionService.InvokeAsync(actionID, User, token)
+            : await _actionService.InvokeAsync(actionID, parameterMap, User, token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 

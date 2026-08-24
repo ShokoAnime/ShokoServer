@@ -5,6 +5,7 @@ using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.UI;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Config.Services;
@@ -518,6 +519,41 @@ public interface IConfigurationService
     ///   The JSON schema.
     /// </returns>
     JsonSchema GenerateSchema(Type type);
+
+    /// <summary>
+    ///   Generates a render-ready UI definition for the specified type using
+    ///   the custom schema generator.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     Unlike <see cref="GenerateSchema(Type)" />, the returned document is
+    ///     meant to be sufficient on its own: every element carries a concrete
+    ///     element kind, its label, its default and the constraints needed for a
+    ///     cheap client-side pre-check. The schema remains the authority for
+    ///     server-side validation.
+    ///   </para>
+    ///   <para>
+    ///     The type does not have to be a registered configuration, or an
+    ///     <see cref="IConfiguration" /> at all — a plugin can describe any
+    ///     shape it wants a form for. <see cref="UiDefinition.ID" /> is derived
+    ///     the same way <see cref="GenerateSchema(Type)" /> derives
+    ///     <c>Schema.Id</c>, so a type belonging to a loaded plugin gets a
+    ///     stable id and anything else gets <see cref="Guid.Empty" />.
+    ///   </para>
+    ///   <para>
+    ///     Nothing is cached here; each call walks the type afresh. A
+    ///     configuration's own definition is cached by
+    ///     <see cref="ConfigurationInfo.UiDefinition" />, which is what most
+    ///     callers should read instead.
+    ///   </para>
+    /// </remarks>
+    /// <param name="type">
+    ///   The type.
+    /// </param>
+    /// <returns>
+    ///   The UI definition.
+    /// </returns>
+    UiDefinition GenerateUiDefinition(Type type);
 
     /// <summary>
     ///   Serializes the specified configuration to JSON.

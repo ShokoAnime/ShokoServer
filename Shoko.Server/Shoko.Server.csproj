@@ -110,5 +110,14 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Shoko.BuildTools.Targets" Version="0.2.1" />
+    <!--
+      Referenced as a project rather than as the Shoko.BuildTools.Analyzers package so the in-tree
+      configurations are checked by the analyzer as it is being developed. Plugin authors consume
+      the published package instead.
+    -->
+    <ProjectReference Include="..\Shoko.BuildTools.Analyzers\Shoko.BuildTools.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
   </ItemGroup>
 </Project>

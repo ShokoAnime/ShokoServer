@@ -4,7 +4,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Newtonsoft.Json.Linq;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 using Shoko.Server.Services;
@@ -26,11 +29,16 @@ public class FileActionController(ActionService actionService, VideoLocalReposit
     /// </summary>
     /// <param name="fileID">File ID.</param>
     /// <param name="actionID">Action ID.</param>
+    /// <param name="parameters">
+    ///   Optional. The action's invocation parameters. Omit the body entirely
+    ///   for an action that takes none.
+    /// </param>
     /// <param name="token">Cancellation token.</param>
     [HttpPost("{actionID:guid}")]
     public async Task<ActionResult> Invoke(
         [FromRoute, Range(1, int.MaxValue)] int fileID,
         [FromRoute] Guid actionID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JObject? parameters,
         CancellationToken token
     )
     {
@@ -41,7 +49,15 @@ public class FileActionController(ActionService actionService, VideoLocalReposit
         if (videoEntity is null)
             return NotFound("File not found.");
 
-        var validation = await actionService.InvokeAsync(actionID, videoEntity, User, token);
+        if (actionService.ValidateParameters(actionID, parameters) is { Count: > 0 } errors)
+            return ValidationProblem(errors);
+
+        // No body takes the same overload it always has, so an action that
+        // declares no parameters is invoked exactly as before.
+        var parameterMap = parameters.ToParameters();
+        var validation = parameterMap is null
+            ? await actionService.InvokeAsync(actionID, videoEntity, User, token)
+            : await actionService.InvokeAsync(actionID, videoEntity, parameterMap, User, token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 }

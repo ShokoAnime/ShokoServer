@@ -413,6 +413,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IFilterPresetManager, FilterPresetManager>();
             services.AddSingleton<IFuzzySearchService, FuzzySearchService>();
             services.AddSingleton<LegacyFilterConverter>();
+            services.AddSingleton<ActionUiDefinitionBuilder>();
             services.AddSingleton<ActionService>();
             services.AddSingleton<IActionService>(sp => sp.GetRequiredService<ActionService>());
             services.AddSingleton<AnimeSeriesService>();

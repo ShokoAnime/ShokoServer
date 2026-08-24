@@ -112,6 +112,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.BuildTools", "Shoko.B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.BuildTools.Targets", "Shoko.BuildTools.Targets\Shoko.BuildTools.Targets.csproj", "{391720CB-A745-4967-A67B-F8D9C0DAB0C6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoko.BuildTools.Analyzers", "Shoko.BuildTools.Analyzers\Shoko.BuildTools.Analyzers.csproj", "{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -391,6 +393,30 @@ Global
 		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|x64.Build.0 = Debug|Any CPU
 		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|x86.ActiveCfg = Debug|Any CPU
 		{391720CB-A745-4967-A67B-F8D9C0DAB0C6}.Benchmarks|x86.Build.0 = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Debug|x64.Build.0 = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Debug|x86.Build.0 = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Release|x64.ActiveCfg = Release|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Release|x64.Build.0 = Release|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Release|x86.ActiveCfg = Release|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Release|x86.Build.0 = Release|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.ApiLogging|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.ApiLogging|Any CPU.Build.0 = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.ApiLogging|x64.ActiveCfg = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.ApiLogging|x64.Build.0 = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.ApiLogging|x86.ActiveCfg = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.ApiLogging|x86.Build.0 = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Benchmarks|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Benchmarks|Any CPU.Build.0 = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Benchmarks|x64.ActiveCfg = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Benchmarks|x64.Build.0 = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Benchmarks|x86.ActiveCfg = Debug|Any CPU
+		{3BB05FAF-EFA5-4525-9AF1-AEF60D6CED60}.Benchmarks|x86.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

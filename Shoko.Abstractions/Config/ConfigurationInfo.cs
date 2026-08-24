@@ -4,6 +4,7 @@ using Namotion.Reflection;
 using NJsonSchema;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin.Models;
+using Shoko.Abstractions.UI;
 
 namespace Shoko.Abstractions.Config;
 
@@ -113,6 +114,32 @@ public class ConfigurationInfo(IConfigurationService configurationService)
     /// The JSON schema for the configuration type.
     /// </summary>
     public required JsonSchema Schema { get; init; }
+
+    private UiDefinition? _uiDefinition = null;
+
+    /// <summary>
+    /// A render-ready description of how to lay out an editor for the
+    /// configuration, in the same shape an executable action's parameters are
+    /// described by.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Unlike <see cref="Schema"/>, the returned document is meant to be
+    /// sufficient on its own: every element carries a concrete element kind,
+    /// its label, its default and the constraints needed for a cheap
+    /// client-side pre-check. The schema remains the authority for server-side
+    /// validation.
+    /// </para>
+    /// <para>
+    /// Built on first read and held from then on. A configuration's definition
+    /// can run to a hundred kilobytes or more, so nothing pays for one until it
+    /// asks for it, and nothing pays twice. Two threads racing the first read
+    /// both build one and the later assignment wins, which costs a discarded
+    /// tree and never a wrong answer.
+    /// </para>
+    /// </remarks>
+    public UiDefinition UiDefinition
+        => _uiDefinition ??= _configurationService.GenerateUiDefinition(Type);
 
     /// <summary>
     /// Information about the plugin that the configuration belongs to.
