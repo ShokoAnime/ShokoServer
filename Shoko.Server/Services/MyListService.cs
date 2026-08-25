@@ -1729,7 +1729,70 @@ public class MyListService(
 
     #region Sync | Private
 
-    private async Task<int> ProcessStates(
+    /// <summary>
+    /// Reconciles one entry's watched state and storage state. The rules are in
+    /// <see cref="MyListSyncDecisions.DecideWatchedAction"/>; what differs
+    /// between a file entry and a generic one is only where the local date comes
+    /// from, how an import is written back, and how the entry is identified.
+    ///
+    /// <c>canImport</c> is false when there is no AniDB user to write an import
+    /// for. The decision is then dropped rather than falling through to an
+    /// export, which is what the branch it replaced did.
+    /// </summary>
+    private async Task<int> ReconcileEntry(
+        MyListEntry myItem,
+        DateTime? localWatchedDate,
+        int modifiedItems,
+        MyListState localState,
+        bool readWatched,
+        bool readUnwatched,
+        bool setWatched,
+        bool setUnwatched,
+        MyListWatchedSyncMode watchedSyncMode,
+        bool updateStates,
+        bool canImport,
+        Func<DateTime?, Task> import,
+        Action<UpdateAniDBMyListEntryJob> identify
+    )
+    {
+        var action = MyListSyncDecisions.DecideWatchedAction(
+            localWatchedDate, myItem.ViewedAt, myItem.UpdatedAt,
+            readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode
+        );
+
+        // an export carries the decided date; anything else leaves the entry's
+        // own date in place, so a storage-state-only update re-sends it unchanged
+        var exportDate = myItem.ViewedAt;
+        var shouldUpdate = false;
+        switch (action.Kind)
+        {
+            case MyListWatchedActionKind.Import when canImport:
+                modifiedItems++;
+                await import(action.Date).ConfigureAwait(false);
+                break;
+
+            case MyListWatchedActionKind.Export:
+                shouldUpdate = true;
+                exportDate = action.Date;
+                break;
+        }
+
+        if (updateStates && (int)myItem.State != (int)localState) shouldUpdate = true;
+
+        if (!shouldUpdate)
+            return modifiedItems;
+
+        await scheduler.Enqueue<UpdateAniDBMyListEntryJob>(a =>
+        {
+            identify(a);
+            a.Data = new MyListUpdateData { State = updateStates ? localState : null, IsViewed = exportDate is not null, ViewedAt = exportDate };
+            a.UpdateSeriesStats = false;
+        });
+
+        return modifiedItems;
+    }
+
+    private Task<int> ProcessStates(
         JMMUser? aniDBUser,
         VideoLocal video,
         MyListEntry myItem,
@@ -1744,88 +1807,20 @@ public class MyListService(
         bool updateStates
     )
     {
-        // check watched states, read the states if needed, and update differences
-        // aggregate and assume if one AniDB User has watched it, it should be marked
-        // if multiple have, then take the latest
-        // compare the states and update if needed
-        var localWatchedDate = aniDBUser is null ? null : videoLocalUsers.GetByUserAndVideoLocalID(aniDBUser.JMMUserID, video.VideoLocalID)?.WatchedDate;
-        localWatchedDate = AniDBExtensions.TruncateToAniDBPrecision(localWatchedDate);
+        var localWatchedDate = AniDBExtensions.TruncateToAniDBPrecision(
+            aniDBUser is null ? null : videoLocalUsers.GetByUserAndVideoLocalID(aniDBUser.JMMUserID, video.VideoLocalID)?.WatchedDate
+        );
 
-        var shouldUpdate = false;
-        var updateDate = myItem.ViewedAt;
-
-        // we don't support multiple AniDB accounts, so we can just only iterate to set states.
-        // same-day updates (the entry was updated on the same day as the local watch) are
-        // resolved by the watched sync mode, while older differences follow the read/set settings
-        var sameDay = localWatchedDate is not null && myItem.UpdatedAt == DateOnly.FromDateTime(localWatchedDate.Value);
-        if (sameDay)
-        {
-            switch (watchedSyncMode)
+        return ReconcileEntry(
+            myItem, localWatchedDate, modifiedItems, localState,
+            readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates,
+            canImport: aniDBUser is not null,
+            import: async date =>
             {
-                case MyListWatchedSyncMode.Ignore:
-                    break;
-
-                case MyListWatchedSyncMode.TrustLocal:
-                    if (localWatchedDate is not null && !localWatchedDate.Equals(updateDate))
-                    {
-                        shouldUpdate = true;
-                        updateDate = localWatchedDate.Value.ToUniversalTime();
-                    }
-                    else if (localWatchedDate is null && updateDate is not null)
-                    {
-                        shouldUpdate = true;
-                        updateDate = null;
-                    }
-
-                    break;
-
-                case MyListWatchedSyncMode.TrustRemote:
-                    if (aniDBUser is not null)
-                    {
-                        if (localWatchedDate is null && updateDate is not null)
-                        {
-                            modifiedItems++;
-                            await userDataService.ImportVideoUserData(video, aniDBUser, new()
-                            {
-                                ProgressPosition = TimeSpan.Zero,
-                                LastPlayedAt = updateDate,
-                                LastUpdatedAt = myItem.UpdatedAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified),
-                            }, "AniDB", false).ConfigureAwait(false);
-                            video.AnimeEpisodes
-                                .DistinctBy(a => a.AnimeSeriesID)
-                                .Select(a => a.AnimeSeries)
-                                .WhereNotNull()
-                                .ForEach(a => modifiedSeries.Add(a));
-                        }
-                        else if (localWatchedDate is not null && updateDate is null)
-                        {
-                            modifiedItems++;
-                            await userDataService.ImportVideoUserData(video, aniDBUser, new()
-                            {
-                                ProgressPosition = TimeSpan.Zero,
-                                LastPlayedAt = null,
-                                LastUpdatedAt = myItem.UpdatedAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified),
-                            }, "AniDB", false).ConfigureAwait(false);
-                            video.AnimeEpisodes
-                                .DistinctBy(a => a.AnimeSeriesID)
-                                .Select(a => a.AnimeSeries)
-                                .WhereNotNull()
-                                .ForEach(a => modifiedSeries.Add(a));
-                        }
-                    }
-
-                    break;
-            }
-        }
-        else if (readWatched && localWatchedDate == null && updateDate != null)
-        {
-            if (aniDBUser is not null)
-            {
-                modifiedItems++;
-                await userDataService.ImportVideoUserData(video, aniDBUser, new()
+                await userDataService.ImportVideoUserData(video, aniDBUser!, new()
                 {
                     ProgressPosition = TimeSpan.Zero,
-                    LastPlayedAt = updateDate,
+                    LastPlayedAt = date,
                     LastUpdatedAt = myItem.UpdatedAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified),
                 }, "AniDB", false).ConfigureAwait(false);
                 video.AnimeEpisodes
@@ -1833,55 +1828,12 @@ public class MyListService(
                     .Select(a => a.AnimeSeries)
                     .WhereNotNull()
                     .ForEach(a => modifiedSeries.Add(a));
-            }
-        }
-        // if we did the previous, then we don't want to undo it
-        else if (readUnwatched && localWatchedDate != null && updateDate == null)
-        {
-            if (aniDBUser is not null)
-            {
-                modifiedItems++;
-                await userDataService.ImportVideoUserData(video, aniDBUser, new()
-                {
-                    ProgressPosition = TimeSpan.Zero,
-                    LastPlayedAt = null,
-                    LastUpdatedAt = myItem.UpdatedAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified),
-                }, "AniDB", false).ConfigureAwait(false);
-                video.AnimeEpisodes
-                    .DistinctBy(a => a.AnimeSeriesID)
-                    .Select(a => a.AnimeSeries)
-                    .WhereNotNull()
-                    .ForEach(a => modifiedSeries.Add(a));
-            }
-        }
-        else if (setUnwatched && localWatchedDate == null && updateDate != null)
-        {
-            shouldUpdate = true;
-            updateDate = null;
-        }
-        else if (setWatched && localWatchedDate != null && !localWatchedDate.Equals(updateDate))
-        {
-            shouldUpdate = true;
-            updateDate = localWatchedDate.Value.ToUniversalTime();
-        }
-
-        // check if the state needs to be updated
-        if (updateStates && (int)myItem.State != (int)localState) shouldUpdate = true;
-
-        if (!shouldUpdate)
-            return modifiedItems;
-
-        await scheduler.Enqueue<UpdateAniDBMyListEntryJob>(a =>
-        {
-            a.VideoID = video.VideoLocalID;
-            a.Data = new MyListUpdateData { State = updateStates ? localState : null, IsViewed = updateDate != null, ViewedAt = updateDate };
-            a.UpdateSeriesStats = false;
-        });
-
-        return modifiedItems;
+            },
+            identify: a => a.VideoID = video.VideoLocalID
+        );
     }
 
-    private async Task<int> ProcessGenericEntry(
+    private Task<int> ProcessGenericEntry(
         JMMUser? aniDBUser,
         AnimeEpisode episode,
         MyListEntry myItem,
@@ -1896,125 +1848,34 @@ public class MyListService(
         bool updateStates
     )
     {
-        // check watched states, read the states if needed, and update differences.
         // the same reconciliation as files, but at the episode level
         if (episode.AniDB_Episode is not { } aniDBEpisode)
-            return modifiedItems;
+            return Task.FromResult(modifiedItems);
 
-        var localWatchedDate = aniDBUser is null ? null : episode.GetUserRecord(aniDBUser.JMMUserID)?.WatchedDate;
-        localWatchedDate = AniDBExtensions.TruncateToAniDBPrecision(localWatchedDate);
+        var localWatchedDate = LocalWatchedDate(aniDBUser, episode);
 
-        var shouldUpdate = false;
-        var updateDate = myItem.ViewedAt;
-
-        // we don't support multiple AniDB accounts, so we can just only iterate to set states.
-        // same-day updates (the entry was updated on the same day as the local watch) are
-        // resolved by the watched sync mode, while older differences follow the read/set settings
-        var sameDay = localWatchedDate is not null && myItem.UpdatedAt == DateOnly.FromDateTime(localWatchedDate.Value);
-        if (sameDay)
-        {
-            switch (watchedSyncMode)
+        return ReconcileEntry(
+            myItem, localWatchedDate, modifiedItems, localState,
+            readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates,
+            canImport: aniDBUser is not null,
+            import: async date =>
             {
-                case MyListWatchedSyncMode.Ignore:
-                    break;
-
-                case MyListWatchedSyncMode.TrustLocal:
-                    if (localWatchedDate is not null && !localWatchedDate.Equals(updateDate))
-                    {
-                        shouldUpdate = true;
-                        updateDate = localWatchedDate.Value.ToUniversalTime();
-                    }
-                    else if (localWatchedDate is null && updateDate is not null)
-                    {
-                        shouldUpdate = true;
-                        updateDate = null;
-                    }
-
-                    break;
-
-                case MyListWatchedSyncMode.TrustRemote:
-                    if (aniDBUser is not null)
-                    {
-                        if (localWatchedDate is null && updateDate is not null)
-                        {
-                            modifiedItems++;
-                            await userDataService.ImportEpisodeUserData(episode, aniDBUser, new()
-                            {
-                                LastPlayedAt = updateDate,
-                                LastUpdatedAt = myItem.UpdatedAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified),
-                            }, "AniDB", VideoUserDataSaveReason.None, false).ConfigureAwait(false);
-                            if (episode.AnimeSeries is { } series) modifiedSeries.Add(series);
-                        }
-                        else if (localWatchedDate is not null && updateDate is null)
-                        {
-                            modifiedItems++;
-                            await userDataService.ImportEpisodeUserData(episode, aniDBUser, new()
-                            {
-                                LastPlayedAt = null,
-                                LastUpdatedAt = myItem.UpdatedAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified),
-                            }, "AniDB", VideoUserDataSaveReason.None, false).ConfigureAwait(false);
-                            if (episode.AnimeSeries is { } series) modifiedSeries.Add(series);
-                        }
-                    }
-
-                    break;
-            }
-        }
-        else if (readWatched && localWatchedDate == null && updateDate != null)
-        {
-            if (aniDBUser is not null)
-            {
-                modifiedItems++;
-                await userDataService.ImportEpisodeUserData(episode, aniDBUser, new()
+                await userDataService.ImportEpisodeUserData(episode, aniDBUser!, new()
                 {
-                    LastPlayedAt = updateDate,
+                    LastPlayedAt = date,
                     LastUpdatedAt = myItem.UpdatedAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified),
                 }, "AniDB", VideoUserDataSaveReason.None, false).ConfigureAwait(false);
                 if (episode.AnimeSeries is { } series) modifiedSeries.Add(series);
-            }
-        }
-        // if we did the previous, then we don't want to undo it
-        else if (readUnwatched && localWatchedDate != null && updateDate == null)
-        {
-            if (aniDBUser is not null)
+            },
+            identify: a =>
             {
-                modifiedItems++;
-                await userDataService.ImportEpisodeUserData(episode, aniDBUser, new()
-                {
-                    LastPlayedAt = null,
-                    LastUpdatedAt = myItem.UpdatedAt.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified),
-                }, "AniDB", VideoUserDataSaveReason.None, false).ConfigureAwait(false);
-                if (episode.AnimeSeries is { } series) modifiedSeries.Add(series);
+                a.AnimeID = aniDBEpisode.AnimeID;
+                a.EpisodeType = aniDBEpisode.EpisodeType;
+                a.EpisodeNumber = aniDBEpisode.EpisodeNumber;
             }
-        }
-        else if (setUnwatched && localWatchedDate == null && updateDate != null)
-        {
-            shouldUpdate = true;
-            updateDate = null;
-        }
-        else if (setWatched && localWatchedDate != null && !localWatchedDate.Equals(updateDate))
-        {
-            shouldUpdate = true;
-            updateDate = localWatchedDate.Value.ToUniversalTime();
-        }
-
-        // check if the state needs to be updated
-        if (updateStates && (int)myItem.State != (int)localState) shouldUpdate = true;
-
-        if (!shouldUpdate)
-            return modifiedItems;
-
-        await scheduler.Enqueue<UpdateAniDBMyListEntryJob>(a =>
-        {
-            a.AnimeID = aniDBEpisode.AnimeID;
-            a.EpisodeType = aniDBEpisode.EpisodeType;
-            a.EpisodeNumber = aniDBEpisode.EpisodeNumber;
-            a.Data = new MyListUpdateData { State = updateStates ? localState : null, IsViewed = updateDate != null, ViewedAt = updateDate };
-            a.UpdateSeriesStats = false;
-        });
-
-        return modifiedItems;
+        );
     }
+
 
     /// <summary>
     /// The videos a scoped sync is confined to, resolved once up front. A file
