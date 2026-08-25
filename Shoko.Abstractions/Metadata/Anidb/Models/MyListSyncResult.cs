@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 namespace Shoko.Abstractions.Metadata.Anidb.Models;
 
 /// <summary>
@@ -56,4 +57,16 @@ public record MyListSyncResult
     ///   is neither watched locally nor backed by a local file.
     /// </summary>
     public int EpisodesQueuedForRemoval { get; init; }
+
+    /// <summary>
+    ///   Every step the sync took, in the order it took them. On a preview run
+    ///   these are the steps it would have taken, and nothing was done.
+    /// </summary>
+    public IReadOnlyList<MyListSyncAction> Actions { get; init; } = [];
+
+    /// <summary>
+    ///   Whether this was a preview, in which case nothing was changed either
+    ///   locally or on AniDB.
+    /// </summary>
+    public bool IsPreview { get; init; }
 }

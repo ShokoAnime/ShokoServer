@@ -75,4 +75,12 @@ public class MyListSyncOptions
     ///   setting.
     /// </summary>
     public MyListWatchedEpisodeMode? WatchedEpisodeMode { get; init; }
+
+    /// <summary>
+    ///   Optional. When set to <c>true</c>, work out what the sync would do and
+    ///   return it on <see cref="MyListSyncResult.Actions"/> without doing any
+    ///   of it — nothing local is written and nothing is sent to AniDB. The
+    ///   MyList itself is still fetched, since the plan is derived from it.
+    /// </summary>
+    public bool? Preview { get; init; }
 }

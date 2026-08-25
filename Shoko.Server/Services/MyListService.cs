@@ -1505,6 +1505,10 @@ public class MyListService(
         var deleteType = resolved.DeleteType!.Value;
         var targets = resolved.Targets!.Value;
         var watchedEpisodeMode = resolved.WatchedEpisodeMode!.Value;
+        // read from the caller's options rather than the resolved ones: a preview
+        // is a property of this call, not something the settings can turn on
+        var preview = options?.Preview ?? false;
+        var actions = new List<MyListSyncAction>();
 
         var entries = ignoreTimeCheck
             ? await FetchMyListAsync(cancellationToken)
@@ -1525,7 +1529,7 @@ public class MyListService(
             .Where(r => !string.IsNullOrEmpty(r.ReleaseURI) && r.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
             .ToLookup(a => a.ED2K);
 
-        var missingFiles = await AddMissingFiles(localFiles, onlineFiles, scope);
+        var missingFiles = await AddMissingFiles(localFiles, onlineFiles, scope, preview, actions);
 
         var aniDBUser = users.GetAniDBUser();
         var modifiedSeries = new LinkedHashSet<AnimeSeries>();
@@ -1577,14 +1581,14 @@ public class MyListService(
                         continue;
                     }
 
-                    modifiedItems = await ProcessGenericEntry(aniDBUser, episode, myItem, modifiedItems, modifiedSeries, storageState, readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates);
+                    modifiedItems = await ProcessGenericEntry(aniDBUser, episode, myItem, modifiedItems, modifiedSeries, storageState, readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates, preview, actions);
                     continue;
                 }
 
                 if (video is not null)
                 {
                     // We have it, so process watched states and update storage states if needed
-                    modifiedItems = await ProcessStates(aniDBUser, video, myItem, modifiedItems, modifiedSeries, storageState, readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates);
+                    modifiedItems = await ProcessStates(aniDBUser, video, myItem, modifiedItems, modifiedSeries, storageState, readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates, preview, actions);
                     continue;
                 }
 
@@ -1619,6 +1623,18 @@ public class MyListService(
         {
             foreach (var entry in filesToRemove)
             {
+                actions.Add(new MyListSyncAction
+                {
+                    Kind = MyListSyncActionKind.ExportEntryRemoval,
+                    Description = $"Remove the MyList entry for file {entry.FileID}, which is no longer in the library",
+                    MyListID = entry.MyListID is 0 ? null : entry.MyListID,
+                    FileID = entry.FileID is 0 ? null : entry.FileID,
+                    EpisodeID = entry.EpisodeID is 0 ? null : entry.EpisodeID,
+                    DeleteType = deleteType,
+                });
+                if (preview)
+                    continue;
+
                 // entries from the HTTP export always carry a list ID — the cheapest
                 // identification mode for either operation
                 if (entry.MyListID is not 0)
@@ -1641,9 +1657,24 @@ public class MyListService(
 
         foreach (var entry in episodesToRemove)
         {
+            var anidbEpisode = animeEpisodes.GetByAniDBEpisodeID(entry.EpisodeID)?.AniDB_Episode;
+            actions.Add(new MyListSyncAction
+            {
+                Kind = MyListSyncActionKind.ExportEntryRemoval,
+                Description = $"Remove the generic MyList entry for episode {entry.EpisodeID}, which records nothing",
+                EpisodeID = entry.EpisodeID,
+                MyListID = entry.MyListID is 0 ? null : entry.MyListID,
+                AnidbAnimeID = anidbEpisode?.AnimeID,
+                EpisodeType = anidbEpisode?.EpisodeType,
+                EpisodeNumber = anidbEpisode?.EpisodeNumber,
+                DeleteType = deleteType,
+            });
+            if (preview)
+                continue;
+
             if (entry.MyListID is not 0)
                 await ScheduleDisposeEntry(entry.MyListID, deleteType);
-            else if (animeEpisodes.GetByAniDBEpisodeID(entry.EpisodeID)?.AniDB_Episode is { } anidbEpisode)
+            else if (anidbEpisode is not null)
                 await ScheduleDisposeEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, deleteType);
         }
 
@@ -1651,7 +1682,7 @@ public class MyListService(
             _logger.LogInformation("MYLIST Vestigial Episodes: {Count} added to queue for deletion", episodesToRemove.Count);
 
         var episodesAdded = targets.HasFlag(MyListSyncTargets.Episodes)
-            ? await AddMissingEpisodes(entries, scope, aniDBUser, watchedEpisodeMode)
+            ? await AddMissingEpisodes(entries, scope, aniDBUser, watchedEpisodeMode, preview, actions)
             : 0;
 
         await Task.WhenAll(modifiedSeries.Select(a => seriesService.QueueUpdateStats(a)));
@@ -1675,6 +1706,8 @@ public class MyListService(
             UnclassifiedEntries = unclassifiedItems,
             EpisodesQueuedForAdd = episodesAdded,
             EpisodesQueuedForRemoval = episodesToRemove.Count,
+            Actions = actions,
+            IsPreview = preview,
         };
     }
 
@@ -1751,8 +1784,11 @@ public class MyListService(
         MyListWatchedSyncMode watchedSyncMode,
         bool updateStates,
         bool canImport,
+        bool preview,
+        List<MyListSyncAction> actions,
         Func<DateTime?, Task> import,
-        Action<UpdateAniDBMyListEntryJob> identify
+        Action<UpdateAniDBMyListEntryJob> identify,
+        Func<MyListSyncActionKind, DateTime?, MyListState?, MyListSyncAction> describe
     )
     {
         var action = MyListSyncDecisions.DecideWatchedAction(
@@ -1768,7 +1804,9 @@ public class MyListService(
         {
             case MyListWatchedActionKind.Import when canImport:
                 modifiedItems++;
-                await import(action.Date).ConfigureAwait(false);
+                actions.Add(describe(MyListSyncActionKind.ImportWatchedState, action.Date, null));
+                if (!preview)
+                    await import(action.Date).ConfigureAwait(false);
                 break;
 
             case MyListWatchedActionKind.Export:
@@ -1780,6 +1818,10 @@ public class MyListService(
         if (updateStates && (int)myItem.State != (int)localState) shouldUpdate = true;
 
         if (!shouldUpdate)
+            return modifiedItems;
+
+        actions.Add(describe(MyListSyncActionKind.ExportWatchedState, exportDate, updateStates ? localState : null));
+        if (preview)
             return modifiedItems;
 
         await scheduler.Enqueue<UpdateAniDBMyListEntryJob>(a =>
@@ -1804,7 +1846,9 @@ public class MyListService(
         bool setWatched,
         bool setUnwatched,
         MyListWatchedSyncMode watchedSyncMode,
-        bool updateStates
+        bool updateStates,
+        bool preview,
+        List<MyListSyncAction> actions
     )
     {
         var localWatchedDate = AniDBExtensions.TruncateToAniDBPrecision(
@@ -1815,6 +1859,22 @@ public class MyListService(
             myItem, localWatchedDate, modifiedItems, localState,
             readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates,
             canImport: aniDBUser is not null,
+            preview: preview,
+            actions: actions,
+            describe: (kind, date, state) => new MyListSyncAction
+            {
+                Kind = kind,
+                Description = kind is MyListSyncActionKind.ImportWatchedState
+                    ? $"Import watched state onto file {video.VideoLocalID}"
+                    : $"Update the MyList entry for file {video.VideoLocalID}",
+                VideoID = video.VideoLocalID,
+                MyListID = myItem.MyListID is 0 ? null : myItem.MyListID,
+                FileID = myItem.FileID is 0 ? null : myItem.FileID,
+                ED2K = video.Hash,
+                FileSize = video.FileSize,
+                WatchedAt = date,
+                State = state,
+            },
             import: async date =>
             {
                 await userDataService.ImportVideoUserData(video, aniDBUser!, new()
@@ -1845,7 +1905,9 @@ public class MyListService(
         bool setWatched,
         bool setUnwatched,
         MyListWatchedSyncMode watchedSyncMode,
-        bool updateStates
+        bool updateStates,
+        bool preview,
+        List<MyListSyncAction> actions
     )
     {
         // the same reconciliation as files, but at the episode level
@@ -1858,6 +1920,22 @@ public class MyListService(
             myItem, localWatchedDate, modifiedItems, localState,
             readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates,
             canImport: aniDBUser is not null,
+            preview: preview,
+            actions: actions,
+            describe: (kind, date, state) => new MyListSyncAction
+            {
+                Kind = kind,
+                Description = kind is MyListSyncActionKind.ImportWatchedState
+                    ? $"Import watched state onto episode {episode.AnimeEpisodeID}"
+                    : $"Update the generic MyList entry for episode {episode.AnimeEpisodeID}",
+                EpisodeID = episode.AnimeEpisodeID,
+                MyListID = myItem.MyListID is 0 ? null : myItem.MyListID,
+                AnidbAnimeID = aniDBEpisode.AnimeID,
+                EpisodeType = aniDBEpisode.EpisodeType,
+                EpisodeNumber = aniDBEpisode.EpisodeNumber,
+                WatchedAt = date,
+                State = state,
+            },
             import: async date =>
             {
                 await userDataService.ImportEpisodeUserData(episode, aniDBUser!, new()
@@ -1938,7 +2016,7 @@ public class MyListService(
     /// user watched without a file — or holds only through a manual link, which
     /// has no file entry of its own — is invisible to it and is picked up here.
     /// </summary>
-    private async Task<int> AddMissingEpisodes(IReadOnlyList<MyListEntry> entries, SyncScope? scope, JMMUser? aniDBUser, MyListWatchedEpisodeMode watchedEpisodeMode)
+    private async Task<int> AddMissingEpisodes(IReadOnlyList<MyListEntry> entries, SyncScope? scope, JMMUser? aniDBUser, MyListWatchedEpisodeMode watchedEpisodeMode, bool preview, List<MyListSyncAction> actions)
     {
         if (!settingsProvider.GetSettings().AniDb.MyList_AddFiles)
             return 0;
@@ -1962,12 +2040,25 @@ public class MyListService(
 
             var watchedDate = LocalWatchedDate(aniDBUser, episode);
 
+            MyListSyncAction Describe(MyListSyncActionKind kind, string description) => new()
+            {
+                Kind = kind,
+                Description = description,
+                EpisodeID = episode.AnimeEpisodeID,
+                AnidbAnimeID = anidbEpisode.AnimeID,
+                EpisodeType = anidbEpisode.EpisodeType,
+                EpisodeNumber = anidbEpisode.EpisodeNumber,
+                WatchedAt = watchedDate,
+            };
+
             // a manual link is covered by the episode's generic entry and nothing
             // else, so it wants one whether or not the episode has been watched
             if (videos.Count > 0)
             {
-                await ScheduleAddEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, WatchedData(watchedDate));
                 added++;
+                actions.Add(Describe(MyListSyncActionKind.ExportEntryAddition, $"Add a generic MyList entry for manually linked episode {episode.AnimeEpisodeID}"));
+                if (!preview)
+                    await ScheduleAddEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, WatchedData(watchedDate));
                 continue;
             }
 
@@ -1990,16 +2081,26 @@ public class MyListService(
                         .OrderBy(entry => entry.MyListID is 0 ? ulong.MaxValue : entry.MyListID)
                         .ThenBy(entry => entry.FileID is 0 ? int.MaxValue : entry.FileID)
                         .First();
+                    added++;
+                    actions.Add(Describe(MyListSyncActionKind.ExportWatchedState, $"Record the watch for episode {episode.AnimeEpisodeID} on its oldest existing MyList entry") with
+                    {
+                        MyListID = oldest.MyListID is 0 ? null : oldest.MyListID,
+                        FileID = oldest.FileID is 0 ? null : oldest.FileID,
+                    });
+                    if (preview)
+                        continue;
+
                     if (oldest.MyListID is not 0)
                         await ScheduleUpdateEntry(oldest.MyListID, new() { IsViewed = true, ViewedAt = watchedDate });
                     else
                         await ScheduleUpdateEntry(oldest.FileID, new() { IsViewed = true, ViewedAt = watchedDate });
-                    added++;
                     continue;
 
                 default:
-                    await ScheduleAddEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, WatchedData(watchedDate));
                     added++;
+                    actions.Add(Describe(MyListSyncActionKind.ExportEntryAddition, $"Add a generic MyList entry recording the watch for episode {episode.AnimeEpisodeID}"));
+                    if (!preview)
+                        await ScheduleAddEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, WatchedData(watchedDate));
                     continue;
             }
         }
@@ -2030,7 +2131,9 @@ public class MyListService(
     private async Task<int> AddMissingFiles(
         ILookup<string, StoredReleaseInfo> localFiles,
         ILookup<int, MyListEntry> onlineFiles,
-        SyncScope? scope
+        SyncScope? scope,
+        bool preview,
+        List<MyListSyncAction> actions
     )
     {
         if (!settingsProvider.GetSettings().AniDb.MyList_AddFiles)
@@ -2045,6 +2148,16 @@ public class MyListService(
             // the file is in the local collection but not recorded online
             if (onlineFiles.Contains(fileID)) continue;
             missingFiles++;
+            actions.Add(new MyListSyncAction
+            {
+                Kind = MyListSyncActionKind.ExportEntryAddition,
+                Description = $"Add file {vid.VideoLocalID} to the MyList",
+                VideoID = vid.VideoLocalID,
+                ED2K = vid.Hash,
+                FileSize = vid.FileSize,
+            });
+            if (preview)
+                continue;
 
             await scheduler.Enqueue<AddAniDBMyListEntryJob>(a =>
             {
