@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
@@ -10,7 +11,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 /// <summary>
 /// Fires the recurring MyList sync. It exists purely so the sync itself is
-/// always enqueued through <see cref="IMyListService.ScheduleSync"/>, which
+/// always enqueued through <see cref="IMyListService.ScheduleSync(MyListSyncOptions, bool)"/>, which
 /// resolves the sync options against the settings up front. The recurring
 /// registration carries no job data of its own, so without this the sync would
 /// be enqueued with its non-nullable options left at their defaults, silently

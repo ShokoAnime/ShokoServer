@@ -73,7 +73,8 @@ public class MyListService(
     private readonly ILogger<MyListService> _logger = logger;
 
     /// <summary>
-    /// Guards <see cref="SyncAsync"/> against overlapping runs. The queue job
+    /// Guards <see cref="SyncAsync(MyListSyncOptions?, CancellationToken)"/> and its
+    /// scoped overload against overlapping runs. The queue job
     /// is already <c>[DisallowConcurrentExecution]</c>, but the method is on the
     /// plugin-facing contract and can be called without going through it.
     /// </summary>
@@ -1419,7 +1420,7 @@ public class MyListService(
 
         try
         {
-            return await SyncInternalAsync(options, cancellationToken).ConfigureAwait(false);
+            return await SyncInternalAsync(options, null, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -1427,9 +1428,38 @@ public class MyListService(
         }
     }
 
-    private async Task<MyListSyncResult> SyncInternalAsync(MyListSyncOptions? options, CancellationToken cancellationToken)
+    public async Task<MyListSyncResult?> SyncAsync(IEnumerable<IVideo> videos, MyListSyncOptions? options = null, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Syncing the MyList");
+        ArgumentNullException.ThrowIfNull(videos);
+
+        var scope = BuildSyncScope(videos);
+        if (scope.VideoIDs.Count is 0)
+            return new MyListSyncResult();
+
+        // the same guard as the full sync; the two overlap on the cache and on
+        // the entries they would reconcile, so they cannot run side by side
+        if (!await _syncLock.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+        {
+            _logger.LogInformation("Skipping the MyList sync; one is already running");
+            return null;
+        }
+
+        try
+        {
+            return await SyncInternalAsync(options, scope, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _syncLock.Release();
+        }
+    }
+
+    private async Task<MyListSyncResult> SyncInternalAsync(MyListSyncOptions? options, SyncScope? scope, CancellationToken cancellationToken)
+    {
+        if (scope is null)
+            _logger.LogInformation("Syncing the MyList");
+        else
+            _logger.LogInformation("Syncing the MyList for {Count} videos", scope.VideoIDs.Count);
 
         var fetchMode = ResolveFetchMode(options?.FetchMode ?? MyListFetchMode.Auto);
         var ignoreTimeCheck = fetchMode.HasFlag(MyListFetchMode.IgnoreTimeCheck);
@@ -1464,7 +1494,7 @@ public class MyListService(
             .Where(r => !string.IsNullOrEmpty(r.ReleaseURI) && r.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
             .ToLookup(a => a.ED2K);
 
-        var missingFiles = await AddMissingFiles(localFiles, onlineFiles);
+        var missingFiles = await AddMissingFiles(localFiles, onlineFiles, scope);
 
         var aniDBUser = users.GetAniDBUser();
         var modifiedSeries = new LinkedHashSet<AnimeSeries>();
@@ -1476,9 +1506,6 @@ public class MyListService(
         {
             try
             {
-                totalItems++;
-                if (myItem.ViewedAt.HasValue) watchedItems++;
-
                 // Tier 1 (file level): entries for real files are matched to local files by their FileID
                 // Tier 2 (episode level): generic entries are matched to episodes
                 // Any entry that cannot be matched is treated as missing
@@ -1487,27 +1514,38 @@ public class MyListService(
                 // all we have is the _generic_ file state, a convention plenty of
                 // generic entries do not follow
                 var isGeneric = myItem.IsGeneric ?? myItem.FileState is not (MyListFileState.Normal or MyListFileState.Corrupted);
-                if (isGeneric)
-                {
-                    if (myItem.EpisodeID is not 0 && animeEpisodes.GetByAniDBEpisodeID(myItem.EpisodeID) is { } episode)
-                    {
-                        modifiedItems = await ProcessGenericEntry(aniDBUser, episode, myItem, modifiedItems, modifiedSeries, storageState, readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates);
-                        continue;
-                    }
-                }
-                else
-                {
-                    var aniFile = storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myItem.FileID}");
+                var episode = isGeneric && myItem.EpisodeID is not 0 ? animeEpisodes.GetByAniDBEpisodeID(myItem.EpisodeID) : null;
+                var video = isGeneric
+                    ? null
+                    : storedReleaseInfos.GetByReleaseURI($"{AnidbReleaseProvider.ReleasePrefix}{myItem.FileID}") is { ED2K: { } ed2k }
+                        ? videoLocals.GetByEd2k(ed2k)
+                        : null;
 
-                    var vl = aniFile?.ED2K is null ? null : videoLocals.GetByEd2k(aniFile.ED2K);
+                // a scoped sync only reconciles what the caller handed it, so an
+                // entry belonging to anything else is not this run's business
+                if (scope is not null && !scope.Covers(episode, video))
+                    continue;
 
-                    if (vl != null)
-                    {
-                        // We have it, so process watched states and update storage states if needed
-                        modifiedItems = await ProcessStates(aniDBUser, vl, myItem, modifiedItems, modifiedSeries, storageState, readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates);
-                        continue;
-                    }
+                totalItems++;
+                if (myItem.ViewedAt.HasValue) watchedItems++;
+
+                if (episode is not null)
+                {
+                    modifiedItems = await ProcessGenericEntry(aniDBUser, episode, myItem, modifiedItems, modifiedSeries, storageState, readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates);
+                    continue;
                 }
+
+                if (video is not null)
+                {
+                    // We have it, so process watched states and update storage states if needed
+                    modifiedItems = await ProcessStates(aniDBUser, video, myItem, modifiedItems, modifiedSeries, storageState, readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates);
+                    continue;
+                }
+
+                // an unmatched entry means the local file is gone, which cannot be
+                // true of a video the caller handed in, so a scoped sync never removes
+                if (scope is not null)
+                    continue;
 
                 if (deleteType is MyListDeleteType.DeleteLocalOnly)
                     continue;
@@ -1585,6 +1623,22 @@ public class MyListService(
         // user's settings
         var resolved = ResolveSyncOptions(options);
         return scheduler.Enqueue<SyncAniDBMyListJob>(a => a.Options = resolved, prioritize);
+    }
+
+    public Task ScheduleSync(IEnumerable<IVideo> videos, MyListSyncOptions? options = null, bool prioritize = false)
+    {
+        ArgumentNullException.ThrowIfNull(videos);
+
+        var videoIDs = videos.Select(video => video.ID).Distinct().ToArray();
+        if (videoIDs.Length is 0)
+            return Task.CompletedTask;
+
+        var resolved = ResolveSyncOptions(options);
+        return scheduler.Enqueue<SyncAniDBMyListVideosJob>(a =>
+        {
+            a.VideoIDs = videoIDs;
+            a.Options = resolved;
+        }, prioritize);
     }
 
     /// <summary>
@@ -1897,15 +1951,50 @@ public class MyListService(
         return modifiedItems;
     }
 
+    /// <summary>
+    /// The videos a scoped sync is confined to, resolved once up front. A file
+    /// entry is covered when it maps to one of the videos; a generic entry is
+    /// covered when it maps to an episode one of them is linked to, since that
+    /// is the only entry AniDB has for a manual link.
+    /// </summary>
+    private sealed class SyncScope
+    {
+        public required IReadOnlySet<int> VideoIDs { get; init; }
+
+        public required IReadOnlySet<int> AnidbEpisodeIDs { get; init; }
+
+        public bool Covers(AnimeEpisode? episode, VideoLocal? video)
+            => episode is not null
+                ? AnidbEpisodeIDs.Contains(episode.AniDB_EpisodeID)
+                : video is not null && VideoIDs.Contains(video.VideoLocalID);
+    }
+
+    /// <summary>
+    /// Resolves the videos into a scope, dropping any that are not local.
+    /// </summary>
+    private SyncScope BuildSyncScope(IEnumerable<IVideo> videos)
+    {
+        var resolved = videos.Select(video => videoLocals.GetByID(video.ID)).WhereNotNull().DistinctBy(video => video.VideoLocalID).ToList();
+        return new SyncScope
+        {
+            VideoIDs = resolved.Select(video => video.VideoLocalID).ToHashSet(),
+            AnidbEpisodeIDs = resolved.SelectMany(video => video.EpisodeCrossReferences).Select(xref => xref.EpisodeID).Where(id => id > 0).ToHashSet(),
+        };
+    }
+
     private async Task<int> AddMissingFiles(
         ILookup<string, StoredReleaseInfo> localFiles,
-        ILookup<int, MyListEntry> onlineFiles
+        ILookup<int, MyListEntry> onlineFiles,
+        SyncScope? scope
     )
     {
         if (!settingsProvider.GetSettings().AniDb.MyList_AddFiles)
             return 0;
         var missingFiles = 0;
-        foreach (var vid in videoLocals.GetAll().Where(a => !string.IsNullOrEmpty(a.Hash)))
+        var candidates = scope is null
+            ? videoLocals.GetAll()
+            : scope.VideoIDs.Select(videoLocals.GetByID).WhereNotNull();
+        foreach (var vid in candidates.Where(a => !string.IsNullOrEmpty(a.Hash)))
         {
             if (!TryGetFileID(localFiles, vid.Hash, out var fileID)) continue;
             // the file is in the local collection but not recorded online

@@ -1045,5 +1045,41 @@ public interface IMyListService
     /// </returns>
     Task ScheduleSync(MyListSyncOptions? options = null, bool prioritize = false);
 
+    /// <inheritdoc cref="SyncAsync(MyListSyncOptions?, CancellationToken)"/>
+    /// <summary>
+    ///   Syncs only the given videos, reconciling their MyList entries the way
+    ///   a full sync would. Videos missing from the MyList are added, and the
+    ///   entries covering them have their watched and storage states
+    ///   reconciled. Nothing is removed: an entry is only removed when its
+    ///   local file is gone, which cannot be true of a video passed in here.
+    /// </summary>
+    /// <param name="videos">
+    ///   The videos to confine the sync to.
+    /// </param>
+    /// <param name="options">
+    ///   Optional. Sync options overriding the server settings for this run.
+    ///   Null fields fall back to the configured server settings.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   A cancellation token.
+    /// </param>
+    Task<MyListSyncResult?> SyncAsync(IEnumerable<IVideo> videos, MyListSyncOptions? options = null, CancellationToken cancellationToken = default);
+
+    /// <inheritdoc cref="ScheduleSync(MyListSyncOptions?, bool)"/>
+    /// <summary>
+    ///   Schedules a sync confined to the given videos.
+    /// </summary>
+    /// <param name="videos">
+    ///   The videos to confine the sync to.
+    /// </param>
+    /// <param name="options">
+    ///   Optional. Sync options overriding the server settings for this run.
+    ///   Null fields fall back to the configured server settings.
+    /// </param>
+    /// <param name="prioritize">
+    ///   Optional. Whether to prioritize the job in the queue.
+    /// </param>
+    Task ScheduleSync(IEnumerable<IVideo> videos, MyListSyncOptions? options = null, bool prioritize = false);
+
     #endregion
 }
