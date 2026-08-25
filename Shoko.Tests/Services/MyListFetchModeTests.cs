@@ -37,6 +37,7 @@ public class MyListFetchModeTests
             videoLocals: null!,
             videoLocalUsers: null!,
             animeEpisodes: null!,
+            animeEpisodeUsers: null!,
             anidbEpisodes: null!,
             storedReleaseInfos: null!,
             seriesService: null!

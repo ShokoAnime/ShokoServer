@@ -1,8 +1,16 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Repositories.Cached;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
@@ -12,14 +20,38 @@ using Shoko.Server.Scheduling.Concurrency;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
+/// <summary>
+/// Syncs the MyList for a known set of episodes. Shares the AniDB HTTP
+/// concurrency group with <see cref="SyncAniDBMyListJob"/>, so a scoped sync
+/// and a full one never run at the same time and neither has to skip.
+/// </summary>
 [DatabaseRequired]
 [AniDBHttpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [DisallowConcurrentExecution]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class SyncAniDBMyListJob(IMyListService mylistService) : BaseJob, IJobMerge
+public class SyncAniDBMyListEpisodesJob(IMyListService mylistService, AnimeEpisodeRepository animeEpisodes) : BaseJob, IJobMerge
 {
+    /// <summary>
+    /// The episodes to confine the sync to. An array is not key-eligible on its
+    /// own, so <see cref="Key"/> stands in for it.
+    /// </summary>
+    public int[] EpisodeIDs { get; set; } = [];
+
+    /// <summary>
+    /// Hash key representing the episodes to sync, so two syncs over different
+    /// sets stay separate jobs while two over the same set collide and merge.
+    /// </summary>
+    [JobKeyMember]
+    public string Key
+    {
+        get => EpisodeIDs is { Length: > 0 }
+            ? Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(EpisodeIDs.Order().ToArray()))))
+            : string.Empty;
+        set { }
+    }
+
     [JobKeyIgnore]
     public MyListFetchMode FetchMode { get; set; } = MyListFetchMode.Auto;
 
@@ -89,7 +121,7 @@ public class SyncAniDBMyListJob(IMyListService mylistService) : BaseJob, IJobMer
         }
     }
 
-    public override string TypeName => "Sync AniDB MyList";
+    public override string TypeName => "Sync AniDB MyList for Episodes";
 
     public override string Title => "Syncing AniDB MyList";
 
@@ -97,7 +129,7 @@ public class SyncAniDBMyListJob(IMyListService mylistService) : BaseJob, IJobMer
     {
         get
         {
-            var details = new Dictionary<string, object>();
+            var details = new Dictionary<string, object> { ["Episodes"] = EpisodeIDs.Length };
             if (FetchMode is not MyListFetchMode.Auto)
                 details["Fetch Mode"] = FetchMode.ToString();
 
@@ -130,18 +162,21 @@ public class SyncAniDBMyListJob(IMyListService mylistService) : BaseJob, IJobMer
 
     public override async Task Execute()
     {
-        await mylistService.SyncAsync(Options);
+        var episodes = EpisodeIDs.Select(animeEpisodes.GetByID).WhereNotNull()?.ToList() ?? [];
+        if (episodes.Count is 0)
+            return;
+
+        await mylistService.SyncAsync(episodes, Options);
     }
 
     /// <summary>
-    /// Absorbs a colliding request rather than dropping it. The options do not
-    /// form part of the job key, so two syncs asking for different things
-    /// collide by design; without merging, whichever arrived second would be
-    /// silently discarded along with whatever extra work it wanted.
+    /// Absorbs a colliding request rather than dropping it. Two jobs only
+    /// collide when they cover the same episodes, so what has to be reconciled is
+    /// the options, which do not form part of the key.
     /// </summary>
     public bool TryMerge(IQueueJob incoming)
     {
-        if (incoming is not SyncAniDBMyListJob other) return false;
+        if (incoming is not SyncAniDBMyListEpisodesJob other) return false;
         var changed = false;
 
         // OR-semantics: a flag enabled by either request survives the merge, so

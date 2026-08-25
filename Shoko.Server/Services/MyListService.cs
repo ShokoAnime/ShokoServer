@@ -13,6 +13,7 @@ using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User.Enums;
@@ -56,6 +57,7 @@ public class MyListService(
     VideoLocalRepository videoLocals,
     VideoLocal_UserRepository videoLocalUsers,
     AnimeEpisodeRepository animeEpisodes,
+    AnimeEpisode_UserRepository animeEpisodeUsers,
     AniDB_EpisodeRepository anidbEpisodes,
     StoredReleaseInfoRepository storedReleaseInfos,
     AnimeSeriesService seriesService
@@ -1428,12 +1430,39 @@ public class MyListService(
         }
     }
 
-    public async Task<MyListSyncResult?> SyncAsync(IEnumerable<IVideo> videos, MyListSyncOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<MyListSyncResult?> SyncAsync(IEnumerable<IShokoEpisode> episodes, MyListSyncOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(episodes);
+
+        return SyncScopedAsync(BuildSyncScope(episodes), options, cancellationToken);
+    }
+
+    public Task ScheduleSync(IEnumerable<IShokoEpisode> episodes, MyListSyncOptions? options = null, bool prioritize = false)
+    {
+        ArgumentNullException.ThrowIfNull(episodes);
+
+        var episodeIDs = episodes.Select(episode => episode.ID).Distinct().ToArray();
+        if (episodeIDs.Length is 0)
+            return Task.CompletedTask;
+
+        var resolved = ResolveSyncOptions(options);
+        return scheduler.Enqueue<SyncAniDBMyListEpisodesJob>(a =>
+        {
+            a.EpisodeIDs = episodeIDs;
+            a.Options = resolved;
+        }, prioritize);
+    }
+
+    public Task<MyListSyncResult?> SyncAsync(IEnumerable<IVideo> videos, MyListSyncOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(videos);
 
-        var scope = BuildSyncScope(videos);
-        if (scope.VideoIDs.Count is 0)
+        return SyncScopedAsync(BuildSyncScope(videos), options, cancellationToken);
+    }
+
+    private async Task<MyListSyncResult?> SyncScopedAsync(SyncScope scope, MyListSyncOptions? options, CancellationToken cancellationToken)
+    {
+        if (scope.IsEmpty)
             return new MyListSyncResult();
 
         // the same guard as the full sync; the two overlap on the cache and on
@@ -1474,6 +1503,8 @@ public class MyListService(
         var updateStates = resolved.UpdateStates!.Value;
         var storageState = resolved.StorageState!.Value;
         var deleteType = resolved.DeleteType!.Value;
+        var targets = resolved.Targets!.Value;
+        var watchedEpisodeMode = resolved.WatchedEpisodeMode!.Value;
 
         var entries = ignoreTimeCheck
             ? await FetchMyListAsync(cancellationToken)
@@ -1501,6 +1532,7 @@ public class MyListService(
 
         // Remove Missing Files and update watched states (single loop)
         var filesToRemove = new List<MyListEntry>();
+        var episodesToRemove = new List<MyListEntry>();
 
         foreach (var myItem in onlineFiles.SelectMany(a => a))
         {
@@ -1526,11 +1558,25 @@ public class MyListService(
                 if (scope is not null && !scope.Covers(episode, video))
                     continue;
 
+                // the two tiers are independent, so a sync can be asked for either
+                if (!targets.HasFlag(isGeneric ? MyListSyncTargets.Episodes : MyListSyncTargets.Videos))
+                    continue;
+
                 totalItems++;
                 if (myItem.ViewedAt.HasValue) watchedItems++;
 
                 if (episode is not null)
                 {
+                    // a generic entry exists to record a watch for an episode with no
+                    // file. With no file, no local watch and nothing watched upstream
+                    // either, it records nothing and is left over rather than wanted
+                    if (deleteType is not MyListDeleteType.DeleteLocalOnly &&
+                        !myItem.IsViewed && episode.VideoLocals.Count is 0 && LocalWatchedDate(aniDBUser, episode) is null)
+                    {
+                        episodesToRemove.Add(myItem);
+                        continue;
+                    }
+
                     modifiedItems = await ProcessGenericEntry(aniDBUser, episode, myItem, modifiedItems, modifiedSeries, storageState, readWatched, readUnwatched, setWatched, setUnwatched, watchedSyncMode, updateStates);
                     continue;
                 }
@@ -1593,6 +1639,21 @@ public class MyListService(
             _logger.LogInformation("MYLIST Missing Files: {Count} added to queue for deletion",
                 filesToRemove.Count);
 
+        foreach (var entry in episodesToRemove)
+        {
+            if (entry.MyListID is not 0)
+                await ScheduleDisposeEntry(entry.MyListID, deleteType);
+            else if (animeEpisodes.GetByAniDBEpisodeID(entry.EpisodeID)?.AniDB_Episode is { } anidbEpisode)
+                await ScheduleDisposeEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, deleteType);
+        }
+
+        if (episodesToRemove.Count > 0)
+            _logger.LogInformation("MYLIST Vestigial Episodes: {Count} added to queue for deletion", episodesToRemove.Count);
+
+        var episodesAdded = targets.HasFlag(MyListSyncTargets.Episodes)
+            ? await AddMissingEpisodes(entries, scope, aniDBUser, watchedEpisodeMode)
+            : 0;
+
         await Task.WhenAll(modifiedSeries.Select(a => seriesService.QueueUpdateStats(a)));
 
         if (unclassifiedItems > 0)
@@ -1612,6 +1673,8 @@ public class MyListService(
             FilesQueuedForAdd = missingFiles,
             EntriesQueuedForRemoval = filesToRemove.Count,
             UnclassifiedEntries = unclassifiedItems,
+            EpisodesQueuedForAdd = episodesAdded,
+            EpisodesQueuedForRemoval = episodesToRemove.Count,
         };
     }
 
@@ -1659,6 +1722,8 @@ public class MyListService(
             UpdateStates = options?.UpdateStates ?? settings.AniDb.MyList_UpdateStates,
             StorageState = options?.StorageState ?? settings.AniDb.MyList_StorageState,
             DeleteType = options?.DeleteType ?? settings.AniDb.MyList_DeleteType,
+            Targets = options?.Targets ?? settings.AniDb.MyList_SyncTargets,
+            WatchedEpisodeMode = options?.WatchedEpisodeMode ?? settings.AniDb.MyList_WatchedEpisodeMode,
         };
     }
 
@@ -1963,10 +2028,27 @@ public class MyListService(
 
         public required IReadOnlySet<int> AnidbEpisodeIDs { get; init; }
 
+        public bool IsEmpty => VideoIDs.Count is 0 && AnidbEpisodeIDs.Count is 0;
+
         public bool Covers(AnimeEpisode? episode, VideoLocal? video)
             => episode is not null
                 ? AnidbEpisodeIDs.Contains(episode.AniDB_EpisodeID)
                 : video is not null && VideoIDs.Contains(video.VideoLocalID);
+    }
+
+    /// <summary>
+    /// Resolves the episodes into a scope, dropping any that are not local. The
+    /// videos linked to them come along, so a scoped sync covering both tiers
+    /// reconciles the episode's file entries as well as its generic one.
+    /// </summary>
+    private SyncScope BuildSyncScope(IEnumerable<IShokoEpisode> episodes)
+    {
+        var resolved = episodes.Select(episode => animeEpisodes.GetByID(episode.ID)).WhereNotNull()?.DistinctBy(episode => episode.AnimeEpisodeID).ToList() ?? [];
+        return new SyncScope
+        {
+            AnidbEpisodeIDs = resolved.Select(episode => episode.AniDB_EpisodeID).Where(id => id > 0).ToHashSet(),
+            VideoIDs = resolved.SelectMany(episode => episode.VideoLocals).Select(video => video.VideoLocalID).ToHashSet(),
+        };
     }
 
     /// <summary>
@@ -1980,6 +2062,108 @@ public class MyListService(
             VideoIDs = resolved.Select(video => video.VideoLocalID).ToHashSet(),
             AnidbEpisodeIDs = resolved.SelectMany(video => video.EpisodeCrossReferences).Select(xref => xref.EpisodeID).Where(id => id > 0).ToHashSet(),
         };
+    }
+
+    /// <summary>
+    /// The date the AniDB user watched the episode locally, at the precision
+    /// AniDB can carry.
+    /// </summary>
+    private static DateTime? LocalWatchedDate(JMMUser? aniDBUser, AnimeEpisode episode)
+        => aniDBUser is null ? null : AniDBExtensions.TruncateToAniDBPrecision(episode.GetUserRecord(aniDBUser.JMMUserID)?.WatchedDate);
+
+    /// <summary>
+    /// Creates the generic entries the MyList is missing. The remote-driven loop
+    /// above can only reconcile entries AniDB already holds, so an episode the
+    /// user watched without a file — or holds only through a manual link, which
+    /// has no file entry of its own — is invisible to it and is picked up here.
+    /// </summary>
+    private async Task<int> AddMissingEpisodes(IReadOnlyList<MyListEntry> entries, SyncScope? scope, JMMUser? aniDBUser, MyListWatchedEpisodeMode watchedEpisodeMode)
+    {
+        if (!settingsProvider.GetSettings().AniDb.MyList_AddFiles)
+            return 0;
+
+        // a generic entry already present is the remote-driven loop's business
+        var coveredEpisodeIDs = entries.Where(entry => entry.IsGeneric is true && entry.EpisodeID is not 0).Select(entry => entry.EpisodeID).ToHashSet();
+        var fileEntriesByEpisode = entries.Where(entry => entry.IsGeneric is not true && entry.EpisodeID is not 0).ToLookup(entry => entry.EpisodeID);
+
+        var added = 0;
+        foreach (var episode in ResolveSweepCandidates(scope))
+        {
+            if (episode.AniDB_Episode is not { } anidbEpisode || coveredEpisodeIDs.Contains(episode.AniDB_EpisodeID))
+                continue;
+
+            var videos = episode.VideoLocals;
+
+            // a file with an AniDB release has an entry of its own, so the file
+            // tier owns the episode and there is no generic entry to want
+            if (videos.Any(video => video.ReleaseInfo?.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false))
+                continue;
+
+            var watchedDate = LocalWatchedDate(aniDBUser, episode);
+
+            // a manual link is covered by the episode's generic entry and nothing
+            // else, so it wants one whether or not the episode has been watched
+            if (videos.Count > 0)
+            {
+                await ScheduleAddEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, WatchedData(watchedDate));
+                added++;
+                continue;
+            }
+
+            // nothing local backs the episode, so the only reason to record it is
+            // that the user watched it
+            if (watchedDate is null)
+                continue;
+
+            var fileEntries = fileEntriesByEpisode[episode.AniDB_EpisodeID].ToList();
+            switch (watchedEpisodeMode)
+            {
+                case MyListWatchedEpisodeMode.Ignore:
+                    continue;
+
+                // attach to the oldest entry AniDB already holds rather than adding
+                // a second one covering the same episode; with none to attach to,
+                // a generic entry is the only way to record the watch
+                case MyListWatchedEpisodeMode.AttachToOldest when fileEntries.Count > 0:
+                    var oldest = fileEntries
+                        .OrderBy(entry => entry.MyListID is 0 ? ulong.MaxValue : entry.MyListID)
+                        .ThenBy(entry => entry.FileID is 0 ? int.MaxValue : entry.FileID)
+                        .First();
+                    if (oldest.MyListID is not 0)
+                        await ScheduleUpdateEntry(oldest.MyListID, new() { IsViewed = true, ViewedAt = watchedDate });
+                    else
+                        await ScheduleUpdateEntry(oldest.FileID, new() { IsViewed = true, ViewedAt = watchedDate });
+                    added++;
+                    continue;
+
+                default:
+                    await ScheduleAddEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, WatchedData(watchedDate));
+                    added++;
+                    continue;
+            }
+        }
+
+        return added;
+
+        static MyListAddData? WatchedData(DateTime? watchedDate)
+            => watchedDate is null ? null : new MyListAddData { IsViewed = true, ViewedAt = watchedDate };
+    }
+
+    /// <summary>
+    /// The episodes the sweep considers: the scoped ones, or — unscoped —
+    /// everything the user has watched plus everything held by a manual link.
+    /// </summary>
+    private IEnumerable<AnimeEpisode> ResolveSweepCandidates(SyncScope? scope)
+    {
+        if (scope is not null)
+            return scope.AnidbEpisodeIDs.Select(animeEpisodes.GetByAniDBEpisodeID).WhereNotNull() ?? [];
+
+        var watched = animeEpisodeUsers.GetAll()
+            .Where(record => record.WatchedDate.HasValue)
+            .Select(record => animeEpisodes.GetByID(record.AnimeEpisodeID))
+            .WhereNotNull() ?? [];
+        var manuallyLinked = videoLocals.GetManuallyLinkedVideos().SelectMany(video => video.AnimeEpisodes);
+        return watched.Concat(manuallyLinked).DistinctBy(episode => episode.AnimeEpisodeID);
     }
 
     private async Task<int> AddMissingFiles(

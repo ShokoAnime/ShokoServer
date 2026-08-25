@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
 
 namespace Shoko.Abstractions.Metadata.Anidb.Services;
@@ -1080,6 +1081,44 @@ public interface IMyListService
     ///   Optional. Whether to prioritize the job in the queue.
     /// </param>
     Task ScheduleSync(IEnumerable<IVideo> videos, MyListSyncOptions? options = null, bool prioritize = false);
+
+    /// <inheritdoc cref="SyncAsync(MyListSyncOptions, CancellationToken)"/>
+    /// <summary>
+    ///   Syncs only the given episodes. The videos linked to them come along,
+    ///   so with <see cref="MyListSyncTargets.All"/> this reconciles the file
+    ///   entries for those episodes as well as their generic ones. An episode
+    ///   watched locally that the MyList has no generic entry for gets one,
+    ///   subject to
+    ///   <see cref="MyListSyncOptions.WatchedEpisodeMode"/>, and a generic
+    ///   entry recording nothing at all is removed.
+    /// </summary>
+    /// <param name="episodes">
+    ///   The episodes to confine the sync to.
+    /// </param>
+    /// <param name="options">
+    ///   Optional. Sync options overriding the server settings for this run.
+    ///   Null fields fall back to the configured server settings.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   A cancellation token.
+    /// </param>
+    Task<MyListSyncResult?> SyncAsync(IEnumerable<IShokoEpisode> episodes, MyListSyncOptions? options = null, CancellationToken cancellationToken = default);
+
+    /// <inheritdoc cref="ScheduleSync(MyListSyncOptions, bool)"/>
+    /// <summary>
+    ///   Schedules a sync confined to the given episodes.
+    /// </summary>
+    /// <param name="episodes">
+    ///   The episodes to confine the sync to.
+    /// </param>
+    /// <param name="options">
+    ///   Optional. Sync options overriding the server settings for this run.
+    ///   Null fields fall back to the configured server settings.
+    /// </param>
+    /// <param name="prioritize">
+    ///   Optional. Whether to prioritize the job in the queue.
+    /// </param>
+    Task ScheduleSync(IEnumerable<IShokoEpisode> episodes, MyListSyncOptions? options = null, bool prioritize = false);
 
     #endregion
 }

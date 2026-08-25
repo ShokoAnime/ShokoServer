@@ -62,4 +62,17 @@ public class MyListSyncOptions
     ///   Optional. How to remove entries for files no longer in the library.
     /// </summary>
     public MyListDeleteType? DeleteType { get; init; }
+
+    /// <summary>
+    ///   Optional. Which tiers of the MyList to reconcile. Null falls back to
+    ///   the configured server setting.
+    /// </summary>
+    public MyListSyncTargets? Targets { get; init; }
+
+    /// <summary>
+    ///   Optional. How to record a locally watched episode that the MyList
+    ///   covers only by file entries. Null falls back to the configured server
+    ///   setting.
+    /// </summary>
+    public MyListWatchedEpisodeMode? WatchedEpisodeMode { get; init; }
 }

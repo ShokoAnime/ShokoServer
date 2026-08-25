@@ -78,6 +78,12 @@ public class SyncAniDBMyListVideosJob(IMyListService mylistService, IVideoServic
     [JobKeyIgnore]
     public MyListDeleteType DeleteType { get; set; } = MyListDeleteType.MarkUnknown;
 
+    [JobKeyIgnore]
+    public MyListSyncTargets Targets { get; set; } = MyListSyncTargets.All;
+
+    [JobKeyIgnore]
+    public MyListWatchedEpisodeMode WatchedEpisodeMode { get; set; } = MyListWatchedEpisodeMode.Ignore;
+
     /// <summary>
     /// The sync options to run with, reconstructed on the fly from the
     /// flattened properties above.
@@ -95,6 +101,8 @@ public class SyncAniDBMyListVideosJob(IMyListService mylistService, IVideoServic
             UpdateStates = UpdateStates,
             StorageState = StorageState,
             DeleteType = DeleteType,
+            Targets = Targets,
+            WatchedEpisodeMode = WatchedEpisodeMode,
         };
         set
         {
@@ -107,6 +115,8 @@ public class SyncAniDBMyListVideosJob(IMyListService mylistService, IVideoServic
             UpdateStates = value.UpdateStates ?? true;
             StorageState = value.StorageState ?? MyListState.HDD;
             DeleteType = value.DeleteType ?? MyListDeleteType.MarkUnknown;
+            Targets = value.Targets ?? MyListSyncTargets.All;
+            WatchedEpisodeMode = value.WatchedEpisodeMode ?? MyListWatchedEpisodeMode.Ignore;
         }
     }
 
@@ -141,6 +151,9 @@ public class SyncAniDBMyListVideosJob(IMyListService mylistService, IVideoServic
 
             details["Storage State"] = StorageState;
             details["Delete Type"] = DeleteType;
+            details["Targets"] = Targets;
+            if (WatchedEpisodeMode is not MyListWatchedEpisodeMode.Ignore)
+                details["Watched Episode Mode"] = WatchedEpisodeMode;
 
             return details;
         }
@@ -180,6 +193,9 @@ public class SyncAniDBMyListVideosJob(IMyListService mylistService, IVideoServic
             FetchMode |= other.FetchMode;
             changed = true;
         }
+
+        // the targets are a flag set, so the union is the more capable request
+        if ((Targets | other.Targets) != Targets) { Targets |= other.Targets; changed = true; }
 
         // the least destructive delete type wins. Merging is not a request the
         // user made, so it must never escalate one sync's disposal into a

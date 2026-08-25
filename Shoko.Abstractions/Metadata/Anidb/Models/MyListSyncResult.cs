@@ -41,4 +41,19 @@ public record MyListSyncResult
     ///   whether they were generic. See <c>MyList_UseGenericFileIndex</c>.
     /// </summary>
     public int UnclassifiedEntries { get; init; }
+
+    /// <summary>
+    ///   How many episodes had their watched state queued for export because
+    ///   the MyList held no generic entry for them. Counts both the generic
+    ///   entries created and, under
+    ///   <see cref="Enums.MyListWatchedEpisodeMode.AttachToOldest"/>, the
+    ///   existing entries updated instead.
+    /// </summary>
+    public int EpisodesQueuedForAdd { get; init; }
+
+    /// <summary>
+    ///   How many generic entries were queued for removal because the episode
+    ///   is neither watched locally nor backed by a local file.
+    /// </summary>
+    public int EpisodesQueuedForRemoval { get; init; }
 }

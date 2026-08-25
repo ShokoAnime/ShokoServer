@@ -122,6 +122,21 @@ public class AniDbSettings
     [SectionName("MyList")]
     public bool MyList_AddFiles { get; set; } = true;
 
+    /// <summary>
+    /// Which tiers of the MyList to reconcile during a sync.
+    /// </summary>
+    [SectionName("MyList")]
+    [Display(Name = "Sync Targets")]
+    public MyListSyncTargets MyList_SyncTargets { get; set; } = MyListSyncTargets.All;
+
+    /// <summary>
+    /// How to record a locally watched episode that the MyList covers only by
+    /// file entries. Defaults to leaving those alone.
+    /// </summary>
+    [SectionName("MyList")]
+    [Display(Name = "Watched Episode Mode")]
+    public MyListWatchedEpisodeMode MyList_WatchedEpisodeMode { get; set; } = MyListWatchedEpisodeMode.Ignore;
+
     [Display(Name = "Read Watched")]
     [SectionName("MyList")]
     public bool MyList_ReadWatched { get; set; } = true;
