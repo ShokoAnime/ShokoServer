@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using System.Collections.Generic;
@@ -51,11 +52,13 @@ public class RequestMylist : HttpRequest<List<MylistEntry>>
                     var fid = (int)item.Attribute("fid")!;
                     var updated = DateOnly.Parse(item.Attribute("updated")!.Value);
                     var viewed = (DateTime?)null;
-                    if (DateTime.TryParse(item.Attribute("viewdate")?.Value, out var tempv))
+                    // AniDB reports the view date in UTC already, so it is parsed as
+                    // UTC rather than parsed as local and shifted, which would move it
+                    // by the server's offset
+                    if (DateTime.TryParse(item.Attribute("viewdate")?.Value, CultureInfo.InvariantCulture,
+                        DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var tempv))
                     {
-                        // kept in UTC; the desired watched date is always UTC, and the
-                        // two are compared directly
-                        viewed = tempv.ToUniversalTime();
+                        viewed = tempv;
                     }
 
                     var stateI = (int?)item.Element("state");

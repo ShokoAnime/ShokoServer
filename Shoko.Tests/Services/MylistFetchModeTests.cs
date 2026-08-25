@@ -3,6 +3,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.Abstractions.Video;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Server.Services.Mylist;
 using Shoko.Server.Settings;
 using Xunit;
@@ -114,6 +117,39 @@ public class MylistFetchModeTests
 
         Assert.True(await service._syncLock.WaitAsync(0, TestContext.Current.CancellationToken));
         service._syncLock.Release();
+    }
+
+    [Theory]
+    [InlineData("global")]
+    [InlineData("videos")]
+    [InlineData("episodes")]
+    public void ScheduleSync_RefusesAPreview(string scope)
+    {
+        var service = CreateService(MylistFetchMode.Default);
+        var options = new MylistSyncOptions { Preview = true };
+
+        // a queued job has nowhere to return a plan, so asking for one is a
+        // mistake rather than a no-op — and quietly running it would write
+        // exactly what the caller asked not to
+        // the guard throws synchronously, before any task is produced
+        Assert.Throws<ArgumentException>(() =>
+        {
+            _ = scope switch
+            {
+                "videos" => service.ScheduleSync(Array.Empty<IVideo>(), options),
+                "episodes" => service.ScheduleSync(Array.Empty<IShokoEpisode>(), options),
+                _ => service.ScheduleSync(options),
+            };
+        });
+    }
+
+    [Fact]
+    public void ScheduleSync_AllowsANonPreview()
+    {
+        var service = CreateService(MylistFetchMode.Default);
+
+        // an empty set short-circuits before touching this fixture's null deps
+        Assert.NotNull(service.ScheduleSync(Array.Empty<IShokoEpisode>(), new MylistSyncOptions { Preview = false }));
     }
 
     [Fact]

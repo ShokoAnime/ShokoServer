@@ -131,16 +131,23 @@ public class UserDataService(
 
         var userData = videoUserDataRepository.GetByUserAndVideoLocalID(user.ID, video.ID)
             ?? new() { JMMUserID = user.ID, VideoLocalID = video.ID };
+        // WatchedDate stores local time, but a caller can hand us UTC — the MyList
+        // sync reads AniDB, which is UTC throughout. Read as local for both the
+        // compare and the store, or an equal date in the other kind reads as a
+        // change every time. Kept local to the method; the caller's update is
+        // theirs, and assigning back would also flip HasLastPlayedAt.
+        var lastPlayedAt = userDataUpdate.LastPlayedAt?.ToLocalTime();
+
         var watchedStatusChanged = userDataUpdate.HasLastPlayedAt && (
-            userDataUpdate.LastPlayedAt.HasValue
-                ? !userData.WatchedDate.HasValue || !userData.WatchedDate.Value.Equals(userDataUpdate.LastPlayedAt.Value)
+            lastPlayedAt.HasValue
+                ? !userData.WatchedDate.HasValue || !userData.WatchedDate.Value.Equals(lastPlayedAt.Value)
                 : userData.WatchedDate.HasValue
         );
         var shouldSave = userData.VideoLocal_UserID is 0 ||
             watchedStatusChanged ||
             (userDataUpdate.LastUpdatedAt.HasValue && userDataUpdate.LastUpdatedAt.Value != userData.LastUpdated);
         if (watchedStatusChanged)
-            userData.WatchedDate = userDataUpdate.LastPlayedAt;
+            userData.WatchedDate = lastPlayedAt;
 
         // Set the playback count if the update has it.
         if (userDataUpdate.PlaybackCount.HasValue)
@@ -475,9 +482,16 @@ public class UserDataService(
             : EpisodeUserDataSaveReason.Import;
         var userData = episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)
             ?? new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID, AnimeSeriesID = episode.SeriesID };
+        // WatchedDate stores local time, but a caller can hand us UTC — the MyList
+        // sync reads AniDB, which is UTC throughout. Read as local for both the
+        // compare and the store, or an equal date in the other kind reads as a
+        // change every time. Kept local to the method; the caller's update is
+        // theirs, and assigning back would also flip HasLastPlayedAt.
+        var lastPlayedAt = userDataUpdate.LastPlayedAt?.ToLocalTime();
+
         var watchedStatusChanged = userDataUpdate.HasLastPlayedAt && (
-            userDataUpdate.LastPlayedAt.HasValue
-                ? !userData.WatchedDate.HasValue || !userData.WatchedDate.Value.Equals(userDataUpdate.LastPlayedAt.Value)
+            lastPlayedAt.HasValue
+                ? !userData.WatchedDate.HasValue || !userData.WatchedDate.Value.Equals(lastPlayedAt.Value)
                 : userData.WatchedDate.HasValue
         );
         var shouldSave = userData.AnimeEpisode_UserID is 0 ||
@@ -486,7 +500,7 @@ public class UserDataService(
         if (watchedStatusChanged)
         {
             reason |= EpisodeUserDataSaveReason.LastPlayedAt;
-            userData.WatchedDate = userDataUpdate.LastPlayedAt;
+            userData.WatchedDate = lastPlayedAt;
         }
 
         // Set the playback count if the update has it.

@@ -82,6 +82,18 @@ public class MylistService(
     /// </summary>
     internal readonly SemaphoreSlim _syncLock = new(1, 1);
 
+    /// <summary>
+    /// Collapses concurrent full MyList downloads into one. The queue's
+    /// concurrency groups already serialise each family of jobs against itself,
+    /// so this only catches the overlaps they cannot: a sync against an entry
+    /// job, and anything against a direct call from a plugin.
+    ///
+    /// Unlike <see cref="_syncLock"/> this one is waited on rather than tried,
+    /// because a caller here needs the entries: it queues for the winner's
+    /// result instead of giving up.
+    /// </summary>
+    private readonly SemaphoreSlim _fetchLock = new(1, 1);
+
     public MylistFetchMode FetchMode
     {
         get => settingsProvider.GetSettings().AniDb.MyList_FetchMode;
@@ -290,25 +302,44 @@ public class MylistService(
     /// </summary>
     private async Task<IReadOnlyList<MylistEntry>> FetchMylistAsync(CancellationToken cancellationToken)
     {
-        var settings = settingsProvider.GetSettings();
-        if (settings.AniDb.MyList_UseGenericFileIndex)
-            await genericsCache.EnsureLoadedAsync(cancellationToken);
-        var request = requestFactory.Create<RequestMylist>(
-            r =>
-            {
-                r.Username = settings.AniDb.Username!;
-                r.Password = settings.AniDb.Password!;
-            }
-        );
-        var response = request.Send();
+        // one export at a time. The entry jobs share a concurrency group and so
+        // are already serialised against each other, but a sync job is in a
+        // different one, and a plugin calling in touches no queue at all — and
+        // the whole MyList comes down on every call that gets this far
+        var fetchedBefore = mylistCache.LastFetchedAt;
+        await _fetchLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            // somebody fetched while we queued, so theirs is as good as ours
+            // would have been
+            if (mylistCache.LastFetchedAt is { } fetchedAfter && fetchedAfter != fetchedBefore)
+                return mylistCache.GetAll();
 
-        if (response.Response is null)
-            throw new Exception($"AniDB did not return a successful code: {response.Code}");
+            var settings = settingsProvider.GetSettings();
+            if (settings.AniDb.MyList_UseGenericFileIndex)
+                await genericsCache.EnsureLoadedAsync(cancellationToken);
+            var request = requestFactory.Create<RequestMylist>(
+                r =>
+                {
+                    r.Username = settings.AniDb.Username!;
+                    r.Password = settings.AniDb.Password!;
+                }
+            );
+            var response = request.Send();
 
-        var entries = EnrichEntries(response.Response);
-        mylistCache.ReplaceAll(entries);
-        await CreateEntriesBackup(entries, settings);
-        return entries;
+            if (response.Response is null)
+                throw new Exception($"AniDB did not return a successful code: {response.Code}");
+
+            // the cache carries forward the ED2K, size and generic-ness a fetch
+            // cannot rediscover, so what it hands back is what to work from
+            var entries = mylistCache.ReplaceAll(EnrichEntries(response.Response));
+            await CreateEntriesBackup(entries, settings);
+            return entries;
+        }
+        finally
+        {
+            _fetchLock.Release();
+        }
     }
 
     /// <summary>
@@ -1440,6 +1471,7 @@ public class MylistService(
     public Task ScheduleSync(IEnumerable<IShokoEpisode> episodes, MylistSyncOptions? options = null, bool prioritize = false)
     {
         ArgumentNullException.ThrowIfNull(episodes);
+        RejectPreview(options);
 
         var episodeIDs = episodes.Select(episode => episode.ID).Distinct().ToArray();
         if (episodeIDs.Length is 0)
@@ -1713,6 +1745,8 @@ public class MylistService(
 
     public Task ScheduleSync(MylistSyncOptions? options = null, bool prioritize = false)
     {
+        RejectPreview(options);
+
         // resolve up front, so the job carries a complete set by the time it
         // executes. Its options are non-nullable by design, so anything enqueued
         // without them would silently run on the job's defaults instead of the
@@ -1724,6 +1758,7 @@ public class MylistService(
     public Task ScheduleSync(IEnumerable<IVideo> videos, MylistSyncOptions? options = null, bool prioritize = false)
     {
         ArgumentNullException.ThrowIfNull(videos);
+        RejectPreview(options);
 
         var videoIDs = videos.Select(video => video.ID).Distinct().ToArray();
         if (videoIDs.Length is 0)
@@ -1735,6 +1770,18 @@ public class MylistService(
             a.VideoIDs = videoIDs;
             a.Options = resolved;
         }, prioritize);
+    }
+
+    /// <summary>
+    /// A preview exists to hand its plan back to the caller, and a queued job
+    /// has nowhere to hand one. Asking to schedule one is a mistake rather than
+    /// something to quietly ignore, so it is refused outright — the alternative
+    /// is running a real sync that writes exactly what the caller asked not to.
+    /// </summary>
+    private static void RejectPreview(MylistSyncOptions? options)
+    {
+        if (options?.Preview is true)
+            throw new ArgumentException("A MyList sync preview cannot be scheduled, because its plan would have nowhere to go. Call SyncAsync instead.", nameof(options));
     }
 
     /// <summary>
@@ -1852,7 +1899,7 @@ public class MylistService(
     )
     {
         var localWatchedDate = AniDBExtensions.TruncateToAniDBPrecision(
-            anidbUser is null ? null : videoLocalUsers.GetByUserAndVideoLocalID(anidbUser.JMMUserID, video.VideoLocalID)?.WatchedDate
+            anidbUser is null ? null : videoLocalUsers.GetByUserAndVideoLocalID(anidbUser.JMMUserID, video.VideoLocalID)?.WatchedDate?.ToUniversalTime()
         );
 
         return ReconcileEntry(
@@ -2008,7 +2055,7 @@ public class MylistService(
     /// AniDB can carry.
     /// </summary>
     private static DateTime? LocalWatchedDate(JMMUser? anidbUser, AnimeEpisode episode)
-        => anidbUser is null ? null : AniDBExtensions.TruncateToAniDBPrecision(episode.GetUserRecord(anidbUser.JMMUserID)?.WatchedDate);
+        => anidbUser is null ? null : AniDBExtensions.TruncateToAniDBPrecision(episode.GetUserRecord(anidbUser.JMMUserID)?.WatchedDate?.ToUniversalTime());
 
     /// <summary>
     /// Creates the generic entries the MyList is missing. The remote-driven loop

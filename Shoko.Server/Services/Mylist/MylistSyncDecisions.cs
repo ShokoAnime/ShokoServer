@@ -8,6 +8,11 @@ namespace Shoko.Server.Services.Mylist;
 /// and the sync settings. Deliberately free of the entity being reconciled: a
 /// file entry and a generic entry follow the same rules and differ only in what
 /// the caller does with the answer.
+///
+/// Both dates must be UTC. AniDB works in UTC while the local database stores
+/// local time, so a caller reading a watched date out of the database has to
+/// convert it first — comparing the two kinds directly makes every entry look
+/// different forever, and re-exports it on every sync.
 /// </summary>
 public static class MylistSyncDecisions
 {

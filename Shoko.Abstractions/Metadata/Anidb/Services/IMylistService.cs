@@ -1044,6 +1044,11 @@ public interface IMylistService
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
+    /// <exception cref="System.ArgumentException">
+    ///   <see cref="MylistSyncOptions.Preview"/> is set. A preview returns its
+    ///   plan to the caller, which a queued job cannot do, so scheduling one is
+    ///   refused rather than quietly run as a real sync.
+    /// </exception>
     Task ScheduleSync(MylistSyncOptions? options = null, bool prioritize = false);
 
     /// <inheritdoc cref="SyncAsync(MylistSyncOptions?, CancellationToken)"/>
@@ -1080,6 +1085,11 @@ public interface IMylistService
     /// <param name="prioritize">
     ///   Optional. Whether to prioritize the job in the queue.
     /// </param>
+    /// <exception cref="System.ArgumentException">
+    ///   <see cref="MylistSyncOptions.Preview"/> is set. A preview returns its
+    ///   plan to the caller, which a queued job cannot do, so scheduling one is
+    ///   refused rather than quietly run as a real sync.
+    /// </exception>
     Task ScheduleSync(IEnumerable<IVideo> videos, MylistSyncOptions? options = null, bool prioritize = false);
 
     /// <inheritdoc cref="SyncAsync(MylistSyncOptions, CancellationToken)"/>
@@ -1118,6 +1128,11 @@ public interface IMylistService
     /// <param name="prioritize">
     ///   Optional. Whether to prioritize the job in the queue.
     /// </param>
+    /// <exception cref="System.ArgumentException">
+    ///   <see cref="MylistSyncOptions.Preview"/> is set. A preview returns its
+    ///   plan to the caller, which a queued job cannot do, so scheduling one is
+    ///   refused rather than quietly run as a real sync.
+    /// </exception>
     Task ScheduleSync(IEnumerable<IShokoEpisode> episodes, MylistSyncOptions? options = null, bool prioritize = false);
 
     #endregion

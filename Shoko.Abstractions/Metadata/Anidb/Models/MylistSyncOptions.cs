@@ -81,6 +81,9 @@ public class MylistSyncOptions
     ///   return it on <see cref="MylistSyncResult.Actions"/> without doing any
     ///   of it — nothing local is written and nothing is sent to AniDB. The
     ///   MyList itself is still fetched, since the plan is derived from it.
+    ///
+    ///   Only meaningful when calling the sync directly. Scheduling a sync with
+    ///   this set is refused, because a queued job has nowhere to return a plan.
     /// </summary>
     public bool? Preview { get; init; }
 }

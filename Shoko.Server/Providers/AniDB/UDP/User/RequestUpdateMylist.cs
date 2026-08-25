@@ -172,6 +172,7 @@ public class RequestUpdateMylist : UDPRequest<Void>
     {
         UDPReturnCode.NO_SUCH_FILE or
         UDPReturnCode.NO_SUCH_ANIME or
+        UDPReturnCode.NO_SUCH_EPISODE or
         UDPReturnCode.NO_SUCH_GROUP or
         UDPReturnCode.NO_SUCH_MYLIST_ENTRY or
         UDPReturnCode.MYLIST_ENTRY_EDITED => new UDPResponse<Void> { Code = response.Code },

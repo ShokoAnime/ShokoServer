@@ -211,9 +211,11 @@ public class RequestAddMylist : UDPRequest<MylistEntry>
                 DateTime? watchedDate = null;
                 if (updatedate > 0)
                 {
+                    // AniDB reports this in UTC, and the HTTP export's `updated`
+                    // is taken as-is, so shifting to local here would put the two
+                    // sources a day apart either side of midnight
                     updatedAt = DateTime.UnixEpoch
                         .AddSeconds(updatedate)
-                        .ToLocalTime()
                         .ToDateOnly();
                 }
 

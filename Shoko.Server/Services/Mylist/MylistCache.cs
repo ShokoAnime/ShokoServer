@@ -271,10 +271,11 @@ public sealed class MylistCache : IDisposable
     /// previous entries when the new entries are missing them, in case the
     /// files are no longer present locally to enrich from.
     /// </summary>
-    public void ReplaceAll(IEnumerable<MylistEntry> entries)
+    public IReadOnlyList<MylistEntry> ReplaceAll(IEnumerable<MylistEntry> entries)
     {
         EnsureLoaded();
         List<MylistEntry> snapshot;
+        List<MylistEntry> entriesList;
         DateTime? lastFetchedAt;
         _lock.EnterWriteLock();
         try
@@ -282,7 +283,7 @@ public sealed class MylistCache : IDisposable
             // carry forward what a fetch cannot rediscover on its own — the locally
             // enriched ED2K and size, and whether the entry is generic — from the
             // previous entries, matched by list ID, file ID, or episode ID
-            var entriesList = entries.ToList();
+            entriesList = entries.ToList();
             for (var i = 0; i < entriesList.Count; i++)
             {
                 var entry = entriesList[i];
@@ -327,6 +328,10 @@ public sealed class MylistCache : IDisposable
         // a full replace is rare and carries the fetch stamp, so it is worth
         // writing straight away rather than waiting on the timer
         Persist(snapshot, lastFetchedAt);
+
+        // the carried-forward ED2K, size and generic-ness live on these, not on
+        // what the caller handed in, so the caller needs these back
+        return entriesList;
     }
 
     /// <summary>
