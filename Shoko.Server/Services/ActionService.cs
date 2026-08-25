@@ -512,7 +512,10 @@ public class ActionService : IActionService
 
             // delete video local record
             _logger.LogInformation("Removing Missing File: {ID}", vl.VideoID);
-            await ((VideoService)_videoService).RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, removeMylist);
+            // skipEvents covers the secondary events — outward side effects, the
+            // MyList removal among them — rather than first-party ones like the
+            // file-deleted event, which fire either way. So it inverts this flag
+            await ((VideoService)_videoService).RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, skipEvents: !removeMylist);
         }
 
         var videoLocalsAll = _videoLocals.GetAll().ToList();
