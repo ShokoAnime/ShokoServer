@@ -582,7 +582,7 @@ public class UserDataService(
             // Propagate watch status to videos.
             if (!userDataUpdate.NoVideoPropagation)
             {
-                foreach (var video in episode.VideoList)
+                foreach (var video in episode.Videos)
                 {
                     await SetVideoWatchedStatus(
                         video,
@@ -681,7 +681,7 @@ public class UserDataService(
     internal void CreateUserRecordsForNewEpisode(IShokoEpisode episode)
     {
         var videoUserDataList = episode
-            .VideoList
+            .Videos
             .SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.ID))
             .ToList();
         if (videoUserDataList.Count <= 0)

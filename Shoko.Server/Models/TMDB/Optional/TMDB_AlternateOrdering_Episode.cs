@@ -200,7 +200,7 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences => GetTmdbEpisode().CrossReferences;
 
-    IReadOnlyList<IVideo> IEpisode.VideoList => GetTmdbEpisode().VideoList;
+    IReadOnlyList<IVideo> IEpisode.Videos => GetTmdbEpisode().Videos;
 
     #endregion
 

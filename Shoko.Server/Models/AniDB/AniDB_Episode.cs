@@ -278,7 +278,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
     IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID);
 
-    IReadOnlyList<IVideo> IEpisode.VideoList =>
+    IReadOnlyList<IVideo> IEpisode.Videos =>
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID)
             .DistinctBy(xref => xref.Hash)
             .Select(xref => xref.VideoLocal)

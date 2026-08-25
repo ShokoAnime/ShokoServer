@@ -1320,7 +1320,7 @@ public class VideoRelocationService(
         var skipDiskSpaceChecks = settingsProvider.GetSettings().Import.SkipDiskSpaceChecks;
         foreach (var ep in allEps)
         {
-            var videoList = ep.VideoList;
+            var videoList = ep.Videos;
             // check if this episode belongs to more than one anime
             // if it does, we will ignore it
             if (videoList.SelectMany(v => v.Series).DistinctBy(s => s.AnidbAnimeID).Count() > 1)

@@ -496,7 +496,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
         .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
         .ToList();
 
-    IReadOnlyList<IVideo> IEpisode.VideoList => CrossReferences
+    IReadOnlyList<IVideo> IEpisode.Videos => CrossReferences
         .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
         .Select(xref => xref.VideoLocal)
         .WhereNotNull()

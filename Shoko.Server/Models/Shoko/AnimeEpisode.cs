@@ -457,7 +457,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
-    IReadOnlyList<IVideo> IEpisode.VideoList =>
+    IReadOnlyList<IVideo> IEpisode.Videos =>
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID)
             .DistinctBy(xref => xref.Hash)
             .Select(xref => xref.VideoLocal)

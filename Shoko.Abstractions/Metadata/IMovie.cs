@@ -72,7 +72,11 @@ public interface IMovie : IWithTitles, IWithDescriptions, IWithPrimaryImage, IWi
     IReadOnlyList<IVideoCrossReference> CrossReferences { get; }
 
     /// <summary>
-    /// Get all videos linked to the series, if any.
+    /// Get all videos linked to the movie, if any.
     /// </summary>
-    IReadOnlyList<IVideo> VideoList { get; }
+    IReadOnlyList<IVideo> Videos { get; }
+
+    /// <inheritdoc cref="Videos"/>
+    [Obsolete("Renamed to Videos, matching ISeries.Videos. Implement and use Videos instead.")]
+    IReadOnlyList<IVideo> VideoList => Videos;
 }

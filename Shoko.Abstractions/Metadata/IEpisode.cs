@@ -80,5 +80,9 @@ public interface IEpisode : IWithTitles, IWithDescriptions, IWithBackdropImage, 
     /// <summary>
     /// Get all videos linked to the episode, if any.
     /// </summary>
-    IReadOnlyList<IVideo> VideoList { get; }
+    IReadOnlyList<IVideo> Videos { get; }
+
+    /// <inheritdoc cref="Videos"/>
+    [Obsolete("Renamed to Videos, matching ISeries.Videos. Implement and use Videos instead.")]
+    IReadOnlyList<IVideo> VideoList => Videos;
 }
