@@ -8,7 +8,6 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Plugin;
 

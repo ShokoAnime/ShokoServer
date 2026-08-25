@@ -1,8 +1,8 @@
 using System;
-using Shoko.Abstractions.Metadata.Enums;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
-using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;

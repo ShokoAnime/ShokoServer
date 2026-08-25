@@ -5,7 +5,6 @@ using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
 
 namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
