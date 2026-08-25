@@ -35,4 +35,15 @@ public enum MylistSyncActionKind : byte
     ///   change rather than an outright removal.
     /// </summary>
     ExportEntryRemoval = 4,
+
+    /// <summary>
+    ///   Nothing: the entry already holds everything the step would have
+    ///   written.
+    ///
+    ///   A healthy sync does not plan these. It only reaches for a step once it
+    ///   has found a difference, so one appearing means the rules that decided
+    ///   to write and the check for whether writing is needed disagree — and
+    ///   the entry will be planned again on every sync from now on.
+    /// </summary>
+    AlreadyInDesiredState = 5,
 }

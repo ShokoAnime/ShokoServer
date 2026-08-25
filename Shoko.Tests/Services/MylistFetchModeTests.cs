@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
-using Shoko.Abstractions.Video;
-using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Anidb.Models;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Video;
 using Shoko.Server.Services.Mylist;
 using Shoko.Server.Settings;
 using Xunit;
@@ -126,7 +126,7 @@ public class MylistFetchModeTests
     public void ScheduleSync_RefusesAPreview(string scope)
     {
         var service = CreateService(MylistFetchMode.Default);
-        var options = new MylistSyncOptions { Preview = true };
+        var options = new MylistSyncOptions { PlanOnly = true };
 
         // a queued job has nowhere to return a plan, so asking for one is a
         // mistake rather than a no-op — and quietly running it would write
@@ -149,7 +149,7 @@ public class MylistFetchModeTests
         var service = CreateService(MylistFetchMode.Default);
 
         // an empty set short-circuits before touching this fixture's null deps
-        Assert.NotNull(service.ScheduleSync(Array.Empty<IShokoEpisode>(), new MylistSyncOptions { Preview = false }));
+        Assert.NotNull(service.ScheduleSync(Array.Empty<IShokoEpisode>(), new MylistSyncOptions { PlanOnly = false }));
     }
 
     [Fact]

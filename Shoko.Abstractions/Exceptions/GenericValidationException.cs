@@ -9,7 +9,9 @@ namespace Shoko.Abstractions.Exceptions;
 public class GenericValidationException(string message, IReadOnlyDictionary<string, IReadOnlyList<string>> validationErrors) : Exception(message)
 {
     /// <summary>
-    /// Validation errors that occurred while saving the configuration, per property path.
+    /// What failed validation, keyed by the path of the thing that failed. A
+    /// path can carry more than one problem, and the whole set is reported at
+    /// once so a caller can fix everything in one pass.
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>> ValidationErrors { get; } = validationErrors;
 }

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 namespace Shoko.Abstractions.Metadata.Anidb.Models;
 
 /// <summary>
@@ -59,14 +58,15 @@ public record MylistSyncResult
     public int EpisodesQueuedForRemoval { get; init; }
 
     /// <summary>
-    ///   Every step the sync took, in the order it took them. On a preview run
-    ///   these are the steps it would have taken, and nothing was done.
+    ///   What the sync did, step by step. On a plan-only run this is what it
+    ///   would have done, having done none of it, and the same plan can be
+    ///   handed back to apply it.
     /// </summary>
-    public IReadOnlyList<MylistSyncAction> Actions { get; init; } = [];
+    public required MylistSyncPlan Plan { get; init; }
 
     /// <summary>
-    ///   Whether this was a preview, in which case nothing was changed either
-    ///   locally or on AniDB.
+    ///   Whether the plan was carried out. <c>false</c> on a plan-only run,
+    ///   where nothing was changed either locally or on AniDB.
     /// </summary>
-    public bool IsPreview { get; init; }
+    public bool IsApplied { get; init; }
 }

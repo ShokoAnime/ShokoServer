@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using Newtonsoft.Json.Converters;
+
 namespace Shoko.Abstractions.Metadata.Anidb.Enums;
 
 /// <summary>
@@ -6,6 +9,8 @@ namespace Shoko.Abstractions.Metadata.Anidb.Enums;
 ///   present the sync simply reconciles it, and with nothing present it creates
 ///   one; this only governs the case in between.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
 public enum MylistWatchedEpisodeMode : byte
 {
     /// <summary>

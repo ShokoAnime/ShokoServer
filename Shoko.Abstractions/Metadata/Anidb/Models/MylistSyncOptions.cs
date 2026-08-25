@@ -6,7 +6,7 @@ namespace Shoko.Abstractions.Metadata.Anidb.Models;
 ///   Options for a MyList sync, overriding the server settings for the sync
 ///   run. Null fields fall back to the configured server settings.
 /// </summary>
-public class MylistSyncOptions
+public record MylistSyncOptions
 {
     /// <summary>
     ///   Optional. The fetch mode to use for the sync. Null falls back to
@@ -78,12 +78,12 @@ public class MylistSyncOptions
 
     /// <summary>
     ///   Optional. When set to <c>true</c>, work out what the sync would do and
-    ///   return it on <see cref="MylistSyncResult.Actions"/> without doing any
-    ///   of it — nothing local is written and nothing is sent to AniDB. The
-    ///   MyList itself is still fetched, since the plan is derived from it.
+    ///   return it as <see cref="MylistSyncResult.Plan"/> without doing any of
+    ///   it — nothing local is written and nothing is sent to AniDB. The MyList
+    ///   itself is still fetched, since the plan is derived from it.
     ///
     ///   Only meaningful when calling the sync directly. Scheduling a sync with
     ///   this set is refused, because a queued job has nowhere to return a plan.
     /// </summary>
-    public bool? Preview { get; init; }
+    public bool? PlanOnly { get; init; }
 }

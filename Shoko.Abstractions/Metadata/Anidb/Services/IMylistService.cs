@@ -1045,7 +1045,7 @@ public interface IMylistService
     ///   A task representing the asynchronous operation.
     /// </returns>
     /// <exception cref="System.ArgumentException">
-    ///   <see cref="MylistSyncOptions.Preview"/> is set. A preview returns its
+    ///   <see cref="MylistSyncOptions.PlanOnly"/> is set. A plan-only run returns its
     ///   plan to the caller, which a queued job cannot do, so scheduling one is
     ///   refused rather than quietly run as a real sync.
     /// </exception>
@@ -1086,7 +1086,7 @@ public interface IMylistService
     ///   Optional. Whether to prioritize the job in the queue.
     /// </param>
     /// <exception cref="System.ArgumentException">
-    ///   <see cref="MylistSyncOptions.Preview"/> is set. A preview returns its
+    ///   <see cref="MylistSyncOptions.PlanOnly"/> is set. A plan-only run returns its
     ///   plan to the caller, which a queued job cannot do, so scheduling one is
     ///   refused rather than quietly run as a real sync.
     /// </exception>
@@ -1129,11 +1129,46 @@ public interface IMylistService
     ///   Optional. Whether to prioritize the job in the queue.
     /// </param>
     /// <exception cref="System.ArgumentException">
-    ///   <see cref="MylistSyncOptions.Preview"/> is set. A preview returns its
+    ///   <see cref="MylistSyncOptions.PlanOnly"/> is set. A plan-only run returns its
     ///   plan to the caller, which a queued job cannot do, so scheduling one is
     ///   refused rather than quietly run as a real sync.
     /// </exception>
     Task ScheduleSync(IEnumerable<IShokoEpisode> episodes, MylistSyncOptions? options = null, bool prioritize = false);
+
+    /// <summary>
+    ///   Carries out a plan a previous sync worked out, typically one returned
+    ///   by a plan-only run and possibly narrowed by the caller since.
+    ///
+    ///   A plan need not have come from a sync, so the whole of it is checked
+    ///   before any of it runs, and nothing runs at all if any step does not
+    ///   hold up. Past that point the steps are independent: one that fails
+    ///   unexpectedly is logged and skipped rather than abandoning the rest.
+    ///
+    ///   A plan is a snapshot of two sides that both keep moving; see
+    ///   <see cref="MylistSyncPlan.CreatedAt"/> for how old the one being
+    ///   applied is.
+    /// </summary>
+    /// <param name="plan">
+    ///   The plan to carry out.
+    /// </param>
+    /// <param name="cancellationToken">
+    ///   A cancellation token.
+    /// </param>
+    /// <returns>
+    ///   The plan that was applied, or <c>null</c> if it did not run because a
+    ///   sync was already in progress.
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="plan"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="Exceptions.GenericValidationException">
+    ///   One or more steps cannot be carried out as given — the MyList entry a
+    ///   step names does not belong to the file or episode it names, or the
+    ///   step names nothing its kind can act on. Every such step is reported,
+    ///   keyed by its index in <see cref="MylistSyncPlan.Actions"/>, and none
+    ///   of the plan has run.
+    /// </exception>
+    Task<MylistSyncResult?> ApplySyncPlanAsync(MylistSyncPlan plan, CancellationToken cancellationToken = default);
 
     #endregion
 }
