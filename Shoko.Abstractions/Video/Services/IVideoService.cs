@@ -449,11 +449,11 @@ public interface IVideoService
     ///   managed folder record will be removed. This is for migration of files
     ///   to new locations.
     /// </param>
-    /// <param name="removeMyList">
+    /// <param name="removeMylist">
     ///   Whether to remove the video files in managed folder from the user's
     ///   AniDB MyList.
     /// </param>
-    Task RemoveManagedFolder(IManagedFolder folder, bool keepRecords = false, bool removeMyList = true);
+    Task RemoveManagedFolder(IManagedFolder folder, bool keepRecords = false, bool removeMylist = true);
 
     /// <summary>
     ///   Scans a managed folder, scheduling jobs for new or all files within it

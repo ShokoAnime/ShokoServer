@@ -44,7 +44,7 @@ public class VideoReleaseService(
     ISettingsProvider settingsProvider,
     ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
     IQueueScheduler schedulerFactory,
-    IMyListService mylistService,
+    IMylistService mylistService,
     QueueJobTypeRegistry jobTypeRegistry,
     IRequestFactory requestFactory,
     IUserService userService,
@@ -869,7 +869,7 @@ public class VideoReleaseService(
 
         SetWatchedStateIfNeeded(video, releaseInfo);
 
-        // Sync to MyList if needed.
+        // Sync to Mylist if needed.
         if (!skipEvents && !releaseUriMatches && _settings.AniDb.MyList_AddFiles)
             await mylistService.ScheduleAddVideo(video);
 
@@ -1227,22 +1227,22 @@ public class VideoReleaseService(
         }
 
         if (!skipEvents)
-            await RemoveFromMyList(releaseInfo, newReleaseInfo);
+            await RemoveFromMylist(releaseInfo, newReleaseInfo);
     }
 
-    private async Task RemoveFromMyList(StoredReleaseInfo releaseInfo, IReleaseInfo? replacingRelease = null)
+    private async Task RemoveFromMylist(StoredReleaseInfo releaseInfo, IReleaseInfo? replacingRelease = null)
     {
-        if (_settings.AniDb.MyList_DeleteType is MyListDeleteType.DeleteLocalOnly)
+        if (_settings.AniDb.MyList_DeleteType is MylistDeleteType.DeleteLocalOnly)
         {
-            logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
+            logger.LogInformation("Keeping physical file and AniDB Mylist entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
             return;
         }
 
-        // When replacing with the exact same AniDB file, the MyList entry stays.
+        // When replacing with the exact same AniDB file, the Mylist entry stays.
         if (replacingRelease?.ReleaseURI is not null && replacingRelease.ReleaseURI == releaseInfo.ReleaseURI)
             return;
 
-        if (HasDedicatedMyListEntry(releaseInfo))
+        if (HasDedicatedMylistEntry(releaseInfo))
         {
             await mylistService.ScheduleDisposeEntry(releaseInfo.ED2K, releaseInfo.FileSize);
             return;
@@ -1258,10 +1258,10 @@ public class VideoReleaseService(
 
             // a generic entry covers the episode rather than this one file, so it
             // has to stay while another manually linked release still relies on it
-            if (releaseInfoRepository.GetByAnidbEpisodeID(xref.AnidbEpisodeID).Any(other => other.StoredReleaseInfoID != releaseInfo.StoredReleaseInfoID && !HasDedicatedMyListEntry(other)))
+            if (releaseInfoRepository.GetByAnidbEpisodeID(xref.AnidbEpisodeID).Any(other => other.StoredReleaseInfoID != releaseInfo.StoredReleaseInfoID && !HasDedicatedMylistEntry(other)))
             {
                 logger.LogInformation(
-                    "Keeping the generic AniDB MyList entry, another manually linked release still uses it: AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
+                    "Keeping the generic AniDB Mylist entry, another manually linked release still uses it: AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
                     anidbAnimeId, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber);
                 continue;
             }
@@ -1274,7 +1274,7 @@ public class VideoReleaseService(
     /// Whether the release has a MyList entry of its own, rather than relying on
     /// the generic entry shared by every manual link to the same episode.
     /// </summary>
-    private static bool HasDedicatedMyListEntry(IReleaseInfo releaseInfo)
+    private static bool HasDedicatedMylistEntry(IReleaseInfo releaseInfo)
         => releaseInfo.ReleaseURI is { } releaseUri && releaseUri.StartsWith(AnidbReleaseProvider.ReleasePrefix);
 
     #endregion Clear Release

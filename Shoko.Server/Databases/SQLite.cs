@@ -1269,7 +1269,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                         MediaVersion INTEGER NOT NULL DEFAULT 0,
                         MediaBlob BLOB NULL,
                         MediaSize INTEGER NOT NULL DEFAULT 0,
-                        MyListID INTEGER NOT NULL DEFAULT 0
+                        MylistID INTEGER NOT NULL DEFAULT 0
                     );
                 """,
                 [

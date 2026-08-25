@@ -47,7 +47,7 @@ public class ActionController : BaseController
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly IQueueScheduler _scheduler;
 
-    private readonly IMyListService _myListService;
+    private readonly IMylistService _mylistService;
     private readonly IImageManager _imageManager;
     private readonly VideoLocalRepository _videoLocals;
     private readonly JMMUserRepository _jmmUsers;
@@ -57,7 +57,7 @@ public class ActionController : BaseController
         TmdbMetadataService tmdbMetadataService,
         TmdbLinkingService tmdbLinkingService,
         IQueueScheduler scheduler,
-        IMyListService myListService,
+        IMylistService mylistService,
         IVideoService videoService,
         IVideoReleaseService videoReleaseService,
         ISettingsProvider settingsProvider,
@@ -75,7 +75,7 @@ public class ActionController : BaseController
         _videoService = videoService;
         _videoReleaseService = videoReleaseService;
         _scheduler = scheduler;
-        _myListService = myListService;
+        _mylistService = mylistService;
         _actionService = actionService;
         _groupCreator = groupCreator;
         _groupService = groupService;
@@ -174,10 +174,10 @@ public class ActionController : BaseController
     /// </summary>
     /// <returns></returns>
     [Obsolete(ObsoleteMessage)]
-    [HttpGet("RemoveMissingFiles/{removeFromMyList:bool?}")]
-    public async Task<ActionResult> RemoveMissingFiles(bool removeFromMyList = true)
+    [HttpGet("RemoveMissingFiles/{removeFromMylist:bool?}")]
+    public async Task<ActionResult> RemoveMissingFiles(bool removeFromMylist = true)
     {
-        await _actionService.RemoveRecordsWithoutPhysicalFiles(removeFromMyList);
+        await _actionService.RemoveRecordsWithoutPhysicalFiles(removeFromMylist);
         return Ok();
     }
 
@@ -478,10 +478,10 @@ public class ActionController : BaseController
     /// <returns></returns>
     [Authorize("admin")]
     [Obsolete(ObsoleteMessage)]
-    [HttpGet("SyncMyList")]
-    public async Task<ActionResult> SyncMyList()
+    [HttpGet("SyncMylist")]
+    public async Task<ActionResult> SyncMylist()
     {
-        await _myListService.ScheduleSync(new MyListSyncOptions { FetchMode = MyListFetchMode.IgnoreTimeCheck });
+        await _mylistService.ScheduleSync(new MylistSyncOptions { FetchMode = MylistFetchMode.IgnoreTimeCheck });
         return Ok();
     }
 
@@ -617,15 +617,15 @@ public class ActionController : BaseController
     }
 
     /// <summary>
-    /// Forcibly runs AddToMyList commands for all manual links
+    /// Forcibly runs AddToMylist commands for all manual links
     /// </summary>
     /// <returns></returns>
     [Authorize("admin")]
     [Obsolete(ObsoleteMessage)]
-    [HttpGet("AddAllManualLinksToMyList")]
-    public async Task<ActionResult> AddAllManualLinksToMyList()
+    [HttpGet("AddAllManualLinksToMylist")]
+    public async Task<ActionResult> AddAllManualLinksToMylist()
     {
-        await _myListService.ScheduleAddAllManualLinks();
+        await _mylistService.ScheduleAddAllManualLinks();
 
         return Ok();
     }

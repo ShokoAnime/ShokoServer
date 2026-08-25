@@ -65,7 +65,7 @@ public class VideoService : IVideoService
 
     private readonly IQueueScheduler _scheduler;
 
-    private readonly IMyListService _myListService;
+    private readonly IMylistService _mylistService;
 
     private readonly ISettingsProvider _settingsProvider;
 
@@ -109,7 +109,7 @@ public class VideoService : IVideoService
         IVideoReleaseService videoReleaseService,
         IVideoRelocationService relocationService,
         IQueueScheduler schedulerFactory,
-        IMyListService myListService,
+        IMylistService mylistService,
         ISettingsProvider settingsProvider,
         DatabaseFactory databaseFactory,
         FileSystemHelpers fileSystemHelpers
@@ -129,7 +129,7 @@ public class VideoService : IVideoService
         _videoReleaseService = videoReleaseService;
         _relocationService = relocationService;
         _scheduler = schedulerFactory;
-        _myListService = myListService;
+        _mylistService = mylistService;
         _settingsProvider = settingsProvider;
         _databaseFactory = databaseFactory;
         _fileSystemHelpers = fileSystemHelpers;
@@ -682,7 +682,7 @@ public class VideoService : IVideoService
             if (v is not null && isLastPlace)
             {
                 if (!skipEvents)
-                    await ScheduleRemovalFromMyList(v);
+                    await ScheduleRemovalFromMylist(v);
 
                 try
                 {
@@ -746,7 +746,7 @@ public class VideoService : IVideoService
         if (v?.Places?.Count <= 1)
         {
             if (!skipEvents)
-                await ScheduleRemovalFromMyList(v);
+                await ScheduleRemovalFromMylist(v);
 
             var eps = v.AnimeEpisodes?.WhereNotNull().ToList();
             eps?.DistinctBy(a => a.AnimeSeriesID).Select(a => a.AnimeSeries).WhereNotNull().ToList().ForEach(seriesToUpdate.Add);
@@ -789,8 +789,8 @@ public class VideoService : IVideoService
         }
     }
 
-    public Task ScheduleRemovalFromMyList(VideoLocal video)
-        => _myListService.ScheduleDisposeVideo(video);
+    public Task ScheduleRemovalFromMylist(VideoLocal video)
+        => _mylistService.ScheduleDisposeVideo(video);
 
     #endregion
 

@@ -20,5 +20,5 @@ public sealed class RemoveMissingFilesAction(ActionService actionService) : IExe
     public ActionPermission Permission => ActionPermission.User;
 
     public Task Execute(CancellationToken token = default)
-        => actionService.RemoveRecordsWithoutPhysicalFiles(removeMyList: true);
+        => actionService.RemoveRecordsWithoutPhysicalFiles(removeMylist: true);
 }

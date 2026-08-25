@@ -14,7 +14,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 internal class RemoveMissingFilesJob(ActionService actionService) : BaseJob
 {
     [JobKeyMember]
-    public bool RemoveMyList { get; set; }
+    public bool RemoveMylist { get; set; }
 
     public override string TypeName => "Remove Missing Files";
 
@@ -23,12 +23,12 @@ internal class RemoveMissingFilesJob(ActionService actionService) : BaseJob
     public override Dictionary<string, object> Details => new()
     {
         {
-            "Remove From MyList", RemoveMyList
+            "Remove From Mylist", RemoveMylist
         }
     };
 
     public override async Task Execute()
     {
-        await actionService.RemoveRecordsWithoutPhysicalFiles(RemoveMyList);
+        await actionService.RemoveRecordsWithoutPhysicalFiles(RemoveMylist);
     }
 }

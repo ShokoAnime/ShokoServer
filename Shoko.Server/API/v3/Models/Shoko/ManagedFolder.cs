@@ -145,7 +145,7 @@ public class ManagedFolder : BaseModel
             ///   to the user's MyList if any releases are found and saved for
             ///   any video files or if any video files have been deleted.
             /// </summary>
-            public bool UpdateMyList { get; set; } = true;
+            public bool UpdateMylist { get; set; } = true;
         }
 
         /// <summary>
@@ -164,7 +164,7 @@ public class ManagedFolder : BaseModel
             ///   to the user's MyList if any releases are found and saved for
             ///   any video files or if any video files have been deleted.
             /// </summary>
-            public bool UpdateMyList { get; set; } = true;
+            public bool UpdateMylist { get; set; } = true;
         }
     }
 }

@@ -45,7 +45,7 @@ public class Core : BaseController
 
     private readonly IQueueScheduler _scheduler;
 
-    private readonly IMyListService _myListService;
+    private readonly IMylistService _mylistService;
 
     private readonly IUserService _userService;
 
@@ -58,14 +58,14 @@ public class Core : BaseController
     public Core(
         ISettingsProvider settingsProvider,
         IQueueScheduler scheduler,
-        IMyListService myListService,
+        IMylistService mylistService,
         IUserService userService,
         IAnidbService anidbService,
         ActionService actionService
     ) : base(settingsProvider)
     {
         _scheduler = scheduler;
-        _myListService = myListService;
+        _mylistService = mylistService;
         _userService = userService;
         _anidbService = anidbService;
         _actionService = actionService;
@@ -279,7 +279,7 @@ public class Core : BaseController
     [HttpGet("anidb/list/sync")]
     public async Task<ActionResult> SyncAniDBList()
     {
-        await _myListService.ScheduleSync(new MyListSyncOptions { FetchMode = MyListFetchMode.IgnoreTimeCheck });
+        await _mylistService.ScheduleSync(new MylistSyncOptions { FetchMode = MylistFetchMode.IgnoreTimeCheck });
         return APIStatus.OK();
     }
 

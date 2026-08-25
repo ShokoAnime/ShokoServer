@@ -29,9 +29,9 @@ public class PoolDiscoveryTests
 
     [LimitConcurrency(1)]
     [DisallowConcurrencyGroup("AniDB_UDP")]
-    private class SyncAniDBMyListJob : IQueueJob
+    private class SyncAniDBMylistJob : IQueueJob
     {
-        public string TypeName => "SyncAniDBMyListJob";
+        public string TypeName => "SyncAniDBMylistJob";
         public string Title => "";
         public Dictionary<string, object> Details => [];
         public void PostInit() { }
@@ -70,13 +70,13 @@ public class PoolDiscoveryTests
     {
         var sut = MakeDiscovery();
         var pools = sut.Discover(
-            [typeof(GetAniDBAnimeJob), typeof(SyncAniDBMyListJob)],
+            [typeof(GetAniDBAnimeJob), typeof(SyncAniDBMylistJob)],
             []);
 
         var udpPool = pools.SingleOrDefault(p => p.Name == "AniDB_UDP");
         Assert.NotNull(udpPool);
         Assert.Contains(typeof(GetAniDBAnimeJob), udpPool.HandledTypes);
-        Assert.Contains(typeof(SyncAniDBMyListJob), udpPool.HandledTypes);
+        Assert.Contains(typeof(SyncAniDBMylistJob), udpPool.HandledTypes);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public class PoolDiscoveryTests
     {
         var sut = MakeDiscovery();
         var pools = sut.Discover(
-            [typeof(GetAniDBAnimeJob), typeof(SyncAniDBMyListJob), typeof(HashFileJob), typeof(GeneralJob)],
+            [typeof(GetAniDBAnimeJob), typeof(SyncAniDBMylistJob), typeof(HashFileJob), typeof(GeneralJob)],
             []);
 
         // AniDB_UDP + HashFile + Default = 3 pools

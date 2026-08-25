@@ -68,7 +68,7 @@ public class ProcessReleaseProviderJob(IVideoReleaseService videoReleaseService,
                 result["Video"] = VideoLocalID;
             else
                 result["File Path"] = _fileName;
-            if (!SkipEvents) result["Add to MyList"] = true;
+            if (!SkipEvents) result["Add to Mylist"] = true;
             return result;
         }
     }

@@ -8,25 +8,25 @@ This has all files related to handling the AniDB User data. This includes MyList
 
 #### Architecture
 
-All MyList logic lives in `MyListService` (`Shoko.Server/Services/MyListService.cs`), exposed to plugins through
-`IMyListService` (`Shoko.Abstractions/Metadata/Anidb/Services/IMyListService.cs`). The queue jobs
-(`AddAniDBMyListEntryJob`, `UpdateAniDBMyListEntryJob`, `RemoveAniDBMyListEntryJob`, `SyncAniDBMyListJob`) are thin
+All MyList logic lives in `MylistService` (`Shoko.Server/Services/MylistService.cs`), exposed to plugins through
+`IMylistService` (`Shoko.Abstractions/Metadata/Anidb/Services/IMylistService.cs`). The queue jobs
+(`AddAniDBMylistEntryJob`, `UpdateAniDBMylistEntryJob`, `RemoveAniDBMylistEntryJob`, `SyncAniDBMylistJob`) are thin
 wrappers that forward to the service, so the rate-limit and concurrency attributes stay on the queue side while the
 logic stays in one place.
 
 The UDP request surface is four consolidated classes in this folder:
 
-- `RequestAddMyList` — `MYLISTADD`, returns the new `MyListID` (or the existing entry on `FILE_ALREADY_IN_MYLIST`).
+- `RequestAddMylist` — `MYLISTADD`, returns the new `MylistID` (or the existing entry on `FILE_ALREADY_IN_MYLIST`).
   Only adds identified by `fid` or `ed2k`+`size` come back with a list ID; a generic add (`aid` + `epno` + `generic=1`)
   returns the *number of entries added* instead, so those entries are cached by their episode ID.
-- `RequestGetMyList` — `MYLIST`, returns a single entry by lid/fid/eid/ed2k+size/aid+epno
-- `RequestRemoveMyList` — `MYLISTDEL`, by lid/fid/ed2k+size/aid+epno
-- `RequestUpdateMyList` — `MYLISTADD ... &edit=1`, updates state/filestate/viewed/storage/source/other. Only the
+- `RequestGetMylist` — `MYLIST`, returns a single entry by lid/fid/eid/ed2k+size/aid+epno
+- `RequestRemoveMylist` — `MYLISTDEL`, by lid/fid/ed2k+size/aid+epno
+- `RequestUpdateMylist` — `MYLISTADD ... &edit=1`, updates state/filestate/viewed/storage/source/other. Only the
   supplied fields change, so a successful edit patches the cached entry in place instead of costing a second round-trip
 
-All four share the same identification modes and the shared `MyListEntry` DTO
-(`Shoko.Abstractions/Metadata/Anidb/Models/MyListEntry.cs`). The full list is fetched over HTTP via
-`RequestMyList` (`Providers/AniDB/HTTP/RequestMyList.cs`).
+All four share the same identification modes and the shared `MylistEntry` DTO
+(`Shoko.Abstractions/Metadata/Anidb/Models/MylistEntry.cs`). The full list is fetched over HTTP via
+`RequestMylist` (`Providers/AniDB/HTTP/RequestMylist.cs`).
 
 #### Generic Files
 
@@ -36,7 +36,7 @@ via an anime ID and episode number (`aid` + `epno` + `generic=1`).
 **The file state does not tell you whether an entry is generic.** AniDB calls it the *Type* in its UI, it belongs to
 the user, and per the [Filetype definition](https://wiki.anidb.net/w/Filetype) `other` (100) appears in *both* the
 normal-file and generic-file lists while `normal/original` (0) is the documented default for either. Marking an
-episode you do not have yields Type 0, not 100. Shoko therefore never sets it on an add — `MyListAddData.FileState`
+episode you do not have yields Type 0, not 100. Shoko therefore never sets it on an add — `MylistAddData.FileState`
 is passed through only when a caller explicitly asks for one.
 
 Two things muddy this further:
@@ -56,10 +56,10 @@ Two things muddy this further:
   table**, which predates the Blu-ray option and was never updated to include it. That is the only set consistent
   with what AniDB accepts: 11, 15 and 100 go through, while 3, 16, 17 and 18 answer `505 ILLEGAL INPUT OR ACCESS
   DENIED` — note 11 is generic-only yet accepted, and 16 is a real Generic Type value yet rejected.
-  `MyListFileState.OnBluRay` is therefore read-only from here, not because of which column owns it, but because the
+  `MylistFileState.OnBluRay` is therefore read-only from here, not because of which column owns it, but because the
   UDP validator has never heard of it.
 
-  `MyListService` never sends a value the validator would reject: `MyListFileState.IsWritable` gates it, an
+  `MylistService` never sends a value the validator would reject: `MylistFileState.IsWritable` gates it, an
   unwritable one is dropped with a warning, and the desired-state short-circuit ignores it too — otherwise an entry
   could never reach a state no request is able to set, and every sync would re-send the same no-op. A 505 takes the
   whole command down with it, so it is worth not provoking one over a field that was only ever advisory.
@@ -76,7 +76,7 @@ ambiguous, and a fresh generic entry defaults to `0`, which is exactly the case 
   holds `self ripped`, `on dvd`, `on vhs`, `on tv`, `in theaters` and `streamed` — every one of which the wiki lists
   under *generic* files. The UDP header is stale; do not read a generic/normal split out of it.
 
-Which leaves the file ID as the only reliable signal. `MyListGenericsCache` holds an index of generic file IDs,
+Which leaves the file ID as the only reliable signal. `MylistGenericsCache` holds an index of generic file IDs,
 refreshed over HTTP when it goes stale on the next use (never on a timer). It queries a third party rather than
 AniDB, so it is gated behind `MyList_UseGenericFileIndex`, which is on by default. When it is enabled and available it
 is the only thing consulted.
@@ -86,18 +86,18 @@ wrong in both directions — a generic entry defaults to `Normal`, and a real fi
 `Other` reads as generic — but it is the only signal available without the index, and it is what the sync did before
 the index existed.
 
-The sync (`IMyListService.SyncAsync`) is two-tier:
+The sync (`IMylistService.SyncAsync`) is two-tier:
 
 1. **File level** — entries for real files are matched to local files by their `FileID`
    (via `StoredReleaseInfo.ReleaseURI`), then watched/storage states are reconciled.
 2. **Episode level** — generic entries are matched to episodes by their `EpisodeID`, and the same reconciliation
    happens against the episode's user data.
 
-A generic entry stands for the *episode*, not for a particular file, so `MyListCache` indexes only generic entries by
+A generic entry stands for the *episode*, not for a particular file, so `MylistCache` indexes only generic entries by
 episode ID — AniDB reports an episode ID for real files too, and indexing on that alone lets a real file answer a
 lookup meant for the episode's generic entry.
 
-`MyListEntry.IsGeneric` is the tri-state answer, and it is the only thing plugins need: `true` for an entry obtained
+`MylistEntry.IsGeneric` is the tri-state answer, and it is the only thing plugins need: `true` for an entry obtained
 through a generic operation or matched by the generics index, `false` when the index positively says otherwise or the
 entry was identified by `ed2k`+`size`, and `null` when neither applies — a genuine *unknown*, not a *no*.
 

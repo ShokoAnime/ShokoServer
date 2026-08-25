@@ -131,7 +131,7 @@ public class ManagedFolderController(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ManagedFolder.Input.NotifyChangeDetectedAbsoluteBody body
     )
     {
-        Task.Run(() => videoService.NotifyVideoFileChangeDetected(body.Path, body.UpdateMyList));
+        Task.Run(() => videoService.NotifyVideoFileChangeDetected(body.Path, body.UpdateMylist));
         return NoContent();
     }
 
@@ -283,7 +283,7 @@ public class ManagedFolderController(
     {
         if (managedFolderRepository.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found.");
-        Task.Run(() => videoService.NotifyVideoFileChangeDetected(folder, body.RelativePath, body.UpdateMyList));
+        Task.Run(() => videoService.NotifyVideoFileChangeDetected(folder, body.RelativePath, body.UpdateMylist));
         return NoContent();
     }
 

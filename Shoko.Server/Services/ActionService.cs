@@ -495,7 +495,7 @@ public class ActionService : IActionService
             await _anidbService.ScheduleRefreshOfAnime(anime, refreshMethod).ConfigureAwait(false);
     }
 
-    public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMyList = true)
+    public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMylist = true)
     {
         _logger.LogInformation("Remove Missing Files: Start");
         var seriesToUpdate = new HashSet<AnimeSeries>();
@@ -512,7 +512,7 @@ public class ActionService : IActionService
 
             // delete video local record
             _logger.LogInformation("Removing Missing File: {ID}", vl.VideoID);
-            await ((VideoService)_videoService).RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, removeMyList);
+            await ((VideoService)_videoService).RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, removeMylist);
         }
 
         var videoLocalsAll = _videoLocals.GetAll().ToList();
@@ -605,8 +605,8 @@ public class ActionService : IActionService
 #pragma warning restore CS0618
             seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
 
-            if (removeMyList)
-                await ((VideoService)_videoService).ScheduleRemovalFromMyList(v);
+            if (removeMylist)
+                await ((VideoService)_videoService).ScheduleRemovalFromMylist(v);
 
             {
                 using var transaction = session.BeginTransaction();

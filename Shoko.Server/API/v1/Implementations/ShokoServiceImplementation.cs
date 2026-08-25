@@ -52,7 +52,7 @@ public partial class ShokoServiceImplementation : Controller
     private readonly ISettingsProvider _settingsProvider;
     private readonly IQueueScheduler _scheduler;
     private readonly AnidbService _anidbService;
-    private readonly IMyListService _myListService;
+    private readonly IMylistService _mylistService;
     private readonly ActionService _actionService;
     private readonly ShokoServiceImplementationService _legacyV1Service;
     private readonly UserDataService _userDataService;
@@ -66,7 +66,7 @@ public partial class ShokoServiceImplementation : Controller
         TmdbSearchService tmdbSearchService,
         IQueueScheduler scheduler,
         IAnidbService anidbService,
-        IMyListService myListService,
+        IMylistService mylistService,
         ISettingsProvider settingsProvider,
         ILogger<ShokoServiceImplementation> logger,
         ActionService actionService,
@@ -83,7 +83,7 @@ public partial class ShokoServiceImplementation : Controller
         _tmdbSearchService = tmdbSearchService;
         _scheduler = scheduler;
         _anidbService = (AnidbService)anidbService;
-        _myListService = myListService;
+        _mylistService = mylistService;
         _settingsProvider = settingsProvider;
         _logger = logger;
         _actionService = actionService;
@@ -395,8 +395,8 @@ public partial class ShokoServiceImplementation : Controller
             settings.AniDb.MyList_ReadWatched = contractIn.AniDB_MyList_ReadWatched;
             settings.AniDb.MyList_SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
             settings.AniDb.MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
-            settings.AniDb.MyList_StorageState = (MyListState)contractIn.AniDB_MyList_StorageState;
-            settings.AniDb.MyList_DeleteType = (MyListDeleteType)contractIn.AniDB_MyList_DeleteType;
+            settings.AniDb.MyList_StorageState = (MylistState)contractIn.AniDB_MyList_StorageState;
+            settings.AniDb.MyList_DeleteType = (MylistDeleteType)contractIn.AniDB_MyList_DeleteType;
             //settings.AniDb.MaxRelationDepth = contractIn.AniDB_MaxRelationDepth;
 
             settings.AniDb.MyList_UpdateFrequency =
@@ -525,10 +525,10 @@ public partial class ShokoServiceImplementation : Controller
         _scheduler.StartJob<MediaInfoAllFilesJob>().GetAwaiter().GetResult();
     }
 
-    [HttpPost("AniDB/MyList/Sync")]
-    public void SyncMyList()
+    [HttpPost("AniDB/Mylist/Sync")]
+    public void SyncMylist()
     {
-        _myListService.ScheduleSync(new MyListSyncOptions { FetchMode = MyListFetchMode.IgnoreTimeCheck }, true).GetAwaiter().GetResult();
+        _mylistService.ScheduleSync(new MylistSyncOptions { FetchMode = MylistFetchMode.IgnoreTimeCheck }, true).GetAwaiter().GetResult();
     }
 
     [HttpPost("AniDB/Vote/Sync")]

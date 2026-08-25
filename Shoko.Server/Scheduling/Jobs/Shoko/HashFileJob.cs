@@ -34,7 +34,7 @@ public class HashFileJob(IVideoHashingService videoHashingService) : BaseJob
         {
             var result = new Dictionary<string, object> { { "File Path", VideoService.GetDistinctPath(FilePath) } };
             if (ForceHash) result["Force"] = true;
-            if (!SkipEvents) result["Add to MyList"] = true;
+            if (!SkipEvents) result["Add to Mylist"] = true;
             if (!SkipFindRelease) result["Find Release"] = true;
             return result;
         }

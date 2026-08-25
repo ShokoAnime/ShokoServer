@@ -40,8 +40,8 @@ public class UserDataService(
 ) : IUserDataService
 {
     // Lazy init. to prevent a circular dependency between this service, the
-    // MyList service, and the services those depend on in turn.
-    private IMyListService? _myListService;
+    // Mylist service, and the services those depend on in turn.
+    private IMylistService? _mylistService;
 
     #region Video User Data
 
@@ -338,8 +338,8 @@ public class UserDataService(
                 ((userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetWatched) || (!userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetUnwatched));
             if (syncAnidb)
             {
-                _myListService ??= serviceProvider.GetRequiredService<IMyListService>();
-                await _myListService.ScheduleUpdateVideo(video, new()
+                _mylistService ??= serviceProvider.GetRequiredService<IMylistService>();
+                await _mylistService.ScheduleUpdateVideo(video, new()
                 {
                     IsViewed = userDataUpdate.LastPlayedAt.HasValue,
                     ViewedAt = userDataUpdate.LastPlayedAt?.ToUniversalTime(),

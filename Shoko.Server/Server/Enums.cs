@@ -78,7 +78,7 @@ public enum ScheduledUpdateType
 {
     AniDBCalendar = 1,
     AniDBUpdates = 3,
-    AniDBMyListSync = 5,
+    AniDBMylistSync = 5,
     AniDBFileUpdates = 10,
     AniDBNotify = 15,
     PluginUpdates = 16,

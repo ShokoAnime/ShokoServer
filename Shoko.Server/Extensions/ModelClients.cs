@@ -46,7 +46,7 @@ public static class ModelClients
             AniDB_MyList_UpdateFrequency = (int)settings.AniDb.MyList_UpdateFrequency,
             AniDB_Calendar_UpdateFrequency = (int)settings.AniDb.Calendar_UpdateFrequency,
             AniDB_Anime_UpdateFrequency = (int)settings.AniDb.Anime_UpdateFrequency,
-            AniDB_MyListStats_UpdateFrequency = (int)ScheduledUpdateFrequency.Never,
+            AniDB_MylistStats_UpdateFrequency = (int)ScheduledUpdateFrequency.Never,
             AniDB_File_UpdateFrequency = (int)settings.AniDb.File_UpdateFrequency,
             AniDB_DownloadCharacters = settings.AniDb.DownloadCharacters,
             AniDB_DownloadCreators = settings.AniDb.DownloadCreators,

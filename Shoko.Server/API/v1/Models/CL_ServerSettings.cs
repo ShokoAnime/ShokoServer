@@ -29,7 +29,7 @@ public class CL_ServerSettings
     public int AniDB_MyList_UpdateFrequency { get; set; }
     public int AniDB_Calendar_UpdateFrequency { get; set; }
     public int AniDB_Anime_UpdateFrequency { get; set; }
-    public int AniDB_MyListStats_UpdateFrequency { get; set; }
+    public int AniDB_MylistStats_UpdateFrequency { get; set; }
     public int AniDB_File_UpdateFrequency { get; set; }
 
     public bool AniDB_DownloadCharacters { get; set; }

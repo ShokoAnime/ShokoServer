@@ -60,6 +60,7 @@ using Shoko.Server.Services.Abstraction;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Services.ErrorHandling;
+using Shoko.Server.Services.Mylist;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
 using Trinet.Core.IO.Ntfs;
@@ -484,10 +485,10 @@ public class SystemService : ISystemService
             services.AddSingleton<AnidbService>();
             services.AddSingleton<IAnidbService>(sp => sp.GetRequiredService<AnidbService>());
             services.AddSingleton<IAnidbAvdumpService>(sp => sp.GetRequiredService<AnidbService>());
-            services.AddSingleton<MyListCache>();
-            services.AddSingleton<MyListGenericsCache>();
-            services.AddSingleton<MyListService>();
-            services.AddSingleton<IMyListService>(sp => sp.GetRequiredService<MyListService>());
+            services.AddSingleton<MylistCache>();
+            services.AddSingleton<MylistGenericsCache>();
+            services.AddSingleton<MylistService>();
+            services.AddSingleton<IMylistService>(sp => sp.GetRequiredService<MylistService>());
             services.AddSingleton<SupplementaryMetadataService>();
             services.AddSingleton<ISupplementaryMetadataService>(sp => sp.GetRequiredService<SupplementaryMetadataService>());
             services.AddSingleton<AnimeMetadataOrchestrator>();
@@ -530,7 +531,7 @@ public class SystemService : ISystemService
             if (anidb.Anime_UpdateFrequency != ScheduledUpdateFrequency.Never)
                 registry.Register<GetUpdatedAniDBAnimeJob>(TimeSpan.FromHours(anidb.Anime_UpdateFrequency.Hours), runImmediately: false);
             if (anidb.MyList_UpdateFrequency != ScheduledUpdateFrequency.Never)
-                registry.Register<SyncAniDBMyListRecurringJob>(TimeSpan.FromHours(anidb.MyList_UpdateFrequency.Hours), runImmediately: false);
+                registry.Register<SyncAniDBMylistRecurringJob>(TimeSpan.FromHours(anidb.MyList_UpdateFrequency.Hours), runImmediately: false);
             if (anidb.File_UpdateFrequency != ScheduledUpdateFrequency.Never)
                 registry.Register<CheckAniDBFileUpdatesJob>(TimeSpan.FromHours(anidb.File_UpdateFrequency.Hours), runImmediately: false);
             if (pluginUpdates.IsAutoSyncEnabled && pluginUpdates.AutoUpdateFrequency != ScheduledUpdateFrequency.Never)
@@ -544,7 +545,7 @@ public class SystemService : ISystemService
                 RescheduleByFrequency<CheckAniDBNotificationsJob>(registry, s.AniDb.Notification_UpdateFrequency);
                 RescheduleByFrequency<GetAniDBCalendarJob>(registry, s.AniDb.Calendar_UpdateFrequency);
                 RescheduleByFrequency<GetUpdatedAniDBAnimeJob>(registry, s.AniDb.Anime_UpdateFrequency);
-                RescheduleByFrequency<SyncAniDBMyListRecurringJob>(registry, s.AniDb.MyList_UpdateFrequency);
+                RescheduleByFrequency<SyncAniDBMylistRecurringJob>(registry, s.AniDb.MyList_UpdateFrequency);
                 RescheduleByFrequency<CheckAniDBFileUpdatesJob>(registry, s.AniDb.File_UpdateFrequency);
 
                 var pu = s.Plugins.Updates;

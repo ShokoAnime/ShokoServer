@@ -51,7 +51,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize]
 public class FileController(
     IQueueScheduler _schedulerFactory,
-    IMyListService _myListService,
+    IMylistService _mylistService,
     IVideoService _videoService,
     IVideoReleaseService _videoReleaseService,
     IUserDataService _userDataService,
@@ -1279,13 +1279,13 @@ public class FileController(
     /// </summary>
     /// <param name="fileID">The file id.</param>
     /// <returns></returns>
-    [HttpPost("{fileID}/AddToMyList")]
-    public async Task<ActionResult> AddFileToMyList([FromRoute, Range(1, int.MaxValue)] int fileID)
+    [HttpPost("{fileID}/AddToMylist")]
+    public async Task<ActionResult> AddFileToMylist([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
             return NotFound(FileNotFoundWithFileID);
-        await _myListService.ScheduleAddEntry(file.Hash, file.FileSize, prioritize: true).ConfigureAwait(false);
+        await _mylistService.ScheduleAddEntry(file.Hash, file.FileSize, prioritize: true).ConfigureAwait(false);
 
         return Ok();
     }
