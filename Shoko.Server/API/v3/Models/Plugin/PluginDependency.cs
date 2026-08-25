@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.Plugin.Models;
 
 using AbstractPluginDependency = Shoko.Abstractions.Plugin.Models.PluginDependency;
 

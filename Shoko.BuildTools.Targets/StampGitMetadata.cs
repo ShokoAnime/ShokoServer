@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Utilities;
 
 namespace Shoko.BuildTools.Tasks;
 

@@ -1,8 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Threading;
 using System.Text.RegularExpressions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
@@ -19,7 +19,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB.Optional;
-using System.Collections.Concurrent;
 
 namespace Shoko.Server.Services.Abstraction;
 

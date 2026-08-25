@@ -8,7 +8,6 @@ using Shoko.Abstractions.User;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
-using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 

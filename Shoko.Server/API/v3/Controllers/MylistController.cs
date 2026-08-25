@@ -24,8 +24,8 @@ using Shoko.Server.Services.Mylist;
 using Shoko.Server.Settings;
 
 using AbstractMylistSyncPlan = Shoko.Abstractions.Metadata.Anidb.Models.MylistSyncPlan;
-using V3Action = Shoko.Server.API.v3.Models.Mylist.MylistSyncAction;
 using MylistSyncPlan = Shoko.Server.API.v3.Models.Mylist.MylistSyncPlan;
+using V3Action = Shoko.Server.API.v3.Models.Mylist.MylistSyncAction;
 
 namespace Shoko.Server.API.v3.Controllers;
 

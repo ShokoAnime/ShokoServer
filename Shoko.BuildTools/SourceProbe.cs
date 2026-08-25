@@ -1,7 +1,7 @@
+using Microsoft.Build.Evaluation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.Build.Evaluation;
 
 namespace Shoko.BuildTools;
 

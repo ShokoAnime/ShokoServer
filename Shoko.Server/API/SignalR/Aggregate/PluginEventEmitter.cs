@@ -1,5 +1,4 @@
 using System;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Plugin;

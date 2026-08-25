@@ -1,10 +1,6 @@
-using System.Reflection;
 using System.Runtime.Loader;
-using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;

@@ -22,7 +22,6 @@ using Shoko.Server.Databases;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.MediaInfo.Subtitles;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;

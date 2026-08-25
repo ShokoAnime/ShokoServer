@@ -38,7 +38,6 @@ using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Filters;
 using Shoko.QueueProcessor.Scheduling;
-using Shoko.Server.Utilities;
 using Shoko.Server.API;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -63,6 +62,7 @@ using Shoko.Server.Services.ErrorHandling;
 using Shoko.Server.Services.Mylist;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
+using Shoko.Server.Utilities;
 using Trinet.Core.IO.Ntfs;
 
 using ISettingsProvider = Shoko.Server.Settings.ISettingsProvider;

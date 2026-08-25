@@ -21,8 +21,8 @@ using Shoko.Server.API.v3.Models.Release.Input;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
-using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 using ReleaseGroup = Shoko.Server.API.v3.Models.Release.ReleaseGroup;
+using ReleaseInfo = Shoko.Server.API.v3.Models.Release.ReleaseInfo;
 
 namespace Shoko.Server.API.v3.Controllers;
 
