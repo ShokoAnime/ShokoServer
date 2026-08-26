@@ -510,12 +510,14 @@ public class MylistCacheTests
     }
 
     [Fact]
-    public void Load_MigratesAnUncompressedCacheAndRemovesIt()
+    public void Load_RemovesTheLegacyBackupWithoutReadingIt()
     {
         var dataPath = Path.Combine(Path.GetTempPath(), "shoko-mylist-cache-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(dataPath, "MyList"));
         try
         {
+            // written by a build whose entries lacked fields the sync compares
+            // on, so loading it would seed entries that look complete and are not
             var legacy = Path.Combine(dataPath, "MyList", "mylist.json");
             File.WriteAllText(legacy, "{\"LastFetchedAt\":null,\"Entries\":[{\"MylistID\":7,\"FileID\":70}]}");
 
@@ -523,14 +525,11 @@ public class MylistCacheTests
             paths.SetupGet(a => a.DataPath).Returns(dataPath);
             var cache = new MylistCache(Mock.Of<ILogger<MylistCache>>(), paths.Object);
 
-            Assert.NotNull(cache.GetByLid(7));
-
-            cache.Flush();
-            Assert.True(File.Exists(Path.Combine(dataPath, "MyList", "mylist.json.gz")));
+            Assert.Null(cache.GetByLid(7));
             Assert.False(File.Exists(legacy));
 
-            // and it survives the round trip through the compressed file
-            Assert.NotNull(new MylistCache(Mock.Of<ILogger<MylistCache>>(), paths.Object).GetByLid(7));
+            // an empty cache has never been fetched, so the next sync fetches one
+            Assert.Null(cache.LastFetchedAt);
         }
         finally
         {

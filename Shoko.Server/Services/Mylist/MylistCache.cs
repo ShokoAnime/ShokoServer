@@ -83,10 +83,12 @@ public sealed class MylistCache : IDisposable
     private string CachePath => Path.Combine(_applicationPaths.DataPath, "MyList", "mylist.json.gz");
 
     /// <summary>
-    /// Where the cache lived before it was compressed. Read once on startup so
-    /// an upgrade does not throw the cache away, then removed.
+    /// The backup older builds wrote before backups moved into <c>Backups/</c>
+    /// and gained rotation. It was only ever written, never read back, and its
+    /// entries predate fields the sync now compares on, so it is deleted rather
+    /// than loaded.
     /// </summary>
-    private string LegacyCachePath => Path.Combine(_applicationPaths.DataPath, "MyList", "mylist.json");
+    private string LegacyBackupPath => Path.Combine(_applicationPaths.DataPath, "MyList", "mylist.json");
 
     /// <summary>
     /// When the cache was last replaced by a full fetch from AniDB, or
@@ -422,6 +424,27 @@ public sealed class MylistCache : IDisposable
         return reader.ReadToEnd();
     }
 
+    /// <summary>
+    /// Removes the legacy backup without reading it. Seeding the cache from
+    /// entries that are missing fields would leave them looking complete when
+    /// they are not; an empty cache just fetches a fresh copy instead.
+    /// </summary>
+    private void DiscardLegacyBackup()
+    {
+        try
+        {
+            if (!File.Exists(LegacyBackupPath)) return;
+
+            File.Delete(LegacyBackupPath);
+            _logger.LogInformation("Removed the legacy MyList backup; it predates the current entry shape. (Path={Path})", LegacyBackupPath);
+        }
+        catch (Exception ex)
+        {
+            // it is never read either way, so failing to remove it changes nothing
+            _logger.LogWarning(ex, "Failed to remove the legacy MyList backup. (Path={Path})", LegacyBackupPath);
+        }
+    }
+
     private void EnsureLoaded()
     {
         if (_loaded) return;
@@ -429,36 +452,23 @@ public sealed class MylistCache : IDisposable
         try
         {
             if (_loaded) return;
+            DiscardLegacyBackup();
+
             try
             {
-                var legacy = !File.Exists(CachePath) && File.Exists(LegacyCachePath);
-                if (File.Exists(CachePath) || legacy)
+                if (File.Exists(CachePath))
                 {
-                    var serialized = legacy ? File.ReadAllText(LegacyCachePath) : ReadCompressed(CachePath);
-                    // the cache used to be persisted as a bare array, without the fetch stamp
-                    List<MylistEntry> entries;
-                    if (serialized.TrimStart().StartsWith('['))
-                    {
-                        entries = JsonConvert.DeserializeObject<List<MylistEntry>>(serialized) ?? [];
-                    }
-                    else
-                    {
-                        var file = JsonConvert.DeserializeObject<CacheFile>(serialized);
-                        entries = file?.Entries ?? [];
-                        _lastFetchedAt = file?.LastFetchedAt;
-                    }
+                    var file = JsonConvert.DeserializeObject<CacheFile>(ReadCompressed(CachePath));
+                    _lastFetchedAt = file?.LastFetchedAt;
 
                     var loaded = 0;
-                    foreach (var entry in entries)
+                    foreach (var entry in file?.Entries ?? [])
                     {
                         IndexUnlocked(entry);
                         loaded++;
                     }
 
                     _logger.LogInformation("Loaded {Count} MyList entries from cache", loaded);
-
-                    // rewrite it compressed, then drop the old copy
-                    if (legacy) _dirty = true;
                 }
             }
             catch (Exception ex)
@@ -488,9 +498,6 @@ public sealed class MylistCache : IDisposable
             using (var writer = new StreamWriter(gzipStream))
                 writer.Write(serialized);
             File.Move(tempPath, CachePath, true);
-
-            // the uncompressed copy is superseded once the compressed one lands
-            if (File.Exists(LegacyCachePath)) File.Delete(LegacyCachePath);
         }
         catch (Exception ex)
         {
