@@ -370,13 +370,9 @@ public class MylistService(
 
     private async Task CreateEntriesBackup(IReadOnlyList<MylistEntry> entries, IServerSettings settings)
     {
-        // separate directory so a backup can never collide with the working cache
-        var backupDirectory = new DirectoryInfo(Path.Combine(applicationPaths.DataPath, "MyList", "Backups"));
+        var backupDirectory = MylistBackups.DirectoryFor(applicationPaths);
         backupDirectory.Create();
-
-        // rotation sorts on the filename, so the timestamp has to be universally
-        // sortable ("u" format specifier)
-        var backupPath = Path.Join(backupDirectory.FullName, DateTimeOffset.UtcNow.ToString("u").Replace(':', '_') + ".json.gz");
+        var backupPath = Path.Join(backupDirectory.FullName, MylistBackups.NameFor(DateTimeOffset.UtcNow));
         try
         {
             var serialized = JsonConvert.SerializeObject(entries, Formatting.Indented);
@@ -394,9 +390,7 @@ public class MylistService(
         if (settings.AniDb.MyList_RetainedBackupCount < 0)
             return;
 
-        // only files whose name starts with an ISO 8601 date, so nothing else in
-        // the directory is ever a rotation candidate
-        var backupFiles = backupDirectory.GetFiles("????-??-?? *.json.gz").OrderByDescending(f => f.Name).ToList();
+        var backupFiles = backupDirectory.GetFiles(MylistBackups.RotationPattern).OrderByDescending(f => f.Name).ToList();
         foreach (var file in backupFiles.Skip(settings.AniDb.MyList_RetainedBackupCount))
         {
             try

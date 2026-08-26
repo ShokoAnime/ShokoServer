@@ -84,9 +84,9 @@ public sealed class MylistCache : IDisposable
     /// <summary>
     /// The backup older builds wrote before backups moved into <c>Backups/</c>
     /// and gained rotation. It was only ever written, never read back, and its
-    /// entries predate fields the sync now compares on, so it is deleted rather
-    /// than loaded. It has been accumulating on every install since long before
-    /// this cache existed, so removing it reclaims real disk.
+    /// entries predate fields the sync now compares on, so it is never loaded —
+    /// but it is a backup, and it holds the only copy of whatever the user's
+    /// MyList looked like when it was taken, so it is filed rather than dropped.
     /// </summary>
     private string LegacyBackupPath => Path.Combine(_applicationPaths.DataPath, "MyList", "mylist.json");
 
@@ -417,22 +417,40 @@ public sealed class MylistCache : IDisposable
     }
 
     /// <summary>
-    /// Removes the legacy backup without reading it. Seeding the cache from
-    /// entries that are missing fields would leave them looking complete when
-    /// they are not; an empty cache just fetches a fresh copy instead.
+    /// Files the legacy backup with the rest of them, compressed the same way
+    /// and named for when it was taken, since nothing recorded that but the
+    /// file's own timestamp. It holds the same bare array of entries the current
+    /// backups do, only uncompressed and in an older shape, so it is copied
+    /// across untouched rather than parsed — and marked <c>legacy</c>, so anyone
+    /// restoring from it knows the entries predate the current fields.
     /// </summary>
-    private void DiscardLegacyBackup()
+    private void ArchiveLegacyBackup()
     {
+        var destination = "";
         try
         {
-            if (!CompressedJsonFile.DeleteIfPresent(LegacyBackupPath)) return;
+            if (!File.Exists(LegacyBackupPath)) return;
 
-            _logger.LogInformation("Removed the legacy MyList backup; it predates the current entry shape. (Path={Path})", LegacyBackupPath);
+            var backupDirectory = MylistBackups.DirectoryFor(_applicationPaths);
+            backupDirectory.Create();
+            destination = Path.Join(backupDirectory.FullName, MylistBackups.NameFor(File.GetLastWriteTimeUtc(LegacyBackupPath), "legacy"));
+
+            // an earlier run may have been interrupted between writing and removing
+            if (!File.Exists(destination))
+            {
+                using var source = File.OpenRead(LegacyBackupPath);
+                using var fileStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
+                using var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal);
+                source.CopyTo(gzipStream);
+            }
+
+            File.Delete(LegacyBackupPath);
+            _logger.LogInformation("Filed the legacy MyList backup with the rest. (Path={Path})", destination);
         }
         catch (Exception ex)
         {
-            // it is never read either way, so failing to remove it changes nothing
-            _logger.LogWarning(ex, "Failed to remove the legacy MyList backup. (Path={Path})", LegacyBackupPath);
+            // it is never read either way, so leaving it where it is costs nothing
+            _logger.LogWarning(ex, "Failed to file the legacy MyList backup. (Path={Path})", destination);
         }
     }
 
@@ -443,7 +461,7 @@ public sealed class MylistCache : IDisposable
         try
         {
             if (_loaded) return;
-            DiscardLegacyBackup();
+            ArchiveLegacyBackup();
 
             try
             {

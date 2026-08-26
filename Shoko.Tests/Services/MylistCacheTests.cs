@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Shoko.Abstractions.Extensions;
@@ -509,17 +510,22 @@ public class MylistCacheTests
         }
     }
 
+    /// <summary>
+    /// Nothing recorded when the legacy backup was taken except the file's own
+    /// timestamp, so that is what names it once it joins the others.
+    /// </summary>
     [Fact]
-    public void Load_RemovesTheLegacyBackupWithoutReadingIt()
+    public void Load_FilesTheLegacyBackupWithTheRestWithoutReadingIt()
     {
         var dataPath = Path.Combine(Path.GetTempPath(), "shoko-mylist-cache-tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(dataPath, "MyList"));
         try
         {
-            // written by a build whose entries lacked fields the sync compares
-            // on, so loading it would seed entries that look complete and are not
+            // the same bare array the current backups hold, only uncompressed
+            // and in a shape whose entries lack fields the sync compares on
             var legacy = Path.Combine(dataPath, "MyList", "mylist.json");
-            File.WriteAllText(legacy, "{\"LastFetchedAt\":null,\"Entries\":[{\"MylistID\":7,\"FileID\":70}]}");
+            File.WriteAllText(legacy, "[{\"MylistID\":7,\"FileID\":70}]");
+            File.SetLastWriteTimeUtc(legacy, new DateTime(2022, 6, 17, 19, 13, 3, DateTimeKind.Utc));
 
             var paths = new Mock<IApplicationPaths>();
             paths.SetupGet(a => a.DataPath).Returns(dataPath);
@@ -530,6 +536,21 @@ public class MylistCacheTests
 
             // an empty cache has never been fetched, so the next sync fetches one
             Assert.Null(cache.LastFetchedAt);
+
+            var archived = Path.Combine(dataPath, "MyList", "Backups", "2022-06-17 19_13_03Z legacy.json.gz");
+            Assert.True(File.Exists(archived));
+
+            // and it is a backup like any other, so rotation will age it out
+            Assert.Contains(
+                new DirectoryInfo(Path.Combine(dataPath, "MyList", "Backups")).GetFiles(MylistBackups.RotationPattern),
+                file => file.FullName == archived
+            );
+
+            // compressed the way the current backups are, contents carried over as they were
+            using var fileStream = File.OpenRead(archived);
+            using var gzipStream = new GZipStream(fileStream, CompressionMode.Decompress);
+            using var reader = new StreamReader(gzipStream);
+            Assert.Equal("[{\"MylistID\":7,\"FileID\":70}]", reader.ReadToEnd());
         }
         finally
         {
