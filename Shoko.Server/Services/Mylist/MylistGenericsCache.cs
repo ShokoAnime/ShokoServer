@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -46,7 +48,7 @@ public sealed class MylistGenericsCache(
 
     private bool _loaded;
 
-    private string CachePath => Path.Combine(applicationPaths.DataPath, "MyList", "generics.json");
+    private string CachePath => Path.Combine(applicationPaths.DataPath, "MyList", "generics.json.br");
 
     /// <summary>
     /// The endpoint publishing the generic file IDs. It is a courtesy of a
@@ -104,11 +106,11 @@ public sealed class MylistGenericsCache(
             if (!File.Exists(CachePath))
                 return;
 
-            var file = JsonConvert.DeserializeObject<CacheFile>(File.ReadAllText(CachePath));
+            var file = CompressedJsonFile.Read<CacheFile>(CachePath);
             if (file is null)
                 return;
 
-            _fileIDs = [.. file.FileIDs];
+            _fileIDs = FromGaps(file.FileIDGaps);
             _lastFetchedAt = file.LastFetchedAt;
             logger.LogInformation("Loaded {Count} generic file IDs from cache", _fileIDs.Count);
         }
@@ -145,14 +147,7 @@ public sealed class MylistGenericsCache(
     {
         try
         {
-            var directory = Path.GetDirectoryName(CachePath);
-            if (directory is not null) Directory.CreateDirectory(directory);
-
-            // deliberately compact; this is a few hundred thousand bare integers
-            var serialized = JsonConvert.SerializeObject(new CacheFile { LastFetchedAt = _lastFetchedAt, FileIDs = [.. _fileIDs] }, Formatting.None);
-            var tempPath = CachePath + ".tmp";
-            File.WriteAllText(tempPath, serialized);
-            File.Move(tempPath, CachePath, true);
+            CompressedJsonFile.Write(CachePath, new CacheFile { LastFetchedAt = _lastFetchedAt, FileIDGaps = ToGaps(_fileIDs) }, CompressionLevel.SmallestSize);
         }
         catch (Exception ex)
         {
@@ -160,10 +155,46 @@ public sealed class MylistGenericsCache(
         }
     }
 
+    /// <summary>
+    /// Sorts the IDs and stores the gap between each and the one before it,
+    /// the first being the gap from zero. The set is dense enough that the gaps
+    /// are mostly single digits, which compresses around six times better than
+    /// the same IDs written out in full — a couple of megabytes down to about a
+    /// hundred kilobytes.
+    /// </summary>
+    internal static List<int> ToGaps(HashSet<int> fileIDs)
+    {
+        var gaps = new List<int>(fileIDs.Count);
+        var previous = 0;
+        foreach (var fileID in fileIDs.Order())
+        {
+            gaps.Add(fileID - previous);
+            previous = fileID;
+        }
+
+        return gaps;
+    }
+
+    internal static HashSet<int> FromGaps(List<int> gaps)
+    {
+        var fileIDs = new HashSet<int>(gaps.Count);
+        var running = 0;
+        foreach (var gap in gaps)
+        {
+            running += gap;
+            fileIDs.Add(running);
+        }
+
+        return fileIDs;
+    }
+
     private sealed class CacheFile
     {
         public DateTime? LastFetchedAt { get; set; }
 
-        public List<int> FileIDs { get; set; } = [];
+        /// <summary>
+        /// The IDs as gaps rather than absolute values; see <see cref="ToGaps"/>.
+        /// </summary>
+        public List<int> FileIDGaps { get; set; } = [];
     }
 }

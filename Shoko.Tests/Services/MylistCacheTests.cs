@@ -492,7 +492,7 @@ public class MylistCacheTests
             // a sync touches thousands of entries; each one rewriting the whole
             // document under the write lock is what this avoids
             cache.ReplaceAll([new MylistEntry { MylistID = 1, FileID = 100 }]);
-            var writtenAt = File.GetLastWriteTimeUtc(Path.Combine(dataPath, "MyList", "mylist.json.gz"));
+            var writtenAt = File.GetLastWriteTimeUtc(Path.Combine(dataPath, "MyList", "mylist.json.br"));
 
             cache.Upsert(new MylistEntry { MylistID = 2, FileID = 200 });
             var paths = new Mock<IApplicationPaths>();
@@ -500,7 +500,7 @@ public class MylistCacheTests
             Assert.Null(new MylistCache(Mock.Of<ILogger<MylistCache>>(), paths.Object).GetByLid(2));
 
             cache.Flush();
-            Assert.NotEqual(writtenAt, File.GetLastWriteTimeUtc(Path.Combine(dataPath, "MyList", "mylist.json.gz")));
+            Assert.NotEqual(writtenAt, File.GetLastWriteTimeUtc(Path.Combine(dataPath, "MyList", "mylist.json.br")));
             Assert.NotNull(new MylistCache(Mock.Of<ILogger<MylistCache>>(), paths.Object).GetByLid(2));
         }
         finally

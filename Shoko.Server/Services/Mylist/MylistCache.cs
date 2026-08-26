@@ -6,7 +6,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Plugin;
@@ -80,13 +79,14 @@ public sealed class MylistCache : IDisposable
         Flush();
     }
 
-    private string CachePath => Path.Combine(_applicationPaths.DataPath, "MyList", "mylist.json.gz");
+    private string CachePath => Path.Combine(_applicationPaths.DataPath, "MyList", "mylist.json.br");
 
     /// <summary>
     /// The backup older builds wrote before backups moved into <c>Backups/</c>
     /// and gained rotation. It was only ever written, never read back, and its
     /// entries predate fields the sync now compares on, so it is deleted rather
-    /// than loaded.
+    /// than loaded. It has been accumulating on every install since long before
+    /// this cache existed, so removing it reclaims real disk.
     /// </summary>
     private string LegacyBackupPath => Path.Combine(_applicationPaths.DataPath, "MyList", "mylist.json");
 
@@ -416,14 +416,6 @@ public sealed class MylistCache : IDisposable
         if (entry.IsGeneric is true && entry.EpisodeID is not 0) _byEpisodeID.TryRemove(entry.EpisodeID, out _);
     }
 
-    private static string ReadCompressed(string path)
-    {
-        using var fileStream = File.OpenRead(path);
-        using var gzipStream = new GZipStream(fileStream, CompressionMode.Decompress);
-        using var reader = new StreamReader(gzipStream);
-        return reader.ReadToEnd();
-    }
-
     /// <summary>
     /// Removes the legacy backup without reading it. Seeding the cache from
     /// entries that are missing fields would leave them looking complete when
@@ -433,9 +425,8 @@ public sealed class MylistCache : IDisposable
     {
         try
         {
-            if (!File.Exists(LegacyBackupPath)) return;
+            if (!CompressedJsonFile.DeleteIfPresent(LegacyBackupPath)) return;
 
-            File.Delete(LegacyBackupPath);
             _logger.LogInformation("Removed the legacy MyList backup; it predates the current entry shape. (Path={Path})", LegacyBackupPath);
         }
         catch (Exception ex)
@@ -458,7 +449,7 @@ public sealed class MylistCache : IDisposable
             {
                 if (File.Exists(CachePath))
                 {
-                    var file = JsonConvert.DeserializeObject<CacheFile>(ReadCompressed(CachePath));
+                    var file = CompressedJsonFile.Read<CacheFile>(CachePath);
                     _lastFetchedAt = file?.LastFetchedAt;
 
                     var loaded = 0;
@@ -488,16 +479,7 @@ public sealed class MylistCache : IDisposable
     {
         try
         {
-            var directory = Path.GetDirectoryName(CachePath);
-            if (directory is not null) Directory.CreateDirectory(directory);
-            // compact: this is a machine-read file that runs to tens of megabytes indented
-            var serialized = JsonConvert.SerializeObject(new CacheFile { LastFetchedAt = lastFetchedAt, Entries = entries }, Formatting.None);
-            var tempPath = CachePath + ".tmp";
-            using (var fileStream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
-            using (var gzipStream = new GZipStream(fileStream, CompressionLevel.Optimal))
-            using (var writer = new StreamWriter(gzipStream))
-                writer.Write(serialized);
-            File.Move(tempPath, CachePath, true);
+            CompressedJsonFile.Write(CachePath, new CacheFile { LastFetchedAt = lastFetchedAt, Entries = entries }, CompressionLevel.Optimal);
         }
         catch (Exception ex)
         {
