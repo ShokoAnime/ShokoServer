@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.434",
+      "tag": "v6.0.0-dev.434",
+      "commit": "c180d44971a135814d800ef273c7e6361d06ab50",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.434/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-26T16:32:24Z",
+      "releaseNotes": "\n`feat` (`api`): **Accept `includeDataFrom` on the `/api/v3/Series` list endpoints**:\n\nMost of the `/api/v3/Series/*` endpoints already take `includeDataFrom`, but\nthe list endpoints did not, so populating the `AniDB` property of a listed\nseries meant a second call to `/api/v3/Series/AniDB` for every row.\n\nThe parameter is bound and passed through exactly as it is on\n`/api/v3/Series/{seriesID}`, and the `Series` model already reads it, so\nnothing changes for a caller that omits it.\n\nApplied to `/api/v3/Series/WithManuallyLinkedFiles` as well as the two the\nissue named. It is the sibling of `WithoutFiles` — same shape, same file — and\nsupporting the parameter on two of the three list endpoints would have been an\nodd seam to leave behind.\n\nCloses #1415\n"
+    },
+    {
       "version": "6.0.0.433",
       "tag": "v6.0.0-dev.433",
       "commit": "96e29c2daeafebb9df116cb64e1d4c533854a85e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.405/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-09T14:50:20Z",
       "releaseNotes": "\n`fix` (`relocation`): **Normalize relocated event path**.\n"
-    },
-    {
-      "version": "6.0.0.404",
-      "tag": "v6.0.0-dev.404",
-      "commit": "9b585bfb8190926d8d2e61c5eddaf8cb150e7667",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.404/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-08T02:49:41Z",
-      "releaseNotes": "\n`fix`: **Make short name optional in API**.\n\n`fix`: **Respect `onlyNewFiles` flag when scheduling a scan for multiple managed folders**.\n"
     }
   ]
 }
