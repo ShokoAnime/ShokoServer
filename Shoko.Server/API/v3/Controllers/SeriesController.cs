@@ -208,12 +208,14 @@ public class SeriesController : BaseController
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <param name="startsWith">Search only for series with a main title that start with the given query.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet]
     public ActionResult<ListResult<Series>> GetAllSeries(
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
-        [FromQuery] string startsWith = "")
+        [FromQuery] string startsWith = "",
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
         startsWith = startsWith.ToLowerInvariant();
         var user = User;
@@ -231,7 +233,7 @@ public class SeriesController : BaseController
             })
             .OrderBy(a => a.seriesName.ToSortName())
             .ThenBy(a => a.series.AniDB_ID)
-            .ToListResult(tuple => new Series(tuple.series, user.JMMUserID), page, pageSize);
+            .ToListResult(tuple => new Series(tuple.series, user.JMMUserID, includeDataFrom: includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -485,13 +487,15 @@ public class SeriesController : BaseController
     /// <param name="page">The page index.</param>
     /// <param name="search">An optional search query to filter series based on their titles.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("WithoutFiles")]
     public ActionResult<ListResult<Series>> GetSeriesWithoutFiles(
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] string? search = null,
-        [FromQuery] bool fuzzy = true)
+        [FromQuery] bool fuzzy = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
         var user = User;
         var query = _animeSeries.GetAll()
@@ -513,12 +517,12 @@ public class SeriesController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(searchResult => new Series(searchResult.Result, User.JMMUserID), page, pageSize);
+                .ToListResult(searchResult => new Series(searchResult.Result, User.JMMUserID, includeDataFrom: includeDataFrom), page, pageSize);
         }
         return query
             .OrderBy(series => series.Title.ToLowerInvariant().ToSortName())
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series(series, User.JMMUserID), page, pageSize);
+            .ToListResult(series => new Series(series, User.JMMUserID, includeDataFrom: includeDataFrom), page, pageSize);
     }
 
     /// <summary>
@@ -528,13 +532,15 @@ public class SeriesController : BaseController
     /// <param name="page">The page index.</param>
     /// <param name="search">An optional search query to filter series based on their titles.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
     [HttpGet("WithManuallyLinkedFiles")]
     public ActionResult<ListResult<Series>> GetSeriesWithManuallyLinkedFiles(
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,
         [FromQuery] string? search = null,
-        [FromQuery] bool fuzzy = true)
+        [FromQuery] bool fuzzy = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
         var user = User;
         var query = _animeSeries.GetAll()
@@ -556,12 +562,12 @@ public class SeriesController : BaseController
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(searchResult => new Series(searchResult.Result, User.JMMUserID), page, pageSize);
+                .ToListResult(searchResult => new Series(searchResult.Result, User.JMMUserID, includeDataFrom: includeDataFrom), page, pageSize);
         }
         return query
             .OrderBy(series => series.Title.ToLowerInvariant().ToSortName())
             .ThenBy(series => series.AniDB_ID)
-            .ToListResult(series => new Series(series, User.JMMUserID), page, pageSize);
+            .ToListResult(series => new Series(series, User.JMMUserID, includeDataFrom: includeDataFrom), page, pageSize);
     }
 
     #endregion
