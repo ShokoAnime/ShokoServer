@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.433",
+      "tag": "v6.0.0-dev.433",
+      "commit": "96e29c2daeafebb9df116cb64e1d4c533854a85e",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.433/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-26T16:18:39Z",
+      "releaseNotes": "\n`fix` (`anidb`): **Stop loading the legacy MyList backup as a cache**:\n\n`mylist.json` is the backup older builds wrote before backups moved into\n`Backups/` and gained rotation. It was only ever written, never read back, and\nits entries predate fields the sync now compares on — so reading it seeded the\ncache with entries that looked complete and were not.\n\nIt is now deleted on load instead. The cache starts empty, `LastFetchedAt`\nstays null, and the freshness check fails, so the next sync fetches a fresh\ncopy rather than reconciling against a half-populated one.\n\nThe bare-array format went with it. That shape was only ever reachable through\nthis file, as the compressed cache has carried the `CacheFile` wrapper and its\nfetch stamp since the day it was introduced.\n\n- Gave the delete its own error handling, so failing to remove a file we refuse to read cannot stop the compressed cache from loading\n- Dropped the matching cleanup in `Persist`, leaving one place that removes it\n- Renamed `LegacyCachePath` to `LegacyBackupPath`, since it was never a cache\n- Replaced the migration test with one pinning the new contract: the entry is not loaded, the file is gone, and nothing is marked as fetched\n"
+    },
+    {
       "version": "6.0.0.432",
       "tag": "v6.0.0-dev.432",
       "commit": "2e6cfc7aa5ed60312ba4660be636fbd148b811c0",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.404/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-08T02:49:41Z",
       "releaseNotes": "\n`fix`: **Make short name optional in API**.\n\n`fix`: **Respect `onlyNewFiles` flag when scheduling a scan for multiple managed folders**.\n"
-    },
-    {
-      "version": "6.0.0.403",
-      "tag": "v6.0.0-dev.403",
-      "commit": "1237ade0621f452e74272c8d39b4132456e49e68",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.403/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-06T03:49:05Z",
-      "releaseNotes": "\n`repo` (`docker`): **Install extra apt packages from INSTALL_PACKAGES before startup**.\n\n`repo` (`docker`): **Document SHOKO_HOME and the restart/shutdown toggles**.\n\n`repo` (`docker`): **Add EXTRA_GROUPS, and stop gosu discarding supplementary groups**.\n"
     }
   ]
 }
