@@ -161,8 +161,8 @@ public class Init : BaseController
     {
         try
         {
-            _settings.Database.DefaultUserUsername = credentials.login;
-            _settings.Database.DefaultUserPassword = credentials.password;
+            _settings.Database.DefaultUserUsername = credentials.login!;
+            _settings.Database.DefaultUserPassword = credentials.password!;
             return APIStatus.OK();
         }
         catch

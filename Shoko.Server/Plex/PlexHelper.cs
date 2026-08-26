@@ -91,10 +91,10 @@ public class PlexHelper
 
             var strings = settings.Plex.Server.Split(':');
             _mediaDevice = GetPlexServers().FirstOrDefault(s =>
-                s.Connection.Any(c => c.Address == strings[0] && c.Port == strings[1]));
+                s.Connection!.Any(c => c.Address == strings[0] && c.Port == strings[1]));
             if (_mediaDevice != null)
             {
-                settings.Plex.Server = _mediaDevice.ClientIdentifier;
+                settings.Plex.Server = _mediaDevice.ClientIdentifier!;
             }
 
             _lastMediaCacheTime = DateTime.Now;
@@ -120,7 +120,7 @@ public class PlexHelper
             _cachedConnection = null;
 
             //foreach (var connection in ServerCache.Connection)
-            Parallel.ForEach(ServerCache.Connection, (connection, state) =>
+            Parallel.ForEach(ServerCache.Connection!, (connection, state) =>
                 {
                     try
                     {
@@ -130,7 +130,7 @@ public class PlexHelper
                         }
 
                         var (result, _) = RequestAsync($"{connection.Uri}/library/sections", HttpMethod.Get,
-                                new Dictionary<string, string> { { "X-Plex-Token", ServerCache.AccessToken } })
+                                new Dictionary<string, string> { { "X-Plex-Token", ServerCache.AccessToken! } })
                             .Result;
 
                         if (result != HttpStatusCode.OK)
@@ -328,7 +328,7 @@ public class PlexHelper
             return new List<MediaDevice>();
         }
 
-        return GetPlexDevices().Where(d => d.Provides.Split(',').Contains("server")).ToList();
+        return GetPlexDevices().Where(d => d.Provides!.Split(',').Contains("server")).ToList();
     }
 
     public void UseServer(MediaDevice server)
@@ -340,12 +340,12 @@ public class PlexHelper
             return;
         }
 
-        if (!server.Provides.Split(',').Contains("server"))
+        if (!server.Provides!.Split(',').Contains("server"))
         {
             return; //not allowed.
         }
 
-        settings.Plex.Server = server.ClientIdentifier;
+        settings.Plex.Server = server.ClientIdentifier!;
         ServerCache = server;
         ISettingsProvider.Instance.SaveSettings();
     }
@@ -374,7 +374,7 @@ public class PlexHelper
         HttpMethod? method = null)
     {
         return RequestAsync($"{ConnectionCache!.Uri}{path}", method ?? HttpMethod.Get,
-            new Dictionary<string, string> { { "X-Plex-Token", ServerCache.AccessToken } });
+            new Dictionary<string, string> { { "X-Plex-Token", ServerCache.AccessToken! } });
     }
 
     public void InvalidateToken()

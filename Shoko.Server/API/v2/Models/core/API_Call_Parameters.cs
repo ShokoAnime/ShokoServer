@@ -94,12 +94,12 @@ public class API_Call_Parameters
     /// <summary>
     /// filename string for task like searching by it
     /// </summary>
-    public string filename { get; set; } = string.Empty;
+    public string? filename { get; set; }
 
     /// <summary>
     /// hash string for task like searching by it
     /// </summary>
-    public string hash { get; set; } = string.Empty;
+    public string? hash { get; set; }
 
     /// <summary>
     /// show all know pictures related to object

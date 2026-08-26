@@ -20,7 +20,7 @@ internal class SVR_Episode : Episode
     {
         get
         {
-            var separator = Helper.ServerCache.Platform.ToLower() switch
+            var separator = Helper.ServerCache.Platform!.ToLower() switch
             {
                 "linux" => '/',
                 "windows" => '\\',
