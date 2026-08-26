@@ -401,11 +401,11 @@ public partial class ShokoServiceImplementation
         return result;
     }
 
-    [HttpGet("AniDB/Mylist/Missing/{userID}")]
+    [HttpGet("AniDB/MyList/Missing/{userID}")]
     public List<object> GetMylistFilesForRemoval(int userID)
         => [];
 
-    [HttpDelete("AniDB/Mylist/Missing")]
+    [HttpDelete("AniDB/MyList/Missing")]
     public void RemoveMissingMylistFiles(List<object> mylistFiles) { }
 
     [HttpGet("Series/WithoutFiles/{userID}")]

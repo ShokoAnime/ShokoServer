@@ -86,9 +86,9 @@ public class AddAniDBMylistEntryJob(IMylistService mylistService, VideoLocalRepo
 
     public MylistFetchMode FetchMode { get; set; } = MylistFetchMode.Auto;
 
-    public override string TypeName => "Add Entry to AniDB Mylist";
+    public override string TypeName => "Add Entry to AniDB MyList";
 
-    public override string Title => "Adding Entry to AniDB Mylist";
+    public override string Title => "Adding Entry to AniDB MyList";
 
     public override Dictionary<string, object> Details
     {

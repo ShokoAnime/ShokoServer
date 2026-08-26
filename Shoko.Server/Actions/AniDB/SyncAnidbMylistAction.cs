@@ -12,9 +12,9 @@ namespace Shoko.Server.Actions;
 /// </summary>
 public sealed class SyncAnidbMylistAction(IMylistService mylistService) : IExecutableAction
 {
-    public string Name => "Sync AniDB Mylist";
+    public string Name => "Sync AniDB MyList";
 
-    public string? Description => "Sync all local state to the AniDB Mylist. This can overwrite AniDB data irreversibly.";
+    public string? Description => "Sync all local state to the AniDB MyList. This can overwrite AniDB data irreversibly.";
 
     public ActionCategory Category => ActionCategory.AniDB;
 
@@ -22,7 +22,7 @@ public sealed class SyncAnidbMylistAction(IMylistService mylistService) : IExecu
 
     public bool RequiresConfirmation => true;
 
-    public string? ConfirmationMessage => "Are you sure you want to sync local state with the AniDB Mylist for all series? This may take a while.";
+    public string? ConfirmationMessage => "Are you sure you want to sync local state with the AniDB MyList for all series? This may take a while.";
 
     public Task Execute(CancellationToken token = default)
         => mylistService.ScheduleSync(new MylistSyncOptions { FetchMode = MylistFetchMode.IgnoreTimeCheck });

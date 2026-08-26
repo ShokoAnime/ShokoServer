@@ -524,7 +524,7 @@ public partial class ShokoServiceImplementation : Controller
         _scheduler.StartJob<MediaInfoAllFilesJob>().GetAwaiter().GetResult();
     }
 
-    [HttpPost("AniDB/Mylist/Sync")]
+    [HttpPost("AniDB/MyList/Sync")]
     public void SyncMylist()
     {
         _mylistService.ScheduleSync(new MylistSyncOptions { FetchMode = MylistFetchMode.IgnoreTimeCheck }, true).GetAwaiter().GetResult();

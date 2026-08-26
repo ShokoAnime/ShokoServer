@@ -11,9 +11,9 @@ namespace Shoko.Server.Actions;
 /// </summary>
 public sealed class AddVideoToMylistAction(IMylistService mylistService) : VideoAction
 {
-    public override string Name => "Add to Mylist";
+    public override string Name => "Add to MyList";
 
-    public override string? Description => "Adds the file to your AniDB Mylist.";
+    public override string? Description => "Adds the file to your AniDB MyList.";
 
     public override ActionCategory Category => ActionCategory.AniDB;
 

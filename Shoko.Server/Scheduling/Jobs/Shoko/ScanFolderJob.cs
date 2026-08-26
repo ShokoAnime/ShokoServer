@@ -49,7 +49,7 @@ internal class ScanFolderJob(IVideoService videoService) : BaseJob
             if (OnlyNewFiles)
                 details["Only New Files"] = true;
             if (!SkipEvents)
-                details["Add to Mylist"] = true;
+                details["Add to MyList"] = true;
             if (CleanUpStructure)
                 details["Clean Up"] = true;
             if (CheckFileSize)

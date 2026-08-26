@@ -15,7 +15,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User;
 /// </summary>
 public class RequestRemoveMylist : UDPRequest<Void>
 {
-    #region Mylist Entry Identification
+    #region MyList Entry Identification
 
     #region By List ID (lid)
 

@@ -31,9 +31,9 @@ public class RemoveAniDBMylistEntryJob(IMylistService mylistService) : BaseJob
 
     public MylistFetchMode FetchMode { get; set; } = MylistFetchMode.Auto;
 
-    public override string TypeName => "Remove Entry from AniDB Mylist";
+    public override string TypeName => "Remove Entry from AniDB MyList";
 
-    public override string Title => "Removing Entry from AniDB Mylist";
+    public override string Title => "Removing Entry from AniDB MyList";
 
     public override Dictionary<string, object> Details
     {
@@ -42,7 +42,7 @@ public class RemoveAniDBMylistEntryJob(IMylistService mylistService) : BaseJob
             var details = new Dictionary<string, object>();
             if (MylistID is > 0)
             {
-                details["Mylist ID"] = MylistID;
+                details["MyList ID"] = MylistID;
             }
             else if (FileID is > 0)
             {

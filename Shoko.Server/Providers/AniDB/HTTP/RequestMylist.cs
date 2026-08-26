@@ -33,7 +33,7 @@ public class RequestMylist : HttpRequest<List<MylistEntry>>
                     var errorCode = (int)error.Attribute("value")!;
                     if (errorCode == 330) // 'mylist empty'
                     {
-                        Logger.LogTrace("Mylist is empty.");
+                        Logger.LogTrace("MyList is empty.");
                         return Task.FromResult(new HttpResponse<List<MylistEntry>> { Code = data.Code, Response = [] });
                     }
                 }
@@ -95,10 +95,10 @@ public class RequestMylist : HttpRequest<List<MylistEntry>>
         catch (Exception ex)
         {
             // swallowing this used to leave the caller with a null response and no
-            // way to tell a malformed document apart from an empty Mylist, which
+            // way to tell a malformed document apart from an empty MyList, which
             // silently stopped the cache from ever refreshing again
-            Logger.LogError(ex, "Failed to parse the Mylist response");
-            throw new UnexpectedHttpResponseException($"Failed to parse the Mylist response: {ex.Message}", data.Code, data.Response);
+            Logger.LogError(ex, "Failed to parse the MyList response");
+            throw new UnexpectedHttpResponseException($"Failed to parse the MyList response: {ex.Message}", data.Code, data.Response);
         }
     }
 

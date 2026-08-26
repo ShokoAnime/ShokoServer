@@ -12,9 +12,9 @@ namespace Shoko.Server.Actions;
 /// </summary>
 public sealed class RemoveGroupFromMylistAction(IMylistService mylistService) : GroupAction
 {
-    public override string Name => "Remove from Mylist";
+    public override string Name => "Remove from MyList";
 
-    public override string? Description => "Removes every file in the group from your AniDB Mylist, following your configured delete type.";
+    public override string? Description => "Removes every file in the group from your AniDB MyList, following your configured delete type.";
 
     public override ActionCategory Category => ActionCategory.AniDB;
 
@@ -22,7 +22,7 @@ public sealed class RemoveGroupFromMylistAction(IMylistService mylistService) : 
 
     public override bool RequiresConfirmation => true;
 
-    public override string? ConfirmationMessage => "Are you sure you want to remove every file in this group from your AniDB Mylist?";
+    public override string? ConfirmationMessage => "Are you sure you want to remove every file in this group from your AniDB MyList?";
 
     public override async Task Execute(CancellationToken token = default)
     {

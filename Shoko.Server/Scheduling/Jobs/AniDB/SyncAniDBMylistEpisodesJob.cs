@@ -120,9 +120,9 @@ public class SyncAniDBMylistEpisodesJob(IMylistService mylistService, AnimeEpiso
         }
     }
 
-    public override string TypeName => "Sync AniDB Mylist for Episodes";
+    public override string TypeName => "Sync AniDB MyList for Episodes";
 
-    public override string Title => "Syncing AniDB Mylist";
+    public override string Title => "Syncing AniDB MyList";
 
     public override Dictionary<string, object> Details
     {

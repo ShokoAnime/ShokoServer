@@ -23,7 +23,7 @@ internal class RemoveMissingFilesJob(ActionService actionService) : BaseJob
     public override Dictionary<string, object> Details => new()
     {
         {
-            "Remove From Mylist", RemoveMylist
+            "Remove From MyList", RemoveMylist
         }
     };
 

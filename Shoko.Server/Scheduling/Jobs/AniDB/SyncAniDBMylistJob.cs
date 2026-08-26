@@ -89,9 +89,9 @@ public class SyncAniDBMylistJob(IMylistService mylistService) : BaseJob, IJobMer
         }
     }
 
-    public override string TypeName => "Sync AniDB Mylist";
+    public override string TypeName => "Sync AniDB MyList";
 
-    public override string Title => "Syncing AniDB Mylist";
+    public override string Title => "Syncing AniDB MyList";
 
     public override Dictionary<string, object> Details
     {

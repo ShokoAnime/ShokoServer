@@ -13,7 +13,7 @@ namespace Shoko.Server.Providers.AniDB.UDP.User;
 
 public class RequestAddMylist : UDPRequest<MylistEntry>
 {
-    #region Mylist Entry Identification
+    #region MyList Entry Identification
 
     #region By File ID (fid)
 

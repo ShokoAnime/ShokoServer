@@ -21,9 +21,9 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class SyncAniDBMylistRecurringJob(IMylistService mylistService) : BaseJob
 {
-    public override string TypeName => "Start Recurring AniDB Mylist Sync";
+    public override string TypeName => "Start Recurring AniDB MyList Sync";
 
-    public override string Title => "Starting Recurring AniDB Mylist Sync";
+    public override string Title => "Starting Recurring AniDB MyList Sync";
 
     public override Dictionary<string, object> Details => [];
 

@@ -11,9 +11,9 @@ namespace Shoko.Server.Actions;
 /// </summary>
 public sealed class AddSeriesToMylistAction(IMylistService mylistService) : SeriesAction
 {
-    public override string Name => "Add to Mylist";
+    public override string Name => "Add to MyList";
 
-    public override string? Description => "Adds every file in the series to your AniDB Mylist.";
+    public override string? Description => "Adds every file in the series to your AniDB MyList.";
 
     public override ActionCategory Category => ActionCategory.AniDB;
 

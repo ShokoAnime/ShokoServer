@@ -166,11 +166,11 @@ public class MylistService(
             }
             catch (AnidbHttpBannedException ex)
             {
-                _logger.LogWarning("Got an AniDB HTTP ban while fetching the Mylist. Expires: {ExpiresAt}", ex.ExpiresAt);
+                _logger.LogWarning("Got an AniDB HTTP ban while fetching the MyList. Expires: {ExpiresAt}", ex.ExpiresAt);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to fetch the Mylist over HTTP");
+                _logger.LogWarning(ex, "Failed to fetch the MyList over HTTP");
             }
         }
 
@@ -256,11 +256,11 @@ public class MylistService(
             }
             catch (AnidbHttpBannedException ex)
             {
-                _logger.LogWarning("Got an AniDB HTTP ban while fetching the Mylist. Expires: {ExpiresAt}", ex.ExpiresAt);
+                _logger.LogWarning("Got an AniDB HTTP ban while fetching the MyList. Expires: {ExpiresAt}", ex.ExpiresAt);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to fetch the Mylist over HTTP");
+                _logger.LogWarning(ex, "Failed to fetch the MyList over HTTP");
             }
         }
 
@@ -284,11 +284,11 @@ public class MylistService(
             }
             catch (AniDBBannedException)
             {
-                _logger.LogWarning("Got an AniDB UDP ban while fetching a Mylist entry");
+                _logger.LogWarning("Got an AniDB UDP ban while fetching a MyList entry");
             }
             catch (UnexpectedUDPResponseException ex)
             {
-                _logger.LogWarning("AniDB did not return a Mylist entry: {Code}", ex.ReturnCode);
+                _logger.LogWarning("AniDB did not return a MyList entry: {Code}", ex.ReturnCode);
             }
         }
 
@@ -357,11 +357,11 @@ public class MylistService(
         }
         catch (AnidbHttpBannedException ex)
         {
-            _logger.LogWarning("Got an AniDB HTTP ban while refreshing the Mylist cache. Expires: {ExpiresAt}", ex.ExpiresAt);
+            _logger.LogWarning("Got an AniDB HTTP ban while refreshing the MyList cache. Expires: {ExpiresAt}", ex.ExpiresAt);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to refresh the Mylist cache over HTTP");
+            _logger.LogWarning(ex, "Failed to refresh the MyList cache over HTTP");
         }
     }
 
@@ -387,7 +387,7 @@ public class MylistService(
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to write the Mylist backup to {Path}", backupPath);
+            _logger.LogWarning(ex, "Failed to write the MyList backup to {Path}", backupPath);
             return;
         }
 
@@ -405,7 +405,7 @@ public class MylistService(
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to rotate out the Mylist backup {Path}", file.FullName);
+                _logger.LogWarning(ex, "Failed to rotate out the MyList backup {Path}", file.FullName);
             }
         }
     }
@@ -444,7 +444,7 @@ public class MylistService(
         if (fetchMode is MylistFetchMode.None)
             return mylistCache.GetByFileID(fileID);
 
-        _logger.LogInformation("Adding a Mylist entry. (FileID={FileID})", fileID);
+        _logger.LogInformation("Adding a MyList entry. (FileID={FileID})", fileID);
 
         await RefreshCacheIfAllowedAsync(fetchMode, cancellationToken);
 
@@ -454,7 +454,7 @@ public class MylistService(
         if (fetchMode.HasFlag(MylistFetchMode.Cache) && mylistCache.GetByFileID(fileID) is { } cachedEntry &&
             MylistCache.IsInDesiredState(cachedEntry, data))
         {
-            _logger.LogInformation("Skipping the Mylist entry add; it is already in the desired state. (FileID={FileID}, MylistID={MylistID})", fileID, cachedEntry.MylistID);
+            _logger.LogInformation("Skipping the MyList entry add; it is already in the desired state. (FileID={FileID}, MylistID={MylistID})", fileID, cachedEntry.MylistID);
             return cachedEntry;
         }
 
@@ -505,7 +505,7 @@ public class MylistService(
         if (fetchMode is MylistFetchMode.None)
             return mylistCache.GetByEd2k(ed2k, fileSize);
 
-        _logger.LogInformation("Adding a Mylist entry. (ED2K={Hash}, Size={Size})", ed2k, fileSize);
+        _logger.LogInformation("Adding a MyList entry. (ED2K={Hash}, Size={Size})", ed2k, fileSize);
 
         await RefreshCacheIfAllowedAsync(fetchMode, cancellationToken);
 
@@ -515,7 +515,7 @@ public class MylistService(
         if (fetchMode.HasFlag(MylistFetchMode.Cache) && mylistCache.GetByEd2k(ed2k, fileSize) is { } cachedEntry &&
             MylistCache.IsInDesiredState(cachedEntry, data))
         {
-            _logger.LogInformation("Skipping the Mylist entry add; it is already in the desired state. (ED2K={Hash}, Size={Size}, MylistID={MylistID})", ed2k, fileSize, cachedEntry.MylistID);
+            _logger.LogInformation("Skipping the MyList entry add; it is already in the desired state. (ED2K={Hash}, Size={Size}, MylistID={MylistID})", ed2k, fileSize, cachedEntry.MylistID);
             return cachedEntry;
         }
 
@@ -572,7 +572,7 @@ public class MylistService(
             return noneEpisode is null ? null : mylistCache.GetByEpisodeID(noneEpisode.EpisodeID);
         }
 
-        _logger.LogInformation("Adding a Mylist entry. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})", animeID, episodeType, episodeNumber);
+        _logger.LogInformation("Adding a MyList entry. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})", animeID, episodeType, episodeNumber);
 
         await RefreshCacheIfAllowedAsync(fetchMode, cancellationToken);
 
@@ -583,7 +583,7 @@ public class MylistService(
         if (fetchMode.HasFlag(MylistFetchMode.Cache) && anidbEpisode is not null && mylistCache.GetByEpisodeID(anidbEpisode.EpisodeID) is { } cachedEntry &&
             MylistCache.IsInDesiredState(cachedEntry, data))
         {
-            _logger.LogInformation("Skipping the Mylist entry add; it is already in the desired state. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber}, MylistID={MylistID})", animeID, episodeType, episodeNumber, cachedEntry.MylistID);
+            _logger.LogInformation("Skipping the MyList entry add; it is already in the desired state. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber}, MylistID={MylistID})", animeID, episodeType, episodeNumber, cachedEntry.MylistID);
             return cachedEntry;
         }
 
@@ -646,7 +646,7 @@ public class MylistService(
             return mylistCache.GetByEd2k(videoLocal.Hash, videoLocal.FileSize);
 
         _logger.LogInformation(
-            "Adding the Mylist entry for a video. (File={FileName}, ED2K={Hash}, ReadStates={ReadStates})",
+            "Adding the MyList entry for a video. (File={FileName}, ED2K={Hash}, ReadStates={ReadStates})",
             videoLocal.FirstValidPlace?.FileName, videoLocal.Hash, readStates
         );
 
@@ -707,7 +707,7 @@ public class MylistService(
         }
 
         _logger.LogInformation(
-            "Added the Mylist entry for a video. (File={FileName}, ManualLink={IsManualLink}, WatchedLocally={WatchedLocally}, WatchedOnAniDB={WatchedOnAniDB}, DesiredState={DesiredState}, AniDbState={AniDbState}, ReadStates={ReadStates})",
+            "Added the MyList entry for a video. (File={FileName}, ManualLink={IsManualLink}, WatchedLocally={WatchedLocally}, WatchedOnAniDB={WatchedOnAniDB}, DesiredState={DesiredState}, AniDbState={AniDbState}, ReadStates={ReadStates})",
             videoLocal.FirstValidPlace?.FileName, isManualLink, originalWatchedDate != null,
             mylistEntry?.IsViewed, resolvedData.State, mylistEntry?.State, readStates
         );
@@ -833,12 +833,12 @@ public class MylistService(
         if (fetchMode is MylistFetchMode.None)
             return mylistCache.GetByLid(listID);
 
-        _logger.LogInformation("Updating a Mylist entry. (MylistID={MylistID})", listID);
+        _logger.LogInformation("Updating a MyList entry. (MylistID={MylistID})", listID);
 
         // an update data with no fields set is a no-op
         if (data.IsEmpty)
         {
-            _logger.LogInformation("Skipping the Mylist entry update; no fields were set. (MylistID={MylistID})", listID);
+            _logger.LogInformation("Skipping the MyList entry update; no fields were set. (MylistID={MylistID})", listID);
             return mylistCache.GetByLid(listID);
         }
 
@@ -849,11 +849,11 @@ public class MylistService(
         if (fetchMode.HasFlag(MylistFetchMode.Cache) && cachedEntry is not null &&
             MylistCache.IsInDesiredState(cachedEntry, data))
         {
-            _logger.LogInformation("Skipping the Mylist entry update; it is already in the desired state. (MylistID={MylistID})", listID);
+            _logger.LogInformation("Skipping the MyList entry update; it is already in the desired state. (MylistID={MylistID})", listID);
             return cachedEntry;
         }
 
-        _logger.LogInformation("Sending the Mylist entry update. (MylistID={MylistID})", listID);
+        _logger.LogInformation("Sending the MyList entry update. (MylistID={MylistID})", listID);
         var request = requestFactory.Create<RequestUpdateMylist>(
             r =>
             {
@@ -880,12 +880,12 @@ public class MylistService(
         if (fetchMode is MylistFetchMode.None)
             return mylistCache.GetByFileID(fileID);
 
-        _logger.LogInformation("Updating a Mylist entry. (FileID={FileID})", fileID);
+        _logger.LogInformation("Updating a MyList entry. (FileID={FileID})", fileID);
 
         // an update data with no fields set is a no-op
         if (data.IsEmpty)
         {
-            _logger.LogInformation("Skipping the Mylist entry update; no fields were set. (FileID={FileID})", fileID);
+            _logger.LogInformation("Skipping the MyList entry update; no fields were set. (FileID={FileID})", fileID);
             return mylistCache.GetByFileID(fileID);
         }
 
@@ -896,11 +896,11 @@ public class MylistService(
         if (fetchMode.HasFlag(MylistFetchMode.Cache) && cachedEntry is not null &&
             MylistCache.IsInDesiredState(cachedEntry, data))
         {
-            _logger.LogInformation("Skipping the Mylist entry update; it is already in the desired state. (MylistID={MylistID})", cachedEntry.MylistID);
+            _logger.LogInformation("Skipping the MyList entry update; it is already in the desired state. (MylistID={MylistID})", cachedEntry.MylistID);
             return cachedEntry;
         }
 
-        _logger.LogInformation("Sending the Mylist entry update. (FileID={FileID})", fileID);
+        _logger.LogInformation("Sending the MyList entry update. (FileID={FileID})", fileID);
         var request = requestFactory.Create<RequestUpdateMylist>(
             r =>
             {
@@ -927,12 +927,12 @@ public class MylistService(
         if (fetchMode is MylistFetchMode.None)
             return mylistCache.GetByEd2k(ed2k, fileSize);
 
-        _logger.LogInformation("Updating a Mylist entry. (ED2K={Hash}, Size={Size})", ed2k, fileSize);
+        _logger.LogInformation("Updating a MyList entry. (ED2K={Hash}, Size={Size})", ed2k, fileSize);
 
         // an update data with no fields set is a no-op
         if (data.IsEmpty)
         {
-            _logger.LogInformation("Skipping the Mylist entry update; no fields were set. (ED2K={Hash}, Size={Size})", ed2k, fileSize);
+            _logger.LogInformation("Skipping the MyList entry update; no fields were set. (ED2K={Hash}, Size={Size})", ed2k, fileSize);
             return mylistCache.GetByEd2k(ed2k, fileSize);
         }
 
@@ -943,11 +943,11 @@ public class MylistService(
         if (fetchMode.HasFlag(MylistFetchMode.Cache) && cachedEntry is not null &&
             MylistCache.IsInDesiredState(cachedEntry, data))
         {
-            _logger.LogInformation("Skipping the Mylist entry update; it is already in the desired state. (MylistID={MylistID})", cachedEntry.MylistID);
+            _logger.LogInformation("Skipping the MyList entry update; it is already in the desired state. (MylistID={MylistID})", cachedEntry.MylistID);
             return cachedEntry;
         }
 
-        _logger.LogInformation("Sending the Mylist entry update. (ED2K={Hash}, Size={Size})", ed2k, fileSize);
+        _logger.LogInformation("Sending the MyList entry update. (ED2K={Hash}, Size={Size})", ed2k, fileSize);
         var request = requestFactory.Create<RequestUpdateMylist>(
             r =>
             {
@@ -983,14 +983,14 @@ public class MylistService(
             return noneEpisode is null ? null : mylistCache.GetByEpisodeID(noneEpisode.EpisodeID);
         }
 
-        _logger.LogInformation("Updating a Mylist entry. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})", animeID, episodeType, episodeNumber);
+        _logger.LogInformation("Updating a MyList entry. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})", animeID, episodeType, episodeNumber);
 
         var anidbEpisode = anidbEpisodes.GetByAnimeIDAndEpisodeTypeNumber(animeID, episodeType, episodeNumber).FirstOrDefault();
 
         // an update data with no fields set is a no-op
         if (data.IsEmpty)
         {
-            _logger.LogInformation("Skipping the Mylist entry update; no fields were set. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})", animeID, episodeType, episodeNumber);
+            _logger.LogInformation("Skipping the MyList entry update; no fields were set. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})", animeID, episodeType, episodeNumber);
             return anidbEpisode is null ? null : mylistCache.GetByEpisodeID(anidbEpisode.EpisodeID);
         }
 
@@ -1001,11 +1001,11 @@ public class MylistService(
         if (fetchMode.HasFlag(MylistFetchMode.Cache) && cachedEntry is not null &&
             MylistCache.IsInDesiredState(cachedEntry, data))
         {
-            _logger.LogInformation("Skipping the Mylist entry update; it is already in the desired state. (MylistID={MylistID})", cachedEntry.MylistID);
+            _logger.LogInformation("Skipping the MyList entry update; it is already in the desired state. (MylistID={MylistID})", cachedEntry.MylistID);
             return cachedEntry;
         }
 
-        _logger.LogInformation("Sending the Mylist entry update. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})", animeID, episodeType, episodeNumber);
+        _logger.LogInformation("Sending the MyList entry update. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})", animeID, episodeType, episodeNumber);
         var request = requestFactory.Create<RequestUpdateMylist>(
             r =>
             {
@@ -1037,7 +1037,7 @@ public class MylistService(
 
     public async Task<MylistEntry?> UpdateVideoAsync(IVideo video, MylistUpdateData data, bool updateSeriesStats = false, MylistFetchMode fetchMode = MylistFetchMode.Auto, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Updating the Mylist entries for a video. (VideoID={VideoID})", video.ID);
+        _logger.LogInformation("Updating the MyList entries for a video. (VideoID={VideoID})", video.ID);
 
         var vid = videoLocals.GetByID(video.ID);
         if (vid == null)
@@ -1050,7 +1050,7 @@ public class MylistService(
         // an update data with no fields set is a no-op
         if (data.IsEmpty)
         {
-            _logger.LogInformation("Skipping the video Mylist update; no fields were set. (VideoID={VideoID})", video.ID);
+            _logger.LogInformation("Skipping the video MyList update; no fields were set. (VideoID={VideoID})", video.ID);
             return mylistCache.GetByEd2k(vid.Hash, vid.FileSize);
         }
 
@@ -1154,12 +1154,12 @@ public class MylistService(
         }
         catch (AniDBBannedException)
         {
-            _logger.LogWarning("Got an AniDB UDP ban while reading back an edited Mylist entry");
+            _logger.LogWarning("Got an AniDB UDP ban while reading back an edited MyList entry");
             return null;
         }
         catch (UnexpectedUDPResponseException ex)
         {
-            _logger.LogWarning("AniDB did not return the edited Mylist entry: {Code}", ex.ReturnCode);
+            _logger.LogWarning("AniDB did not return the edited MyList entry: {Code}", ex.ReturnCode);
             return null;
         }
     }
@@ -1221,14 +1221,14 @@ public class MylistService(
         if (fetchMode is MylistFetchMode.None)
             return false;
 
-        _logger.LogInformation("Removing a Mylist entry. (MylistID={MylistID})", listID);
+        _logger.LogInformation("Removing a MyList entry. (MylistID={MylistID})", listID);
 
         await RefreshCacheIfAllowedAsync(fetchMode, cancellationToken);
 
         var cached = mylistCache.GetByLid(listID);
         if (cached is null && !fetchMode.HasFlag(MylistFetchMode.Udp))
         {
-            _logger.LogInformation("Skipping the Mylist entry removal; it is not in the local cache and UDP is not allowed");
+            _logger.LogInformation("Skipping the MyList entry removal; it is not in the local cache and UDP is not allowed");
             return false;
         }
 
@@ -1251,14 +1251,14 @@ public class MylistService(
         if (fetchMode is MylistFetchMode.None)
             return false;
 
-        _logger.LogInformation("Removing a Mylist entry. (FileID={FileID})", fileID);
+        _logger.LogInformation("Removing a MyList entry. (FileID={FileID})", fileID);
 
         await RefreshCacheIfAllowedAsync(fetchMode, cancellationToken);
 
         var cached = mylistCache.GetByFileID(fileID);
         if (cached is null && !fetchMode.HasFlag(MylistFetchMode.Udp))
         {
-            _logger.LogInformation("Skipping the Mylist entry removal; it is not in the local cache and UDP is not allowed");
+            _logger.LogInformation("Skipping the MyList entry removal; it is not in the local cache and UDP is not allowed");
             return false;
         }
 
@@ -1281,14 +1281,14 @@ public class MylistService(
         if (fetchMode is MylistFetchMode.None)
             return false;
 
-        _logger.LogInformation("Removing a Mylist entry. (ED2K={Hash}, Size={Size})", ed2k, fileSize);
+        _logger.LogInformation("Removing a MyList entry. (ED2K={Hash}, Size={Size})", ed2k, fileSize);
 
         await RefreshCacheIfAllowedAsync(fetchMode, cancellationToken);
 
         var cached = mylistCache.GetByEd2k(ed2k, fileSize);
         if (cached is null && !fetchMode.HasFlag(MylistFetchMode.Udp))
         {
-            _logger.LogInformation("Skipping the Mylist entry removal; it is not in the local cache and UDP is not allowed");
+            _logger.LogInformation("Skipping the MyList entry removal; it is not in the local cache and UDP is not allowed");
             return false;
         }
 
@@ -1316,7 +1316,7 @@ public class MylistService(
         if (fetchMode is MylistFetchMode.None)
             return false;
 
-        _logger.LogInformation("Removing a Mylist entry. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})", animeID, episodeType, episodeNumber);
+        _logger.LogInformation("Removing a MyList entry. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})", animeID, episodeType, episodeNumber);
 
         await RefreshCacheIfAllowedAsync(fetchMode, cancellationToken);
 
@@ -1324,7 +1324,7 @@ public class MylistService(
         var cached = episode is null ? null : mylistCache.GetByEpisodeID(episode.EpisodeID);
         if (cached is null && !fetchMode.HasFlag(MylistFetchMode.Udp))
         {
-            _logger.LogInformation("Skipping the Mylist entry removal; it is not in the local cache and UDP is not allowed");
+            _logger.LogInformation("Skipping the MyList entry removal; it is not in the local cache and UDP is not allowed");
             return false;
         }
 
@@ -1384,7 +1384,7 @@ public class MylistService(
             if (SharesGenericEntry(videoLocal, episode.EpisodeID))
             {
                 _logger.LogInformation(
-                    "Keeping the generic AniDB Mylist entry, another manually linked release still uses it. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})",
+                    "Keeping the generic AniDB MyList entry, another manually linked release still uses it. (AnimeID={AnimeID}, EpisodeType={EpisodeType}, EpisodeNumber={EpisodeNumber})",
                     episode.AnimeID, episode.EpisodeType, episode.EpisodeNumber);
                 continue;
             }
@@ -1446,7 +1446,7 @@ public class MylistService(
     {
         if (!await _syncLock.WaitAsync(0, cancellationToken).ConfigureAwait(false))
         {
-            _logger.LogInformation("Skipping the Mylist sync; one is already running");
+            _logger.LogInformation("Skipping the MyList sync; one is already running");
             return null;
         }
 
@@ -1663,7 +1663,7 @@ public class MylistService(
         // the entries they would reconcile, so they cannot run side by side
         if (!await _syncLock.WaitAsync(0, cancellationToken).ConfigureAwait(false))
         {
-            _logger.LogInformation("Skipping the Mylist sync; one is already running");
+            _logger.LogInformation("Skipping the MyList sync; one is already running");
             return null;
         }
 
@@ -1679,11 +1679,6 @@ public class MylistService(
 
     private async Task<MylistSyncResult> SyncInternalAsync(MylistSyncOptions? options, SyncScope? scope, CancellationToken cancellationToken)
     {
-        if (scope is null)
-            _logger.LogInformation("Syncing the Mylist");
-        else
-            _logger.LogInformation("Syncing the Mylist for {Count} videos", scope.VideoIDs.Count);
-
         var fetchMode = ResolveFetchMode(options?.FetchMode ?? MylistFetchMode.Auto);
         var ignoreTimeCheck = fetchMode.HasFlag(MylistFetchMode.IgnoreTimeCheck);
         var settings = settingsProvider.GetSettings();
@@ -1699,9 +1694,21 @@ public class MylistService(
         var deleteType = resolved.DeleteType!.Value;
         var targets = resolved.Targets!.Value;
         var watchedEpisodeMode = resolved.WatchedEpisodeMode!.Value;
+
         // read from the caller's options rather than the resolved ones: a preview
         // is a property of this call, not something the settings can turn on
         var planOnly = options?.PlanOnly ?? false;
+        if (planOnly)
+            if (scope is null)
+                _logger.LogInformation("Planning the MyList sync");
+            else
+                _logger.LogInformation("Planning the MyList sync for {Count} videos", scope.VideoIDs.Count);
+        else
+            if (scope is null)
+                _logger.LogInformation("Syncing the MyList");
+            else
+                _logger.LogInformation("Syncing the MyList for {Count} videos", scope.VideoIDs.Count);
+
         var actions = new List<MylistSyncAction>();
 
         var entries = ignoreTimeCheck
@@ -1797,7 +1804,7 @@ public class MylistService(
                 // We could not tell whether this entry is generic, so we do not know
                 // which tier should have matched it and cannot say it is really
                 // missing. Disposing of it on a guess risks removing a generic entry
-                // from the user's AniDB Mylist over a file state that never meant
+                // from the user's AniDB MyList over a file state that never meant
                 // what we read into it, so leave it alone
                 if (myItem.IsGeneric is null)
                 {
@@ -1809,7 +1816,7 @@ public class MylistService(
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "A Mylist Item threw an error while syncing");
+                _logger.LogError(ex, "A MyList Item threw an error while syncing");
             }
         }
 
@@ -1820,7 +1827,7 @@ public class MylistService(
                 actions.Add(new MylistSyncAction
                 {
                     Kind = MylistSyncActionKind.ExportEntryRemoval,
-                    Description = $"Remove the Mylist entry for file {entry.FileID}, which is no longer in the library",
+                    Description = $"Remove the MyList entry for file {entry.FileID}, which is no longer in the library",
                     Entry = entry,
                     DeleteType = deleteType,
                 });
@@ -1839,7 +1846,7 @@ public class MylistService(
                 else if (entry.IsGeneric is true && entry.EpisodeID is not 0 && anidbEpisodes.GetByEpisodeID(entry.EpisodeID) is { } anidbEpisode)
                     await ScheduleDisposeEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, deleteType);
                 else
-                    _logger.LogWarning("Unable to dispose of a Mylist entry with no list ID, file ID or resolvable episode. (AnimeID={AnimeID}, EpisodeID={EpisodeID})", entry.AnimeID, entry.EpisodeID);
+                    _logger.LogWarning("Unable to dispose of a MyList entry with no list ID, file ID or resolvable episode. (AnimeID={AnimeID}, EpisodeID={EpisodeID})", entry.AnimeID, entry.EpisodeID);
             }
         }
 
@@ -1853,7 +1860,7 @@ public class MylistService(
             actions.Add(new MylistSyncAction
             {
                 Kind = MylistSyncActionKind.ExportEntryRemoval,
-                Description = $"Remove the generic Mylist entry for episode {entry.EpisodeID}, which records nothing",
+                Description = $"Remove the generic MyList entry for episode {entry.EpisodeID}, which records nothing",
                 Entry = entry,
                 // the local episode only rides along with the AniDB one it
                 // belongs to, so a consumer that has the former always has both
@@ -1885,7 +1892,7 @@ public class MylistService(
                 unclassifiedItems, nameof(AniDbSettings.MyList_UseGenericFileIndex));
 
         _logger.LogInformation(
-            "Process Mylist: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified, {UnclassifiedItems} Unclassified",
+            "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified, {UnclassifiedItems} Unclassified",
             totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems, unclassifiedItems);
 
         return new MylistSyncResult
@@ -2273,7 +2280,7 @@ public class MylistService(
             if (videos.Count > 0)
             {
                 added++;
-                actions.Add(Describe(MylistSyncActionKind.ExportEntryAddition, $"Add a generic Mylist entry for manually linked episode {episode.AnimeEpisodeID}"));
+                actions.Add(Describe(MylistSyncActionKind.ExportEntryAddition, $"Add a generic MyList entry for manually linked episode {episode.AnimeEpisodeID}"));
                 if (!planOnly)
                     await ScheduleAddEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, WatchedData(watchedDate));
                 continue;
@@ -2299,7 +2306,7 @@ public class MylistService(
                         .ThenBy(entry => entry.FileID is 0 ? int.MaxValue : entry.FileID)
                         .First();
                     added++;
-                    actions.Add(Describe(MylistSyncActionKind.ExportWatchedState, $"Record the watch for episode {episode.AnimeEpisodeID} on its oldest existing Mylist entry") with
+                    actions.Add(Describe(MylistSyncActionKind.ExportWatchedState, $"Record the watch for episode {episode.AnimeEpisodeID} on its oldest existing MyList entry") with
                     {
                         Entry = oldest,
                     });
@@ -2314,7 +2321,7 @@ public class MylistService(
 
                 default:
                     added++;
-                    actions.Add(Describe(MylistSyncActionKind.ExportEntryAddition, $"Add a generic Mylist entry recording the watch for episode {episode.AnimeEpisodeID}"));
+                    actions.Add(Describe(MylistSyncActionKind.ExportEntryAddition, $"Add a generic MyList entry recording the watch for episode {episode.AnimeEpisodeID}"));
                     if (!planOnly)
                         await ScheduleAddEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, WatchedData(watchedDate));
                     continue;
@@ -2367,7 +2374,7 @@ public class MylistService(
             actions.Add(new MylistSyncAction
             {
                 Kind = MylistSyncActionKind.ExportEntryAddition,
-                Description = $"Add file {vid.VideoLocalID} to the Mylist",
+                Description = $"Add file {vid.VideoLocalID} to the MyList",
                 Video = vid,
             });
             if (planOnly)

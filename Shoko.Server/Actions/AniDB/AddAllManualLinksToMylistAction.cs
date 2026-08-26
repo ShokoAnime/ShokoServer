@@ -10,7 +10,7 @@ namespace Shoko.Server.Actions;
 /// </summary>
 public sealed class AddAllManualLinksToMylistAction(IMylistService mylistService) : IExecutableAction
 {
-    public string Name => "Add All Manual Links to Mylist";
+    public string Name => "Add All Manual Links to MyList";
 
     public string? Description => "Forcibly run AddToMylist commands for all files with manual links.";
 

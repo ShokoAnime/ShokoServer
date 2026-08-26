@@ -65,7 +65,7 @@ public class AnidbProcessFileJob(IVideoReleaseService videoReleaseService, Video
                 result["Video"] = VideoLocalID;
             else
                 result["File Path"] = _fileName;
-            if (!SkipEvents) result["Add to Mylist"] = true;
+            if (!SkipEvents) result["Add to MyList"] = true;
             return result;
         }
     }

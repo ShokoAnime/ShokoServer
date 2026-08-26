@@ -210,7 +210,7 @@ public sealed class MylistCache : IDisposable
         {
             if (entry.MylistID is 0 && entry.FileID is 0 && entry.EpisodeID is 0 && entry.ED2K is null)
             {
-                _logger.LogWarning("Refusing to cache a Mylist entry without any identification");
+                _logger.LogWarning("Refusing to cache a MyList entry without any identification");
                 return;
             }
 
@@ -455,7 +455,7 @@ public sealed class MylistCache : IDisposable
                         loaded++;
                     }
 
-                    _logger.LogInformation("Loaded {Count} Mylist entries from cache", loaded);
+                    _logger.LogInformation("Loaded {Count} MyList entries from cache", loaded);
 
                     // rewrite it compressed, then drop the old copy
                     if (legacy) _dirty = true;
@@ -463,7 +463,7 @@ public sealed class MylistCache : IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to load Mylist cache from {Path}", CachePath);
+                _logger.LogError(ex, "Failed to load MyList cache from {Path}", CachePath);
             }
 
             _loaded = true;
@@ -494,7 +494,7 @@ public sealed class MylistCache : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to persist Mylist cache to {Path}", CachePath);
+            _logger.LogError(ex, "Failed to persist MyList cache to {Path}", CachePath);
         }
     }
 

@@ -14,9 +14,9 @@ namespace Shoko.Server.Actions;
 /// </summary>
 public sealed class SyncEpisodeMylistAction(IMylistService mylistService) : EpisodeAction
 {
-    public override string Name => "Sync Mylist";
+    public override string Name => "Sync MyList";
 
-    public override string? Description => "Reconciles your AniDB Mylist with the local state for the episode, with or without files.";
+    public override string? Description => "Reconciles your AniDB MyList with the local state for the episode, with or without files.";
 
     public override ActionCategory Category => ActionCategory.AniDB;
 

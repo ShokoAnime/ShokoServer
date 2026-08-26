@@ -88,9 +88,9 @@ public class UpdateAniDBMylistEntryJob(IMylistService mylistService, VideoLocalR
         }
     }
 
-    public override string TypeName => "Update Entry in AniDB Mylist";
+    public override string TypeName => "Update Entry in AniDB MyList";
 
-    public override string Title => "Updating Entry in AniDB Mylist";
+    public override string Title => "Updating Entry in AniDB MyList";
 
     public override Dictionary<string, object> Details
     {
@@ -107,7 +107,7 @@ public class UpdateAniDBMylistEntryJob(IMylistService mylistService, VideoLocalR
             }
             else if (MylistID is > 0)
             {
-                details["Mylist ID"] = MylistID;
+                details["MyList ID"] = MylistID;
             }
             else if (FileID is > 0)
             {

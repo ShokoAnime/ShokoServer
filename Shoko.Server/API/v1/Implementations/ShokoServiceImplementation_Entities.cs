@@ -809,11 +809,11 @@ public partial class ShokoServiceImplementation
         }
     }
 
-    [HttpDelete("AniDB/Mylist/{fileID}")]
+    [HttpDelete("AniDB/MyList/{fileID}")]
     public void DeleteFileFromMylist(int fileID)
         => _mylistService.ScheduleDisposeEntry(fileID, prioritize: true).GetAwaiter().GetResult();
 
-    [HttpPost("AniDB/Mylist/{hash}")]
+    [HttpPost("AniDB/MyList/{hash}")]
     public void ForceAddFileToMylist(string hash)
     {
         try
@@ -821,7 +821,7 @@ public partial class ShokoServiceImplementation
             var vl = RepoFactory.VideoLocal.GetByEd2k(hash);
             if (vl is null)
             {
-                _logger.LogWarning("Unable to add file to Mylist, no VideoLocal found for hash: {Hash}", hash);
+                _logger.LogWarning("Unable to add file to MyList, no VideoLocal found for hash: {Hash}", hash);
                 return;
             }
             _mylistService.ScheduleAddEntry(vl.Hash, vl.FileSize, prioritize: true).GetAwaiter().GetResult();

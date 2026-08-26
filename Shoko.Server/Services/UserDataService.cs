@@ -40,7 +40,7 @@ public class UserDataService(
 ) : IUserDataService
 {
     // Lazy init. to prevent a circular dependency between this service, the
-    // Mylist service, and the services those depend on in turn.
+    // MyList service, and the services those depend on in turn.
     private IMylistService? _mylistService;
 
     #region Video User Data

@@ -6,7 +6,7 @@ using Shoko.Abstractions.Video;
 namespace Shoko.Server.Actions;
 
 /// <summary>
-///   Resolves the videos a scoped Mylist action operates on. A Mylist entry is
+///   Resolves the videos a scoped MyList action operates on. A MyList entry is
 ///   per file, so every scope above a video fans out to the files beneath it.
 /// </summary>
 internal static class MylistActionScope

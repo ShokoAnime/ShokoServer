@@ -12,9 +12,9 @@ namespace Shoko.Server.Actions;
 /// </summary>
 public sealed class SyncVideoMylistAction(IMylistService mylistService) : VideoAction
 {
-    public override string Name => "Sync Mylist";
+    public override string Name => "Sync MyList";
 
-    public override string? Description => "Reconciles your AniDB Mylist with the local state for the file.";
+    public override string? Description => "Reconciles your AniDB MyList with the local state for the file.";
 
     public override ActionCategory Category => ActionCategory.AniDB;
 

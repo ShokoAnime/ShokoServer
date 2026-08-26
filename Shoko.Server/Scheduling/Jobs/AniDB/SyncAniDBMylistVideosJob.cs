@@ -120,9 +120,9 @@ public class SyncAniDBMylistVideosJob(IMylistService mylistService, IVideoServic
         }
     }
 
-    public override string TypeName => "Sync AniDB Mylist for Videos";
+    public override string TypeName => "Sync AniDB MyList for Videos";
 
-    public override string Title => "Syncing AniDB Mylist";
+    public override string Title => "Syncing AniDB MyList";
 
     public override Dictionary<string, object> Details
     {
