@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.435",
+      "tag": "v6.0.0-dev.435",
+      "commit": "7cc9737e2e9f97363c8a56a1e2fb3cb4c16b7b65",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.435/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-26T19:21:03Z",
+      "releaseNotes": "\n`perf` (`anidb`): **Compress both MyList caches with Brotli, and store the generic index as gaps**:\n\n`generics.json` sat uncompressed at 2.2 MB, making it the largest file in the\nMyList directory — larger than the whole compressed MyList cache beside it.\nNeither file is read by eye and both run to hundreds of thousands of entries.\n\nMeasured on a real index of 294,947 generic IDs and a MyList cache of 34,016\nentries:\n\n- `generics.json` 2,230,718 bytes -> `generics.json.br` around 87,000\n- `mylist.json.gz` 1,305,346 bytes -> `mylist.json.br` 1,206,892\n\nThe generic index also stores the sorted IDs as the gap from one to the next\nrather than in full. They cluster hard — 80% of the gaps are exactly 1 — so\nmost of the file becomes a run of ones that compresses to almost nothing, which\nis worth more than compression alone.\n\nThe two caches are written at different levels because they are written at\ndifferent rates, and the level is not a free choice:\n\n- The MyList cache is flushed every five seconds, so it uses quality 4. That is\n  both smaller and slightly faster than the gzip it replaces, while quality 11\n  takes twenty-two seconds a write and would never finish before the next flush\n- The generic index is fetched once a day, so it uses quality 11 and can afford\n  the second it costs\n\nNeither file left behind is cleaned up. Both have only been on disk for hours,\nand the next sync fetches a fresh copy regardless, so tidying them is not worth\nthe code. That is why the pre-refactor backup is treated differently: it has\nbeen accumulating on every install since long before either cache existed.\n\n- Moved the shared read and write into `CompressedJsonFile`, so the two caches stop keeping their own copies of it\n- `Persist_IsDebouncedUntilFlushed` named the cache file directly and would have passed against a missing one, since `GetLastWriteTimeUtc` returns the same sentinel for both sides of that comparison\n\n`fix` (`anidb`): **File the legacy MyList backup instead of deleting it**:\n\nRemoving `mylist.json` reclaimed the disk but threw away a backup. It holds the\nonly record of what a user's MyList looked like when it was taken, and older\nbuilds wrote it and never rotated it, so for some installs it is the oldest one\nthey have.\n\nIt is now compressed and moved into `Backups/` alongside the rest. Nothing ever\nrecorded when it was taken, so its own modified time names it, which also puts\nit in the right place once the backups are sorted.\n\nIt is still never read. The entries predate fields the sync compares on, so it\nis copied across as bytes rather than parsed, and `legacy` goes in the name so\nanyone restoring from it knows the shape is older. Beyond that it is an\nordinary backup — the name matches the rotation pattern, so it ages out with\nthe others rather than sitting there forever.\n\n- Moved the backup directory and naming into `MylistBackups`, so the rotation pattern and the filename format stop being restated in two places\n"
+    },
+    {
       "version": "6.0.0.434",
       "tag": "v6.0.0-dev.434",
       "commit": "c180d44971a135814d800ef273c7e6361d06ab50",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.406/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-12T07:13:13Z",
       "releaseNotes": "\n`chore`: **Increase number of allowed tags in package manifests from 10 to 20**:\n\nIf a plugin needs more than this with the built-in auto tags appended… then I don't know what to do.\n"
-    },
-    {
-      "version": "6.0.0.405",
-      "tag": "v6.0.0-dev.405",
-      "commit": "7b1523c88ac7fc6adbdef73c6dd45dc29b13c524",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.405/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-09T14:50:20Z",
-      "releaseNotes": "\n`fix` (`relocation`): **Normalize relocated event path**.\n"
     }
   ]
 }
