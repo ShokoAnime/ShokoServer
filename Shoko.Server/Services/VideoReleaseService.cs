@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
@@ -44,7 +43,7 @@ public class VideoReleaseService(
     ISettingsProvider settingsProvider,
     ConfigurationProvider<VideoReleaseServiceSettings> configurationProvider,
     IQueueScheduler schedulerFactory,
-    IMylistService mylistService,
+    Lazy<IMylistService> lazyMylistService,
     QueueJobTypeRegistry jobTypeRegistry,
     IRequestFactory requestFactory,
     IUserService userService,
@@ -65,6 +64,8 @@ public class VideoReleaseService(
     // use rather than during construction.
 
     private IServerSettings _settings => settingsProvider.GetSettings();
+
+    private IMylistService mylistService => lazyMylistService.Value;
 
     private Dictionary<Guid, ReleaseProviderInfo> _releaseProviderInfos = [];
 
@@ -721,7 +722,7 @@ public class VideoReleaseService(
             {
                 // Run auto-management before any post-import actions so we know whether the
                 // incoming file itself was identified as redundant and deleted.
-                    videoDeleted = await releaseAutoManagementService.Value.CheckAndAutoManage(video);
+                videoDeleted = await releaseAutoManagementService.Value.CheckAndAutoManage(video);
             }
 
             var completedArgs = new VideoReleaseSearchCompletedEventArgs()
@@ -869,7 +870,7 @@ public class VideoReleaseService(
 
         SetWatchedStateIfNeeded(video, releaseInfo);
 
-        // Sync to Mylist if needed.
+        // Sync to MyList if needed.
         if (!skipEvents && !releaseUriMatches && _settings.AniDb.MyList_AddFiles)
             await mylistService.ScheduleAddVideo(video);
 
@@ -1234,11 +1235,11 @@ public class VideoReleaseService(
     {
         if (_settings.AniDb.MyList_DeleteType is MylistDeleteType.DeleteLocalOnly)
         {
-            logger.LogInformation("Keeping physical file and AniDB Mylist entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
+            logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
             return;
         }
 
-        // When replacing with the exact same AniDB file, the Mylist entry stays.
+        // When replacing with the exact same AniDB file, the MyList entry stays.
         if (replacingRelease?.ReleaseURI is not null && replacingRelease.ReleaseURI == releaseInfo.ReleaseURI)
             return;
 
@@ -1261,7 +1262,7 @@ public class VideoReleaseService(
             if (releaseInfoRepository.GetByAnidbEpisodeID(xref.AnidbEpisodeID).Any(other => other.StoredReleaseInfoID != releaseInfo.StoredReleaseInfoID && !HasDedicatedMylistEntry(other)))
             {
                 logger.LogInformation(
-                    "Keeping the generic AniDB Mylist entry, another manually linked release still uses it: AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
+                    "Keeping the generic AniDB MyList entry, another manually linked release still uses it: AnimeID: {AnimeID} Episode: {EpisodeType} {EpisodeNumber}",
                     anidbAnimeId, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber);
                 continue;
             }

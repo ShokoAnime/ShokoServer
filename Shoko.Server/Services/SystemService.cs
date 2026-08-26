@@ -487,8 +487,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IAnidbAvdumpService>(sp => sp.GetRequiredService<AnidbService>());
             services.AddSingleton<MylistCache>();
             services.AddSingleton<MylistGenericsCache>();
-            services.AddSingleton<MylistService>();
-            services.AddSingleton<IMylistService>(sp => sp.GetRequiredService<MylistService>());
+            services.AddSingleton<IMylistService, MylistService>();
             services.AddSingleton<SupplementaryMetadataService>();
             services.AddSingleton<ISupplementaryMetadataService>(sp => sp.GetRequiredService<SupplementaryMetadataService>());
             services.AddSingleton<AnimeMetadataOrchestrator>();
