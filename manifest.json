@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.437",
+      "tag": "v6.0.0-dev.437",
+      "commit": "4aabad5c3719358e4d7323e47691194016b05193",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.437/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-29T12:44:47Z",
+      "releaseNotes": "\n`fix` (`api`): **Serialize audio/subtitle languages as strings in File DTO**:\n\nAdded  as the item converter for\nand  on the v3  model. Without it, Newtonsoft\nserialized the  enum values as integers.\n"
+    },
+    {
       "version": "6.0.0.436",
       "tag": "v6.0.0-dev.436",
       "commit": "6312bd112ed8f35a1646e722623f84c91d311b50",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.408/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-15T07:30:28Z",
       "releaseNotes": "\n`misc`: **Refactor(images)!: migrate v3 image endpoints to the new image system** ([#1402](https://github.com/ShokoAnime/ShokoServer/pull/1402)):\n\n* refactor(images)!: migrate default-image endpoints to the new image system\n\nMigrated the set/delete default-image endpoints in `SeriesController`,\n`EpisodeController`, and `GroupController` from the legacy image system to\nthe new one.\n\n- Replaced `Image.LegacyImageType` route parameters with `ImageEntityType`\n- Resolved images by GUID only, dropping the legacy int-ID fallback and the\n  `Source` validation\n- Changed `DefaultImageBody.ID` to a `Guid` and removed the unused `Source`\n  field\n- Aligned the missing-image response with the management controller\n  (`NotFound` + \"The requested image does not exist.\")\n\n* refactor(images)!: drop legacy enable/disable and migrate random image endpoints\n\nRemoved the deprecated `EnableOrDisableLegacyImage` endpoint and migrated the\nrandom image endpoints to the new image system.\n\n- Removed `EnableOrDisableLegacyImage`\n- Converted `GetRandomImageForType` and `GetRandomImageMetadataForType` to\n  accept `ImageEntityType` instead of `Image.LegacyImageType`\n- Return `404 NotFound` instead of `500` when no random image is found\n- Updated `Image.GetRandomImageSource` to accept `ImageEntityType`\n\n* refactor(images)!: migrate GET default-image endpoints to new image system\n\nConverted `GetSeriesDefaultImageForType`, `GetEpisodeDefaultImageForType`,\nand `GetSeriesDefaultImageForType` in `GroupController` from\n`Image.LegacyImageType` to `ImageEntityType`.\n\n- Replaced `Image.LegacyImageType` route parameters with `ImageEntityType`\n- Removed the now-unused `ToServer()` conversion\n\n* refactor(images): remove unused ToServer and align image-not-found message\n\nRemoved `ImageExtensions.ToServer`, which became dead code after the v3 image\nendpoints migrated from `Image.LegacyImageType` to `ImageEntityType`. Also\naligned `ImageController.ImageNotFound` with the wording used by the other\nimage controllers.\n"
-    },
-    {
-      "version": "6.0.0.407",
-      "tag": "v6.0.0-dev.407",
-      "commit": "b1637c95c4bd73dd3cab9452e30e032fe1985b0f",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.407/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-14T14:40:45Z",
-      "releaseNotes": "\n`misc`: **Feat(buildtools)!: fix orchestration, and stamp the release channel**:\n\nBREAKING CHANGE: --url and --output are now required; their guessed\ndefaults are gone. shoko-build also restores, builds portable rather\nthan inventing an \"any\" RID, resolves its assembly via TargetPath and\nreads metadata without loading it, refuses an archive whose stamped RID\ndisagrees, saves manifests without dropping unmodelled properties, and\nfails unless every RID arrived. Targets stamps ReleaseChannel; both 0.2.0.\n"
     }
   ]
 }
