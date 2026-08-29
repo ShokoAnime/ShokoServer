@@ -87,6 +87,7 @@ public partial class File
     /// has multiple audio streams with the same language, then it will still
     /// only show up once in the set.
     /// </summary>
+    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public IReadOnlySet<TitleLanguage> AudioLanguages { get; set; }
 
     /// <summary>
@@ -95,6 +96,7 @@ public partial class File
     /// has multiple subtitle streams with the same language, then it will still
     /// only show up once in the set.
     /// </summary>
+    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
     public IReadOnlySet<TitleLanguage> SubtitleLanguages { get; set; }
 
     /// <summary>
