@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.436",
+      "tag": "v6.0.0-dev.436",
+      "commit": "6312bd112ed8f35a1646e722623f84c91d311b50",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.436/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-08-29T12:12:37Z",
+      "releaseNotes": "\n`refactor` (`api`): **Construct File DTOs from the IVideo abstraction**:\n\nSwapped `File`, `MediaInfo` and `Location` DTOs over to the\n`IVideo`/`IVideoFile`/`IMediaInfo` abstractions instead of the\nconcrete `VideoLocal`/`VideoLocal_Place` models.\n\n- Extended `IVideo` with read-only `IsIgnored`, `AudioLanguages`\n  and `SubtitleLanguages`, and made `IsVariation` read-only\n- Exposed audio/subtitle languages on the v3 `File` model, merging\n  release info and local media info, dropping `Unknown` when release\n  info is present\n- `MediaInfo` now reads duration from `IMediaInfo` instead of the file\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.84**.\n"
+    },
+    {
       "version": "6.0.0.435",
       "tag": "v6.0.0-dev.435",
       "commit": "7cc9737e2e9f97363c8a56a1e2fb3cb4c16b7b65",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.407/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-14T14:40:45Z",
       "releaseNotes": "\n`misc`: **Feat(buildtools)!: fix orchestration, and stamp the release channel**:\n\nBREAKING CHANGE: --url and --output are now required; their guessed\ndefaults are gone. shoko-build also restores, builds portable rather\nthan inventing an \"any\" RID, resolves its assembly via TargetPath and\nreads metadata without loading it, refuses an archive whose stamped RID\ndisagrees, saves manifests without dropping unmodelled properties, and\nfails unless every RID arrived. Targets stamps ReleaseChannel; both 0.2.0.\n"
-    },
-    {
-      "version": "6.0.0.406",
-      "tag": "v6.0.0-dev.406",
-      "commit": "d4dff0c4d2bbfb8130b471bc2b42f71beb08282d",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.406/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-12T07:13:13Z",
-      "releaseNotes": "\n`chore`: **Increase number of allowed tags in package manifests from 10 to 20**:\n\nIf a plugin needs more than this with the built-in auto tags appended… then I don't know what to do.\n"
     }
   ]
 }
