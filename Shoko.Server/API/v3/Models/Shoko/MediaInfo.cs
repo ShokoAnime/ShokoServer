@@ -5,7 +5,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Media;
-using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -80,10 +79,10 @@ public class MediaInfo
     /// </summary>
     public List<ChapterInfo> Chapters { get; }
 
-    public MediaInfo(VideoLocal file, IMediaInfo mediaInfo)
+    public MediaInfo(IMediaInfo mediaInfo)
     {
         Title = mediaInfo.Title;
-        Duration = file.DurationTimeSpan;
+        Duration = mediaInfo.Duration;
         BitRate = mediaInfo.BitRate;
         FrameRate = mediaInfo.FrameRate;
         Encoded = mediaInfo.Encoded?.ToUniversalTime();

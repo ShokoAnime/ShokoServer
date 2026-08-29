@@ -8,11 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
+using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Hashing;
-using Shoko.Abstractions.Video.Media;
 using Shoko.Server.API.v3.Models.Release;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
@@ -81,6 +82,22 @@ public partial class File
     public string? Resolution { get; set; }
 
     /// <summary>
+    /// Gets the audio languages associated with the video, either from the
+    /// release info's media info, or from our local media info. If the video
+    /// has multiple audio streams with the same language, then it will still
+    /// only show up once in the set.
+    /// </summary>
+    public IReadOnlySet<TitleLanguage> AudioLanguages { get; set; }
+
+    /// <summary>
+    /// Gets the subtitle languages associated with the video, either from the
+    /// release info's media info, or from our local media info. If the video
+    /// has multiple subtitle streams with the same language, then it will still
+    /// only show up once in the set.
+    /// </summary>
+    public IReadOnlySet<TitleLanguage> SubtitleLanguages { get; set; }
+
+    /// <summary>
     /// The duration of the file.
     /// </summary>
     [Required]
@@ -139,38 +156,40 @@ public partial class File
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public MediaInfo? MediaInfo { get; set; }
 
-    public File(HttpContext context, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeLocationUID = false) :
-        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.VideoLocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeLocationUID)
+    public File(HttpContext context, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeLocationUID = false) :
+        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.ID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeLocationUID)
     { }
 
-    public File(VideoLocal_User? userRecord, VideoLocal file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeLocationUID = false)
+    public File(VideoLocal_User? userRecord, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeLocationUID = false)
     {
-        var mediaInfo = file.MediaInfo as IMediaInfo;
-        ID = file.VideoLocalID;
-        Size = file.FileSize;
+        var mediaInfo = file.MediaInfo;
+        ID = file.ID;
+        Size = file.Size;
         IsVariation = file.IsVariation;
         IsIgnored = file.IsIgnored;
         Hashes = file.Hashes is { Count: > 0 } hashes
             ? hashes.Select(h => new HashDigest(h)).ToList()
-            : [new() { Type = "ED2K", Value = file.Hash }];
+            : [new() { Type = "ED2K", Value = file.ED2K }];
         Resolution = mediaInfo?.VideoStream?.Resolution;
-        Locations = file.Places.Select(location => new Location(location, includeAbsolutePaths, includeLocationUID)).ToList();
-        AVDump = new AVDumpInfo(file);
-        Duration = file.DurationTimeSpan;
+        AudioLanguages = file.AudioLanguages;
+        SubtitleLanguages = file.SubtitleLanguages;
+        Locations = file.Files.Select(location => new Location(location, includeAbsolutePaths, includeLocationUID)).ToList();
+        AVDump = new AVDumpInfo((VideoLocal)file);
+        Duration = mediaInfo?.Duration ?? TimeSpan.Zero;
         ResumePosition = userRecord?.ProgressPosition;
         Viewed = userRecord?.LastUpdated.ToUniversalTime();
         Watched = userRecord?.WatchedDate?.ToUniversalTime();
-        Imported = file.DateTimeImported?.ToUniversalTime();
-        Created = file.DateTimeCreated.ToUniversalTime();
-        Updated = file.DateTimeUpdated.ToUniversalTime();
+        Imported = file.ImportedAt?.ToUniversalTime();
+        Created = file.CreatedAt.ToUniversalTime();
+        Updated = file.LastUpdatedAt.ToUniversalTime();
         if (withXRefs)
-            SeriesIDs = FileCrossReference.From(file.EpisodeCrossReferences);
+            SeriesIDs = FileCrossReference.From(file.CrossReferences);
 
         if (includeReleaseInfo && file.ReleaseInfo is { } releaseInfo)
             Release = new(releaseInfo);
 
         if (includeMediaInfo && mediaInfo is not null)
-            MediaInfo = new MediaInfo(file, mediaInfo);
+            MediaInfo = new MediaInfo(mediaInfo);
     }
 
     /// <summary>
@@ -230,7 +249,7 @@ public partial class File
         [JsonRequired]
         public bool IsAccessible { get; set; }
 
-        public Location(VideoLocal_Place location, bool includeAbsolutePaths = false, bool includeLocationUID = false)
+        public Location(IVideoFile location, bool includeAbsolutePaths = false, bool includeLocationUID = false)
         {
             ID = location.ID;
             FileID = location.VideoID;

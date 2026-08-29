@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video.Hashing;
@@ -39,7 +40,28 @@ public interface IVideo : IMetadata, IWithBackdropImage, IWithCreationDate, IWit
     /// <summary>
     /// Indicates this file is marked as a variation in Shoko.
     /// </summary>
-    public bool IsVariation { get; set; }
+    bool IsVariation { get; }
+
+    /// <summary>
+    /// Indicates this file is marked as ignored in Shoko.
+    /// </summary>
+    bool IsIgnored { get; }
+
+    /// <summary>
+    /// Gets the audio languages associated with the video, either from the
+    /// release info's media info, or from our local media info. If the video
+    /// has multiple audio streams with the same language, then it will still
+    /// only show up once in the set.
+    /// </summary>
+    IReadOnlySet<TitleLanguage> AudioLanguages { get; }
+
+    /// <summary>
+    /// Gets the subtitle languages associated with the video, either from the
+    /// release info's media info, or from our local media info. If the video
+    /// has multiple subtitle streams with the same language, then it will still
+    /// only show up once in the set.
+    /// </summary>
+    IReadOnlySet<TitleLanguage> SubtitleLanguages { get; }
 
     /// <summary>
     /// When the video was last imported by shoko. Usually a video is only

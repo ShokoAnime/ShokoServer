@@ -85,6 +85,32 @@ public class VideoLocal : IVideo
         }
     }
 
+    public IReadOnlySet<TitleLanguage> AudioLanguages
+    {
+        get
+        {
+            var releaseMediaInfo = ReleaseInfo?.AudioLanguages;
+            var localMediaInfo = ((IMediaInfo?)MediaInfo)?.AudioStreams.Select(a => a.Language).ToArray() ?? [];
+            if (releaseMediaInfo is { Count: > 0 })
+                localMediaInfo = localMediaInfo.Except([TitleLanguage.Unknown]).ToArray();
+
+            return localMediaInfo.Union(releaseMediaInfo ?? []).ToHashSet();
+        }
+    }
+
+    public IReadOnlySet<TitleLanguage> SubtitleLanguages
+    {
+        get
+        {
+            var releaseMediaInfo = ReleaseInfo?.SubtitleLanguages;
+            var localMediaInfo = ((IMediaInfo?)MediaInfo)?.TextStreams.Select(a => a.Language).ToArray() ?? [];
+            if (releaseMediaInfo is { Count: > 0 })
+                localMediaInfo = localMediaInfo.Except([TitleLanguage.Unknown]).ToArray();
+
+            return localMediaInfo.Union(releaseMediaInfo ?? []).ToHashSet();
+        }
+    }
+
     public string VideoResolution =>
         MediaInfo?.VideoStream == null ? "0x0" : $"{MediaInfo.VideoStream.Width}x{MediaInfo.VideoStream.Height}";
 

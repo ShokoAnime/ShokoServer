@@ -834,7 +834,7 @@ public class FileController(
         if (mediaContainer == null)
             return InternalError("Unable to find media container for File");
 
-        return new MediaInfoDto(file, mediaContainer);
+        return new MediaInfoDto(mediaContainer);
     }
 
     #region User Data

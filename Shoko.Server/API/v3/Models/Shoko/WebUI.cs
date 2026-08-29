@@ -230,7 +230,7 @@ public class WebUI
                 .Select(tuple =>
                 {
                     var (file, xref, location) = tuple;
-                    var media = new MediaInfo(file, file.MediaInfo!);
+                    var media = new MediaInfo(file.MediaInfo!);
                     var episode = episodes[xref.EpisodeID];
                     var releaseInfo = releases.TryGetValue((xref.Hash, xref.FileSize), out var release) ? release : null;
                     var releaseGroup = releaseInfo?.Group;
