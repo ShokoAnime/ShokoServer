@@ -5,6 +5,8 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Extensions;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
@@ -232,7 +234,7 @@ public static class ModelHelper
             .Count(anidbEpisode => anidbEpisode != null && anidbEpisode.EpisodeType == episodeType);
     }
 
-    public static SeriesSizes GenerateSeriesSizes(IEnumerable<AnimeEpisode> episodeList, int userID)
+    public static SeriesSizes GenerateSeriesSizes(IEnumerable<AnimeEpisode> episodeList, int userID, IReadOnlyDictionary<int, List<AniDB_GroupStatus>> groupStatusesByAnime)
     {
         var sizes = new SeriesSizes();
         var fileSet = new HashSet<int>();
@@ -325,7 +327,7 @@ public static class ModelHelper
                             sizes.Watched.Episodes++;
                         }
                     }
-                    else if (anidbEpisode.HasAired)
+                    else if (episode.IsMissingEpisode(groupStatusesByAnime.GetValueOrDefault(anidbEpisode.AnimeID) ?? []))
                     {
                         sizes.Missing.Episodes++;
                     }
@@ -409,7 +411,13 @@ public static class ModelHelper
     public static GroupSizes GenerateGroupSizes(IEnumerable<AnimeSeries> seriesList, IEnumerable<AnimeEpisode> episodeList,
         int subGroups, int userID)
     {
-        var sizes = new GroupSizes(GenerateSeriesSizes(episodeList, userID));
+        var animeIDs = seriesList
+            .Select(ser => ser.AniDB_ID)
+            .Where(animeID => animeID > 0)
+            .Distinct()
+            .ToList();
+        var groupStatusesByAnime = RepoFactory.AniDB_GroupStatus.GetByAnimeIDs(animeIDs);
+        var sizes = new GroupSizes(GenerateSeriesSizes(episodeList, userID, groupStatusesByAnime));
         foreach (var series in seriesList)
         {
             var anime = series.AniDB_Anime;
