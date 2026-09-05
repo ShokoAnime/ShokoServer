@@ -135,7 +135,8 @@ public class Series : BaseModel
         var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userId, ser.AnimeSeriesID);
         var tmdbMovieXRefs = ser.TmdbMovieCrossReferences;
         var tmdbShowXRefs = ser.TmdbShowCrossReferences;
-        var sizes = ModelHelper.GenerateSeriesSizes(allEpisodes, userId);
+        var groupStatusesByAnime = new Dictionary<int, List<AniDB_GroupStatus>> { [ser.AniDB_ID] = RepoFactory.AniDB_GroupStatus.GetByAnimeID(ser.AniDB_ID) };
+        var sizes = ModelHelper.GenerateSeriesSizes(allEpisodes, userId, groupStatusesByAnime);
         IDs = new()
         {
             ID = ser.AnimeSeriesID,

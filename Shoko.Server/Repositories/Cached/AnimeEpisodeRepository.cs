@@ -6,6 +6,7 @@ using NHibernate;
 using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
+using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
@@ -215,48 +216,6 @@ GROUP BY
             .Select(tuple => tuple.episode!);
     }
 
-    // Group_CompletionStatus.Complete = 3, Group_CompletionStatus.Finished = 5
-    // EpisodeType.Episode = 1
-    // AirDate = 0 means unknown; kept as a candidate here and resolved exactly via HasAired in GetMissing().
-    // LastEpisodeNumber >= EpisodeNumber approximates HasGroupReleasedEpisode.
-    // GS.GroupID (int) = SRI.GroupID (varchar) relies on implicit int↔string coercion present in SQLite, MySQL, and SQL Server.
-    private const string MissingEpisodesQuery = @"
-SELECT AE.AnimeEpisodeID
-FROM AnimeEpisode AE
-INNER JOIN AniDB_Episode ADBE ON AE.AniDB_EpisodeID = ADBE.EpisodeID
-WHERE AE.IsHidden = 0
-  AND ADBE.EpisodeType = 1
-  AND (ADBE.AirDate = 0 OR ADBE.AirDate < :currentTime)
-  AND NOT EXISTS (SELECT 1 FROM CrossRef_File_Episode CFE WHERE CFE.EpisodeID = ADBE.EpisodeID)
-  AND (
-      NOT EXISTS (SELECT 1 FROM AniDB_GroupStatus GS WHERE GS.AnimeID = ADBE.AnimeID)
-      OR EXISTS (
-          SELECT 1 FROM AniDB_GroupStatus GS
-          WHERE GS.AnimeID = ADBE.AnimeID
-            AND (GS.CompletionState IN (3, 5) OR GS.LastEpisodeNumber >= ADBE.EpisodeNumber)
-      )
-  )
-";
-
-    private const string MissingEpisodesWithAnimeQuery = @"
-SELECT AE.AnimeEpisodeID
-FROM AnimeEpisode AE
-INNER JOIN AniDB_Episode ADBE ON AE.AniDB_EpisodeID = ADBE.EpisodeID
-WHERE AE.IsHidden = 0
-  AND ADBE.EpisodeType = 1
-  AND (ADBE.AirDate = 0 OR ADBE.AirDate < :currentTime)
-  AND ADBE.AnimeID = :animeID
-  AND NOT EXISTS (SELECT 1 FROM CrossRef_File_Episode CFE WHERE CFE.EpisodeID = ADBE.EpisodeID)
-  AND (
-      NOT EXISTS (SELECT 1 FROM AniDB_GroupStatus GS WHERE GS.AnimeID = ADBE.AnimeID)
-      OR EXISTS (
-          SELECT 1 FROM AniDB_GroupStatus GS
-          WHERE GS.AnimeID = ADBE.AnimeID
-            AND (GS.CompletionState IN (3, 5) OR GS.LastEpisodeNumber >= ADBE.EpisodeNumber)
-      )
-  )
-";
-
     private const string MissingCollectingEpisodesQuery = @"
 SELECT AE.AnimeEpisodeID
 FROM AnimeEpisode AE
@@ -311,10 +270,10 @@ WHERE AE.IsHidden = 0
     public IEnumerable<AnimeEpisode> GetMissing(bool collecting, int? animeID = null)
     {
         var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        using var session = _databaseFactory.SessionFactory.OpenSession();
-        IList<int> ids;
         if (collecting)
         {
+            using var session = _databaseFactory.SessionFactory.OpenSession();
+            IList<int> ids;
             if (animeID.HasValue)
                 ids = session.CreateSQLQuery(MissingCollectingEpisodesWithAnimeQuery)
                     .AddScalar("AnimeEpisodeID", NHibernateUtil.Int32)
@@ -326,26 +285,43 @@ WHERE AE.IsHidden = 0
                     .AddScalar("AnimeEpisodeID", NHibernateUtil.Int32)
                     .SetParameter("currentTime", currentTime)
                     .List<int>();
-        }
-        else if (animeID.HasValue)
-            ids = session.CreateSQLQuery(MissingEpisodesWithAnimeQuery)
-                .AddScalar("AnimeEpisodeID", NHibernateUtil.Int32)
-                .SetParameter("currentTime", currentTime)
-                .SetParameter("animeID", animeID.Value)
-                .List<int>();
-        else
-            ids = session.CreateSQLQuery(MissingEpisodesQuery)
-                .AddScalar("AnimeEpisodeID", NHibernateUtil.Int32)
-                .SetParameter("currentTime", currentTime)
-                .List<int>();
 
-        return ids
-            .Select(GetByID)
-            .WhereNotNull()
-            .Where(e => e.AniDB_Episode is { HasAired: true })
-            .OrderBy(e => e.AniDB_Episode?.AnimeID)
-            .ThenBy(e => e.AniDB_Episode?.EpisodeType)
-            .ThenBy(e => e.AniDB_Episode?.EpisodeNumber);
+            return ids
+                .Select(GetByID)
+                .WhereNotNull()
+                .OrderBy(e => e.AniDB_Episode?.AnimeID)
+                .ThenBy(e => e.AniDB_Episode?.EpisodeType)
+                .ThenBy(e => e.AniDB_Episode?.EpisodeNumber);
+        }
+
+        // Load AniDB episodes from cache for the non-collecting path
+        var anidbEpisodes = RepoFactory.AniDB_Episode.GetAll()
+            .Where(a => a.EpisodeType == EpisodeType.Episode)
+            .Where(a => a.AirDate == 0 || a.AirDate < currentTime)
+            .ToDictionary(a => a.EpisodeID);
+
+        // Filter Shoko episodes by valid AniDB episode and optional anime ID
+        var episodes = GetAll()
+            .Where(e => !e.IsHidden && e.AniDB_EpisodeID > 0 && anidbEpisodes.ContainsKey(e.AniDB_EpisodeID))
+            .ToList();
+
+        if (animeID.HasValue)
+            episodes = episodes.Where(e => anidbEpisodes[e.AniDB_EpisodeID]!.AnimeID == animeID.Value).ToList();
+
+        // Load group statuses and file cross-references in batch
+        var animeIDs = episodes.Select(e => anidbEpisodes[e.AniDB_EpisodeID]!.AnimeID).Distinct().ToList();
+        var groupStatusesByAnime = RepoFactory.AniDB_GroupStatus.GetByAnimeIDs(animeIDs);
+        var episodeIDsWithFiles = RepoFactory.CrossRef_File_Episode.GetAll()
+            .Select(f => f.EpisodeID)
+            .ToHashSet();
+
+        // Apply the shared missing-episode predicate
+        return episodes
+            .Where(e => !episodeIDsWithFiles.Contains(e.AniDB_EpisodeID) &&
+                e.IsMissingEpisode(groupStatusesByAnime.GetValueOrDefault(anidbEpisodes[e.AniDB_EpisodeID]!.AnimeID) ?? []))
+            .OrderBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.AnimeID)
+            .ThenBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.EpisodeType)
+            .ThenBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.EpisodeNumber);
     }
 
     public IReadOnlyList<AnimeEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)
