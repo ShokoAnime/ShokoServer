@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.User;
@@ -23,7 +24,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="authTokensRepository"></param>
 /// <param name="settingsProvider"></param>
 [ApiController]
-[Route("/api/v{version:apiVersion}/[controller]")]
+[Route("/api/v{version:apiVersion}/[controller]"), Tags("Authentication")]
 [ApiV3]
 public class AuthController(
     IUserService userService,
