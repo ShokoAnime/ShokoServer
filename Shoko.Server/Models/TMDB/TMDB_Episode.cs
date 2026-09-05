@@ -239,6 +239,9 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
         ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Episode, TmdbEpisodeID)
         : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Episode, TmdbEpisodeID);
 
+    /// <inheritdoc/>
+    public void ResetAllTitles() => _allTitles = null;
+
     /// <summary>
     /// Get all episode titles in the preferred episode title languages.
     /// </summary>
@@ -296,6 +299,9 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Episode, TmdbEpisodeID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Episode, TmdbEpisodeID);
+
+    /// <inheritdoc/>
+    public void ResetAllOverviews() => _allOverviews = null;
 
     /// <summary>
     /// Get all cast members that have worked on this episode.

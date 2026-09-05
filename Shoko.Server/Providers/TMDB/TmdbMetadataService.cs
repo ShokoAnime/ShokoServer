@@ -2495,10 +2495,20 @@ public class TmdbMetadataService : ITmdbMetadataService
         _tmdbTitle.Save(titlesToSave);
         _tmdbTitle.Delete(titlesToRemove);
 
-        return (
-            titlesToSave.Count > 0 || titlesToRemove.Count > 0,
-            overviewsToSave.Count > 0 || overviewsToRemove.Count > 0
-        );
+        var titlesUpdated = titlesToSave.Count > 0 || titlesToRemove.Count > 0;
+        var overviewsUpdated = overviewsToSave.Count > 0 || overviewsToRemove.Count > 0;
+
+        // the rows above live in their own repositories, so the entity is still
+        // holding the copy it memoised before they were written. It has to be
+        // dropped here rather than by the caller: what the caller resets next is
+        // the series-level titles, and those are rebuilt by reading back through
+        // this entity
+        if (titlesUpdated)
+            tmdbEntity.ResetAllTitles();
+        if (overviewsUpdated)
+            tmdbEntity.ResetAllOverviews();
+
+        return (titlesUpdated, overviewsUpdated);
     }
 
     private void PurgeTitlesAndOverviews(DataEntityType foreignType, int foreignId)

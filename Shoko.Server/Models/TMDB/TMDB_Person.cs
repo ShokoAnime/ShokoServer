@@ -201,6 +201,9 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
         ? _allBiographies = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Person, TmdbPersonID)
         : _allBiographies ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Person, TmdbPersonID);
 
+    /// <inheritdoc/>
+    public void ResetAllOverviews() => _allBiographies = null;
+
     /// <summary>
     ///   External resources/links associated with the person.
     /// </summary>

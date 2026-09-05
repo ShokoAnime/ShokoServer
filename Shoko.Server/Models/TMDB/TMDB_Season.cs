@@ -181,6 +181,9 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
         ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID)
         : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID);
 
+    /// <inheritdoc/>
+    public void ResetAllTitles() => _allTitles = null;
+
     public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
     {
         var overviews = GetAllOverviews(force);
@@ -211,6 +214,9 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID);
+
+    /// <inheritdoc/>
+    public void ResetAllOverviews() => _allOverviews = null;
 
     /// <summary>
     /// Get all cast members that have worked on this season.

@@ -212,8 +212,6 @@ public class AnimeSeries : IShokoSeries
     {
         lock (this)
         {
-            if (_preferredTitleLoaded)
-                return;
             _preferredTitleLoaded = false;
             _preferredTitle = null;
         }

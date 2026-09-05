@@ -308,6 +308,9 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
         ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Show, TmdbShowID)
         : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Show, TmdbShowID);
 
+    /// <inheritdoc/>
+    public void ResetAllTitles() => _allTitles = null;
+
     /// <summary>
     /// Get the preferred overview using the preferred episode title preference
     /// from the application settings.
@@ -350,6 +353,9 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Show, TmdbShowID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Show, TmdbShowID);
+
+    /// <inheritdoc/>
+    public void ResetAllOverviews() => _allOverviews = null;
 
     /// <summary>
     /// Get all TMDB company cross-references linked to the show.
