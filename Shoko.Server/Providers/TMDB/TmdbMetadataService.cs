@@ -206,7 +206,8 @@ public class TmdbMetadataService : ITmdbMetadataService
     }
 
     // Retries only on RequestLimitExceededException (cap: 10) and HttpRequestException timeouts (cap: 3).
-    // GeneralHttpException and all other types re-throw immediately in OnTmdbRetryAsync.
+    // 5xx types (TMDbServerException, TMDbServiceUnavailableException, GeneralHttpException >= 500) trip the
+    // 5xx breaker and re-throw; all other types re-throw immediately in OnTmdbRetryAsync.
     // Zero delay is intentional — actual rate-limit pausing happens inside TmdbRateLimiter.EnsureRateAsync.
     private readonly AsyncRetryPolicy _retryPolicy;
 
@@ -241,6 +242,12 @@ public class TmdbMetadataService : ITmdbMetadataService
                 ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
                 break;
             }
+            // TMDbLib maps recognised 5xx responses to these dedicated types; older versions surfaced
+            // them as GeneralHttpException. Both paths must trip the 5xx breaker.
+            case TMDbServerException or TMDbServiceUnavailableException:
+                _logger.LogWarning(ex, "Got a server-side error from TMDb: {Message}", ex.Message);
+                _rateLimiter.Notify5xxError();
+                throw ex;
             case GeneralHttpException ghEx:
                 _logger.LogWarning(ghEx, "Got a general HTTP exception while processing TMDb request: {StatusCode}", (int)ghEx.HttpStatusCode);
                 if ((int)ghEx.HttpStatusCode >= 500)
@@ -372,6 +379,8 @@ public class TmdbMetadataService : ITmdbMetadataService
             .Handle<HttpRequestException>()
             .Or<RequestLimitExceededException>()
             .Or<GeneralHttpException>()
+            .Or<TMDbServerException>()
+            .Or<TMDbServiceUnavailableException>()
             .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, OnTmdbRetryAsync);
     }
 
