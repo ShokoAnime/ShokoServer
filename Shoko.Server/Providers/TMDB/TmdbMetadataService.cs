@@ -2936,16 +2936,8 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <returns>Indicates that the ID was updated.</returns>
     private bool UpdateShowExternalIDs(TMDB_Show show, ExternalIdsTvShow externalIds)
     {
-        if (string.IsNullOrEmpty(externalIds.TvdbId))
-        {
-            if (!show.TvdbShowID.HasValue)
-                return false;
-
-            show.TvdbShowID = null;
-            return true;
-        }
-
-        if (!int.TryParse(externalIds.TvdbId, out var tvdbId) || tvdbId <= 0 || show.TvdbShowID == tvdbId)
+        var tvdbId = externalIds.TvdbId is > 0 ? externalIds.TvdbId : null;
+        if (show.TvdbShowID == tvdbId)
             return false;
 
         show.TvdbShowID = tvdbId;
@@ -2960,16 +2952,8 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <returns>Indicates that the ID was updated.</returns>
     private bool UpdateEpisodeExternalIDs(TMDB_Episode episode, ExternalIdsTvEpisode externalIds)
     {
-        if (string.IsNullOrEmpty(externalIds.TvdbId))
-        {
-            if (!episode.TvdbEpisodeID.HasValue)
-                return false;
-
-            episode.TvdbEpisodeID = null;
-            return true;
-        }
-
-        if (!int.TryParse(externalIds.TvdbId, out var tvdbId) || tvdbId <= 0 || episode.TvdbEpisodeID == tvdbId)
+        var tvdbId = externalIds.TvdbId is > 0 ? externalIds.TvdbId : null;
+        if (episode.TvdbEpisodeID == tvdbId)
             return false;
 
         episode.TvdbEpisodeID = tvdbId;
