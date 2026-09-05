@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.443",
+      "tag": "v6.0.0-dev.443",
+      "commit": "c099a268bd93d1d346986b190d2a7dbcb3b63225",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.443/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-05T23:33:28Z",
+      "releaseNotes": "\n`fix` (`tmdb`): **Drop the memoised titles and overviews when they are written**:\n\nThe TMDB entities memoise their titles and overviews on first read, but the\nrows themselves belong to `TMDB_Title` and `TMDB_Overview`, which are served by\ndirect repositories. Writing to those said nothing to the entity holding the\nmemoised copy, and the entities come from cached repositories that outlive any\none request, so a title corrected on TMDB stayed stale for the life of the\nprocess — a forced refresh reported no change, and only a restart brought the\nnew value through.\n\n`AnimeSeries` compounded it. `ResetAnimeTitles` and `ResetPreferredOverview`\nrun right after a TMDB refresh and rebuild by reading back through the entity,\nso they re-cached the stale values as fresh. `ResetPreferredTitle` never\ncleared anything at all: its guard returned early precisely when a title was\ncached, making every one of its call sites a no-op.\n\n- Added `ResetAllTitles` and `ResetAllOverviews` to `IEntityMetadata`, with\n  default empty bodies so an entity overrides only what it actually memoises,\n  and implemented them on `TMDB_Movie`, `TMDB_Show`, `TMDB_Season`,\n  `TMDB_Episode`, `TMDB_Collection` and `TMDB_Person`\n- Dropped the memoised copies in `UpdateTitlesAndOverviewsWithTuple` as soon as\n  the rows are saved, so the series-level resets that follow rebuild from the\n  new values rather than the old ones\n- Fixed `ResetPreferredTitle` to clear unconditionally, matching\n  `ResetPreferredOverview` and `AniDB_Anime.ResetPreferredTitle`. It stays\n  eager because `AnimeSeriesRepository.RegenerateDb` uses it to warm the cache\n  on startup\n\nThe purge paths need no invalidation of their own: they delete the entity from\nits cached repository, so the memoised copy goes with it.\n\nCloses #1422\n\n`fix` (`tmdb`): **Store the biographies fetched for a staff member**:\n\n`UpdatePerson` asked TMDB for `PersonMethods.Translations` and then only ran\n`Populate`, which keeps the English biography and drops the rest. Nothing else\nwrote a `TMDB_Overview` row for a person, so `GetAllBiographies` always came\nback empty and `GetPreferredBiography` always fell through to the English\nfallback, whatever the preferred description languages were set to.\n\n- Reconciled the biographies from the translations already on hand, so they are\n  stored the way every other entity's overviews are\n- Added an `includeTitles` flag to `UpdateTitlesAndOverviews`, passed as\n  `false` here. A person has no titles to speak of — you would not translate a\n  given name or a family name — so TMDB carries none and `TMDB_Person` has\n  nothing to read them back with; without the flag the English name would be\n  written as a title row that nothing ever reads\n- Purged the biographies in `PurgePersonInternal`, which removed the person,\n  their images and their cast and crew roles but left their overviews behind.\n  That was harmless while nothing wrote them and an orphaned row once\n  something did\n"
+    },
+    {
       "version": "6.0.0.442",
       "tag": "v6.0.0-dev.442",
       "commit": "33d8271e4aa3b1c7ca1a32b978705dfe56f1dd75",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.414/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-16T18:14:35Z",
       "releaseNotes": "\n`feat` (`buildtools`): **Add --tag, and stop dropping the revision**:\n\nThe version was truncated to three parts when read back off the\nassembly, so a four-part dev version never reached the manifest and the\nDev-channel inference on it could never fire. The tag was inferred by a\ndescribe that only matches `v*`, so a repo tagging `<name>-v1.2.3` got\n`v1.2.3` recorded instead; --tag now overrides, inference is the\nfallback, and the tag reaches the manifest entry rather than stopping\nat the assembly stamp.\n"
-    },
-    {
-      "version": "6.0.0.413",
-      "tag": "v6.0.0-dev.413",
-      "commit": "4f0e3c52b6e7aa2a1aaabebcb7c9433a170f45c2",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.413/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-16T15:49:52Z",
-      "releaseNotes": "\n`fix` (`workflows`): **Fetch tags on checkout and don't error on existing publish tags**:\n\nTag detection failed because actions/checkout only fetches a shallow\nsnapshot of the pinned SHA and skips tags unless fetch-tags is set, so\nversion stamping via git describe found no tags in the clone.\n\n- Added fetch-tags: true to every checkout step in the daily and release\n  builds\n- Replaced the invalid force_push_tag input on rickstaa/action-create-tag\n  with tag_exists_error: false so re-publishing doesn't fail when the\n  release tag already exists\n"
     }
   ]
 }
