@@ -86,4 +86,21 @@ public record MylistSyncOptions
     ///   this set is refused, because a queued job has nowhere to return a plan.
     /// </summary>
     public bool? PlanOnly { get; init; }
+
+    /// <summary>
+    ///   Optional. When set to <c>true</c>, the plan also lists everything the
+    ///   sync looked at and found nothing to do for, as
+    ///   <see cref="MylistSyncActionKind.NoOperation"/> steps. Off by default,
+    ///   so a plan carries work rather than a census.
+    ///
+    ///   Turning it on makes the plan as long as the MyList and the local
+    ///   library put together, which is the point when auditing the whole list,
+    ///   and dead weight otherwise. Only what the sync considered is listed: a
+    ///   scoped sync still reports on its own scope, and a tier the sync was
+    ///   not asked to reconcile stays out of the plan entirely.
+    ///
+    ///   Like <see cref="PlanOnly"/>, this describes the call rather than the
+    ///   server, so there is no setting behind it to fall back to.
+    /// </summary>
+    public bool? IncludeNoOperations { get; init; }
 }

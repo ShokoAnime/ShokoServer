@@ -37,13 +37,14 @@ public enum MylistSyncActionKind : byte
     ExportEntryRemoval = 4,
 
     /// <summary>
-    ///   Nothing: the entry already holds everything the step would have
-    ///   written.
+    ///   Nothing to do. The sync looked at this and found nothing to do,
+    ///   because what it would have written is already there.
     ///
-    ///   A healthy sync does not plan these. It only reaches for a step once it
-    ///   has found a difference, so one appearing means the rules that decided
-    ///   to write and the check for whether writing is needed disagree — and
-    ///   the entry will be planned again on every sync from now on.
+    ///   Left out of a plan unless
+    ///   <see cref="Models.MylistSyncOptions.IncludeNoOperations"/> asks for
+    ///   it, so that a plan reads as the work a sync will do rather than as a
+    ///   census of everything it looked at. Applying one does nothing either
+    ///   way, so a plan means the same thing whether or not they are in it.
     /// </summary>
-    AlreadyInDesiredState = 5,
+    NoOperation = 5,
 }
