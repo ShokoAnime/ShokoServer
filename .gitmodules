@@ -1,0 +1,3 @@
+[submodule "ext/TMDbLib"]
+	path = ext/TMDbLib
+	url = https://github.com/jellyfin/TMDbLib.git
