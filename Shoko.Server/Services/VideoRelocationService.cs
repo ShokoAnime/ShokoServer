@@ -838,12 +838,14 @@ public class VideoRelocationService(
         var newRelativeDirectory = shouldMove && !response.SkipMove ? response.Path : Path.GetDirectoryName(file.RelativePath[1..]);
         var newRelativePath = newRelativeDirectory is { Length: > 0 } ? Path.Combine(newRelativeDirectory, newFileName) : newFileName;
         var newFullPath = Path.Join(newFolder.Path, newRelativePath);
+        // TODO: Handle file-systems that are or aren't case sensitive.
+        var renamed = shouldRename && !response.SkipRename && !string.Equals(file.FileName, newFileName, StringComparison.OrdinalIgnoreCase);
+        var moved = shouldMove && !response.SkipMove && !string.Equals(Path.GetDirectoryName(file.Path), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase);
         return RelocationResponse.FromResult(
             newFolder,
             newRelativePath,
-            // TODO: Handle file-systems that are or aren't case sensitive.
-            !string.Equals(file.FileName, response.FileName, StringComparison.OrdinalIgnoreCase),
-            !string.Equals(Path.GetDirectoryName(file.Path), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase)
+            moved,
+            renamed
         );
     }
 
