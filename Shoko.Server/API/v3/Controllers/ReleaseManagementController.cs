@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.QueueProcessor.Abstractions;
@@ -26,7 +27,7 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/ReleaseManagement")]
+[Route("/api/v{version:apiVersion}/ReleaseManagement"), Tags("ReleaseManagement")]
 [ApiV3]
 [Authorize]
 public class ReleaseManagementController(

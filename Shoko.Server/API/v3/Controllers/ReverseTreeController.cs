@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -45,7 +46,7 @@ public class ReverseTreeController : BaseController
     /// <param name="withConditions">Include conditions and sort criteria in the response.</param>
     /// <param name="includeEmptyGroups">Include empty groups for size calculations.</param>
     /// <returns></returns>
-    [HttpGet("Filter/{filterID}/Parent")]
+    [HttpGet("Filter/{filterID}/Parent"), Tags("Filter")]
     public ActionResult<Filter> GetParentFromFilter([FromRoute, Range(1, int.MaxValue)] int filterID, [FromQuery] bool topLevel = false, [FromQuery] bool withConditions = false, [FromQuery] bool includeEmptyGroups = false)
     {
         var filter = _filterPresets.GetByID(filterID);
@@ -81,7 +82,7 @@ public class ReverseTreeController : BaseController
     /// <param name="groupID"><see cref="Group"/> ID</param>
     /// <param name="topLevel">Always get the top-level <see cref="Group"/></param>
     /// <returns></returns>
-    [HttpGet("Group/{groupID}/Parent")]
+    [HttpGet("Group/{groupID}/Parent"), Tags("Group")]
     public ActionResult<Group> GetParentFromGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool topLevel = false)
     {
         var group = _animeGroups.GetByID(groupID);
@@ -120,7 +121,7 @@ public class ReverseTreeController : BaseController
     /// <param name="seriesID"><see cref="Series"/> ID</param>
     /// <param name="topLevel">Always get the top-level <see cref="Group"/></param>
     /// <returns></returns>
-    [HttpGet("Series/{seriesID}/Group")]
+    [HttpGet("Series/{seriesID}/Group"), Tags("Series")]
     public ActionResult<Group> GetGroupFromSeries([FromRoute, Range(1, int.MaxValue)] int seriesID, [FromQuery] bool topLevel = false)
     {
         var series = _animeSeries.GetByID(seriesID);
@@ -150,7 +151,7 @@ public class ReverseTreeController : BaseController
     /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
-    [HttpGet("Episode/{episodeID}/Series")]
+    [HttpGet("Episode/{episodeID}/Series"), Tags("Episode")]
     public ActionResult<Series> GetSeriesFromEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
@@ -184,7 +185,7 @@ public class ReverseTreeController : BaseController
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
-    [HttpGet("File/{fileID}/Episode")]
+    [HttpGet("File/{fileID}/Episode"), Tags("File")]
     public ActionResult<List<Episode>> GetEpisodeFromFile(
         [FromRoute, Range(1, int.MaxValue)] int fileID,
         [FromQuery] bool includeFiles = false,

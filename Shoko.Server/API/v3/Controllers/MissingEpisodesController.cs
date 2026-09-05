@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -17,7 +18,7 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/MissingEpisodes")]
+[Route("/api/v{version:apiVersion}/MissingEpisodes"), Tags("ReleaseManagement")]
 [ApiV3]
 [Authorize]
 public class MissingEpisodesController(ISettingsProvider settingsProvider,

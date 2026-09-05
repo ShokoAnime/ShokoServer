@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
@@ -30,7 +31,7 @@ using Shoko.Server.Plex.Libraries;
 
 namespace Shoko.Server.API.v0.Controllers;
 
-[ApiController]
+[ApiController, Tags("Plex")]
 [Route("/plex")]
 [ApiVersionNeutral]
 public class PlexWebhook : BaseController

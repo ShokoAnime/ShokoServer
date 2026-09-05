@@ -30,7 +30,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="imageManager">The image manager service.</param>
 /// <param name="settingsProvider">The settings provider.</param>
 [ApiController]
-[Route("/api/v{version:apiVersion}/Image/Management")]
+[Route("/api/v{version:apiVersion}/Image/Management"), Tags("Image")]
 [ApiV3]
 [Authorize]
 public class ImageManagementController(IImageManager imageManager, ISettingsProvider settingsProvider) : BaseController(settingsProvider)

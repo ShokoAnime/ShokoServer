@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Exceptions;
@@ -33,7 +34,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// Inspect what a MyList sync would do before letting it do anything.
 /// </summary>
 [ApiController]
-[Route("/api/v{version:apiVersion}/AniDB/MyList")]
+[Route("/api/v{version:apiVersion}/AniDB/MyList"), Tags("Anidb")]
 [ApiV3]
 [Authorize("admin")]
 public class MylistController(
