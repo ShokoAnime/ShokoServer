@@ -3,19 +3,20 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Actions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/Series/{seriesID:int}/Action")]
+[Route("/api/v{version:apiVersion}/Series/{seriesID:int}/Action"), Tags("Action")]
 [ApiV3]
 [Authorize]
-public class SeriesActionController(ActionService actionService, AnimeSeriesRepository series, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
+public class SeriesActionController(IActionService actionService, AnimeSeriesRepository series, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
     /// <summary>
     ///   Invoke a series-scoped action by its ID. Entity existence is
