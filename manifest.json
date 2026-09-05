@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.442",
+      "tag": "v6.0.0-dev.442",
+      "commit": "33d8271e4aa3b1c7ca1a32b978705dfe56f1dd75",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.442/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-05T22:49:15Z",
+      "releaseNotes": "\n`refactor` (`anidb`): **Skip MyList sync steps that would write nothing**:\n\nA sync planned and queued a removal for every entry the library no longer\nhad, without checking whether the entry was already at the state the delete\ntype marks with. Under `MarkDeleted` such an entry stays in the MyList and\nkeeps reading as missing, so every sync re-queued the same no-op edit against\nit — thousands per run on a large list, each one taking a turn in the\n`AniDB_UDP` concurrency group ahead of real work. The same hole existed on the\nwatched path, where a decided update that `IsInDesiredState` disagreed with\nwas enqueued anyway.\n\n- Skipped the enqueue in `SyncInternalAsync` when the entry already holds the\n  marked state, on both the file and the generic episode paths, and did the\n  same in `ReconcileEntry`\n- Renamed `MylistSyncActionKind.AlreadyInDesiredState` to `NoOperation`, which\n  no longer implies a fault; the decision-versus-desired-state disagreement it\n  used to stand for is now a warning in the log\n- Added `MylistSyncOptions.IncludeNoOperations`, off by default, so a plan can\n  list what a sync looked at and left alone as well as what it will do. Like\n  `PlanOnly` it describes the call rather than the server, so no setting backs\n  it\n- Collected the plan through a `MylistSyncActionLog`, so what a no-op means for\n  the plan is decided once rather than at each of the dozen sites that record\n  one\n- Added `EntriesAlreadyDisposed`, `EpisodesAlreadyDisposed` and `NoOperations`\n  to `MylistSyncResult`, and a left-alone count to the sync summary log, so the\n  removal counts dropping to zero is explained rather than just observed\n- Dropped the empty-`Hash` filter in `AddMissingFiles`; a `VideoLocal` always\n  has one\n\nCloses #1419\n"
+    },
+    {
       "version": "6.0.0.441",
       "tag": "v6.0.0-dev.441",
       "commit": "740a9cf63ffecb9ae8338f6fa8e534695c3baf4e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.413/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-16T15:49:52Z",
       "releaseNotes": "\n`fix` (`workflows`): **Fetch tags on checkout and don't error on existing publish tags**:\n\nTag detection failed because actions/checkout only fetches a shallow\nsnapshot of the pinned SHA and skips tags unless fetch-tags is set, so\nversion stamping via git describe found no tags in the clone.\n\n- Added fetch-tags: true to every checkout step in the daily and release\n  builds\n- Replaced the invalid force_push_tag input on rickstaa/action-create-tag\n  with tag_exists_error: false so re-publishing doesn't fail when the\n  release tag already exists\n"
-    },
-    {
-      "version": "6.0.0.412",
-      "tag": "v6.0.0-dev.412",
-      "commit": "a14aed7b712d926968b25b0747e3ea01b638edd2",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.412/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-16T15:31:42Z",
-      "releaseNotes": "\n`refactor` (`images`): **Remove legacy v3 image endpoint and DTO fields** ([#1407](https://github.com/ShokoAnime/ShokoServer/pull/1407)):\n\n- Removed the `GetLegacyImage` endpoint from `ImageController`\n- Removed the legacy `ID` (`int`) field from the `Image` response DTO\n- Changed `Image.Type` from `LegacyImageType` to `ImageEntityType`\n- Removed the `LegacyImageType` enum and `ImageExtensions.ToLegacyDto`\n"
     }
   ]
 }
