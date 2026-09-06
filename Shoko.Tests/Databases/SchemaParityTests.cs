@@ -42,7 +42,7 @@ public class SchemaParityTests
         @"ALTER\s+TABLE\s+[\[`""]?(?<name>\w+)[\]`""]?", RegexOptions.IgnoreCase);
 
     private static readonly Regex s_renameTo = new(
-        @"ALTER\s+TABLE\s+[\[`""]?(?<from>\w+)[\]`""]?\s+RENAME\s+(?!COLUMN\b)(?:TO\s+)?[\[`""]?(?<to>\w+)[\]`""]?", RegexOptions.IgnoreCase);
+        @"ALTER\s+TABLE\s+[\[`""]?(?<from>\w+)[\]`""]?\s+RENAME\s+TO\s+[\[`""]?(?<to>\w+)[\]`""]?", RegexOptions.IgnoreCase);
 
     private static readonly Regex s_renameTable = new(
         @"RENAME\s+TABLE\s+[\[`""]?(?<from>\w+)[\]`""]?\s+TO\s+[\[`""]?(?<to>\w+)[\]`""]?", RegexOptions.IgnoreCase);
@@ -110,7 +110,7 @@ public class SchemaParityTests
             .Where(field => field is not null)
             .SelectMany(field => (IEnumerable<DatabaseCommand>)field!.GetValue(database)!)
             .Where(command => command.Type is DatabaseCommandType.NormalCommand && command.Command is not null)
-            .Select(command => command.Command!);
+            .SelectMany(command => command.Command!.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
     public static TheoryData<string> Backends() => new("SQLite", "MySQL", "SQLServer");
 
@@ -142,14 +142,34 @@ public class SchemaParityTests
         Assert.True(statements.Length > 100, $"{backend}: only found {statements.Length} statements.");
     }
 
-    [Theory]
-    [MemberData(nameof(Backends))]
-    public void TheSchemaHasTables(string backend)
-        => Assert.True(Build(Instantiate(backend)).Tables.Count > 50);
-
     #endregion
 
     #region Parity
+
+    /// <summary>
+    /// SQLite drops this from a coded migration rather than plain SQL, so a static replay of the
+    /// command lists cannot see it go. All three backends do drop it.
+    /// </summary>
+    private static readonly string[] s_droppedOutsideSql = ["Language"];
+
+    private static HashSet<string> TablesOf(string backend)
+        => Build(Instantiate(backend)).Tables
+            .Except(s_droppedOutsideSql, StringComparer.OrdinalIgnoreCase)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    [Theory]
+    [InlineData("MySQL")]
+    [InlineData("SQLServer")]
+    public void EveryBackendDefinesTheSameTablesAsSqlite(string backend)
+    {
+        var sqlite = TablesOf("SQLite");
+        var other = TablesOf(backend);
+
+        // Each backend keeps its own copy of the schema, so one can gain or lose a table without
+        // anything failing until a user on that backend hits it.
+        Assert.Equal(string.Empty, string.Join(", ", sqlite.Except(other).Order()));
+        Assert.Equal(string.Empty, string.Join(", ", other.Except(sqlite).Order()));
+    }
 
     [Theory]
     [MemberData(nameof(Backends))]
