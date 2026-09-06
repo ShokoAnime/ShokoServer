@@ -32,7 +32,7 @@ jobs:
         run: dotnet test Shoko.IntegrationTests/Shoko.IntegrationTests.csproj -c Release --logger "console;verbosity=normal"
 
       - name: Upload schema dump
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: schema-SQLite
           path: schema-dumps/schema-SQLite.json
@@ -78,7 +78,7 @@ jobs:
         run: dotnet test Shoko.IntegrationTests/Shoko.IntegrationTests.csproj -c Release --logger "console;verbosity=normal"
 
       - name: Upload schema dump
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: schema-MySQL
           path: schema-dumps/schema-MySQL.json
@@ -125,7 +125,7 @@ jobs:
         run: dotnet test Shoko.IntegrationTests/Shoko.IntegrationTests.csproj -c Release --logger "console;verbosity=normal"
 
       - name: Upload schema dump
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: schema-SQLServer
           path: schema-dumps/schema-SQLServer.json
@@ -147,7 +147,7 @@ jobs:
       # Each backend job published the schema its own migration produced; the comparison needs all
       # three side by side, and skips rather than passes if any is missing.
       - name: Download schema dumps
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           pattern: schema-*
           merge-multiple: true
