@@ -2,7 +2,7 @@ using System;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Metadata;
 
-namespace Shoko.Tests;
+namespace Shoko.TestData;
 
 public class PartialDateOnlyConverter : JsonConverter<PartialDateOnly?>
 {
