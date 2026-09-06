@@ -114,6 +114,13 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     public TimeSpan? Runtime { get; set; }
 
     /// <summary>
+    /// TMDB's own episode classification (<c>standard</c>, <c>finale</c>,
+    /// <c>mid_season</c>, <c>special</c>), verbatim from the API. <see langword="null"/>
+    /// until the episode is refreshed against a library build that fetches it.
+    /// </summary>
+    public string? TmdbEpisodeType { get; set; }
+
+    /// <summary>
     /// Average user rating across all <see cref="UserVotes"/>.
     /// </summary>
     public double UserRating { get; set; }
@@ -187,6 +194,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
             UpdateProperty(SeasonNumber, episode.SeasonNumber, v => SeasonNumber = v),
             UpdateProperty(EpisodeNumber, episode.EpisodeNumber, v => EpisodeNumber = (int)v),
             UpdateProperty(Runtime, episode.Runtime.HasValue ? TimeSpan.FromMinutes(episode.Runtime.Value) : null, v => Runtime = v),
+            UpdateProperty(TmdbEpisodeType, string.IsNullOrWhiteSpace(episode.EpisodeType) ? null : episode.EpisodeType.Trim(), v => TmdbEpisodeType = v),
             UpdateProperty(UserRating, episode.VoteAverage, v => UserRating = v),
             UpdateProperty(UserVotes, episode.VoteCount, v => UserVotes = v),
             UpdateProperty(AiredAt, episode.AirDate?.ToDateOnly(), v => AiredAt = v),
