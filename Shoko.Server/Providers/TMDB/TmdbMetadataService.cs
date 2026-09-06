@@ -2956,7 +2956,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <param name="show">TMDB Show.</param>
     /// <param name="externalIds">External IDs.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private bool UpdateShowExternalIDs(TMDB_Show show, ExternalIdsTvShow? externalIds)
+    internal static bool UpdateShowExternalIDs(TMDB_Show show, ExternalIdsTvShow? externalIds)
     {
         var tvdbId = externalIds?.TvdbId is > 0 ? externalIds.TvdbId : null;
         if (show.TvdbShowID == tvdbId)
@@ -2972,7 +2972,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <param name="episode">TMDB Episode.</param>
     /// <param name="externalIds">External IDs.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private bool UpdateEpisodeExternalIDs(TMDB_Episode episode, ExternalIdsTvEpisode? externalIds)
+    internal static bool UpdateEpisodeExternalIDs(TMDB_Episode episode, ExternalIdsTvEpisode? externalIds)
     {
         var tvdbId = externalIds?.TvdbId is > 0 ? externalIds.TvdbId : null;
         if (episode.TvdbEpisodeID == tvdbId)
@@ -2988,7 +2988,7 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <param name="movie">TMDB Movie.</param>
     /// <param name="externalIds">External IDs.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private bool UpdateMovieExternalIDs(TMDB_Movie movie, ExternalIdsMovie? externalIds)
+    internal static bool UpdateMovieExternalIDs(TMDB_Movie movie, ExternalIdsMovie? externalIds)
     {
         if (movie.ImdbMovieID == externalIds?.ImdbId)
             return false;
