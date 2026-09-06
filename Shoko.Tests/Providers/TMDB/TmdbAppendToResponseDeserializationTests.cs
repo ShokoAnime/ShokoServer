@@ -1,4 +1,5 @@
 using TMDbLib.Objects.Movies;
+using TMDbLib.Objects.Search;
 using TMDbLib.Objects.TvShows;
 using TMDbLib.Utilities.Serializer;
 using Xunit;
@@ -134,6 +135,18 @@ public class TmdbAppendToResponseDeserializationTests
         Assert.Single(episode.Credits!.Cast!);
         Assert.Empty(episode.Credits!.Crew!);
         Assert.Single(episode.Credits!.GuestStars!);
+    }
+
+    [Fact]
+    public void SearchResults_GenreIds_Bind()
+    {
+        // TmdbSearchService's restricted auto-match + animation-genre ordering read
+        // SearchTv/SearchMovie.GenreIds (task T029). Confirm STJ still binds genre_ids.
+        var show = Deserialize<SearchTv>("""{ "id": 45782, "name": "SAO", "genre_ids": [16, 10765] }""");
+        Assert.Equal(new[] { 16, 10765 }, show.GenreIds);
+
+        var movie = Deserialize<SearchMovie>("""{ "id": 149, "title": "Akira", "genre_ids": [16, 28, 878] }""");
+        Assert.Equal(new[] { 16, 28, 878 }, movie.GenreIds);
     }
 
     [Fact]
