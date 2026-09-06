@@ -86,7 +86,15 @@ public class TmdbProductionCountryConverter : TypeConverter, IUserType
         => new[] { NHibernateUtil.String.SqlType };
 
     bool IUserType.Equals(object x, object y)
-        => ReferenceEquals(x, y) || (x != null && y != null && x.Equals(y));
+    {
+        if (ReferenceEquals(x, y))
+            return true;
+        if (x is null || y is null)
+            return false;
+
+        // Compare what would be written, not the list references.
+        return Equals(ConvertTo(null, null, x, typeof(string)), ConvertTo(null, null, y, typeof(string)));
+    }
 
     #endregion
 }
