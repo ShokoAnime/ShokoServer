@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Moq;
 using NutzCode.InMemoryIndex;
 using Shoko.Server.Repositories;
 
@@ -41,5 +42,35 @@ public static class CachedRepo
         repository.PopulateIndexes();
 
         return repository;
+    }
+
+    /// <summary>
+    /// Builds a cache-backed repository that also accepts writes, returning the mock so a test can
+    /// verify them.
+    /// </summary>
+    /// <remarks>
+    /// A partial mock with <c>CallBase</c> keeps every real read path intact and replaces only the
+    /// virtual <c>Save</c>/<c>Delete</c> members, whose real implementations would go to the
+    /// database. Writes land in the same <see cref="PocoCache{TKey, TEntity}"/> the reads come from,
+    /// so a saved entity is visible to a subsequent lookup exactly as it would be in production.
+    /// </remarks>
+    public static Mock<TRepo> BuildWritable<TRepo, TKey, TEntity>(Func<TEntity, TKey> keySelector, IEnumerable<TEntity>? entities = null)
+        where TRepo : BaseCachedRepository<TEntity, TKey>
+        where TEntity : class, new()
+        where TKey : notnull
+    {
+        var constructor = typeof(TRepo).GetConstructors()
+            .OrderBy(c => c.GetParameters().Length)
+            .First();
+        var mock = new Mock<TRepo>(new object[constructor.GetParameters().Length]) { CallBase = true };
+        var repository = mock.Object;
+
+        repository.Cache = new PocoCache<TKey, TEntity>(entities ?? [], keySelector);
+        repository.PopulateIndexes();
+
+        mock.Setup(r => r.Save(It.IsAny<TEntity>())).Callback<TEntity>(entity => repository.Cache.Update(entity));
+        mock.Setup(r => r.Delete(It.IsAny<TEntity>())).Callback<TEntity>(entity => repository.Cache.Remove(entity));
+
+        return mock;
     }
 }
