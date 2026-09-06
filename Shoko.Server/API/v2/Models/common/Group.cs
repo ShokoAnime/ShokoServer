@@ -186,11 +186,14 @@ public class Group : BaseDirectory
                     ?? posters.FirstOrDefault(x => x is { IsEnabled: true, IsAvailable: true })
                     ?? posters.FirstOrDefault(x => x is { IsEnabled: true })
                     ?? posters.FirstOrDefault();
-                group.art.thumb.Add(new Art
+                if (poster is not null)
                 {
-                    index = 0,
-                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster!),
-                });
+                    group.art.thumb.Add(new Art
+                    {
+                        index = 0,
+                        url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster),
+                    });
+                }
                 if (backdrops.Count > 0)
                 {
                     var backdrop = backdrops.FirstOrDefault(x => x.IsPreferred)
