@@ -154,6 +154,27 @@ public class SortingSelectorTests
         { "WebSourceCountSortingSelector", "filterable", "FileSourceCounts.Web", "" },
     };
 
+    [Fact]
+    public void TheTestDataTellsEverySelectorApart()
+    {
+        // If two selectors reading different fields resolve to the same value on the double, the
+        // theory below cannot tell one from the other and both assertions become decoration.
+        // Selectors that genuinely read the same field are expected to agree.
+        var byValue = new Dictionary<string, HashSet<string>>();
+        foreach (var row in SelectorProperties())
+        {
+            var (_, source, path, _) = row.Data;
+            var expected = Resolve(source == "userInfo" ? s_userInfo : s_filterable, path);
+            byValue.TryAdd($"{expected}", []);
+            byValue[$"{expected}"].Add($"{source}.{path}");
+        }
+
+        var collisions = byValue.Where(entry => entry.Value.Count > 1)
+            .Select(entry => $"{entry.Key}: {string.Join(", ", entry.Value.Order())}");
+
+        Assert.Equal(string.Empty, string.Join(" | ", collisions));
+    }
+
     [Theory]
     [MemberData(nameof(SelectorProperties))]
     public void EverySelectorReadsTheFieldItIsNamedFor(string selector, string source, string path, string transform)

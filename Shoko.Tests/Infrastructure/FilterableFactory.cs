@@ -110,9 +110,14 @@ public static class FilterableFactory
 
     private static object BuildSet(Type elementType, string name)
     {
+        // Sized from the name as well as filled from it: a set built with one element every time
+        // gives every ".Count" read the same answer, which makes anything reading one
+        // indistinguishable from anything reading another.
         var set = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
-        if (SampleFor(elementType, name) is { } element)
-            set.Add(element);
+        var count = 1 + (SeedFor(name) % 7);
+        for (var index = 0; index < count; index++)
+            if (SampleFor(elementType, $"{name}[{index}]") is { } element)
+                set.Add(element);
 
         return Activator.CreateInstance(typeof(HashSet<>).MakeGenericType(elementType), set)!;
     }
