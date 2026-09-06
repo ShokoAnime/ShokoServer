@@ -21,6 +21,7 @@ public static class AniDBStartup
         services.AddSingleton<AniDBTitleHelper>();
         services.AddSingleton<AnimeCreator>();
         services.AddSingleton<HttpXmlUtils>();
+        services.AddSingleton<IAniDBSocketHandlerFactory, AniDBSocketHandlerFactory>();
         services.AddSingleton<UDPRateLimiter>();
         services.AddSingleton<HttpRateLimiter>();
         services.AddSingleton<IHttpConnectionHandler, AniDBHttpConnectionHandler>();
