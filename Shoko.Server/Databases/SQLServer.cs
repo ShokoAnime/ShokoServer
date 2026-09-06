@@ -1098,6 +1098,16 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(180, 37, "ALTER TABLE TMDB_Title ADD CONSTRAINT PK_TMDB_Title PRIMARY KEY CLUSTERED (TMDB_TitleID);"),
         new(180, 38, "ALTER TABLE VideoLocal_HashDigest ADD CONSTRAINT PK_VideoLocal_HashDigest PRIMARY KEY CLUSTERED (VideoLocal_HashDigestID);"),
         new(181,  1, DropVideoLocalMylistID),
+        // Seven tables were created before the version 180 sweep but missed by it, leaving them
+        // without a primary key on SQL Server while SQLite and MySQL both declare one. Every one of
+        // them keys off an IDENTITY column, so the values are already unique and non-null.
+        new(182,  1, "ALTER TABLE AniDB_Anime_PreferredImage ADD CONSTRAINT PK_AniDB_Anime_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Anime_PreferredImageID);"),
+        new(182,  2, "ALTER TABLE AniDB_Episode_PreferredImage ADD CONSTRAINT PK_AniDB_Episode_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Episode_PreferredImageID);"),
+        new(182,  3, "ALTER TABLE AniDB_FileUpdate ADD CONSTRAINT PK_AniDB_FileUpdate PRIMARY KEY CLUSTERED (AniDB_FileUpdateID);"),
+        new(182,  4, "ALTER TABLE AuthTokens ADD CONSTRAINT PK_AuthTokens PRIMARY KEY CLUSTERED (AuthID);"),
+        new(182,  5, "ALTER TABLE ShokoImage_Entity ADD CONSTRAINT PK_ShokoImage_Entity PRIMARY KEY CLUSTERED (ID);"),
+        new(182,  6, "ALTER TABLE TMDB_Image ADD CONSTRAINT PK_TMDB_Image PRIMARY KEY CLUSTERED (TMDB_ImageID);"),
+        new(182,  7, "ALTER TABLE TMDB_Image_Entity ADD CONSTRAINT PK_TMDB_Image_Entity PRIMARY KEY CLUSTERED (TMDB_Image_EntityID);"),
     ];
 
     #endregion
