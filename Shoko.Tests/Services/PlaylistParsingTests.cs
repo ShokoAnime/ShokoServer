@@ -152,20 +152,32 @@ public class PlaylistParsingTests
 
     #region Documented extras
 
+    /// <summary>
+    /// Every item below is copied from the remarks on
+    /// <see cref="GeneratedPlaylistService.ParsePlaylist"/>, which document them as valid. All of
+    /// them are currently rejected: the entry is split on '+' before the extras suffix is looked
+    /// for, so the suffix survives as a separate sub-item and trips the "one sub-item only" check.
+    /// `recursive` fares worst — it begins with 'r', so it is taken for a release group ID.
+    /// </summary>
+    /// <remarks>
+    /// Written against the intended behaviour, so it turns green when the split is corrected.
+    /// Measured: with the fix the parser does accept all of these. The assertion also needs the
+    /// playlist to build afterwards, which reaches `GetUser` and so needs
+    /// `ISystemService.StaticServices` — nothing in this assembly sets that today, so expect to
+    /// stub it when un-skipping.
+    /// </remarks>
     [Theory(Skip = "Possible bug - Needs investigation")]
-    [InlineData("recursive")]
-    [InlineData("includeAllSeries")]
-    [InlineData("onlyUnwatched")]
-    [InlineData("includeAllSeries-onlyUnwatched")]
-    public void TheDocumentedGroupExtrasAreAccepted(string extras)
+    [InlineData("g5+recursive")]
+    [InlineData("g5+includeAllSeries")]
+    [InlineData("g5+onlyUnwatched")]
+    [InlineData("g5+includeAllSeries-onlyUnwatched")]
+    [InlineData("a123+onlyUnwatched")]
+    [InlineData("s456+includeSpecials")]
+    public void TheDocumentedExtrasSyntaxIsAccepted(string item)
     {
-        // The DSL documents `g<id>+<extra>` with dash-separated extras. Entries are split on '+'
-        // before the extras are looked for, so the suffix is never seen: it becomes a second
-        // sub-item and is rejected, and anything starting with "r" — `recursive` — is taken for a
-        // release group ID.
         using var harness = new Harness();
 
-        Assert.True(harness.Parse($"g{GroupID}+{extras}").Valid);
+        Assert.True(harness.Parse(item).Valid);
     }
 
     #endregion
