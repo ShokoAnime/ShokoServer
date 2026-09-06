@@ -147,9 +147,6 @@ public class PocoCacheTests
     public void Index_GetMultiple_ReturnsEmptyForAnUnknownKey()
         => Assert.Empty(Cache(new Item(1, "a")).CreateIndex(i => i.Category).GetMultiple("zzz"));
 
-
-
-
     #endregion
 
     #region Index maintenance

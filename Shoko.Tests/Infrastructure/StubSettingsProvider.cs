@@ -1,3 +1,4 @@
+using System.Threading;
 using Shoko.Server.Settings;
 
 namespace Shoko.Tests.Infrastructure;
@@ -15,18 +16,29 @@ public sealed class StubSettingsProvider(ServerSettings settings) : ISettingsPro
 {
     public ServerSettings Settings { get; } = settings;
 
+    private static readonly Lock _installLock = new();
+
     /// <summary>
     /// Installs a stub provider unless something has already set one.
     /// </summary>
+    /// <remarks>
+    /// Locked because the check and the assignment are two steps against one process-global static.
+    /// Two classes installing at once would otherwise each see it unset and each install their own,
+    /// and the loser's settings — which a caller has already started configuring — would be
+    /// discarded out from under it.
+    /// </remarks>
     public static void Install()
     {
-        try
+        lock (_installLock)
         {
-            _ = ISettingsProvider.Instance;
-        }
-        catch
-        {
-            ISettingsProvider.Instance = new StubSettingsProvider(new ServerSettings());
+            try
+            {
+                _ = ISettingsProvider.Instance;
+            }
+            catch
+            {
+                ISettingsProvider.Instance = new StubSettingsProvider(new ServerSettings());
+            }
         }
     }
 
