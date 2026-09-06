@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Shoko.Server.Extensions;
+using Shoko.Server.Utilities;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable InconsistentNaming
@@ -43,7 +44,7 @@ public static class SubtitleHelper
     {
         try
         {
-            return AppDomain.CurrentDomain.GetAssemblies()
+            return ReflectionUtils.ScannableAssemblies()
                 .SelectMany(x => x.GetTypes())
                 .Where(x => typeof(ISubtitles).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract)
                 .Select(type => (ISubtitles)Activator.CreateInstance(type)!)

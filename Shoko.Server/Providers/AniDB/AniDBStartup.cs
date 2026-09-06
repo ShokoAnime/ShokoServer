@@ -10,6 +10,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -30,13 +31,13 @@ public static class AniDBStartup
 
         // Register Requests
         var requestType = typeof(IRequest);
-        var types = AppDomain.CurrentDomain.GetAssemblies()
+        var types = ReflectionUtils.ScannableAssemblies()
             .SelectMany(s => s.GetTypes())
             .Where(p => requestType.IsAssignableFrom(p) && !p.IsAbstract && p.IsClass);
 
         /* Possibly negate the need for IRequest (non-generic)
         var requestType = typeof(IRequest<>);
-        var types = AppDomain.CurrentDomain.GetAssemblies()
+        var types = ReflectionUtils.ScannableAssemblies()
             .SelectMany(s => s.GetTypes())
             .Where(p => p.IsGenericType && requestType.IsAssignableFrom(p.GetGenericTypeDefinition()) && !p.IsAbstract && p.IsClass)
          */

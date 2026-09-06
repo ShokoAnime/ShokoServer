@@ -19,7 +19,10 @@ public class NetworkRequiredAcquisitionFilter : IAcquisitionFilter
         _connectivityService.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
         // Use OfType<NetworkRequiredAttribute>() rather than IsDefined so that subclasses
         // of NetworkRequiredAttribute (e.g. AniDBHttpRateLimitedAttribute) are also matched.
+        // Skipping runtime-emitted assemblies: `GetTypes()` throws on one still being written to,
+        // and no job type is ever emitted at runtime.
         _types = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => !a.IsDynamic)
             .SelectMany(a => a.GetTypes())
             .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
                         a.GetCustomAttributes(inherit: true).OfType<NetworkRequiredAttribute>().Any())

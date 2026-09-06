@@ -6,6 +6,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
 
@@ -21,7 +22,7 @@ public class AniDBUdpRateLimitedAcquisitionFilter : IAcquisitionFilter
         _systemService = systemService;
         _connectionHandler.AniDBStateUpdate += OnAniDBStateUpdate;
         _systemService.AboutToStart += OnProvidersReady;
-        _types = AppDomain.CurrentDomain.GetAssemblies()
+        _types = ReflectionUtils.ScannableAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
                         a.GetCustomAttributes(inherit: true).OfType<AniDBUdpRateLimitedAttribute>().Any())

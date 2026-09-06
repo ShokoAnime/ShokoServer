@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using Newtonsoft.Json.Serialization;
 using NLog;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Databases.NHibernate;
 
@@ -25,9 +26,7 @@ public class SimpleNameSerializationBinder : DefaultSerializationBinder
     public override Type BindToType(string? assemblyName, string typeName)
     {
         var name = typeName.Split('.').LastOrDefault();
-        // Skipping assemblies emitted at runtime: `GetTypes()` throws `ReflectionTypeLoadException`
-        // on one that is still being written to, and nothing bound here is ever emitted at runtime.
-        var types = AppDomain.CurrentDomain.GetAssemblies().Where(a => !a.IsDynamic).SelectMany(a => a.GetTypes())
+        var types = ReflectionUtils.ScannableAssemblies().SelectMany(a => a.GetTypes())
             .Where(a => a.Name.Equals(name) && (_baseType == null || _baseType.IsAssignableFrom(a))).ToArray();
         if (types.Length > 1) _logger.Warn($"SimpleNameSerializationBinder found multiple types that match {name}");
         return types.FirstOrDefault()!;
