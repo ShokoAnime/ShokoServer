@@ -54,123 +54,56 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class SeriesController : BaseController
+public class SeriesController(
+    ISettingsProvider settingsProvider,
+    ActionService _actionService,
+    AnimeSeriesService _seriesService,
+    AnimeGroupService _groupService,
+    AniDBTitleHelper _titleHelper,
+    IQueueScheduler _scheduler,
+    TmdbLinkingService _tmdbLinkingService,
+    TmdbMetadataService _tmdbMetadataService,
+    TmdbSearchService _tmdbSearchService,
+    IMetadataService _metadataService,
+    IImageManager _imageManager,
+    IUserDataService _userDataService,
+    IVideoReleaseService _videoReleaseService,
+    IVideoRelocationService _relocationService,
+    IJobFactory _jobFactory,
+    AniDB_AnimeRepository _anidbAnime,
+    AniDB_Anime_RelationRepository _anidbAnimeRelations,
+    AniDB_Anime_SimilarRepository _anidbAnimeSimilar,
+    AniDB_GroupStatusRepository _anidbGroupStatus,
+    AniDB_EpisodeRepository _anidbEpisodes,
+    AnimeEpisodeRepository _animeEpisodes,
+    AnimeEpisode_UserRepository _animeEpisodeUsers,
+    AnimeGroupRepository _animeGroups,
+    AnimeSeriesRepository _animeSeries,
+    CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies,
+    CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows,
+    TMDB_EpisodeRepository _tmdbEpisodes,
+    TMDB_MovieRepository _tmdbMovies,
+    TMDB_SeasonRepository _tmdbSeasons,
+    TMDB_ShowRepository _tmdbShows,
+    VideoLocal_PlaceRepository _videoLocalPlaces,
+    VideoLocal_UserRepository _videoLocalUsers,
+    IShokoGroupManager _groupManagementService
+) : BaseController(settingsProvider)
 {
-    private readonly ActionService _actionService;
 
-    private readonly AnimeSeriesService _seriesService;
 
-    private readonly AnimeGroupService _groupService;
 
-    private readonly AniDBTitleHelper _titleHelper;
 
-    private readonly IQueueScheduler _scheduler;
 
-    private readonly TmdbLinkingService _tmdbLinkingService;
 
-    private readonly TmdbMetadataService _tmdbMetadataService;
 
-    private readonly TmdbSearchService _tmdbSearchService;
 
-    private readonly IMetadataService _metadataService;
 
-    private readonly IImageManager _imageManager;
 
-    private readonly IUserDataService _userDataService;
 
-    private readonly IVideoReleaseService _videoReleaseService;
 
-    private readonly IVideoRelocationService _relocationService;
 
-    private readonly IJobFactory _jobFactory;
-    private readonly AniDB_AnimeRepository _anidbAnime;
-    private readonly AniDB_Anime_RelationRepository _anidbAnimeRelations;
-    private readonly AniDB_Anime_SimilarRepository _anidbAnimeSimilar;
-    private readonly AniDB_GroupStatusRepository _anidbGroupStatus;
-    private readonly AniDB_EpisodeRepository _anidbEpisodes;
-    private readonly AnimeEpisodeRepository _animeEpisodes;
-    private readonly AnimeEpisode_UserRepository _animeEpisodeUsers;
-    private readonly AnimeGroupRepository _animeGroups;
-    private readonly AnimeSeriesRepository _animeSeries;
-    private readonly CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies;
-    private readonly CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows;
-    private readonly TMDB_EpisodeRepository _tmdbEpisodes;
-    private readonly TMDB_MovieRepository _tmdbMovies;
-    private readonly TMDB_SeasonRepository _tmdbSeasons;
-    private readonly TMDB_ShowRepository _tmdbShows;
-    private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
-    private readonly VideoLocal_UserRepository _videoLocalUsers;
-    private readonly IShokoGroupManager _groupManagementService;
 
-    public SeriesController(
-        ISettingsProvider settingsProvider,
-        ActionService actionService,
-        AnimeSeriesService seriesService,
-        AnimeGroupService groupService,
-        AniDBTitleHelper titleHelper,
-        IQueueScheduler scheduler,
-        TmdbLinkingService tmdbLinkingService,
-        TmdbMetadataService tmdbMetadataService,
-        TmdbSearchService tmdbSearchService,
-        IMetadataService metadataService,
-        IImageManager imageManager,
-        IUserDataService userDataService,
-        IVideoReleaseService videoReleaseService,
-        IVideoRelocationService relocationService,
-        IJobFactory jobFactory,
-        AniDB_AnimeRepository anidbAnime,
-        AniDB_Anime_RelationRepository anidbAnimeRelations,
-        AniDB_Anime_SimilarRepository anidbAnimeSimilar,
-        AniDB_GroupStatusRepository anidbGroupStatus,
-        AniDB_EpisodeRepository anidbEpisodes,
-        AnimeEpisodeRepository animeEpisodes,
-        AnimeEpisode_UserRepository animeEpisodeUsers,
-        AnimeGroupRepository animeGroups,
-        AnimeSeriesRepository animeSeries,
-        CrossRef_AniDB_TMDB_MovieRepository crossRefAnidbTmdbMovies,
-        CrossRef_AniDB_TMDB_ShowRepository crossRefAnidbTmdbShows,
-        TMDB_EpisodeRepository tmdbEpisodes,
-        TMDB_MovieRepository tmdbMovies,
-        TMDB_SeasonRepository tmdbSeasons,
-        TMDB_ShowRepository tmdbShows,
-        VideoLocal_PlaceRepository videoLocalPlaces,
-        VideoLocal_UserRepository videoLocalUsers,
-        IShokoGroupManager groupManagementService
-    ) : base(settingsProvider)
-    {
-        _actionService = actionService;
-        _seriesService = seriesService;
-        _groupService = groupService;
-        _titleHelper = titleHelper;
-        _scheduler = scheduler;
-        _tmdbLinkingService = tmdbLinkingService;
-        _tmdbMetadataService = tmdbMetadataService;
-        _tmdbSearchService = tmdbSearchService;
-        _metadataService = metadataService;
-        _imageManager = imageManager;
-        _userDataService = userDataService;
-        _videoReleaseService = videoReleaseService;
-        _relocationService = relocationService;
-        _jobFactory = jobFactory;
-        _anidbAnime = anidbAnime;
-        _anidbAnimeRelations = anidbAnimeRelations;
-        _anidbAnimeSimilar = anidbAnimeSimilar;
-        _anidbGroupStatus = anidbGroupStatus;
-        _anidbEpisodes = anidbEpisodes;
-        _animeEpisodes = animeEpisodes;
-        _animeEpisodeUsers = animeEpisodeUsers;
-        _animeGroups = animeGroups;
-        _animeSeries = animeSeries;
-        _crossRefAnidbTmdbMovies = crossRefAnidbTmdbMovies;
-        _crossRefAnidbTmdbShows = crossRefAnidbTmdbShows;
-        _tmdbEpisodes = tmdbEpisodes;
-        _tmdbMovies = tmdbMovies;
-        _tmdbSeasons = tmdbSeasons;
-        _tmdbShows = tmdbShows;
-        _videoLocalPlaces = videoLocalPlaces;
-        _videoLocalUsers = videoLocalUsers;
-        _groupManagementService = groupManagementService;
-    }
 
     #region Return messages
 

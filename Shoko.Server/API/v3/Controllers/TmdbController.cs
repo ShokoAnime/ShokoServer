@@ -49,51 +49,31 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public partial class TmdbController : BaseController
+public partial class TmdbController(
+    ISettingsProvider settingsProvider,
+    ILogger<TmdbController> _logger,
+    TmdbSearchService _tmdbSearchService,
+    TmdbMetadataService _tmdbMetadataService,
+    IJobFactory _jobFactory,
+    IQueueScheduler _scheduler,
+    CrossRef_AniDB_TMDB_EpisodeRepository _crossRefAnidbTmdbEpisodes,
+    CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies,
+    CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows,
+    TMDB_AlternateOrderingRepository _tmdbAlternateOrderings,
+    TMDB_AlternateOrdering_EpisodeRepository _tmdbAlternateOrderingEpisodes,
+    TMDB_AlternateOrdering_SeasonRepository _tmdbAlternateOrderingSeasons,
+    TMDB_CollectionRepository _tmdbCollections,
+    TMDB_EpisodeRepository _tmdbEpisodes,
+    TMDB_MovieRepository _tmdbMovies,
+    TMDB_SeasonRepository _tmdbSeasons,
+    TMDB_ShowRepository _tmdbShows
+) : BaseController(settingsProvider)
 {
-    private readonly ILogger<TmdbController> _logger;
 
-    private readonly TmdbSearchService _tmdbSearchService;
 
-    private readonly TmdbMetadataService _tmdbMetadataService;
 
-    private readonly IJobFactory _jobFactory;
 
-    private readonly IQueueScheduler _scheduler;
-    private readonly CrossRef_AniDB_TMDB_EpisodeRepository _crossRefAnidbTmdbEpisodes;
-    private readonly CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies;
-    private readonly CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows;
-    private readonly TMDB_AlternateOrderingRepository _tmdbAlternateOrderings;
-    private readonly TMDB_AlternateOrdering_EpisodeRepository _tmdbAlternateOrderingEpisodes;
-    private readonly TMDB_AlternateOrdering_SeasonRepository _tmdbAlternateOrderingSeasons;
-    private readonly TMDB_CollectionRepository _tmdbCollections;
-    private readonly TMDB_EpisodeRepository _tmdbEpisodes;
-    private readonly TMDB_MovieRepository _tmdbMovies;
-    private readonly TMDB_SeasonRepository _tmdbSeasons;
-    private readonly TMDB_ShowRepository _tmdbShows;
 
-    public TmdbController(ISettingsProvider settingsProvider, ILogger<TmdbController> logger, TmdbSearchService tmdbSearchService, TmdbMetadataService tmdbService, IJobFactory jobFactory, IQueueScheduler scheduler,
-        CrossRef_AniDB_TMDB_EpisodeRepository crossRefAnidbTmdbEpisodes, CrossRef_AniDB_TMDB_MovieRepository crossRefAnidbTmdbMovies, CrossRef_AniDB_TMDB_ShowRepository crossRefAnidbTmdbShows,
-        TMDB_AlternateOrderingRepository tmdbAlternateOrderings, TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisodes, TMDB_AlternateOrdering_SeasonRepository tmdbAlternateOrderingSeasons,
-        TMDB_CollectionRepository tmdbCollections, TMDB_EpisodeRepository tmdbEpisodes, TMDB_MovieRepository tmdbMovies, TMDB_SeasonRepository tmdbSeasons, TMDB_ShowRepository tmdbShows) : base(settingsProvider)
-    {
-        _logger = logger;
-        _tmdbSearchService = tmdbSearchService;
-        _tmdbMetadataService = tmdbService;
-        _jobFactory = jobFactory;
-        _scheduler = scheduler;
-        _crossRefAnidbTmdbEpisodes = crossRefAnidbTmdbEpisodes;
-        _crossRefAnidbTmdbMovies = crossRefAnidbTmdbMovies;
-        _crossRefAnidbTmdbShows = crossRefAnidbTmdbShows;
-        _tmdbAlternateOrderings = tmdbAlternateOrderings;
-        _tmdbAlternateOrderingEpisodes = tmdbAlternateOrderingEpisodes;
-        _tmdbAlternateOrderingSeasons = tmdbAlternateOrderingSeasons;
-        _tmdbCollections = tmdbCollections;
-        _tmdbEpisodes = tmdbEpisodes;
-        _tmdbMovies = tmdbMovies;
-        _tmdbSeasons = tmdbSeasons;
-        _tmdbShows = tmdbShows;
-    }
 
     // When paused and the caller can wait (not immediate), queue the job (prioritized so it jumps
     // the backlog on resume) and return 503 with Retry-After. Dedup in Enqueue prevents the same job

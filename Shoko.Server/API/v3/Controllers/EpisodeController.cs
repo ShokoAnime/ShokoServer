@@ -38,7 +38,25 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class EpisodeController : BaseController
+public class EpisodeController(
+    ISettingsProvider settingsProvider,
+    AnimeSeriesService _seriesService,
+    AnimeGroupService _groupService,
+    IImageManager _imageManager,
+    IUserDataService _userDataService,
+    TmdbLinkingService _tmdbLinkingService,
+    TmdbMetadataService _tmdbMetadataService,
+    AniDB_AnimeRepository _anidbAnimes,
+    AniDB_EpisodeRepository _anidbEpisodes,
+    AnimeEpisodeRepository _animeEpisodes,
+    AnimeEpisode_UserRepository _animeEpisodeUsers,
+    TMDB_EpisodeRepository _tmdbEpisodes,
+    TMDB_MovieRepository _tmdbMovies,
+    VideoLocalRepository _videoLocals,
+    VideoLocal_PlaceRepository _videoLocalPlaces,
+    VideoReleaseGroupingService _releaseGrouper,
+    ReleaseComparisonService _releaseComparer
+) : BaseController(settingsProvider)
 {
 
     internal const string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
@@ -53,65 +71,12 @@ public class EpisodeController : BaseController
 
     internal const string EpisodeNoSeriesForEpisodeID = "Unable to find a Series entry for given episodeID";
 
-    private readonly AnimeSeriesService _seriesService;
 
-    private readonly AnimeGroupService _groupService;
 
-    private readonly IImageManager _imageManager;
 
-    private readonly IUserDataService _userDataService;
 
-    private readonly TmdbLinkingService _tmdbLinkingService;
 
-    private readonly TmdbMetadataService _tmdbMetadataService;
-    private readonly AniDB_AnimeRepository _anidbAnimes;
-    private readonly AniDB_EpisodeRepository _anidbEpisodes;
-    private readonly AnimeEpisodeRepository _animeEpisodes;
-    private readonly AnimeEpisode_UserRepository _animeEpisodeUsers;
-    private readonly TMDB_EpisodeRepository _tmdbEpisodes;
-    private readonly TMDB_MovieRepository _tmdbMovies;
-    private readonly VideoLocalRepository _videoLocals;
-    private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
-    private readonly VideoReleaseGroupingService _releaseGrouper;
-    private readonly ReleaseComparisonService _releaseComparer;
 
-    public EpisodeController(
-        ISettingsProvider settingsProvider,
-        AnimeSeriesService seriesService,
-        AnimeGroupService groupService,
-        IImageManager imageManager,
-        IUserDataService userDataService,
-        TmdbLinkingService tmdbLinkingService,
-        TmdbMetadataService tmdbMetadataService,
-        AniDB_AnimeRepository anidbAnimes,
-        AniDB_EpisodeRepository anidbEpisodes,
-        AnimeEpisodeRepository animeEpisodes,
-        AnimeEpisode_UserRepository animeEpisodeUsers,
-        TMDB_EpisodeRepository tmdbEpisodes,
-        TMDB_MovieRepository tmdbMovies,
-        VideoLocalRepository videoLocals,
-        VideoLocal_PlaceRepository videoLocalPlaces,
-        VideoReleaseGroupingService releaseGrouper,
-        ReleaseComparisonService releaseComparer
-    ) : base(settingsProvider)
-    {
-        _seriesService = seriesService;
-        _groupService = groupService;
-        _imageManager = imageManager;
-        _userDataService = userDataService;
-        _tmdbLinkingService = tmdbLinkingService;
-        _tmdbMetadataService = tmdbMetadataService;
-        _anidbAnimes = anidbAnimes;
-        _anidbEpisodes = anidbEpisodes;
-        _animeEpisodes = animeEpisodes;
-        _animeEpisodeUsers = animeEpisodeUsers;
-        _tmdbEpisodes = tmdbEpisodes;
-        _tmdbMovies = tmdbMovies;
-        _videoLocals = videoLocals;
-        _videoLocalPlaces = videoLocalPlaces;
-        _releaseGrouper = releaseGrouper;
-        _releaseComparer = releaseComparer;
-    }
 
     /// <summary>
     /// Get all <see cref="Episode"/>s for the given filter.
