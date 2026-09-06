@@ -1240,6 +1240,16 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(185, 88, "UPDATE `VideoLocal_HashDigest` SET `Type` = '' WHERE `Type` IS NULL; ALTER TABLE `VideoLocal_HashDigest` MODIFY COLUMN `Type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 89, "UPDATE `VideoLocal_HashDigest` SET `Value` = '' WHERE `Value` IS NULL; ALTER TABLE `VideoLocal_HashDigest` MODIFY COLUMN `Value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 90, "UPDATE `VideoLocal_Place` SET `FilePath` = '' WHERE `FilePath` IS NULL; ALTER TABLE `VideoLocal_Place` MODIFY COLUMN `FilePath` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+
+        // Only damaged when the database was created outside Shoko: it then keeps the server's
+        // default collation, so `MySQLFixUTF8MB4` finds these too. Shoko's own `CREATE DATABASE`
+        // already uses utf8mb4_unicode_ci and leaves them alone.
+        new(185, 91, "UPDATE `AniDB_Episode` SET `Rating` = '' WHERE `Rating` IS NULL; ALTER TABLE `AniDB_Episode` MODIFY COLUMN `Rating` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 92, "UPDATE `AniDB_Episode` SET `Votes` = '' WHERE `Votes` IS NULL; ALTER TABLE `AniDB_Episode` MODIFY COLUMN `Votes` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 93, "UPDATE `AnimeEpisode_User` SET `UserTags` = '' WHERE `UserTags` IS NULL; ALTER TABLE `AnimeEpisode_User` MODIFY COLUMN `UserTags` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 94, "UPDATE `AnimeSeries_User` SET `UserTags` = '' WHERE `UserTags` IS NULL; ALTER TABLE `AnimeSeries_User` MODIFY COLUMN `UserTags` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 95, "UPDATE `Versions` SET `VersionType` = '' WHERE `VersionType` IS NULL; ALTER TABLE `Versions` MODIFY COLUMN `VersionType` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 96, "UPDATE `Versions` SET `VersionValue` = '' WHERE `VersionValue` IS NULL; ALTER TABLE `Versions` MODIFY COLUMN `VersionValue` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
     ];
 
     #endregion
