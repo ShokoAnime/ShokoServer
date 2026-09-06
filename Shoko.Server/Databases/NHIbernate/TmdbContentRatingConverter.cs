@@ -64,8 +64,9 @@ public class TmdbContentRatingConverter : TypeConverter, IUserType
     public object Disassemble(object value)
         => DeepCopy(value);
 
+    // Hashed on the serialized form, to match the Equals above.
     public int GetHashCode(object x)
-        => x == null ? base.GetHashCode() : x.GetHashCode();
+        => x == null ? base.GetHashCode() : ConvertTo(null, null, x, typeof(string))?.GetHashCode() ?? 0;
 
     public bool IsMutable
         => true;
