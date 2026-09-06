@@ -951,6 +951,14 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         // rebuilt.
         new(164,  1, MakeAniDB_Anime_TitleTitleNotNull),
         new(164,  2, MakeVideoLocalDateTimeCreatedNotNull),
+
+        // Six columns SQLite declares as a different type than the other two backends do. SQLite
+        // cannot retype in place either, so each table is rebuilt.
+        new(165,  1, RetypeAniDB_AnimeDates),
+        new(165,  2, RetypeAnimeEpisode_UserUserTags),
+        new(165,  3, RetypeAnimeSeries_UserUserTags),
+        new(165,  4, RetypeTMDB_EpisodeRuntime),
+        new(165,  5, RetypeTMDB_MovieRuntime),
     ];
 
     #endregion
@@ -1138,6 +1146,46 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             var db = (SqliteConnection)connection;
             factory.Execute(db, $"UPDATE {tableName} SET {columnName} = {fillExpression} WHERE {columnName} IS NULL;");
             factory.Alter(db, tableName, factory.NotNullVariantOf(db, tableName, columnName), factory.RecreateIndexesOf(db, tableName));
+        }
+        catch (Exception e)
+        {
+            return new Tuple<bool, string?>(false, e.ToString());
+        }
+
+        return new Tuple<bool, string?>(true, null);
+    }
+
+    private static Tuple<bool, string?> RetypeAniDB_AnimeDates(object connection)
+        // MySQL v171 and SQL Server v167 moved both to `varchar(10)` when they became a
+        // `PartialDateOnly`; SQLite kept the `DATETIME` it was created as, and rows written before
+        // that still carry a time of day the other two dropped.
+        => ChangeColumnTypes(connection, "AniDB_Anime", [("AirDate", "varchar(10)"), ("EndDate", "varchar(10)")],
+            "UPDATE AniDB_Anime SET AirDate = substr(AirDate, 1, 10) WHERE length(AirDate) > 10; UPDATE AniDB_Anime SET EndDate = substr(EndDate, 1, 10) WHERE length(EndDate) > 10;");
+
+    private static Tuple<bool, string?> RetypeAnimeEpisode_UserUserTags(object connection)
+        // Added by an `ALTER TABLE ... ADD COLUMN` that named no type at all, so it has BLOB affinity.
+        => ChangeColumnTypes(connection, "AnimeEpisode_User", [("UserTags", "TEXT")]);
+
+    private static Tuple<bool, string?> RetypeAnimeSeries_UserUserTags(object connection)
+        => ChangeColumnTypes(connection, "AnimeSeries_User", [("UserTags", "TEXT")]);
+
+    private static Tuple<bool, string?> RetypeTMDB_EpisodeRuntime(object connection)
+        // `Runtime` maps `RuntimeMinutes`, an `int?`. The rebuild's own affinity converts the values.
+        => ChangeColumnTypes(connection, "TMDB_Episode", [("Runtime", "INTEGER")]);
+
+    private static Tuple<bool, string?> RetypeTMDB_MovieRuntime(object connection)
+        => ChangeColumnTypes(connection, "TMDB_Movie", [("Runtime", "INTEGER")]);
+
+    private static Tuple<bool, string?> ChangeColumnTypes(object connection, string tableName, IReadOnlyList<(string Column, string Type)> columns, string? fillCommand = null)
+    {
+        try
+        {
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
+            var db = (SqliteConnection)connection;
+            if (fillCommand is not null)
+                factory.Execute(db, fillCommand);
+
+            factory.Alter(db, tableName, factory.RetypedVariantOf(db, tableName, columns), factory.RecreateIndexesOf(db, tableName));
         }
         catch (Exception e)
         {
@@ -1610,6 +1658,34 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             $@"(?<=[(,]\s*)(?<name>{Regex.Escape(columnName)})(?<type>(?:\s+[^\s,()]+|\s*\([^()]*\))*?)(?<null>\s+(?:NOT\s+)?NULL)?(?=\s*[,)])",
             RegexOptions.IgnoreCase);
         var patched = definition.Replace(createCommand, match => $"{match.Groups["name"].Value}{match.Groups["type"].Value} NOT NULL", 1);
+        if (patched == createCommand && !definition.IsMatch(createCommand))
+            throw new InvalidOperationException($"Could not find a definition for `{columnName}` in: {createCommand}");
+
+        return patched;
+    }
+
+    /// <summary>
+    /// Everything that may follow a column's type in a definition. The type is whatever runs between
+    /// the name and the first of these.
+    /// </summary>
+    private const string ColumnConstraints = "CONSTRAINT|PRIMARY|NOT|NULL|UNIQUE|CHECK|DEFAULT|COLLATE|REFERENCES|GENERATED|AS";
+
+    /// <inheritdoc cref="NotNullVariantOf(SqliteConnection, string, string)"/>
+    /// <remarks>The table's own <c>CREATE TABLE</c>, with each column given the type named for it.</remarks>
+    private string RetypedVariantOf(SqliteConnection db, string tableName, IReadOnlyList<(string Column, string Type)> columns)
+        => columns.Aggregate(
+            (string)ExecuteReader(db, $"SELECT sql FROM sqlite_master WHERE type = 'table' AND name = '{tableName}';")[0][0],
+            (createCommand, column) => RetypedVariantOf(createCommand, column.Column, column.Type));
+
+    /// <inheritdoc cref="RetypedVariantOf(SqliteConnection, string, IReadOnlyList{ValueTuple{string, string}})"/>
+    internal static string RetypedVariantOf(string createCommand, string columnName, string type)
+    {
+        // The type may be several words (UNSIGNED BIG INT), bracket a comma (decimal(6,2)), or be
+        // absent entirely, as it is for a column added by an ALTER TABLE that named none.
+        var definition = new Regex(
+            $@"(?<=[(,]\s*)(?<name>{Regex.Escape(columnName)})(?:\s+(?!(?:{ColumnConstraints})\b)[^\s,()]+|\s*\([^()]*\))*(?=\s*[,)]|\s+(?:{ColumnConstraints})\b)",
+            RegexOptions.IgnoreCase);
+        var patched = definition.Replace(createCommand, match => $"{match.Groups["name"].Value} {type}", 1);
         if (patched == createCommand && !definition.IsMatch(createCommand))
             throw new InvalidOperationException($"Could not find a definition for `{columnName}` in: {createCommand}");
 
