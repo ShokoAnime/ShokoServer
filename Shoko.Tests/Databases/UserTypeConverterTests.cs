@@ -105,7 +105,22 @@ public class UserTypeConverterTests
             new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },
             new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1), ["b"] = JToken.FromObject(2) }
         },
+        { typeof(TmdbProductionCountryConverter).FullName!, ProductionCountries(), new List<TMDB_ProductionCountry> { new("GB", "United Kingdom") } },
+        { typeof(TitleTypeConverter).FullName!, TitleType.Main, TitleType.Official },
+        { typeof(TitleLanguageConverter).FullName!, TitleLanguage.English, TitleLanguage.Japanese },
+        { typeof(MessagePackConverter<MediaContainer>).FullName!, new MediaContainer(), new MediaContainer { media = new() } },
     };
+
+    [Fact]
+    public void EveryConverterCheckedForEqualityIsAlsoCheckedForInequality()
+    {
+        // A converter listed only among the equal values looks covered while still passing with a
+        // stuck-true Equals, which is the failure this pair of theories exists to catch.
+        var equal = EqualButDistinctValues().Select(row => row.Data.Item1).ToHashSet(StringComparer.Ordinal);
+        var unequal = UnequalValues().Select(row => row.Data.Item1).ToHashSet(StringComparer.Ordinal);
+
+        Assert.Equal(string.Empty, string.Join(", ", equal.Except(unequal).Order(StringComparer.Ordinal)));
+    }
 
     [Theory]
     [MemberData(nameof(UnequalValues))]

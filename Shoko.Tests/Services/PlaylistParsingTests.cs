@@ -44,11 +44,13 @@ public class PlaylistParsingTests
                 episodeRepository: episodes, videoRepository: videos, authTokensRepository: null!);
         }
 
-        public (bool Valid, string Errors) Parse(params string[] items)
+        public (bool Valid, string Errors, int Entries, string Keys) Parse(params string[] items)
         {
             var state = new ModelStateDictionary();
-            var valid = Service.TryParsePlaylist(items, out _, state);
-            return (valid, string.Join(" | ", state.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+            var valid = Service.TryParsePlaylist(items, out var playlist, state);
+            var errors = string.Join(" | ", state.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            var keys = string.Join(",", state.Where(entry => entry.Value?.Errors.Count > 0).Select(entry => entry.Key));
+            return (valid, errors, playlist.Count, keys);
         }
 
         public void Dispose() => _scope.Dispose();
@@ -57,19 +59,29 @@ public class PlaylistParsingTests
     #region Nothing to play
 
     [Fact]
-    public void AnEmptyPlaylistIsValid()
+    public void AnEmptyPlaylistProducesNothing()
     {
         using var harness = new Harness();
 
-        Assert.True(harness.Parse().Valid);
+        var (valid, _, entries, _) = harness.Parse();
+
+        Assert.True(valid);
+        Assert.Equal(0, entries);
     }
 
     [Fact]
-    public void AnEmptyEntryIsSkippedRatherThanRejected()
+    public void AnEmptyEntryIsSkippedWithoutDisturbingItsNeighbours()
     {
         using var harness = new Harness();
 
-        Assert.True(harness.Parse("").Valid);
+        // The skip itself is not observable — with the guard removed an empty entry produces
+        // nothing and is discarded further down regardless. What is observable is that it still
+        // consumes a position, so the error is attributed to the right entry.
+        var (valid, errors, _, keys) = harness.Parse("", "g999", "");
+
+        Assert.False(valid);
+        Assert.Equal("Unknown group ID \"g999\".", errors);
+        Assert.Equal("playlist[1]", keys);
     }
 
     #endregion
@@ -81,7 +93,7 @@ public class PlaylistParsingTests
     {
         using var harness = new Harness();
 
-        var (valid, errors) = harness.Parse("g999");
+        var (valid, errors, _, _) = harness.Parse("g999");
 
         Assert.False(valid);
         Assert.Contains("Unknown group ID", errors);
@@ -95,7 +107,7 @@ public class PlaylistParsingTests
     {
         using var harness = new Harness();
 
-        var (valid, errors) = harness.Parse(item);
+        var (valid, errors, _, _) = harness.Parse(item);
 
         Assert.False(valid);
         Assert.Contains("Invalid group ID", errors);
@@ -108,7 +120,7 @@ public class PlaylistParsingTests
     {
         using var harness = new Harness();
 
-        var (valid, errors) = harness.Parse($"g{GroupID} {releaseItem}");
+        var (valid, errors, _, _) = harness.Parse($"g{GroupID} {releaseItem}");
 
         Assert.False(valid);
         Assert.Contains("Invalid release group ID", errors);
@@ -119,7 +131,7 @@ public class PlaylistParsingTests
     {
         using var harness = new Harness();
 
-        var (valid, errors) = harness.Parse($"g{GroupID} r7 e9");
+        var (valid, errors, _, _) = harness.Parse($"g{GroupID} r7 e9");
 
         Assert.False(valid);
         Assert.Contains("Invalid item", errors);
@@ -130,7 +142,7 @@ public class PlaylistParsingTests
     {
         using var harness = new Harness();
 
-        var (valid, errors) = harness.Parse($"g{GroupID} nonsense");
+        var (valid, errors, _, _) = harness.Parse($"g{GroupID} nonsense");
 
         Assert.False(valid);
         Assert.Contains("Invalid item", errors);
