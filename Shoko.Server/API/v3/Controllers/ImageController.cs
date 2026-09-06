@@ -94,6 +94,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     /// <param name="includeRestricted">Include or exclude restricted images</param>
     /// <param name="seriesType">Series types to include in the search</param>
     /// <param name="maxAttempts">Maximum number of attempts to find a valid image</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>200 on found, 400 if the type is unsupported, and 404 if no image could be found</returns>
     [HttpGet("Random/{imageType}/Metadata")]
     [ProducesResponseType(typeof(Image), 200)]
@@ -103,7 +104,8 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
         [FromRoute] ImageEntityType imageType,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? seriesType = null,
-        [FromQuery, Range(0, 100)] int maxAttempts = 5
+        [FromQuery, Range(0, 100)] int maxAttempts = 5,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         if (imageType is ImageEntityType.None or ImageEntityType.Logo or ImageEntityType.Disc)
@@ -119,7 +121,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
             if (metadata is null)
                 continue;
 
-            var image = new Image(metadata);
+            var image = new Image(metadata, false, null, includeRemoteUrl, imageManager.GetTemplateUrlForSource(metadata.Source));
             var series = imageManager.GetFirstSeriesForImage(metadata);
             if (series?.AnidbAnime is not { } anime)
                 continue;

@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
+using Shoko.Server.API.v3.Models.Common;
 
 namespace Shoko.Server.API.v3.Models.ImageManagement;
 
@@ -60,6 +61,14 @@ public class ImageSlim
     public bool Available { get; set; }
 
     /// <summary>
+    /// Where the image can be fetched from at its source, for a client that
+    /// wants to show one the server does not hold locally. Only set when asked
+    /// for, and by default only for images that are not <see cref="Available"/>.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? RemoteURL { get; set; }
+
+    /// <summary>
     /// Indicates the images is disabled. You must explicitly ask for these, for
     /// hopefully obvious reasons.
     /// </summary>
@@ -87,7 +96,7 @@ public class ImageSlim
     /// </summary>
     public int? Height { get; set; }
 
-    public ImageSlim(IImage imageMetadata, bool showLinkedIDs = false)
+    public ImageSlim(IImage imageMetadata, bool showLinkedIDs = false, RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.False, string? remoteUrlTemplate = null)
     {
         UID = imageMetadata.ID;
         PrimaryUID = imageMetadata.PrimaryID;
@@ -97,6 +106,7 @@ public class ImageSlim
         ResourceID = imageMetadata.ResourceID;
         ContentType = imageMetadata.ContentType;
         Available = imageMetadata.IsAvailable;
+        RemoteURL = RemoteImageUrl.Resolve(remoteUrlTemplate, ResourceID, Available, includeRemoteUrl);
         Disabled = !imageMetadata.IsEnabled;
         LanguageCode = imageMetadata.LanguageCode;
         CountryCode = imageMetadata.CountryCode;

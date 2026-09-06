@@ -58,7 +58,6 @@ public class EpisodeController(
     ReleaseComparisonService _releaseComparer
 ) : BaseController(settingsProvider)
 {
-
     internal const string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
 
     internal const string EpisodeNotFoundForAnidbEpisodeID = "No Episode entry for the given anidbEpisodeID";
@@ -70,13 +69,6 @@ public class EpisodeController(
     internal const string EpisodeForbiddenForUser = "Accessing Episode is not allowed for the current user";
 
     internal const string EpisodeNoSeriesForEpisodeID = "Unable to find a Series entry for given episodeID";
-
-
-
-
-
-
-
 
     /// <summary>
     /// Get all <see cref="Episode"/>s for the given filter.
@@ -700,19 +692,21 @@ public class EpisodeController(
     #region All images
 
     /// <summary>
-    /// Get all images for episode with ID, optionally with Disabled images, as well.
+    /// Get every image for the episode, grouped by image type.
     /// </summary>
     /// <param name="episodeID">Shoko ID</param>
-    /// <param name="showLinkedIDs"></param>
-    /// <param name="includeDisabled"></param>
-    /// <param name="includeUndesired"></param>
-    /// <returns></returns>
+    /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
+    /// <returns>Every image for the episode, grouped by image type.</returns>
     [HttpGet("{episodeID}/Images")]
     public ActionResult<Images> GetSeriesImages(
         [FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
-        [FromQuery] bool includeUndesired = false
+        [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var episode = _animeEpisodes.GetByID(episodeID);
@@ -733,7 +727,7 @@ public class EpisodeController(
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToDto(showLinkedIDs: showLinkedIDs);
+            .ToDto(showLinkedIDs: showLinkedIDs, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
     }
 
     /// <summary>
@@ -744,6 +738,7 @@ public class EpisodeController(
     /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
     /// <param name="includeDisabled">Include disabled images.</param>
     /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
     /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
     /// <param name="page">Page number (default 1).</param>
     /// <returns>A paginated list of images.</returns>
@@ -754,6 +749,7 @@ public class EpisodeController(
         [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -776,7 +772,7 @@ public class EpisodeController(
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToListResult(image => new Image(image, showLinkedIDs), page, pageSize);
+            .ToListResult(image => new Image(image, showLinkedIDs, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize);
     }
 
     #endregion
@@ -789,6 +785,7 @@ public class EpisodeController(
     /// <param name="episodeID">Shoko Episode ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="file">The image file to upload.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
     [Authorize("admin")]
     [HttpPost("{episodeID}/Images/{imageType}/Upload")]
@@ -797,7 +794,8 @@ public class EpisodeController(
     public ActionResult<Image> UploadImageForEpisode(
         [FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] ImageEntityType imageType,
-        IFormFile file
+        IFormFile file,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var episode = _animeEpisodes.GetByID(episodeID);
@@ -825,11 +823,11 @@ public class EpisodeController(
                 IsDesired = true,
                 Source = DataSource.User,
             });
-            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref)));
+            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)));
         }
         catch (ImageCrossReferenceExistsException ex)
         {
-            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference)));
+            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(ex.Image.Source)));
         }
         catch (ArgumentException ex)
         {
@@ -842,10 +840,12 @@ public class EpisodeController(
     /// </summary>
     /// <param name="episodeID">Episode ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns></returns>
     [HttpGet("{episodeID}/Images/{imageType}/Default")]
     public ActionResult<Image> GetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
-        [FromRoute] ImageEntityType imageType)
+        [FromRoute] ImageEntityType imageType,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable)
     {
         var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
@@ -860,7 +860,7 @@ public class EpisodeController(
 
         var preferredImage = ((IWithImages)episode).GetPreferredImageForType(imageType);
         if (preferredImage is not null)
-            return new Image(preferredImage);
+            return new Image(preferredImage, false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(preferredImage.Source));
 
         var images = ((IWithImages)episode).GetImages(new() { ImageType = imageType }).ToDto();
         var image = imageType switch
@@ -884,11 +884,13 @@ public class EpisodeController(
     /// <param name="episodeID">Episode ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="body">The body containing the source and id used to set.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPut("{episodeID}/Images/{imageType}/Default")]
     public ActionResult<Image> SetEpisodeDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int episodeID,
-        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable)
     {
         var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
@@ -906,7 +908,7 @@ public class EpisodeController(
             return NotFound(ImageNotFound);
 
         var xref = _imageManager.SetPreferredImageForEntity(episode, imageType, image);
-        return new Image(ImageStub.Wrap(image, xref));
+        return new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source));
     }
 
     /// <summary>

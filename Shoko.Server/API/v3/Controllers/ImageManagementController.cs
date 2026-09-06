@@ -105,6 +105,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <param name="isPrimaryAvailable">Filter by primary image availability.</param>
     /// <param name="isPrimaryImage">Filter to only primary images.</param>
     /// <param name="asPrimaryImage">Return the primary image when the image is part of a linked group.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
     /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
     /// <param name="page">Page number (default 1).</param>
     /// <returns>A paginated list of images.</returns>
@@ -120,6 +121,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         [FromQuery] bool? isPrimaryAvailable = null,
         [FromQuery] bool? isPrimaryImage = null,
         [FromQuery] bool asPrimaryImage = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -136,20 +138,21 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
             IsPrimaryAvailable = isPrimaryAvailable,
             AsPrimaryImage = asPrimaryImage,
         })
-            .ToListResult(image => new ImageSlim(image), page, pageSize);
+            .ToListResult(image => new ImageSlim(image, false, includeRemoteUrl, imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize);
 
     /// <summary>
     ///   Get an image by its unique identifier.
     /// </summary>
     /// <param name="imageID">The unique identifier of the image.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The image if found, otherwise 404.</returns>
     [HttpGet("{imageID:guid}")]
-    public ActionResult<ImageSlim> GetImageByID([FromRoute] Guid imageID)
+    public ActionResult<ImageSlim> GetImageByID([FromRoute] Guid imageID, [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable)
     {
         var image = imageManager.GetImageByID(imageID);
         if (image is null)
             return NotFound(ImageNotFound);
-        return new ImageSlim(image, showLinkedIDs: true);
+        return new ImageSlim(image, true, includeRemoteUrl, imageManager.GetTemplateUrlForSource(image.Source));
     }
 
     /// <summary>
@@ -157,11 +160,13 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// </summary>
     /// <param name="source">The data source (e.g., AniDB, TMDB).</param>
     /// <param name="resourceID">The remote resource identifier.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The image if found, otherwise 404.</returns>
     [HttpGet("Remote/{source}/{*resourceID}")]
     public ActionResult<ImageSlim> GetImageBySourceAndRemoteResourceID(
         [FromRoute] DataSource source,
-        [FromRoute] string resourceID
+        [FromRoute] string resourceID,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         if (source.IsLocal)
@@ -169,7 +174,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         var image = imageManager.GetImageBySourceAndRemoteResourceID(source, resourceID);
         if (image is null)
             return NotFound(ImageNotFound);
-        return new ImageSlim(image, showLinkedIDs: true);
+        return new ImageSlim(image, true, includeRemoteUrl, imageManager.GetTemplateUrlForSource(image.Source));
     }
 
     /// <summary>
@@ -194,6 +199,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// </summary>
     /// <param name="daysOld">Minimum age in days (default 7).</param>
     /// <param name="imageSource">Filter by image source.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
     /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
     /// <param name="page">Page number (default 1).</param>
     /// <returns>A paginated list of orphaned images.</returns>
@@ -201,11 +207,12 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     public ActionResult<ListResult<ImageSlim>> GetOrphanedImages(
         [FromQuery, Range(0, int.MaxValue)] int daysOld = 7,
         [FromQuery] DataSource? imageSource = null,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
         => imageManager.GetOrphanedImages(daysOld, imageSource)
-            .ToListResult(image => new ImageSlim(image), page, pageSize);
+            .ToListResult(image => new ImageSlim(image, false, includeRemoteUrl, imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize);
 
     #endregion
 
@@ -215,17 +222,19 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     ///   Add a new image from a remote source.
     /// </summary>
     /// <param name="body">The image data containing source and resource information.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
     [Authorize("admin")]
     [HttpPost("Add")]
     public ActionResult<ImageSlim> AddImage(
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AddImageBody body
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AddImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         try
         {
             var image = imageManager.AddImage(body.ToImageData());
-            return Created($"/api/v3/Image/Management/{image.ID}", new ImageSlim(image));
+            return Created($"/api/v3/Image/Management/{image.ID}", new ImageSlim(image, false, includeRemoteUrl, imageManager.GetTemplateUrlForSource(image.Source)));
         }
         catch (MissingImageSourceTemplateUrlException ex)
         {
@@ -242,13 +251,15 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// </summary>
     /// <param name="file">The image file to upload.</param>
     /// <param name="userSubmitted">Whether the image was submitted by a user (default true).</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
     [Authorize("admin")]
     [HttpPost("Upload")]
     [Consumes("multipart/form-data")]
     public ActionResult<ImageSlim> UploadImage(
         IFormFile file,
-        [FromForm] bool userSubmitted = true
+        [FromForm] bool userSubmitted = true,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         if (file is null || file.Length == 0)
@@ -257,7 +268,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         {
             using var stream = file.OpenReadStream();
             var image = imageManager.UploadImage(stream, file.ContentType, userSubmitted);
-            return Created($"/api/v3/Image/Management/{image.ID}", new ImageSlim(image));
+            return Created($"/api/v3/Image/Management/{image.ID}", new ImageSlim(image, false, includeRemoteUrl, imageManager.GetTemplateUrlForSource(image.Source)));
         }
         catch (ArgumentException ex)
         {
@@ -270,13 +281,15 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// </summary>
     /// <param name="contentType">Optional content type (e.g., image/jpeg, image/png).</param>
     /// <param name="userSubmitted">Whether the image was submitted by a user (default true).</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
     [Authorize("admin")]
     [HttpPost("Upload/Raw")]
     [Consumes(ContentTypeHelper.UnknownMimeType, "image/jpeg", "image/png", "image/bmp", "image/gif", "image/tiff", "image/webp")]
     public async Task<ActionResult<ImageSlim>> UploadImageRaw(
         [FromQuery] string? contentType = null,
-        [FromQuery] bool userSubmitted = true
+        [FromQuery] bool userSubmitted = true,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         if (HttpContext.Request.ContentLength is null or 0)
@@ -284,7 +297,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         try
         {
             var image = imageManager.UploadImage(HttpContext.Request.Body, contentType, userSubmitted);
-            return Created($"/api/v3/Image/Management/{image.ID}", new ImageSlim(image));
+            return Created($"/api/v3/Image/Management/{image.ID}", new ImageSlim(image, false, includeRemoteUrl, imageManager.GetTemplateUrlForSource(image.Source)));
         }
         catch (ArgumentException ex)
         {
@@ -301,19 +314,21 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// </summary>
     /// <param name="imageID">The unique identifier of the image to update.</param>
     /// <param name="body">The update data containing properties to modify.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The updated image.</returns>
     [Authorize("admin")]
     [HttpPatch("{imageID:guid}")]
     public ActionResult<ImageSlim> UpdateImage(
         [FromRoute] Guid imageID,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateImageBody body
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] UpdateImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var image = imageManager.GetImageByID(imageID);
         if (image is null)
             return NotFound(ImageNotFound);
         var updated = imageManager.UpdateImage(image, body.ToImageUpdateData());
-        return new ImageSlim(updated, showLinkedIDs: true);
+        return new ImageSlim(updated, true, includeRemoteUrl, imageManager.GetTemplateUrlForSource(updated.Source));
     }
 
     /// <summary>
@@ -321,19 +336,21 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// </summary>
     /// <param name="imageID">The unique identifier of the image.</param>
     /// <param name="body">The enabled state to set.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The updated image.</returns>
     [Authorize("admin")]
     [HttpPost("{imageID:guid}/Enabled")]
     public ActionResult<ImageSlim> EnableOrDisableImage(
         [FromRoute] Guid imageID,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var image = imageManager.GetImageByID(imageID);
         if (image is null)
             return NotFound(ImageNotFound);
         var updated = imageManager.EnableImage(image, body.Enabled);
-        return new ImageSlim(updated, showLinkedIDs: true);
+        return new ImageSlim(updated, true, includeRemoteUrl, imageManager.GetTemplateUrlForSource(updated.Source));
     }
 
     /// <summary>
@@ -341,12 +358,14 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// </summary>
     /// <param name="imageID">The unique identifier of the image.</param>
     /// <param name="body">The primary image identifier to set.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The updated image.</returns>
     [Authorize("admin")]
     [HttpPut("{imageID:guid}/Primary")]
     public ActionResult<ImageSlim> SetPrimaryImage(
         [FromRoute] Guid imageID,
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SetPrimaryImageBody body
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SetPrimaryImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var image = imageManager.GetImageByID(imageID);
@@ -360,18 +379,20 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
                 return NotFound("The primary image does not exist.");
         }
         var updated = imageManager.SetPrimaryImage(image, primaryImage);
-        return new ImageSlim(updated, showLinkedIDs: true);
+        return new ImageSlim(updated, true, includeRemoteUrl, imageManager.GetTemplateUrlForSource(updated.Source));
     }
 
     /// <summary>
     ///   Batch update multiple images with the same update data.
     /// </summary>
     /// <param name="body">The batch update request containing image IDs and update data.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>A list of updated images.</returns>
     [Authorize("admin")]
     [HttpPost("Batch/Update")]
     public ActionResult<ListResult<ImageSlim>> BatchUpdateImages(
-        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchUpdateImageBody body
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] BatchUpdateImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var updateData = body.Update.ToImageUpdateData();
@@ -386,7 +407,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
                 continue;
             }
             var updated = imageManager.UpdateImage(image, updateData);
-            results.Add(new ImageSlim(updated, showLinkedIDs: true));
+            results.Add(new ImageSlim(updated, true, includeRemoteUrl, imageManager.GetTemplateUrlForSource(updated.Source)));
         }
         if (errors.Count > 0 && results.Count == 0)
             return ValidationProblem(string.Join(" ", errors));
@@ -424,12 +445,14 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// </summary>
     /// <param name="imageID">The unique identifier of the image.</param>
     /// <param name="force">Force re-download even if already cached (default false).</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The downloaded image.</returns>
     [Authorize("admin")]
     [HttpPost("{imageID:guid}/Download")]
     public async Task<ActionResult<ImageSlim>> DownloadImage(
         [FromRoute] Guid imageID,
-        [FromQuery] bool force = false
+        [FromQuery] bool force = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var image = imageManager.GetImageByID(imageID);
@@ -439,7 +462,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         {
             await imageManager.DownloadImage(image, force);
             var refreshed = imageManager.GetImageByID(imageID);
-            return new ImageSlim(refreshed ?? image, showLinkedIDs: true);
+            return new ImageSlim(refreshed ?? image, true, includeRemoteUrl, imageManager.GetTemplateUrlForSource(image.Source));
         }
         catch (Exception ex)
         {

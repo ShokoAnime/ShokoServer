@@ -90,21 +90,6 @@ public class SeriesController(
     IShokoGroupManager _groupManagementService
 ) : BaseController(settingsProvider)
 {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     #region Return messages
 
     internal const string SeriesNotFoundWithSeriesID = "No Series entry for the given seriesID";
@@ -2539,19 +2524,21 @@ public class SeriesController(
     #region All images
 
     /// <summary>
-    /// Get all images for series with ID, optionally with Disabled images, as well.
+    /// Get every image for the series, grouped by image type.
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
-    /// <param name="showLinkedIDs"></param>
-    /// <param name="includeDisabled"></param>
-    /// <param name="includeUndesired"></param>
-    /// <returns></returns>
+    /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
+    /// <returns>Every image for the series, grouped by image type.</returns>
     [HttpGet("{seriesID}/Images")]
     public ActionResult<Images> GetSeriesImages(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
-        [FromQuery] bool includeUndesired = false
+        [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var series = _animeSeries.GetByID(seriesID);
@@ -2572,7 +2559,7 @@ public class SeriesController(
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToDto(showLinkedIDs: showLinkedIDs);
+            .ToDto(showLinkedIDs: showLinkedIDs, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
     }
 
     /// <summary>
@@ -2583,6 +2570,7 @@ public class SeriesController(
     /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
     /// <param name="includeDisabled">Include disabled images.</param>
     /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
     /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
     /// <param name="page">Page number (default 1).</param>
     /// <returns>A paginated list of images.</returns>
@@ -2593,6 +2581,7 @@ public class SeriesController(
         [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -2611,7 +2600,7 @@ public class SeriesController(
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToListResult(image => new Image(image, showLinkedIDs), page, pageSize);
+            .ToListResult(image => new Image(image, showLinkedIDs, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize);
     }
 
     #endregion
@@ -2624,6 +2613,7 @@ public class SeriesController(
     /// <param name="seriesID">Shoko Series ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="file">The image file to upload.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/Images/{imageType}/Upload")]
@@ -2632,7 +2622,8 @@ public class SeriesController(
     public ActionResult<Image> UploadImageForSeries(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] ImageEntityType imageType,
-        IFormFile file
+        IFormFile file,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var series = _animeSeries.GetByID(seriesID);
@@ -2656,11 +2647,11 @@ public class SeriesController(
                 IsDesired = true,
                 Source = DataSource.User,
             });
-            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref)));
+            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)));
         }
         catch (ImageCrossReferenceExistsException ex)
         {
-            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference)));
+            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(ex.Image.Source)));
         }
         catch (ArgumentException ex)
         {
@@ -2673,10 +2664,12 @@ public class SeriesController(
     /// </summary>
     /// <param name="seriesID">Series ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Images/{imageType}/Default")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromRoute] ImageEntityType imageType)
+        [FromRoute] ImageEntityType imageType,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable)
     {
         var series = _animeSeries.GetByID(seriesID);
         if (series == null)
@@ -2687,7 +2680,7 @@ public class SeriesController(
 
         var preferredImage = ((IWithImages)series).GetPreferredImageForType(imageType);
         if (preferredImage is not null)
-            return new Image(preferredImage);
+            return new Image(preferredImage, false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(preferredImage.Source));
 
         var images = ((IWithImages)series).GetImages(new() { ImageType = imageType }).ToDto();
         var image = imageType switch
@@ -2712,11 +2705,13 @@ public class SeriesController(
     /// <param name="seriesID">Series ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="body">The body containing the source and id used to set.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPut("{seriesID}/Images/{imageType}/Default")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable)
     {
         var series = _animeSeries.GetByID(seriesID);
         if (series == null)
@@ -2730,7 +2725,7 @@ public class SeriesController(
             return NotFound(ImageNotFound);
 
         var xref = _imageManager.SetPreferredImageForEntity(series, imageType, image);
-        return new Image(ImageStub.Wrap(image, xref));
+        return new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source));
     }
 
     /// <summary>

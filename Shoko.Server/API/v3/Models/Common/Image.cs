@@ -66,6 +66,14 @@ public class Image
     public bool Available { get; set; }
 
     /// <summary>
+    /// Where the image can be fetched from at its source, for a client that
+    /// wants to show one the server does not hold locally. Only set when asked
+    /// for, and by default only for images that are not <see cref="Available"/>.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? RemoteURL { get; set; }
+
+    /// <summary>
     /// Indicates the images is disabled. You must explicitly ask for these, for
     /// hopefully obvious reasons.
     /// </summary>
@@ -119,7 +127,7 @@ public class Image
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public ImageSeriesInfo? Series { get; set; }
 
-    public Image(IImage imageMetadata, bool showLinkedIDs = false, bool? preferredOverride = null)
+    public Image(IImage imageMetadata, bool showLinkedIDs = false, bool? preferredOverride = null, RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.False, string? remoteUrlTemplate = null)
     {
         UID = imageMetadata.ID;
         PrimaryUID = imageMetadata.PrimaryID;
@@ -130,6 +138,7 @@ public class Image
         ResourceID = imageMetadata.ResourceID;
         ContentType = imageMetadata.ContentType;
         Available = imageMetadata.IsAvailable;
+        RemoteURL = RemoteImageUrl.Resolve(remoteUrlTemplate, ResourceID, Available, includeRemoteUrl);
         Disabled = !imageMetadata.IsEnabled;
         Preferred = preferredOverride ?? imageMetadata.IsPreferred;
         Desired = imageMetadata.IsDesired;

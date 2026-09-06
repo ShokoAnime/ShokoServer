@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Core;
@@ -66,7 +67,9 @@ public static class APIv3_Extensions
         IImage? preferredLogo = null,
         bool preferredImages = false,
         bool randomizeImages = false,
-        bool showLinkedIDs = false)
+        bool showLinkedIDs = false,
+        RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.False,
+        Func<DataSource, string?>? remoteUrlTemplate = null)
     {
         var images = new Images();
         foreach (var image in imageList)
@@ -80,23 +83,23 @@ public static class APIv3_Extensions
                 case ImageEntityType.Primary:
                     if (preferredPoster is not null)
                         preferredOverride = image.IsEnabled && preferredPoster.Equals(image);
-                    images.Posters.Add(new(image, showLinkedIDs, preferredOverride));
+                    images.Posters.Add(new(image, showLinkedIDs, preferredOverride, includeRemoteUrl, remoteUrlTemplate?.Invoke(image.Source)));
                     break;
                 case ImageEntityType.Banner:
-                    images.Banners.Add(new(image, showLinkedIDs));
+                    images.Banners.Add(new(image, showLinkedIDs, null, includeRemoteUrl, remoteUrlTemplate?.Invoke(image.Source)));
                     break;
                 case ImageEntityType.Backdrop:
                     if (preferredBackdrop is not null)
                         preferredOverride = image.IsEnabled && preferredBackdrop.Equals(image);
-                    images.Backdrops.Add(new(image, showLinkedIDs, preferredOverride));
+                    images.Backdrops.Add(new(image, showLinkedIDs, preferredOverride, includeRemoteUrl, remoteUrlTemplate?.Invoke(image.Source)));
                     break;
                 case ImageEntityType.Logo:
                     if (preferredLogo is not null)
                         preferredOverride = image.IsEnabled && preferredLogo.Equals(image);
-                    images.Logos.Add(new(image, showLinkedIDs, preferredOverride));
+                    images.Logos.Add(new(image, showLinkedIDs, preferredOverride, includeRemoteUrl, remoteUrlTemplate?.Invoke(image.Source)));
                     break;
                 case ImageEntityType.Disc:
-                    images.Discs.Add(new(image, showLinkedIDs));
+                    images.Discs.Add(new(image, showLinkedIDs, null, includeRemoteUrl, remoteUrlTemplate?.Invoke(image.Source)));
                     break;
             }
         }

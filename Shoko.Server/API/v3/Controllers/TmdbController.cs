@@ -15,6 +15,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
@@ -66,15 +67,10 @@ public partial class TmdbController(
     TMDB_EpisodeRepository _tmdbEpisodes,
     TMDB_MovieRepository _tmdbMovies,
     TMDB_SeasonRepository _tmdbSeasons,
-    TMDB_ShowRepository _tmdbShows
+    TMDB_ShowRepository _tmdbShows,
+    IImageManager _imageManager
 ) : BaseController(settingsProvider)
 {
-
-
-
-
-
-
     // When paused and the caller can wait (not immediate), queue the job (prioritized so it jumps
     // the backlog on resume) and return 503 with Retry-After. Dedup in Enqueue prevents the same job
     // from stacking while paused. When the caller wanted an immediate result, queuing for later is
@@ -276,11 +272,21 @@ public partial class TmdbController(
         return new(movie.GetAllOverviews().ToOverviewDto(movie.EnglishOverview, preferredOverview, language));
     }
 
+    /// <summary>
+    /// Get every image for the TMDB movie, grouped by image type.
+    /// </summary>
+    /// <param name="movieID">TMDB Movie ID</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include images that are not marked as desired for download.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
+    /// <param name="language">Filter the images down to these languages.</param>
+    /// <returns>Every image for the movie, grouped by image type.</returns>
     [HttpGet("Movie/{movieID}/Images")]
     public ActionResult<Images> GetImagesForTmdbMovieByMovieID(
         [FromRoute] int movieID,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
@@ -290,7 +296,7 @@ public partial class TmdbController(
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return ((IWithImages)movie).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
+        return ((IWithImages)movie).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
     }
 
     [HttpGet("Movie/{movieID}/Cast")]
@@ -879,11 +885,21 @@ public partial class TmdbController(
         return new(collection.GetAllOverviews().ToOverviewDto(collection.EnglishOverview, preferredOverview, language));
     }
 
+    /// <summary>
+    /// Get every image for the TMDB movie collection, grouped by image type.
+    /// </summary>
+    /// <param name="collectionID">TMDB Collection ID</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include images that are not marked as desired for download.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
+    /// <param name="language">Filter the images down to these languages.</param>
+    /// <returns>Every image for the movie collection, grouped by image type.</returns>
     [HttpGet("Movie/Collection/{collectionID}/Images")]
     public ActionResult<Images> GetImagesForMovieCollectionByCollectionID(
         [FromRoute] int collectionID,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
@@ -893,7 +909,7 @@ public partial class TmdbController(
         if (collection is null)
             return NotFound(MovieCollectionNotFound);
 
-        return ((IWithImages)collection).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
+        return ((IWithImages)collection).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
     }
 
     #endregion
@@ -1138,11 +1154,21 @@ public partial class TmdbController(
         return new(show.GetAllOverviews().ToOverviewDto(show.EnglishOverview, preferredOverview, language));
     }
 
+    /// <summary>
+    /// Get every image for the TMDB show, grouped by image type.
+    /// </summary>
+    /// <param name="showID">TMDB Show ID</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include images that are not marked as desired for download.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
+    /// <param name="language">Filter the images down to these languages.</param>
+    /// <returns>Every image for the show, grouped by image type.</returns>
     [HttpGet("Show/{showID}/Images")]
     public ActionResult<Images> GetImagesForTmdbShowByShowID(
         [FromRoute] int showID,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
@@ -1152,7 +1178,7 @@ public partial class TmdbController(
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return ((IWithImages)show).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
+        return ((IWithImages)show).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
     }
 
     [HttpGet("Show/{showID}/Ordering")]
@@ -2034,11 +2060,21 @@ public partial class TmdbController(
         return new(season.GetAllOverviews().ToOverviewDto(season.EnglishOverview, preferredOverview, language));
     }
 
+    /// <summary>
+    /// Get every image for the TMDB season, grouped by image type.
+    /// </summary>
+    /// <param name="seasonID">TMDB Season ID</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include images that are not marked as desired for download.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
+    /// <param name="language">Filter the images down to these languages.</param>
+    /// <returns>Every image for the season, grouped by image type.</returns>
     [HttpGet("Season/{seasonID}/Images")]
     public ActionResult<Images> GetImagesForTmdbSeasonBySeasonID(
         [FromRoute, RegularExpression(SeasonIdRegex)] string seasonID,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
@@ -2051,7 +2087,7 @@ public partial class TmdbController(
                 return NotFound(SeasonNotFound);
 
 
-            return ((IWithImages)altOrderSeason).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
+            return ((IWithImages)altOrderSeason).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
         }
 
         var seasonId = int.Parse(seasonID);
@@ -2061,7 +2097,7 @@ public partial class TmdbController(
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return ((IWithImages)season).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
+        return ((IWithImages)season).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
     }
 
     [HttpGet("Season/{seasonID}/Cast")]
@@ -2590,11 +2626,21 @@ public partial class TmdbController(
             .ToList();
     }
 
+    /// <summary>
+    /// Get every image for the TMDB episode, grouped by image type.
+    /// </summary>
+    /// <param name="episodeID">TMDB Episode ID</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include images that are not marked as desired for download.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
+    /// <param name="language">Filter the images down to these languages.</param>
+    /// <returns>Every image for the episode, grouped by image type.</returns>
     [HttpGet("Episode/{episodeID}/Images")]
     public ActionResult<Images> GetImagesForTmdbEpisodeByEpisodeID(
         [FromRoute] int episodeID,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
@@ -2604,7 +2650,7 @@ public partial class TmdbController(
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        return ((IWithImages)episode).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language);
+        return ((IWithImages)episode).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true }).ToDto(language, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
     }
 
     [HttpGet("Episode/{episodeID}/Cast")]
