@@ -20,9 +20,9 @@ namespace Shoko.Tests.Databases;
 /// logical schema and compares the results, without touching a database.
 ///
 /// Tables and primary keys only, from the DDL as written. Columns, types, widths and nullability are
-/// compared by <see cref="SchemaTypeParityTests"/>, which reads the catalog of a real migrated
-/// database instead — a replay cannot see the migrations MySQL performs through
-/// <c>PREPARE stmt FROM @sqlstmt</c>, nor any of the ones written in C#.
+/// compared by <see cref="SchemaTypeParityTests"/>, which reads a real migrated database instead — a
+/// replay cannot see the migrations written in C#, nor those MySQL runs through
+/// <c>PREPARE stmt FROM @sqlstmt</c>.
 /// </remarks>
 public class SchemaParityTests
 {

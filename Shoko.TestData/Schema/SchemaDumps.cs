@@ -7,14 +7,8 @@ namespace Shoko.TestData.Schema;
 /// named by <see cref="DirectoryVariable"/>.
 /// </summary>
 /// <remarks>
-/// Nothing is committed. Each dump is produced by migrating a real database of that backend from
-/// empty and reading its catalog, so the only way to compare the three is to have run all three —
-/// which CI does, one job per backend, publishing the dumps for the comparison job to collect.
-///
-/// Reading the live catalog is what makes the dump trustworthy: the DDL in
-/// <c>Shoko.Server/Databases/</c> cannot simply be replayed, because MySQL performs some of its
-/// migrations through <c>PREPARE stmt FROM @sqlstmt</c> and every backend has migrations written in
-/// C# rather than SQL.
+/// Nothing is committed — each dump comes from migrating a real database of that backend from empty,
+/// which CI does one job per backend, publishing the dumps for the comparison job to collect.
 /// </remarks>
 public static class SchemaDumps
 {
@@ -28,10 +22,7 @@ public static class SchemaDumps
     /// <summary>The file a dump for <paramref name="backend"/> is written to and read from.</summary>
     public static string FileNameFor(string backend) => $"schema-{backend}.json";
 
-    /// <summary>
-    /// Which of <see cref="Backends"/> have no dump available, and why — empty when all three are
-    /// ready to compare.
-    /// </summary>
+    /// <summary>Why the dumps cannot be compared, or <see langword="null"/> when they can.</summary>
     public static string? Unavailable()
     {
         if (Directory is not { } directory)

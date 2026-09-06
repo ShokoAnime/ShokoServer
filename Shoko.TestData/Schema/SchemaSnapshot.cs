@@ -11,15 +11,10 @@ namespace Shoko.TestData.Schema;
 /// all three backends.
 /// </summary>
 /// <param name="Name">Column name, as declared.</param>
-/// <param name="Family">
-/// The backend-neutral type family — see <see cref="SchemaSnapshot.FamilyOf"/>. Each backend spells
-/// the same intent differently (<c>INTEGER</c>/<c>int</c>, <c>text</c>/<c>nvarchar(max)</c>), so the
-/// dialect name itself cannot be compared.
-/// </param>
+/// <param name="Family">Backend-neutral type family; see <see cref="SchemaSnapshot.FamilyOf"/>.</param>
 /// <param name="Size">
-/// <c>"500"</c> for a bounded string, <c>"6,2"</c> for a decimal, <c>"max"</c> for unbounded text, or
-/// <see langword="null"/> when the backend declares no size at all. SQLite uses type affinity rather
-/// than declared widths, so most of its columns report <see langword="null"/> here.
+/// <c>"500"</c>, <c>"6,2"</c>, <c>"max"</c>, or <see langword="null"/> where the backend declares no
+/// size — SQLite uses type affinity, so most of its columns report <see langword="null"/>.
 /// </param>
 /// <param name="Nullable">Whether the column accepts nulls.</param>
 /// <param name="PrimaryKey">Whether the column takes part in the primary key.</param>
@@ -29,10 +24,9 @@ public sealed record ColumnSnapshot(string Name, string Family, string? Size, bo
 /// The live schema of a migrated database, read from the backend's own catalog.
 /// </summary>
 /// <remarks>
-/// Read from the catalog rather than replayed from the DDL in <c>Shoko.Server/Databases/</c>: MySQL
-/// performs some migrations through <c>PREPARE stmt FROM @sqlstmt</c>, and every backend has
-/// <see cref="Shoko.Server.Databases.DatabaseCommandType.CodedCommand"/> migrations written in C#.
-/// Neither is visible to a text replay, so only the migrated database knows the real answer.
+/// Read from the catalog, not replayed from the DDL: MySQL migrates some columns through
+/// <c>PREPARE stmt FROM @sqlstmt</c> and every backend has migrations written in C#, neither of which
+/// a text replay can see.
 /// </remarks>
 public sealed class SchemaSnapshot
 {
@@ -154,14 +148,9 @@ public sealed class SchemaSnapshot
         => size is null ? null : size.Equals("max", StringComparison.OrdinalIgnoreCase) ? "max" : size;
 
     /// <summary>
-    /// Reduces a dialect type name to a backend-neutral family.
+    /// Reduces a dialect type name to a backend-neutral family, grouped by what the column is for
+    /// rather than how it is stored — SQLite has no boolean or GUID type, and MySQL has no GUID type.
     /// </summary>
-    /// <remarks>
-    /// Grouped by what the column is for, not by storage: SQLite has no boolean or GUID type and
-    /// spells every integer <c>INTEGER</c>, and MySQL has no GUID type either, so <c>bit</c>,
-    /// <c>tinyint</c> and <c>uniqueidentifier</c> cannot be families of their own without every
-    /// SQLite column being reported as a divergence.
-    /// </remarks>
     public static string FamilyOf(string type) => type.Trim().ToLowerInvariant() switch
     {
         "int" or "integer" or "smallint" or "mediumint" or "tinyint" or "bit" or "bool" or "boolean" => "integer",
@@ -176,26 +165,18 @@ public sealed class SchemaSnapshot
     };
 
     /// <summary>
-    /// Families SQLite has no separate type for, and the one it uses instead.
+    /// Families SQLite has no separate type for. Its <c>INTEGER</c> is already a variable-width signed
+    /// 64-bit value, so it has no <c>BIGINT</c> to declare.
     /// </summary>
-    /// <remarks>
-    /// SQLite stores everything as one of five storage classes, and its <c>INTEGER</c> is already a
-    /// variable-width signed 64-bit value, so there is no <c>BIGINT</c> for it to declare — asking it
-    /// for one would be asking for a type that does not exist.
-    /// </remarks>
     private static readonly Dictionary<string, string> _sqliteCannotDistinguish = new(StringComparer.Ordinal)
     {
         ["bigint"] = "integer",
     };
 
     /// <summary>
-    /// Whether the type families observed for one column across the backends are the same type.
+    /// Whether the families observed for one column are the same type. The backends with the full type
+    /// system are held to each other exactly; only SQLite is compared after collapsing.
     /// </summary>
-    /// <remarks>
-    /// The backends that have the full type system are held to each other exactly, so a column that
-    /// is <c>INT</c> on one and <c>BIGINT</c> on the other is still a divergence. Only SQLite is
-    /// compared after collapsing the families it cannot express.
-    /// </remarks>
     public static bool FamiliesAgree(IReadOnlyDictionary<string, string> observed)
     {
         var precise = observed.Where(entry => entry.Key is not Sqlite).Select(entry => entry.Value).Distinct().ToArray();
