@@ -44,19 +44,22 @@ public class TmdbRateLimiterTests
     [Fact]
     public async Task SlotsExpireAfterWindow_AllowsNewCalls()
     {
-        using var limiter = CreateRateLimiter(maxRequests: 2, windowMs: 200);
+        // The window is split into SegmentsPerWindow slices and slots come back a slice at a time, so
+        // it has to be wide enough that a slice outlasts the timer granularity of a loaded CI runner.
+        using var limiter = CreateRateLimiter(maxRequests: 2, windowMs: 1000);
 
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
 
-        await Task.Delay(300, TestContext.Current.CancellationToken);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
 
         var sw = Stopwatch.StartNew();
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
 
-        Assert.True(sw.Elapsed < TimeSpan.FromMilliseconds(200),
-            $"Expected < 200ms after window expiry, got {sw.Elapsed.TotalMilliseconds:F0}ms");
+        // Had the slots not come back, these would have waited out most of the 1000ms window.
+        Assert.True(sw.Elapsed < TimeSpan.FromMilliseconds(500),
+            $"Expected < 500ms after window expiry, got {sw.Elapsed.TotalMilliseconds:F0}ms");
     }
 
     [Fact]
