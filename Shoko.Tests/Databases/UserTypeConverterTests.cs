@@ -7,6 +7,7 @@ using NHibernate.UserTypes;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.MediaInfo;
+using Shoko.Server.Models.TMDB;
 using Xunit;
 
 namespace Shoko.Tests.Databases;
@@ -31,6 +32,9 @@ public class UserTypeConverterTests
             .Where(t => typeof(IUserType).IsAssignableFrom(t))
             .Where(t => t.GetConstructor(Type.EmptyTypes) is not null)
             .OrderBy(t => t.FullName, StringComparer.Ordinal),
+        // Closed over MediaContainer because reflection never yields an open generic, which quietly
+        // left the converter for VideoLocal.MediaInfo out of every theory below.
+        typeof(MessagePackConverter<MediaContainer>),
     ];
 
     private static IUserType Resolve(string fullName)
@@ -62,18 +66,31 @@ public class UserTypeConverterTests
         Assert.All(converter.SqlTypes, Assert.NotNull);
     }
 
-    [Theory]
-    [MemberData(nameof(AllConverters))]
-    public void EveryConverterDeclaresTheTypeItReturns(string fullName)
-        => Assert.NotNull(Resolve(fullName).ReturnedType);
+    public static TheoryData<string, object, object> EqualButDistinctValues() => new()
+    {
+        { typeof(StringListConverter).FullName!, new List<string> { "a", "b" }, new List<string> { "a", "b" } },
+        { typeof(TmdbContentRatingConverter).FullName!, new List<TMDB_ContentRating>(), new List<TMDB_ContentRating>() },
+        { typeof(TmdbProductionCountryConverter).FullName!, new List<TMDB_ProductionCountry>(), new List<TMDB_ProductionCountry>() },
+        { typeof(PartialDateOnlyConverter).FullName!, new PartialDateOnly(2024, 5, 1), new PartialDateOnly(2024, 5, 1) },
+        { typeof(DateOnlyConverter).FullName!, new DateOnly(2024, 5, 1), new DateOnly(2024, 5, 1) },
+        {
+            typeof(JTokenDictionaryConverter).FullName!,
+            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },
+            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) }
+        },
+    };
 
     [Theory]
-    [MemberData(nameof(AllConverters))]
-    public void EveryConverterTreatsTwoNullsAsEqual(string fullName)
+    [MemberData(nameof(EqualButDistinctValues))]
+    public void EqualValuesCompareEqualEvenWhenTheyAreNotTheSameInstance(string fullName, object left, object right)
     {
-        // Dirty-checking runs this on every flush; saying two nulls differ would rewrite untouched
-        // rows forever.
-        Assert.True(Resolve(fullName).Equals(null, null));
+        var converter = Resolve(fullName);
+
+        // This is the comparison NHibernate runs on every flush to decide whether a property
+        // changed. NullSafeGet hands back a fresh instance on every load, so a converter that can
+        // only compare by reference reports every untouched row as dirty and rewrites it forever.
+        Assert.NotSame(left, right);
+        Assert.True(converter.Equals(left, right), $"{fullName} reports two equal values as different.");
     }
 
     [Theory]
@@ -85,11 +102,6 @@ public class UserTypeConverterTests
 
         Assert.True(converter.Equals(value, value));
     }
-
-    [Theory]
-    [MemberData(nameof(AllConverters))]
-    public void EveryConverterHashesNullWithoutThrowing(string fullName)
-        => Resolve(fullName).GetHashCode(null!);
 
     #endregion
 

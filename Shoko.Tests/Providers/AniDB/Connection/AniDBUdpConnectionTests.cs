@@ -237,7 +237,7 @@ public class AniDBUdpConnectionTests
         var harness = new Harness(availability: NetworkAvailability.NoInterfaces);
         harness.Init();
 
-        Assert.ThrowsAny<Exception>(() => harness.Handler.SendDirectly("PING"));
+        Assert.Throws<SocketException>(() => harness.Handler.SendDirectly("PING"));
 
         // The request is abandoned before it reaches the socket rather than timing out on it.
         Assert.Empty(harness.Socket.Sent);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Abstractions.Filtering.Sorting.Selectors;
+using Shoko.Abstractions.Metadata;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
@@ -65,79 +66,128 @@ public class SortingSelectorTests
 
     [Theory]
     [MemberData(nameof(AllSelectors))]
-    public void EverySelectorProducesAValue(string fullName)
-    {
-        var selector = Create(fullName);
-
-        var result = selector.Evaluate(s_filterable, s_userInfo, s_date);
-
-        Assert.NotNull(result);
-    }
-
-    [Theory]
-    [MemberData(nameof(AllSelectors))]
     public void EverySelectorProducesSomethingComparable(string fullName)
     {
-        var selector = Create(fullName);
-
         // The result is what the collection is ordered by, so it has to be comparable.
-        Assert.IsAssignableFrom<IComparable>(selector.Evaluate(s_filterable, s_userInfo, s_date));
+        Assert.IsAssignableFrom<IComparable>(Create(fullName).Evaluate(s_filterable, s_userInfo, s_date));
     }
 
-    [Theory]
-    [MemberData(nameof(AllSelectors))]
-    public void EverySelectorIsDeterministic(string fullName)
+    /// <summary>
+    /// Every selector paired with the property it reads. Generated from the selector sources, then
+    /// held here so a selector that starts reading a different field fails.
+    /// </summary>
+    public static TheoryData<string, string, string, string> SelectorProperties() => new()
     {
-        var selector = Create(fullName);
+        { "AddedDateSortingSelector", "filterable", "AddedDate", "" },
+        { "AirDateSortingSelector", "filterable", "AirDate", "ToDateTime" },
+        { "AudioLanguageCountSortingSelector", "filterable", "AudioLanguages.Count", "" },
+        { "AverageAniDBRatingSortingSelector", "filterable", "AverageAniDBRating", "" },
+        { "BluRaySourceCountSortingSelector", "filterable", "FileSourceCounts.BluRay", "" },
+        { "CameraSourceCountSortingSelector", "filterable", "FileSourceCounts.Camera", "" },
+        { "CreditsEpisodesCountSortingSelector", "filterable", "EpisodeCounts.Credits", "" },
+        { "CustomTagCountSortingSelector", "filterable", "CustomTags.Count", "" },
+        { "DescriptionSortingSelector", "filterable", "Description", "" },
+        { "DvdSourceCountSortingSelector", "filterable", "FileSourceCounts.DVD", "" },
+        { "EpisodeCountSortingSelector", "filterable", "EpisodeCount", "" },
+        { "FilmSourceCountSortingSelector", "filterable", "FileSourceCounts.Film", "" },
+        { "GroupIDSortingSelector", "filterable", "GroupID", "" },
+        { "HiddenEpisodesSortingSelector", "filterable", "HiddenEpisodes", "" },
+        { "HighestAniDBRatingSortingSelector", "filterable", "HighestAniDBRating", "" },
+        { "HighestUserRatingSortingSelector", "userInfo", "HighestUserRating", "" },
+        { "LaserDiscSourceCountSortingSelector", "filterable", "FileSourceCounts.LaserDisc", "" },
+        { "LastAddedDateSortingSelector", "filterable", "LastAddedDate", "" },
+        { "LastAirDateSortingSelector", "filterable", "LastAirDate", "ToDateTime" },
+        { "LastWatchedDateSortingSelector", "userInfo", "LastWatchedDate", "" },
+        { "LocalCreditsEpisodesCountSortingSelector", "filterable", "LocalEpisodeCounts.Credits", "" },
+        { "LocalEpisodesCountSortingSelector", "filterable", "LocalEpisodeCounts.Episodes", "" },
+        { "LocalOthersEpisodesCountSortingSelector", "filterable", "LocalEpisodeCounts.Others", "" },
+        { "LocalParodiesEpisodesCountSortingSelector", "filterable", "LocalEpisodeCounts.Parodies", "" },
+        { "LocalSpecialEpisodesCountSortingSelector", "filterable", "LocalEpisodeCounts.Specials", "" },
+        { "LocalTrailersEpisodesCountSortingSelector", "filterable", "LocalEpisodeCounts.Trailers", "" },
+        { "LowestAniDBRatingSortingSelector", "filterable", "LowestAniDBRating", "" },
+        { "LowestUserRatingSortingSelector", "userInfo", "LowestUserRating", "" },
+        { "MainNameSortingSelector", "filterable", "MainName", "" },
+        { "MissingCreditsEpisodesCountSortingSelector", "filterable", "MissingEpisodeCounts.Credits", "" },
+        { "MissingEpisodeCollectingCountSortingSelector", "filterable", "MissingEpisodesCollecting", "" },
+        { "MissingEpisodeCountSortingSelector", "filterable", "MissingEpisodes", "" },
+        { "MissingEpisodesCountSortingSelector", "filterable", "MissingEpisodeCounts.Episodes", "" },
+        { "MissingOthersEpisodesCountSortingSelector", "filterable", "MissingEpisodeCounts.Others", "" },
+        { "MissingParodiesEpisodesCountSortingSelector", "filterable", "MissingEpisodeCounts.Parodies", "" },
+        { "MissingSpecialEpisodesCountSortingSelector", "filterable", "MissingEpisodeCounts.Specials", "" },
+        { "MissingTrailersEpisodesCountSortingSelector", "filterable", "MissingEpisodeCounts.Trailers", "" },
+        { "NameSortingSelector", "filterable", "Name", "" },
+        { "OriginalNameSortingSelector", "filterable", "OriginalName", "" },
+        { "OtherSourceCountSortingSelector", "filterable", "FileSourceCounts.Other", "" },
+        { "OthersEpisodesCountSortingSelector", "filterable", "EpisodeCounts.Others", "" },
+        { "ParodiesEpisodesCountSortingSelector", "filterable", "EpisodeCounts.Parodies", "" },
+        { "SeriesCountSortingSelector", "filterable", "SeriesCount", "" },
+        { "SeriesPermanentVoteCountSortingSelector", "userInfo", "SeriesPermanentVoteCount", "" },
+        { "SeriesTemporaryVoteCountSortingSelector", "userInfo", "SeriesTemporaryVoteCount", "" },
+        { "SeriesVoteCountSortingSelector", "userInfo", "SeriesVoteCount", "" },
+        { "SortNameSortingSelector", "filterable", "SortName", "" },
+        { "SortingNameSortingSelector", "filterable", "SortName", "" },
+        { "SpecialEpisodesCountSortingSelector", "filterable", "EpisodeCounts.Specials", "" },
+        { "SubtitleLanguageCountSortingSelector", "filterable", "SubtitleLanguages.Count", "" },
+        { "TopLevelGroupIDSortingSelector", "filterable", "TopLevelGroupID", "" },
+        { "TotalEpisodeCountSortingSelector", "filterable", "TotalEpisodeCount", "" },
+        { "TrailersEpisodesCountSortingSelector", "filterable", "EpisodeCounts.Trailers", "" },
+        { "TvSourceCountSortingSelector", "filterable", "FileSourceCounts.TV", "" },
+        { "UnairedCreditsEpisodesCountSortingSelector", "filterable", "UnairedEpisodeCounts.Credits", "" },
+        { "UnairedEpisodesCountSortingSelector", "filterable", "UnairedEpisodeCounts.Episodes", "" },
+        { "UnairedOthersEpisodesCountSortingSelector", "filterable", "UnairedEpisodeCounts.Others", "" },
+        { "UnairedParodiesEpisodesCountSortingSelector", "filterable", "UnairedEpisodeCounts.Parodies", "" },
+        { "UnairedSpecialEpisodesCountSortingSelector", "filterable", "UnairedEpisodeCounts.Specials", "" },
+        { "UnairedTrailersEpisodesCountSortingSelector", "filterable", "UnairedEpisodeCounts.Trailers", "" },
+        { "UnknownSourceCountSortingSelector", "filterable", "FileSourceCounts.Unknown", "" },
+        { "UnwatchedEpisodeCountSortingSelector", "userInfo", "UnwatchedEpisodes", "" },
+        { "UserTagCountSortingSelector", "userInfo", "UserTags.Count", "" },
+        { "VcdSourceCountSortingSelector", "filterable", "FileSourceCounts.VCD", "" },
+        { "VhsSourceCountSortingSelector", "filterable", "FileSourceCounts.VHS", "" },
+        { "WatchedCreditsEpisodesCountSortingSelector", "userInfo", "WatchedEpisodeCounts.Credits", "" },
+        { "WatchedDateSortingSelector", "userInfo", "WatchedDate", "" },
+        { "WatchedEpisodeCountSortingSelector", "userInfo", "WatchedEpisodes", "" },
+        { "WatchedEpisodesCountSortingSelector", "userInfo", "WatchedEpisodeCounts.Episodes", "" },
+        { "WatchedOthersEpisodesCountSortingSelector", "userInfo", "WatchedEpisodeCounts.Others", "" },
+        { "WatchedParodiesEpisodesCountSortingSelector", "userInfo", "WatchedEpisodeCounts.Parodies", "" },
+        { "WatchedSpecialEpisodesCountSortingSelector", "userInfo", "WatchedEpisodeCounts.Specials", "" },
+        { "WatchedTrailersEpisodesCountSortingSelector", "userInfo", "WatchedEpisodeCounts.Trailers", "" },
+        { "WebSourceCountSortingSelector", "filterable", "FileSourceCounts.Web", "" },
+    };
 
-        Assert.Equal(
-            selector.Evaluate(s_filterable, s_userInfo, s_date),
-            selector.Evaluate(s_filterable, s_userInfo, s_date));
+    [Theory]
+    [MemberData(nameof(SelectorProperties))]
+    public void EverySelectorReadsTheFieldItIsNamedFor(string selector, string source, string path, string transform)
+    {
+        var type = s_selectorTypes.Single(t => t.Name == selector);
+        var instance = (SortingExpression)Activator.CreateInstance(type)!;
+        object root = source == "userInfo" ? s_userInfo : s_filterable;
+
+        var expected = Resolve(root, path);
+        if (transform == "ToDateTime")
+            expected = ((PartialDateOnly)expected!).ToDateTime();
+
+        Assert.Equal(expected, instance.Evaluate(s_filterable, s_userInfo, s_date));
     }
 
-    [Theory]
-    [MemberData(nameof(AllSelectors))]
-    public void ASelectorThatIsNotUserDependentDoesNotNeedUserInfo(string fullName)
+    /// <summary>Walks a dotted property path off the populated double.</summary>
+    private static object? Resolve(object root, string path)
     {
-        var selector = Create(fullName);
-        if (selector.UserDependent)
-            return;
+        var current = root;
+        foreach (var part in path.Split('.'))
+        {
+            var property = current!.GetType().GetProperty(part)
+                ?? throw new InvalidOperationException($"No property '{part}' on {current.GetType().Name}.");
+            current = property.GetValue(current);
+        }
 
-        // Filters are evaluated without user info for user-independent expressions, so these must
-        // cope with a null userInfo rather than throwing.
-        Assert.Equal(
-            selector.Evaluate(s_filterable, s_userInfo, s_date),
-            selector.Evaluate(s_filterable, null, s_date));
-    }
-
-    [Theory]
-    [MemberData(nameof(AllSelectors))]
-    public void ASelectorThatIsNotTimeDependentIgnoresTheTime(string fullName)
-    {
-        var selector = Create(fullName);
-        if (selector.TimeDependent)
-            return;
-
-        // A selector whose value moves with the clock while claiming otherwise defeats the caching
-        // that the filtering engine does on the strength of that flag.
-        Assert.Equal(
-            selector.Evaluate(s_filterable, s_userInfo, s_date),
-            selector.Evaluate(s_filterable, s_userInfo, s_date.AddYears(5)));
+        return current;
     }
 
     #endregion
 
-    #region Representative values
+    #region Defaults
 
     private static readonly DateTime s_date = new(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
-
-    [Fact]
-    public void AddedDateSelector_ReturnsTheAddedDate()
-        => Assert.Equal(s_filterable.AddedDate, new AddedDateSortingSelector().Evaluate(s_filterable, s_userInfo, s_date));
-
-    [Fact]
-    public void MissingEpisodeCountSelector_ReturnsTheMissingEpisodeCount()
-        => Assert.Equal(s_filterable.MissingEpisodes, new MissingEpisodeCountSortingSelector().Evaluate(s_filterable, s_userInfo, s_date));
 
     [Fact]
     public void Descending_DefaultsToAscending()

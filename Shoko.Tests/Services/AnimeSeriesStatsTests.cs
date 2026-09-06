@@ -250,7 +250,7 @@ public class AnimeSeriesStatsTests
     {
         using var harness = Create(new EpisodeSpec(1, HasFile: false));
 
-        Assert.NotNull(harness.Update().LatestEpisodeAirDate);
+        Assert.Equal(s_aired, harness.Update().LatestEpisodeAirDate);
     }
 
     [Fact]

@@ -61,8 +61,10 @@ public class AniDBHttpConnectionTests
 
         await handler.GetHttp("httpapi?request=anime&aid=1");
 
+        // Asserted whole, including the host: checking only the relative part would pass even if
+        // the handler ignored the configured server entirely.
         var request = Assert.Single(http.Requests);
-        Assert.Contains("httpapi?request=anime&aid=1", request.RequestUri!.ToString());
+        Assert.Equal("http://anidb.invalid/httpapi?request=anime&aid=1", request.RequestUri!.ToString());
     }
 
     [Fact]

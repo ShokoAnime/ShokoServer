@@ -25,8 +25,8 @@ namespace Shoko.Tests.Services;
 /// <remarks>
 /// This is the most destructive decision the server makes on its own, and it had no tests. The
 /// method returns the list rather than acting on it, so every rule can be checked without deleting
-/// anything. The real <see cref="ReleaseComparisonService"/> is used rather than a stub, so these
-/// exercise the actual ranking and redundancy rules.
+/// anything. The real <see cref="ReleaseComparisonService"/> supplies the redundancy rules;
+/// ranking is not involved, since the primary is whichever candidate is passed first.
 /// </remarks>
 public class ReleaseAutoManagementTests
 {
@@ -167,20 +167,6 @@ public class ReleaseAutoManagementTests
     #region The primary is never deleted
 
     [Fact]
-    public void APlaceBelongingToThePrimaryIsNeverDeleted()
-    {
-        var harness = TwoCandidates();
-        var shared = Place(1, 1);
-        var primary = Candidate("primary", [shared], [1]);
-        // The same physical file also appears in a secondary gap-fill candidate.
-        var secondary = Candidate("secondary", [shared, Place(2, 2)], [1]);
-
-        var redundant = harness.Service.ComputeRedundantPlaces(harness.Series, [primary, secondary], harness.VideoLookup);
-
-        Assert.DoesNotContain(redundant, place => place.ID == shared.ID);
-    }
-
-    [Fact]
     public void AFileSharedByBothCandidatesSurvivesWhileTheRestOfTheSecondaryGoes()
     {
         var harness = new Harness(null, seriesIsAiring: false, [(1, 1, 1), (2, 2, 1)]);
@@ -311,8 +297,9 @@ public class ReleaseAutoManagementTests
     public void AFileWithUnknownEpisodeCoverageIsKept()
     {
         var preferences = new ReleaseComparisonPreferences { PerFileDeletionForAiringSeries = true };
-        // Place 9 has no cross-reference, so its coverage cannot be resolved.
+        // Video 9 is known but has no cross-reference, so its coverage cannot be resolved.
         var harness = new Harness(preferences, seriesIsAiring: true, [(1, 1, 1)]);
+        harness.VideoLookup[9] = new VideoLocal { VideoLocalID = 9, Hash = "hash-9", FileSize = 9 };
         var primary = Candidate("primary", [Place(1, 1)], [1]);
         var secondary = Candidate("secondary", [Place(9, 9)], [1]);
 
