@@ -232,11 +232,42 @@ Plugin controllers are registered via `AddPluginControllers` during API setup.
 
 ### Testing
 
-- **Framework**: xUnit 2.7.0 with `Xunit.DependencyInjection` 9.1.0 for DI in tests
-- **Mocking**: Moq 4.20.70
-- **Coverage**: coverlet 6.0.2
-- **Test SDK**: Microsoft.NET.Test.Sdk 17.9.0
-- Unit tests in `Shoko.Tests/`, integration tests in `Shoko.IntegrationTests/`
+- **Framework**: xUnit v3 (`xunit.v3`) — there is no `Xunit.DependencyInjection`; test classes take
+  their dependencies through fixtures or build them directly
+- **Mocking**: Moq
+- **Coverage**: coverlet
+- **Test SDK**: Microsoft.NET.Test.Sdk
+
+**Where a test belongs**
+
+| Project | Scope |
+|---------|-------|
+| `Shoko.Tests` | Unit tests. No database, no network, no DI container. |
+| `Shoko.QueueProcessor.Tests` | The EF Core job queue, against in-memory SQLite. |
+| `Shoko.IntegrationTests` | Full server bootstrap against a real database, run in CI over SQLite, MySQL and SQL Server (selected by `DB_TYPE`). |
+| `Shoko.TestData` | Shared JSON fixtures consumed by tests and benchmarks. |
+
+Prefer the cheapest option that can actually exercise the behaviour: plain unit tests first, then the
+cache-backed repositories described below, and a real database only when persistence itself is the
+subject.
+
+**Testing code that reads `RepoFactory`**
+
+Domain models resolve their navigation properties through the `RepoFactory` statics, which normally
+forces a database. `Shoko.Tests/Infrastructure/` avoids that:
+
+- `CachedRepo.Build<TRepo, TKey, TEntity>(keySelector, entities)` returns a **real** repository whose
+  rows live in an in-memory `PocoCache`. Read paths, including each repository's own indexes, run
+  exactly as in production. `Save`/`Delete` are not supported — mock those instead.
+- `RepoFactoryScope` installs repositories into the `RepoFactory` statics and restores them on
+  dispose. Its `With<TRepo, TKey, TEntity>(...)` overload builds and installs in one step.
+
+Those statics are process-global, so every test using `RepoFactoryScope` must be annotated
+`[Collection(nameof(RepoFactoryCollection))]`, which serialises them while the rest of the suite
+keeps running in parallel.
+
+Note that `ISystemService.StaticServices` is **write-once per process** — it throws on a second
+assignment. Nothing in `Shoko.Tests` sets it, and new tests should keep it that way.
 
 ### Database Migrations
 
