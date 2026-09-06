@@ -28,7 +28,14 @@ jobs:
       - name: Run integration tests
         env:
           DB_TYPE: SQLite
+          SHOKO_SCHEMA_DIR: ${{ github.workspace }}/schema-dumps
         run: dotnet test Shoko.IntegrationTests/Shoko.IntegrationTests.csproj -c Release --logger "console;verbosity=normal"
+
+      - name: Upload schema dump
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-SQLite
+          path: schema-dumps/schema-SQLite.json
 
   test-mysql:
     runs-on: ubuntu-latest
@@ -67,7 +74,14 @@ jobs:
           DB_USER: root
           DB_PASS: root
           DB_NAME: shoko
+          SHOKO_SCHEMA_DIR: ${{ github.workspace }}/schema-dumps
         run: dotnet test Shoko.IntegrationTests/Shoko.IntegrationTests.csproj -c Release --logger "console;verbosity=normal"
+
+      - name: Upload schema dump
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-MySQL
+          path: schema-dumps/schema-MySQL.json
 
   test-mssql:
     runs-on: ubuntu-latest
@@ -107,4 +121,42 @@ jobs:
           DB_USER: sa
           DB_PASS: "ShokoTest1!"
           DB_NAME: shoko
+          SHOKO_SCHEMA_DIR: ${{ github.workspace }}/schema-dumps
         run: dotnet test Shoko.IntegrationTests/Shoko.IntegrationTests.csproj -c Release --logger "console;verbosity=normal"
+
+      - name: Upload schema dump
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-SQLServer
+          path: schema-dumps/schema-SQLServer.json
+
+  schema-parity:
+    runs-on: ubuntu-latest
+    name: Schema Parity — SQLite vs MySQL vs SQL Server
+    needs: [test-sqlite, test-mysql, test-mssql]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.x'
+
+      # Each backend job published the schema its own migration produced; the comparison needs all
+      # three side by side, and skips rather than passes if any is missing.
+      - name: Download schema dumps
+        uses: actions/download-artifact@v5
+        with:
+          pattern: schema-*
+          merge-multiple: true
+          path: schema-dumps
+
+      - name: Compare the three schemas
+        env:
+          SHOKO_SCHEMA_DIR: ${{ github.workspace }}/schema-dumps
+        run: >-
+          dotnet test Shoko.Tests/Shoko.Tests.csproj -c Release
+          --filter "FullyQualifiedName~SchemaTypeParityTests"
+          --logger "console;verbosity=normal"
