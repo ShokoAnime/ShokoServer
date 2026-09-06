@@ -49,7 +49,7 @@ public class VideoRelocationService(
     StoredRelocationPresetRepository storedRelocationPresetRepository,
     FileNameHashRepository fileNameHash,
     ShokoManagedFolderRepository managedFolders,
-    FileSystemHelpers fileSystemHelpers
+    IFileSystemHelpers fileSystemHelpers
 ) : IVideoRelocationService, IRelocationPresetManager
 {
     private Dictionary<Guid, RelocationProviderInfo> _relocationProviderInfos = [];

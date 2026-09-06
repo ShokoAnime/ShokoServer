@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
+    <ProjectReference Include="..\Shoko.TestData\Shoko.TestData.csproj" />
   </ItemGroup>
 
 

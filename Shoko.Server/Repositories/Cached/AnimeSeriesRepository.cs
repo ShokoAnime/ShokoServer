@@ -125,7 +125,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         Save(obj, true);
     }
 
-    public void Save(AnimeSeries obj, bool updateGroups, bool alsoupdateepisodes = false)
+    public virtual void Save(AnimeSeries obj, bool updateGroups, bool alsoupdateepisodes = false)
     {
         var animeID = obj.AniDB_Anime?.MainTitle ?? obj.AniDB_ID.ToString();
         logger.Trace($"Saving Series {animeID}");

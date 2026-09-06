@@ -13,15 +13,15 @@ public static class TestData
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
         using var reader = new StreamReader(stream!);
         var jsonString = reader.ReadToEnd();
-        return JsonConvert.DeserializeObject<AniDB_Anime[]>(jsonString)!;
+        return JsonConvert.DeserializeObject<AniDB_Anime[]>(jsonString, new PartialDateOnlyConverter())!;
     });
 
     public static Lazy<IEnumerable<CrossRef_File_Episode>> CrossRef_File_Episode { get; } = new(() =>
     {
-        const string ResourceName = "Shoko.TestData.AniDB_Anime.json";
+        const string ResourceName = "Shoko.TestData.CrossRef_File_Episode.json";
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
         using var reader = new StreamReader(stream!);
         var jsonString = reader.ReadToEnd();
-        return JsonConvert.DeserializeObject<CrossRef_File_Episode[]>(jsonString)!;
+        return JsonConvert.DeserializeObject<CrossRef_File_Episode[]>(jsonString, new PartialDateOnlyConverter())!;
     });
 }

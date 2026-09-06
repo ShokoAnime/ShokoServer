@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -945,6 +946,11 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                      WHERE CrossReferences LIKE '%AnidbEpisodeID%'
                      """),
         new(163,  1, "ALTER TABLE VideoLocal DROP COLUMN MyListID;"),
+
+        // Both back non-nullable model properties. SQLite cannot tighten in place, so each table is
+        // rebuilt.
+        new(164,  1, MakeAniDB_Anime_TitleTitleNotNull),
+        new(164,  2, MakeVideoLocalDateTimeCreatedNotNull),
     ];
 
     #endregion
@@ -1108,6 +1114,30 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                     "CREATE UNIQUE INDEX UIX_AniDB_Character_CharID ON AniDB_Character (CharID);",
                 ]
             );
+        }
+        catch (Exception e)
+        {
+            return new Tuple<bool, string?>(false, e.ToString());
+        }
+
+        return new Tuple<bool, string?>(true, null);
+    }
+
+    private static Tuple<bool, string?> MakeAniDB_Anime_TitleTitleNotNull(object connection)
+        => MakeColumnNotNull(connection, "AniDB_Anime_Title", "Title", "''");
+
+    private static Tuple<bool, string?> MakeVideoLocalDateTimeCreatedNotNull(object connection)
+        // DateTimeUpdated is always set and is the closest thing to a creation time on hand.
+        => MakeColumnNotNull(connection, "VideoLocal", "DateTimeCreated", "DateTimeUpdated");
+
+    private static Tuple<bool, string?> MakeColumnNotNull(object connection, string tableName, string columnName, string fillExpression)
+    {
+        try
+        {
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
+            var db = (SqliteConnection)connection;
+            factory.Execute(db, $"UPDATE {tableName} SET {columnName} = {fillExpression} WHERE {columnName} IS NULL;");
+            factory.Alter(db, tableName, factory.NotNullVariantOf(db, tableName, columnName), factory.RecreateIndexesOf(db, tableName));
         }
         catch (Exception e)
         {
@@ -1560,6 +1590,40 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             Execute(db, cmdTable);
         }
     }
+
+    /// <summary>
+    /// The table's own <c>CREATE TABLE</c>, with <paramref name="columnName"/> made <c>NOT NULL</c>.
+    /// </summary>
+    /// <remarks>
+    /// Patched from what the database reports, not written out here: a
+    /// <see cref="DatabaseCommandType.PostDatabaseFix"/> runs after every other command, so a database
+    /// migrating in one pass still has columns one migrating from an older version dropped long ago.
+    /// </remarks>
+    private string NotNullVariantOf(SqliteConnection db, string tableName, string columnName)
+        => NotNullVariantOf((string)ExecuteReader(db, $"SELECT sql FROM sqlite_master WHERE type = 'table' AND name = '{tableName}';")[0][0], columnName);
+
+    /// <inheritdoc cref="NotNullVariantOf(SqliteConnection, string, string)"/>
+    internal static string NotNullVariantOf(string createCommand, string columnName)
+    {
+        // A definition runs between commas, but its type may bracket a comma of its own: decimal(6,2).
+        var definition = new Regex(
+            $@"(?<=[(,]\s*)(?<name>{Regex.Escape(columnName)})(?<type>(?:\s+[^\s,()]+|\s*\([^()]*\))*?)(?<null>\s+(?:NOT\s+)?NULL)?(?=\s*[,)])",
+            RegexOptions.IgnoreCase);
+        var patched = definition.Replace(createCommand, match => $"{match.Groups["name"].Value}{match.Groups["type"].Value} NOT NULL", 1);
+        if (patched == createCommand && !definition.IsMatch(createCommand))
+            throw new InvalidOperationException($"Could not find a definition for `{columnName}` in: {createCommand}");
+
+        return patched;
+    }
+
+    /// <summary>
+    /// Commands to drop and recreate each of the table's indexes. The rename carries them along, names
+    /// and all, so each name has to be freed before it can be reused.
+    /// </summary>
+    private List<string> RecreateIndexesOf(SqliteConnection db, string tableName)
+        => ExecuteReader(db, $"SELECT name, sql FROM sqlite_master WHERE type = 'index' AND tbl_name = '{tableName}' AND sql IS NOT NULL;")
+            .SelectMany(row => new[] { $"DROP INDEX IF EXISTS {(string)row[0]};", $"{(string)row[1]};" })
+            .ToList();
 
     private void Alter(SqliteConnection db, string tableName, string createCommand, IReadOnlyList<string>? indexCommands = null)
     {
