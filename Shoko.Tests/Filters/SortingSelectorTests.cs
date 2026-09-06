@@ -155,6 +155,21 @@ public class SortingSelectorTests
     };
 
     [Fact]
+    public void EverySelectorIsInThePropertyTable()
+    {
+        // Without this a selector added tomorrow would be covered only by "returns something
+        // comparable", which any non-null return satisfies.
+        var tabled = SelectorProperties().Select(row => row.Data.Item1).ToHashSet(StringComparer.Ordinal);
+        var missing = s_selectorTypes.Select(t => t.Name)
+            // Not a plain property read; its scoring is exercised separately.
+            .Except(["FuzzyNameRelevanceSortingSelector"], StringComparer.Ordinal)
+            .Except(tabled, StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal);
+
+        Assert.Equal(string.Empty, string.Join(", ", missing));
+    }
+
+    [Fact]
     public void TheTestDataTellsEverySelectorApart()
     {
         // If two selectors reading different fields resolve to the same value on the double, the

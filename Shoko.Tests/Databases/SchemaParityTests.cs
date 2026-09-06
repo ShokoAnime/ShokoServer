@@ -14,11 +14,13 @@ namespace Shoko.Tests.Databases;
 /// </summary>
 /// <remarks>
 /// Each backend carries its own copy of the schema as an ordered list of raw SQL statements, so the
-/// three can drift apart without anything failing until a user on that backend hits it. Both
-/// <c>add missing primary keys on SQL Server for 38 tables</c> and
-/// <c>widen TMDB_Show/TMDB_Movie Genres column on MySQL and SQL Server</c> were exactly that, and
-/// neither is reachable from a test that only exercises SQLite. This replays each backend's
-/// statements into a logical schema and compares the results, without touching a database.
+/// three can drift apart without anything failing until a user on that backend hits it —
+/// <c>add missing primary keys on SQL Server for 38 tables</c> was exactly that, and is not
+/// reachable from a test that only exercises SQLite. This replays each backend's statements into a
+/// logical schema and compares the results, without touching a database.
+///
+/// Tables and primary keys only. Column names and types are not modelled, so a divergence like
+/// <c>widen TMDB_Show/TMDB_Movie Genres column on MySQL and SQL Server</c> would still pass.
 /// </remarks>
 public class SchemaParityTests
 {
@@ -147,15 +149,20 @@ public class SchemaParityTests
     #region Parity
 
     /// <summary>
-    /// SQLite drops this from a coded migration rather than plain SQL, so a static replay of the
-    /// command lists cannot see it go. All three backends do drop it.
+    /// SQLite alone drops this from a coded migration rather than plain SQL, so a static replay
+    /// cannot see it go. Excluded for SQLite only — MySQL and SQL Server both issue a plain
+    /// `DROP TABLE`, and if either stopped doing so the comparison should notice.
     /// </summary>
-    private static readonly string[] s_droppedOutsideSql = ["Language"];
+    private static readonly string[] s_droppedByCodeInSqlite = ["Language"];
 
     private static HashSet<string> TablesOf(string backend)
-        => Build(Instantiate(backend)).Tables
-            .Except(s_droppedOutsideSql, StringComparer.OrdinalIgnoreCase)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    {
+        var tables = Build(Instantiate(backend)).Tables.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (backend is "SQLite")
+            tables.ExceptWith(s_droppedByCodeInSqlite);
+
+        return tables;
+    }
 
     [Theory]
     [InlineData("MySQL")]

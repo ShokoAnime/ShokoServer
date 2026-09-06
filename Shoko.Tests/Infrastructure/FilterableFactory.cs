@@ -78,8 +78,12 @@ public static class FilterableFactory
             var values = Enum.GetValues(type);
             return values.Length == 0 ? null : values.GetValue(seed % values.Length);
         }
-        if (type == typeof(bool)) return true;
-        if (type.IsPrimitive || type == typeof(decimal)) return Convert.ChangeType(1 + (seed % 9973), type);
+        // Offset clear of the collection-size range below, so a scalar can never coincide with a
+        // ".Count" read and make two selectors indistinguishable.
+        // A wide range so two properties are very unlikely to share a value, and offset clear of
+        // the collection-size range below so a scalar never coincides with a ".Count" read.
+        // TheTestDataTellsEverySelectorApart is the backstop if a collision ever does occur.
+        if (type.IsPrimitive || type == typeof(decimal)) return Convert.ChangeType(1000 + (seed % 1000003), type);
 
         if (type.IsGenericType)
         {
@@ -114,7 +118,7 @@ public static class FilterableFactory
         // gives every ".Count" read the same answer, which makes anything reading one
         // indistinguishable from anything reading another.
         var set = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
-        var count = 1 + (SeedFor(name) % 7);
+        var count = 1 + (SeedFor(name) % 97);
         for (var index = 0; index < count; index++)
             if (SampleFor(elementType, $"{name}[{index}]") is { } element)
                 set.Add(element);

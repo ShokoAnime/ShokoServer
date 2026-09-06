@@ -7,6 +7,7 @@ using NHibernate.UserTypes;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.MediaInfo;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.TMDB;
 using Xunit;
 
@@ -69,8 +70,11 @@ public class UserTypeConverterTests
     public static TheoryData<string, object, object> EqualButDistinctValues() => new()
     {
         { typeof(StringListConverter).FullName!, new List<string> { "a", "b" }, new List<string> { "a", "b" } },
-        { typeof(TmdbContentRatingConverter).FullName!, new List<TMDB_ContentRating>(), new List<TMDB_ContentRating>() },
-        { typeof(TmdbProductionCountryConverter).FullName!, new List<TMDB_ProductionCountry>(), new List<TMDB_ProductionCountry>() },
+        { typeof(TmdbContentRatingConverter).FullName!, ContentRatings(), ContentRatings() },
+        { typeof(TmdbProductionCountryConverter).FullName!, ProductionCountries(), ProductionCountries() },
+        { typeof(TitleTypeConverter).FullName!, TitleType.Main, TitleType.Main },
+        { typeof(TitleLanguageConverter).FullName!, TitleLanguage.English, TitleLanguage.English },
+        { typeof(MessagePackConverter<MediaContainer>).FullName!, new MediaContainer(), new MediaContainer() },
         { typeof(PartialDateOnlyConverter).FullName!, new PartialDateOnly(2024, 5, 1), new PartialDateOnly(2024, 5, 1) },
         { typeof(DateOnlyConverter).FullName!, new DateOnly(2024, 5, 1), new DateOnly(2024, 5, 1) },
         {
@@ -79,6 +83,38 @@ public class UserTypeConverterTests
             new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) }
         },
     };
+
+    private static List<TMDB_ContentRating> ContentRatings() => [new("US", "PG-13")];
+
+    private static List<TMDB_ProductionCountry> ProductionCountries() => [new("US", "United States")];
+
+    public static TheoryData<string, object, object> UnequalValues() => new()
+    {
+        { typeof(StringListConverter).FullName!, new List<string> { "a", "b" }, new List<string> { "a", "c" } },
+        { typeof(StringListConverter).FullName!, new List<string> { "a" }, new List<string> { "a", "b" } },
+        { typeof(TmdbContentRatingConverter).FullName!, ContentRatings(), new List<TMDB_ContentRating> { new("GB", "12A") } },
+        { typeof(PartialDateOnlyConverter).FullName!, new PartialDateOnly(2024, 5, 1), new PartialDateOnly(2024, 5, 2) },
+        { typeof(DateOnlyConverter).FullName!, new DateOnly(2024, 5, 1), new DateOnly(2024, 5, 2) },
+        {
+            typeof(JTokenDictionaryConverter).FullName!,
+            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },
+            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(2) }
+        },
+        {
+            typeof(JTokenDictionaryConverter).FullName!,
+            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },
+            new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1), ["b"] = JToken.FromObject(2) }
+        },
+    };
+
+    [Theory]
+    [MemberData(nameof(UnequalValues))]
+    public void DifferentValuesDoNotCompareEqual(string fullName, object left, object right)
+    {
+        // Without this direction a converter could return true unconditionally and satisfy every
+        // other assertion here, while NHibernate quietly stopped writing the column back.
+        Assert.False(Resolve(fullName).Equals(left, right), $"{fullName} reports two different values as the same.");
+    }
 
     [Theory]
     [MemberData(nameof(EqualButDistinctValues))]
