@@ -1108,6 +1108,34 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(182,  5, "ALTER TABLE ShokoImage_Entity ADD CONSTRAINT PK_ShokoImage_Entity PRIMARY KEY CLUSTERED (ID);"),
         new(182,  6, "ALTER TABLE TMDB_Image ADD CONSTRAINT PK_TMDB_Image PRIMARY KEY CLUSTERED (TMDB_ImageID);"),
         new(182,  7, "ALTER TABLE TMDB_Image_Entity ADD CONSTRAINT PK_TMDB_Image_Entity PRIMARY KEY CLUSTERED (TMDB_Image_EntityID);"),
+
+        // These back non-nullable model properties, so a null could never have been read into one.
+        // Rows are filled first, since a stored null would fail the alter.
+        new(183,  1, "UPDATE AniDB_Creator SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE AniDB_Creator ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183,  2, "UPDATE AniDB_GroupStatus SET EpisodeRange = '' WHERE EpisodeRange IS NULL; ALTER TABLE AniDB_GroupStatus ALTER COLUMN EpisodeRange nvarchar(max) NOT NULL;"),
+        new(183,  3, "UPDATE AniDB_GroupStatus SET GroupName = '' WHERE GroupName IS NULL; ALTER TABLE AniDB_GroupStatus ALTER COLUMN GroupName nvarchar(max) NOT NULL;"),
+        new(183,  4, "UPDATE AniDB_GroupStatus SET Rating = 0 WHERE Rating IS NULL; ALTER TABLE AniDB_GroupStatus ALTER COLUMN Rating decimal(6, 2) NOT NULL;"),
+        new(183,  5, "UPDATE AniDB_Message SET Body = '' WHERE Body IS NULL; ALTER TABLE AniDB_Message ALTER COLUMN Body nvarchar(max) NOT NULL;"),
+        new(183,  6, "UPDATE AniDB_Message SET FromUserName = '' WHERE FromUserName IS NULL; ALTER TABLE AniDB_Message ALTER COLUMN FromUserName nvarchar(100) NOT NULL;"),
+        new(183,  7, "UPDATE AniDB_Message SET Title = '' WHERE Title IS NULL; ALTER TABLE AniDB_Message ALTER COLUMN Title nvarchar(max) NOT NULL;"),
+        new(183,  8, "UPDATE TMDB_AlternateOrdering SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183,  9, "UPDATE TMDB_AlternateOrdering SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 10, "UPDATE TMDB_AlternateOrdering_Episode SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering_Episode ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 11, "UPDATE TMDB_AlternateOrdering_Episode SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering_Episode ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 12, "UPDATE TMDB_AlternateOrdering_Season SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering_Season ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 13, "UPDATE TMDB_AlternateOrdering_Season SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering_Season ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 14, "UPDATE TMDB_Collection SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Collection ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 15, "UPDATE TMDB_Collection SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Collection ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 16, "UPDATE TMDB_Episode SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Episode ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 17, "UPDATE TMDB_Episode SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Episode ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 18, "UPDATE TMDB_Movie SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Movie ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 19, "UPDATE TMDB_Movie SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Movie ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 20, "UPDATE TMDB_Person SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Person ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 21, "UPDATE TMDB_Person SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Person ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 22, "UPDATE TMDB_Season SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Season ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 23, "UPDATE TMDB_Season SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Season ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 24, "UPDATE TMDB_Show SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Show ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 25, "UPDATE TMDB_Show SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Show ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
     ];
 
     #endregion
