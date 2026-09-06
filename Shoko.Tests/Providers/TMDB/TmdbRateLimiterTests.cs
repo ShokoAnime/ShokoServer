@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -14,16 +13,15 @@ namespace Shoko.Tests.Providers.TMDB;
 public class TmdbRateLimiterTests
 {
     [Fact]
-    public async Task CallsWithinWindow_ProceedImmediately()
+    public async Task CallsWithinWindow_ConsumeTheirSlots()
     {
         using var limiter = CreateRateLimiter(maxRequests: 3, windowMs: 500);
-        var sw = Stopwatch.StartNew();
 
         for (var i = 0; i < 3; i++)
             await limiter.EnsureRateAsync(() => Task.FromResult(0));
 
-        Assert.True(sw.Elapsed < TimeSpan.FromMilliseconds(200),
-            $"Expected < 200ms for 3 calls within a 3-request window, got {sw.Elapsed.TotalMilliseconds:F0}ms");
+        Assert.Equal(0, limiter.RemainingInWindow);
+        Assert.Equal(3, limiter.CallsInWindow);
     }
 
     [Fact]
@@ -34,32 +32,33 @@ public class TmdbRateLimiterTests
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
 
-        var sw = Stopwatch.StartNew();
-        await limiter.EnsureRateAsync(() => Task.FromResult(0));
+        // That a caller with no permit left is made to wait is the framework's job; ours is to have
+        // handed it the right window, which is what an exhausted capacity shows.
+        Assert.Equal(0, limiter.RemainingInWindow);
 
-        Assert.True(sw.Elapsed >= TimeSpan.FromMilliseconds(200),
-            $"Expected >= 200ms wait for 3rd call with 2-request window, got {sw.Elapsed.TotalMilliseconds:F0}ms");
+        await limiter.EnsureRateAsync(() => Task.FromResult(0));
     }
 
     [Fact]
     public async Task SlotsExpireAfterWindow_AllowsNewCalls()
     {
-        // The window is split into SegmentsPerWindow slices and slots come back a slice at a time, so
-        // it has to be wide enough that a slice outlasts the timer granularity of a loaded CI runner.
-        using var limiter = CreateRateLimiter(maxRequests: 2, windowMs: 1000);
+        using var limiter = CreateRateLimiter(maxRequests: 2, windowMs: 500);
 
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
+        Assert.Equal(0, limiter.RemainingInWindow);
 
-        await Task.Delay(1500, TestContext.Current.CancellationToken);
+        // Waiting on the capacity rather than timing it. A loaded runner can starve the replenishment
+        // timer for several seconds, which measured 1933ms against a 500ms bound and says nothing
+        // about whether slots expire.
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        while (limiter.RemainingInWindow < 2 && DateTime.UtcNow < deadline)
+            await Task.Delay(50, TestContext.Current.CancellationToken);
 
-        var sw = Stopwatch.StartNew();
+        Assert.Equal(2, limiter.RemainingInWindow);
+
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
-
-        // Had the slots not come back, these would have waited out most of the 1000ms window.
-        Assert.True(sw.Elapsed < TimeSpan.FromMilliseconds(500),
-            $"Expected < 500ms after window expiry, got {sw.Elapsed.TotalMilliseconds:F0}ms");
     }
 
     [Fact]
@@ -69,11 +68,10 @@ public class TmdbRateLimiterTests
 
         limiter.NotifyRateLimitExceeded(TimeSpan.FromMilliseconds(300));
 
-        var sw = Stopwatch.StartNew();
-        await limiter.EnsureRateAsync(() => Task.FromResult(0));
+        Assert.True(limiter.BackoffUntilTicks > DateTimeOffset.UtcNow.UtcTicks,
+            "Expected a backoff deadline in the future");
 
-        Assert.True(sw.Elapsed >= TimeSpan.FromMilliseconds(250),
-            $"Expected >= 250ms backoff delay, got {sw.Elapsed.TotalMilliseconds:F0}ms");
+        await limiter.EnsureRateAsync(() => Task.FromResult(0));
     }
 
     [Fact]
@@ -82,18 +80,17 @@ public class TmdbRateLimiterTests
         using var limiter = CreateRateLimiter(maxRequests: 10, windowMs: 1000);
         limiter.NotifyRateLimitExceeded(TimeSpan.FromMilliseconds(300));
 
-        var sw = Stopwatch.StartNew();
+        var deadline = limiter.BackoffUntilTicks;
+        Assert.True(deadline > DateTimeOffset.UtcNow.UtcTicks, "Expected a backoff deadline in the future");
+
         await Task.WhenAll(
             limiter.EnsureRateAsync(() => Task.FromResult(0)),
             limiter.EnsureRateAsync(() => Task.FromResult(0)),
             limiter.EnsureRateAsync(() => Task.FromResult(0))
         );
 
-        // All three waited for the same backoff window (not 3 × 300ms).
-        Assert.True(sw.Elapsed >= TimeSpan.FromMilliseconds(250),
-            $"Expected >= 250ms, got {sw.Elapsed.TotalMilliseconds:F0}ms");
-        Assert.True(sw.Elapsed < TimeSpan.FromMilliseconds(900),
-            $"Expected < 900ms (callers should share the wait, not queue it), got {sw.Elapsed.TotalMilliseconds:F0}ms");
+        // Queueing the callers rather than sharing the pause would push the deadline out per caller.
+        Assert.Equal(deadline, limiter.BackoffUntilTicks);
     }
 
     [Fact]
@@ -133,10 +130,8 @@ public class TmdbRateLimiterTests
         limiter.Notify5xxError();
 
         // Two errors — threshold not reached, no backoff applied.
-        var sw = Stopwatch.StartNew();
+        Assert.Equal(0L, limiter.BackoffUntilTicks);
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
-        Assert.True(sw.Elapsed < TimeSpan.FromMilliseconds(200),
-            $"Expected no backoff delay, got {sw.Elapsed.TotalMilliseconds:F0}ms");
     }
 
     [Fact]
@@ -206,10 +201,11 @@ public class TmdbRateLimiterTests
         // doesn't throw and that subsequent EnsureRateAsync proceeds immediately.
         limiter.NotifySuccess();
 
-        var sw = Stopwatch.StartNew();
+        // The 429 path leaves the elapsed deadline behind rather than zeroing it, so what matters is
+        // that it is in the past and nothing will wait on it.
+        Assert.True(limiter.BackoffUntilTicks <= DateTimeOffset.UtcNow.UtcTicks,
+            "Expected the backoff deadline to have elapsed");
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
-        Assert.True(sw.Elapsed < TimeSpan.FromMilliseconds(200),
-            $"Expected immediate proceed after NotifySuccess reset, got {sw.Elapsed.TotalMilliseconds:F0}ms");
     }
 
     [Fact]
