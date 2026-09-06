@@ -45,6 +45,8 @@ public class ReflectionUtilsTests
             .ToArray();
         Assert.NotEmpty(interfaces);
 
+        // Ends the loops; deliberately not passed to Task.Run, where a task not yet scheduled when
+        // it fires would come back cancelled rather than having run at all.
         using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         var failures = new ConcurrentBag<string>();
 
@@ -64,7 +66,7 @@ public class ReflectionUtilsTests
                     // Not every interface can be proxied, and only the emitting matters here.
                 }
             }
-        }, stop.Token)).ToArray();
+        })).ToArray();
 
         var scanning = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
         {
@@ -79,7 +81,7 @@ public class ReflectionUtilsTests
                     failures.Add(exception.GetType().Name);
                 }
             }
-        }, stop.Token)).ToArray();
+        })).ToArray();
 
         await Task.WhenAll(emitting);
         await stop.CancelAsync();
