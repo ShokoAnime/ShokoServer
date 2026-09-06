@@ -76,6 +76,19 @@ public class ModelHelperEpisodeInputTests
         Assert.Contains("Unable to parse an int", error);
     }
 
+    [Fact(Skip = "Possible bug - Needs investigation")]
+    public void AnEmptyInputIsReportedRatherThanThrowing()
+    {
+        // `input[0]` runs without a length check, so an empty string throws
+        // IndexOutOfRangeException instead of returning the error tuple every other bad input
+        // gets. Reachable from the v3 range parameters, where it surfaces as a 500.
+        var (number, type, error) = ModelHelper.GetEpisodeNumberAndTypeFromInput(string.Empty);
+
+        Assert.Equal(0, number);
+        Assert.Null(type);
+        Assert.NotNull(error);
+    }
+
     [Fact]
     public void TheParseFailureIsReportedBeforeTheUnknownTypeFailure()
     {
