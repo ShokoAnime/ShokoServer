@@ -1,0 +1,31 @@
+name: Unit Tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Unit Tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.x'
+
+      # These suites are self-contained: no database, no network, and no native
+      # dependencies, so they need none of the setup the integration tests do.
+      - name: Run unit tests
+        run: dotnet test Shoko.Tests/Shoko.Tests.csproj -c Release --logger "console;verbosity=normal"
+
+      - name: Run queue processor tests
+        run: dotnet test Shoko.QueueProcessor.Tests/Shoko.QueueProcessor.Tests.csproj -c Release --logger "console;verbosity=normal"
