@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.445",
+      "tag": "v6.0.0-dev.445",
+      "commit": "ab8820cd0be1ef0a692f31d79ac25fe414720dc0",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.445/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-06T21:12:47Z",
+      "releaseNotes": "\n`fix` (`api`): **Skip group and serie art thumb when no poster exists**:\n\nAnime without a poster on AniDB are a valid state, and neither a TMDB\nlink nor a user image is guaranteed either. When a group or serie had\nno posters at all, the v2 art population passed a null poster into\n`ConstructImageLinkFromTypeAndId`, which threw a\n`NullReferenceException` and 500'd the entire v2 `/api/filter` and\n`/api/serie` responses. The thumb is now only added when a poster is\nfound; fanart and banner population was already guarded.\n"
+    },
+    {
       "version": "6.0.0.444",
       "tag": "v6.0.0-dev.444",
       "commit": "3d3c17927be6add632dc615e469a536bf4dc06cd",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.416/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-17T06:36:54Z",
       "releaseNotes": "\n`chore` (`api`): **Tidy up controller route parameters and annotations**:\n\nRenamed route parameters and action parameters to match the\n`*ID` naming convention, added nullable-suppression annotations\nwhere appropriate, and cleaned up usings across the v0/v3 controllers.\n"
-    },
-    {
-      "version": "6.0.0.415",
-      "tag": "v6.0.0-dev.415",
-      "commit": "b0aa2e9653846046f5a3639bd843756298b8806d",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.415/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-17T06:06:20Z",
-      "releaseNotes": "\n`feat` (`api`): **Add query-param Search endpoint, deprecate route-based search**:\n\nRenamed the `Search/{*query}` handler to `LegacySearch` and marked it `[Obsolete]`, delegating to the new endpoint. Added a_new_ `Search` endpoint that takes `query` as a query parameter. The new endpoint supports controlling the sorting via `skipSort` and searches absolute paths when the `AbsolutePaths` include type is set.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.78**.\n"
     }
   ]
 }
