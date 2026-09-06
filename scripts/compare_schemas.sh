@@ -39,8 +39,11 @@ for _ in $(seq 1 60); do
 done
 
 # Every backend has to start empty, or the dump describes a schema nobody will ever migrate into.
+# The database is created without naming a collation, the way CI's MARIADB_DATABASE creates it and
+# the way anyone who creates one outside Shoko will: it then keeps the server's default, which is
+# what makes MySQLFixUTF8MB4 convert columns it leaves alone in a database Shoko created itself.
 docker exec shoko-schema-maria mariadb -uroot -p"$MYSQL_PASS" \
-    -e "DROP DATABASE IF EXISTS shoko; CREATE DATABASE shoko DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" >/dev/null
+    -e "DROP DATABASE IF EXISTS shoko; CREATE DATABASE shoko;" >/dev/null
 docker exec shoko-schema-mssql /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_PASS" -No \
     -Q "IF DB_ID('shoko') IS NOT NULL BEGIN ALTER DATABASE shoko SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE shoko; END; CREATE DATABASE shoko" >/dev/null
 
