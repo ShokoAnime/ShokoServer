@@ -1136,6 +1136,18 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(183, 23, "UPDATE TMDB_Season SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Season ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
         new(183, 24, "UPDATE TMDB_Show SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Show ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
         new(183, 25, "UPDATE TMDB_Show SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Show ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+
+        // Widths MySQL already declares and SQL Server left at MAX. Nothing longer can have reached
+        // these on MySQL, so the bound is what the data already is; each value is trimmed to it
+        // first, since anything longer would fail the alter. Nullability and collation have to be
+        // restated, because `ALTER COLUMN` drops whatever it does not name.
+        new(184,  1, "UPDATE AniDB_Episode SET Rating = LEFT(Rating, 200) WHERE LEN(Rating) > 200; ALTER TABLE AniDB_Episode ALTER COLUMN Rating varchar(200) NOT NULL;"),
+        new(184,  2, "UPDATE AniDB_Episode SET Votes = LEFT(Votes, 200) WHERE LEN(Votes) > 200; ALTER TABLE AniDB_Episode ALTER COLUMN Votes varchar(200) NOT NULL;"),
+        new(184,  3, "UPDATE AnimeSeries SET DefaultAudioLanguage = LEFT(DefaultAudioLanguage, 50) WHERE LEN(DefaultAudioLanguage) > 50; ALTER TABLE AnimeSeries ALTER COLUMN DefaultAudioLanguage varchar(50) NULL;"),
+        new(184,  4, "UPDATE AnimeSeries SET DefaultSubtitleLanguage = LEFT(DefaultSubtitleLanguage, 50) WHERE LEN(DefaultSubtitleLanguage) > 50; ALTER TABLE AnimeSeries ALTER COLUMN DefaultSubtitleLanguage varchar(50) NULL;"),
+        new(184,  5, "UPDATE ImportFolder SET ImportFolderLocation = LEFT(ImportFolderLocation, 500) WHERE LEN(ImportFolderLocation) > 500; ALTER TABLE ImportFolder ALTER COLUMN ImportFolderLocation nvarchar(500) COLLATE SQL_Latin1_General_CP1_CS_AS NOT NULL;"),
+        new(184,  6, "UPDATE ImportFolder SET ImportFolderName = LEFT(ImportFolderName, 500) WHERE LEN(ImportFolderName) > 500; ALTER TABLE ImportFolder ALTER COLUMN ImportFolderName nvarchar(500) NOT NULL;"),
+        new(184,  7, "UPDATE TMDB_Person SET PlaceOfBirth = LEFT(PlaceOfBirth, 128) WHERE LEN(PlaceOfBirth) > 128; ALTER TABLE TMDB_Person ALTER COLUMN PlaceOfBirth nvarchar(128) NULL;"),
     ];
 
     #endregion

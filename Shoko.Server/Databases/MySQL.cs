@@ -1252,6 +1252,22 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(185, 94, "UPDATE `AnimeSeries_User` SET `UserTags` = '' WHERE `UserTags` IS NULL; ALTER TABLE `AnimeSeries_User` MODIFY COLUMN `UserTags` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 95, "UPDATE `Versions` SET `VersionType` = '' WHERE `VersionType` IS NULL; ALTER TABLE `Versions` MODIFY COLUMN `VersionType` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 96, "UPDATE `Versions` SET `VersionValue` = '' WHERE `VersionValue` IS NULL; ALTER TABLE `Versions` MODIFY COLUMN `VersionValue` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+
+        // Widths SQL Server already declares and MySQL left as `text`, either from the start or from
+        // `MySQLFixUTF8` widening everything it touched. Nothing longer can have reached these on
+        // SQL Server, so the bound is what the data already is; each value is trimmed to it first,
+        // since anything longer would fail the alter.
+        new(186,  1, "UPDATE `AniDB_Anime_Relation` SET `RelationType` = LEFT(`RelationType`, 100) WHERE CHAR_LENGTH(`RelationType`) > 100; ALTER TABLE `AniDB_Anime_Relation` MODIFY COLUMN `RelationType` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(186,  2, "UPDATE `AnimeEpisode` SET `EpisodeNameOverride` = LEFT(`EpisodeNameOverride`, 500) WHERE CHAR_LENGTH(`EpisodeNameOverride`) > 500; ALTER TABLE `AnimeEpisode` MODIFY COLUMN `EpisodeNameOverride` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        // `AirsOn` is a `DayOfWeek`, which Fluent NHibernate stores by name: `Wednesday` is the longest at nine.
+        new(186,  3, "UPDATE `AnimeSeries` SET `AirsOn` = LEFT(`AirsOn`, 10) WHERE CHAR_LENGTH(`AirsOn`) > 10; ALTER TABLE `AnimeSeries` MODIFY COLUMN `AirsOn` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        new(186,  4, "UPDATE `AnimeSeries` SET `SeriesNameOverride` = LEFT(`SeriesNameOverride`, 500) WHERE CHAR_LENGTH(`SeriesNameOverride`) > 500; ALTER TABLE `AnimeSeries` MODIFY COLUMN `SeriesNameOverride` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        new(186,  5, "UPDATE `CustomTag` SET `TagName` = LEFT(`TagName`, 500) WHERE CHAR_LENGTH(`TagName`) > 500; ALTER TABLE `CustomTag` MODIFY COLUMN `TagName` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        // The index has to go first: its 255-character prefix no longer fits the column, and a bounded
+        // column does not need one.
+        new(186,  6, "UPDATE `FilterPreset` SET `Name` = LEFT(`Name`, 250) WHERE CHAR_LENGTH(`Name`) > 250; ALTER TABLE `FilterPreset` DROP INDEX `IX_FilterPreset_Name`; ALTER TABLE `FilterPreset` MODIFY COLUMN `Name` varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL; ALTER TABLE `FilterPreset` ADD INDEX `IX_FilterPreset_Name` (`Name`);"),
+        new(186,  7, "UPDATE `ScanFile` SET `Hash` = LEFT(`Hash`, 100) WHERE CHAR_LENGTH(`Hash`) > 100; ALTER TABLE `ScanFile` MODIFY COLUMN `Hash` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(186,  8, "UPDATE `ScanFile` SET `HashResult` = LEFT(`HashResult`, 100) WHERE CHAR_LENGTH(`HashResult`) > 100; ALTER TABLE `ScanFile` MODIFY COLUMN `HashResult` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
     ];
 
     #endregion
