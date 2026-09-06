@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.444",
+      "tag": "v6.0.0-dev.444",
+      "commit": "3d3c17927be6add632dc615e469a536bf4dc06cd",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.444/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-06T00:53:49Z",
+      "releaseNotes": "\n`test`: **Pin end date in yearly seasons regression test** ([#1420](https://github.com/ShokoAnime/ShokoServer/pull/1420)): (_Skip CI_)\n\n`RealWorldRegression_LateSeasonPremiere_IsClassifiedOnlyUnderItsOwnSeason`\npassed a null end date to `GetYearlySeasons`, which is treated as \"still\nairing\". Once the calendar crossed Fall's buffered start (Sep 1), the\nongoing show legitimately picked up `(2026, Fall)` and the test began\nfailing on the date rather than the logic.\n\nPinned a short end date (2026-07-10) to isolate \"which season did the\npremiere start in\", matching the approach already used by\n`RealWorldRegression_AnywhereInTheLaterPartOfASeason_IsNeverDoubleCounted`.\nThe `[(2026, Summer)]` assertion is unchanged.\n\n`refactor` (`api`): **Convert the remaining image controllers to primary constructors**:\n\n`GroupController`, `ImageController` and `ImageManagementController` already\ntook their dependencies through a primary constructor; the three controllers\nalongside them still declared a field per dependency and assigned it in a\nconstructor that did nothing else.\n\n- Moved the dependencies of `SeriesController`, `EpisodeController` and\n  `TmdbController` into primary constructors, keeping the `_name` parameter\n  form the converted controllers already use so no call site had to change\n- Dropped the 65 backing fields and the three constructors, which only copied\n  parameters into them\n\n`feat` (`api`): **Offer a source URL for images the server does not hold**:\n\nAn image the server has no local copy of could not be shown at all. The\nrecords exist, since every image a provider reports is stored, but only the\nones inside the preferred languages and the per-entity limit are downloaded,\nand `GET /api/v3/Image/{imageID}` answers 404 for the rest because the stream\nis read from disk. A client had no way to reach the original, so an image\npicker could only ever offer what had already been fetched.\n\nServing them through the server was tried before, in 5.0, and removed for\ngood reason: `Image_Base.GetStream` downloaded and wrote the file during the\nrequest, blocking a thread per image. Handing out the URL instead leaves the\nfetching to the client and costs the server nothing.\n\n- Added `RemoteURL` to the `Image` and `ImageSlim` DTOs, left out of the\n  payload when there is nothing to say\n- Added a `includeRemoteUrl` query parameter to the endpoints that serve those\n  DTOs, defaulting to `WhenUnavailable` so the field is only filled in for\n  images that cannot be served from here, which makes its presence the signal\n  that the client has to go elsewhere\n- Gave it a `RemoteUrlInclusion` of its own rather than reusing\n  `IncludeOnlyFilter`, whose `only` narrows the result set and would read as\n  \"return just the unavailable images\"\n- Built the URL from the source's registered template, so a custom mirror is\n  honoured and a source without one simply reports nothing\n- Documented the new parameter, filled in the `<param>` tags that were empty\n  on the image endpoints, and wrote doc comments for the TMDB image endpoints,\n  which had none\n\nNothing changes for a caller that does not ask: images nested in the series,\ngroup, role and playlist DTOs carry no URL, and `includeUndesired` still\ndefaults to `false`, so a picker has to opt in to see undownloaded images.\n"
+    },
+    {
       "version": "6.0.0.443",
       "tag": "v6.0.0-dev.443",
       "commit": "c099a268bd93d1d346986b190d2a7dbcb3b63225",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.415/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-17T06:06:20Z",
       "releaseNotes": "\n`feat` (`api`): **Add query-param Search endpoint, deprecate route-based search**:\n\nRenamed the `Search/{*query}` handler to `LegacySearch` and marked it `[Obsolete]`, delegating to the new endpoint. Added a_new_ `Search` endpoint that takes `query` as a query parameter. The new endpoint supports controlling the sorting via `skipSort` and searches absolute paths when the `AbsolutePaths` include type is set.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.78**.\n"
-    },
-    {
-      "version": "6.0.0.414",
-      "tag": "v6.0.0-dev.414",
-      "commit": "f79659586bce3b726ba29fd98ec37a62c8a10ef8",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.414/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-16T18:14:35Z",
-      "releaseNotes": "\n`feat` (`buildtools`): **Add --tag, and stop dropping the revision**:\n\nThe version was truncated to three parts when read back off the\nassembly, so a four-part dev version never reached the manifest and the\nDev-channel inference on it could never fire. The tag was inferred by a\ndescribe that only matches `v*`, so a repo tagging `<name>-v1.2.3` got\n`v1.2.3` recorded instead; --tag now overrides, inference is the\nfallback, and the tag reaches the manifest entry rather than stopping\nat the assembly stamp.\n"
     }
   ]
 }
