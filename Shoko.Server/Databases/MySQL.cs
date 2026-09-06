@@ -1149,7 +1149,9 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         // These back non-nullable model properties, so a null could never have been read into one.
         // Rows are filled first, since a stored null would fail the alter.
         // Lost when `MySQLFixUTF8` and `MySQLFixUTF8MB4` rebuilt every text column with `MODIFY`,
-        // which replaces the whole definition and drops anything left unstated.
+        // which replaces the whole definition and drops anything left unstated. For the same reason
+        // each `MODIFY` has to restate the collation the column already has: the ten that v170 made
+        // `utf8mb4_bin` — hashes, paths and tokens, compared case-sensitively — keep it here.
         new(185,  1, "UPDATE `AniDB_Anime` SET `AllTags` = '' WHERE `AllTags` IS NULL; ALTER TABLE `AniDB_Anime` MODIFY COLUMN `AllTags` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185,  2, "UPDATE `AniDB_Anime` SET `AllTitles` = '' WHERE `AllTitles` IS NULL; ALTER TABLE `AniDB_Anime` MODIFY COLUMN `AllTitles` varchar(1500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185,  3, "UPDATE `AniDB_Anime` SET `Description` = '' WHERE `Description` IS NULL; ALTER TABLE `AniDB_Anime` MODIFY COLUMN `Description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
@@ -1177,17 +1179,17 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(185, 25, "UPDATE `AniDB_Tag` SET `TagName` = '' WHERE `TagName` IS NULL; ALTER TABLE `AniDB_Tag` MODIFY COLUMN `TagName` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 26, "UPDATE `AnimeGroup` SET `GroupName` = '' WHERE `GroupName` IS NULL; ALTER TABLE `AnimeGroup` MODIFY COLUMN `GroupName` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 27, "UPDATE `AuthTokens` SET `DeviceName` = '' WHERE `DeviceName` IS NULL; ALTER TABLE `AuthTokens` MODIFY COLUMN `DeviceName` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
-        new(185, 28, "UPDATE `AuthTokens` SET `Token` = '' WHERE `Token` IS NULL; ALTER TABLE `AuthTokens` MODIFY COLUMN `Token` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
-        new(185, 29, "UPDATE `FileNameHash` SET `FileName` = '' WHERE `FileName` IS NULL; ALTER TABLE `FileNameHash` MODIFY COLUMN `FileName` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
-        new(185, 30, "UPDATE `FileNameHash` SET `Hash` = '' WHERE `Hash` IS NULL; ALTER TABLE `FileNameHash` MODIFY COLUMN `Hash` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
-        new(185, 31, "UPDATE `ImportFolder` SET `ImportFolderLocation` = '' WHERE `ImportFolderLocation` IS NULL; ALTER TABLE `ImportFolder` MODIFY COLUMN `ImportFolderLocation` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 28, "UPDATE `AuthTokens` SET `Token` = '' WHERE `Token` IS NULL; ALTER TABLE `AuthTokens` MODIFY COLUMN `Token` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 29, "UPDATE `FileNameHash` SET `FileName` = '' WHERE `FileName` IS NULL; ALTER TABLE `FileNameHash` MODIFY COLUMN `FileName` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 30, "UPDATE `FileNameHash` SET `Hash` = '' WHERE `Hash` IS NULL; ALTER TABLE `FileNameHash` MODIFY COLUMN `Hash` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 31, "UPDATE `ImportFolder` SET `ImportFolderLocation` = '' WHERE `ImportFolderLocation` IS NULL; ALTER TABLE `ImportFolder` MODIFY COLUMN `ImportFolderLocation` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
         new(185, 32, "UPDATE `ImportFolder` SET `ImportFolderName` = '' WHERE `ImportFolderName` IS NULL; ALTER TABLE `ImportFolder` MODIFY COLUMN `ImportFolderName` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 33, "UPDATE `Scan` SET `ImportFolders` = '' WHERE `ImportFolders` IS NULL; ALTER TABLE `Scan` MODIFY COLUMN `ImportFolders` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 34, "UPDATE `ScanFile` SET `FullName` = '' WHERE `FullName` IS NULL; ALTER TABLE `ScanFile` MODIFY COLUMN `FullName` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 35, "UPDATE `ScanFile` SET `Hash` = '' WHERE `Hash` IS NULL; ALTER TABLE `ScanFile` MODIFY COLUMN `Hash` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 36, "UPDATE `ScheduledUpdate` SET `UpdateDetails` = '' WHERE `UpdateDetails` IS NULL; ALTER TABLE `ScheduledUpdate` MODIFY COLUMN `UpdateDetails` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
-        new(185, 37, "UPDATE `StoredReleaseInfo` SET `ED2K` = '' WHERE `ED2K` IS NULL; ALTER TABLE `StoredReleaseInfo` MODIFY COLUMN `ED2K` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
-        new(185, 38, "UPDATE `StoredReleaseInfo_MatchAttempt` SET `ED2K` = '' WHERE `ED2K` IS NULL; ALTER TABLE `StoredReleaseInfo_MatchAttempt` MODIFY COLUMN `ED2K` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 37, "UPDATE `StoredReleaseInfo` SET `ED2K` = '' WHERE `ED2K` IS NULL; ALTER TABLE `StoredReleaseInfo` MODIFY COLUMN `ED2K` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 38, "UPDATE `StoredReleaseInfo_MatchAttempt` SET `ED2K` = '' WHERE `ED2K` IS NULL; ALTER TABLE `StoredReleaseInfo_MatchAttempt` MODIFY COLUMN `ED2K` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
         new(185, 39, "UPDATE `TMDB_AlternateOrdering` SET `EnglishOverview` = '' WHERE `EnglishOverview` IS NULL; ALTER TABLE `TMDB_AlternateOrdering` MODIFY COLUMN `EnglishOverview` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 40, "UPDATE `TMDB_AlternateOrdering` SET `EnglishTitle` = '' WHERE `EnglishTitle` IS NULL; ALTER TABLE `TMDB_AlternateOrdering` MODIFY COLUMN `EnglishTitle` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 41, "UPDATE `TMDB_AlternateOrdering` SET `TmdbEpisodeGroupCollectionID` = '' WHERE `TmdbEpisodeGroupCollectionID` IS NULL; ALTER TABLE `TMDB_AlternateOrdering` MODIFY COLUMN `TmdbEpisodeGroupCollectionID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
@@ -1236,10 +1238,10 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(185, 84, "UPDATE `TMDB_Title` SET `LanguageCode` = '' WHERE `LanguageCode` IS NULL; ALTER TABLE `TMDB_Title` MODIFY COLUMN `LanguageCode` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 85, "UPDATE `TMDB_Title` SET `Value` = '' WHERE `Value` IS NULL; ALTER TABLE `TMDB_Title` MODIFY COLUMN `Value` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
         new(185, 86, "UPDATE `VideoLocal` SET `FileName` = '' WHERE `FileName` IS NULL; ALTER TABLE `VideoLocal` MODIFY COLUMN `FileName` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
-        new(185, 87, "UPDATE `VideoLocal` SET `Hash` = '' WHERE `Hash` IS NULL; ALTER TABLE `VideoLocal` MODIFY COLUMN `Hash` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
-        new(185, 88, "UPDATE `VideoLocal_HashDigest` SET `Type` = '' WHERE `Type` IS NULL; ALTER TABLE `VideoLocal_HashDigest` MODIFY COLUMN `Type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
-        new(185, 89, "UPDATE `VideoLocal_HashDigest` SET `Value` = '' WHERE `Value` IS NULL; ALTER TABLE `VideoLocal_HashDigest` MODIFY COLUMN `Value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
-        new(185, 90, "UPDATE `VideoLocal_Place` SET `FilePath` = '' WHERE `FilePath` IS NULL; ALTER TABLE `VideoLocal_Place` MODIFY COLUMN `FilePath` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 87, "UPDATE `VideoLocal` SET `Hash` = '' WHERE `Hash` IS NULL; ALTER TABLE `VideoLocal` MODIFY COLUMN `Hash` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 88, "UPDATE `VideoLocal_HashDigest` SET `Type` = '' WHERE `Type` IS NULL; ALTER TABLE `VideoLocal_HashDigest` MODIFY COLUMN `Type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 89, "UPDATE `VideoLocal_HashDigest` SET `Value` = '' WHERE `Value` IS NULL; ALTER TABLE `VideoLocal_HashDigest` MODIFY COLUMN `Value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 90, "UPDATE `VideoLocal_Place` SET `FilePath` = '' WHERE `FilePath` IS NULL; ALTER TABLE `VideoLocal_Place` MODIFY COLUMN `FilePath` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
 
         // Only damaged when the database was created outside Shoko: it then keeps the server's
         // default collation, so `MySQLFixUTF8MB4` finds these too. Shoko's own `CREATE DATABASE`
@@ -1369,6 +1371,13 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         cmd.ExecuteScalar();
     }
 
+    /// <remarks>
+    /// A <see cref="DatabaseCommandType.PostDatabaseFix"/>, so on a database migrating in one pass this
+    /// runs after every patch, v170's case-sensitive columns included. <c>utf8mb4_bin</c> is therefore
+    /// left alone: it is already utf8mb4, and converting it would undo the case-sensitivity that hashes
+    /// and paths are compared with — on a fresh install only, since a database that ran this long ago
+    /// never runs it again.
+    /// </remarks>
     private static void MySQLFixUTF8()
     {
         var settings = ISettingsProvider.Instance.GetSettings();
@@ -1376,7 +1385,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
             "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
             "FROM information_schema.COLUMNS " +
             $"WHERE table_schema = '{settings.Database.Schema}' " +
-            "AND collation_name != 'utf8mb4_unicode_ci'";
+            "AND collation_name NOT IN ('utf8mb4_unicode_ci', 'utf8mb4_bin')";
         using var conn = new MySqlConnection(ConnectionString);
         var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
         conn.Open();
