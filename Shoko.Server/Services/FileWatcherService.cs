@@ -32,7 +32,7 @@ public class FileWatcherService
 
     private readonly ShokoManagedFolderRepository _managedFolders;
 
-    private readonly FileSystemHelpers _fileSystemHelpers;
+    private readonly IFileSystemHelpers _fileSystemHelpers;
 
     private List<string>? _videoExtensions;
 
@@ -40,7 +40,7 @@ public class FileWatcherService
 
     private IVideoService? _videoService;
 
-    public FileWatcherService(ILogger<FileWatcherService> logger, ConfigurationProvider<ServerSettings> settingsProvider, ShokoManagedFolderRepository managedFolders, FileSystemHelpers fileSystemHelpers)
+    public FileWatcherService(ILogger<FileWatcherService> logger, ConfigurationProvider<ServerSettings> settingsProvider, ShokoManagedFolderRepository managedFolders, IFileSystemHelpers fileSystemHelpers)
     {
         _logger = logger;
         _settingsProvider = settingsProvider;

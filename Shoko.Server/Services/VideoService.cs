@@ -70,7 +70,7 @@ public class VideoService : IVideoService
 
     private readonly DatabaseFactory _databaseFactory;
 
-    private readonly FileSystemHelpers _fileSystemHelpers;
+    private readonly IFileSystemHelpers _fileSystemHelpers;
 
     /// <inheritdoc/>
     public event EventHandler<VideoFileDetectedEventArgs>? VideoFileDetected;
@@ -111,7 +111,7 @@ public class VideoService : IVideoService
         IMylistService mylistService,
         ISettingsProvider settingsProvider,
         DatabaseFactory databaseFactory,
-        FileSystemHelpers fileSystemHelpers
+        IFileSystemHelpers fileSystemHelpers
     )
     {
         _logger = logger;

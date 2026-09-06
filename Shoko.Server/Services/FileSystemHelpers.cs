@@ -15,7 +15,7 @@ using Shoko.Abstractions.Utilities;
 #pragma warning disable CS0618
 namespace Shoko.Server.Services;
 
-public class FileSystemHelpers
+public class FileSystemHelpers : IFileSystemHelpers
 {
     private readonly ILogger<FileSystemHelpers> _logger;
 
