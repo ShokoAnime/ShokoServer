@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.447",
+      "tag": "v6.0.0-dev.447",
+      "commit": "f003434fe8bd80c07be710e8d4fb5299a91714e3",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.447/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-11T04:04:52Z",
+      "releaseNotes": "\n`feat` (`buildtools`): **Accept plugin metadata and dependencies without a manifest**:\n\n`shoko-build` gained `--id`, `--name`, `--overview`, `--tags` and\n`--dependencies`, and `Shoko.BuildTools.Targets` reads the matching\n`PluginID`, `PluginName`, `PluginOverview`, `PluginTags` and\n`PluginDependencies` MSBuild properties. A flag beats the property, which\nbeats the manifest; stated lists replace the manifest's instead of merging.\n\n- Dependencies are written as `<guid>@<range>[:optional|:required]`,\n  comma-separated, with whitespace around every separator ignored. The\n  same format is now embedded as `PackageDependencies`; the legacy\n  `guid:range[:true]` entries are still read.\n- An unparseable entry, a range the server cannot evaluate, or a plugin\n  listed twice stops the build, including in the manifest's `dependencies`.\n- `--id` has to match the manifest's `id` when one is being updated.\n- The server refuses to load a plugin whose embedded dependency list is\n  invalid, instead of skipping the bad entries.\n- `PluginDependencyList` is duplicated in `Shoko.BuildTools`,\n  `Shoko.BuildTools.Targets` and `Shoko.Server`.\n- Newlines and tabs in generated attribute values are escaped, so a\n  multi-line overview no longer breaks the build.\n- Bumped `Shoko.BuildTools` to 0.5.0 and `Shoko.BuildTools.Targets` to 0.3.0.\n"
+    },
+    {
       "version": "6.0.0.446",
       "tag": "v6.0.0-dev.446",
       "commit": "40fd2a02740a63fddfcc8a7ba03411d678c08f0d",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.418/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-17T07:06:48Z",
       "releaseNotes": "\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.79**.\n"
-    },
-    {
-      "version": "6.0.0.417",
-      "tag": "v6.0.0-dev.417",
-      "commit": "d59d532dee9ed85e9488757a5606d4a7f76f0800",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.417/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-17T07:02:30Z",
-      "releaseNotes": "\n`chore` (`api`): **Tidy up controller route parameters and annotations (take 2)**:\n\n`processId`/`threadId` become `processID`/`threadID` across the logging\nquery parameters, the v3 and abstractions models, and the SignalR event.\nThe on-disk JSON keys keep their spelling - they are the log file's\nformat rather than an API surface.\n"
     }
   ]
 }
