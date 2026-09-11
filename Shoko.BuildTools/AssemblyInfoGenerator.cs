@@ -24,7 +24,7 @@ internal static class AssemblyInfoGenerator
         string releaseDate,
         string releaseTag,
         string sourceRevision,
-        IReadOnlyList<DependencyInfo> dependencies,
+        IReadOnlyList<PluginDependencyEntry> dependencies,
         IReadOnlyList<string>? tags,
         Guid? pluginId = null,
         string? pluginName = null,
@@ -71,18 +71,9 @@ internal static class AssemblyInfoGenerator
             sb.AppendLine($"[assembly: AssemblyMetadata(\"PackageOverview\", \"{EscapeAttrValue(pluginDescription)}\")]");
 
         // Inject dependencies as a single serialized string:
-        //   guid:versionRange[:true][,next]*
+        //   guid@versionRange[:optional][,next]*
         if (dependencies.Count > 0)
-        {
-            var serialized = string.Join(",",
-                dependencies.Select(d =>
-                {
-                    var s = $"{d.PluginID:D}:{d.VersionRange}";
-                    if (d.IsOptional) s += ":true";
-                    return s;
-                }));
-            sb.AppendLine($"[assembly: AssemblyMetadata(\"{DependenciesKey}\", \"{EscapeAttrValue(serialized)}\")]");
-        }
+            sb.AppendLine($"[assembly: AssemblyMetadata(\"{DependenciesKey}\", \"{EscapeAttrValue(PluginDependencyList.Format(dependencies))}\")]");
 
         File.WriteAllText(path, sb.ToString());
     }
@@ -123,25 +114,7 @@ internal static class AssemblyInfoGenerator
         var metadata = ReadMetadataAttributes(reader, assemblyDefinition)
             .ToLookup(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
 
-        var dependencies = new List<DependencyInfo>();
-
-        // Try the serialized format first (single attribute with comma-separated deps)
-        if (metadata[DependenciesKey].FirstOrDefault() is { } serialized && !string.IsNullOrEmpty(serialized))
-        {
-            foreach (var segment in serialized.Split(','))
-            {
-                var parts = segment.Split(':');
-                if (parts.Length >= 2 && Guid.TryParse(parts[0], out var pluginId))
-                {
-                    dependencies.Add(new DependencyInfo
-                    {
-                        PluginID = pluginId,
-                        VersionRange = parts[1],
-                        IsOptional = parts.Length > 2 && (parts[2] == "true" || parts[2] == "True"),
-                    });
-                }
-            }
-        }
+        var dependencies = PluginDependencyList.Parse(metadata[DependenciesKey].FirstOrDefault(), out _);
 
         return new AssemblyMetadata
         {
@@ -225,7 +198,11 @@ internal static class AssemblyInfoGenerator
     }
 
     private static string EscapeAttrValue(string value)
-        => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        => value.Replace("\\", "\\\\")
+                .Replace("\"", "\\\"")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\r")
+                .Replace("\t", "\\t");
 
     /// <summary>
     ///   Decodes a custom-attribute blob by naming types rather than
@@ -272,7 +249,7 @@ internal sealed class AssemblyMetadata
 {
     public Version Version { get; init; } = new(0, 0, 0);
     public Version AbstractionVersion { get; init; } = new(0, 0, 0);
-    public IReadOnlyList<DependencyInfo> Dependencies { get; init; } = [];
+    public IReadOnlyList<PluginDependencyEntry> Dependencies { get; init; } = [];
     public IReadOnlyList<string> Tags { get; init; } = [];
 
     /// <summary>
@@ -280,14 +257,4 @@ internal sealed class AssemblyMetadata
     ///   than one means the build tools disagreed about what was built.
     /// </summary>
     public IReadOnlyList<string> RuntimeIdentifiers { get; init; } = [];
-}
-
-/// <summary>
-///   A dependency declaration for embedding into manifest and assembly.
-/// </summary>
-internal sealed class DependencyInfo
-{
-    public Guid PluginID { get; init; }
-    public string VersionRange { get; init; } = ">=0.0.0";
-    public bool IsOptional { get; init; }
 }

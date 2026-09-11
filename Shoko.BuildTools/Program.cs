@@ -3,7 +3,9 @@ using Shoko.BuildTools;
 // ── Argument parsing ───────────────────────────────────────────────────
 // Our args: --manifest|-m <path>, --prune|-p <count>, --prune-method <channel|global>,
 //           --url <download-url>, --output <zip-path>, --channel <stable|dev|debug>,
-//           --tag|-t <tag>, --release-notes <text>, --release-notes-path <path>
+//           --tag|-t <tag>, --release-notes <text>, --release-notes-path <path>,
+//           --id <guid>, --name <name>, --overview <text>, --tags <list>,
+//           --dependencies <list>
 // Everything else is forwarded to dotnet build.
 
 var argsList = args.ToList();
@@ -16,6 +18,11 @@ var channel = (string?)null;
 var releaseTag = (string?)null;
 var releaseNotes = (string?)null;
 var releaseNotesPath = (string?)null;
+var pluginId = (string?)null;
+var pluginName = (string?)null;
+var pluginOverview = (string?)null;
+var pluginTags = (string?)null;
+var pluginDependencies = (string?)null;
 var forwardArgs = new List<string>();
 
 for (var i = 0; i < argsList.Count; i++)
@@ -66,6 +73,26 @@ for (var i = 0; i < argsList.Count; i++)
     else if (arg is "--release-notes-path" && i + 1 < argsList.Count)
     {
         releaseNotesPath = argsList[++i];
+    }
+    else if (arg is "--id" && i + 1 < argsList.Count)
+    {
+        pluginId = argsList[++i];
+    }
+    else if (arg is "--name" && i + 1 < argsList.Count)
+    {
+        pluginName = argsList[++i];
+    }
+    else if (arg is "--overview" && i + 1 < argsList.Count)
+    {
+        pluginOverview = argsList[++i];
+    }
+    else if (arg is "--tags" && i + 1 < argsList.Count)
+    {
+        pluginTags = argsList[++i];
+    }
+    else if (arg is "--dependencies" && i + 1 < argsList.Count)
+    {
+        pluginDependencies = argsList[++i];
     }
     else
     {
@@ -134,6 +161,7 @@ var exitCode = await BuildCommand.RunAsync(
     channel,
     releaseTag,
     releaseNotes,
+    new PluginMetadataInput(pluginId, pluginName, pluginOverview, pluginTags, pluginDependencies),
     [.. forwardArgs]
 );
 

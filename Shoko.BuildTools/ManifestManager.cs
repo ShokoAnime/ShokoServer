@@ -182,7 +182,7 @@ internal static class ManifestManager
         Version version,
         Version abstractionVersion,
         string runtimeIdentifier,
-        IReadOnlyList<DependencyInfo> dependencies,
+        IReadOnlyList<PluginDependencyEntry> dependencies,
         string? archiveUrl = null,
         string? checksum = null,
         ReleaseChannel? channel = null,

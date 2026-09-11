@@ -712,6 +712,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     private const string MissingDependenciesMessage = "The plugin failed to load due to missing dependencies.";
 
+    private const string InvalidDependenciesMessage = "The plugin failed to load because its embedded list of plugin dependencies is invalid.";
+
     private InternalPluginInfo? LoadInternalPluginInfo(string? dirPath, string[] dlls, bool isSystem, IServerSettings settings, ref bool settingsChanged)
     {
         var selfResolvingPluginPath = dlls.FirstOrDefault(dll => Path.Exists(Path.ChangeExtension(dll, ".deps.json")));
@@ -814,6 +816,46 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             Description = embeddedDescription is not null
                                 ? $"{AbiTooNewMessage}\n\n{embeddedDescription}"
                                 : AbiTooNewMessage,
+                            Version = version,
+                            Authors = authors,
+                            RepositoryUrl = repositoryUrl,
+                            HomepageUrl = homepageUrl,
+                            Tags = tags,
+                            InstalledAt = createdAt,
+                            IsPinned = string.IsNullOrEmpty(dirPath)
+                                ? File.Exists(Path.ChangeExtension(dllPath, Pinned))
+                                : File.Exists(Path.Join(dirPath, Pinned)),
+                            IsEnabled = false,
+                            ContainingDirectory = dirPath,
+                            Priority = settings.Plugins.Priority.Contains(name) ? settings.Plugins.Priority.IndexOf(name) : int.MaxValue,
+                            CanLoad = false,
+                            CanUninstall = !isSystem,
+                            DLLs = [dllPath, .. dlls.Except([dllPath])],
+                            Thumbnail = null,
+                        };
+                    }
+
+                    // A dependency we cannot read is one we cannot enforce, so
+                    // the plugin does not load at all.
+                    var embeddedDependencies = PluginDependencyList.Parse(
+                        metadataAttributeDict.TryGetValue(PackageDependencies, out var depsRaw) ? depsRaw : null,
+                        out var dependencyErrors);
+                    dependencyErrors.AddRange(PluginDependencyList.Validate(embeddedDependencies));
+                    if (dependencyErrors.Count > 0)
+                    {
+                        logger.LogError(
+                            "Skipping DLL because its embedded plugin dependencies are invalid: {Errors}; {DllPath}",
+                            string.Join(" ", dependencyErrors),
+                            dllPath);
+                        return new()
+                        {
+                            // Create an unique ID for this specific version if it failed to load.
+                            ID = embeddedId ?? UuidUtility.GetV5($"{name}@{version}"),
+                            DllName = name,
+                            Name = embeddedName ?? name,
+                            Description = embeddedDescription is not null
+                                ? $"{InvalidDependenciesMessage}\n\n{embeddedDescription}"
+                                : InvalidDependenciesMessage,
                             Version = version,
                             Authors = authors,
                             RepositoryUrl = repositoryUrl,
@@ -950,25 +992,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         }
                     }
 
-                    // Parse embedded dependencies
-                    var embeddedDependencies = new List<PluginDependency>();
-                    if (metadataAttributeDict.TryGetValue(PackageDependencies, out var depsRaw) && depsRaw is { Length: > 0 })
-                    {
-                        foreach (var segment in depsRaw.Split(','))
-                        {
-                            var parts = segment.Split(':');
-                            if (parts.Length >= 2 && Guid.TryParse(parts[0], out var depId))
-                            {
-                                embeddedDependencies.Add(new PluginDependency
-                                {
-                                    PluginID = depId,
-                                    VersionRange = parts[1],
-                                    IsOptional = parts.Length > 2 && string.Equals(parts[2], "true", StringComparison.OrdinalIgnoreCase),
-                                });
-                            }
-                        }
-                    }
-
                     return new()
                     {
                         ID = embeddedId ?? instance.ID,
@@ -991,7 +1014,14 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         CanUninstall = !isSystem,
                         DLLs = [dllPath, .. dlls.Except([dllPath])],
                         Thumbnail = thumbnailImage,
-                        Dependencies = embeddedDependencies,
+                        Dependencies = embeddedDependencies
+                            .Select(dependency => new PluginDependency
+                            {
+                                PluginID = dependency.PluginID,
+                                VersionRange = dependency.VersionRange,
+                                IsOptional = dependency.IsOptional,
+                            })
+                            .ToList(),
                     };
                 }
                 catch (Exception ex)
