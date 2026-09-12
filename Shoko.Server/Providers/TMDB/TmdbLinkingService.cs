@@ -149,6 +149,16 @@ public class TmdbLinkingService : ITmdbLinkingService
         series.ResetPreferredOverview();
     }
 
+    // Only the overview descends into the season and episode links. The titles
+    // come from the linked show or movie alone.
+    private void ResetSeriesOverview(int anidbAnimeId)
+    {
+        if (_animeSeries.GetByAnimeID(anidbAnimeId) is not { } series)
+            return;
+
+        series.ResetPreferredOverview();
+    }
+
     public void ResetAutoLinkingState(bool disabled = false)
     {
         var series = _animeSeries.GetAll();
@@ -412,7 +422,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             _xrefAnidbTmdbEpisodes.Delete(xrefs);
         }
 
-        ResetSeriesTitlesAndOverview(anidbAnimeId);
+        ResetSeriesOverview(anidbAnimeId);
     }
 
     public bool SetEpisodeLink(int anidbEpisodeId, int tmdbEpisodeId, bool additiveLink = true, int? index = null)
@@ -433,7 +443,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             var toDelete = xrefs.Skip(1).ToList();
             _xrefAnidbTmdbEpisodes.Save(toSave);
             _xrefAnidbTmdbEpisodes.Delete(toDelete);
-            ResetSeriesTitlesAndOverview(anidbEpisode.AnimeID);
+            ResetSeriesOverview(anidbEpisode.AnimeID);
 
             return true;
         }
@@ -476,7 +486,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             _xrefAnidbTmdbEpisodes.Delete(toDelete);
         }
 
-        ResetSeriesTitlesAndOverview(anidbEpisode.AnimeID);
+        ResetSeriesOverview(anidbEpisode.AnimeID);
         return true;
     }
 
@@ -754,7 +764,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             tmdbShowId);
         _xrefAnidbTmdbEpisodes.Save(toAdd);
         _xrefAnidbTmdbEpisodes.Delete(toRemove);
-        ResetSeriesTitlesAndOverview(anidbAnimeId);
+        ResetSeriesOverview(anidbAnimeId);
 
         return crossReferences;
 
