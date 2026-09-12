@@ -108,9 +108,11 @@ public class TmdbLinkingService : ITmdbLinkingService
     public void RemoveAllLinks(bool removeShowLinks = true, bool removeMovieLinks = true)
     {
         _logger.LogInformation("Removing AniDB - TMDB links.");
+        var affectedAnimeIds = new HashSet<int>();
         if (removeShowLinks)
         {
             var showXrefs = _xrefAnidbTmdbShows.GetAll();
+            affectedAnimeIds.UnionWith(showXrefs.Select(xref => xref.AnidbAnimeID));
 
             _logger.LogInformation("Removing {Count} TMDB show links.", showXrefs.Count);
             _xrefAnidbTmdbShows.Delete(showXrefs);
@@ -124,12 +126,27 @@ public class TmdbLinkingService : ITmdbLinkingService
         if (removeMovieLinks)
         {
             var movieXrefs = _xrefAnidbTmdbMovies.GetAll();
+            affectedAnimeIds.UnionWith(movieXrefs.Select(xref => xref.AnidbAnimeID));
 
             _logger.LogInformation("Removing {Count} TMDB movie links.", movieXrefs.Count);
             _xrefAnidbTmdbMovies.Delete(movieXrefs);
         }
 
+        foreach (var anidbAnimeId in affectedAnimeIds)
+            ResetSeriesTitlesAndOverview(anidbAnimeId);
+
         _logger.LogInformation("Done removing AniDB - TMDB links.");
+    }
+
+    // A series' titles and overview are derived from its TMDB links.
+    private void ResetSeriesTitlesAndOverview(int anidbAnimeId)
+    {
+        if (_animeSeries.GetByAnimeID(anidbAnimeId) is not { } series)
+            return;
+
+        series.ResetAnimeTitles();
+        series.ResetPreferredTitle();
+        series.ResetPreferredOverview();
     }
 
     public void ResetAutoLinkingState(bool disabled = false)
@@ -180,6 +197,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         xref.AnidbAnimeID = episode.AnimeID;
         xref.MatchRating = matchRating;
         _xrefAnidbTmdbMovies.Save(xref);
+        ResetSeriesTitlesAndOverview(episode.AnimeID);
     }
 
     public async Task RemoveMovieLinkForEpisode(int anidbEpisodeId, int tmdbMovieId, bool purge = false)
@@ -249,6 +267,7 @@ public class TmdbLinkingService : ITmdbLinkingService
     {
         _logger.LogInformation("Removing TMDB movie link: AniDB episode (EpisodeID={EpisodeID}, AnimeID={AnimeID}) → TMDB movie (ID:{TmdbID})", xref.AnidbEpisodeID, xref.AnidbAnimeID, xref.TmdbMovieID);
         _xrefAnidbTmdbMovies.Delete(xref);
+        ResetSeriesTitlesAndOverview(xref.AnidbAnimeID);
 
         if (purge)
             await _scheduler.StartJob<PurgeTmdbMovieJob>(c =>
@@ -274,6 +293,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         xref.MatchRating = matchRating;
         _xrefAnidbTmdbShows.Save(xref);
         await Task.Run(() => MatchAnidbToTmdbEpisodes(anidbAnimeId, tmdbShowId, null, true, true));
+        ResetSeriesTitlesAndOverview(anidbAnimeId);
     }
 
     public async Task RemoveShowLink(int anidbAnimeId, int tmdbShowId, bool purge = false)
@@ -335,6 +355,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             xrefs.AddRange(_xrefAnidbTmdbEpisodes.GetOnlyByAnidbAnimeAndTmdbShowIDs(xref.AnidbAnimeID, 0));
         _logger.LogInformation("Removing {XRefsCount} episodes cross-references for AniDB anime (AnimeID={AnidbID}) and TMDB show (ID={TmdbID})", xrefs.Count, xref.AnidbAnimeID, xref.TmdbShowID);
         _xrefAnidbTmdbEpisodes.Delete(xrefs);
+        ResetSeriesTitlesAndOverview(xref.AnidbAnimeID);
         if (purge)
             await _scheduler.StartJob<PurgeTmdbShowJob>(c =>
             {

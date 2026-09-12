@@ -1441,10 +1441,7 @@ public class SeriesController(
         if (needRefresh)
             await _tmdbMetadataService.ScheduleUpdateOfShow(new() { ShowId = body.ID, ForceRefresh = body.Refresh, DownloadImages = true });
 
-        // Reset series/group titles/descriptions when a new link is added.
-        series.ResetAnimeTitles();
-        series.ResetPreferredTitle();
-        series.ResetPreferredOverview();
+        // Update the group stats when a new link is added.
         _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, false, false);
 
         return NoContent();
@@ -1475,10 +1472,7 @@ public class SeriesController(
         else
             await _tmdbLinkingService.RemoveAllShowLinksForAnime(series.AniDB_ID, body?.Purge ?? false);
 
-        // Reset series/group titles/descriptions when a link is removed.
-        series.ResetAnimeTitles();
-        series.ResetPreferredTitle();
-        series.ResetPreferredOverview();
+        // Update the group stats when a link is removed.
         _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, false, false);
 
 

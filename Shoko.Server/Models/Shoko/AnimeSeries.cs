@@ -215,7 +215,6 @@ public class AnimeSeries : IShokoSeries
             _preferredTitleLoaded = false;
             _preferredTitle = null;
         }
-        LoadPreferredTitle();
     }
 
     private ITitle? LoadPreferredTitle()
@@ -302,7 +301,6 @@ public class AnimeSeries : IShokoSeries
     public void ResetAnimeTitles()
     {
         _animeTitles = null;
-        LoadAnimeTitles();
     }
 
     private List<ITitle> LoadAnimeTitles()
@@ -365,7 +363,6 @@ public class AnimeSeries : IShokoSeries
     {
         _preferredOverviewLoaded = false;
         _preferredOverview = null;
-        LoadPreferredOverview();
     }
 
     private IText? LoadPreferredOverview()

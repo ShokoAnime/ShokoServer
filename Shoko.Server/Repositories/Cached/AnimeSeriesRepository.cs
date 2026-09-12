@@ -79,6 +79,10 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
                 series.ResetPreferredTitle();
                 series.ResetPreferredOverview();
                 series.ResetAnimeTitles();
+                // Resetting only drops the memo, so read it back to keep this a warm-up.
+                _ = series.PreferredTitle;
+                _ = series.PreferredOverview;
+                _ = series.Titles;
             }
 
             var sers = Cache.GetAll().Where(a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
