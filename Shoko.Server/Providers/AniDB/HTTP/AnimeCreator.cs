@@ -579,6 +579,13 @@ public class AnimeCreator
         RepoFactory.AniDB_Episode.Delete(epsToRemove);
         RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
         RepoFactory.AniDB_Episode_Title.Delete(titlesToRemove);
+        // The title rows live in their own repository, so the episodes holding a
+        // memoised copy have to be told that theirs is stale.
+        foreach (var episodeID in titlesToSave.Concat(titlesToRemove).Select(title => title.AniDB_EpisodeID).Distinct())
+        {
+            RepoFactory.AniDB_Episode.GetByEpisodeID(episodeID)?.ResetDefaultTitle();
+            RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episodeID)?.ResetDefaultTitle();
+        }
         RepoFactory.AnimeEpisode.Save(shokoEpisodesToSave);
         RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
         RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
@@ -658,7 +665,14 @@ public class AnimeCreator
         RepoFactory.AniDB_Anime_Title.Delete(titlesToDelete);
         RepoFactory.AniDB_Anime_Title.Save(titlesToSave.Values);
 
-        return titlesToSave.Count > 0 || titlesToDelete.Count > 0;
+        var changed = titlesToSave.Count > 0 || titlesToDelete.Count > 0;
+        if (changed)
+        {
+            anime.ResetDefaultTitle();
+            anime.ResetPreferredTitle();
+        }
+
+        return changed;
     }
 
     /// <summary>

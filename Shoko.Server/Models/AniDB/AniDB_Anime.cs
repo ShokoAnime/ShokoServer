@@ -308,6 +308,8 @@ public class AniDB_Anime : IAnidbAnime
         }
     }
 
+    public void ResetDefaultTitle() => _defaultTitle = null;
+
     private bool _preferredTitleLoaded;
 
     private ITitle? _preferredTitle;

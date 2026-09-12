@@ -108,6 +108,8 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
         }
     }
 
+    public void ResetDefaultTitle() => _defaultTitle = null;
+
     public ITitle? PreferredTitle
     {
         get
