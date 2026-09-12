@@ -411,6 +411,8 @@ public class TmdbLinkingService : ITmdbLinkingService
             var xrefs = _xrefAnidbTmdbEpisodes.GetByAnidbAnimeID(anidbAnimeId);
             _xrefAnidbTmdbEpisodes.Delete(xrefs);
         }
+
+        ResetSeriesTitlesAndOverview(anidbAnimeId);
     }
 
     public bool SetEpisodeLink(int anidbEpisodeId, int tmdbEpisodeId, bool additiveLink = true, int? index = null)
@@ -431,6 +433,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             var toDelete = xrefs.Skip(1).ToList();
             _xrefAnidbTmdbEpisodes.Save(toSave);
             _xrefAnidbTmdbEpisodes.Delete(toDelete);
+            ResetSeriesTitlesAndOverview(anidbEpisode.AnimeID);
 
             return true;
         }
@@ -473,6 +476,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             _xrefAnidbTmdbEpisodes.Delete(toDelete);
         }
 
+        ResetSeriesTitlesAndOverview(anidbEpisode.AnimeID);
         return true;
     }
 
@@ -750,6 +754,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             tmdbShowId);
         _xrefAnidbTmdbEpisodes.Save(toAdd);
         _xrefAnidbTmdbEpisodes.Delete(toRemove);
+        ResetSeriesTitlesAndOverview(anidbAnimeId);
 
         return crossReferences;
 
