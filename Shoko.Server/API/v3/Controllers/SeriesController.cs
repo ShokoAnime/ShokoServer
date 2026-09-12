@@ -219,6 +219,7 @@ public class SeriesController(
         if (!string.Equals(series.SeriesNameOverride, body.Title))
         {
             series.SeriesNameOverride = body.Title;
+            series.ResetDefaultTitle();
             series.ResetPreferredTitle();
             series.ResetAnimeTitles();
 

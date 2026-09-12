@@ -202,6 +202,8 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
+    public void ResetDefaultTitle() => _defaultTitle = null;
+
     private bool _preferredTitleLoaded;
 
     private ITitle? _preferredTitle;

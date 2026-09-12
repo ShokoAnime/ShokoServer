@@ -646,6 +646,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             // Reset the cached titles if anime titles were updated or if series is new.
             if ((titlesUpdated || seriesIsNew) && series is not null)
             {
+                series.ResetDefaultTitle();
                 series.ResetPreferredTitle();
                 series.ResetAnimeTitles();
             }
