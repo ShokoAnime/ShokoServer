@@ -288,15 +288,14 @@ public class AniDB_Anime : IAnidbAnime
                 if (_defaultTitle is not null)
                     return _defaultTitle;
 
-                var title = _defaultTitle = Titles.FirstOrDefault(title => title.TitleType == TitleType.Main);
-                if (title is not null)
+                if (Titles.FirstOrDefault(title => title.TitleType == TitleType.Main) is { } title)
                     return _defaultTitle = title;
 
                 var titleHelper = ISystemService.StaticServices.GetRequiredService<AniDBTitleHelper>();
                 if (titleHelper.SearchAnimeID(AnimeID) is { } titleResponse)
-                    return _preferredTitle = titleResponse.Titles.First(title => title.TitleType == TitleType.Main);
+                    return _defaultTitle = titleResponse.Titles.First(title => title.TitleType == TitleType.Main);
 
-                return _preferredTitle = new TitleStub
+                return _defaultTitle = new TitleStub
                 {
                     Language = TitleLanguage.Romaji,
                     LanguageCode = "x-jat",
