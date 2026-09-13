@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.450",
+      "tag": "v6.0.0-dev.450",
+      "commit": "9b09cee78bc9de17be8b9946053536a3580ef522",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.450/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-13T04:49:00Z",
+      "releaseNotes": "\n`feat` (`api`): **Report available and total bytes for `/api/v3/Folder/MountPoints`**:\n\nAdded `MountPointSizes`, which extends `ChildItems` with `AvailableBytes`\nand `TotalBytes`, and made it the type of `Drive.Sizes`. The values come\nfrom `DriveInfo.AvailableFreeSpace` and `DriveInfo.TotalSize` when the\ndrive is ready. `/api/v3/Folder` still returns the plain `ChildItems`.\n\n- `Drive.Sizes` hides `Folder.Sizes` with `new` and forwards to the base\n  property, so there is one backing value and the Swagger schema shows the\n  byte fields on `Drive` only\n"
+    },
+    {
       "version": "6.0.0.449",
       "tag": "v6.0.0-dev.449",
       "commit": "ea336025879e50969d1df71d8d846214464cb34a",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.421/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-17T11:47:42Z",
       "releaseNotes": "\n`feat` (`api`): **Move release group endpoints into ReleaseInfo with source filtering** ([#1410](https://github.com/ShokoAnime/ShokoServer/pull/1410)):\n\n* feat(api): move release group endpoints into ReleaseInfo with source filtering\n\nMoved the AniDB release group endpoints into `ReleaseInfoController` and\ngeneralized them so they are no longer hardcoded to AniDB groups.\n\n- Added `GET /api/v3/ReleaseInfo/ReleaseGroup` — lists release groups using\n  the existing `includeMissing` filter plus a new comma-delimited `source`\n  filter that defaults to all sources.\n- Added `GET /api/v3/ReleaseInfo/ReleaseGroup/{source}/{groupID}` — returns a\n  single release group by source and ID.\n- Marked `GET /api/v3/AniDB/ReleaseGroup` and\n  `GET /api/v3/AniDB/ReleaseGroup/{groupID}` as obsolete.\n- Parameterized the release group queries in `StoredReleaseInfoRepository`\n  (`GetReleaseGroups`, `GetUsedReleaseGroups`, `GetUnusedReleaseGroups`) with\n  an optional source filter, consolidating the AniDB-only bodies into a shared\n  core.\n- Updated `ExpressionDiscovery` and the v1 `ReleaseGroups` endpoint to return\n  used release groups from all sources instead of only AniDB.\n\n* fix(api): keep the v1 ReleaseGroups endpoint limited to AniDB groups\n\nReverted the v1 `ReleaseGroups` endpoint to return only AniDB used release\ngroups. Only `ExpressionDiscovery` now includes groups from all sources.\n"
-    },
-    {
-      "version": "6.0.0.420",
-      "tag": "v6.0.0-dev.420",
-      "commit": "a2abe6fa81682de73de79eb4324ee0823db237cb",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.420/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-17T09:45:31Z",
-      "releaseNotes": "\n`fix` (`actions`): **Let a scoped action's metadata reach the interface**:\n\n`Description`, `Category`, `RequiresConfirmation` and `Validate` are\ndefault interface members that `SeriesAction`, `GroupAction` and\n`EpisodeAction` never declared, so a derived action's own copies were\nunrelated members and nothing read them. All 17 series actions reported\n`Miscellaneous`, no description and no confirmation. The base classes\ndeclare the four `virtual`; 45 derived members gain `override`.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.81**.\n"
     }
   ]
 }
