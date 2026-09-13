@@ -23,6 +23,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Plex;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -244,7 +245,7 @@ public partial class ShokoServiceImplementation : Controller
             contract.ImagesQueueStateId = 0;
             contract.ImagesQueueStateParams = [];
 
-            var udp = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
+            var udp = HttpContext.RequestServices.GetRequiredService<AniDBUDPConnectionHandler>();
             var http = HttpContext.RequestServices.GetRequiredService<IHttpConnectionHandler>();
             if (http.IsBanned)
             {
@@ -447,15 +448,15 @@ public partial class ShokoServiceImplementation : Controller
 
             if (anidbSettingsChanged)
             {
-                var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
+                var handler = HttpContext.RequestServices.GetRequiredService<AniDBUDPConnectionHandler>();
 
-                handler.ForceLogout();
-                handler.CloseConnections();
+                handler.ForceLogoutAsync().GetAwaiter().GetResult();
+                handler.CloseConnectionsAsync().GetAwaiter().GetResult();
 
                 Thread.Sleep(1000);
-                handler.Init(settings.AniDb.Username, settings.AniDb.Password,
+                handler.InitAsync(settings.AniDb.Username, settings.AniDb.Password,
                     settings.AniDb.UDPServerAddress,
-                    settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
+                    settings.AniDb.UDPServerPort, settings.AniDb.ClientPort).GetAwaiter().GetResult();
             }
         }
         catch (Exception ex)
@@ -602,23 +603,23 @@ public partial class ShokoServiceImplementation : Controller
         var log = string.Empty;
         try
         {
-            var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
+            var handler = HttpContext.RequestServices.GetRequiredService<AniDBUDPConnectionHandler>();
             log += "Disposing..." + Environment.NewLine;
-            handler.ForceLogout();
-            handler.CloseConnections();
+            handler.ForceLogoutAsync().GetAwaiter().GetResult();
+            handler.CloseConnectionsAsync().GetAwaiter().GetResult();
 
             log += "Init..." + Environment.NewLine;
             var settings = _settingsProvider.GetSettings();
-            handler.Init(settings.AniDb.Username, settings.AniDb.Password,
+            handler.InitAsync(settings.AniDb.Username, settings.AniDb.Password,
                 settings.AniDb.UDPServerAddress,
-                settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
+                settings.AniDb.UDPServerPort, settings.AniDb.ClientPort).GetAwaiter().GetResult();
 
             log += "Login..." + Environment.NewLine;
-            if (handler.Login())
+            if (handler.LoginAsync().GetAwaiter().GetResult())
             {
                 log += "Login Success!" + Environment.NewLine;
                 log += "Logout..." + Environment.NewLine;
-                handler.ForceLogout();
+                handler.ForceLogoutAsync().GetAwaiter().GetResult();
                 log += "Logged out" + Environment.NewLine;
             }
             else

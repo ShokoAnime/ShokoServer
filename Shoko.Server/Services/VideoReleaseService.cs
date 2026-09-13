@@ -795,10 +795,11 @@ public class VideoReleaseService(
         // Convert back to IReleaseInfo so StoredReleaseInfo can consume it.
         var preparedRelease = release as ReleaseInfoWithProvider ?? new ReleaseInfoWithProvider(release);
         var releaseInfo = new StoredReleaseInfo(video, preparedRelease);
-        if (!CheckCrossReferences(video, releaseInfo, out var legacyXrefs, out var invalidXrefs))
+        var (validXrefs, legacyXrefs, invalidXrefs) = await CheckCrossReferencesAsync(video, releaseInfo);
+        if (!validXrefs)
             throw new InvalidOperationException($"Release have {invalidXrefs} invalid cross reference(s).");
 
-        var missingAnidbReleaseGroupId = CheckReleaseGroup(releaseInfo);
+        var missingAnidbReleaseGroupId = await CheckReleaseGroupAsync(releaseInfo);
 
         // Ensure we don't have an empty list of hashes.
         if (releaseInfo.Hashes is { } hashes)
@@ -898,10 +899,10 @@ public class VideoReleaseService(
 
     #region Save Release | Internals
 
-    private bool CheckCrossReferences(IVideo video, StoredReleaseInfo releaseInfo, out List<CrossRef_File_Episode> legacyXrefs, out int invalidXrefs)
+    private async Task<(bool, List<CrossRef_File_Episode>, int)> CheckCrossReferencesAsync(IVideo video, StoredReleaseInfo releaseInfo, CancellationToken cancellationToken = default)
     {
-        legacyXrefs = [];
-        invalidXrefs = 0;
+        var legacyXrefs = new List<CrossRef_File_Episode>();
+        var invalidXrefs = 0;
 
         var legacyOrder = 0;
         var embeddedXrefs = new List<EmbeddedCrossReference>();
@@ -947,9 +948,9 @@ public class VideoReleaseService(
                     logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, downloading more info…", firstXref.AnidbEpisodeID);
                     try
                     {
-                        var episodeResponse = requestFactory
+                        var episodeResponse = await requestFactory
                             .Create<RequestGetEpisode>(r => r.EpisodeID = firstXref.AnidbEpisodeID)
-                            .Send();
+                            .SendAsync(cancellationToken);
                         animeID = episodeResponse.Response?.AnimeID;
                         if (episodeResponse.Code is UDPReturnCode.NO_SUCH_EPISODE)
                         {
@@ -1021,13 +1022,13 @@ public class VideoReleaseService(
         // Collapsing overlapping entries above is deliberate, not a failure, so only
         // cross-references we actually rejected count against the release.
         if (invalidXrefs > 0 || embeddedXrefs.Count < 1)
-            return false;
+            return (false, legacyXrefs, invalidXrefs);
 
         releaseInfo.CrossReferences = embeddedXrefs;
-        return true;
+        return (true, legacyXrefs, invalidXrefs);
     }
 
-    private int? CheckReleaseGroup(StoredReleaseInfo releaseInfo)
+    private async Task<int?> CheckReleaseGroupAsync(StoredReleaseInfo releaseInfo, CancellationToken cancellationToken = default)
     {
         if (
             string.IsNullOrWhiteSpace(releaseInfo.GroupID) ||
@@ -1091,9 +1092,9 @@ public class VideoReleaseService(
         // Otherwise try to fetch group info from AniDB.
         try
         {
-            var response = requestFactory
+            var response = await requestFactory
                 .Create<RequestReleaseGroup>(r => r.ReleaseGroupID = groupID)
-                .Send();
+                .SendAsync(cancellationToken);
             if (response.Response is not null)
             {
                 if (

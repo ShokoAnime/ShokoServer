@@ -66,7 +66,7 @@ public class RequestVoteEpisode : UDPRequest<ResponseVote>
         };
     }
 
-    public RequestVoteEpisode(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,
+    public RequestVoteEpisode(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory,
         handler)
     {
     }

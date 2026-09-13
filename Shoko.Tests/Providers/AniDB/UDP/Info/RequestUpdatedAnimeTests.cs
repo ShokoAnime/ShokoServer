@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Xunit;
@@ -16,7 +17,7 @@ public class RequestUpdatedAnimeTests
     public RequestUpdatedAnimeTests()
     {
         var loggerFactory = Mock.Of<ILoggerFactory>();
-        var handler = Mock.Of<IUDPConnectionHandler>();
+        var handler = Mock.Of<IAniDbUdpRequestChannel>();
         _request = new RequestUpdatedAnime(loggerFactory, handler);
     }
 

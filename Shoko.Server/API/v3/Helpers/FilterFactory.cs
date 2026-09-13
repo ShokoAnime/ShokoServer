@@ -242,7 +242,7 @@ public class FilterFactory
                     : default;
                 break;
             case IWithStringSetParameter parameter:
-                parameter.Parameter = condition.Parameter?[1..^1].Split("|||").ToHashSet()!;
+                parameter.Parameter = string.IsNullOrEmpty(condition.Parameter) ? [] : condition.Parameter.Split("|||").ToHashSet();
                 break;
         }
 

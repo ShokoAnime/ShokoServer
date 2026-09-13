@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Connectivity.Services;
@@ -60,10 +62,12 @@ public class AniDBUdpConnectionTests
                 settingsProvider.Object,
                 AniDBTestDoubles.UdpRateLimiter(),
                 connectivity.Object,
+                new AniDbBanStateService(NullLogger<AniDbBanState>.Instance),
                 AniDBTestDoubles.SocketHandlerFactory(Socket));
         }
 
-        public bool Init() => Handler.Init(Username, Password, UnroutableHost, 9000, 4556);
+        public Task<bool> Init(CancellationToken cancellationToken = default) =>
+            Handler.InitAsync(Username, Password, UnroutableHost, 9000, 4556, cancellationToken);
     }
 
     /// <summary>
@@ -79,21 +83,21 @@ public class AniDBUdpConnectionTests
     #region Initialisation
 
     [Fact]
-    public void InitBuildsTheSocketAndRecordsWhetherItConnected()
+    public async Task InitBuildsTheSocketAndRecordsWhetherItConnected()
     {
         var harness = new Harness();
 
-        Assert.True(harness.Init());
+        Assert.True(await harness.Init(TestContext.Current.CancellationToken));
         Assert.True(harness.Socket.ConnectionAttempted);
         Assert.True(harness.Handler.IsNetworkAvailable);
     }
 
     [Fact]
-    public void InitRecordsAFailureToConnect()
+    public async Task InitRecordsAFailureToConnect()
     {
         var harness = new Harness(socketConnects: false);
 
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
 
         Assert.False(harness.Handler.IsNetworkAvailable);
     }
@@ -103,21 +107,21 @@ public class AniDBUdpConnectionTests
     [InlineData("", Password)]
     [InlineData(Username, null)]
     [InlineData(Username, "")]
-    public void InitRefusesIncompleteCredentials(string? username, string? password)
+    public async Task InitRefusesIncompleteCredentials(string? username, string? password)
     {
         var harness = new Harness();
 
-        Assert.False(harness.Handler.Init(username, password, UnroutableHost, 9000, 4556));
+        Assert.False(await harness.Handler.InitAsync(username, password, UnroutableHost, 9000, 4556, cancellationToken: TestContext.Current.CancellationToken));
         Assert.False(harness.Socket.ConnectionAttempted);
     }
 
     [Fact]
-    public void SendingBeforeInitIsRefused()
+    public async Task SendingBeforeInitIsRefused()
     {
         var harness = new Harness();
 
         // No socket has been built, so there is nothing to send through.
-        Assert.Throws<ObjectDisposedException>(() => harness.Handler.SendDirectly("PING"));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => harness.Handler.SendDirectlyAsync("PING", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     #endregion
@@ -125,49 +129,49 @@ public class AniDBUdpConnectionTests
     #region Sending and receiving
 
     [Fact]
-    public void AReplyIsDecodedAndReturned()
+    public async Task AReplyIsDecodedAndReturned()
     {
         var harness = new Harness();
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
         harness.Socket.Respond(Reply("300 PONG"));
 
-        Assert.Equal("300 PONG", harness.Handler.SendDirectly("PING", isPing: true));
+        Assert.Equal("300 PONG", await harness.Handler.SendDirectlyAsync("PING", isPing: true, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public void TheCommandIsSentAsUnicodeByDefault()
+    public async Task TheCommandIsSentAsUnicodeByDefault()
     {
         var harness = new Harness();
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
         harness.Socket.Respond(Reply("300 PONG"));
 
-        harness.Handler.SendDirectly("PING");
+        await harness.Handler.SendDirectlyAsync("PING", cancellationToken: TestContext.Current.CancellationToken);
 
         var sent = Assert.Single(harness.Socket.Sent);
         Assert.Equal(new UnicodeEncoding(true, false).GetBytes("PING"), sent);
     }
 
     [Fact]
-    public void TheCommandCanBeSentAsAscii()
+    public async Task TheCommandCanBeSentAsAscii()
     {
         var harness = new Harness();
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
         harness.Socket.Respond(Reply("300 PONG"));
 
-        harness.Handler.SendDirectly("PING", needsUnicode: false);
+        await harness.Handler.SendDirectlyAsync("PING", needsUnicode: false, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(Encoding.ASCII.GetBytes("PING"), Assert.Single(harness.Socket.Sent));
     }
 
     [Fact]
-    public void AByteOrderMarkIsStrippedFromTheReply()
+    public async Task AByteOrderMarkIsStrippedFromTheReply()
     {
         var harness = new Harness();
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
         harness.Socket.Respond(UnicodeReply("300 PONG"));
 
         // The mark is a decoding artefact, not part of the response.
-        Assert.Equal("300 PONG", harness.Handler.SendDirectly("PING"));
+        Assert.Equal("300 PONG", await harness.Handler.SendDirectlyAsync("PING", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     #endregion
@@ -175,55 +179,55 @@ public class AniDBUdpConnectionTests
     #region Ban handling
 
     [Fact]
-    public void AnAllZeroReplyIsTreatedAsABan()
+    public async Task AnAllZeroReplyIsTreatedAsABan()
     {
         var harness = new Harness();
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
         harness.Socket.Respond(new byte[16]);
 
         // A silent socket cannot be told apart from a ban, and assuming the worse is what stops the
         // server digging the hole deeper.
-        var exception = Assert.Throws<AniDBBannedException>(() => harness.Handler.SendDirectly("PING"));
+        var exception = await Assert.ThrowsAsync<AniDBBannedException>(() => harness.Handler.SendDirectlyAsync("PING", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(UpdateType.UDPBan, exception.BanType);
         Assert.True(harness.Handler.IsBanned);
     }
 
     [Fact]
-    public void TheUdpBanExpiryIsAnHourAndAHalfAfterItStarted()
+    public async Task TheUdpBanExpiryIsAnHourAndAHalfAfterItStarted()
     {
         var harness = new Harness();
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
         harness.Socket.Respond(new byte[16]);
 
-        var exception = Assert.Throws<AniDBBannedException>(() => harness.Handler.SendDirectly("PING"));
+        var exception = await Assert.ThrowsAsync<AniDBBannedException>(() => harness.Handler.SendDirectlyAsync("PING", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(1.5D, harness.Handler.BanTimerResetLength);
         Assert.Equal(harness.Handler.BanTime!.Value.AddHours(1.5D), exception.BanExpires);
     }
 
     [Fact]
-    public void SendRefusesToTalkWhileBanned()
+    public async Task SendRefusesToTalkWhileBanned()
     {
         var harness = new Harness();
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
         harness.Socket.Respond(new byte[16]);
-        Assert.Throws<AniDBBannedException>(() => harness.Handler.SendDirectly("PING"));
+        await Assert.ThrowsAsync<AniDBBannedException>(() => harness.Handler.SendDirectlyAsync("PING", cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Throws<AniDBBannedException>(() => harness.Handler.Send("PING"));
+        await Assert.ThrowsAsync<AniDBBannedException>(() => harness.Handler.SendAsync("PING", cancellationToken: TestContext.Current.CancellationToken));
 
         // Only the first call reached the socket; the ban check short-circuits the rest.
         Assert.Single(harness.Socket.Sent);
     }
 
     [Fact]
-    public void ANonZeroReplyIsNotMistakenForABan()
+    public async Task ANonZeroReplyIsNotMistakenForABan()
     {
         var harness = new Harness();
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
         harness.Socket.Respond(Reply("500 LOGIN FAILED"));
 
-        Assert.Equal("500 LOGIN FAILED", harness.Handler.SendDirectly("AUTH"));
+        Assert.Equal("500 LOGIN FAILED", await harness.Handler.SendDirectlyAsync("AUTH", cancellationToken: TestContext.Current.CancellationToken));
         Assert.False(harness.Handler.IsBanned);
     }
 
@@ -232,25 +236,25 @@ public class AniDBUdpConnectionTests
     #region Connectivity
 
     [Fact]
-    public void NothingIsSentWithoutInternet()
+    public async Task NothingIsSentWithoutInternet()
     {
         var harness = new Harness(availability: NetworkAvailability.NoInterfaces);
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
 
-        Assert.Throws<SocketException>(() => harness.Handler.SendDirectly("PING"));
+        await Assert.ThrowsAsync<SocketException>(() => harness.Handler.SendDirectlyAsync("PING", cancellationToken: TestContext.Current.CancellationToken));
 
         // The request is abandoned before it reaches the socket rather than timing out on it.
         Assert.Empty(harness.Socket.Sent);
     }
 
     [Fact]
-    public void APartialInternetConnectionIsGoodEnoughToTry()
+    public async Task APartialInternetConnectionIsGoodEnoughToTry()
     {
         var harness = new Harness(availability: NetworkAvailability.PartialInternet);
-        harness.Init();
+        await harness.Init(TestContext.Current.CancellationToken);
         harness.Socket.Respond(Reply("300 PONG"));
 
-        Assert.Equal("300 PONG", harness.Handler.SendDirectly("PING"));
+        Assert.Equal("300 PONG", await harness.Handler.SendDirectlyAsync("PING", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     #endregion

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
@@ -126,7 +126,7 @@ public class RequestReleaseGroupStatus : UDPRequest<List<ResponseReleaseGroupSta
         }
     }
 
-    public RequestReleaseGroupStatus(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,
+    public RequestReleaseGroupStatus(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory,
         handler)
     {
     }

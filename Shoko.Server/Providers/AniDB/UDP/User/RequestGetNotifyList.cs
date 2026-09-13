@@ -99,7 +99,7 @@ public class RequestGetNotifyList : UDPRequest<IList<ResponseNotifyId>>
         };
     }
 
-    public RequestGetNotifyList(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestGetNotifyList(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

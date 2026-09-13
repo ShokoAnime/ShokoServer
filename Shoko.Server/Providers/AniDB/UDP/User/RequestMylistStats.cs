@@ -42,7 +42,7 @@ public class RequestMylistStats : UDPRequest<ResponseMylistStats>
         return new UDPResponse<ResponseMylistStats> { Code = code, Response = stats };
     }
 
-    public RequestMylistStats(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,
+    public RequestMylistStats(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory,
         handler)
     {
     }

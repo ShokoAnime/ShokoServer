@@ -179,7 +179,7 @@ public class RequestUpdateMylist : UDPRequest<Void>
         _ => throw new UnexpectedUDPResponseException(response.Code, response.Response, Command),
     };
 
-    public RequestUpdateMylist(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestUpdateMylist(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

@@ -273,7 +273,7 @@ public class MylistService(
             try
             {
                 var request = requestFactory.Create(configureRequest);
-                var response = request.Send();
+                var response = await request.SendAsync(cancellationToken);
                 if (response.Response is { } entry)
                 {
                     if (enrichEntry is not null) entry = enrichEntry(entry);
@@ -323,7 +323,7 @@ public class MylistService(
                     r.Password = settings.AniDb.Password!;
                 }
             );
-            var response = request.Send();
+            var response = await request.SendAsync(cancellationToken);
 
             if (response.Response is null)
                 throw new Exception($"AniDB did not return a successful code: {response.Code}");
@@ -459,7 +459,7 @@ public class MylistService(
                 r.FileID = (ulong)fileID;
             }
         );
-        var response = request.Send();
+        var response = await request.SendAsync(cancellationToken);
         MylistEntry? patched = null;
 
         if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
@@ -473,7 +473,7 @@ public class MylistService(
             );
             // the add returned the entry as it was *before* this edit, so fold the
             // edit in rather than caching the stale copy
-            if (updateRequest.Send().Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
+            if ((await updateRequest.SendAsync(cancellationToken)).Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
                 patched = PatchEntry(stale, data);
         }
 
@@ -521,7 +521,7 @@ public class MylistService(
                 r.Size = fileSize;
             }
         );
-        var response = request.Send();
+        var response = await request.SendAsync(cancellationToken);
         MylistEntry? patched = null;
 
         if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
@@ -536,7 +536,7 @@ public class MylistService(
             );
             // the add returned the entry as it was *before* this edit, so fold the
             // edit in rather than caching the stale copy
-            if (updateRequest.Send().Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
+            if ((await updateRequest.SendAsync(cancellationToken)).Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
                 patched = PatchEntry(stale, data);
         }
 
@@ -589,7 +589,7 @@ public class MylistService(
                 r.EpisodeType = episodeType;
             }
         );
-        var response = request.Send();
+        var response = await request.SendAsync(cancellationToken);
         MylistEntry? patched = null;
 
         if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
@@ -605,7 +605,7 @@ public class MylistService(
             );
             // the add returned the entry as it was *before* this edit, so fold the
             // edit in rather than caching the stale copy
-            if (updateRequest.Send().Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
+            if ((await updateRequest.SendAsync(cancellationToken)).Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
                 patched = PatchEntry(stale, data);
         }
 
@@ -855,8 +855,8 @@ public class MylistService(
             }
         );
 
-        var code = request.Send().Code;
-        return PersistUpdate(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r => r.MylistID = listID));
+        var code = (await request.SendAsync(cancellationToken)).Code;
+        return await PersistUpdateAsync(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r => r.MylistID = listID), null, cancellationToken);
     }
 
     public Task ScheduleUpdateEntry(ulong listID, MylistUpdateData? data = null, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
@@ -902,8 +902,8 @@ public class MylistService(
             }
         );
 
-        var code = request.Send().Code;
-        return PersistUpdate(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r => r.FileID = (ulong)fileID));
+        var code = (await request.SendAsync(cancellationToken)).Code;
+        return await PersistUpdateAsync(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r => r.FileID = (ulong)fileID), null, cancellationToken);
     }
 
     public Task ScheduleUpdateEntry(int fileID, MylistUpdateData? data = null, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
@@ -950,12 +950,12 @@ public class MylistService(
             }
         );
 
-        var code = request.Send().Code;
-        return PersistUpdate(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r =>
+        var code = (await request.SendAsync(cancellationToken)).Code;
+        return await PersistUpdateAsync(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r =>
         {
             r.ED2K = ed2k;
             r.Size = fileSize;
-        }), entry => entry with { ED2K = ed2k, Size = fileSize, IsGeneric = false });
+        }), entry => entry with { ED2K = ed2k, Size = fileSize, IsGeneric = false }, cancellationToken);
     }
 
     public Task ScheduleUpdateEntry(string ed2k, long fileSize, MylistUpdateData? data = null, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
@@ -1009,13 +1009,13 @@ public class MylistService(
             }
         );
 
-        var code = request.Send().Code;
-        return PersistUpdate(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r =>
+        var code = (await request.SendAsync(cancellationToken)).Code;
+        return await PersistUpdateAsync(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r =>
         {
             r.AnimeID = animeID;
             r.EpisodeType = episodeType;
             r.EpisodeNumber = episodeNumber;
-        }), entry => anidbEpisode is null ? entry : entry with { AnimeID = animeID, EpisodeID = anidbEpisode.EpisodeID, IsGeneric = true });
+        }), entry => anidbEpisode is null ? entry : entry with { AnimeID = animeID, EpisodeID = anidbEpisode.EpisodeID, IsGeneric = true }, cancellationToken);
     }
 
     public Task ScheduleUpdateEntry(int animeID, EpisodeType episodeType, int episodeNumber, MylistUpdateData? data = null, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
@@ -1118,12 +1118,13 @@ public class MylistService(
     /// place rather than re-fetched; the fetch is only needed when there was
     /// nothing cached to patch.
     /// </summary>
-    private MylistEntry? PersistUpdate(
+    private async Task<MylistEntry?> PersistUpdateAsync(
         UDPReturnCode code,
         MylistEntry? cached,
         MylistUpdateData data,
         Func<RequestGetMylist> createGetRequest,
-        Func<MylistEntry, MylistEntry>? enrichEntry = null
+        Func<MylistEntry, MylistEntry>? enrichEntry = null,
+        CancellationToken cancellationToken = default
     )
     {
         if (code is not UDPReturnCode.MYLIST_ENTRY_EDITED)
@@ -1139,7 +1140,7 @@ public class MylistService(
         // the edit already succeeded; a failed read-back only costs the return value
         try
         {
-            var entry = createGetRequest().Send().Response;
+            var entry = (await createGetRequest().SendAsync(cancellationToken)).Response;
             if (entry is null) return null;
             if (enrichEntry is not null) entry = enrichEntry(entry);
             mylistCache.Upsert(entry);
@@ -1226,7 +1227,7 @@ public class MylistService(
         }
 
         var request = requestFactory.Create<RequestRemoveMylist>(r => r.MylistID = listID);
-        var code = request.Send().Code;
+        var code = (await request.SendAsync(cancellationToken)).Code;
         if (code == UDPReturnCode.MYLIST_ENTRY_DELETED && cached is not null) mylistCache.Remove(cached);
         return code == UDPReturnCode.MYLIST_ENTRY_DELETED;
     }
@@ -1256,7 +1257,7 @@ public class MylistService(
         }
 
         var request = requestFactory.Create<RequestRemoveMylist>(r => r.FileID = (ulong)fileID);
-        var code = request.Send().Code;
+        var code = (await request.SendAsync(cancellationToken)).Code;
         if (code == UDPReturnCode.MYLIST_ENTRY_DELETED && cached is not null) mylistCache.Remove(cached);
         return code == UDPReturnCode.MYLIST_ENTRY_DELETED;
     }
@@ -1290,7 +1291,7 @@ public class MylistService(
             r.ED2K = ed2k;
             r.Size = fileSize;
         });
-        var code = request.Send().Code;
+        var code = (await request.SendAsync(cancellationToken)).Code;
         if (code == UDPReturnCode.MYLIST_ENTRY_DELETED && cached is not null) mylistCache.Remove(cached);
         return code == UDPReturnCode.MYLIST_ENTRY_DELETED;
     }
@@ -1327,7 +1328,7 @@ public class MylistService(
             r.EpisodeType = episodeType;
             r.EpisodeNumber = episodeNumber;
         });
-        var code = request.Send().Code;
+        var code = (await request.SendAsync(cancellationToken)).Code;
         if (code == UDPReturnCode.MYLIST_ENTRY_DELETED && cached is not null) mylistCache.Remove(cached);
         return code == UDPReturnCode.MYLIST_ENTRY_DELETED;
     }

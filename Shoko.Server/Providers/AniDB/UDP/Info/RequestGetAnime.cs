@@ -56,7 +56,7 @@ public class RequestGetAnime : UDPRequest<ResponseGetAnime>
         }
     }
 
-    public RequestGetAnime(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestGetAnime(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

@@ -20,9 +20,15 @@ public interface IConnectionHandler
     double BanTimerResetLength { get; }
 
     /// <summary>
-    /// When the ban occurred.
+    /// The ban state for this protocol: whether we are banned, when the ban
+    /// was registered and when it expires, all in UTC.
     /// </summary>
-    DateTime? BanTime { get; set; }
+    AniDbBanState BanState { get; }
+
+    /// <summary>
+    /// When the ban was registered, in UTC.
+    /// </summary>
+    DateTime? BanTime { get; }
 
     /// <summary>
     /// Dispatched when the <seealso cref="State"/> is updated. Used for internal state updates.
@@ -48,7 +54,7 @@ public interface IConnectionHandler
     /// Indicates whether we're currently banned.
     /// </summary>
     [MemberNotNullWhen(true, nameof(BanTime))]
-    bool IsBanned { get; set; }
+    bool IsBanned { get; }
 
     /// <summary>
     /// Indicates that the connection is alive and usable.

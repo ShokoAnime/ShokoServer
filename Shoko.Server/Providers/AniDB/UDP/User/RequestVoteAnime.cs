@@ -68,7 +68,7 @@ public class RequestVoteAnime : UDPRequest<ResponseVote>
         };
     }
 
-    public RequestVoteAnime(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestVoteAnime(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

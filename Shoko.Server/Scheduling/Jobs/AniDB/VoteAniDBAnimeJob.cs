@@ -41,7 +41,7 @@ public class VoteAniDBAnimeJob(IRequestFactory requestFactory, AniDBTitleHelper 
         { "Type", VoteType.ToString() }
     };
 
-    public override Task Execute()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job} for {AnimeID} | {Type} | {Value}", nameof(VoteAniDBAnimeJob), AnimeID, VoteType, VoteValue);
 
@@ -53,7 +53,6 @@ public class VoteAniDBAnimeJob(IRequestFactory requestFactory, AniDBTitleHelper 
                 r.AnimeID = AnimeID;
             }
         );
-        vote.Send();
-        return Task.CompletedTask;
+        await vote.SendAsync();
     }
 }

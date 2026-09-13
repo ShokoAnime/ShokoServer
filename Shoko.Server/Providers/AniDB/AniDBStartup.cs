@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
@@ -25,8 +25,11 @@ public static class AniDBStartup
         services.AddSingleton<IAniDBSocketHandlerFactory, AniDBSocketHandlerFactory>();
         services.AddSingleton<UDPRateLimiter>();
         services.AddSingleton<HttpRateLimiter>();
+        services.AddSingleton<AniDbBanStateService>();
         services.AddSingleton<IHttpConnectionHandler, AniDBHttpConnectionHandler>();
-        services.AddSingleton<IUDPConnectionHandler, AniDBUDPConnectionHandler>();
+        services.AddSingleton<AniDBUDPConnectionHandler>();
+        services.AddSingleton<IUDPConnectionHandler>(sp => sp.GetRequiredService<AniDBUDPConnectionHandler>());
+        services.AddSingleton<IAniDbUdpRequestChannel>(sp => sp.GetRequiredService<AniDBUDPConnectionHandler>());
         services.AddSingleton<IRequestFactory, RequestFactory>();
 
         // Register Requests

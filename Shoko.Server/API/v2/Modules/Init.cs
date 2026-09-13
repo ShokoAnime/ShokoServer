@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Settings;
 
 //using Microsoft.SqlServer.Management.Smo;
@@ -231,20 +233,20 @@ public class Init : BaseController
     /// <returns></returns>
     [Authorize("init")]
     [HttpGet("anidb/test")]
-    public ActionResult TestAniDB()
+    public async Task<ActionResult> TestAniDB()
     {
-        var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-        handler.ForceLogout();
-        handler.CloseConnections();
+        var handler = HttpContext.RequestServices.GetRequiredService<AniDBUDPConnectionHandler>();
+        await handler.ForceLogoutAsync();
+        await handler.CloseConnectionsAsync();
 
         Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo(_settings.Culture);
 
-        handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
+        await handler.InitAsync(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.UDPServerAddress,
             _settings.AniDb.UDPServerPort, _settings.AniDb.ClientPort);
 
-        if (!handler.Login()) return APIStatus.BadRequest("Failed to log in");
-        handler.ForceLogout();
+        if (!await handler.LoginAsync()) return APIStatus.BadRequest("Failed to log in");
+        await handler.ForceLogoutAsync();
 
         return APIStatus.OK();
     }

@@ -188,7 +188,9 @@ public class TmdbMetadataService : ITmdbMetadataService
     // We lazy-init it on first use, this will give us time to set up the server before we attempt to init the tmdb client.
     private TMDbClient CachedClient => _rawClient ??= new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? (
         Constants.TMDB.ApiKey != "TMDB_API_KEY_GOES_HERE"
+#pragma warning disable CS0162 // Unreachable code detected
             ? Constants.TMDB.ApiKey
+#pragma warning restore CS0162 // Unreachable code detected
             : throw new TmdbApiKeyUnavailableException()
     ));
 

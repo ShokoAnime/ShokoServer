@@ -31,7 +31,7 @@ public class RequestAcknowledgeNotify : UDPRequest<Void>
         }
     }
 
-    public RequestAcknowledgeNotify(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestAcknowledgeNotify(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Settings;
@@ -26,15 +27,20 @@ public class AniDBHttpConnectionTests
 
     private static (AniDBHttpConnectionHandler Handler, AniDBTestDoubles.StubHttpMessageHandler Http) Create()
     {
-        StubSettingsProvider.Install();
         // The transport below is a stub, so nothing is ever dialed; pointing the base address at an
         // RFC 2606 reserved host makes that plain rather than implicit.
-        ISettingsProvider.Instance.GetSettings().AniDb.HTTPServerUrl = "http://anidb.invalid";
+        var settings = new ServerSettings();
+        settings.AniDb.HTTPServerUrl = "http://anidb.invalid";
+        var settingsProvider = new Mock<ISettingsProvider>();
+        settingsProvider.Setup(p => p.GetSettings(It.IsAny<bool>())).Returns(settings);
+
         var http = new AniDBTestDoubles.StubHttpMessageHandler();
         var handler = new AniDBHttpConnectionHandler(
+            new AniDbBanStateService(NullLogger<AniDbBanState>.Instance),
             NullLoggerFactory.Instance,
             AniDBTestDoubles.HttpRateLimiter(),
-            AniDBTestDoubles.HttpClientFactory(http));
+            AniDBTestDoubles.HttpClientFactory(http),
+            settingsProvider.Object);
 
         return (handler, http);
     }
@@ -47,7 +53,7 @@ public class AniDBHttpConnectionTests
         var (handler, http) = Create();
         http.Respond(HttpStatusCode.OK, "<anime id=\"1\" />");
 
-        var response = await handler.GetHttp("httpapi?request=anime&aid=1");
+        var response = await handler.GetHttp("httpapi?request=anime&aid=1", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("<anime id=\"1\" />", response.Response);
         Assert.Equal(HttpStatusCode.OK, response.Code);
@@ -59,7 +65,7 @@ public class AniDBHttpConnectionTests
         var (handler, http) = Create();
         http.Respond(HttpStatusCode.OK, "<anime />");
 
-        await handler.GetHttp("httpapi?request=anime&aid=1");
+        await handler.GetHttp("httpapi?request=anime&aid=1", cancellationToken: TestContext.Current.CancellationToken);
 
         // Asserted whole, including the host: checking only the relative part would pass even if
         // the handler ignored the configured server entirely.
@@ -73,7 +79,7 @@ public class AniDBHttpConnectionTests
         var (handler, http) = Create();
         http.Respond(HttpStatusCode.OK, string.Empty);
 
-        var response = await handler.GetHttp("httpapi");
+        var response = await handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(string.Empty, response.Response);
         Assert.False(handler.IsBanned);
@@ -86,7 +92,7 @@ public class AniDBHttpConnectionTests
         // The marker is the element `>banned<`, not the word appearing in content.
         http.Respond(HttpStatusCode.OK, "<anime><title>The Banned Ones</title></anime>");
 
-        await handler.GetHttp("httpapi");
+        await handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(handler.IsBanned);
     }
@@ -101,7 +107,7 @@ public class AniDBHttpConnectionTests
         var (handler, http) = Create();
         http.Respond(HttpStatusCode.OK, BannedBody);
 
-        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi"));
+        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -110,7 +116,7 @@ public class AniDBHttpConnectionTests
         var (handler, http) = Create();
         http.Respond(HttpStatusCode.OK, BannedBody);
 
-        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi"));
+        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.True(handler.IsBanned);
         Assert.NotNull(handler.BanTime);
@@ -122,7 +128,7 @@ public class AniDBHttpConnectionTests
         var (handler, http) = Create();
         http.Respond(HttpStatusCode.OK, "<error>BANNED</error>");
 
-        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi"));
+        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
         Assert.True(handler.IsBanned);
     }
 
@@ -131,9 +137,9 @@ public class AniDBHttpConnectionTests
     {
         var (handler, http) = Create();
         http.Respond(HttpStatusCode.OK, BannedBody);
-        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi"));
+        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
 
-        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi"));
+        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
 
         // Talking to AniDB while banned is what extends the ban, so the second call must not go out.
         Assert.Equal(1, http.CallCount);
@@ -144,10 +150,10 @@ public class AniDBHttpConnectionTests
     {
         var (handler, http) = Create();
         http.Respond(HttpStatusCode.OK, BannedBody);
-        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi"));
+        await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
 
         http.Respond(HttpStatusCode.OK, "<anime />");
-        var response = await handler.GetHttp("httpapi", force: true);
+        var response = await handler.GetHttp("httpapi", force: true, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("<anime />", response.Response);
         Assert.Equal(2, http.CallCount);
@@ -159,7 +165,7 @@ public class AniDBHttpConnectionTests
         var (handler, http) = Create();
         http.Respond(HttpStatusCode.OK, BannedBody);
 
-        var exception = await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi"));
+        var exception = await Assert.ThrowsAsync<AniDBBannedException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(12, handler.BanTimerResetLength);
         Assert.Equal(handler.BanTime!.Value.AddHours(12), exception.BanExpires);
@@ -176,7 +182,7 @@ public class AniDBHttpConnectionTests
         var (handler, http) = Create();
         http.Respond(HttpStatusCode.InternalServerError, "boom");
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => handler.GetHttp("httpapi"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
         Assert.False(handler.IsBanned);
     }
 
@@ -186,7 +192,7 @@ public class AniDBHttpConnectionTests
         var (handler, http) = Create();
         http.Throw(new HttpRequestException("no route to host"));
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => handler.GetHttp("httpapi"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -194,10 +200,10 @@ public class AniDBHttpConnectionTests
     {
         var (handler, http) = Create();
         http.Throw(new HttpRequestException("transient"));
-        await Assert.ThrowsAsync<HttpRequestException>(() => handler.GetHttp("httpapi"));
+        await Assert.ThrowsAsync<HttpRequestException>(() => handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken));
 
         http.Respond(HttpStatusCode.OK, "<anime />");
-        var response = await handler.GetHttp("httpapi");
+        var response = await handler.GetHttp("httpapi", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("<anime />", response.Response);
     }

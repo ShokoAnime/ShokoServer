@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
@@ -68,7 +68,7 @@ public class RequestCalendar : UDPRequest<ResponseCalendar>
         return new UDPResponse<ResponseCalendar> { Response = calendar, Code = code };
     }
 
-    public RequestCalendar(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestCalendar(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

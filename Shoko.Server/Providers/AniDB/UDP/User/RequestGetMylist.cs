@@ -191,7 +191,7 @@ public class RequestGetMylist : UDPRequest<MylistEntry>
         throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
-    public RequestGetMylist(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestGetMylist(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

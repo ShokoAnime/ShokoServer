@@ -81,7 +81,7 @@ public class GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbServi
         // get a list of updates from AniDB
         // startTime will contain the date/time from which the updates apply to
         var request = requestFactory.Create<RequestUpdatedAnime>(r => r.LastUpdated = webUpdateTime);
-        var response = request.Send();
+        var response = await request.SendAsync();
         if (response?.Response is null)
         {
             return (null, countAnime, countSeries);

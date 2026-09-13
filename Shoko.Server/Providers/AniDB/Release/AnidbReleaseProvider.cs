@@ -28,14 +28,14 @@ namespace Shoko.Server.Providers.AniDB.Release;
 /// <param name="logger">The logger.</param>
 /// <param name="configurationProvider">The configuration provider.</param>
 /// <param name="requestFactory">The request factory.</param>
-/// <param name="connectionHandler">The connection handler.</param>
+/// <param name="banStateService">The AniDB ban state service.</param>
 /// <param name="fileNameHashRepository">The file name hash repository.</param>
 /// <param name="videoRepository">The video repository.</param>
 public partial class AnidbReleaseProvider(
     ILogger<AnidbReleaseProvider> logger,
     ConfigurationProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings> configurationProvider,
     IRequestFactory requestFactory,
-    IUDPConnectionHandler connectionHandler,
+    AniDbBanStateService banStateService,
     FileNameHashRepository fileNameHashRepository,
     VideoLocalRepository videoRepository
 ) : IReleaseInfoProvider<AnidbReleaseProvider.AnidbReleaseProviderSettings>
@@ -66,19 +66,20 @@ public partial class AnidbReleaseProvider(
 
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoForVideo(ReleaseInfoContext request, CancellationToken cancellationToken)
-        => GetReleaseInfoById($"{IdPrefix}{request.Video.ED2K}+{request.Video.Size}", request.Video);
+        => GetReleaseInfoById($"{IdPrefix}{request.Video.ED2K}+{request.Video.Size}", request.Video, cancellationToken);
 
     /// <inheritdoc/>
     public Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken)
-        => GetReleaseInfoById(releaseId, null);
+        => GetReleaseInfoById(releaseId, null, cancellationToken);
 
     /// <summary>
     ///    Gets the release info by ID. The ID should be a hash+size combination.
     /// </summary>
     /// <param name="releaseId">Release ID. Hash+Size.</param>
     /// <param name="video">Optional. A loaded video instance to use for some extra metadata to include in the release.</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>The release info, or null if not found.</returns>
-    private async Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, IVideo? video = null)
+    private async Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, IVideo? video = null, CancellationToken cancellationToken = default)
     {
         if (_memoryCache.TryGetValue(releaseId, out ReleaseInfo? releaseInfo))
             return releaseInfo;
@@ -91,7 +92,7 @@ public partial class AnidbReleaseProvider(
         if (string.IsNullOrEmpty(hash) || hash.Length != 32 || !long.TryParse(fileSize, out var size))
             return null;
 
-        if (connectionHandler.IsBanned)
+        if (banStateService.Udp.IsBanned)
         {
             logger.LogInformation("Unable to lookup release for Hash={Hash} & Size={Size} due to being AniDB UDP banned.", hash, size);
             return null;
@@ -100,7 +101,7 @@ public partial class AnidbReleaseProvider(
         ResponseGetFile anidbFile;
         try
         {
-            var response = await Task.Run(() => requestFactory.Create<RequestGetFile>(request => { request.Hash = hash; request.Size = size; }).Send());
+            var response = await requestFactory.Create<RequestGetFile>(request => { request.Hash = hash; request.Size = size; }).SendAsync(cancellationToken);
             if (response?.Response is null)
             {
                 logger.LogInformation("Unable to find a release for Hash={Hash} & Size={Size} at AniDB.", hash, size);

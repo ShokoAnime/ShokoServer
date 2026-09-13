@@ -113,19 +113,19 @@ public static class AniDBTestDoubles
             return this;
         }
 
-        public byte[] Send(byte[] payload)
+        public Task<byte[]> SendAsync(byte[] payload, CancellationToken cancellationToken = default)
         {
             Sent.Add(payload);
             if (_responses.Count == 0)
                 throw new InvalidOperationException("No canned response for this UDP call.");
 
-            return _responses.Dequeue();
+            return Task.FromResult(_responses.Dequeue());
         }
 
-        public bool TryConnection()
+        public Task<bool> TryConnectionAsync(CancellationToken cancellationToken = default)
         {
             ConnectionAttempted = true;
-            return IsConnected;
+            return Task.FromResult(IsConnected);
         }
 
         public void Dispose() { }

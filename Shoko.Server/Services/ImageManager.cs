@@ -40,6 +40,7 @@ using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -83,7 +84,7 @@ public partial class ImageManager(
     TMDB_NetworkRepository _tmdbNetworks
 ) : IImageManager
 {
-    private static IUDPConnectionHandler? _udpConnectionHandler = null;
+    private static AniDBUDPConnectionHandler? _udpConnectionHandler = null;
 
     #region Image Sources
 
@@ -139,7 +140,7 @@ public partial class ImageManager(
         }
 
         // UDP API provided override.
-        _udpConnectionHandler ??= services?.GetRequiredService<IUDPConnectionHandler>();
+        _udpConnectionHandler ??= services?.GetRequiredService<AniDBUDPConnectionHandler>();
         if (_udpConnectionHandler is not null)
             return _udpConnectionHandler.ImageServerUrl;
 

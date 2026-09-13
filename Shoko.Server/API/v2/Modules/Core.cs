@@ -27,6 +27,7 @@ using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Services;
@@ -225,19 +226,19 @@ public class Core : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpGet("anidb/test")]
-    public ActionResult TestAniDB()
+    public async Task<ActionResult> TestAniDB()
     {
-        var handler = HttpContext.RequestServices.GetRequiredService<IUDPConnectionHandler>();
-        handler.ForceLogout();
-        handler.CloseConnections();
+        var handler = HttpContext.RequestServices.GetRequiredService<AniDBUDPConnectionHandler>();
+        await handler.ForceLogoutAsync();
+        await handler.CloseConnectionsAsync();
 
-        handler.Init(_settings.AniDb.Username, _settings.AniDb.Password,
+        await handler.InitAsync(_settings.AniDb.Username, _settings.AniDb.Password,
             _settings.AniDb.UDPServerAddress,
             _settings.AniDb.UDPServerPort, _settings.AniDb.ClientPort);
 
-        if (handler.Login())
+        if (await handler.LoginAsync())
         {
-            handler.ForceLogout();
+            await handler.ForceLogoutAsync();
             return APIStatus.OK();
         }
 

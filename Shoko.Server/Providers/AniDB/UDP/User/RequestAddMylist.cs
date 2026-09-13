@@ -255,7 +255,7 @@ public class RequestAddMylist : UDPRequest<MylistEntry>
         throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
-    public RequestAddMylist(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestAddMylist(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

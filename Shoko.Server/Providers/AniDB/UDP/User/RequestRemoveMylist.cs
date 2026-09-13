@@ -117,7 +117,7 @@ public class RequestRemoveMylist : UDPRequest<Void>
         _ => throw new UnexpectedUDPResponseException(response.Code, response.Response, Command),
     };
 
-    public RequestRemoveMylist(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestRemoveMylist(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

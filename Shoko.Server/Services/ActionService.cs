@@ -829,7 +829,7 @@ public class ActionService : IActionService
             var epRequest = _requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episodeId);
             try
             {
-                var epResponse = epRequest.Send();
+                var epResponse = await epRequest.SendAsync();
                 epAnimeID = epResponse.Response?.AnimeID;
             }
             catch (Exception e)

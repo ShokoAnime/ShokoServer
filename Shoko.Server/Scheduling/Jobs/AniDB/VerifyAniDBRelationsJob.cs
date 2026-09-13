@@ -76,7 +76,7 @@ public class VerifyAniDBRelationsJob(IRequestFactory requestFactory, AniDB_Anime
 
         // Use the UDP API to verify the remaining unverified relations.
         var request = requestFactory.Create<RequestGetAnime>(r => r.AnimeID = AnimeID);
-        var response = request.Send();
+        var response = await request.SendAsync();
         if (response.Response is null)
             return;
 

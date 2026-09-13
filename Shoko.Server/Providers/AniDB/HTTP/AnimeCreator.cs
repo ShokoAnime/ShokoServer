@@ -49,8 +49,8 @@ public class AnimeCreator
     public async Task<(bool animeUpdated, bool titlesUpdated, bool descriptionUpdated, bool shouldUpdateFiles, Dictionary<AniDB_Episode, UpdateReason> episodeChanges)> CreateAnime(ResponseGetAnime response, AniDB_Anime anime, int relDepth)
     {
         _logger.LogTrace("Updating anime {AnimeID}", response?.Anime?.AnimeID);
-        if ((response?.Anime?.AnimeID ?? 0) == 0) return (false, false, false, false, []);
-        var lockObj = _updatingIDs.GetOrAdd(response!.Anime.AnimeID, new object());
+        if (response?.Anime is null || response.Anime.AnimeID == 0) return (false, false, false, false, []);
+        var lockObj = _updatingIDs.GetOrAdd(response.Anime.AnimeID, new object());
         Monitor.Enter(lockObj);
         try
         {

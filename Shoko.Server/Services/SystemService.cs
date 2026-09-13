@@ -47,6 +47,7 @@ using Shoko.Server.Hashing;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
@@ -104,7 +105,7 @@ public class SystemService : ISystemService
         _configurationService = new(loggerFactory, ApplicationPaths.Instance, _pluginManager);
         _settingsProvider = new(loggerFactory.CreateLogger<SettingsProvider>(), this, _configurationService.CreateProvider<ServerSettings>());
         _logService = new(loggerFactory.CreateLogger<LogService>(), ApplicationPaths.Instance, _settingsProvider);
-        _databaseBlockingTasks.Add(_startupTaskSource.Task);
+        _databaseBlockingTasks.Add(_startupTaskSource!.Task);
 
         CanShutdown = args.Contains("--shutdown-enabled");
         CanRestart = args.Contains("--restart-enabled");
@@ -658,10 +659,10 @@ public class SystemService : ISystemService
             _webHost!.Services.GetRequiredService<RelocationPresetMigrationService>().MigrateFailedPresets();
 
             StartupMessage = "Initializing UDP Connection Handler...";
-            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
+            var udpConnectionHandler = _webHost.Services.GetRequiredService<AniDBUDPConnectionHandler>();
             try
             {
-                udpConnectionHandler.Init();
+                udpConnectionHandler.InitAsync(cancellationToken).GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
@@ -902,9 +903,9 @@ public class SystemService : ISystemService
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
             fileWatcherService.StopWatchingFiles();
 
-            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
-            udpConnectionHandler.ForceLogout();
-            udpConnectionHandler.CloseConnections();
+            var udpConnectionHandler = _webHost.Services.GetRequiredService<AniDBUDPConnectionHandler>();
+            udpConnectionHandler.ForceLogoutAsync().GetAwaiter().GetResult();
+            udpConnectionHandler.CloseConnectionsAsync().GetAwaiter().GetResult();
         }
 
         try

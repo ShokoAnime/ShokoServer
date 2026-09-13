@@ -68,7 +68,7 @@ public class RequestGetNotifyCount : UDPRequest<ResponseNotificationCount>
         };
     }
 
-    public RequestGetNotifyCount(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestGetNotifyCount(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }
