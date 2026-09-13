@@ -904,8 +904,6 @@ public class VideoReleaseService(
         invalidXrefs = 0;
 
         var legacyOrder = 0;
-        var fileName = (video.Files.FirstOrDefault(loc => loc.IsAvailable) ?? video.Files.FirstOrDefault())?.FileName ?? string.Empty;
-        var checkedIDs = new HashSet<int>();
         var embeddedXrefs = new List<EmbeddedCrossReference>();
         foreach (var xrefGroup in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>().GroupBy(xref => xref.AnidbEpisodeID))
         {
