@@ -84,27 +84,29 @@ public class FolderController : BaseController
                 if (_excludedFormats.Contains(driveFormat))
                     return null;
 
-                ChildItems? childItems = null;
+                MountPointSizes? sizes = null;
                 try
                 {
-                    childItems = d.IsReady
-                        ? new ChildItems()
+                    sizes = d.IsReady
+                        ? new MountPointSizes()
                         {
                             Files = d.RootDirectory.GetFiles()?.Length ?? 0,
                             Folders = d.RootDirectory.GetDirectories()?.Length ?? 0,
+                            AvailableBytes = d.AvailableFreeSpace,
+                            TotalBytes = d.TotalSize,
                         }
                         : null;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "An exception occurred while trying to get the child items of the drive: {ex}", ex.Message);
+                    _logger.LogError(ex, "An exception occurred while trying to get the sizes of the drive: {ex}", ex.Message);
                 }
 
                 return new Drive()
                 {
                     Path = fullName,
-                    IsAccessible = childItems != null,
-                    Sizes = childItems,
+                    IsAccessible = sizes != null,
+                    Sizes = sizes,
                     Type = d.DriveType,
                 };
             })
