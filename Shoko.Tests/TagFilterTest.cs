@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Shoko.Server;
@@ -311,26 +310,6 @@ namespace Shoko.Tests
                     }
                 )
             );
-        }
-
-        [Fact(DisplayName = "Speed Test (Ideally <600ms on a good CPU)")]
-        public void TestSpeed()
-        {
-            const int Count = 4;
-            var times = new long[Count];
-            for (var i = 0; i < Count; i++)
-            {
-                var stopwatch = Stopwatch.StartNew();
-                Parallel.ForEach(
-                    Enumerable.Range(0, 100000), new ParallelOptions() { MaxDegreeOfParallelism = 2 },
-                    _ => TagFilter.String.ProcessTags(TagFilter.Filter.Genre | TagFilter.Filter.AnidbInternal | TagFilter.Filter.Programming | TagFilter.Filter.Misc, Input)
-                );
-                stopwatch.Stop();
-                times[i] = stopwatch.ElapsedMilliseconds;
-            }
-
-            _console.WriteLine("Average time is {0}ms", times.Average());
-            Assert.True(times.Average() < 2000);
         }
     }
 }

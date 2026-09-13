@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -6,6 +8,17 @@ namespace Shoko.Server.Utilities;
 
 internal class ReflectionUtils
 {
+    /// <summary>
+    /// The loaded assemblies worth scanning for a type Shoko defines.
+    /// </summary>
+    /// <remarks>
+    /// Skips assemblies emitted at runtime: <see cref="Assembly.GetTypes"/> throws
+    /// <see cref="ReflectionTypeLoadException"/> on one that is still being written to, and nothing
+    /// found this way is ever emitted at runtime.
+    /// </remarks>
+    public static IEnumerable<Assembly> ScannableAssemblies()
+        => AppDomain.CurrentDomain.GetAssemblies().Where(assembly => !assembly.IsDynamic);
+
     public delegate T ObjectActivator<T>(params object[] args);
 
     public delegate T ObjectMethodActivator<T>(object instance, params object[] args);

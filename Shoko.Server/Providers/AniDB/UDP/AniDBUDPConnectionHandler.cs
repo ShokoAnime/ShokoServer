@@ -34,7 +34,8 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
     private readonly IRequestFactory _requestFactory;
     private readonly UDPRateLimiter _rateLimiter;
     private readonly IConnectivityService _connectivityService;
-    private AniDBSocketHandler? _socketHandler;
+    private readonly IAniDBSocketHandlerFactory _socketHandlerFactory;
+    private IAniDBSocketHandler? _socketHandler;
     private readonly object _socketHandlerLock = new();
     // IDK Rider said to use a GeneratedRegex attribute
     private static readonly Regex s_logMask = GetLogRegex();
@@ -122,9 +123,10 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
 
     public bool IsNetworkAvailable { private set; get; }
 
-    public AniDBUDPConnectionHandler(IRequestFactory requestFactory, ILoggerFactory loggerFactory, ISettingsProvider settings, UDPRateLimiter rateLimiter, IConnectivityService connectivityService) :
+    public AniDBUDPConnectionHandler(IRequestFactory requestFactory, ILoggerFactory loggerFactory, ISettingsProvider settings, UDPRateLimiter rateLimiter, IConnectivityService connectivityService, IAniDBSocketHandlerFactory socketHandlerFactory) :
         base(loggerFactory)
     {
+        _socketHandlerFactory = socketHandlerFactory;
         _requestFactory = requestFactory;
         _rateLimiter = rateLimiter;
         _connectivityService = connectivityService;
@@ -179,7 +181,7 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
                 _socketHandler = null;
             }
 
-            _socketHandler = new AniDBSocketHandler(_loggerFactory, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
+            _socketHandler = _socketHandlerFactory.Create(settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
             IsNetworkAvailable = _socketHandler.TryConnection();
         }
 

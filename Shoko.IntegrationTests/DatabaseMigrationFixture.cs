@@ -1,7 +1,10 @@
 using System;
+using System.Data;
 using System.IO;
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Shoko.Server.Databases;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
@@ -24,6 +27,22 @@ public sealed class DatabaseMigrationFixture : IDisposable
     public bool Success { get; private set; }
 
     public string? FailureMessage { get; private set; }
+
+    /// <summary>The backend this run migrated, as selected by <c>DB_TYPE</c>.</summary>
+    public string Backend { get; } = Environment.GetEnvironmentVariable("DB_TYPE") is { Length: > 0 } type ? type : "SQLite";
+
+    /// <summary>
+    /// An open connection to the migrated database, for reading its catalog. The caller owns it.
+    /// </summary>
+    public IDbConnection OpenConnection()
+    {
+        var session = _host!.Services.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        var connection = session.Connection;
+        if (connection.State is not ConnectionState.Open)
+            connection.Open();
+
+        return connection;
+    }
 
     private readonly string _tempDir;
 

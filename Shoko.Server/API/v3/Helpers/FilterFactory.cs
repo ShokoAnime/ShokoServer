@@ -13,6 +13,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.v3.Helpers;
 
@@ -25,7 +26,7 @@ public class FilterFactory
 
     static FilterFactory()
     {
-        var allTypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(a => a.GetTypes()).ToList();
+        var allTypes = ReflectionUtils.ScannableAssemblies().SelectMany(a => a.GetTypes()).ToList();
         s_expressionTypes = allTypes
             .Where(a => a != typeof(FilterExpression) && !a.IsGenericType && typeof(FilterExpression).IsAssignableFrom(a) &&
                         !typeof(SortingExpression).IsAssignableFrom(a))

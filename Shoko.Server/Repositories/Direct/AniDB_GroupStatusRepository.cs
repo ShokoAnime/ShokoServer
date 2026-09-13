@@ -12,7 +12,7 @@ public class AniDB_GroupStatusRepository : BaseDirectRepository<AniDB_GroupStatu
 {
     private readonly IQueueScheduler _scheduler;
 
-    public List<AniDB_GroupStatus> GetByAnimeID(int id)
+    public virtual List<AniDB_GroupStatus> GetByAnimeID(int id)
     {
         using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
         return session.Query<AniDB_GroupStatus>()

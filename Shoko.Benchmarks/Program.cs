@@ -1,4 +1,4 @@
 using BenchmarkDotNet.Running;
 using Benchmarks;
 
-BenchmarkRunner.Run<AniDB_AnimeBenchmarks>();
+BenchmarkSwitcher.FromTypes([typeof(AniDB_AnimeBenchmarks), typeof(TagFilterBenchmarks)]).RunAll();

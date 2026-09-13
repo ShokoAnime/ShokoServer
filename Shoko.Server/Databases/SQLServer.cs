@@ -1098,6 +1098,56 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(180, 37, "ALTER TABLE TMDB_Title ADD CONSTRAINT PK_TMDB_Title PRIMARY KEY CLUSTERED (TMDB_TitleID);"),
         new(180, 38, "ALTER TABLE VideoLocal_HashDigest ADD CONSTRAINT PK_VideoLocal_HashDigest PRIMARY KEY CLUSTERED (VideoLocal_HashDigestID);"),
         new(181,  1, DropVideoLocalMylistID),
+        // Seven tables were created before the version 180 sweep but missed by it, leaving them
+        // without a primary key on SQL Server while SQLite and MySQL both declare one. Every one of
+        // them keys off an IDENTITY column, so the values are already unique and non-null.
+        new(182,  1, "ALTER TABLE AniDB_Anime_PreferredImage ADD CONSTRAINT PK_AniDB_Anime_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Anime_PreferredImageID);"),
+        new(182,  2, "ALTER TABLE AniDB_Episode_PreferredImage ADD CONSTRAINT PK_AniDB_Episode_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Episode_PreferredImageID);"),
+        new(182,  3, "ALTER TABLE AniDB_FileUpdate ADD CONSTRAINT PK_AniDB_FileUpdate PRIMARY KEY CLUSTERED (AniDB_FileUpdateID);"),
+        new(182,  4, "ALTER TABLE AuthTokens ADD CONSTRAINT PK_AuthTokens PRIMARY KEY CLUSTERED (AuthID);"),
+        new(182,  5, "ALTER TABLE ShokoImage_Entity ADD CONSTRAINT PK_ShokoImage_Entity PRIMARY KEY CLUSTERED (ID);"),
+        new(182,  6, "ALTER TABLE TMDB_Image ADD CONSTRAINT PK_TMDB_Image PRIMARY KEY CLUSTERED (TMDB_ImageID);"),
+        new(182,  7, "ALTER TABLE TMDB_Image_Entity ADD CONSTRAINT PK_TMDB_Image_Entity PRIMARY KEY CLUSTERED (TMDB_Image_EntityID);"),
+
+        // These back non-nullable model properties, so a null could never have been read into one.
+        // Rows are filled first, since a stored null would fail the alter.
+        new(183,  1, "UPDATE AniDB_Creator SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE AniDB_Creator ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183,  2, "UPDATE AniDB_GroupStatus SET EpisodeRange = '' WHERE EpisodeRange IS NULL; ALTER TABLE AniDB_GroupStatus ALTER COLUMN EpisodeRange nvarchar(max) NOT NULL;"),
+        new(183,  3, "UPDATE AniDB_GroupStatus SET GroupName = '' WHERE GroupName IS NULL; ALTER TABLE AniDB_GroupStatus ALTER COLUMN GroupName nvarchar(max) NOT NULL;"),
+        new(183,  4, "UPDATE AniDB_GroupStatus SET Rating = 0 WHERE Rating IS NULL; ALTER TABLE AniDB_GroupStatus ALTER COLUMN Rating decimal(6, 2) NOT NULL;"),
+        new(183,  5, "UPDATE AniDB_Message SET Body = '' WHERE Body IS NULL; ALTER TABLE AniDB_Message ALTER COLUMN Body nvarchar(max) NOT NULL;"),
+        new(183,  6, "UPDATE AniDB_Message SET FromUserName = '' WHERE FromUserName IS NULL; ALTER TABLE AniDB_Message ALTER COLUMN FromUserName nvarchar(100) NOT NULL;"),
+        new(183,  7, "UPDATE AniDB_Message SET Title = '' WHERE Title IS NULL; ALTER TABLE AniDB_Message ALTER COLUMN Title nvarchar(max) NOT NULL;"),
+        new(183,  8, "UPDATE TMDB_AlternateOrdering SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183,  9, "UPDATE TMDB_AlternateOrdering SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 10, "UPDATE TMDB_AlternateOrdering_Episode SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering_Episode ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 11, "UPDATE TMDB_AlternateOrdering_Episode SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering_Episode ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 12, "UPDATE TMDB_AlternateOrdering_Season SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering_Season ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 13, "UPDATE TMDB_AlternateOrdering_Season SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_AlternateOrdering_Season ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 14, "UPDATE TMDB_Collection SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Collection ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 15, "UPDATE TMDB_Collection SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Collection ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 16, "UPDATE TMDB_Episode SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Episode ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 17, "UPDATE TMDB_Episode SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Episode ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 18, "UPDATE TMDB_Movie SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Movie ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 19, "UPDATE TMDB_Movie SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Movie ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 20, "UPDATE TMDB_Person SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Person ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 21, "UPDATE TMDB_Person SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Person ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 22, "UPDATE TMDB_Season SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Season ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 23, "UPDATE TMDB_Season SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Season ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+        new(183, 24, "UPDATE TMDB_Show SET CreatedAt = '0001-01-01T00:00:00' WHERE CreatedAt IS NULL; ALTER TABLE TMDB_Show ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(183, 25, "UPDATE TMDB_Show SET LastUpdatedAt = '0001-01-01T00:00:00' WHERE LastUpdatedAt IS NULL; ALTER TABLE TMDB_Show ALTER COLUMN LastUpdatedAt datetime2 NOT NULL;"),
+
+        // Widths MySQL already declares and SQL Server left at MAX. Nothing longer can have reached
+        // these on MySQL, so the bound is what the data already is; each value is trimmed to it
+        // first, since anything longer would fail the alter. Nullability and collation have to be
+        // restated, because `ALTER COLUMN` drops whatever it does not name.
+        new(184,  1, "UPDATE AniDB_Episode SET Rating = LEFT(Rating, 200) WHERE LEN(Rating) > 200; ALTER TABLE AniDB_Episode ALTER COLUMN Rating varchar(200) NOT NULL;"),
+        new(184,  2, "UPDATE AniDB_Episode SET Votes = LEFT(Votes, 200) WHERE LEN(Votes) > 200; ALTER TABLE AniDB_Episode ALTER COLUMN Votes varchar(200) NOT NULL;"),
+        new(184,  3, "UPDATE AnimeSeries SET DefaultAudioLanguage = LEFT(DefaultAudioLanguage, 50) WHERE LEN(DefaultAudioLanguage) > 50; ALTER TABLE AnimeSeries ALTER COLUMN DefaultAudioLanguage varchar(50) NULL;"),
+        new(184,  4, "UPDATE AnimeSeries SET DefaultSubtitleLanguage = LEFT(DefaultSubtitleLanguage, 50) WHERE LEN(DefaultSubtitleLanguage) > 50; ALTER TABLE AnimeSeries ALTER COLUMN DefaultSubtitleLanguage varchar(50) NULL;"),
+        new(184,  5, "UPDATE ImportFolder SET ImportFolderLocation = LEFT(ImportFolderLocation, 500) WHERE LEN(ImportFolderLocation) > 500; ALTER TABLE ImportFolder ALTER COLUMN ImportFolderLocation nvarchar(500) COLLATE SQL_Latin1_General_CP1_CS_AS NOT NULL;"),
+        new(184,  6, "UPDATE ImportFolder SET ImportFolderName = LEFT(ImportFolderName, 500) WHERE LEN(ImportFolderName) > 500; ALTER TABLE ImportFolder ALTER COLUMN ImportFolderName nvarchar(500) NOT NULL;"),
+        new(184,  7, "UPDATE TMDB_Person SET PlaceOfBirth = LEFT(PlaceOfBirth, 128) WHERE LEN(PlaceOfBirth) > 128; ALTER TABLE TMDB_Person ALTER COLUMN PlaceOfBirth nvarchar(128) NULL;"),
     ];
 
     #endregion

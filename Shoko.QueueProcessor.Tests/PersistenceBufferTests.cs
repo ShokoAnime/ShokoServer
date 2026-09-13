@@ -168,16 +168,22 @@ public class PersistenceBufferTests
         var (buffer, repo) = Make(flushIntervalMs: 60_000, maxBatch: 3);
 
         var insertedCount = 0;
+        // The flush is fire-and-forget, so the test waits to be told it happened rather than sleeping
+        // for a period a loaded machine can overrun.
+        var flushed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         repo.Setup(r => r.InsertBatchAsync(It.IsAny<IReadOnlyCollection<QueuedJob>>(), It.IsAny<CancellationToken>()))
-            .Callback<IReadOnlyCollection<QueuedJob>, CancellationToken>((jobs, _) => insertedCount += jobs.Count)
+            .Callback<IReadOnlyCollection<QueuedJob>, CancellationToken>((jobs, _) =>
+            {
+                insertedCount += jobs.Count;
+                flushed.TrySetResult();
+            })
             .Returns(Task.CompletedTask);
 
         buffer.OnEnqueue(FakeJob());
         buffer.OnEnqueue(FakeJob());
         buffer.OnEnqueue(FakeJob()); // this triggers the force flush
 
-        // Give the async flush a moment (it's fire-and-forget)
-        await Task.Delay(100, TestContext.Current.CancellationToken);
+        await flushed.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 
         Assert.Equal(3, insertedCount);
 

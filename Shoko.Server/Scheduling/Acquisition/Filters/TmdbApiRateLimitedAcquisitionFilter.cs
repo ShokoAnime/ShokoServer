@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
@@ -17,7 +18,7 @@ public class TmdbApiRateLimitedAcquisitionFilter : IAcquisitionFilter, IDisposab
     {
         _rateLimiter = rateLimiter;
         _rateLimiter.PauseStateChanged += OnPauseStateChanged;
-        _types = AppDomain.CurrentDomain.GetAssemblies()
+        _types = ReflectionUtils.ScannableAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
                         a.GetCustomAttributes(inherit: true).OfType<TmdbApiRateLimitedAttribute>().Any())
