@@ -16,7 +16,7 @@ public class MissingTmdbEpisodeLinksSelector : FilterExpression<double>
     /// <inheritdoc/>
     public override double Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.MissingEpisodes;
+        return filterable.MissingTmdbEpisodeLinks;
     }
 
     /// <inheritdoc cref="Equals(object)"/>
