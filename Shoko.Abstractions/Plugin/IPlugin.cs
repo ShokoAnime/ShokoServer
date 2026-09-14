@@ -46,4 +46,19 @@ public interface IPlugin
     ///   The pages exposed by the plugin.
     /// </returns>
     public IReadOnlyList<PluginPage> GetPages() => [];
+
+    /// <summary>
+    ///   Get the features advertised by the plugin to clients. Called whenever
+    ///   a client asks for the features, so a plugin can leave out a feature
+    ///   that isn't usable with its current configuration.
+    /// </summary>
+    /// <remarks>
+    ///   Features with an invalid name, version, or visibility are dropped, as
+    ///   are later features with the same name. See
+    ///   <see cref="PluginFeature.IsValid"/>.
+    /// </remarks>
+    /// <returns>
+    ///   The features advertised by the plugin.
+    /// </returns>
+    public IReadOnlyList<PluginFeature> GetFeatures() => [];
 }
