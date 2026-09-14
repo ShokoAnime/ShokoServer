@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Enums;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
@@ -15,8 +18,10 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using AbstractPluginInfo = Shoko.Abstractions.Plugin.Models.LocalPluginInfo;
+using LocalPluginFeature = Shoko.Abstractions.Plugin.Models.LocalPluginFeature;
 using PluginCompatibilityInfo = Shoko.Server.API.v3.Models.Plugin.PluginCompatibilityInfo;
 using PluginDependency = Shoko.Server.API.v3.Models.Plugin.PluginDependency;
+using PluginFeature = Shoko.Server.API.v3.Models.Plugin.PluginFeature;
 using PluginInfo = Shoko.Server.API.v3.Models.Plugin.PluginInfo;
 using PluginPage = Shoko.Server.API.v3.Models.Plugin.PluginPage;
 
@@ -29,6 +34,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="applicationPaths">Application paths.</param>
 /// <param name="pluginManager">Plugin manager.</param>
 /// <param name="dependencyResolver">Plugin dependency resolver.</param>
+/// <param name="logger">Logger.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
@@ -39,9 +45,13 @@ public class PluginController(
     ISettingsProvider settingsProvider,
     IApplicationPaths applicationPaths,
     IPluginManager pluginManager,
-    IPluginDependencyResolver dependencyResolver
+    IPluginDependencyResolver dependencyResolver,
+    ILogger<PluginController> logger
 ) : BaseController(settingsProvider)
 {
+    // Features are fetched on every request, so each dropped feature is only reported once per run.
+    private static readonly ConcurrentDictionary<(Guid PluginID, string? Name, string Reason), byte> _reportedInvalidFeatures = new();
+
     /// <summary>
     ///   Gets information about the server/plugin compatibility.
     /// </summary>
@@ -107,6 +117,66 @@ public class PluginController(
             .SelectMany(pluginInfo => pluginInfo.GetPages())
             .Select(page => new PluginPage(page, true))
             .ToList();
+    }
+
+    /// <summary>
+    ///   Gets the features advertised by the active plugins, so clients can tell
+    ///   what the server supports.
+    /// </summary>
+    /// <remarks>
+    ///   Unauthenticated callers only get the features advertised to everyone,
+    ///   authenticated users also get the features advertised to users, and
+    ///   administrators get all features along with the plugin info. Features
+    ///   are ordered by plugin load order, then in the order each plugin
+    ///   advertises them.
+    /// </remarks>
+    /// <returns>
+    ///   The features visible to the caller.
+    /// </returns>
+    [AllowAnonymous]
+    [OptionalAuthentication]
+    [HttpGet("Features")]
+    public List<PluginFeature> GetPluginFeatures()
+    {
+        var user = User;
+        var visibility = user is null
+            ? PluginFeatureVisibility.Anonymous
+            : user.IsAdmin == 1
+                ? PluginFeatureVisibility.Admin
+                : PluginFeatureVisibility.Authenticated;
+        var includePluginInfo = visibility is PluginFeatureVisibility.Admin;
+        return pluginManager.GetPluginInfos()
+            .Where(pluginInfo => pluginInfo.IsActive)
+            .DistinctBy(pluginInfo => pluginInfo.ID)
+            .OrderBy(pluginInfo => pluginInfo.LoadOrder)
+            .SelectMany(GetValidFeatures)
+            .Where(feature => feature.Visibility <= visibility)
+            .Select(feature => new PluginFeature(feature, includePluginInfo))
+            .ToList();
+    }
+
+    private IReadOnlyList<LocalPluginFeature> GetValidFeatures(AbstractPluginInfo pluginInfo)
+    {
+        try
+        {
+            return pluginInfo.GetFeatures((feature, reason) =>
+            {
+                if (_reportedInvalidFeatures.TryAdd((pluginInfo.ID, feature?.Name, reason), 0))
+                    logger.LogWarning(
+                        "Dropped feature '{FeatureName}' advertised by plugin \"{PluginName}\". {Reason}",
+                        feature?.Name,
+                        pluginInfo.Name,
+                        reason
+                    );
+            });
+        }
+        catch (Exception ex)
+        {
+            // One misbehaving plugin shouldn't take the features of every other plugin down with it.
+            if (_reportedInvalidFeatures.TryAdd((pluginInfo.ID, null, ex.GetType().FullName ?? ex.GetType().Name), 0))
+                logger.LogError(ex, "Plugin \"{PluginName}\" threw while getting its features.", pluginInfo.Name);
+            return [];
+        }
     }
 
     /// <summary>
