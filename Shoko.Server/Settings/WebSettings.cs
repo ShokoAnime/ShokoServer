@@ -204,4 +204,11 @@ public class WebSettings
     [EnvironmentVariable("SHOKO_SERVER_MANIFEST_URL")]
     [DefaultValue("https://raw.githubusercontent.com/ShokoAnime/ShokoServer/metadata/manifest.json")]
     public string ServerManifestUrl { get; set; } = "https://raw.githubusercontent.com/ShokoAnime/ShokoServer/metadata/manifest.json";
+
+    /// <summary>
+    /// Throttling of failed authentication attempts, shared by the core and every plugin.
+    /// </summary>
+    [Visibility(Advanced = true)]
+    [Display(Name = "Authentication Throttling")]
+    public AuthenticationThrottleSettings AuthenticationThrottle { get; set; } = new();
 }
