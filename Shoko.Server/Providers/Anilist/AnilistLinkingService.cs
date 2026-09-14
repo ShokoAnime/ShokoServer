@@ -106,6 +106,7 @@ public class AnilistLinkingService : IAnilistLinkingService
         series.ResetAnimeTitles();
         series.ResetPreferredTitle();
         series.ResetPreferredOverview();
+        series.ResetAnilistAirTimeOffset();
     }
 
     // Only the overview descends into the episode links. The titles come from

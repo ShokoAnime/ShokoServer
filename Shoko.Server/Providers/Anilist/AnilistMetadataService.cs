@@ -252,6 +252,8 @@ public class AnilistMetadataService : IAnilistMetadataService
             }
 
             await UpdateAnimeEpisodes(anime, mediaNode).ConfigureAwait(false);
+            foreach (var xref in xrefs)
+                xref.AnimeSeries?.ResetAnilistAirTimeOffset();
             UpdateAnimeTags(anilistAnimeId, mediaNode);
             UpdateAnimeStudios(anilistAnimeId, mediaNode);
             UpdateAnimeRelations(anilistAnimeId, mediaNode);

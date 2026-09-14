@@ -428,28 +428,22 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
 
     TimeSpan IEpisode.Runtime => TimeSpan.FromSeconds(AniDB_Episode?.LengthSeconds ?? 0);
 
+    // The day is the UTC calendar day of the precise air time, so the two never disagree. When a
+    // provider only knows the date, the date is the answer for both.
     DateOnly? IEpisode.AirDate
-    {
-        get
-        {
-            if (AniDB_Episode?.GetAirDateAsDateOnly() is { } airDate)
-                return airDate;
+        => ((IEpisode)this).AirDateWithTime is { } airDateWithTime ? DateOnly.FromDateTime(airDateWithTime) : null;
 
-            foreach (var xref in AnilistEpisodeCrossReferences)
-            {
-                if (xref.AnilistEpisode?.AirDate is { } anilistAirDate)
-                    return anilistAirDate;
-            }
-
-            foreach (var xref in TmdbEpisodeCrossReferences)
-            {
-                if (xref.TmdbEpisode?.AiredAt is { } tmdbAirDate)
-                    return tmdbAirDate;
-            }
-
-            return null;
-        }
-    }
+    /// <summary>
+    /// Whether <see cref="IEpisode.AirDateWithTime"/> is an estimate: the AniDB
+    /// air date combined with the broadcast time learned from the series'
+    /// other AniList-linked episodes, because AniList has no schedule entry
+    /// for this episode yet.
+    /// </summary>
+    public bool IsAirTimeEstimated
+        => !AnilistEpisodeCrossReferences.Any(xref => xref.AnilistEpisode?.AiredAt is not null)
+            && AniDB_Episode is { EpisodeType: EpisodeType.Episode } anidbEpisode
+            && anidbEpisode.GetAirDateAsDate() is not null
+            && AnimeSeries?.AnilistAirTimeOffset is not null;
 
     DateTime? IEpisode.AirDateWithTime
     {
@@ -462,8 +456,14 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
                     return anilistAiredAt;
             }
 
-            if (AniDB_Episode?.GetAirDateAsDate() is { } airDate)
+            if (AniDB_Episode is { } anidbEpisode && anidbEpisode.GetAirDateAsDate() is { } airDate)
+            {
+                // No schedule entry yet, but the series' other episodes taught us the time slot.
+                if (anidbEpisode.EpisodeType is EpisodeType.Episode && AnimeSeries?.AnilistAirTimeOffset is { } offset)
+                    return AirTimeUtility.EstimateAirTime(airDate, offset);
+
                 return airDate;
+            }
 
             foreach (var xref in TmdbEpisodeCrossReferences)
             {
