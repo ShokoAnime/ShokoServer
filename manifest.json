@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.459",
+      "tag": "v6.0.0-dev.459",
+      "commit": "cf259054dbea286021adbe918a9ec7404a91fa28",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.459/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-14T21:19:01Z",
+      "releaseNotes": "\n`feat` (`abstractions`): **Add models and a facade service for release management**:\n\nExpose the release management system to plugins via a new\nIReleaseManagementService facade over the internal grouping, comparison,\nand auto-management services, with mapped abstraction models\n(SeriesWithCandidates, ReleaseCandidate, ReleaseOverride,\nReleaseDeletionPreview). Move ReleaseVersionStrategy to the abstractions.\n"
+    },
+    {
       "version": "6.0.0.458",
       "tag": "v6.0.0-dev.458",
       "commit": "9333e47c5b10fc0152ae7b37c65f427b808bb2ff",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.430/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-24T14:50:06Z",
       "releaseNotes": "\n`fix` (`config`): **Accept string enum values regardless of casing**:\n\nThe JSON schema validator compared enum values ordinally while both\n`StringEnumConverter` and `JsonStringEnumConverter` match string enum\nmembers case-insensitively, so a hand-written `\"mysql\"` threw a\n`ConfigurationValidationException` on load even though the deserializer\nwould have parsed it to `DatabaseType.MySQL` without complaint.\n\n- Matched enum values case-insensitively in `ValidateEnum`, preferring an\n  exact match so a correctly cased value can never be claimed by a member\n  that only differs in casing\n- Added a `NormalizeEnum` hook, overridden in `ShokoJsonSchemaValidator`,\n  that rewrites a loosely matched value to the casing the member is\n  declared with, so the stored configuration is canonical again after the\n  next save\n- Set `PropertyNameCaseInsensitive` on the `System.Text.Json` options to\n  match Newtonsoft, which silently fell back to the default value for a\n  property whose name did not match exactly\n- Moved the alias lookup into `ShokoJsonSchemaGenerator.TryResolveEnumAlias`\n  next to the code that builds the list, fixing an environment variable\n  override splitting `aliasValues` on `\",\"` where it was joined with `\", \"`\n"
-    },
-    {
-      "version": "6.0.0.429",
-      "tag": "v6.0.0-dev.429",
-      "commit": "f1cbdc9168abb2632ef3adf047f8ed2e13a07e8f",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.429/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-24T13:47:25Z",
-      "releaseNotes": "\n`fix` (`queue`): **Build jobs through DI so display members can read services**:\n\nEnqueue built the instance with GetUninitializedObject and then read\nTitle, Details and TypeName off it, so a job whose display members touch\nan injected service threw NullReferenceException before anything was\npersisted. ActionExecutionJob.Title does exactly that, which made every\naction invocation a 500 with nothing queued to retry. Only public\nread/write properties are serialised, so this does not change job data.\n"
     }
   ]
 }
