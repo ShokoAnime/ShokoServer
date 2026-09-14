@@ -179,6 +179,10 @@ public static class LanguageExtensions
             "YO" or "YOR" => TitleLanguage.Yoruba,
             "ZU" or "ZUL" => TitleLanguage.Zulu,
             "UR" or "URD" => TitleLanguage.Urdu,
+            "FO" or "FAO" => TitleLanguage.Faroese,
+            "TW" or "TWI" => TitleLanguage.Twi,
+            "CH" or "CHA" => TitleLanguage.Chamorro,
+            "NA" or "NAU" => TitleLanguage.Nauruan,
 
             "X-JAT" => TitleLanguage.Romaji,
             "X-ZHT" => TitleLanguage.Pinyin,
@@ -258,6 +262,10 @@ public static class LanguageExtensions
             TitleLanguage.ThaiTranscription => "Thai (Transcription)",
             TitleLanguage.NorwegianBokmal => "Norwegian (Bokmal)",
             TitleLanguage.NorwegianNynorsk => "Norwegian (Nynorsk)",
+            TitleLanguage.Faroese => "Faroese",
+            TitleLanguage.Twi => "Twi",
+            TitleLanguage.Chamorro => "Chamorro",
+            TitleLanguage.Nauruan => "Nauruan",
             _ => lang.ToString(),
         };
 
@@ -395,6 +403,10 @@ public static class LanguageExtensions
             TitleLanguage.EnglishNewZealand => "en-NZ",
             TitleLanguage.NorwegianBokmal => "nb",
             TitleLanguage.NorwegianNynorsk => "nn",
+            TitleLanguage.Faroese => "fo",
+            TitleLanguage.Twi => "tw",
+            TitleLanguage.Chamorro => "ch",
+            TitleLanguage.Nauruan => "na",
             _ => "unk",
         };
 
