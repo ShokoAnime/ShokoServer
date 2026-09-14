@@ -21,6 +21,7 @@ internal static class BuildCommand
         string? channel,
         string? tagOverride,
         string? releaseNotes,
+        PluginMetadataInput metadataInput,
         string[] forwardArgs)
     {
         try
@@ -42,20 +43,6 @@ internal static class BuildCommand
             var manifest = manifestFullPath is not null && File.Exists(manifestFullPath)
                 ? ManifestManager.Load(manifestFullPath)
                 : null;
-
-            var dependencies = manifest?.Dependencies
-                ?.Select(d => new DependencyInfo
-                {
-                    PluginID = d.ID,
-                    VersionRange = d.Version,
-                    IsOptional = d.IsOptional,
-                })
-                .ToList() ?? [];
-
-            var manifestTags = manifest?.Tags;
-            var manifestPluginId = manifest?.ID;
-            var manifestPluginName = manifest?.Name;
-            var manifestPluginDescription = manifest?.Overview;
 
             // ── Gather git metadata ───────────────────────────────────
             var releaseDate = (await RunGitAsync("log -1 --format=%aI")).Trim();
@@ -104,6 +91,67 @@ internal static class BuildCommand
             if (resolvedChannel is not null)
                 Console.WriteLine($"Release channel: {resolvedChannel}");
 
+            // ── Plugin metadata ───────────────────────────────────────
+            // A flag beats the matching MSBuild property, which beats the
+            // manifest. A stated list replaces the manifest's; never merged.
+            var pluginId = manifest?.ID;
+            if (Stated(metadataInput.ID, "--id", project, "PluginID") is { } statedId)
+            {
+                if (!Guid.TryParse(statedId.Value, out var parsedId))
+                {
+                    Console.Error.WriteLine($"{statedId.Source} '{statedId.Value}' is not a GUID.");
+                    return 1;
+                }
+
+                // The manifest gets this build's release, so it has to be the
+                // manifest of the plugin being built.
+                if (manifest is not null && parsedId != manifest.ID)
+                {
+                    Console.Error.WriteLine(
+                        $"{statedId.Source} '{parsedId:D}' does not match the id of {manifestFullPath}, '{manifest.ID:D}'.");
+                    return 1;
+                }
+
+                pluginId = parsedId;
+            }
+
+            var pluginName = Stated(metadataInput.Name, "--name", project, "PluginName")?.Value ?? manifest?.Name;
+            var pluginOverview = Stated(metadataInput.Overview, "--overview", project, "PluginOverview")?.Value ?? manifest?.Overview;
+            var tags = Stated(metadataInput.Tags, "--tags", project, "PluginTags") is { } statedTags
+                ? statedTags.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()
+                : manifest?.Tags?.ToList();
+
+            List<PluginDependencyEntry> dependencies;
+            string dependencySource;
+            if (Stated(metadataInput.Dependencies, "--dependencies", project, "PluginDependencies") is { } statedDependencies)
+            {
+                dependencySource = statedDependencies.Source;
+                dependencies = PluginDependencyList.Parse(statedDependencies.Value, out var parseErrors);
+                if (parseErrors.Count > 0)
+                {
+                    Console.Error.WriteLine($"Invalid {dependencySource}:");
+                    foreach (var error in parseErrors)
+                        Console.Error.WriteLine($"  {error}");
+                    return 1;
+                }
+            }
+            else
+            {
+                dependencySource = $"dependencies in {manifestFullPath}";
+                dependencies = manifest?.Dependencies
+                    ?.Select(d => new PluginDependencyEntry(d.ID, d.Version, d.IsOptional))
+                    .ToList() ?? [];
+            }
+
+            var dependencyErrors = PluginDependencyList.Validate(dependencies);
+            if (dependencyErrors.Count > 0)
+            {
+                Console.Error.WriteLine($"Invalid {dependencySource}:");
+                foreach (var error in dependencyErrors)
+                    Console.Error.WriteLine($"  {error}");
+                return 1;
+            }
+
             // Determine which RIDs to build. If RuntimeIdentifiers is set
             // (semicolon-separated), build each one. Otherwise use the
             // single RuntimeIdentifier, or build portable and record "any".
@@ -128,16 +176,16 @@ internal static class BuildCommand
             }
 
             // ── Source probe: auto-detect tags ────────────────────────
-            var existingTagSet = manifestTags?.ToHashSet() ?? [];
+            var existingTagSet = tags?.ToHashSet() ?? [];
             var autoTags = SourceProbe.DiscoverTags(project, projectDir, existingTagSet);
 
             if (autoTags.Count > 0)
             {
-                manifestTags ??= [];
+                tags ??= [];
                 foreach (var tag in autoTags)
                 {
-                    if (!manifestTags.Contains(tag))
-                        manifestTags.Insert(0, tag);
+                    if (!tags.Contains(tag))
+                        tags.Insert(0, tag);
                 }
 
                 Console.WriteLine($"Discovered tags: {string.Join(", ", autoTags)}");
@@ -159,7 +207,7 @@ internal static class BuildCommand
             var targetsFile = Path.Combine(objDir, "Shoko.BuildTools.targets");
             await WriteTargetsFileAsync(targetsFile);
 
-            var pluginName = manifestPluginName?.Replace(" ", "") ?? "plugin";
+            var templateName = pluginName?.Replace(" ", "") ?? "plugin";
 
             var completed = new List<string>();
 
@@ -199,10 +247,10 @@ internal static class BuildCommand
                     releaseTag,
                     sourceRevision,
                     dependencies,
-                    manifestTags,
-                    manifestPluginId,
-                    manifestPluginName,
-                    manifestPluginDescription);
+                    tags,
+                    pluginId,
+                    pluginName,
+                    pluginOverview);
 
                 ridProject.SetProperty("ShokoBuildAssemblyInfoFile", assemblyInfoFile);
                 ridProject.Xml.AddImport(targetsFile);
@@ -273,7 +321,7 @@ internal static class BuildCommand
                 {
                     ["runtime"] = rid,
                     ["version"] = versionStr,
-                    ["name"] = pluginName,
+                    ["name"] = templateName,
                     ["abstraction"] = abstractionStr,
                     ["tag"] = releaseTagOrVersion,
                 };
@@ -451,6 +499,20 @@ internal static class BuildCommand
         return Enum.TryParse<LoggerVerbosity>(value.Trim(), ignoreCase: true, out var parsed)
             ? parsed
             : null;
+    }
+
+    /// <summary>
+    ///   The trimmed value of <paramref name="flagName" />, else of the MSBuild
+    ///   property <paramref name="propertyName" />, with which of the two it
+    ///   came from. Null when neither is set.
+    /// </summary>
+    private static (string Value, string Source)? Stated(string? flagValue, string flagName, Project project, string propertyName)
+    {
+        if (!string.IsNullOrWhiteSpace(flagValue))
+            return (flagValue.Trim(), flagName);
+
+        var propertyValue = project.GetPropertyValue(propertyName);
+        return !string.IsNullOrWhiteSpace(propertyValue) ? (propertyValue.Trim(), propertyName) : null;
     }
 
     private static string? LookForManifestNearby(string projectDir)
@@ -679,3 +741,9 @@ internal static class BuildCommand
         }
     }
 }
+
+/// <summary>
+///   Plugin metadata from the command line, as typed. Each value replaces
+///   the matching MSBuild property and manifest field.
+/// </summary>
+internal sealed record PluginMetadataInput(string? ID, string? Name, string? Overview, string? Tags, string? Dependencies);

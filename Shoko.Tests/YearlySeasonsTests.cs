@@ -51,12 +51,16 @@ public class YearlySeasonsTests
     [Fact]
     public void RealWorldRegression_LateSeasonPremiere_IsClassifiedOnlyUnderItsOwnSeason()
     {
-        // Reproduces a production case: an ongoing show that premiered June 26th is unambiguously a
+        // Reproduces a production case: a show that premiered June 26th is unambiguously a
         // Summer show, but used to also be returned for Spring because Spring's window ran all the way
-        // to July 1st (a full extra month past Summer's own June 1st buffered start).
-        PartialDateOnly? airDate = new PartialDateOnly(2026, 6, 26);
+        // to July 1st (a full extra month past Summer's own June 1st buffered start). The short end date
+        // isolates "which season did the premiere start in" -- without it, a null EndDate reads as
+        // "still airing" and every season whose buffered start has since passed (e.g. Fall after Sep 1)
+        // would legitimately be included too, making this test fail on the calendar rather than the logic.
+        var airDate = new PartialDateOnly(2026, 6, 26);
+        var endDate = new PartialDateOnly(2026, 7, 10);
 
-        var seasons = airDate.GetYearlySeasons(null);
+        var seasons = airDate.GetYearlySeasons(endDate);
 
         Assert.Equal([(2026, YearlySeason.Summer)], seasons);
     }

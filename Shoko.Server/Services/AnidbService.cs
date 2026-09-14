@@ -32,6 +32,7 @@ using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
@@ -62,9 +63,11 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private readonly IVideoRelocationService _relocationService;
 
-    private readonly IUDPConnectionHandler _udpConnectionHandler;
+    private readonly AniDBUDPConnectionHandler _udpConnectionHandler;
 
     private readonly IHttpConnectionHandler _httpConnectionHandler;
+
+    private readonly AniDbBanStateService _banStateService;
 
     private readonly HttpXmlUtils _xmlUtils;
 
@@ -129,8 +132,9 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         IRequestFactory requestFactory,
         IQueueScheduler scheduler,
         IVideoRelocationService relocationService,
-        IUDPConnectionHandler udpConnectionHandler,
+        AniDBUDPConnectionHandler udpConnectionHandler,
         IHttpConnectionHandler httpConnectionHandler,
+        AniDbBanStateService banStateService,
         HttpXmlUtils xmlUtils,
         HttpAnimeParser httpParser,
         AniDBTitleHelper titleHelper,
@@ -165,6 +169,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _serviceProvider = serviceProvider;
         _udpConnectionHandler = udpConnectionHandler;
         _httpConnectionHandler = httpConnectionHandler;
+        _banStateService = banStateService;
         _xmlUtils = xmlUtils;
         _httpParser = httpParser;
         _titleHelper = titleHelper;
@@ -205,19 +210,19 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             ExpiresAt = now,
         };
 
-        _udpConnectionHandler.BanExpired += OnAnidbBanExpired;
-        _udpConnectionHandler.BanOccurred += OnAnidbBanOccurred;
-        _httpConnectionHandler.BanExpired += OnAnidbBanExpired;
-        _httpConnectionHandler.BanOccurred += OnAnidbBanOccurred;
+        _banStateService.Udp.BanExpired += OnAnidbBanExpired;
+        _banStateService.Udp.BanOccurred += OnAnidbBanOccurred;
+        _banStateService.Http.BanExpired += OnAnidbBanExpired;
+        _banStateService.Http.BanOccurred += OnAnidbBanOccurred;
         ShokoEventHandler.Instance.AvdumpEvent += OnAVDumpEvent;
     }
 
     ~AnidbService()
     {
-        _udpConnectionHandler.BanExpired -= OnAnidbBanExpired;
-        _udpConnectionHandler.BanOccurred -= OnAnidbBanOccurred;
-        _httpConnectionHandler.BanExpired -= OnAnidbBanExpired;
-        _httpConnectionHandler.BanOccurred -= OnAnidbBanOccurred;
+        _banStateService.Udp.BanExpired -= OnAnidbBanExpired;
+        _banStateService.Udp.BanOccurred -= OnAnidbBanOccurred;
+        _banStateService.Http.BanExpired -= OnAnidbBanExpired;
+        _banStateService.Http.BanOccurred -= OnAnidbBanOccurred;
         ShokoEventHandler.Instance.AvdumpEvent -= OnAVDumpEvent;
     }
 
@@ -230,10 +235,10 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     public event EventHandler<AnidbBanOccurredEventArgs>? BanExpired;
 
     /// <inheritdoc/>
-    public bool IsAnidbHttpBanned => _httpConnectionHandler.IsBanned;
+    public bool IsAnidbHttpBanned => _banStateService.Http.IsBanned;
 
     /// <inheritdoc/>
-    public bool IsAnidbUdpBanned => _udpConnectionHandler.IsBanned;
+    public bool IsAnidbUdpBanned => _banStateService.Udp.IsBanned;
 
     /// <inheritdoc/>
     public bool IsAnidbUdpReachable => _udpConnectionHandler.IsAlive && _udpConnectionHandler.IsNetworkAvailable;
@@ -404,7 +409,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         }
         catch (AniDBBannedException ex)
         {
-            throw new AnidbHttpBannedException(ex) { ExpiresAt = ex.BanExpires?.ToUniversalTime() };
+            throw new AnidbHttpBannedException(ex) { ExpiresAt = ex.BanExpires };
         }
     }
 
@@ -488,21 +493,17 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             {
                 try
                 {
-                    if (_httpConnectionHandler.IsBanned && !job.IgnoreHttpBans)
+                    if (_banStateService.Http.IsBanned && !job.IgnoreHttpBans)
                     {
                         _logger.LogDebug("We're HTTP banned and requested a forced online update for anime with ID {AnimeID}", job.AnimeID);
-                        throw new AniDBBannedException
-                        {
-                            BanType = UpdateType.HTTPBan,
-                            BanExpires = _httpConnectionHandler.BanTime?.AddHours(_httpConnectionHandler.BanTimerResetLength),
-                        };
+                        throw AniDBBannedException.For(_banStateService.Http);
                     }
 
                     if (animeRecentlyUpdated is null || job.IgnoreTimeCheck)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         var request = _requestFactory.Create<RequestGetAnime>(r => (r.AnimeID, r.Force) = (job.AnimeID, job.IgnoreHttpBans));
-                        var httpResponse = request.Send();
+                        var httpResponse = await request.SendAsync(cancellationToken);
                         response = httpResponse.Response;
 
                         // If the response is null then we successfully got a response from the server
@@ -646,6 +647,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             // Reset the cached titles if anime titles were updated or if series is new.
             if ((titlesUpdated || seriesIsNew) && series is not null)
             {
+                series.ResetDefaultTitle();
                 series.ResetPreferredTitle();
                 series.ResetAnimeTitles();
             }
@@ -730,7 +732,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         if (xml is not null)
             return true;
 
-        if (_httpConnectionHandler.IsBanned)
+        if (_banStateService.Http.IsBanned)
             _logger.LogTrace("We're HTTP Banned and unable to find a cached AnimeDoc_{AnimeID}.xml file", animeID);
         else
             _logger.LogTrace("Unable to find a cached AnimeDoc_{AnimeID}.xml file", animeID);
@@ -782,7 +784,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 // online xml file or from a cached xml file).
                 var update = _anidbAnimeUpdateRepository.GetByAnimeID(relation.RelatedAnimeID);
 #pragma warning disable CS0618
-                var updatedAt = job.UseRemote && (job.IgnoreHttpBans || !_httpConnectionHandler.IsBanned) && update != null ? update.UpdatedAt : anime.DateTimeUpdated;
+                var updatedAt = job.UseRemote && (job.IgnoreHttpBans || !_banStateService.Http.IsBanned) && update != null ? update.UpdatedAt : anime.DateTimeUpdated;
 #pragma warning restore CS0618
                 var ts = DateTime.Now - updatedAt;
                 if (ts.TotalHours < settings.AniDb.MinimumHoursToRedownloadAnimeInfo) continue;

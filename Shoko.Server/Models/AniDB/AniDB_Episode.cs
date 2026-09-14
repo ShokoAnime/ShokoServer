@@ -88,6 +88,8 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
         }
     }
 
+    public void ResetDefaultTitle() => _defaultTitle = null;
+
     public ITitle? PreferredTitle => GetPreferredTitle(false);
 
     public ITitle? GetPreferredTitle(bool useFallback)

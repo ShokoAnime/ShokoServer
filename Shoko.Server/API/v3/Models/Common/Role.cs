@@ -1,10 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Anilist.Embedded;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.API.v3.Models.Common;
@@ -37,6 +40,15 @@ public class Role
     /// </summary>
     [Required]
     public string RoleDetails { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The language code of the role. Sources that only carry the
+    /// original-language cast and crew report the work's original language;
+    /// sources with dubs report the language the person works in. Omitted
+    /// when unknown.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? Language { get; set; }
 
     private const string CharacterRole = "Character";
 
@@ -75,6 +87,7 @@ public class Role
         RoleDetails = staff is not null
             ? xref.AppearanceType.ToString().Replace("_", " ")
             : "Appears In";
+        Language = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID)?.OriginalLanguage.GetString();
     }
 
     public Role(AniDB_Anime_Staff xref, ICreator staff)
@@ -90,6 +103,7 @@ public class Role
         };
         RoleName = xref.RoleType;
         RoleDetails = xref.Role;
+        Language = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID)?.OriginalLanguage.GetString();
     }
 
     public static Role? FromTmdb(TMDB_Cast cast)
@@ -105,6 +119,7 @@ public class Role
             Staff = CreateStaffFromTmdbPerson(person),
             RoleName = CreatorRoleType.Actor,
             RoleDetails = CharacterRole,
+            Language = cast.LanguageCode,
         };
     }
 
@@ -117,8 +132,84 @@ public class Role
             Staff = CreateStaffFromTmdbPerson(person),
             RoleName = crew.ToCreatorRole(),
             RoleDetails = $"{crew.Department}, {crew.Job}",
+            Language = crew.LanguageCode,
         };
     }
+
+    public static Role FromAnilist(Anilist_Cast cast)
+    {
+        var character = cast.Character;
+        var staff = cast.Creator;
+        return new()
+        {
+            Character = new()
+            {
+                ID = character.AnilistCharacterID,
+                Name = character.Name,
+                AlternateName = character.OriginalName ?? string.Empty,
+                Description = character.Description,
+                Image = (character as ICharacter).PrimaryImage is { } characterImage ? new Image(characterImage) : null,
+            },
+            Staff = staff is not null
+                ? CreateStaffFromAnilistCreator(staff)
+                : new()
+                {
+                    ID = 0,
+                    Name = string.Empty,
+                    AlternateName = string.Empty,
+                    Description = string.Empty,
+                    Image = null,
+                    Type = "Unknown",
+                },
+            RoleName = CreatorRoleType.Actor,
+            RoleDetails = staff is not null
+                ? cast.RoleType switch
+                {
+                    Abstractions.Metadata.Enums.CastRoleType.MainCharacter => "Main Character",
+                    Abstractions.Metadata.Enums.CastRoleType.MinorCharacter => "Supporting Character",
+                    Abstractions.Metadata.Enums.CastRoleType.BackgroundCharacter => "Background Character",
+                    _ => CharacterRole,
+                }
+                : "Appears In",
+            Language = staff is not null ? cast.LanguageCode : null,
+        };
+    }
+
+    public static Role? FromAnilist(Anilist_Crew crew)
+    {
+        var staff = crew.Creator;
+        if (staff is null)
+            return null;
+
+        return new()
+        {
+            Staff = CreateStaffFromAnilistCreator(staff),
+            RoleName = crew.RoleType switch
+            {
+                Abstractions.Metadata.Enums.CrewRoleType.Producer => CreatorRoleType.Producer,
+                Abstractions.Metadata.Enums.CrewRoleType.Director => CreatorRoleType.Director,
+                Abstractions.Metadata.Enums.CrewRoleType.SeriesComposer => CreatorRoleType.SeriesComposer,
+                Abstractions.Metadata.Enums.CrewRoleType.CharacterDesign => CreatorRoleType.CharacterDesign,
+                Abstractions.Metadata.Enums.CrewRoleType.Music => CreatorRoleType.Music,
+                Abstractions.Metadata.Enums.CrewRoleType.SourceWork => CreatorRoleType.SourceWork,
+                Abstractions.Metadata.Enums.CrewRoleType.Actor => CreatorRoleType.Actor,
+                _ => CreatorRoleType.Staff,
+            },
+            RoleDetails = crew.Name,
+            Language = crew.LanguageCode,
+        };
+    }
+
+    private static Person CreateStaffFromAnilistCreator(global::Shoko.Server.Models.Anilist.Anilist_Creator creator)
+        => new()
+        {
+            ID = creator.AnilistCreatorID,
+            Name = creator.Name,
+            AlternateName = creator.OriginalName ?? string.Empty,
+            Description = creator.Description,
+            Image = (creator as ICreator).PrimaryImage is { } staffImage ? new Image(staffImage) : null,
+            Type = "Person",
+        };
 
     private static Person CreateStaffFromTmdbPerson(TMDB_Person person)
     {

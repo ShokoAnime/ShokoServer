@@ -1,5 +1,8 @@
+
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata.Anilist.Enums;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata.Anilist;
 
@@ -9,9 +12,10 @@ namespace Shoko.Abstractions.Metadata.Anilist;
 public interface IAnilistAnime : ISeries, IWithCreationDate, IWithUpdateDate
 {
     /// <summary>
-    /// My Anime List (MAL) IDs linked to the AniList anime.
+    ///   The ID of the My Anime List (MAL) entry linked to the AniList anime,
+    ///   if set.
     /// </summary>
-    IReadOnlyList<int> MalIDs { get; }
+    int? MalID { get; }
 
     /// <summary>
     /// The original language the AniList anime was shot in.
@@ -37,6 +41,31 @@ public interface IAnilistAnime : ISeries, IWithCreationDate, IWithUpdateDate
     /// The AniList anime's primary color.
     /// </summary>
     string Color { get; }
+
+    /// <summary>
+    /// The current releasing status for the animated work.
+    /// </summary>
+    AnilistMediaStatus ReleasingStatus { get; }
+
+    /// <summary>
+    /// The media source for the animated work.
+    /// </summary>
+    AnilistMediaSource MediaSource { get; }
+
+    /// <summary>
+    /// Season of release.
+    /// </summary>
+    YearlySeason? Season { get; }
+
+    /// <summary>
+    /// Year of the season.
+    /// </summary>
+    int? SeasonYear { get; }
+
+    /// <summary>
+    /// All genres for the AniList anime.
+    /// </summary>
+    IReadOnlyList<string> Genres { get; }
 
     /// <summary>
     /// All tags for the AniList anime.

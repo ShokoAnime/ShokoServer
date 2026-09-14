@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.API.v3.Models.Common;
@@ -25,6 +26,21 @@ public class Tag
         Source = "User";
         IsSpoiler = false;
         Size = size;
+    }
+
+    public Tag(Anilist_Anime_Tag animeTag, bool excludeDescription = false, int? size = null)
+    {
+        var tag = animeTag.Tag;
+        ID = animeTag.AnilistTagID;
+        Name = tag?.Name ?? string.Empty;
+        if (!excludeDescription)
+            Description = tag?.Description ?? string.Empty;
+        IsSpoiler = tag?.IsSpoiler ?? false;
+        IsLocalSpoiler = animeTag.IsLocalSpoiler;
+        Weight = animeTag.Weight;
+        Size = size;
+        LastUpdated = tag?.LastUpdatedAt.ToUniversalTime();
+        Source = "AniList";
     }
 
     public Tag(AniDB_Tag tag, bool excludeDescription = false, int? size = null)

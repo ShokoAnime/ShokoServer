@@ -4,7 +4,6 @@ using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Extensions;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -191,7 +190,7 @@ public class RequestGetMylist : UDPRequest<MylistEntry>
         throw new UnexpectedUDPResponseException(code, receivedData, Command);
     }
 
-    public RequestGetMylist(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestGetMylist(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

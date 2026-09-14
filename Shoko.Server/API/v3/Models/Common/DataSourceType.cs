@@ -21,4 +21,9 @@ public enum DataSourceType
     /// The Movie DataBase (TMDB).
     /// </summary>
     TMDB = 1,
+
+    /// <summary>
+    /// AniList.
+    /// </summary>
+    AniList = 3,
 }

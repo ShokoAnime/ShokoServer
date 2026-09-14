@@ -34,6 +34,6 @@ public sealed class LimitConcurrencyAttribute : Attribute
     public LimitConcurrencyAttribute(int maxConcurrentJobs, int maxAllowedConcurrentJobs = 0)
     {
         MaxConcurrentJobs = maxConcurrentJobs;
-        MaxAllowedConcurrentJobs = maxAllowedConcurrentJobs == 0 ? maxConcurrentJobs : maxAllowedConcurrentJobs;
+        MaxAllowedConcurrentJobs = maxAllowedConcurrentJobs == 0 ? int.MaxValue : maxAllowedConcurrentJobs;
     }
 }

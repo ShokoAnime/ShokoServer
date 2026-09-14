@@ -55,4 +55,9 @@ public enum AnimeType : int
     /// A music video.
     /// </summary>
     MusicVideo = 6,
+
+    /// <summary>
+    /// A TV short. A short anime (under 15 minutes) broadcast on TV.
+    /// </summary>
+    TVShort = 47,
 }

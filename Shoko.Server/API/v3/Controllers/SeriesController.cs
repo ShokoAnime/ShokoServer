@@ -27,6 +27,8 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
+using Shoko.Server.API.v3.Models.Anilist;
+using Shoko.Server.API.v3.Models.Anilist.Input;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
@@ -35,11 +37,14 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Titles;
+using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Cached.Anilist;
 using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Scheduling.Jobs.Anilist;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
@@ -54,124 +59,47 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class SeriesController : BaseController
+public class SeriesController(
+    ISettingsProvider settingsProvider,
+    ActionService _actionService,
+    AnimeSeriesService _seriesService,
+    AnimeGroupService _groupService,
+    AniDBTitleHelper _titleHelper,
+    IQueueScheduler _scheduler,
+    TmdbLinkingService _tmdbLinkingService,
+    TmdbMetadataService _tmdbMetadataService,
+    TmdbSearchService _tmdbSearchService,
+    AnilistLinkingService _anilistLinkingService,
+    AnilistMetadataService _anilistMetadataService,
+    AnilistSearchService _anilistSearchService,
+    IMetadataService _metadataService,
+    IImageManager _imageManager,
+    IUserDataService _userDataService,
+    IVideoReleaseService _videoReleaseService,
+    IVideoRelocationService _relocationService,
+    IJobFactory _jobFactory,
+    AniDB_AnimeRepository _anidbAnime,
+    AniDB_Anime_RelationRepository _anidbAnimeRelations,
+    AniDB_Anime_SimilarRepository _anidbAnimeSimilar,
+    AniDB_GroupStatusRepository _anidbGroupStatus,
+    AniDB_EpisodeRepository _anidbEpisodes,
+    AnimeEpisodeRepository _animeEpisodes,
+    AnimeEpisode_UserRepository _animeEpisodeUsers,
+    AnimeGroupRepository _animeGroups,
+    AnimeSeriesRepository _animeSeries,
+    Anilist_AnimeRepository _anilistAnime,
+    Anilist_EpisodeRepository _anilistEpisodes,
+    CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies,
+    CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows,
+    TMDB_EpisodeRepository _tmdbEpisodes,
+    TMDB_MovieRepository _tmdbMovies,
+    TMDB_SeasonRepository _tmdbSeasons,
+    TMDB_ShowRepository _tmdbShows,
+    VideoLocal_PlaceRepository _videoLocalPlaces,
+    VideoLocal_UserRepository _videoLocalUsers,
+    IShokoGroupManager _groupManagementService
+) : BaseController(settingsProvider)
 {
-    private readonly ActionService _actionService;
-
-    private readonly AnimeSeriesService _seriesService;
-
-    private readonly AnimeGroupService _groupService;
-
-    private readonly AniDBTitleHelper _titleHelper;
-
-    private readonly IQueueScheduler _scheduler;
-
-    private readonly TmdbLinkingService _tmdbLinkingService;
-
-    private readonly TmdbMetadataService _tmdbMetadataService;
-
-    private readonly TmdbSearchService _tmdbSearchService;
-
-    private readonly IMetadataService _metadataService;
-
-    private readonly IImageManager _imageManager;
-
-    private readonly IUserDataService _userDataService;
-
-    private readonly IVideoReleaseService _videoReleaseService;
-
-    private readonly IVideoRelocationService _relocationService;
-
-    private readonly IJobFactory _jobFactory;
-    private readonly AniDB_AnimeRepository _anidbAnime;
-    private readonly AniDB_Anime_RelationRepository _anidbAnimeRelations;
-    private readonly AniDB_Anime_SimilarRepository _anidbAnimeSimilar;
-    private readonly AniDB_GroupStatusRepository _anidbGroupStatus;
-    private readonly AniDB_EpisodeRepository _anidbEpisodes;
-    private readonly AnimeEpisodeRepository _animeEpisodes;
-    private readonly AnimeEpisode_UserRepository _animeEpisodeUsers;
-    private readonly AnimeGroupRepository _animeGroups;
-    private readonly AnimeSeriesRepository _animeSeries;
-    private readonly CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies;
-    private readonly CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows;
-    private readonly TMDB_EpisodeRepository _tmdbEpisodes;
-    private readonly TMDB_MovieRepository _tmdbMovies;
-    private readonly TMDB_SeasonRepository _tmdbSeasons;
-    private readonly TMDB_ShowRepository _tmdbShows;
-    private readonly VideoLocal_PlaceRepository _videoLocalPlaces;
-    private readonly VideoLocal_UserRepository _videoLocalUsers;
-    private readonly IShokoGroupManager _groupManagementService;
-
-    public SeriesController(
-        ISettingsProvider settingsProvider,
-        ActionService actionService,
-        AnimeSeriesService seriesService,
-        AnimeGroupService groupService,
-        AniDBTitleHelper titleHelper,
-        IQueueScheduler scheduler,
-        TmdbLinkingService tmdbLinkingService,
-        TmdbMetadataService tmdbMetadataService,
-        TmdbSearchService tmdbSearchService,
-        IMetadataService metadataService,
-        IImageManager imageManager,
-        IUserDataService userDataService,
-        IVideoReleaseService videoReleaseService,
-        IVideoRelocationService relocationService,
-        IJobFactory jobFactory,
-        AniDB_AnimeRepository anidbAnime,
-        AniDB_Anime_RelationRepository anidbAnimeRelations,
-        AniDB_Anime_SimilarRepository anidbAnimeSimilar,
-        AniDB_GroupStatusRepository anidbGroupStatus,
-        AniDB_EpisodeRepository anidbEpisodes,
-        AnimeEpisodeRepository animeEpisodes,
-        AnimeEpisode_UserRepository animeEpisodeUsers,
-        AnimeGroupRepository animeGroups,
-        AnimeSeriesRepository animeSeries,
-        CrossRef_AniDB_TMDB_MovieRepository crossRefAnidbTmdbMovies,
-        CrossRef_AniDB_TMDB_ShowRepository crossRefAnidbTmdbShows,
-        TMDB_EpisodeRepository tmdbEpisodes,
-        TMDB_MovieRepository tmdbMovies,
-        TMDB_SeasonRepository tmdbSeasons,
-        TMDB_ShowRepository tmdbShows,
-        VideoLocal_PlaceRepository videoLocalPlaces,
-        VideoLocal_UserRepository videoLocalUsers,
-        IShokoGroupManager groupManagementService
-    ) : base(settingsProvider)
-    {
-        _actionService = actionService;
-        _seriesService = seriesService;
-        _groupService = groupService;
-        _titleHelper = titleHelper;
-        _scheduler = scheduler;
-        _tmdbLinkingService = tmdbLinkingService;
-        _tmdbMetadataService = tmdbMetadataService;
-        _tmdbSearchService = tmdbSearchService;
-        _metadataService = metadataService;
-        _imageManager = imageManager;
-        _userDataService = userDataService;
-        _videoReleaseService = videoReleaseService;
-        _relocationService = relocationService;
-        _jobFactory = jobFactory;
-        _anidbAnime = anidbAnime;
-        _anidbAnimeRelations = anidbAnimeRelations;
-        _anidbAnimeSimilar = anidbAnimeSimilar;
-        _anidbGroupStatus = anidbGroupStatus;
-        _anidbEpisodes = anidbEpisodes;
-        _animeEpisodes = animeEpisodes;
-        _animeEpisodeUsers = animeEpisodeUsers;
-        _animeGroups = animeGroups;
-        _animeSeries = animeSeries;
-        _crossRefAnidbTmdbMovies = crossRefAnidbTmdbMovies;
-        _crossRefAnidbTmdbShows = crossRefAnidbTmdbShows;
-        _tmdbEpisodes = tmdbEpisodes;
-        _tmdbMovies = tmdbMovies;
-        _tmdbSeasons = tmdbSeasons;
-        _tmdbShows = tmdbShows;
-        _videoLocalPlaces = videoLocalPlaces;
-        _videoLocalUsers = videoLocalUsers;
-        _groupManagementService = groupManagementService;
-    }
-
     #region Return messages
 
     internal const string SeriesNotFoundWithSeriesID = "No Series entry for the given seriesID";
@@ -301,6 +229,7 @@ public class SeriesController : BaseController
         if (!string.Equals(series.SeriesNameOverride, body.Title))
         {
             series.SeriesNameOverride = body.Title;
+            series.ResetDefaultTitle();
             series.ResetPreferredTitle();
             series.ResetAnimeTitles();
 
@@ -1523,10 +1452,7 @@ public class SeriesController : BaseController
         if (needRefresh)
             await _tmdbMetadataService.ScheduleUpdateOfShow(new() { ShowId = body.ID, ForceRefresh = body.Refresh, DownloadImages = true });
 
-        // Reset series/group titles/descriptions when a new link is added.
-        series.ResetAnimeTitles();
-        series.ResetPreferredTitle();
-        series.ResetPreferredOverview();
+        // Update the group stats when a new link is added.
         _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, false, false);
 
         return NoContent();
@@ -1557,10 +1483,7 @@ public class SeriesController : BaseController
         else
             await _tmdbLinkingService.RemoveAllShowLinksForAnime(series.AniDB_ID, body?.Purge ?? false);
 
-        // Reset series/group titles/descriptions when a link is removed.
-        series.ResetAnimeTitles();
-        series.ResetPreferredTitle();
-        series.ResetPreferredOverview();
+        // Update the group stats when a link is removed.
         _groupService.UpdateStatsFromTopLevel(series?.AnimeGroup?.TopLevelAnimeGroup, false, false);
 
 
@@ -2064,6 +1987,556 @@ public class SeriesController : BaseController
             .Select(o => new TmdbSeason(o, include?.CombineFlags(), language))
             .ToList();
     }
+
+    #endregion
+
+    #endregion
+
+    #region Anilist
+
+    /// <summary>
+    /// Automagically search for one or more matches for the Shoko Series by ID,
+    /// and return the results.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <returns>List of auto-match results.</returns>
+    [HttpGet("{seriesID}/Anilist/Action/AutoSearch")]
+    public async Task<ActionResult<List<AnilistSearch.AutoMatchResult>>> PreviewAutoMatchAnilistBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        var anime = series.AniDB_Anime;
+        if (anime is null)
+            return InternalError($"Unable to get AnidbAnime with ID {series.AniDB_ID} for Series with ID {series.AnimeSeriesID}!");
+
+        if (_anilistMetadataService.GetPauseStatus() is { IsPaused: true } pauseStatus)
+        {
+            Response.Headers.RetryAfter = ((int)(pauseStatus.RemainingPauseTime?.TotalSeconds ?? 0)).ToString();
+            return StatusCode(503);
+        }
+
+        var results = await _anilistSearchService.SearchForAutoMatch(anime);
+
+        return results.Select(r => new AnilistSearch.AutoMatchResult(r)).ToList();
+    }
+
+    /// <summary>
+    /// Schedule an automagically search for one or more matches for the Shoko
+    /// Series by ID to take place in the background.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="force">Forcefully update the metadata of the matched entities.</param>
+    /// <returns>Void.</returns>
+    [HttpPost("{seriesID}/Anilist/Action/AutoSearch")]
+    public async Task<ActionResult> ScheduleAutoMatchAnilistBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] bool force = false
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        await _anilistMetadataService.ScheduleSearchForMatch(series.AniDB_ID, force);
+
+        return NoContent();
+    }
+
+    #region Anime
+
+    /// <summary>
+    /// Get all Anilist Anime linked to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <returns>All Anilist Anime linked to the Shoko Series.</returns>
+    [HttpGet("{seriesID}/Anilist/Anime")]
+    public ActionResult<List<AnilistAnime>> GetAnilistAnimeBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnilistAnime.IncludeDetails>? include = null
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return series.AnilistAnime
+            .Select(anilistAnime => new AnilistAnime(anilistAnime, include?.CombineFlags()))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Add a new Anilist Anime cross-reference to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Body containing the information about the new cross-reference to be made.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/Anilist/Anime")]
+    public async Task<ActionResult> AddLinkToAnilistAnimeBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        await _anilistLinkingService.AddAnimeLink(series.AniDB_ID, body.ID, additiveLink: !body.Replace);
+
+        // A quick-fetched anime (from the linking UI) still looks newly added, so it gets the full refresh now.
+        var needRefresh = body.Refresh || _anilistAnime.GetByAnilistAnimeID(body.ID) is not { } anilistAnime || anilistAnime.CreatedAt == anilistAnime.LastUpdatedAt;
+        if (needRefresh)
+            await _anilistMetadataService.ScheduleUpdateOfAnime(new() { AnimeId = body.ID, ForceRefresh = body.Refresh, DownloadImages = true });
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Remove one or all Anilist Anime cross-reference(s) for the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Optional. The unlink body with the details about the Anilist Anime to remove.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpDelete("{seriesID}/Anilist/Anime")]
+    public async Task<ActionResult> RemoveLinkToAnilistAnimeBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.UnlinkCommonBody? body
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        if (body != null && body.ID > 0)
+            await _anilistLinkingService.RemoveAnimeLink(series.AniDB_ID, body.ID, body.Purge);
+        else
+            await _anilistLinkingService.RemoveAllAnimeLinksForAnidbAnime(series.AniDB_ID, body?.Purge ?? false);
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Refresh all Anilist Anime linked to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
+    /// <returns>
+    /// If <c>body.Immediate</c> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// otherwise returns a <see cref="NoContentResult"/>.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/Anilist/Anime/Action/Refresh")]
+    public async Task<ActionResult> RefreshAnilistAnimeBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AnilistRefreshAnimeBody body
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        var xrefs = series.AnilistAnimeCrossReferences;
+        if (body.Immediate && _anilistMetadataService.GetPauseStatus() is { IsPaused: true } pauseStatus)
+        {
+            Response.Headers.RetryAfter = ((int)(pauseStatus.RemainingPauseTime?.TotalSeconds ?? 0)).ToString();
+            return StatusCode(503);
+        }
+
+        // QuickRefresh is only meaningful for a synchronous, immediate caller waiting on the
+        // result — a queued/background refresh always does the full job.
+        var isQuickRefresh = body.Immediate && body.QuickRefresh;
+        if (body.Immediate)
+        {
+            await Task.WhenAll(
+                xrefs.Select(xref => _jobFactory.Execute<UpdateAnilistAnimeJob>(j =>
+                {
+                    j.AnilistAnimeID = xref.AnilistAnimeID;
+                    j.ForceRefresh = !isQuickRefresh && body.Force;
+                    j.QuickRefresh = isQuickRefresh;
+                    j.DownloadImages = body.DownloadImages;
+                    j.DownloadCharactersAndStaff = body.DownloadCharactersAndStaff;
+                }))
+            );
+            return Ok();
+        }
+
+        await Task.WhenAll(
+            xrefs.Select(xref => _scheduler.StartJob<UpdateAnilistAnimeJob>(j =>
+            {
+                j.AnilistAnimeID = xref.AnilistAnimeID;
+                j.ForceRefresh = body.Force;
+                j.DownloadImages = body.DownloadImages;
+                j.DownloadCharactersAndStaff = body.DownloadCharactersAndStaff;
+            }))
+        );
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Download all images for all Anilist Anime linked to the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Body containing the options for downloading the images.</param>
+    /// <returns>
+    /// If <c>body.Immediate</c> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// otherwise returns a <see cref="NoContentResult"/>.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/Anilist/Anime/Action/DownloadImages")]
+    public async Task<ActionResult> DownloadAnilistAnimeImagesBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AnilistDownloadImagesBody body
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        var xrefs = series.AnilistAnimeCrossReferences;
+        if (body.Immediate && _anilistMetadataService.GetPauseStatus() is { IsPaused: true } pauseStatus)
+        {
+            Response.Headers.RetryAfter = ((int)(pauseStatus.RemainingPauseTime?.TotalSeconds ?? 0)).ToString();
+            return StatusCode(503);
+        }
+
+        if (body.Immediate)
+        {
+            await Task.WhenAll(
+                xrefs.Select(xref => _jobFactory.Execute<DownloadAnilistAnimeImagesJob>(j =>
+                {
+                    j.AnilistAnimeID = xref.AnilistAnimeID;
+                    j.ForceDownload = body.Force;
+                }))
+            );
+            return Ok();
+        }
+
+        await Task.WhenAll(
+            xrefs.Select(xref => _scheduler.StartJob<DownloadAnilistAnimeImagesJob>(j =>
+            {
+                j.AnilistAnimeID = xref.AnilistAnimeID;
+                j.ForceDownload = body.Force;
+            }))
+        );
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Get all Anilist Anime cross-references for the Shoko Series by ID.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <returns>All Anilist Anime cross-references for the Shoko Series.</returns>
+    [HttpGet("{seriesID}/Anilist/Anime/CrossReferences")]
+    public ActionResult<IReadOnlyList<AnilistAnime.CrossReference>> GetAnilistAnimeCrossReferenceBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return series.AnilistAnimeCrossReferences
+            .Select(xref => new AnilistAnime.CrossReference(xref))
+            .OrderBy(xref => xref.AnilistAnimeID)
+            .ToList();
+    }
+
+    #region Episode Cross-references
+
+    /// <summary>
+    /// Shows all existing episode mappings for a Shoko Series. Optionally
+    /// allows filtering it to a specific Anilist anime.
+    /// </summary>
+    /// <param name="seriesID">The Shoko Series ID.</param>
+    /// <param name="anilistAnimeID">The Anilist Anime ID to filter the episode mappings. If not specified, mappings for any anime may be included.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns>A list of Anilist episode cross-references, based on the provided filtering and pagination settings.</returns>
+    [HttpGet("{seriesID}/Anilist/Anime/CrossReferences/Episode")]
+    public ActionResult<ListResult<AnilistEpisode.CrossReference>> GetAnilistEpisodeMappingsBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery, Range(0, int.MaxValue)] int? anilistAnimeID,
+        [FromQuery, Range(0, 1000)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(AnilistNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(AnilistForbiddenForUser);
+
+        if (anilistAnimeID.HasValue && anilistAnimeID.Value > 0)
+        {
+            var xrefs = series.AnilistAnimeCrossReferences;
+            var xref = xrefs.FirstOrDefault(s => s.AnilistAnimeID == anilistAnimeID.Value);
+            if (xref == null)
+                return ValidationProblem("Unable to find an existing cross-reference for the given Anilist Anime ID. Please first link the Anilist Anime to the Shoko Series.", "anilistAnimeID");
+        }
+
+        return series.GetAnilistEpisodeCrossReferences(anilistAnimeID)
+            .ToListResult(x => new AnilistEpisode.CrossReference(x), page, pageSize);
+    }
+
+    /// <summary>
+    /// Modifies the existing episode mappings by resetting, replacing, adding,
+    /// or removing links between Shoko episodes and Anilist episodes of any
+    /// Anilist anime linked to the Shoko series.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">The payload containing the operations to be applied, detailing which mappings to reset, replace, add, or remove.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/Anilist/Anime/CrossReferences/Episode")]
+    public async Task<ActionResult> OverrideAnilistEpisodeMappingsBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.OverrideAnilistEpisodeMappingBody body
+    )
+    {
+        if (body == null || (body.Mapping.Count == 0 && !body.UnsetAll))
+            return ValidationProblem("Empty body.");
+
+        if (body.Mapping.Count > 0)
+        {
+            body.Mapping = body.Mapping.DistinctBy(x => (x.AniDBID, x.AnilistID)).ToList();
+        }
+
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(AnilistNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(AnilistForbiddenForUser);
+
+        // Validate the mappings.
+        var xrefs = series.AnilistAnimeCrossReferences;
+        var animeIDs = xrefs
+            .Select(xref => xref.AnilistAnimeID)
+            .ToHashSet();
+        var missingIDs = new HashSet<int>();
+        var mapping = new List<(Series.Input.OverrideAnilistEpisodeLinkBody link, AniDB_Episode aniDBEpisode)>();
+        foreach (var link in body.Mapping)
+        {
+            var shokoEpisode = _animeEpisodes.GetByAniDBEpisodeID(link.AniDBID);
+            var anidbEpisode = shokoEpisode?.AniDB_Episode;
+            if (anidbEpisode is null)
+            {
+                ModelState.AddModelError("Mapping", $"Unable to find an AniDB Episode with id '{link.AniDBID}'");
+                continue;
+            }
+            if (shokoEpisode is null || shokoEpisode.AnimeSeriesID != series.AnimeSeriesID)
+            {
+                ModelState.AddModelError("Mapping", $"The AniDB Episode with id '{link.AniDBID}' is not part of the series.");
+                continue;
+            }
+            var anilistEpisode = link.AnilistID == 0 ? null : _anilistEpisodes.GetByAnilistEpisodeID(link.AnilistID);
+            if (link.AnilistID != 0)
+            {
+                if (anilistEpisode is null)
+                {
+                    ModelState.AddModelError("Mapping", $"Unable to find Anilist Episode with the id '{link.AnilistID}' locally.");
+                    continue;
+                }
+                if (!animeIDs.Contains(anilistEpisode.AnilistAnimeID))
+                    missingIDs.Add(anilistEpisode.AnilistAnimeID);
+            }
+
+            mapping.Add((link, anidbEpisode));
+        }
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        // Add any missing links if needed.
+        foreach (var animeId in missingIDs)
+            await _anilistLinkingService.AddAnimeLink(series.AniDB_ID, animeId, additiveLink: true);
+
+        // Unset all links if we want to manually replace some or all of them.
+        if (body.UnsetAll)
+            _anilistLinkingService.ResetAllEpisodeLinks(series.AniDB_ID, false);
+
+        // Make sure the mappings are in the correct order before linking.
+        mapping = mapping
+            .OrderByDescending(x => x.link.Replace)
+            .ThenBy(x => x.aniDBEpisode.EpisodeType)
+            .ThenBy(x => x.aniDBEpisode.EpisodeNumber)
+            .ToList();
+
+        // Do the actual linking.
+        foreach (var (link, _) in mapping)
+            _anilistLinkingService.SetEpisodeLink(link.AniDBID, link.AnilistID, !link.Replace, link.Index);
+
+        var scheduled = false;
+        foreach (var animeId in missingIDs)
+            if (_anilistAnime.GetByAnilistAnimeID(animeId) is not { } anilistAnime || anilistAnime.CreatedAt == anilistAnime.LastUpdatedAt)
+            {
+                scheduled = true;
+                await _anilistMetadataService.ScheduleUpdateOfAnime(new() { AnimeId = animeId, DownloadImages = true });
+            }
+
+        if (scheduled)
+            return Created();
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Preview the automagically matched Shoko episodes with the specified
+    /// Anilist anime. If no anime is specified, the operation applies to the
+    /// first anime already linked. This endpoint allows for replacing all
+    /// existing links or adding links to episodes that currently lack any.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="anilistAnimeID">The specified Anilist Anime ID to search for links. This parameter is used to select a specific anime.</param>
+    /// <param name="keepExisting">Determines whether to retain existing links when picking episodes.</param>
+    /// <param name="considerExistingOtherLinks">Determines whether to consider existing links for other series when picking episodes.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns>A preview of the automagically matched episodes.</returns>
+    [Authorize("admin")]
+    [HttpGet("{seriesID}/Anilist/Anime/CrossReferences/Episode/Auto")]
+    public ActionResult<ListResult<AnilistEpisode.CrossReference>> PreviewAutoAnilistEpisodeMappingsBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] int? anilistAnimeID,
+        [FromQuery] bool keepExisting = true,
+        [FromQuery] bool? considerExistingOtherLinks = null,
+        [FromQuery, Range(0, 1000)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(AnilistNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(AnilistForbiddenForUser);
+
+        if (!anilistAnimeID.HasValue)
+        {
+            var xrefs = series.AnilistAnimeCrossReferences;
+            var xref = xrefs.Count > 0 ? xrefs[0] : null;
+            if (xref == null)
+                return ValidationProblem("Unable to find an existing cross-reference for the series to use. Make sure at least one Anilist Anime is linked to the Shoko Series.", "anilistAnimeID");
+
+            anilistAnimeID = xref.AnilistAnimeID;
+        }
+
+        return _anilistLinkingService.MatchAnidbToAnilistEpisodes(series.AniDB_ID, anilistAnimeID.Value, useExisting: keepExisting, saveToDatabase: false, useExistingOtherAnime: considerExistingOtherLinks)
+            .ToListResult(x => new AnilistEpisode.CrossReference(x), page, pageSize);
+    }
+
+    /// <summary>
+    /// Automagically matches Shoko episodes with the specified Anilist anime.
+    /// If no anime is specified, the operation applies to the first anime
+    /// already linked. This endpoint allows for replacing all existing links
+    /// or adding links to episodes that currently lack any.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <param name="body">Optional. Any auto-match options.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpPost("{seriesID}/Anilist/Anime/CrossReferences/Episode/Auto")]
+    public async Task<ActionResult> AutoAnilistEpisodeMappingsBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] Series.Input.AutoMatchAnilistEpisodesBody? body = null
+    )
+    {
+        body ??= new();
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(AnilistNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(AnilistForbiddenForUser);
+
+        var isMissing = false;
+        var xrefs = series.AnilistAnimeCrossReferences;
+        if (body.AnilistAnimeID.HasValue)
+        {
+            isMissing = !xrefs.Any(s => s.AnilistAnimeID == body.AnilistAnimeID.Value);
+        }
+        else
+        {
+            var xref = xrefs.Count > 0 ? xrefs[0] : null;
+            if (xref == null)
+                return ValidationProblem("Unable to find an existing cross-reference for the series to use. Make sure at least one Anilist Anime is linked to the Shoko Series.", "anilistAnimeID");
+
+            body.AnilistAnimeID = xref.AnilistAnimeID;
+        }
+
+        // Hard bail if the Anilist anime isn't locally available.
+        if (_anilistAnime.GetByAnilistAnimeID(body.AnilistAnimeID.Value) is not { } anilistAnime)
+            return ValidationProblem("Unable to find the selected Anilist Anime locally. Add the Anilist Anime locally first.", "anilistAnimeID");
+
+        // Add the missing link if needed.
+        if (isMissing)
+            await _anilistLinkingService.AddAnimeLink(series.AniDB_ID, body.AnilistAnimeID.Value, additiveLink: true);
+        else
+            _anilistLinkingService.MatchAnidbToAnilistEpisodes(series.AniDB_ID, body.AnilistAnimeID.Value, useExisting: body.KeepExisting, saveToDatabase: true, useExistingOtherAnime: body.ConsiderExistingOtherLinks);
+
+        if (anilistAnime.CreatedAt == anilistAnime.LastUpdatedAt)
+        {
+            await _anilistMetadataService.ScheduleUpdateOfAnime(new() { AnimeId = anilistAnime.AnilistAnimeID, DownloadImages = true });
+            return Created();
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Reset all existing episode mappings for the shoko series.
+    /// </summary>
+    /// <param name="seriesID">Shoko Series ID.</param>
+    /// <returns>Void.</returns>
+    [Authorize("admin")]
+    [HttpDelete("{seriesID}/Anilist/Anime/CrossReferences/Episode")]
+    public ActionResult RemoveAnilistEpisodeMappingsBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID
+    )
+    {
+        var series = _animeSeries.GetByID(seriesID);
+        if (series == null)
+            return NotFound(AnilistNotFoundForSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(AnilistForbiddenForUser);
+
+        _anilistLinkingService.ResetAllEpisodeLinks(series.AniDB_ID, true);
+
+        return NoContent();
+    }
+
+    #endregion
 
     #endregion
 
@@ -2606,19 +3079,21 @@ public class SeriesController : BaseController
     #region All images
 
     /// <summary>
-    /// Get all images for series with ID, optionally with Disabled images, as well.
+    /// Get every image for the series, grouped by image type.
     /// </summary>
     /// <param name="seriesID">Shoko ID</param>
-    /// <param name="showLinkedIDs"></param>
-    /// <param name="includeDisabled"></param>
-    /// <param name="includeUndesired"></param>
-    /// <returns></returns>
+    /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
+    /// <returns>Every image for the series, grouped by image type.</returns>
     [HttpGet("{seriesID}/Images")]
     public ActionResult<Images> GetSeriesImages(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
-        [FromQuery] bool includeUndesired = false
+        [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var series = _animeSeries.GetByID(seriesID);
@@ -2639,7 +3114,7 @@ public class SeriesController : BaseController
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToDto(showLinkedIDs: showLinkedIDs);
+            .ToDto(showLinkedIDs: showLinkedIDs, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
     }
 
     /// <summary>
@@ -2650,6 +3125,7 @@ public class SeriesController : BaseController
     /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
     /// <param name="includeDisabled">Include disabled images.</param>
     /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
     /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
     /// <param name="page">Page number (default 1).</param>
     /// <returns>A paginated list of images.</returns>
@@ -2660,6 +3136,7 @@ public class SeriesController : BaseController
         [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -2678,7 +3155,7 @@ public class SeriesController : BaseController
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToListResult(image => new Image(image, showLinkedIDs), page, pageSize);
+            .ToListResult(image => new Image(image, showLinkedIDs, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize);
     }
 
     #endregion
@@ -2691,6 +3168,7 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Shoko Series ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="file">The image file to upload.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
     [Authorize("admin")]
     [HttpPost("{seriesID}/Images/{imageType}/Upload")]
@@ -2699,7 +3177,8 @@ public class SeriesController : BaseController
     public ActionResult<Image> UploadImageForSeries(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromRoute] ImageEntityType imageType,
-        IFormFile file
+        IFormFile file,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         var series = _animeSeries.GetByID(seriesID);
@@ -2723,11 +3202,11 @@ public class SeriesController : BaseController
                 IsDesired = true,
                 Source = DataSource.User,
             });
-            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref)));
+            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)));
         }
         catch (ImageCrossReferenceExistsException ex)
         {
-            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference)));
+            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(ex.Image.Source)));
         }
         catch (ArgumentException ex)
         {
@@ -2740,10 +3219,12 @@ public class SeriesController : BaseController
     /// </summary>
     /// <param name="seriesID">Series ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/Images/{imageType}/Default")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromRoute] ImageEntityType imageType)
+        [FromRoute] ImageEntityType imageType,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable)
     {
         var series = _animeSeries.GetByID(seriesID);
         if (series == null)
@@ -2754,7 +3235,7 @@ public class SeriesController : BaseController
 
         var preferredImage = ((IWithImages)series).GetPreferredImageForType(imageType);
         if (preferredImage is not null)
-            return new Image(preferredImage);
+            return new Image(preferredImage, false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(preferredImage.Source));
 
         var images = ((IWithImages)series).GetImages(new() { ImageType = imageType }).ToDto();
         var image = imageType switch
@@ -2779,11 +3260,13 @@ public class SeriesController : BaseController
     /// <param name="seriesID">Series ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="body">The body containing the source and id used to set.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPut("{seriesID}/Images/{imageType}/Default")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable)
     {
         var series = _animeSeries.GetByID(seriesID);
         if (series == null)
@@ -2797,7 +3280,7 @@ public class SeriesController : BaseController
             return NotFound(ImageNotFound);
 
         var xref = _imageManager.SetPreferredImageForEntity(series, imageType, image);
-        return new Image(ImageStub.Wrap(image, xref));
+        return new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source));
     }
 
     /// <summary>

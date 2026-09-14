@@ -7,13 +7,14 @@ using Shoko.Abstractions.Filtering.Expressions.Containers;
 using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Filters;
 
 internal static class ExpressionDiscovery
 {
     public static IReadOnlyList<IFilterExpressionHelp> GetExpressionHelp(FilterExpressionGroup? group = null)
-        => AppDomain.CurrentDomain.GetAssemblies()
+        => ReflectionUtils.ScannableAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(a =>
                 a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType &&
@@ -202,11 +203,25 @@ internal static class ExpressionDiscovery
                 null
             ),
 
+            nameof(HasAnilistGenreExpression) =>
+            (
+                RepoFactory.Anilist_Anime.GetAllGenres().ToArray(),
+                null,
+                null
+            ),
+
+            nameof(HasAnilistTagExpression) =>
+            (
+                RepoFactory.Anilist_Anime.GetAllTags().ToArray(),
+                null,
+                null
+            ),
+
             _ => (null, null, null),
         };
 
     public static IReadOnlyList<ISortingExpressionHelp> GetSortingExpressionHelp()
-        => AppDomain.CurrentDomain.GetAssemblies()
+        => ReflectionUtils.ScannableAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(a => a != typeof(FilterExpression) && !a.IsAbstract && !a.IsGenericType &&
                 typeof(SortingExpression).IsAssignableFrom(a)

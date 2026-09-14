@@ -315,6 +315,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
         ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Movie, TmdbMovieID)
         : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Movie, TmdbMovieID);
 
+    /// <inheritdoc/>
+    public void ResetAllTitles() => _allTitles = null;
+
     /// <summary>
     /// Get the preferred overview using the preferred episode title preference
     /// from the application settings.
@@ -356,6 +359,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Movie, TmdbMovieID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Movie, TmdbMovieID);
+
+    /// <inheritdoc/>
+    public void ResetAllOverviews() => _allOverviews = null;
 
     /// <summary>
     /// Get all TMDB company cross-references linked to the movie.

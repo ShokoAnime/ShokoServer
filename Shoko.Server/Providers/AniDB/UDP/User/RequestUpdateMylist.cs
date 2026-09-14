@@ -2,7 +2,6 @@ using System;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -179,7 +178,7 @@ public class RequestUpdateMylist : UDPRequest<Void>
         _ => throw new UnexpectedUDPResponseException(response.Code, response.Response, Command),
     };
 
-    public RequestUpdateMylist(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestUpdateMylist(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Abstractions.Core.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Scheduling.Acquisition.Filters;
 
@@ -16,7 +17,7 @@ public class DatabaseRequiredAcquisitionFilter : IAcquisitionFilter
     {
         _systemService = systemService;
         _systemService.DatabaseBlockedChanged += ServerOnDBSetupCompleted;
-        _types = AppDomain.CurrentDomain.GetAssemblies()
+        _types = ReflectionUtils.ScannableAssemblies()
             .SelectMany(a => a.GetTypes())
             .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
                         a.IsDefined(typeof(DatabaseRequiredAttribute), true))

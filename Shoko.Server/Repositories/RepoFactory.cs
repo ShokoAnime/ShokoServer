@@ -5,6 +5,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Repositories.Cached.Anilist;
 using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Repositories.Direct.TMDB;
@@ -51,6 +52,22 @@ public class RepoFactory
     public static CrossRef_AniDB_TMDB_EpisodeRepository CrossRef_AniDB_TMDB_Episode = null!;
     public static CrossRef_AniDB_TMDB_MovieRepository CrossRef_AniDB_TMDB_Movie = null!;
     public static CrossRef_AniDB_TMDB_ShowRepository CrossRef_AniDB_TMDB_Show = null!;
+    public static CrossRef_AniDB_Anilist_AnimeRepository CrossRef_AniDB_Anilist_Anime = null!;
+    public static CrossRef_AniDB_Anilist_EpisodeRepository CrossRef_AniDB_Anilist_Episode = null!;
+    public static Anilist_AnimeRepository Anilist_Anime = null!;
+    public static Anilist_Anime_StudioRepository Anilist_Anime_Studio = null!;
+
+    public static Anilist_Anime_ExternalLinkRepository Anilist_Anime_ExternalLink = null!;
+    public static Anilist_Anime_TagRepository Anilist_Anime_Tag = null!;
+    public static Anilist_EpisodeRepository Anilist_Episode = null!;
+    public static Anilist_StudioRepository Anilist_Studio = null!;
+    public static Anilist_TagRepository Anilist_Tag = null!;
+    public static Anilist_CharacterRepository Anilist_Character = null!;
+    public static Anilist_CreatorRepository Anilist_Creator = null!;
+    public static Anilist_Anime_CharacterRepository Anilist_Anime_Character = null!;
+    public static Anilist_Anime_Character_CreatorRepository Anilist_Anime_Character_Creator = null!;
+    public static Anilist_Anime_StaffRepository Anilist_Anime_Staff = null!;
+    public static Anilist_Anime_RelationRepository Anilist_Anime_Relation = null!;
     public static CrossRef_CustomTagRepository CrossRef_CustomTag = null!;
     public static CrossRef_File_EpisodeRepository CrossRef_File_Episode = null!;
     public static CustomTagRepository CustomTag = null!;
@@ -125,6 +142,21 @@ public class RepoFactory
         CrossRef_AniDB_TMDB_EpisodeRepository crossRefAniDBTmdbEpisode,
         CrossRef_AniDB_TMDB_MovieRepository crossRefAniDBTmdbMovie,
         CrossRef_AniDB_TMDB_ShowRepository crossRefAniDBTmdbShow,
+        CrossRef_AniDB_Anilist_AnimeRepository crossRefAniDBAnilistAnime,
+        CrossRef_AniDB_Anilist_EpisodeRepository crossRefAniDBAnilistEpisode,
+        Anilist_AnimeRepository anilistAnime,
+        Anilist_Anime_StudioRepository anilistAnimeStudio,
+        Anilist_Anime_ExternalLinkRepository anilistAnimeExternalLink,
+        Anilist_Anime_TagRepository anilistAnimeTag,
+        Anilist_EpisodeRepository anilistEpisode,
+        Anilist_StudioRepository anilistStudio,
+        Anilist_TagRepository anilistTag,
+        Anilist_CharacterRepository anilistCharacter,
+        Anilist_CreatorRepository anilistCreator,
+        Anilist_Anime_CharacterRepository anilistAnimeCharacter,
+        Anilist_Anime_Character_CreatorRepository anilistAnimeCharacterCreator,
+        Anilist_Anime_StaffRepository anilistAnimeStaff,
+        Anilist_Anime_RelationRepository anilistAnimeRelation,
         CrossRef_CustomTagRepository crossRefCustomTag,
         CrossRef_File_EpisodeRepository crossRefFileEpisode,
         CustomTagRepository customTag,
@@ -199,6 +231,21 @@ public class RepoFactory
         CrossRef_AniDB_TMDB_Episode = crossRefAniDBTmdbEpisode;
         CrossRef_AniDB_TMDB_Movie = crossRefAniDBTmdbMovie;
         CrossRef_AniDB_TMDB_Show = crossRefAniDBTmdbShow;
+        CrossRef_AniDB_Anilist_Anime = crossRefAniDBAnilistAnime;
+        CrossRef_AniDB_Anilist_Episode = crossRefAniDBAnilistEpisode;
+        Anilist_Anime = anilistAnime;
+        Anilist_Anime_Studio = anilistAnimeStudio;
+        Anilist_Anime_ExternalLink = anilistAnimeExternalLink;
+        Anilist_Anime_Tag = anilistAnimeTag;
+        Anilist_Episode = anilistEpisode;
+        Anilist_Studio = anilistStudio;
+        Anilist_Tag = anilistTag;
+        Anilist_Character = anilistCharacter;
+        Anilist_Creator = anilistCreator;
+        Anilist_Anime_Character = anilistAnimeCharacter;
+        Anilist_Anime_Character_Creator = anilistAnimeCharacterCreator;
+        Anilist_Anime_Staff = anilistAnimeStaff;
+        Anilist_Anime_Relation = anilistAnimeRelation;
         CrossRef_CustomTag = crossRefCustomTag;
         CrossRef_File_Episode = crossRefFileEpisode;
         CustomTag = customTag;

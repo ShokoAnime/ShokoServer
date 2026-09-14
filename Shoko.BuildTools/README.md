@@ -5,14 +5,15 @@ auto-discovery of service interfaces, and manifest management.
 
 ## What it does
 
-1. **Reads** the plugin's `manifest.json` (if supplied) for dependencies, tags, and identity.
+1. **Reads** the plugin's `manifest.json` (if supplied) for dependencies, tags, and identity,
+   any of which can instead be [stated on the command line](#plugin-metadata).
 2. **Scans source files** with Roslyn syntax trees to auto-detect Shoko service
    interface implementations (`IReleaseInfoProvider` → `release-provider`,
    `IHostedService` → `hosted-service`, etc.) and prepends them to the tags.
 3. **Generates** a C# assembly metadata file with:
    - Runtime identifier, release date, source revision, release tag
    - Package identity (`PackageID`, `PackageName`, `PackageOverview`)
-   - Dependencies serialized as `guid:versionRange[:true][,next]*` (`PackageDependencies`)
+   - Dependencies serialized as `<guid>@<range>[:optional|:required][,<guid>@<range>[:optional|:required]]*` (`PackageDependencies`)
    - Tags as a single `PackageTags` attribute
 4. **Loads** the `.csproj` in-memory via the MSBuild API, sets
    `EnableDynamicLoading=true`, injects the generated assembly info, restores
@@ -54,6 +55,11 @@ shoko-build [options] [-- <msbuild-args>]
 | `--channel <name>` | | Release channel for the manifest entry: `Stable`, `Dev` or `Debug`, case-insensitive. An unrecognised name is an error. See below for more info. |
 | `--release-notes <text>` | | Release notes recorded on the manifest entry. See below. |
 | `--release-notes-path <path>` | | Read the release notes from a file instead. Mutually exclusive with `--release-notes`. |
+| `--id <guid>` | | Plugin ID. See [Plugin metadata](#plugin-metadata). |
+| `--name <name>` | | Plugin name, replacing the manifest's. |
+| `--overview <text>` | | Plugin overview, replacing the manifest's. |
+| `--tags <list>` | | Comma-separated tags, replacing the manifest's. Auto-detected tags are still added. |
+| `--dependencies <list>` | | Plugin dependencies, replacing the manifest's. See [Dependency list](#dependency-list). |
 
 Both templates are evaluated per runtime identifier, so one invocation
 covers a whole matrix:
@@ -104,6 +110,64 @@ Three ways to arrive at one, in order:
 
 Stated beats inferred; the two are never merged. An unrecognised name is
 an error in both the tool and the targets package.
+
+### Plugin metadata
+
+The plugin's identity, tags and dependencies come from the manifest unless
+stated, highest precedence first:
+
+| Flag | MSBuild property | Manifest field |
+|------|------------------|----------------|
+| `--id` | `PluginID` | `id` |
+| `--name` | `PluginName` | `name` |
+| `--overview` | `PluginOverview` | `overview` |
+| `--tags` | `PluginTags` | `tags` |
+| `--dependencies` | `PluginDependencies` | `dependencies` |
+
+A stated value replaces the manifest's; lists are never merged. Stated
+dependencies are also what the manifest's release entry records.
+`Shoko.BuildTools.Targets` reads the same properties, so a plain
+`dotnet build` takes them too.
+
+When there is a manifest, `--id` has to match its `id`: the manifest is
+updated with this build's release, so it must describe the same plugin.
+The targets package never writes the manifest and has no such check.
+
+### Dependency list
+
+```
+<guid>@<range>[:optional|:required][,<guid>@<range>[:optional|:required]]*
+```
+
+- `<range>` is `>=1.0.0`, `^1.0.0`, `~1.0.0` or an exact `1.0.0`.
+- A dependency is required unless marked `:optional`.
+- Whitespace around `,`, `@` and `:` is ignored, and so are empty
+  entries, so a list can span lines.
+- The legacy `<guid>:<range>[:true]` form, which `shoko-build` 0.4.0 and
+  `Shoko.BuildTools.Targets` 0.2.1 and earlier embedded, is still read.
+- An entry that does not parse, a range the server cannot evaluate, or a
+  plugin listed twice stops the build. The manifest's `dependencies` are
+  held to the same rules.
+
+The assembly's `PackageDependencies` metadata uses the same format, so a
+list read off one build can be handed to the next.
+
+Quote the list: `>=` is a shell redirect, and `^` and `~` are globs in
+some shells.
+
+```bash
+shoko-build -c Release --output ./dist/plugin.zip --url https://example.org/plugin.zip \
+  --dependencies '0f8a1c2e-1111-2222-3333-444455556666@^1.2.0,
+                  7d3b9f40-aaaa-bbbb-cccc-ddddeeeeffff@>=2.0:optional'
+```
+
+MSBuild splits `-p:` values on commas, so with `dotnet build` and the
+targets package the quotes have to reach MSBuild, or the commas have to
+be escaped as `%2C`:
+
+```bash
+dotnet build '-p:PluginDependencies="0f8a1c2e-1111-2222-3333-444455556666@^1.2.0,7d3b9f40-aaaa-bbbb-cccc-ddddeeeeffff@>=2.0:optional"'
+```
 
 ### Exit code
 

@@ -1,3 +1,4 @@
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
@@ -44,6 +45,20 @@ public abstract class TMDB_Crew : ICrew
         RepoFactory.TMDB_Person.GetByTmdbPersonID(TmdbPersonID);
 
     public abstract IMetadata<int>? GetTmdbParent();
+
+    /// <summary>
+    /// TMDB only lists the original-language crew, so every role is in the
+    /// original language of the show or movie.
+    /// </summary>
+    public TitleLanguage Language => GetTmdbParent() switch
+    {
+        TMDB_Show show => show.OriginalLanguage,
+        TMDB_Movie movie => movie.OriginalLanguage,
+        TMDB_Episode episode => RepoFactory.TMDB_Show.GetByTmdbShowID(episode.TmdbShowID)?.OriginalLanguage ?? TitleLanguage.Unknown,
+        _ => TitleLanguage.Unknown,
+    };
+
+    public string LanguageCode => Language.GetString();
 
     #endregion
 

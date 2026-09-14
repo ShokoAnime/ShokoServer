@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -21,7 +22,7 @@ using ReleaseGroup = Shoko.Server.API.v3.Models.Release.ReleaseGroup;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/[controller]")]
+[Route("/api/v{version:apiVersion}/[controller]"), Tags("Anidb")]
 [ApiV3]
 [Authorize]
 public class AniDBController(

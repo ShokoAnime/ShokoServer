@@ -1145,6 +1145,170 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
                      WHERE sri.`CrossReferences` LIKE '%AnidbEpisodeID%'
                      """),
         new(184,  1, "ALTER TABLE `VideoLocal` DROP COLUMN `MyListID`;"),
+
+        // These back non-nullable model properties, so a null could never have been read into one.
+        // Rows are filled first, since a stored null would fail the alter.
+        // Lost when `MySQLFixUTF8` and `MySQLFixUTF8MB4` rebuilt every text column with `MODIFY`,
+        // which replaces the whole definition and drops anything left unstated. For the same reason
+        // each `MODIFY` has to restate the collation the column already has: the ten that v170 made
+        // `utf8mb4_bin` — hashes, paths and tokens, compared case-sensitively — keep it here.
+        new(185,  1, "UPDATE `AniDB_Anime` SET `AllTags` = '' WHERE `AllTags` IS NULL; ALTER TABLE `AniDB_Anime` MODIFY COLUMN `AllTags` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185,  2, "UPDATE `AniDB_Anime` SET `AllTitles` = '' WHERE `AllTitles` IS NULL; ALTER TABLE `AniDB_Anime` MODIFY COLUMN `AllTitles` varchar(1500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185,  3, "UPDATE `AniDB_Anime` SET `Description` = '' WHERE `Description` IS NULL; ALTER TABLE `AniDB_Anime` MODIFY COLUMN `Description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185,  4, "UPDATE `AniDB_Anime` SET `MainTitle` = '' WHERE `MainTitle` IS NULL; ALTER TABLE `AniDB_Anime` MODIFY COLUMN `MainTitle` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185,  5, "UPDATE `AniDB_Anime_Character` SET `Appearance` = '' WHERE `Appearance` IS NULL; ALTER TABLE `AniDB_Anime_Character` MODIFY COLUMN `Appearance` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185,  6, "UPDATE `AniDB_Anime_Relation` SET `RelationType` = '' WHERE `RelationType` IS NULL; ALTER TABLE `AniDB_Anime_Relation` MODIFY COLUMN `RelationType` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185,  7, "UPDATE `AniDB_Anime_Staff` SET `Role` = '' WHERE `Role` IS NULL; ALTER TABLE `AniDB_Anime_Staff` MODIFY COLUMN `Role` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185,  8, "UPDATE `AniDB_Anime_Title` SET `Language` = '' WHERE `Language` IS NULL; ALTER TABLE `AniDB_Anime_Title` MODIFY COLUMN `Language` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185,  9, "UPDATE `AniDB_Anime_Title` SET `Title` = '' WHERE `Title` IS NULL; ALTER TABLE `AniDB_Anime_Title` MODIFY COLUMN `Title` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 10, "UPDATE `AniDB_Anime_Title` SET `TitleType` = '' WHERE `TitleType` IS NULL; ALTER TABLE `AniDB_Anime_Title` MODIFY COLUMN `TitleType` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 11, "UPDATE `AniDB_Character` SET `Description` = '' WHERE `Description` IS NULL; ALTER TABLE `AniDB_Character` MODIFY COLUMN `Description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 12, "UPDATE `AniDB_Character` SET `ImagePath` = '' WHERE `ImagePath` IS NULL; ALTER TABLE `AniDB_Character` MODIFY COLUMN `ImagePath` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 13, "UPDATE `AniDB_Character` SET `Name` = '' WHERE `Name` IS NULL; ALTER TABLE `AniDB_Character` MODIFY COLUMN `Name` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 14, "UPDATE `AniDB_Character` SET `OriginalName` = '' WHERE `OriginalName` IS NULL; ALTER TABLE `AniDB_Character` MODIFY COLUMN `OriginalName` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 15, "UPDATE `AniDB_Creator` SET `Name` = '' WHERE `Name` IS NULL; ALTER TABLE `AniDB_Creator` MODIFY COLUMN `Name` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 16, "UPDATE `AniDB_Episode` SET `Description` = '' WHERE `Description` IS NULL; ALTER TABLE `AniDB_Episode` MODIFY COLUMN `Description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 17, "UPDATE `AniDB_Episode_Title` SET `Language` = '' WHERE `Language` IS NULL; ALTER TABLE `AniDB_Episode_Title` MODIFY COLUMN `Language` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 18, "UPDATE `AniDB_GroupStatus` SET `EpisodeRange` = '' WHERE `EpisodeRange` IS NULL; ALTER TABLE `AniDB_GroupStatus` MODIFY COLUMN `EpisodeRange` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 19, "UPDATE `AniDB_GroupStatus` SET `GroupName` = '' WHERE `GroupName` IS NULL; ALTER TABLE `AniDB_GroupStatus` MODIFY COLUMN `GroupName` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 20, "UPDATE `AniDB_GroupStatus` SET `Rating` = 0 WHERE `Rating` IS NULL; ALTER TABLE `AniDB_GroupStatus` MODIFY COLUMN `Rating` decimal(6,2) NOT NULL;"),
+        new(185, 21, "UPDATE `AniDB_Message` SET `Body` = '' WHERE `Body` IS NULL; ALTER TABLE `AniDB_Message` MODIFY COLUMN `Body` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 22, "UPDATE `AniDB_Message` SET `FromUserName` = '' WHERE `FromUserName` IS NULL; ALTER TABLE `AniDB_Message` MODIFY COLUMN `FromUserName` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 23, "UPDATE `AniDB_Message` SET `Title` = '' WHERE `Title` IS NULL; ALTER TABLE `AniDB_Message` MODIFY COLUMN `Title` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 24, "UPDATE `AniDB_Tag` SET `TagDescription` = '' WHERE `TagDescription` IS NULL; ALTER TABLE `AniDB_Tag` MODIFY COLUMN `TagDescription` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 25, "UPDATE `AniDB_Tag` SET `TagName` = '' WHERE `TagName` IS NULL; ALTER TABLE `AniDB_Tag` MODIFY COLUMN `TagName` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 26, "UPDATE `AnimeGroup` SET `GroupName` = '' WHERE `GroupName` IS NULL; ALTER TABLE `AnimeGroup` MODIFY COLUMN `GroupName` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 27, "UPDATE `AuthTokens` SET `DeviceName` = '' WHERE `DeviceName` IS NULL; ALTER TABLE `AuthTokens` MODIFY COLUMN `DeviceName` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 28, "UPDATE `AuthTokens` SET `Token` = '' WHERE `Token` IS NULL; ALTER TABLE `AuthTokens` MODIFY COLUMN `Token` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 29, "UPDATE `FileNameHash` SET `FileName` = '' WHERE `FileName` IS NULL; ALTER TABLE `FileNameHash` MODIFY COLUMN `FileName` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 30, "UPDATE `FileNameHash` SET `Hash` = '' WHERE `Hash` IS NULL; ALTER TABLE `FileNameHash` MODIFY COLUMN `Hash` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 31, "UPDATE `ImportFolder` SET `ImportFolderLocation` = '' WHERE `ImportFolderLocation` IS NULL; ALTER TABLE `ImportFolder` MODIFY COLUMN `ImportFolderLocation` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 32, "UPDATE `ImportFolder` SET `ImportFolderName` = '' WHERE `ImportFolderName` IS NULL; ALTER TABLE `ImportFolder` MODIFY COLUMN `ImportFolderName` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 33, "UPDATE `Scan` SET `ImportFolders` = '' WHERE `ImportFolders` IS NULL; ALTER TABLE `Scan` MODIFY COLUMN `ImportFolders` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 34, "UPDATE `ScanFile` SET `FullName` = '' WHERE `FullName` IS NULL; ALTER TABLE `ScanFile` MODIFY COLUMN `FullName` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 35, "UPDATE `ScanFile` SET `Hash` = '' WHERE `Hash` IS NULL; ALTER TABLE `ScanFile` MODIFY COLUMN `Hash` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 36, "UPDATE `ScheduledUpdate` SET `UpdateDetails` = '' WHERE `UpdateDetails` IS NULL; ALTER TABLE `ScheduledUpdate` MODIFY COLUMN `UpdateDetails` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 37, "UPDATE `StoredReleaseInfo` SET `ED2K` = '' WHERE `ED2K` IS NULL; ALTER TABLE `StoredReleaseInfo` MODIFY COLUMN `ED2K` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 38, "UPDATE `StoredReleaseInfo_MatchAttempt` SET `ED2K` = '' WHERE `ED2K` IS NULL; ALTER TABLE `StoredReleaseInfo_MatchAttempt` MODIFY COLUMN `ED2K` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 39, "UPDATE `TMDB_AlternateOrdering` SET `EnglishOverview` = '' WHERE `EnglishOverview` IS NULL; ALTER TABLE `TMDB_AlternateOrdering` MODIFY COLUMN `EnglishOverview` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 40, "UPDATE `TMDB_AlternateOrdering` SET `EnglishTitle` = '' WHERE `EnglishTitle` IS NULL; ALTER TABLE `TMDB_AlternateOrdering` MODIFY COLUMN `EnglishTitle` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 41, "UPDATE `TMDB_AlternateOrdering` SET `TmdbEpisodeGroupCollectionID` = '' WHERE `TmdbEpisodeGroupCollectionID` IS NULL; ALTER TABLE `TMDB_AlternateOrdering` MODIFY COLUMN `TmdbEpisodeGroupCollectionID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 42, "UPDATE `TMDB_AlternateOrdering_Episode` SET `TmdbEpisodeGroupCollectionID` = '' WHERE `TmdbEpisodeGroupCollectionID` IS NULL; ALTER TABLE `TMDB_AlternateOrdering_Episode` MODIFY COLUMN `TmdbEpisodeGroupCollectionID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 43, "UPDATE `TMDB_AlternateOrdering_Episode` SET `TmdbEpisodeGroupID` = '' WHERE `TmdbEpisodeGroupID` IS NULL; ALTER TABLE `TMDB_AlternateOrdering_Episode` MODIFY COLUMN `TmdbEpisodeGroupID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 44, "UPDATE `TMDB_AlternateOrdering_Season` SET `EnglishTitle` = '' WHERE `EnglishTitle` IS NULL; ALTER TABLE `TMDB_AlternateOrdering_Season` MODIFY COLUMN `EnglishTitle` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 45, "UPDATE `TMDB_AlternateOrdering_Season` SET `TmdbEpisodeGroupCollectionID` = '' WHERE `TmdbEpisodeGroupCollectionID` IS NULL; ALTER TABLE `TMDB_AlternateOrdering_Season` MODIFY COLUMN `TmdbEpisodeGroupCollectionID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 46, "UPDATE `TMDB_AlternateOrdering_Season` SET `TmdbEpisodeGroupID` = '' WHERE `TmdbEpisodeGroupID` IS NULL; ALTER TABLE `TMDB_AlternateOrdering_Season` MODIFY COLUMN `TmdbEpisodeGroupID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 47, "UPDATE `TMDB_Collection` SET `EnglishOverview` = '' WHERE `EnglishOverview` IS NULL; ALTER TABLE `TMDB_Collection` MODIFY COLUMN `EnglishOverview` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 48, "UPDATE `TMDB_Collection` SET `EnglishTitle` = '' WHERE `EnglishTitle` IS NULL; ALTER TABLE `TMDB_Collection` MODIFY COLUMN `EnglishTitle` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 49, "UPDATE `TMDB_Company` SET `CountryOfOrigin` = '' WHERE `CountryOfOrigin` IS NULL; ALTER TABLE `TMDB_Company` MODIFY COLUMN `CountryOfOrigin` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 50, "UPDATE `TMDB_Company` SET `Name` = '' WHERE `Name` IS NULL; ALTER TABLE `TMDB_Company` MODIFY COLUMN `Name` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 51, "UPDATE `TMDB_Episode` SET `EnglishOverview` = '' WHERE `EnglishOverview` IS NULL; ALTER TABLE `TMDB_Episode` MODIFY COLUMN `EnglishOverview` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 52, "UPDATE `TMDB_Episode` SET `EnglishTitle` = '' WHERE `EnglishTitle` IS NULL; ALTER TABLE `TMDB_Episode` MODIFY COLUMN `EnglishTitle` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 53, "UPDATE `TMDB_Episode_Cast` SET `CharacterName` = '' WHERE `CharacterName` IS NULL; ALTER TABLE `TMDB_Episode_Cast` MODIFY COLUMN `CharacterName` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 54, "UPDATE `TMDB_Episode_Cast` SET `TmdbCreditID` = '' WHERE `TmdbCreditID` IS NULL; ALTER TABLE `TMDB_Episode_Cast` MODIFY COLUMN `TmdbCreditID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 55, "UPDATE `TMDB_Episode_Crew` SET `Department` = '' WHERE `Department` IS NULL; ALTER TABLE `TMDB_Episode_Crew` MODIFY COLUMN `Department` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 56, "UPDATE `TMDB_Episode_Crew` SET `Job` = '' WHERE `Job` IS NULL; ALTER TABLE `TMDB_Episode_Crew` MODIFY COLUMN `Job` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 57, "UPDATE `TMDB_Episode_Crew` SET `TmdbCreditID` = '' WHERE `TmdbCreditID` IS NULL; ALTER TABLE `TMDB_Episode_Crew` MODIFY COLUMN `TmdbCreditID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 58, "UPDATE `TMDB_Movie` SET `ContentRatings` = '' WHERE `ContentRatings` IS NULL; ALTER TABLE `TMDB_Movie` MODIFY COLUMN `ContentRatings` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 59, "UPDATE `TMDB_Movie` SET `EnglishOverview` = '' WHERE `EnglishOverview` IS NULL; ALTER TABLE `TMDB_Movie` MODIFY COLUMN `EnglishOverview` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 60, "UPDATE `TMDB_Movie` SET `EnglishTitle` = '' WHERE `EnglishTitle` IS NULL; ALTER TABLE `TMDB_Movie` MODIFY COLUMN `EnglishTitle` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 61, "UPDATE `TMDB_Movie` SET `OriginalLanguageCode` = '' WHERE `OriginalLanguageCode` IS NULL; ALTER TABLE `TMDB_Movie` MODIFY COLUMN `OriginalLanguageCode` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 62, "UPDATE `TMDB_Movie` SET `OriginalTitle` = '' WHERE `OriginalTitle` IS NULL; ALTER TABLE `TMDB_Movie` MODIFY COLUMN `OriginalTitle` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 63, "UPDATE `TMDB_Movie_Cast` SET `CharacterName` = '' WHERE `CharacterName` IS NULL; ALTER TABLE `TMDB_Movie_Cast` MODIFY COLUMN `CharacterName` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 64, "UPDATE `TMDB_Movie_Cast` SET `TmdbCreditID` = '' WHERE `TmdbCreditID` IS NULL; ALTER TABLE `TMDB_Movie_Cast` MODIFY COLUMN `TmdbCreditID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 65, "UPDATE `TMDB_Movie_Crew` SET `Department` = '' WHERE `Department` IS NULL; ALTER TABLE `TMDB_Movie_Crew` MODIFY COLUMN `Department` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 66, "UPDATE `TMDB_Movie_Crew` SET `Job` = '' WHERE `Job` IS NULL; ALTER TABLE `TMDB_Movie_Crew` MODIFY COLUMN `Job` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 67, "UPDATE `TMDB_Movie_Crew` SET `TmdbCreditID` = '' WHERE `TmdbCreditID` IS NULL; ALTER TABLE `TMDB_Movie_Crew` MODIFY COLUMN `TmdbCreditID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 68, "UPDATE `TMDB_Network` SET `CountryOfOrigin` = '' WHERE `CountryOfOrigin` IS NULL; ALTER TABLE `TMDB_Network` MODIFY COLUMN `CountryOfOrigin` varchar(3) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 69, "UPDATE `TMDB_Network` SET `Name` = '' WHERE `Name` IS NULL; ALTER TABLE `TMDB_Network` MODIFY COLUMN `Name` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 70, "UPDATE `TMDB_Overview` SET `CountryCode` = '' WHERE `CountryCode` IS NULL; ALTER TABLE `TMDB_Overview` MODIFY COLUMN `CountryCode` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 71, "UPDATE `TMDB_Overview` SET `LanguageCode` = '' WHERE `LanguageCode` IS NULL; ALTER TABLE `TMDB_Overview` MODIFY COLUMN `LanguageCode` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 72, "UPDATE `TMDB_Overview` SET `Value` = '' WHERE `Value` IS NULL; ALTER TABLE `TMDB_Overview` MODIFY COLUMN `Value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 73, "UPDATE `TMDB_Person` SET `Aliases` = '' WHERE `Aliases` IS NULL; ALTER TABLE `TMDB_Person` MODIFY COLUMN `Aliases` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 74, "UPDATE `TMDB_Person` SET `EnglishBiography` = '' WHERE `EnglishBiography` IS NULL; ALTER TABLE `TMDB_Person` MODIFY COLUMN `EnglishBiography` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 75, "UPDATE `TMDB_Person` SET `EnglishName` = '' WHERE `EnglishName` IS NULL; ALTER TABLE `TMDB_Person` MODIFY COLUMN `EnglishName` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 76, "UPDATE `TMDB_Season` SET `EnglishOverview` = '' WHERE `EnglishOverview` IS NULL; ALTER TABLE `TMDB_Season` MODIFY COLUMN `EnglishOverview` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 77, "UPDATE `TMDB_Season` SET `EnglishTitle` = '' WHERE `EnglishTitle` IS NULL; ALTER TABLE `TMDB_Season` MODIFY COLUMN `EnglishTitle` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 78, "UPDATE `TMDB_Show` SET `ContentRatings` = '' WHERE `ContentRatings` IS NULL; ALTER TABLE `TMDB_Show` MODIFY COLUMN `ContentRatings` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 79, "UPDATE `TMDB_Show` SET `EnglishOverview` = '' WHERE `EnglishOverview` IS NULL; ALTER TABLE `TMDB_Show` MODIFY COLUMN `EnglishOverview` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 80, "UPDATE `TMDB_Show` SET `EnglishTitle` = '' WHERE `EnglishTitle` IS NULL; ALTER TABLE `TMDB_Show` MODIFY COLUMN `EnglishTitle` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 81, "UPDATE `TMDB_Show` SET `OriginalLanguageCode` = '' WHERE `OriginalLanguageCode` IS NULL; ALTER TABLE `TMDB_Show` MODIFY COLUMN `OriginalLanguageCode` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 82, "UPDATE `TMDB_Show` SET `OriginalTitle` = '' WHERE `OriginalTitle` IS NULL; ALTER TABLE `TMDB_Show` MODIFY COLUMN `OriginalTitle` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 83, "UPDATE `TMDB_Title` SET `CountryCode` = '' WHERE `CountryCode` IS NULL; ALTER TABLE `TMDB_Title` MODIFY COLUMN `CountryCode` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 84, "UPDATE `TMDB_Title` SET `LanguageCode` = '' WHERE `LanguageCode` IS NULL; ALTER TABLE `TMDB_Title` MODIFY COLUMN `LanguageCode` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 85, "UPDATE `TMDB_Title` SET `Value` = '' WHERE `Value` IS NULL; ALTER TABLE `TMDB_Title` MODIFY COLUMN `Value` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 86, "UPDATE `VideoLocal` SET `FileName` = '' WHERE `FileName` IS NULL; ALTER TABLE `VideoLocal` MODIFY COLUMN `FileName` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 87, "UPDATE `VideoLocal` SET `Hash` = '' WHERE `Hash` IS NULL; ALTER TABLE `VideoLocal` MODIFY COLUMN `Hash` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 88, "UPDATE `VideoLocal_HashDigest` SET `Type` = '' WHERE `Type` IS NULL; ALTER TABLE `VideoLocal_HashDigest` MODIFY COLUMN `Type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 89, "UPDATE `VideoLocal_HashDigest` SET `Value` = '' WHERE `Value` IS NULL; ALTER TABLE `VideoLocal_HashDigest` MODIFY COLUMN `Value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+        new(185, 90, "UPDATE `VideoLocal_Place` SET `FilePath` = '' WHERE `FilePath` IS NULL; ALTER TABLE `VideoLocal_Place` MODIFY COLUMN `FilePath` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL;"),
+
+        // Only damaged when the database was created outside Shoko: it then keeps the server's
+        // default collation, so `MySQLFixUTF8MB4` finds these too. Shoko's own `CREATE DATABASE`
+        // already uses utf8mb4_unicode_ci and leaves them alone.
+        new(185, 91, "UPDATE `AniDB_Episode` SET `Rating` = '' WHERE `Rating` IS NULL; ALTER TABLE `AniDB_Episode` MODIFY COLUMN `Rating` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 92, "UPDATE `AniDB_Episode` SET `Votes` = '' WHERE `Votes` IS NULL; ALTER TABLE `AniDB_Episode` MODIFY COLUMN `Votes` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 93, "UPDATE `AnimeEpisode_User` SET `UserTags` = '' WHERE `UserTags` IS NULL; ALTER TABLE `AnimeEpisode_User` MODIFY COLUMN `UserTags` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 94, "UPDATE `AnimeSeries_User` SET `UserTags` = '' WHERE `UserTags` IS NULL; ALTER TABLE `AnimeSeries_User` MODIFY COLUMN `UserTags` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 95, "UPDATE `Versions` SET `VersionType` = '' WHERE `VersionType` IS NULL; ALTER TABLE `Versions` MODIFY COLUMN `VersionType` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(185, 96, "UPDATE `Versions` SET `VersionValue` = '' WHERE `VersionValue` IS NULL; ALTER TABLE `Versions` MODIFY COLUMN `VersionValue` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+
+        // Widths SQL Server already declares and MySQL left as `text`, either from the start or from
+        // `MySQLFixUTF8` widening everything it touched. Nothing longer can have reached these on
+        // SQL Server, so the bound is what the data already is; each value is trimmed to it first,
+        // since anything longer would fail the alter.
+        new(186,  1, "UPDATE `AniDB_Anime_Relation` SET `RelationType` = LEFT(`RelationType`, 100) WHERE CHAR_LENGTH(`RelationType`) > 100; ALTER TABLE `AniDB_Anime_Relation` MODIFY COLUMN `RelationType` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(186,  2, "UPDATE `AnimeEpisode` SET `EpisodeNameOverride` = LEFT(`EpisodeNameOverride`, 500) WHERE CHAR_LENGTH(`EpisodeNameOverride`) > 500; ALTER TABLE `AnimeEpisode` MODIFY COLUMN `EpisodeNameOverride` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        // `AirsOn` is a `DayOfWeek`, which Fluent NHibernate stores by name: `Wednesday` is the longest at nine.
+        new(186,  3, "UPDATE `AnimeSeries` SET `AirsOn` = LEFT(`AirsOn`, 10) WHERE CHAR_LENGTH(`AirsOn`) > 10; ALTER TABLE `AnimeSeries` MODIFY COLUMN `AirsOn` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        new(186,  4, "UPDATE `AnimeSeries` SET `SeriesNameOverride` = LEFT(`SeriesNameOverride`, 500) WHERE CHAR_LENGTH(`SeriesNameOverride`) > 500; ALTER TABLE `AnimeSeries` MODIFY COLUMN `SeriesNameOverride` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        new(186,  5, "UPDATE `CustomTag` SET `TagName` = LEFT(`TagName`, 500) WHERE CHAR_LENGTH(`TagName`) > 500; ALTER TABLE `CustomTag` MODIFY COLUMN `TagName` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        // The index has to go first: its 255-character prefix no longer fits the column, and a bounded
+        // column does not need one.
+        new(186,  6, "UPDATE `FilterPreset` SET `Name` = LEFT(`Name`, 250) WHERE CHAR_LENGTH(`Name`) > 250; ALTER TABLE `FilterPreset` DROP INDEX `IX_FilterPreset_Name`; ALTER TABLE `FilterPreset` MODIFY COLUMN `Name` varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL; ALTER TABLE `FilterPreset` ADD INDEX `IX_FilterPreset_Name` (`Name`);"),
+        new(186,  7, "UPDATE `ScanFile` SET `Hash` = LEFT(`Hash`, 100) WHERE CHAR_LENGTH(`Hash`) > 100; ALTER TABLE `ScanFile` MODIFY COLUMN `Hash` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;"),
+        new(186,  8, "UPDATE `ScanFile` SET `HashResult` = LEFT(`HashResult`, 100) WHERE CHAR_LENGTH(`HashResult`) > 100; ALTER TABLE `ScanFile` MODIFY COLUMN `HashResult` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;"),
+        new(187,  1, "CREATE TABLE `Anilist_Anime` ( `Anilist_AnimeID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `MalID` INT NULL, `EnglishTitle` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `MainTitle` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `NativeTitle` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Synonyms` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `EnglishOverview` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `OriginalLanguageCode` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Type` INT NOT NULL, `ReleasingStatus` INT NOT NULL, `MediaSource` INT NOT NULL, `Season` INT NULL, `SeasonYear` INT NULL, `CoverImagePath` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `BannerImagePath` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `TrailerSite` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `TrailerID` VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `EpisodeCount` INT NOT NULL, `EpisodeDuration` INT NULL, `UserRating` decimal(6,2) NOT NULL, `MeanScore` decimal(6,2) NOT NULL, `UserVotes` INT NOT NULL, `Popularity` INT NOT NULL, `FavoriteCount` INT NOT NULL, `IsLicensed` BIT NOT NULL, `IsRestricted` BIT NOT NULL, `Color` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Genres` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `FirstAiredAt` VARCHAR(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `LastAiredAt` VARCHAR(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`Anilist_AnimeID`) );"),
+        new(187,  2, "CREATE TABLE `Anilist_Episode` ( `Anilist_EpisodeID` INT NOT NULL AUTO_INCREMENT, `AnilistEpisodeID` INT NOT NULL, `AnilistScheduleEpisodeID` INT NULL, `AnilistAnimeID` INT NOT NULL, `EpisodeNumber` INT NOT NULL, `RuntimeMinutes` INT NULL, `AiredAt` DATETIME NULL, `CreatedAt` DATETIME NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`Anilist_EpisodeID`) );"),
+        new(187,  3, "CREATE TABLE `Anilist_Tag` ( `Anilist_TagID` INT NOT NULL AUTO_INCREMENT, `AnilistTagID` INT NOT NULL, `Name` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Description` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Category` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `IsRestricted` BIT NOT NULL, `IsSpoiler` BIT NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`Anilist_TagID`) );"),
+        new(187,  4, "CREATE TABLE `Anilist_Anime_Tag` ( `Anilist_Anime_TagID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `AnilistTagID` INT NOT NULL, `Weight` INT NOT NULL, `IsLocalSpoiler` BIT NOT NULL, PRIMARY KEY (`Anilist_Anime_TagID`) );"),
+        new(187,  5, "CREATE TABLE `Anilist_Studio` ( `Anilist_StudioID` INT NOT NULL AUTO_INCREMENT, `AnilistStudioID` INT NOT NULL, `Name` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `IsAnimationStudio` BIT NOT NULL, `FavoriteCount` INT NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`Anilist_StudioID`) );"),
+        new(187,  6, "CREATE TABLE `Anilist_Anime_Studio` ( `Anilist_Anime_StudioID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `AnilistStudioID` INT NOT NULL, `IsMainStudio` BIT NOT NULL, PRIMARY KEY (`Anilist_Anime_StudioID`) );"),
+        new(187,  7, "CREATE TABLE `Anilist_Character` ( `Anilist_CharacterID` INT NOT NULL AUTO_INCREMENT, `AnilistCharacterID` INT NOT NULL, `Name` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `OriginalName` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `AlternativeNames` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Description` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `ImagePath` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `Gender` INT NOT NULL, `DateOfBirth` VARCHAR(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `Age` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `FavoriteCount` INT NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`Anilist_CharacterID`) );"),
+        new(187,  8, "CREATE TABLE `Anilist_Creator` ( `Anilist_CreatorID` INT NOT NULL AUTO_INCREMENT, `AnilistCreatorID` INT NOT NULL, `Name` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `OriginalName` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `AlternativeNames` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Description` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `ImagePath` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `Language` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `PrimaryOccupations` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Gender` INT NOT NULL, `DateOfBirth` VARCHAR(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `HomeTown` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `FavoriteCount` INT NOT NULL, `LastUpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`Anilist_CreatorID`) );"),
+        new(187,  9, "CREATE TABLE `Anilist_Anime_Character` ( `Anilist_Anime_CharacterID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `AnilistCharacterID` INT NOT NULL, `Role` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`Anilist_Anime_CharacterID`) );"),
+        new(187, 10, "CREATE TABLE `Anilist_Anime_Character_Creator` ( `Anilist_Anime_Character_CreatorID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `AnilistCharacterID` INT NOT NULL, `AnilistCreatorID` INT NOT NULL, `RoleNotes` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `DubGroup` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`Anilist_Anime_Character_CreatorID`) );"),
+        new(187, 11, "CREATE TABLE `Anilist_Anime_Staff` ( `Anilist_Anime_StaffID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `AnilistCreatorID` INT NOT NULL, `Role` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`Anilist_Anime_StaffID`) );"),
+        new(187, 12, "CREATE TABLE `Anilist_Anime_Relation` ( `Anilist_Anime_RelationID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `RelatedAnilistID` INT NOT NULL, `RelatedIsAnime` BIT NOT NULL, `RelationType` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, PRIMARY KEY (`Anilist_Anime_RelationID`) );"),
+        new(187, 13, "CREATE TABLE `CrossRef_AniDB_Anilist_Anime` ( `CrossRef_AniDB_Anilist_AnimeID` INT NOT NULL AUTO_INCREMENT, `AnidbAnimeID` INT NOT NULL, `AnilistAnimeID` INT NOT NULL, `MatchRating` INT NOT NULL, PRIMARY KEY (`CrossRef_AniDB_Anilist_AnimeID`) );"),
+        new(187, 14, "CREATE TABLE `CrossRef_AniDB_Anilist_Episode` ( `CrossRef_AniDB_Anilist_EpisodeID` INT NOT NULL AUTO_INCREMENT, `AnidbAnimeID` INT NOT NULL, `AnidbEpisodeID` INT NOT NULL, `AnilistAnimeID` INT NOT NULL, `AnilistEpisodeID` INT NOT NULL, `EpisodeNumber` INT NOT NULL, `Ordering` INT NOT NULL, `MatchRating` INT NOT NULL, PRIMARY KEY (`CrossRef_AniDB_Anilist_EpisodeID`) );"),
+        new(187, 15, "CREATE INDEX `IX_Anilist_Anime_AnilistAnimeID` ON `Anilist_Anime`(`AnilistAnimeID`);"),
+        new(187, 16, "CREATE INDEX `IX_Anilist_Episode_AnilistAnimeID` ON `Anilist_Episode`(`AnilistAnimeID`);"),
+        new(187, 17, "CREATE INDEX `IX_Anilist_Episode_AnilistEpisodeID` ON `Anilist_Episode`(`AnilistEpisodeID`);"),
+        new(187, 18, "CREATE INDEX `IX_Anilist_Tag_AnilistTagID` ON `Anilist_Tag`(`AnilistTagID`);"),
+        new(187, 19, "CREATE INDEX `IX_Anilist_Anime_Tag_AnilistAnimeID` ON `Anilist_Anime_Tag`(`AnilistAnimeID`);"),
+        new(187, 20, "CREATE INDEX `IX_Anilist_Anime_Tag_AnilistTagID` ON `Anilist_Anime_Tag`(`AnilistTagID`);"),
+        new(187, 21, "CREATE INDEX `IX_Anilist_Studio_AnilistStudioID` ON `Anilist_Studio`(`AnilistStudioID`);"),
+        new(187, 22, "CREATE INDEX `IX_Anilist_Anime_Studio_AnilistAnimeID` ON `Anilist_Anime_Studio`(`AnilistAnimeID`);"),
+        new(187, 23, "CREATE INDEX `IX_Anilist_Anime_Studio_AnilistStudioID` ON `Anilist_Anime_Studio`(`AnilistStudioID`);"),
+        new(187, 24, "CREATE INDEX `IX_Anilist_Character_AnilistCharacterID` ON `Anilist_Character`(`AnilistCharacterID`);"),
+        new(187, 25, "CREATE INDEX `IX_Anilist_Creator_AnilistCreatorID` ON `Anilist_Creator`(`AnilistCreatorID`);"),
+        new(187, 26, "CREATE INDEX `IX_Anilist_Anime_Character_AnilistAnimeID` ON `Anilist_Anime_Character`(`AnilistAnimeID`);"),
+        new(187, 27, "CREATE INDEX `IX_Anilist_Anime_Character_AnilistCharacterID` ON `Anilist_Anime_Character`(`AnilistCharacterID`);"),
+        new(187, 28, "CREATE INDEX `IX_Anilist_Anime_Character_Creator_AnilistAnimeID` ON `Anilist_Anime_Character_Creator`(`AnilistAnimeID`);"),
+        new(187, 29, "CREATE INDEX `IX_Anilist_Anime_Character_Creator_AnilistCreatorID` ON `Anilist_Anime_Character_Creator`(`AnilistCreatorID`);"),
+        new(187, 30, "CREATE INDEX `IX_Anilist_Anime_Staff_AnilistAnimeID` ON `Anilist_Anime_Staff`(`AnilistAnimeID`);"),
+        new(187, 31, "CREATE INDEX `IX_Anilist_Anime_Staff_AnilistCreatorID` ON `Anilist_Anime_Staff`(`AnilistCreatorID`);"),
+        new(187, 32, "CREATE INDEX `IX_Anilist_Anime_Relation_AnilistAnimeID` ON `Anilist_Anime_Relation`(`AnilistAnimeID`);"),
+        new(187, 33, "CREATE INDEX `IX_Anilist_Anime_Relation_RelatedAnilistID` ON `Anilist_Anime_Relation`(`RelatedAnilistID`);"),
+        new(187, 34, "CREATE INDEX `IX_CrossRef_AniDB_Anilist_Anime_AnidbAnimeID` ON `CrossRef_AniDB_Anilist_Anime`(`AnidbAnimeID`);"),
+        new(187, 35, "CREATE INDEX `IX_CrossRef_AniDB_Anilist_Anime_AnilistAnimeID` ON `CrossRef_AniDB_Anilist_Anime`(`AnilistAnimeID`);"),
+        new(187, 36, "CREATE INDEX `IX_CrossRef_AniDB_Anilist_Episode_AnidbAnimeID` ON `CrossRef_AniDB_Anilist_Episode`(`AnidbAnimeID`);"),
+        new(187, 37, "CREATE INDEX `IX_CrossRef_AniDB_Anilist_Episode_AnidbEpisodeID` ON `CrossRef_AniDB_Anilist_Episode`(`AnidbEpisodeID`);"),
+        new(187, 38, "CREATE INDEX `IX_CrossRef_AniDB_Anilist_Episode_AnilistAnimeID` ON `CrossRef_AniDB_Anilist_Episode`(`AnilistAnimeID`);"),
+        new(187, 39, "CREATE INDEX `IX_CrossRef_AniDB_Anilist_Episode_AnilistEpisodeID` ON `CrossRef_AniDB_Anilist_Episode`(`AnilistEpisodeID`);"),
+        new(187, 40, "CREATE TABLE `Anilist_Anime_ExternalLink` ( `Anilist_Anime_ExternalLinkID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `AnilistLinkID` INT NOT NULL, `Url` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Site` VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `AnilistSiteID` INT NULL, `LinkType` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `LanguageCode` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, PRIMARY KEY (`Anilist_Anime_ExternalLinkID`) );"),
+        new(187, 41, "CREATE INDEX `IX_Anilist_Anime_ExternalLink_AnilistAnimeID` ON `Anilist_Anime_ExternalLink`(`AnilistAnimeID`);"),
     ];
 
     #endregion
@@ -1264,6 +1428,13 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         cmd.ExecuteScalar();
     }
 
+    /// <remarks>
+    /// A <see cref="DatabaseCommandType.PostDatabaseFix"/>, so on a database migrating in one pass this
+    /// runs after every patch, v170's case-sensitive columns included. <c>utf8mb4_bin</c> is therefore
+    /// left alone: it is already utf8mb4, and converting it would undo the case-sensitivity that hashes
+    /// and paths are compared with — on a fresh install only, since a database that ran this long ago
+    /// never runs it again.
+    /// </remarks>
     private static void MySQLFixUTF8()
     {
         var settings = ISettingsProvider.Instance.GetSettings();
@@ -1271,7 +1442,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
             "SELECT `TABLE_SCHEMA`, `TABLE_NAME`, `COLUMN_NAME`, `DATA_TYPE`, `CHARACTER_MAXIMUM_LENGTH` " +
             "FROM information_schema.COLUMNS " +
             $"WHERE table_schema = '{settings.Database.Schema}' " +
-            "AND collation_name != 'utf8mb4_unicode_ci'";
+            "AND collation_name NOT IN ('utf8mb4_unicode_ci', 'utf8mb4_bin')";
         using var conn = new MySqlConnection(ConnectionString);
         var mySQL = (MySQL)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
         conn.Open();

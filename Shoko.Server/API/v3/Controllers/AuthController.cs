@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.Authentication;
 using Shoko.Server.API.v3.Models.Auth;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
@@ -22,13 +25,17 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="userService"></param>
 /// <param name="authTokensRepository"></param>
 /// <param name="settingsProvider"></param>
+/// <param name="loginThrottler"></param>
+/// <param name="logger"></param>
 [ApiController]
-[Route("/api/v{version:apiVersion}/[controller]")]
+[Route("/api/v{version:apiVersion}/[controller]"), Tags("Authentication")]
 [ApiV3]
 public class AuthController(
     IUserService userService,
     AuthTokensRepository authTokensRepository,
-    ISettingsProvider settingsProvider
+    ISettingsProvider settingsProvider,
+    LoginThrottler loginThrottler,
+    ILogger<AuthController> logger
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -42,8 +49,17 @@ public class AuthController(
     [ProducesResponseType(200)]
     public async Task<ActionResult<ApiToken>> SignIn([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SignInRequest request)
     {
-        if (userService.AuthenticateUser(request.User.Trim(), request.Password) is not { } user)
+        var username = request.User.Trim();
+        if (loginThrottler.ThrottleLogin(HttpContext, username, logger) is { } throttled)
+            return throttled;
+
+        if (userService.AuthenticateUser(username, request.Password) is not { } user)
+        {
+            loginThrottler.RegisterFailure(HttpContext.ClientKey());
             return Unauthorized();
+        }
+
+        loginThrottler.Reset(HttpContext.ClientKey());
 
         var expiresAt = ParseExpires(request.Expires);
         if (expiresAt is null && request.Expires is not null)

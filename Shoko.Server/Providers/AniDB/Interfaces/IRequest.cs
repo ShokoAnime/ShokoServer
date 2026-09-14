@@ -1,14 +1,18 @@
-﻿using JetBrains.Annotations;
+using System.Threading;
+using System.Threading.Tasks;
+using JetBrains.Annotations;
 
 namespace Shoko.Server.Providers.AniDB.Interfaces;
 
-public interface IRequest<out T, T1> where T : IResponse<T1> where T1 : class
+public interface IRequest<TResponse> where TResponse : class
 {
-    T Send();
+    Task<TResponse> SendAsync(CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// Marker interface used to discover concrete request types for DI registration.
+/// </summary>
 [UsedImplicitly(ImplicitUseTargetFlags.WithInheritors)]
 public interface IRequest
 {
-    object Send();
 }

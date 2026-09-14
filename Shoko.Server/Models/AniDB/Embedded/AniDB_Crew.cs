@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
@@ -27,6 +28,10 @@ public class AniDB_Crew : ICrew
     public int Ordering => _xref.Ordering;
 
     public CrewRoleType RoleType => _xref.CrewRoleType;
+
+    public TitleLanguage Language => RepoFactory.AniDB_Anime.GetByAnimeID(_xref.AnimeID)?.OriginalLanguage ?? TitleLanguage.Unknown;
+
+    public string LanguageCode => Language.GetString();
 
     public IMetadata<int>? Parent => _getParent();
 

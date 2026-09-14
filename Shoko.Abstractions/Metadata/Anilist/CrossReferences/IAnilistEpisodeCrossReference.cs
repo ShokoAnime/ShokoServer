@@ -15,6 +15,11 @@ public interface IAnilistEpisodeCrossReference : IWithImages
     int AnidbAnimeID { get; }
 
     /// <summary>
+    /// The AniDB episode ID.
+    /// </summary>
+    int AnidbEpisodeID { get; }
+
+    /// <summary>
     ///   The AniList Anime ID.
     /// </summary>
     int AnilistAnimeID { get; }

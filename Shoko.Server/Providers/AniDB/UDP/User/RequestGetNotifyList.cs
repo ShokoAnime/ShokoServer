@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
@@ -99,7 +98,7 @@ public class RequestGetNotifyList : UDPRequest<IList<ResponseNotifyId>>
         };
     }
 
-    public RequestGetNotifyList(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestGetNotifyList(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

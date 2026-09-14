@@ -1,6 +1,5 @@
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User;
@@ -42,7 +41,7 @@ public class RequestMylistStats : UDPRequest<ResponseMylistStats>
         return new UDPResponse<ResponseMylistStats> { Code = code, Response = stats };
     }
 
-    public RequestMylistStats(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,
+    public RequestMylistStats(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory,
         handler)
     {
     }

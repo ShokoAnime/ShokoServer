@@ -26,7 +26,7 @@ public class AcknowledgeAniDBNotifyJob(IRequestFactory requestFactory, AniDB_Mes
 
     public override string Title => "Acknowledging AniDB Notify";
 
-    public override Task Execute()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job}: {Type} {ID}", nameof(AcknowledgeAniDBNotifyJob), NotifyType.ToString(), NotifyID);
 
@@ -37,7 +37,7 @@ public class AcknowledgeAniDBNotifyJob(IRequestFactory requestFactory, AniDB_Mes
                 r.ID = NotifyID;
             }
         );
-        var responseAck = requestAck.Send();
+        var responseAck = await requestAck.SendAsync();
 
         // successful, set the read flag
         if (NotifyType == AniDBNotifyType.Message)
@@ -49,6 +49,5 @@ public class AcknowledgeAniDBNotifyJob(IRequestFactory requestFactory, AniDB_Mes
                 anidbMessages.Save(message);
             }
         }
-        return Task.CompletedTask;
     }
 }

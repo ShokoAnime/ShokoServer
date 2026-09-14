@@ -14,7 +14,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Test;
@@ -36,10 +36,10 @@ public class DebugController : BaseController
 {
     private readonly ILogger<DebugController> _logger;
 
-    private readonly IUDPConnectionHandler _udpHandler;
+    private readonly AniDBUDPConnectionHandler _udpHandler;
     private readonly IQueueScheduler _scheduler;
 
-    public DebugController(ILogger<DebugController> logger, IUDPConnectionHandler udpHandler, ISettingsProvider settingsProvider, IQueueScheduler scheduler) : base(settingsProvider)
+    public DebugController(ILogger<DebugController> logger, AniDBUDPConnectionHandler udpHandler, ISettingsProvider settingsProvider, IQueueScheduler scheduler) : base(settingsProvider)
     {
         _logger = logger;
         _udpHandler = udpHandler;
@@ -95,7 +95,7 @@ public class DebugController : BaseController
     /// <param name="request">The AniDB UDP Request to make.</param>
     /// <returns>An AniDB UDP Response.</returns>
     [HttpPost("AniDB/UDP/Call")]
-    public AnidbUdpResponse CallAniDB([FromBody] AnidbUdpRequest request)
+    public async Task<AnidbUdpResponse> CallAniDB([FromBody] AnidbUdpRequest request)
     {
         try
         {
@@ -103,14 +103,14 @@ public class DebugController : BaseController
             _logger.LogDebug("Got command {Command}", request.Command);
             if (request.NeedAuth)
             {
-                if (string.IsNullOrEmpty(_udpHandler.SessionID) && !_udpHandler.Login())
+                if (string.IsNullOrEmpty(_udpHandler.SessionID) && !await _udpHandler.LoginAsync(token))
                     return new() { Code = UDPReturnCode.NOT_LOGGED_IN };
                 request.Payload.Add("s", _udpHandler.SessionID);
             }
 
             var fullResponse = request.Unsafe ?
-                _udpHandler.SendDirectly(request.Command, isPing: request.IsPing, isLogout: request.IsLogout) :
-                _udpHandler.Send(request.Command);
+                await _udpHandler.SendDirectlyAsync(request.Command, isPing: request.IsPing, isLogout: request.IsLogout, cancellationToken: token) :
+                await _udpHandler.SendAsync(request.Command, cancellationToken: token);
             var decodedParts = fullResponse.Split('\n');
             var decodedResponse = string.Join('\n',
                 fullResponse.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

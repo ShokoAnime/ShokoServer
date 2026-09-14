@@ -1,6 +1,5 @@
 using System;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -66,7 +65,7 @@ public class RequestVoteEpisode : UDPRequest<ResponseVote>
         };
     }
 
-    public RequestVoteEpisode(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,
+    public RequestVoteEpisode(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory,
         handler)
     {
     }

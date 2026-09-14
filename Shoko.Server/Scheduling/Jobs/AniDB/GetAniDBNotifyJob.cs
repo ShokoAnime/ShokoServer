@@ -30,7 +30,7 @@ public class GetAniDBNotifyJob(IRequestFactory requestFactory, IQueueScheduler s
         _logger.LogInformation("Processing {Job}", nameof(GetAniDBNotifyJob));
 
         var requestCount = requestFactory.Create<RequestGetNotifyCount>(r => r.Buddies = false); // we do not care about the number of online buddies
-        var responseCount = requestCount.Send();
+        var responseCount = await requestCount.SendAsync();
         if (responseCount?.Response == null) return;
 
         var unreadCount = responseCount.Response.Files + responseCount.Response.Messages;
@@ -40,7 +40,7 @@ public class GetAniDBNotifyJob(IRequestFactory requestFactory, IQueueScheduler s
 
             // request an ID list of all unread messages and notifications
             var request = requestFactory.Create<RequestGetNotifyList>();
-            var response = request.Send();
+            var response = await request.SendAsync();
             if (response?.Response == null) return;
 
             foreach (var notify in response.Response)

@@ -13,6 +13,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Databases;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
@@ -33,7 +34,7 @@ public class InitController : BaseController
     private readonly ILogger<InitController> _logger;
     private readonly SystemService _systemService;
     private readonly IConnectivityService _connectivityService;
-    private readonly IUDPConnectionHandler _udpHandler;
+    private readonly AniDBUDPConnectionHandler _udpHandler;
     private readonly IHttpConnectionHandler _httpHandler;
     private readonly ISystemUpdateService _webUIUpdateService;
 
@@ -42,7 +43,7 @@ public class InitController : BaseController
         SystemService systemService,
         ISettingsProvider settingsProvider,
         IConnectivityService connectivityService,
-        IUDPConnectionHandler udpHandler,
+        AniDBUDPConnectionHandler udpHandler,
         IHttpConnectionHandler httpHandler,
         ISystemUpdateService webUIUpdateService
     ) : base(settingsProvider)

@@ -1,4 +1,3 @@
-using System;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 

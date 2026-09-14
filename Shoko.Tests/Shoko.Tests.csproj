@@ -27,6 +27,7 @@
     <!-- ExcludeAssets keeps Microsoft.Build.Locator's MSBL001 guard out of this project. -->
     <ProjectReference Include="..\Shoko.BuildTools\Shoko.BuildTools.csproj" ExcludeAssets="build;buildTransitive" />
     <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
+    <ProjectReference Include="..\Shoko.TestData\Shoko.TestData.csproj" />
   </ItemGroup>
 
 </Project>

@@ -39,7 +39,7 @@ public class VideoLocal_Place : IVideoFile
     /// is nullable, meaning it can have a value of null if the unique
     /// identifier cannot be obtained or the file does not exist.
     /// </remarks>
-    public long? OnDiskUniqueID => ISystemService.StaticServices.GetRequiredService<FileSystemHelpers>().GetVideoFileUID(Path);
+    public long? OnDiskUniqueID => ISystemService.StaticServices.GetRequiredService<IFileSystemHelpers>().GetVideoFileUID(Path);
 
     private string _relativePath = string.Empty;
 
@@ -86,7 +86,7 @@ public class VideoLocal_Place : IVideoFile
     [MemberNotNullWhen(true, nameof(RelativePath))]
     [MemberNotNullWhen(true, nameof(FileInfo))]
     public bool IsAvailable
-        => ISystemService.StaticServices.GetRequiredService<FileSystemHelpers>().FileExists(Path);
+        => ISystemService.StaticServices.GetRequiredService<IFileSystemHelpers>().FileExists(Path);
 
     /// <summary>
     /// Helper to get the file name from the relative path.
@@ -110,7 +110,7 @@ public class VideoLocal_Place : IVideoFile
     /// Helper to get the <see cref="FileInfo"/> for the file location if it exists.
     /// </summary>
     public FileInfo? FileInfo
-        => ISystemService.StaticServices.GetRequiredService<FileSystemHelpers>().GetFileInfo(Path);
+        => ISystemService.StaticServices.GetRequiredService<IFileSystemHelpers>().GetFileInfo(Path);
 
     #endregion
 
@@ -136,7 +136,7 @@ public class VideoLocal_Place : IVideoFile
         if (string.IsNullOrEmpty(filePath))
             return null;
 
-        var fileSystemHelpers = ISystemService.StaticServices.GetRequiredService<FileSystemHelpers>();
+        var fileSystemHelpers = ISystemService.StaticServices.GetRequiredService<IFileSystemHelpers>();
         if (!fileSystemHelpers.FileExists(filePath))
             return null;
 

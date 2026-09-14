@@ -39,7 +39,8 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Shoko.Embedded;
-using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
+using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -83,7 +84,7 @@ public partial class ImageManager(
     TMDB_NetworkRepository _tmdbNetworks
 ) : IImageManager
 {
-    private static IUDPConnectionHandler? _udpConnectionHandler = null;
+    private static AniDBUDPConnectionHandler? _udpConnectionHandler = null;
 
     #region Image Sources
 
@@ -113,8 +114,7 @@ public partial class ImageManager(
                 else if (dataSource is DataSource.TMDB)
                     dict.Add(dataSource, DefaultTmdbUrlTemplate());
                 else if (dataSource is DataSource.AniList)
-                    // TODO: Add Anilist image template url.
-                    dict.Add(dataSource, null);
+                    dict.Add(dataSource, DefaultAnilistUrlTemplate());
                 else
                     dict.Add(dataSource, null);
             }
@@ -139,7 +139,7 @@ public partial class ImageManager(
         }
 
         // UDP API provided override.
-        _udpConnectionHandler ??= services?.GetRequiredService<IUDPConnectionHandler>();
+        _udpConnectionHandler ??= services?.GetRequiredService<AniDBUDPConnectionHandler>();
         if (_udpConnectionHandler is not null)
             return _udpConnectionHandler.ImageServerUrl;
 
@@ -165,6 +165,26 @@ public partial class ImageManager(
 
         // Static fallback.
         return $"{TmdbMetadataService.ImageServerUrl}original/{{0}}";
+    }
+
+    private string DefaultAnilistUrlTemplate()
+    {
+        // Setting override.
+        var setting = settingsProvider.GetSettings().Anilist.ImageCdnUrl;
+        if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, AnilistImageService.ImageServerUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
+        {
+            // Setting as a URL template.
+            if (setting.Contains("{0}"))
+                return setting;
+
+            // Setting as a base URL.
+            if (!setting.EndsWith("/", StringComparison.Ordinal))
+                setting += "/";
+            return $"{setting}{{0}}";
+        }
+
+        // The CDN base observed on the last image URL AniList handed us, with the static default behind it.
+        return $"{AnilistImageService.ImageServerUrl}{{0}}";
     }
 
     /// <inheritdoc/>
@@ -346,47 +366,60 @@ public partial class ImageManager(
         linkedEntityImages ??= entity is IShokoGroup or IShokoSeries or IShokoSeason or IShokoEpisode;
         if (linkedEntityImages.Value)
         {
-            var xrefs = new List<IEnumerable<IImageCrossReference>>()
+            var xrefs = new List<IEnumerable<IImageCrossReference>>();
+            var visitedEntities = new HashSet<(DataSource, DataEntityType, string)>();
+            void AddEntityXrefs(DataSource source, DataEntityType type, string id)
             {
-                filter(xrefRepository.GetByEntity(entitySource, entityType, entityID)),
-            };
+                // The same entity can be reachable through more than one link, and we only want its images once.
+                if (!visitedEntities.Add((source, type, id)))
+                    return;
+
+                xrefs.Add(filter(xrefRepository.GetByEntity(source, type, id)).ToList());
+            }
+
+            void AddSeriesXrefs(IShokoSeries series)
+            {
+                AddEntityXrefs(series.Source, series.EntityType, series.ID.ToString());
+                foreach (var s in series.LinkedSeries)
+                    AddEntityXrefs(s.Source, s.EntityType, s.ID.ToString());
+                foreach (var s in series.TmdbSeasons)
+                    AddEntityXrefs(s.Source, s.EntityType, s.ID);
+                foreach (var m in series.LinkedMovies)
+                    AddEntityXrefs(m.Source, m.EntityType, m.ID.ToString());
+            }
+
+            AddEntityXrefs(entitySource, entityType, entityID);
 
             switch (entity)
             {
                 case IShokoGroup group:
                 {
-                    var series = group.MainSeries;
-                    xrefs.Add(filter(xrefRepository.GetByEntity(series.Source, series.EntityType, series.ID.ToString())));
-                    foreach (var s in series.LinkedSeries)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
-                    foreach (var s in series.TmdbSeasons)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
-                    foreach (var m in series.LinkedMovies)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                    AddSeriesXrefs(group.MainSeries);
+
+                    // The main series can be without images of its own, e.g. an AniDB entry that has no poster, so fall back to
+                    // the other series in the group instead of leaving the group without any images at all.
+                    if (xrefs.All(list => !list.Any()))
+                        foreach (var otherSeries in group.AllSeries)
+                            AddSeriesXrefs(otherSeries);
                     break;
                 }
                 case IShokoSeries series:
                 {
-                    foreach (var s in series.LinkedSeries)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
-                    foreach (var s in series.TmdbSeasons)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
-                    foreach (var m in series.LinkedMovies)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                    AddSeriesXrefs(series);
                     break;
                 }
                 case IShokoSeason season:
                 {
                     foreach (var s in season.LinkedSeasons)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
+                        AddEntityXrefs(s.Source, s.EntityType, s.ID);
                     break;
                 }
                 case IShokoEpisode episode:
                 {
                     foreach (var s in episode.LinkedEpisodes)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                        AddEntityXrefs(s.Source, s.EntityType, s.ID.ToString());
                     foreach (var m in episode.LinkedMovies)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                        AddEntityXrefs(m.Source, m.EntityType, m.ID.ToString());
                     break;
                 }
             }
@@ -1255,47 +1288,60 @@ public partial class ImageManager(
         linkedEntityImages ??= entity is IShokoGroup or IShokoSeries or IShokoSeason or IShokoEpisode;
         if (linkedEntityImages.Value)
         {
-            var xrefs = new List<IEnumerable<IImageCrossReference>>()
+            var xrefs = new List<IEnumerable<IImageCrossReference>>();
+            var visitedEntities = new HashSet<(DataSource, DataEntityType, string)>();
+            void AddEntityXrefs(DataSource source, DataEntityType type, string id)
             {
-                filter(xrefRepository.GetByEntity(entitySource, entityType, entityID)),
-            };
+                // The same entity can be reachable through more than one link, and we only want its images once.
+                if (!visitedEntities.Add((source, type, id)))
+                    return;
+
+                xrefs.Add(filter(xrefRepository.GetByEntity(source, type, id)).ToList());
+            }
+
+            void AddSeriesXrefs(IShokoSeries series)
+            {
+                AddEntityXrefs(series.Source, series.EntityType, series.ID.ToString());
+                foreach (var s in series.LinkedSeries)
+                    AddEntityXrefs(s.Source, s.EntityType, s.ID.ToString());
+                foreach (var s in series.TmdbSeasons)
+                    AddEntityXrefs(s.Source, s.EntityType, s.ID);
+                foreach (var m in series.LinkedMovies)
+                    AddEntityXrefs(m.Source, m.EntityType, m.ID.ToString());
+            }
+
+            AddEntityXrefs(entitySource, entityType, entityID);
 
             switch (entity)
             {
                 case IShokoGroup group:
                 {
-                    var series = group.MainSeries;
-                    xrefs.Add(filter(xrefRepository.GetByEntity(series.Source, series.EntityType, series.ID.ToString())));
-                    foreach (var s in series.LinkedSeries)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
-                    foreach (var s in series.TmdbSeasons)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
-                    foreach (var m in series.LinkedMovies)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                    AddSeriesXrefs(group.MainSeries);
+
+                    // The main series can be without images of its own, e.g. an AniDB entry that has no poster, so fall back to
+                    // the other series in the group instead of leaving the group without any images at all.
+                    if (xrefs.All(list => !list.Any()))
+                        foreach (var otherSeries in group.AllSeries)
+                            AddSeriesXrefs(otherSeries);
                     break;
                 }
                 case IShokoSeries series:
                 {
-                    foreach (var s in series.LinkedSeries)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
-                    foreach (var s in series.TmdbSeasons)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
-                    foreach (var m in series.LinkedMovies)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                    AddSeriesXrefs(series);
                     break;
                 }
                 case IShokoSeason season:
                 {
                     foreach (var s in season.LinkedSeasons)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID)));
+                        AddEntityXrefs(s.Source, s.EntityType, s.ID);
                     break;
                 }
                 case IShokoEpisode episode:
                 {
                     foreach (var s in episode.LinkedEpisodes)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(s.Source, s.EntityType, s.ID.ToString())));
+                        AddEntityXrefs(s.Source, s.EntityType, s.ID.ToString());
                     foreach (var m in episode.LinkedMovies)
-                        xrefs.Add(filter(xrefRepository.GetByEntity(m.Source, m.EntityType, m.ID.ToString())));
+                        AddEntityXrefs(m.Source, m.EntityType, m.ID.ToString());
                     break;
                 }
             }

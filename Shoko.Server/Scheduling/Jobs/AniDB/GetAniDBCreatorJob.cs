@@ -55,7 +55,7 @@ public class GetAniDBCreatorJob(IRequestFactory requestFactory, AnidbService ani
         _logger.LogInformation("Processing {Job}", nameof(GetAniDBCreatorJob));
 
         var request = requestFactory.Create<RequestGetCreator>(r => r.CreatorID = CreatorID);
-        var response = request.Send().Response;
+        var response = (await request.SendAsync()).Response;
         if (response is null)
         {
             _logger.LogError("Unable to find an AniDB Creator with the given ID: {CreatorID}", CreatorID);

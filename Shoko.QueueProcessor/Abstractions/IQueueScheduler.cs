@@ -73,6 +73,15 @@ public interface IQueueScheduler
     /// <summary>True while the queue is paused.</summary>
     bool IsPaused { get; }
 
+    /// <summary>
+    /// Pause dispatching for the rest of the process lifetime; <see cref="Resume"/> has no effect
+    /// afterwards. For states the process cannot recover from, such as a failed startup.
+    /// </summary>
+    Task Halt(string reason);
+
+    /// <summary>True once <see cref="Halt"/> has been called.</summary>
+    bool IsHalted { get; }
+
     /// <summary>Retrieve the current queue state snapshot for API/SignalR consumption.</summary>
     Task<QueueState> GetState(int maxWaiting = 100, int offset = 0, bool includeBlocked = true, CancellationToken ct = default);
 

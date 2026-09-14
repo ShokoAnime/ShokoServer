@@ -41,7 +41,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// and is therefore unsafe for other clients.
 /// </summary>
 [ApiController]
-[Route("/api/v{version:apiVersion}/[controller]")]
+[Route("/api/v{version:apiVersion}/[controller]"), Tags("Webui")]
 [ApiV3]
 [Authorize]
 public partial class WebUIController(

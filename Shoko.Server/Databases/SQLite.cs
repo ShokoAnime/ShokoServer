@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using Microsoft.Data.Sqlite;
@@ -945,6 +946,60 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                      WHERE CrossReferences LIKE '%AnidbEpisodeID%'
                      """),
         new(163,  1, "ALTER TABLE VideoLocal DROP COLUMN MyListID;"),
+
+        // Both back non-nullable model properties. SQLite cannot tighten in place, so each table is
+        // rebuilt.
+        new(164,  1, MakeAniDB_Anime_TitleTitleNotNull),
+        new(164,  2, MakeVideoLocalDateTimeCreatedNotNull),
+
+        // Six columns SQLite declares as a different type than the other two backends do. SQLite
+        // cannot retype in place either, so each table is rebuilt.
+        new(165,  1, RetypeAniDB_AnimeDates),
+        new(165,  2, RetypeAnimeEpisode_UserUserTags),
+        new(165,  3, RetypeAnimeSeries_UserUserTags),
+        new(165,  4, RetypeTMDB_EpisodeRuntime),
+        new(165,  5, RetypeTMDB_MovieRuntime),
+        new(166,  1, "CREATE TABLE Anilist_Anime ( Anilist_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, MalID INTEGER NULL, EnglishTitle TEXT NOT NULL, MainTitle TEXT NOT NULL, NativeTitle TEXT NOT NULL, Synonyms TEXT NOT NULL, EnglishOverview TEXT NOT NULL, OriginalLanguageCode TEXT NOT NULL, Type INTEGER NOT NULL, ReleasingStatus INTEGER NOT NULL, MediaSource INTEGER NOT NULL, Season INTEGER NULL, SeasonYear INTEGER NULL, CoverImagePath TEXT NOT NULL, BannerImagePath TEXT NOT NULL, TrailerSite TEXT NULL, TrailerID TEXT NULL, EpisodeCount INTEGER NOT NULL, EpisodeDuration INTEGER NULL, UserRating REAL NOT NULL, MeanScore REAL NOT NULL, UserVotes INTEGER NOT NULL, Popularity INTEGER NOT NULL, FavoriteCount INTEGER NOT NULL, IsLicensed INTEGER NOT NULL, IsRestricted INTEGER NOT NULL, Color TEXT NOT NULL, Genres TEXT NOT NULL, FirstAiredAt TEXT NULL, LastAiredAt TEXT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(166,  2, "CREATE TABLE Anilist_Episode ( Anilist_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistEpisodeID INTEGER NOT NULL, AnilistScheduleEpisodeID INTEGER NULL, AnilistAnimeID INTEGER NOT NULL, EpisodeNumber INTEGER NOT NULL, RuntimeMinutes INTEGER NULL, AiredAt DATETIME NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(166,  3, "CREATE TABLE Anilist_Tag ( Anilist_TagID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistTagID INTEGER NOT NULL, Name TEXT NOT NULL, Description TEXT NOT NULL, Category TEXT NOT NULL, IsRestricted INTEGER NOT NULL, IsSpoiler INTEGER NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(166,  4, "CREATE TABLE Anilist_Anime_Tag ( Anilist_Anime_TagID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, AnilistTagID INTEGER NOT NULL, Weight INTEGER NOT NULL, IsLocalSpoiler INTEGER NOT NULL );"),
+        new(166,  5, "CREATE TABLE Anilist_Studio ( Anilist_StudioID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistStudioID INTEGER NOT NULL, Name TEXT NOT NULL, IsAnimationStudio INTEGER NOT NULL, FavoriteCount INTEGER NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(166,  6, "CREATE TABLE Anilist_Anime_Studio ( Anilist_Anime_StudioID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, AnilistStudioID INTEGER NOT NULL, IsMainStudio INTEGER NOT NULL );"),
+        new(166,  7, "CREATE TABLE Anilist_Character ( Anilist_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistCharacterID INTEGER NOT NULL, Name TEXT NOT NULL, OriginalName TEXT NULL, AlternativeNames TEXT NOT NULL, Description TEXT NOT NULL, ImagePath TEXT NULL, Gender INTEGER NOT NULL, DateOfBirth TEXT NULL, Age TEXT NULL, FavoriteCount INTEGER NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(166,  8, "CREATE TABLE Anilist_Creator ( Anilist_CreatorID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistCreatorID INTEGER NOT NULL, Name TEXT NOT NULL, OriginalName TEXT NULL, AlternativeNames TEXT NOT NULL, Description TEXT NOT NULL, ImagePath TEXT NULL, Language TEXT NULL, PrimaryOccupations TEXT NOT NULL, Gender INTEGER NOT NULL, DateOfBirth TEXT NULL, HomeTown TEXT NULL, FavoriteCount INTEGER NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(166,  9, "CREATE TABLE Anilist_Anime_Character ( Anilist_Anime_CharacterID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, AnilistCharacterID INTEGER NOT NULL, Role TEXT NOT NULL, 'Ordering' INTEGER NOT NULL );"),
+        new(166, 10, "CREATE TABLE Anilist_Anime_Character_Creator ( Anilist_Anime_Character_CreatorID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, AnilistCharacterID INTEGER NOT NULL, AnilistCreatorID INTEGER NOT NULL, RoleNotes TEXT NULL, DubGroup TEXT NULL, 'Ordering' INTEGER NOT NULL );"),
+        new(166, 11, "CREATE TABLE Anilist_Anime_Staff ( Anilist_Anime_StaffID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, AnilistCreatorID INTEGER NOT NULL, Role TEXT NOT NULL, 'Ordering' INTEGER NOT NULL );"),
+        new(166, 12, "CREATE TABLE Anilist_Anime_Relation ( Anilist_Anime_RelationID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, RelatedAnilistID INTEGER NOT NULL, RelatedIsAnime INTEGER NOT NULL, RelationType TEXT NOT NULL );"),
+        new(166, 13, "CREATE TABLE CrossRef_AniDB_Anilist_Anime ( CrossRef_AniDB_Anilist_AnimeID INTEGER PRIMARY KEY AUTOINCREMENT, AnidbAnimeID INTEGER NOT NULL, AnilistAnimeID INTEGER NOT NULL, MatchRating INTEGER NOT NULL );"),
+        new(166, 14, "CREATE TABLE CrossRef_AniDB_Anilist_Episode ( CrossRef_AniDB_Anilist_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, AnidbAnimeID INTEGER NOT NULL, AnidbEpisodeID INTEGER NOT NULL, AnilistAnimeID INTEGER NOT NULL, AnilistEpisodeID INTEGER NOT NULL, EpisodeNumber INTEGER NOT NULL, 'Ordering' INTEGER NOT NULL, MatchRating INTEGER NOT NULL );"),
+        new(166, 15, "CREATE INDEX IX_Anilist_Anime_AnilistAnimeID ON Anilist_Anime(AnilistAnimeID);"),
+        new(166, 16, "CREATE INDEX IX_Anilist_Episode_AnilistAnimeID ON Anilist_Episode(AnilistAnimeID);"),
+        new(166, 17, "CREATE INDEX IX_Anilist_Episode_AnilistEpisodeID ON Anilist_Episode(AnilistEpisodeID);"),
+        new(166, 18, "CREATE INDEX IX_Anilist_Tag_AnilistTagID ON Anilist_Tag(AnilistTagID);"),
+        new(166, 19, "CREATE INDEX IX_Anilist_Anime_Tag_AnilistAnimeID ON Anilist_Anime_Tag(AnilistAnimeID);"),
+        new(166, 20, "CREATE INDEX IX_Anilist_Anime_Tag_AnilistTagID ON Anilist_Anime_Tag(AnilistTagID);"),
+        new(166, 21, "CREATE INDEX IX_Anilist_Studio_AnilistStudioID ON Anilist_Studio(AnilistStudioID);"),
+        new(166, 22, "CREATE INDEX IX_Anilist_Anime_Studio_AnilistAnimeID ON Anilist_Anime_Studio(AnilistAnimeID);"),
+        new(166, 23, "CREATE INDEX IX_Anilist_Anime_Studio_AnilistStudioID ON Anilist_Anime_Studio(AnilistStudioID);"),
+        new(166, 24, "CREATE INDEX IX_Anilist_Character_AnilistCharacterID ON Anilist_Character(AnilistCharacterID);"),
+        new(166, 25, "CREATE INDEX IX_Anilist_Creator_AnilistCreatorID ON Anilist_Creator(AnilistCreatorID);"),
+        new(166, 26, "CREATE INDEX IX_Anilist_Anime_Character_AnilistAnimeID ON Anilist_Anime_Character(AnilistAnimeID);"),
+        new(166, 27, "CREATE INDEX IX_Anilist_Anime_Character_AnilistCharacterID ON Anilist_Anime_Character(AnilistCharacterID);"),
+        new(166, 28, "CREATE INDEX IX_Anilist_Anime_Character_Creator_AnilistAnimeID ON Anilist_Anime_Character_Creator(AnilistAnimeID);"),
+        new(166, 29, "CREATE INDEX IX_Anilist_Anime_Character_Creator_AnilistCreatorID ON Anilist_Anime_Character_Creator(AnilistCreatorID);"),
+        new(166, 30, "CREATE INDEX IX_Anilist_Anime_Staff_AnilistAnimeID ON Anilist_Anime_Staff(AnilistAnimeID);"),
+        new(166, 31, "CREATE INDEX IX_Anilist_Anime_Staff_AnilistCreatorID ON Anilist_Anime_Staff(AnilistCreatorID);"),
+        new(166, 32, "CREATE INDEX IX_Anilist_Anime_Relation_AnilistAnimeID ON Anilist_Anime_Relation(AnilistAnimeID);"),
+        new(166, 33, "CREATE INDEX IX_Anilist_Anime_Relation_RelatedAnilistID ON Anilist_Anime_Relation(RelatedAnilistID);"),
+        new(166, 34, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Anime_AnidbAnimeID ON CrossRef_AniDB_Anilist_Anime(AnidbAnimeID);"),
+        new(166, 35, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Anime_AnilistAnimeID ON CrossRef_AniDB_Anilist_Anime(AnilistAnimeID);"),
+        new(166, 36, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnidbAnimeID ON CrossRef_AniDB_Anilist_Episode(AnidbAnimeID);"),
+        new(166, 37, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnidbEpisodeID ON CrossRef_AniDB_Anilist_Episode(AnidbEpisodeID);"),
+        new(166, 38, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnilistAnimeID ON CrossRef_AniDB_Anilist_Episode(AnilistAnimeID);"),
+        new(166, 39, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnilistEpisodeID ON CrossRef_AniDB_Anilist_Episode(AnilistEpisodeID);"),
+        new(166, 40, "CREATE TABLE Anilist_Anime_ExternalLink ( Anilist_Anime_ExternalLinkID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, AnilistLinkID INTEGER NOT NULL, Url TEXT NOT NULL, Site TEXT NOT NULL, AnilistSiteID INTEGER NULL, LinkType TEXT NOT NULL, LanguageCode TEXT NULL );"),
+        new(166, 41, "CREATE INDEX IX_Anilist_Anime_ExternalLink_AnilistAnimeID ON Anilist_Anime_ExternalLink(AnilistAnimeID);"),
     ];
 
     #endregion
@@ -1108,6 +1163,70 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
                     "CREATE UNIQUE INDEX UIX_AniDB_Character_CharID ON AniDB_Character (CharID);",
                 ]
             );
+        }
+        catch (Exception e)
+        {
+            return new Tuple<bool, string?>(false, e.ToString());
+        }
+
+        return new Tuple<bool, string?>(true, null);
+    }
+
+    private static Tuple<bool, string?> MakeAniDB_Anime_TitleTitleNotNull(object connection)
+        => MakeColumnNotNull(connection, "AniDB_Anime_Title", "Title", "''");
+
+    private static Tuple<bool, string?> MakeVideoLocalDateTimeCreatedNotNull(object connection)
+        // DateTimeUpdated is always set and is the closest thing to a creation time on hand.
+        => MakeColumnNotNull(connection, "VideoLocal", "DateTimeCreated", "DateTimeUpdated");
+
+    private static Tuple<bool, string?> MakeColumnNotNull(object connection, string tableName, string columnName, string fillExpression)
+    {
+        try
+        {
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
+            var db = (SqliteConnection)connection;
+            factory.Execute(db, $"UPDATE {tableName} SET {columnName} = {fillExpression} WHERE {columnName} IS NULL;");
+            factory.Alter(db, tableName, factory.NotNullVariantOf(db, tableName, columnName), factory.RecreateIndexesOf(db, tableName));
+        }
+        catch (Exception e)
+        {
+            return new Tuple<bool, string?>(false, e.ToString());
+        }
+
+        return new Tuple<bool, string?>(true, null);
+    }
+
+    private static Tuple<bool, string?> RetypeAniDB_AnimeDates(object connection)
+        // MySQL v171 and SQL Server v167 moved both to `varchar(10)` when they became a
+        // `PartialDateOnly`; SQLite kept the `DATETIME` it was created as, and rows written before
+        // that still carry a time of day the other two dropped.
+        => ChangeColumnTypes(connection, "AniDB_Anime", [("AirDate", "varchar(10)"), ("EndDate", "varchar(10)")],
+            "UPDATE AniDB_Anime SET AirDate = substr(AirDate, 1, 10) WHERE length(AirDate) > 10; UPDATE AniDB_Anime SET EndDate = substr(EndDate, 1, 10) WHERE length(EndDate) > 10;");
+
+    private static Tuple<bool, string?> RetypeAnimeEpisode_UserUserTags(object connection)
+        // Added by an `ALTER TABLE ... ADD COLUMN` that named no type at all, so it has BLOB affinity.
+        => ChangeColumnTypes(connection, "AnimeEpisode_User", [("UserTags", "TEXT")]);
+
+    private static Tuple<bool, string?> RetypeAnimeSeries_UserUserTags(object connection)
+        => ChangeColumnTypes(connection, "AnimeSeries_User", [("UserTags", "TEXT")]);
+
+    private static Tuple<bool, string?> RetypeTMDB_EpisodeRuntime(object connection)
+        // `Runtime` maps `RuntimeMinutes`, an `int?`. The rebuild's own affinity converts the values.
+        => ChangeColumnTypes(connection, "TMDB_Episode", [("Runtime", "INTEGER")]);
+
+    private static Tuple<bool, string?> RetypeTMDB_MovieRuntime(object connection)
+        => ChangeColumnTypes(connection, "TMDB_Movie", [("Runtime", "INTEGER")]);
+
+    private static Tuple<bool, string?> ChangeColumnTypes(object connection, string tableName, IReadOnlyList<(string Column, string Type)> columns, string? fillCommand = null)
+    {
+        try
+        {
+            var factory = (SQLite)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
+            var db = (SqliteConnection)connection;
+            if (fillCommand is not null)
+                factory.Execute(db, fillCommand);
+
+            factory.Alter(db, tableName, factory.RetypedVariantOf(db, tableName, columns), factory.RecreateIndexesOf(db, tableName));
         }
         catch (Exception e)
         {
@@ -1560,6 +1679,68 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
             Execute(db, cmdTable);
         }
     }
+
+    /// <summary>
+    /// The table's own <c>CREATE TABLE</c>, with <paramref name="columnName"/> made <c>NOT NULL</c>.
+    /// </summary>
+    /// <remarks>
+    /// Patched from what the database reports, not written out here: a
+    /// <see cref="DatabaseCommandType.PostDatabaseFix"/> runs after every other command, so a database
+    /// migrating in one pass still has columns one migrating from an older version dropped long ago.
+    /// </remarks>
+    private string NotNullVariantOf(SqliteConnection db, string tableName, string columnName)
+        => NotNullVariantOf((string)ExecuteReader(db, $"SELECT sql FROM sqlite_master WHERE type = 'table' AND name = '{tableName}';")[0][0], columnName);
+
+    /// <inheritdoc cref="NotNullVariantOf(SqliteConnection, string, string)"/>
+    internal static string NotNullVariantOf(string createCommand, string columnName)
+    {
+        // A definition runs between commas, but its type may bracket a comma of its own: decimal(6,2).
+        var definition = new Regex(
+            $@"(?<=[(,]\s*)(?<name>{Regex.Escape(columnName)})(?<type>(?:\s+[^\s,()]+|\s*\([^()]*\))*?)(?<null>\s+(?:NOT\s+)?NULL)?(?=\s*[,)])",
+            RegexOptions.IgnoreCase);
+        var patched = definition.Replace(createCommand, match => $"{match.Groups["name"].Value}{match.Groups["type"].Value} NOT NULL", 1);
+        if (patched == createCommand && !definition.IsMatch(createCommand))
+            throw new InvalidOperationException($"Could not find a definition for `{columnName}` in: {createCommand}");
+
+        return patched;
+    }
+
+    /// <summary>
+    /// Everything that may follow a column's type in a definition. The type is whatever runs between
+    /// the name and the first of these.
+    /// </summary>
+    private const string ColumnConstraints = "CONSTRAINT|PRIMARY|NOT|NULL|UNIQUE|CHECK|DEFAULT|COLLATE|REFERENCES|GENERATED|AS";
+
+    /// <inheritdoc cref="NotNullVariantOf(SqliteConnection, string, string)"/>
+    /// <remarks>The table's own <c>CREATE TABLE</c>, with each column given the type named for it.</remarks>
+    private string RetypedVariantOf(SqliteConnection db, string tableName, IReadOnlyList<(string Column, string Type)> columns)
+        => columns.Aggregate(
+            (string)ExecuteReader(db, $"SELECT sql FROM sqlite_master WHERE type = 'table' AND name = '{tableName}';")[0][0],
+            (createCommand, column) => RetypedVariantOf(createCommand, column.Column, column.Type));
+
+    /// <inheritdoc cref="RetypedVariantOf(SqliteConnection, string, IReadOnlyList{ValueTuple{string, string}})"/>
+    internal static string RetypedVariantOf(string createCommand, string columnName, string type)
+    {
+        // The type may be several words (UNSIGNED BIG INT), bracket a comma (decimal(6,2)), or be
+        // absent entirely, as it is for a column added by an ALTER TABLE that named none.
+        var definition = new Regex(
+            $@"(?<=[(,]\s*)(?<name>{Regex.Escape(columnName)})(?:\s+(?!(?:{ColumnConstraints})\b)[^\s,()]+|\s*\([^()]*\))*(?=\s*[,)]|\s+(?:{ColumnConstraints})\b)",
+            RegexOptions.IgnoreCase);
+        var patched = definition.Replace(createCommand, match => $"{match.Groups["name"].Value} {type}", 1);
+        if (patched == createCommand && !definition.IsMatch(createCommand))
+            throw new InvalidOperationException($"Could not find a definition for `{columnName}` in: {createCommand}");
+
+        return patched;
+    }
+
+    /// <summary>
+    /// Commands to drop and recreate each of the table's indexes. The rename carries them along, names
+    /// and all, so each name has to be freed before it can be reused.
+    /// </summary>
+    private List<string> RecreateIndexesOf(SqliteConnection db, string tableName)
+        => ExecuteReader(db, $"SELECT name, sql FROM sqlite_master WHERE type = 'index' AND tbl_name = '{tableName}' AND sql IS NOT NULL;")
+            .SelectMany(row => new[] { $"DROP INDEX IF EXISTS {(string)row[0]};", $"{(string)row[1]};" })
+            .ToList();
 
     private void Alter(SqliteConnection db, string tableName, string createCommand, IReadOnlyList<string>? indexCommands = null)
     {

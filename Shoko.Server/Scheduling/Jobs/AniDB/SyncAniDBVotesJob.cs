@@ -57,7 +57,7 @@ public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler s
                 r.Password = settings.AniDb.Password!;
             }
         );
-        var response = request.Send();
+        var response = await request.SendAsync();
         if (response.Response == null)
         {
             _logger.LogInformation("Unable to get votes from AniDB");

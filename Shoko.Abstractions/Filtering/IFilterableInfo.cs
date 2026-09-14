@@ -234,6 +234,16 @@ public interface IFilterableInfo
     int MissingAnilistEpisodeLinks { get; }
 
     /// <summary>
+    /// All AniList genres for the filterable.
+    /// </summary>
+    IReadOnlySet<string> AnilistGenres { get; }
+
+    /// <summary>
+    /// All AniList tags for the filterable.
+    /// </summary>
+    IReadOnlySet<string> AnilistTags { get; }
+
+    /// <summary>
     /// Has Finished airing
     /// </summary>
     bool IsFinished { get; }

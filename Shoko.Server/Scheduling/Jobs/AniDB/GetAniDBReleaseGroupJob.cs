@@ -75,7 +75,7 @@ public class GetAniDBReleaseGroupJob(IRequestFactory requestFactory, IVideoRelea
         }
 
         var request = requestFactory.Create<RequestReleaseGroup>(r => r.ReleaseGroupID = GroupID);
-        var response = request.Send();
+        var response = await request.SendAsync();
         if (response.Response is null)
         {
             var xrefsToDelete = new List<CrossRef_File_Episode>();

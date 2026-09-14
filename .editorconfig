@@ -342,6 +342,17 @@ csharp_prefer_braces = true:silent
 csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = true
 
+# Generated code should not surface nullable reference type warnings.
+# The MessagePack source generator (GeneratedMessagePackResolver.g.cs) emits
+# these in its temp-folder output even though it is marked auto-generated.
+[**/*.g.cs]
+dotnet_diagnostic.CS8600.severity = none
+dotnet_diagnostic.CS8601.severity = none
+dotnet_diagnostic.CS8602.severity = none
+dotnet_diagnostic.CS8603.severity = none
+dotnet_diagnostic.CS8604.severity = none
+dotnet_diagnostic.CS8625.severity = none
+
 [src/{Analyzers,CodeStyle,Features,Workspaces,EditorFeatures,VisualStudio}/**/*.{cs,vb}]
 
 # IDE0011: Add braces

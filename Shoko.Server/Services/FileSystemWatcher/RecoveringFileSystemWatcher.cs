@@ -35,7 +35,7 @@ public class RecoveringFileSystemWatcher : IDisposable
     private readonly TimeSpan _directoryFailedRetryInterval = TimeSpan.FromSeconds(5);
     private readonly TimeSpan _directoryRetryInterval = TimeSpan.FromMinutes(5);
     private readonly ILogger _logger;
-    private readonly FileSystemHelpers _fileSystemHelpers;
+    private readonly IFileSystemHelpers _fileSystemHelpers;
     private readonly IReadOnlyCollection<string> _filters;
     private readonly IReadOnlyCollection<Regex> _pathExclusions;
     private readonly ConcurrentDictionary<string, byte> _buffer = new();
@@ -52,7 +52,7 @@ public class RecoveringFileSystemWatcher : IDisposable
     public event EventHandler<string>? FileDeleted;
     public FileSystemWatcherLockOptions Options { get; set; } = new();
 
-    public RecoveringFileSystemWatcher(string path, IReadOnlyCollection<string> filters, IReadOnlyCollection<Regex> pathExclusions, FileSystemHelpers fileSystemHelpers)
+    public RecoveringFileSystemWatcher(string path, IReadOnlyCollection<string> filters, IReadOnlyCollection<Regex> pathExclusions, IFileSystemHelpers fileSystemHelpers)
     {
         if (path == null) throw new ArgumentException(nameof(path) + " cannot be null");
         if (!Directory.Exists(path)) throw new ArgumentException(nameof(path) + $" must be a directory that exists: {path}");

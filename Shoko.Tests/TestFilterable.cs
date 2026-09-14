@@ -33,8 +33,8 @@ public class TestFilterable : IFilterableInfo
     public IReadOnlySet<string> CustomTags { get; init; } = null!;
     public IReadOnlySet<int> Years { get; init; } = null!;
     public IReadOnlySet<(int year, YearlySeason season)> Seasons { get; init; } = null!;
-    public IReadOnlySet<ImageEntityType> AvailableImageTypes { get; } = null!;
-    public IReadOnlySet<ImageEntityType> PreferredImageTypes { get; } = null!;
+    public IReadOnlySet<ImageEntityType> AvailableImageTypes { get; init; } = null!;
+    public IReadOnlySet<ImageEntityType> PreferredImageTypes { get; init; } = null!;
     public bool HasTmdbLink { get; init; }
     public bool HasTmdbAutoLinkingDisabled { get; init; }
     public bool HasMissingTmdbLink { get; init; }
@@ -93,4 +93,6 @@ public class TestFilterable : IFilterableInfo
     public IReadOnlySet<string> TmdbShowGenres { get; init; } = null!;
     public IReadOnlySet<string> TmdbKeywords { get; init; } = null!;
     public IReadOnlySet<string> TmdbGenres { get; init; } = null!;
+    public IReadOnlySet<string> AnilistGenres { get; init; } = null!;
+    public IReadOnlySet<string> AnilistTags { get; init; } = null!;
 }

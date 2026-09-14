@@ -41,7 +41,7 @@ public class VoteAniDBEpisodeJob(IRequestFactory requestFactory, AnimeEpisodeRep
         { "Vote", VoteValue },
     };
 
-    public override Task Execute()
+    public override async Task Execute()
     {
         _logger.LogInformation("Processing {Job} for {EpisodeID} | {Value}", nameof(VoteAniDBEpisodeJob), EpisodeID, VoteValue);
 
@@ -52,7 +52,6 @@ public class VoteAniDBEpisodeJob(IRequestFactory requestFactory, AnimeEpisodeRep
                 r.Value = VoteValue;
             }
         );
-        vote.Send();
-        return Task.CompletedTask;
+        await vote.SendAsync();
     }
 }

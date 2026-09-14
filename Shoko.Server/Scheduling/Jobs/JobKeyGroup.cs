@@ -4,6 +4,7 @@ public static class JobKeyGroup
 {
     public const string Actions = "Actions";
     public const string AniDB = "AniDB";
+    public const string Anilist = "Anilist";
     public const string Image = "Image";
     public const string Import = "Import";
     public const string Legacy = "Legacy";

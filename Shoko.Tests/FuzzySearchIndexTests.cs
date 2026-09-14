@@ -134,6 +134,29 @@ public class FuzzySearchIndexTests
     public void MinEditDistInText_ReturnsCorrectEditCount(string query, string text, int expected)
         => Assert.Equal(expected, SeriesSearch.MinEditDistInText(query, text));
 
+    // ── TryGetFuzzyDistance ──────────────────────────────────────────────────
+
+    [Theory]
+    // Title at least as long as the query — free slop in the title, same as MinEditDistInText.
+    [InlineData("bleach", "bleach the movie memories of nobody", true, 0)]
+    [InlineData("kimetzu", "kimetsu no yaiba", true, 1)]
+    // Query longer than the title — the slop moves to the query and is free.
+    [InlineData("sousou no frieren 2023", "sousou no frieren", true, 0)]
+    [InlineData("bleach 2004", "bleach", true, 0)]
+    [InlineData("steins gate 2011", "steins gate", true, 0)]
+    // Query longer than the title, with a typo on top of the trailing slop.
+    [InlineData("stiens gate 2011", "steins gate", true, 1)]
+    // Title shorter than half the query — too little to say anything, so no distance.
+    [InlineData("gate keepers 2000", "gk", false, 0)]
+    [InlineData("bleach thousand year blood war", "bleach", false, 0)]
+    public void TryGetFuzzyDistance_IsSymmetricWithinTheLengthGuard(string query, string title, bool expectedComparable, int expectedDistance)
+    {
+        var comparable = SeriesSearch.TryGetFuzzyDistance(query, title, out var distance);
+        Assert.Equal(expectedComparable, comparable);
+        if (expectedComparable)
+            Assert.Equal(expectedDistance, distance);
+    }
+
     // ── Exact and substring search ───────────────────────────────────────────
 
     [Theory]
@@ -291,5 +314,60 @@ public class FuzzySearchIndexTests
     {
         // Trigrams of this nonsense string ("zzk", "zkz", "kzq", ...) do not appear in any test title.
         Assert.Empty(Search("zzzkzqxqzqxkzqxq"));
+    }
+
+    // ── Trailing qualifiers in the query (e.g. " (<year>)") ──────────────────
+
+    [Theory]
+    // The year is not part of any stored title, so the query is longer than everything it should match.
+    [InlineData("Bleach (2004)", 2369)]
+    [InlineData("Steins;Gate (2011)", 9018)]
+    [InlineData("Ramen Aka Neko (2024)", 18289)]
+    [InlineData("Gate Keepers (2000)", 91)]
+    [InlineData("Whisper Me a Love Song (2024)", 17819)]
+    // Brackets and a bare year normalize to the same thing as parentheses.
+    [InlineData("Ramen Aka Neko [2024]", 18289)]
+    [InlineData("Ramen Aka Neko 2024", 18289)]
+    // A typo on top of the trailing year still lands within the error budget.
+    [InlineData("Stiens Gate (2011)", 9018)]
+    // Other trailing qualifiers behave the same way.
+    [InlineData("Gate Keepers (TV)", 91)]
+    public void Search_QueryWithTrailingQualifier_StillFindsAnime(string query, int expectedAnimeId)
+    {
+        var results = Search(query).ToList();
+        Assert.Contains(results, r => r.Result.AnimeId == expectedAnimeId);
+    }
+
+    [Fact]
+    public void Search_TitleWithYearMatchedByQueryWithout_StillFindsAnime()
+    {
+        // The mirror case: "Boku no Hero Academia (2024)" is the stored title.
+        var results = Search("Boku no Hero Academia").ToList();
+        Assert.Contains(results, r => r.Result.AnimeId == 17931);
+    }
+
+    [Fact]
+    public void Search_TrailingQualifier_DoesNotSetExactMatchFlag()
+    {
+        // The year is slop, not a substring match, so it must not rank as an exact hit.
+        var results = Search("Ramen Aka Neko (2024)").ToList();
+        var target = results.First(r => r.Result.AnimeId == 18289);
+        Assert.False(target.ExactMatch);
+    }
+
+    [Fact]
+    public void Search_NonFuzzy_TrailingQualifierDoesNotMatch()
+    {
+        // Tolerating the trailing year is a fuzzy affordance; strict mode must stay strict.
+        var results = Search("Bleach (2004)", fuzzy: false).ToList();
+        Assert.DoesNotContain(results, r => r.Result.AnimeId == 2369);
+    }
+
+    [Fact]
+    public void Search_ShortTitle_DoesNotMatchMuchLongerQuery()
+    {
+        // "GK" is short enough that free query slop would otherwise match nearly anything.
+        var results = Search("GK Gekijouban Blue Lock Episode Nagi").ToList();
+        Assert.DoesNotContain(results, r => r.Result.AnimeId == 91);
     }
 }

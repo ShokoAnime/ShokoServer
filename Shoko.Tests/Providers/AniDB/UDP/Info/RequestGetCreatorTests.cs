@@ -2,7 +2,7 @@ using System;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Info;
@@ -17,7 +17,7 @@ public class RequestGetCreatorTests
     public RequestGetCreatorTests()
     {
         var loggerFactory = Mock.Of<ILoggerFactory>();
-        var handler = Mock.Of<IUDPConnectionHandler>();
+        var handler = Mock.Of<IAniDbUdpRequestChannel>();
         _request = new RequestGetCreator(loggerFactory, handler);
     }
 
@@ -87,7 +87,7 @@ public class RequestGetCreatorTests
         // type 1 = Person, 2 = Company, 3 = Collaboration, 4 = Other
         static void TestType(int typeValue, CreatorType expected)
         {
-            var r = new RequestGetCreator(Mock.Of<ILoggerFactory>(), Mock.Of<IUDPConnectionHandler>());
+            var r = new RequestGetCreator(Mock.Of<ILoggerFactory>(), Mock.Of<IAniDbUdpRequestChannel>());
             var resp = new UDPResponse<string>
             {
                 Code = UDPReturnCode.CREATOR,

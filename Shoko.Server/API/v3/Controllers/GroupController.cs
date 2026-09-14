@@ -283,19 +283,21 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     #region All images
 
     /// <summary>
-    /// Get all images for group with ID, optionally with Disabled images, as well.
+    /// Get every image for the group, grouped by image type.
     /// </summary>
     /// <param name="groupID">Shoko Group ID</param>
-    /// <param name="showLinkedIDs"></param>
-    /// <param name="includeDisabled"></param>
-    /// <param name="includeUndesired"></param>
-    /// <returns></returns>
+    /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
+    /// <param name="includeDisabled">Include disabled images.</param>
+    /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
+    /// <returns>Every image for the group, grouped by image type.</returns>
     [HttpGet("{groupID}/Images")]
     public ActionResult<Images> GetSeriesImages(
         [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
-        [FromQuery] bool includeUndesired = false
+        [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
@@ -312,7 +314,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToDto(showLinkedIDs: showLinkedIDs);
+            .ToDto(showLinkedIDs: showLinkedIDs, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
     }
 
     /// <summary>
@@ -323,6 +325,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="showLinkedIDs">Include linked image IDs in the response.</param>
     /// <param name="includeDisabled">Include disabled images.</param>
     /// <param name="includeUndesired">Include undesired images.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching each image from its source. Defaults to only doing so for images the server does not hold locally.</param>
     /// <param name="pageSize">Number of results per page (0-100, default 50).</param>
     /// <param name="page">Page number (default 1).</param>
     /// <returns>A paginated list of images.</returns>
@@ -333,6 +336,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         [FromQuery] bool showLinkedIDs = false,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool includeUndesired = false,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -351,7 +355,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToListResult(image => new Image(image, showLinkedIDs), page, pageSize);
+            .ToListResult(image => new Image(image, showLinkedIDs, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize);
     }
 
     #endregion
@@ -364,6 +368,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="groupID">Shoko Group ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="file">The image file to upload.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
     [Authorize("admin")]
     [HttpPost("{groupID}/Images/{imageType}/Upload")]
@@ -372,7 +377,8 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     public ActionResult<Image> UploadImageForGroup(
         [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] ImageEntityType imageType,
-        IFormFile file
+        IFormFile file,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
@@ -395,11 +401,11 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
                 IsDesired = true,
                 Source = DataSource.User,
             });
-            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref)));
+            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)));
         }
         catch (ImageCrossReferenceExistsException ex)
         {
-            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference)));
+            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(ex.Image.Source)));
         }
         catch (ArgumentException ex)
         {
@@ -412,10 +418,12 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// </summary>
     /// <param name="groupID">Shoko Group ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns></returns>
     [HttpGet("{groupID}/Images/{imageType}/Default")]
     public ActionResult<Image> GetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromRoute] ImageEntityType imageType)
+        [FromRoute] ImageEntityType imageType,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
@@ -426,7 +434,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
 
         var preferredImage = ((IWithImages)group).GetPreferredImageForType(imageType);
         if (preferredImage is not null)
-            return new Image(preferredImage);
+            return new Image(preferredImage, false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(preferredImage.Source));
 
         var images = ((IWithImages)group).GetImages(new() { ImageType = imageType }).ToDto();
         var image = imageType switch
@@ -451,11 +459,13 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="groupID">Shoko Group ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="body">The body containing the source and id used to set.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns></returns>
     [Authorize("admin")]
     [HttpPut("{groupID}/Images/{imageType}/Default")]
     public ActionResult<Image> SetSeriesDefaultImageForType([FromRoute, Range(1, int.MaxValue)] int groupID,
-        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body)
+        [FromRoute] ImageEntityType imageType, [FromBody] Image.Input.DefaultImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
@@ -469,7 +479,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             return NotFound(ImageNotFound);
 
         var xref = _imageManager.SetPreferredImageForEntity(group, imageType, image);
-        return new Image(ImageStub.Wrap(image, xref));
+        return new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source));
     }
 
     /// <summary>

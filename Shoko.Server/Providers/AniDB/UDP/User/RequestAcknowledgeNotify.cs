@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
@@ -31,7 +30,7 @@ public class RequestAcknowledgeNotify : UDPRequest<Void>
         }
     }
 
-    public RequestAcknowledgeNotify(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestAcknowledgeNotify(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

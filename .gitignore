@@ -8,6 +8,7 @@
 .memory
 /.claude/
 /.junie/
+/.opencode/
 
 # Build results
 [Bb]in/

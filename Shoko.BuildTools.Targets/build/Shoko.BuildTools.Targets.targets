@@ -2,6 +2,8 @@
   <!--
     Shoko.BuildTools.Targets — Auto-imported targets for Shoko plugins.
     Injects assembly metadata from manifest.json and git at build time.
+    PluginID, PluginName, PluginOverview, PluginTags and PluginDependencies
+    override what the manifest or the source says.
   -->
 
   <!-- RuntimeIdentifier — explicit RID or "any" for portable libraries -->
@@ -17,7 +19,12 @@
   <Target Name="_ShokoStampManifestMetadata" BeforeTargets="CoreGenerateAssemblyInfo"
           Condition="Exists('$(MSBuildProjectDirectory)\manifest.json') or Exists('$(MSBuildProjectDirectory)\..\manifest.json')">
     <ReadPluginManifest ProjectDir="$(MSBuildProjectDirectory)"
-                        OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.ManifestInfo.cs" />
+                        OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.ManifestInfo.cs"
+                        PluginID="$(PluginID)"
+                        PluginName="$(PluginName)"
+                        PluginOverview="$(PluginOverview)"
+                        PluginTags="$(PluginTags)"
+                        PluginDependencies="$(PluginDependencies)" />
     <ItemGroup>
       <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.ManifestInfo.cs" />
     </ItemGroup>
@@ -31,7 +38,12 @@
           Condition="!Exists('$(MSBuildProjectDirectory)\manifest.json') And !Exists('$(MSBuildProjectDirectory)\..\manifest.json')">
     <ReadPluginIdentityFromSource ProjectDir="$(MSBuildProjectDirectory)"
                                   OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.PluginIdentity.cs"
-                                  NuGetPackageRoot="$(NuGetPackageRoot)" />
+                                  NuGetPackageRoot="$(NuGetPackageRoot)"
+                                  PluginID="$(PluginID)"
+                                  PluginName="$(PluginName)"
+                                  PluginOverview="$(PluginOverview)"
+                                  PluginTags="$(PluginTags)"
+                                  PluginDependencies="$(PluginDependencies)" />
     <ItemGroup>
       <Compile Include="$(IntermediateOutputPath)Shoko.BuildTools.PluginIdentity.cs" Condition="Exists('$(IntermediateOutputPath)Shoko.BuildTools.PluginIdentity.cs')" />
     </ItemGroup>

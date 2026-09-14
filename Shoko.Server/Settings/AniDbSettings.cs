@@ -6,7 +6,7 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
-using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Settings;
@@ -14,7 +14,7 @@ namespace Shoko.Server.Settings;
 [Section(DisplaySectionType.Minimal)]
 public class AniDbSettings
 {
-    private IUDPConnectionHandler? _udpHandler;
+    private AniDBUDPConnectionHandler? _udpHandler;
 
     /// <summary>
     /// AniDB username.
@@ -44,13 +44,13 @@ public class AniDbSettings
         var currentConfig = context.ConfigurationService.Load<ServerSettings>();
         try
         {
-            _udpHandler ??= context.PluginManager.GetRequiredService<IUDPConnectionHandler>();
+            _udpHandler ??= context.PluginManager.GetRequiredService<AniDBUDPConnectionHandler>();
             if (!_udpHandler.IsAlive)
-                _udpHandler.Init(Username, Password, currentConfig.AniDb.UDPServerAddress, currentConfig.AniDb.UDPServerPort, currentConfig.AniDb.ClientPort);
+                _udpHandler.InitAsync(Username, Password, currentConfig.AniDb.UDPServerAddress, currentConfig.AniDb.UDPServerPort, currentConfig.AniDb.ClientPort).GetAwaiter().GetResult();
             else
-                _udpHandler.ForceLogout();
+                _udpHandler.ForceLogoutAsync().GetAwaiter().GetResult();
 
-            if (!_udpHandler.TestLogin(Username, Password))
+            if (!_udpHandler.TestLoginAsync(Username, Password).GetAwaiter().GetResult())
             {
                 context.Logger.LogInformation("Failed AniDB Login and Connection");
                 return new("Unable to log in with the provided credentials.", DisplayColorTheme.Warning);

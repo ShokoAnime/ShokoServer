@@ -79,6 +79,10 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
                 series.ResetPreferredTitle();
                 series.ResetPreferredOverview();
                 series.ResetAnimeTitles();
+                // Resetting only drops the memo, so read it back to keep this a warm-up.
+                _ = series.PreferredTitle;
+                _ = series.PreferredOverview;
+                _ = series.Titles;
             }
 
             var sers = Cache.GetAll().Where(a => a.AnimeGroupID == 0 || RepoFactory.AnimeGroup.GetByID(a.AnimeGroupID) == null).ToList();
@@ -125,7 +129,7 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         Save(obj, true);
     }
 
-    public void Save(AnimeSeries obj, bool updateGroups, bool alsoupdateepisodes = false)
+    public virtual void Save(AnimeSeries obj, bool updateGroups, bool alsoupdateepisodes = false)
     {
         var animeID = obj.AniDB_Anime?.MainTitle ?? obj.AniDB_ID.ToString();
         logger.Trace($"Saving Series {animeID}");

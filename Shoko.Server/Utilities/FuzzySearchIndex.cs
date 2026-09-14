@@ -143,9 +143,8 @@ public class FuzzySearchIndex<T>
                         Result = item,
                     };
                 }
-                else if (fuzzy && normalized.Length >= normalizedQuery.Length - maxErrors && SeriesSearch.IsLatinScript(normalized))
+                else if (fuzzy && SeriesSearch.IsLatinScript(normalized) && SeriesSearch.TryGetFuzzyDistance(normalizedQuery, normalized, out var dist))
                 {
-                    var dist = SeriesSearch.MinEditDistInText(normalizedQuery, normalized);
                     if (dist > maxErrors)
                         continue;
 

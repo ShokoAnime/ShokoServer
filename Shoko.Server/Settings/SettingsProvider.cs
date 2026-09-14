@@ -84,7 +84,7 @@ public class SettingsProvider : ISettingsProvider, IDisposable
             // Reset all preferred titles when the language setting has been updated.
             var animeSeriesRepository = ISystemService.StaticServices.GetRequiredService<AnimeSeriesRepository>();
             var anidbAnimeRepository = ISystemService.StaticServices.GetRequiredService<AniDB_AnimeRepository>();
-            Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredTitle());
+            Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => { series.ResetPreferredTitle(); _ = series.PreferredTitle; });
             Parallel.ForEach(anidbAnimeRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, anime => anime.ResetPreferredTitle());
             shouldRenameAllGroups = true;
         }
@@ -110,7 +110,7 @@ public class SettingsProvider : ISettingsProvider, IDisposable
 
             // Reset all preferred overviews when the language setting has been updated.
             var animeSeriesRepository = ISystemService.StaticServices.GetRequiredService<AnimeSeriesRepository>();
-            Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => series.ResetPreferredOverview());
+            Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => { series.ResetPreferredOverview(); _ = series.PreferredOverview; });
             shouldRenameAllGroups = true;
         }
 

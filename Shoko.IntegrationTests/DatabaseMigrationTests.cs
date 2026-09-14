@@ -6,8 +6,8 @@ namespace Shoko.IntegrationTests;
 /// Verifies that all database migrations run without error against the backend
 /// configured via environment variables (see <see cref="DatabaseMigrationFixture"/>).
 /// </summary>
-[Collection("Database")]
-public class DatabaseMigrationTests : IClassFixture<DatabaseMigrationFixture>
+[Collection(DatabaseCollection.Name)]
+public class DatabaseMigrationTests
 {
     private readonly DatabaseMigrationFixture _fixture;
 

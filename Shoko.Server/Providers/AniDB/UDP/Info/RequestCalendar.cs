@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Info;
@@ -68,7 +67,7 @@ public class RequestCalendar : UDPRequest<ResponseCalendar>
         return new UDPResponse<ResponseCalendar> { Response = calendar, Code = code };
     }
 
-    public RequestCalendar(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory, handler)
+    public RequestCalendar(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory, handler)
     {
     }
 }

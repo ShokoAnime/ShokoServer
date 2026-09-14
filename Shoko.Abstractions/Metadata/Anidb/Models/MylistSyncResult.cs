@@ -37,6 +37,37 @@ public record MylistSyncResult
     public int EntriesQueuedForRemoval { get; init; }
 
     /// <summary>
+    ///   How many entries the local library no longer has the file for were
+    ///   left alone because the delete type marks entries with a state they
+    ///   already hold. A marked entry stays in the MyList and so keeps reading
+    ///   as missing, with nothing left to write to it, which is why these are
+    ///   reported rather than counted towards
+    ///   <see cref="EntriesQueuedForRemoval"/>.
+    /// </summary>
+    public int EntriesAlreadyDisposed { get; init; }
+
+    /// <summary>
+    ///   How many generic entries that record nothing were left alone because
+    ///   the delete type marks entries with a state they already hold. A marked
+    ///   entry stays in the MyList and so keeps reading as vestigial, with
+    ///   nothing left to write to it, which is why these are reported rather
+    ///   than counted towards <see cref="EpisodesQueuedForRemoval"/>.
+    /// </summary>
+    public int EpisodesAlreadyDisposed { get; init; }
+
+    /// <summary>
+    ///   How many steps the sync had nothing to do for, across everything it
+    ///   looked at: entries already in sync, files already in the MyList,
+    ///   episodes a file entry already covers, and so on. The other counts here
+    ///   for things left alone are each a part of this one.
+    ///
+    ///   Counted whether or not
+    ///   <see cref="MylistSyncOptions.IncludeNoOperations"/> kept them, so it
+    ///   also says how much longer the plan would be with that turned on.
+    /// </summary>
+    public int NoOperations { get; init; }
+
+    /// <summary>
     ///   How many entries were left alone because the sync could not tell
     ///   whether they were generic. See <c>MyList_UseGenericFileIndex</c>.
     /// </summary>

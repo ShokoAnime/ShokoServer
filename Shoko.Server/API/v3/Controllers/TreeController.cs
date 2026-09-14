@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.Annotations;
@@ -37,7 +38,7 @@ public class TreeController(ISettingsProvider settingsProvider,
     /// <param name="randomImages">Randomize images shown for the <see cref="Group"/>.</param>
     /// <param name="includeEmpty">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the search.</param>
     /// <returns></returns>
-    [HttpGet("Group/{groupID}/Group")]
+    [HttpGet("Group/{groupID}/Group"), Tags("Group")]
     public ActionResult<List<Group>> GetSubGroups([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool randomImages = false,
         [FromQuery] bool includeEmpty = true)
     {
@@ -68,7 +69,7 @@ public class TreeController(ISettingsProvider settingsProvider,
     /// <param name="randomImages">Randomize images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
-    [HttpGet("Group/{groupID}/Series")]
+    [HttpGet("Group/{groupID}/Series"), Tags("Group")]
     public ActionResult<List<Series>> GetSeriesInGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool recursive = false,
         [FromQuery] bool includeMissing = true, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
@@ -99,7 +100,7 @@ public class TreeController(ISettingsProvider settingsProvider,
     /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
     /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
     /// <returns></returns>
-    [HttpGet("Group/{groupID}/MainSeries")]
+    [HttpGet("Group/{groupID}/MainSeries"), Tags("Group")]
     public ActionResult<Series> GetMainSeriesInGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool randomImages = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
     {
@@ -130,7 +131,7 @@ public class TreeController(ISettingsProvider settingsProvider,
     /// <param name="releaseProviders">Filter to only include files from certain release providers. Append <c>!</c> to the provider name to exclude the files</param>
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <returns></returns>
-    [HttpGet("Series/{seriesID}/File")]
+    [HttpGet("Series/{seriesID}/File"), Tags("Series")]
     public ActionResult<ListResult<File>> GetFilesForSeries(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
@@ -166,7 +167,7 @@ public class TreeController(ISettingsProvider settingsProvider,
     /// <param name="releaseProviders">Filter to only include files from certain release providers. Append <c>!</c> to the provider name to exclude the files</param>
     /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
     /// <returns></returns>
-    [HttpGet("Episode/{episodeID}/File")]
+    [HttpGet("Episode/{episodeID}/File"), Tags("Episode")]
     public ActionResult<ListResult<File>> GetFilesForEpisode([FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1,

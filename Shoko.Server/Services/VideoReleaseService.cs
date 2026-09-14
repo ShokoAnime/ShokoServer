@@ -795,10 +795,11 @@ public class VideoReleaseService(
         // Convert back to IReleaseInfo so StoredReleaseInfo can consume it.
         var preparedRelease = release as ReleaseInfoWithProvider ?? new ReleaseInfoWithProvider(release);
         var releaseInfo = new StoredReleaseInfo(video, preparedRelease);
-        if (!CheckCrossReferences(video, releaseInfo, out var legacyXrefs))
-            throw new InvalidOperationException($"Release have {preparedRelease.CrossReferences.Count - legacyXrefs.Count} invalid cross reference(s).");
+        var (validXrefs, legacyXrefs, invalidXrefs) = await CheckCrossReferencesAsync(video, releaseInfo);
+        if (!validXrefs)
+            throw new InvalidOperationException($"Release have {invalidXrefs} invalid cross reference(s).");
 
-        var missingAnidbReleaseGroupId = CheckReleaseGroup(releaseInfo);
+        var missingAnidbReleaseGroupId = await CheckReleaseGroupAsync(releaseInfo);
 
         // Ensure we don't have an empty list of hashes.
         if (releaseInfo.Hashes is { } hashes)
@@ -898,14 +899,12 @@ public class VideoReleaseService(
 
     #region Save Release | Internals
 
-    private bool CheckCrossReferences(IVideo video, StoredReleaseInfo releaseInfo, out List<CrossRef_File_Episode> legacyXrefs)
+    private async Task<(bool, List<CrossRef_File_Episode>, int)> CheckCrossReferencesAsync(IVideo video, StoredReleaseInfo releaseInfo, CancellationToken cancellationToken = default)
     {
-        legacyXrefs = [];
+        var legacyXrefs = new List<CrossRef_File_Episode>();
+        var invalidXrefs = 0;
 
-        var edgeCases = 0;
         var legacyOrder = 0;
-        var fileName = (video.Files.FirstOrDefault(loc => loc.IsAvailable) ?? video.Files.FirstOrDefault())?.FileName ?? string.Empty;
-        var checkedIDs = new HashSet<int>();
         var embeddedXrefs = new List<EmbeddedCrossReference>();
         foreach (var xrefGroup in releaseInfo.CrossReferences.OfType<EmbeddedCrossReference>().GroupBy(xref => xref.AnidbEpisodeID))
         {
@@ -914,12 +913,14 @@ public class VideoReleaseService(
             if (episodeID is <= 0)
             {
                 logger.LogError("Negative or zero episode id: {EpisodeID}!", episodeID);
+                invalidXrefs += xrefGroup.Count();
                 continue;
             }
 
             if (_unknownEpisodeIDs.Contains(firstXref.AnidbEpisodeID))
             {
                 logger.LogError("Unknown episode id: {EpisodeID}!", firstXref.AnidbEpisodeID);
+                invalidXrefs += xrefGroup.Count();
                 continue;
             }
 
@@ -947,14 +948,15 @@ public class VideoReleaseService(
                     logger.LogInformation("Could not get AnimeID for episode {EpisodeID}, downloading more info…", firstXref.AnidbEpisodeID);
                     try
                     {
-                        var episodeResponse = requestFactory
+                        var episodeResponse = await requestFactory
                             .Create<RequestGetEpisode>(r => r.EpisodeID = firstXref.AnidbEpisodeID)
-                            .Send();
+                            .SendAsync(cancellationToken);
                         animeID = episodeResponse.Response?.AnimeID;
                         if (episodeResponse.Code is UDPReturnCode.NO_SUCH_EPISODE)
                         {
                             logger.LogError("Unknown episode with id {EpisodeID}!", firstXref.AnidbEpisodeID);
                             _unknownEpisodeIDs.Add(firstXref.AnidbEpisodeID);
+                            invalidXrefs += xrefGroup.Count();
                             continue;
                         }
                     }
@@ -968,25 +970,24 @@ public class VideoReleaseService(
             var xrefList = new List<EmbeddedCrossReference>();
             foreach (var xref in xrefGroup)
             {
-                // The percentage range cannot be 0.
-                if (xref.PercentageEnd == xref.PercentageStart)
-                    continue;
+                // The percentage range must be between 0 and 100.
+                xref.PercentageStart = Math.Clamp(xref.PercentageStart, 0, 100);
+                xref.PercentageEnd = Math.Clamp(xref.PercentageEnd, 0, 100);
 
                 // Reverse the percentage range if it is backwards.
                 if (xref.PercentageEnd < xref.PercentageStart)
                     (xref.PercentageEnd, xref.PercentageStart) = (xref.PercentageStart, xref.PercentageEnd);
 
-                // The percentage range must be between 0 and 100.
-                if (xref.PercentageEnd > 100)
-                    xref.PercentageEnd = 100;
-                if (xref.PercentageStart < 0)
-                    xref.PercentageStart = 0;
+                // A zero-length range covers nothing, so correct it to cover the whole episode.
+                if (xref.PercentageEnd == xref.PercentageStart)
+                    (xref.PercentageStart, xref.PercentageEnd) = (0, 100);
 
                 xrefList.Add(xref);
             }
 
-            // This clause is for the cases where a file is linked 100% to an episode, and have an
-            // additional relation that's not 100% to the same episode.
+            // A provider may list the same episode both as the base episode and as a related
+            // episode. That's allowed, and the related entry overrides the base entry's range,
+            // so drop the full-range entries whenever a narrower range exists for the episode.
             if (
                 xrefList.Count > 1 &&
                 xrefList.Any(xref => xref is { PercentageStart: 0, PercentageEnd: 100 }) &&
@@ -994,12 +995,11 @@ public class VideoReleaseService(
             )
             {
                 while (xrefList.FindIndex(xref => xref is { PercentageStart: 0, PercentageEnd: 100 }) is { } index && index is not -1)
-                {
                     xrefList.RemoveAt(index);
-                    edgeCases++;
-                }
             }
 
+            // Entries that overlap exactly collapse into one. This is the same override as above,
+            // for when the base and related entries happen to share a range.
             foreach (var xref in xrefList.DistinctBy(xref => (xref.PercentageStart, xref.PercentageEnd)))
             {
                 // If we got this far and the anime ID is set, then apply it now.
@@ -1019,14 +1019,16 @@ public class VideoReleaseService(
             }
         }
 
-        if (embeddedXrefs.Count != releaseInfo.CrossReferences.Count - edgeCases)
-            return false;
+        // Collapsing overlapping entries above is deliberate, not a failure, so only
+        // cross-references we actually rejected count against the release.
+        if (invalidXrefs > 0 || embeddedXrefs.Count < 1)
+            return (false, legacyXrefs, invalidXrefs);
 
         releaseInfo.CrossReferences = embeddedXrefs;
-        return true;
+        return (true, legacyXrefs, invalidXrefs);
     }
 
-    private int? CheckReleaseGroup(StoredReleaseInfo releaseInfo)
+    private async Task<int?> CheckReleaseGroupAsync(StoredReleaseInfo releaseInfo, CancellationToken cancellationToken = default)
     {
         if (
             string.IsNullOrWhiteSpace(releaseInfo.GroupID) ||
@@ -1090,9 +1092,9 @@ public class VideoReleaseService(
         // Otherwise try to fetch group info from AniDB.
         try
         {
-            var response = requestFactory
+            var response = await requestFactory
                 .Create<RequestReleaseGroup>(r => r.ReleaseGroupID = groupID)
-                .Send();
+                .SendAsync(cancellationToken);
             if (response.Response is not null)
             {
                 if (

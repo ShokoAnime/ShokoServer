@@ -53,12 +53,13 @@ public interface IEpisode : IWithTitles, IWithDescriptions, IWithBackdropImage, 
     TimeSpan Runtime { get; }
 
     /// <summary>
-    /// The day the episode aired, if available.
+    /// The day the episode aired, if available. When a precise air time is
+    /// known this is its UTC calendar day, so the two never disagree.
     /// </summary>
     DateOnly? AirDate { get; }
 
     /// <summary>
-    ///   The precise day and time the episode aired, if available.
+    ///   The precise day and time the episode aired in UTC, if available.
     /// </summary>
     DateTime? AirDateWithTime { get; }
 

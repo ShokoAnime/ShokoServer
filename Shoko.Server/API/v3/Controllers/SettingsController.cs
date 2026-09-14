@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -11,7 +13,7 @@ using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -19,16 +21,16 @@ using Shoko.Server.Utilities;
 namespace Shoko.Server.API.v3.Controllers;
 
 [ApiController]
-[Route("/api/v{version:apiVersion}/[controller]")]
+[Route("/api/v{version:apiVersion}/[controller]"), Tags("Configuration")]
 [ApiV3]
 [Authorize(Roles = "admin,init")]
 [DatabaseBlockedExempt]
 [InitFriendly]
-public class SettingsController(ISettingsProvider settingsProvider, ConfigurationProvider<ServerSettings> configurationProvider, ILogger<SettingsController> logger, IUDPConnectionHandler udpHandler) : BaseController(settingsProvider)
+public class SettingsController(ISettingsProvider settingsProvider, ConfigurationProvider<ServerSettings> configurationProvider, ILogger<SettingsController> logger, AniDBUDPConnectionHandler udpHandler) : BaseController(settingsProvider)
 {
     private readonly ConfigurationProvider<ServerSettings> _configurationProvider = configurationProvider;
 
-    private readonly IUDPConnectionHandler _udpHandler = udpHandler;
+    private readonly AniDBUDPConnectionHandler _udpHandler = udpHandler;
 
     private readonly ILogger<SettingsController> _logger = logger;
 
@@ -72,8 +74,9 @@ public class SettingsController(ISettingsProvider settingsProvider, Configuratio
     /// <param name="credentials">POST the body as a <see cref="Credentials"/> object</param>
     /// <returns></returns>
     [HttpPost("AniDB/TestLogin")]
-    public ActionResult TestAniDB([FromBody] Credentials credentials)
+    public async Task<ActionResult> TestAniDB([FromBody] Credentials credentials)
     {
+        var cancellationToken = HttpContext.RequestAborted;
         _logger.LogInformation("Testing AniDB Login and Connection");
         if (string.IsNullOrWhiteSpace(credentials.Username))
             ModelState.AddModelError(nameof(credentials.Username), "Username cannot be empty.");
@@ -89,10 +92,10 @@ public class SettingsController(ISettingsProvider settingsProvider, Configuratio
 
         var settings = SettingsProvider.GetSettings();
         if (!_udpHandler.IsAlive)
-            _udpHandler.Init(credentials.Username, credentials.Password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort);
-        else _udpHandler.ForceLogout();
+            await _udpHandler.InitAsync(credentials.Username, credentials.Password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort, cancellationToken);
+        else await _udpHandler.ForceLogoutAsync(cancellationToken);
 
-        if (!_udpHandler.TestLogin(credentials.Username, credentials.Password))
+        if (!await _udpHandler.TestLoginAsync(credentials.Username, credentials.Password, cancellationToken))
         {
             _logger.LogInformation("Failed AniDB Login and Connection");
             return ValidationProblem("Failed to log in.", "Connection");

@@ -93,7 +93,12 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     private readonly object _gate = new();
     private volatile bool _paused;
 
+    private volatile bool _halted;
+
     public bool IsPaused => _paused;
+
+    /// <summary>True once the queue has been halted; a halt is a pause that <see cref="Resume"/> cannot undo.</summary>
+    public bool IsHalted => _halted;
 
     public QueueOrchestrator(
         ILogger<QueueOrchestrator> logger,
@@ -943,9 +948,27 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
     public void Resume()
     {
+        if (_halted)
+        {
+            _logger.LogWarning("Queue resume ignored; the queue is halted until the server is restarted");
+            return;
+        }
+
         _paused = false;
         _logger.LogInformation("Queue resumed");
         SignalAllPools();
+    }
+
+    /// <summary>
+    /// Pause dispatching for the rest of the process lifetime. Used when the server can never become
+    /// usable in this process, such as after a failed startup, so no job runs against a half-initialised
+    /// server. Executing jobs run to completion.
+    /// </summary>
+    public void Halt(string reason)
+    {
+        _halted = true;
+        _paused = true;
+        _logger.LogWarning("Queue halted until the server is restarted: {Reason}", reason);
     }
 
     public async Task RemoveAsync(string jobKey, CancellationToken ct = default)

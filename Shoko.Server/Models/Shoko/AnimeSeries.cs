@@ -21,6 +21,7 @@ using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Models.TMDB;
@@ -202,6 +203,52 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
+    public void ResetDefaultTitle() => _defaultTitle = null;
+
+    private DateTime? _anilistAirTimeOffsetLoadedAt;
+
+    private TimeSpan? _anilistAirTimeOffset;
+
+    /// <summary>
+    /// The broadcast time learned from the linked AniList episodes, as an
+    /// offset from midnight UTC on the AniDB air date, used to estimate the
+    /// air time of episodes AniList has no schedule entry for yet. Null when
+    /// fewer than two linked normal episodes have aired with a known time.
+    /// </summary>
+    public TimeSpan? AnilistAirTimeOffset
+    {
+        get
+        {
+            lock (this)
+            {
+                // Self-heals if a link or schedule change slipped past the explicit resets.
+                if (_anilistAirTimeOffsetLoadedAt is { } loadedAt && DateTime.UtcNow - loadedAt < TimeSpan.FromHours(1))
+                    return _anilistAirTimeOffset;
+
+                var now = DateTime.UtcNow;
+                var samples = AnilistEpisodeCrossReferences
+                    .Where(xref => xref.AnilistEpisodeID is not 0)
+                    .Select(xref => (anidb: xref.AnidbEpisode, anilist: xref.AnilistEpisode))
+                    .Where(pair => pair.anidb is { EpisodeType: EpisodeType.Episode } && pair.anilist?.AiredAt is { } airedAt && airedAt <= now)
+                    .Select(pair => (anidbAirDate: pair.anidb!.GetAirDateAsDate(), airedAt: pair.anilist!.AiredAt!.Value))
+                    .Where(pair => pair.anidbAirDate is not null)
+                    .Select(pair => (pair.anidbAirDate!.Value, pair.airedAt));
+                _anilistAirTimeOffset = AirTimeUtility.LearnAirTimeOffset(samples);
+                _anilistAirTimeOffsetLoadedAt = now;
+                return _anilistAirTimeOffset;
+            }
+        }
+    }
+
+    public void ResetAnilistAirTimeOffset()
+    {
+        lock (this)
+        {
+            _anilistAirTimeOffsetLoadedAt = null;
+            _anilistAirTimeOffset = null;
+        }
+    }
+
     private bool _preferredTitleLoaded;
 
     private ITitle? _preferredTitle;
@@ -212,12 +259,9 @@ public class AnimeSeries : IShokoSeries
     {
         lock (this)
         {
-            if (_preferredTitleLoaded)
-                return;
             _preferredTitleLoaded = false;
             _preferredTitle = null;
         }
-        LoadPreferredTitle();
     }
 
     private ITitle? LoadPreferredTitle()
@@ -304,7 +348,6 @@ public class AnimeSeries : IShokoSeries
     public void ResetAnimeTitles()
     {
         _animeTitles = null;
-        LoadAnimeTitles();
     }
 
     private List<ITitle> LoadAnimeTitles()
@@ -367,7 +410,6 @@ public class AnimeSeries : IShokoSeries
     {
         _preferredOverviewLoaded = false;
         _preferredOverview = null;
-        LoadPreferredOverview();
     }
 
     private IText? LoadPreferredOverview()
@@ -530,6 +572,24 @@ public class AnimeSeries : IShokoSeries
         .ToList();
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
+
+    #endregion
+
+    #region AniList
+
+    public IReadOnlyList<CrossRef_AniDB_Anilist_Anime> AnilistAnimeCrossReferences => RepoFactory.CrossRef_AniDB_Anilist_Anime.GetByAnidbAnimeID(AniDB_ID);
+
+    public IReadOnlyList<Anilist_Anime> AnilistAnime => AnilistAnimeCrossReferences.Select(xref => xref.AnilistAnime).WhereNotNull().ToList();
+
+    public IReadOnlyList<CrossRef_AniDB_Anilist_Episode> AnilistEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_Anilist_Episode.GetByAnidbAnimeID(AniDB_ID);
+
+    public IReadOnlyList<CrossRef_AniDB_Anilist_Episode> GetAnilistEpisodeCrossReferences(int? anilistAnimeId = null) => anilistAnimeId.HasValue
+        ? RepoFactory.CrossRef_AniDB_Anilist_Episode.GetOnlyByAnidbAnimeAndAnilistAnimeIDs(AniDB_ID, anilistAnimeId.Value)
+        : RepoFactory.CrossRef_AniDB_Anilist_Episode.GetByAnidbAnimeID(AniDB_ID);
+
+    #endregion
+
+    #region TMDB (continued)
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetTmdbEpisodeCrossReferences(int? tmdbShowId = null) => tmdbShowId.HasValue
         ? RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(AniDB_ID, tmdbShowId.Value)
@@ -799,6 +859,8 @@ public class AnimeSeries : IShokoSeries
                 list.AddRange(movie.Resources);
             foreach (var show in TmdbShows)
                 list.AddRange(show.Resources);
+            foreach (var anilistAnime in AnilistAnime)
+                list.AddRange(anilistAnime.Resources);
             list.AddRange(ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this));
             return list;
         }
@@ -998,9 +1060,9 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
-    IReadOnlyList<IAnilistAnime> IShokoSeries.AnilistAnime => [];
+    IReadOnlyList<IAnilistAnime> IShokoSeries.AnilistAnime => AnilistAnime;
 
-    IReadOnlyList<IAnilistAnimeCrossReference> IShokoSeries.AnilistAnimeCrossReferences => [];
+    IReadOnlyList<IAnilistAnimeCrossReference> IShokoSeries.AnilistAnimeCrossReferences => AnilistAnimeCrossReferences;
 
     bool IShokoSeries.TmdbAutoMatchingDisabled
     {
@@ -1037,6 +1099,7 @@ public class AnimeSeries : IShokoSeries
                 seriesList.Add(anidbAnime);
 
             seriesList.AddRange(TmdbShows);
+            seriesList.AddRange(AnilistAnime);
 
             // Add more series here.
 

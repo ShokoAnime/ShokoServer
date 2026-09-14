@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Info;
@@ -31,7 +30,7 @@ public class RequestUpdatedAnime : UDPRequest<ResponseUpdatedAnime>
         return new UDPResponse<ResponseUpdatedAnime> { Code = code, Response = result };
     }
 
-    public RequestUpdatedAnime(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,
+    public RequestUpdatedAnime(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory,
         handler)
     {
     }

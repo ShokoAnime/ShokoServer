@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -32,23 +32,26 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         _clientPort = clientPort;
     }
 
-    public byte[] Send(byte[] payload)
+    public Task<byte[]> SendAsync(byte[] payload, CancellationToken cancellationToken = default)
     {
-        if (!IsConnected) return [0];
+        if (!IsConnected) return Task.FromResult(new byte[] { 0 });
         // this doesn't need to be bigger than 1400, but meh, better safe than sorry
-        return SendUnsafe(payload);
+        return SendUnsafeAsync(payload, cancellationToken);
     }
 
-    private byte[] SendUnsafe(byte[] payload)
+    private async Task<byte[]> SendUnsafeAsync(byte[] payload, CancellationToken cancellationToken)
     {
-        EmptyBuffer();
+        await EmptyBufferAsync(cancellationToken);
 
-        _aniDBSocket.SendTo(payload, _remoteIpEndPoint);
+        // The SendTimeout/ReceiveTimeout socket properties only apply to the
+        // synchronous API, so the 30s timeouts are enforced with a linked token.
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(SendTimeoutMs + ReceiveTimeoutMs);
 
-        using CancellationTokenSource receiveCts = new(ReceiveTimeoutMs);
+        await _aniDBSocket.SendToAsync(payload, _remoteIpEndPoint, cts.Token);
+
         var result = new byte[1600];
-        EndPoint endpoint = _remoteIpEndPoint;
-        var received = _aniDBSocket.ReceiveFrom(result, ref endpoint);
+        var received = (await _aniDBSocket.ReceiveFromAsync(result, SocketFlags.None, _remoteIpEndPoint, cts.Token)).ReceivedBytes;
 
         if (received > 2 && result[0] == 0 && result[1] == 0)
         {
@@ -65,18 +68,21 @@ public class AniDBSocketHandler : IAniDBSocketHandler
 
         Array.Resize(ref result, received);
 
-        EmptyBuffer();
+        await EmptyBufferAsync(cancellationToken);
         return result;
     }
 
-    private void EmptyBuffer()
+    private async Task EmptyBufferAsync(CancellationToken cancellationToken)
     {
         if (_aniDBSocket.Available == 0) return;
         var result = new byte[1600];
         try
         {
-            _aniDBSocket.Receive(result);
-            var decodedString = GetEncoding(result).GetString(result, 0, result.Length);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(ReceiveTimeoutMs);
+            var read = await _aniDBSocket.ReceiveAsync(result, cts.Token);
+            if (read <= 0) return;
+            var decodedString = GetEncoding(result).GetString(result, 0, read);
             if (decodedString[0] == 0xFEFF) // remove BOM
             {
                 decodedString = decodedString[1..];
@@ -89,7 +95,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
         }
     }
 
-    public bool TryConnection()
+    public async Task<bool> TryConnectionAsync(CancellationToken cancellationToken = default)
     {
         if (IsConnected) return true;
 
@@ -119,7 +125,7 @@ public class AniDBSocketHandler : IAniDBSocketHandler
 
         try
         {
-            var remoteHostEntry = Dns.GetHostEntry(_serverHost);
+            var remoteHostEntry = await Dns.GetHostEntryAsync(_serverHost, cancellationToken);
             _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
 
             _logger.LogInformation("Bound to remote address: {Address} : {Port}", _remoteIpEndPoint.Address,

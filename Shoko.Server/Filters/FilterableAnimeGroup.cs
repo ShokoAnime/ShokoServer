@@ -209,10 +209,12 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
 
     public int MissingTmdbEpisodeLinks => AllSeries.Aggregate(0, (acc, ser) =>
     {
-        var allTmdbLinkedEpisodes = ser.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
+        var allTmdbLinkedEpisodes = ser.TmdbEpisodeCrossReferences
+            .Where(xref => xref.TmdbEpisodeID is not 0)
+            .Select(a => a.AnidbEpisodeID)
             .Concat(ser.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
             .ToHashSet();
-        return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
+        return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AniDB_EpisodeID));
     });
 
     public IReadOnlySet<string> TmdbMovieKeywords =>
@@ -247,16 +249,40 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
         TmdbMovieGenres.Union(TmdbShowGenres)
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
 
-    public bool HasAnilistLink => false;
+    public IReadOnlySet<string> AnilistGenres =>
+        AllSeries.SelectMany(a => a.AnilistAnime)
+            .DistinctBy(a => a.AnilistAnimeID)
+            .SelectMany(a => a.Genres)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> AnilistTags =>
+        AllSeries.SelectMany(a => a.AnilistAnime)
+            .DistinctBy(a => a.AnilistAnimeID)
+            .SelectMany(a => a.Tags)
+            .Select(tag => tag.Tag?.Name)
+            .WhereNotNull()
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public bool HasAnilistLink =>
+        AllSeries.Any(a => a.AnilistAnimeCrossReferences.Count is > 0);
 
     public bool HasAnilistAutoLinkingDisabled =>
         AllSeries.Any(a => a.IsAnilistAutoMatchingDisabled);
 
-    public int AutomaticAnilistEpisodeLinks => 0;
+    public int AutomaticAnilistEpisodeLinks =>
+        AllSeries.Sum(a => a.AnilistEpisodeCrossReferences.Count(xref => xref.AnilistEpisodeID is not 0 && xref.MatchRating is not MatchRating.UserVerified));
 
-    public int UserVerifiedAnilistEpisodeLinks => 0;
+    public int UserVerifiedAnilistEpisodeLinks =>
+        AllSeries.Sum(a => a.AnilistEpisodeCrossReferences.Count(xref => xref.AnilistEpisodeID is not 0 && xref.MatchRating is MatchRating.UserVerified));
 
-    public int MissingAnilistEpisodeLinks => 0;
+    public int MissingAnilistEpisodeLinks => AllSeries.Aggregate(0, (acc, ser) =>
+    {
+        var allAnilistLinkedEpisodes = ser.AnilistEpisodeCrossReferences
+            .Where(xref => xref.AnilistEpisodeID is not 0)
+            .Select(xref => xref.AnidbEpisodeID)
+            .ToHashSet();
+        return acc + ser.AnimeEpisodes.Count(episode => !allAnilistLinkedEpisodes.Contains(episode.AniDB_EpisodeID));
+    });
 
     public bool IsFinished =>
         AllSeries.All(a => a.EndDate is not null && a.EndDate <= now.Date);

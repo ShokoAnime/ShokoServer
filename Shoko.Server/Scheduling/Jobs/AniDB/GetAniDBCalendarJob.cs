@@ -62,7 +62,7 @@ public class GetAniDBCalendarJob(IRequestFactory requestFactory, IAnidbService a
         schedule.LastUpdate = DateTime.Now;
 
         var request = requestFactory.Create<RequestCalendar>();
-        var response = request.Send();
+        var response = await request.SendAsync();
         scheduledUpdates.Save(schedule);
 
         if (response.Response?.Next25Anime is not null)

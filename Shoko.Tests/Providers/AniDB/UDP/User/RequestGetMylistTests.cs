@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.User;
@@ -18,7 +18,7 @@ public class RequestGetMylistTests
     public RequestGetMylistTests()
     {
         var loggerFactory = Mock.Of<ILoggerFactory>();
-        var handler = Mock.Of<IUDPConnectionHandler>();
+        var handler = Mock.Of<IAniDbUdpRequestChannel>();
         _request = new RequestGetMylist(loggerFactory, handler);
     }
 

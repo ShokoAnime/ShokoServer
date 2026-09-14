@@ -31,7 +31,7 @@ public record MylistSyncAction
     /// </summary>
     public MylistSyncDirection Direction => Kind switch
     {
-        MylistSyncActionKind.AlreadyInDesiredState => MylistSyncDirection.None,
+        MylistSyncActionKind.NoOperation => MylistSyncDirection.None,
         MylistSyncActionKind.ImportWatchedState => MylistSyncDirection.Import,
         MylistSyncActionKind.ExportWatchedState => MylistSyncDirection.Export,
         MylistSyncActionKind.ExportEntryAddition => MylistSyncDirection.Export,

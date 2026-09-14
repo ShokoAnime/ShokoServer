@@ -33,7 +33,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Server;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Services.Mylist;
@@ -274,7 +273,7 @@ public class MylistService(
             try
             {
                 var request = requestFactory.Create(configureRequest);
-                var response = request.Send();
+                var response = await request.SendAsync(cancellationToken);
                 if (response.Response is { } entry)
                 {
                     if (enrichEntry is not null) entry = enrichEntry(entry);
@@ -324,7 +323,7 @@ public class MylistService(
                     r.Password = settings.AniDb.Password!;
                 }
             );
-            var response = request.Send();
+            var response = await request.SendAsync(cancellationToken);
 
             if (response.Response is null)
                 throw new Exception($"AniDB did not return a successful code: {response.Code}");
@@ -460,7 +459,7 @@ public class MylistService(
                 r.FileID = (ulong)fileID;
             }
         );
-        var response = request.Send();
+        var response = await request.SendAsync(cancellationToken);
         MylistEntry? patched = null;
 
         if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
@@ -474,7 +473,7 @@ public class MylistService(
             );
             // the add returned the entry as it was *before* this edit, so fold the
             // edit in rather than caching the stale copy
-            if (updateRequest.Send().Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
+            if ((await updateRequest.SendAsync(cancellationToken)).Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
                 patched = PatchEntry(stale, data);
         }
 
@@ -522,7 +521,7 @@ public class MylistService(
                 r.Size = fileSize;
             }
         );
-        var response = request.Send();
+        var response = await request.SendAsync(cancellationToken);
         MylistEntry? patched = null;
 
         if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
@@ -537,7 +536,7 @@ public class MylistService(
             );
             // the add returned the entry as it was *before* this edit, so fold the
             // edit in rather than caching the stale copy
-            if (updateRequest.Send().Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
+            if ((await updateRequest.SendAsync(cancellationToken)).Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
                 patched = PatchEntry(stale, data);
         }
 
@@ -590,7 +589,7 @@ public class MylistService(
                 r.EpisodeType = episodeType;
             }
         );
-        var response = request.Send();
+        var response = await request.SendAsync(cancellationToken);
         MylistEntry? patched = null;
 
         if (response.Code == UDPReturnCode.FILE_ALREADY_IN_MYLIST)
@@ -606,7 +605,7 @@ public class MylistService(
             );
             // the add returned the entry as it was *before* this edit, so fold the
             // edit in rather than caching the stale copy
-            if (updateRequest.Send().Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
+            if ((await updateRequest.SendAsync(cancellationToken)).Code is UDPReturnCode.MYLIST_ENTRY_EDITED && response.Response is { } stale)
                 patched = PatchEntry(stale, data);
         }
 
@@ -856,8 +855,8 @@ public class MylistService(
             }
         );
 
-        var code = request.Send().Code;
-        return PersistUpdate(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r => r.MylistID = listID));
+        var code = (await request.SendAsync(cancellationToken)).Code;
+        return await PersistUpdateAsync(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r => r.MylistID = listID), null, cancellationToken);
     }
 
     public Task ScheduleUpdateEntry(ulong listID, MylistUpdateData? data = null, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
@@ -903,8 +902,8 @@ public class MylistService(
             }
         );
 
-        var code = request.Send().Code;
-        return PersistUpdate(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r => r.FileID = (ulong)fileID));
+        var code = (await request.SendAsync(cancellationToken)).Code;
+        return await PersistUpdateAsync(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r => r.FileID = (ulong)fileID), null, cancellationToken);
     }
 
     public Task ScheduleUpdateEntry(int fileID, MylistUpdateData? data = null, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
@@ -951,12 +950,12 @@ public class MylistService(
             }
         );
 
-        var code = request.Send().Code;
-        return PersistUpdate(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r =>
+        var code = (await request.SendAsync(cancellationToken)).Code;
+        return await PersistUpdateAsync(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r =>
         {
             r.ED2K = ed2k;
             r.Size = fileSize;
-        }), entry => entry with { ED2K = ed2k, Size = fileSize, IsGeneric = false });
+        }), entry => entry with { ED2K = ed2k, Size = fileSize, IsGeneric = false }, cancellationToken);
     }
 
     public Task ScheduleUpdateEntry(string ed2k, long fileSize, MylistUpdateData? data = null, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
@@ -1010,13 +1009,13 @@ public class MylistService(
             }
         );
 
-        var code = request.Send().Code;
-        return PersistUpdate(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r =>
+        var code = (await request.SendAsync(cancellationToken)).Code;
+        return await PersistUpdateAsync(code, cachedEntry, data, () => requestFactory.Create<RequestGetMylist>(r =>
         {
             r.AnimeID = animeID;
             r.EpisodeType = episodeType;
             r.EpisodeNumber = episodeNumber;
-        }), entry => anidbEpisode is null ? entry : entry with { AnimeID = animeID, EpisodeID = anidbEpisode.EpisodeID, IsGeneric = true });
+        }), entry => anidbEpisode is null ? entry : entry with { AnimeID = animeID, EpisodeID = anidbEpisode.EpisodeID, IsGeneric = true }, cancellationToken);
     }
 
     public Task ScheduleUpdateEntry(int animeID, EpisodeType episodeType, int episodeNumber, MylistUpdateData? data = null, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
@@ -1119,12 +1118,13 @@ public class MylistService(
     /// place rather than re-fetched; the fetch is only needed when there was
     /// nothing cached to patch.
     /// </summary>
-    private MylistEntry? PersistUpdate(
+    private async Task<MylistEntry?> PersistUpdateAsync(
         UDPReturnCode code,
         MylistEntry? cached,
         MylistUpdateData data,
         Func<RequestGetMylist> createGetRequest,
-        Func<MylistEntry, MylistEntry>? enrichEntry = null
+        Func<MylistEntry, MylistEntry>? enrichEntry = null,
+        CancellationToken cancellationToken = default
     )
     {
         if (code is not UDPReturnCode.MYLIST_ENTRY_EDITED)
@@ -1140,7 +1140,7 @@ public class MylistService(
         // the edit already succeeded; a failed read-back only costs the return value
         try
         {
-            var entry = createGetRequest().Send().Response;
+            var entry = (await createGetRequest().SendAsync(cancellationToken)).Response;
             if (entry is null) return null;
             if (enrichEntry is not null) entry = enrichEntry(entry);
             mylistCache.Upsert(entry);
@@ -1227,7 +1227,7 @@ public class MylistService(
         }
 
         var request = requestFactory.Create<RequestRemoveMylist>(r => r.MylistID = listID);
-        var code = request.Send().Code;
+        var code = (await request.SendAsync(cancellationToken)).Code;
         if (code == UDPReturnCode.MYLIST_ENTRY_DELETED && cached is not null) mylistCache.Remove(cached);
         return code == UDPReturnCode.MYLIST_ENTRY_DELETED;
     }
@@ -1257,7 +1257,7 @@ public class MylistService(
         }
 
         var request = requestFactory.Create<RequestRemoveMylist>(r => r.FileID = (ulong)fileID);
-        var code = request.Send().Code;
+        var code = (await request.SendAsync(cancellationToken)).Code;
         if (code == UDPReturnCode.MYLIST_ENTRY_DELETED && cached is not null) mylistCache.Remove(cached);
         return code == UDPReturnCode.MYLIST_ENTRY_DELETED;
     }
@@ -1291,7 +1291,7 @@ public class MylistService(
             r.ED2K = ed2k;
             r.Size = fileSize;
         });
-        var code = request.Send().Code;
+        var code = (await request.SendAsync(cancellationToken)).Code;
         if (code == UDPReturnCode.MYLIST_ENTRY_DELETED && cached is not null) mylistCache.Remove(cached);
         return code == UDPReturnCode.MYLIST_ENTRY_DELETED;
     }
@@ -1328,7 +1328,7 @@ public class MylistService(
             r.EpisodeType = episodeType;
             r.EpisodeNumber = episodeNumber;
         });
-        var code = request.Send().Code;
+        var code = (await request.SendAsync(cancellationToken)).Code;
         if (code == UDPReturnCode.MYLIST_ENTRY_DELETED && cached is not null) mylistCache.Remove(cached);
         return code == UDPReturnCode.MYLIST_ENTRY_DELETED;
     }
@@ -1430,6 +1430,14 @@ public class MylistService(
             _ => null,
         };
 
+    /// <summary>
+    /// Whether disposing of the entry would write nothing, because the delete
+    /// type marks entries with a state this one already holds. Never true for a
+    /// delete type that removes the entry outright, which always has work left.
+    /// </summary>
+    private static bool IsAlreadyDisposed(MylistEntry entry, MylistDeleteType deleteType)
+        => GetMarkedState(deleteType) is { } state && MylistCache.IsInDesiredState(entry, new() { State = state });
+
     #endregion
 
     #endregion
@@ -1490,7 +1498,7 @@ public class MylistService(
         ArgumentNullException.ThrowIfNull(plan);
 
         if (plan.Actions.Count is 0)
-            return new MylistSyncResult { Plan = plan, IsApplied = true };
+            return new() { Plan = plan, IsApplied = true };
 
         ValidatePlan(plan);
 
@@ -1524,7 +1532,7 @@ public class MylistService(
             }
 
             _logger.LogInformation("Applied {Applied} of {Count} MyList plan steps", applied, plan.Actions.Count);
-            return new MylistSyncResult { Plan = plan, IsApplied = true };
+            return new() { Plan = plan, IsApplied = true };
         }
         finally
         {
@@ -1556,7 +1564,7 @@ public class MylistService(
 
             var addressable = action.Kind switch
             {
-                MylistSyncActionKind.AlreadyInDesiredState => true,
+                MylistSyncActionKind.NoOperation => true,
                 MylistSyncActionKind.ImportWatchedState => action.HasVideo || action.HasLocalEpisode,
                 MylistSyncActionKind.ExportEntryAddition => action.HasVideo || action.HasEpisode,
                 _ => action.HasEntry || action.HasVideo || action.HasEpisode,
@@ -1626,7 +1634,7 @@ public class MylistService(
 
             // planned only so the caller can see it; carrying it out would
             // write the values the entry already holds
-            case MylistSyncActionKind.AlreadyInDesiredState:
+            case MylistSyncActionKind.NoOperation:
                 return;
 
             case MylistSyncActionKind.ExportEntryRemoval:
@@ -1649,7 +1657,7 @@ public class MylistService(
         if (scope.IsEmpty)
             return new MylistSyncResult
             {
-                Plan = new MylistSyncPlan { Actions = [], CreatedAt = DateTime.UtcNow },
+                Plan = new() { Actions = [], CreatedAt = DateTime.UtcNow },
                 IsApplied = !(options?.PlanOnly ?? false),
             };
 
@@ -1703,7 +1711,7 @@ public class MylistService(
             else
                 _logger.LogInformation("Syncing the MyList for {Count} videos", scope.VideoIDs.Count);
 
-        var actions = new List<MylistSyncAction>();
+        var actions = new MylistSyncActionLog(options?.IncludeNoOperations ?? false);
 
         var entries = ignoreTimeCheck
             ? await FetchMylistAsync(cancellationToken)
@@ -1732,6 +1740,8 @@ public class MylistService(
         // Remove Missing Files and update watched states (single loop)
         var filesToRemove = new List<MylistEntry>();
         var episodesToRemove = new List<MylistEntry>();
+        var filesAlreadyDisposed = 0;
+        var episodesAlreadyDisposed = 0;
 
         foreach (var myItem in onlineFiles.SelectMany(a => a))
         {
@@ -1793,7 +1803,16 @@ public class MylistService(
                     continue;
 
                 if (deleteType is MylistDeleteType.DeleteLocalOnly)
+                {
+                    actions.Add(new MylistSyncAction
+                    {
+                        Kind = MylistSyncActionKind.NoOperation,
+                        Description = $"Left the MyList entry for file {myItem.FileID} alone; the delete type only removes files locally",
+                        Entry = myItem,
+                        DeleteType = deleteType,
+                    });
                     continue;
+                }
 
                 // We could not tell whether this entry is generic, so we do not know
                 // which tier should have matched it and cannot say it is really
@@ -1803,6 +1822,13 @@ public class MylistService(
                 if (myItem.IsGeneric is null)
                 {
                     unclassifiedItems++;
+                    actions.Add(new MylistSyncAction
+                    {
+                        Kind = MylistSyncActionKind.NoOperation,
+                        Description = $"Left the MyList entry for file {myItem.FileID} alone; could not tell whether it is a generic entry",
+                        Entry = myItem,
+                        DeleteType = deleteType,
+                    });
                     continue;
                 }
 
@@ -1818,14 +1844,22 @@ public class MylistService(
         {
             foreach (var entry in filesToRemove)
             {
+                // a delete type that marks rather than removes leaves nothing to
+                // write once the entry is already at that state, and the entry stays
+                // in the export while it is. Planning a removal for it anyway would
+                // re-queue the same no-op on every sync, forever
+                var alreadyDisposed = IsAlreadyDisposed(entry, deleteType);
+                if (alreadyDisposed) filesAlreadyDisposed++;
                 actions.Add(new MylistSyncAction
                 {
-                    Kind = MylistSyncActionKind.ExportEntryRemoval,
-                    Description = $"Remove the MyList entry for file {entry.FileID}, which is no longer in the library",
+                    Kind = alreadyDisposed ? MylistSyncActionKind.NoOperation : MylistSyncActionKind.ExportEntryRemoval,
+                    Description = alreadyDisposed
+                        ? $"The MyList entry for file {entry.FileID} is already marked as {GetMarkedState(deleteType)}"
+                        : $"Remove the MyList entry for file {entry.FileID}, which is no longer in the library",
                     Entry = entry,
                     DeleteType = deleteType,
                 });
-                if (planOnly)
+                if (planOnly || alreadyDisposed)
                     continue;
 
                 // entries from the HTTP export always carry a list ID — the cheapest
@@ -1844,17 +1878,25 @@ public class MylistService(
             }
         }
 
-        if (filesToRemove.Count > 0)
+        if (filesToRemove.Count > filesAlreadyDisposed)
             _logger.LogInformation("MYLIST Missing Files: {Count} added to queue for deletion",
-                filesToRemove.Count);
+                filesToRemove.Count - filesAlreadyDisposed);
+
+        if (filesAlreadyDisposed > 0)
+            _logger.LogInformation("MYLIST Missing Files: {Count} left alone, already marked as {State}",
+                filesAlreadyDisposed, GetMarkedState(deleteType));
 
         foreach (var entry in episodesToRemove)
         {
             var anidbEpisode = animeEpisodes.GetByAniDBEpisodeID(entry.EpisodeID)?.AniDB_Episode;
+            var alreadyDisposed = IsAlreadyDisposed(entry, deleteType);
+            if (alreadyDisposed) episodesAlreadyDisposed++;
             actions.Add(new MylistSyncAction
             {
-                Kind = MylistSyncActionKind.ExportEntryRemoval,
-                Description = $"Remove the generic MyList entry for episode {entry.EpisodeID}, which records nothing",
+                Kind = alreadyDisposed ? MylistSyncActionKind.NoOperation : MylistSyncActionKind.ExportEntryRemoval,
+                Description = alreadyDisposed
+                    ? $"The generic MyList entry for episode {entry.EpisodeID} is already marked as {GetMarkedState(deleteType)}"
+                    : $"Remove the generic MyList entry for episode {entry.EpisodeID}, which records nothing",
                 Entry = entry,
                 // the local episode only rides along with the AniDB one it
                 // belongs to, so a consumer that has the former always has both
@@ -1862,7 +1904,7 @@ public class MylistService(
                 AnidbEpisode = anidbEpisode,
                 DeleteType = deleteType,
             });
-            if (planOnly)
+            if (planOnly || alreadyDisposed)
                 continue;
 
             if (entry.MylistID is not 0)
@@ -1871,8 +1913,12 @@ public class MylistService(
                 await ScheduleDisposeEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber, deleteType);
         }
 
-        if (episodesToRemove.Count > 0)
-            _logger.LogInformation("MYLIST Vestigial Episodes: {Count} added to queue for deletion", episodesToRemove.Count);
+        if (episodesToRemove.Count > episodesAlreadyDisposed)
+            _logger.LogInformation("MYLIST Vestigial Episodes: {Count} added to queue for deletion", episodesToRemove.Count - episodesAlreadyDisposed);
+
+        if (episodesAlreadyDisposed > 0)
+            _logger.LogInformation("MYLIST Vestigial Episodes: {Count} left alone, already marked as {State}",
+                episodesAlreadyDisposed, GetMarkedState(deleteType));
 
         var episodesAdded = targets.HasFlag(MylistSyncTargets.Episodes)
             ? await AddMissingEpisodes(entries, scope, anidbUser, watchedEpisodeMode, planOnly, actions)
@@ -1886,8 +1932,8 @@ public class MylistService(
                 unclassifiedItems, nameof(AniDbSettings.MyList_UseGenericFileIndex));
 
         _logger.LogInformation(
-            "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {WatchedItems} Watched, {ModifiedItems} Modified, {UnclassifiedItems} Unclassified",
-            totalItems, missingFiles, filesToRemove.Count, watchedItems, modifiedItems, unclassifiedItems);
+            "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {AlreadyDisposed} Left Alone, {WatchedItems} Watched, {ModifiedItems} Modified, {UnclassifiedItems} Unclassified",
+            totalItems, missingFiles, filesToRemove.Count - filesAlreadyDisposed, filesAlreadyDisposed, watchedItems, modifiedItems, unclassifiedItems);
 
         return new MylistSyncResult
         {
@@ -1895,11 +1941,14 @@ public class MylistService(
             WatchedEntries = watchedItems,
             ModifiedEntries = modifiedItems,
             FilesQueuedForAdd = missingFiles,
-            EntriesQueuedForRemoval = filesToRemove.Count,
+            EntriesQueuedForRemoval = filesToRemove.Count - filesAlreadyDisposed,
+            EntriesAlreadyDisposed = filesAlreadyDisposed,
+            EpisodesAlreadyDisposed = episodesAlreadyDisposed,
+            NoOperations = actions.NoOperations,
             UnclassifiedEntries = unclassifiedItems,
             EpisodesQueuedForAdd = episodesAdded,
-            EpisodesQueuedForRemoval = episodesToRemove.Count,
-            Plan = new MylistSyncPlan { Actions = actions, CreatedAt = DateTime.UtcNow },
+            EpisodesQueuedForRemoval = episodesToRemove.Count - episodesAlreadyDisposed,
+            Plan = new() { Actions = actions.Actions, CreatedAt = DateTime.UtcNow },
             IsApplied = !planOnly,
         };
     }
@@ -1971,6 +2020,51 @@ public class MylistService(
     #region Sync | Private
 
     /// <summary>
+    /// Collects the steps a sync takes. Whether a no-op belongs in the plan is
+    /// the caller's choice rather than each site's, so every site records what
+    /// it did and this decides what survives.
+    /// </summary>
+    private sealed class MylistSyncActionLog(bool includeNoOperations)
+    {
+        private readonly List<MylistSyncAction> _actions = [];
+
+        /// <summary>
+        /// Whether no-ops are being kept. Worth checking before building one on
+        /// a path that runs per entry, which is most of a MyList that is
+        /// already in sync; anywhere else, just add it and let it be dropped.
+        /// </summary>
+        public bool IncludeNoOperations => includeNoOperations;
+
+        public List<MylistSyncAction> Actions => _actions;
+
+        /// <summary>
+        /// How many no-ops were recorded, counted whether or not they were
+        /// kept. A site that skips building one because they are being dropped
+        /// has to count it here itself.
+        /// </summary>
+        public int NoOperations { get; private set; }
+
+        public void Add(MylistSyncAction action)
+        {
+            if (action.Kind is MylistSyncActionKind.NoOperation)
+            {
+                NoOperations++;
+                if (!includeNoOperations)
+                    return;
+            }
+
+            _actions.Add(action);
+        }
+
+        /// <summary>
+        /// Records a no-op without building one, for the per-entry path where
+        /// allocating an action only to drop it would cost a whole MyList worth
+        /// of garbage.
+        /// </summary>
+        public void AddNoOperation() => NoOperations++;
+    }
+
+    /// <summary>
     /// Reconciles one entry's watched state and storage state. The rules are in
     /// <see cref="MylistSyncDecisions.DecideWatchedAction"/>; what differs
     /// between a file entry and a generic one is only where the local date comes
@@ -1993,7 +2087,7 @@ public class MylistService(
         bool updateStates,
         bool canImport,
         bool planOnly,
-        List<MylistSyncAction> actions,
+        MylistSyncActionLog actions,
         Func<DateTime?, Task> import,
         Action<UpdateAniDBMylistEntryJob> identify,
         Func<MylistSyncActionKind, DateTime?, MylistState?, MylistSyncAction> describe
@@ -2025,25 +2119,41 @@ public class MylistService(
 
         if (updateStates && (int)myItem.State != (int)localState) shouldUpdate = true;
 
+        // the entry is as it should be, which is the common case on a list that
+        // is already in sync. Nothing is planned for it unless the caller asked
+        // to see the entries it looked at as well as the ones it acts on
         if (!shouldUpdate)
+        {
+            if (actions.IncludeNoOperations)
+                actions.Add(describe(MylistSyncActionKind.NoOperation, myItem.ViewedAt, null));
+            else
+                actions.AddNoOperation();
+
             return modifiedItems;
+        }
 
         // the rules decided to write, so this should always be a real change. If
         // it is not, the decision and the desired-state check disagree and the
         // entry will be planned again on every sync — worth surfacing, not hiding
         var desired = new MylistUpdateData { State = updateStates ? localState : null, IsViewed = exportDate is not null, ViewedAt = exportDate };
+        var isNoOperation = MylistCache.IsInDesiredState(myItem, desired);
+        if (isNoOperation)
+            _logger.LogWarning(
+                "A MyList entry was decided to need a write that would change nothing, so it will be decided the same way on every sync. (MylistID={MylistID}, FileID={FileID})",
+                myItem.MylistID, myItem.FileID);
+
         actions.Add(describe(
-            MylistCache.IsInDesiredState(myItem, desired) ? MylistSyncActionKind.AlreadyInDesiredState : MylistSyncActionKind.ExportWatchedState,
+            isNoOperation ? MylistSyncActionKind.NoOperation : MylistSyncActionKind.ExportWatchedState,
             exportDate,
             updateStates ? localState : null
         ));
-        if (planOnly)
+        if (planOnly || isNoOperation)
             return modifiedItems;
 
         await scheduler.Enqueue<UpdateAniDBMylistEntryJob>(a =>
         {
             identify(a);
-            a.Data = new MylistUpdateData { State = updateStates ? localState : null, IsViewed = exportDate is not null, ViewedAt = exportDate };
+            a.Data = new() { State = updateStates ? localState : null, IsViewed = exportDate is not null, ViewedAt = exportDate };
             a.UpdateSeriesStats = false;
         });
 
@@ -2064,7 +2174,7 @@ public class MylistService(
         MylistWatchedSyncMode watchedSyncMode,
         bool updateStates,
         bool planOnly,
-        List<MylistSyncAction> actions
+        MylistSyncActionLog actions
     )
     {
         var userData = anidbUser is null ? null : videoLocalUsers.GetByUserAndVideoLocalID(anidbUser.JMMUserID, video.VideoLocalID);
@@ -2082,7 +2192,7 @@ public class MylistService(
                 Description = kind switch
                 {
                     MylistSyncActionKind.ImportWatchedState => $"Import watched state onto file {video.VideoLocalID}",
-                    MylistSyncActionKind.AlreadyInDesiredState => $"The MyList entry for file {video.VideoLocalID} already reads as intended",
+                    MylistSyncActionKind.NoOperation => $"The MyList entry for file {video.VideoLocalID} already reads as intended",
                     _ => $"Update the MyList entry for file {video.VideoLocalID}",
                 },
                 Video = video,
@@ -2123,7 +2233,7 @@ public class MylistService(
         MylistWatchedSyncMode watchedSyncMode,
         bool updateStates,
         bool planOnly,
-        List<MylistSyncAction> actions
+        MylistSyncActionLog actions
     )
     {
         // the same reconciliation as files, but at the episode level
@@ -2145,7 +2255,7 @@ public class MylistService(
                 Description = kind switch
                 {
                     MylistSyncActionKind.ImportWatchedState => $"Import watched state onto episode {episode.AnimeEpisodeID}",
-                    MylistSyncActionKind.AlreadyInDesiredState => $"The generic MyList entry for episode {episode.AnimeEpisodeID} already reads as intended",
+                    MylistSyncActionKind.NoOperation => $"The generic MyList entry for episode {episode.AnimeEpisodeID} already reads as intended",
                     _ => $"Update the generic MyList entry for episode {episode.AnimeEpisodeID}",
                 },
                 ShokoEpisode = episode,
@@ -2235,7 +2345,7 @@ public class MylistService(
     /// user watched without a file — or holds only through a manual link, which
     /// has no file entry of its own — is invisible to it and is picked up here.
     /// </summary>
-    private async Task<int> AddMissingEpisodes(IReadOnlyList<MylistEntry> entries, SyncScope? scope, JMMUser? anidbUser, MylistWatchedEpisodeMode watchedEpisodeMode, bool planOnly, List<MylistSyncAction> actions)
+    private async Task<int> AddMissingEpisodes(IReadOnlyList<MylistEntry> entries, SyncScope? scope, JMMUser? anidbUser, MylistWatchedEpisodeMode watchedEpisodeMode, bool planOnly, MylistSyncActionLog actions)
     {
         if (!settingsProvider.GetSettings().AniDb.MyList_AddFiles)
             return 0;
@@ -2247,15 +2357,37 @@ public class MylistService(
         var added = 0;
         foreach (var episode in ResolveSweepCandidates(scope))
         {
-            if (episode.AniDB_Episode is not { } anidbEpisode || coveredEpisodeIDs.Contains(episode.AniDB_EpisodeID))
+            if (episode.AniDB_Episode is not { } anidbEpisode)
                 continue;
+
+            // the entry is already there, so the loop above owns it
+            if (coveredEpisodeIDs.Contains(episode.AniDB_EpisodeID))
+            {
+                actions.Add(new MylistSyncAction
+                {
+                    Kind = MylistSyncActionKind.NoOperation,
+                    Description = $"Episode {episode.AnimeEpisodeID} already has a generic MyList entry",
+                    ShokoEpisode = episode,
+                    AnidbEpisode = anidbEpisode,
+                });
+                continue;
+            }
 
             var videos = episode.VideoLocals;
 
             // a file with an AniDB release has an entry of its own, so the file
             // tier owns the episode and there is no generic entry to want
             if (videos.Any(video => video.ReleaseInfo?.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false))
+            {
+                actions.Add(new MylistSyncAction
+                {
+                    Kind = MylistSyncActionKind.NoOperation,
+                    Description = $"No generic MyList entry wanted for episode {episode.AnimeEpisodeID}; a file entry already covers it",
+                    ShokoEpisode = episode,
+                    AnidbEpisode = anidbEpisode,
+                });
                 continue;
+            }
 
             var watchedDate = LocalWatchedDate(anidbUser, episode);
 
@@ -2283,12 +2415,16 @@ public class MylistService(
             // nothing local backs the episode, so the only reason to record it is
             // that the user watched it
             if (watchedDate is null)
+            {
+                actions.Add(Describe(MylistSyncActionKind.NoOperation, $"Nothing to record for episode {episode.AnimeEpisodeID}; it is neither watched nor backed by a local file"));
                 continue;
+            }
 
             var fileEntries = fileEntriesByEpisode[episode.AniDB_EpisodeID].ToList();
             switch (watchedEpisodeMode)
             {
                 case MylistWatchedEpisodeMode.Ignore:
+                    actions.Add(Describe(MylistSyncActionKind.NoOperation, $"Left the watch for episode {episode.AnimeEpisodeID} unrecorded; the watched episode mode ignores them"));
                     continue;
 
                 // attach to the oldest entry AniDB already holds rather than adding
@@ -2325,7 +2461,7 @@ public class MylistService(
         return added;
 
         static MylistAddData? WatchedData(DateTime? watchedDate)
-            => watchedDate is null ? null : new MylistAddData { IsViewed = true, ViewedAt = watchedDate };
+            => watchedDate is null ? null : new() { IsViewed = true, ViewedAt = watchedDate };
     }
 
     /// <summary>
@@ -2350,7 +2486,7 @@ public class MylistService(
         ILookup<int, MylistEntry> onlineFiles,
         SyncScope? scope,
         bool planOnly,
-        List<MylistSyncAction> actions
+        MylistSyncActionLog actions
     )
     {
         if (!settingsProvider.GetSettings().AniDb.MyList_AddFiles)
@@ -2359,11 +2495,34 @@ public class MylistService(
         var candidates = scope is null
             ? videoLocals.GetAll()
             : scope.VideoIDs.Select(videoLocals.GetByID).WhereNotNull();
-        foreach (var vid in candidates.Where(a => !string.IsNullOrEmpty(a.Hash)))
+        foreach (var vid in candidates)
         {
-            if (!TryGetFileID(localFiles, vid.Hash, out var fileID)) continue;
+            // a manual link has no AniDB release behind it, so there is no file
+            // entry to add; what covers it is the episode's generic entry
+            if (!TryGetFileID(localFiles, vid.Hash, out var fileID))
+            {
+                actions.Add(new MylistSyncAction
+                {
+                    Kind = MylistSyncActionKind.NoOperation,
+                    Description = $"No MyList file entry to add for file {vid.VideoLocalID}; it has no AniDB release",
+                    Video = vid,
+                });
+                continue;
+            }
+
             // the file is in the local collection but not recorded online
-            if (onlineFiles.Contains(fileID)) continue;
+            if (onlineFiles.Contains(fileID))
+            {
+                actions.Add(new MylistSyncAction
+                {
+                    Kind = MylistSyncActionKind.NoOperation,
+                    Description = $"File {vid.VideoLocalID} is already in the MyList",
+                    Video = vid,
+                    Entry = onlineFiles[fileID].FirstOrDefault(),
+                });
+                continue;
+            }
+
             missingFiles++;
             actions.Add(new MylistSyncAction
             {

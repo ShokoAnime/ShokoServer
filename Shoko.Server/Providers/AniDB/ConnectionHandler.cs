@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Timers;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
 
 namespace Shoko.Server.Providers.AniDB;
@@ -13,7 +12,7 @@ public abstract class ConnectionHandler
 
     protected ILogger Logger { get; set; }
 
-    public abstract double BanTimerResetLength { get; }
+    public double BanTimerResetLength => BanState.ResetLengthHours;
 
     public abstract string Type { get; }
 
@@ -25,6 +24,13 @@ public abstract class ConnectionHandler
 
     public event EventHandler<AnidbBanOccurredEventArgs>? BanExpired;
 
+    /// <summary>
+    /// The ban state for this protocol. The single source of truth for whether
+    /// we are banned, when the ban started and when it expires; all times are
+    /// in UTC.
+    /// </summary>
+    public AniDbBanState BanState { get; }
+
     private AniDBStateUpdate? _currentState;
 
     public AniDBStateUpdate State
@@ -32,11 +38,9 @@ public abstract class ConnectionHandler
         get => _currentState ??= new() { Value = false, UpdateTime = DateTime.Now };
         set
         {
-            if (value is not null && value != State)
-            {
-                _currentState = value;
-                UpdateState(_currentState!);
-            }
+            if (value is null) return;
+            _currentState = value;
+            UpdateState(_currentState);
         }
     }
 
@@ -44,105 +48,63 @@ public abstract class ConnectionHandler
 
     private readonly Timer _backoffTimer;
 
-    private readonly Timer _banResetTimer;
-
-    public DateTime? BanTime { get; set; }
+    /// <summary>
+    /// When the current ban was registered, in UTC.
+    /// </summary>
+    public DateTime? BanTime => BanState.BanTime;
 
     [MemberNotNullWhen(true, nameof(BanTime))]
     public virtual bool IsBanned
     {
-        get => BanTime.HasValue;
+        get => BanState.IsBanned;
         set
         {
-            var bannedAt = BanTime;
-            var now = DateTime.Now;
             if (value)
-            {
-                Logger.LogWarning("AniDB {Type} Banned!", Type);
-                if (_banResetTimer.Enabled)
-                {
-                    Logger.LogWarning("AniDB {Type} ban timer was already running, ban time extending", Type);
-                    _banResetTimer.Stop(); //re-start implies stop
-                }
-
-                _banResetTimer.Start();
-                BanTime = now;
-                State = new()
-                {
-                    Value = true,
-                    UpdateType = BanEnum,
-                    UpdateTime = now,
-                    PauseTimeSecs = (int)TimeSpan.FromHours(BanTimerResetLength).TotalSeconds,
-                };
-                try
-                {
-                    BanOccurred?.Invoke(this, new()
-                    {
-                        Type = BanEnum is UpdateType.HTTPBan ? AnidbBanType.HTTP : AnidbBanType.UDP,
-                        OccurredAt = now.ToUniversalTime(),
-                        ExpiresAt = now.AddHours(BanTimerResetLength).ToUniversalTime(),
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "AniDB {Type} ban occurred event failed", Type);
-                }
-            }
+                BanState.Ban();
             else
-            {
-                if (_banResetTimer.Enabled)
-                {
-                    _banResetTimer.Stop();
-                    Logger.LogInformation("AniDB {Type} ban timer stopped. Resuming queue if not paused", Type);
-                }
-
-                BanTime = null;
-                State = new() { Value = false, UpdateType = BanEnum, UpdateTime = now };
-                if (bannedAt is not null)
-                {
-                    Logger.LogInformation("AniDB {Type} Unbanned!", Type);
-                    try
-                    {
-                        BanExpired?.Invoke(this, new()
-                        {
-                            Type = BanEnum is UpdateType.HTTPBan ? AnidbBanType.HTTP : AnidbBanType.UDP,
-                            OccurredAt = bannedAt.Value.ToUniversalTime(),
-                            ExpiresAt = now.ToUniversalTime(),
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError(ex, "AniDB {Type} ban expired event failed", Type);
-                    }
-                }
-            }
+                BanState.Unban();
         }
     }
 
-    protected ConnectionHandler(ILoggerFactory loggerFactory)
+    protected ConnectionHandler(ILoggerFactory loggerFactory, AniDbBanState banState)
     {
         _loggerFactory = loggerFactory;
         Logger = loggerFactory.CreateLogger(GetType());
-        _banResetTimer = new Timer
-        {
-            AutoReset = false,
-            Interval = TimeSpan.FromHours(BanTimerResetLength).TotalMilliseconds,
-        };
-        _banResetTimer.Elapsed += BanResetTimerElapsed;
+        BanState = banState;
+        BanState.BanOccurred += OnBanStateOccurred;
+        BanState.BanExpired += OnBanStateExpired;
         _backoffTimer = new Timer { AutoReset = false };
         _backoffTimer.Elapsed += ResetBackoffTimer;
     }
 
     ~ConnectionHandler()
     {
-        _banResetTimer.Elapsed -= BanResetTimerElapsed;
+        BanState.BanOccurred -= OnBanStateOccurred;
+        BanState.BanExpired -= OnBanStateExpired;
         _backoffTimer.Elapsed -= ResetBackoffTimer;
     }
 
-    private void BanResetTimerElapsed(object? sender, ElapsedEventArgs e)
+    private void OnBanStateOccurred(object? sender, AnidbBanOccurredEventArgs e)
     {
-        Logger.LogInformation("AniDB {Type} ban ({BanTimerResetLength}h) is over", Type, BanTimerResetLength);
-        IsBanned = false;
+        State = new()
+        {
+            Value = true,
+            UpdateType = BanEnum,
+            UpdateTime = DateTime.Now,
+            PauseTimeSecs = (int)TimeSpan.FromHours(BanTimerResetLength).TotalSeconds,
+        };
+        BanOccurred?.Invoke(this, e);
+    }
+
+    private void OnBanStateExpired(object? sender, AnidbBanOccurredEventArgs e)
+    {
+        State = new()
+        {
+            Value = false,
+            UpdateType = BanEnum,
+            UpdateTime = DateTime.Now,
+        };
+        BanExpired?.Invoke(this, e);
     }
 
     protected void StartBackoffTimer(int secsToPause, string pauseReason)

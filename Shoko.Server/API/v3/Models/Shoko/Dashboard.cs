@@ -181,7 +181,13 @@ public static class Dashboard
             Title = shokoEpisode?.Title ?? anidbEpisode.Title;
             Number = anidbEpisode.EpisodeNumber;
             Type = anidbEpisode.Type;
-            AirDate = anidbEpisode.AirDate;
+            // The shoko episode folds in the linked providers, so it may carry the actual broadcast time.
+            AirDate = shokoEpisode?.AirDate ?? anidbEpisode.AirDate;
+            IsAirTimeEstimated = shokoEpisode?.IsAirTimeEstimated ?? false;
+            HasAirTime = IsAirTimeEstimated || (shokoEpisode?.AnilistEpisodes.Any(episode => episode.AirDateWithTime.HasValue) ?? false);
+            AiredAt = HasAirTime && shokoEpisode?.AirDateWithTime is { } airDateWithTime
+                ? DateTime.SpecifyKind(airDateWithTime, DateTimeKind.Utc)
+                : AirDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             Duration = video?.MediaInfo?.Duration ?? anidbEpisode.Runtime;
             ResumePosition = videoUserData?.ProgressPosition;
             Watched = videoUserData?.LastPlayedAt?.ToUniversalTime();
@@ -217,10 +223,32 @@ public static class Dashboard
         public EpisodeType Type { get; set; }
 
         /// <summary>
-        /// Air Date.
+        /// Air date. The UTC calendar day of <see cref="AiredAt"/> when the
+        /// air time is known, otherwise the date the provider reported.
         /// </summary>
-        /// <value></value>
         public DateOnly? AirDate { get; set; }
+
+        /// <summary>
+        /// When the episode aired, in UTC. Midnight UTC on <see cref="AirDate"/>
+        /// when <see cref="HasAirTime"/> is <see langword="false"/>.
+        /// </summary>
+        [JsonConverter(typeof(IsoDateTimeConverter))]
+        public DateTime? AiredAt { get; set; }
+
+        /// <summary>
+        /// Whether <see cref="AiredAt"/> carries an actual broadcast time
+        /// rather than a placeholder midnight.
+        /// </summary>
+        [Required]
+        public bool HasAirTime { get; set; }
+
+        /// <summary>
+        /// Whether the broadcast time in <see cref="AiredAt"/> is an estimate
+        /// learned from the series' other episodes rather than a time a
+        /// provider reported for this episode.
+        /// </summary>
+        [Required]
+        public bool IsAirTimeEstimated { get; set; }
 
         /// <summary>
         /// The duration of the episode.

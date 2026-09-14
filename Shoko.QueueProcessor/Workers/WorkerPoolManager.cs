@@ -170,6 +170,10 @@ public sealed class WorkerPoolManager : IHostedService
 
     public void Resume()
     {
+        // A halted queue stays paused, so don't announce a start that didn't happen.
+        if (_orchestrator.IsHalted)
+            return;
+
         _orchestrator.Resume();
         _events.InvokeQueueStarted();
     }

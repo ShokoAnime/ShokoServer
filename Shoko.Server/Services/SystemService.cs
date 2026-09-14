@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using MessagePack;
@@ -39,6 +40,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Filters;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
+using Shoko.Server.API.Authentication;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
@@ -47,7 +49,8 @@ using Shoko.Server.Hashing;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.UDP;
+using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Filters;
@@ -104,7 +107,7 @@ public class SystemService : ISystemService
         _configurationService = new(loggerFactory, ApplicationPaths.Instance, _pluginManager);
         _settingsProvider = new(loggerFactory.CreateLogger<SettingsProvider>(), this, _configurationService.CreateProvider<ServerSettings>());
         _logService = new(loggerFactory.CreateLogger<LogService>(), ApplicationPaths.Instance, _settingsProvider);
-        _databaseBlockingTasks.Add(_startupTaskSource.Task);
+        _databaseBlockingTasks.Add(_startupTaskSource!.Task);
 
         CanShutdown = args.Contains("--shutdown-enabled");
         CanRestart = args.Contains("--restart-enabled");
@@ -198,6 +201,17 @@ public class SystemService : ISystemService
             _logger.LogError(value, "Failed to Start Server: {Message}", value.Message);
             _startupTaskSource?.SetException(value);
             _startupTaskSource = null;
+
+            // The queue's hosted services are already up by the time most startup failures happen, and
+            // nothing in this process will ever be able to serve a job now, so stop dispatching for good.
+            try
+            {
+                _webHost?.Services.GetService<IQueueScheduler>()?.Halt("the server failed to start").GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to halt the queue after the failed startup");
+            }
         }
     }
 
@@ -400,6 +414,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IPluginPackageManager, PluginPackageManager>();
             services.AddSingleton<IPluginDependencyResolver, PluginDependencyResolver>();
             services.AddSingleton<FileSystemHelpers>();
+            services.AddSingleton<IFileSystemHelpers>(sp => sp.GetRequiredService<FileSystemHelpers>());
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<TmdbRateLimiter>();
             services.AddSingleton<TmdbImageService>();
@@ -409,6 +424,8 @@ public class SystemService : ISystemService
             services.AddSingleton<ITmdbMetadataService>(sp => sp.GetRequiredService<TmdbMetadataService>());
             services.AddSingleton<TmdbSearchService>();
             services.AddSingleton<ITmdbSearchService>(sp => sp.GetRequiredService<TmdbSearchService>());
+            services.AddAnilist();
+            services.AddSingleton<AnilistSupplementaryProvider>();
             services.AddSingleton<IFilteringEngine, FilteringEngine>();
             services.AddSingleton<IMetadataFilteringService, MetadataFilteringService>();
             services.AddSingleton<IFilterPresetManager, FilterPresetManager>();
@@ -434,6 +451,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IRelocationPresetManager>(sp => sp.GetRequiredService<VideoRelocationService>());
             services.AddTransient<RelocationPresetMigrationService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
+            services.AddSingleton<LoginThrottler>();
             services.AddSingleton<IUserService, UserService>();
             // lets a service in a dependency cycle take a Lazy<T> rather than
             // injecting IServiceProvider and resolving by hand on first use
@@ -463,6 +481,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, TmdbApiRateLimitedAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, AnilistApiRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
 
@@ -515,6 +534,7 @@ public class SystemService : ISystemService
             registry.Register<PeriodicImageMaintenanceJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<CleanupExpiredTokensJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<PurgeOrphanedTmdbDataJob>(TimeSpan.FromHours(24), runImmediately: false);
+            registry.Register<PurgeOrphanedAnilistDataJob>(TimeSpan.FromHours(24), runImmediately: false);
 
             // Register settings-driven recurring jobs. Jobs whose frequency is Never are skipped
             // entirely at startup; they are registered on-demand when settings change.
@@ -653,14 +673,17 @@ public class SystemService : ISystemService
             if (cancellationToken.IsCancellationRequested)
                 return;
 
+            if (ProcessPasswordResetFile())
+                return;
+
             StartupMessage = "Migrating failed relocation presets...";
             _webHost!.Services.GetRequiredService<RelocationPresetMigrationService>().MigrateFailedPresets();
 
             StartupMessage = "Initializing UDP Connection Handler...";
-            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
+            var udpConnectionHandler = _webHost.Services.GetRequiredService<AniDBUDPConnectionHandler>();
             try
             {
-                udpConnectionHandler.Init();
+                udpConnectionHandler.InitAsync(cancellationToken).GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {
@@ -710,6 +733,90 @@ public class SystemService : ISystemService
             StartupMessage = "Failed to start. Check your logs for more information.";
             StartupFailedException = new(innerException: ex);
         }
+    }
+
+    /// <summary>
+    /// Checks for a <c>password-reset.json</c> file in the data folder and, if found, resets the
+    /// password of the user it refers to and invalidates all of that user's API tokens. The file
+    /// is expected to contain an object like
+    /// <code>
+    /// { "username": "Default", "password": "NewPassword12" }
+    /// </code>
+    /// A valid file is always processed, whether the user was found or not, and the server exits
+    /// afterwards either way so it can be restarted with the new credentials (or with a corrected
+    /// file). The file is deleted on success and kept when the user was not found, so it can be
+    /// corrected and retried. An unparseable or empty file is only reported and ignored, so a typo
+    /// in the file can never take the server down.
+    /// </summary>
+    /// <returns><see langword="true"/> if the startup sequence should stop here; otherwise, <see langword="false"/>.</returns>
+    private bool ProcessPasswordResetFile()
+    {
+        var filePath = Path.Combine(ApplicationPaths.StaticDataPath, "password-reset.json");
+        if (!File.Exists(filePath))
+            return false;
+
+        PasswordResetRequest? resetRequest;
+        try
+        {
+            resetRequest = JsonSerializer.Deserialize<PasswordResetRequest>(File.ReadAllText(filePath), _passwordResetJsonOptions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to parse the password reset file {FilePath}. Continuing startup without resetting any password. Fix or remove the file, then restart the server to try again.", filePath);
+            return false;
+        }
+
+        if (resetRequest is null || string.IsNullOrWhiteSpace(resetRequest.Username) || string.IsNullOrEmpty(resetRequest.Password))
+        {
+            _logger.LogError("The password reset file {FilePath} is missing a username or a password. Continuing startup without resetting any password. Fix or remove the file, then restart the server to try again.", filePath);
+            return false;
+        }
+
+        var user = RepoFactory.JMMUser.GetByUsername(resetRequest.Username);
+        if (user is null)
+        {
+            StartupMessage = $"Password reset failed: no user named {resetRequest.Username}.";
+            _logger.LogError("Password reset requested for username '{Username}', but no such user was found. The reset file has been kept, so it can be corrected and the server restarted to try again.", resetRequest.Username);
+        }
+        else
+        {
+            user.Password = Digest.Hash(resetRequest.Password);
+            RepoFactory.JMMUser.Save(user);
+            RepoFactory.AuthTokens.DeleteAllWithUserID(user.JMMUserID);
+            try
+            {
+                File.Delete(filePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "The password for user '{Username}' was reset, but the reset file could not be deleted. Remove it manually to avoid it being processed again on the next startup.", resetRequest.Username);
+            }
+
+            StartupMessage = $"Password reset for user {resetRequest.Username} completed.";
+            _logger.LogInformation("Password for user '{Username}' has been reset. The server will now exit; restart it to continue normal operation.", resetRequest.Username);
+        }
+
+        // Complete the startup task so the database unblock loop (and anything else waiting on
+        // startup) finishes while the host shuts down.
+        _startupTaskSource?.TrySetResult();
+        _startupTaskSource = null;
+
+        _webHost?.Services.GetRequiredService<IHostApplicationLifetime>().StopApplication();
+        return true;
+    }
+
+    private static readonly JsonSerializerOptions _passwordResetJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
+    };
+
+    private class PasswordResetRequest
+    {
+        public string Username { get; set; } = string.Empty;
+
+        public string Password { get; set; } = string.Empty;
     }
 
     #endregion
@@ -901,9 +1008,9 @@ public class SystemService : ISystemService
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
             fileWatcherService.StopWatchingFiles();
 
-            var udpConnectionHandler = _webHost.Services.GetRequiredService<IUDPConnectionHandler>();
-            udpConnectionHandler.ForceLogout();
-            udpConnectionHandler.CloseConnections();
+            var udpConnectionHandler = _webHost.Services.GetRequiredService<AniDBUDPConnectionHandler>();
+            udpConnectionHandler.ForceLogoutAsync().GetAwaiter().GetResult();
+            udpConnectionHandler.CloseConnectionsAsync().GetAwaiter().GetResult();
         }
 
         try
@@ -1034,9 +1141,29 @@ public class SystemService : ISystemService
                 continue;
             }
 
+            // A blocking task that faulted (a failed startup, for one) means the database never became
+            // usable, so keep the block up and fail the waiters rather than unblock them. The block then
+            // stays until the process restarts, which is the only way out of a failed startup anyway.
+            var finished = tasks[task];
+            if (finished.IsFaulted || finished.IsCanceled)
+            {
+                lock (_databaseBlockingTasks)
+                {
+                    _databaseBlockingTasks.Remove(finished);
+                    _databaseTasksChangedCTS = null;
+                }
+
+                if (finished.Exception is { } exception)
+                    taskSource.TrySetException(exception.InnerExceptions);
+                else
+                    taskSource.TrySetCanceled();
+                _logger.LogError(finished.Exception, "A database blocking task failed; the database stays blocked until the server is restarted.");
+                return;
+            }
+
             lock (_databaseBlockingTasks)
             {
-                _databaseBlockingTasks.Remove(tasks[task]);
+                _databaseBlockingTasks.Remove(finished);
                 if (_databaseBlockingTasks.Count is 0)
                 {
                     taskSource.TrySetResult();

@@ -37,7 +37,7 @@ public class GetAniDBMessageJob(IRequestFactory requestFactory, IQueueScheduler 
         if (message is not null) return; // message content has already been fetched
 
         var request = requestFactory.Create<RequestGetMessageContent>(r => r.ID = MessageID);
-        var response = request.Send();
+        var response = await request.SendAsync();
         if (response?.Response == null) return;
 
         message = new()

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
@@ -17,12 +18,11 @@ namespace Shoko.Server.API.v3.Controllers;
 /// A controller to configure the AVDump component.
 /// </summary>
 [ApiController]
-[Route("/api/v{version:apiVersion}/[controller]")]
+[Route("/api/v{version:apiVersion}/[controller]"), Tags("Anidb")]
 [ApiV3]
 [Authorize]
 public class AVDumpController : BaseController
 {
-    
     private readonly IQueueScheduler _scheduler;
     private readonly VideoLocalRepository _videoLocals;
     public AVDumpController(ISettingsProvider settingsProvider, IQueueScheduler scheduler, VideoLocalRepository videoLocals) : base(settingsProvider)

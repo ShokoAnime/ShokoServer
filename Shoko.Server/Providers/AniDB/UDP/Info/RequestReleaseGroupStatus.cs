@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 
@@ -126,7 +125,7 @@ public class RequestReleaseGroupStatus : UDPRequest<List<ResponseReleaseGroupSta
         }
     }
 
-    public RequestReleaseGroupStatus(ILoggerFactory loggerFactory, IUDPConnectionHandler handler) : base(loggerFactory,
+    public RequestReleaseGroupStatus(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler) : base(loggerFactory,
         handler)
     {
     }

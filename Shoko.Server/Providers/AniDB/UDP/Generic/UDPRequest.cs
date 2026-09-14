@@ -1,16 +1,18 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Generic;
 
-public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> where T : class
+public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>> where T : class
 {
     protected readonly ILogger Logger;
-    protected readonly IUDPConnectionHandler Handler;
+    protected readonly IAniDbUdpRequestChannel Handler;
     protected string Command { get; set; } = string.Empty;
 
     /// <summary>
@@ -25,22 +27,22 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
     private static readonly Regex s_commandRegex =
         new("[A-Za-z0-9]+ +\\S", RegexOptions.Compiled | RegexOptions.Singleline);
 
-    protected UDPRequest(ILoggerFactory loggerFactory, IUDPConnectionHandler handler)
+    protected UDPRequest(ILoggerFactory loggerFactory, IAniDbUdpRequestChannel handler)
     {
         Logger = loggerFactory.CreateLogger(GetType());
         Handler = handler;
     }
 
-    public virtual UDPResponse<T> Send()
+    public virtual async Task<UDPResponse<T>> SendAsync(CancellationToken cancellationToken = default)
     {
         Command = BaseCommand.Trim();
-        if (string.IsNullOrEmpty(Handler.SessionID) && !Handler.Login())
+        if (string.IsNullOrEmpty(Handler.SessionID) && !await Handler.LoginAsync(cancellationToken))
         {
             throw new NotLoggedInException();
         }
 
         PreExecute(Handler.SessionID);
-        var rawResponse = Handler.Send(Command);
+        var rawResponse = await Handler.SendAsync(Command, cancellationToken: cancellationToken);
         var response = ParseResponse(rawResponse);
         var parsedResponse = ParseResponse(response);
         PostExecute(Handler.SessionID, parsedResponse);
@@ -101,18 +103,17 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
 
         var status = (UDPReturnCode)code;
 
-        // if we get banned pause the command processor for a while, so we don't make the ban worse
-        Handler.IsBanned = status == UDPReturnCode.BANNED;
-
-        // if banned, then throw the ban exception. There will be no data in the response
-        if (Handler.IsBanned)
+        if (status == UDPReturnCode.BANNED)
         {
-            throw new AniDBBannedException
-            {
-                BanType = UpdateType.UDPBan,
-                BanExpires = Handler.BanTime?.AddHours(Handler.BanTimerResetLength)
-            };
+            // if we get banned pause the command processor for a while, so we don't make the ban worse.
+            // For() registers the ban (idempotently) and builds the exception with the expiry.
+            // There will be no data in the response.
+            throw AniDBBannedException.For(Handler.BanState);
         }
+
+        // Any response that isn't a ban means the server no longer considers us banned,
+        // so lift an active ban (including one inferred from a zero-byte response).
+        Handler.BanState.Unban();
 
         switch (status)
         {
@@ -161,10 +162,5 @@ public abstract class UDPRequest<T> : IRequest, IRequest<UDPResponse<T>, T> wher
         }
 
         return new UDPResponse<string> { Code = status, Response = decodedResponse };
-    }
-
-    object IRequest.Send()
-    {
-        return Send();
     }
 }

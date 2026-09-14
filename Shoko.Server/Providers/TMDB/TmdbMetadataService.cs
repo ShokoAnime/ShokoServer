@@ -188,7 +188,9 @@ public class TmdbMetadataService : ITmdbMetadataService
     // We lazy-init it on first use, this will give us time to set up the server before we attempt to init the tmdb client.
     private TMDbClient CachedClient => _rawClient ??= new(_settingsProvider.GetSettings().TMDB.UserApiKey ?? (
         Constants.TMDB.ApiKey != "TMDB_API_KEY_GOES_HERE"
+#pragma warning disable CS0162 // Unreachable code detected
             ? Constants.TMDB.ApiKey
+#pragma warning restore CS0162 // Unreachable code detected
             : throw new TmdbApiKeyUnavailableException()
     ));
 
@@ -2376,10 +2378,11 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <param name="translations">The translations container returned from the API.</param>
     /// <param name="preferredTitleLanguages">The preferred title languages to store. If not set then we will store all languages.</param>
     /// <param name="preferredOverviewLanguages">The preferred overview languages to store. If not set then we will store all languages.</param>
+    /// <param name="includeTitles">Whether to reconcile titles too. <c>false</c> for an entity that has none to speak of, such as a person: you would not translate a given name or a family name, so TMDB carries none and nothing would read any we wrote.</param>
     /// <returns>A boolean indicating if any changes were made to the titles and/or overviews.</returns>
-    private bool UpdateTitlesAndOverviews(IEntityMetadata tmdbEntity, TranslationsContainer? translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages)
+    private bool UpdateTitlesAndOverviews(IEntityMetadata tmdbEntity, TranslationsContainer? translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages, bool includeTitles = true)
     {
-        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbEntity, translations, preferredTitleLanguages, preferredOverviewLanguages);
+        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbEntity, translations, preferredTitleLanguages, preferredOverviewLanguages, includeTitles);
         return titlesUpdated || overviewsUpdated;
     }
 
@@ -2391,11 +2394,12 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <param name="translations">The translations container returned from the API.</param>
     /// <param name="preferredTitleLanguages">The preferred title languages to store. If not set then we will store all languages.</param>
     /// <param name="preferredOverviewLanguages">The preferred overview languages to store. If not set then we will store all languages.</param>
+    /// <param name="includeTitles">Whether to reconcile titles too. <c>false</c> for an entity that has none to speak of, such as a person: you would not translate a given name or a family name, so TMDB carries none and nothing would read any we wrote.</param>
     /// <returns>A tuple indicating if any changes were made to the titles and/or overviews.</returns>
-    private (bool titlesUpdated, bool overviewsUpdated) UpdateTitlesAndOverviewsWithTuple(IEntityMetadata tmdbEntity, TranslationsContainer? translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages)
+    private (bool titlesUpdated, bool overviewsUpdated) UpdateTitlesAndOverviewsWithTuple(IEntityMetadata tmdbEntity, TranslationsContainer? translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages, bool includeTitles = true)
     {
         var existingOverviews = _tmdbOverview.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
-        var existingTitles = _tmdbTitle.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id);
+        var existingTitles = includeTitles ? _tmdbTitle.GetByParentTypeAndID(tmdbEntity.Type, tmdbEntity.Id) : [];
         var overviewsToAdd = 0;
         var overviewsToSkip = new HashSet<int>();
         var overviewsToSave = new List<TMDB_Overview>();
@@ -2422,7 +2426,7 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             var shouldInclude = alwaysInclude || preferredTitleLanguages is null || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage()) || preferredTitleLanguages.Contains(languageCode.GetTitleLanguage(countryCode));
             var existingTitle = existingTitles.FirstOrDefault(title => title.LanguageCode == languageCode && title.CountryCode == countryCode);
-            if (shouldInclude && !string.IsNullOrEmpty(currentTitle) && !(
+            if (includeTitles && shouldInclude && !string.IsNullOrEmpty(currentTitle) && !(
                 // Make sure the "translation" is not just the English Title or
                 (languageCode != "en" && languageCode != "US" && !string.IsNullOrEmpty(tmdbEntity.EnglishTitle) && string.Equals(tmdbEntity.EnglishTitle, currentTitle, StringComparison.InvariantCultureIgnoreCase)) ||
                 // the Original Title.
@@ -2495,10 +2499,20 @@ public class TmdbMetadataService : ITmdbMetadataService
         _tmdbTitle.Save(titlesToSave);
         _tmdbTitle.Delete(titlesToRemove);
 
-        return (
-            titlesToSave.Count > 0 || titlesToRemove.Count > 0,
-            overviewsToSave.Count > 0 || overviewsToRemove.Count > 0
-        );
+        var titlesUpdated = titlesToSave.Count > 0 || titlesToRemove.Count > 0;
+        var overviewsUpdated = overviewsToSave.Count > 0 || overviewsToRemove.Count > 0;
+
+        // the rows above live in their own repositories, so the entity is still
+        // holding the copy it memoised before they were written. It has to be
+        // dropped here rather than by the caller: what the caller resets next is
+        // the series-level titles, and those are rebuilt by reading back through
+        // this entity
+        if (titlesUpdated)
+            tmdbEntity.ResetAllTitles();
+        if (overviewsUpdated)
+            tmdbEntity.ResetAllOverviews();
+
+        return (titlesUpdated, overviewsUpdated);
     }
 
     private void PurgeTitlesAndOverviews(DataEntityType foreignType, int foreignId)
@@ -2686,7 +2700,14 @@ public class TmdbMetadataService : ITmdbMetadataService
                 return (false, !newlyAdded);
             }
 
+            var settings = _settingsProvider.GetSettings();
+            var preferredOverviewLanguages = settings.TMDB.DownloadAllOverviews ? null : Languages.PreferredDescriptionNamingLanguages.Select(a => a.Language).ToHashSet();
+
             var updated = tmdbPerson.Populate(person);
+            // `Populate` only keeps the English biography, so without this the
+            // translations fetched above were thrown away and
+            // `GetAllBiographies` always came back empty
+            updated = UpdateTitlesAndOverviews(tmdbPerson, person.Translations, null, preferredOverviewLanguages, includeTitles: false) || updated;
             if (IsPersonLinkedToOtherEntities(personId) && tmdbPerson.LastOrphanedAt.HasValue)
             {
                 tmdbPerson.LastOrphanedAt = null;
@@ -2767,6 +2788,8 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
 
         _imageService.PurgeImages(person ?? new() { TmdbPersonID = personId });
+
+        PurgeTitlesAndOverviews(DataEntityType.Person, personId);
 
         var movieCast = _tmdbMovieCast.GetByTmdbPersonID(personId);
         if (movieCast.Count > 0)

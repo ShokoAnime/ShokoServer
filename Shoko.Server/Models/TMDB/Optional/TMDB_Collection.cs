@@ -153,6 +153,9 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
         ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID)
         : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID);
 
+    /// <inheritdoc/>
+    public void ResetAllTitles() => _allTitles = null;
+
     /// <summary>
     /// Get the preferred overview using the preferred episode title preference
     /// from the application settings.
@@ -194,6 +197,9 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
     public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
         ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID)
         : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID);
+
+    /// <inheritdoc/>
+    public void ResetAllOverviews() => _allOverviews = null;
     /// <summary>
     /// Get all local TMDB movies associated with the movie collection.
     /// </summary>

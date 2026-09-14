@@ -408,11 +408,14 @@ public class Serie : BaseDirectory, IComparable
                 ?? posters.FirstOrDefault(x => x is { IsEnabled: true, IsAvailable: true })
                 ?? posters.FirstOrDefault(x => x is { IsEnabled: true })
                 ?? posters.FirstOrDefault();
-            sr.art.thumb.Add(new Art
+            if (poster is not null)
             {
-                index = 0,
-                url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster!),
-            });
+                sr.art.thumb.Add(new Art
+                {
+                    index = 0,
+                    url = APIHelper.ConstructImageLinkFromTypeAndId(ctx, poster),
+                });
+            }
             if (backdrops.Count > 0)
             {
                 var backdrop = backdrops.FirstOrDefault(x => x.IsPreferred)

@@ -62,4 +62,15 @@ public interface IEntityMetadata
     /// When the metadata was last synchronized with the remote.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
+
+    /// <summary>
+    /// Drops the memoised titles, so the next read goes back to the database.
+    /// </summary>
+    void ResetAllTitles() { }
+
+    /// <summary>
+    /// Drops the memoised overviews, so the next read goes back to the
+    /// database.
+    /// </summary>
+    void ResetAllOverviews() { }
 }

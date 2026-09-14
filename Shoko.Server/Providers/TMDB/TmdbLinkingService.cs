@@ -108,9 +108,11 @@ public class TmdbLinkingService : ITmdbLinkingService
     public void RemoveAllLinks(bool removeShowLinks = true, bool removeMovieLinks = true)
     {
         _logger.LogInformation("Removing AniDB - TMDB links.");
+        var affectedAnimeIds = new HashSet<int>();
         if (removeShowLinks)
         {
             var showXrefs = _xrefAnidbTmdbShows.GetAll();
+            affectedAnimeIds.UnionWith(showXrefs.Select(xref => xref.AnidbAnimeID));
 
             _logger.LogInformation("Removing {Count} TMDB show links.", showXrefs.Count);
             _xrefAnidbTmdbShows.Delete(showXrefs);
@@ -124,12 +126,37 @@ public class TmdbLinkingService : ITmdbLinkingService
         if (removeMovieLinks)
         {
             var movieXrefs = _xrefAnidbTmdbMovies.GetAll();
+            affectedAnimeIds.UnionWith(movieXrefs.Select(xref => xref.AnidbAnimeID));
 
             _logger.LogInformation("Removing {Count} TMDB movie links.", movieXrefs.Count);
             _xrefAnidbTmdbMovies.Delete(movieXrefs);
         }
 
+        foreach (var anidbAnimeId in affectedAnimeIds)
+            ResetSeriesTitlesAndOverview(anidbAnimeId);
+
         _logger.LogInformation("Done removing AniDB - TMDB links.");
+    }
+
+    // A series' titles and overview are derived from its TMDB links.
+    private void ResetSeriesTitlesAndOverview(int anidbAnimeId)
+    {
+        if (_animeSeries.GetByAnimeID(anidbAnimeId) is not { } series)
+            return;
+
+        series.ResetAnimeTitles();
+        series.ResetPreferredTitle();
+        series.ResetPreferredOverview();
+    }
+
+    // Only the overview descends into the season and episode links. The titles
+    // come from the linked show or movie alone.
+    private void ResetSeriesOverview(int anidbAnimeId)
+    {
+        if (_animeSeries.GetByAnimeID(anidbAnimeId) is not { } series)
+            return;
+
+        series.ResetPreferredOverview();
     }
 
     public void ResetAutoLinkingState(bool disabled = false)
@@ -180,6 +207,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         xref.AnidbAnimeID = episode.AnimeID;
         xref.MatchRating = matchRating;
         _xrefAnidbTmdbMovies.Save(xref);
+        ResetSeriesTitlesAndOverview(episode.AnimeID);
     }
 
     public async Task RemoveMovieLinkForEpisode(int anidbEpisodeId, int tmdbMovieId, bool purge = false)
@@ -249,6 +277,7 @@ public class TmdbLinkingService : ITmdbLinkingService
     {
         _logger.LogInformation("Removing TMDB movie link: AniDB episode (EpisodeID={EpisodeID}, AnimeID={AnimeID}) → TMDB movie (ID:{TmdbID})", xref.AnidbEpisodeID, xref.AnidbAnimeID, xref.TmdbMovieID);
         _xrefAnidbTmdbMovies.Delete(xref);
+        ResetSeriesTitlesAndOverview(xref.AnidbAnimeID);
 
         if (purge)
             await _scheduler.StartJob<PurgeTmdbMovieJob>(c =>
@@ -274,6 +303,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         xref.MatchRating = matchRating;
         _xrefAnidbTmdbShows.Save(xref);
         await Task.Run(() => MatchAnidbToTmdbEpisodes(anidbAnimeId, tmdbShowId, null, true, true));
+        ResetSeriesTitlesAndOverview(anidbAnimeId);
     }
 
     public async Task RemoveShowLink(int anidbAnimeId, int tmdbShowId, bool purge = false)
@@ -335,6 +365,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             xrefs.AddRange(_xrefAnidbTmdbEpisodes.GetOnlyByAnidbAnimeAndTmdbShowIDs(xref.AnidbAnimeID, 0));
         _logger.LogInformation("Removing {XRefsCount} episodes cross-references for AniDB anime (AnimeID={AnidbID}) and TMDB show (ID={TmdbID})", xrefs.Count, xref.AnidbAnimeID, xref.TmdbShowID);
         _xrefAnidbTmdbEpisodes.Delete(xrefs);
+        ResetSeriesTitlesAndOverview(xref.AnidbAnimeID);
         if (purge)
             await _scheduler.StartJob<PurgeTmdbShowJob>(c =>
             {
@@ -390,6 +421,8 @@ public class TmdbLinkingService : ITmdbLinkingService
             var xrefs = _xrefAnidbTmdbEpisodes.GetByAnidbAnimeID(anidbAnimeId);
             _xrefAnidbTmdbEpisodes.Delete(xrefs);
         }
+
+        ResetSeriesOverview(anidbAnimeId);
     }
 
     public bool SetEpisodeLink(int anidbEpisodeId, int tmdbEpisodeId, bool additiveLink = true, int? index = null)
@@ -410,6 +443,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             var toDelete = xrefs.Skip(1).ToList();
             _xrefAnidbTmdbEpisodes.Save(toSave);
             _xrefAnidbTmdbEpisodes.Delete(toDelete);
+            ResetSeriesOverview(anidbEpisode.AnimeID);
 
             return true;
         }
@@ -452,6 +486,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             _xrefAnidbTmdbEpisodes.Delete(toDelete);
         }
 
+        ResetSeriesOverview(anidbEpisode.AnimeID);
         return true;
     }
 
@@ -704,7 +739,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             _logger.LogDebug(
                 "Found {a} anidb/tmdb episode links for show {ShowTitle} in {Delta}. (Anime={AnimeId}, Show={ShowId})",
                 crossReferences.Count,
-                anime.PreferredTitle,
+                anime.Title,
                 DateTime.Now - startedAt,
                 anidbAnimeId,
                 tmdbShowId
@@ -723,12 +758,13 @@ public class TmdbLinkingService : ITmdbLinkingService
             toAdd.Count,
             toRemove.Count,
             existing.Count - toRemove.Count,
-            anime.PreferredTitle,
+            anime.Title,
             DateTime.Now - startedAt,
             anidbAnimeId,
             tmdbShowId);
         _xrefAnidbTmdbEpisodes.Save(toAdd);
         _xrefAnidbTmdbEpisodes.Delete(toRemove);
+        ResetSeriesOverview(anidbAnimeId);
 
         return crossReferences;
 
@@ -786,8 +822,8 @@ public class TmdbLinkingService : ITmdbLinkingService
         if (anidbDate is null)
             return previous.Value.Season;
 
-        var previousDistance = CalculateAirDateDistance(anidbDate, previous.Value.AiredAt) ?? int.MaxValue;
-        var nextDistance = CalculateAirDateDistance(anidbDate, next.Value.AiredAt) ?? int.MaxValue;
+        var previousDistance = EpisodeMatchingUtility.CalculateAirDateDistance(anidbDate, previous.Value.AiredAt) ?? int.MaxValue;
+        var nextDistance = EpisodeMatchingUtility.CalculateAirDateDistance(anidbDate, next.Value.AiredAt) ?? int.MaxValue;
         return nextDistance < previousDistance ? next.Value.Season : previous.Value.Season;
     }
 
@@ -876,7 +912,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         }
 
         var airdateProbability = tmdbEpisodes
-            .Select(episode => (episode, probability: CalculateAirDateProbability(anidbDate, episode.AiredAt)))
+            .Select(episode => (episode, probability: EpisodeMatchingUtility.CalculateAirDateProbability(anidbDate, episode.AiredAt)))
             .Where(result => result.probability != 0)
             .OrderByDescending(result => result.probability)
             .ThenBy(result => result.episode.SeasonNumber == 0)
@@ -894,7 +930,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             ? new List<(TMDB_Episode episode, int distance)>()
             : (from episode in tmdbEpisodes
                where anchorSeasonNumber is null || episode.SeasonNumber == anchorSeasonNumber.Value
-               let distance = CalculateAirDateDistance(anidbDate, episode.AiredAt)
+               let distance = EpisodeMatchingUtility.CalculateAirDateDistance(anidbDate, episode.AiredAt)
                where distance is not null
                select (episode, distance: distance.Value))
                 .OrderBy(result => result.distance)
@@ -1084,8 +1120,6 @@ public class TmdbLinkingService : ITmdbLinkingService
     // Confidence is kept low (and decays with distance) so a genuine close match elsewhere always outranks it.
     // Bounded to MaxFallbackDifferenceInDays so an anime with a long hiatus (or a special dated months/years
     // from anything on TMDB) doesn't get confidently linked to a wildly unrelated episode.
-    private const int MaxFallbackDifferenceInDays = 120;
-
     private static bool TryNearestAirDateMatch(
         AniDB_Episode anidbEpisode,
         List<(TMDB_Episode episode, int distance)> nearestAirdate,
@@ -1098,35 +1132,13 @@ public class TmdbLinkingService : ITmdbLinkingService
             return false;
 
         var (tmdbEpisode, distance) = nearestAirdate[0];
-        if (distance > MaxFallbackDifferenceInDays)
+        if (distance > EpisodeMatchingUtility.MaxFallbackDifferenceInDays)
             return false;
 
         confidence = 0.5 / (1 + distance);
         crossRef = new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.DateKindaMatches);
         return true;
     }
-
-    private static double CalculateAirDateProbability(DateOnly? firstDate, DateOnly? secondDate, int maxDifferenceInDays = 2)
-    {
-        var difference = CalculateAirDateDistance(firstDate, secondDate);
-        if (difference is null)
-            return 0;
-
-        if (difference == 0)
-            return 1;
-
-        if (difference <= maxDifferenceInDays)
-            return (maxDifferenceInDays - difference.Value) / (double)maxDifferenceInDays;
-
-        return 0;
-    }
-
-    // Unbounded companion to CalculateAirDateProbability, used only as a last-resort fallback once the
-    // strict ±2-day window finds nothing — e.g. a delayed or compressed episode whose TMDB entry aired
-    // weeks later. Returns the raw day distance so the caller can pick the closest candidate instead of
-    // falling through to a blind positional/title guess.
-    private static int? CalculateAirDateDistance(DateOnly? firstDate, DateOnly? secondDate) =>
-        !firstDate.HasValue || !secondDate.HasValue ? null : Math.Abs(secondDate.Value.DayNumber - firstDate.Value.DayNumber);
 
     private static IReadOnlyList<string> GetEpisodeTitleCandidates(TMDB_Episode episode, string originalLanguageCode) =>
         episode.GetAllTitles()

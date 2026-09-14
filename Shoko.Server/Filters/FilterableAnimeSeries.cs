@@ -193,10 +193,12 @@ public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IF
     {
         get
         {
-            var allTmdbLinkedEpisodes = series.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
+            var allTmdbLinkedEpisodes = series.TmdbEpisodeCrossReferences
+                .Where(xref => xref.TmdbEpisodeID is not 0)
+                .Select(a => a.AnidbEpisodeID)
                 .Concat(series.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
                 .ToHashSet();
-            return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
+            return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AniDB_EpisodeID));
         }
     }
 
@@ -224,15 +226,37 @@ public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IF
         TmdbMovieGenres.Union(TmdbShowGenres)
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
 
-    public bool HasAnilistLink => false;
+    public IReadOnlySet<string> AnilistGenres =>
+        series.AnilistAnime.SelectMany(a => a.Genres)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public IReadOnlySet<string> AnilistTags =>
+        series.AnilistAnime.SelectMany(a => a.Tags)
+            .Select(tag => tag.Tag?.Name)
+            .WhereNotNull()
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
+
+    public bool HasAnilistLink => series.AnilistAnimeCrossReferences.Count is > 0;
 
     public bool HasAnilistAutoLinkingDisabled => series.IsAnilistAutoMatchingDisabled;
 
-    public int AutomaticAnilistEpisodeLinks => 0;
+    public int AutomaticAnilistEpisodeLinks =>
+        series.AnilistEpisodeCrossReferences.Count(xref => xref.AnilistEpisodeID is not 0 && xref.MatchRating is not MatchRating.UserVerified);
 
-    public int UserVerifiedAnilistEpisodeLinks => 0;
+    public int UserVerifiedAnilistEpisodeLinks =>
+        series.AnilistEpisodeCrossReferences.Count(xref => xref.AnilistEpisodeID is not 0 && xref.MatchRating is MatchRating.UserVerified);
 
-    public int MissingAnilistEpisodeLinks => 0;
+    public int MissingAnilistEpisodeLinks
+    {
+        get
+        {
+            var allAnilistLinkedEpisodes = series.AnilistEpisodeCrossReferences
+                .Where(xref => xref.AnilistEpisodeID is not 0)
+                .Select(xref => xref.AnidbEpisodeID)
+                .ToHashSet();
+            return series.AnimeEpisodes.Count(episode => !allAnilistLinkedEpisodes.Contains(episode.AniDB_EpisodeID));
+        }
+    }
 
     public bool IsFinished => _anime?.EndDate is { } endDate && endDate < now.Date;
 

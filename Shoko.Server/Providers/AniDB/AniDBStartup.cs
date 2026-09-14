@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
@@ -10,6 +10,7 @@ using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -21,21 +22,25 @@ public static class AniDBStartup
         services.AddSingleton<AniDBTitleHelper>();
         services.AddSingleton<AnimeCreator>();
         services.AddSingleton<HttpXmlUtils>();
+        services.AddSingleton<IAniDBSocketHandlerFactory, AniDBSocketHandlerFactory>();
         services.AddSingleton<UDPRateLimiter>();
         services.AddSingleton<HttpRateLimiter>();
+        services.AddSingleton<AniDbBanStateService>();
         services.AddSingleton<IHttpConnectionHandler, AniDBHttpConnectionHandler>();
-        services.AddSingleton<IUDPConnectionHandler, AniDBUDPConnectionHandler>();
+        services.AddSingleton<AniDBUDPConnectionHandler>();
+        services.AddSingleton<IUDPConnectionHandler>(sp => sp.GetRequiredService<AniDBUDPConnectionHandler>());
+        services.AddSingleton<IAniDbUdpRequestChannel>(sp => sp.GetRequiredService<AniDBUDPConnectionHandler>());
         services.AddSingleton<IRequestFactory, RequestFactory>();
 
         // Register Requests
         var requestType = typeof(IRequest);
-        var types = AppDomain.CurrentDomain.GetAssemblies()
+        var types = ReflectionUtils.ScannableAssemblies()
             .SelectMany(s => s.GetTypes())
             .Where(p => requestType.IsAssignableFrom(p) && !p.IsAbstract && p.IsClass);
 
         /* Possibly negate the need for IRequest (non-generic)
         var requestType = typeof(IRequest<>);
-        var types = AppDomain.CurrentDomain.GetAssemblies()
+        var types = ReflectionUtils.ScannableAssemblies()
             .SelectMany(s => s.GetTypes())
             .Where(p => p.IsGenericType && requestType.IsAssignableFrom(p.GetGenericTypeDefinition()) && !p.IsAbstract && p.IsClass)
          */

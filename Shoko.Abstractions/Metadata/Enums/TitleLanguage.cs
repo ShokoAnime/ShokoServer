@@ -637,4 +637,24 @@ public enum TitleLanguage : int
     /// Norwegian (Nynorsk).
     /// </summary>
     NorwegianNynorsk,
+
+    /// <summary>
+    /// Faroese.
+    /// </summary>
+    Faroese,
+
+    /// <summary>
+    /// Twi.
+    /// </summary>
+    Twi,
+
+    /// <summary>
+    /// Chamorro.
+    /// </summary>
+    Chamorro,
+
+    /// <summary>
+    /// Nauruan.
+    /// </summary>
+    Nauruan,
 }
