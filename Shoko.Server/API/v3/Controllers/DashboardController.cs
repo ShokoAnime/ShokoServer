@@ -8,6 +8,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -551,17 +552,24 @@ public class DashboardController(
     /// <param name="endDate">End date.</param>
     /// <param name="includeMissing">Include missing episodes.</param>
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
+    /// <param name="includeWithAirTime">Include episodes with a known broadcast time. <c>Only</c> limits the result to episodes whose air time is known, <c>False</c> to those where it is not.</param>
+    /// <param name="type">Only include episodes of these AniDB episode types. Defaults to normal episodes when omitted; an empty set matches nothing.</param>
     /// <returns></returns>
     [HttpGet("CalendarEpisodes")]
     public List<Dashboard.Episode> GetCalendarEpisodes(
         [FromQuery] DateOnly startDate = default,
         [FromQuery] DateOnly endDate = default,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeWithAirTime = IncludeOnlyFilter.True,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null
     )
     {
+        type ??= [EpisodeType.Episode];
         var user = HttpContext.GetUser();
-        var episodeList = _anidbEpisodes.GetForDate(startDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), endDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Unspecified))
+        // The shoko episode's day can differ from the AniDB date by one when the broadcast time is known
+        // (a late-night slot crosses midnight UTC), so fetch a day either side and filter on the final day below.
+        var episodeList = _anidbEpisodes.GetForDate(startDate.AddDays(-1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), endDate.AddDays(1).ToDateTime(TimeOnly.MaxValue, DateTimeKind.Unspecified))
             .ToList();
         var animeDict = episodeList
             .Select(episode => _anidbAnimes.GetByAnimeID(episode.AnimeID))
@@ -573,9 +581,17 @@ public class DashboardController(
             .WhereNotNull()
             .Distinct()
             .ToDictionary(anime => anime.AniDB_ID);
+        // A series counts as missing when nothing of it has been downloaded, not merely when Shoko has no
+        // entry for it, so a show that was only added to the collection still hides behind "include missing".
+        var missingAnimeIds = animeDict.Keys
+            .Where(animeId => !seriesDict.TryGetValue(animeId, out var series) || !series.VideoLocals.Any())
+            .ToHashSet();
         return episodeList
             .Where(episode =>
             {
+                if (!type.Contains(episode.EpisodeType))
+                    return false;
+
                 if (!animeDict.TryGetValue(episode.AnimeID, out var anime) || !user.AllowedAnime(anime))
                     return false;
 
@@ -590,14 +606,13 @@ public class DashboardController(
                 if (includeMissing is not IncludeOnlyFilter.True)
                 {
                     var shouldHideMissing = includeMissing is IncludeOnlyFilter.False;
-                    var isMissing = !seriesDict.ContainsKey(episode.AnimeID);
+                    var isMissing = missingAnimeIds.Contains(episode.AnimeID);
                     if (shouldHideMissing == isMissing)
                         return false;
                 }
 
                 return true;
             })
-            .OrderBy(episode => episode.GetAirDateAsDate())
             .Select(episode =>
             {
                 var anime = animeDict[episode.AnimeID];
@@ -610,6 +625,16 @@ public class DashboardController(
 
                 return new Dashboard.Episode(episode, anime);
             })
+            .Where(episode => episode.AirDate is { } airDate && airDate >= startDate && airDate <= endDate)
+            .Where(episode => includeWithAirTime switch
+            {
+                IncludeOnlyFilter.Only => episode.HasAirTime,
+                IncludeOnlyFilter.False => !episode.HasAirTime,
+                _ => true,
+            })
+            .OrderBy(episode => episode.AiredAt)
+            .ThenBy(episode => episode.IDs.Series)
+            .ThenBy(episode => episode.Number)
             .ToList();
     }
 }
