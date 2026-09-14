@@ -1041,9 +1041,29 @@ public class SystemService : ISystemService
                 continue;
             }
 
+            // A blocking task that faulted (a failed startup, for one) means the database never became
+            // usable, so keep the block up and fail the waiters rather than unblock them. The block then
+            // stays until the process restarts, which is the only way out of a failed startup anyway.
+            var finished = tasks[task];
+            if (finished.IsFaulted || finished.IsCanceled)
+            {
+                lock (_databaseBlockingTasks)
+                {
+                    _databaseBlockingTasks.Remove(finished);
+                    _databaseTasksChangedCTS = null;
+                }
+
+                if (finished.Exception is { } exception)
+                    taskSource.TrySetException(exception.InnerExceptions);
+                else
+                    taskSource.TrySetCanceled();
+                _logger.LogError(finished.Exception, "A database blocking task failed; the database stays blocked until the server is restarted.");
+                return;
+            }
+
             lock (_databaseBlockingTasks)
             {
-                _databaseBlockingTasks.Remove(tasks[task]);
+                _databaseBlockingTasks.Remove(finished);
                 if (_databaseBlockingTasks.Count is 0)
                 {
                     taskSource.TrySetResult();
