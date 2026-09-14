@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.457",
+      "tag": "v6.0.0-dev.457",
+      "commit": "462734a1acef5cf2cd53e5468afa022b96397957",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.457/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-14T16:53:28Z",
+      "releaseNotes": "\n`misc`: **Add Dependabot and CodeQL to fork tooling**:\n\nDependabot covers NuGet + GitHub Actions weekly. CodeQL scans C# on\npush/PR to master plus a weekly schedule. Fork-local only, not for\nupstream PRs.\n\n`misc`: **Add workflow_dispatch trigger to CodeQL**:\n\nLets the workflow be run on demand for verification, without waiting\nfor the weekly schedule or a push.\n\n`repo` (`workflows`): **Bump codeql-action to v4**:\n\nv3 forces Node 20 actions onto the runner's Node 24, which GitHub\nflags as deprecated. v4 targets Node 24 natively.\n\n`feat` (`auth`): **Add password-reset file on startup and harden API login**:\n\nAdd a startup password recovery path: a password-reset.json file in the\ndata folder resets the named user's password, invalidates their API\ntokens, and the server exits so it can be restarted with the new\ncredentials. The file is kept when the user is not found so it can be\ncorrected and retried; malformed files are ignored so they cannot block\nstartup.\n\nHarden login with per-username and per-client throttling (escalating\nlockout, 429 with Retry-After on the v0/v3 login endpoints), constant\ntime password hash comparison, and logging of failed attempts.\n"
+    },
+    {
       "version": "6.0.0.456",
       "tag": "v6.0.0-dev.456",
       "commit": "375462e2f11abf3a46b817477e2666685a10c006",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.428/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-24T00:37:47Z",
       "releaseNotes": "\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.82**.\n"
-    },
-    {
-      "version": "6.0.0.427",
-      "tag": "v6.0.0-dev.427",
-      "commit": "b6fdba59b6154860948c6fba03f8809ed35894cc",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.427/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-22T21:49:13Z",
-      "releaseNotes": "\n`repo` (`deps`): **Bump `Shoko.BuildTools.Targets` to 0.2.1**:\n\nThe server was pinned to 0.1.0 while the package had moved on to 0.2.1,\nso nothing in 0.2.x reached the server build. Matters now that the\npackage is about to start carrying analyzers.\n\n`chore`: **Expand the one-line XML summaries to the house style**:\n\nSeventy-two summaries were written as a single `/// <summary>text</summary>`\nline against roughly 3,700 written as the three-line block, so the\noutliers read as oversights rather than as a second convention. Most of\nthem sit together in the v3 release models.\n\nComment text is unchanged; the diff contains no non-comment lines.\n"
     }
   ]
 }
