@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Globalization;
 using Shoko.Abstractions.Metadata.Enums;
 
@@ -17,7 +17,7 @@ public static class LanguageExtensions
     /// </summary>
     public static Action<string>? OnUnknownLanguage;
 
-    private static readonly HashSet<string> _reportedUnknowns = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly ConcurrentDictionary<string, byte> _reportedUnknowns = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Convert a language code and country code to a <see cref="TitleLanguage"/>.
@@ -256,7 +256,7 @@ public static class LanguageExtensions
 
     private static TitleLanguage ReportAndReturnUnknown(string lang)
     {
-        if (!string.IsNullOrWhiteSpace(lang) && !lang.Equals("unk", StringComparison.OrdinalIgnoreCase) && _reportedUnknowns.Add(lang))
+        if (!string.IsNullOrWhiteSpace(lang) && !lang.Equals("unk", StringComparison.OrdinalIgnoreCase) && _reportedUnknowns.TryAdd(lang, 0))
             OnUnknownLanguage?.Invoke(lang);
         return TitleLanguage.Unknown;
     }
