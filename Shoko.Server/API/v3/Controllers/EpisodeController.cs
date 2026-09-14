@@ -660,14 +660,14 @@ public class EpisodeController(
     /// <summary>
     /// Get all TMDB Episode cross-references for the Shoko Episode by ID.
     /// </summary>
-    /// <param name="seriesID">Shoko Episode ID.</param>
+    /// <param name="episodeID">Shoko Episode ID.</param>
     /// <returns>All TMDB Episode cross-references for the Shoko Episode.</returns>
-    [HttpGet("{seriesID}/TMDB/Episode/CrossReferences")]
+    [HttpGet("{episodeID}/TMDB/Episode/CrossReferences")]
     public ActionResult<IReadOnlyList<TmdbEpisode.CrossReference>> GetTMDBEpisodeCrossReferenceByEpisodeID(
-        [FromRoute, Range(1, int.MaxValue)] int seriesID
+        [FromRoute, Range(1, int.MaxValue)] int episodeID
     )
     {
-        var episode = _animeEpisodes.GetByID(seriesID);
+        var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
             return NotFound(EpisodeNotFoundWithEpisodeID);
 
