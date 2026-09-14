@@ -45,6 +45,19 @@ public interface ICast : IMetadata<string>
     CastRoleType RoleType { get; }
 
     /// <summary>
+    /// The language of the performance. Sources that only carry the
+    /// original-language cast (AniDB, TMDB) report the work's original
+    /// language; sources with dubs (AniList) report the language the
+    /// voice actor performs in.
+    /// </summary>
+    TitleLanguage Language { get; }
+
+    /// <summary>
+    /// The language code for <see cref="Language"/>.
+    /// </summary>
+    string LanguageCode { get; }
+
+    /// <summary>
     /// Parent metadata entity.
     /// </summary>
     IMetadata<int>? Parent { get; }

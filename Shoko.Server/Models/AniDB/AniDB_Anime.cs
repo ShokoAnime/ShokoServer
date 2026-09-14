@@ -309,6 +309,13 @@ public class AniDB_Anime : IAnidbAnime
 
     public void ResetDefaultTitle() => _defaultTitle = null;
 
+    /// <summary>
+    /// The original language of the anime, derived from the language of the
+    /// main title. AniDB only lists the original-language cast, so this is
+    /// also the language of every cast role.
+    /// </summary>
+    public TitleLanguage OriginalLanguage => DefaultTitle.Language.GetSpokenLanguage();
+
     private bool _preferredTitleLoaded;
 
     private ITitle? _preferredTitle;

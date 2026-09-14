@@ -2,6 +2,7 @@ using System;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
+using Shoko.Abstractions.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Models.Anilist.Embedded;
@@ -22,11 +23,25 @@ public class Anilist_Crew : ICrew
 
     public int ParentID => _xref.AnilistAnimeID;
 
-    public string Name => _xref.Role;
+    public string Name => _xref.RoleName;
 
     public int Ordering => _xref.Ordering;
 
     public CrewRoleType RoleType => _xref.CrewRoleType;
+
+    /// <summary>
+    /// The language the creator works in, as reported by AniList.
+    /// </summary>
+    /// <summary>
+    /// AniList appends the language to dub staff roles ("ADR Director
+    /// (English)"); roles without one are the original production staff and
+    /// take the anime's original language.
+    /// </summary>
+    public TitleLanguage Language => _xref.RoleLanguage
+        ?? RepoFactory.Anilist_Anime.GetByAnilistAnimeID(_xref.AnilistAnimeID)?.OriginalLanguage
+        ?? TitleLanguage.Unknown;
+
+    public string LanguageCode => Language.GetString();
 
     public IMetadata<int>? Parent => _getParent();
 

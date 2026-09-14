@@ -1,6 +1,7 @@
 using System;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
+using Shoko.Server.Providers.Anilist;
 
 #nullable enable
 namespace Shoko.Server.Models.Anilist;
@@ -47,6 +48,18 @@ public class Anilist_Anime_Staff
     /// The abstract crew role type, derived from the free-form role text.
     /// </summary>
     public CrewRoleType CrewRoleType => ParseCrewRoleType(Role);
+
+    /// <summary>
+    /// The role without the language qualifier AniList appends to dub staff
+    /// roles, e.g. "ADR Director" for "ADR Director (English)".
+    /// </summary>
+    public string RoleName => AnilistUtility.SplitRoleLanguage(Role).Role;
+
+    /// <summary>
+    /// The language AniList appended to the role, if any. Absent for the
+    /// original production staff.
+    /// </summary>
+    public TitleLanguage? RoleLanguage => AnilistUtility.SplitRoleLanguage(Role).Language;
 
     /// <summary>
     /// Map an AniList free-form staff role to a <see cref="CrewRoleType"/>.

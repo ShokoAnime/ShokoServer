@@ -36,6 +36,23 @@ public static class LanguageExtensions
     /// <remarks>This method may be paired with <see cref="GetString(TitleLanguage)"/> for conversion.<br/>
     /// This method is used to convert persisted strings from several DB tables</remarks>
     public static TitleLanguage GetTitleLanguage(this string lang)
+        => GetTitleLanguage(lang, reportUnknown: true);
+
+    /// <summary>
+    /// Try to resolve a language code or english language name without
+    /// reporting an unrecognised string, for probing text that may or may
+    /// not be a language at all.
+    /// </summary>
+    /// <param name="lang">Language code or name.</param>
+    /// <param name="language">The resolved language.</param>
+    /// <returns><see langword="true"/> if the string names a language.</returns>
+    public static bool TryGetTitleLanguage(this string lang, out TitleLanguage language)
+    {
+        language = GetTitleLanguage(lang, reportUnknown: false);
+        return language is not (TitleLanguage.None or TitleLanguage.Unknown);
+    }
+
+    private static TitleLanguage GetTitleLanguage(string lang, bool reportUnknown)
     {
         if (!string.IsNullOrEmpty(lang) && lang.Length >= 5 && lang[2] == '-')
         {
@@ -218,12 +235,22 @@ public static class LanguageExtensions
 
             #endregion
 
+            #region Language names
+
+            // English language names as reported by e.g. AniList for its staff. Most
+            // resolve through the enum-name fallback below; these are the ones that don't.
+            "TAGALOG" => TitleLanguage.Filipino,
+            "MANDARIN" or "CANTONESE" => TitleLanguage.Chinese,
+            "BRAZILIAN PORTUGUESE" or "PORTUGUESE (BRAZIL)" => TitleLanguage.BrazilianPortuguese,
+
+            #endregion
+
             "X-MAIN" => TitleLanguage.Main,
             "X-UNK" or "X-OTHER" => TitleLanguage.Unknown,
             null or "" => TitleLanguage.None,
             _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), true, out var titleLanguage)
                 ? titleLanguage
-                : ReportAndReturnUnknown(lang),
+                : reportUnknown ? ReportAndReturnUnknown(lang) : TitleLanguage.Unknown,
         };
     }
 
@@ -424,6 +451,23 @@ public static class LanguageExtensions
     /// <returns></returns>
     public static string GetString(this TitleType type)
         => type.ToString().ToLowerInvariant();
+
+    /// <summary>
+    /// Get the spoken language behind a title language, so a transcription
+    /// (romaji, pinyin, …) resolves to the language it transcribes. Every
+    /// other language is returned as-is.
+    /// </summary>
+    /// <param name="language">The title language.</param>
+    /// <returns>The spoken language.</returns>
+    public static TitleLanguage GetSpokenLanguage(this TitleLanguage language)
+        => language switch
+        {
+            TitleLanguage.Romaji => TitleLanguage.Japanese,
+            TitleLanguage.Pinyin => TitleLanguage.Chinese,
+            TitleLanguage.KoreanTranscription => TitleLanguage.Korean,
+            TitleLanguage.ThaiTranscription => TitleLanguage.Thai,
+            _ => language,
+        };
 
     /// <summary>
     /// Convert from a string to a <see cref="TitleType"/>.

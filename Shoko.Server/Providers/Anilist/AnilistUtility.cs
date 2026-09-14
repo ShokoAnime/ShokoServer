@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Text.RegularExpressions;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anilist.Enums;
 using Shoko.Abstractions.Metadata.Enums;
 
@@ -20,6 +21,28 @@ public static partial class AnilistUtility
 
     [GeneratedRegex(@"[ \t]*\r?\n[ \t]*(?:\r?\n[ \t]*)+", RegexOptions.Compiled)]
     private static partial Regex BlankLinesRegex();
+
+    [GeneratedRegex(@"^(?<role>.*?)\s*\((?<qualifier>[^()]+)\)\s*$", RegexOptions.Compiled)]
+    private static partial Regex RoleQualifierRegex();
+
+    /// <summary>
+    /// Split the language qualifier AniList appends to dub staff roles, such
+    /// as "ADR Director (English)", off the role text. Other qualifiers,
+    /// like episode ranges or "(OP)", are left in place.
+    /// </summary>
+    /// <param name="role">The role text as AniList reports it.</param>
+    /// <returns>The role without the language, and the language if one was appended.</returns>
+    public static (string Role, TitleLanguage? Language) SplitRoleLanguage(string? role)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+            return (string.Empty, null);
+
+        role = role.Trim();
+        if (RoleQualifierRegex().Match(role) is { Success: true } match && match.Groups["qualifier"].Value.Trim().TryGetTitleLanguage(out var language))
+            return (match.Groups["role"].Value.Trim(), language);
+
+        return (role, null);
+    }
 
     /// <summary>
     /// Get the transcription language used for the main title, based on the

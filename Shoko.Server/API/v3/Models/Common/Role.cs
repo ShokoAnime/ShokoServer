@@ -7,6 +7,8 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Anilist.Embedded;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
+using Shoko.Server.Repositories;
+using Shoko.Abstractions.Extensions;
 
 namespace Shoko.Server.API.v3.Models.Common;
 
@@ -38,6 +40,15 @@ public class Role
     /// </summary>
     [Required]
     public string RoleDetails { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The language code of the role. Sources that only carry the
+    /// original-language cast and crew report the work's original language;
+    /// sources with dubs report the language the person works in. Omitted
+    /// when unknown.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? Language { get; set; }
 
     private const string CharacterRole = "Character";
 
@@ -76,6 +87,7 @@ public class Role
         RoleDetails = staff is not null
             ? xref.AppearanceType.ToString().Replace("_", " ")
             : "Appears In";
+        Language = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID)?.OriginalLanguage.GetString();
     }
 
     public Role(AniDB_Anime_Staff xref, ICreator staff)
@@ -91,6 +103,7 @@ public class Role
         };
         RoleName = xref.RoleType;
         RoleDetails = xref.Role;
+        Language = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID)?.OriginalLanguage.GetString();
     }
 
     public static Role? FromTmdb(TMDB_Cast cast)
@@ -106,6 +119,7 @@ public class Role
             Staff = CreateStaffFromTmdbPerson(person),
             RoleName = CreatorRoleType.Actor,
             RoleDetails = CharacterRole,
+            Language = cast.LanguageCode,
         };
     }
 
@@ -118,6 +132,7 @@ public class Role
             Staff = CreateStaffFromTmdbPerson(person),
             RoleName = crew.ToCreatorRole(),
             RoleDetails = $"{crew.Department}, {crew.Job}",
+            Language = crew.LanguageCode,
         };
     }
 
@@ -156,6 +171,7 @@ public class Role
                     _ => CharacterRole,
                 }
                 : "Appears In",
+            Language = staff is not null ? cast.LanguageCode : null,
         };
     }
 
@@ -180,6 +196,7 @@ public class Role
                 _ => CreatorRoleType.Staff,
             },
             RoleDetails = crew.Name,
+            Language = crew.LanguageCode,
         };
     }
 

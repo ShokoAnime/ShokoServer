@@ -83,6 +83,18 @@ public class AnilistUtilityTests
     }
 
     [Theory]
+    [InlineData("ADR Director (English)", "ADR Director", TitleLanguage.English)]
+    [InlineData("ADR Director (Brazilian Portuguese)", "ADR Director", TitleLanguage.BrazilianPortuguese)]
+    [InlineData("ADR Script (Spanish)", "ADR Script", TitleLanguage.Spanish)]
+    [InlineData("Theme Song Performance (ED)", "Theme Song Performance (ED)", null)]
+    [InlineData("2nd Key Animation (eps 2, 8)", "2nd Key Animation (eps 2, 8)", null)]
+    [InlineData("Director", "Director", null)]
+    [InlineData("", "", null)]
+    [InlineData(null, "", null)]
+    public void SplitRoleLanguage_StripsOnlyLanguageQualifiers(string? role, string expectedRole, TitleLanguage? expectedLanguage)
+        => Assert.Equal((expectedRole, expectedLanguage), AnilistUtility.SplitRoleLanguage(role));
+
+    [Theory]
     [InlineData("ja", TitleLanguage.Romaji)]
     [InlineData("JA", TitleLanguage.Romaji)]
     [InlineData("zh", TitleLanguage.Pinyin)]

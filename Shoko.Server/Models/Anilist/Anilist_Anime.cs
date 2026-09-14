@@ -71,6 +71,11 @@ public class Anilist_Anime : Anilist_Base<int>, IAnilistAnime
     public string MainTitle { get; set; } = string.Empty;
 
     /// <summary>
+    /// The original language of the anime, from its country of origin.
+    /// </summary>
+    public TitleLanguage OriginalLanguage => OriginalLanguageCode.GetTitleLanguage();
+
+    /// <summary>
     /// The transcription language of the main title, derived from the
     /// original language.
     /// </summary>

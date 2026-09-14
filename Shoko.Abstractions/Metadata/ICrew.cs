@@ -28,6 +28,18 @@ public interface ICrew : IMetadata<string>
     CrewRoleType RoleType { get; }
 
     /// <summary>
+    /// The language the crew member worked in. Sources that only carry the
+    /// original-language crew (AniDB, TMDB) report the work's original
+    /// language; sources with dubs (AniList) report the creator's language.
+    /// </summary>
+    TitleLanguage Language { get; }
+
+    /// <summary>
+    /// The language code for <see cref="Language"/>.
+    /// </summary>
+    string LanguageCode { get; }
+
+    /// <summary>
     /// Parent metadata entity.
     /// </summary>
     IMetadata<int>? Parent { get; }

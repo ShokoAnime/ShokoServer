@@ -2,6 +2,7 @@ using System;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
+using Shoko.Abstractions.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Models.Anilist.Embedded;
@@ -35,6 +36,14 @@ public class Anilist_Cast : ICast
     public int Ordering => _xref.Ordering;
 
     public CastRoleType RoleType => _xref.CastRoleType;
+
+    /// <summary>
+    /// The language the voice actor performs in. AniList lists the cast for
+    /// every dub, so this is the creator's language rather than the anime's.
+    /// </summary>
+    public TitleLanguage Language => Creator?.Language is { Length: > 0 } language ? language.GetTitleLanguage() : TitleLanguage.Unknown;
+
+    public string LanguageCode => Language.GetString();
 
     public IMetadata<int>? Parent => _getParent();
 
