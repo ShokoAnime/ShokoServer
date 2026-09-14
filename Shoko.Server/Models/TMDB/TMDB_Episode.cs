@@ -192,7 +192,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
             UpdateProperty(EnglishTitle, translations is null && !string.IsNullOrEmpty(EnglishTitle) ? EnglishTitle : !string.IsNullOrEmpty(translation?.Data?.Name) ? translation.Data.Name : episode.Name!, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data?.Overview) ? translation.Data.Overview : episode.Overview!, v => EnglishOverview = v),
             UpdateProperty(SeasonNumber, episode.SeasonNumber, v => SeasonNumber = v),
-            UpdateProperty(EpisodeNumber, episode.EpisodeNumber, v => EpisodeNumber = (int)v),
+            UpdateProperty(EpisodeNumber, episode.EpisodeNumber, v => EpisodeNumber = v),
             UpdateProperty(Runtime, episode.Runtime.HasValue ? TimeSpan.FromMinutes(episode.Runtime.Value) : null, v => Runtime = v),
             UpdateProperty(TmdbEpisodeType, string.IsNullOrWhiteSpace(episode.EpisodeType) ? null : episode.EpisodeType.Trim(), v => TmdbEpisodeType = v),
             UpdateProperty(UserRating, episode.VoteAverage, v => UserRating = v),
