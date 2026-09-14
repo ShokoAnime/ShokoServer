@@ -6,8 +6,10 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
+using Shoko.Server.API.Authentication;
 using Shoko.Server.API.v0.Models;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
@@ -21,7 +23,9 @@ namespace Shoko.Server.API.v0.Controllers;
 public class AuthenticationController(
     IUserService userService,
     AuthTokensRepository authTokensRepository,
-    ISettingsProvider settingsProvider
+    ISettingsProvider settingsProvider,
+    LoginThrottler loginThrottler,
+    ILogger<AuthenticationController> logger
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -78,8 +82,17 @@ public class AuthenticationController(
     [ProducesResponseType(200)]
     public async Task<ActionResult<object>> Login([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AuthUser request)
     {
-        if (userService.AuthenticateUser(request.user.Trim(), request.pass) is not { } user)
+        var username = request.user.Trim();
+        if (loginThrottler.ThrottleLogin(HttpContext, username, logger) is { } throttled)
+            return throttled;
+
+        if (userService.AuthenticateUser(username, request.pass) is not { } user)
+        {
+            loginThrottler.RegisterFailure(HttpContext.ClientKey());
             return Unauthorized();
+        }
+
+        loginThrottler.Reset(HttpContext.ClientKey());
 
         var token = await userService.GenerateApiTokenForUser(user, request.device.Trim());
         return Ok(new { apikey = token.Token });

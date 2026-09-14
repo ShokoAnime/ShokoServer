@@ -16,6 +16,7 @@ using Shoko.Abstractions.User.Update;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
+using Shoko.Server.API.Authentication;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
@@ -33,7 +34,8 @@ public class UserService(
     AnimeGroup_UserRepository _groupUserRepository,
     AnimeSeries_UserRepository _seriesUserRepository,
     AnimeEpisode_UserRepository _episodeUserRepository,
-    VideoLocal_UserRepository _videoUserRepository
+    VideoLocal_UserRepository _videoUserRepository,
+    LoginThrottler _loginThrottler
 ) : IUserService
 {
     public event EventHandler<UserChangedEventArgs>? UserAdded;
@@ -291,7 +293,27 @@ public class UserService(
     }
 
     public IUser? AuthenticateUser(string username, string password)
-        => string.IsNullOrEmpty(username) ? null : _userRepository.AuthenticateUser(username, password);
+    {
+        if (string.IsNullOrEmpty(username))
+            return null;
+
+        if (_loginThrottler.GetRemainingLockout(username) is { } remaining)
+        {
+            _logger.LogWarning("Authentication for user '{Username}' is blocked due to too many failed attempts. Lockout expires in {Lockout}.", username, remaining);
+            return null;
+        }
+
+        var user = _userRepository.AuthenticateUser(username, password);
+        if (user is null)
+        {
+            _loginThrottler.RegisterFailure(username);
+            _logger.LogWarning("Failed login attempt for user '{Username}'.", username);
+            return null;
+        }
+
+        _loginThrottler.Reset(username);
+        return user;
+    }
 
     public ApiToken? GetApiTokenFromHttpContext(HttpContext context)
     {
