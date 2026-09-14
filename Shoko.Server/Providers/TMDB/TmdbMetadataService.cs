@@ -35,6 +35,7 @@ using TMDbLib.Objects.Changes;
 using TMDbLib.Objects.Collections;
 using TMDbLib.Objects.Exceptions;
 using TMDbLib.Objects.General;
+using TMDbLib.Objects.General.Schema;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.People;
 using TMDbLib.Objects.Search;
@@ -599,105 +600,133 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
     }
 
-    private async Task<bool> UpdateMovieCastAndCrew(TMDB_Movie tmdbMovie, MovieCredits? credits, bool forceRefresh, bool downloadImages)
+    // Shared by UpdateMovieCastAndCrew/UpdateEpisodeCastAndCrew — cast ordering is our own
+    // zero-based counter, not TMDb's `order` field, so existing sort order survives re-fetches
+    // even when TMDb reshuffles theirs.
+    private static (List<TCast> ToSave, List<TCast> ToRemove, int Added) DiffCast<TCredit, TCast>(
+        IEnumerable<TCredit> cast,
+        IReadOnlyDictionary<string, TCast> existing,
+        Func<TCredit, int, TCast> createRole,
+        Func<TCast, TCredit, int, bool>? applyExtra = null)
+        where TCredit : TmdbEntity, ICastCredit
+        where TCast : TMDB_Cast
     {
-        // See UpdateEpisodeCastAndCrew: a null/empty credits append is "no cast/crew this pass", not a purge.
-        if (credits?.Cast is null || credits.Crew is null)
-            return false;
-
-        var peopleToKeep = new HashSet<int>();
-
-        var counter = 0;
-        var castToAdd = 0;
-        var castToKeep = new HashSet<string>();
-        var castToSave = new List<TMDB_Movie_Cast>();
-        var existingCastDict = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
-            .ToDictionary(cast => cast.TmdbCreditID);
-        foreach (var cast in credits.Cast)
+        var toKeep = new HashSet<string>();
+        var toSave = new List<TCast>();
+        var added = 0;
+        var ordering = 0;
+        foreach (var credit in cast)
         {
-            var ordering = counter++;
-            peopleToKeep.Add(cast.Id);
-            castToKeep.Add(cast.CreditId!);
+            var order = ordering++;
+            var creditId = credit.CreditId!;
+            toKeep.Add(creditId);
 
             var roleUpdated = false;
-            if (!existingCastDict.TryGetValue(cast.CreditId!, out var role))
+            if (!existing.TryGetValue(creditId, out var role))
             {
-                role = new()
-                {
-                    TmdbMovieID = tmdbMovie.Id,
-                    TmdbPersonID = cast.Id,
-                    TmdbCreditID = cast.CreditId!,
-                };
-                castToAdd++;
+                role = createRole(credit, order);
+                added++;
                 roleUpdated = true;
             }
 
-            var characterName = cast.Character!.Replace(" (voice)", "");
+            var characterName = credit.Character!.Replace(" (voice)", "");
             if (role.CharacterName != characterName)
             {
                 role.CharacterName = characterName;
                 roleUpdated = true;
             }
 
-            if (role.Ordering != ordering)
+            if (role.Ordering != order)
             {
-                role.Ordering = ordering;
+                role.Ordering = order;
                 roleUpdated = true;
             }
 
+            if (applyExtra?.Invoke(role, credit, order) == true)
+                roleUpdated = true;
+
             if (roleUpdated)
-            {
-                castToSave.Add(role);
-            }
+                toSave.Add(role);
         }
 
-        var crewToAdd = 0;
-        var crewToKeep = new HashSet<string>();
-        var crewToSave = new List<TMDB_Movie_Crew>();
-        var existingCrewDict = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
-            .ToDictionary(crew => crew.TmdbCreditID);
-        foreach (var crew in credits.Crew)
+        var toRemove = existing.Values.Where(role => !toKeep.Contains(role.TmdbCreditID)).ToList();
+        return (toSave, toRemove, added);
+    }
+
+    private static (List<TCrew> ToSave, List<TCrew> ToRemove, int Added) DiffCrew<TCredit, TCrew>(
+        IEnumerable<TCredit> crew,
+        IReadOnlyDictionary<string, TCrew> existing,
+        Func<TCredit, TCrew> createRole)
+        where TCredit : TmdbEntity, ICrewCredit
+        where TCrew : TMDB_Crew
+    {
+        var toKeep = new HashSet<string>();
+        var toSave = new List<TCrew>();
+        var added = 0;
+        foreach (var credit in crew)
         {
-            peopleToKeep.Add(crew.Id);
-            crewToKeep.Add(crew.CreditId!);
+            var creditId = credit.CreditId!;
+            toKeep.Add(creditId);
 
             var roleUpdated = false;
-            if (!existingCrewDict.TryGetValue(crew.CreditId!, out var role))
+            if (!existing.TryGetValue(creditId, out var role))
             {
-                role = new()
-                {
-                    TmdbMovieID = tmdbMovie.Id,
-                    TmdbPersonID = crew.Id,
-                    TmdbCreditID = crew.CreditId!,
-                };
-                crewToAdd++;
+                role = createRole(credit);
+                added++;
                 roleUpdated = true;
             }
 
-            if (role.Department != crew.Department)
+            if (role.Department != credit.Department)
             {
-                role.Department = crew.Department!;
+                role.Department = credit.Department!;
                 roleUpdated = true;
             }
 
-            if (role.Job != crew.Job)
+            if (role.Job != credit.Job)
             {
-                role.Job = crew.Job!;
+                role.Job = credit.Job!;
                 roleUpdated = true;
             }
 
             if (roleUpdated)
-            {
-                crewToSave.Add(role);
-            }
+                toSave.Add(role);
         }
 
-        var castToRemove = existingCastDict.Values
-            .ExceptBy(castToKeep, cast => cast.TmdbCreditID)
-            .ToList();
-        var crewToRemove = existingCrewDict.Values
-            .ExceptBy(crewToKeep, crew => crew.TmdbCreditID)
-            .ToList();
+        var toRemove = existing.Values.Where(role => !toKeep.Contains(role.TmdbCreditID)).ToList();
+        return (toSave, toRemove, added);
+    }
+
+    private async Task<bool> UpdateMovieCastAndCrew(TMDB_Movie tmdbMovie, MovieCredits? credits, bool forceRefresh, bool downloadImages)
+    {
+        // See UpdateEpisodeCastAndCrew: a null/empty credits append is "no cast/crew this pass", not a purge.
+        if (credits?.Cast is null || credits.Crew is null)
+            return false;
+
+        var existingCastDict = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
+            .ToDictionary(cast => cast.TmdbCreditID);
+        var (castToSave, castToRemove, castToAdd) = DiffCast(
+            credits.Cast,
+            existingCastDict,
+            (cast, ordering) => new TMDB_Movie_Cast
+            {
+                TmdbMovieID = tmdbMovie.Id,
+                TmdbPersonID = cast.Id,
+                TmdbCreditID = cast.CreditId!,
+            });
+
+        var existingCrewDict = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
+            .ToDictionary(crew => crew.TmdbCreditID);
+        var (crewToSave, crewToRemove, crewToAdd) = DiffCrew(
+            credits.Crew,
+            existingCrewDict,
+            crew => new TMDB_Movie_Crew
+            {
+                TmdbMovieID = tmdbMovie.Id,
+                TmdbPersonID = crew.Id,
+                TmdbCreditID = crew.CreditId!,
+            });
+
+        var peopleToKeep = new HashSet<int>(credits.Cast.Select(cast => cast.Id).Concat(credits.Crew.Select(crew => crew.Id)));
 
         _tmdbMovieCast.Save(castToSave);
         _tmdbMovieCrew.Save(crewToSave);
@@ -1500,7 +1529,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         ShowSyncState state)
     {
         var newlyAdded = tmdbEpisode.CreatedAt == tmdbEpisode.LastUpdatedAt;
-        if (!state.ChangedItems.HasValue || newlyAdded || state.ChangedItems.Value.Episodes.Contains((season.SeasonNumber, (int)reducedEpisode.EpisodeNumber)))
+        if (!state.ChangedItems.HasValue || newlyAdded || state.ChangedItems.Value.Episodes.Contains((season.SeasonNumber, reducedEpisode.EpisodeNumber)))
             return false;
 
         state.EpisodesToSkip.Add(tmdbEpisode.Id);
@@ -1820,111 +1849,47 @@ public class TmdbMetadataService : ITmdbMetadataService
         if (credits?.Cast is null || credits.Crew is null)
             return (false, [], []);
 
-        var peopleToAddOrKeep = new HashSet<int>();
-        var counter = 0;
-        var castToAdd = 0;
-        var castToKeep = new HashSet<string>();
-        var castToSave = new List<TMDB_Episode_Cast>();
         var existingCastDict = _tmdbEpisodeCast.GetByTmdbEpisodeID(tmdbEpisode.Id)
             .ToDictionary(cast => cast.TmdbCreditID);
         var guestOffset = credits.Cast.Count;
-        foreach (var cast in credits.Cast.Concat(credits.GuestStars ?? []))
-        {
-            var ordering = counter++;
-            var isGuestRole = ordering >= guestOffset;
-            castToKeep.Add(cast.CreditId!);
-            peopleToAddOrKeep.Add(cast.Id);
-
-            var roleUpdated = false;
-            if (!existingCastDict.TryGetValue(cast.CreditId!, out var role))
+        var (castToSave, castToRemove, castToAdd) = DiffCast(
+            credits.Cast.Concat(credits.GuestStars ?? []),
+            existingCastDict,
+            (cast, ordering) => new TMDB_Episode_Cast
             {
-                role = new()
-                {
-                    TmdbShowID = tmdbEpisode.TmdbShowID,
-                    TmdbSeasonID = tmdbEpisode.TmdbSeasonID,
-                    TmdbEpisodeID = tmdbEpisode.Id,
-                    TmdbPersonID = cast.Id,
-                    TmdbCreditID = cast.CreditId!,
-                    Ordering = ordering,
-                    IsGuestRole = isGuestRole,
-                };
-                castToAdd++;
-                roleUpdated = true;
-            }
-
-            var characterName = cast.Character!.Replace(" (voice)", "");
-            if (role.CharacterName != characterName)
+                TmdbShowID = tmdbEpisode.TmdbShowID,
+                TmdbSeasonID = tmdbEpisode.TmdbSeasonID,
+                TmdbEpisodeID = tmdbEpisode.Id,
+                TmdbPersonID = cast.Id,
+                TmdbCreditID = cast.CreditId!,
+                Ordering = ordering,
+                IsGuestRole = ordering >= guestOffset,
+            },
+            (role, _, ordering) =>
             {
-                role.CharacterName = characterName;
-                roleUpdated = true;
-            }
-
-            if (role.Ordering != ordering)
-            {
-                role.Ordering = ordering;
-                roleUpdated = true;
-            }
-
-            if (role.IsGuestRole != isGuestRole)
-            {
+                var isGuestRole = ordering >= guestOffset;
+                if (role.IsGuestRole == isGuestRole)
+                    return false;
                 role.IsGuestRole = isGuestRole;
-                roleUpdated = true;
-            }
+                return true;
+            });
 
-            if (roleUpdated)
-            {
-                castToSave.Add(role);
-            }
-        }
-
-        var crewToAdd = 0;
-        var crewToKeep = new HashSet<string>();
-        var crewToSave = new List<TMDB_Episode_Crew>();
         var existingCrewDict = _tmdbEpisodeCrew.GetByTmdbEpisodeID(tmdbEpisode.Id)
             .ToDictionary(crew => crew.TmdbCreditID);
-        foreach (var crew in credits.Crew)
-        {
-            peopleToAddOrKeep.Add(crew.Id);
-            crewToKeep.Add(crew.CreditId!);
-            var roleUpdated = false;
-            if (!existingCrewDict.TryGetValue(crew.CreditId!, out var role))
+        var (crewToSave, crewToRemove, crewToAdd) = DiffCrew(
+            credits.Crew,
+            existingCrewDict,
+            crew => new TMDB_Episode_Crew
             {
-                role = new()
-                {
-                    TmdbShowID = tmdbEpisode.TmdbShowID,
-                    TmdbSeasonID = tmdbEpisode.TmdbSeasonID,
-                    TmdbEpisodeID = tmdbEpisode.Id,
-                    TmdbPersonID = crew.Id,
-                    TmdbCreditID = crew.CreditId!,
-                };
-                crewToAdd++;
-                roleUpdated = true;
-            }
+                TmdbShowID = tmdbEpisode.TmdbShowID,
+                TmdbSeasonID = tmdbEpisode.TmdbSeasonID,
+                TmdbEpisodeID = tmdbEpisode.Id,
+                TmdbPersonID = crew.Id,
+                TmdbCreditID = crew.CreditId!,
+            });
 
-            if (role.Department != crew.Department)
-            {
-                role.Department = crew.Department!;
-                roleUpdated = true;
-            }
-
-            if (role.Job != crew.Job)
-            {
-                role.Job = crew.Job!;
-                roleUpdated = true;
-            }
-
-            if (roleUpdated)
-            {
-                crewToSave.Add(role);
-            }
-        }
-
-        var castToRemove = existingCastDict.Values
-            .ExceptBy(castToKeep, cast => cast.TmdbCreditID)
-            .ToList();
-        var crewToRemove = existingCrewDict.Values
-            .ExceptBy(crewToKeep, crew => crew.TmdbCreditID)
-            .ToList();
+        var peopleToAddOrKeep = new HashSet<int>(
+            credits.Cast.Concat(credits.GuestStars ?? []).Select(cast => cast.Id).Concat(credits.Crew.Select(crew => crew.Id)));
 
         _tmdbEpisodeCast.Save(castToSave);
         _tmdbEpisodeCrew.Save(crewToSave);
