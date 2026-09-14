@@ -707,6 +707,7 @@ public class FileController(
     /// <returns>A file stream for the specified file.</returns>
     [ApiInUse]
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/Stream")]
     [HttpHead("{fileID}/Stream")]
     public ActionResult GetFileStream([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool streamPositionScrobbling = false)
@@ -723,6 +724,7 @@ public class FileController(
     /// <returns>A file stream for the specified file.</returns>
     [ApiInUse]
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/StreamDirectory/{filename}")]
     [HttpHead("{fileID}/StreamDirectory/{filename}")]
     public ActionResult GetFileStreamWithDirectory([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string? filename = null, [FromQuery] bool streamPositionScrobbling = false)
@@ -766,6 +768,7 @@ public class FileController(
     /// <param name="fileID">Shoko ID</param>
     /// <returns>A file stream for the specified file.</returns>
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/StreamDirectory/")]
     public ActionResult GetFileStreamDirectory([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
@@ -788,6 +791,7 @@ public class FileController(
     /// <param name="filename"></param>
     /// <returns></returns>
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/StreamDirectory/ExternalSub/{filename}")]
     public ActionResult GetExternalSubtitle([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string filename)
     {
