@@ -822,8 +822,8 @@ public class TmdbLinkingService : ITmdbLinkingService
         if (anidbDate is null)
             return previous.Value.Season;
 
-        var previousDistance = CalculateAirDateDistance(anidbDate, previous.Value.AiredAt) ?? int.MaxValue;
-        var nextDistance = CalculateAirDateDistance(anidbDate, next.Value.AiredAt) ?? int.MaxValue;
+        var previousDistance = EpisodeMatchingUtility.CalculateAirDateDistance(anidbDate, previous.Value.AiredAt) ?? int.MaxValue;
+        var nextDistance = EpisodeMatchingUtility.CalculateAirDateDistance(anidbDate, next.Value.AiredAt) ?? int.MaxValue;
         return nextDistance < previousDistance ? next.Value.Season : previous.Value.Season;
     }
 
@@ -912,7 +912,7 @@ public class TmdbLinkingService : ITmdbLinkingService
         }
 
         var airdateProbability = tmdbEpisodes
-            .Select(episode => (episode, probability: CalculateAirDateProbability(anidbDate, episode.AiredAt)))
+            .Select(episode => (episode, probability: EpisodeMatchingUtility.CalculateAirDateProbability(anidbDate, episode.AiredAt)))
             .Where(result => result.probability != 0)
             .OrderByDescending(result => result.probability)
             .ThenBy(result => result.episode.SeasonNumber == 0)
@@ -930,7 +930,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             ? new List<(TMDB_Episode episode, int distance)>()
             : (from episode in tmdbEpisodes
                where anchorSeasonNumber is null || episode.SeasonNumber == anchorSeasonNumber.Value
-               let distance = CalculateAirDateDistance(anidbDate, episode.AiredAt)
+               let distance = EpisodeMatchingUtility.CalculateAirDateDistance(anidbDate, episode.AiredAt)
                where distance is not null
                select (episode, distance: distance.Value))
                 .OrderBy(result => result.distance)
@@ -1120,8 +1120,6 @@ public class TmdbLinkingService : ITmdbLinkingService
     // Confidence is kept low (and decays with distance) so a genuine close match elsewhere always outranks it.
     // Bounded to MaxFallbackDifferenceInDays so an anime with a long hiatus (or a special dated months/years
     // from anything on TMDB) doesn't get confidently linked to a wildly unrelated episode.
-    private const int MaxFallbackDifferenceInDays = 120;
-
     private static bool TryNearestAirDateMatch(
         AniDB_Episode anidbEpisode,
         List<(TMDB_Episode episode, int distance)> nearestAirdate,
@@ -1134,35 +1132,13 @@ public class TmdbLinkingService : ITmdbLinkingService
             return false;
 
         var (tmdbEpisode, distance) = nearestAirdate[0];
-        if (distance > MaxFallbackDifferenceInDays)
+        if (distance > EpisodeMatchingUtility.MaxFallbackDifferenceInDays)
             return false;
 
         confidence = 0.5 / (1 + distance);
         crossRef = new(anidbEpisode.EpisodeID, anidbEpisode.AnimeID, tmdbEpisode.TmdbEpisodeID, tmdbEpisode.TmdbShowID, MatchRating.DateKindaMatches);
         return true;
     }
-
-    private static double CalculateAirDateProbability(DateOnly? firstDate, DateOnly? secondDate, int maxDifferenceInDays = 2)
-    {
-        var difference = CalculateAirDateDistance(firstDate, secondDate);
-        if (difference is null)
-            return 0;
-
-        if (difference == 0)
-            return 1;
-
-        if (difference <= maxDifferenceInDays)
-            return (maxDifferenceInDays - difference.Value) / (double)maxDifferenceInDays;
-
-        return 0;
-    }
-
-    // Unbounded companion to CalculateAirDateProbability, used only as a last-resort fallback once the
-    // strict ±2-day window finds nothing — e.g. a delayed or compressed episode whose TMDB entry aired
-    // weeks later. Returns the raw day distance so the caller can pick the closest candidate instead of
-    // falling through to a blind positional/title guess.
-    private static int? CalculateAirDateDistance(DateOnly? firstDate, DateOnly? secondDate) =>
-        !firstDate.HasValue || !secondDate.HasValue ? null : Math.Abs(secondDate.Value.DayNumber - firstDate.Value.DayNumber);
 
     private static IReadOnlyList<string> GetEpisodeTitleCandidates(TMDB_Episode episode, string originalLanguageCode) =>
         episode.GetAllTitles()
