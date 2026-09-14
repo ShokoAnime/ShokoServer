@@ -49,7 +49,6 @@ using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.Anilist;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Filters;

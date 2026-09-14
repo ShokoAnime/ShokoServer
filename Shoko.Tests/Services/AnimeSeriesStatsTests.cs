@@ -1,20 +1,18 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
-
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
-using Shoko.Server.Databases;
-using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;

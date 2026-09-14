@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Events;

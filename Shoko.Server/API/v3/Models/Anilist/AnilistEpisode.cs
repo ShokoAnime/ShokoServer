@@ -1,12 +1,11 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Anilist.CrossReferences;
-using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Anilist;
+using Shoko.Server.Models.CrossReference;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Anilist;

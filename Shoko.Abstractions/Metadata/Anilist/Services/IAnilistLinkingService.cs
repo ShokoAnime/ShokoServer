@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Anilist.CrossReferences;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata.Anilist.Services;
 

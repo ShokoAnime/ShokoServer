@@ -11,6 +11,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -20,22 +25,17 @@ using Shoko.Server.API.v3.Models.Anilist.Input;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Services;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Providers.Anilist;
-using Shoko.Server.Scheduling.Jobs.Anilist;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Anilist;
+using Shoko.Server.Scheduling.Jobs.Anilist;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 using MatchRating = Shoko.Abstractions.Metadata.Enums.MatchRating;
-using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 
 #pragma warning disable CA1822
 #nullable enable

@@ -1,8 +1,8 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Abstractions.Metadata.Anilist.Services;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Anilist.Services;
 
 namespace Shoko.Server.Providers.Anilist;
 

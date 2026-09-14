@@ -4,10 +4,10 @@ using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
-using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Anilist;
+using Shoko.Server.Scheduling.Acquisition.Attributes;
 
 #pragma warning disable CS8618
 #nullable enable

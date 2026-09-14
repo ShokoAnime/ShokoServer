@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Timers;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
 
 namespace Shoko.Server.Providers.AniDB;

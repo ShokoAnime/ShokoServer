@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
-using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;

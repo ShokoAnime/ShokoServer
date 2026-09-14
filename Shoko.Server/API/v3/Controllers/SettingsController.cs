@@ -13,7 +13,6 @@ using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;

@@ -5,9 +5,9 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using NHibernate.UserTypes;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.MediaInfo;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.TMDB;
 using Xunit;
 

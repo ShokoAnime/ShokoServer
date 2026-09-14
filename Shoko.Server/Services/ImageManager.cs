@@ -39,7 +39,6 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Shoko.Embedded;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;

@@ -1,12 +1,11 @@
 using System;
-using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Providers.AniDB.HTTP;
+using Xunit;
 
 using AnimeType = Shoko.Server.Providers.AniDB.AnimeType;
-using Xunit;
 
 namespace Shoko.Tests.Providers.AniDB;
 

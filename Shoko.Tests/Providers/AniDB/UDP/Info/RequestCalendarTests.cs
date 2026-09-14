@@ -2,7 +2,6 @@ using System;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Providers.AniDB.UDP.Info;

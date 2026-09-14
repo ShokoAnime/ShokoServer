@@ -14,7 +14,6 @@ using Shoko.Abstractions.Metadata.Anidb.Events;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.AniDB.UDP.Generic;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
 

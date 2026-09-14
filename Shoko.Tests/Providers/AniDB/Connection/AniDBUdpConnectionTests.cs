@@ -1,13 +1,12 @@
 using System;
-using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Connectivity.Enums;
+using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;

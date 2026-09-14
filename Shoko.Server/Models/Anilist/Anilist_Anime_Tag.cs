@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Anilist;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 
 #nullable enable

@@ -1,5 +1,4 @@
 using FluentNHibernate.Mapping;
-using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Anilist;
 
 namespace Shoko.Server.Mappings.Anilist;

@@ -1,5 +1,3 @@
-using System;
-using System.Threading;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 using Shoko.Server.Databases.NHibernate;

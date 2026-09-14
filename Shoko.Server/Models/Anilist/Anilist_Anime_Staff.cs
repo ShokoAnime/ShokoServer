@@ -1,7 +1,7 @@
 using System;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Repositories;
 using Shoko.Server.Providers.Anilist;
+using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.Anilist;

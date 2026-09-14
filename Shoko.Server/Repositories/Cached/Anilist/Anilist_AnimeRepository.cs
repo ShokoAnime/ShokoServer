@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Extensions;
 using NutzCode.InMemoryIndex;
+using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Anilist;
 

@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Anilist;
 using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Server.Repositories;
+using Shoko.Abstractions.Metadata.Enums;
 
 #nullable enable
 namespace Shoko.Server.Models.Anilist;

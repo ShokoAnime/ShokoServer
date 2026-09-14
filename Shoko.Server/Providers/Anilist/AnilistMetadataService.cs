@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anilist;
 using Shoko.Abstractions.Metadata.Anilist.Services;
@@ -17,7 +18,6 @@ using Shoko.Server.Repositories.Cached.Anilist;
 using Shoko.Server.Scheduling.Jobs.Anilist;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-using Shoko.Abstractions.Extensions;
 
 #nullable enable
 namespace Shoko.Server.Providers.Anilist;

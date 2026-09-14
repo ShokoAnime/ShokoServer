@@ -2,20 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
-using Shoko.Abstractions.Extensions;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Anilist.Enums;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.Anilist.Embedded;
+using Shoko.Server.Models.CrossReference;
 
-using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
-using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.Anilist.Enums;
-using Shoko.Abstractions.Metadata.Enums;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Anilist;

@@ -26,7 +26,6 @@ using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.AniDB;
