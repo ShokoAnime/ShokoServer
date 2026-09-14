@@ -193,10 +193,12 @@ public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IF
     {
         get
         {
-            var allTmdbLinkedEpisodes = series.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
+            var allTmdbLinkedEpisodes = series.TmdbEpisodeCrossReferences
+                .Where(xref => xref.TmdbEpisodeID is not 0)
+                .Select(a => a.AnidbEpisodeID)
                 .Concat(series.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
                 .ToHashSet();
-            return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
+            return series.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AniDB_EpisodeID));
         }
     }
 

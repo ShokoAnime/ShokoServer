@@ -209,10 +209,12 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
 
     public int MissingTmdbEpisodeLinks => AllSeries.Aggregate(0, (acc, ser) =>
     {
-        var allTmdbLinkedEpisodes = ser.TmdbEpisodeCrossReferences.Select(a => a.AnidbEpisodeID)
+        var allTmdbLinkedEpisodes = ser.TmdbEpisodeCrossReferences
+            .Where(xref => xref.TmdbEpisodeID is not 0)
+            .Select(a => a.AnidbEpisodeID)
             .Concat(ser.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
             .ToHashSet();
-        return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AnimeEpisodeID));
+        return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AniDB_EpisodeID));
     });
 
     public IReadOnlySet<string> TmdbMovieKeywords =>
