@@ -22,9 +22,10 @@ public class AuthorizeOperationFilterTests
         var security = await GetSecurity(nameof(Endpoints.Optional));
 
         Assert.NotNull(security);
-        Assert.Equal(2, security.Count);
+        Assert.Equal(3, security.Count);
         Assert.Empty((JObject)security[0]);
-        Assert.NotNull(security[1]["ApiKey"]);
+        Assert.NotNull(security[1][AuthorizeOperationFilter.ApiKeyHeaderScheme]);
+        Assert.NotNull(security[2][AuthorizeOperationFilter.ApiKeyQueryScheme]);
     }
 
     [Fact]
@@ -33,8 +34,9 @@ public class AuthorizeOperationFilterTests
         var security = await GetSecurity(nameof(Endpoints.Authorized));
 
         Assert.NotNull(security);
-        Assert.Single(security);
-        Assert.NotNull(security[0]["ApiKey"]);
+        Assert.Equal(2, security.Count);
+        Assert.NotNull(security[0][AuthorizeOperationFilter.ApiKeyHeaderScheme]);
+        Assert.NotNull(security[1][AuthorizeOperationFilter.ApiKeyQueryScheme]);
     }
 
     [Fact]
@@ -43,9 +45,10 @@ public class AuthorizeOperationFilterTests
         var security = await GetSecurity(typeof(UnattributedEndpoints), nameof(UnattributedEndpoints.Optional));
 
         Assert.NotNull(security);
-        Assert.Equal(2, security.Count);
+        Assert.Equal(3, security.Count);
         Assert.Empty((JObject)security[0]);
-        Assert.NotNull(security[1]["ApiKey"]);
+        Assert.NotNull(security[1][AuthorizeOperationFilter.ApiKeyHeaderScheme]);
+        Assert.NotNull(security[2][AuthorizeOperationFilter.ApiKeyQueryScheme]);
     }
 
     [Fact]
@@ -54,8 +57,9 @@ public class AuthorizeOperationFilterTests
         var security = await GetSecurity(nameof(Endpoints.AuthorizedWithOptionalAuthentication));
 
         Assert.NotNull(security);
-        Assert.Single(security);
-        Assert.NotNull(security[0]["ApiKey"]);
+        Assert.Equal(2, security.Count);
+        Assert.NotNull(security[0][AuthorizeOperationFilter.ApiKeyHeaderScheme]);
+        Assert.NotNull(security[1][AuthorizeOperationFilter.ApiKeyQueryScheme]);
     }
 
     [Fact]
@@ -77,10 +81,16 @@ public class AuthorizeOperationFilterTests
             {
                 SecuritySchemes = new Dictionary<string, IOpenApiSecurityScheme>
                 {
-                    ["ApiKey"] = new OpenApiSecurityScheme
+                    [AuthorizeOperationFilter.ApiKeyHeaderScheme] = new OpenApiSecurityScheme
                     {
                         Name = "apikey",
                         In = ParameterLocation.Header,
+                        Type = SecuritySchemeType.ApiKey,
+                    },
+                    [AuthorizeOperationFilter.ApiKeyQueryScheme] = new OpenApiSecurityScheme
+                    {
+                        Name = "apikey",
+                        In = ParameterLocation.Query,
                         Type = SecuritySchemeType.ApiKey,
                     },
                 },

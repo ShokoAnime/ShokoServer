@@ -8,6 +8,15 @@ namespace Shoko.Server.API.Swagger;
 
 public sealed class AuthorizeOperationFilter : IOperationFilter
 {
+    /// <summary>
+    ///   The name of the security scheme for the API key in the <c>apikey</c> header.
+    /// </summary>
+    public const string ApiKeyHeaderScheme = "ApiKey";
+
+    /// <summary>
+    ///   The name of the security scheme for the API key in the <c>apikey</c> query parameter.
+    /// </summary>
+    public const string ApiKeyQueryScheme = "ApiKeyQuery";
 
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
@@ -21,7 +30,9 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
         if (!requiresAuthorization)
             operation.Security.Add([]);
 
-        operation.Security.Add(new() { { new("ApiKey", context.Document), [] } });
+        // Separate requirements are alternatives, so either location for the key is accepted.
+        operation.Security.Add(new() { { new(ApiKeyHeaderScheme, context.Document), [] } });
+        operation.Security.Add(new() { { new(ApiKeyQueryScheme, context.Document), [] } });
     }
 
     private static bool HasAttribute<TAttribute>(OperationFilterContext context)
