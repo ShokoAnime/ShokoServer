@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.458",
+      "tag": "v6.0.0-dev.458",
+      "commit": "9333e47c5b10fc0152ae7b37c65f427b808bb2ff",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.458/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-14T18:41:11Z",
+      "releaseNotes": "\n`repo`: **Revert fork-only tooling commits that leaked in via #1426** ([#1439](https://github.com/ShokoAnime/ShokoServer/pull/1439)):\n\n* Revert \"repo(workflows): bump codeql-action to v4\"\n\nThis reverts commit 056b553dbc0345a2789423e9384012a8bd993d42.\n\n* Revert \"Add workflow_dispatch trigger to CodeQL\"\n\nThis reverts commit f09452e395369dba1ee0e9c37cc8d7d276cca47d.\n\n* Revert \"Add Dependabot and CodeQL to fork tooling\"\n\nThis reverts commit 815009a2dc187620e9d1a00260235cf95391c903.\n"
+    },
+    {
       "version": "6.0.0.457",
       "tag": "v6.0.0-dev.457",
       "commit": "462734a1acef5cf2cd53e5468afa022b96397957",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.429/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-24T13:47:25Z",
       "releaseNotes": "\n`fix` (`queue`): **Build jobs through DI so display members can read services**:\n\nEnqueue built the instance with GetUninitializedObject and then read\nTitle, Details and TypeName off it, so a job whose display members touch\nan injected service threw NullReferenceException before anything was\npersisted. ActionExecutionJob.Title does exactly that, which made every\naction invocation a 500 with nothing queued to retry. Only public\nread/write properties are serialised, so this does not change job data.\n"
-    },
-    {
-      "version": "6.0.0.428",
-      "tag": "v6.0.0-dev.428",
-      "commit": "91178a5ca0556d3a60abde8150e5a3980bddf743",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.428/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-24T00:37:47Z",
-      "releaseNotes": "\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.82**.\n"
     }
   ]
 }
