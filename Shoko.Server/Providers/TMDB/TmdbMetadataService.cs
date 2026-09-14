@@ -696,6 +696,51 @@ public class TmdbMetadataService : ITmdbMetadataService
         return (toSave, toRemove, added);
     }
 
+    // Mutable via Interlocked from concurrent UpdateMoviePersonAndTrack calls; a plain int can't be
+    // captured by-ref across the async lambda ProcessWithConcurrencyAsync schedules per person.
+    private sealed class PersonUpdateCounters
+    {
+        public int Added;
+        public int Updated;
+    }
+
+    private async Task UpdateMoviePersonAndTrack(int personId, bool forceRefresh, bool downloadImages, int movieId, PersonUpdateCounters counters, ConcurrentBag<int> transientlyFailed)
+    {
+        try
+        {
+            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: movieId);
+            if (added)
+                Interlocked.Increment(ref counters.Added);
+            else if (updated)
+                Interlocked.Increment(ref counters.Updated);
+        }
+        catch (Exception ex) when (IsTmdbTransient(ex))
+        {
+            // Transient failure — preserve cast/crew rows and retry later.
+            transientlyFailed.Add(personId);
+        }
+        catch (Exception ex)
+        {
+            // Non-transient failure — log and let CleanupOrphanedCastCrew handle it.
+            _logger.LogWarning(ex, "TMDB: Unexpected error updating person {PersonId} for movie {MovieId}", personId, movieId);
+        }
+    }
+
+    private void RemoveOrphanedMovieCastCrew(HashSet<int> missingPersonIds, int movieId)
+    {
+        var orphanedCast = _tmdbMovieCast.GetByTmdbMovieID(movieId)
+            .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+        var orphanedCrew = _tmdbMovieCrew.GetByTmdbMovieID(movieId)
+            .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+        if (orphanedCast.Count == 0 && orphanedCrew.Count == 0)
+            return;
+
+        _logger.LogWarning("TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Movie={MovieId})",
+            orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, movieId);
+        _tmdbMovieCast.Delete(orphanedCast);
+        _tmdbMovieCrew.Delete(orphanedCrew);
+    }
+
     private async Task<bool> UpdateMovieCastAndCrew(TMDB_Movie tmdbMovie, MovieCredits? credits, bool forceRefresh, bool downloadImages)
     {
         // See UpdateEpisodeCastAndCrew: a null/empty credits append is "no cast/crew this pass", not a purge.
@@ -748,55 +793,23 @@ public class TmdbMetadataService : ITmdbMetadataService
             );
 
         // Only add/remove staff if we're not doing a quick refresh.
-        var peopleAdded = 0;
-        var peopleUpdated = 0;
         var peoplePurged = 0;
         var peopleToPurge = existingCastDict.Values.Select(cast => cast.TmdbPersonID)
             .Concat(existingCrewDict.Values.Select(crew => crew.TmdbPersonID))
             .Except(peopleToKeep)
             .ToHashSet();
+        var counters = new PersonUpdateCounters();
         var transientlyFailedMoviePeople = new ConcurrentBag<int>();
-        await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToKeep, async personId =>
-        {
-            try
-            {
-                var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: tmdbMovie.Id);
-                if (added)
-                    Interlocked.Increment(ref peopleAdded);
-                else if (updated)
-                    Interlocked.Increment(ref peopleUpdated);
-            }
-            catch (Exception ex) when (IsTmdbTransient(ex))
-            {
-                // Transient failure — preserve cast/crew rows and retry later.
-                transientlyFailedMoviePeople.Add(personId);
-            }
-            catch (Exception ex)
-            {
-                // Non-transient failure — log and let CleanupOrphanedCastCrew handle it.
-                _logger.LogWarning(ex, "TMDB: Unexpected error updating person {PersonId} for movie {MovieId}", personId, tmdbMovie.Id);
-            }
-        }, onDropped: transientlyFailedMoviePeople.Add);
+        await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToKeep,
+            personId => UpdateMoviePersonAndTrack(personId, forceRefresh, downloadImages, tmdbMovie.Id, counters, transientlyFailedMoviePeople),
+            onDropped: transientlyFailedMoviePeople.Add);
         // Schedule retries for transiently-failed people; their cast/crew rows are preserved.
         var transientlyFailedMovieSet = transientlyFailedMoviePeople.ToHashSet();
         if (transientlyFailedMovieSet.Count > 0)
             await Task.WhenAll(transientlyFailedMovieSet.Select(personId =>
                 _scheduler.Enqueue<UpdateTmdbPersonJob>(j => { j.TmdbPersonID = personId; j.DownloadImages = downloadImages; j.TmdbMovieID = tmdbMovie.Id; })));
         // Remove cast/crew for people that permanently failed — transient failures are excluded.
-        CleanupOrphanedCastCrew(peopleToKeep, transientlyFailedMovieSet, missingPersonIds =>
-        {
-            var orphanedCast = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
-                .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
-            var orphanedCrew = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
-                .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
-            if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
-            {
-                _logger.LogWarning("TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Movie={MovieId})",
-                    orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, tmdbMovie.Id);
-                _tmdbMovieCast.Delete(orphanedCast);
-                _tmdbMovieCrew.Delete(orphanedCrew);
-            }
-        });
+        CleanupOrphanedCastCrew(peopleToKeep, transientlyFailedMovieSet, missingPersonIds => RemoveOrphanedMovieCastCrew(missingPersonIds, tmdbMovie.Id));
         try
         {
             await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToPurge, async personId =>
@@ -811,10 +824,10 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
 
         _logger.LogDebug("Added/removed {a}/{u}/{r}/{s} staff for movie {MovieTitle} (Movie={MovieId})",
-            peopleAdded,
-            peopleUpdated,
+            counters.Added,
+            counters.Updated,
             peoplePurged,
-            peopleToKeep.Count + peopleToPurge.Count - peopleAdded - peopleUpdated - peoplePurged,
+            peopleToKeep.Count + peopleToPurge.Count - counters.Added - counters.Updated - peoplePurged,
             tmdbMovie.EnglishTitle,
             tmdbMovie.Id
         );
@@ -822,8 +835,8 @@ public class TmdbMetadataService : ITmdbMetadataService
             castToRemove.Count > 0 ||
             crewToSave.Count > 0 ||
             crewToRemove.Count > 0 ||
-            peopleAdded > 0 ||
-            peopleUpdated > 0 ||
+            counters.Added > 0 ||
+            counters.Updated > 0 ||
             peoplePurged > 0;
     }
 
