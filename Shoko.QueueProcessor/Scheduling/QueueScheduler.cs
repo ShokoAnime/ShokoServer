@@ -211,6 +211,10 @@ public sealed class QueueScheduler : IQueueScheduler
 
     public Task Resume() { _orchestrator.Resume(); return Task.CompletedTask; }
 
+    public Task Halt(string reason) { _orchestrator.Halt(reason); return Task.CompletedTask; }
+
+    public bool IsHalted => _orchestrator.IsHalted;
+
     public Task<QueueState> GetState(int maxWaiting = 100, int offset = 0,
         bool includeBlocked = true, CancellationToken ct = default)
     {

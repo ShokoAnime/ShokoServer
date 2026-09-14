@@ -200,6 +200,17 @@ public class SystemService : ISystemService
             _logger.LogError(value, "Failed to Start Server: {Message}", value.Message);
             _startupTaskSource?.SetException(value);
             _startupTaskSource = null;
+
+            // The queue's hosted services are already up by the time most startup failures happen, and
+            // nothing in this process will ever be able to serve a job now, so stop dispatching for good.
+            try
+            {
+                _webHost?.Services.GetService<IQueueScheduler>()?.Halt("the server failed to start").GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to halt the queue after the failed startup");
+            }
         }
     }
 
