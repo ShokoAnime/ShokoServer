@@ -33,8 +33,8 @@
         <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.1.0" />
-        <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
+        <PackageReference Include="Avalonia" Version="12.1.2" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
         <!-- Needed for the windows' native tray system menu to function properly. -->
         <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
         <!-- Pin Tmds.DBus.Protocol to a non-vulnerable patch to address GHSA-xrw6-gwf8-vvr9 -->
