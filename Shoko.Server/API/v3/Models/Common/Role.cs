@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Anilist.Embedded;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
 
@@ -119,6 +120,79 @@ public class Role
             RoleDetails = $"{crew.Department}, {crew.Job}",
         };
     }
+
+    public static Role FromAnilist(Anilist_Cast cast)
+    {
+        var character = cast.Character;
+        var staff = cast.Creator;
+        return new()
+        {
+            Character = new()
+            {
+                ID = character.AnilistCharacterID,
+                Name = character.Name,
+                AlternateName = character.OriginalName ?? string.Empty,
+                Description = character.Description,
+                Image = (character as ICharacter).PrimaryImage is { } characterImage ? new Image(characterImage) : null,
+            },
+            Staff = staff is not null
+                ? CreateStaffFromAnilistCreator(staff)
+                : new()
+                {
+                    ID = 0,
+                    Name = string.Empty,
+                    AlternateName = string.Empty,
+                    Description = string.Empty,
+                    Image = null,
+                    Type = "Unknown",
+                },
+            RoleName = CreatorRoleType.Actor,
+            RoleDetails = staff is not null
+                ? cast.RoleType switch
+                {
+                    Abstractions.Metadata.Enums.CastRoleType.MainCharacter => "Main Character",
+                    Abstractions.Metadata.Enums.CastRoleType.MinorCharacter => "Supporting Character",
+                    Abstractions.Metadata.Enums.CastRoleType.BackgroundCharacter => "Background Character",
+                    _ => CharacterRole,
+                }
+                : "Appears In",
+        };
+    }
+
+    public static Role? FromAnilist(Anilist_Crew crew)
+    {
+        var staff = crew.Creator;
+        if (staff is null)
+            return null;
+
+        return new()
+        {
+            Staff = CreateStaffFromAnilistCreator(staff),
+            RoleName = crew.RoleType switch
+            {
+                Abstractions.Metadata.Enums.CrewRoleType.Producer => CreatorRoleType.Producer,
+                Abstractions.Metadata.Enums.CrewRoleType.Director => CreatorRoleType.Director,
+                Abstractions.Metadata.Enums.CrewRoleType.SeriesComposer => CreatorRoleType.SeriesComposer,
+                Abstractions.Metadata.Enums.CrewRoleType.CharacterDesign => CreatorRoleType.CharacterDesign,
+                Abstractions.Metadata.Enums.CrewRoleType.Music => CreatorRoleType.Music,
+                Abstractions.Metadata.Enums.CrewRoleType.SourceWork => CreatorRoleType.SourceWork,
+                Abstractions.Metadata.Enums.CrewRoleType.Actor => CreatorRoleType.Actor,
+                _ => CreatorRoleType.Staff,
+            },
+            RoleDetails = crew.Name,
+        };
+    }
+
+    private static Person CreateStaffFromAnilistCreator(global::Shoko.Server.Models.Anilist.Anilist_Creator creator)
+        => new()
+        {
+            ID = creator.AnilistCreatorID,
+            Name = creator.Name,
+            AlternateName = creator.OriginalName ?? string.Empty,
+            Description = creator.Description,
+            Image = (creator as ICreator).PrimaryImage is { } staffImage ? new Image(staffImage) : null,
+            Type = "Person",
+        };
 
     private static Person CreateStaffFromTmdbPerson(TMDB_Person person)
     {

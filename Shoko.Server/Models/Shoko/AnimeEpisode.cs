@@ -15,6 +15,7 @@ using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
@@ -310,6 +311,19 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
 
     #endregion
 
+    #region AniList
+
+    public IReadOnlyList<CrossRef_AniDB_Anilist_Episode> AnilistEpisodeCrossReferences =>
+        RepoFactory.CrossRef_AniDB_Anilist_Episode.GetByAnidbEpisodeID(AniDB_EpisodeID);
+
+    public IReadOnlyList<Anilist_Episode> AnilistEpisodes =>
+        AnilistEpisodeCrossReferences
+            .Select(xref => xref.AnilistEpisode)
+            .WhereNotNull()
+            .ToList();
+
+    #endregion
+
     public bool Equals(AnimeEpisode? other)
         => other is not null &&
             AnimeEpisodeID == other.AnimeEpisodeID &&
@@ -418,10 +432,14 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     {
         get
         {
-            // TODO: Add AniList Episode air date check here
-
             if (AniDB_Episode?.GetAirDateAsDateOnly() is { } airDate)
                 return airDate;
+
+            foreach (var xref in AnilistEpisodeCrossReferences)
+            {
+                if (xref.AnilistEpisode?.AirDate is { } anilistAirDate)
+                    return anilistAirDate;
+            }
 
             foreach (var xref in TmdbEpisodeCrossReferences)
             {
@@ -437,7 +455,12 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     {
         get
         {
-            // TODO: Add AniList Episode air date check here
+            // AniList's airing schedule carries the actual air time, so it wins over the date-only sources.
+            foreach (var xref in AnilistEpisodeCrossReferences)
+            {
+                if (xref.AnilistEpisode?.AiredAt is { } anilistAiredAt)
+                    return anilistAiredAt;
+            }
 
             if (AniDB_Episode?.GetAirDateAsDate() is { } airDate)
                 return airDate;
@@ -477,9 +500,9 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     IAnidbEpisode IShokoEpisode.AnidbEpisode => AniDB_Episode ??
         throw new NullReferenceException($"Unable to find AniDB Episode {AniDB_EpisodeID} for AnimeEpisode {AnimeEpisodeID}");
 
-    IReadOnlyList<IAnilistEpisode> IShokoEpisode.AnilistEpisodes => [];
+    IReadOnlyList<IAnilistEpisode> IShokoEpisode.AnilistEpisodes => AnilistEpisodes;
 
-    IReadOnlyList<IAnilistEpisodeCrossReference> IShokoEpisode.AnilistEpisodeCrossReferences => [];
+    IReadOnlyList<IAnilistEpisodeCrossReference> IShokoEpisode.AnilistEpisodeCrossReferences => AnilistEpisodeCrossReferences;
 
     IReadOnlyList<ITmdbEpisode> IShokoEpisode.TmdbEpisodes => TmdbEpisodes;
 
@@ -500,6 +523,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
                 episodeList.Add(anidbEpisode);
 
             episodeList.AddRange(TmdbEpisodes);
+            episodeList.AddRange(AnilistEpisodes);
 
             // Add more episodes here as needed.
 

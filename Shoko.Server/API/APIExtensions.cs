@@ -202,6 +202,7 @@ public static partial class APIExtensions
                 }
 
                 options.Filters.Add(typeof(DatabaseBlockedFilter));
+                options.Filters.Add(typeof(AnilistUpstreamExceptionFilter));
 
                 EmitEmptyEnumerableInsteadOfNullAttribute.MvcOptions = options;
             })

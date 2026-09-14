@@ -35,6 +35,11 @@ public enum ActionCategory : byte
     TMDB = 0x22,
 
     /// <summary>
+    ///   AniList metadata and synchronization actions.
+    /// </summary>
+    AniList = 0x23,
+
+    /// <summary>
     ///   Data synchronization actions across providers.
     /// </summary>
     Sync = 0x31,

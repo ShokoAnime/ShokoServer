@@ -88,6 +88,11 @@ public interface IServerSettings
     TMDBSettings TMDB { get; set; }
 
     /// <summary>
+    /// The Anilist settings.
+    /// </summary>
+    AnilistSettings Anilist { get; set; }
+
+    /// <summary>
     /// The import settings.
     /// </summary>
     ImportSettings Import { get; set; }

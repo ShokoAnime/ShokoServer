@@ -22,6 +22,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.v3.Models.Anilist;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
@@ -680,6 +681,64 @@ public class EpisodeController(
         return episode.TmdbEpisodeCrossReferences
             .Select(xref => new TmdbEpisode.CrossReference(xref))
             .OrderBy(xref => xref.TmdbEpisodeID)
+            .ToList();
+    }
+
+    #endregion
+
+    #region Anilist
+
+    /// <summary>
+    /// Get all Anilist Episodes linked to the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <returns>All Anilist Episodes linked to the Shoko Episode.</returns>
+    [HttpGet("{episodeID}/Anilist/Episode")]
+    public ActionResult<List<AnilistEpisode>> GetAnilistEpisodesByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnilistEpisode.IncludeDetails>? include = null
+    )
+    {
+        var episode = _animeEpisodes.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        return episode.AnilistEpisodes
+            .Select(anilistEpisode => new AnilistEpisode(anilistEpisode, include?.CombineFlags()))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all Anilist Episode cross-references for the Shoko Episode by ID.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <returns>All Anilist Episode cross-references for the Shoko Episode.</returns>
+    [HttpGet("{episodeID}/Anilist/Episode/CrossReferences")]
+    public ActionResult<IReadOnlyList<AnilistEpisode.CrossReference>> GetAnilistEpisodeCrossReferenceByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID
+    )
+    {
+        var episode = _animeEpisodes.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        return episode.AnilistEpisodeCrossReferences
+            .Select(xref => new AnilistEpisode.CrossReference(xref))
             .ToList();
     }
 

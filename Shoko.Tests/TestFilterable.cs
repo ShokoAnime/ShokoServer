@@ -93,4 +93,6 @@ public class TestFilterable : IFilterableInfo
     public IReadOnlySet<string> TmdbShowGenres { get; init; } = null!;
     public IReadOnlySet<string> TmdbKeywords { get; init; } = null!;
     public IReadOnlySet<string> TmdbGenres { get; init; } = null!;
+    public IReadOnlySet<string> AnilistGenres { get; init; } = null!;
+    public IReadOnlySet<string> AnilistTags { get; init; } = null!;
 }

@@ -142,6 +142,12 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     public TMDBSettings TMDB { get; set; } = new();
 
     /// <summary>
+    /// Configure the information Shoko retrieves from Anilist for the series in
+    /// your collection.
+    /// </summary>
+    public AnilistSettings Anilist { get; set; } = new();
+
+    /// <summary>
     /// Configure the main database settings. These settings will not affect the
     /// queue database.
     /// </summary>

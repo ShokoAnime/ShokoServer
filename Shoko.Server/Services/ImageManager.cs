@@ -41,6 +41,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;
+using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -114,8 +115,7 @@ public partial class ImageManager(
                 else if (dataSource is DataSource.TMDB)
                     dict.Add(dataSource, DefaultTmdbUrlTemplate());
                 else if (dataSource is DataSource.AniList)
-                    // TODO: Add Anilist image template url.
-                    dict.Add(dataSource, null);
+                    dict.Add(dataSource, DefaultAnilistUrlTemplate());
                 else
                     dict.Add(dataSource, null);
             }
@@ -166,6 +166,26 @@ public partial class ImageManager(
 
         // Static fallback.
         return $"{TmdbMetadataService.ImageServerUrl}original/{{0}}";
+    }
+
+    private string DefaultAnilistUrlTemplate()
+    {
+        // Setting override.
+        var setting = settingsProvider.GetSettings().Anilist.ImageCdnUrl;
+        if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, AnilistImageService.ImageServerUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
+        {
+            // Setting as a URL template.
+            if (setting.Contains("{0}"))
+                return setting;
+
+            // Setting as a base URL.
+            if (!setting.EndsWith("/", StringComparison.Ordinal))
+                setting += "/";
+            return $"{setting}{{0}}";
+        }
+
+        // The CDN base observed on the last image URL AniList handed us, with the static default behind it.
+        return $"{AnilistImageService.ImageServerUrl}{{0}}";
     }
 
     /// <inheritdoc/>

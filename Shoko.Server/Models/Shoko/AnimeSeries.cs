@@ -21,6 +21,7 @@ using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Models.TMDB;
@@ -528,6 +529,24 @@ public class AnimeSeries : IShokoSeries
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
 
+    #endregion
+
+    #region AniList
+
+    public IReadOnlyList<CrossRef_AniDB_Anilist_Anime> AnilistAnimeCrossReferences => RepoFactory.CrossRef_AniDB_Anilist_Anime.GetByAnidbAnimeID(AniDB_ID);
+
+    public IReadOnlyList<Anilist_Anime> AnilistAnime => AnilistAnimeCrossReferences.Select(xref => xref.AnilistAnime).WhereNotNull().ToList();
+
+    public IReadOnlyList<CrossRef_AniDB_Anilist_Episode> AnilistEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_Anilist_Episode.GetByAnidbAnimeID(AniDB_ID);
+
+    public IReadOnlyList<CrossRef_AniDB_Anilist_Episode> GetAnilistEpisodeCrossReferences(int? anilistAnimeId = null) => anilistAnimeId.HasValue
+        ? RepoFactory.CrossRef_AniDB_Anilist_Episode.GetOnlyByAnidbAnimeAndAnilistAnimeIDs(AniDB_ID, anilistAnimeId.Value)
+        : RepoFactory.CrossRef_AniDB_Anilist_Episode.GetByAnidbAnimeID(AniDB_ID);
+
+    #endregion
+
+    #region TMDB (continued)
+
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetTmdbEpisodeCrossReferences(int? tmdbShowId = null) => tmdbShowId.HasValue
         ? RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(AniDB_ID, tmdbShowId.Value)
         : RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
@@ -796,6 +815,8 @@ public class AnimeSeries : IShokoSeries
                 list.AddRange(movie.Resources);
             foreach (var show in TmdbShows)
                 list.AddRange(show.Resources);
+            foreach (var anilistAnime in AnilistAnime)
+                list.AddRange(anilistAnime.Resources);
             list.AddRange(ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this));
             return list;
         }
@@ -995,9 +1016,9 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
-    IReadOnlyList<IAnilistAnime> IShokoSeries.AnilistAnime => [];
+    IReadOnlyList<IAnilistAnime> IShokoSeries.AnilistAnime => AnilistAnime;
 
-    IReadOnlyList<IAnilistAnimeCrossReference> IShokoSeries.AnilistAnimeCrossReferences => [];
+    IReadOnlyList<IAnilistAnimeCrossReference> IShokoSeries.AnilistAnimeCrossReferences => AnilistAnimeCrossReferences;
 
     bool IShokoSeries.TmdbAutoMatchingDisabled
     {
@@ -1034,6 +1055,7 @@ public class AnimeSeries : IShokoSeries
                 seriesList.Add(anidbAnime);
 
             seriesList.AddRange(TmdbShows);
+            seriesList.AddRange(AnilistAnime);
 
             // Add more series here.
 

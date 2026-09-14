@@ -153,7 +153,8 @@ public class Series : BaseModel
                 Movie = tmdbMovieXRefs.Select(a => a.TmdbMovieID).Distinct().ToList(),
                 Show = tmdbShowXRefs.Select(a => a.TmdbShowID).Distinct().ToList(),
             },
-            MAL = ser.MalCrossReferences.Select(a => a.MALID).Distinct().ToList()
+            MAL = ser.MalCrossReferences.Select(a => a.MALID).Distinct().ToList(),
+            AniList = ser.AnilistAnimeCrossReferences.Select(a => a.AnilistAnimeID).Distinct().ToList(),
         };
         Links = anime.Resources
             .Select(resource => new Resource(resource))
@@ -464,6 +465,12 @@ public class Series : BaseModel
         [Required]
         public List<int> MAL { get; set; } = [];
 
+        /// <summary>
+        /// The AniList anime IDs.
+        /// </summary>
+        [Required]
+        public List<int> AniList { get; set; } = [];
+
         #endregion
 
         public class TmdbSeriesIDs
@@ -688,6 +695,71 @@ public class Series : BaseModel
             /// </summary>
             [Required]
             public IReadOnlyList<OverrideTmdbEpisodeLinkBody> Mapping { get; set; } = [];
+        }
+
+        public class AutoMatchAnilistEpisodesBody
+        {
+            /// <summary>
+            /// The specified Anilist Anime ID to search for links. This parameter is used to select a specific anime.
+            /// </summary>
+            [Range(1, int.MaxValue)]
+            public int? AnilistAnimeID { get; set; }
+
+            /// <summary>
+            /// Determines whether to retain existing links for the current series.
+            /// </summary>
+            [DefaultValue(true)]
+            public bool KeepExisting { get; set; } = true;
+
+            /// <summary>
+            /// Determines whether to consider existing links for other series when picking episodes.
+            /// </summary>
+            public bool? ConsiderExistingOtherLinks { get; set; }
+        }
+
+        public class OverrideAnilistEpisodeMappingBody
+        {
+            /// <summary>
+            /// Unset all existing links before applying the overrides.
+            /// </summary>
+            /// <remarks>
+            /// This will ensure the auto-links won't override the new unset
+            /// links, unlink if you had reset them through the DELETE endpoint.
+            /// </remarks>
+            public bool UnsetAll { get; set; } = false;
+
+            /// <summary>
+            /// Replacing existing links or add new additional links.
+            /// </summary>
+            [Required]
+            public IReadOnlyList<OverrideAnilistEpisodeLinkBody> Mapping { get; set; } = [];
+        }
+
+        public class OverrideAnilistEpisodeLinkBody
+        {
+            /// <summary>
+            /// AniDB Episode ID.
+            /// </summary>
+            [Required, Range(1, int.MaxValue)]
+            public int AniDBID { get; set; }
+
+            /// <summary>
+            /// Anilist Episode ID. Set to <c>0</c> to not link to any episode.
+            /// </summary>
+            [Required, Range(0, int.MaxValue)]
+            public int AnilistID { get; set; }
+
+            /// <summary>
+            /// Replace existing episode links.
+            /// </summary>
+            public bool Replace { get; set; } = false;
+
+            /// <summary>
+            /// Episode index. Set to <c>null</c> to automatically calculate the
+            /// index.
+            /// </summary>
+            [Range(0, int.MaxValue)]
+            public int? Index { get; set; } = null;
         }
 
         public class OverrideTmdbEpisodeLinkBody

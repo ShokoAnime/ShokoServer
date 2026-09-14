@@ -33,4 +33,14 @@ public enum ResourceType : byte
     ///   AllCinema, AnimeNewsNetwork, VNDB).
     /// </summary>
     CrossReference = 3,
+
+    /// <summary>
+    ///   Social media account or page (e.g. Twitter).
+    /// </summary>
+    Social = 4,
+
+    /// <summary>
+    ///   Trailer or promotional video (e.g. YouTube).
+    /// </summary>
+    Trailer = 5,
 }

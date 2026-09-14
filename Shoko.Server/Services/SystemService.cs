@@ -48,6 +48,7 @@ using Shoko.Server.MediaInfo;
 using Shoko.Server.Plugin;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.UDP;
+using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
@@ -411,6 +412,8 @@ public class SystemService : ISystemService
             services.AddSingleton<ITmdbMetadataService>(sp => sp.GetRequiredService<TmdbMetadataService>());
             services.AddSingleton<TmdbSearchService>();
             services.AddSingleton<ITmdbSearchService>(sp => sp.GetRequiredService<TmdbSearchService>());
+            services.AddAnilist();
+            services.AddSingleton<AnilistSupplementaryProvider>();
             services.AddSingleton<IFilteringEngine, FilteringEngine>();
             services.AddSingleton<IMetadataFilteringService, MetadataFilteringService>();
             services.AddSingleton<IFilterPresetManager, FilterPresetManager>();
@@ -465,6 +468,7 @@ public class SystemService : ISystemService
             services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, TmdbApiRateLimitedAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, AnilistApiRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
 
@@ -517,6 +521,7 @@ public class SystemService : ISystemService
             registry.Register<PeriodicImageMaintenanceJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<CleanupExpiredTokensJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<PurgeOrphanedTmdbDataJob>(TimeSpan.FromHours(24), runImmediately: false);
+            registry.Register<PurgeOrphanedAnilistDataJob>(TimeSpan.FromHours(24), runImmediately: false);
 
             // Register settings-driven recurring jobs. Jobs whose frequency is Never are skipped
             // entirely at startup; they are registered on-demand when settings change.

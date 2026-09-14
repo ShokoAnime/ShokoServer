@@ -58,4 +58,18 @@ public enum MatchRating : byte
     ///   No title or in-window date evidence; matched to the closest available air date as a last resort.
     /// </summary>
     DateKindaMatches = 9,
+
+    /// <summary>
+    ///   Date matches exactly and the episode numbers agree. Used by providers
+    ///   without episode titles, where the number is only ever a corroborating
+    ///   signal on top of a date match, never evidence on its own.
+    /// </summary>
+    DateAndNumberMatches = 10,
+
+    /// <summary>
+    ///   No date evidence of its own, but the neighbouring episodes that did
+    ///   match by date all agree on the same episode-number offset, and this
+    ///   episode sits on that offset.
+    /// </summary>
+    DateOffsetMatches = 11,
 }
