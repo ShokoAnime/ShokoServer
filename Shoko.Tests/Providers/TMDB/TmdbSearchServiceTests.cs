@@ -229,8 +229,8 @@ public class TmdbSearchServiceTests
         Assert.Equal(expectedAcceptable, TmdbSearchService.IsAcceptableAutoMatch(rating));
     }
 
-    // TmdbMetadataService.Instance is unset in this test host, so GetGenres() returns empty —
-    // equivalent to an untagged TMDB result.
+    // TmdbMetadataService.Instance is unset in this test host, so GetGenres() always returns empty —
+    // every result below is effectively untagged; only OriginalLanguage varies.
 
     private static void InvokeCollectCandidates(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount, bool isRestricted)
     {
@@ -255,10 +255,20 @@ public class TmdbSearchServiceTests
     }
 
     [Fact]
-    public void CollectCandidates_Restricted_IncludesUntaggedResult()
+    public void CollectCandidates_Restricted_ExcludesUntaggedNonJapaneseResult()
     {
         var candidates = new List<SearchTv>();
-        var results = new List<SearchTv> { new() { Id = 1 } };
+        var results = new List<SearchTv> { new() { Id = 1, OriginalLanguage = "en" } };
+        InvokeCollectCandidates(candidates, results, [], 10, true);
+
+        Assert.Empty(candidates);
+    }
+
+    [Fact]
+    public void CollectCandidates_Restricted_IncludesUntaggedJapaneseResult()
+    {
+        var candidates = new List<SearchTv>();
+        var results = new List<SearchTv> { new() { Id = 1, OriginalLanguage = "ja" } };
         InvokeCollectCandidates(candidates, results, [], 10, true);
 
         Assert.Single(candidates);
@@ -275,10 +285,20 @@ public class TmdbSearchServiceTests
     }
 
     [Fact]
-    public void CollectMovieCandidates_Restricted_IncludesUntaggedResult()
+    public void CollectMovieCandidates_Restricted_ExcludesUntaggedNonJapaneseResult()
     {
         var candidates = new List<SearchMovie>();
-        var results = new List<SearchMovie> { new() { Id = 1 } };
+        var results = new List<SearchMovie> { new() { Id = 1, OriginalLanguage = "en" } };
+        InvokeCollectMovieCandidates(candidates, results, [], 10, true);
+
+        Assert.Empty(candidates);
+    }
+
+    [Fact]
+    public void CollectMovieCandidates_Restricted_IncludesUntaggedJapaneseResult()
+    {
+        var candidates = new List<SearchMovie>();
+        var results = new List<SearchMovie> { new() { Id = 1, OriginalLanguage = "ja" } };
         InvokeCollectMovieCandidates(candidates, results, [], 10, true);
 
         Assert.Single(candidates);

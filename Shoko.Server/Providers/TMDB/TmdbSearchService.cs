@@ -770,14 +770,17 @@ public partial class TmdbSearchService : ITmdbSearchService
     // applies the same floor for show and movie auto-matching.
     internal static bool IsAcceptableAutoMatch(MatchRating rating) => rating is not MatchRating.FirstAvailable;
 
-    // Restricted titles skip the Animation genre check — TMDB's genre tags are sparse for adult content.
+    // Restricted titles also accept a Japanese original_language match — TMDB's genre tags are sparse
+    // for adult content, but original_language is TMDB-assigned metadata, not community-tagged.
     private static void CollectCandidates(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount, bool isRestricted = false)
     {
         foreach (var result in results)
         {
             if (candidates.Count >= candidateCount) break;
             if (!seen.Add(result.Id)) continue;
-            if (!isRestricted && !result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase)) continue;
+            var isAnimeLike = result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase) ||
+                (isRestricted && string.Equals(result.OriginalLanguage, "ja", StringComparison.OrdinalIgnoreCase));
+            if (!isAnimeLike) continue;
             candidates.Add(result);
         }
     }
@@ -788,7 +791,9 @@ public partial class TmdbSearchService : ITmdbSearchService
         {
             if (candidates.Count >= candidateCount) break;
             if (!seen.Add(result.Id)) continue;
-            if (!isRestricted && !result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase)) continue;
+            var isAnimeLike = result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase) ||
+                (isRestricted && string.Equals(result.OriginalLanguage, "ja", StringComparison.OrdinalIgnoreCase));
+            if (!isAnimeLike) continue;
             candidates.Add(result);
         }
     }
