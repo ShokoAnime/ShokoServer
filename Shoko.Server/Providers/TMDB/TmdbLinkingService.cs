@@ -739,7 +739,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             _logger.LogDebug(
                 "Found {a} anidb/tmdb episode links for show {ShowTitle} in {Delta}. (Anime={AnimeId}, Show={ShowId})",
                 crossReferences.Count,
-                anime.PreferredTitle,
+                anime.Title,
                 DateTime.Now - startedAt,
                 anidbAnimeId,
                 tmdbShowId
@@ -758,7 +758,7 @@ public class TmdbLinkingService : ITmdbLinkingService
             toAdd.Count,
             toRemove.Count,
             existing.Count - toRemove.Count,
-            anime.PreferredTitle,
+            anime.Title,
             DateTime.Now - startedAt,
             anidbAnimeId,
             tmdbShowId);
