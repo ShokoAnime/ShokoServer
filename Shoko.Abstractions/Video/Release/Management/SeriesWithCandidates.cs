@@ -1,0 +1,57 @@
+using System.Collections.Generic;
+
+namespace Shoko.Abstractions.Video.Release.Management;
+
+/// <summary>
+/// A series paired with its ranked release candidates.
+/// </summary>
+public class SeriesWithCandidates
+{
+    /// <summary>
+    /// Shoko series ID.
+    /// </summary>
+    public required int SeriesID { get; init; }
+
+    /// <summary>
+    /// Display title for the series.
+    /// </summary>
+    public required string SeriesTitle { get; init; }
+
+    /// <summary>
+    /// AniDB anime ID.
+    /// </summary>
+    public required int AnidbAnimeID { get; init; }
+
+    /// <summary>
+    /// True when the series has no end date or its end date is in the future.
+    /// Affects whether per-file deletion is applied for airing series.
+    /// </summary>
+    public required bool IsAiring { get; init; }
+
+    /// <summary>
+    /// True when at least one candidate is fully covered by the primary
+    /// candidate (rank 1) and could be safely deleted.
+    /// </summary>
+    public required bool HasRedundantCandidates { get; init; }
+
+    /// <summary>
+    /// Deduplicated count of file locations that would be deleted across all
+    /// candidates. Use this instead of summing
+    /// <see cref="ReleaseCandidate.RedundantFileCount"/> values, which can
+    /// double-count places shared between gap-fill candidates.
+    /// </summary>
+    public required int FilesToAutoDeleteCount { get; init; }
+
+    /// <summary>
+    /// Ranked release candidates for the series, best-first (rank 1 is the primary).
+    /// </summary>
+    public required IReadOnlyList<ReleaseCandidate> Candidates { get; init; }
+
+    /// <summary>
+    /// All release groups for the series, including groups with partial episode
+    /// coverage that are excluded from <see cref="Candidates"/>. Used as the
+    /// data source for the release override (Mix &amp; Match) view. Only
+    /// populated when requested; empty otherwise.
+    /// </summary>
+    public IReadOnlyList<ReleaseOverride> Overrides { get; init; } = [];
+}

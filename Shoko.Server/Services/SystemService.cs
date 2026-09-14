@@ -445,6 +445,7 @@ public class SystemService : ISystemService
             services.AddSingleton<VideoReleaseGroupingService>();
             services.AddSingleton<ReleaseComparisonService>();
             services.AddSingleton<ReleaseAutoManagementService>();
+            services.AddSingleton<IReleaseManagementService, ReleaseManagementService>();
             services.AddSingleton<IVideoHashingService, VideoHashingService>();
             services.AddSingleton<VideoRelocationService>();
             services.AddSingleton<IVideoRelocationService>(sp => sp.GetRequiredService<VideoRelocationService>());
