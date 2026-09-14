@@ -33,7 +33,7 @@
         <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.1.0" />
+        <PackageReference Include="Avalonia" Version="12.1.2" />
         <PackageReference Include="Avalonia.Desktop" Version="12.1.0" />
         <!-- Needed for the windows' native tray system menu to function properly. -->
         <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.0" />
