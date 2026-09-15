@@ -43,15 +43,74 @@ public class VideoStreamSessionManager(
     /// </summary>
     private readonly ConcurrentDictionary<string, Guid> _keyedSessions = new();
 
-    public Guid CreateSession(IVideo video, IStreamRendition rendition, string? key = null, string? transformID = null)
+    /// <summary>
+    ///   Evicted sessions that can still be rebuilt under their id, and when they were evicted.
+    /// </summary>
+    private readonly ConcurrentDictionary<Guid, (StreamSessionSource Source, DateTime EvictedAt)> _evictedSessions = new();
+
+    private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _restoreGates = new();
+
+    public Guid CreateSession(IVideo video, IStreamRendition rendition, string? key = null, StreamSessionSource? source = null)
     {
         var sessionId = Guid.NewGuid();
-        var cacheDir = Path.Combine(GetCacheRoot(), sessionId.ToString("N"));
+        AddSession(sessionId, video, rendition, key, source);
+        return sessionId;
+    }
+
+    private StreamSession AddSession(Guid sessionId, IVideo video, IStreamRendition rendition, string? key, StreamSessionSource? source)
+    {
+        // Not named after the session: an evicted session's directory is deleted in the background, and may still be when it is
+        // rebuilt under the same id.
+        var cacheDir = Path.Combine(GetCacheRoot(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(cacheDir);
-        _sessions[sessionId] = new StreamSession(video, rendition, cacheDir) { Key = key, TransformID = transformID };
+        var session = new StreamSession(video, rendition, cacheDir) { Key = key, Source = source };
+        _sessions[sessionId] = session;
         if (key is not null)
             _keyedSessions[key] = sessionId;
-        return sessionId;
+        return session;
+    }
+
+    /// <summary>
+    ///   Returns the session for <paramref name="sessionId"/>, rebuilding it with <paramref name="renditionFactory"/> if it was evicted
+    ///   within <see cref="VideoStreamPipelineSettings.EvictedSessionResumeHours"/>. Returns <c>null</c> if there is no such session, or
+    ///   the factory returns <c>null</c>.
+    /// </summary>
+    /// <remarks>
+    ///   Single-flight per session, since a player resuming after a long pause sends several requests at once.
+    /// </remarks>
+    public async Task<StreamSession?> GetOrRestoreSessionAsync(
+        Guid sessionId,
+        Func<StreamSessionSource, CancellationToken, Task<(IVideo Video, IStreamRendition Rendition)?>> renditionFactory,
+        CancellationToken cancellationToken
+    )
+    {
+        if (TryGetSession(sessionId) is { } existing)
+            return existing;
+
+        if (!_evictedSessions.ContainsKey(sessionId))
+            return null;
+
+        var gate = _restoreGates.GetOrAdd(sessionId, static _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (TryGetSession(sessionId) is { } restored)
+                return restored;
+
+            if (!_evictedSessions.TryGetValue(sessionId, out var evicted))
+                return null;
+
+            if (await renditionFactory(evicted.Source, cancellationToken) is not { } result)
+                return null;
+
+            _evictedSessions.TryRemove(sessionId, out _);
+            return AddSession(sessionId, result.Video, result.Rendition, null, evicted.Source);
+        }
+        finally
+        {
+            gate.Release();
+            _restoreGates.TryRemove(new KeyValuePair<Guid, SemaphoreSlim>(sessionId, gate));
+        }
     }
 
     public StreamSession? TryGetSession(Guid sessionId)
@@ -171,9 +230,18 @@ public class VideoStreamSessionManager(
         return sb.ToString();
     }
 
-    public void EvictExpiredSessions(TimeSpan idleTimeout)
+    public void EvictExpiredSessions(TimeSpan idleTimeout, TimeSpan? resumeWindow = null)
     {
-        var cutoff = DateTime.UtcNow - idleTimeout;
+        var now = DateTime.UtcNow;
+        var resumeCutoff = now - (resumeWindow ?? TimeSpan.FromHours(configurationProvider.Load().EvictedSessionResumeHours));
+        foreach (var (sessionId, evicted) in _evictedSessions)
+        {
+            if (evicted.EvictedAt <= resumeCutoff)
+                ((ICollection<KeyValuePair<Guid, (StreamSessionSource, DateTime)>>)_evictedSessions)
+                    .Remove(new KeyValuePair<Guid, (StreamSessionSource, DateTime)>(sessionId, evicted));
+        }
+
+        var cutoff = now - idleTimeout;
         foreach (var (sessionId, session) in _sessions)
         {
             if (session.LastAccessedAt > cutoff || session.IsInUse)
@@ -190,6 +258,9 @@ public class VideoStreamSessionManager(
                 if (!_keyedSessions.ContainsKey(key) && _keyGates.TryRemove(key, out var gate))
                     gate.Dispose();
             }
+
+            if (session.Source is { } source)
+                _evictedSessions[sessionId] = (source, now);
 
             EvictSession(sessionId, session);
         }
@@ -244,9 +315,14 @@ public class StreamSession(IVideo video, IStreamRendition rendition, string cach
     public string? Key { get; init; }
 
     /// <summary>
+    ///   What the session was built from, if it can be rebuilt after eviction.
+    /// </summary>
+    public StreamSessionSource? Source { get; init; }
+
+    /// <summary>
     ///   The ID of the transform that produced <see cref="Rendition"/>, if known.
     /// </summary>
-    public string? TransformID { get; init; }
+    public string? TransformID => Source?.TransformID;
 
     public DateTime LastAccessedAt { get; private set; } = DateTime.UtcNow;
 

@@ -825,7 +825,7 @@ public class FileController(
         if (rendition is not (IHlsStreamRendition or IHlsPresentationRendition))
             return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Hls but its rendition does not implement IHlsStreamRendition or IHlsPresentationRendition.");
 
-        var sessionId = _streamSessionManager.CreateSession(file, rendition, transformID: transformInfo.ID);
+        var sessionId = _streamSessionManager.CreateSession(file, rendition, source: CreateStreamSessionSource(fileID, transformInfo.ID));
         AddStreamSessionLink(fileID, sessionId);
         return Redirect(Url.Action(nameof(GetFileStreamHlsManifest), new { fileID, sessionID = sessionId }) + Request.QueryString);
     }
@@ -844,7 +844,7 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
-        var session = _streamSessionManager.TryGetSession(sessionID);
+        var session = await GetStreamSession(fileID, sessionID);
         if (session is null)
             return NotFound("Stream session not found or has expired.");
 
@@ -904,7 +904,7 @@ public class FileController(
         if (rendition is not IProgressiveStreamRendition)
             return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Progressive but its rendition does not implement IProgressiveStreamRendition.");
 
-        var sessionId = _streamSessionManager.CreateSession(file, rendition, transformID: transformInfo.ID);
+        var sessionId = _streamSessionManager.CreateSession(file, rendition, source: CreateStreamSessionSource(fileID, transformInfo.ID));
         AddStreamSessionLink(fileID, sessionId);
         return Redirect(Url.Action(nameof(GetFileStreamDirect), new { fileID, sessionID = sessionId }) + Request.QueryString);
     }
@@ -926,7 +926,7 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
-        var session = _streamSessionManager.TryGetSession(sessionID);
+        var session = await GetStreamSession(fileID, sessionID);
         if (session is null)
             return NotFound("Stream session not found or has expired.");
 
@@ -994,7 +994,7 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
-        var session = _streamSessionManager.TryGetSession(sessionID);
+        var session = await GetStreamSession(fileID, sessionID);
         if (session is null)
             return NotFound("Stream session not found or has expired.");
 
@@ -1026,7 +1026,7 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
-        var session = _streamSessionManager.TryGetSession(sessionID);
+        var session = await GetStreamSession(fileID, sessionID);
         if (session is null)
             return NotFound("Stream session not found or has expired.");
 
@@ -1083,7 +1083,7 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
-        var session = _streamSessionManager.TryGetSession(sessionID);
+        var session = await GetStreamSession(fileID, sessionID);
         if (session is null)
             return NotFound("Stream session not found or has expired.");
 
@@ -1109,7 +1109,7 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
-        var session = _streamSessionManager.TryGetSession(sessionID);
+        var session = await GetStreamSession(fileID, sessionID);
         if (session is null)
             return NotFound("Stream session not found or has expired.");
 
@@ -1134,7 +1134,7 @@ public class FileController(
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
 
-        var session = _streamSessionManager.TryGetSession(sessionID);
+        var session = await GetStreamSession(fileID, sessionID);
         if (session is null)
             return NotFound("Stream session not found or has expired.");
 
@@ -1158,6 +1158,22 @@ public class FileController(
             path => StreamSessionDescription.ResolveUrl(resourceRoot, path, query)
         );
     }
+
+    private StreamSessionSource CreateStreamSessionSource(int fileID, string transformID)
+        => new(fileID, transformID, new QueryCollection(Request.Query.ToDictionary(pair => pair.Key, pair => pair.Value)));
+
+    private Task<StreamSession?> GetStreamSession(int fileID, Guid sessionID)
+        => _streamSessionManager.GetOrRestoreSessionAsync(sessionID, async (source, cancellationToken) =>
+        {
+            if (source.VideoID != fileID || _videoLocals.GetByID(fileID) is not { } file)
+                return null;
+
+            var context = new VideoStreamTransformContext { User = User, QueryParameters = source.QueryParameters };
+            if (_streamPipelineService.SelectTransform(file, context, source.TransformID) is not { } transformInfo)
+                return null;
+
+            return (file, await transformInfo.Transform.GetRenditionAsync(file, context, cancellationToken));
+        }, HttpContext.RequestAborted);
 
     private void AddStreamSessionLink(int fileID, Guid sessionID)
         => Response.Headers.Append("Link", $"<{Url.Action(nameof(GetFileStreamSession), new { fileID, sessionID })}{Request.QueryString}>; rel=\"describedby\"");

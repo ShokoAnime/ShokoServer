@@ -44,6 +44,13 @@ public class VideoStreamPipelineSettings : INewtonsoftJsonConfiguration, IHidden
     public int SessionIdleTimeoutMinutes { get; set; } = 10;
 
     /// <summary>
+    /// How long after eviction a stream session can still be resumed, by
+    /// rebuilding its rendition under the same session ID when a client
+    /// requests it again.
+    /// </summary>
+    public int EvictedSessionResumeHours { get; set; } = 24;
+
+    /// <summary>
     /// How long to wait for a requested segment to become available before
     /// giving up and returning an error to the client.
     /// </summary>

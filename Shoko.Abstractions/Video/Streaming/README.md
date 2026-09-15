@@ -43,6 +43,13 @@ source keyframes rather than at a fixed duration. Playlist URIs it writes
 should be relative, and should repeat any query parameters (such as `apikey`)
 the next request needs.
 
+A session that sits idle for `SessionIdleTimeoutMinutes` is evicted and its
+rendition disposed. If a client asks for it again within
+`EvictedSessionResumeHours`, the core builds a new rendition from the same
+transform, video and starting query string under the same session ID, so a
+long pause resumes rather than failing. A rendition should therefore produce
+the same playlists and segments when rebuilt.
+
 ### Resources beside the stream
 
 Any rendition can also implement `IStreamRenditionResources` to serve files

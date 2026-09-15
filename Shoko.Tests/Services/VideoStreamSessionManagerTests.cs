@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -68,6 +69,68 @@ public class VideoStreamSessionManagerTests
 
         Assert.True(session.IsInUse);
     }
+
+    [Fact]
+    public async Task GetOrRestoreSessionAsync_RebuildsAnEvictedSessionOnceUnderTheSameId()
+    {
+        var manager = CreateManager();
+        var video = CreateVideo(TimeSpan.FromMinutes(24));
+        var sessionId = manager.CreateSession(video, CreateRendition(TimeSpan.FromSeconds(6)), source: CreateSource());
+        var originalCacheDir = manager.TryGetSession(sessionId)!.CacheDir;
+        manager.EvictExpiredSessions(TimeSpan.FromMinutes(-1));
+        Assert.Null(manager.TryGetSession(sessionId));
+
+        var builds = 0;
+        var release = new TaskCompletionSource();
+        async Task<(IVideo, IStreamRendition)?> Factory(StreamSessionSource source, CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref builds);
+            await release.Task;
+            return (video, CreateRendition(TimeSpan.FromSeconds(6)));
+        }
+
+        var first = manager.GetOrRestoreSessionAsync(sessionId, Factory, CancellationToken.None);
+        var second = manager.GetOrRestoreSessionAsync(sessionId, Factory, CancellationToken.None);
+        release.SetResult();
+        var sessions = await Task.WhenAll(first, second);
+
+        Assert.Equal(1, builds);
+        Assert.Same(sessions[0], sessions[1]);
+        Assert.Same(sessions[0], manager.TryGetSession(sessionId));
+        Assert.Equal("Plugin:Transform", sessions[0]!.TransformID);
+        Assert.NotEqual(originalCacheDir, sessions[0]!.CacheDir);
+    }
+
+    [Fact]
+    public async Task GetOrRestoreSessionAsync_DoesNotRebuildASessionWithoutASource()
+    {
+        var manager = CreateManager();
+        var sessionId = manager.CreateSession(CreateVideo(TimeSpan.FromMinutes(24)), CreateRendition(TimeSpan.FromSeconds(6)));
+        manager.EvictExpiredSessions(TimeSpan.FromMinutes(-1));
+
+        Assert.Null(await manager.GetOrRestoreSessionAsync(sessionId, FailingFactory, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task GetOrRestoreSessionAsync_DoesNotRebuildASessionPastTheResumeWindow()
+    {
+        var manager = CreateManager();
+        var sessionId = manager.CreateSession(CreateVideo(TimeSpan.FromMinutes(24)), CreateRendition(TimeSpan.FromSeconds(6)), source: CreateSource());
+        manager.EvictExpiredSessions(TimeSpan.FromMinutes(-1));
+        manager.EvictExpiredSessions(TimeSpan.FromMinutes(-1), resumeWindow: TimeSpan.FromMinutes(-1));
+
+        Assert.Null(await manager.GetOrRestoreSessionAsync(sessionId, FailingFactory, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task GetOrRestoreSessionAsync_DoesNotRebuildAnUnknownSession()
+        => Assert.Null(await CreateManager().GetOrRestoreSessionAsync(Guid.NewGuid(), FailingFactory, CancellationToken.None));
+
+    private static Task<(IVideo, IStreamRendition)?> FailingFactory(StreamSessionSource source, CancellationToken cancellationToken)
+        => throw new InvalidOperationException("The session should not have been rebuilt.");
+
+    private static StreamSessionSource CreateSource()
+        => new(1, "Plugin:Transform", new QueryCollection());
 
     private static VideoStreamSessionManager CreateManager()
     {
