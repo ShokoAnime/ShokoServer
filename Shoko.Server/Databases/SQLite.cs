@@ -1692,11 +1692,15 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         => NotNullVariantOf((string)ExecuteReader(db, $"SELECT sql FROM sqlite_master WHERE type = 'table' AND name = '{tableName}';")[0][0], columnName);
 
     /// <inheritdoc cref="NotNullVariantOf(SqliteConnection, string, string)"/>
+    /// <remarks>
+    /// The column name may be quoted: a tool that rebuilt the table outside Shoko, such as DB Browser
+    /// for SQLite, stores every identifier quoted in <c>sqlite_master</c>.
+    /// </remarks>
     internal static string NotNullVariantOf(string createCommand, string columnName)
     {
         // A definition runs between commas, but its type may bracket a comma of its own: decimal(6,2).
         var definition = new Regex(
-            $@"(?<=[(,]\s*)(?<name>{Regex.Escape(columnName)})(?<type>(?:\s+[^\s,()]+|\s*\([^()]*\))*?)(?<null>\s+(?:NOT\s+)?NULL)?(?=\s*[,)])",
+            $@"(?<=[(,]\s*[""]?)(?<name>[""]?{Regex.Escape(columnName)}[""]?)(?<type>(?:\s+[^\s,()]+|\s*\([^()]*\))*?)(?<null>\s+(?:NOT\s+)?NULL)?(?=\s*[,)])",
             RegexOptions.IgnoreCase);
         var patched = definition.Replace(createCommand, match => $"{match.Groups["name"].Value}{match.Groups["type"].Value} NOT NULL", 1);
         if (patched == createCommand && !definition.IsMatch(createCommand))
@@ -1712,7 +1716,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     private const string ColumnConstraints = "CONSTRAINT|PRIMARY|NOT|NULL|UNIQUE|CHECK|DEFAULT|COLLATE|REFERENCES|GENERATED|AS";
 
     /// <inheritdoc cref="NotNullVariantOf(SqliteConnection, string, string)"/>
-    /// <remarks>The table's own <c>CREATE TABLE</c>, with each column given the type named for it.</remarks>
+    /// <remarks>The table's own <c>CREATE TABLE</c>, with each column given the type named for it. The
+    /// column name may be quoted, as a tool that rebuilt the table outside Shoko leaves it.</remarks>
     private string RetypedVariantOf(SqliteConnection db, string tableName, IReadOnlyList<(string Column, string Type)> columns)
         => columns.Aggregate(
             (string)ExecuteReader(db, $"SELECT sql FROM sqlite_master WHERE type = 'table' AND name = '{tableName}';")[0][0],
@@ -1722,9 +1727,10 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     internal static string RetypedVariantOf(string createCommand, string columnName, string type)
     {
         // The type may be several words (UNSIGNED BIG INT), bracket a comma (decimal(6,2)), or be
-        // absent entirely, as it is for a column added by an ALTER TABLE that named none.
+        // absent entirely, as it is for a column added by an ALTER TABLE that named none. The name
+        // may be quoted, as a tool that rebuilt the table outside Shoko leaves it.
         var definition = new Regex(
-            $@"(?<=[(,]\s*)(?<name>{Regex.Escape(columnName)})(?:\s+(?!(?:{ColumnConstraints})\b)[^\s,()]+|\s*\([^()]*\))*(?=\s*[,)]|\s+(?:{ColumnConstraints})\b)",
+            $@"(?<=[(,]\s*[""]?)(?<name>[""]?{Regex.Escape(columnName)}[""]?)(?:\s+(?!(?:{ColumnConstraints})\b)[^\s,()]+|\s*\([^()]*\))*(?=\s*[,)]|\s+(?:{ColumnConstraints})\b)",
             RegexOptions.IgnoreCase);
         var patched = definition.Replace(createCommand, match => $"{match.Groups["name"].Value} {type}", 1);
         if (patched == createCommand && !definition.IsMatch(createCommand))
