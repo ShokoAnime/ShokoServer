@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -819,8 +820,8 @@ public class FileController(
             return InternalError($"Transform \"{transformInfo.Name}\" could not start a rendition: {ex.Message}");
         }
 
-        if (rendition is not IHlsStreamRendition)
-            return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Hls but its rendition does not implement IHlsStreamRendition.");
+        if (rendition is not (IHlsStreamRendition or IHlsPresentationRendition))
+            return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Hls but its rendition does not implement IHlsStreamRendition or IHlsPresentationRendition.");
 
         var sessionId = _streamSessionManager.CreateSession(file, rendition);
         return Redirect(Url.Action(nameof(GetFileStreamHlsManifest), new { fileID, sessionID = sessionId }) + Request.QueryString);
@@ -834,7 +835,7 @@ public class FileController(
     /// <returns>The HLS VOD manifest.</returns>
     [AllowAnonymous]
     [HttpGet("{fileID}/Stream/Hls/{sessionID}/master.m3u8")]
-    public ActionResult GetFileStreamHlsManifest([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID)
+    public async Task<ActionResult> GetFileStreamHlsManifest([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID)
     {
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
@@ -842,6 +843,9 @@ public class FileController(
         var session = _streamSessionManager.TryGetSession(sessionID);
         if (session is null)
             return NotFound("Stream session not found or has expired.");
+
+        if (session.Rendition is IHlsPresentationRendition presentation)
+            return await GetHlsResource(session, presentation, "master.m3u8");
 
         if (session.Rendition is not IHlsStreamRendition hlsRendition)
             return InternalError("Stream session's rendition is not an HLS rendition.");
@@ -984,6 +988,9 @@ public class FileController(
         if (session is null)
             return NotFound("Stream session not found or has expired.");
 
+        if (session.Rendition is IHlsPresentationRendition presentation)
+            return await GetHlsResource(session, presentation, "init.mp4");
+
         if (session.Rendition is not IHlsStreamRendition hlsRendition)
             return InternalError("Stream session's rendition is not an HLS rendition.");
 
@@ -1011,6 +1018,9 @@ public class FileController(
         var session = _streamSessionManager.TryGetSession(sessionID);
         if (session is null)
             return NotFound("Stream session not found or has expired.");
+
+        if (session.Rendition is IHlsPresentationRendition presentation)
+            return await GetHlsResource(session, presentation, $"segment-{index}.m4s");
 
         if (session.Rendition is not IHlsStreamRendition hlsRendition)
             return InternalError("Stream session's rendition is not an HLS rendition.");
@@ -1044,6 +1054,68 @@ public class FileController(
         });
 
         return new FileStreamResult(stream, "video/mp4");
+    }
+
+    /// <summary>
+    /// Returns any other resource of an active HLS stream session whose rendition describes its own presentation, such as a media
+    /// playlist or a segment of an alternate audio rendition.
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <param name="sessionID">The HLS stream session ID, from the manifest URL.</param>
+    /// <param name="path">The resource path relative to the session, from a playlist.</param>
+    /// <returns>The resource.</returns>
+    [AllowAnonymous]
+    [HttpGet("{fileID}/Stream/Hls/{sessionID}/{**path}")]
+    public async Task<ActionResult> GetFileStreamHlsResource([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID, [FromRoute] string path)
+    {
+        if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
+            return Unauthorized();
+
+        var session = _streamSessionManager.TryGetSession(sessionID);
+        if (session is null)
+            return NotFound("Stream session not found or has expired.");
+
+        if (session.Rendition is not IHlsPresentationRendition presentation)
+            return NotFound();
+
+        return await GetHlsResource(session, presentation, path);
+    }
+
+    private async Task<ActionResult> GetHlsResource(StreamSession session, IHlsPresentationRendition rendition, string path)
+    {
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_streamSessionManager.SegmentRequestTimeoutSeconds));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted, timeoutCts.Token);
+
+        HlsResource? resource;
+        try
+        {
+            resource = await rendition.OpenResourceAsync(new HlsResourceRequest { Path = path, User = User, QueryParameters = Request.Query }, linkedCts.Token);
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            return StatusCode(StatusCodes.Status504GatewayTimeout, "Timed out waiting for the requested resource to become available.");
+        }
+
+        if (resource is null)
+            return NotFound();
+
+        if (resource.Position is { } position)
+            await _streamPipelineService.NotifyPlaybackProgress(new PlaybackProgressContext
+            {
+                Video = session.Video,
+                User = User,
+                QueryParameters = Request.Query,
+                Kind = PlaybackKind.Hls,
+                Position = position,
+                TotalDuration = session.Video.MediaInfo?.Duration,
+                SegmentIndex = resource.SegmentIndex,
+                IsFinalUnit = resource.IsFinalSegment,
+            });
+
+        return new FileStreamResult(resource.Stream, resource.ContentType)
+        {
+            EntityTag = resource.ETag is { } etag ? new EntityTagHeaderValue($"\"{etag}\"") : null,
+        };
     }
 
     /// <summary>

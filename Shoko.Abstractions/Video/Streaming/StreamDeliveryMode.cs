@@ -9,13 +9,15 @@ namespace Shoko.Abstractions.Video.Streaming;
 public enum StreamDeliveryMode
 {
     /// <summary>
-    ///   HLS VOD: the core builds a manifest and requests the init segment
-    ///   and media segments by index from an <see cref="IHlsStreamRendition"/>.
-    ///   Adaptive, widely compatible, but cannot carry styled/positioned
-    ///   (ASS/SSA) or image-based (PGS/VobSub) subtitle tracks, multiple
-    ///   audio tracks beyond a single default, or chapters -- see
-    ///   <see cref="Progressive"/> when full container fidelity matters more
-    ///   than adaptive delivery.
+    ///   HLS VOD: either the core builds a manifest and requests the init
+    ///   segment and media segments by index from an
+    ///   <see cref="IHlsStreamRendition"/>, or an
+    ///   <see cref="IHlsPresentationRendition"/> serves its own playlists and
+    ///   segments. Adaptive, widely compatible, but cannot carry
+    ///   styled/positioned (ASS/SSA) or image-based (PGS/VobSub) subtitle
+    ///   tracks or chapters, and the core's own manifest carries a single
+    ///   variant with no alternate audio -- see <see cref="Progressive"/> when
+    ///   full container fidelity matters more than adaptive delivery.
     /// </summary>
     Hls,
 

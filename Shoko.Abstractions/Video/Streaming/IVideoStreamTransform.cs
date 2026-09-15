@@ -36,7 +36,8 @@ public interface IVideoStreamTransform
     ///   HLS manifest (the default) or as a progressive-download URL, and
     ///   which concrete <see cref="IStreamRendition"/> interface the
     ///   returned rendition must implement (<see cref="IHlsStreamRendition"/>
-    ///   or <see cref="IProgressiveStreamRendition"/> respectively). Known
+    ///   or <see cref="IHlsPresentationRendition"/>, or
+    ///   <see cref="IProgressiveStreamRendition"/> respectively). Known
     ///   ahead of creating a rendition so the core can pick the right URL
     ///   scheme without invoking the transform first.
     /// </summary>

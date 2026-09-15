@@ -17,12 +17,31 @@ There are two independent, unrelated extension points:
 
 ## `IVideoStreamTransform` — pre-processing
 
-A transform produces an `IStreamRendition`, which the core turns into an HLS
-VOD manifest (`#EXT-X-PLAYLIST-TYPE:VOD`) and streams to the client as
+A transform produces an `IStreamRendition` (see [Delivery shapes](#delivery-shapes)).
+The core turns an `IHlsStreamRendition` into an HLS VOD manifest (`#EXT-X-PLAYLIST-TYPE:VOD`) and streams to the client as
 `init.mp4` + `segment-{index}.m4s` requests. The core computes segment count
 from the video's known duration and the rendition's `SegmentDuration` — a
 transform does not need to track or report total duration or segment count
 itself.
+
+### Delivery shapes
+
+A transform's `DeliveryMode` decides which rendition interface it returns and
+which endpoints serve it:
+
+| Rendition | `DeliveryMode` | Entry point | Who writes the playlist |
+|---|---|---|---|
+| `IHlsStreamRendition` | `Hls` | `Stream/Hls/master.m3u8` | the core: one variant, fixed-duration segments |
+| `IHlsPresentationRendition` | `Hls` | `Stream/Hls/master.m3u8` | the rendition: every request under `Stream/Hls/{sessionID}/` is passed to `OpenResourceAsync` |
+| `IProgressiveStreamRendition` | `Progressive` | `Stream/Direct` | none: byte ranges of one file |
+
+Both HLS shapes mint a session and redirect to
+`Stream/Hls/{sessionID}/master.m3u8`, carrying the query string. Reach for
+`IHlsPresentationRendition` when the core's manifest cannot describe the
+output: alternate audio renditions, a bitrate ladder, or segments cut at
+source keyframes rather than at a fixed duration. Playlist URIs it writes
+should be relative, and should repeat any query parameters (such as `apikey`)
+the next request needs.
 
 ### Segment production strategy
 
@@ -119,7 +138,8 @@ public class ScrobbleObserver(IUserDataService userDataService) : IPlaybackObser
 ```
 
 For HLS playback, `context.Position` is a precise `segmentIndex * SegmentDuration`
-value. For progressive playback, position is inferred from the requested byte
+value, or whatever an `IHlsPresentationRendition` reported on the segment's
+`HlsResource.Position`. For progressive playback, position is inferred from the requested byte
 range reaching the end of the file — a heuristic, not a guarantee of actual
 bytes delivered to the player.
 

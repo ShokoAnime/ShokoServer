@@ -4,13 +4,15 @@ namespace Shoko.Abstractions.Video.Streaming;
 
 /// <summary>
 ///   Base type for a session-scoped rendition of a video produced by an
-///   <see cref="IVideoStreamTransform"/>. Delivered either as HLS segments
-///   (<see cref="IHlsStreamRendition"/>) or as a single progressively
+///   <see cref="IVideoStreamTransform"/>. Delivered either as HLS (segments
+///   behind the core's playlist, <see cref="IHlsStreamRendition"/>, or a
+///   presentation the rendition describes itself,
+///   <see cref="IHlsPresentationRendition"/>) or as a single progressively
 ///   downloaded file (<see cref="IProgressiveStreamRendition"/>), per the
 ///   producing transform's own <see cref="IVideoStreamTransform.DeliveryMode"/>
 ///   -- the core dispatches to the matching set of endpoints and casts to the
 ///   concrete interface, so an implementation only ever needs to implement
-///   one of the two, never both.
+///   one of them.
 /// </summary>
 /// <remarks>
 ///   Implementations are free to produce output however they like (a single
