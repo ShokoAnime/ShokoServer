@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.467",
+      "tag": "v6.0.0-dev.467",
+      "commit": "590863c680839b5e0df823bb02beafb5c186ed1b",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.467/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-15T21:59:55Z",
+      "releaseNotes": "\n`fix` (`import`): **Fall back to the episode watched record when transferring state**:\n\nSetWatchedStateIfNeeded only copied watched state from still-existing\nsibling files, so replacing a watched release (e.g. TV with blu-ray)\nafter the watched copy was deleted left the new file unwatched, even\nthough the episode-level record still carried the state.\n\n- Add an episode-level AnimeEpisode_User fallback (newest watched date\n  and playback count) under UseExistingFileWatchedStatus\n- Skip users whose new file is already watched to avoid overwrites\n"
+    },
+    {
       "version": "6.0.0.466",
       "tag": "v6.0.0-dev.466",
       "commit": "fb254f8ad7bbee03e2292a4285b7c9acc32cf293",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.438/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-03T12:24:00Z",
       "releaseNotes": "\n`fix` (`search`): **Match titles when the query carries a trailing qualifier** ([#1411](https://github.com/ShokoAnime/ShokoServer/pull/1411)):\n\n`MinEditDistInText` is semi-global over the text only — row 0 is all\nzeros for a free text-prefix skip, and the result is the minimum over\nthe last row for a free text-suffix skip. Slop in the *query* was\ncharged in full, so a query carrying a token the title lacks, such as\n`Sousou no Frieren (2023)` against a stored `Sousou no Frieren`, scored\n5 edits and blew past the cap of 3 in `GetMaxErrors`. The length gate\n`normalized.Length >= normalizedQuery.Length - maxErrors` skipped the\ncomparison outright before a distance was even computed.\n\nAdding a year is always exactly 5 edits regardless of query length, so\nneither raising the cap nor relaxing the gate alone was enough. The\nparentheses were never the problem — `NormalizeForIndex` already maps\n`(`, `)`, `[` and `]` to spaces, so `[2023]` and a bare `2023` failed\nidentically. The cliff was not year-specific either: `S1` and `(TV)`\nsqueaked through at exactly `dist == maxErrors`, while anything four or\nmore characters longer fell off.\n\n`TryGetFuzzyDistance` replaces the gate and the direct distance call in\nboth `FuzzySearchIndex.SearchLatin` and `SeriesSearch.SearchCollection`.\nWhen the query is longer than the title it swaps the arguments, moving\nthe free prefix/suffix onto the query, and guards the swapped path with\n`title.Length * 2 >= query.Length` so a two-letter title like `GK`\ncannot match nearly every query. The guard applies only to the swapped\ndirection, leaving a short typo'd query matching a long title as before.\n\nPrior to `dc486893c` the Sorensen-Dice path tolerated all of these; it\ncompared bigram sets, so five unmatched characters out of twenty-two\nbarely moved the score.\n\n- Added `TryGetFuzzyDistance` covering both directions and both guard\n  rejections\n- Added end-to-end cases for `(2004)`, `[2024]`, a bare year, `(TV)`,\n  and a typo stacked on a trailing year\n- Added cases pinning the mirror direction, the `ExactMatch` flag\n  staying false for slop matches, strict mode staying strict, and short\n  titles not matching much longer queries\n"
-    },
-    {
-      "version": "6.0.0.437",
-      "tag": "v6.0.0-dev.437",
-      "commit": "4aabad5c3719358e4d7323e47691194016b05193",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.437/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-29T12:44:47Z",
-      "releaseNotes": "\n`fix` (`api`): **Serialize audio/subtitle languages as strings in File DTO**:\n\nAdded  as the item converter for\nand  on the v3  model. Without it, Newtonsoft\nserialized the  enum values as integers.\n"
     }
   ]
 }
