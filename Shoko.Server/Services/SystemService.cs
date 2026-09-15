@@ -454,7 +454,8 @@ public class SystemService : ISystemService
             services.AddSingleton<IRelocationPresetManager>(sp => sp.GetRequiredService<VideoRelocationService>());
             services.AddTransient<RelocationPresetMigrationService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
-            services.AddSingleton<LoginThrottler>();
+            services.AddSingleton<AuthenticationThrottleService>();
+            services.AddSingleton<IAuthenticationThrottleService>(sp => sp.GetRequiredService<AuthenticationThrottleService>());
             services.AddSingleton<IUserService, UserService>();
             // lets a service in a dependency cycle take a Lazy<T> rather than
             // injecting IServiceProvider and resolving by hand on first use
