@@ -785,14 +785,14 @@ public class FileController(
     }
 
     /// <summary>
-    /// Returns an HLS VOD manifest for the specified file, pre-processed by a <see cref="Abstractions.Video.Streaming.IVideoStreamTransform"/>.
+    /// Starts an HLS stream session for the specified file, pre-processed by a <see cref="Abstractions.Video.Streaming.IVideoStreamTransform"/>,
+    /// and redirects to the session-scoped HLS VOD manifest.
     /// </summary>
     /// <param name="fileID">Shoko ID</param>
     /// <param name="transformId">Optional. An explicit transform to use. If not set, the highest-priority applicable transform is selected automatically.</param>
-    /// <returns>The HLS VOD manifest.</returns>
     [AllowAnonymous]
     [HttpGet("{fileID}/Stream/Hls/master.m3u8")]
-    public async Task<ActionResult> GetFileStreamHlsManifest([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] string? transformId = null)
+    public async Task<ActionResult> GetFileStreamHlsManifestStart([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] string? transformId = null)
     {
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
@@ -809,12 +809,44 @@ public class FileController(
         if (transformInfo.Transform.DeliveryMode is not StreamDeliveryMode.Hls)
             return BadRequest("This transform delivers via StreamDeliveryMode.Progressive -- request Stream/Direct instead of Stream/Hls/master.m3u8.");
 
-        var rendition = await transformInfo.Transform.GetRenditionAsync(file, context, HttpContext.RequestAborted);
-        if (rendition is not IHlsStreamRendition hlsRendition)
+        IStreamRendition rendition;
+        try
+        {
+            rendition = await transformInfo.Transform.GetRenditionAsync(file, context, HttpContext.RequestAborted);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return InternalError($"Transform \"{transformInfo.Name}\" could not start a rendition: {ex.Message}");
+        }
+
+        if (rendition is not IHlsStreamRendition)
             return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Hls but its rendition does not implement IHlsStreamRendition.");
 
-        var sessionId = _streamSessionManager.CreateSession(file, hlsRendition);
-        var manifest = _streamSessionManager.BuildManifest(file, hlsRendition, sessionId);
+        var sessionId = _streamSessionManager.CreateSession(file, rendition);
+        return Redirect(Url.Action(nameof(GetFileStreamHlsManifest), new { fileID, sessionID = sessionId }) + Request.QueryString);
+    }
+
+    /// <summary>
+    /// Returns the HLS VOD manifest for an active HLS stream session (see <see cref="GetFileStreamHlsManifestStart"/>).
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <param name="sessionID">The HLS stream session ID, from the <see cref="GetFileStreamHlsManifestStart"/> redirect.</param>
+    /// <returns>The HLS VOD manifest.</returns>
+    [AllowAnonymous]
+    [HttpGet("{fileID}/Stream/Hls/{sessionID}/master.m3u8")]
+    public ActionResult GetFileStreamHlsManifest([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID)
+    {
+        if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
+            return Unauthorized();
+
+        var session = _streamSessionManager.TryGetSession(sessionID);
+        if (session is null)
+            return NotFound("Stream session not found or has expired.");
+
+        if (session.Rendition is not IHlsStreamRendition hlsRendition)
+            return InternalError("Stream session's rendition is not an HLS rendition.");
+
+        var manifest = _streamSessionManager.BuildManifest(session.Video, hlsRendition, Request.QueryString.Value ?? string.Empty);
         return Content(manifest, "application/vnd.apple.mpegurl");
     }
 
@@ -863,7 +895,7 @@ public class FileController(
             return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Progressive but its rendition does not implement IProgressiveStreamRendition.");
 
         var sessionId = _streamSessionManager.CreateSession(file, rendition);
-        return RedirectToAction(nameof(GetFileStreamDirect), new { fileID, sessionID = sessionId });
+        return Redirect(Url.Action(nameof(GetFileStreamDirect), new { fileID, sessionID = sessionId }) + Request.QueryString);
     }
 
     /// <summary>

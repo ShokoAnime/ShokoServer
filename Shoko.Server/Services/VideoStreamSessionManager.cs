@@ -141,7 +141,7 @@ public class VideoStreamSessionManager(
         }
     }
 
-    public string BuildManifest(IVideo video, IHlsStreamRendition rendition, Guid sessionId)
+    public string BuildManifest(IVideo video, IHlsStreamRendition rendition, string queryString)
     {
         var segmentSeconds = rendition.SegmentDuration.TotalSeconds;
         if (segmentSeconds <= 0)
@@ -155,14 +155,14 @@ public class VideoStreamSessionManager(
         sb.AppendLine("#EXT-X-VERSION:7");
         sb.AppendLine(string.Create(CultureInfo.InvariantCulture, $"#EXT-X-TARGETDURATION:{(int)Math.Ceiling(segmentSeconds)}"));
         sb.AppendLine("#EXT-X-PLAYLIST-TYPE:VOD");
-        sb.AppendLine("#EXT-X-MAP:URI=\"init.mp4\"");
+        sb.AppendLine($"#EXT-X-MAP:URI=\"init.mp4{queryString}\"");
 
         var remaining = totalSeconds;
         for (var index = 0; index < segmentCount; index++)
         {
             var duration = Math.Min(segmentSeconds, remaining);
             sb.AppendLine(string.Create(CultureInfo.InvariantCulture, $"#EXTINF:{duration:F3},"));
-            sb.AppendLine(string.Create(CultureInfo.InvariantCulture, $"segment-{index}.m4s"));
+            sb.AppendLine(string.Create(CultureInfo.InvariantCulture, $"segment-{index}.m4s{queryString}"));
             remaining -= duration;
         }
 
