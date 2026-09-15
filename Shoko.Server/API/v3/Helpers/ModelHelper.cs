@@ -328,7 +328,7 @@ public static class ModelHelper
                             sizes.Watched.Episodes++;
                         }
                     }
-                    else if (episode.IsMissingEpisode(anidbEpisode, groupStatusesByAnime.GetValueOrDefault(anidbEpisode.AnimeID) ?? []))
+                    else if (episode.IsMissingEpisode(groupStatusesByAnime.GetValueOrDefault(anidbEpisode.AnimeID) ?? []))
                     {
                         sizes.Missing.Episodes++;
                     }

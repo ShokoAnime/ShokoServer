@@ -306,10 +306,10 @@ WHERE AE.IsHidden = 0
             .ToList();
 
         if (animeID.HasValue)
-            episodes = episodes.Where(e => anidbEpisodes[e.AniDB_EpisodeID]!.AnimeID == animeID.Value).ToList();
+            episodes = episodes.Where(e => anidbEpisodes[e.AniDB_EpisodeID].AnimeID == animeID.Value).ToList();
 
         // Load group statuses and file cross-references in batch
-        var animeIDs = episodes.Select(e => anidbEpisodes[e.AniDB_EpisodeID]!.AnimeID).Distinct().ToList();
+        var animeIDs = episodes.Select(e => anidbEpisodes[e.AniDB_EpisodeID].AnimeID).Distinct().ToList();
         var groupStatusesByAnime = RepoFactory.AniDB_GroupStatus.GetByAnimeIDs(animeIDs);
         var episodeIDsWithFiles = RepoFactory.CrossRef_File_Episode.GetAll()
             .Select(f => f.EpisodeID)
@@ -318,7 +318,7 @@ WHERE AE.IsHidden = 0
         // Apply the shared missing-episode predicate
         return episodes
             .Where(e => !episodeIDsWithFiles.Contains(e.AniDB_EpisodeID) &&
-                e.IsMissingEpisode(anidbEpisodes[e.AniDB_EpisodeID], groupStatusesByAnime.GetValueOrDefault(anidbEpisodes[e.AniDB_EpisodeID]!.AnimeID) ?? []))
+                e.IsMissingEpisode(groupStatusesByAnime.GetValueOrDefault(anidbEpisodes[e.AniDB_EpisodeID].AnimeID) ?? []))
             .OrderBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.AnimeID)
             .ThenBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.EpisodeType)
             .ThenBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.EpisodeNumber);
