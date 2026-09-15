@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.469",
+      "tag": "v6.0.0-dev.469",
+      "commit": "2fa9089a25b73896bc866eed46904f775e52aa96",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.469/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-15T22:36:56Z",
+      "releaseNotes": "\n`fix` (`database`): **Guard the 182 primary-key alters against dropped tables**.\n"
+    },
+    {
       "version": "6.0.0.468",
       "tag": "v6.0.0-dev.468",
       "commit": "ebdac82e2310e9070a827840b20abc63b29a16ce",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.440/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-05T20:08:19Z",
       "releaseNotes": "\n`fix`: **Don't set a limit if no limit is provided**.\n"
-    },
-    {
-      "version": "6.0.0.439",
-      "tag": "v6.0.0-dev.439",
-      "commit": "faacef29263da81d49280fb267893f8754cfd743",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.439/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-05T09:05:42Z",
-      "releaseNotes": "\n`fix` (`relocation`): **Report moved/renamed flags correctly when move or rename is disabled**:\n\nConvertToResponse passed the filename and directory comparisons to\nRelocationResponse.FromResult in swapped slots, and computed them\nagainst the renamer's proposed name/path even when move or rename\nwas disabled. With move=false and rename=false, the relocation\npreview endpoints therefore reported IsRelocated=true.\n\n- Passed the directory comparison as moved and the filename\n  comparison as renamed, matching the FromResult signature\n- Gated both flags on shouldMove/shouldRename and the SkipMove/\n  SkipRename result flags so they stay false when the effective\n  destination is the file's current location\n"
     }
   ]
 }
