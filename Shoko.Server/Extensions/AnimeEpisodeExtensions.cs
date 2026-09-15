@@ -16,16 +16,16 @@ public static class AnimeEpisodeExtensions
     /// based on the cached AniDB group release statuses for its anime.
     /// </summary>
     /// <param name="episode">The episode to evaluate.</param>
+    /// <param name="anidb">The AniDB episode for <paramref name="episode"/>.</param>
     /// <param name="groupStatuses">Group statuses already scoped to the episode's anime. An empty list is treated as missing.</param>
     /// <returns><see langword="true"/> if the episode is considered missing; otherwise, <see langword="false"/>.</returns>
     /// <remarks>
     /// This predicate is intended for <see cref="EpisodeType.Episode"/> episodes only; callers must
     /// pre-filter by episode type AND file presence before calling it.
     /// </remarks>
-    public static bool IsMissingEpisode(this AnimeEpisode episode, IReadOnlyList<AniDB_GroupStatus> groupStatuses)
+    public static bool IsMissingEpisode(this AnimeEpisode episode, AniDB_Episode anidb, IReadOnlyList<AniDB_GroupStatus> groupStatuses)
     {
         if (episode.IsHidden) return false;
-        var anidb = episode.AniDB_Episode;
         if (anidb == null) return false;
         if (!anidb.HasAired) return false;
 

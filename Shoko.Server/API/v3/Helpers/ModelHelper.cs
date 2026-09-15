@@ -234,7 +234,8 @@ public static class ModelHelper
             .Count(anidbEpisode => anidbEpisode != null && anidbEpisode.EpisodeType == episodeType);
     }
 
-    public static SeriesSizes GenerateSeriesSizes(IEnumerable<AnimeEpisode> episodeList, int userID, IReadOnlyDictionary<int, List<AniDB_GroupStatus>> groupStatusesByAnime)
+    public static SeriesSizes GenerateSeriesSizes(IEnumerable<AnimeEpisode> episodeList, int userID,
+        IReadOnlyDictionary<int, List<AniDB_GroupStatus>> groupStatusesByAnime)
     {
         var sizes = new SeriesSizes();
         var fileSet = new HashSet<int>();
@@ -327,7 +328,7 @@ public static class ModelHelper
                             sizes.Watched.Episodes++;
                         }
                     }
-                    else if (episode.IsMissingEpisode(groupStatusesByAnime.GetValueOrDefault(anidbEpisode.AnimeID) ?? []))
+                    else if (episode.IsMissingEpisode(anidbEpisode, groupStatusesByAnime.GetValueOrDefault(anidbEpisode.AnimeID) ?? []))
                     {
                         sizes.Missing.Episodes++;
                     }

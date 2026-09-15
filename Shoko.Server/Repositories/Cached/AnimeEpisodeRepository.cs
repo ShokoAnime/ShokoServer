@@ -318,7 +318,7 @@ WHERE AE.IsHidden = 0
         // Apply the shared missing-episode predicate
         return episodes
             .Where(e => !episodeIDsWithFiles.Contains(e.AniDB_EpisodeID) &&
-                e.IsMissingEpisode(groupStatusesByAnime.GetValueOrDefault(anidbEpisodes[e.AniDB_EpisodeID]!.AnimeID) ?? []))
+                e.IsMissingEpisode(anidbEpisodes[e.AniDB_EpisodeID], groupStatusesByAnime.GetValueOrDefault(anidbEpisodes[e.AniDB_EpisodeID]!.AnimeID) ?? []))
             .OrderBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.AnimeID)
             .ThenBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.EpisodeType)
             .ThenBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.EpisodeNumber);
