@@ -147,7 +147,9 @@ public class ImportSettings
     public int MaxAutoScanAttemptsPerFile { get; set; } = 15;
 
     /// <summary>
-    /// Use the existing episode watched status when importing files.
+    /// Use the existing episode watched status when importing files. Falls back to
+    /// the episode-level watched record, so replacing a watched release (e.g. TV
+    /// with blu-ray) after deleting the watched copy keeps the new file watched.
     /// </summary>
     [Display(Name = "Use Existing Watched Status")]
     public bool UseExistingFileWatchedStatus { get; set; } = true;
