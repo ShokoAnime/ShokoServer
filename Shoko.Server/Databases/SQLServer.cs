@@ -1101,13 +1101,15 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         // Seven tables were created before the version 180 sweep but missed by it, leaving them
         // without a primary key on SQL Server while SQLite and MySQL both declare one. Every one of
         // them keys off an IDENTITY column, so the values are already unique and non-null.
-        new(182,  1, "ALTER TABLE AniDB_Anime_PreferredImage ADD CONSTRAINT PK_AniDB_Anime_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Anime_PreferredImageID);"),
-        new(182,  2, "ALTER TABLE AniDB_Episode_PreferredImage ADD CONSTRAINT PK_AniDB_Episode_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Episode_PreferredImageID);"),
-        new(182,  3, "ALTER TABLE AniDB_FileUpdate ADD CONSTRAINT PK_AniDB_FileUpdate PRIMARY KEY CLUSTERED (AniDB_FileUpdateID);"),
+        // Five of them were since dropped by the 150.4 and 157.3 fixes, so on any database past
+        // those the alter must be skipped rather than fail the whole patch run.
+        new(182,  1, "IF OBJECT_ID(N'[dbo].[AniDB_Anime_PreferredImage]', 'U') IS NOT NULL ALTER TABLE AniDB_Anime_PreferredImage ADD CONSTRAINT PK_AniDB_Anime_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Anime_PreferredImageID);"),
+        new(182,  2, "IF OBJECT_ID(N'[dbo].[AniDB_Episode_PreferredImage]', 'U') IS NOT NULL ALTER TABLE AniDB_Episode_PreferredImage ADD CONSTRAINT PK_AniDB_Episode_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Episode_PreferredImageID);"),
+        new(182,  3, "IF OBJECT_ID(N'[dbo].[AniDB_FileUpdate]', 'U') IS NOT NULL ALTER TABLE AniDB_FileUpdate ADD CONSTRAINT PK_AniDB_FileUpdate PRIMARY KEY CLUSTERED (AniDB_FileUpdateID);"),
         new(182,  4, "ALTER TABLE AuthTokens ADD CONSTRAINT PK_AuthTokens PRIMARY KEY CLUSTERED (AuthID);"),
         new(182,  5, "ALTER TABLE ShokoImage_Entity ADD CONSTRAINT PK_ShokoImage_Entity PRIMARY KEY CLUSTERED (ID);"),
-        new(182,  6, "ALTER TABLE TMDB_Image ADD CONSTRAINT PK_TMDB_Image PRIMARY KEY CLUSTERED (TMDB_ImageID);"),
-        new(182,  7, "ALTER TABLE TMDB_Image_Entity ADD CONSTRAINT PK_TMDB_Image_Entity PRIMARY KEY CLUSTERED (TMDB_Image_EntityID);"),
+        new(182,  6, "IF OBJECT_ID(N'[dbo].[TMDB_Image]', 'U') IS NOT NULL ALTER TABLE TMDB_Image ADD CONSTRAINT PK_TMDB_Image PRIMARY KEY CLUSTERED (TMDB_ImageID);"),
+        new(182,  7, "IF OBJECT_ID(N'[dbo].[TMDB_Image_Entity]', 'U') IS NOT NULL ALTER TABLE TMDB_Image_Entity ADD CONSTRAINT PK_TMDB_Image_Entity PRIMARY KEY CLUSTERED (TMDB_Image_EntityID);"),
 
         // These back non-nullable model properties, so a null could never have been read into one.
         // Rows are filled first, since a stored null would fail the alter.
