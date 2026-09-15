@@ -4,8 +4,10 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -17,6 +19,7 @@ using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
 using Shoko.Abstractions.Video.Media;
 using Shoko.Abstractions.Video.Services;
+using Shoko.Abstractions.Video.Streaming;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
@@ -26,6 +29,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Relocation;
 using Shoko.Server.API.v3.Models.Relocation.Input;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.API.v3.Models.Streaming;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
@@ -33,9 +37,9 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
-
 using AbstractReleaseInfo = Shoko.Abstractions.Video.Release.ReleaseInfo;
 using AbstractReleaseVideoCrossReference = Shoko.Abstractions.Video.Release.ReleaseVideoCrossReference;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
@@ -56,6 +60,8 @@ public class FileController(
     IVideoReleaseService _videoReleaseService,
     IUserDataService _userDataService,
     IVideoRelocationService _relocationService,
+    IVideoStreamPipelineService _streamPipelineService,
+    VideoStreamSessionManager _streamSessionManager,
     ISettingsProvider settingsProvider,
     AniDB_EpisodeRepository _anidbEpisodes,
     AnimeEpisodeRepository _animeEpisodes,
@@ -701,35 +707,29 @@ public class FileController(
     /// Returns a file stream for the specified file ID.
     /// </summary>
     /// <param name="fileID">Shoko ID</param>
-    /// <param name="streamPositionScrobbling">If this is enabled, then the file is marked as watched when the stream reaches the end.
-    /// This is not a good way to scrobble, but it allows for players without plugin support to have an option to scrobble.
-    /// The read-ahead buffer on the player would determine the required percentage to scrobble.</param>
     /// <returns>A file stream for the specified file.</returns>
     [ApiInUse]
     [AllowAnonymous]
     [HttpGet("{fileID}/Stream")]
     [HttpHead("{fileID}/Stream")]
-    public ActionResult GetFileStream([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] bool streamPositionScrobbling = false)
-        => GetFileStreamInternal(fileID, null, streamPositionScrobbling);
+    public ActionResult GetFileStream([FromRoute, Range(1, int.MaxValue)] int fileID)
+        => GetFileStreamInternal(fileID, null);
 
     /// <summary>
     /// Returns a file stream for the specified file ID.
     /// </summary>
     /// <param name="fileID">Shoko ID</param>
     /// <param name="filename">Can use this to select a specific place (if the name is different). This is mostly used as a hint for players</param>
-    /// <param name="streamPositionScrobbling">If this is enabled, then the file is marked as watched when the stream reaches the end.
-    /// This is not a good way to scrobble, but it allows for players without plugin support to have an option to scrobble.
-    /// The read-ahead buffer on the player would determine the required percentage to scrobble.</param>
     /// <returns>A file stream for the specified file.</returns>
     [ApiInUse]
     [AllowAnonymous]
     [HttpGet("{fileID}/StreamDirectory/{filename}")]
     [HttpHead("{fileID}/StreamDirectory/{filename}")]
-    public ActionResult GetFileStreamWithDirectory([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string? filename = null, [FromQuery] bool streamPositionScrobbling = false)
-        => GetFileStreamInternal(fileID, filename, streamPositionScrobbling);
+    public ActionResult GetFileStreamWithDirectory([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] string? filename = null)
+        => GetFileStreamInternal(fileID, filename);
 
     [NonAction]
-    public ActionResult GetFileStreamInternal(int fileID, string? filename = null, bool streamPositionScrobbling = false)
+    public ActionResult GetFileStreamInternal(int fileID, string? filename = null)
     {
         if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
             return Unauthorized();
@@ -746,18 +746,270 @@ public class FileController(
             return InternalError("Unable to find physical file for reading the stream data.");
 
         var contentType = ContentTypeHelper.GetContentType(fileInfo.FullName);
-        if (streamPositionScrobbling)
+        if (_streamPipelineService.GetAvailableObservers(onlyEnabled: true).Any())
         {
-            var scrobbleFile = new ScrobblingFileResult(file, User, fileInfo.FullName, contentType)
+            var observedFile = new ObservedFileResult(file, User, fileInfo.FullName, contentType)
             {
                 FileDownloadName = filename ?? fileInfo.Name
             };
-            return scrobbleFile;
+            return observedFile;
         }
 
         var physicalFile = PhysicalFile(fileInfo.FullName, contentType, enableRangeProcessing: true);
         physicalFile.FileDownloadName = filename ?? fileInfo.Name;
         return physicalFile;
+    }
+
+    /// <summary>
+    /// Lists the video stream transforms that are enabled and applicable to the specified file, for use with the HLS manifest endpoint.
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <returns>The applicable transforms.</returns>
+    [AllowAnonymous]
+    [HttpGet("{fileID}/Stream/Transforms")]
+    public ActionResult<List<VideoStreamTransform>> GetFileStreamTransforms([FromRoute, Range(1, int.MaxValue)] int fileID)
+    {
+        if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
+            return Unauthorized();
+
+        var file = _videoLocals.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var context = new VideoStreamTransformContext { User = User, QueryParameters = Request.Query };
+        return _streamPipelineService.GetApplicableTransforms(file, context)
+            .Select(info => new VideoStreamTransform(info))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Returns an HLS VOD manifest for the specified file, pre-processed by a <see cref="Abstractions.Video.Streaming.IVideoStreamTransform"/>.
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <param name="transformId">Optional. An explicit transform to use. If not set, the highest-priority applicable transform is selected automatically.</param>
+    /// <returns>The HLS VOD manifest.</returns>
+    [AllowAnonymous]
+    [HttpGet("{fileID}/Stream/Hls/master.m3u8")]
+    public async Task<ActionResult> GetFileStreamHlsManifest([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] string? transformId = null)
+    {
+        if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
+            return Unauthorized();
+
+        var file = _videoLocals.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var context = new VideoStreamTransformContext { User = User, QueryParameters = Request.Query };
+        var transformInfo = _streamPipelineService.SelectTransform(file, context, transformId);
+        if (transformInfo is null)
+            return NotFound("No applicable video stream transform found for this file.");
+
+        if (transformInfo.Transform.DeliveryMode is not StreamDeliveryMode.Hls)
+            return BadRequest("This transform delivers via StreamDeliveryMode.Progressive -- request Stream/Direct instead of Stream/Hls/master.m3u8.");
+
+        var rendition = await transformInfo.Transform.GetRenditionAsync(file, context, HttpContext.RequestAborted);
+        if (rendition is not IHlsStreamRendition hlsRendition)
+            return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Hls but its rendition does not implement IHlsStreamRendition.");
+
+        var sessionId = _streamSessionManager.CreateSession(file, hlsRendition);
+        var manifest = _streamSessionManager.BuildManifest(file, hlsRendition, sessionId);
+        return Content(manifest, "application/vnd.apple.mpegurl");
+    }
+
+    /// <summary>
+    /// Starts a progressive-delivery stream session for the specified file, pre-processed by an
+    /// <see cref="Abstractions.Video.Streaming.IVideoStreamTransform"/> whose <c>DeliveryMode</c> is
+    /// <see cref="StreamDeliveryMode.Progressive"/>, and redirects to the session-scoped URL that actually
+    /// serves the byte-range content (so subsequent requests -- including the client's own retried/ranged
+    /// requests for the same content -- hit the same underlying rendition instead of starting a new one).
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <param name="transformId">Optional. An explicit transform to use. If not set, the highest-priority applicable transform is selected automatically.</param>
+    [AllowAnonymous]
+    [HttpGet("{fileID}/Stream/Direct")]
+    public async Task<ActionResult> GetFileStreamDirectStart([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] string? transformId = null)
+    {
+        if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
+            return Unauthorized();
+
+        var file = _videoLocals.GetByID(fileID);
+        if (file == null)
+            return NotFound(FileNotFoundWithFileID);
+
+        var context = new VideoStreamTransformContext { User = User, QueryParameters = Request.Query };
+        var transformInfo = _streamPipelineService.SelectTransform(file, context, transformId);
+        if (transformInfo is null)
+            return NotFound("No applicable video stream transform found for this file.");
+
+        if (transformInfo.Transform.DeliveryMode is not StreamDeliveryMode.Progressive)
+            return BadRequest("This transform delivers via StreamDeliveryMode.Hls -- request Stream/Hls/master.m3u8 instead of Stream/Direct.");
+
+        IStreamRendition rendition;
+        try
+        {
+            rendition = await transformInfo.Transform.GetRenditionAsync(file, context, HttpContext.RequestAborted);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // A rendition may do real work here -- reaching a remote service, starting a
+            // process -- and failing at this point is the useful place to fail, because the
+            // reason can still be reported. Left unhandled it would surface as a bare 500.
+            return InternalError($"Transform \"{transformInfo.Name}\" could not start a rendition: {ex.Message}");
+        }
+
+        if (rendition is not IProgressiveStreamRendition)
+            return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Progressive but its rendition does not implement IProgressiveStreamRendition.");
+
+        var sessionId = _streamSessionManager.CreateSession(file, rendition);
+        return RedirectToAction(nameof(GetFileStreamDirect), new { fileID, sessionID = sessionId });
+    }
+
+    /// <summary>
+    /// Serves the byte-range content of an active progressive-delivery stream session (see
+    /// <see cref="GetFileStreamDirectStart"/>). A <c>Range</c> request outside what's been produced so far is
+    /// treated as a seek by the underlying <see cref="IProgressiveStreamRendition"/> implementation -- see its
+    /// remarks for the (approximate, not frame-exact) byte-offset-to-source-time mapping this implies.
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <param name="sessionID">The stream session ID, from the <see cref="GetFileStreamDirectStart"/> redirect.</param>
+    [AllowAnonymous]
+    [HttpGet("{fileID}/Stream/Direct/{sessionID}")]
+    [HttpHead("{fileID}/Stream/Direct/{sessionID}")]
+    public async Task<ActionResult> GetFileStreamDirect([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID)
+    {
+        if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
+            return Unauthorized();
+
+        var session = _streamSessionManager.TryGetSession(sessionID);
+        if (session is null)
+            return NotFound("Stream session not found or has expired.");
+
+        if (session.Rendition is not IProgressiveStreamRendition rendition)
+            return InternalError("Stream session's rendition is not a progressive rendition.");
+
+        // The rendition owns the declared length, and a rendition that has no length to
+        // declare cannot answer a byte range honestly -- a 206 must name a concrete
+        // last-byte-position, and there is none to name for an open-ended stream. Serve
+        // it from the start instead of inventing one.
+        var estimatedTotalBytes = rendition.EstimatedTotalBytes;
+        var rangeStart = estimatedTotalBytes is null ? null : ParseRangeStart(Request);
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_streamSessionManager.SegmentRequestTimeoutSeconds));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted, timeoutCts.Token);
+
+        Stream? stream;
+        try
+        {
+            stream = await rendition.OpenAsync(rangeStart, linkedCts.Token);
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            return StatusCode(StatusCodes.Status504GatewayTimeout, "Timed out waiting for the requested byte range to become available.");
+        }
+
+        if (stream is null)
+            return NotFound();
+
+        return new ProgressiveTransformStreamResult(session.Video, User, stream, rendition.ContainerMimeType, rangeStart, estimatedTotalBytes);
+    }
+
+    /// <summary>
+    /// Parses the start offset of the first requested byte range, if any. Only the range's start matters here --
+    /// unlike <see cref="ObservedFileResult"/>'s raw-passthrough case, the total length isn't known upfront (the
+    /// rendition may still be producing output), so an explicit end or a suffix ("last N bytes") range can't be
+    /// resolved exactly; both fall back to treating the request as "from the start of what's requested".
+    /// </summary>
+    private static long? ParseRangeStart(HttpRequest request)
+    {
+        var rangeHeader = request.GetTypedHeaders().Range;
+        var range = rangeHeader?.Ranges.FirstOrDefault();
+        if (range is null)
+            return null;
+
+        if (range.From is { } from)
+            return from;
+
+        // Suffix range ("-500", the last 500 bytes) has no exact meaning without a known total length -- treat
+        // as "no range specified" (serve from the start) rather than guessing.
+        return null;
+    }
+
+    /// <summary>
+    /// Returns the fragmented-MP4 initialization segment for an active HLS stream session.
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <param name="sessionID">The HLS stream session ID, from the manifest URL.</param>
+    /// <returns>The init segment.</returns>
+    [AllowAnonymous]
+    [HttpGet("{fileID}/Stream/Hls/{sessionID}/init.mp4")]
+    public async Task<ActionResult> GetFileStreamHlsInitSegment([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID)
+    {
+        if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
+            return Unauthorized();
+
+        var session = _streamSessionManager.TryGetSession(sessionID);
+        if (session is null)
+            return NotFound("Stream session not found or has expired.");
+
+        if (session.Rendition is not IHlsStreamRendition hlsRendition)
+            return InternalError("Stream session's rendition is not an HLS rendition.");
+
+        var stream = await hlsRendition.OpenInitSegmentAsync(HttpContext.RequestAborted);
+        if (stream is null)
+            return NotFound();
+
+        return new FileStreamResult(stream, "video/mp4");
+    }
+
+    /// <summary>
+    /// Returns an HLS media segment for an active HLS stream session.
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <param name="sessionID">The HLS stream session ID, from the manifest URL.</param>
+    /// <param name="index">The zero-based segment index, from the manifest.</param>
+    /// <returns>The media segment.</returns>
+    [AllowAnonymous]
+    [HttpGet("{fileID}/Stream/Hls/{sessionID}/segment-{index}.m4s")]
+    public async Task<ActionResult> GetFileStreamHlsSegment([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID, [FromRoute] int index)
+    {
+        if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
+            return Unauthorized();
+
+        var session = _streamSessionManager.TryGetSession(sessionID);
+        if (session is null)
+            return NotFound("Stream session not found or has expired.");
+
+        if (session.Rendition is not IHlsStreamRendition hlsRendition)
+            return InternalError("Stream session's rendition is not an HLS rendition.");
+
+        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_streamSessionManager.SegmentRequestTimeoutSeconds));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted, timeoutCts.Token);
+
+        Stream? stream;
+        try
+        {
+            stream = await hlsRendition.OpenSegmentAsync(index, linkedCts.Token);
+        }
+        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+        {
+            return StatusCode(StatusCodes.Status504GatewayTimeout, "Timed out waiting for the requested segment to become available.");
+        }
+
+        if (stream is null)
+            return NotFound();
+
+        await _streamPipelineService.NotifyPlaybackProgress(new PlaybackProgressContext
+        {
+            Video = session.Video,
+            User = User,
+            QueryParameters = Request.Query,
+            Kind = PlaybackKind.Hls,
+            Position = hlsRendition.SegmentDuration * index,
+            TotalDuration = session.Video.MediaInfo?.Duration,
+            SegmentIndex = index,
+            IsFinalUnit = session.Video.MediaInfo is { } mediaInfo && (index + 1) * hlsRendition.SegmentDuration.TotalSeconds >= mediaInfo.Duration.TotalSeconds,
+        });
+
+        return new FileStreamResult(stream, "video/mp4");
     }
 
     /// <summary>
