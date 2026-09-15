@@ -240,7 +240,14 @@ public class VideoStreamPipelineService(
                     var observerType = observer.GetType();
                     var pluginInfo = pluginManager.GetPluginInfo(observerType.Assembly)!;
                     var id = GetPartID(observerType);
-                    var isEnabled = enabled.TryGetValue(id, out var enabledValue) && enabledValue;
+                    // An observer from the core assembly stands in for behaviour that used to be
+                    // hardcoded into the endpoints it watches -- the built-in scrobble observer
+                    // replaced the per-request `streamPositionScrobbling` handling in `/Stream` --
+                    // so an install that never had the setting must go on behaving as it did, and
+                    // it defaults to on. Plugin observers stay opt-in, and transforms of either
+                    // origin stay opt-in, since those change the bytes every selecting client gets.
+                    var defaultsToEnabled = pluginInfo.PluginType == typeof(CorePlugin);
+                    var isEnabled = enabled.TryGetValue(id, out var enabledValue) ? enabledValue : defaultsToEnabled;
                     var description = observer.Description?.CleanDescription() ?? string.Empty;
                     return new PlaybackObserverInfo()
                     {

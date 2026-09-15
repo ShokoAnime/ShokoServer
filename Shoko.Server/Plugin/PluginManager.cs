@@ -1529,6 +1529,16 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     private LocalPluginInfo TogglePlugin(LocalPluginInfo pluginInfo, bool enabled)
     {
+        // Every provider the core itself registers -- its hash provider, its relocation
+        // providers, its playback observers -- is attributed to this plugin entry, because
+        // `GetPluginInfo(Assembly)` resolves them through the assembly it names. Disabling it
+        // would therefore not disable one plugin; it would disable the core's participation in
+        // every provider service at once. It is not a plugin in that sense and is not offered
+        // as one (`showCorePlugin` defaults to false), so the toggle is refused here rather
+        // than special-cased at each caller.
+        if (pluginInfo.ID == CorePlugin.StaticID)
+            return pluginInfo;
+
         var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
         var settings = ISettingsProvider.Instance.GetSettings();
         if (enabled)
