@@ -38,10 +38,10 @@ public class VideoStreamPipelineSettings : INewtonsoftJsonConfiguration, IHidden
     public int DefaultSegmentDurationSeconds { get; set; } = 6;
 
     /// <summary>
-    /// How long a stream session may sit idle (no segment/init requests) before
-    /// it's evicted and its rendition disposed.
+    /// How long a stream session may sit idle (no request arriving and no
+    /// response still streaming) before it's evicted and its rendition disposed.
     /// </summary>
-    public int SessionIdleTimeoutMinutes { get; set; } = 3;
+    public int SessionIdleTimeoutMinutes { get; set; } = 10;
 
     /// <summary>
     /// How long to wait for a requested segment to become available before

@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Plugin;
@@ -175,7 +176,7 @@ public class VideoStreamSessionManager(
         var cutoff = DateTime.UtcNow - idleTimeout;
         foreach (var (sessionId, session) in _sessions)
         {
-            if (session.LastAccessedAt > cutoff)
+            if (session.LastAccessedAt > cutoff || session.IsInUse)
                 continue;
 
             if (!_sessions.TryRemove(sessionId, out _))
@@ -244,5 +245,89 @@ public class StreamSession(IVideo video, IStreamRendition rendition, string cach
 
     public DateTime LastAccessedAt { get; private set; } = DateTime.UtcNow;
 
+    private int _activeResponses;
+
+    /// <summary>
+    ///   Whether a response is still streaming from this session. A session in use is never evicted, however long
+    ///   ago its last request arrived.
+    /// </summary>
+    public bool IsInUse => Volatile.Read(ref _activeResponses) > 0;
+
     public void Touch() => LastAccessedAt = DateTime.UtcNow;
+
+    /// <summary>
+    ///   Wraps a stream served from this session so the session stays in use until the response is done with it.
+    /// </summary>
+    public Stream Track(Stream stream, HttpResponse response)
+    {
+        Interlocked.Increment(ref _activeResponses);
+        var tracked = new SessionStream(stream, this);
+        response.RegisterForDisposeAsync(tracked);
+        return tracked;
+    }
+
+    private void Release()
+    {
+        Interlocked.Decrement(ref _activeResponses);
+        Touch();
+    }
+
+    private sealed class SessionStream(Stream inner, StreamSession session) : Stream
+    {
+        private int _disposed;
+
+        public override bool CanRead => inner.CanRead;
+
+        public override bool CanSeek => inner.CanSeek;
+
+        public override bool CanWrite => false;
+
+        public override long Length => inner.Length;
+
+        public override long Position
+        {
+            get => inner.Position;
+            set => inner.Position = value;
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => inner.Read(buffer, offset, count);
+
+        public override int Read(Span<byte> buffer) => inner.Read(buffer);
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            => inner.ReadAsync(buffer, offset, count, cancellationToken);
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+            => inner.ReadAsync(buffer, cancellationToken);
+
+        public override long Seek(long offset, SeekOrigin origin) => inner.Seek(offset, origin);
+
+        public override void Flush() { }
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && Interlocked.Exchange(ref _disposed, 1) is 0)
+            {
+                inner.Dispose();
+                session.Release();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        public override async ValueTask DisposeAsync()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) is 0)
+            {
+                await inner.DisposeAsync();
+                session.Release();
+            }
+
+            await base.DisposeAsync();
+        }
+    }
 }

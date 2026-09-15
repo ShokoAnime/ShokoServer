@@ -201,7 +201,7 @@ public class ShokoServiceImplementationStream(
             return new EmptyResult();
         }
 
-        return stream ?? (object)StatusCode((int)HttpStatusCode.NotFound);
+        return stream is null ? StatusCode((int)HttpStatusCode.NotFound) : (object)session.Track(stream, Response);
     }
 
     /// <summary>First byte of a Range header, or null. Only the start is meaningful against a

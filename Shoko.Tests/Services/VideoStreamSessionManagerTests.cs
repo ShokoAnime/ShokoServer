@@ -1,5 +1,8 @@
 using System;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Config;
@@ -37,6 +40,35 @@ public class VideoStreamSessionManagerTests
         Assert.Equal(["segment-0.m4s?apikey=abc", "segment-1.m4s?apikey=abc"], lines.Where(line => !line.StartsWith('#')));
     }
 
+    [Fact]
+    public async Task EvictExpiredSessions_KeepsASessionWhileAResponseIsStreaming()
+    {
+        var manager = CreateManager();
+        var sessionId = manager.CreateSession(CreateVideo(TimeSpan.FromMinutes(24)), CreateRendition(TimeSpan.FromSeconds(6)));
+        var stream = manager.TryGetSession(sessionId)!.Track(new MemoryStream([1, 2, 3]), new DefaultHttpContext().Response);
+
+        manager.EvictExpiredSessions(TimeSpan.FromMinutes(-1));
+        Assert.NotNull(manager.TryGetSession(sessionId));
+
+        await stream.DisposeAsync();
+        manager.EvictExpiredSessions(TimeSpan.FromMinutes(-1));
+        Assert.Null(manager.TryGetSession(sessionId));
+    }
+
+    [Fact]
+    public void Track_ReleasesOnlyOnceWhenDisposedTwice()
+    {
+        var manager = CreateManager();
+        var session = manager.TryGetSession(manager.CreateSession(CreateVideo(TimeSpan.FromMinutes(24)), CreateRendition(TimeSpan.FromSeconds(6))))!;
+        var first = session.Track(new MemoryStream(), new DefaultHttpContext().Response);
+        using var second = session.Track(new MemoryStream(), new DefaultHttpContext().Response);
+
+        first.Dispose();
+        first.Dispose();
+
+        Assert.True(session.IsInUse);
+    }
+
     private static VideoStreamSessionManager CreateManager()
     {
         var configurationService = new Mock<IConfigurationService>();
@@ -49,7 +81,7 @@ public class VideoStreamSessionManagerTests
 
         return new VideoStreamSessionManager(
             NullLogger<VideoStreamSessionManager>.Instance,
-            new Mock<IApplicationPaths>().Object,
+            Mock.Of<IApplicationPaths>(paths => paths.StreamCachePath == Path.Combine(Path.GetTempPath(), "shoko-stream-session-tests")),
             new ConfigurationProvider<VideoStreamPipelineSettings>(configurationService.Object)
         );
     }

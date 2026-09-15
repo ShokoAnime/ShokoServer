@@ -952,7 +952,7 @@ public class FileController(
         if (stream is null)
             return NotFound();
 
-        return new ProgressiveTransformStreamResult(session.Video, User, stream, rendition.ContainerMimeType, rangeStart, estimatedTotalBytes);
+        return new ProgressiveTransformStreamResult(session.Video, User, session.Track(stream, Response), rendition.ContainerMimeType, rangeStart, estimatedTotalBytes);
     }
 
     /// <summary>
@@ -1004,7 +1004,7 @@ public class FileController(
         if (stream is null)
             return NotFound();
 
-        return new FileStreamResult(stream, "video/mp4");
+        return new FileStreamResult(session.Track(stream, Response), "video/mp4");
     }
 
     /// <summary>
@@ -1060,7 +1060,7 @@ public class FileController(
             IsFinalUnit = session.Video.MediaInfo is { } mediaInfo && (index + 1) * hlsRendition.SegmentDuration.TotalSeconds >= mediaInfo.Duration.TotalSeconds,
         });
 
-        return new FileStreamResult(stream, "video/mp4");
+        return new FileStreamResult(session.Track(stream, Response), "video/mp4");
     }
 
     /// <summary>
@@ -1120,7 +1120,7 @@ public class FileController(
                 IsFinalUnit = resource.IsFinalSegment,
             });
 
-        return new FileStreamResult(resource.Stream, resource.ContentType)
+        return new FileStreamResult(session.Track(resource.Stream, Response), resource.ContentType)
         {
             EntityTag = resource.ETag is { } etag ? new EntityTagHeaderValue($"\"{etag}\"") : null,
         };
