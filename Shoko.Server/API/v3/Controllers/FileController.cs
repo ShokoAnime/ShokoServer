@@ -769,6 +769,7 @@ public class FileController(
     /// <param name="fileID">Shoko ID</param>
     /// <returns>The applicable transforms.</returns>
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/Stream/Transforms")]
     public ActionResult<List<VideoStreamTransform>> GetFileStreamTransforms([FromRoute, Range(1, int.MaxValue)] int fileID)
     {
@@ -792,6 +793,7 @@ public class FileController(
     /// <param name="fileID">Shoko ID</param>
     /// <param name="transformId">Optional. An explicit transform to use. If not set, the highest-priority applicable transform is selected automatically.</param>
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/Stream/Hls/master.m3u8")]
     public async Task<ActionResult> GetFileStreamHlsManifestStart([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] string? transformId = null)
     {
@@ -834,6 +836,7 @@ public class FileController(
     /// <param name="sessionID">The HLS stream session ID, from the <see cref="GetFileStreamHlsManifestStart"/> redirect.</param>
     /// <returns>The HLS VOD manifest.</returns>
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/Stream/Hls/{sessionID}/master.m3u8")]
     public async Task<ActionResult> GetFileStreamHlsManifest([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID)
     {
@@ -864,6 +867,7 @@ public class FileController(
     /// <param name="fileID">Shoko ID</param>
     /// <param name="transformId">Optional. An explicit transform to use. If not set, the highest-priority applicable transform is selected automatically.</param>
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/Stream/Direct")]
     public async Task<ActionResult> GetFileStreamDirectStart([FromRoute, Range(1, int.MaxValue)] int fileID, [FromQuery] string? transformId = null)
     {
@@ -911,6 +915,7 @@ public class FileController(
     /// <param name="fileID">Shoko ID</param>
     /// <param name="sessionID">The stream session ID, from the <see cref="GetFileStreamDirectStart"/> redirect.</param>
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/Stream/Direct/{sessionID}")]
     [HttpHead("{fileID}/Stream/Direct/{sessionID}")]
     public async Task<ActionResult> GetFileStreamDirect([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID)
@@ -978,6 +983,7 @@ public class FileController(
     /// <param name="sessionID">The HLS stream session ID, from the manifest URL.</param>
     /// <returns>The init segment.</returns>
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/Stream/Hls/{sessionID}/init.mp4")]
     public async Task<ActionResult> GetFileStreamHlsInitSegment([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID)
     {
@@ -1009,6 +1015,7 @@ public class FileController(
     /// <param name="index">The zero-based segment index, from the manifest.</param>
     /// <returns>The media segment.</returns>
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/Stream/Hls/{sessionID}/segment-{index}.m4s")]
     public async Task<ActionResult> GetFileStreamHlsSegment([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID, [FromRoute] int index)
     {
@@ -1065,6 +1072,7 @@ public class FileController(
     /// <param name="path">The resource path relative to the session, from a playlist.</param>
     /// <returns>The resource.</returns>
     [AllowAnonymous]
+    [OptionalAuthentication]
     [HttpGet("{fileID}/Stream/Hls/{sessionID}/{**path}")]
     public async Task<ActionResult> GetFileStreamHlsResource([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID, [FromRoute] string path)
     {
