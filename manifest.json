@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.463",
+      "tag": "v6.0.0-dev.463",
+      "commit": "78e0390ffebba4e5991bdc003ee2cbb70bf5d1e7",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.463/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-15T02:31:40Z",
+      "releaseNotes": "\n`misc`: **Bump abstractions**.\n\n`fix` (`anilist`): **Decompress responses from the `Anilist` http client**:\n\nThe `Anilist` client advertised gzip, deflate and brotli via\n`Accept-Encoding` but had no handler with `AutomaticDecompression`, so\nbrotli-encoded GraphQL responses were handed to `JsonNode.Parse` still\ncompressed and failed with \"'0x1B' is an invalid start of a value\".\nGave it the same `SocketsHttpHandler` setup as the `Default` client.\n"
+    },
+    {
       "version": "6.0.0.462",
       "tag": "v6.0.0-dev.462",
       "commit": "1b186c7da80f84e28f663ad755708253802e607a",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.434/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-26T16:32:24Z",
       "releaseNotes": "\n`feat` (`api`): **Accept `includeDataFrom` on the `/api/v3/Series` list endpoints**:\n\nMost of the `/api/v3/Series/*` endpoints already take `includeDataFrom`, but\nthe list endpoints did not, so populating the `AniDB` property of a listed\nseries meant a second call to `/api/v3/Series/AniDB` for every row.\n\nThe parameter is bound and passed through exactly as it is on\n`/api/v3/Series/{seriesID}`, and the `Series` model already reads it, so\nnothing changes for a caller that omits it.\n\nApplied to `/api/v3/Series/WithManuallyLinkedFiles` as well as the two the\nissue named. It is the sibling of `WithoutFiles` — same shape, same file — and\nsupporting the parameter on two of the three list endpoints would have been an\nodd seam to leave behind.\n\nCloses #1415\n"
-    },
-    {
-      "version": "6.0.0.433",
-      "tag": "v6.0.0-dev.433",
-      "commit": "96e29c2daeafebb9df116cb64e1d4c533854a85e",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.433/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-26T16:18:39Z",
-      "releaseNotes": "\n`fix` (`anidb`): **Stop loading the legacy MyList backup as a cache**:\n\n`mylist.json` is the backup older builds wrote before backups moved into\n`Backups/` and gained rotation. It was only ever written, never read back, and\nits entries predate fields the sync now compares on — so reading it seeded the\ncache with entries that looked complete and were not.\n\nIt is now deleted on load instead. The cache starts empty, `LastFetchedAt`\nstays null, and the freshness check fails, so the next sync fetches a fresh\ncopy rather than reconciling against a half-populated one.\n\nThe bare-array format went with it. That shape was only ever reachable through\nthis file, as the compressed cache has carried the `CacheFile` wrapper and its\nfetch stamp since the day it was introduced.\n\n- Gave the delete its own error handling, so failing to remove a file we refuse to read cannot stop the compressed cache from loading\n- Dropped the matching cleanup in `Persist`, leaving one place that removes it\n- Renamed `LegacyCachePath` to `LegacyBackupPath`, since it was never a cache\n- Replaced the migration test with one pinning the new contract: the entry is not loaded, the file is gone, and nothing is marked as fetched\n"
     }
   ]
 }
