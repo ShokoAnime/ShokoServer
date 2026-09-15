@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.466",
+      "tag": "v6.0.0-dev.466",
+      "commit": "fb254f8ad7bbee03e2292a4285b7c9acc32cf293",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.466/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-15T18:20:04Z",
+      "releaseNotes": "\n`fix` (`anidb`): **Read `code` attribute from `<error>` in mylist response** ([#1440](https://github.com/ShokoAnime/ShokoServer/pull/1440)):\n\nAniDB's error element uses `code`, not `value`. The wrong attribute\nname made `Attribute(\"code\")!` throw `ArgumentNullException` on any\nerror response (e.g. `<error code=\"310\">illegal input or access\ndenied</error>`), masking the real error and crashing MyList refresh.\n"
+    },
+    {
       "version": "6.0.0.465",
       "tag": "v6.0.0-dev.465",
       "commit": "0e6d2dac2abd3304b8f5532d6ebd3479f6068ac3",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.437/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-08-29T12:44:47Z",
       "releaseNotes": "\n`fix` (`api`): **Serialize audio/subtitle languages as strings in File DTO**:\n\nAdded  as the item converter for\nand  on the v3  model. Without it, Newtonsoft\nserialized the  enum values as integers.\n"
-    },
-    {
-      "version": "6.0.0.436",
-      "tag": "v6.0.0-dev.436",
-      "commit": "6312bd112ed8f35a1646e722623f84c91d311b50",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.436/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-08-29T12:12:37Z",
-      "releaseNotes": "\n`refactor` (`api`): **Construct File DTOs from the IVideo abstraction**:\n\nSwapped `File`, `MediaInfo` and `Location` DTOs over to the\n`IVideo`/`IVideoFile`/`IMediaInfo` abstractions instead of the\nconcrete `VideoLocal`/`VideoLocal_Place` models.\n\n- Extended `IVideo` with read-only `IsIgnored`, `AudioLanguages`\n  and `SubtitleLanguages`, and made `IsVariation` read-only\n- Exposed audio/subtitle languages on the v3 `File` model, merging\n  release info and local media info, dropping `Unknown` when release\n  info is present\n- `MediaInfo` now reads duration from `IMediaInfo` instead of the file\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.84**.\n"
     }
   ]
 }
