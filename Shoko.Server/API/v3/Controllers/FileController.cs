@@ -848,7 +848,7 @@ public class FileController(
             return NotFound("Stream session not found or has expired.");
 
         if (session.Rendition is IHlsPresentationRendition presentation)
-            return await GetHlsResource(session, presentation, "master.m3u8");
+            return await GetStreamResource(session, presentation, "master.m3u8", PlaybackKind.Hls);
 
         if (session.Rendition is not IHlsStreamRendition hlsRendition)
             return InternalError("Stream session's rendition is not an HLS rendition.");
@@ -995,7 +995,7 @@ public class FileController(
             return NotFound("Stream session not found or has expired.");
 
         if (session.Rendition is IHlsPresentationRendition presentation)
-            return await GetHlsResource(session, presentation, "init.mp4");
+            return await GetStreamResource(session, presentation, "init.mp4", PlaybackKind.Hls);
 
         if (session.Rendition is not IHlsStreamRendition hlsRendition)
             return InternalError("Stream session's rendition is not an HLS rendition.");
@@ -1027,7 +1027,7 @@ public class FileController(
             return NotFound("Stream session not found or has expired.");
 
         if (session.Rendition is IHlsPresentationRendition presentation)
-            return await GetHlsResource(session, presentation, $"segment-{index}.m4s");
+            return await GetStreamResource(session, presentation, $"segment-{index}.m4s", PlaybackKind.Hls);
 
         if (session.Rendition is not IHlsStreamRendition hlsRendition)
             return InternalError("Stream session's rendition is not an HLS rendition.");
@@ -1064,12 +1064,12 @@ public class FileController(
     }
 
     /// <summary>
-    /// Returns any other resource of an active HLS stream session whose rendition describes its own presentation, such as a media
-    /// playlist or a segment of an alternate audio rendition.
+    /// Returns a resource of an active HLS stream session whose rendition serves resources, such as a media playlist, a segment of an
+    /// alternate audio rendition, a subtitle track or a font.
     /// </summary>
     /// <param name="fileID">Shoko ID</param>
     /// <param name="sessionID">The HLS stream session ID, from the manifest URL.</param>
-    /// <param name="path">The resource path relative to the session, from a playlist.</param>
+    /// <param name="path">The resource path relative to the session.</param>
     /// <returns>The resource.</returns>
     [AllowAnonymous]
     [OptionalAuthentication]
@@ -1083,21 +1083,47 @@ public class FileController(
         if (session is null)
             return NotFound("Stream session not found or has expired.");
 
-        if (session.Rendition is not IHlsPresentationRendition presentation)
+        if (session.Rendition is not IStreamRenditionResources resources)
             return NotFound();
 
-        return await GetHlsResource(session, presentation, path);
+        return await GetStreamResource(session, resources, path, PlaybackKind.Hls);
     }
 
-    private async Task<ActionResult> GetHlsResource(StreamSession session, IHlsPresentationRendition rendition, string path)
+    /// <summary>
+    /// Returns a resource of an active progressive-delivery stream session whose rendition serves resources, such as a subtitle track
+    /// or a font.
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <param name="sessionID">The stream session ID, from the <see cref="GetFileStreamDirectStart"/> redirect.</param>
+    /// <param name="path">The resource path relative to the session.</param>
+    /// <returns>The resource.</returns>
+    [AllowAnonymous]
+    [OptionalAuthentication]
+    [HttpGet("{fileID}/Stream/Direct/{sessionID}/{**path}")]
+    public async Task<ActionResult> GetFileStreamDirectResource([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID, [FromRoute] string path)
+    {
+        if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
+            return Unauthorized();
+
+        var session = _streamSessionManager.TryGetSession(sessionID);
+        if (session is null)
+            return NotFound("Stream session not found or has expired.");
+
+        if (session.Rendition is not IStreamRenditionResources resources)
+            return NotFound();
+
+        return await GetStreamResource(session, resources, path, PlaybackKind.Progressive);
+    }
+
+    private async Task<ActionResult> GetStreamResource(StreamSession session, IStreamRenditionResources rendition, string path, PlaybackKind kind)
     {
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_streamSessionManager.SegmentRequestTimeoutSeconds));
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted, timeoutCts.Token);
 
-        HlsResource? resource;
+        StreamResource? resource;
         try
         {
-            resource = await rendition.OpenResourceAsync(new HlsResourceRequest { Path = path, User = User, QueryParameters = Request.Query }, linkedCts.Token);
+            resource = await rendition.OpenResourceAsync(new StreamResourceRequest { Path = path, User = User, QueryParameters = Request.Query }, linkedCts.Token);
         }
         catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
         {
@@ -1113,7 +1139,7 @@ public class FileController(
                 Video = session.Video,
                 User = User,
                 QueryParameters = Request.Query,
-                Kind = PlaybackKind.Hls,
+                Kind = kind,
                 Position = position,
                 TotalDuration = session.Video.MediaInfo?.Duration,
                 SegmentIndex = resource.SegmentIndex,

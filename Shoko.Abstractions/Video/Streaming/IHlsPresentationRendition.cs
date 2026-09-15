@@ -1,6 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Shoko.Abstractions.Video.Streaming;
 
 /// <summary>
@@ -16,21 +13,7 @@ namespace Shoko.Abstractions.Video.Streaming;
 ///   The core mints the session, then redirects the client to
 ///   <c>Stream/Hls/{sessionID}/master.m3u8</c>. Every request under that
 ///   session path, including the master playlist itself, is handed to
-///   <see cref="OpenResourceAsync"/> with the path relative to the session
-///   root and the request's query string. URIs written into a playlist should
-///   therefore be relative, and should carry any query parameters the client
-///   needs on the next request (e.g. <c>apikey</c>), since a relative
-///   reference does not inherit the playlist's query string.
+///   <see cref="IStreamRenditionResources.OpenResourceAsync"/>, so playlist
+///   URIs should be relative to it.
 /// </remarks>
-public interface IHlsPresentationRendition : IStreamRendition
-{
-    /// <summary>
-    ///   Opens a resource of the presentation. Implementations should wait for
-    ///   a resource that is still being produced rather than failing; the core
-    ///   cancels the request after its configured segment timeout.
-    /// </summary>
-    /// <param name="request">The requested resource.</param>
-    /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>The resource, or <c>null</c> if the path is not part of the presentation.</returns>
-    Task<HlsResource?> OpenResourceAsync(HlsResourceRequest request, CancellationToken cancellationToken);
-}
+public interface IHlsPresentationRendition : IStreamRendition, IStreamRenditionResources;

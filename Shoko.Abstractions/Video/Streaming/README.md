@@ -43,6 +43,15 @@ source keyframes rather than at a fixed duration. Playlist URIs it writes
 should be relative, and should repeat any query parameters (such as `apikey`)
 the next request needs.
 
+### Resources beside the stream
+
+Any rendition can also implement `IStreamRenditionResources` to serve files
+beside its stream, such as subtitle tracks and fonts. They are served under the
+session, at `Stream/Hls/{sessionID}/{path}` or `Stream/Direct/{sessionID}/{path}`
+depending on the delivery mode, and `OpenResourceAsync` receives the path and
+the query string. `IHlsPresentationRendition` is this interface with
+`master.m3u8` as its entry point.
+
 ### Segment production strategy
 
 Implementations should run one long-lived background process per active
@@ -139,7 +148,7 @@ public class ScrobbleObserver(IUserDataService userDataService) : IPlaybackObser
 
 For HLS playback, `context.Position` is a precise `segmentIndex * SegmentDuration`
 value, or whatever an `IHlsPresentationRendition` reported on the segment's
-`HlsResource.Position`. For progressive playback, position is inferred from the requested byte
+`StreamResource.Position`. For progressive playback, position is inferred from the requested byte
 range reaching the end of the file — a heuristic, not a guarantee of actual
 bytes delivered to the player.
 

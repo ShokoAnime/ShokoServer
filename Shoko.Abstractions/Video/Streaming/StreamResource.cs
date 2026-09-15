@@ -4,10 +4,10 @@ using System.IO;
 namespace Shoko.Abstractions.Video.Streaming;
 
 /// <summary>
-///   A resource of an <see cref="IHlsPresentationRendition"/>: a playlist, an
-///   init segment or a media segment.
+///   A resource served by an <see cref="IStreamRenditionResources"/>, e.g. a
+///   playlist, a segment, a subtitle track or a font.
 /// </summary>
-public class HlsResource
+public class StreamResource
 {
     /// <summary>
     ///   The content of the resource. The core disposes of it once the
@@ -17,8 +17,8 @@ public class HlsResource
 
     /// <summary>
     ///   The MIME type of the resource, e.g.
-    ///   <c>application/vnd.apple.mpegurl</c> for a playlist or
-    ///   <c>video/mp4</c> for a segment.
+    ///   <c>application/vnd.apple.mpegurl</c> for a playlist,
+    ///   <c>video/mp4</c> for a segment or <c>font/ttf</c> for a font.
     /// </summary>
     public required string ContentType { get; init; }
 
