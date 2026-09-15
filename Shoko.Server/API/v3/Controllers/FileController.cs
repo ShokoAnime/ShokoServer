@@ -825,7 +825,8 @@ public class FileController(
         if (rendition is not (IHlsStreamRendition or IHlsPresentationRendition))
             return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Hls but its rendition does not implement IHlsStreamRendition or IHlsPresentationRendition.");
 
-        var sessionId = _streamSessionManager.CreateSession(file, rendition);
+        var sessionId = _streamSessionManager.CreateSession(file, rendition, transformID: transformInfo.ID);
+        AddStreamSessionLink(fileID, sessionId);
         return Redirect(Url.Action(nameof(GetFileStreamHlsManifest), new { fileID, sessionID = sessionId }) + Request.QueryString);
     }
 
@@ -847,6 +848,7 @@ public class FileController(
         if (session is null)
             return NotFound("Stream session not found or has expired.");
 
+        AddStreamSessionLink(fileID, sessionID);
         if (session.Rendition is IHlsPresentationRendition presentation)
             return await GetStreamResource(session, presentation, "master.m3u8", PlaybackKind.Hls);
 
@@ -902,7 +904,8 @@ public class FileController(
         if (rendition is not IProgressiveStreamRendition)
             return InternalError($"Transform \"{transformInfo.Name}\" reports StreamDeliveryMode.Progressive but its rendition does not implement IProgressiveStreamRendition.");
 
-        var sessionId = _streamSessionManager.CreateSession(file, rendition);
+        var sessionId = _streamSessionManager.CreateSession(file, rendition, transformID: transformInfo.ID);
+        AddStreamSessionLink(fileID, sessionId);
         return Redirect(Url.Action(nameof(GetFileStreamDirect), new { fileID, sessionID = sessionId }) + Request.QueryString);
     }
 
@@ -934,6 +937,7 @@ public class FileController(
         // declare cannot answer a byte range honestly -- a 206 must name a concrete
         // last-byte-position, and there is none to name for an open-ended stream. Serve
         // it from the start instead of inventing one.
+        AddStreamSessionLink(fileID, sessionID);
         var estimatedTotalBytes = rendition.EstimatedTotalBytes;
         var rangeStart = estimatedTotalBytes is null ? null : ParseRangeStart(Request);
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_streamSessionManager.SegmentRequestTimeoutSeconds));
@@ -1114,6 +1118,49 @@ public class FileController(
 
         return await GetStreamResource(session, resources, path, PlaybackKind.Progressive);
     }
+
+    /// <summary>
+    /// Describes an active stream session: the tracks of its stream, and the URLs of the subtitles, attachments and other resources
+    /// its rendition serves beside it.
+    /// </summary>
+    /// <param name="fileID">Shoko ID</param>
+    /// <param name="sessionID">The stream session ID, from the <c>Link</c> header of the stream responses.</param>
+    /// <returns>The session description.</returns>
+    [AllowAnonymous]
+    [OptionalAuthentication]
+    [HttpGet("{fileID}/Stream/Sessions/{sessionID}")]
+    public async Task<ActionResult<StreamSessionDescription>> GetFileStreamSession([FromRoute, Range(1, int.MaxValue)] int fileID, [FromRoute] Guid sessionID)
+    {
+        if (!SettingsProvider.GetSettings().Web.AllowAnonymousFileStreamingInAPIv3 && User is null)
+            return Unauthorized();
+
+        var session = _streamSessionManager.TryGetSession(sessionID);
+        if (session is null)
+            return NotFound("Stream session not found or has expired.");
+
+        var isProgressive = session.Rendition is IProgressiveStreamRendition;
+        var streamUrl = isProgressive
+            ? Url.Action(nameof(GetFileStreamDirect), new { fileID, sessionID })!
+            : Url.Action(nameof(GetFileStreamHlsManifest), new { fileID, sessionID })!;
+        var resourceRoot = isProgressive ? streamUrl + "/" : streamUrl[..(streamUrl.LastIndexOf('/') + 1)];
+        var query = Request.QueryString.Value ?? string.Empty;
+
+        StreamDescription? description = null;
+        if (session.Rendition is IStreamRenditionResources resources)
+            description = await resources.DescribeAsync(new() { User = User, QueryParameters = Request.Query }, HttpContext.RequestAborted);
+
+        return new StreamSessionDescription(
+            sessionID,
+            session.TransformID,
+            isProgressive ? StreamDeliveryMode.Progressive : StreamDeliveryMode.Hls,
+            streamUrl + query,
+            description,
+            path => StreamSessionDescription.ResolveUrl(resourceRoot, path, query)
+        );
+    }
+
+    private void AddStreamSessionLink(int fileID, Guid sessionID)
+        => Response.Headers.Append("Link", $"<{Url.Action(nameof(GetFileStreamSession), new { fileID, sessionID })}{Request.QueryString}>; rel=\"describedby\"");
 
     private async Task<ActionResult> GetStreamResource(StreamSession session, IStreamRenditionResources rendition, string path, PlaybackKind kind)
     {

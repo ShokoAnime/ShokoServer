@@ -52,6 +52,14 @@ depending on the delivery mode, and `OpenResourceAsync` receives the path and
 the query string. `IHlsPresentationRendition` is this interface with
 `master.m3u8` as its entry point.
 
+`DescribeAsync` tells clients what is there: the video and audio tracks with
+their ordinals, codecs, languages and per-user ranking, and the subtitles,
+attachments (fonts), chapters and extras with their resource paths. The core
+serves it as JSON at `Stream/Sessions/{sessionID}`, with every path resolved to
+a URL carrying the request's query string, and points to it from the stream
+responses with a `Link: <...>; rel="describedby"` header. Anything
+rendition-specific goes in `StreamDescription.Metadata`.
+
 ### Segment production strategy
 
 Implementations should run one long-lived background process per active

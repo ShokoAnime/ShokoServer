@@ -22,6 +22,15 @@ namespace Shoko.Abstractions.Video.Streaming;
 public interface IStreamRenditionResources
 {
     /// <summary>
+    ///   Describes the tracks of the rendition and the resources it serves, for
+    ///   the user and query string in <paramref name="context"/>.
+    /// </summary>
+    /// <param name="context">The context of the request.</param>
+    /// <param name="cancellationToken">A cancellation token.</param>
+    /// <returns>The description.</returns>
+    Task<StreamDescription> DescribeAsync(VideoStreamTransformContext context, CancellationToken cancellationToken);
+
+    /// <summary>
     ///   Opens a resource of the rendition. Implementations should wait for a
     ///   resource that is still being produced rather than failing; the core
     ///   cancels the request after its configured segment timeout.

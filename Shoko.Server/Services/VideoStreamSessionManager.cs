@@ -43,12 +43,12 @@ public class VideoStreamSessionManager(
     /// </summary>
     private readonly ConcurrentDictionary<string, Guid> _keyedSessions = new();
 
-    public Guid CreateSession(IVideo video, IStreamRendition rendition, string? key = null)
+    public Guid CreateSession(IVideo video, IStreamRendition rendition, string? key = null, string? transformID = null)
     {
         var sessionId = Guid.NewGuid();
         var cacheDir = Path.Combine(GetCacheRoot(), sessionId.ToString("N"));
         Directory.CreateDirectory(cacheDir);
-        _sessions[sessionId] = new StreamSession(video, rendition, cacheDir) { Key = key };
+        _sessions[sessionId] = new StreamSession(video, rendition, cacheDir) { Key = key, TransformID = transformID };
         if (key is not null)
             _keyedSessions[key] = sessionId;
         return sessionId;
@@ -242,6 +242,11 @@ public class StreamSession(IVideo video, IStreamRendition rendition, string cach
     ///   <see cref="VideoStreamSessionManager.TryGetSessionByKey"/>.
     /// </summary>
     public string? Key { get; init; }
+
+    /// <summary>
+    ///   The ID of the transform that produced <see cref="Rendition"/>, if known.
+    /// </summary>
+    public string? TransformID { get; init; }
 
     public DateTime LastAccessedAt { get; private set; } = DateTime.UtcNow;
 

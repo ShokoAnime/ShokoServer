@@ -11,8 +11,8 @@ public class StreamResourceRequest
     /// <summary>
     ///   The path of the resource relative to the session root, e.g.
     ///   <c>master.m3u8</c> or <c>subtitles/2.ass</c>. Taken from the
-    ///   request URL, so it must be validated before being used to address
-    ///   anything on disk.
+    ///   request URL, without its query string, so it must be validated before
+    ///   being used to address anything on disk.
     /// </summary>
     public required string Path { get; init; }
 
