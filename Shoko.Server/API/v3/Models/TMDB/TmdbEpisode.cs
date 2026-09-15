@@ -106,6 +106,14 @@ public class TmdbEpisode
     public TimeSpan? Runtime { get; init; }
 
     /// <summary>
+    /// TMDB's own episode classification (<c>standard</c>, <c>finale</c>,
+    /// <c>mid_season</c>, <c>special</c>), verbatim from the API. <c>null</c>
+    /// until the episode has been refreshed since the field was added.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string? TmdbEpisodeType { get; init; }
+
+    /// <summary>
     /// All images stored locally for this episode, if any.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -204,6 +212,7 @@ public class TmdbEpisode
             Source = "TMDB",
         };
         Runtime = episode.Runtime;
+        TmdbEpisodeType = episode.TmdbEpisodeType;
         if (include.HasFlag(IncludeDetails.Images))
             Images = ((IWithImages)episode).GetImages()
                 .InLanguage(language)
