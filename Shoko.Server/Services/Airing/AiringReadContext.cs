@@ -7,7 +7,6 @@ using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Models.Airing;
-using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories;
