@@ -8,7 +8,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -529,46 +528,30 @@ public class DashboardController(
     }
 
     /// <summary>
-    /// Get the next <paramref name="numberOfDays"/> from the AniDB Calendar.
+    /// Get the next <paramref name="numberOfDays"/> days from the AniDB
+    /// calendar.
     /// </summary>
+    /// <remarks>
+    /// This is the AniDB calendar, so it selects and orders by the AniDB air
+    /// date and nothing else. What a broadcaster actually does with an episode,
+    /// including a delay that moves it to another day, lives on
+    /// <c>/api/v3/AiringSchedule/Airing</c> instead.
+    /// </remarks>
     /// <param name="numberOfDays">Number of days to show.</param>
-    /// <param name="showAll">Show all series.</param>
+    /// <param name="showAll">Show all series, including the ones nothing has been downloaded for.</param>
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
-    /// <returns></returns>
+    /// <returns>The episodes airing in the time-frame, by AniDB air date.</returns>
     [HttpGet("AniDBCalendar")]
     public List<Dashboard.Episode> GetAniDBCalendarInDays([FromQuery] int numberOfDays = 7,
         [FromQuery] bool showAll = false, [FromQuery] bool includeRestricted = false)
-        => GetCalendarEpisodes(
-            DateTime.Today.ToDateOnly(),
-            DateTime.Today.ToDateOnly().AddDays(numberOfDays),
-            showAll ? IncludeOnlyFilter.True : IncludeOnlyFilter.False,
-            includeRestricted ? IncludeOnlyFilter.True : IncludeOnlyFilter.False
-        );
-
-    /// <summary>
-    /// Get the episodes within the given time-frame on the calendar.
-    /// </summary>
-    /// <param name="startDate">Start date.</param>
-    /// <param name="endDate">End date.</param>
-    /// <param name="includeMissing">Include missing episodes.</param>
-    /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
-    /// <param name="type">Only include episodes of these AniDB episode types. Defaults to normal episodes when omitted; an empty set matches nothing.</param>
-    /// <returns></returns>
-    [HttpGet("CalendarEpisodes")]
-    public List<Dashboard.Episode> GetCalendarEpisodes(
-        [FromQuery] DateOnly startDate = default,
-        [FromQuery] DateOnly endDate = default,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null
-    )
     {
-        type ??= [EpisodeType.Episode];
         var user = HttpContext.GetUser();
-        // The shoko episode can fall back to another provider's date, so fetch a day either side and
-        // filter on the final day below.
-        var episodeList = _anidbEpisodes.GetForDate(startDate.AddDays(-1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), endDate.AddDays(1).ToDateTime(TimeOnly.MaxValue, DateTimeKind.Unspecified))
-            .ToList();
+        var startDate = DateTime.Today.ToDateOnly();
+        var endDate = startDate.AddDays(numberOfDays);
+        var episodeList = _anidbEpisodes.GetForDate(
+            startDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified),
+            endDate.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Unspecified)
+        ).ToList();
         var animeDict = episodeList
             .Select(episode => _anidbAnimes.GetByAnimeID(episode.AnimeID))
             .WhereNotNull()
@@ -578,39 +561,30 @@ public class DashboardController(
             .Select(anime => _animeSeries.GetByAnimeID(anime.AnimeID))
             .WhereNotNull()
             .Distinct()
-            .ToDictionary(anime => anime.AniDB_ID);
+            .ToDictionary(series => series.AniDB_ID);
         // A series counts as missing when nothing of it has been downloaded, not merely when Shoko has no
-        // entry for it, so a show that was only added to the collection still hides behind "include missing".
+        // entry for it, so a show that was only added to the collection still hides behind "show all".
         var missingAnimeIds = animeDict.Keys
             .Where(animeId => !seriesDict.TryGetValue(animeId, out var series) || !series.VideoLocals.Any())
             .ToHashSet();
         return episodeList
             .Where(episode =>
             {
-                if (!type.Contains(episode.EpisodeType))
-                    return false;
-
                 if (!animeDict.TryGetValue(episode.AnimeID, out var anime) || !user.AllowedAnime(anime))
                     return false;
 
-                if (includeRestricted is not IncludeOnlyFilter.True)
-                {
-                    var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
-                    var isRestricted = anime.IsRestricted;
-                    if (onlyRestricted != isRestricted)
-                        return false;
-                }
+                if (!includeRestricted && anime.IsRestricted)
+                    return false;
 
-                if (includeMissing is not IncludeOnlyFilter.True)
-                {
-                    var shouldHideMissing = includeMissing is IncludeOnlyFilter.False;
-                    var isMissing = missingAnimeIds.Contains(episode.AnimeID);
-                    if (shouldHideMissing == isMissing)
-                        return false;
-                }
+                if (!showAll && missingAnimeIds.Contains(episode.AnimeID))
+                    return false;
 
                 return true;
             })
+            .OrderBy(episode => episode.GetAirDateAsDateOnly())
+            .ThenBy(episode => episode.AnimeID)
+            .ThenBy(episode => episode.EpisodeType)
+            .ThenBy(episode => episode.EpisodeNumber)
             .Select(episode =>
             {
                 var anime = animeDict[episode.AnimeID];
@@ -623,10 +597,6 @@ public class DashboardController(
 
                 return new Dashboard.Episode(episode, anime);
             })
-            .Where(episode => episode.AirDate is { } airDate && airDate >= startDate && airDate <= endDate)
-            .OrderBy(episode => episode.AirDate)
-            .ThenBy(episode => episode.IDs.Series)
-            .ThenBy(episode => episode.Number)
             .ToList();
     }
 }
