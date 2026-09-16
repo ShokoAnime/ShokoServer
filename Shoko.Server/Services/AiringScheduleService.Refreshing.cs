@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
@@ -282,7 +283,21 @@ public partial class AiringScheduleService
         {
             // A provider that fails is reported, never thrown, so one source
             // going down doesn't sink the others.
-            logger.LogError(ex, "Provider {ProviderName} failed to refresh {EntityType} {EntitySource}:{EntityID}.", info.Name, type, source, id);
+            // A validation failure carries a reason per rejected airing, and
+            // the message alone ("One or more airings were rejected.") says
+            // nothing, so spell them out for whoever has to fix the provider.
+            if (ex is GenericValidationException { ValidationErrors.Count: > 0 } validationEx)
+                logger.LogError(
+                    ex,
+                    "Provider {ProviderName} failed to refresh {EntityType} {EntitySource}:{EntityID}. Rejected: {ValidationErrors}",
+                    info.Name,
+                    type,
+                    source,
+                    id,
+                    string.Join("; ", validationEx.ValidationErrors.Select(entry => $"{entry.Key}: {string.Join(", ", entry.Value)}"))
+                );
+            else
+                logger.LogError(ex, "Provider {ProviderName} failed to refresh {EntityType} {EntitySource}:{EntityID}.", info.Name, type, source, id);
             return Publish(key, new AiringScheduleProviderRefresh(info.ID, info.Name, AiringScheduleRefreshState.Failed, ex.Message));
         }
         finally
