@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Utilities.Airing;
 
 namespace Shoko.Server.Utilities;
@@ -90,6 +92,97 @@ public static class AiringScheduleUtility
         var languageCode = string.IsNullOrWhiteSpace(track.LanguageCode) ? "unk" : track.LanguageCode.Trim().ToLowerInvariant();
         var countryCode = string.IsNullOrWhiteSpace(track.CountryCode) ? null : track.CountryCode.Trim().ToUpperInvariant();
         return countryCode is null ? $"{track.Kind}/{languageCode}" : $"{track.Kind}/{languageCode}/{countryCode}";
+    }
+
+    #endregion
+
+    #region Identifiers
+
+    /// <summary>
+    /// The namespace every airing schedule's public ID is derived within.
+    /// </summary>
+    public static Guid ScheduleIdentifierNamespace { get; } = UuidUtility.GetV5("AiringScheduleIdentifierNamespace", UuidUtility.PublicUuidNamespaces.OID);
+
+    /// <summary>
+    /// The namespace every episode airing's public ID is derived within.
+    /// </summary>
+    public static Guid AiringIdentifierNamespace { get; } = UuidUtility.GetV5("EpisodeAiringIdentifierNamespace", UuidUtility.PublicUuidNamespaces.OID);
+
+    /// <summary>
+    /// The namespace every airing channel's ID is derived within.
+    /// </summary>
+    public static Guid ChannelIdentifierNamespace { get; } = UuidUtility.GetV5("AiringChannelIdentifierNamespace", UuidUtility.PublicUuidNamespaces.OID);
+
+    /// <summary>
+    /// Derive the public ID of a schedule from what makes it unique, so nothing
+    /// has to be stored or kept in step.
+    /// </summary>
+    /// <param name="providerID">The ID of the provider owning the schedule.</param>
+    /// <param name="seriesSource">The source of the series the schedule is for.</param>
+    /// <param name="seriesID">The ID of the series within its source.</param>
+    /// <param name="seasonID">The ID of the season the schedule is narrowed to, or <see langword="null"/> when it covers the whole run.</param>
+    /// <param name="key">The schedule's key, from the provider or derived.</param>
+    /// <returns>The schedule's public ID.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="seriesID"/> or <paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="seriesID"/> or <paramref name="key"/> is blank.</exception>
+    public static Guid GetScheduleID(Guid providerID, DataSource seriesSource, string seriesID, string? seasonID, string key)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(seriesID);
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        return UuidUtility.GetV5(
+            $"ProviderID={providerID:D},SeriesSource={seriesSource},SeriesID={seriesID},SeasonID={seasonID ?? string.Empty},Key={key}",
+            ScheduleIdentifierNamespace
+        );
+    }
+
+    /// <summary>
+    /// Derive the public ID of an airing from its schedule and its key.
+    /// Estimates get one the same way, from the key they would have had.
+    /// </summary>
+    /// <param name="scheduleID">The public ID of the schedule the airing belongs to.</param>
+    /// <param name="key">The airing's key, from the provider or derived.</param>
+    /// <returns>The airing's public ID.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="key"/> is blank.</exception>
+    public static Guid GetEpisodeAiringID(Guid scheduleID, string key)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        return UuidUtility.GetV5($"ScheduleID={scheduleID:D},Key={key}", AiringIdentifierNamespace);
+    }
+
+    /// <summary>
+    /// Derive the ID of a channel from its type and its normalised name,
+    /// without registering it, so lookups and filters can name a channel that
+    /// may not exist yet.
+    /// </summary>
+    /// <param name="name">The name of the channel, in any spelling.</param>
+    /// <param name="type">The type of the channel.</param>
+    /// <returns>The channel's ID.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
+    public static Guid GetChannelID(string name, AiringChannelType type)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return UuidUtility.GetV5($"ChannelType={type},Name={NormalizeChannelName(name)}", ChannelIdentifierNamespace);
+    }
+
+    /// <summary>
+    /// Normalise a channel name, so the same station spelled in full-width,
+    /// half-width, padded or differently cased forms is the same channel.
+    /// </summary>
+    /// <param name="name">The name of the channel, in any spelling.</param>
+    /// <returns>The normalised name.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <see langword="null"/>.</exception>
+    public static string NormalizeChannelName(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        // NFKC first, so an EPG's full-width name folds onto its half-width spelling.
+        var parts = name.Normalize(NormalizationForm.FormKC).Split(default(char[]), StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', parts).ToLowerInvariant();
     }
 
     #endregion
