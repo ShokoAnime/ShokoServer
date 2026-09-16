@@ -17,6 +17,7 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Resources;
 using Shoko.Abstractions.Metadata.Services;
@@ -582,6 +583,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
         var videoHashingService = ISystemService.StaticServices.GetRequiredService<IVideoHashingService>();
         videoHashingService.AddParts(GetExports<IHashProvider>());
+
+        var airingScheduleService = ISystemService.StaticServices.GetRequiredService<IAiringScheduleService>();
+        airingScheduleService.AddParts(GetExports<IAiringScheduleProvider>(), GetExports<IAiringScheduleEntityResolver>());
 
         var relocationService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
         relocationService.AddParts(GetExports<IRelocationProvider>());

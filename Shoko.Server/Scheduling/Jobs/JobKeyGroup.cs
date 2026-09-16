@@ -3,6 +3,7 @@ namespace Shoko.Server.Scheduling.Jobs;
 public static class JobKeyGroup
 {
     public const string Actions = "Actions";
+    public const string Airing = "Airing";
     public const string AniDB = "AniDB";
     public const string Anilist = "Anilist";
     public const string Image = "Image";

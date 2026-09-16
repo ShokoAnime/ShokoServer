@@ -54,6 +54,7 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -462,6 +463,7 @@ public class SystemService : ISystemService
             services.AddTransient(typeof(Lazy<>), typeof(LazyResolver<>));
             services.AddSingleton<IUserDataService, UserDataService>();
             services.AddSingleton<IImageManager, ImageManager>();
+            services.AddSingleton<IAiringScheduleService, AiringScheduleService>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
             services.AddScoped<AnimeGroupCreator>();
 
@@ -540,6 +542,7 @@ public class SystemService : ISystemService
             registry.Register<PurgeOrphanedTmdbDataJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<PurgeOrphanedAnilistDataJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<StreamSessionCleanupJob>(TimeSpan.FromMinutes(1), runImmediately: true);
+            registry.Register<AiringScheduleRetentionJob>(TimeSpan.FromHours(24), runImmediately: false);
 
             // Register settings-driven recurring jobs. Jobs whose frequency is Never are skipped
             // entirely at startup; they are registered on-demand when settings change.
