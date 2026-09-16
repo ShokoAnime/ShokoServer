@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.470",
+      "tag": "v6.0.0-dev.470",
+      "commit": "15cc66ad621fa61dff3840447842244c42331bab",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.470/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-16T13:57:32Z",
+      "releaseNotes": "\n`fix` (`api`): **Apply settings patch validation and stop per-item json patch loss**:\n\nPer-item JSON Patch operations on settings lists mutated the list\ninstance returned by the property getter in place, so property setters\nnever ran and the changes were silently discarded or left derived state\nstale.\n\n- Made `TMDBSettings.InternalImageLanguageOrder` the single source of\n  truth with a normalizing setter and turned the enum `ImageLanguageOrder`\n  into a computed `[JsonIgnore]` view, so per-item ops on\n  `/TMDB/ImageLanguageOrder` mutate the stored list\n- Added `ImportSettings.ResetExcludeRegexes` and invalidate the compiled\n  exclude regex cache in `SettingsProvider.OnSettingsSaved`, since\n  per-item ops on `/Import/Exclude` bypass the cache-invalidating setter\n- Returned 400 via `ValidationProblem` from `SettingsController.SetSettings`\n  when `ApplyTo` errors leave `ModelState` invalid instead of saving and\n  returning 200\n- Added regression tests covering per-item ops on both lists, whole-array\n  replace normalization, and ModelState error surfacing\n"
+    },
+    {
       "version": "6.0.0.469",
       "tag": "v6.0.0-dev.469",
       "commit": "2fa9089a25b73896bc866eed46904f775e52aa96",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.441/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-05T21:34:24Z",
       "releaseNotes": "\n`chore`: **Remove unused imports**.\n\n`refactor` (`api`): **Split legacy actions into LegacyActionController**:\n\nMoved the legacy one-off action endpoints out of ActionController into\na new LegacyActionController, leaving ActionController with only the\nnew action registry and invocation endpoints.\n\n- Kept legacy routes unchanged under LegacyActionController\n- Switched action controllers from ActionService to IActionService\n- Tagged the current action controllers with Tags(\"Action\") for Swagger grouping\n\n`chore` (`api`): **Tag auth endpoints with the Authentication group**.\n\n`chore` (`api`): **Tag endpoints with their respective Swagger groups**:\n\nGrouped the API endpoints by domain in the OpenAPI/Swagger spec so the\ngenerated documentation is easier to navigate.\n\n- Tagged the Plex, Anidb, ReleaseManagement, Image, Configuration, and Webui controllers\n- Tagged the Tree and ReverseTree actions with the Filter, Group, Series, Episode, and File tags\n- Added the missing `Microsoft.AspNetCore.Http` usings required by `Tags`\n"
-    },
-    {
-      "version": "6.0.0.440",
-      "tag": "v6.0.0-dev.440",
-      "commit": "33515152280b88a66c3f8e60727917a0481eb100",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.440/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-05T20:08:19Z",
-      "releaseNotes": "\n`fix`: **Don't set a limit if no limit is provided**.\n"
     }
   ]
 }
