@@ -9,16 +9,22 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Plugin;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.Server.Databases;
 using Shoko.Server.Models.Airing;
+using Shoko.Server.Models.Internal;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories.Cached.Airing;
+using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
+using Shoko.Server.Services.Airing;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -536,6 +542,134 @@ public class AiringScheduleServiceTests
 
     #endregion
 
+    #region Airing Notifications
+
+    [Fact]
+    public void Tick_RaisesAnAiringInTheHorizonOnceAndOnlyOnce()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, now.AddMinutes(5)));
+        var raised = new List<EpisodeAiredEventArgs>();
+        harness.Service.EpisodeAired += (_, args) => raised.Add(args);
+
+        // The first tick only picks the watermark up; nothing has come due yet.
+        harness.Notifications.Tick(now);
+        Assert.Empty(raised);
+
+        harness.Notifications.Tick(now.AddMinutes(5));
+        var aired = Assert.Single(raised);
+        Assert.Equal(now.AddMinutes(5), aired.AiredAt);
+        Assert.False(aired.Airing.IsEstimated);
+
+        // The watermark is past it now, so a later tick — and the rebuild that
+        // comes with it — never hands the same slot out twice.
+        harness.Notifications.Tick(now.AddMinutes(6));
+        Assert.Single(raised);
+    }
+
+    [Fact]
+    public void Tick_RaisesOneEventPerAiringRatherThanPerEpisode()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var bs11 = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
+        var tracks = new[] { new AiringTrackData(AiringKind.Original, "ja") };
+        harness.Schedule(harness.Primary, "mx", tokyo.ID, tracks, (0, now.AddMinutes(5)));
+        harness.Schedule(harness.Primary, "bs11", bs11.ID, tracks, (0, now.AddMinutes(5)));
+        var raised = new List<EpisodeAiredEventArgs>();
+        harness.Service.EpisodeAired += (_, args) => raised.Add(args);
+
+        harness.Notifications.Tick(now);
+        harness.Notifications.Tick(now.AddMinutes(5));
+
+        // One episode, two stations, two events. Whoever wants "this episode
+        // aired" de-duplicates by episode themselves.
+        Assert.Equal(2, raised.Count);
+        Assert.Equal(2, raised.Select(args => args.Airing.ID).Distinct().Count());
+        Assert.Equal(new HashSet<Guid> { tokyo.ID, bs11.ID }, raised.Select(args => args.Airing.Channel!.ID).ToHashSet());
+    }
+
+    [Fact]
+    public void Tick_RaisesAnEstimateAndFlagsItAsOne()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        // Two real airings a fixed distance from their AniDB dates are what the
+        // schedule learns its slot from, and the distance is picked so the
+        // fourth episode's estimate lands five minutes out.
+        var offset = now.AddMinutes(5) - harness.Air(22, 0, 0);
+        harness.Schedule(
+            harness.Primary,
+            "mx",
+            tokyo.ID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(1, 0, 0) + offset),
+            (1, harness.Air(8, 0, 0) + offset)
+        );
+        var raised = new List<EpisodeAiredEventArgs>();
+        harness.Service.EpisodeAired += (_, args) => raised.Add(args);
+
+        harness.Notifications.Tick(now);
+        harness.Notifications.Tick(now.AddMinutes(5));
+
+        var aired = Assert.Single(raised);
+        Assert.True(aired.Airing.IsEstimated);
+        Assert.Equal(now.AddMinutes(5), aired.AiredAt);
+    }
+
+    [Fact]
+    public void Tick_SkipsForwardInsteadOfReplayingWhatItMissed()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        harness.SeedWatermark(now.AddHours(-3));
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, now.AddMinutes(-30)));
+        var raised = new List<EpisodeAiredEventArgs>();
+        harness.Service.EpisodeAired += (_, args) => raised.Add(args);
+
+        harness.Notifications.Tick(now);
+
+        // The slot passed while the server was down. An hours-old prediction is
+        // worse than none, so it is stepped over rather than announced late.
+        Assert.Empty(raised);
+        Assert.Equal(now, harness.Notifications.Watermark);
+        Assert.Equal(now, harness.Watermark?.LastUpdate);
+    }
+
+    [Fact]
+    public void Tick_RebuildsTheHorizonWhenTheAiringsChangeUnderIt()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var schedule = harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, now.AddMinutes(10)));
+        var raised = new List<EpisodeAiredEventArgs>();
+        harness.Service.EpisodeAired += (_, args) => raised.Add(args);
+
+        harness.Notifications.Tick(now);
+        Assert.Single(harness.Notifications.Horizon);
+
+        // The provider moves the slot back by forty minutes, well inside the
+        // horizon and well before the periodic rebuild would have noticed.
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = now.AddMinutes(50) },
+        ]);
+
+        harness.Notifications.Tick(now.AddMinutes(10));
+        Assert.Empty(raised);
+
+        harness.Notifications.Tick(now.AddMinutes(50));
+        var aired = Assert.Single(raised);
+        Assert.Equal(now.AddMinutes(50), aired.AiredAt);
+    }
+
+    #endregion
+
     #region Harness
 
     /// <summary>
@@ -561,7 +695,15 @@ public class AiringScheduleServiceTests
 
         public Mock<AiringChannelRepository> Channels { get; }
 
+        public Mock<ScheduledUpdateRepository> Updates { get; }
+
         public AiringScheduleService Service { get; }
+
+        /// <summary>The background ticker, wired to the same service instance.</summary>
+        public EpisodeAiringNotificationService Notifications { get; }
+
+        /// <summary>The persisted "fired through" row, or <c>null</c> when nothing has written one.</summary>
+        public ScheduledUpdate? Watermark { get; private set; }
 
         public TestProvider Primary { get; } = new("Alpha");
 
@@ -609,7 +751,12 @@ public class AiringScheduleServiceTests
                     entry.AiringChannelID = nextChannelID++;
                 Channels.Object.Cache.Update(entry);
             });
-            _scope.Set(Schedules.Object).Set(Airings.Object).Set(Channels.Object);
+            // The ticker's watermark is an ordinary ScheduledUpdate row, so the
+            // direct repository is mocked down to the two calls it makes.
+            Updates = new Mock<ScheduledUpdateRepository>((DatabaseFactory)null!);
+            Updates.Setup(repository => repository.GetByUpdateType(It.IsAny<int>())).Returns(() => Watermark);
+            Updates.Setup(repository => repository.Save(It.IsAny<ScheduledUpdate>())).Callback<ScheduledUpdate>(row => Watermark = row);
+            _scope.Set(Schedules.Object).Set(Airings.Object).Set(Channels.Object).Set(Updates.Object);
 
             var shokoSeries = new Mock<IShokoSeries>();
             var linkedSeries = new Mock<ISeries>();
@@ -671,7 +818,27 @@ public class AiringScheduleServiceTests
                 new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object)
             );
             Service.AddParts([Primary, Secondary], [new TestEntityResolver(this)]);
+            // Built here rather than per test, so it is subscribed to the
+            // service's change events before anything writes a schedule.
+            Notifications = new EpisodeAiringNotificationService(
+                NullLogger<EpisodeAiringNotificationService>.Instance,
+                Service,
+                new Mock<ISystemService>().Object
+            );
         }
+
+        /// <summary>The UTC minute <paramref name="value"/> falls in, which is the grid the ticker works on.</summary>
+        public static DateTime Minute(DateTime value)
+            => new(value.Year, value.Month, value.Day, value.Hour, value.Minute, 0, DateTimeKind.Utc);
+
+        /// <summary>Pretends the ticker last dispatched events through <paramref name="lastUpdate"/>.</summary>
+        public void SeedWatermark(DateTime lastUpdate)
+            => Watermark = new ScheduledUpdate
+            {
+                UpdateType = (int)ScheduledUpdateType.EpisodeAiringNotifications,
+                UpdateDetails = string.Empty,
+                LastUpdate = lastUpdate,
+            };
 
         /// <summary>
         ///   A UTC instant on one of the run's days, counted from the first episode's air date.
@@ -732,7 +899,10 @@ public class AiringScheduleServiceTests
         }
 
         public void Dispose()
-            => _scope.Dispose();
+        {
+            Notifications.Dispose();
+            _scope.Dispose();
+        }
 
         /// <summary>
         ///   Resolves the Moq entities back from the keys the service stored them under, the way a

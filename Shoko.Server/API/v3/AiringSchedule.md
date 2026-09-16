@@ -148,6 +148,46 @@ three-state switch as `linkedEntityImages`: `false` for the entity's own,
 `true` to also walk its linked entities, and omitted to let the server decide —
 which means linked for shoko entities and own-only for everything else.
 
+## Live updates
+
+The server keeps the next hour of airings in memory and pushes each one as its
+slot passes, so a calendar or a "now airing" strip stays current without
+re-fetching the range every minute. Join the `airing` feed on the aggregate hub
+and listen for `airing:episode.aired`:
+
+```js
+const connection = new signalR.HubConnectionBuilder()
+  .withUrl("/signalr/aggregate?feeds=airing", { accessTokenFactory: () => apiKey })
+  .build();
+
+connection.on("airing:episode.aired", ({ AiredAt, IsEstimated, Airing }) => {
+  if (IsEstimated) return;      // a prediction, not a fact
+  markAsAired(Airing.ID, AiredAt);
+});
+```
+
+`Airing` is the same `EpisodeAiring` object the airings endpoint returns, minus
+the opt-in display data (`Series`, `EpisodeTitle`, `Poster` and `Thumbnail` are
+never filled in on a push), so the same rendering code handles both. `AiredAt`
+is the slot that passed, in UTC, and `IsEstimated` mirrors
+`Airing.IsEstimated`.
+
+Four things to build around:
+
+- **One message per airing, not per episode.** An episode on three channels
+  sends three messages. De-duplicate by `Airing.IDs.ShokoEpisode` if what you
+  want is "this episode aired", or by `Airing.LinkID` for one card per slot.
+- **Estimates are pushed too.** An estimated message is a prediction, and there
+  is **no retraction message** if the estimate later moves. When the real slot
+  arrives it is a different airing with its own ID and sends its own message, so
+  a client that treats both as "it aired" shows it twice. Either skip the
+  estimates, or key your UI on `Airing.ID` and let the real one replace the
+  guess.
+- **Nothing is replayed.** A client connecting after a server restart has a gap
+  rather than a burst; re-read the range with the airings endpoint on connect if
+  the gap matters.
+- **It fires within a minute of the slot**, never before it.
+
 ## The dashboard calendars
 
 `GET /api/v3/Dashboard/AniDBCalendar` is still there, and is still what the

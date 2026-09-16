@@ -8,15 +8,12 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Namotion.Reflection;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Utilities;
@@ -24,7 +21,6 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories;
-using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Services.Airing;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -99,6 +95,36 @@ public partial class AiringScheduleService(
 
     /// <inheritdoc/>
     public event EventHandler<EpisodeAiringsUpdatedEventArgs>? AiringsUpdated;
+
+    /// <inheritdoc/>
+    public event EventHandler<EpisodeAiredEventArgs>? EpisodeAired;
+
+    #region Airing Notifications
+
+    /// <summary>
+    /// Whether the parts have been added, so the background ticker can hold off
+    /// until the providers and resolvers are in place rather than reading a
+    /// half-built service.
+    /// </summary>
+    internal bool HasParts => _loaded;
+
+    /// <summary>
+    /// Raises <see cref="EpisodeAired"/> for one airing whose slot has passed.
+    /// Only <see cref="EpisodeAiringNotificationService"/> calls this: the
+    /// ticker owns the horizon and the watermark, and the service owns the
+    /// event the contract exposes.
+    /// </summary>
+    /// <param name="airing">The airing whose slot passed.</param>
+    /// <param name="airedAt">The slot that passed, in UTC.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="airing"/> is <see langword="null"/>.</exception>
+    internal void RaiseEpisodeAired(IEpisodeAiring airing, DateTime airedAt)
+    {
+        ArgumentNullException.ThrowIfNull(airing);
+
+        EpisodeAired?.Invoke(this, new EpisodeAiredEventArgs { Airing = airing, AiredAt = airedAt });
+    }
+
+    #endregion
 
     #region Add Parts
 

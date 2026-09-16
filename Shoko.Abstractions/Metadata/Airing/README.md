@@ -270,6 +270,67 @@ negative for one released early or day-and-date.
 
 ---
 
+## Reacting to an episode airing
+
+Everything above is about *writing* the schedule. `EpisodeAired` is the way to
+*react* to it: the server keeps the next hour of airings in memory and raises
+the event as each slot passes, so a plugin can act on an episode airing without
+polling `GetAiringsInRange` on a timer of its own.
+
+```csharp
+public class Plugin : IPlugin
+{
+    private readonly IAiringScheduleService _airingScheduleService;
+
+    public Plugin(IAiringScheduleService airingScheduleService)
+    {
+        _airingScheduleService = airingScheduleService;
+        _airingScheduleService.EpisodeAired += OnEpisodeAired;
+    }
+
+    private void OnEpisodeAired(object? sender, EpisodeAiredEventArgs e)
+    {
+        // A guess is not a fact. Skip the estimates unless you want them.
+        if (e.Airing.IsEstimated)
+            return;
+
+        _logger.LogInformation(
+            "{Episode} just aired on {Channel}.",
+            e.Airing.ShokoEpisode?.ID,
+            e.Airing.Channel?.Name ?? "an unnamed channel"
+        );
+    }
+}
+```
+
+Four things about it are easy to get wrong:
+
+- **It is one event per *airing*, not per episode.** An episode running on
+  TOKYO MX, BS11 and AT-X raises it three times, once per airing, because
+  "aired" is a thing that happens on a channel and each one happens at its own
+  time. A handler that wants "this episode aired, once" de-duplicates by
+  episode itself — the airings of one slot also share a `LinkID`, which is the
+  cheapest way to collapse a linked set.
+- **Estimates raise it too, and an estimated event is a prediction.** Check
+  `IsEstimated`. Nothing is known to have aired, the time came out of the
+  schedule's learned slot rather than a source, and **there is no retraction
+  event** if a provider later moves it. When the real slot does arrive it is a
+  *different* airing with its own stable ID, so it raises its own event; that
+  is correct rather than a duplicate, and a handler that treats both as "it
+  aired" will act twice.
+- **Nothing is replayed after downtime.** A slot that passed while the server
+  was off, or while it was still starting, is stepped over rather than
+  announced late — an hours-old prediction is worse than none. A plugin that
+  needs the airings it missed reads them back with `GetAiringsInRange`.
+- **Handlers run on the ticker's own thread.** A slow handler holds up the
+  events behind it, and one that throws is logged and stepped over. Hand real
+  work to a job.
+
+Core bridges the same event to SignalR clients as `airing:episode.aired`; see
+`Shoko.Server/API/v3/AiringSchedule.md`.
+
+---
+
 ## Rules a provider must respect
 
 - **Ownership.** Every change is checked against the registered provider

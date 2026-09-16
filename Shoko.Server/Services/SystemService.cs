@@ -60,6 +60,7 @@ using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services.Abstraction;
+using Shoko.Server.Services.Airing;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Services.ErrorHandling;
@@ -464,6 +465,9 @@ public class SystemService : ISystemService
             services.AddSingleton<IUserDataService, UserDataService>();
             services.AddSingleton<IImageManager, ImageManager>();
             services.AddSingleton<IAiringScheduleService, AiringScheduleService>();
+            // Minute-level precision, so it runs on its own clock rather than
+            // through the queue, where it would wait behind every other job.
+            services.AddHostedService<EpisodeAiringNotificationService>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
             services.AddScoped<AnimeGroupCreator>();
 

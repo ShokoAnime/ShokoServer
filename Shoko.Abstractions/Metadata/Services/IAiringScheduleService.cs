@@ -886,6 +886,36 @@ public interface IAiringScheduleService
 
     #endregion
 
+    #region Airing Notifications
+
+    /// <summary>
+    ///   Event raised as an airing's slot passes, so a consumer can react to an
+    ///   episode airing in real time instead of polling
+    ///   <see cref="GetAiringsInRange"/>.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     It is raised once per airing, not once per episode: an episode
+    ///     running on three channels raises it three times, and a consumer that
+    ///     wants "this episode aired" de-duplicates by episode itself.
+    ///   </para>
+    ///   <para>
+    ///     Estimates raise it too, flagged with
+    ///     <see cref="IEpisodeAiring.IsEstimated"/>. An estimated event is a
+    ///     prediction, not a fact, and there is no retraction event if the
+    ///     estimate later moves. Nothing is replayed after downtime either: a
+    ///     slot that passed while the server was off is skipped rather than
+    ///     raised late.
+    ///   </para>
+    ///   <para>
+    ///     Handlers run on the ticker's own thread, so a slow one holds up the
+    ///     events behind it.
+    ///   </para>
+    /// </remarks>
+    event EventHandler<EpisodeAiredEventArgs>? EpisodeAired;
+
+    #endregion
+
     #region Refreshing
 
     /// <summary>
