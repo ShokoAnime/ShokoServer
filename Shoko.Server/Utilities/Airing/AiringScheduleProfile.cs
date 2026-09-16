@@ -19,6 +19,13 @@ namespace Shoko.Server.Utilities.Airing;
 /// run that slipped a week keeps estimating the slipped slot. Always <c>0</c> for
 /// the <see cref="AiringAnchor.FirstOriginalAiring"/> anchor.
 /// </param>
+/// <param name="TrailingShiftFrom">
+/// The anchor the <paramref name="TrailingShiftDays"/> shift starts at, taken as
+/// midnight UTC of the AniDB air date of the earliest airing the shift covers, or
+/// <see langword="null"/> when no shift was learned. An episode anchored before it
+/// sits inside the already-aired range and keeps the older slot, so a slip late in
+/// a run never moves an estimate that fills a gap before it.
+/// </param>
 /// <param name="HiatusFrom">
 /// The slot this schedule's first slotless, delayed airing would have had, or
 /// <see langword="null"/> when it has none. From there on this schedule estimates
@@ -39,6 +46,7 @@ public sealed record AiringScheduleProfile(
     AiringAnchor Anchor,
     TimeSpan? Offset,
     int TrailingShiftDays,
+    DateTime? TrailingShiftFrom,
     DateTime? HiatusFrom,
     int? LastEstimableEpisode,
     TimeSpan? AnidbOffset = null

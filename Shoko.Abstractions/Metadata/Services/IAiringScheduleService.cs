@@ -68,9 +68,6 @@ public interface IAiringScheduleService
     ///   If true, only providers with at least one enabled kind will be
     ///   returned.
     /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
-    /// </exception>
     /// <returns>
     ///   An enumerable of <see cref="AiringScheduleProviderInfo"/>s, one for
     ///   each available <see cref="IAiringScheduleProvider"/>.
@@ -87,9 +84,6 @@ public interface IAiringScheduleService
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="plugin"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
-    /// </exception>
     /// <returns>
     ///   The provider infos, which is empty if the plugin has none.
     /// </returns>
@@ -102,9 +96,6 @@ public interface IAiringScheduleService
     /// <param name="providerID">
     ///   The ID of the provider.
     /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
-    /// </exception>
     /// <returns>
     ///   The provider info, or <c>null</c> if none could be found.
     /// </returns>
@@ -158,9 +149,6 @@ public interface IAiringScheduleService
     /// </param>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="providers"/> is <c>null</c>.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
     /// </exception>
     /// <exception cref="ArgumentException">
     ///   One of the infos does not carry a registered provider instance.
@@ -262,8 +250,8 @@ public interface IAiringScheduleService
     ///   <paramref name="channel"/> or <paramref name="aliases"/> is
     ///   <c>null</c>.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="channel"/> is not registered.
     /// </exception>
     /// <exception cref="ChannelAliasConflictException">
     ///   An alias is another channel's own name, or another channel's alias, of
@@ -288,8 +276,8 @@ public interface IAiringScheduleService
     ///   <paramref name="channel"/> or <paramref name="aliases"/> is
     ///   <c>null</c>.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="channel"/> is not registered.
     /// </exception>
     /// <returns>
     ///   The updated channel.
@@ -457,9 +445,6 @@ public interface IAiringScheduleService
     /// <param name="scheduleID">
     ///   The ID of the schedule.
     /// </param>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
-    /// </exception>
     /// <returns>
     ///   The schedule, or <c>null</c> if none could be found.
     /// </returns>
@@ -817,6 +802,9 @@ public interface IAiringScheduleService
     /// <exception cref="InvalidOperationException">
     ///   Parts have not been added yet.
     /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="toUtc"/> is before <paramref name="fromUtc"/>.
+    /// </exception>
     /// <returns>
     ///   The airings.
     /// </returns>
@@ -1046,9 +1034,6 @@ public interface IAiringScheduleService
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
-    /// </exception>
     void InvalidateForSeries(ISeries series);
 
     /// <summary>
@@ -1062,9 +1047,6 @@ public interface IAiringScheduleService
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
-    /// </exception>
     void InvalidateForSeason(ISeason season);
 
     /// <summary>
@@ -1076,9 +1058,6 @@ public interface IAiringScheduleService
     /// </param>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> is <c>null</c>.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
     /// </exception>
     void InvalidateForEpisode(IEpisode episode);
 

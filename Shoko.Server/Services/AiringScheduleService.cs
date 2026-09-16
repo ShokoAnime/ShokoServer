@@ -79,7 +79,7 @@ public partial class AiringScheduleService(
 
     private readonly ConcurrentDictionary<string, List<TaskCompletionSource<AiringScheduleProviderRefresh>>> _refreshWaiters = [];
 
-    private Dictionary<Guid, int>? _airingIDs;
+    private ConcurrentDictionary<Guid, int>? _airingIDs;
 
     private bool _loaded;
 
@@ -429,8 +429,14 @@ public partial class AiringScheduleService(
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(aliases);
 
+        // Aliases live on the stored channel, so a channel that was never
+        // registered here — or whose row is gone — has nothing to add them to,
+        // and the caller is told rather than left thinking the aliases stuck.
         var row = RepoFactory.AiringChannel.GetByChannelID(channel.ID)
-            ?? throw new ArgumentException($"Unregistered channel: '{channel.ID}'", nameof(channel));
+            ?? throw new ArgumentException(
+                $"Unregistered channel: '{channel.ID}'. Register it with {nameof(FindOrRegisterChannel)} before adding aliases to it.",
+                nameof(channel)
+            );
         var added = new List<string>();
         var known = row.Aliases.Select(AiringScheduleUtility.NormalizeChannelName).ToHashSet(StringComparer.Ordinal);
         foreach (var alias in aliases)
@@ -475,8 +481,13 @@ public partial class AiringScheduleService(
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(aliases);
 
+        // Same as adding: without a stored channel there are no aliases to take
+        // anything off of, which is a caller error and not a no-op.
         var row = RepoFactory.AiringChannel.GetByChannelID(channel.ID)
-            ?? throw new ArgumentException($"Unregistered channel: '{channel.ID}'", nameof(channel));
+            ?? throw new ArgumentException(
+                $"Unregistered channel: '{channel.ID}'. Register it with {nameof(FindOrRegisterChannel)} before removing aliases from it.",
+                nameof(channel)
+            );
         var unwanted = aliases
             .Where(alias => alias is not null)
             .Select(AiringScheduleUtility.NormalizeChannelName)

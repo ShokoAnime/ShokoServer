@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
@@ -119,7 +120,20 @@ public partial class AiringScheduleService
         foreach (var (airing, entry) in result.ToSave.Zip(saved))
         {
             var linkKey = airing.LinkKey is { } key ? renamedKeys.GetValueOrDefault(key, key) : null;
-            var linkedToID = linkKey is not null && savedByKey.TryGetValue(linkKey, out var head) ? head.EpisodeAiringID : (int?)null;
+            var linkedToID = (int?)null;
+            if (linkKey is not null)
+            {
+                // A head this write took away leaves the rest of its set pointing
+                // at a row that is gone, which is exactly what NormalizeLinkSets
+                // promotes the next smallest surviving member out of below.
+                // Clearing the pointer here instead would dissolve a set of three
+                // or more, since nothing would be left to regroup them on.
+                if (!savedByKey.TryGetValue(linkKey, out var head))
+                    continue;
+
+                linkedToID = head.EpisodeAiringID;
+            }
+
             if (entry.LinkedToID == linkedToID)
                 continue;
 
@@ -265,9 +279,11 @@ public partial class AiringScheduleService
         ArgumentNullException.ThrowIfNull(airings);
 
         var info = GetRegisteredProvider(provider, nameof(provider));
-        var wanted = airings.Where(airing => airing is not null).ToList();
+        // The same airing handed in twice is still one airing, and a set of one
+        // is no link, so the count is taken after the duplicates are dropped.
+        var wanted = airings.Where(airing => airing is not null).DistinctBy(airing => airing.ID).ToList();
         if (wanted.Count < 2)
-            throw new ArgumentException("Linking needs at least two airings.", nameof(airings));
+            throw new ArgumentException("Linking needs at least two distinct airings.", nameof(airings));
 
         AiringSchedule? row = null;
         var entries = new List<EpisodeAiring>();
@@ -631,10 +647,12 @@ public partial class AiringScheduleService
     /// <summary>
     /// The map from an airing's public ID to its local one. An airing's public
     /// ID derives from its schedule's, so it can't be an index on the airing
-    /// cache; the service owns every write, so it keeps the map instead.
+    /// cache; the service owns every write, so it keeps the map instead. Writes
+    /// arrive on queue-worker threads while reads arrive on request threads, so
+    /// the map itself is concurrent; only the one-off build is locked.
     /// </summary>
     /// <returns>The map.</returns>
-    private Dictionary<Guid, int> GetAiringIDs()
+    private ConcurrentDictionary<Guid, int> GetAiringIDs()
     {
         if (_airingIDs is { } known)
             return known;
@@ -644,7 +662,7 @@ public partial class AiringScheduleService
             if (_airingIDs is { } raced)
                 return raced;
 
-            var map = new Dictionary<Guid, int>();
+            var map = new ConcurrentDictionary<Guid, int>();
             foreach (var entry in RepoFactory.EpisodeAiring.GetAll())
                 if (RepoFactory.AiringSchedule.GetByID(entry.AiringScheduleID) is { } row)
                     map[AiringScheduleUtility.GetEpisodeAiringID(row.ID, entry.Key)] = entry.EpisodeAiringID;
@@ -671,7 +689,7 @@ public partial class AiringScheduleService
     /// <param name="row">The airing's schedule.</param>
     /// <param name="entry">The stored airing.</param>
     private void ForgetAiringID(AiringSchedule row, EpisodeAiring entry)
-        => _airingIDs?.Remove(AiringScheduleUtility.GetEpisodeAiringID(row.ID, entry.Key));
+        => _airingIDs?.TryRemove(AiringScheduleUtility.GetEpisodeAiringID(row.ID, entry.Key), out _);
 
     /// <summary>
     /// Drop an airing's public ID when only the airing is in hand.

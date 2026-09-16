@@ -154,9 +154,22 @@ public partial class AiringScheduleService
     {
         var key = GetRefreshKey(info.ID, source, type, id);
         var waiter = new TaskCompletionSource<AiringScheduleProviderRefresh>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var waiters = _refreshWaiters.GetOrAdd(key, _ => []);
-        lock (waiters)
-            waiters.Add(waiter);
+        List<TaskCompletionSource<AiringScheduleProviderRefresh>> waiters;
+        while (true)
+        {
+            waiters = _refreshWaiters.GetOrAdd(key, _ => []);
+            lock (waiters)
+            {
+                // The last waiter to leave drops the list from the map, so the
+                // list we got hold of is only ours to join while it is still the
+                // one everyone else will find under the key.
+                if (_refreshWaiters.TryGetValue(key, out var current) && ReferenceEquals(current, waiters))
+                {
+                    waiters.Add(waiter);
+                    break;
+                }
+            }
+        }
 
         try
         {
@@ -185,7 +198,14 @@ public partial class AiringScheduleService
         finally
         {
             lock (waiters)
+            {
                 waiters.Remove(waiter);
+                // An entity is refreshed once and then never again for the life
+                // of the process, so an emptied list left behind is a permanent
+                // entry per provider and entity.
+                if (waiters.Count is 0)
+                    _refreshWaiters.TryRemove(key, out _);
+            }
         }
 
         // A job that ran without saying anything, because the provider was gone

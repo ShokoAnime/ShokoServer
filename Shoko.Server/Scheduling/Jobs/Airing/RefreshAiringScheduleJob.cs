@@ -27,6 +27,7 @@ namespace Shoko.Server.Scheduling.Jobs.Airing;
 /// <see cref="IAiringScheduleProvider.MaxConcurrentRefreshes"/> is honoured by
 /// the service rather than here.
 /// </remarks>
+[DatabaseRequired]
 [NetworkRequired]
 [LimitConcurrency(2, 8)]
 [JobKeyGroup(JobKeyGroup.Airing)]
@@ -39,21 +40,25 @@ public class RefreshAiringScheduleJob(IAiringScheduleService airingScheduleServi
     /// <summary>
     /// The provider to refresh with.
     /// </summary>
+    [JobKeyMember]
     public Guid ProviderID { get; set; }
 
     /// <summary>
     /// The source of the entity to refresh.
     /// </summary>
+    [JobKeyMember]
     public DataSource EntitySource { get; set; }
 
     /// <summary>
     /// The kind of entity to refresh.
     /// </summary>
+    [JobKeyMember]
     public DataEntityType EntityType { get; set; }
 
     /// <summary>
     /// The ID of the entity within its source.
     /// </summary>
+    [JobKeyMember]
     public string EntityID { get; set; } = string.Empty;
 
     /// <inheritdoc/>

@@ -554,7 +554,7 @@ public static class AiringScheduleUtility
             .ThenBy(entry => entry.Key, StringComparer.Ordinal);
         foreach (var entry in line)
         {
-            var key = entry.Existing!.LinkKey ?? $" {entry.Existing.Key}";
+            var key = entry.Existing!.LinkKey ?? $"\0{entry.Existing.Key}";
             if (!unitsByKey.TryGetValue(key, out var unit))
             {
                 unitsByKey[key] = unit = [];
@@ -839,6 +839,12 @@ public static class AiringScheduleUtility
             .ToList();
         var (trailingShiftDays, trailingCount) = LearnTrailingShift(anidbPairs, options.MinimumSamples);
         var anidbOffset = LearnOffset(anidbPairs.Take(anidbPairs.Count - trailingCount), options.Window, options.MinimumSamples);
+        // The shift belongs to the tail of the run, so it starts at the earliest
+        // anchor it covers: an episode anchored before that sits inside the
+        // already-aired range and keeps the slot the older airings kept.
+        var trailingShiftFrom = trailingCount is 0
+            ? (DateTime?)null
+            : anidbPairs.Skip(anidbPairs.Count - trailingCount).Min(pair => pair.AnchorUtc);
 
         if (options.AnchorOnFirstOriginalAiring)
         {
@@ -848,10 +854,12 @@ public static class AiringScheduleUtility
                 .OrderBy(pair => pair.AiredAtUtc)
                 .ToList();
             if (anchoredPairs.Count >= options.MinimumSamples && LearnOffset(anchoredPairs, options.Window, options.MinimumSamples) is { } anchoredOffset)
-                return new AiringScheduleProfile(AiringAnchor.FirstOriginalAiring, anchoredOffset, 0, hiatusFrom, lastEstimableEpisode, anidbOffset);
+                return new AiringScheduleProfile(AiringAnchor.FirstOriginalAiring, anchoredOffset, 0, null, hiatusFrom, lastEstimableEpisode, anidbOffset);
         }
 
-        return new AiringScheduleProfile(AiringAnchor.AnidbDate, anidbOffset, trailingShiftDays, hiatusFrom, lastEstimableEpisode, anidbOffset);
+        return new AiringScheduleProfile(
+            AiringAnchor.AnidbDate, anidbOffset, trailingShiftDays, trailingShiftFrom, hiatusFrom, lastEstimableEpisode, anidbOffset
+        );
     }
 
     /// <summary>
@@ -888,8 +896,14 @@ public static class AiringScheduleUtility
             if (offset is not { } anidbOffset || target.AnidbAirDate is not { } anidbAirDate)
                 return null;
 
-            slot = GetMidnightUtc(anidbAirDate) + anidbOffset;
-            if (profile.Anchor is AiringAnchor.AnidbDate && profile.TrailingShiftDays is not 0)
+            var anchor = GetMidnightUtc(anidbAirDate);
+            slot = anchor + anidbOffset;
+
+            // Only the tail of the run slipped, so an episode anchored before the
+            // shift starts is filling a gap inside the aired range and keeps the
+            // older slot.
+            if (profile.Anchor is AiringAnchor.AnidbDate && profile.TrailingShiftDays is not 0 &&
+                profile.TrailingShiftFrom is { } trailingShiftFrom && anchor >= trailingShiftFrom)
             {
                 withoutShift = slot;
                 slot += TimeSpan.FromDays(profile.TrailingShiftDays);
