@@ -85,7 +85,7 @@ public static class LanguageExtensions
             }
         }
 
-        return lang.ToUpperInvariant() switch
+        var result = lang.ToUpperInvariant() switch
         {
             "EN" or "ENG" => TitleLanguage.English,
             "JA" or "JPN" => TitleLanguage.Japanese,
@@ -200,6 +200,24 @@ public static class LanguageExtensions
             "TW" or "TWI" => TitleLanguage.Twi,
             "CH" or "CHA" => TitleLanguage.Chamorro,
             "NA" or "NAU" => TitleLanguage.Nauruan,
+            "OS" or "OSS" => TitleLanguage.Ossetian,
+            "IA" or "INA" => TitleLanguage.Interlingua,
+            "HZ" or "HER" => TitleLanguage.Herero,
+            "EE" or "EWE" => TitleLanguage.Ewe,
+            "IE" or "ILE" => TitleLanguage.Interlingue,
+            "KR" or "KAU" => TitleLanguage.Kanuri,
+            "NG" or "NDO" => TitleLanguage.Ndonga,
+            "ENM" => TitleLanguage.MiddleEnglish,
+            "CU" or "CHU" => TitleLanguage.ChurchSlavic,
+            "LG" or "LUG" => TitleLanguage.Ganda,
+            "CV" or "CHV" => TitleLanguage.Chuvash,
+            "AN" or "ARG" => TitleLanguage.Aragonese,
+            "BO" or "BOD" or "TIB" => TitleLanguage.Tibetan,
+            "IO" or "IDO" => TitleLanguage.Ido,
+            "KL" or "KAL" => TitleLanguage.Kalaallisut,
+            "LI" or "LIM" => TitleLanguage.Limburgish,
+            "ND" or "NDE" => TitleLanguage.NorthNdebele,
+            "SS" or "SSW" => TitleLanguage.Swati,
 
             "X-JAT" => TitleLanguage.Romaji,
             "X-ZHT" => TitleLanguage.Pinyin,
@@ -250,8 +268,21 @@ public static class LanguageExtensions
             null or "" => TitleLanguage.None,
             _ => Enum.TryParse<TitleLanguage>(lang.ToLowerInvariant(), true, out var titleLanguage)
                 ? titleLanguage
-                : reportUnknown ? ReportAndReturnUnknown(lang) : TitleLanguage.Unknown,
+                : TitleLanguage.Unknown,
         };
+
+        // Not a 2-letter+2-letter IETF tag (handled above) but still an
+        // unrecognised "xxx-XX"-shaped tag, e.g. "cmn-CN" — retry on the
+        // language part alone before giving up.
+        var dashIndex = lang.IndexOf('-');
+        if (result is TitleLanguage.Unknown && dashIndex > 0 && dashIndex < lang.Length - 1)
+        {
+            var stripped = GetTitleLanguage(lang[..dashIndex], reportUnknown: false);
+            if (stripped is not (TitleLanguage.None or TitleLanguage.Unknown))
+                return stripped;
+        }
+
+        return result is TitleLanguage.Unknown && reportUnknown ? ReportAndReturnUnknown(lang) : result;
     }
 
     private static TitleLanguage ReportAndReturnUnknown(string lang)
@@ -293,6 +324,24 @@ public static class LanguageExtensions
             TitleLanguage.Twi => "Twi",
             TitleLanguage.Chamorro => "Chamorro",
             TitleLanguage.Nauruan => "Nauruan",
+            TitleLanguage.Ossetian => "Ossetian",
+            TitleLanguage.Interlingua => "Interlingua",
+            TitleLanguage.Herero => "Herero",
+            TitleLanguage.Ewe => "Ewe",
+            TitleLanguage.Interlingue => "Interlingue",
+            TitleLanguage.Kanuri => "Kanuri",
+            TitleLanguage.Ndonga => "Ndonga",
+            TitleLanguage.MiddleEnglish => "Middle English",
+            TitleLanguage.ChurchSlavic => "Church Slavic",
+            TitleLanguage.Ganda => "Ganda",
+            TitleLanguage.Chuvash => "Chuvash",
+            TitleLanguage.Aragonese => "Aragonese",
+            TitleLanguage.Tibetan => "Tibetan",
+            TitleLanguage.Ido => "Ido",
+            TitleLanguage.Kalaallisut => "Kalaallisut",
+            TitleLanguage.Limburgish => "Limburgish",
+            TitleLanguage.NorthNdebele => "North Ndebele",
+            TitleLanguage.Swati => "Swati",
             _ => lang.ToString(),
         };
 
@@ -434,6 +483,24 @@ public static class LanguageExtensions
             TitleLanguage.Twi => "tw",
             TitleLanguage.Chamorro => "ch",
             TitleLanguage.Nauruan => "na",
+            TitleLanguage.Ossetian => "os",
+            TitleLanguage.Interlingua => "ia",
+            TitleLanguage.Herero => "hz",
+            TitleLanguage.Ewe => "ee",
+            TitleLanguage.Interlingue => "ie",
+            TitleLanguage.Kanuri => "kr",
+            TitleLanguage.Ndonga => "ng",
+            TitleLanguage.MiddleEnglish => "enm",
+            TitleLanguage.ChurchSlavic => "cu",
+            TitleLanguage.Ganda => "lg",
+            TitleLanguage.Chuvash => "cv",
+            TitleLanguage.Aragonese => "an",
+            TitleLanguage.Tibetan => "bo",
+            TitleLanguage.Ido => "io",
+            TitleLanguage.Kalaallisut => "kl",
+            TitleLanguage.Limburgish => "li",
+            TitleLanguage.NorthNdebele => "nd",
+            TitleLanguage.Swati => "ss",
             _ => "unk",
         };
 

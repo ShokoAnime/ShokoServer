@@ -657,4 +657,94 @@ public enum TitleLanguage : int
     /// Nauruan.
     /// </summary>
     Nauruan,
+
+    /// <summary>
+    /// Ossetian.
+    /// </summary>
+    Ossetian,
+
+    /// <summary>
+    /// Interlingua.
+    /// </summary>
+    Interlingua,
+
+    /// <summary>
+    /// Herero.
+    /// </summary>
+    Herero,
+
+    /// <summary>
+    /// Ewe.
+    /// </summary>
+    Ewe,
+
+    /// <summary>
+    /// Interlingue.
+    /// </summary>
+    Interlingue,
+
+    /// <summary>
+    /// Kanuri.
+    /// </summary>
+    Kanuri,
+
+    /// <summary>
+    /// Ndonga.
+    /// </summary>
+    Ndonga,
+
+    /// <summary>
+    /// Middle English.
+    /// </summary>
+    MiddleEnglish,
+
+    /// <summary>
+    /// Church Slavic.
+    /// </summary>
+    ChurchSlavic,
+
+    /// <summary>
+    /// Ganda.
+    /// </summary>
+    Ganda,
+
+    /// <summary>
+    /// Chuvash.
+    /// </summary>
+    Chuvash,
+
+    /// <summary>
+    /// Aragonese.
+    /// </summary>
+    Aragonese,
+
+    /// <summary>
+    /// Tibetan.
+    /// </summary>
+    Tibetan,
+
+    /// <summary>
+    /// Ido.
+    /// </summary>
+    Ido,
+
+    /// <summary>
+    /// Kalaallisut.
+    /// </summary>
+    Kalaallisut,
+
+    /// <summary>
+    /// Limburgish.
+    /// </summary>
+    Limburgish,
+
+    /// <summary>
+    /// North Ndebele.
+    /// </summary>
+    NorthNdebele,
+
+    /// <summary>
+    /// Swati.
+    /// </summary>
+    Swati,
 }
