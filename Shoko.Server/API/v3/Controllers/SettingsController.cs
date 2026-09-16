@@ -59,6 +59,12 @@ public class SettingsController(ISettingsProvider settingsProvider, Configuratio
         {
             var existingSettings = (ServerSettings)SettingsProvider.GetSettings(copy: true);
             settings.ApplyTo(existingSettings, ModelState);
+            if (!ModelState.IsValid)
+            {
+                _logger.LogDebug("Failed to apply settings patch: {ModelState}", JsonConvert.SerializeObject(ModelState));
+                return ValidationProblem(ModelState);
+            }
+
             SettingsProvider.SaveSettings(existingSettings);
             return Ok();
         }

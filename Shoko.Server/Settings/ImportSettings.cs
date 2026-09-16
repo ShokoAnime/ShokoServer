@@ -109,6 +109,12 @@ public class ImportSettings
     }
 
     /// <summary>
+    /// Invalidate the cached compiled exclude regular expressions, so they are
+    /// rebuilt from <see cref="Exclude"/> on the next access.
+    /// </summary>
+    public void ResetExcludeRegexes() => _internalExcludeRegexes = null;
+
+    /// <summary>
     /// Run the import scheduled task on startup.
     /// </summary>
     [Display(Name = "Run Import on Startup")]

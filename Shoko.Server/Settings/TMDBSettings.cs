@@ -70,21 +70,27 @@ public class TMDBSettings
     [UsedImplicitly]
     public List<string> InternalImageLanguageOrder
     {
-        get => ImageLanguageOrder
+        get;
+        set => field = value
+            .Select(x => x.GetTitleLanguage())
+            .Where(x => x is not TitleLanguage.Unknown)
+            .Distinct()
             .Select(x => x.GetString())
             .ToList();
-        set => ImageLanguageOrder = value
-            .Select(x => x.GetTitleLanguage())
-            .Distinct()
-            .Where(x => x is not TitleLanguage.Unknown)
-            .ToList();
-    }
+    } =
+    [
+        TitleLanguage.None.GetString(), TitleLanguage.Main.GetString(), TitleLanguage.English.GetString()
+    ];
 
     /// <summary>
     /// Image language preference order, as enum values for consumption.
     /// </summary>
     [JsonIgnore]
-    public List<TitleLanguage> ImageLanguageOrder { get; set; } = [TitleLanguage.None, TitleLanguage.Main, TitleLanguage.English];
+    public List<TitleLanguage> ImageLanguageOrder => InternalImageLanguageOrder
+        .Select(x => x.GetTitleLanguage())
+        .Where(x => x is not TitleLanguage.Unknown)
+        .Distinct()
+        .ToList();
 
     /// <summary>
     /// Automagically download crew and cast for movies and tv shows in the
