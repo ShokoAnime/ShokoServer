@@ -545,80 +545,72 @@ public class AiringScheduleServiceTests
     #region Airing Notifications
 
     [Fact]
-    public void Tick_RaisesAnAiringInTheHorizonOnceAndOnlyOnce()
+    public void Tick_DispatchesAnAiringInTheHorizonOnceAndOnlyOnce()
     {
         using var harness = new Harness();
         var now = Harness.Minute(DateTime.UtcNow);
         var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
         harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, now.AddMinutes(5)));
-        var raised = new List<EpisodeAiredEventArgs>();
-        harness.Service.EpisodeAired += (_, args) => raised.Add(args);
+        var received = new List<EpisodeAiredEventArgs>();
+        using var subscription = harness.Service.SubscribeToAirings(received.Add);
 
         // The first tick only picks the watermark up; nothing has come due yet.
         harness.Notifications.Tick(now);
-        Assert.Empty(raised);
+        Assert.Empty(received);
 
         harness.Notifications.Tick(now.AddMinutes(5));
-        var aired = Assert.Single(raised);
-        Assert.Equal(now.AddMinutes(5), aired.AiredAt);
-        Assert.False(aired.Airing.IsEstimated);
+        var dispatch = Assert.Single(received);
+        Assert.Equal(now.AddMinutes(5), dispatch.AiredAt);
+        Assert.False(Assert.Single(dispatch.Airings).IsEstimated);
 
         // The watermark is past it now, so a later tick — and the rebuild that
         // comes with it — never hands the same slot out twice.
         harness.Notifications.Tick(now.AddMinutes(6));
-        Assert.Single(raised);
+        Assert.Single(received);
     }
 
     [Fact]
-    public void Tick_RaisesOneEventPerAiringRatherThanPerEpisode()
+    public void Tick_BatchesEverythingInOneMinuteIntoASingleDispatch()
     {
         using var harness = new Harness();
         var now = Harness.Minute(DateTime.UtcNow);
-        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
-        var bs11 = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
+        var tokyo = harness.Service.FindOrRegisterChannel("テレビ愛知", AiringChannelType.Television);
+        var tvTokyo = harness.Service.FindOrRegisterChannel("テレビ東京", AiringChannelType.Television);
         var tracks = new[] { new AiringTrackData(AiringKind.Original, "ja") };
-        harness.Schedule(harness.Primary, "mx", tokyo.ID, tracks, (0, now.AddMinutes(5)));
-        harness.Schedule(harness.Primary, "bs11", bs11.ID, tracks, (0, now.AddMinutes(5)));
-        var raised = new List<EpisodeAiredEventArgs>();
-        harness.Service.EpisodeAired += (_, args) => raised.Add(args);
+        harness.Schedule(harness.Primary, "aichi", tokyo.ID, tracks, (0, now.AddMinutes(5)));
+        harness.Schedule(harness.Primary, "tx", tvTokyo.ID, tracks, (0, now.AddMinutes(5)));
+        var received = new List<EpisodeAiredEventArgs>();
+        using var subscription = harness.Service.SubscribeToAirings(received.Add);
 
         harness.Notifications.Tick(now);
         harness.Notifications.Tick(now.AddMinutes(5));
 
-        // One episode, two stations, two events. Whoever wants "this episode
-        // aired" de-duplicates by episode themselves.
-        Assert.Equal(2, raised.Count);
-        Assert.Equal(2, raised.Select(args => args.Airing.ID).Distinct().Count());
-        Assert.Equal(new HashSet<Guid> { tokyo.ID, bs11.ID }, raised.Select(args => args.Airing.Channel!.ID).ToHashSet());
+        // One episode simulcast on two stations at the same minute is one
+        // dispatch carrying both, not two dispatches. Whoever wants "this
+        // episode aired, once" groups the list themselves.
+        var dispatch = Assert.Single(received);
+        Assert.Equal(2, dispatch.Airings.Count);
+        Assert.Equal(2, dispatch.Airings.Select(airing => airing.ID).Distinct().Count());
+        Assert.Equal(new HashSet<Guid> { tokyo.ID, tvTokyo.ID }, dispatch.Airings.Select(airing => airing.Channel!.ID).ToHashSet());
     }
 
     [Fact]
-    public void Tick_RaisesAnEstimateAndFlagsItAsOne()
+    public void Tick_DispatchesAnEstimateAndFlagsItAsOne()
     {
         using var harness = new Harness();
         var now = Harness.Minute(DateTime.UtcNow);
         var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
-        // Two real airings a fixed distance from their AniDB dates are what the
-        // schedule learns its slot from, and the distance is picked so the
-        // fourth episode's estimate lands five minutes out.
-        var offset = now.AddMinutes(5) - harness.Air(22, 0, 0);
-        harness.Schedule(
-            harness.Primary,
-            "mx",
-            tokyo.ID,
-            [new AiringTrackData(AiringKind.Original, "ja")],
-            (0, harness.Air(1, 0, 0) + offset),
-            (1, harness.Air(8, 0, 0) + offset)
-        );
-        var raised = new List<EpisodeAiredEventArgs>();
-        harness.Service.EpisodeAired += (_, args) => raised.Add(args);
+        harness.EstimatedSchedule(now);
+        var received = new List<EpisodeAiredEventArgs>();
+        using var subscription = harness.Service.SubscribeToAirings(received.Add);
 
         harness.Notifications.Tick(now);
         harness.Notifications.Tick(now.AddMinutes(5));
 
-        var aired = Assert.Single(raised);
-        Assert.True(aired.Airing.IsEstimated);
-        Assert.Equal(now.AddMinutes(5), aired.AiredAt);
+        var dispatch = Assert.Single(received);
+        Assert.True(Assert.Single(dispatch.Airings).IsEstimated);
+        Assert.Equal(now.AddMinutes(5), dispatch.AiredAt);
+        Assert.Equal(tokyo.ID, dispatch.Airings[0].Channel!.ID);
     }
 
     [Fact]
@@ -629,14 +621,14 @@ public class AiringScheduleServiceTests
         harness.SeedWatermark(now.AddHours(-3));
         var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
         harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, now.AddMinutes(-30)));
-        var raised = new List<EpisodeAiredEventArgs>();
-        harness.Service.EpisodeAired += (_, args) => raised.Add(args);
+        var received = new List<EpisodeAiredEventArgs>();
+        using var subscription = harness.Service.SubscribeToAirings(received.Add);
 
         harness.Notifications.Tick(now);
 
         // The slot passed while the server was down. An hours-old prediction is
         // worse than none, so it is stepped over rather than announced late.
-        Assert.Empty(raised);
+        Assert.Empty(received);
         Assert.Equal(now, harness.Notifications.Watermark);
         Assert.Equal(now, harness.Watermark?.LastUpdate);
     }
@@ -648,8 +640,8 @@ public class AiringScheduleServiceTests
         var now = Harness.Minute(DateTime.UtcNow);
         var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
         var schedule = harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, now.AddMinutes(10)));
-        var raised = new List<EpisodeAiredEventArgs>();
-        harness.Service.EpisodeAired += (_, args) => raised.Add(args);
+        var received = new List<EpisodeAiredEventArgs>();
+        using var subscription = harness.Service.SubscribeToAirings(received.Add);
 
         harness.Notifications.Tick(now);
         Assert.Single(harness.Notifications.Horizon);
@@ -661,11 +653,254 @@ public class AiringScheduleServiceTests
         ]);
 
         harness.Notifications.Tick(now.AddMinutes(10));
-        Assert.Empty(raised);
+        Assert.Empty(received);
 
         harness.Notifications.Tick(now.AddMinutes(50));
-        var aired = Assert.Single(raised);
-        Assert.Equal(now.AddMinutes(50), aired.AiredAt);
+        Assert.Equal(now.AddMinutes(50), Assert.Single(received).AiredAt);
+    }
+
+    [Fact]
+    public void Tick_StaysIdleWhileNobodyIsSubscribed()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, now.AddMinutes(5)));
+
+        harness.Notifications.Tick(now);
+
+        // Nothing is listening, so nothing is held in memory and the read path
+        // — estimates and all — is never run at all.
+        Assert.Empty(harness.Notifications.Horizon);
+        Assert.Empty(harness.Notifications.Tick(now.AddMinutes(5)));
+        Assert.Empty(harness.Notifications.Horizon);
+
+        // The watermark still walks forward, so the first subscriber to turn up
+        // is not handed everything it slept through.
+        Assert.Equal(now.AddMinutes(5), harness.Notifications.Watermark);
+    }
+
+    [Fact]
+    public void Tick_ArmsTheHorizonOnTheFirstSubscriberRatherThanTheNextRefresh()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, now.AddMinutes(5)));
+
+        harness.Notifications.Tick(now);
+        Assert.Empty(harness.Notifications.Horizon);
+
+        var received = new List<EpisodeAiredEventArgs>();
+        using var subscription = harness.Service.SubscribeToAirings(received.Add);
+
+        // The very next tick rebuilds, a quarter of an hour before the periodic
+        // refresh would have, because the subscription version moved.
+        harness.Notifications.Tick(now.AddMinutes(1));
+        Assert.Single(harness.Notifications.Horizon);
+
+        harness.Notifications.Tick(now.AddMinutes(5));
+        Assert.Single(Assert.Single(received).Airings);
+    }
+
+    [Fact]
+    public void Tick_SkipsTheEstimatesWhenNoSubscriberWantsThem()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        harness.EstimatedSchedule(now);
+        var received = new List<EpisodeAiredEventArgs>();
+        using var subscription = harness.Service.SubscribeToAirings(received.Add, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+
+        harness.Notifications.Tick(now);
+
+        // The only thing the hour holds is an estimate, and estimates are
+        // computed through the read path rather than stored, so a horizon
+        // nobody wants them in never computes one.
+        Assert.Empty(harness.Notifications.Horizon);
+        Assert.Empty(harness.Notifications.Tick(now.AddMinutes(5)));
+        Assert.Empty(received);
+    }
+
+    [Fact]
+    public void Tick_UnionsTheHorizonOverEveryLiveSubscriber()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        harness.EstimatedSchedule(now);
+        var withoutEstimates = new List<EpisodeAiredEventArgs>();
+        var withEstimates = new List<EpisodeAiredEventArgs>();
+        using var first = harness.Service.SubscribeToAirings(withoutEstimates.Add, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+        using var second = harness.Service.SubscribeToAirings(withEstimates.Add, new EpisodeAiringFilteringOptions() { IncludeEstimates = true });
+
+        harness.Notifications.Tick(now);
+        harness.Notifications.Tick(now.AddMinutes(5));
+
+        // One subscriber wanting estimates is enough for the horizon to hold
+        // them, and the one that didn't ask still never sees them.
+        Assert.Single(Assert.Single(withEstimates).Airings);
+        Assert.Empty(withoutEstimates);
+    }
+
+    [Fact]
+    public void SubscribeToAirings_FiltersPerSubscriber()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var bs11 = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
+        var tracks = new[] { new AiringTrackData(AiringKind.Original, "ja") };
+        harness.Schedule(harness.Primary, "mx", tokyo.ID, tracks, (0, now.AddMinutes(5)));
+        harness.Schedule(harness.Primary, "bs11", bs11.ID, tracks, (0, now.AddMinutes(5)));
+        var tokyoOnly = new List<EpisodeAiredEventArgs>();
+        var everything = new List<EpisodeAiredEventArgs>();
+        using var first = harness.Service.SubscribeToAirings(
+            tokyoOnly.Add,
+            new EpisodeAiringFilteringOptions() { ChannelIDs = new HashSet<Guid> { tokyo.ID } }
+        );
+        using var second = harness.Service.SubscribeToAirings(everything.Add);
+
+        harness.Notifications.Tick(now);
+        harness.Notifications.Tick(now.AddMinutes(5));
+
+        // One horizon, two answers: the filters are the subscriber's, not the
+        // ticker's.
+        Assert.Equal(tokyo.ID, Assert.Single(Assert.Single(tokyoOnly).Airings).Channel!.ID);
+        Assert.Equal(2, Assert.Single(everything).Airings.Count);
+    }
+
+    [Fact]
+    public void SubscribeToAirings_StopsDispatchingOnceDisposed()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var tracks = new[] { new AiringTrackData(AiringKind.Original, "ja") };
+        harness.Schedule(harness.Primary, "mx", tokyo.ID, tracks, (0, now.AddMinutes(5)), (1, now.AddMinutes(10)));
+        var leaving = new List<EpisodeAiredEventArgs>();
+        var staying = new List<EpisodeAiredEventArgs>();
+        var subscription = harness.Service.SubscribeToAirings(leaving.Add);
+        using var other = harness.Service.SubscribeToAirings(staying.Add);
+
+        harness.Notifications.Tick(now);
+        harness.Notifications.Tick(now.AddMinutes(5));
+        Assert.Single(leaving);
+
+        subscription.Dispose();
+        // Disposing twice, from anywhere, is a no-op rather than a second
+        // removal or a throw.
+        subscription.Dispose();
+
+        harness.Notifications.Tick(now.AddMinutes(10));
+        Assert.Single(leaving);
+        Assert.Equal(2, staying.Count);
+    }
+
+    [Fact]
+    public void SubscribeToAirings_KeepsGoingWhenOneSubscriberThrows()
+    {
+        using var harness = new Harness();
+        var now = Harness.Minute(DateTime.UtcNow);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, now.AddMinutes(5)));
+        var received = new List<EpisodeAiredEventArgs>();
+        using var bad = harness.Service.SubscribeToAirings(_ => throw new InvalidOperationException("A bad plugin."));
+        using var good = harness.Service.SubscribeToAirings(received.Add);
+
+        harness.Notifications.Tick(now);
+        var due = harness.Notifications.Tick(now.AddMinutes(5));
+
+        // A plugin that throws costs itself its dispatch, and neither the tick
+        // nor the subscribers behind it.
+        Assert.Single(due);
+        Assert.Single(Assert.Single(received).Airings);
+    }
+
+    #endregion
+
+    #region Entity Anchor
+
+    [Fact]
+    public void GetAiringsForEpisode_AutoAnchorsToTheEntityItWasGiven()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.OrphanSchedule(harness.Primary, "orphan", tokyo.ID, harness.Air(1));
+
+        // The episode has no shoko episode behind it, so Auto infers Raw from
+        // it and the airing is returned exactly as the provider stored it.
+        var auto = harness.Service.GetAiringsForEpisode(harness.OrphanEpisode, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+        Assert.Single(auto);
+
+        var raw = harness.Service.GetAiringsForEpisode(harness.OrphanEpisode, new EpisodeAiringFilteringOptions()
+        {
+            IncludeEstimates = false,
+            EntityAnchor = AiringEntityAnchor.Raw,
+        });
+        Assert.Equal(auto.Select(airing => airing.ID), raw.Select(airing => airing.ID));
+    }
+
+    [Fact]
+    public void GetAiringsForEpisode_ShokoAnchorDropsWhatResolvesToNoShokoEpisode()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.OrphanSchedule(harness.Primary, "orphan", tokyo.ID, harness.Air(1));
+
+        Assert.Empty(harness.Service.GetAiringsForEpisode(harness.OrphanEpisode, new EpisodeAiringFilteringOptions()
+        {
+            IncludeEstimates = false,
+            EntityAnchor = AiringEntityAnchor.Shoko,
+        }));
+    }
+
+    [Fact]
+    public void GetAiringsForEpisode_AutoAnchorsAShokoEpisodeToShoko()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(1)));
+
+        // The provider stored the airing against its own episode; asking from
+        // the shoko side still reaches it, and every airing carries the shoko
+        // episode the read was anchored to.
+        var airings = harness.Service.GetAiringsForEpisode(harness.ShokoEpisodes[0], new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+        Assert.Equal(harness.ShokoEpisodes[0].ID, Assert.Single(airings).ShokoEpisode?.ID);
+    }
+
+    [Fact]
+    public void GetAiringsInRange_AutoFallsBackToRawWithNoEntityToInferFrom()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var airedAt = harness.Air(1);
+        harness.OrphanSchedule(harness.Primary, "orphan", tokyo.ID, airedAt);
+        var from = airedAt.AddHours(-1);
+        var to = airedAt.AddHours(1);
+        var options = new EpisodeAiringFilteringOptions() { IncludeEstimates = false };
+
+        // Nothing was passed in to infer an anchor from, so Auto reads Raw and
+        // the range keeps what it always kept.
+        Assert.Single(harness.Service.GetAiringsInRange(from, to, options));
+        Assert.Empty(harness.Service.GetAiringsInRange(from, to, new EpisodeAiringFilteringOptions()
+        {
+            IncludeEstimates = false,
+            EntityAnchor = AiringEntityAnchor.Shoko,
+        }));
+    }
+
+    [Fact]
+    public void GetSchedulesForSeries_ShokoAnchorDropsWhatResolvesToNoShokoSeries()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.OrphanSchedule(harness.Primary, "orphan", tokyo.ID, harness.Air(1));
+
+        Assert.Single(harness.Service.GetSchedulesForSeries(harness.OrphanSeries));
+        Assert.Empty(harness.Service.GetSchedulesForSeries(harness.OrphanSeries, new AiringScheduleFilteringOptions()
+        {
+            EntityAnchor = AiringEntityAnchor.Shoko,
+        }));
     }
 
     #endregion
@@ -720,6 +955,12 @@ public class AiringScheduleServiceTests
 
         /// <summary>The shoko series the provider-side one is linked to.</summary>
         public IShokoSeries ShokoSeries { get; }
+
+        /// <summary>A provider-side series with nothing in the collection behind it, for the anchor.</summary>
+        public ISeries OrphanSeries { get; }
+
+        /// <summary>The one episode of <see cref="OrphanSeries"/>, which resolves to no shoko episode at all.</summary>
+        public IEpisode OrphanEpisode { get; }
 
         public Harness()
         {
@@ -797,6 +1038,26 @@ public class AiringScheduleServiceTests
                 shokoEpisodes.Add(shokoEpisode.Object);
             }
 
+            // Its own series, so it never joins the runs the rest of the tests
+            // read, estimate over or count.
+            var orphanSeries = new Mock<ISeries>();
+            orphanSeries.SetupGet(series => series.ID).Returns(3);
+            orphanSeries.SetupGet(series => series.Source).Returns(DataSource.Plugin);
+            orphanSeries.SetupGet(series => series.EntityType).Returns(DataEntityType.Series);
+            orphanSeries.SetupGet(series => series.ShokoSeries).Returns([]);
+            var orphanEpisode = new Mock<IEpisode>();
+            orphanEpisode.SetupGet(entry => entry.ID).Returns(300);
+            orphanEpisode.SetupGet(entry => entry.Source).Returns(DataSource.Plugin);
+            orphanEpisode.SetupGet(entry => entry.EntityType).Returns(DataEntityType.Episode);
+            orphanEpisode.SetupGet(entry => entry.SeriesID).Returns(3);
+            orphanEpisode.SetupGet(entry => entry.Type).Returns(EpisodeType.Episode);
+            orphanEpisode.SetupGet(entry => entry.EpisodeNumber).Returns(1);
+            orphanEpisode.SetupGet(entry => entry.AirDate).Returns(DateOnly.FromDateTime(_firstAirDate));
+            orphanEpisode.SetupGet(entry => entry.ShokoEpisodes).Returns([]);
+            orphanSeries.SetupGet(series => series.Episodes).Returns(() => [orphanEpisode.Object]);
+            OrphanSeries = orphanSeries.Object;
+            OrphanEpisode = orphanEpisode.Object;
+
             Episodes = episodes;
             ShokoEpisodes = shokoEpisodes;
             shokoSeries.SetupGet(series => series.Episodes).Returns(() => shokoEpisodes);
@@ -854,11 +1115,12 @@ public class AiringScheduleServiceTests
             IReadOnlyList<AiringTrackData>? tracks = null,
             string? url = null,
             int? lastEpisodeNumber = null,
-            bool shokoEntities = false
+            bool shokoEntities = false,
+            ISeries? series = null
         )
             => new()
             {
-                Series = shokoEntities ? ShokoSeries : ProviderSeries,
+                Series = series ?? (shokoEntities ? ShokoSeries : ProviderSeries),
                 ChannelID = channelID,
                 Tracks = tracks ?? [new AiringTrackData(AiringKind.Original, "ja")],
                 Key = key,
@@ -898,6 +1160,36 @@ public class AiringScheduleServiceTests
             return schedule;
         }
 
+        /// <summary>
+        ///   A schedule on <see cref="OrphanSeries"/> with its one airing, which is what the
+        ///   anchor has to drop when it is told to answer with shoko entities.
+        /// </summary>
+        public IAiringSchedule OrphanSchedule(IAiringScheduleProvider provider, string key, Guid? channelID, DateTime airedAt)
+        {
+            var schedule = Service.AddOrUpdateSchedule(provider, ScheduleData(key, channelID, series: OrphanSeries));
+            Service.SetAirings(provider, schedule, [new EpisodeAiringData() { Episode = OrphanEpisode, AiredAt = airedAt }]);
+            return schedule;
+        }
+
+        /// <summary>
+        ///   A weekly run whose two real airings sit a fixed distance from their AniDB dates, so
+        ///   the slot it learns puts the fourth episode's estimate five minutes after
+        ///   <paramref name="now"/> and nothing real lands in the ticker's hour.
+        /// </summary>
+        public IAiringSchedule EstimatedSchedule(DateTime now)
+        {
+            var tokyo = Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+            var offset = now.AddMinutes(5) - Air(22, 0, 0);
+            return Schedule(
+                Primary,
+                "mx",
+                tokyo.ID,
+                [new AiringTrackData(AiringKind.Original, "ja")],
+                (0, Air(1, 0, 0) + offset),
+                (1, Air(8, 0, 0) + offset)
+            );
+        }
+
         public void Dispose()
         {
             Notifications.Dispose();
@@ -915,11 +1207,11 @@ public class AiringScheduleServiceTests
             public IMetadata? GetEntity(DataSource source, DataEntityType type, string id)
                 => type switch
                 {
-                    DataEntityType.Series => harness.ProviderSeries.ID.ToString() == id
-                        ? harness.ProviderSeries
-                        : harness.ShokoSeries.ID.ToString() == id ? harness.ShokoSeries : null,
+                    DataEntityType.Series => new[] { harness.ProviderSeries, harness.ShokoSeries, harness.OrphanSeries }
+                        .FirstOrDefault(entity => entity.ID.ToString() == id),
                     DataEntityType.Episode => harness.Episodes.Cast<IMetadata>()
                         .Concat(harness.ShokoEpisodes)
+                        .Append(harness.OrphanEpisode)
                         .FirstOrDefault(entity => entity is IEpisode episode && episode.ID.ToString() == id),
                     _ => null,
                 };

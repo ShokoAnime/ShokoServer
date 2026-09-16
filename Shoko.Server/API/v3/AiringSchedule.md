@@ -37,6 +37,8 @@ The hard filters:
 - `includeMissing` / `includeRestricted` — the same three-state filters the rest
   of v3 uses. By default a series nothing has been downloaded for is hidden, and
   restricted (H) series are hidden.
+- `entityAnchor` — whose entities the answer is about. See *Entity anchor*,
+  below.
 
 An item's `Tracks` are the schedule's, repeated on every airing so a row can be
 labelled without a second request. A global release is one item listing every
@@ -129,6 +131,35 @@ real `Original` airing, which is what a client labels as a simulcast ("+1 h") or
 a lag ("+14 d"). It is `null` when this *is* that airing, or when there is none.
 A negative offset is valid.
 
+## Entity anchor
+
+A schedule is stored against whatever entity its provider knew about: an
+AniList anime, a TMDB show, a plugin's own series. The same run can therefore be
+reached from either side of a link, and `entityAnchor` says which side you want
+back. It takes one of three values, spelled in `PascalCase` like every other
+enum over this API:
+
+- `Auto` (the default) — infer it. A route that takes an entity takes the anchor
+  from that entity, so `/api/v3/Series/{seriesID}/AiringSchedule/Airing` and
+  `/api/v3/Episode/{episodeID}/AiringSchedule/Airing` anchor to shoko because a
+  shoko series and episode is what they were given. A route that takes no entity
+  (`/Airing`, `/{scheduleID}/Airing`, `/Channel/{channelID}/Airing`) falls back
+  to `Raw`.
+- `Raw` — the providers' own entities, exactly as stored. Nothing is dropped for
+  having no counterpart in the collection.
+- `Shoko` — only what resolves to a shoko entity. An airing whose episode is not
+  in the collection drops out, and on the series schedules route a schedule with
+  no shoko series behind it does too.
+
+`Auto` is what every existing caller already gets, so leaving it off changes
+nothing. Reach for `Shoko` on a range read when you are building something that
+can only act on what the collection actually holds, and `Raw` when you want the
+provider's view of a run whether or not it has been matched yet.
+
+It is a named value rather than a missing field on purpose, so `"Auto"` reads
+back as a deliberate answer. That is also why it is not the `bool?` three-state
+that `linkedEntityAirings` uses: a bool has no room for a third name.
+
 ## Series and episode routes
 
 - `GET /api/v3/Series/{seriesID}/AiringSchedule` — the schedules covering a
@@ -150,42 +181,46 @@ which means linked for shoko entities and own-only for everything else.
 
 ## Live updates
 
-The server keeps the next hour of airings in memory and pushes each one as its
-slot passes, so a calendar or a "now airing" strip stays current without
-re-fetching the range every minute. Join the `airing` feed on the aggregate hub
-and listen for `airing:episode.aired`:
+The server keeps the next hour of airings in memory and pushes each minute's
+worth as its slot passes, so a calendar or a "now airing" strip stays current
+without re-fetching the range every minute. Join the `airing` feed on the
+aggregate hub and listen for `airing:episode.aired`:
 
 ```js
 const connection = new signalR.HubConnectionBuilder()
   .withUrl("/signalr/aggregate?feeds=airing", { accessTokenFactory: () => apiKey })
   .build();
 
-connection.on("airing:episode.aired", ({ AiredAt, IsEstimated, Airing }) => {
-  if (IsEstimated) return;      // a prediction, not a fact
-  markAsAired(Airing.ID, AiredAt);
+connection.on("airing:episode.aired", ({ AiredAt, Airings }) => {
+  for (const airing of Airings) {
+    if (airing.IsEstimated) continue;   // a prediction, not a fact
+    markAsAired(airing.ID, AiredAt);
+  }
 });
 ```
 
-`Airing` is the same `EpisodeAiring` object the airings endpoint returns, minus
-the opt-in display data (`Series`, `EpisodeTitle`, `Poster` and `Thumbnail` are
-never filled in on a push), so the same rendering code handles both. `AiredAt`
-is the slot that passed, in UTC, and `IsEstimated` mirrors
-`Airing.IsEstimated`.
+`AiredAt` is the minute that passed, in UTC. `Airings` is a list of the same
+`EpisodeAiring` objects the airings endpoint returns, minus the opt-in display
+data (`Series`, `EpisodeTitle`, `Poster` and `Thumbnail` are never filled in on
+a push), so the same rendering code handles both.
 
 Four things to build around:
 
-- **One message per airing, not per episode.** An episode on three channels
-  sends three messages. De-duplicate by `Airing.IDs.ShokoEpisode` if what you
-  want is "this episode aired", or by `Airing.LinkID` for one card per slot.
-- **Estimates are pushed too.** An estimated message is a prediction, and there
+- **One message per minute, not per airing.** A simulcast puts several airings
+  on the same minute, say the same episode at 11:25 on both テレビ愛知 and
+  テレビ東京, and they arrive in one message. Group `Airings` by
+  `IDs.ShokoEpisode` if what you want is "this episode aired", by `LinkID` for
+  one card per slot, or leave it alone for a row per channel. `Airings` is never
+  empty.
+- **Estimates are pushed too.** An estimated airing is a prediction, and there
   is **no retraction message** if the estimate later moves. When the real slot
-  arrives it is a different airing with its own ID and sends its own message, so
-  a client that treats both as "it aired" shows it twice. Either skip the
-  estimates, or key your UI on `Airing.ID` and let the real one replace the
-  guess.
+  arrives it is a different airing with its own ID in its own message, so a
+  client that treats both as "it aired" shows it twice. Either skip the
+  estimates, or key your UI on `ID` and let the real one replace the guess.
 - **Nothing is replayed.** A client connecting after a server restart has a gap
   rather than a burst; re-read the range with the airings endpoint on connect if
-  the gap matters.
+  the gap matters. The airings endpoint is the pull side of the same filtering,
+  so nothing has to be re-implemented to do that.
 - **It fires within a minute of the slot**, never before it.
 
 ## The dashboard calendars

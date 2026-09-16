@@ -43,7 +43,7 @@ public partial class AiringScheduleService
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
         context.Remember(episode);
-        return ReadAirings(context, episode, options);
+        return ReadAirings(context, episode, options, ResolveAnchor(options.EntityAnchor, episode));
     }
 
     /// <inheritdoc/>
@@ -59,7 +59,8 @@ public partial class AiringScheduleService
 
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
-        return series.Episodes.SelectMany(episode => ReadAirings(context, episode, options)).ToList();
+        var anchor = ResolveAnchor(options.EntityAnchor, series);
+        return series.Episodes.SelectMany(episode => ReadAirings(context, episode, options, anchor)).ToList();
     }
 
     /// <inheritdoc/>
@@ -71,7 +72,8 @@ public partial class AiringScheduleService
 
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
-        return season.Episodes.SelectMany(episode => ReadAirings(context, episode, options)).ToList();
+        var anchor = ResolveAnchor(options.EntityAnchor, season);
+        return season.Episodes.SelectMany(episode => ReadAirings(context, episode, options, anchor)).ToList();
     }
 
     /// <inheritdoc/>
@@ -85,6 +87,8 @@ public partial class AiringScheduleService
         if (RepoFactory.AiringSchedule.GetByScheduleID(scheduleID) is not { } row)
             return [];
 
+        // No entity was passed in, so there is nothing to infer an anchor from.
+        var anchor = ResolveAnchor(options.EntityAnchor, null);
         var scheduleView = context.GetSchedule(row);
         if (!MatchesFilters(context, scheduleView, options))
             return [];
@@ -108,6 +112,7 @@ public partial class AiringScheduleService
             }
         }
 
+        ApplyAnchor(views, anchor);
         return Order(context, views, options).ToList();
     }
 
@@ -121,6 +126,8 @@ public partial class AiringScheduleService
 
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
+        // No entity was passed in, so there is nothing to infer an anchor from.
+        var anchor = ResolveAnchor(options.EntityAnchor, null);
         var from = AddDaysClamped(DateOnly.FromDateTime(fromUtc), -RangeBucketSlackDays);
         var to = AddDaysClamped(DateOnly.FromDateTime(toUtc), RangeBucketSlackDays);
         var scheduleMatches = new Dictionary<int, bool>();
@@ -164,7 +171,7 @@ public partial class AiringScheduleService
         }
 
         return targets.Values
-            .SelectMany(episode => ReadAirings(context, episode, options))
+            .SelectMany(episode => ReadAirings(context, episode, options, anchor))
             .Where(airing => IsInRange(airing, fromUtc, toUtc, options.IncludeDelayedOriginalSlots))
             .OrderBy(airing => airing.AiredAt ?? airing.OriginalAiredAt ?? DateTime.MaxValue)
             .ThenBy(airing => airing.Channel?.Name ?? string.Empty, StringComparer.Ordinal)
@@ -184,8 +191,9 @@ public partial class AiringScheduleService
     /// <param name="context">The read the views belong to.</param>
     /// <param name="episode">The episode the read is for.</param>
     /// <param name="options">The filters and preference to read with.</param>
+    /// <param name="anchor">The resolved entity anchor, never <see cref="AiringEntityAnchor.Auto"/>.</param>
     /// <returns>The episode's airings, best first.</returns>
-    private List<IEpisodeAiring> ReadAirings(AiringReadContext context, IEpisode episode, EpisodeAiringFilteringOptions options)
+    private List<IEpisodeAiring> ReadAirings(AiringReadContext context, IEpisode episode, EpisodeAiringFilteringOptions options, AiringEntityAnchor anchor)
     {
         var now = DateTime.UtcNow;
         var linked = options.LinkedEntityAirings ?? episode is IShokoEpisode;
@@ -211,6 +219,9 @@ public partial class AiringScheduleService
         if (options.IncludeEstimates)
             views.AddRange(GetEstimates(context, episode, keys, covered, options));
 
+        // Before the ordering, so a preferred-only read is handed the best of
+        // what the anchor kept rather than nothing at all.
+        ApplyAnchor(views, anchor);
         return Order(context, views, options).ToList();
     }
 
@@ -377,6 +388,59 @@ public partial class AiringScheduleService
             return false;
 
         return true;
+    }
+
+    /// <summary>
+    /// The anchor a read runs with: the caller's, or the one inferred from the
+    /// entity it was given. A read that takes no entity infers
+    /// <see cref="AiringEntityAnchor.Raw"/>, which is what every read did
+    /// before the anchor existed.
+    /// </summary>
+    /// <param name="anchor">The anchor the caller asked for.</param>
+    /// <param name="entity">The entity the read was given, or <see langword="null"/> when it takes none.</param>
+    /// <param name="alreadySatisfied">
+    /// Whether everything this read can find is anchored to shoko by the way it
+    /// was found, which collapses a shoko anchor back to
+    /// <see cref="AiringEntityAnchor.Raw"/> so it drops nothing. A read that
+    /// started from a shoko-resolvable entity only ever reaches that entity's
+    /// own schedules and the ones its links lead to, so there is nothing left
+    /// for the anchor to filter and the read answers exactly what it always
+    /// did.
+    /// </param>
+    /// <returns>The resolved anchor, never <see cref="AiringEntityAnchor.Auto"/>.</returns>
+    internal static AiringEntityAnchor ResolveAnchor(AiringEntityAnchor anchor, IMetadata? entity, bool alreadySatisfied = false)
+    {
+        var resolved = anchor switch
+        {
+            AiringEntityAnchor.Raw => AiringEntityAnchor.Raw,
+            AiringEntityAnchor.Shoko => AiringEntityAnchor.Shoko,
+            _ => entity is IShokoSeries or IShokoSeason or IShokoEpisode ? AiringEntityAnchor.Shoko : AiringEntityAnchor.Raw,
+        };
+        return alreadySatisfied && resolved is AiringEntityAnchor.Shoko ? AiringEntityAnchor.Raw : resolved;
+    }
+
+    /// <summary>
+    /// Drop the airings a shoko anchor does not want: the ones that resolve to
+    /// no shoko episode at all. A raw anchor keeps everything as the provider
+    /// gave it.
+    /// </summary>
+    /// <remarks>
+    /// This composes with <see cref="EpisodeAiringFilteringOptions.LinkedEntityAirings"/>
+    /// rather than overriding it: the links decide what the read <em>finds</em>,
+    /// and the anchor decides what survives. A read that started from a shoko
+    /// episode has already resolved every view for it, so the anchor it infers
+    /// has nothing left to drop and the read is unchanged; one that started from
+    /// a provider episode only reaches a shoko episode through the links, so
+    /// anchoring to shoko without them correctly answers nothing.
+    /// </remarks>
+    /// <param name="views">The airings that survived the filters, narrowed in place.</param>
+    /// <param name="anchor">The resolved entity anchor.</param>
+    private static void ApplyAnchor(List<EpisodeAiringView> views, AiringEntityAnchor anchor)
+    {
+        if (anchor is not AiringEntityAnchor.Shoko)
+            return;
+
+        views.RemoveAll(view => view.ShokoEpisode is null);
     }
 
     /// <summary>

@@ -74,11 +74,74 @@ public class MyAiringScheduleProvider(MyClient client) : IAiringScheduleProvider
 }
 ```
 
-Register it in your plugin's `RegisterServices`:
+### Registering it, and usually not registering it
+
+Core finds providers by reflecting over your assembly's *types* and then asking
+the container for each one **by its concrete type**
+(`ActivatorUtilities.GetServiceOrCreateInstance`). That call constructs the
+instance when the type is not registered, injecting its constructor
+dependencies from DI as normal, and `AddParts` holds what comes back for the
+life of the process. Three branches follow from that, in the order you should
+reach for them:
+
+**1. No registration at all.** The default, and what most providers want.
 
 ```csharp
+// Nothing. Core discovers MyAiringScheduleProvider, constructs it with
+// constructor injection, and keeps it.
+```
+
+A provider that core only ever drives through `RefreshAsync` needs no entry in
+`RegisterServices` whatsoever. That includes one running its own internal timer
+for its own cadence, since the instance core holds is long-lived either way.
+Anything the constructor asks for (an `HttpClient`, your own rate limiter, a
+`ConfigurationProvider<T>`) still resolves from DI.
+
+**2. Register the concrete type as a singleton,** but only when your own code
+resolves the provider: a queue job or a controller of yours that calls into it,
+for instance.
+
+```csharp
+services.AddSingleton<MyAiringScheduleProvider>();
+```
+
+The singleton lifetime is the whole point: it is what makes your job and core
+share *one* instance. A **transient** registration here is as bad as no
+registration at all, since your job and core would each construct their own. If
+you register it, register it as a singleton.
+
+This is what the three shipping providers do: `SyoboiAiringScheduleProvider`,
+`AnimeScheduleProvider` and `TvMazeAiringScheduleProvider` are each registered
+as singletons because each plugin's own sweep job takes the provider by concrete
+type in its constructor.
+
+**3. Never register it under the interface.**
+
+```csharp
+// Wrong, in three separate ways.
 services.AddSingleton<IAiringScheduleProvider, MyAiringScheduleProvider>();
 ```
+
+- **It pollutes the container for everyone else.** Resolving a single
+  `IAiringScheduleProvider` returns whichever registration came *last*, so with
+  two plugins doing this the winner is plugin load order, which is arbitrary and
+  changes when a user installs or removes some unrelated plugin. Core or another
+  plugin calling `GetRequiredService<IAiringScheduleProvider>()` then quietly
+  gets your provider instead of its own.
+- **Core never looks at it.** `GetExports<T>()` asks for the concrete type, so
+  the interface registration is dead weight.
+- **So a second instance is built.** The concrete type is still unregistered,
+  `GetServiceOrCreateInstance` constructs a fresh one, and you now have two: the
+  one in DI that nothing reaches, and the one core holds. Singleton state (rate
+  limiters, caches, HTTP clients, warn-once flags) splits between them, and
+  because the service checks every write against the instance it was handed
+  at registration, code that resolves `IAiringScheduleProvider` out of DI holds
+  the wrong object and every `AddOrUpdateSchedule` or `SetAirings` it makes
+  throws `ArgumentException`.
+
+Keep the reference your own constructor was given, and pass it to every write.
+
+### The rest of the contract
 
 - **`AvailableKinds`** works like `IHashProvider.AvailableHashTypes`: it is
   fixed for the provider's lifetime, and a schedule with a track of an
@@ -272,62 +335,128 @@ negative for one released early or day-and-date.
 
 ## Reacting to an episode airing
 
-Everything above is about *writing* the schedule. `EpisodeAired` is the way to
-*react* to it: the server keeps the next hour of airings in memory and raises
-the event as each slot passes, so a plugin can act on an episode airing without
-polling `GetAiringsInRange` on a timer of its own.
+Everything above is about *writing* the schedule. `SubscribeToAirings` is how
+you *react* to it: the server keeps the next hour of airings in memory and hands
+each minute's worth to its subscribers as the slots pass, so a plugin can act on
+an episode airing without polling on a timer of its own.
 
 ```csharp
-public class Plugin : IPlugin
+public class Plugin : IPlugin, IDisposable
 {
-    private readonly IAiringScheduleService _airingScheduleService;
+    private readonly IDisposable _subscription;
 
-    public Plugin(IAiringScheduleService airingScheduleService)
+    public Plugin(IAiringScheduleService airingScheduleService, IQueueScheduler queueScheduler)
     {
-        _airingScheduleService = airingScheduleService;
-        _airingScheduleService.EpisodeAired += OnEpisodeAired;
+        _queueScheduler = queueScheduler;
+        // Only the real broadcasts, on the channels this plugin cares about.
+        // Everything not asked for here is never dispatched to this handler.
+        _subscription = airingScheduleService.SubscribeToAirings(OnEpisodesAired, new EpisodeAiringFilteringOptions
+        {
+            IncludeEstimates = false,
+            Kinds = new HashSet<AiringKind> { AiringKind.Original },
+        });
     }
 
-    private void OnEpisodeAired(object? sender, EpisodeAiredEventArgs e)
-    {
-        // A guess is not a fact. Skip the estimates unless you want them.
-        if (e.Airing.IsEstimated)
-            return;
+    public void Dispose() => _subscription.Dispose();
 
-        _logger.LogInformation(
-            "{Episode} just aired on {Channel}.",
-            e.Airing.ShokoEpisode?.ID,
-            e.Airing.Channel?.Name ?? "an unnamed channel"
-        );
+    private void OnEpisodesAired(EpisodeAiredEventArgs e)
+    {
+        // One call per minute, carrying everything that aired in it. Group it
+        // however this plugin thinks about airings; here, once per episode.
+        foreach (var group in e.Airings.GroupBy(airing => airing.ShokoEpisode?.ID))
+        {
+            if (group.Key is not { } episodeID)
+                continue;
+
+            // Hand the real work to the queue and get off the ticker's thread.
+            _queueScheduler.Enqueue<MyJob>(job => job.EpisodeID = episodeID);
+        }
     }
 }
 ```
 
-Four things about it are easy to get wrong:
+### Why a subscription rather than an event
 
-- **It is one event per *airing*, not per episode.** An episode running on
-  TOKYO MX, BS11 and AT-X raises it three times, once per airing, because
-  "aired" is a thing that happens on a channel and each one happens at its own
-  time. A handler that wants "this episode aired, once" de-duplicates by
-  episode itself — the airings of one slot also share a `LinkID`, which is the
-  cheapest way to collapse a linked set.
-- **Estimates raise it too, and an estimated event is a prediction.** Check
-  `IsEstimated`. Nothing is known to have aired, the time came out of the
-  schedule's learned slot rather than a source, and **there is no retraction
-  event** if a provider later moves it. When the real slot does arrive it is a
-  *different* airing with its own stable ID, so it raises its own event; that
-  is correct rather than a duplicate, and a handler that treats both as "it
-  aired" will act twice.
-- **Nothing is replayed after downtime.** A slot that passed while the server
-  was off, or while it was still starting, is stepped over rather than
-  announced late — an hours-old prediction is worse than none. A plugin that
-  needs the airings it missed reads them back with `GetAiringsInRange`.
+A plain `EpisodeAired += …` cannot do either of the two things that matter
+here. It cannot carry **per-subscriber filtering**, leaving every handler to get
+every airing and re-filter it by hand, and it cannot let the producer **do less
+work**, because an event has no idea whether anyone is listening or what they
+would want. A subscription knows both:
+
+- **Each subscriber brings its own `EpisodeAiringFilteringOptions`**, applied
+  before its handler is called. Pass `null` for everything. The same options
+  object the read path takes, so a filter that works on `GetAiringsInRange`
+  works here unchanged.
+- **The lookahead is built from the *union* of the live subscriptions.** This
+  is mostly about `IncludeEstimates`: estimates are computed through the read
+  path rather than stored, so they are the expensive part of filling the hour.
+  If no live subscriber wants estimates, none are computed for anybody.
+- **Nobody subscribed means no work at all:** no lookahead, no estimate
+  pipeline, nothing. The first subscriber to arrive re-arms it on the next tick,
+  not at the next quarter-hour refresh.
+
+### Four things to build around
+
+- **It is one call per *minute*, not per airing.** A simulcast puts several
+  airings on the same minute, say the same episode at 11:25 on both テレビ愛知
+  and テレビ東京, and they arrive together as one list. Group `e.Airings` by
+  `ShokoEpisode` for "this episode aired, once", by `LinkID` for one card per
+  slot, or leave it alone for a row per channel. A handler is only called for a
+  minute that has something for it, so the list is never empty.
+- **Estimates are dispatched too, and an estimate is a prediction.** Turn them
+  off with `IncludeEstimates = false`, or check `IsEstimated` on each airing.
+  Nothing is known to have aired, the time came out of the schedule's learned
+  slot rather than a source, and **there is no retraction** if a provider later
+  moves it. When the real slot arrives it is a *different* airing with its own
+  stable ID, dispatched in its own minute; that is correct rather than a
+  duplicate, and a handler that treats both as "it aired" will act twice.
+- **Nothing is replayed,** neither what passed during downtime nor what passed
+  before you subscribed. An hours-old prediction is worse than none. Read the
+  gap back with `GetAiringsInRange`.
 - **Handlers run on the ticker's own thread.** A slow handler holds up the
-  events behind it, and one that throws is logged and stepped over. Hand real
-  work to a job.
+  minute and every subscriber behind it. Enqueue the work and return; Shoko has
+  a queue for exactly that. A handler that throws is logged against its
+  subscriber and stepped over, and never takes the tick or another subscriber
+  with it.
 
-Core bridges the same event to SignalR clients as `airing:episode.aired`; see
+### Polling instead: `GetAiringsInRange`
+
+A consumer that would rather pull than be pushed reads
+`GetAiringsInRange(fromUtc, toUtc, options)` on whatever cadence suits it. It
+takes the **same** `EpisodeAiringFilteringOptions` and answers the same airings,
+so there is no reason to re-implement any of the filtering on top of the push.
+It is also how a subscriber fills the gap left by a restart. Dispose the
+subscription handle and poll instead, or do both.
+
+Core bridges the same dispatch to SignalR clients as `airing:episode.aired`; see
 `Shoko.Server/API/v3/AiringSchedule.md`.
+
+### Anchoring a read to shoko entities
+
+Both `EpisodeAiringFilteringOptions` and `AiringScheduleFilteringOptions` carry
+an `EntityAnchor`, which says *whose* entities an answer is about:
+
+| Value | Meaning |
+|---|---|
+| `Auto` (the default) | Infer it. A read given a shoko entity anchors to `Shoko`; one given an AniList, TMDB or plugin entity anchors to that source, i.e. `Raw`. A read given no entity at all (`GetAiringsForSchedule(Guid)`, `GetAiringsInRange`, `GetLinkedAirings(Guid)`, `GetSchedulesForProvider`, `GetSchedulesForChannel`, and a subscription) falls back to `Raw`. |
+| `Raw` | The provider's own entities, exactly as stored. Nothing is dropped for having no counterpart in the collection. |
+| `Shoko` | Only what resolves to a shoko entity. An airing with no `IShokoEpisode` behind it, or a schedule with no `IShokoSeries`, drops out. |
+
+It is an enum with an `Auto` member rather than a nullable one on purpose:
+`default` lands on inference, a `switch` over it is checked by the compiler, and
+it serialises over the v3 wire as a self-documenting `"Auto"` rather than an
+absent field. (The `bool?` on `LinkedEntityAirings` and `LinkedEntitySchedules`
+predates this and only looks the way it does because a `bool` has no room for a
+third named state.)
+
+The anchor **composes with** those linked-entity options rather than overriding
+them: the links decide what a read *finds*, the anchor decides what *survives*.
+A read that started from a shoko entity has already reached everything through
+it, so the anchor it infers has nothing left to drop and the read is unchanged.
+That is why `Auto` never alters what an existing caller gets. Anchoring a
+*provider* entity's read to `Shoko` while `LinkedEntityAirings = false`
+correctly answers nothing, since without the links there is no shoko episode to
+reach.
 
 ---
 
@@ -420,10 +549,24 @@ public class MyEntityResolver : IAiringScheduleEntityResolver
 }
 ```
 
-Register it alongside your provider:
+Resolvers are discovered exactly the way providers are, so the same three
+branches apply:
+
+1. **Usually, register nothing.** A resolver core only ever calls to look an
+   entity up or follow a link needs no entry in `RegisterServices`; it will be
+   constructed with constructor injection and held.
+2. **Register the concrete type as a singleton** when your own code, typically
+   the provider next to it, resolves the resolver itself, so the two of you
+   share one instance. A transient registration would hand you a different
+   object than core holds.
+3. **Never register it as `IAiringScheduleEntityResolver`.** It would make a
+   single-instance resolve of that interface return whichever plugin registered
+   last, core would ignore it and build a second instance anyway, and any
+   caching the resolver does would split between the two.
 
 ```csharp
-services.AddSingleton<IAiringScheduleEntityResolver, MyEntityResolver>();
+// Only if your own code resolves it.
+services.AddSingleton<MyEntityResolver>();
 ```
 
 If your provider only ever schedules AniDB, TMDB or AniList entities directly

@@ -115,6 +115,7 @@ public class AiringScheduleController(
     /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
     /// <param name="includeDelayedOriginalSlots">Also match a delayed airing by the slot it was moved out of.</param>
     /// <param name="preferredOnly">Only return one airing per episode, using the server's preference.</param>
+    /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
     /// <returns>The airings in the time-frame, in airing order.</returns>
     [HttpGet("Airing")]
@@ -130,6 +131,7 @@ public class AiringScheduleController(
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeDelayedOriginalSlots = true,
         [FromQuery] bool preferredOnly = false,
+        [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
     )
     {
@@ -151,6 +153,7 @@ public class AiringScheduleController(
             IncludeEstimates = includeEstimates,
             IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
             PreferredOnly = preferredOnly,
+            EntityAnchor = entityAnchor,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsInRange(fromUtc, toUtc, options)
@@ -244,6 +247,7 @@ public class AiringScheduleController(
     /// </summary>
     /// <param name="scheduleID">The ID of the schedule.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedule's own line.</param>
+    /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
     /// <returns>The schedule's airings, in airing order.</returns>
     [ProducesResponseType(200)]
@@ -252,13 +256,14 @@ public class AiringScheduleController(
     public ActionResult<List<EpisodeAiringDto>> GetAiringsByScheduleID(
         [FromRoute] Guid scheduleID,
         [FromQuery] bool includeEstimates = true,
+        [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
     )
     {
         if (airingScheduleService.GetScheduleByID(scheduleID) is null)
             return NotFound(ScheduleNotFoundWithScheduleID);
 
-        var options = new EpisodeAiringFilteringOptions { IncludeEstimates = includeEstimates };
+        var options = new EpisodeAiringFilteringOptions { IncludeEstimates = includeEstimates, EntityAnchor = entityAnchor };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForSchedule(scheduleID, options)
             .Select(airing => (airing, series: context.GetSeries(airing)))
@@ -468,6 +473,7 @@ public class AiringScheduleController(
     /// <param name="endDate">End date. Defaults to a week after the start date.</param>
     /// <param name="kind">Only include airings whose schedule has a track of these kinds.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
+    /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
     /// <returns>The channel's airings in the time-frame, in airing order.</returns>
     [ProducesResponseType(200)]
@@ -479,6 +485,7 @@ public class AiringScheduleController(
         [FromQuery] DateOnly? endDate = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
         [FromQuery] bool includeEstimates = true,
+        [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
     )
     {
@@ -500,6 +507,7 @@ public class AiringScheduleController(
             Kinds = kind is { Count: > 0 } ? kind : null,
             ChannelIDs = new HashSet<Guid> { channelID },
             IncludeEstimates = includeEstimates,
+            EntityAnchor = entityAnchor,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsInRange(fromUtc, toUtc, options)
@@ -619,6 +627,7 @@ public class AiringScheduleController(
     /// <param name="linkedEntitySchedules">
     ///   Set to <c>false</c> for only the series' own schedules, <c>true</c> to also walk its linked entities, or leave it out to let the server decide.
     /// </param>
+    /// <param name="entityAnchor">Which entities the schedules are anchored to. <c>Shoko</c> drops the schedules that resolve to no shoko series.</param>
     /// <returns>The series' schedules.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(403)]
@@ -629,7 +638,8 @@ public class AiringScheduleController(
         [FromQuery] AiringKind? kind = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery] bool includeSeasonSchedules = true,
-        [FromQuery] bool? linkedEntitySchedules = null
+        [FromQuery] bool? linkedEntitySchedules = null,
+        [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto
     )
     {
         if (animeSeries.GetByID(seriesID) is not { } series)
@@ -644,6 +654,7 @@ public class AiringScheduleController(
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
             IncludeSeasonSchedules = includeSeasonSchedules,
             LinkedEntitySchedules = linkedEntitySchedules,
+            EntityAnchor = entityAnchor,
         };
         return airingScheduleService.GetSchedulesForSeries(series, options)
             .Select(schedule => new AiringScheduleDto(schedule))
@@ -660,6 +671,7 @@ public class AiringScheduleController(
     /// <param name="linkedEntityAirings">
     ///   Set to <c>false</c> for only the series' own airings, <c>true</c> to also walk its linked entities, or leave it out to let the server decide.
     /// </param>
+    /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
     /// <returns>The series' airings, in airing order.</returns>
     [ProducesResponseType(200)]
@@ -672,6 +684,7 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery] bool? linkedEntityAirings = null,
+        [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
     )
     {
@@ -687,6 +700,7 @@ public class AiringScheduleController(
             Languages = language is { Count: > 0 } ? language : null,
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
             LinkedEntityAirings = linkedEntityAirings,
+            EntityAnchor = entityAnchor,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForSeries(series, options)
@@ -751,6 +765,7 @@ public class AiringScheduleController(
     /// <param name="linkedEntityAirings">
     ///   Set to <c>false</c> for only the episode's own airings, <c>true</c> to also walk its linked entities, or leave it out to let the server decide.
     /// </param>
+    /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
     /// <returns>The episode's airings, best first.</returns>
     [ProducesResponseType(200)]
@@ -764,6 +779,7 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool? linkedEntityAirings = null,
+        [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
     )
     {
@@ -783,6 +799,7 @@ public class AiringScheduleController(
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
             IncludeDisabled = includeDisabled,
             LinkedEntityAirings = linkedEntityAirings,
+            EntityAnchor = entityAnchor,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForEpisode(episode, options)

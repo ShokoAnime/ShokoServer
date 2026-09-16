@@ -96,10 +96,16 @@ public partial class AiringScheduleService(
     /// <inheritdoc/>
     public event EventHandler<EpisodeAiringsUpdatedEventArgs>? AiringsUpdated;
 
-    /// <inheritdoc/>
-    public event EventHandler<EpisodeAiredEventArgs>? EpisodeAired;
-
     #region Airing Notifications
+
+    /// <summary>
+    /// The live airing subscriptions, keyed by subscription ID. A
+    /// <see cref="ConcurrentDictionary{TKey, TValue}"/> because a plugin may
+    /// subscribe or dispose from any thread while the ticker is walking them.
+    /// </summary>
+    private readonly ConcurrentDictionary<Guid, AiringSubscription> _airingSubscriptions = [];
+
+    private int _airingSubscriptionVersion;
 
     /// <summary>
     /// Whether the parts have been added, so the background ticker can hold off
@@ -109,20 +115,217 @@ public partial class AiringScheduleService(
     internal bool HasParts => _loaded;
 
     /// <summary>
-    /// Raises <see cref="EpisodeAired"/> for one airing whose slot has passed.
-    /// Only <see cref="EpisodeAiringNotificationService"/> calls this: the
-    /// ticker owns the horizon and the watermark, and the service owns the
-    /// event the contract exposes.
+    /// Bumped whenever a subscription is added or removed, so the ticker can
+    /// tell that the horizon it built no longer matches what is being asked
+    /// for. This is what re-arms it the moment the first subscriber turns up,
+    /// rather than at the next periodic refresh.
     /// </summary>
-    /// <param name="airing">The airing whose slot passed.</param>
-    /// <param name="airedAt">The slot that passed, in UTC.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="airing"/> is <see langword="null"/>.</exception>
-    internal void RaiseEpisodeAired(IEpisodeAiring airing, DateTime airedAt)
-    {
-        ArgumentNullException.ThrowIfNull(airing);
+    internal int AiringSubscriptionVersion => Volatile.Read(ref _airingSubscriptionVersion);
 
-        EpisodeAired?.Invoke(this, new EpisodeAiredEventArgs { Airing = airing, AiredAt = airedAt });
+    /// <inheritdoc/>
+    public IDisposable SubscribeToAirings(Action<EpisodeAiredEventArgs> handler, EpisodeAiringFilteringOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(handler);
+
+        var subscription = new AiringSubscription(Guid.NewGuid(), handler, options, DescribeSubscriber(handler));
+        _airingSubscriptions[subscription.ID] = subscription;
+        Interlocked.Increment(ref _airingSubscriptionVersion);
+        logger.LogTrace("Added airing subscription {Subscriber} ({SubscriptionID}).", subscription.Subscriber, subscription.ID);
+
+        return new DisposableAction(() =>
+        {
+            if (!_airingSubscriptions.TryRemove(subscription.ID, out _))
+                return;
+
+            Interlocked.Increment(ref _airingSubscriptionVersion);
+            logger.LogTrace("Removed airing subscription {Subscriber} ({SubscriptionID}).", subscription.Subscriber, subscription.ID);
+        });
     }
+
+    /// <summary>
+    /// The filters the ticker builds its horizon with: the union of what every
+    /// live subscriber asked for, or <see langword="null"/> when nobody is
+    /// subscribed and there is therefore nothing to build.
+    /// </summary>
+    /// <remarks>
+    /// A union rather than the widest possible read, because the widest read is
+    /// the expensive one. <see cref="EpisodeAiringFilteringOptions.IncludeEstimates"/>
+    /// in particular runs the estimate pipeline over the whole window, and it
+    /// is only set here when a live subscriber actually wants estimates.
+    /// </remarks>
+    /// <returns>The union of the live subscriptions' filters, or <see langword="null"/>.</returns>
+    internal EpisodeAiringFilteringOptions? GetAiringHorizonOptions()
+    {
+        var subscriptions = _airingSubscriptions.Values.ToList();
+        if (subscriptions.Count is 0)
+            return null;
+
+        var union = new EpisodeAiringFilteringOptions()
+        {
+            // A read with no current slot never airs, and the gap a calendar
+            // draws for a delayed airing is not an episode airing either, so
+            // neither is ever part of the horizon however anyone subscribed.
+            IncludeDelayedOriginalSlots = false,
+            IncludeEstimates = false,
+            IncludeDisabled = false,
+            // Preference only ever orders a read, and a dispatch is in slot
+            // order, so the widest value is also the only sensible one.
+            PreferredOnly = false,
+            // The widest value: a subscriber that only wants an entity's own
+            // airings still needs the links walked to have them found at all.
+            LinkedEntityAirings = true,
+            EntityAnchor = AiringEntityAnchor.Raw,
+        };
+        var providerIDs = new HashSet<Guid>();
+        var kinds = new HashSet<AiringKind>();
+        var languages = new HashSet<TitleLanguage>();
+        var channelIDs = new HashSet<Guid>();
+        var anyProviderID = false;
+        var anyKinds = false;
+        var anyLanguages = false;
+        var anyChannelIDs = false;
+        foreach (var subscription in subscriptions)
+        {
+            var options = subscription.Options;
+            if (options is null)
+            {
+                // A subscriber that filters nothing widens every set at once,
+                // which is the cheapest way to say "the union is everything".
+                anyProviderID = anyKinds = anyLanguages = anyChannelIDs = true;
+                union.IncludeEstimates = true;
+                union.IncludeDisabled = true;
+                continue;
+            }
+
+            union.IncludeEstimates |= options.IncludeEstimates;
+            union.IncludeDisabled |= options.IncludeDisabled;
+            if (options.ProviderID is { } providerID)
+                providerIDs.Add(providerID);
+            else
+                anyProviderID = true;
+            if (options.Kinds is { } subscriberKinds)
+                kinds.UnionWith(subscriberKinds);
+            else
+                anyKinds = true;
+            if (options.Languages is { } subscriberLanguages)
+                languages.UnionWith(subscriberLanguages);
+            else
+                anyLanguages = true;
+            if (options.ChannelIDs is { } subscriberChannelIDs)
+                channelIDs.UnionWith(subscriberChannelIDs);
+            else
+                anyChannelIDs = true;
+        }
+
+        // A single provider is all the stored filter can name, so it only
+        // survives the union when every subscriber named the same one.
+        union.ProviderID = !anyProviderID && providerIDs.Count is 1 ? providerIDs.First() : null;
+        union.Kinds = anyKinds ? null : kinds;
+        union.Languages = anyLanguages ? null : languages;
+        union.ChannelIDs = anyChannelIDs ? null : channelIDs;
+        return union;
+    }
+
+    /// <summary>
+    /// Hands one minute's airings to every subscriber the minute has something
+    /// for, each filtered by its own options. Only
+    /// <see cref="EpisodeAiringNotificationService"/> calls this: the ticker
+    /// owns the horizon and the watermark, and the service owns the
+    /// subscriptions the contract exposes.
+    /// </summary>
+    /// <remarks>
+    /// Each handler is wrapped on its own, so a plugin that throws costs itself
+    /// its dispatch and nothing else — not the tick, and not the subscribers
+    /// behind it.
+    /// </remarks>
+    /// <param name="minute">The minute that passed, in UTC.</param>
+    /// <param name="airings">The airings whose slot passed, in slot order.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="airings"/> is <see langword="null"/>.</exception>
+    internal void DispatchEpisodesAired(DateTime minute, IReadOnlyList<IEpisodeAiring> airings)
+    {
+        ArgumentNullException.ThrowIfNull(airings);
+
+        if (airings.Count is 0 || _airingSubscriptions.IsEmpty)
+            return;
+
+        foreach (var subscription in _airingSubscriptions.Values)
+        {
+            var matched = FilterAiringsForSubscriber(airings, subscription.Options);
+            if (matched.Count is 0)
+                continue;
+
+            try
+            {
+                subscription.Handler(new EpisodeAiredEventArgs() { AiredAt = minute, Airings = matched });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "The airing subscription {Subscriber} ({SubscriptionID}) threw while being handed {Count} airing(s) for {Minute:o}.",
+                    subscription.Subscriber,
+                    subscription.ID,
+                    matched.Count,
+                    minute
+                );
+            }
+        }
+    }
+
+    /// <summary>
+    /// The airings of one minute that one subscriber asked for. The horizon was
+    /// built from the union of every subscription, so this narrows it back down
+    /// with the same hard filters a read applies.
+    /// </summary>
+    /// <param name="airings">The minute's airings.</param>
+    /// <param name="options">The subscriber's filters, or <see langword="null"/> for everything.</param>
+    /// <returns>The airings this subscriber gets, in the order they came in.</returns>
+    private List<IEpisodeAiring> FilterAiringsForSubscriber(IReadOnlyList<IEpisodeAiring> airings, EpisodeAiringFilteringOptions? options)
+    {
+        if (options is null)
+            return [.. airings];
+
+        // Its own context, because a schedule view's visible tracks depend on
+        // whether the read includes disabled data, and the horizon's may not
+        // have been built the way this subscriber asked.
+        var context = new AiringReadContext(this, options.IncludeDisabled);
+        var anchor = options.EntityAnchor is AiringEntityAnchor.Auto ? AiringEntityAnchor.Raw : options.EntityAnchor;
+        var matched = new List<IEpisodeAiring>();
+        foreach (var airing in airings)
+        {
+            if (airing is not EpisodeAiringView view)
+                continue;
+            if (!options.IncludeEstimates && view.IsEstimated)
+                continue;
+            if (anchor is AiringEntityAnchor.Shoko && view.ShokoEpisode is null)
+                continue;
+            if (!MatchesFilters(context, context.GetSchedule(view.ScheduleView.Row), options))
+                continue;
+
+            matched.Add(airing);
+        }
+
+        return matched;
+    }
+
+    /// <summary>
+    /// A name for whoever subscribed, for the log line when their handler
+    /// throws. A method group gives up the type that declares it, a lambda the
+    /// type that closed over it, and a static lambda neither.
+    /// </summary>
+    /// <param name="handler">The subscriber's handler.</param>
+    /// <returns>The subscriber's identity, as far as it can be worked out.</returns>
+    private static string DescribeSubscriber(Action<EpisodeAiredEventArgs> handler)
+        => handler.Target?.GetType().FullName ?? handler.Method.DeclaringType?.FullName ?? "an anonymous handler";
+
+    /// <summary>
+    /// One live subscription.
+    /// </summary>
+    /// <param name="ID">The subscription's own ID, which is also its key in the registry.</param>
+    /// <param name="Handler">The handler to call.</param>
+    /// <param name="Options">The subscriber's filters, or <see langword="null"/> for everything.</param>
+    /// <param name="Subscriber">Who subscribed, as far as it could be worked out, for logging.</param>
+    private sealed record AiringSubscription(Guid ID, Action<EpisodeAiredEventArgs> Handler, EpisodeAiringFilteringOptions? Options, string Subscriber);
 
     #endregion
 

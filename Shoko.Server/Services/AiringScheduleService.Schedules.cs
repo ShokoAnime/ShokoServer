@@ -180,13 +180,14 @@ public partial class AiringScheduleService
 
         options ??= new AiringScheduleFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
+        var anchor = ResolveAnchor(options.EntityAnchor, series, series is IShokoSeries or { ShokoSeries.Count: > 0 });
         var seriesKey = GetEntityKey(series);
         var rows = RepoFactory.AiringSchedule.GetBySeriesID(seriesKey.Source, seriesKey.ID).ToList();
         if (options.LinkedEntitySchedules ?? series is IShokoSeries)
             foreach (var shokoSeries in series is IShokoSeries own ? [own] : series.ShokoSeries)
                 rows.AddRange(GetLinkedSeriesSchedules(shokoSeries, seriesKey));
 
-        return FilterSchedules(context, rows, options);
+        return FilterSchedules(context, rows, options, anchor);
     }
 
     /// <inheritdoc/>
@@ -198,6 +199,7 @@ public partial class AiringScheduleService
 
         options ??= new AiringScheduleFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
+        var anchor = ResolveAnchor(options.EntityAnchor, season, season is IShokoSeason || season.Series is IShokoSeries or { ShokoSeries.Count: > 0 });
         var rows = RepoFactory.AiringSchedule
             .GetBySeriesIDAndSeasonID(season.Source, season.SeriesID.ToString(), season.ID)
             .ToList();
@@ -205,7 +207,7 @@ public partial class AiringScheduleService
             foreach (var shokoSeason in season is IShokoSeason own ? [own] : season.Series?.ShokoSeries.SelectMany(s => s.Seasons).OfType<IShokoSeason>() ?? [])
                 rows.AddRange(GetLinkedSeasonSchedules(shokoSeason, season));
 
-        return FilterSchedules(context, rows, options);
+        return FilterSchedules(context, rows, options, anchor);
     }
 
     /// <inheritdoc/>
@@ -216,7 +218,8 @@ public partial class AiringScheduleService
 
         options ??= new AiringScheduleFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
-        return FilterSchedules(context, RepoFactory.AiringSchedule.GetByProviderID(providerID), options);
+        // No entity was passed in, so there is nothing to infer an anchor from.
+        return FilterSchedules(context, RepoFactory.AiringSchedule.GetByProviderID(providerID), options, ResolveAnchor(options.EntityAnchor, null));
     }
 
     /// <inheritdoc/>
@@ -227,7 +230,8 @@ public partial class AiringScheduleService
 
         options ??= new AiringScheduleFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
-        return FilterSchedules(context, RepoFactory.AiringSchedule.GetByChannelID(channelID), options);
+        // No entity was passed in, so there is nothing to infer an anchor from.
+        return FilterSchedules(context, RepoFactory.AiringSchedule.GetByChannelID(channelID), options, ResolveAnchor(options.EntityAnchor, null));
     }
 
     /// <summary>
@@ -319,8 +323,14 @@ public partial class AiringScheduleService
     /// <param name="context">The read the views belong to.</param>
     /// <param name="rows">The candidate rows, which may repeat.</param>
     /// <param name="options">The filters to apply.</param>
+    /// <param name="anchor">The resolved entity anchor, never <see cref="AiringEntityAnchor.Auto"/>.</param>
     /// <returns>The matching schedules.</returns>
-    private List<IAiringSchedule> FilterSchedules(AiringReadContext context, IEnumerable<AiringSchedule> rows, AiringScheduleFilteringOptions options)
+    private List<IAiringSchedule> FilterSchedules(
+        AiringReadContext context,
+        IEnumerable<AiringSchedule> rows,
+        AiringScheduleFilteringOptions options,
+        AiringEntityAnchor anchor
+    )
         => rows
             .DistinctBy(row => row.AiringScheduleID)
             .Where(row => options.IncludeSeasonSchedules || string.IsNullOrEmpty(row.SeasonID))
@@ -331,6 +341,11 @@ public partial class AiringScheduleService
             .Where(view => options.IncludeDisabled || view.HasVisibleTracks)
             .Where(view => options.Kind is not { } kind || view.Tracks.Any(track => track.Kind == kind))
             .Where(view => options.Language is not { } language || view.Tracks.Any(track => track.Language == language))
+            // A shoko anchor keeps only what resolves to a shoko series; a raw
+            // one keeps the schedule exactly as its provider stored it. A read
+            // that started from a shoko-resolvable entity has already had its
+            // anchor satisfied by every row it found, and arrives here as raw.
+            .Where(view => anchor is not AiringEntityAnchor.Shoko || view.Series is IShokoSeries or { ShokoSeries.Count: > 0 })
             .OrderBy(view => view.Provider?.Priority ?? int.MaxValue)
             .ThenBy(view => view.ProviderName, StringComparer.Ordinal)
             .ThenBy(view => view.Channel?.Name ?? string.Empty, StringComparer.Ordinal)

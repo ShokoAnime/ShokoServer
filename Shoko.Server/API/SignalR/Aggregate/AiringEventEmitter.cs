@@ -18,9 +18,14 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 /// </remarks>
 public class AiringEventEmitter : BaseEventEmitter, IDisposable
 {
-    private readonly IAiringScheduleService _airingScheduleService;
-
     private readonly ILogger<AiringEventEmitter> _logger;
+
+    /// <summary>
+    /// The airing subscription this emitter holds for as long as it lives. Core
+    /// takes no filters: every hub client gets the whole minute and filters
+    /// client-side, the way it always has.
+    /// </summary>
+    private readonly IDisposable _subscription;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AiringEventEmitter"/> class.
@@ -30,19 +35,20 @@ public class AiringEventEmitter : BaseEventEmitter, IDisposable
     /// <param name="logger">The logger.</param>
     public AiringEventEmitter(IHubContext<AggregateHub> hub, IAiringScheduleService airingScheduleService, ILogger<AiringEventEmitter> logger) : base(hub)
     {
-        _airingScheduleService = airingScheduleService;
+        ArgumentNullException.ThrowIfNull(airingScheduleService);
+
         _logger = logger;
-        _airingScheduleService.EpisodeAired += OnEpisodeAired;
+        _subscription = airingScheduleService.SubscribeToAirings(OnEpisodesAired);
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        _airingScheduleService.EpisodeAired -= OnEpisodeAired;
+        _subscription.Dispose();
         GC.SuppressFinalize(this);
     }
 
-    private async void OnEpisodeAired(object? sender, EpisodeAiredEventArgs e)
+    private async void OnEpisodesAired(EpisodeAiredEventArgs e)
     {
         try
         {

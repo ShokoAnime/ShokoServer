@@ -68,6 +68,21 @@ public sealed class EpisodeAiringFilteringOptions
     /// </summary>
     public bool? LinkedEntityAirings { get; set; }
 
+    /// <summary>
+    ///   Optional. Which entities the airings are anchored to. Defaults to
+    ///   <see cref="AiringEntityAnchor.Auto"/>, which takes the anchor from the
+    ///   entity the read was given and falls back to
+    ///   <see cref="AiringEntityAnchor.Raw"/> for a read that takes none.
+    /// </summary>
+    /// <remarks>
+    ///   <see cref="AiringEntityAnchor.Shoko"/> drops every airing that does
+    ///   not resolve to an <see cref="IShokoEpisode"/>, and follows the entity
+    ///   links needed to reach one whether or not
+    ///   <see cref="LinkedEntityAirings"/> asked for them — anchoring to shoko
+    ///   without walking the links would only ever answer nothing.
+    /// </remarks>
+    public AiringEntityAnchor EntityAnchor { get; set; }
+
     #endregion
 
     #region Preference

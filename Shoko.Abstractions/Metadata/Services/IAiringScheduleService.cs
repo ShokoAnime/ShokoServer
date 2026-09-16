@@ -790,6 +790,15 @@ public interface IAiringScheduleService
     ///   week an episode was delayed out of still has something to draw its gap
     ///   from.
     /// </summary>
+    /// <remarks>
+    ///   This is the <em>pull</em> side of the same filtering
+    ///   <see cref="SubscribeToAirings"/> pushes: it takes the same
+    ///   <see cref="EpisodeAiringFilteringOptions"/> and answers the same
+    ///   airings, so a consumer that would rather poll a window than subscribe
+    ///   has no reason to re-implement any of it on top. It is also how a
+    ///   subscriber reads back the gap left by downtime, since nothing is
+    ///   replayed.
+    /// </remarks>
     /// <param name="fromUtc">
     ///   The inclusive start of the range, in UTC.
     /// </param>
@@ -889,30 +898,63 @@ public interface IAiringScheduleService
     #region Airing Notifications
 
     /// <summary>
-    ///   Event raised as an airing's slot passes, so a consumer can react to an
-    ///   episode airing in real time instead of polling
-    ///   <see cref="GetAiringsInRange"/>.
+    ///   Subscribes to the airings as their slots pass, so a consumer can react
+    ///   to an episode airing in real time instead of polling
+    ///   <see cref="GetAiringsInRange"/>. Dispose the returned handle to
+    ///   unsubscribe.
     /// </summary>
     /// <remarks>
     ///   <para>
-    ///     It is raised once per airing, not once per episode: an episode
-    ///     running on three channels raises it three times, and a consumer that
-    ///     wants "this episode aired" de-duplicates by episode itself.
+    ///     This is a subscription rather than a plain event for two reasons a
+    ///     <c>+=</c> cannot serve. Each subscriber brings <b>its own filters</b>,
+    ///     applied to its own dispatch, so a consumer interested only in
+    ///     TOKYO MX never sees the rest of a Tuesday. And because the service
+    ///     knows what every live subscriber asked for, it can <b>do less work</b>:
+    ///     the lookahead it keeps in memory is built from the union of the
+    ///     current subscriptions, and with nobody subscribed it is not built at
+    ///     all. That matters most for
+    ///     <see cref="EpisodeAiringFilteringOptions.IncludeEstimates"/>, since
+    ///     estimates are computed through the read path rather than stored: if
+    ///     no live subscriber wants them, none are computed.
     ///   </para>
     ///   <para>
-    ///     Estimates raise it too, flagged with
-    ///     <see cref="IEpisodeAiring.IsEstimated"/>. An estimated event is a
-    ///     prediction, not a fact, and there is no retraction event if the
-    ///     estimate later moves. Nothing is replayed after downtime either: a
-    ///     slot that passed while the server was off is skipped rather than
-    ///     raised late.
+    ///     The handler is called <b>once per minute that has something for it</b>,
+    ///     with everything that aired in that minute as one list — a simulcast
+    ///     on two stations is one call carrying two airings, not two calls. See
+    ///     <see cref="EpisodeAiredEventArgs"/> for how to collapse that list per
+    ///     episode, per slot or per channel.
     ///   </para>
     ///   <para>
-    ///     Handlers run on the ticker's own thread, so a slow one holds up the
-    ///     events behind it.
+    ///     <b>Handlers run on the ticker's own thread</b>, one after another, so
+    ///     a handler that blocks holds up the minute and every subscriber behind
+    ///     it. Enqueue the real work through <c>IQueueScheduler</c> and return.
+    ///     A handler that throws is logged and stepped over, and never takes the
+    ///     tick or another subscriber with it.
+    ///   </para>
+    ///   <para>
+    ///     Nothing is replayed: neither what passed while the server was down,
+    ///     nor what passed before this subscription existed.
     ///   </para>
     /// </remarks>
-    event EventHandler<EpisodeAiredEventArgs>? EpisodeAired;
+    /// <param name="handler">
+    ///   Called as each minute with a matching airing passes.
+    /// </param>
+    /// <param name="options">
+    ///   Optional. How to filter the airings dispatched to this subscriber.
+    ///   <c>null</c> means everything the server can see. Ordering and
+    ///   preference options are ignored — a dispatch is always in slot order —
+    ///   and so is
+    ///   <see cref="EpisodeAiringFilteringOptions.IncludeDelayedOriginalSlots"/>,
+    ///   since a delay gap is not an episode airing.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="handler"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   A handle that unsubscribes when disposed. Disposing it more than once,
+    ///   or from more than one thread, is safe and does nothing the second time.
+    /// </returns>
+    IDisposable SubscribeToAirings(Action<EpisodeAiredEventArgs> handler, EpisodeAiringFilteringOptions? options = null);
 
     #endregion
 

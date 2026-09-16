@@ -44,11 +44,8 @@ public sealed class KeyedEntityLockHelper
 
         _logger.LogDebug("Acquired lock '{MetadataKey}' for {EntityType} {Id}. (Reason: {Reason})", metadataKey, entityType, id, reason);
 
-        var released = false;
         return new DisposableAction(() =>
         {
-            if (released) return;
-            released = true;
             releaser.Dispose();
             var deltaTime = DateTime.Now - startedAt;
             _logger.LogDebug("Released lock '{MetadataKey}' for {EntityType} {Id} after {Run}. (Reason: {Reason})", metadataKey, entityType, id, deltaTime, reason);
@@ -79,10 +76,5 @@ public sealed class KeyedEntityLockHelper
     {
         var key = BuildKey(entityType, id, metadataKey);
         return _locker.IsInUse(key);
-    }
-
-    private sealed class DisposableAction(Action action) : IDisposable
-    {
-        public void Dispose() => action();
     }
 }

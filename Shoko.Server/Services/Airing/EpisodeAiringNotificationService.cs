@@ -19,14 +19,25 @@ namespace Shoko.Server.Services.Airing;
 
 /// <summary>
 /// Turns the airing schedule into a live signal: it keeps the next hour of
-/// airings in memory and raises <see cref="IAiringScheduleService.EpisodeAired"/>
-/// as each slot passes, so plugins, core and SignalR clients can react to an
-/// episode airing without polling the read path.
+/// airings in memory and hands each minute's worth to the subscribers of
+/// <see cref="IAiringScheduleService.SubscribeToAirings"/> as their slots pass,
+/// so plugins, core and SignalR clients can react to an episode airing without
+/// polling the read path.
 /// </summary>
 /// <remarks>
 ///   <para>
+///     <b>It does nothing at all while nobody is subscribed.</b> The horizon is
+///     the expensive part — filling it runs the read path, and estimates are
+///     computed rather than stored — so with no live subscription there is no
+///     horizon, no estimate pipeline and no dispatch, only a watermark walking
+///     forward so the first subscriber isn't handed a backlog. The moment one
+///     arrives the horizon is rebuilt on the next tick rather than at the next
+///     periodic refresh, because the subscription version it was built for no
+///     longer matches.
+///   </para>
+///   <para>
 ///     This is an <see cref="IHostedService"/> rather than a recurring queue
-///     job because the event has to land within a minute of the slot. A
+///     job because the dispatch has to land within a minute of the slot. A
 ///     recurring job is dispatched through the worker pool, where it queues
 ///     behind hashing, AniDB and TMDB work and can be held back by an
 ///     acquisition filter for as long as that filter says no — fine for a daily
@@ -38,7 +49,9 @@ namespace Shoko.Server.Services.Airing;
 ///     The horizon is short on purpose. Estimates are computed rather than
 ///     stored, so filling it means running the estimate pipeline over the
 ///     window; an hour of lookahead keeps that cheap while leaving plenty of
-///     slack between rebuilds.
+///     slack between rebuilds. It is also built from the <em>union</em> of what
+///     the live subscriptions asked for, so a window nobody wants estimates for
+///     never computes any.
 ///   </para>
 /// </remarks>
 public sealed class EpisodeAiringNotificationService : BackgroundService
@@ -66,7 +79,7 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
 
     /// <summary>
     /// How often the watermark is written when nothing fired. A minute that
-    /// raised events persists immediately; the quiet ones are batched, because
+    /// dispatched persists immediately; the quiet ones are batched, because
     /// the row exists to be read once at boot and to be looked at by a human.
     /// </summary>
     internal static readonly TimeSpan WatermarkFlushInterval = TimeSpan.FromMinutes(5);
@@ -79,14 +92,21 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
 
     /// <summary>
     /// The upcoming airings, keyed by airing ID. An episode on three channels
-    /// is three entries; one airing resolved for two linked episodes is still
-    /// one, which is what makes the event per-airing rather than per-episode.
+    /// is three entries, and all three go out in one dispatch when they share a
+    /// minute; one airing resolved for two linked episodes is still one entry.
     /// </summary>
     private readonly ConcurrentDictionary<Guid, HorizonEntry> _horizon = [];
 
     private int _horizonStale;
 
     private DateTime _horizonBuiltAt = DateTime.MinValue;
+
+    /// <summary>
+    /// The subscription version the current horizon was built for. A mismatch
+    /// means someone subscribed or unsubscribed since, so what the horizon
+    /// holds is no longer what is being asked for.
+    /// </summary>
+    private int _horizonSubscriptionVersion = -1;
 
     private DateTime _watermark = DateTime.MinValue;
 
@@ -100,7 +120,7 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
     /// Initializes a new instance of the <see cref="EpisodeAiringNotificationService"/> class.
     /// </summary>
     /// <param name="logger">The logger.</param>
-    /// <param name="airingScheduleService">The airing schedule service that owns the event and the read path.</param>
+    /// <param name="airingScheduleService">The airing schedule service that owns the subscriptions and the read path.</param>
     /// <param name="systemService">The system service, for the "is the server actually up" gate.</param>
     /// <exception cref="ArgumentNullException">Any argument is <see langword="null"/>.</exception>
     public EpisodeAiringNotificationService(
@@ -157,14 +177,15 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
 
     /// <summary>
     /// Does one minute's worth of work: pick up the watermark on the first
-    /// pass, rebuild the horizon when it is stale or stale-by-age, then raise
-    /// the event for everything whose slot has passed.
+    /// pass, idle out when nobody is subscribed, rebuild the horizon when it is
+    /// stale, stale-by-age or built for a different set of subscriptions, then
+    /// hand everything whose slot has passed to the subscribers as one batch.
     /// </summary>
     /// <remarks>
     /// The loop wakes twice a minute but this returns immediately until the
     /// wall-clock minute changes, so the work is pinned to minute boundaries
-    /// and an airing is never raised early — at worst it is raised within one
-    /// poll of its slot.
+    /// and an airing is never dispatched early — at worst it is dispatched
+    /// within one poll of its slot.
     /// </remarks>
     /// <param name="nowUtc">The current time, in UTC.</param>
     /// <returns>The airings whose slot passed, in slot order, which is what the tests assert on.</returns>
@@ -178,8 +199,26 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
         if (!_started)
             SkipForward(minute);
 
-        if (Interlocked.Exchange(ref _horizonStale, 0) is not 0 || minute - _horizonBuiltAt >= HorizonRefreshInterval)
-            RebuildHorizon(minute);
+        // Nobody is listening, so there is nothing worth building a horizon
+        // for. The watermark still walks forward, which is what keeps the first
+        // subscriber to turn up from being handed everything it slept through.
+        var version = _service.AiringSubscriptionVersion;
+        if (_service.GetAiringHorizonOptions() is not { } options)
+        {
+            _horizon.Clear();
+            _horizonSubscriptionVersion = version;
+            _horizonBuiltAt = DateTime.MinValue;
+            _watermark = minute;
+            if (minute - _watermarkPersistedAt >= WatermarkFlushInterval)
+                SaveWatermark(minute);
+
+            return [];
+        }
+
+        if (Interlocked.Exchange(ref _horizonStale, 0) is not 0 ||
+            version != _horizonSubscriptionVersion ||
+            minute - _horizonBuiltAt >= HorizonRefreshInterval)
+            RebuildHorizon(minute, options, version);
 
         var due = _horizon.Values
             .Where(entry => entry.AiredAt > _watermark && entry.AiredAt <= minute)
@@ -187,25 +226,22 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
             .ThenBy(entry => entry.Airing.Key, StringComparer.Ordinal)
             .ToList();
         foreach (var entry in due)
-        {
             // Dropping it here is belt and braces: the watermark below already
             // stops a rebuild from handing the same slot back a second time.
             _horizon.TryRemove(entry.Airing.ID, out _);
-            try
-            {
-                _service.RaiseEpisodeAired(entry.Airing, entry.AiredAt);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "A handler threw while being told that airing {AiringID} aired.", entry.Airing.ID);
-            }
-        }
+
+        var airings = due.Select(entry => entry.Airing).ToList();
+        // One dispatch for the whole minute, so a simulcast on two stations is
+        // one call carrying both rather than two calls. Each subscriber's own
+        // filters are applied inside, and a handler that throws is logged there
+        // rather than taking the tick with it.
+        _service.DispatchEpisodesAired(minute, airings);
 
         _watermark = minute;
         if (due.Count > 0 || minute - _watermarkPersistedAt >= WatermarkFlushInterval)
             SaveWatermark(minute);
 
-        return [.. due.Select(entry => entry.Airing)];
+        return airings;
     }
 
     #endregion
@@ -221,23 +257,24 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
 
     /// <summary>
     /// Replaces the horizon with the airings between the watermark and an hour
-    /// out. This runs the read path, estimates included, so it is deliberately
-    /// not something the loop does every minute.
+    /// out, read with the union of what the live subscriptions asked for. This
+    /// runs the read path — and, only when a subscriber wants them, the
+    /// estimate pipeline — so it is deliberately not something the loop does
+    /// every minute.
     /// </summary>
     /// <param name="minute">The minute being processed, in UTC.</param>
-    internal void RebuildHorizon(DateTime minute)
+    /// <param name="options">The union of the live subscriptions' filters.</param>
+    /// <param name="subscriptionVersion">The subscription version the horizon is being built for.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    internal void RebuildHorizon(DateTime minute, EpisodeAiringFilteringOptions options, int subscriptionVersion)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         // From the watermark rather than from now, so a rebuild between two
         // ticks cannot drop an airing that has come due but not yet fired.
         var from = _watermark > DateTime.MinValue ? _watermark : minute;
         var to = minute + HorizonLength;
-        var airings = _service.GetAiringsInRange(from, to, new()
-        {
-            IncludeEstimates = true,
-            // The delay gap a calendar draws is not an airing happening, and an
-            // airing with no current slot never airs at all.
-            IncludeDelayedOriginalSlots = false,
-        });
+        var airings = _service.GetAiringsInRange(from, to, options);
 
         _horizon.Clear();
         foreach (var airing in airings)
@@ -253,7 +290,14 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
         }
 
         _horizonBuiltAt = minute;
-        _logger.LogTrace("Rebuilt the episode airing horizon: {Count} airing(s) between {From:o} and {To:o}.", _horizon.Count, from, to);
+        _horizonSubscriptionVersion = subscriptionVersion;
+        _logger.LogTrace(
+            "Rebuilt the episode airing horizon: {Count} airing(s) between {From:o} and {To:o}, estimates {Estimates}.",
+            _horizon.Count,
+            from,
+            to,
+            options.IncludeEstimates ? "included" : "skipped"
+        );
     }
 
     private void OnScheduleUpdated(object? sender, AiringScheduleEventArgs e)
