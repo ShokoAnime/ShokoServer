@@ -121,13 +121,26 @@ public partial class AiringScheduleService
 
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
-        var from = DateOnly.FromDateTime(fromUtc).AddDays(-RangeBucketSlackDays);
-        var to = DateOnly.FromDateTime(toUtc).AddDays(RangeBucketSlackDays);
+        var from = AddDaysClamped(DateOnly.FromDateTime(fromUtc), -RangeBucketSlackDays);
+        var to = AddDaysClamped(DateOnly.FromDateTime(toUtc), RangeBucketSlackDays);
+        var scheduleMatches = new Dictionary<int, bool>();
+        bool MatchesSchedule(int scheduleID)
+        {
+            if (scheduleMatches.TryGetValue(scheduleID, out var matches))
+                return matches;
+
+            return scheduleMatches[scheduleID] =
+                RepoFactory.AiringSchedule.GetByID(scheduleID) is { } row && MatchesFilters(context, context.GetSchedule(row), options);
+        }
 
         // Everything already stored in the window, plus the airings that were
-        // delayed out of it, which is what a calendar draws its gap from.
+        // delayed out of it, which is what a calendar draws its gap from. Every
+        // hard filter is schedule-level, so a candidate whose only airings are
+        // on schedules the read filtered out is dropped here rather than after
+        // it has been through the whole per-episode pipeline.
         var candidates = RepoFactory.EpisodeAiring.GetByDayRange(from, to)
             .Concat(options.IncludeDelayedOriginalSlots ? RepoFactory.EpisodeAiring.GetDelayedByOriginalDayRange(from, to) : [])
+            .Where(entry => MatchesSchedule(entry.AiringScheduleID))
             .Select(entry => (entry.EpisodeSource, entry.EpisodeID))
             .ToHashSet();
         if (options.IncludeEstimates)
@@ -293,19 +306,15 @@ public partial class AiringScheduleService
     /// <returns>The airings, best first.</returns>
     private IEnumerable<IEpisodeAiring> Order(AiringReadContext context, IReadOnlyList<EpisodeAiringView> views, EpisodeAiringFilteringOptions options)
     {
-        var settings = LoadSettings();
+        // Ordering runs once per episode, and loading the settings goes through
+        // the configuration provider, so the read holds on to them instead.
+        var settings = context.Settings;
         var preferredChannels = options.PreferredChannels ?? settings.PreferredChannels;
         var preferredTracks = options.PreferredTracks ?? settings.PreferredTracks;
         var deduplicated = views
             // Airings without a channel are never de-duplicated: there is nothing to say they are the same slot.
-            .GroupBy(view => view.ScheduleView.Row.ChannelID is { } channelID ? (channelID, GetTrackSignature(view)) : ((Guid, string)?)null)
-            .SelectMany(group => group.Key is null
-                ? group
-                : group
-                    .OrderBy(view => view.IsEstimated)
-                    .ThenBy(view => context.GetProvider(view.ProviderID)?.Priority ?? int.MaxValue)
-                    .ThenBy(view => view.Key, StringComparer.Ordinal)
-                    .Take(1))
+            .GroupBy(view => view.ScheduleView.Row.ChannelID)
+            .SelectMany(group => group.Key is null ? group : DeduplicateChannel(context, group))
             .ToList();
 
         var ordered = deduplicated
@@ -318,6 +327,33 @@ public partial class AiringScheduleService
             .ThenBy(view => view.Key, StringComparer.Ordinal)
             .Cast<IEpisodeAiring>();
         return options.PreferredOnly ? ordered.Take(1) : ordered;
+    }
+
+    /// <summary>
+    /// Collapse the airings several providers report for one channel down to
+    /// one per release, keeping the best of each: a real airing over an
+    /// estimate, then the higher-priority provider.
+    /// </summary>
+    /// <param name="context">The read the views belong to.</param>
+    /// <param name="views">The airings of a single channel.</param>
+    /// <returns>One airing per release the channel carries.</returns>
+    private static IEnumerable<EpisodeAiringView> DeduplicateChannel(AiringReadContext context, IEnumerable<EpisodeAiringView> views)
+    {
+        var kept = new List<EpisodeAiringView>();
+        foreach (var view in views
+            .OrderBy(entry => entry.IsEstimated)
+            .ThenBy(entry => context.GetProvider(entry.ProviderID)?.Priority ?? int.MaxValue)
+            .ThenBy(entry => entry.Key, StringComparer.Ordinal))
+        {
+            // A release already kept wins, so the first match ends it; nothing
+            // else can promote a view once a better one covers it.
+            if (kept.Any(entry => IsSameRelease(entry, view)))
+                continue;
+
+            kept.Add(view);
+        }
+
+        return kept;
     }
 
     /// <summary>
@@ -364,10 +400,10 @@ public partial class AiringScheduleService
     private static bool IsInSeason(AiringReadContext context, AiringSchedule row, (DataSource Source, string ID) key)
     {
         // An unresolvable season is not fatal, so an episode isn't dropped over it.
-        if (context.GetSeason(row.SeriesSource, row.SeasonID) is not { } season)
+        if (context.GetSeason(row.SeriesSource, row.SeasonID) is null)
             return true;
 
-        return season.Episodes.Any(episode => GetEntityKey(episode) == key);
+        return context.GetSeasonEpisodeKeys(row.SeriesSource, row.SeasonID).Contains(key);
     }
 
     /// <summary>
@@ -403,9 +439,39 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
+    /// Shift a date by a number of days without running off either end of the
+    /// calendar, so a range read at the very edge of <see cref="DateOnly"/>
+    /// widens up to the bound instead of throwing.
+    /// </summary>
+    /// <param name="date">The date to shift.</param>
+    /// <param name="days">The number of days to shift it by. A negative count moves it back.</param>
+    /// <returns>The shifted date, clamped to the representable range.</returns>
+    private static DateOnly AddDaysClamped(DateOnly date, int days)
+        => date.AddDays(int.Clamp(days, DateOnly.MinValue.DayNumber - date.DayNumber, DateOnly.MaxValue.DayNumber - date.DayNumber));
+
+    /// <summary>
+    /// Shift a point in time by an offset without running off either end of the
+    /// calendar, so the slack a range read widens its window by is clamped
+    /// rather than throwing at the edges of <see cref="DateTime"/>.
+    /// </summary>
+    /// <param name="value">The point in time to shift.</param>
+    /// <param name="offset">The offset to shift it by. A negative offset moves it back.</param>
+    /// <returns>The shifted time, clamped to the representable range.</returns>
+    private static DateTime AddClamped(DateTime value, TimeSpan offset)
+    {
+        if (offset > TimeSpan.Zero)
+            return DateTime.MaxValue - value < offset ? DateTime.MaxValue : value + offset;
+        if (offset < TimeSpan.Zero)
+            return value - DateTime.MinValue < -offset ? DateTime.MinValue : value + offset;
+
+        return value;
+    }
+
+    /// <summary>
     /// The episodes a range read may need an estimate for: the ones a running
-    /// schedule has no airing for whose AniDB date lands near the range, which
-    /// is what puts a not-yet-scheduled episode on a calendar at all.
+    /// schedule has no airing for whose AniDB date, or whose Original anchor
+    /// when it has no AniDB date, lands near the range, which is what puts a
+    /// not-yet-scheduled episode on a calendar at all.
     /// </summary>
     /// <param name="context">The read the resolutions belong to.</param>
     /// <param name="fromUtc">The start of the range.</param>
@@ -419,6 +485,7 @@ public partial class AiringScheduleService
         EpisodeAiringFilteringOptions options
     )
     {
+        var dormantBefore = AddClamped(fromUtc, -_dormantScheduleWindow);
         foreach (var row in RepoFactory.AiringSchedule.GetAll())
         {
             if (row.IsFinished)
@@ -431,7 +498,7 @@ public partial class AiringScheduleService
             var airings = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID);
             // A schedule nothing has touched in a season isn't running any more,
             // whatever it says, so it costs a range read nothing.
-            if (airings.Count > 0 && airings.Max(entry => entry.AiredAt ?? entry.OriginalAiredAt) is { } latest && latest < fromUtc - _dormantScheduleWindow)
+            if (airings.Count > 0 && airings.Max(entry => entry.AiredAt ?? entry.OriginalAiredAt) is { } latest && latest < dormantBefore)
                 continue;
 
             var profile = context.GetProfile(row);
@@ -441,6 +508,8 @@ public partial class AiringScheduleService
             // The window is widened by the slot itself and by any trailing
             // shift, since an estimate lands that far from the AniDB date.
             var slack = offset.Duration() + TimeSpan.FromDays(1 + Math.Abs(profile.TrailingShiftDays));
+            var windowStart = AddClamped(fromUtc, -slack);
+            var windowEnd = AddClamped(toUtc, slack);
             var covered = airings.Select(entry => (entry.EpisodeSource, entry.EpisodeID)).ToHashSet();
             foreach (var episode in GetScheduleEpisodes(context, row))
             {
@@ -450,7 +519,19 @@ public partial class AiringScheduleService
                 var key = GetEntityKey(episode);
                 if (covered.Contains(key))
                     continue;
-                if (context.GetAnidbAirDate(episode) is not { } airDate || airDate < fromUtc - slack || airDate > toUtc + slack)
+
+                if (context.GetAnidbAirDate(episode) is { } airDate)
+                {
+                    if (airDate < windowStart || airDate > windowEnd)
+                        continue;
+                }
+                // An episode with no AniDB date at all is only estimable off a
+                // real Original airing, and then the anchor is what says where
+                // the estimate lands. It is only looked up for the handful of
+                // episodes that have no date, so it costs a range read nothing.
+                else if (profile.Anchor is not AiringAnchor.FirstOriginalAiring ||
+                    context.GetFirstOriginalAiringAt(key.Source, key.ID) is not { } anchor ||
+                    anchor < windowStart || anchor > windowEnd)
                     continue;
 
                 yield return key;
@@ -519,19 +600,26 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// What makes two schedules the same release for de-duplication: the full
-    /// track set, so a channel two providers both report collapses while a
-    /// channel carrying two different track sets doesn't.
+    /// What makes two airings on the same channel the same release for
+    /// de-duplication: a shared track, matched by <see cref="TracksMatch"/> as
+    /// everywhere else, so the same channel reported as <c>en</c> by one
+    /// provider and <c>eng</c> by another collapses while a channel that
+    /// genuinely carries two different releases doesn't.
     /// </summary>
-    /// <param name="view">The airing.</param>
-    /// <returns>The signature.</returns>
-    private static string GetTrackSignature(EpisodeAiringView view)
-        => string.Join(
-            "|",
-            view.Tracks
-                .Select(track => $"{track.Kind}/{track.LanguageCode}/{track.CountryCode}")
-                .OrderBy(entry => entry, StringComparer.Ordinal)
-        );
+    /// <param name="one">One airing.</param>
+    /// <param name="other">The other airing.</param>
+    /// <returns><see langword="true"/> when the two are the same release.</returns>
+    private static bool IsSameRelease(EpisodeAiringView one, EpisodeAiringView other)
+    {
+        // A schedule with no visible track has nothing to match on, and only
+        // reaches here on a read that asked for disabled data. Two of them are
+        // still one slot on the channel, as they were when this compared whole
+        // track sets.
+        if (one.Tracks.Count is 0 || other.Tracks.Count is 0)
+            return one.Tracks.Count == other.Tracks.Count;
+
+        return one.Tracks.Any(track => other.Tracks.Any(entry => TracksMatch(track, entry)));
+    }
 
     #endregion
 

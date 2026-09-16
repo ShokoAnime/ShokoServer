@@ -6,11 +6,12 @@ using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Server.Models.Airing;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.AniDB.Embedded;
-using Shoko.Server.Models.Airing;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities.Airing;
 
 #nullable enable
@@ -37,13 +38,21 @@ internal sealed class AiringReadContext
 
     private readonly Dictionary<(DataSource Source, string ID), ISeason?> _seasons = [];
 
+    private readonly Dictionary<(DataSource Source, string ID), IReadOnlySet<(DataSource Source, string ID)>> _seasonEpisodeKeys = [];
+
     private readonly Dictionary<(DataSource Source, string ID), IEpisode?> _episodes = [];
+
+    private readonly Dictionary<Guid, AiringScheduleProviderInfo?> _providers = [];
 
     private readonly Dictionary<Guid, IAiringChannel?> _channels = [];
 
     private readonly Dictionary<(DataSource Source, string ID), IReadOnlyList<(DataSource Source, string ID)>> _linkedEpisodeKeys = [];
 
     private readonly Dictionary<(DataSource Source, string ID), DateTime?> _firstOriginalAirings = [];
+
+    private readonly Dictionary<(DataSource Source, string ID), DateTime?> _anidbAirDates = [];
+
+    private AiringScheduleServiceSettings? _settings;
 
     /// <summary>
     /// Whether schedules whose provider is gone or disabled, and tracks of a
@@ -64,6 +73,17 @@ internal sealed class AiringReadContext
         _service = service;
         IncludeDisabled = includeDisabled;
     }
+
+    #region Settings
+
+    /// <summary>
+    /// The service's settings as they stood when the read started, loaded once
+    /// rather than per airing: a load goes through the configuration provider,
+    /// which is far too much to pay per ordered element.
+    /// </summary>
+    public AiringScheduleServiceSettings Settings => _settings ??= _service.LoadSettings();
+
+    #endregion
 
     #region Views
 
@@ -114,7 +134,14 @@ internal sealed class AiringReadContext
     /// <param name="providerID">The ID of the provider.</param>
     /// <returns>The provider info, or <see langword="null"/>.</returns>
     public AiringScheduleProviderInfo? GetProvider(Guid providerID)
-        => _service.GetProviderInfo(providerID);
+    {
+        // The service hands back a fresh copy every time, so a read that asks
+        // per airing pays for one info object and one kind set per ask.
+        if (_providers.TryGetValue(providerID, out var provider))
+            return provider;
+
+        return _providers[providerID] = _service.GetProviderInfo(providerID);
+    }
 
     /// <summary>
     /// Whether a provider counts for this read: it has to be registered and
@@ -177,6 +204,25 @@ internal sealed class AiringReadContext
             return season;
 
         return _seasons[(source, id)] = ResolveSeason(source, id);
+    }
+
+    /// <summary>
+    /// The stored keys of a season's episodes, materialized once per read.
+    /// <see cref="ISeason.Episodes"/> is rebuilt from scratch on every access,
+    /// so a membership test that goes through it per episode costs the season's
+    /// whole episode list per episode.
+    /// </summary>
+    /// <param name="source">The source of the season.</param>
+    /// <param name="id">The ID of the season within its source.</param>
+    /// <returns>The keys, or an empty set when the season can't be resolved.</returns>
+    public IReadOnlySet<(DataSource Source, string ID)> GetSeasonEpisodeKeys(DataSource source, string id)
+    {
+        if (_seasonEpisodeKeys.TryGetValue((source, id), out var keys))
+            return keys;
+
+        return _seasonEpisodeKeys[(source, id)] = GetSeason(source, id) is { } season
+            ? season.Episodes.Select(episode => AiringScheduleService.GetEntityKey(episode)).ToHashSet()
+            : new HashSet<(DataSource Source, string ID)>();
     }
 
     /// <summary>
@@ -378,6 +424,22 @@ internal sealed class AiringReadContext
     {
         if (episode is null)
             return null;
+
+        var key = (episode.Source, episode.ID.ToString());
+        if (_anidbAirDates.TryGetValue(key, out var airDate))
+            return airDate;
+
+        return _anidbAirDates[key] = ResolveAnidbAirDate(episode);
+    }
+
+    /// <summary>
+    /// Walk an episode for the AniDB air date its estimates are measured from,
+    /// which for anything but an AniDB episode means a cross-reference walk.
+    /// </summary>
+    /// <param name="episode">The episode.</param>
+    /// <returns>The AniDB air date, or <see langword="null"/> when there is none.</returns>
+    private static DateTime? ResolveAnidbAirDate(IEpisode episode)
+    {
         if (episode is IAnidbEpisode && episode.AirDate is { } ownAirDate)
             return ownAirDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
