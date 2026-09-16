@@ -139,41 +139,22 @@ there is nothing for a server-side transform to shell out to.
 
 ### Registering
 
-A transform normally needs no DI registration. `PluginManager` finds every type
-in your plugin assembly that implements `IVideoStreamTransform`, builds it with
-`ActivatorUtilities.GetServiceOrCreateInstance` so constructor injection works
-as usual, and hands the instance to `VideoStreamPipelineService`, which keeps it
-for the life of the process. A transform that warms a cache or runs its own
-internal timer is covered by this too, since the held instance is long lived.
+A transform normally needs no DI registration. The core discovers the type,
+builds it with constructor injection, and `VideoStreamPipelineService` keeps
+that instance for the life of the process, which covers a transform that warms
+a cache or runs its own internal timer. Register the **concrete** type as a
+singleton only when your own code resolves the transform, such as a controller
+or a cleanup job that has to reach the same session bookkeeping, and never
+register it under `IVideoStreamTransform`, which would leave the pipeline
+serving streams from a different instance than the one you resolved. The
+reasons behind each branch are in [Contracts the server discovers for
+you](../../README.md#contracts-the-server-discovers-for-you), in the plugin
+overview.
 
-Register the **concrete type** as a singleton only when your own code resolves
-the transform, such as a controller or a cleanup job that has to reach the same
-session bookkeeping:
-
-```csharp
-services.AddSingleton<FfmpegTranscodeTransform>();
-```
-
-Singleton is the lifetime that matters here: it is what makes your code and the
-core share one transform. Registered as transient, your job gets a transform of
-its own and the two drift apart.
-
-Never register a transform under the `IVideoStreamTransform` interface:
-
-```csharp
-services.AddSingleton<IVideoStreamTransform, FfmpegTranscodeTransform>(); // don't
-```
-
-- It pollutes the container for everyone. Resolving a single `T` when several
-  registrations exist returns the *last* one registered, so whichever plugin
-  loads last silently wins and `GetRequiredService<IVideoStreamTransform>()`
-  hands the caller an arbitrary plugin's transform.
-- The core never reads that registration, because `GetExports<T>` asks the
-  container for the concrete type.
-- So a second instance gets constructed. Process handles, cache directories and
-  warn-once flags you expect to be singleton state then split across two
-  objects, and the instance you resolve from DI is not the one serving the
-  stream.
+A transform that needs user-editable settings implements
+`IVideoStreamTransform<TConfiguration>` where
+`TConfiguration : IVideoStreamTransformConfiguration`, as
+`FfmpegTranscodeTransform` does above.
 
 ---
 
@@ -230,35 +211,15 @@ plugins stay opt-in.
 
 ### Registering
 
-Like a transform, an observer usually needs no registration. `PluginManager`
-discovers the type and constructs it with constructor injection (that is how the
-`ScrobbleObserver` above receives its `IUserDataService`), and
-`VideoStreamPipelineService` holds that single instance for the life of the
-process. Every request goes through the same object.
+Like a transform, an observer usually needs no registration. It is discovered
+and constructed with constructor injection (that is how the `ScrobbleObserver`
+above receives its `IUserDataService`), and `VideoStreamPipelineService` holds
+the single instance every request goes through.
 
-Register the **concrete type** as a singleton only if something else in your
+Register the **concrete** type as a singleton only if something else in your
 plugin talks to the observer directly, say a controller reporting the counters
-it has accumulated:
-
-```csharp
-services.AddSingleton<ScrobbleObserver>();
-```
-
-The singleton lifetime is what keeps that shared. Registered as transient, your
-controller reads the counters of a second observer that never saw a request.
-
-Never register an observer under the `IPlaybackObserver` interface:
-
-```csharp
-services.AddSingleton<IPlaybackObserver, ScrobbleObserver>(); // don't
-```
-
-- It pollutes the container for everyone. Resolving a single `T` when several
-  registrations exist returns the *last* one registered, so whichever plugin
-  loads last silently wins and `GetRequiredService<IPlaybackObserver>()` hands
-  the caller an arbitrary plugin's observer.
-- The core never reads that registration, because `GetExports<T>` asks the
-  container for the concrete type.
-- So a second instance gets constructed. Whatever the observer accumulates
-  across requests lives on the instance the pipeline calls, not on the one you
-  resolved.
+it has accumulated, and never register it under `IPlaybackObserver`: whatever
+the observer accumulates across requests would then live on the instance the
+pipeline calls rather than on the one you resolved. See [Contracts the server
+discovers for you](../../README.md#contracts-the-server-discovers-for-you), in
+the plugin overview.

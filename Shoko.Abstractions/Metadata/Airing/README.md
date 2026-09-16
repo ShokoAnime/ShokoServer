@@ -76,70 +76,35 @@ public class MyAiringScheduleProvider(MyClient client) : IAiringScheduleProvider
 
 ### Registering it, and usually not registering it
 
-Core finds providers by reflecting over your assembly's *types* and then asking
-the container for each one **by its concrete type**
-(`ActivatorUtilities.GetServiceOrCreateInstance`). That call constructs the
-instance when the type is not registered, injecting its constructor
-dependencies from DI as normal, and `AddParts` holds what comes back for the
-life of the process. Three branches follow from that, in the order you should
-reach for them:
+Providers are found by reflection rather than resolved from DI, so most need no
+entry in `RegisterServices` at all: core constructs the type with constructor
+injection and `AddParts` holds that instance for the life of the process. That
+includes a provider running its own internal timer for its own cadence, and
+anything the constructor asks for (an `HttpClient`, your own rate limiter, a
+`ConfigurationProvider<T>`) still resolves from DI. The full rule, and the
+reasons behind each of its three branches, is [Contracts the server discovers
+for you](../../README.md#contracts-the-server-discovers-for-you), in the
+plugin overview.
 
-**1. No registration at all.** The default, and what most providers want.
-
-```csharp
-// Nothing. Core discovers MyAiringScheduleProvider, constructs it with
-// constructor injection, and keeps it.
-```
-
-A provider that core only ever drives through `RefreshAsync` needs no entry in
-`RegisterServices` whatsoever. That includes one running its own internal timer
-for its own cadence, since the instance core holds is long-lived either way.
-Anything the constructor asks for (an `HttpClient`, your own rate limiter, a
-`ConfigurationProvider<T>`) still resolves from DI.
-
-**2. Register the concrete type as a singleton,** but only when your own code
-resolves the provider: a queue job or a controller of yours that calls into it,
-for instance.
+One consequence bites harder here than for any other contract. Every write on
+`IAiringScheduleService` is checked **by reference** against the instance
+`AddParts` was handed, so anything else in your plugin that writes has to hold
+that very object. If a sweep job or controller of yours calls into the
+provider, register the **concrete** type as a singleton:
 
 ```csharp
 services.AddSingleton<MyAiringScheduleProvider>();
 ```
-
-The singleton lifetime is the whole point: it is what makes your job and core
-share *one* instance. A **transient** registration here is as bad as no
-registration at all, since your job and core would each construct their own. If
-you register it, register it as a singleton.
 
 This is what the three shipping providers do: `SyoboiAiringScheduleProvider`,
 `AnimeScheduleProvider` and `TvMazeAiringScheduleProvider` are each registered
 as singletons because each plugin's own sweep job takes the provider by concrete
 type in its constructor.
 
-**3. Never register it under the interface.**
-
-```csharp
-// Wrong, in three separate ways.
-services.AddSingleton<IAiringScheduleProvider, MyAiringScheduleProvider>();
-```
-
-- **It pollutes the container for everyone else.** Resolving a single
-  `IAiringScheduleProvider` returns whichever registration came *last*, so with
-  two plugins doing this the winner is plugin load order, which is arbitrary and
-  changes when a user installs or removes some unrelated plugin. Core or another
-  plugin calling `GetRequiredService<IAiringScheduleProvider>()` then quietly
-  gets your provider instead of its own.
-- **Core never looks at it.** `GetExports<T>()` asks for the concrete type, so
-  the interface registration is dead weight.
-- **So a second instance is built.** The concrete type is still unregistered,
-  `GetServiceOrCreateInstance` constructs a fresh one, and you now have two: the
-  one in DI that nothing reaches, and the one core holds. Singleton state (rate
-  limiters, caches, HTTP clients, warn-once flags) splits between them, and
-  because the service checks every write against the instance it was handed
-  at registration, code that resolves `IAiringScheduleProvider` out of DI holds
-  the wrong object and every `AddOrUpdateSchedule` or `SetAirings` it makes
-  throws `ArgumentException`.
-
-Keep the reference your own constructor was given, and pass it to every write.
+A **transient** registration, or a registration under
+`IAiringScheduleProvider`, hands your job a second instance instead, and every
+`AddOrUpdateSchedule` or `SetAirings` it makes throws `ArgumentException`. Keep
+the reference your own constructor was given, and pass it to every write.
 
 ### The rest of the contract
 
@@ -347,12 +312,21 @@ you *react* to it: the server keeps the next hour of airings in memory and hands
 each minute's worth to its subscribers as the slots pass, so a plugin can act on
 an episode airing without polling on a timer of its own.
 
+A subscription lives for as long as something holds its handle, and has to be
+disposed on shutdown, so it belongs in a hosted service rather than on the class
+implementing `IPlugin`, which cannot take constructor dependencies at all (see
+[the plugin overview](../../README.md#iplugin-needs-a-public-parameterless-constructor)).
+Register it with `services.AddHostedService<AiredWatcher>()` from your
+`RegisterServices`.
+
 ```csharp
-public class Plugin : IPlugin, IDisposable
+public sealed class AiredWatcher : BackgroundService
 {
+    private readonly IQueueScheduler _queueScheduler;
+
     private readonly IDisposable _subscription;
 
-    public Plugin(IAiringScheduleService airingScheduleService, IQueueScheduler queueScheduler)
+    public AiredWatcher(IAiringScheduleService airingScheduleService, IQueueScheduler queueScheduler)
     {
         _queueScheduler = queueScheduler;
         // Only the real broadcasts, on the channels this plugin cares about.
@@ -364,7 +338,14 @@ public class Plugin : IPlugin, IDisposable
         });
     }
 
-    public void Dispose() => _subscription.Dispose();
+    public override void Dispose()
+    {
+        _subscription.Dispose();
+        base.Dispose();
+    }
+
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+        => Task.CompletedTask; // the subscription does the work; nothing to loop on
 
     private void OnEpisodesAired(EpisodeAiredEventArgs e)
     {
@@ -556,20 +537,11 @@ public class MyEntityResolver : IAiringScheduleEntityResolver
 }
 ```
 
-Resolvers are discovered exactly the way providers are, so the same three
-branches apply:
-
-1. **Usually, register nothing.** A resolver core only ever calls to look an
-   entity up or follow a link needs no entry in `RegisterServices`; it will be
-   constructed with constructor injection and held.
-2. **Register the concrete type as a singleton** when your own code, typically
-   the provider next to it, resolves the resolver itself, so the two of you
-   share one instance. A transient registration would hand you a different
-   object than core holds.
-3. **Never register it as `IAiringScheduleEntityResolver`.** It would make a
-   single-instance resolve of that interface return whichever plugin registered
-   last, core would ignore it and build a second instance anyway, and any
-   caching the resolver does would split between the two.
+Resolvers are discovered exactly the way providers are, so the same rule
+applies: register nothing unless your own code, typically the provider next to
+it, resolves the resolver itself, in which case register the concrete type as a
+singleton so the two of you share one instance, and never register it under
+`IAiringScheduleEntityResolver`.
 
 ```csharp
 // Only if your own code resolves it.

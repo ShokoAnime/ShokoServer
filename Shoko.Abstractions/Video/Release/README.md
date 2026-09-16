@@ -66,41 +66,20 @@ attaches the provider name to the result on the way in, so leaving
 
 ### Registering
 
-Most providers need no DI registration at all. `PluginManager` finds every type
-in your plugin assembly that implements `IReleaseInfoProvider`, constructs it
-through `ActivatorUtilities.GetServiceOrCreateInstance` (so constructor
-injection works as usual), and hands that instance to `IVideoReleaseService`,
-which holds it for the life of the process. That covers the common case,
-including a provider that keeps its own caches or runs its own internal timer,
-since the held instance is long lived.
+Most providers need no DI registration at all. The core discovers the type,
+constructs it with constructor injection, and `IVideoReleaseService` holds that
+instance for the life of the process, which covers a provider keeping its own
+caches or running its own internal timer. Register the **concrete** type as a
+singleton only when your own code has to reach the same object, such as a sweep
+job or a controller of yours, and never register it under
+`IReleaseInfoProvider`. The reasons behind each of those three branches are in
+[Contracts the server discovers for you](../../README.md#contracts-the-server-discovers-for-you),
+in the plugin overview.
 
-Register the **concrete type** as a singleton only when your own code needs to
-resolve the provider, such as a sweep job or a controller that calls into it:
-
-```csharp
-services.AddSingleton<MyReleaseProvider>();
-```
-
-The singleton lifetime is the whole point: it is what makes your job and the
-core share one object. A transient registration hands your job a second, freshly
-constructed provider and puts you straight back into the split-instance problem
-below.
-
-Never register a provider under the `IReleaseInfoProvider` interface:
-
-```csharp
-services.AddSingleton<IReleaseInfoProvider, MyReleaseProvider>(); // don't
-```
-
-- It pollutes the container for everyone. Resolving a single `T` when several
-  registrations exist returns the *last* one registered, so whichever plugin
-  loads last silently wins and `GetRequiredService<IReleaseInfoProvider>()`
-  hands the caller an arbitrary plugin's provider.
-- The core never reads that registration, because `GetExports<T>` asks the
-  container for the concrete type.
-- So a second instance gets constructed. Anything you treat as singleton state
-  (rate limiters, caches, warn-once flags) then splits across two objects, and
-  the instance you resolve from DI is not the one the service calls.
+A provider that needs user-editable settings implements
+`IReleaseInfoProvider<TConfiguration>` where
+`TConfiguration : IReleaseInfoProviderConfiguration`, which is what tells the
+Web UI to render that configuration on the provider's own page.
 
 ---
 
