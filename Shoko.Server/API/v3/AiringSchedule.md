@@ -48,9 +48,10 @@ airing and stays on the dashboard calendars.
 ### Display data is opt-in
 
 The default item is deliberately slim: IDs, times, flags, the channel, the time
-zone, the tracks, and the episode's `Type` and `Number`. A calendar week is many
-episodes of few series, so anything that costs a lookup is asked for through
-`include`:
+zone, the tracks, the episode's `Type` and `Number`, and `VideoCount` — how many
+videos the collection holds for the episode, `0` when none are or when no
+episode could be resolved. A calendar week is many episodes of few series, so
+anything that costs a lookup is asked for through `include`:
 
 - `EpisodeTitle` — the episode's title.
 - `Series` — the series' title and IDs.

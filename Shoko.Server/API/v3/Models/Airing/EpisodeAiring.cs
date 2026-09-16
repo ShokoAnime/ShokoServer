@@ -116,6 +116,14 @@ public class EpisodeAiring
     public AiringIDs IDs { get; init; }
 
     /// <summary>
+    /// How many videos are in the collection for the episode. <c>0</c> when
+    /// none are, which is also what an airing with no resolvable episode
+    /// reports. Use it to mark a calendar row as already held.
+    /// </summary>
+    [Required]
+    public int VideoCount { get; init; }
+
+    /// <summary>
     /// The type of the episode, or <c>null</c> when no episode could be
     /// resolved for the airing.
     /// </summary>
@@ -186,6 +194,7 @@ public class EpisodeAiring
             ShokoSeries = airing.ShokoEpisode?.Series?.ID,
             AnidbAnime = airing.AnidbEpisode?.SeriesID,
         };
+        VideoCount = episode?.Videos.Count ?? 0;
         Type = episode?.Type;
         Number = episode?.EpisodeNumber;
         EpisodeTitle = episodeTitle;
