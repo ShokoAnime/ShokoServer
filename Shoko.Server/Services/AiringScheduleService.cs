@@ -171,14 +171,9 @@ public partial class AiringScheduleService(
 
         UpdateProviders(false);
 
-        logger.LogInformation(
-            "Loaded {ProviderCount} providers and {ResolverCount} entity resolvers, with {ScheduleCount} schedules holding {AiringCount} airings across {ChannelCount} channels.",
-            _providerInfos.Count,
-            _resolvers.Count,
-            RepoFactory.AiringSchedule.GetAll().Count,
-            RepoFactory.EpisodeAiring.GetAll().Count,
-            RepoFactory.AiringChannel.GetAll().Count
-        );
+        // Parts are added while the plugins initialize, which is before the database is up, so the
+        // repositories cannot be counted here.
+        logger.LogInformation("Loaded {ProviderCount} providers and {ResolverCount} entity resolvers.", _providerInfos.Count, _resolvers.Count);
     }
 
     #endregion
