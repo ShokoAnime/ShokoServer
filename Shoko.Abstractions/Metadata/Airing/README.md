@@ -196,10 +196,17 @@ takes **your provider instance**, not an `AiringScheduleProviderInfo`. The
 service checks the instance is the one it registered, then checks its ID
 against the `ProviderID` stored on whatever you're changing. A schedule owned
 by another provider, or a call from an unregistered instance, throws
-`ArgumentException`. This guards against mistakes, not hostile code — plugins
-already run in-process as trusted code — so there's no bound "writer handle"
-to fetch first; just keep the `IAiringScheduleProvider` reference your
-constructor was given, and pass it every time.
+`ArgumentException`. This guards against mistakes, not hostile code, since
+plugins already run in-process as trusted code, so there is no bound "writer
+handle" to fetch first. Inside the provider itself, pass `this`.
+
+If something else in your plugin writes, a sweep job for instance, it has to be
+handed the very same object, because the check is by reference and not by type.
+That means registering the provider as a concrete singleton, per "Registering
+it, and usually not registering it" above; a transient registration hands your
+job a second instance and every write from it throws. Letting the provider do
+its own writing avoids the question entirely, including when it runs its own
+scheduling, because `this` is always the instance core registered.
 
 1. **`FindOrRegisterChannel(name, type)`** — get or create a channel from the
    shared registry. An existing channel with a matching, normalised name comes
