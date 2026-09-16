@@ -82,9 +82,14 @@ public enum DataEntityType : byte
     Studio = Company,
 
     /// <summary>
-    ///   
+    ///   Any kind of network which airs or streams a work.
     /// </summary>
     Network = 8,
+
+    /// <summary>
+    ///   A channel something airs on. Alias for <see cref="Network"/>.
+    /// </summary>
+    Channel = Network,
 
     /// <summary>
     ///   Any kind of creator
