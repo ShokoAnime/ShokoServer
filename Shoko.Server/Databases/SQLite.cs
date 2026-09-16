@@ -1000,6 +1000,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(166, 39, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnilistEpisodeID ON CrossRef_AniDB_Anilist_Episode(AnilistEpisodeID);"),
         new(166, 40, "CREATE TABLE Anilist_Anime_ExternalLink ( Anilist_Anime_ExternalLinkID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, AnilistLinkID INTEGER NOT NULL, Url TEXT NOT NULL, Site TEXT NOT NULL, AnilistSiteID INTEGER NULL, LinkType TEXT NOT NULL, LanguageCode TEXT NULL );"),
         new(166, 41, "CREATE INDEX IX_Anilist_Anime_ExternalLink_AnilistAnimeID ON Anilist_Anime_ExternalLink(AnilistAnimeID);"),
+        new(167,  1, "ALTER TABLE TMDB_Episode ADD COLUMN TmdbEpisodeType TEXT NULL DEFAULT NULL;"),
     ];
 
     #endregion

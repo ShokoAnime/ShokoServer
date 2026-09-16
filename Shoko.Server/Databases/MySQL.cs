@@ -1309,6 +1309,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(187, 39, "CREATE INDEX `IX_CrossRef_AniDB_Anilist_Episode_AnilistEpisodeID` ON `CrossRef_AniDB_Anilist_Episode`(`AnilistEpisodeID`);"),
         new(187, 40, "CREATE TABLE `Anilist_Anime_ExternalLink` ( `Anilist_Anime_ExternalLinkID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `AnilistLinkID` INT NOT NULL, `Url` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Site` VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `AnilistSiteID` INT NULL, `LinkType` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `LanguageCode` VARCHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, PRIMARY KEY (`Anilist_Anime_ExternalLinkID`) );"),
         new(187, 41, "CREATE INDEX `IX_Anilist_Anime_ExternalLink_AnilistAnimeID` ON `Anilist_Anime_ExternalLink`(`AnilistAnimeID`);"),
+        new(188,  1, "ALTER TABLE `TMDB_Episode` ADD COLUMN `TmdbEpisodeType` VARCHAR(50) NULL DEFAULT NULL;"),
     ];
 
     #endregion

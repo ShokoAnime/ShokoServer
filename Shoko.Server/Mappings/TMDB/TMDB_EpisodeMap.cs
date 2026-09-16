@@ -24,6 +24,7 @@ public class TMDB_EpisodeMap : ClassMap<TMDB_Episode>
         Map(x => x.SeasonNumber).Not.Nullable();
         Map(x => x.EpisodeNumber).Not.Nullable();
         Map(x => x.RuntimeMinutes).Column("Runtime");
+        Map(x => x.TmdbEpisodeType).Nullable();
         Map(x => x.UserRating).Not.Nullable();
         Map(x => x.UserVotes).Not.Nullable();
         Map(x => x.AiredAt).CustomType<DateOnlyConverter>();

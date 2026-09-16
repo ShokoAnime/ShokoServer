@@ -1191,6 +1191,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(185, 39, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnilistEpisodeID ON CrossRef_AniDB_Anilist_Episode(AnilistEpisodeID);"),
         new(185, 40, "CREATE TABLE Anilist_Anime_ExternalLink ( Anilist_Anime_ExternalLinkID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, AnilistLinkID INT NOT NULL, Url NVARCHAR(512) NOT NULL, Site NVARCHAR(128) NOT NULL, AnilistSiteID INT NULL, LinkType NVARCHAR(32) NOT NULL, LanguageCode NVARCHAR(32) NULL, CONSTRAINT PK_Anilist_Anime_ExternalLink PRIMARY KEY CLUSTERED (Anilist_Anime_ExternalLinkID) );"),
         new(185, 41, "CREATE INDEX IX_Anilist_Anime_ExternalLink_AnilistAnimeID ON Anilist_Anime_ExternalLink(AnilistAnimeID);"),
+        new(186,  1, "ALTER TABLE TMDB_Episode ADD TmdbEpisodeType NVARCHAR(50) NULL DEFAULT NULL;"),
     ];
 
     #endregion

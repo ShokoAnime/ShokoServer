@@ -35,6 +35,7 @@ using TMDbLib.Objects.Changes;
 using TMDbLib.Objects.Collections;
 using TMDbLib.Objects.Exceptions;
 using TMDbLib.Objects.General;
+using TMDbLib.Objects.General.Schema;
 using TMDbLib.Objects.Movies;
 using TMDbLib.Objects.People;
 using TMDbLib.Objects.Search;
@@ -206,7 +207,8 @@ public class TmdbMetadataService : ITmdbMetadataService
     }
 
     // Retries only on RequestLimitExceededException (cap: 10) and HttpRequestException timeouts (cap: 3).
-    // GeneralHttpException and all other types re-throw immediately in OnTmdbRetryAsync.
+    // 5xx types (TMDbServerException, TMDbServiceUnavailableException, GeneralHttpException >= 500) trip the
+    // 5xx breaker and re-throw; all other types re-throw immediately in OnTmdbRetryAsync.
     // Zero delay is intentional — actual rate-limit pausing happens inside TmdbRateLimiter.EnsureRateAsync.
     private readonly AsyncRetryPolicy _retryPolicy;
 
@@ -241,6 +243,12 @@ public class TmdbMetadataService : ITmdbMetadataService
                 ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
                 break;
             }
+            // TMDbLib maps recognised 5xx responses to these dedicated types; older versions surfaced
+            // them as GeneralHttpException. Both paths must trip the 5xx breaker.
+            case TMDbServerException or TMDbServiceUnavailableException:
+                _logger.LogWarning(ex, "Got a server-side error from TMDb: {Message}", ex.Message);
+                _rateLimiter.Notify5xxError();
+                throw ex;
             case GeneralHttpException ghEx:
                 _logger.LogWarning(ghEx, "Got a general HTTP exception while processing TMDb request: {StatusCode}", (int)ghEx.HttpStatusCode);
                 if ((int)ghEx.HttpStatusCode >= 500)
@@ -372,6 +380,8 @@ public class TmdbMetadataService : ITmdbMetadataService
             .Handle<HttpRequestException>()
             .Or<RequestLimitExceededException>()
             .Or<GeneralHttpException>()
+            .Or<TMDbServerException>()
+            .Or<TMDbServiceUnavailableException>()
             .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, OnTmdbRetryAsync);
     }
 
@@ -552,10 +562,10 @@ public class TmdbMetadataService : ITmdbMetadataService
             var updated = tmdbMovie.Populate(movie, contentRatingLanguages);
             var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages);
             updated = titlesUpdated || overviewsUpdated || updated;
-            updated = UpdateMovieExternalIDs(tmdbMovie, movie.ExternalIds!) || updated;
+            updated = UpdateMovieExternalIDs(tmdbMovie, movie.ExternalIds) || updated;
             updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies!) || updated;
             if (downloadCrewAndCast)
-                updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits!, forceRefresh, downloadImages) || updated;
+                updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, forceRefresh, downloadImages) || updated;
             if (updated)
             {
                 tmdbMovie.LastUpdatedAt = DateTime.Now;
@@ -590,101 +600,178 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
     }
 
-    private async Task<bool> UpdateMovieCastAndCrew(TMDB_Movie tmdbMovie, MovieCredits credits, bool forceRefresh, bool downloadImages)
+    // Shared by UpdateMovieCastAndCrew/UpdateEpisodeCastAndCrew — cast ordering is our own
+    // zero-based counter, not TMDb's `order` field, so existing sort order survives re-fetches
+    // even when TMDb reshuffles theirs.
+    private static (List<TCast> ToSave, List<TCast> ToRemove, int Added) DiffCast<TCredit, TCast>(
+        IEnumerable<TCredit> cast,
+        IReadOnlyDictionary<string, TCast> existing,
+        Func<TCredit, int, TCast> createRole,
+        Func<TCast, TCredit, int, bool>? applyExtra = null)
+        where TCredit : TmdbEntity, ICastCredit
+        where TCast : TMDB_Cast
     {
-        var peopleToKeep = new HashSet<int>();
-
-        var counter = 0;
-        var castToAdd = 0;
-        var castToKeep = new HashSet<string>();
-        var castToSave = new List<TMDB_Movie_Cast>();
-        var existingCastDict = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
-            .ToDictionary(cast => cast.TmdbCreditID);
-        foreach (var cast in credits.Cast!)
+        var toKeep = new HashSet<string>();
+        var toSave = new List<TCast>();
+        var added = 0;
+        var ordering = 0;
+        foreach (var credit in cast)
         {
-            var ordering = counter++;
-            peopleToKeep.Add(cast.Id);
-            castToKeep.Add(cast.CreditId!);
+            var order = ordering++;
+            var creditId = credit.CreditId!;
+            toKeep.Add(creditId);
 
             var roleUpdated = false;
-            if (!existingCastDict.TryGetValue(cast.CreditId!, out var role))
+            if (!existing.TryGetValue(creditId, out var role))
             {
-                role = new()
-                {
-                    TmdbMovieID = tmdbMovie.Id,
-                    TmdbPersonID = cast.Id,
-                    TmdbCreditID = cast.CreditId!,
-                };
-                castToAdd++;
+                role = createRole(credit, order);
+                added++;
                 roleUpdated = true;
             }
 
-            var characterName = cast.Character!.Replace(" (voice)", "");
+            var characterName = credit.Character!.Replace(" (voice)", "");
             if (role.CharacterName != characterName)
             {
                 role.CharacterName = characterName;
                 roleUpdated = true;
             }
 
-            if (role.Ordering != ordering)
+            if (role.Ordering != order)
             {
-                role.Ordering = ordering;
+                role.Ordering = order;
                 roleUpdated = true;
             }
 
+            if (applyExtra?.Invoke(role, credit, order) == true)
+                roleUpdated = true;
+
             if (roleUpdated)
-            {
-                castToSave.Add(role);
-            }
+                toSave.Add(role);
         }
 
-        var crewToAdd = 0;
-        var crewToKeep = new HashSet<string>();
-        var crewToSave = new List<TMDB_Movie_Crew>();
-        var existingCrewDict = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
-            .ToDictionary(crew => crew.TmdbCreditID);
-        foreach (var crew in credits.Crew!)
+        var toRemove = existing.Values.Where(role => !toKeep.Contains(role.TmdbCreditID)).ToList();
+        return (toSave, toRemove, added);
+    }
+
+    private static (List<TCrew> ToSave, List<TCrew> ToRemove, int Added) DiffCrew<TCredit, TCrew>(
+        IEnumerable<TCredit> crew,
+        IReadOnlyDictionary<string, TCrew> existing,
+        Func<TCredit, TCrew> createRole)
+        where TCredit : TmdbEntity, ICrewCredit
+        where TCrew : TMDB_Crew
+    {
+        var toKeep = new HashSet<string>();
+        var toSave = new List<TCrew>();
+        var added = 0;
+        foreach (var credit in crew)
         {
-            peopleToKeep.Add(crew.Id);
-            crewToKeep.Add(crew.CreditId!);
+            var creditId = credit.CreditId!;
+            toKeep.Add(creditId);
 
             var roleUpdated = false;
-            if (!existingCrewDict.TryGetValue(crew.CreditId!, out var role))
+            if (!existing.TryGetValue(creditId, out var role))
             {
-                role = new()
-                {
-                    TmdbMovieID = tmdbMovie.Id,
-                    TmdbPersonID = crew.Id,
-                    TmdbCreditID = crew.CreditId!,
-                };
-                crewToAdd++;
+                role = createRole(credit);
+                added++;
                 roleUpdated = true;
             }
 
-            if (role.Department != crew.Department)
+            if (role.Department != credit.Department)
             {
-                role.Department = crew.Department!;
+                role.Department = credit.Department!;
                 roleUpdated = true;
             }
 
-            if (role.Job != crew.Job)
+            if (role.Job != credit.Job)
             {
-                role.Job = crew.Job!;
+                role.Job = credit.Job!;
                 roleUpdated = true;
             }
 
             if (roleUpdated)
-            {
-                crewToSave.Add(role);
-            }
+                toSave.Add(role);
         }
 
-        var castToRemove = existingCastDict.Values
-            .ExceptBy(castToKeep, cast => cast.TmdbCreditID)
-            .ToList();
-        var crewToRemove = existingCrewDict.Values
-            .ExceptBy(crewToKeep, crew => crew.TmdbCreditID)
-            .ToList();
+        var toRemove = existing.Values.Where(role => !toKeep.Contains(role.TmdbCreditID)).ToList();
+        return (toSave, toRemove, added);
+    }
+
+    // Mutable via Interlocked from concurrent UpdateMoviePersonAndTrack calls; a plain int can't be
+    // captured by-ref across the async lambda ProcessWithConcurrencyAsync schedules per person.
+    private sealed class PersonUpdateCounters
+    {
+        public int Added;
+        public int Updated;
+    }
+
+    private async Task UpdateMoviePersonAndTrack(int personId, bool forceRefresh, bool downloadImages, int movieId, PersonUpdateCounters counters, ConcurrentBag<int> transientlyFailed)
+    {
+        try
+        {
+            var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: movieId);
+            if (added)
+                Interlocked.Increment(ref counters.Added);
+            else if (updated)
+                Interlocked.Increment(ref counters.Updated);
+        }
+        catch (Exception ex) when (IsTmdbTransient(ex))
+        {
+            // Transient failure — preserve cast/crew rows and retry later.
+            transientlyFailed.Add(personId);
+        }
+        catch (Exception ex)
+        {
+            // Non-transient failure — log and let CleanupOrphanedCastCrew handle it.
+            _logger.LogWarning(ex, "TMDB: Unexpected error updating person {PersonId} for movie {MovieId}", personId, movieId);
+        }
+    }
+
+    private void RemoveOrphanedMovieCastCrew(HashSet<int> missingPersonIds, int movieId)
+    {
+        var orphanedCast = _tmdbMovieCast.GetByTmdbMovieID(movieId)
+            .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+        var orphanedCrew = _tmdbMovieCrew.GetByTmdbMovieID(movieId)
+            .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
+        if (orphanedCast.Count == 0 && orphanedCrew.Count == 0)
+            return;
+
+        _logger.LogWarning("TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Movie={MovieId})",
+            orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, movieId);
+        _tmdbMovieCast.Delete(orphanedCast);
+        _tmdbMovieCrew.Delete(orphanedCrew);
+    }
+
+    private async Task<bool> UpdateMovieCastAndCrew(TMDB_Movie tmdbMovie, MovieCredits? credits, bool forceRefresh, bool downloadImages)
+    {
+        // See UpdateEpisodeCastAndCrew: a null/empty credits append is "no cast/crew this pass", not a purge.
+        if (credits?.Cast is null || credits.Crew is null)
+            return false;
+
+        var existingCastDict = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
+            .ToDictionary(cast => cast.TmdbCreditID);
+        var (castToSave, castToRemove, castToAdd) = DiffCast(
+            credits.Cast,
+            existingCastDict,
+            (cast, ordering) => new TMDB_Movie_Cast
+            {
+                TmdbMovieID = tmdbMovie.Id,
+                TmdbPersonID = cast.Id,
+                TmdbCreditID = cast.CreditId!,
+            });
+
+        var existingCrewDict = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
+            .ToDictionary(crew => crew.TmdbCreditID);
+        var (crewToSave, crewToRemove, crewToAdd) = DiffCrew(
+            credits.Crew,
+            existingCrewDict,
+            crew => new TMDB_Movie_Crew
+            {
+                TmdbMovieID = tmdbMovie.Id,
+                TmdbPersonID = crew.Id,
+                TmdbCreditID = crew.CreditId!,
+            });
+
+        var peopleToKeep = new HashSet<int>(credits.Cast.Select(cast => cast.Id).Concat(credits.Crew.Select(crew => crew.Id)));
 
         _tmdbMovieCast.Save(castToSave);
         _tmdbMovieCrew.Save(crewToSave);
@@ -706,55 +793,23 @@ public class TmdbMetadataService : ITmdbMetadataService
             );
 
         // Only add/remove staff if we're not doing a quick refresh.
-        var peopleAdded = 0;
-        var peopleUpdated = 0;
         var peoplePurged = 0;
         var peopleToPurge = existingCastDict.Values.Select(cast => cast.TmdbPersonID)
             .Concat(existingCrewDict.Values.Select(crew => crew.TmdbPersonID))
             .Except(peopleToKeep)
             .ToHashSet();
+        var counters = new PersonUpdateCounters();
         var transientlyFailedMoviePeople = new ConcurrentBag<int>();
-        await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToKeep, async personId =>
-        {
-            try
-            {
-                var (added, updated) = await UpdatePerson(personId, forceRefresh, downloadImages, currentMovieId: tmdbMovie.Id);
-                if (added)
-                    Interlocked.Increment(ref peopleAdded);
-                else if (updated)
-                    Interlocked.Increment(ref peopleUpdated);
-            }
-            catch (Exception ex) when (IsTmdbTransient(ex))
-            {
-                // Transient failure — preserve cast/crew rows and retry later.
-                transientlyFailedMoviePeople.Add(personId);
-            }
-            catch (Exception ex)
-            {
-                // Non-transient failure — log and let CleanupOrphanedCastCrew handle it.
-                _logger.LogWarning(ex, "TMDB: Unexpected error updating person {PersonId} for movie {MovieId}", personId, tmdbMovie.Id);
-            }
-        }, onDropped: transientlyFailedMoviePeople.Add);
+        await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToKeep,
+            personId => UpdateMoviePersonAndTrack(personId, forceRefresh, downloadImages, tmdbMovie.Id, counters, transientlyFailedMoviePeople),
+            onDropped: transientlyFailedMoviePeople.Add);
         // Schedule retries for transiently-failed people; their cast/crew rows are preserved.
         var transientlyFailedMovieSet = transientlyFailedMoviePeople.ToHashSet();
         if (transientlyFailedMovieSet.Count > 0)
             await Task.WhenAll(transientlyFailedMovieSet.Select(personId =>
                 _scheduler.Enqueue<UpdateTmdbPersonJob>(j => { j.TmdbPersonID = personId; j.DownloadImages = downloadImages; j.TmdbMovieID = tmdbMovie.Id; })));
         // Remove cast/crew for people that permanently failed — transient failures are excluded.
-        CleanupOrphanedCastCrew(peopleToKeep, transientlyFailedMovieSet, missingPersonIds =>
-        {
-            var orphanedCast = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
-                .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
-            var orphanedCrew = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
-                .Where(c => missingPersonIds.Contains(c.TmdbPersonID)).ToList();
-            if (orphanedCast.Count > 0 || orphanedCrew.Count > 0)
-            {
-                _logger.LogWarning("TMDB: Removed {CastCount} cast and {CrewCount} crew entries for {PersonCount} people that failed to fetch. (Movie={MovieId})",
-                    orphanedCast.Count, orphanedCrew.Count, missingPersonIds.Count, tmdbMovie.Id);
-                _tmdbMovieCast.Delete(orphanedCast);
-                _tmdbMovieCrew.Delete(orphanedCrew);
-            }
-        });
+        CleanupOrphanedCastCrew(peopleToKeep, transientlyFailedMovieSet, missingPersonIds => RemoveOrphanedMovieCastCrew(missingPersonIds, tmdbMovie.Id));
         try
         {
             await ProcessWithConcurrencyAsync(_maxConcurrency, peopleToPurge, async personId =>
@@ -769,10 +824,10 @@ public class TmdbMetadataService : ITmdbMetadataService
         }
 
         _logger.LogDebug("Added/removed {a}/{u}/{r}/{s} staff for movie {MovieTitle} (Movie={MovieId})",
-            peopleAdded,
-            peopleUpdated,
+            counters.Added,
+            counters.Updated,
             peoplePurged,
-            peopleToKeep.Count + peopleToPurge.Count - peopleAdded - peopleUpdated - peoplePurged,
+            peopleToKeep.Count + peopleToPurge.Count - counters.Added - counters.Updated - peoplePurged,
             tmdbMovie.EnglishTitle,
             tmdbMovie.Id
         );
@@ -780,8 +835,8 @@ public class TmdbMetadataService : ITmdbMetadataService
             castToRemove.Count > 0 ||
             crewToSave.Count > 0 ||
             crewToRemove.Count > 0 ||
-            peopleAdded > 0 ||
-            peopleUpdated > 0 ||
+            counters.Added > 0 ||
+            counters.Updated > 0 ||
             peoplePurged > 0;
     }
 
@@ -888,11 +943,11 @@ public class TmdbMetadataService : ITmdbMetadataService
 
         var languages = GetLanguages(mainLanguage);
         if (settings.TMDB.AutoDownloadPosters)
-            await _imageService.DownloadImagesByType(movie.PosterPath, images.Posters!, ImageEntityType.Primary, movie, settings.TMDB.MaxAutoPosters, languages, forceDownload);
+            await _imageService.DownloadImagesByType(movie.PosterPath, images.Posters ?? [], ImageEntityType.Primary, movie, settings.TMDB.MaxAutoPosters, languages, forceDownload);
         if (settings.TMDB.AutoDownloadLogos)
-            await _imageService.DownloadImagesByType(null, images.Logos!, ImageEntityType.Logo, movie, settings.TMDB.MaxAutoLogos, languages, forceDownload);
+            await _imageService.DownloadImagesByType(null, images.Logos ?? [], ImageEntityType.Logo, movie, settings.TMDB.MaxAutoLogos, languages, forceDownload);
         if (settings.TMDB.AutoDownloadBackdrops)
-            await _imageService.DownloadImagesByType(movie.BackdropPath, images.Backdrops!, ImageEntityType.Backdrop, movie, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
+            await _imageService.DownloadImagesByType(movie.BackdropPath, images.Backdrops ?? [], ImageEntityType.Backdrop, movie, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
     #endregion
@@ -1195,7 +1250,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             var updated = tmdbShow.Populate(show, contentRatingLanguages);
             var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages);
             updated = titlesUpdated || overviewsUpdated || updated;
-            updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds!) || updated;
+            updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds) || updated;
             updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies!) || updated;
             var (episodesOrSeasonsUpdated, updatedSeasons, updatedEpisodes, episodeCount, hiddenEpisodeCount) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast, forceRefresh, downloadImages, quickRefresh, shouldFireEvents, changedItems);
             updated = episodesOrSeasonsUpdated || updated;
@@ -1487,7 +1542,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         ShowSyncState state)
     {
         var newlyAdded = tmdbEpisode.CreatedAt == tmdbEpisode.LastUpdatedAt;
-        if (!state.ChangedItems.HasValue || newlyAdded || state.ChangedItems.Value.Episodes.Contains((season.SeasonNumber, (int)reducedEpisode.EpisodeNumber)))
+        if (!state.ChangedItems.HasValue || newlyAdded || state.ChangedItems.Value.Episodes.Contains((season.SeasonNumber, reducedEpisode.EpisodeNumber)))
             return false;
 
         state.EpisodesToSkip.Add(tmdbEpisode.Id);
@@ -1521,10 +1576,10 @@ public class TmdbMetadataService : ITmdbMetadataService
 
         var episodeUpdated = tmdbEpisode.Populate(show, season, reducedEpisode, episode.Translations);
         episodeUpdated = UpdateTitlesAndOverviews(tmdbEpisode, episode.Translations, state.PreferredTitleLanguages, state.PreferredOverviewLanguages) || episodeUpdated;
-        episodeUpdated = UpdateEpisodeExternalIDs(tmdbEpisode, episode.ExternalIds!) || episodeUpdated;
+        episodeUpdated = UpdateEpisodeExternalIDs(tmdbEpisode, episode.ExternalIds) || episodeUpdated;
         if (state.DownloadCrewAndCast)
         {
-            var (castOrCrewUpdated, peopleToAddOrKeep, peopleToPotentiallyRemove) = UpdateEpisodeCastAndCrew(tmdbEpisode, episode.Credits!);
+            var (castOrCrewUpdated, peopleToAddOrKeep, peopleToPotentiallyRemove) = UpdateEpisodeCastAndCrew(tmdbEpisode, episode.Credits);
             episodeUpdated |= castOrCrewUpdated;
             AccumulateEpisodePeople(peopleToAddOrKeep, peopleToPotentiallyRemove, state);
         }
@@ -1800,113 +1855,54 @@ public class TmdbMetadataService : ITmdbMetadataService
             preferredOrderingUpdated;
     }
 
-    private (bool, IEnumerable<int>, IEnumerable<int>) UpdateEpisodeCastAndCrew(TMDB_Episode tmdbEpisode, CreditsWithGuestStars credits)
+    private (bool, IEnumerable<int>, IEnumerable<int>) UpdateEpisodeCastAndCrew(TMDB_Episode tmdbEpisode, CreditsWithGuestStars? credits)
     {
-        var peopleToAddOrKeep = new HashSet<int>();
-        var counter = 0;
-        var castToAdd = 0;
-        var castToKeep = new HashSet<string>();
-        var castToSave = new List<TMDB_Episode_Cast>();
+        // A present-but-empty `credits` append can deserialize to null members under STJ;
+        // treat that as "no cast/crew this pass" rather than purging existing rows.
+        if (credits?.Cast is null || credits.Crew is null)
+            return (false, [], []);
+
         var existingCastDict = _tmdbEpisodeCast.GetByTmdbEpisodeID(tmdbEpisode.Id)
             .ToDictionary(cast => cast.TmdbCreditID);
-        var guestOffset = credits.Cast!.Count;
-        foreach (var cast in credits.Cast.Concat(credits.GuestStars!))
-        {
-            var ordering = counter++;
-            var isGuestRole = ordering >= guestOffset;
-            castToKeep.Add(cast.CreditId!);
-            peopleToAddOrKeep.Add(cast.Id);
-
-            var roleUpdated = false;
-            if (!existingCastDict.TryGetValue(cast.CreditId!, out var role))
+        var guestOffset = credits.Cast.Count;
+        var (castToSave, castToRemove, castToAdd) = DiffCast(
+            credits.Cast.Concat(credits.GuestStars ?? []),
+            existingCastDict,
+            (cast, ordering) => new TMDB_Episode_Cast
             {
-                role = new()
-                {
-                    TmdbShowID = tmdbEpisode.TmdbShowID,
-                    TmdbSeasonID = tmdbEpisode.TmdbSeasonID,
-                    TmdbEpisodeID = tmdbEpisode.Id,
-                    TmdbPersonID = cast.Id,
-                    TmdbCreditID = cast.CreditId!,
-                    Ordering = ordering,
-                    IsGuestRole = isGuestRole,
-                };
-                castToAdd++;
-                roleUpdated = true;
-            }
-
-            var characterName = cast.Character!.Replace(" (voice)", "");
-            if (role.CharacterName != characterName)
+                TmdbShowID = tmdbEpisode.TmdbShowID,
+                TmdbSeasonID = tmdbEpisode.TmdbSeasonID,
+                TmdbEpisodeID = tmdbEpisode.Id,
+                TmdbPersonID = cast.Id,
+                TmdbCreditID = cast.CreditId!,
+                Ordering = ordering,
+                IsGuestRole = ordering >= guestOffset,
+            },
+            (role, _, ordering) =>
             {
-                role.CharacterName = characterName;
-                roleUpdated = true;
-            }
-
-            if (role.Ordering != ordering)
-            {
-                role.Ordering = ordering;
-                roleUpdated = true;
-            }
-
-            if (role.IsGuestRole != isGuestRole)
-            {
+                var isGuestRole = ordering >= guestOffset;
+                if (role.IsGuestRole == isGuestRole)
+                    return false;
                 role.IsGuestRole = isGuestRole;
-                roleUpdated = true;
-            }
+                return true;
+            });
 
-            if (roleUpdated)
-            {
-                castToSave.Add(role);
-            }
-        }
-
-        var crewToAdd = 0;
-        var crewToKeep = new HashSet<string>();
-        var crewToSave = new List<TMDB_Episode_Crew>();
         var existingCrewDict = _tmdbEpisodeCrew.GetByTmdbEpisodeID(tmdbEpisode.Id)
             .ToDictionary(crew => crew.TmdbCreditID);
-        foreach (var crew in credits.Crew!)
-        {
-            peopleToAddOrKeep.Add(crew.Id);
-            crewToKeep.Add(crew.CreditId!);
-            var roleUpdated = false;
-            if (!existingCrewDict.TryGetValue(crew.CreditId!, out var role))
+        var (crewToSave, crewToRemove, crewToAdd) = DiffCrew(
+            credits.Crew,
+            existingCrewDict,
+            crew => new TMDB_Episode_Crew
             {
-                role = new()
-                {
-                    TmdbShowID = tmdbEpisode.TmdbShowID,
-                    TmdbSeasonID = tmdbEpisode.TmdbSeasonID,
-                    TmdbEpisodeID = tmdbEpisode.Id,
-                    TmdbPersonID = crew.Id,
-                    TmdbCreditID = crew.CreditId!,
-                };
-                crewToAdd++;
-                roleUpdated = true;
-            }
+                TmdbShowID = tmdbEpisode.TmdbShowID,
+                TmdbSeasonID = tmdbEpisode.TmdbSeasonID,
+                TmdbEpisodeID = tmdbEpisode.Id,
+                TmdbPersonID = crew.Id,
+                TmdbCreditID = crew.CreditId!,
+            });
 
-            if (role.Department != crew.Department)
-            {
-                role.Department = crew.Department!;
-                roleUpdated = true;
-            }
-
-            if (role.Job != crew.Job)
-            {
-                role.Job = crew.Job!;
-                roleUpdated = true;
-            }
-
-            if (roleUpdated)
-            {
-                crewToSave.Add(role);
-            }
-        }
-
-        var castToRemove = existingCastDict.Values
-            .ExceptBy(castToKeep, cast => cast.TmdbCreditID)
-            .ToList();
-        var crewToRemove = existingCrewDict.Values
-            .ExceptBy(crewToKeep, crew => crew.TmdbCreditID)
-            .ToList();
+        var peopleToAddOrKeep = new HashSet<int>(
+            credits.Cast.Concat(credits.GuestStars ?? []).Select(cast => cast.Id).Concat(credits.Crew.Select(crew => crew.Id)));
 
         _tmdbEpisodeCast.Save(castToSave);
         _tmdbEpisodeCrew.Save(crewToSave);
@@ -2080,11 +2076,11 @@ public class TmdbMetadataService : ITmdbMetadataService
 
         var languages = GetLanguages(mainLanguage);
         if (settings.TMDB.AutoDownloadPosters)
-            await _imageService.DownloadImagesByType(show.PosterPath, images.Posters!, ImageEntityType.Primary, show, settings.TMDB.MaxAutoPosters, languages, forceDownload);
+            await _imageService.DownloadImagesByType(show.PosterPath, images.Posters ?? [], ImageEntityType.Primary, show, settings.TMDB.MaxAutoPosters, languages, forceDownload);
         if (settings.TMDB.AutoDownloadLogos)
-            await _imageService.DownloadImagesByType(null, images.Logos!, ImageEntityType.Logo, show, settings.TMDB.MaxAutoLogos, languages, forceDownload);
+            await _imageService.DownloadImagesByType(null, images.Logos ?? [], ImageEntityType.Logo, show, settings.TMDB.MaxAutoLogos, languages, forceDownload);
         if (settings.TMDB.AutoDownloadBackdrops)
-            await _imageService.DownloadImagesByType(show.BackdropPath, images.Backdrops!, ImageEntityType.Backdrop, show, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
+            await _imageService.DownloadImagesByType(show.BackdropPath, images.Backdrops ?? [], ImageEntityType.Backdrop, show, settings.TMDB.MaxAutoBackdrops, languages, forceDownload);
     }
 
     private async Task DownloadSeasonImages(int seasonId, int showId, int seasonNumber, TitleLanguage? mainLanguage = null, bool forceDownload = false)
@@ -2103,7 +2099,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             return;
 
         var languages = GetLanguages(mainLanguage);
-        await _imageService.DownloadImagesByType(season.PosterPath, images.Posters!, ImageEntityType.Primary, season, settings.TMDB.MaxAutoPosters, languages, forceDownload);
+        await _imageService.DownloadImagesByType(season.PosterPath, images.Posters ?? [], ImageEntityType.Primary, season, settings.TMDB.MaxAutoPosters, languages, forceDownload);
     }
 
     private async Task DownloadEpisodeImages(int episodeId, int showId, int seasonNumber, int episodeNumber, TitleLanguage mainLanguage, bool forceDownload = false)
@@ -2122,7 +2118,7 @@ public class TmdbMetadataService : ITmdbMetadataService
             return;
 
         var languages = GetLanguages(mainLanguage);
-        await _imageService.DownloadImagesByType(episode.ThumbnailPath, images.Stills!, ImageEntityType.Backdrop, episode, settings.TMDB.MaxAutoThumbnails, languages, forceDownload);
+        await _imageService.DownloadImagesByType(episode.ThumbnailPath, images.Stills ?? [], ImageEntityType.Backdrop, episode, settings.TMDB.MaxAutoThumbnails, languages, forceDownload);
     }
 
     private List<TitleLanguage> GetLanguages(TitleLanguage? mainLanguage = null) => _settingsProvider.GetSettings().TMDB.ImageLanguageOrder
@@ -2408,8 +2404,12 @@ public class TmdbMetadataService : ITmdbMetadataService
         var titlesToSave = new List<TMDB_Title>();
         foreach (var translation in translations?.Translations ?? [new() { EnglishName = string.Empty, Iso_3166_1 = "US", Iso_639_1 = "en", Data = new() { Name = string.Empty, Overview = string.Empty } }])
         {
-            var languageCode = translation.Iso_639_1!.ToLowerInvariant();
-            var countryCode = translation.Iso_3166_1!.ToUpperInvariant();
+            // A translation entry without locale codes is unusable; skip rather than NRE.
+            if (translation.Iso_639_1 is null || translation.Iso_3166_1 is null)
+                continue;
+
+            var languageCode = translation.Iso_639_1.ToLowerInvariant();
+            var countryCode = translation.Iso_3166_1.ToUpperInvariant();
 
             var alwaysInclude = false;
             var currentTitle = translation.Data?.Name ?? string.Empty;
@@ -2737,7 +2737,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         if (_tmdbPeople.GetByTmdbPersonID(personId) is not { } person)
             return;
 
-        await _imageService.DownloadImagesByType(null, images.Profiles!, ImageEntityType.Primary, person, settings.TMDB.MaxAutoStaffImages, [], forceDownload);
+        await _imageService.DownloadImagesByType(null, images.Profiles ?? [], ImageEntityType.Primary, person, settings.TMDB.MaxAutoStaffImages, [], forceDownload);
     }
 
     public async Task PurgeUnlinkedPeople()
@@ -2934,18 +2934,10 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <param name="show">TMDB Show.</param>
     /// <param name="externalIds">External IDs.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private bool UpdateShowExternalIDs(TMDB_Show show, ExternalIdsTvShow externalIds)
+    internal static bool UpdateShowExternalIDs(TMDB_Show show, ExternalIdsTvShow? externalIds)
     {
-        if (string.IsNullOrEmpty(externalIds.TvdbId))
-        {
-            if (!show.TvdbShowID.HasValue)
-                return false;
-
-            show.TvdbShowID = null;
-            return true;
-        }
-
-        if (!int.TryParse(externalIds.TvdbId, out var tvdbId) || tvdbId <= 0 || show.TvdbShowID == tvdbId)
+        var tvdbId = externalIds?.TvdbId is > 0 ? externalIds.TvdbId : null;
+        if (show.TvdbShowID == tvdbId)
             return false;
 
         show.TvdbShowID = tvdbId;
@@ -2958,18 +2950,10 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <param name="episode">TMDB Episode.</param>
     /// <param name="externalIds">External IDs.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private bool UpdateEpisodeExternalIDs(TMDB_Episode episode, ExternalIdsTvEpisode externalIds)
+    internal static bool UpdateEpisodeExternalIDs(TMDB_Episode episode, ExternalIdsTvEpisode? externalIds)
     {
-        if (string.IsNullOrEmpty(externalIds.TvdbId))
-        {
-            if (!episode.TvdbEpisodeID.HasValue)
-                return false;
-
-            episode.TvdbEpisodeID = null;
-            return true;
-        }
-
-        if (!int.TryParse(externalIds.TvdbId, out var tvdbId) || tvdbId <= 0 || episode.TvdbEpisodeID == tvdbId)
+        var tvdbId = externalIds?.TvdbId is > 0 ? externalIds.TvdbId : null;
+        if (episode.TvdbEpisodeID == tvdbId)
             return false;
 
         episode.TvdbEpisodeID = tvdbId;
@@ -2982,12 +2966,12 @@ public class TmdbMetadataService : ITmdbMetadataService
     /// <param name="movie">TMDB Movie.</param>
     /// <param name="externalIds">External IDs.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private bool UpdateMovieExternalIDs(TMDB_Movie movie, ExternalIdsMovie externalIds)
+    internal static bool UpdateMovieExternalIDs(TMDB_Movie movie, ExternalIdsMovie? externalIds)
     {
-        if (movie.ImdbMovieID == externalIds.ImdbId)
+        if (movie.ImdbMovieID == externalIds?.ImdbId)
             return false;
 
-        movie.ImdbMovieID = externalIds.ImdbId;
+        movie.ImdbMovieID = externalIds?.ImdbId;
         return true;
     }
 
