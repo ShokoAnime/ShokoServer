@@ -13,16 +13,15 @@ time for each video file. For each provider the outcome is one of three things:
 
 | Provider returns | `DeferToNext` | Effect |
 |---|---|---|
-| `null` | — | No match; chain advances to the next provider |
-| `ReleaseInfo` | `false` (default) | Match saved; chain stops |
-| `ReleaseInfo` | `true` | Match saved as provisional; chain continues — a later provider may replace it |
+| `null`, or a result with no cross-references | (not read) | No match; the chain advances to the next provider |
+| `ReleaseInfo` | `false` (default) | Match saved; the chain stops |
+| `ReleaseInfo` | `true` | Match saved as provisional, and the chain keeps running so a later provider can replace it |
 
 If every provider in the chain returns `null`, the file is left unrecognised.
 If every provider defers, the last provisional result stands.
 
 After the chain finishes, `FinalizeReleaseSearchJob` marks the match attempt
-`IsCompleted = true` and fires `IReleaseInfoProvider.OnSearchCompleted` on the
-winning provider (if any).
+`IsCompleted = true` and fires `IVideoReleaseService.SearchCompleted`.
 
 ---
 
@@ -32,7 +31,6 @@ winning provider (if any).
 public class MyReleaseProvider : IReleaseInfoProvider
 {
     public string Name => "MyProvider";
-    public Version Version => new(1, 0, 0);
 
     public async Task<ReleaseInfo?> GetReleaseInfoForVideo(
         ReleaseInfoContext context, CancellationToken cancellationToken)
@@ -45,7 +43,6 @@ public class MyReleaseProvider : IReleaseInfoProvider
         return new ReleaseInfo
         {
             ID = result.Id,
-            ProviderName = Name,
             CrossReferences = result.Episodes
                 .Select(ep => new ReleaseVideoCrossReference()
                     .ForAniDB(ep.AnidbEpisodeId, ep.AnidbAnimeId))
@@ -53,17 +50,57 @@ public class MyReleaseProvider : IReleaseInfoProvider
         };
     }
 
+    // Part of the interface, so it has to be implemented, but returning null is
+    // fine if your provider cannot look a release up by its own ID.
     public Task<ReleaseInfo?> GetReleaseInfoById(
         string releaseId, CancellationToken cancellationToken)
-        => Task.FromResult<ReleaseInfo?>(null); // optional
+        => Task.FromResult<ReleaseInfo?>(null);
 }
 ```
 
-Register in your plugin's `RegisterServices`:
+`Name` and the two `GetReleaseInfo*` methods are the only members you have to
+supply. `Description`, `Version` and `GetRescanDelay` all have default
+implementations, with `Version` falling back to your assembly version. The core
+attaches the provider name to the result on the way in, so leaving
+`ReleaseInfo.ProviderName` unset is fine.
+
+### Registering
+
+Most providers need no DI registration at all. `PluginManager` finds every type
+in your plugin assembly that implements `IReleaseInfoProvider`, constructs it
+through `ActivatorUtilities.GetServiceOrCreateInstance` (so constructor
+injection works as usual), and hands that instance to `IVideoReleaseService`,
+which holds it for the life of the process. That covers the common case,
+including a provider that keeps its own caches or runs its own internal timer,
+since the held instance is long lived.
+
+Register the **concrete type** as a singleton only when your own code needs to
+resolve the provider, such as a sweep job or a controller that calls into it:
 
 ```csharp
-services.AddSingleton<IReleaseInfoProvider, MyReleaseProvider>();
+services.AddSingleton<MyReleaseProvider>();
 ```
+
+The singleton lifetime is the whole point: it is what makes your job and the
+core share one object. A transient registration hands your job a second, freshly
+constructed provider and puts you straight back into the split-instance problem
+below.
+
+Never register a provider under the `IReleaseInfoProvider` interface:
+
+```csharp
+services.AddSingleton<IReleaseInfoProvider, MyReleaseProvider>(); // don't
+```
+
+- It pollutes the container for everyone. Resolving a single `T` when several
+  registrations exist returns the *last* one registered, so whichever plugin
+  loads last silently wins and `GetRequiredService<IReleaseInfoProvider>()`
+  hands the caller an arbitrary plugin's provider.
+- The core never reads that registration, because `GetExports<T>` asks the
+  container for the concrete type.
+- So a second instance gets constructed. Anything you treat as singleton state
+  (rate limiters, caches, warn-once flags) then splits across two objects, and
+  the instance you resolve from DI is not the one the service calls.
 
 ---
 
@@ -123,8 +160,8 @@ public static class MyProviderCrossReferenceExtensions
 ### Percentage range
 
 `PercentageStart`/`PercentageEnd` describe what fraction of the episode this
-file covers — useful when a single file spans multiple episodes or when multiple
-files together make up one episode:
+file covers, which matters when a single file spans multiple episodes or when
+multiple files together make up one episode:
 
 - Both `null` → the file covers the whole episode (0–100)
 - `PercentageStart = 0, PercentageEnd = 50` → first half of the episode
@@ -132,18 +169,25 @@ files together make up one episode:
 
 ---
 
-## Provider lifecycle hooks
+## Provider lifecycle
 
-All hooks have default no-op implementations; only override what your provider
-needs.
+A provider's job is matching, and nothing else. Saving the result, keeping
+`CrossRef_File_Episode` in sync, resolving a missing anime ID from an episode
+ID, running auto-management and scheduling relocation all live in
+`IVideoReleaseService` and apply uniformly to every provider. Earlier revisions
+of this interface exposed `PrepareForSave`, `OnReleaseSaved`, `OnReleaseCleared`
+and `OnSearchCompleted`; those were removed, and there is no per-provider
+replacement.
+
+`GetRescanDelay` is the one optional hook that remains:
 
 | Method | Called when | Typical use |
 |---|---|---|
-| `PrepareForSave(video, releaseInfo)` | Before the matched result is written to the DB | Fill in missing IDs (e.g. look up anime ID from episode ID), validate group names |
-| `OnReleaseSaved(video, saved, xrefs)` | After the result is written to the DB | Schedule metadata downloads, update MyList |
-| `OnReleaseCleared(video, cleared, replacing)` | When the result is removed or replaced | Clean up provider-side bookkeeping |
-| `OnSearchCompleted(args)` | After the full chain finishes — only on the winning provider | Trigger any post-import work that must run once the whole chain is done |
-| `GetRescanDelay(existing, lastAttempt)` | When checking whether to re-queue a file with incomplete info | Return a `TimeSpan` to schedule a rescan, or `null` to skip |
+| `GetRescanDelay(existingInfo, lastAttempt)` | When deciding whether to re-queue a file whose stored info is incomplete | Return a `TimeSpan` to schedule a rescan, or `null` to opt out |
+
+To react to a release being saved, replaced or removed, subscribe to the events
+on `IVideoReleaseService`: `ReleaseSaved`, `ReleaseDeleted` and
+`SearchCompleted`.
 
 ---
 
@@ -159,7 +203,7 @@ not), it replaces yours.
 return new ReleaseInfo
 {
     // ...
-    DeferToNext = true,  // provisional — let higher-priority providers try
+    DeferToNext = true,  // provisional, let higher-priority providers try
 };
 ```
 
@@ -169,13 +213,17 @@ return new ReleaseInfo
 
 `IReleaseMatchAttempt` tracks the per-file match history:
 
-- `IsSuccessful` — `true` if any provider matched
-- `IsCompleted` — `true` once the chain ran to completion (set by a non-deferred
+- `IsSuccessful`, `true` if any provider matched
+- `IsCompleted`, `true` once the chain ran to completion (set by a non-deferred
   save or by `FinalizeReleaseSearchJob`)
-- `AttemptCount` — how many times the file has been (re-)processed; used to
-  compute backoff delays
-- `AttemptedProviderNames` — ordered list of every provider that was called
+- `AttemptCount`, how many times the file has been (re-)processed, starting at 1
+  for the initial attempt; used to compute backoff delays
+- `AttemptedProviderNames`, the ordered list of providers making up the chain
+- `ProviderName`/`ProviderID`, the provider behind the winning match, if any
 
-The recurring `ScanForMissingReleaseInfoJob` calls `GetRescanDelay` on each
-provider for files whose info is incomplete. Return `null` from `GetRescanDelay`
-to opt out of automatic rescanning for a given file.
+The recurring `ScanForMissingReleaseInfoJob` picks up files whose info is
+incomplete and calls `GetRescanDelay` on each provider that took part in the
+previous attempt, re-queuing only those whose delay has already elapsed. Return
+`null` from `GetRescanDelay` to opt out of automatic rescanning for a given
+file. A stored release with `PreventRescan` set is never rescanned at all,
+whatever the providers would have returned.
