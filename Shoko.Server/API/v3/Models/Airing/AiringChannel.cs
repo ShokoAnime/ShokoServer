@@ -47,7 +47,7 @@ public class AiringChannel(IAiringChannel channel)
     /// When the channel was first registered.
     /// </summary>
     [Required]
-    public DateTime CreatedAt { get; init; } = channel.CreatedAt.ToUniversalTime();
+    public DateTime CreatedAt { get; init; } = channel.CreatedAt.ToUtc();
 }
 
 /// <summary>

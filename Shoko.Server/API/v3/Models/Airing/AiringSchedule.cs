@@ -110,11 +110,11 @@ public class AiringSchedule(IAiringSchedule schedule)
     /// When the schedule was created.
     /// </summary>
     [Required]
-    public DateTime CreatedAt { get; init; } = schedule.CreatedAt.ToUniversalTime();
+    public DateTime CreatedAt { get; init; } = schedule.CreatedAt.ToUtc();
 
     /// <summary>
     /// When the schedule was last updated.
     /// </summary>
     [Required]
-    public DateTime LastUpdatedAt { get; init; } = schedule.LastUpdatedAt.ToUniversalTime();
+    public DateTime LastUpdatedAt { get; init; } = schedule.LastUpdatedAt.ToUtc();
 }

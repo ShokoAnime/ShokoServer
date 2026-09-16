@@ -168,8 +168,8 @@ public class EpisodeAiring
         var episode = airing.AnidbEpisode ?? airing.ShokoEpisode?.AnidbEpisode ?? airing.Episode;
         ID = airing.ID;
         ScheduleID = airing.Schedule.ID;
-        AiredAt = airing.AiredAt;
-        OriginalAiredAt = airing.OriginalAiredAt;
+        AiredAt = airing.AiredAt.ToUtc();
+        OriginalAiredAt = airing.OriginalAiredAt.ToUtc();
         IsDelayed = airing.IsDelayed;
         IsEstimated = airing.IsEstimated;
         OffsetFromOriginal = airing.OffsetFromOriginal;

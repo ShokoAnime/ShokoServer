@@ -1,5 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 
@@ -38,5 +40,6 @@ public class AiringTrack(IAiringTrack track)
     /// <see cref="CountryCode"/>.
     /// </summary>
     [Required]
+    [JsonConverter(typeof(StringEnumConverter))]
     public TitleLanguage Language { get; init; } = track.Language;
 }
