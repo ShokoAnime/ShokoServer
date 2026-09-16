@@ -824,9 +824,10 @@ public class AnilistMetadataService : IAnilistMetadataService
     /// <summary>
     /// The key of the single schedule AniList supplies per anime. AniList names
     /// neither a station nor a platform, so every broadcast time it knows lives
-    /// on one channel-less schedule.
+    /// on one channel-less schedule. The seed migration keys its rows on the
+    /// same value, so both write the same schedule.
     /// </summary>
-    private const string AiringScheduleKey = "original";
+    internal const string AiringScheduleKey = "original";
 
     /// <summary>
     /// Push the anime's broadcast times to the airing schedule service as the

@@ -1000,6 +1000,19 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(166, 39, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnilistEpisodeID ON CrossRef_AniDB_Anilist_Episode(AnilistEpisodeID);"),
         new(166, 40, "CREATE TABLE Anilist_Anime_ExternalLink ( Anilist_Anime_ExternalLinkID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, AnilistLinkID INTEGER NOT NULL, Url TEXT NOT NULL, Site TEXT NOT NULL, AnilistSiteID INTEGER NULL, LinkType TEXT NOT NULL, LanguageCode TEXT NULL );"),
         new(166, 41, "CREATE INDEX IX_Anilist_Anime_ExternalLink_AnilistAnimeID ON Anilist_Anime_ExternalLink(AnilistAnimeID);"),
+        new(167,  1, "CREATE TABLE AiringSchedule ( AiringScheduleID INTEGER PRIMARY KEY AUTOINCREMENT, ProviderID TEXT NOT NULL, ProviderName TEXT NOT NULL, SeriesSource INTEGER NOT NULL, SeriesID TEXT NOT NULL, SeasonID TEXT NOT NULL, [Key] TEXT NOT NULL, ChannelID TEXT NULL, Tracks TEXT NOT NULL, FirstEpisodeNumber INTEGER NULL, LastEpisodeNumber INTEGER NULL, IsFinished INTEGER NOT NULL, TimeZoneID TEXT NULL, Url TEXT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(167,  2, "CREATE TABLE EpisodeAiring ( EpisodeAiringID INTEGER PRIMARY KEY AUTOINCREMENT, AiringScheduleID INTEGER NOT NULL, [Key] TEXT NOT NULL, EpisodeSource INTEGER NOT NULL, EpisodeID TEXT NOT NULL, Url TEXT NULL, AiredAt DATETIME NULL, OriginalAiredAt DATETIME NULL, IsDelayed INTEGER NOT NULL, LinkedToID INTEGER NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL );"),
+        new(167,  3, "CREATE TABLE AiringChannel ( AiringChannelID INTEGER PRIMARY KEY AUTOINCREMENT, ChannelID TEXT NOT NULL, Name TEXT NOT NULL, NormalizedName TEXT NOT NULL, Type INTEGER NOT NULL, Aliases TEXT NOT NULL, CreatedAt DATETIME NOT NULL );"),
+        new(167,  4, "CREATE UNIQUE INDEX UIX_AiringSchedule_Provider_Series_Season_Key ON AiringSchedule(ProviderID, SeriesSource, SeriesID, SeasonID, [Key]);"),
+        new(167,  5, "CREATE INDEX IX_AiringSchedule_ProviderID ON AiringSchedule(ProviderID);"),
+        new(167,  6, "CREATE INDEX IX_AiringSchedule_SeriesSource_SeriesID ON AiringSchedule(SeriesSource, SeriesID);"),
+        new(167,  7, "CREATE INDEX IX_AiringSchedule_ChannelID ON AiringSchedule(ChannelID);"),
+        new(167,  8, "CREATE UNIQUE INDEX UIX_EpisodeAiring_AiringScheduleID_Key ON EpisodeAiring(AiringScheduleID, [Key]);"),
+        new(167,  9, "CREATE INDEX IX_EpisodeAiring_EpisodeSource_EpisodeID ON EpisodeAiring(EpisodeSource, EpisodeID);"),
+        new(167, 10, "CREATE INDEX IX_EpisodeAiring_LinkedToID ON EpisodeAiring(LinkedToID);"),
+        new(167, 11, "CREATE UNIQUE INDEX UIX_AiringChannel_ChannelID ON AiringChannel(ChannelID);"),
+        new(167, 12, "CREATE INDEX IX_AiringChannel_Type_NormalizedName ON AiringChannel(Type, NormalizedName);"),
+        new(167, 13, DatabaseFixes.SeedAnilistAiringSchedules),
     ];
 
     #endregion
