@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached.AniDB;
 

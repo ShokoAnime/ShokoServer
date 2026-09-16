@@ -31,7 +31,7 @@ using System.Linq;
 using System.Threading;
 using Shoko.Abstractions.Extensions;
 
-namespace NutzCode.InMemoryIndex;
+namespace Shoko.Server.Utilities;
 
 /// <summary>
 /// Plain Old Class Object (POCO) Cache.

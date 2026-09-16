@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 

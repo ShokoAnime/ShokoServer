@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Filtering.Expressions.Functions;
 using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Filtering.Expressions.Logic.DateTimes;
@@ -13,6 +12,7 @@ using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Server;
+using Shoko.Server.Utilities;
 
 using Constants = Shoko.Server.Server.Constants;
 
