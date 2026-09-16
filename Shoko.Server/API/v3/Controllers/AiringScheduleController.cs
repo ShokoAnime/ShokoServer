@@ -134,7 +134,7 @@ public class AiringScheduleController(
     )
     {
         var start = startDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var end = endDate ?? start.AddDays(7);
+        var end = endDate ?? AddDaysClamped(start, 7);
         if (end < start)
         {
             ModelState.AddModelError(nameof(endDate), "The end date is before the start date.");
@@ -486,7 +486,7 @@ public class AiringScheduleController(
             return NotFound(ChannelNotFoundWithChannelID);
 
         var start = startDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var end = endDate ?? start.AddDays(7);
+        var end = endDate ?? AddDaysClamped(start, 7);
         if (end < start)
         {
             ModelState.AddModelError(nameof(endDate), "The end date is before the start date.");
@@ -928,6 +928,17 @@ public class AiringScheduleController(
 
         return airedAt ?? originalAiredAt ?? airing.AiredAt ?? airing.OriginalAiredAt ?? DateTime.MaxValue;
     }
+
+    /// <summary>
+    /// Add <paramref name="days"/> to <paramref name="date"/>, clamped to the
+    /// bounds of <see cref="DateOnly"/> instead of throwing when the result
+    /// would fall outside them.
+    /// </summary>
+    /// <param name="date">The date to add to.</param>
+    /// <param name="days">The number of days to add.</param>
+    /// <returns>The shifted date, clamped to <see cref="DateOnly.MinValue"/> and <see cref="DateOnly.MaxValue"/>.</returns>
+    private static DateOnly AddDaysClamped(DateOnly date, int days)
+        => date.AddDays(int.Clamp(days, DateOnly.MinValue.DayNumber - date.DayNumber, DateOnly.MaxValue.DayNumber - date.DayNumber));
 
     /// <summary>
     /// Resolve everything the calendar filters need to know about the series an

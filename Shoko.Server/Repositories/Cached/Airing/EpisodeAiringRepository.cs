@@ -163,7 +163,9 @@ public class EpisodeAiringRepository(DatabaseFactory databaseFactory) : BaseCach
     /// <returns>Every day in the range.</returns>
     private static IEnumerable<DateOnly?> EnumerateDays(DateOnly from, DateOnly to)
     {
-        for (var day = from; day <= to; day = day.AddDays(1))
-            yield return day;
+        // Walked by day number rather than `AddDays`, because a range ending on
+        // `DateOnly.MaxValue` would otherwise step past it and throw.
+        for (var dayNumber = from.DayNumber; dayNumber <= to.DayNumber; dayNumber++)
+            yield return DateOnly.FromDayNumber(dayNumber);
     }
 }
