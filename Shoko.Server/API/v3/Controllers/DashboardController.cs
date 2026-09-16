@@ -552,7 +552,6 @@ public class DashboardController(
     /// <param name="endDate">End date.</param>
     /// <param name="includeMissing">Include missing episodes.</param>
     /// <param name="includeRestricted">Include episodes from restricted (H) series.</param>
-    /// <param name="includeWithAirTime">Include episodes with a known broadcast time. <c>Only</c> limits the result to episodes whose air time is known, <c>False</c> to those where it is not.</param>
     /// <param name="type">Only include episodes of these AniDB episode types. Defaults to normal episodes when omitted; an empty set matches nothing.</param>
     /// <returns></returns>
     [HttpGet("CalendarEpisodes")]
@@ -561,14 +560,13 @@ public class DashboardController(
         [FromQuery] DateOnly endDate = default,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeWithAirTime = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null
     )
     {
         type ??= [EpisodeType.Episode];
         var user = HttpContext.GetUser();
-        // The shoko episode's day can differ from the AniDB date by one when the broadcast time is known
-        // (a late-night slot crosses midnight UTC), so fetch a day either side and filter on the final day below.
+        // The shoko episode can fall back to another provider's date, so fetch a day either side and
+        // filter on the final day below.
         var episodeList = _anidbEpisodes.GetForDate(startDate.AddDays(-1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), endDate.AddDays(1).ToDateTime(TimeOnly.MaxValue, DateTimeKind.Unspecified))
             .ToList();
         var animeDict = episodeList
@@ -626,13 +624,7 @@ public class DashboardController(
                 return new Dashboard.Episode(episode, anime);
             })
             .Where(episode => episode.AirDate is { } airDate && airDate >= startDate && airDate <= endDate)
-            .Where(episode => includeWithAirTime switch
-            {
-                IncludeOnlyFilter.Only => episode.HasAirTime,
-                IncludeOnlyFilter.False => !episode.HasAirTime,
-                _ => true,
-            })
-            .OrderBy(episode => episode.AiredAt)
+            .OrderBy(episode => episode.AirDate)
             .ThenBy(episode => episode.IDs.Series)
             .ThenBy(episode => episode.Number)
             .ToList();

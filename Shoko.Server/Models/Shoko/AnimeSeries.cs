@@ -205,50 +205,6 @@ public class AnimeSeries : IShokoSeries
 
     public void ResetDefaultTitle() => _defaultTitle = null;
 
-    private DateTime? _anilistAirTimeOffsetLoadedAt;
-
-    private TimeSpan? _anilistAirTimeOffset;
-
-    /// <summary>
-    /// The broadcast time learned from the linked AniList episodes, as an
-    /// offset from midnight UTC on the AniDB air date, used to estimate the
-    /// air time of episodes AniList has no schedule entry for yet. Null when
-    /// fewer than two linked normal episodes have aired with a known time.
-    /// </summary>
-    public TimeSpan? AnilistAirTimeOffset
-    {
-        get
-        {
-            lock (this)
-            {
-                // Self-heals if a link or schedule change slipped past the explicit resets.
-                if (_anilistAirTimeOffsetLoadedAt is { } loadedAt && DateTime.UtcNow - loadedAt < TimeSpan.FromHours(1))
-                    return _anilistAirTimeOffset;
-
-                var now = DateTime.UtcNow;
-                var samples = AnilistEpisodeCrossReferences
-                    .Where(xref => xref.AnilistEpisodeID is not 0)
-                    .Select(xref => (anidb: xref.AnidbEpisode, anilist: xref.AnilistEpisode))
-                    .Where(pair => pair.anidb is { EpisodeType: EpisodeType.Episode } && pair.anilist?.AiredAt is { } airedAt && airedAt <= now)
-                    .Select(pair => (anidbAirDate: pair.anidb!.GetAirDateAsDate(), airedAt: pair.anilist!.AiredAt!.Value))
-                    .Where(pair => pair.anidbAirDate is not null)
-                    .Select(pair => (pair.anidbAirDate!.Value, pair.airedAt));
-                _anilistAirTimeOffset = AirTimeUtility.LearnAirTimeOffset(samples);
-                _anilistAirTimeOffsetLoadedAt = now;
-                return _anilistAirTimeOffset;
-            }
-        }
-    }
-
-    public void ResetAnilistAirTimeOffset()
-    {
-        lock (this)
-        {
-            _anilistAirTimeOffsetLoadedAt = null;
-            _anilistAirTimeOffset = null;
-        }
-    }
-
     private bool _preferredTitleLoaded;
 
     private ITitle? _preferredTitle;
