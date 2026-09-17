@@ -24,11 +24,11 @@ public class CustomActionAttribute : Attribute
     public string? Icon { get; set; }
 
     /// <summary>
-    /// If the class has multiple floating sections assigned to it, this is the
-    /// name of the section to place the action in. If the class doesn't have
-    /// any floating sections, this will be ignored. And if it's not set and
-    /// the class has any floating sections then it will be placed outside the
-    /// sections at the given <see cref="Position"/>.
+    /// The name of the section to place the action in, the same name a
+    /// <see cref="SectionNameAttribute"/> on a property gives. When it's not
+    /// set, the action stays where it was authored among the class's own
+    /// members, unless the class gathers its unsectioned members into a default
+    /// section, in which case the action joins them there.
     /// </summary>
     public string? SectionName { get; set; }
 
@@ -46,11 +46,6 @@ public class CustomActionAttribute : Attribute
     /// Gets or sets the position of the action within it's section in the UI.
     /// </summary>
     public DisplayButtonPosition Position { get; set; }
-
-    /// <summary>
-    /// When set, will attach the action to the specified member.
-    /// </summary>
-    public string? AttachToMember { get; set; }
 
     /// <summary>
     /// When set, will toggle the member from visible to hidden and vice versa. <seealso cref="ToggleWhenSetTo"/> also

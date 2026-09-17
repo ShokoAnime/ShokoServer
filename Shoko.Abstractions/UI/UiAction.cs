@@ -5,6 +5,20 @@ namespace Shoko.Abstractions.UI;
 /// <summary>
 /// A user-invokable action attached to a section container.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Where the button goes is settled by whatever lists it — a
+/// <see cref="UiFloatingSection"/> or the container itself. Listed among that
+/// one's start or end actions it is pinned to the top or bottom of it, and
+/// listed in its structure it renders inline among the fields.
+/// </para>
+/// <para>
+/// The action carries no path to invoke it at. The same container can be
+/// repeated as a list item or a record value, where the path differs per
+/// instance, so a client supplies the path of the container instance it
+/// rendered the action in.
+/// </para>
+/// </remarks>
 public class UiAction
 {
     /// <summary>
@@ -28,11 +42,6 @@ public class UiAction
     public DisplayColorTheme Theme { get; init; }
 
     /// <summary>
-    /// Where in the container the action's button belongs.
-    /// </summary>
-    public DisplayButtonPosition Position { get; init; }
-
-    /// <summary>
     /// The authored size of the action's button.
     /// </summary>
     public DisplayElementSize Size { get; init; }
@@ -41,18 +50,6 @@ public class UiAction
     /// An optional icon name for the action's button.
     /// </summary>
     public string? Icon { get; init; }
-
-    /// <summary>
-    /// The section within the container the action belongs to, or <c>null</c>
-    /// for the container's default section.
-    /// </summary>
-    public string? SectionName { get; init; }
-
-    /// <summary>
-    /// The member the action is attached to, or <c>null</c> when the action
-    /// belongs to the container itself.
-    /// </summary>
-    public string? MemberName { get; init; }
 
     /// <summary>
     /// A condition controlling whether the action is shown at all.
