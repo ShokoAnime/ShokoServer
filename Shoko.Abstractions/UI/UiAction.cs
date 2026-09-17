@@ -22,9 +22,15 @@ namespace Shoko.Abstractions.UI;
 public class UiAction
 {
     /// <summary>
-    /// The identifier to send back to the server when the action is invoked.
+    /// The name to send back to the server when the action is invoked, which is
+    /// also the key the action is filed under in its container.
     /// </summary>
-    public string ID { get; init; } = string.Empty;
+    /// <remarks>
+    /// This is the name of the configuration member behind the action, and it
+    /// goes back as the <c>actionName</c> of a <c>PerformAction</c> call. An
+    /// executable action is identified by a <see cref="System.Guid"/> instead.
+    /// </remarks>
+    public string Name { get; init; } = string.Empty;
 
     /// <summary>
     /// The label of the action's button.

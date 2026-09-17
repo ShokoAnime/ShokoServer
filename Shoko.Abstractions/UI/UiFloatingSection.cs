@@ -40,13 +40,13 @@ public class UiFloatingSection
 
     /// <summary>
     /// The actions pinned to the top of the section, keyed by
-    /// <see cref="UiAction.ID"/>, in the order they were authored.
+    /// <see cref="UiAction.Name"/>, in the order they were authored.
     /// </summary>
     public IReadOnlyList<string> StartActions { get; init; } = [];
 
     /// <summary>
     /// The actions pinned to the bottom of the section, keyed by
-    /// <see cref="UiAction.ID"/>, in the order they were authored.
+    /// <see cref="UiAction.Name"/>, in the order they were authored.
     /// </summary>
     /// <remarks>
     /// The built-in save action, when
