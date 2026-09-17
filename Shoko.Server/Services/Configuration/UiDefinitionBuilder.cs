@@ -677,9 +677,10 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
                     ? new UiVisibilityCondition
                     {
                         Path = toggle.Path,
+                        Operator = toggle.Operator,
                         Value = state.ConvertToken(toggle.Value),
+                        Values = toggle.Values?.Select(state.ConvertToken).ToList(),
                         Visibility = toggle.Visibility ?? DisplayVisibility.Visible,
-                        InverseCondition = toggle.InverseCondition,
                     }
                     : null,
                 Disable = ReadCondition(state, visibility.Disable),
@@ -727,8 +728,9 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             : new UiCondition
             {
                 Path = condition.Path,
+                Operator = condition.Operator,
                 Value = state.ConvertToken(condition.Value),
-                InverseCondition = condition.InverseCondition,
+                Values = condition.Values?.Select(state.ConvertToken).ToList(),
             };
 
     private static JToken? ToToken(object? value)
