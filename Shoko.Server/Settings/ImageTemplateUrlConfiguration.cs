@@ -6,7 +6,6 @@ using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.UI.Attributes;
 
 namespace Shoko.Server.Settings;
 
