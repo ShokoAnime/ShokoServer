@@ -68,14 +68,17 @@ internal sealed class UiConditionBuilder
     /// <summary>The path to the member to compare against.</summary>
     public required string Path { get; init; }
 
-    /// <summary>The value the member has to hold.</summary>
+    /// <summary>How the member is compared.</summary>
+    public required UiConditionOperator Operator { get; init; }
+
+    /// <summary>The value the member has to hold, for an operator that takes one.</summary>
     public required object? Value { get; init; }
+
+    /// <summary>The values the member is matched against, for a set operator.</summary>
+    public IReadOnlyList<object?>? Values { get; init; }
 
     /// <summary>The visibility to switch to, for visibility toggles only.</summary>
     public DisplayVisibility? Visibility { get; init; }
-
-    /// <summary>Whether the comparison is inverted.</summary>
-    public required bool InverseCondition { get; init; }
 }
 
 /// <summary>

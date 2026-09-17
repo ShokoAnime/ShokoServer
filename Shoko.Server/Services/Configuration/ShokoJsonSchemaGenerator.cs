@@ -427,6 +427,30 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
         if (info.GetAttribute<VisibilityAttribute>(false) is { } visibilityAttribute)
         {
+            // Checked whenever a member was named, rather than only when the
+            // condition is complete, so an operator that was handed the wrong
+            // sort of value says so instead of quietly not being emitted.
+            var owner = info.MemberInfo.ReflectedType!;
+            if (!string.IsNullOrEmpty(visibilityAttribute.ToggleWhenMemberIsSet))
+                UiConditionValidator.Validate(
+                    owner,
+                    info.Name,
+                    visibilityAttribute.ToggleWhenMemberIsSet,
+                    visibilityAttribute.ToggleOperator,
+                    visibilityAttribute.HasToggleValue,
+                    visibilityAttribute.ToggleWhenSetTo,
+                    visibilityAttribute.ToggleWhenSetToAny
+                );
+            if (!string.IsNullOrEmpty(visibilityAttribute.DisableWhenMemberIsSet))
+                UiConditionValidator.Validate(
+                    owner,
+                    info.Name,
+                    visibilityAttribute.DisableWhenMemberIsSet,
+                    visibilityAttribute.DisableOperator,
+                    visibilityAttribute.HasDisableValue,
+                    visibilityAttribute.DisableWhenSetTo,
+                    visibilityAttribute.DisableWhenSetToAny
+                );
             builder.Visibility = new UiVisibilityBuilder
             {
                 Default = visibilityAttribute.Visibility,
@@ -435,17 +459,19 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                     ? new UiConditionBuilder
                     {
                         Path = visibilityAttribute.ToggleWhenMemberIsSet,
+                        Operator = visibilityAttribute.ToggleOperator,
                         Value = visibilityAttribute.ToggleWhenSetTo,
+                        Values = visibilityAttribute.ToggleWhenSetToAny,
                         Visibility = visibilityAttribute.ToggleVisibilityTo,
-                        InverseCondition = visibilityAttribute.InverseToggleCondition,
                     }
                     : null,
                 Disable = visibilityAttribute.HasDisableCondition
                     ? new UiConditionBuilder
                     {
                         Path = visibilityAttribute.DisableWhenMemberIsSet,
+                        Operator = visibilityAttribute.DisableOperator,
                         Value = visibilityAttribute.DisableWhenSetTo,
-                        InverseCondition = visibilityAttribute.InverseDisableCondition,
+                        Values = visibilityAttribute.DisableWhenSetToAny,
                     }
                     : null,
             };
@@ -678,6 +704,27 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             var description = TypeReflectionExtensions.GetDescription(methodInfo);
             if (methodInfo.GetAttribute<CustomActionAttribute>(false) is { } action)
             {
+                if (!string.IsNullOrEmpty(action.ToggleWhenMemberIsSet))
+                    UiConditionValidator.Validate(
+                        contextualType.Type,
+                        methodInfo.Name,
+                        action.ToggleWhenMemberIsSet,
+                        action.ToggleOperator,
+                        action.HasToggleValue,
+                        action.ToggleWhenSetTo,
+                        action.ToggleWhenSetToAny
+                    );
+                if (!string.IsNullOrEmpty(action.DisableWhenMemberIsSet))
+                    UiConditionValidator.Validate(
+                        contextualType.Type,
+                        methodInfo.Name,
+                        action.DisableWhenMemberIsSet,
+                        action.DisableOperator,
+                        action.HasDisableValue,
+                        action.DisableWhenSetTo,
+                        action.DisableWhenSetToAny
+                    );
+
                 classBuilder.Actions.Add(new UiActionBuilder
                 {
                     ID = methodInfo.Name,
@@ -690,10 +737,22 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                     MemberName = string.IsNullOrEmpty(action.AttachToMember) ? null : action.AttachToMember,
                     SectionName = string.IsNullOrEmpty(action.SectionName) ? null : action.SectionName,
                     Toggle = action.HasToggleCondition
-                        ? new UiConditionBuilder { Path = action.ToggleWhenMemberIsSet, Value = action.ToggleWhenSetTo, InverseCondition = action.InverseToggleCondition }
+                        ? new UiConditionBuilder
+                        {
+                            Path = action.ToggleWhenMemberIsSet,
+                            Operator = action.ToggleOperator,
+                            Value = action.ToggleWhenSetTo,
+                            Values = action.ToggleWhenSetToAny,
+                        }
                         : null,
                     Disable = action.HasDisableCondition
-                        ? new UiConditionBuilder { Path = action.DisableWhenMemberIsSet, Value = action.DisableWhenSetTo, InverseCondition = action.InverseDisableCondition }
+                        ? new UiConditionBuilder
+                        {
+                            Path = action.DisableWhenMemberIsSet,
+                            Operator = action.DisableOperator,
+                            Value = action.DisableWhenSetTo,
+                            Values = action.DisableWhenSetToAny,
+                        }
                         : null,
                     DisableIfNoChanges = action.DisableIfNoChanges,
                 });

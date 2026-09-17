@@ -152,10 +152,48 @@ condition that switches it:
 public string? RemoteUrl { get; set; }
 ```
 
-A condition names a member relative to the class it is declared in, and compares
-for equality. `null` is a legal value to compare against, and
-`InverseToggleCondition` flips the outcome. `DisableWhenMemberIsSet` does the
-same for the enabled state instead of the visible one.
+A condition names a member relative to the class it is declared in, and
+`DisableWhenMemberIsSet` does the same for the enabled state instead of the
+visible one. `ToggleOperator` and `DisableOperator` pick how the comparison is
+made; it is equality by default, and `null` is a legal value to compare against.
+
+| Operator | Takes | For |
+|---|---|---|
+| `Equals`, `NotEquals` | `…WhenSetTo` | One value, the everyday case |
+| `IsEmpty`, `IsNotEmpty` | nothing | A cleared field, which holds `""` rather than `null` |
+| `In`, `NotIn` | `…WhenSetToAny` | A set, instead of one property per value |
+| `GreaterThan`, `LessThan` | a numeric `…WhenSetTo` | Numbers |
+| `Contains` | `…WhenSetTo` | A substring, or an entry of a collection |
+
+```csharp
+[Visibility(DisableWhenMemberIsSet = nameof(FfmpegPath), DisableOperator = UiConditionOperator.IsEmpty)]
+public string Encoder { get; set; } = string.Empty;
+
+[Visibility(DisplayVisibility.Hidden,
+    ToggleWhenMemberIsSet = nameof(Acceleration),
+    ToggleOperator = UiConditionOperator.In,
+    ToggleWhenSetToAny = new object?[] { HardwareAcceleration.Vaapi, HardwareAcceleration.Qsv },
+    ToggleVisibilityTo = DisplayVisibility.Visible)]
+public string RenderDevice { get; set; } = string.Empty;
+```
+
+A path may descend into a nested class, which `nameof` spells with an
+interpolated string — still a constant, so it survives a rename:
+
+```csharp
+[Visibility(
+    DisableWhenMemberIsSet = $"{nameof(Nested)}.{nameof(NestedConfiguration.Mode)}",
+    DisableOperator = UiConditionOperator.NotEquals,
+    DisableWhenSetTo = NestedMode.Local
+)]
+public string LocalPath { get; set; } = string.Empty;
+```
+
+A condition that could never hold fails when the configuration is described,
+rather than rendering an element stuck in the state its author did not intend:
+an operator handed the wrong sort of value, a numeric comparison against text, a
+path naming a member the class does not have, or a path pointing through a list
+or dictionary, which has no index to say which item it meant.
 
 Conditions cannot reach outside the object they are declared in. Inside a list
 item or a dictionary value the condition resolves against that one item, which
@@ -233,9 +271,8 @@ public string? LibraryName { get; set; }
 [Visibility(
     DisplayVisibility.Visible,
     ToggleWhenMemberIsSet = nameof(LibrarySelector),
-    ToggleWhenSetTo = null,
-    ToggleVisibilityTo = DisplayVisibility.Hidden,
-    InverseToggleCondition = true
+    ToggleOperator = UiConditionOperator.IsNotEmpty,
+    ToggleVisibilityTo = DisplayVisibility.Hidden
 )]
 public SelectComponent<int>? LibrarySelector { get; set; }
 
