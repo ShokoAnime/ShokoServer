@@ -8,21 +8,21 @@ public abstract class UiTextElement : UiElement
     /// <summary>
     /// The shortest accepted value, or <c>null</c> when unbounded.
     /// </summary>
-    public int? MinLength { get; init; }
+    public int? MinLength { get; set; }
 
     /// <summary>
     /// The longest accepted value, or <c>null</c> when unbounded.
     /// </summary>
-    public int? MaxLength { get; init; }
+    public int? MaxLength { get; set; }
 
     /// <summary>
     /// A regular expression the value has to match, or <c>null</c>.
     /// </summary>
-    public string? Pattern { get; init; }
+    public string? Pattern { get; set; }
 
     /// <summary>
     /// The JSON schema format hint for the value, such as <c>uri</c> or
     /// <c>version</c>, or <c>null</c>.
     /// </summary>
-    public string? Format { get; init; }
+    public string? Format { get; set; }
 }
