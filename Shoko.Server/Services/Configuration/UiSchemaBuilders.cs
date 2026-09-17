@@ -396,8 +396,8 @@ internal sealed class UiPropertyBuilder
 /// </summary>
 internal sealed class UiActionBuilder
 {
-    /// <summary>The identifier sent back when the action is invoked.</summary>
-    public required string ID { get; init; }
+    /// <summary>The name sent back when the action is invoked.</summary>
+    public required string Name { get; init; }
 
     /// <summary>The label of the action's button.</summary>
     public required string Title { get; init; }
@@ -416,6 +416,9 @@ internal sealed class UiActionBuilder
 
     /// <summary>The icon name for the action's button, if any.</summary>
     public string? Icon { get; init; }
+
+    /// <summary>The member the action renders on the row of, if any.</summary>
+    public string? MemberName { get; init; }
 
     /// <summary>The section the action belongs to, if any.</summary>
     public string? SectionName { get; init; }
