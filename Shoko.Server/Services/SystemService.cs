@@ -465,7 +465,12 @@ public class SystemService : ISystemService
             services.AddTransient(typeof(Lazy<>), typeof(LazyResolver<>));
             services.AddSingleton<IUserDataService, UserDataService>();
             services.AddSingleton<IImageManager, ImageManager>();
-            services.AddSingleton<IAiringScheduleService, AiringScheduleService>();
+            // Registered concretely as well, and forwarded, so the two resolve to one
+            // instance. The sweep watchdog threshold needs the concrete type for the
+            // internal GetSweepBudget(), and a cast off the interface would only fail
+            // at runtime.
+            services.AddSingleton<AiringScheduleService>();
+            services.AddSingleton<IAiringScheduleService>(provider => provider.GetRequiredService<AiringScheduleService>());
             // Minute-level precision, so it runs on its own clock rather than
             // through the queue, where it would wait behind every other job.
             services.AddHostedService<EpisodeAiringNotificationService>();

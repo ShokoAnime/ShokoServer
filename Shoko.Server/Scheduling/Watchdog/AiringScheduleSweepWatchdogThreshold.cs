@@ -1,5 +1,4 @@
 using System;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Services;
@@ -26,7 +25,7 @@ namespace Shoko.Server.Scheduling.Watchdog;
 /// </para>
 /// </remarks>
 /// <param name="airingScheduleService">The service that owns the budget.</param>
-public class AiringScheduleSweepWatchdogThreshold(IAiringScheduleService airingScheduleService) : IJobWatchdogThreshold
+public class AiringScheduleSweepWatchdogThreshold(AiringScheduleService airingScheduleService) : IJobWatchdogThreshold
 {
     /// <summary>
     /// How much longer than its budget a chunk may run before it is reported.
@@ -39,7 +38,7 @@ public class AiringScheduleSweepWatchdogThreshold(IAiringScheduleService airingS
     /// <inheritdoc/>
     public TimeSpan? GetThreshold(TimeSpan defaultThreshold)
     {
-        var budget = ((AiringScheduleService)airingScheduleService).GetSweepBudget();
+        var budget = airingScheduleService.GetSweepBudget();
         var threshold = budget * BudgetMargin;
         return threshold > defaultThreshold ? threshold : defaultThreshold;
     }
