@@ -6,12 +6,39 @@ implements them, your plugin consumes them, and neither side needs a reference
 to the other's concrete types.
 
 This file covers what every plugin has to get right, whatever it does. The
-per-feature READMEs next to each contract cover what is special about that
-contract, and link back here rather than repeating any of it:
+READMEs next to each contract cover what is special about that contract, and
+link back here rather than repeating any of it.
 
-- [Airing schedule providers](Metadata/Airing/README.md)
+**Contracts a plugin implements.** Relocation is the oldest of these: the 4.x
+plugin system was built around renaming and moving files, and most plugins
+written before 5.x are relocation providers.
+
+- [Relocation providers](Video/Relocation/README.md), for deciding where a file
+  belongs and what it is called
+- [Hash providers](Video/Hashing/README.md)
 - [Release info providers](Video/Release/README.md)
+- [Airing schedule providers](Metadata/Airing/README.md)
+- [Managed folder ignore rules](Video/README.md)
 - [Video stream transforms and playback observers](Video/Streaming/README.md)
+- [Image cross-reference resolvers](Metadata/Image/CrossReferences/README.md)
+- [Resource resolvers](Metadata/Resources/README.md)
+- [Supplementary metadata providers](Metadata/Services/README.md)
+- [Executable actions](Actions/Services/README.md)
+
+**Services a plugin consumes.**
+
+- [Video services](Video/Services/README.md) and
+  [user data](User/Services/README.md)
+- [AniDB](Metadata/Anidb/Services/README.md),
+  [AniList](Metadata/Anilist/Services/README.md) and
+  [TMDB](Metadata/Tmdb/Services/README.md)
+- [Configuration](Config/Services/README.md),
+  [logging](Logging/Services/README.md),
+  [system lifecycle](Core/Services/README.md) and
+  [connectivity](Connectivity/Services/README.md)
+- [Filtering](Filtering/Services/README.md),
+  [web themes](Web/Services/README.md) and the
+  [plugin namespace itself](Plugin/README.md)
 
 ---
 
