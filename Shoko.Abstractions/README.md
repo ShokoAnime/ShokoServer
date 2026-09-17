@@ -5,13 +5,17 @@ Everything in this package is an interface, a model or an enum: the server
 implements them, your plugin consumes them, and neither side needs a reference
 to the other's concrete types.
 
-This file covers what every plugin has to get right, whatever it does. The
-READMEs next to each contract cover what is special about that contract, and
-link back here rather than repeating any of it.
+## Where to go next
 
-**Contracts a plugin implements.** Relocation is the oldest of these: the 4.x
-plugin system was built around renaming and moving files, and most plugins
-written before 5.x are relocation providers.
+This file covers what every plugin has to get right, whatever it does. The
+pages below cover what is special about one contract or service, and link back
+here rather than repeating any of it.
+
+### Contracts a plugin implements
+
+Relocation is the oldest of these. The 4.x plugin system was built around
+renaming and moving files, so most plugins predating 5.x are relocation
+providers.
 
 - [Relocation providers](Video/Relocation/README.md), deciding where a video
   file should live and what it should be called
@@ -32,23 +36,30 @@ written before 5.x are relocation providers.
 - [Executable actions](Actions/Services/README.md), exposing a named unit of
   work a user or client can invoke
 
-**Services a plugin consumes.**
+### Metadata sources a plugin reads
+
+- [AniDB](Metadata/Anidb/Services/README.md), metadata, MyList and AVDump
+- [AniList](Metadata/Anilist/Services/README.md), search, metadata and linking
+- [TMDB](Metadata/Tmdb/Services/README.md), search, metadata and linking
+
+### Server services a plugin calls
 
 - [Video services](Video/Services/README.md), to find files, hash them, match
-  them to episodes and move them, and
-  [user data](User/Services/README.md), for watch state, ratings and user tags
-- [AniDB](Metadata/Anidb/Services/README.md),
-  [AniList](Metadata/Anilist/Services/README.md) and
-  [TMDB](Metadata/Tmdb/Services/README.md), each covering search, metadata and
-  linking for that source
+  them to episodes and move them
+- [User and user data](User/Services/README.md), for watch state, ratings and
+  user tags
 - [Configuration](Config/Services/README.md), declared as a plain C# class with
-  no `appsettings.json`, plus [logging](Logging/Services/README.md),
-  [system lifecycle](Core/Services/README.md) and
-  [connectivity](Connectivity/Services/README.md)
+  no `appsettings.json`
+- [Logging](Logging/Services/README.md), for writing log lines and reading them
+  back
+- [System lifecycle](Core/Services/README.md), for what state the server is in
+- [Connectivity](Connectivity/Services/README.md), for whether the machine can
+  reach the internet
 - [Filtering](Filtering/Services/README.md), for evaluating filters and presets
-  over a collection, [web themes](Web/Services/README.md), and the
-  [plugin namespace itself](Plugin/README.md), covering the plugin and package
-  managers
+  over a collection
+- [Web themes](Web/Services/README.md)
+- [The plugin namespace itself](Plugin/README.md), covering the plugin and
+  package managers
 
 ---
 
