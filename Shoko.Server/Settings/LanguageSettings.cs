@@ -3,7 +3,6 @@ using System.Linq;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.UI.Attributes;
 
 namespace Shoko.Server.Settings;
 
