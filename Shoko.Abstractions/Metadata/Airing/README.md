@@ -89,22 +89,23 @@ plugin overview.
 One consequence bites harder here than for any other contract. Every write on
 `IAiringScheduleService` is checked **by reference** against the instance
 `AddParts` was handed, so anything else in your plugin that writes has to hold
-that very object. If a sweep job or controller of yours calls into the
-provider, register the **concrete** type as a singleton:
+that very object. If a job or controller of yours calls into the provider,
+register the **concrete** type as a singleton:
 
 ```csharp
 services.AddSingleton<MyAiringScheduleProvider>();
 ```
 
-This is what the three shipping providers do: `SyoboiAiringScheduleProvider`,
-`AnimeScheduleProvider` and `TvMazeAiringScheduleProvider` are each registered
-as singletons because each plugin's own sweep job takes the provider by concrete
-type in its constructor.
-
 A **transient** registration, or a registration under
 `IAiringScheduleProvider`, hands your job a second instance instead, and every
 `AddOrUpdateSchedule` or `SetAirings` it makes throws `ArgumentException`. Keep
 the reference your own constructor was given, and pass it to every write.
+
+A provider that implements
+[`ISweepingAiringScheduleProvider`](ISweepingAiringScheduleProvider.cs) needs
+none of that. The server sweeps it by calling the instance it already holds, so
+there is nothing of yours to hand that instance to and nothing to register. See
+[Core-driven sweeps](#core-driven-sweeps-isweepingairingscheduleprovider).
 
 ### The rest of the contract
 
@@ -112,17 +113,17 @@ the reference your own constructor was given, and pass it to every write.
   fixed for the provider's lifetime, and a schedule with a track of an
   undeclared kind throws. Languages and channels are never declared up front,
   because they depend on the anime, which a provider can't know in advance.
-- **`RefreshAsync(ISeries, ...)`** is the only required method, and the only
-  call core ever makes into a provider. It answers `false`, rather than
+- **`RefreshAsync(ISeries, ...)`** is the only required method of the base
+  interface. It answers `false`, rather than
   throwing, for a series the provider has nothing for: an anime it can't key
   on, or a show it has never heard of. The `ISeason` and `IEpisode` overloads
   default to calling it with the entity's series, so a provider that only ever
   refreshes whole runs still answers every overload without extra code.
-- **Fetching is entirely the provider's own job.** Core never walks providers
-  to collect a series on its own schedule; each provider owns its cadence and
-  its own rate limits through its own recurring jobs (see
-  `RecurringJobRegistry` in the main `CLAUDE.md`), and `RefreshAsync` exists so
-  a user or another system can ask for one, on demand, right now.
+- **`RefreshAsync` is on demand, and answers one entity.** It is what a user
+  clicking refresh, or another system asking for one series, goes through. It
+  is never how a provider's whole source gets walked: that is
+  [a sweep](#core-driven-sweeps-isweepingairingscheduleprovider), and the two
+  are separate calls because they answer to different things.
 - **Configuration** works exactly like a release provider's: implement
   `IAiringScheduleProvider<TConfiguration>` where `TConfiguration : IAiringScheduleProviderConfiguration`
   to have the WebUI render a settings page for your provider (an API token, a
@@ -437,6 +438,160 @@ and a `Reason` of `UpdateReason.None`.
 three lists apart: `Added` when the write only added, `Removed` when it only
 withdrew, `None` when it did nothing, and `Updated` for everything else,
 including a write that did more than one of those things.
+
+---
+
+## Core-driven sweeps: `ISweepingAiringScheduleProvider`
+
+`RefreshAsync` answers one entity because something asked for it. Walking a
+provider's whole source is the other half, and
+[`ISweepingAiringScheduleProvider`](ISweepingAiringScheduleProvider.cs) is how a
+provider opts into having the server do the walking for it. Implement it
+alongside `IAiringScheduleProvider` and the server finds it, works out when the
+provider is due, and calls it until it says it is done:
+
+```csharp
+public class MyAiringScheduleProvider(IAiringScheduleService airingScheduleService, MyClient client)
+    : IAiringScheduleProvider, ISweepingAiringScheduleProvider
+{
+    public string Name => "MyProvider";
+
+    public IReadOnlySet<AiringKind> AvailableKinds { get; } = new HashSet<AiringKind> { AiringKind.Original };
+
+    // This source publishes a week at a time, so a week is the unit.
+    public TimeSpan? SuggestedSweepInterval => TimeSpan.FromHours(12);
+
+    public async Task<string?> SweepAsync(string? cursor, CancellationToken cancellationToken)
+    {
+        var week = cursor is null ? client.CurrentWeek : DateOnly.Parse(cursor);
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            if (await client.GetWeekAsync(week, cancellationToken) is not { } listing)
+                return null;          // nothing more to walk: the sweep is over
+
+            await WriteWeekAsync(listing, cancellationToken);
+            week = week.AddDays(7);
+
+            if (week > client.LastPublishedWeek)
+                return null;          // reached the end of the source
+        }
+
+        return week.ToString("O");    // out of budget: resume here next time
+    }
+
+    public Task<bool> RefreshAsync(ISeries series, CancellationToken cancellationToken = default)
+        => RefreshOneAsync(series, cancellationToken);
+}
+```
+
+Nothing is registered for this. The server holds the instance `AddParts` was
+handed and sweeps that object, so `this` inside `SweepAsync` is the same
+instance every write is checked against, and there is no job, hosted service or
+singleton of the plugin's involved for the container to have to line up.
+
+### The unit is yours, the pacing is the server's
+
+Core never learns what a chunk is. One provider walks anime ids, another walks
+weeks, another walks shows, and all core does is call `SweepAsync` again with
+whatever came back. What core does own is everything around that:
+
+- **Whether you are swept at all.** A disabled provider, meaning one with no
+  enabled kinds, is never swept. The gate is in core, on both the dispatch and
+  the chunk itself, so a provider disabled while its chunk sits in the queue is
+  still not swept. A provider whose kinds are merely narrowed *is* swept, and is
+  expected to check its own `EnabledKinds` before fetching a kind nobody asked
+  for, exactly as for a refresh.
+- **When the next sweep starts.** `SuggestedSweepInterval` is a suggestion in
+  the same sense `AvailableKinds` is a declaration: the provider says what it
+  knows about its own source, and the value actually used is
+  `AiringScheduleProviderInfo.SweepInterval`, which the user owns and can change
+  from the WebUI. A provider that suggests nothing gets the server's default of
+  a day. Anything under fifteen minutes is clamped.
+- **How long one chunk may run,** which is not the provider's at all. A chunk
+  holds a queue worker while it runs and a worker is shared, so the budget is
+  the server's, the same for every provider, and set well inside the queue
+  watchdog's own timeout.
+- **Where you resume,** which is the cursor, below.
+
+The chunks of one sweep follow each other as fast as the queue allows; the
+interval only governs the gap between whole sweeps.
+
+### The deadline, and the one token
+
+The token handed to `SweepAsync` is cancelled when the chunk's budget runs out,
+and it is linked to the worker's own shutdown token, so there is exactly one
+token to observe and it covers both. Watch it and return a cursor before it
+fires: that is a chunk that did its share and said where to pick up. If it fires
+first, the chunk is recorded as having timed out and the next one resumes from
+the last cursor you actually returned, so everything since is lost. A rate
+limited source therefore gets less done per chunk rather than holding a worker
+hostage, which is the whole point of chunking by deadline rather than by count.
+
+How a chunk ended is one of five:
+
+| Outcome | What happened |
+|---|---|
+| `Completed` | `SweepAsync` returned. Its cursor says whether the sweep carries on. |
+| `TimedOut` | The budget ran out first. |
+| `Stopped` | The server is shutting down, or the queue was stopped. Not held against the provider. |
+| `Cancelled` | The provider cancelled the chunk itself, with neither of the above having fired. |
+| `Failed` | The provider threw. Every other provider is unaffected. |
+
+Telling the middle three apart is best effort, not exact. All three arrive as an
+`OperationCanceledException` and the server decides between them by asking which
+token was cancelled by the time it caught one, so a provider cancelling for its
+own reason in the very instant the budget runs out is reported as a timeout.
+Nothing downstream depends on getting that right; it decides how loudly the run
+is logged and how soon the next chunk is queued.
+
+### The cursor
+
+`SweepAsync` returns a `string?` that is **opaque to the server**, which stores
+it and hands it back without ever reading into it:
+
+- **`null` means the sweep is finished.** Nothing resumes, and the provider is
+  left alone until its interval has passed.
+- **Anything else means call me again with this.** The next chunk is queued
+  straight away.
+
+Use whatever suits the walk: an id, a date, a page token, a small JSON blob. It
+has to fit in **512 characters**, which is what the airing tables give a name,
+and a longer one is refused and ends the sweep rather than being truncated. A
+provider that needs real state keeps that state itself and puts only an
+identifier for it in the cursor.
+
+The cursor is also what decides whether a chunk got anywhere. A chunk that hands
+back the cursor it was given, or that times out without having returned one at
+all, has made no progress, and the server counts those. Three in a row and the
+sweep stops resuming at the next opportunity and waits out the provider's whole
+interval instead, until a chunk moves it on again. That is what keeps a source
+too slow to finish even one unit inside a chunk from being called for ever
+without advancing, and the log says which of the two it is: a chunk that ran out
+of budget is slow, one that returned the same cursor is stuck.
+
+### Writing from a sweep: reach for `MergeAirings`
+
+A sweep almost never wants `SetAirings`, because `SetAirings` reads a submission
+as a schedule's *entire* line and a chunk holds part of one. `MergeAirings`
+(see [Writing part of a run](#writing-part-of-a-run-mergeairings)) is the write
+a chunk wants: it adds and updates what you pass, removes what you name, leaves
+every other airing on the schedule alone, and still runs the full inference over
+the schedule's whole stored line. A week-at-a-time or chunk-at-a-time walk gets
+the same delay and hiatus judgements as a provider that resubmits a whole run,
+without refetching the run to do it.
+
+### What a sweep leaves behind
+
+Per provider, the server keeps where the sweep got to, when the last chunk ran,
+how it ended, and how many chunks in a row have got nowhere. That is what the
+driver needs to resume and nothing more, and it is overwritten every chunk.
+
+There is no run history. Each finished chunk raises
+`IAiringScheduleService.SweepCompleted` carrying the provider, the outcome, when
+the chunk started and finished, and whether the sweep is over, and logs a line
+with the duration worked out from those. Anything that wants a history
+subscribes and keeps its own. Core also bridges the event to SignalR clients as
+`airing:provider.swept`, next to `airing:episode.aired`.
 
 ---
 

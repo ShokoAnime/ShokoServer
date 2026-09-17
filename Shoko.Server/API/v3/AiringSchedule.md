@@ -266,6 +266,32 @@ Four things to build around:
   so nothing has to be re-implemented to do that.
 - **It fires within a minute of the slot**, never before it.
 
+## Providers and their sweeps
+
+`GET /api/v3/AiringSchedule/Provider` lists the providers and their settings,
+`PUT /Provider/{providerID}` changes one and `POST /Provider` changes several.
+Two fields concern sweeping, which is the server walking a provider's whole
+source a chunk at a time:
+
+- `IsSwept`: whether the provider supports being swept. `false` for one that
+  only answers on-demand refreshes, and every sweep field is meaningless there.
+- `SweepInterval`: how long after a sweep finishes before the next one starts,
+  as a duration (`"12:00:00"`). It starts at whatever the provider suggests for
+  its own source, and is the user's from then on: send it back to change it.
+  Values under fifteen minutes are clamped rather than rejected, so read the
+  response back rather than assuming what was sent stuck.
+
+A sweep runs as queue jobs, so it shows up in the queue like any other work, and
+how long one chunk may run is the server's own and not exposed here. Each
+finished chunk pushes `airing:provider.swept` on the same `airing` feed as
+`airing:episode.aired`, carrying `ProviderID`, `ProviderName`, `Outcome` (one of
+`Completed`, `TimedOut`, `Stopped`, `Cancelled`, `Failed`), `StartedAt`,
+`CompletedAt`, `DurationSeconds`, `IsFinished` and `ErrorMessage`. A sweep of a
+long source is several chunks and therefore several messages, and `IsFinished`
+is what says the last one has arrived. Nothing is stored server-side, so there
+is no endpoint to read a sweep's history back from: a client that wants one
+keeps it.
+
 ## The dashboard calendars
 
 `GET /api/v3/Dashboard/AniDBCalendar` is still there, and is still what the
