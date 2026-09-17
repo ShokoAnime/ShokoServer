@@ -69,6 +69,22 @@ public class AiringScheduleProvider(AiringScheduleProviderInfo info)
     public IReadOnlyList<AiringKind> EnabledKinds { get; init; } = [.. info.EnabledKinds.Order()];
 
     /// <summary>
+    /// Whether the server sweeps this provider on its own schedule, walking the
+    /// provider's whole source a chunk at a time.
+    /// </summary>
+    [Required]
+    public bool IsSwept { get; init; } = info.Provider is ISweepingAiringScheduleProvider;
+
+    /// <summary>
+    /// How long after a sweep finishes before the next one starts. Seeded from
+    /// the provider's own suggestion and settable from here afterwards; values
+    /// below fifteen minutes are clamped. Meaningless when
+    /// <see cref="IsSwept"/> is <c>false</c>.
+    /// </summary>
+    [Required]
+    public TimeSpan SweepInterval { get; init; } = info.SweepInterval;
+
+    /// <summary>
     /// Information about the configuration the airing schedule provider uses.
     /// </summary>
     public ConfigurationInfo? Configuration { get; init; } = info.ConfigurationInfo is null ? null : new(info.ConfigurationInfo);

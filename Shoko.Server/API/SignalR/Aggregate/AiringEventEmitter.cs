@@ -28,6 +28,12 @@ public class AiringEventEmitter : BaseEventEmitter, IDisposable
     private readonly IDisposable _subscription;
 
     /// <summary>
+    /// The service the sweep handler is detached from on dispose, since that
+    /// one is a plain event rather than a subscription.
+    /// </summary>
+    private readonly IAiringScheduleService _airingScheduleService;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="AiringEventEmitter"/> class.
     /// </summary>
     /// <param name="hub">The aggregate hub.</param>
@@ -38,12 +44,15 @@ public class AiringEventEmitter : BaseEventEmitter, IDisposable
         ArgumentNullException.ThrowIfNull(airingScheduleService);
 
         _logger = logger;
+        _airingScheduleService = airingScheduleService;
         _subscription = airingScheduleService.SubscribeToAirings(OnEpisodesAired);
+        _airingScheduleService.SweepCompleted += OnSweepCompleted;
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
+        _airingScheduleService.SweepCompleted -= OnSweepCompleted;
         _subscription.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -57,6 +66,18 @@ public class AiringEventEmitter : BaseEventEmitter, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while sending the 'episode.aired' event.");
+        }
+    }
+
+    private async void OnSweepCompleted(object? sender, AiringScheduleSweepEventArgs e)
+    {
+        try
+        {
+            await SendAsync("provider.swept", new AiringSweepCompletedSignalRModel(e));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'provider.swept' event.");
         }
     }
 }

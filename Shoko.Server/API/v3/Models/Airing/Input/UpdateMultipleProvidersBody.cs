@@ -28,4 +28,11 @@ public class UpdateMultipleProvidersBody
     /// rejected.
     /// </summary>
     public List<AiringKind>? EnabledKinds { get; set; }
+
+    /// <summary>
+    /// Optional. How long after a sweep finishes before the next one starts,
+    /// for a provider the server sweeps. Values below fifteen minutes are
+    /// clamped rather than rejected.
+    /// </summary>
+    public TimeSpan? SweepInterval { get; set; }
 }

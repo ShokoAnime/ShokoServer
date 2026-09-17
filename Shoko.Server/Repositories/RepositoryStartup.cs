@@ -62,6 +62,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_TagRepository>();
         services.AddCachedRepository<AiringChannelRepository>();
         services.AddCachedRepository<AiringScheduleRepository>();
+        services.AddCachedRepository<AiringScheduleSweepStateRepository>();
         services.AddCachedRepository<EpisodeAiringRepository>();
         services.AddCachedRepository<AnimeEpisodeRepository>();
         services.AddCachedRepository<AnimeEpisode_UserRepository>();

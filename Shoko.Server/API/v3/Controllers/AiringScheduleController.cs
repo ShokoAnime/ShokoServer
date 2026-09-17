@@ -318,7 +318,7 @@ public class AiringScheduleController(
             if (!providerInfoDict.TryGetValue(provider.ID, out var providerInfo))
                 continue;
 
-            if (ApplyProviderChanges(providerInfo, provider.Priority, provider.EnabledKinds))
+            if (ApplyProviderChanges(providerInfo, provider.Priority, provider.EnabledKinds, provider.SweepInterval))
                 changedProviders.Add(providerInfo);
         }
 
@@ -369,7 +369,7 @@ public class AiringScheduleController(
         if (airingScheduleService.GetProviderInfo(providerID) is not { } providerInfo)
             return NotFound(ProviderNotFoundWithProviderID);
 
-        if (ApplyProviderChanges(providerInfo, body.Priority, body.EnabledKinds))
+        if (ApplyProviderChanges(providerInfo, body.Priority, body.EnabledKinds, body.SweepInterval))
             airingScheduleService.UpdateProviders(providerInfo);
 
         return GetProviderByID(providerID);
@@ -381,8 +381,9 @@ public class AiringScheduleController(
     /// <param name="providerInfo">The provider info to change, which is a copy of the registered one.</param>
     /// <param name="priority">The wanted priority, or <c>null</c> to leave it alone.</param>
     /// <param name="enabledKinds">The wanted kinds, or <c>null</c> to leave them alone.</param>
+    /// <param name="sweepInterval">The wanted sweep interval, or <c>null</c> to leave it alone.</param>
     /// <returns>Whether anything changed.</returns>
-    private static bool ApplyProviderChanges(AiringScheduleProviderInfo providerInfo, int? priority, IReadOnlyList<AiringKind>? enabledKinds)
+    private static bool ApplyProviderChanges(AiringScheduleProviderInfo providerInfo, int? priority, IReadOnlyList<AiringKind>? enabledKinds, TimeSpan? sweepInterval)
     {
         var changed = false;
         if (enabledKinds is not null)
@@ -399,6 +400,13 @@ public class AiringScheduleController(
         if (priority.HasValue && priority.Value != providerInfo.Priority)
         {
             providerInfo.Priority = priority.Value;
+            changed = true;
+        }
+
+        // The floor is the service's, so an impatient value is clamped there rather than rejected.
+        if (sweepInterval.HasValue && sweepInterval.Value != providerInfo.SweepInterval)
+        {
+            providerInfo.SweepInterval = sweepInterval.Value;
             changed = true;
         }
 

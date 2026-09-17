@@ -63,6 +63,23 @@ public class AiringScheduleProviderInfo
     public required HashSet<AiringKind> EnabledKinds { get; set; }
 
     /// <summary>
+    ///   How long after a sweep finishes before the next one starts, for a
+    ///   provider that implements
+    ///   <see cref="ISweepingAiringScheduleProvider"/>. Meaningless for one
+    ///   that does not, and left at the default there.
+    /// </summary>
+    /// <remarks>
+    ///   This is the user's, the way
+    ///   <see cref="EnabledKinds"/> is: it is seeded from the provider's own
+    ///   <see cref="ISweepingAiringScheduleProvider.SuggestedSweepInterval"/>,
+    ///   or from the server's default when the provider suggests nothing, and
+    ///   whatever it is set to afterwards is what the server uses. Values below
+    ///   fifteen minutes are clamped on load, since a sweep is a walk of a whole
+    ///   source rather than a poll.
+    /// </remarks>
+    public required TimeSpan SweepInterval { get; set; }
+
+    /// <summary>
     ///   Whether or not the provider is enabled for automatic usage. A provider
     ///   with no enabled kinds is disabled.
     /// </summary>

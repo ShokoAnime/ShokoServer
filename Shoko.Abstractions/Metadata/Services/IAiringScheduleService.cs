@@ -61,6 +61,15 @@ public interface IAiringScheduleService
     event EventHandler? ProvidersUpdated;
 
     /// <summary>
+    ///   Event raised once per finished chunk of a core-driven sweep, for a
+    ///   provider implementing
+    ///   <see cref="ISweepingAiringScheduleProvider"/>. Nothing about a sweep is
+    ///   stored beyond what it takes to resume one, so this is the only record
+    ///   there is.
+    /// </summary>
+    event EventHandler<AiringScheduleSweepEventArgs>? SweepCompleted;
+
+    /// <summary>
     ///   List out all available providers, which kinds they have enabled, and
     ///   their source order.
     /// </summary>

@@ -547,6 +547,7 @@ public class SystemService : ISystemService
             registry.Register<PurgeOrphanedAnilistDataJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<StreamSessionCleanupJob>(TimeSpan.FromMinutes(1), runImmediately: true);
             registry.Register<AiringScheduleRetentionJob>(TimeSpan.FromHours(24), runImmediately: false);
+            registry.Register<SweepAiringSchedulesJob>(TimeSpan.FromMinutes(15), runImmediately: false);
 
             // Register settings-driven recurring jobs. Jobs whose frequency is Never are skipped
             // entirely at startup; they are registered on-demand when settings change.

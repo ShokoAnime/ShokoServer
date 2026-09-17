@@ -348,6 +348,7 @@ public partial class AiringScheduleService(
             var config = configurationProvider.Load();
             var order = config.Priority;
             var storedKinds = config.EnabledKinds;
+            var storedIntervals = config.SweepIntervals;
             // Nothing has been configured yet, so the core's own providers start
             // enabled for everything they declare and at the front of the list.
             var seedDefaults = storedKinds.Count is 0;
@@ -370,6 +371,13 @@ public partial class AiringScheduleService(
                         .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IAiringScheduleProvider<>))
                         ?.GetGenericArguments()[0];
                     var configurationInfo = configurationType is null ? null : configurationService.GetConfigurationInfo(configurationType);
+                    // The user's value if there is one, else the provider's own
+                    // suggestion, else the server's default, and never below the floor.
+                    var sweepInterval = storedIntervals.TryGetValue(id, out var storedInterval)
+                        ? storedInterval
+                        : (provider as ISweepingAiringScheduleProvider)?.SuggestedSweepInterval ?? AiringScheduleServiceSettings.DefaultSweepInterval;
+                    if (sweepInterval < AiringScheduleServiceSettings.MinimumSweepInterval)
+                        sweepInterval = AiringScheduleServiceSettings.MinimumSweepInterval;
                     return new AiringScheduleProviderInfo()
                     {
                         ID = id,
@@ -381,6 +389,7 @@ public partial class AiringScheduleService(
                         PluginInfo = pluginInfo,
                         Priority = -1,
                         EnabledKinds = enabledKinds,
+                        SweepInterval = sweepInterval,
                     };
                 })
                 .OrderBy(info => order.IndexOf(info.ID) is -1)
@@ -468,6 +477,7 @@ public partial class AiringScheduleService(
 
         var existingProviders = _providerInfos.Values.OrderBy(info => info.Priority).Select(Copy).ToList();
         var kindsChanged = false;
+        var intervalsChanged = false;
         foreach (var providerInfo in providers)
         {
             var wantedIndex = providerInfo.Priority;
@@ -484,6 +494,17 @@ public partial class AiringScheduleService(
                 kindsChanged = true;
             }
 
+            // The floor is the service's, so a caller asking for less gets the floor
+            // rather than an error, the same way an undeclared kind is dropped.
+            var wantedInterval = providerInfo.SweepInterval < AiringScheduleServiceSettings.MinimumSweepInterval
+                ? AiringScheduleServiceSettings.MinimumSweepInterval
+                : providerInfo.SweepInterval;
+            if (wantedInterval != existingProviders[existingIndex].SweepInterval)
+            {
+                existingProviders[existingIndex].SweepInterval = wantedInterval;
+                intervalsChanged = true;
+            }
+
             if (wantedIndex != existingIndex)
             {
                 var entry = existingProviders[existingIndex];
@@ -495,7 +516,7 @@ public partial class AiringScheduleService(
             }
         }
 
-        var changed = kindsChanged;
+        var changed = kindsChanged || intervalsChanged;
         var config = configurationProvider.Load();
         var priority = existingProviders.Select(info => info.ID).ToList();
         if (config.Priority.Count != priority.Count || config.Priority.Where((id, index) => priority[index] != id).Any())
@@ -511,6 +532,16 @@ public partial class AiringScheduleService(
             !config.EnabledKinds.All(entry => enabledKinds.TryGetValue(entry.Key, out var kinds) && kinds.SequenceEqual(entry.Value.Order())))
         {
             config.EnabledKinds = enabledKinds;
+            changed = true;
+        }
+
+        var sweepIntervals = existingProviders
+            .OrderBy(info => info.ID)
+            .ToDictionary(info => info.ID, info => info.SweepInterval);
+        if (config.SweepIntervals.Count != sweepIntervals.Count ||
+            !config.SweepIntervals.All(entry => sweepIntervals.TryGetValue(entry.Key, out var interval) && interval == entry.Value))
+        {
+            config.SweepIntervals = sweepIntervals;
             changed = true;
         }
 
@@ -556,6 +587,7 @@ public partial class AiringScheduleService(
             PluginInfo = info.PluginInfo,
             Priority = info.Priority,
             EnabledKinds = info.EnabledKinds.ToHashSet(),
+            SweepInterval = info.SweepInterval,
         };
 
     /// <summary>

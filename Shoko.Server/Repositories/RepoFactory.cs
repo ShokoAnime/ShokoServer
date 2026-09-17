@@ -44,6 +44,7 @@ public class RepoFactory
     public static AniDB_TagRepository AniDB_Tag = null!;
     public static AiringChannelRepository AiringChannel = null!;
     public static AiringScheduleRepository AiringSchedule = null!;
+    public static AiringScheduleSweepStateRepository AiringScheduleSweepState = null!;
     public static EpisodeAiringRepository EpisodeAiring = null!;
     public static AnimeEpisode_UserRepository AnimeEpisode_User = null!;
     public static AnimeEpisodeRepository AnimeEpisode = null!;
@@ -137,6 +138,7 @@ public class RepoFactory
         AniDB_TagRepository anidbTag,
         AiringChannelRepository airingChannel,
         AiringScheduleRepository airingSchedule,
+        AiringScheduleSweepStateRepository airingScheduleSweepState,
         EpisodeAiringRepository episodeAiring,
         AnimeEpisode_UserRepository animeEpisodeUser,
         AnimeEpisodeRepository animeEpisode,
@@ -230,6 +232,7 @@ public class RepoFactory
         AnimeEpisode = animeEpisode;
         AiringChannel = airingChannel;
         AiringSchedule = airingSchedule;
+        AiringScheduleSweepState = airingScheduleSweepState;
         EpisodeAiring = episodeAiring;
         AnimeEpisode_User = animeEpisodeUser;
         AnimeGroup = animeGroup;

@@ -1204,6 +1204,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(186, 11, "CREATE UNIQUE INDEX UIX_AiringChannel_ChannelID ON AiringChannel(ChannelID);"),
         new(186, 12, "CREATE INDEX IX_AiringChannel_Type_NormalizedName ON AiringChannel(Type, NormalizedName);"),
         new(186, 13, DatabaseFixes.SeedAnilistAiringSchedules),
+        new(187,  1, "CREATE TABLE AiringScheduleSweepState ( AiringScheduleSweepStateID INT IDENTITY(1,1) NOT NULL, ProviderID NVARCHAR(40) NOT NULL, [Cursor] NVARCHAR(512) NULL, LastRunAt DATETIME NOT NULL, LastOutcome TINYINT NOT NULL, NoProgressCount INT NOT NULL, CONSTRAINT PK_AiringScheduleSweepState PRIMARY KEY CLUSTERED (AiringScheduleSweepStateID) );"),
+        new(187,  2, "CREATE UNIQUE INDEX UIX_AiringScheduleSweepState_ProviderID ON AiringScheduleSweepState(ProviderID);"),
     ];
 
     #endregion
