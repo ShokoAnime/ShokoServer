@@ -106,6 +106,11 @@
       "description": "Configure the information Shoko retrieves from TMDB for the series in your collection.",
       "$ref": "#/definitions/TMDB"
     },
+    "Anilist": {
+      "title": "Anilist",
+      "description": "Configure the information Shoko retrieves from Anilist for the series in your collection.",
+      "$ref": "#/definitions/Anilist"
+    },
     "Database": {
       "title": "Database",
       "description": "Configure the main database settings. These settings will not affect the queue database.",
@@ -433,7 +438,7 @@
         "UseExistingFileWatchedStatus": {
           "title": "Use Existing Watched Status",
           "type": "boolean",
-          "description": "Use the existing episode watched status when importing files."
+          "description": "Use the existing episode watched status when importing files. Falls back to the episode-level watched record, so replacing a watched release (e.g. TV with blu-ray) after deleting the watched copy keeps the new file watched."
         },
         "AutomaticallyDeleteDuplicatesOnImport": {
           "title": "Automatically Delete Duplicates on Import",
@@ -586,6 +591,56 @@
           "title": "Add Files",
           "type": "boolean"
         },
+        "MyList_SyncTargets": {
+          "title": "Sync Targets",
+          "description": "Which tiers of the MyList to reconcile during a sync.",
+          "$ref": "#/definitions/MylistSyncTargets",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "None",
+                "aliasValues": ""
+              },
+              {
+                "value": "Videos",
+                "aliasValues": ""
+              },
+              {
+                "value": "Episodes",
+                "aliasValues": ""
+              },
+              {
+                "value": "All",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "MyList_WatchedEpisodeMode": {
+          "title": "Watched Episode Mode",
+          "description": "How to record a locally watched episode that the MyList covers only by file entries. Defaults to leaving those alone.",
+          "$ref": "#/definitions/MylistWatchedEpisodeMode",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Ignore",
+                "aliasValues": ""
+              },
+              {
+                "value": "AttachToOldest",
+                "aliasValues": ""
+              },
+              {
+                "value": "CreateGeneric",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
         "MyList_ReadWatched": {
           "title": "Read Watched",
           "type": "boolean"
@@ -604,7 +659,7 @@
         },
         "MyList_StorageState": {
           "title": "Storage State",
-          "$ref": "#/definitions/MyList_State",
+          "$ref": "#/definitions/MylistState",
           "x-uiDefinition": {
             "elementType": "enum",
             "requiresRestart": false,
@@ -632,9 +687,37 @@
             ]
           }
         },
+        "MyList_UpdateStates": {
+          "title": "Update States",
+          "type": "boolean",
+          "description": "Update the desired state of existing MyList entries during a sync. When disabled, only new files are added with the desired state and existing entries are left as-is."
+        },
+        "MyList_WatchedSyncMode": {
+          "title": "Watched State Sync",
+          "description": "How to resolve watched-state conflicts during a MyList sync when the entry was updated on the same day as the local watch. Older differences are governed by the read/set settings instead.",
+          "$ref": "#/definitions/MylistWatchedSyncMode",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Ignore",
+                "aliasValues": ""
+              },
+              {
+                "value": "TrustLocal",
+                "aliasValues": ""
+              },
+              {
+                "value": "TrustRemote",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
         "MyList_DeleteType": {
           "title": "Delete Type",
-          "$ref": "#/definitions/AniDBFileDeleteType",
+          "$ref": "#/definitions/MylistDeleteType",
           "x-uiDefinition": {
             "elementType": "enum",
             "requiresRestart": false,
@@ -665,6 +748,11 @@
               }
             ]
           }
+        },
+        "MyList_UseGenericFileIndex": {
+          "title": "Use Generic File Index",
+          "type": "boolean",
+          "description": "Consult a third-party index of generic file IDs during a sync. AniDB's MyList export does not mark generic entries, and the file state is only a convention a generic entry may not follow, so without the index the sync can mistake a generic entry for a file it no longer has. Turn this off to keep the sync entirely between this server and AniDB, at the cost of the sync no longer disposing of missing entries at all — it refuses to act on an entry it cannot classify, and without the index it cannot classify any of them."
         },
         "MyList_RetainedBackupCount": {
           "title": "Retained Backup Count",
@@ -705,6 +793,10 @@
               {
                 "value": "MonthOne",
                 "aliasValues": ""
+              },
+              {
+                "value": "EveryHour",
+                "aliasValues": ""
               }
             ]
           }
@@ -739,6 +831,10 @@
               },
               {
                 "value": "MonthOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "EveryHour",
                 "aliasValues": ""
               }
             ]
@@ -775,6 +871,10 @@
               {
                 "value": "MonthOne",
                 "aliasValues": ""
+              },
+              {
+                "value": "EveryHour",
+                "aliasValues": ""
               }
             ]
           }
@@ -810,6 +910,49 @@
               {
                 "value": "MonthOne",
                 "aliasValues": ""
+              },
+              {
+                "value": "EveryHour",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "MyList_FetchMode": {
+          "title": "Fetch Mode",
+          "description": "How to fetch MyList entries from AniDB.",
+          "$ref": "#/definitions/MylistFetchMode",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "None",
+                "aliasValues": ""
+              },
+              {
+                "value": "Http",
+                "aliasValues": ""
+              },
+              {
+                "value": "Udp",
+                "aliasValues": ""
+              },
+              {
+                "value": "Cache",
+                "aliasValues": ""
+              },
+              {
+                "value": "Default",
+                "aliasValues": ""
+              },
+              {
+                "value": "IgnoreTimeCheck",
+                "aliasValues": ""
+              },
+              {
+                "value": "Auto",
+                "aliasValues": ""
               }
             ]
           }
@@ -844,6 +987,10 @@
               },
               {
                 "value": "MonthOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "EveryHour",
                 "aliasValues": ""
               }
             ]
@@ -980,8 +1127,40 @@
         }
       }
     },
-    "MyList_State": {
+    "MylistSyncTargets": {
       "type": "string",
+      "description": "Which tiers of the MyList a sync reconciles. The two are independent: a file entry covers one release, while a generic entry covers an episode the user has no file for.",
+      "x-enumFlags": true,
+      "x-enumNames": [
+        "None",
+        "Videos",
+        "Episodes",
+        "All"
+      ],
+      "enum": [
+        "None",
+        "Videos",
+        "Episodes",
+        "All"
+      ]
+    },
+    "MylistWatchedEpisodeMode": {
+      "type": "string",
+      "description": "How to record a locally watched episode when the MyList already holds one or more file entries for it but no generic entry. With a generic entry present the sync simply reconciles it, and with nothing present it creates one; this only governs the case in between.",
+      "x-enumNames": [
+        "Ignore",
+        "AttachToOldest",
+        "CreateGeneric"
+      ],
+      "enum": [
+        "Ignore",
+        "AttachToOldest",
+        "CreateGeneric"
+      ]
+    },
+    "MylistState": {
+      "type": "string",
+      "description": "The storage state of an AniDB MyList entry.",
       "x-enumNames": [
         "Unknown",
         "HDD",
@@ -997,8 +1176,23 @@
         "Remote"
       ]
     },
-    "AniDBFileDeleteType": {
+    "MylistWatchedSyncMode": {
       "type": "string",
+      "description": "How to resolve watched-state conflicts during a MyList sync when the entry was updated on the same day as the local watch. Older differences are governed by the individual read/set settings instead.",
+      "x-enumNames": [
+        "Ignore",
+        "TrustLocal",
+        "TrustRemote"
+      ],
+      "enum": [
+        "Ignore",
+        "TrustLocal",
+        "TrustRemote"
+      ]
+    },
+    "MylistDeleteType": {
+      "type": "string",
+      "description": "How to remove an entry from the MyList when the local file is gone.",
       "x-enumNames": [
         "Delete",
         "DeleteLocalOnly",
@@ -1024,7 +1218,8 @@
         "HoursTwelve",
         "Daily",
         "WeekOne",
-        "MonthOne"
+        "MonthOne",
+        "EveryHour"
       ],
       "enum": [
         "Never",
@@ -1032,7 +1227,31 @@
         "HoursTwelve",
         "Daily",
         "WeekOne",
-        "MonthOne"
+        "MonthOne",
+        "EveryHour"
+      ]
+    },
+    "MylistFetchMode": {
+      "type": "string",
+      "description": "How to fetch entries from the AniDB MyList. The freshness of the local cache only gates the HTTP transport, while UDP is never time-gated.",
+      "x-enumFlags": true,
+      "x-enumNames": [
+        "None",
+        "Http",
+        "Udp",
+        "Cache",
+        "Default",
+        "IgnoreTimeCheck",
+        "Auto"
+      ],
+      "enum": [
+        "None",
+        "Http",
+        "Udp",
+        "Cache",
+        "Default",
+        "IgnoreTimeCheck",
+        "Auto"
       ]
     },
     "AnidbRateLimit": {
@@ -1344,6 +1563,121 @@
             "elementType": "auto",
             "requiresRestart": false,
             "envVar": "TMDB_RATE_LIMIT_WINDOW_DURATION_MS",
+            "envVarOverridable": false
+          }
+        }
+      }
+    },
+    "Anilist": {
+      "type": "object",
+      "properties": {
+        "AutoLink": {
+          "title": "Auto Link",
+          "type": "boolean",
+          "description": "Automagically link AniDB anime to Anilist anime."
+        },
+        "AutoLinkRestricted": {
+          "title": "Auto Link Restricted",
+          "type": "boolean",
+          "description": "Automagically link restricted AniDB anime to Anilist anime. AutoLink also needs to be set for this setting to take effect."
+        },
+        "ConsiderExistingOtherLinks": {
+          "title": "Consider Existing Other Links",
+          "type": "boolean",
+          "description": "Determines whether to consider existing links for other series when automatically linking episodes."
+        },
+        "AutoDownloadStaff": {
+          "title": "Auto Download Staff",
+          "type": "boolean",
+          "description": "Automagically download staff members for anime in the local collection."
+        },
+        "AutoDownloadCharacters": {
+          "title": "Auto Download Characters",
+          "type": "boolean",
+          "description": "Automagically download characters for anime in the local collection."
+        },
+        "ImageCdnUrl": {
+          "title": "Image CDN URL",
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The base URL or URL template for the image CDN to use.",
+          "format": "uri",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "ANILIST_IMAGE_CDN_URL",
+            "envVarOverridable": false
+          }
+        },
+        "AutoDownloadPosters": {
+          "title": "Auto Download Posters",
+          "type": "boolean",
+          "description": "Automagically download the cover image for Anilist anime."
+        },
+        "AutoDownloadBanners": {
+          "title": "Auto Download Banners",
+          "type": "boolean",
+          "description": "Automagically download the banner image for Anilist anime."
+        },
+        "AutoDownloadStudios": {
+          "title": "Auto Download Studios",
+          "type": "boolean",
+          "description": "Automagically download studio information for anime in the local collection."
+        },
+        "AutoSearchCandidateCount": {
+          "title": "Auto Search Candidate Count",
+          "type": "integer",
+          "description": "The number of top search results to evaluate when automatically searching for an Anilist anime to link to an AniDB anime. Set to `1` to only consider the first result.",
+          "format": "int32",
+          "maximum": 20.0,
+          "minimum": 1.0
+        },
+        "AutoPurgeUnlinkedAfterDays": {
+          "title": "Auto Purge Unlinked After Days",
+          "type": "integer",
+          "description": "The number of days an Anilist anime can remain without any links to a Shoko series before it is automatically purged. Set to `0` to disable the automatic purging.",
+          "format": "int32",
+          "maximum": 365.0,
+          "minimum": 0.0
+        },
+        "RateLimit": {
+          "title": "Rate Limit",
+          "description": "Rate limit settings for the Anilist API.",
+          "$ref": "#/definitions/AnilistRateLimit"
+        }
+      }
+    },
+    "AnilistRateLimit": {
+      "type": "object",
+      "description": "Settings for rate limiting the AniList provider.",
+      "properties": {
+        "MaxRequestsPerWindow": {
+          "title": "Max Requests Per Window",
+          "type": "integer",
+          "description": "Maximum number of requests allowed within the rate limit window. Together with WindowDurationMs this defaults to one request every four seconds, the same pace as AniDB, which is far below what AniList allows. Raise it if you want faster updates; the limiter never exceeds the limit AniList advertises in its response headers.",
+          "format": "int32",
+          "maximum": 90.0,
+          "minimum": 1.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "ANILIST_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW",
+            "envVarOverridable": false
+          }
+        },
+        "WindowDurationMs": {
+          "title": "Window Duration (ms)",
+          "type": "integer",
+          "description": "Duration of the sliding rate limit window in milliseconds. Defaults to four seconds.",
+          "format": "int32",
+          "maximum": 120000.0,
+          "minimum": 1000.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "ANILIST_RATE_LIMIT_WINDOW_DURATION_MS",
             "envVarOverridable": false
           }
         }
@@ -1908,6 +2242,10 @@
               },
               {
                 "value": "MonthOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "EveryHour",
                 "aliasValues": ""
               }
             ]
@@ -2691,6 +3029,77 @@
             "elementType": "auto",
             "requiresRestart": false,
             "envVar": "SHOKO_SERVER_MANIFEST_URL",
+            "envVarOverridable": false
+          }
+        },
+        "AuthenticationThrottle": {
+          "title": "Authentication Throttling",
+          "description": "Throttling of failed authentication attempts, shared by the core and every plugin.",
+          "$ref": "#/definitions/AuthenticationThrottle"
+        }
+      }
+    },
+    "AuthenticationThrottle": {
+      "type": "object",
+      "description": "Settings for throttling failed authentication attempts per client and per user.",
+      "properties": {
+        "MaxFailedAttempts": {
+          "title": "Max Failed Attempts",
+          "type": "integer",
+          "description": "The number of failed attempts within the attempt window that are allowed before the client or user is locked out. Must be between 1 and 100. Defaults to 10.",
+          "format": "int32",
+          "default": 10,
+          "maximum": 100.0,
+          "minimum": 1.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "SHOKO_WEB_AUTHENTICATION_THROTTLE_MAX_FAILED_ATTEMPTS",
+            "envVarOverridable": false
+          }
+        },
+        "AttemptWindowMinutes": {
+          "title": "Attempt Window (minutes)",
+          "type": "integer",
+          "description": "The sliding window in minutes in which failed attempts are counted. Must be between 1 and 1440 minutes. Defaults to 15 minutes.",
+          "format": "int32",
+          "default": 15,
+          "maximum": 1440.0,
+          "minimum": 1.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "SHOKO_WEB_AUTHENTICATION_THROTTLE_ATTEMPT_WINDOW_MINUTES",
+            "envVarOverridable": false
+          }
+        },
+        "InitialLockoutMinutes": {
+          "title": "Initial Lockout (minutes)",
+          "type": "integer",
+          "description": "The lockout duration in minutes applied on the first excess attempt, doubling for every attempt after that. Must be between 1 and 1440 minutes, and not exceed MaxLockoutMinutes. Defaults to 15 minutes.",
+          "format": "int32",
+          "default": 15,
+          "maximum": 1440.0,
+          "minimum": 1.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "SHOKO_WEB_AUTHENTICATION_THROTTLE_INITIAL_LOCKOUT_MINUTES",
+            "envVarOverridable": false
+          }
+        },
+        "MaxLockoutMinutes": {
+          "title": "Max Lockout (minutes)",
+          "type": "integer",
+          "description": "The maximum lockout duration in minutes, regardless of how many failed attempts have been made. Lowering it also shortens existing lockouts. Must be between 15 and 10080 minutes (7 days). Defaults to 1440 minutes (1 day).",
+          "format": "int32",
+          "default": 1440,
+          "maximum": 10080.0,
+          "minimum": 15.0,
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": false,
+            "envVar": "SHOKO_WEB_AUTHENTICATION_THROTTLE_MAX_LOCKOUT_MINUTES",
             "envVarOverridable": false
           }
         }
