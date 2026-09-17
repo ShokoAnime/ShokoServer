@@ -18,7 +18,7 @@ public class UiStructureEntry
     /// The key to look the member up by, in the map named by <see cref="Kind"/>:
     /// <see cref="Elements.UiSectionContainerElement.Items"/>,
     /// <see cref="Elements.UiSectionContainerElement.Actions"/> — where the key
-    /// is the action's <see cref="UiAction.ID"/> — or
+    /// is the action's <see cref="UiAction.Name"/> — or
     /// <see cref="Elements.UiSectionContainerElement.FloatingSections"/>, where
     /// it is the section's <see cref="UiFloatingSection.Title"/>.
     /// </summary>

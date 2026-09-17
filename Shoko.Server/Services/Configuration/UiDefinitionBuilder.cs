@@ -648,7 +648,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     private static UiAction ReadAction(WalkState state, UiActionBuilder action)
         => new()
         {
-            ID = action.ID,
+            Name = action.ID,
             Title = string.IsNullOrEmpty(action.Title) ? action.ID : action.Title,
             Description = string.IsNullOrEmpty(action.Description) ? null : action.Description,
             Theme = action.Theme,
