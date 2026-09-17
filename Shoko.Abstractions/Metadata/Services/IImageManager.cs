@@ -52,6 +52,18 @@ public interface IImageManager
     ///   valid <c>http://</c> or <c>https://</c> URL by itself and contain
     ///   <c>{0}</c>.
     /// </summary>
+    /// <remarks>
+    ///   Template URLs are seeded for <see cref="DataSource.AniDB"/>,
+    ///   <see cref="DataSource.TMDB"/> and <see cref="DataSource.AniList"/>.
+    ///   Every other source has none until this is called, and
+    ///   <see cref="AddImage"/> throws
+    ///   <see cref="MissingImageSourceTemplateUrlException"/> for each of its
+    ///   images meanwhile, so a plugin contributing images under a source of
+    ///   its own registers one before adding the first image. The value is
+    ///   persisted in the server's configuration and is the user's to change
+    ///   afterwards, so check <see cref="GetTemplateUrlForSource"/> first and
+    ///   set it only when there is none.
+    /// </remarks>
     /// <param name="imageSource">
     ///   The image source.
     /// </param>
@@ -230,6 +242,15 @@ public interface IImageManager
     /// <summary>
     ///   Add a new image from provider data.
     /// </summary>
+    /// <remarks>
+    ///   The image's source needs a template URL, which is seeded for
+    ///   <see cref="DataSource.AniDB"/>, <see cref="DataSource.TMDB"/> and
+    ///   <see cref="DataSource.AniList"/> and registered with
+    ///   <see cref="SetTemplateUrlForSource"/> for any other source. The
+    ///   image's <see cref="IImage.ResourceID"/> is what completes that
+    ///   template, so it is the remainder of the remote URL and fits in 128
+    ///   characters.
+    /// </remarks>
     /// <param name="imageData">
     ///   The image data containing metadata from the provider.
     /// </param>

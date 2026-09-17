@@ -626,14 +626,60 @@ the linked series with the earliest release date, or `null`.
 ## Adding an image and linking it
 
 Two ways in. `AddImage(ImageData)` registers an image that lives at a provider
-and will be fetched later, which requires a template URL to be configured for
-that source and throws `MissingImageSourceTemplateUrlException` if there is
-none. `UploadImage(stream | byte[], contentType, userSubmitted)` stores bytes
-you already have; pass `userSubmitted: false` for something your plugin
-generated, such as an extracted thumbnail. Both reject a MIME type outside
-`AllowedMimeTypes` with `UnsupportedImageTypeException`.
+and will be fetched later, which needs a template URL registered for that
+source first and throws `MissingImageSourceTemplateUrlException` when there is
+none, as the next section covers. `UploadImage(stream | byte[], contentType,
+userSubmitted)` stores bytes you already have; pass `userSubmitted: false` for
+something your plugin generated, such as an extracted thumbnail. Both reject a
+MIME type outside `AllowedMimeTypes` with `UnsupportedImageTypeException`.
 
-Neither attaches the image to anything. That is `AddImageCrossReference`:
+### A source of your own needs a template URL first
+
+The manager stores one template URL per `DataSource` and rebuilds a remote URL
+as `string.Format(template, image.ResourceID)` every time it downloads one. It
+seeds three of them: AniDB, TMDB and AniList. Every other source starts with
+none, `DataSource.Plugin` and the named ones such as `DataSource.FanartTV`
+alike, and `AddImage` throws `MissingImageSourceTemplateUrlException` for every
+image of that source until one is set.
+
+Register it with `SetTemplateUrlForSource`, before the first `AddImage` and only
+when there is none:
+
+```csharp
+private const string TemplateUrl = "https://assets.example.com/art/{0}";
+
+if (imageManager.GetTemplateUrlForSource(DataSource.FanartTV) is null)
+    imageManager.SetTemplateUrlForSource(DataSource.FanartTV, TemplateUrl);
+```
+
+The check is the half that matters. The template is persisted in the server's
+own configuration and the user owns it from then on, so a plugin that sets it
+unconditionally overwrites the mirror they pointed the source at every time the
+server starts. Once per process, on the path that is about to add images, is
+enough.
+
+The template has to be an absolute `http://` or `https://` URL containing `{0}`,
+and `SetTemplateUrlForSource` throws `ArgumentException` otherwise. It throws
+`InvalidOperationException` for `DataSource.User`, `DataSource.None` and
+`DataSource.Shoko`, which are local and have nothing to download from.
+
+`{0}` is the whole of the rest of the URL. Wherever you put the split,
+`string.Format(template, resourceID)` has to come back out as the URL the image
+is actually served from, so the resource ID is the remainder of the asset URL
+rather than an identifier in the provider's own numbering: the constant prefix
+goes in the template, and everything that varies, path segments included, goes
+in the resource ID.
+
+That remainder is stored in **128 characters** (`ResourceID` is
+`NVARCHAR(128)`). One that does not fit has to be refused, dropping that single
+image, rather than truncated: a truncated resource ID formats into a URL that
+downloads nothing, and it is also the image's identity, which
+`GetImageBySourceAndRemoteResourceID` and the duplicate check inside `AddImage`
+both go by. Check the length where you derive the resource ID from the
+provider's URL, and skip the image when it is too long.
+
+Neither `AddImage` nor `UploadImage` attaches the image to anything. That is
+`AddImageCrossReference`:
 
 ```csharp
 var image = imageManager.UploadImage(stream, "image/jpeg", userSubmitted: false);
