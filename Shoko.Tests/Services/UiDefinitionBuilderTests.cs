@@ -260,6 +260,28 @@ public class UiDefinitionBuilderTests
     }
 
     [Fact]
+    public void Descriptions_CarryNoXmlDocWhitespace()
+    {
+        var (definition, _) = BuildForServerSettings();
+
+        // An XML doc summary is indented and wrapped for the reader of the
+        // source, and both used to reach the client verbatim: a trailing newline
+        // and indent on every summary, and a hard break at whatever column the
+        // author happened to wrap at. A blank line between paragraphs survives
+        // as a single newline; nothing else does.
+        var descriptions = Flatten(definition.Root)
+            .Select(x => x.Description)
+            .Concat(Flatten(definition.Root).OfType<UiSectionContainerElement>().SelectMany(x => x.Actions.Values.Select(y => y.Description)))
+            .OfType<string>()
+            .ToList();
+
+        Assert.NotEmpty(descriptions);
+        Assert.All(descriptions, x => Assert.Equal(x.Trim(), x));
+        Assert.DoesNotContain(descriptions, x => x.Contains("\n ", StringComparison.Ordinal));
+        Assert.DoesNotContain(descriptions, x => x.Contains("  ", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void BothSerializerPaths_ProduceTheSameDefinition()
     {
         var newtonsoft = Serialize(BuildFor(typeof(NewtonsoftTwinConfiguration), "Twin"))

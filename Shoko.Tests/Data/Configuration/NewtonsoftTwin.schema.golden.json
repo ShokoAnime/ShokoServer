@@ -114,7 +114,6 @@
     },
     "TwinMode": {
       "type": "string",
-      "description": "",
       "x-enumNames": [
         "Slow",
         "Balanced",
@@ -169,7 +168,7 @@
     },
     "SelectComponent_1": {
       "type": "object",
-      "description": "A select component for the UI.\n            ",
+      "description": "A select component for the UI.",
       "required": [
         "options",
         "groups"
@@ -177,7 +176,7 @@
       "properties": {
         "options": {
           "type": "array",
-          "description": "The options for the select component in the UI.\n            ",
+          "description": "The options for the select component in the UI.",
           "default": [],
           "items": {
             "$ref": "#/definitions/SelectOption_1"
@@ -185,7 +184,7 @@
         },
         "groups": {
           "type": "array",
-          "description": "The groups for the select component in the UI.\n            ",
+          "description": "The groups for the select component in the UI.",
           "default": [],
           "items": {
             "$ref": "#/definitions/SelectGroup"
@@ -195,7 +194,7 @@
     },
     "SelectOption_1": {
       "type": "object",
-      "description": "A select option for the UI.\n            ",
+      "description": "A select option for the UI.",
       "required": [
         "value"
       ],
@@ -205,39 +204,39 @@
             "null",
             "string"
           ],
-          "description": "The label for the option.\n            "
+          "description": "The label for the option."
         },
         "groupId": {
           "type": [
             "integer",
             "null"
           ],
-          "description": "The unique identifier for the group this option belongs to, or\n`null` if it should be rendered outside of a group.\n            "
+          "description": "The unique identifier for the group this option belongs to, or `null` if it should be rendered outside of a group."
         },
         "value": {
           "type": "string",
-          "description": "The value of the option.\n            "
+          "description": "The value of the option."
         },
         "selected": {
           "type": "boolean",
-          "description": "Whether the option is selected.\n            ",
+          "description": "Whether the option is selected.",
           "default": false
         },
         "default": {
           "type": "boolean",
-          "description": "Whether the option is the default.\n            ",
+          "description": "Whether the option is the default.",
           "default": false
         },
         "disabled": {
           "type": "boolean",
-          "description": "Whether the option is disabled.\n            ",
+          "description": "Whether the option is disabled.",
           "default": false
         }
       }
     },
     "SelectGroup": {
       "type": "object",
-      "description": "A select group for the UI.\n            ",
+      "description": "A select group for the UI.",
       "required": [
         "label",
         "disabled"
@@ -245,15 +244,15 @@
       "properties": {
         "id": {
           "type": "integer",
-          "description": "The unique identifier for the group.\n            "
+          "description": "The unique identifier for the group."
         },
         "label": {
           "type": "string",
-          "description": "The label for the group.\n            "
+          "description": "The label for the group."
         },
         "disabled": {
           "type": "boolean",
-          "description": "Whether the group is disabled.\n            ",
+          "description": "Whether the group is disabled.",
           "default": false
         }
       }
