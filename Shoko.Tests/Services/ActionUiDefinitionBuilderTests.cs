@@ -67,7 +67,10 @@ public class ActionUiDefinitionBuilderTests
         {
             var root = RootOf(actionType);
             Assert.DoesNotContain(root.Items, x => string.Equals(x.Key, memberName, StringComparison.Ordinal));
-            Assert.DoesNotContain(root.Structure, x => string.Equals(x.Name, memberName, StringComparison.Ordinal));
+            Assert.DoesNotContain(
+                root.FloatingSections.Values.SelectMany(x => x.Structure),
+                x => string.Equals(x.Name, memberName, StringComparison.Ordinal)
+            );
         }
     }
 
@@ -77,8 +80,11 @@ public class ActionUiDefinitionBuilderTests
         var root = RootOf(typeof(ParameterisedGlobalAction));
 
         Assert.Equal(["Query", "Mode", "MaxResults", "Tags", "DryRun"], root.Items.Keys);
-        Assert.Equal(root.Items.Keys, root.Structure.Select(x => x.Name));
-        Assert.All(root.Structure, x => Assert.Equal(UiStructureMemberKind.Item, x.Kind));
+        Assert.Equal(["General", "Behaviour"], root.Structure.Select(x => x.Name));
+        Assert.All(root.Structure, x => Assert.Equal(UiStructureMemberKind.FloatingSection, x.Kind));
+        Assert.Equal(["Query", "MaxResults", "Tags", "DryRun"], root.FloatingSections["General"].Structure.Select(x => x.Name));
+        Assert.Equal(["Mode"], root.FloatingSections["Behaviour"].Structure.Select(x => x.Name));
+        Assert.All(root.FloatingSections.Values.SelectMany(x => x.Structure), x => Assert.Equal(UiStructureMemberKind.Item, x.Kind));
     }
 
     [Fact]
@@ -93,7 +99,6 @@ public class ActionUiDefinitionBuilderTests
 
         var mode = Assert.IsType<UiEnumElement>(root.Items["Mode"]);
         Assert.Equal(["slow-and-steady", "balanced", "fast"], mode.Values.Select(x => x.Value));
-        Assert.Equal("Behaviour", mode.SectionName);
 
         var maxResults = Assert.IsType<UiIntegerElement>(root.Items["MaxResults"]);
         Assert.Equal(1L, maxResults.Minimum);
@@ -215,7 +220,7 @@ public class ActionUiDefinitionBuilderTests
 
         Assert.DoesNotContain(elements, x => x is UiUnknownElement);
         Assert.All(elements, x => Assert.NotEqual(UiElementKind.Unknown, x.Kind));
-        // A client indexes into `Items` by the key it sees in `Structure`, so
+        // A client indexes into `Items` by the key a section member carries, so
         // the map's key and the element's own key have to agree.
         Assert.NotEmpty(elements.OfType<UiSectionContainerElement>().SelectMany(x => x.Items));
         Assert.All(

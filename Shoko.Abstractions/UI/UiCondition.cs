@@ -11,6 +11,12 @@ public class UiCondition
     /// Dotted path to the value to compare, relative to the nearest enclosing
     /// object.
     /// </summary>
+    /// <remarks>
+    /// Inside a list item or a record value, the path resolves against that one
+    /// item or value. It can only descend, never reach a value outside the
+    /// enclosing object: the definition describes a type, not an instance, so it
+    /// cannot know where that object sits in the document.
+    /// </remarks>
     public string Path { get; init; } = string.Empty;
 
     /// <summary>
