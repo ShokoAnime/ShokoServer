@@ -29,8 +29,12 @@ The hard filters:
   or the platform's own first release, `Subtitled` and `Dubbed` are localised
   releases.
 - `language` — comma-delimited `TitleLanguage` values, matched against the
-  schedule's tracks. `en` and `eng` are the same language; `pt-BR` and `pt-PT`
-  are not.
+  schedule's tracks. Pass the enum's declared names, as everywhere else in v3:
+  `Japanese`, `English`, `Portuguese`, `BrazilianPortuguese`. A language code
+  such as `en`, `eng` or `pt-BR` is not a `TitleLanguage` and does not bind.
+  The matching itself is per language, not per code, so a track a provider
+  reported as `en` and one another reported as `eng` both answer to `English`,
+  while `Portuguese` and `BrazilianPortuguese` are two languages.
 - `channel` — comma-delimited channel IDs, from `GET
   /api/v3/AiringSchedule/Channel`.
 - `type` — comma-delimited AniDB episode types. Omit it for every type.
