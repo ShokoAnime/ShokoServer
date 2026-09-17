@@ -17,6 +17,7 @@ using Shoko.Server.Models.Airing;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories.Cached.Airing;
 using Shoko.Server.Scheduling.Jobs.Airing;
+using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
@@ -344,6 +345,101 @@ public class AiringScheduleSweepTests
         Assert.Empty(harness.Service.GetDueSweepProviders(DateTime.UtcNow));
         // Held back to the interval rather than abandoned, so it picks up again later.
         Assert.Single(harness.Service.GetDueSweepProviders(DateTime.UtcNow.AddHours(7)));
+    }
+
+    #endregion
+
+    #region The Budget
+
+    [Fact]
+    public void GetSweepBudget_DefaultsToAMinute()
+    {
+        var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
+        using var harness = new Harness(provider);
+
+        Assert.Equal(TimeSpan.FromMinutes(1), harness.Service.GetSweepBudget());
+    }
+
+    [Fact]
+    public void GetSweepBudget_ClampsABudgetTooShortToGetAnythingDone()
+    {
+        var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
+        using var harness = new Harness(provider);
+        harness.Settings.SweepBudgetSeconds = 0;
+
+        Assert.Equal(TimeSpan.FromSeconds(AiringScheduleServiceSettings.MinimumSweepBudgetSeconds), harness.Service.GetSweepBudget());
+    }
+
+    [Fact]
+    public void GetSweepBudget_ClampsABudgetThatWouldHoldAWorkerAllDay()
+    {
+        var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
+        using var harness = new Harness(provider);
+        harness.Settings.SweepBudgetSeconds = 86_400;
+
+        Assert.Equal(TimeSpan.FromMinutes(10), harness.Service.GetSweepBudget());
+        Assert.Equal(TimeSpan.FromSeconds(AiringScheduleServiceSettings.MaximumSweepBudgetSeconds), harness.Service.GetSweepBudget());
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(30)]
+    [InlineData(60)]
+    public void WatchdogThreshold_IsTheGlobalOneWhileTheBudgetFitsInsideIt(int budgetSeconds)
+    {
+        var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
+        using var harness = new Harness(provider);
+        harness.Settings.SweepBudgetSeconds = budgetSeconds;
+        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service);
+
+        Assert.Equal(TimeSpan.FromSeconds(90), threshold.GetThreshold(TimeSpan.FromSeconds(90)));
+    }
+
+    [Theory]
+    [InlineData(61, 91.5)]
+    [InlineData(120, 180)]
+    [InlineData(600, 900)]
+    public void WatchdogThreshold_IsHalfAsLongAgainAsABudgetPastTheGlobalOne(int budgetSeconds, double expectedSeconds)
+    {
+        var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
+        using var harness = new Harness(provider);
+        harness.Settings.SweepBudgetSeconds = budgetSeconds;
+        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service);
+
+        Assert.Equal(TimeSpan.FromSeconds(expectedSeconds), threshold.GetThreshold(TimeSpan.FromSeconds(90)));
+    }
+
+    [Fact]
+    public void WatchdogThreshold_FollowsTheSameClampAsTheBudget()
+    {
+        var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
+        using var harness = new Harness(provider);
+        harness.Settings.SweepBudgetSeconds = 86_400;
+        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service);
+
+        Assert.Equal(TimeSpan.FromMinutes(15), threshold.GetThreshold(TimeSpan.FromSeconds(90)));
+    }
+
+    [Fact]
+    public void WatchdogThreshold_IsWorkedOutFromTheBudgetOfTheMoment()
+    {
+        var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
+        using var harness = new Harness(provider);
+        var threshold = new AiringScheduleSweepWatchdogThreshold(harness.Service);
+        Assert.Equal(TimeSpan.FromSeconds(90), threshold.GetThreshold(TimeSpan.FromSeconds(90)));
+
+        harness.Settings.SweepBudgetSeconds = 300;
+
+        Assert.Equal(TimeSpan.FromMinutes(7.5), threshold.GetThreshold(TimeSpan.FromSeconds(90)));
+    }
+
+    [Fact]
+    public void WatchdogThreshold_NamesTheSweepJob()
+    {
+        var provider = new ScriptedProvider("Alpha", (_, _) => Task.FromResult<string?>(null));
+        using var harness = new Harness(provider);
+
+        Assert.Equal(typeof(SweepAiringScheduleProviderJob), new AiringScheduleSweepWatchdogThreshold(harness.Service).JobType);
     }
 
     #endregion

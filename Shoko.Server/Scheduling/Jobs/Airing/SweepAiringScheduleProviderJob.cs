@@ -7,6 +7,7 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Workers;
+using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Airing;
@@ -20,9 +21,13 @@ namespace Shoko.Server.Scheduling.Jobs.Airing;
 /// <remarks>
 /// The job is keyed by provider, so a chunk queued while the same provider's
 /// chunk is waiting or running is a no-op. It holds a worker for the chunk's
-/// deadline at the very most, which the service keeps well inside the queue
-/// watchdog's timeout, and the service queues the next chunk itself when the
-/// provider says there is more to do.
+/// deadline at the very most, and the service queues the next chunk itself when
+/// the provider says there is more to do. The deadline can be longer than the
+/// queue watchdog's own timeout, so
+/// <see cref="AiringScheduleSweepWatchdogThreshold"/>
+/// tells the watchdog what to watch this job against: a chunk that runs its
+/// whole budget is expected, one that runs half as long again is a provider
+/// ignoring the token it was handed, and is reported.
 /// </remarks>
 [DatabaseRequired]
 [NetworkRequired]

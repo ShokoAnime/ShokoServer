@@ -509,8 +509,11 @@ whatever came back. What core does own is everything around that:
   a day. Anything under fifteen minutes is clamped.
 - **How long one chunk may run,** which is not the provider's at all. A chunk
   holds a queue worker while it runs and a worker is shared, so the budget is
-  the server's, the same for every provider, and set well inside the queue
-  watchdog's own timeout.
+  the server's, the same for every provider. It is a minute by default, and can
+  be set anywhere from a second to ten minutes. A rate limited source gets more
+  of its walk done per chunk the longer a chunk is, and pays the overhead of
+  starting one less often; what a long budget costs is a worker held for that
+  long, four chunks at a time at the most.
 - **Where you resume,** which is the cursor, below.
 
 The chunks of one sweep follow each other as fast as the queue allows; the
@@ -526,6 +529,20 @@ first, the chunk is recorded as having timed out and the next one resumes from
 the last cursor you actually returned, so everything since is lost. A rate
 limited source therefore gets less done per chunk rather than holding a worker
 hostage, which is the whole point of chunking by deadline rather than by count.
+
+A chunk that spends its whole budget and returns is doing exactly what it is
+meant to, and the queue's own deadlock watchdog is told as much: it watches the
+sweep job against ninety seconds, or half as long again as the budget once the
+budget is over a minute. A chunk still running past that is a provider that has
+stopped observing the token it was handed, and is reported as a possible
+deadlock naming the provider.
+
+Shutdown waits for the chunk in flight, and the same token is what gets it out.
+A provider that returns when the token fires is out at once, whatever is left of
+the budget. One that ignores the token holds shutdown for as long as it keeps
+running, up to the whole budget, so ten minutes at the ceiling. That is the same
+fault the watchdog reports, seen from the other end: observe the token and
+neither happens.
 
 How a chunk ended is one of five:
 

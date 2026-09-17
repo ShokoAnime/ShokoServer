@@ -4,6 +4,7 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Settings;
@@ -44,9 +45,12 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration, IHidd
     public const int MinimumSweepBudgetSeconds = 1;
 
     /// <summary>
-    /// The largest chunk deadline the service accepts.
+    /// The largest chunk deadline the service accepts. A rate limited source gets more done per
+    /// chunk the longer a chunk is, and the per-chunk overhead is paid once either way, so the
+    /// ceiling is generous. What it costs is a worker held for that long, and a chunk that overruns
+    /// it reported by the queue watchdog that much later.
     /// </summary>
-    public const int MaximumSweepBudgetSeconds = 60;
+    public const int MaximumSweepBudgetSeconds = 600;
 
     /// <summary>
     /// A list of provider ids in order of priority. Priority ranks sources, not
@@ -82,10 +86,13 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration, IHidd
     /// <remarks>
     /// A chunk holds a queue worker for as long as it runs, and a worker is
     /// shared, so this is the server's to set and never the provider's. The
-    /// ceiling keeps a chunk well inside the queue watchdog's own timeout, so a
-    /// sweep is never mistaken for a stuck worker.
+    /// sweep job runs at most four at a time, so four chunks at the full budget
+    /// is the most this can hold. The queue watchdog is told the budget through
+    /// <see cref="AiringScheduleSweepWatchdogThreshold"/> and watches the job
+    /// against a threshold above it, so a chunk that runs its budget out is not
+    /// mistaken for a stuck worker while one that overruns it is still reported.
     /// </remarks>
-    public int SweepBudgetSeconds { get; set; } = 30;
+    public int SweepBudgetSeconds { get; set; } = 60;
 
     /// <summary>
     /// The server's default channel preference, used by every read that doesn't

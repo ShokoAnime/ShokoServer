@@ -58,6 +58,7 @@ using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Server;
 using Shoko.Server.Services.Abstraction;
 using Shoko.Server.Services.Airing;
@@ -494,6 +495,9 @@ public class SystemService : ISystemService
             services.AddSingleton<IAcquisitionFilter, AnilistApiRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
+
+            // Register per-job watchdog thresholds
+            services.AddSingleton<IJobWatchdogThreshold, AiringScheduleSweepWatchdogThreshold>();
 
             services.AddHttpClient("Default", client =>
                 {

@@ -41,6 +41,7 @@ public sealed class WorkerPoolManager : IHostedService
     private readonly QueueMetrics _metrics;
     private readonly QueueStateEventHandler _events;
     private readonly IEnumerable<IAcquisitionFilter> _acquisitionFilters;
+    private readonly IEnumerable<IJobWatchdogThreshold> _watchdogThresholds;
     private readonly IChainScopeRegistry _chainScopeRegistry;
     private readonly IServiceProvider _serviceProvider;
     private readonly QueueJobTypeRegistry _jobTypeRegistry;
@@ -61,6 +62,7 @@ public sealed class WorkerPoolManager : IHostedService
         QueueMetrics metrics,
         QueueStateEventHandler events,
         IEnumerable<IAcquisitionFilter> acquisitionFilters,
+        IEnumerable<IJobWatchdogThreshold> watchdogThresholds,
         IChainScopeRegistry chainScopeRegistry,
         IServiceProvider serviceProvider,
         QueueJobTypeRegistry jobTypeRegistry,
@@ -74,6 +76,7 @@ public sealed class WorkerPoolManager : IHostedService
         _metrics = metrics;
         _events = events;
         _acquisitionFilters = acquisitionFilters;
+        _watchdogThresholds = watchdogThresholds;
         _chainScopeRegistry = chainScopeRegistry;
         _serviceProvider = serviceProvider;
         _jobTypeRegistry = jobTypeRegistry;
@@ -119,7 +122,8 @@ public sealed class WorkerPoolManager : IHostedService
             _orchestrator,
             _serviceProvider.GetRequiredService<ILogger<JobWatchdog>>(),
             TimeSpan.FromSeconds(_options.WatchdogTimeoutSeconds),
-            _jobTypeRegistry.JobTypes);
+            _jobTypeRegistry.JobTypes,
+            _watchdogThresholds);
         _watchdog.Start(_cts.Token);
 
         _events.InvokeQueueStarted();

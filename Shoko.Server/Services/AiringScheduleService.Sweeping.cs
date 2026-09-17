@@ -275,8 +275,12 @@ public partial class AiringScheduleService
     /// How long one chunk may run. This is the server's own, never a
     /// provider's, because the chunk is holding a queue worker while it runs.
     /// </summary>
+    /// <remarks>
+    /// The one place the configured budget is clamped, and so also what the
+    /// queue watchdog's threshold for the sweep job is worked out from.
+    /// </remarks>
     /// <returns>The deadline.</returns>
-    private TimeSpan GetSweepBudget()
+    internal TimeSpan GetSweepBudget()
         => TimeSpan.FromSeconds(Math.Clamp(
             configurationProvider.Load().SweepBudgetSeconds,
             AiringScheduleServiceSettings.MinimumSweepBudgetSeconds,

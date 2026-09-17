@@ -282,7 +282,9 @@ source a chunk at a time:
   response back rather than assuming what was sent stuck.
 
 A sweep runs as queue jobs, so it shows up in the queue like any other work, and
-how long one chunk may run is the server's own and not exposed here. Each
+how long one chunk may run is the server's own and not exposed here. It is a
+minute by default and up to ten at the most, so a sweep job sitting in the queue
+for minutes is the ordinary case rather than a stuck one. Each
 finished chunk pushes `airing:provider.swept` on the same `airing` feed as
 `airing:episode.aired`, carrying `ProviderID`, `ProviderName`, `Outcome` (one of
 `Completed`, `TimedOut`, `Stopped`, `Cancelled`, `Failed`), `StartedAt`,

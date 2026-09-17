@@ -53,6 +53,13 @@ public interface ISweepingAiringScheduleProvider : IAiringScheduleProvider
     ///     holding a worker hostage. It has no default on purpose, because a
     ///     sweep that ignores it is the problem this contract exists to solve.
     ///   </para>
+    ///   <para>
+    ///     Two things follow from ignoring it. Shutdown waits for the chunk in
+    ///     flight, so a chunk that carries on holds the server up for the rest
+    ///     of its budget, which can be ten minutes. The queue watchdog watches
+    ///     the sweep job against a threshold above the budget, so the same
+    ///     chunk is reported as a possible deadlock, naming the provider.
+    ///   </para>
     /// </remarks>
     /// <param name="cursor">
     ///   Where to resume, as returned by the previous chunk, or <c>null</c> to

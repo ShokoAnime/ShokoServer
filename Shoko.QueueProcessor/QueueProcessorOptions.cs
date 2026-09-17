@@ -70,7 +70,9 @@ public class QueueProcessorOptions
 
     /// <summary>
     /// How long a job must be running before the watchdog logs a warning (seconds).
-    /// Jobs decorated with <see cref="Concurrency.LongRunningAttribute"/> are exempt.
+    /// Jobs decorated with <see cref="Concurrency.LongRunningAttribute"/> are exempt, and a job type
+    /// with a registered <see cref="Abstractions.IJobWatchdogThreshold"/> is watched against that
+    /// threshold instead.
     /// Default: 90.
     /// </summary>
     public int WatchdogTimeoutSeconds { get; set; } = 90;
