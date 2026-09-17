@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using NJsonSchema;
+using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Abstractions.UI.Enums;
@@ -305,6 +306,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
 
         var sectionType = classBuilder?.SectionType ?? DisplaySectionType.FieldSet;
         var layout = BuildLayout(members, classBuilder, sectionType, label);
+        var hasLiveEdit = classBuilder?.ReactiveActions.Any(x => x.ActionType is ConfigurationActionType.LiveEdit) ?? false;
         return new UiSectionContainerElement
         {
             SectionType = sectionType,
@@ -312,6 +314,8 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             // action, and there it is on unless the class opted out.
             ShowSaveAction = classBuilder is not null && (classBuilder.ShowSaveAction || (isRoot && !classBuilder.HideSaveAction)),
             PrimaryKey = classBuilder?.PrimaryKey,
+            HasLiveEdit = hasLiveEdit,
+            HasNestedLiveEdit = uiItems.Values.Any(ReactsToLiveEdits),
             Items = uiItems,
             Actions = actions,
             FloatingSections = layout.FloatingSections,
@@ -384,6 +388,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
                 drafts.Add(title, draft = new FloatingSectionDraft(title));
                 structure.Add(new UiStructureEntry { Name = title, Kind = UiStructureMemberKind.FloatingSection });
             }
+            draft.HasNestedLiveEdit |= member.Element is { } sectionElement && ReactsToLiveEdits(sectionElement);
             Place(member, draft.Structure, draft.StartActions, draft.EndActions);
         }
 
@@ -419,6 +424,24 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
                 break;
         }
     }
+
+    /// <summary>
+    ///   Whether anything at or below an element handles live edits.
+    /// </summary>
+    /// <remarks>
+    ///   A reference stands in for a type that is still being walked, so nothing
+    ///   is known about it yet; it counts as reactive rather than have a client
+    ///   never post an edit a handler was waiting for.
+    /// </remarks>
+    private static bool ReactsToLiveEdits(UiElement element)
+        => element switch
+        {
+            UiSectionContainerElement container => container.HasLiveEdit || container.HasNestedLiveEdit,
+            UiReferenceElement => true,
+            UiListElement list => ReactsToLiveEdits(list.Item),
+            UiRecordElement record => ReactsToLiveEdits(record.Item),
+            _ => false,
+        };
 
     /// <summary>
     ///   Whether a member renders its own heading, and so is never gathered into
@@ -596,8 +619,17 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
 
         public List<string> EndActions { get; } = [];
 
+        public bool HasNestedLiveEdit { get; set; }
+
         public UiFloatingSection ToSection()
-            => new() { Title = Title, StartActions = StartActions, EndActions = EndActions, Structure = Structure };
+            => new()
+            {
+                Title = Title,
+                HasNestedLiveEdit = HasNestedLiveEdit,
+                StartActions = StartActions,
+                EndActions = EndActions,
+                Structure = Structure,
+            };
     }
 
     #endregion
