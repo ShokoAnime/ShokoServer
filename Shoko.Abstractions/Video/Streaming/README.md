@@ -173,18 +173,42 @@ public class LegacyScrobbleObserver(IUserDataService userDataService) : IPlaybac
     public async Task OnPlaybackProgress(PlaybackProgressContext context, CancellationToken cancellationToken)
     {
         if (context.User is null) return;
-        if (!context.IsFinalUnit) return; // or apply your own watched-percentage threshold using context.Position/TotalDuration
+        if (!context.IsFinalUnit) return; // Position/TotalDuration is fetch progress, not watch progress
 
         await userDataService.SetVideoWatchedStatus(context.Video, context.User);
     }
 }
 ```
 
-For HLS playback, `context.Position` is a precise `segmentIndex * SegmentDuration`
-value, or whatever an `IHlsPresentationRendition` reported on the segment's
-`StreamResource.Position`. For progressive playback, position is inferred from
-the requested byte range reaching the end of the file, a heuristic rather than a
-guarantee of actual bytes delivered to the player.
+**`Position` is where the player fetched, not where the viewer is.** An
+observer is called when bytes are served, and a player reads ahead of playback,
+so a buffered segment, a seek, or a pre-fetch all look the same as viewing.
+Treat it as an upper bound on progress rather than a measurement of it, and be
+aware that a player can fetch the end of a file it never plays.
+
+For HLS playback, `context.Position` is `segmentIndex * SegmentDuration`, or
+whatever an `IHlsPresentationRendition` reported on the segment's
+`StreamResource.Position`. The arithmetic is exact, but the value it describes
+is a fetch, so it is not a precise playback position:
+
+- A player requests segments ahead of what it is showing, and may request
+  segments it never shows at all.
+- A segment the player already holds is not requested again, so a seek into
+  cached content produces no request and the server never sees it. A seek to a
+  part of the stream that is not cached does produce one, and that request can
+  be for an earlier point than the last, so the reported position jumps both
+  forwards and backwards. What arrives is the sequence of cache misses, in
+  whatever order the player happened to need them.
+- A player jumping around a stream it has largely cached can therefore be
+  almost invisible here, while a player that buffers aggressively looks further
+  along than it is.
+
+Progressive playback is weaker again: the position is inferred from the
+requested byte range reaching the end of the file, which does not confirm the
+bytes reached the player.
+
+A reliable position has to come from the client saying where it is, which is
+what the dedicated `/Scrobble` endpoint is for.
 
 ### Reading query parameters
 

@@ -48,7 +48,9 @@ the service passes on its own inner calls.
 
 The core's own scrobbler is the shortest useful example. It is an
 `IPlaybackObserver` that takes the service in its constructor and marks the file
-watched when playback reaches the end:
+watched once the final unit has been served. Note that an observer sees what the
+player *fetched*, not what anyone watched, since players read ahead and seek, so
+`Position` is an upper bound on progress rather than a measurement of it:
 
 ```csharp
 public class LegacyScrobbleObserver(IUserDataService userDataService) : IPlaybackObserver
