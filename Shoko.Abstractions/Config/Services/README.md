@@ -22,7 +22,7 @@ sub-interfaces:
 public class MyConfiguration : IConfiguration
 {
     [Display(Name = "API Token", Description = "Your personal API token.")]
-    [DataType(DataType.Password)]
+    [PasswordPropertyText]
     public string? ApiToken { get; set; }
 
     [Display(Name = "Sweep Interval (Hours)")]
@@ -130,7 +130,7 @@ value at runtime instead:
 
 ```csharp
 // The property itself makes no demands.
-[DataType(DataType.Password)]
+[PasswordPropertyText]
 [Display(Name = "App Token", Description = "Register an app to get one.")]
 public string? AppToken { get; set; }
 ```
@@ -256,13 +256,16 @@ nothing stored behind it.
 The WebUI renders from the generated schema, so standard
 `System.ComponentModel.DataAnnotations` attributes do most of the work:
 `[Display(Name, Description)]`, `[DefaultValue]`, `[Range]`,
-`[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[Description]`.
+`[PasswordPropertyText]`, `[Description]`.
 
-`Config/Attributes/` adds the Shoko-specific ones:
+`UI/Attributes/` adds the Shoko-specific ones, and
+[`UI/README.md`](../../UI/README.md) covers how a form is laid out, how it
+reacts while the user edits, and the patterns worth copying:
 
 | Attribute | On | What it does |
 |---|---|---|
 | `[Section(DisplaySectionType)]` | Class | Picks the section style, names the default section, controls whether a save button is shown. |
+| `[CustomAction(AttachToMember = ...)]` | Method | Renders the button on that member's row rather than among the class's own members. |
 | `[SectionName("Login")]` | Member | Groups members into a named section. |
 | `[Visibility]` | Member | Hides a member, marks it advanced, or sets its size. |
 | `[Badge("Advanced", Theme = ...)]` | Member | A coloured label next to the field. |
@@ -313,7 +316,7 @@ returns a `ConfigurationActionResult`. This is how a "Test connection" button
 works:
 
 ```csharp
-[CustomAction(Theme = DisplayColorTheme.Primary, Position = DisplayButtonPosition.Top, SectionName = "Login")]
+[CustomAction(Theme = DisplayColorTheme.Primary, Position = DisplayButtonPosition.Start, SectionName = "Login")]
 public ConfigurationActionResult TestToken(ConfigurationActionContext<MyConfiguration> context)
 {
     try
