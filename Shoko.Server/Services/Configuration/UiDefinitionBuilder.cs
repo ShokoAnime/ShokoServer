@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using NJsonSchema;
 using Newtonsoft.Json.Linq;
+using NJsonSchema;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Abstractions.UI.Enums;
@@ -151,7 +151,13 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
 
         UiElement element = elementType switch
         {
-            DisplayElementType.SectionContainer => BuildSectionContainer(state, resolved, isRoot),
+            DisplayElementType.SectionContainer => BuildSectionContainer(
+                state,
+                resolved,
+                isRoot,
+                ResolveLabel(declared, resolved, property, key),
+                ResolveDescription(declared, resolved)
+            ),
             DisplayElementType.List => BuildList(state, resolved, property?.Element as UiListElementBuilder),
             DisplayElementType.Record => BuildRecord(state, resolved, property?.Element as UiRecordElementBuilder),
             DisplayElementType.Select when property?.Element is UiSelectElementBuilder select => new UiSelectElement
@@ -237,7 +243,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         return new UiUnknownElement { SchemaType = resolved.Type.ToString() };
     }
 
-    private UiElement BuildSectionContainer(WalkState state, JsonSchema resolved, bool isRoot)
+    private UiElement BuildSectionContainer(WalkState state, JsonSchema resolved, bool isRoot, string label, string? description)
     {
         var classBuilder = state.GetClass(resolved);
         // Kept as a list as well as a lookup, so the fallback pass below walks
@@ -251,16 +257,15 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         var propertyNames = classBuilder?.Properties
             .GroupBy(x => x.MemberName, StringComparer.Ordinal)
             .ToDictionary(x => x.Key, x => x.First().PropertyName, StringComparer.Ordinal);
-        // Insertion-ordered so the two maps enumerate in structure order, and a
-        // client can render straight off `Items` without walking `Structure`.
+        // Insertion-ordered so the two maps enumerate in authored order.
         var uiItems = new OrderedDictionary<string, UiElement>(StringComparer.Ordinal);
         var actions = new OrderedDictionary<string, UiAction>(StringComparer.Ordinal);
-        var structure = new List<UiStructureEntry>();
+        var members = new List<SectionMember>();
         var placedProperties = new HashSet<string>(StringComparer.Ordinal);
         var placedActions = new HashSet<string>(StringComparer.Ordinal);
 
-        // The authored member order drives both lists, so neither one rides on
-        // a dictionary's insertion order any more.
+        // The authored member order drives both maps and the sections, so none
+        // of them rides on a dictionary's insertion order.
         foreach (var entry in classBuilder?.Structure ?? [])
         {
             if (entry.MemberType is UiMemberKind.Method)
@@ -269,7 +274,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
                     continue;
 
                 actions.Add(action.ID, ReadAction(state, action));
-                structure.Add(new UiStructureEntry { Name = action.ID, Kind = UiStructureMemberKind.Action });
+                members.Add(new(new UiStructureEntry { Name = action.ID, Kind = UiStructureMemberKind.Action }, action.SectionName, null, action.Position));
                 continue;
             }
 
@@ -277,8 +282,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             if (!propertyLookup.TryGetValue(propertyName, out var propertySchema) || !placedProperties.Add(propertyName))
                 continue;
 
-            uiItems.Add(propertyName, BuildItem(state, classBuilder, propertyName, propertySchema));
-            structure.Add(new UiStructureEntry { Name = propertyName, Kind = UiStructureMemberKind.Item });
+            members.Add(AddItem(state, classBuilder, uiItems, propertyName, propertySchema));
         }
 
         // Anything the structure did not mention — inherited members, members
@@ -288,8 +292,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             if (!placedProperties.Add(propertyName))
                 continue;
 
-            uiItems.Add(propertyName, BuildItem(state, classBuilder, propertyName, propertySchema));
-            structure.Add(new UiStructureEntry { Name = propertyName, Kind = UiStructureMemberKind.Item });
+            members.Add(AddItem(state, classBuilder, uiItems, propertyName, propertySchema));
         }
         foreach (var action in classBuilder?.Actions ?? [])
         {
@@ -297,25 +300,34 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
                 continue;
 
             actions.Add(action.ID, ReadAction(state, action));
-            structure.Add(new UiStructureEntry { Name = action.ID, Kind = UiStructureMemberKind.Action });
+            members.Add(new(new UiStructureEntry { Name = action.ID, Kind = UiStructureMemberKind.Action }, action.SectionName, null, action.Position));
         }
 
+        var sectionType = classBuilder?.SectionType ?? DisplaySectionType.FieldSet;
+        var layout = BuildLayout(members, classBuilder, sectionType, label);
         return new UiSectionContainerElement
         {
-            SectionType = classBuilder?.SectionType ?? DisplaySectionType.FieldSet,
-            DefaultSectionName = classBuilder?.SectionName ?? "Default",
-            AppendFloatingSectionsAtEnd = classBuilder?.AppendFloatingSectionsAtEnd ?? false,
+            SectionType = sectionType,
             // Only the configuration's own root renders the built-in save
             // action, and there it is on unless the class opted out.
             ShowSaveAction = classBuilder is not null && (classBuilder.ShowSaveAction || (isRoot && !classBuilder.HideSaveAction)),
             PrimaryKey = classBuilder?.PrimaryKey,
             Items = uiItems,
             Actions = actions,
-            Structure = structure,
+            FloatingSections = layout.FloatingSections,
+            StartActions = layout.StartActions,
+            EndActions = layout.EndActions,
+            Structure = layout.Structure,
         };
     }
 
-    private UiElement BuildItem(WalkState state, UiClassBuilder? classBuilder, string propertyName, JsonSchemaProperty propertySchema)
+    private SectionMember AddItem(
+        WalkState state,
+        UiClassBuilder? classBuilder,
+        OrderedDictionary<string, UiElement> items,
+        string propertyName,
+        JsonSchemaProperty propertySchema
+    )
     {
         // Mirrors how the generator files a property's builder: a collection
         // property produces one builder for the collection node and one for the
@@ -325,8 +337,102 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             propertyKey += "+List";
         if (propertySchema.AdditionalPropertiesSchema is not null)
             propertyKey += "+Dict";
-        return BuildElement(state, propertySchema, classBuilder?.GetProperty(propertyKey), propertyName, isRoot: false, propertySchema.IsRequired);
+        var property = classBuilder?.GetProperty(propertyKey);
+        var element = BuildElement(state, propertySchema, property, propertyName, isRoot: false, propertySchema.IsRequired);
+        items.Add(propertyName, element);
+        return new(new UiStructureEntry { Name = propertyName, Kind = UiStructureMemberKind.Item }, property?.SectionName, element, null);
     }
+
+    /// <summary>
+    ///   Lays a container's members out: the order they render in, the groups
+    ///   assembled out of them, and the actions pinned outside those groups.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     Members render in the order they were authored, so a nested container
+    ///     stays an item where it stands rather than being swept to one end.
+    ///     Members sharing a section name are gathered into one floating section,
+    ///     entered at the first of them, and <c>AppendFloatingSectionsAtEnd</c>
+    ///     moves every gathered section past the rest.
+    ///   </para>
+    ///   <para>
+    ///     A member with no section name keeps its place, unless the container is
+    ///     laid out as tabs or the class named its default section: a tab has to
+    ///     have a label, so there the loose members are gathered too. A nested
+    ///     container is never gathered — it labels itself.
+    ///   </para>
+    /// </remarks>
+    private static ContainerLayout BuildLayout(List<SectionMember> members, UiClassBuilder? classBuilder, DisplaySectionType sectionType, string label)
+    {
+        var gatherLooseMembers = classBuilder?.SectionName is not null || sectionType is DisplaySectionType.Tab;
+        var defaultTitle = classBuilder?.SectionName ?? (string.IsNullOrEmpty(label) ? "Default" : label);
+        var structure = new List<UiStructureEntry>();
+        var drafts = new OrderedDictionary<string, FloatingSectionDraft>(StringComparer.Ordinal);
+        var startActions = new List<string>();
+        var endActions = new List<string>();
+        foreach (var member in members)
+        {
+            var title = member.SectionName ?? (gatherLooseMembers && !IsSelfLabelling(member) ? defaultTitle : null);
+            if (title is null)
+            {
+                Place(member, structure, startActions, endActions);
+                continue;
+            }
+
+            if (!drafts.TryGetValue(title, out var draft))
+            {
+                drafts.Add(title, draft = new FloatingSectionDraft(title));
+                structure.Add(new UiStructureEntry { Name = title, Kind = UiStructureMemberKind.FloatingSection });
+            }
+            Place(member, draft.Structure, draft.StartActions, draft.EndActions);
+        }
+
+        if (classBuilder?.AppendFloatingSectionsAtEnd ?? false)
+            structure =
+            [
+                .. structure.Where(x => x.Kind is not UiStructureMemberKind.FloatingSection),
+                .. structure.Where(x => x.Kind is UiStructureMemberKind.FloatingSection),
+            ];
+
+        var floatingSections = new OrderedDictionary<string, UiFloatingSection>(StringComparer.Ordinal);
+        foreach (var (title, draft) in drafts)
+            floatingSections.Add(title, draft.ToSection());
+        return new(structure, floatingSections, startActions, endActions);
+    }
+
+    /// <summary>
+    ///   Files a member where its authored position says: an action pinned to
+    ///   one end of what holds it, anything else in the render order.
+    /// </summary>
+    private static void Place(SectionMember member, List<UiStructureEntry> structure, List<string> startActions, List<string> endActions)
+    {
+        switch (member.Position)
+        {
+            case DisplayButtonPosition.Start:
+                startActions.Add(member.Entry.Name);
+                break;
+            case DisplayButtonPosition.End:
+                endActions.Add(member.Entry.Name);
+                break;
+            default:
+                structure.Add(member.Entry);
+                break;
+        }
+    }
+
+    /// <summary>
+    ///   Whether a member renders its own heading, and so is never gathered into
+    ///   the default section of a container that needs one.
+    /// </summary>
+    private static bool IsSelfLabelling(SectionMember member)
+        => member.Element is { } element && (IsContainer(element) || (element is UiListElement list && IsContainer(list.Item)));
+
+    /// <remarks>
+    ///   A reference only ever stands in for an object with properties that
+    ///   recursed, and those are always built as section containers.
+    /// </remarks>
+    private static bool IsContainer(UiElement element)
+        => element is UiSectionContainerElement or UiReferenceElement;
 
     private UiElement BuildList(WalkState state, JsonSchema resolved, UiListElementBuilder? list)
     {
@@ -433,8 +539,8 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         // property-level decorations belong to the container alone.
         var isNamedMember = key is not null;
         element.Key = key;
-        element.Label = declared.Title ?? resolved.Title ?? (isNamedMember ? property?.Label : null) ?? key ?? string.Empty;
-        element.Description = string.IsNullOrEmpty(declared.Description) ? resolved.Description : declared.Description;
+        element.Label = ResolveLabel(declared, resolved, property, key);
+        element.Description = ResolveDescription(declared, resolved);
         element.Size = property?.ElementSize ?? DisplayElementSize.Normal;
         element.Visibility = ReadVisibility(state, isNamedMember ? property?.Visibility : null);
         element.Badge = isNamedMember && property?.Badge is { } badge ? new UiBadge { Name = badge.Name, Theme = badge.Theme } : null;
@@ -442,12 +548,56 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         element.EnvironmentVariable = isNamedMember && property?.EnvironmentVariable is { Length: > 0 } envVar
             ? new UiEnvironmentVariable { Name = envVar, AllowOverride = property!.EnvironmentVariableOverridable }
             : null;
-        element.SectionName = isNamedMember ? property?.SectionName : null;
         element.Default = ToToken(declared.Default ?? resolved.Default);
         element.IsRequired = isRequired;
         element.IsNullable = declared.IsNullable(SchemaType.JsonSchema) || resolved.IsNullable(SchemaType.JsonSchema);
         element.DeniedValues = property?.DeniedValues?.Select(state.ConvertToken).ToList();
         return element;
+    }
+
+    private static string ResolveLabel(JsonSchema declared, JsonSchema resolved, UiPropertyBuilder? property, string? key)
+        => declared.Title ?? resolved.Title ?? (key is not null ? property?.Label : null) ?? key ?? string.Empty;
+
+    private static string? ResolveDescription(JsonSchema declared, JsonSchema resolved)
+        => string.IsNullOrEmpty(declared.Description) ? resolved.Description : declared.Description;
+
+    /// <summary>
+    ///   A container member on its way into a section.
+    /// </summary>
+    /// <param name="Entry">The entry the section lists.</param>
+    /// <param name="SectionName">The authored section name, if any.</param>
+    /// <param name="Element">The built element, or <c>null</c> for an action.</param>
+    /// <param name="Position">Where an action's button is pinned, if it is one.</param>
+    private sealed record SectionMember(UiStructureEntry Entry, string? SectionName, UiElement? Element, DisplayButtonPosition? Position);
+
+    /// <summary>
+    ///   Everything a container needs to say about how its members render.
+    /// </summary>
+    /// <param name="Structure">The container's own render order.</param>
+    /// <param name="FloatingSections">The groups assembled out of its members.</param>
+    /// <param name="StartActions">Actions pinned to the top, outside every group.</param>
+    /// <param name="EndActions">Actions pinned to the bottom, outside every group.</param>
+    private sealed record ContainerLayout(
+        IReadOnlyList<UiStructureEntry> Structure,
+        IReadOnlyDictionary<string, UiFloatingSection> FloatingSections,
+        IReadOnlyList<string> StartActions,
+        IReadOnlyList<string> EndActions
+    );
+
+    /// <summary>
+    ///   A floating section being assembled.
+    /// </summary>
+    /// <param name="Title">The section's title.</param>
+    private sealed record FloatingSectionDraft(string Title)
+    {
+        public List<UiStructureEntry> Structure { get; } = [];
+
+        public List<string> StartActions { get; } = [];
+
+        public List<string> EndActions { get; } = [];
+
+        public UiFloatingSection ToSection()
+            => new() { Title = Title, StartActions = StartActions, EndActions = EndActions, Structure = Structure };
     }
 
     #endregion
@@ -502,11 +652,8 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             Title = string.IsNullOrEmpty(action.Title) ? action.ID : action.Title,
             Description = string.IsNullOrEmpty(action.Description) ? null : action.Description,
             Theme = action.Theme,
-            Position = action.Position,
             Size = action.Size,
             Icon = action.Icon,
-            SectionName = action.SectionName,
-            MemberName = action.MemberName,
             Toggle = ReadCondition(state, action.Toggle),
             Disable = ReadCondition(state, action.Disable),
             DisableIfNoChanges = action.DisableIfNoChanges,

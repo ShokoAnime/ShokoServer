@@ -52,6 +52,19 @@ public class UiDefinitionBuilderTests
     private static T Find<T>(UiElement root, string key) where T : UiElement
         => Assert.IsType<T>(Assert.Single(Keyed(root), x => x.Key == key).Element);
 
+    /// <summary>
+    ///   Every member a client reaches by walking a container's structure,
+    ///   descending into the sections it names.
+    /// </summary>
+    private static IEnumerable<UiStructureEntry> Reach(UiSectionContainerElement container)
+        => container.Structure
+            .SelectMany(entry => entry.Kind is UiStructureMemberKind.FloatingSection
+                ? container.FloatingSections[entry.Name] is var section
+                    ? section.Structure.Concat(section.StartActions.Concat(section.EndActions).Select(x => new UiStructureEntry { Name = x, Kind = UiStructureMemberKind.Action }))
+                    : []
+                : [entry])
+            .Concat(container.StartActions.Concat(container.EndActions).Select(x => new UiStructureEntry { Name = x, Kind = UiStructureMemberKind.Action }));
+
     private static IEnumerable<UiElement> Flatten(UiElement element)
     {
         yield return element;
@@ -81,7 +94,7 @@ public class UiDefinitionBuilderTests
         Assert.IsType<UiSectionContainerElement>(definition.Root);
         Assert.DoesNotContain(elements, x => x is UiUnknownElement);
         Assert.All(elements, x => Assert.NotEqual(UiElementKind.Unknown, x.Kind));
-        // A client indexes into `Items` by the key it sees in `Structure`, so
+        // A client indexes into `Items` by the key a section member carries, so
         // the map's key and the element's own key have to agree.
         Assert.NotEmpty(Keyed(definition.Root));
         Assert.All(
@@ -129,21 +142,92 @@ public class UiDefinitionBuilderTests
     }
 
     [Fact]
-    public void SectionContainer_InterleavesChildrenAndActionsInTheAuthoredOrder()
+    public void SectionContainer_GathersNamedMembersAndKeepsTheRestInPlace()
     {
         var definition = BuildFor(typeof(NewtonsoftTwinConfiguration), "Twin");
         var body = Find<UiSectionContainerElement>(definition.Root, "Body");
 
-        // The structure lists every item and every action exactly once, in the
-        // authored order, with the actions after the last property.
+        // `TwinBody` named its default section, so its loose members gather into
+        // `General` while `Endpoints` — a list of containers, which labels
+        // itself — stays an item. `AppendFloatingSectionsAtEnd` puts both
+        // gathered sections after it.
         Assert.Equal(
-            body.Items.Keys.Concat(body.Actions.Keys),
-            body.Structure.Select(x => x.Name)
+            [("Endpoints", UiStructureMemberKind.Item), ("General", UiStructureMemberKind.FloatingSection), ("Behaviour", UiStructureMemberKind.FloatingSection)],
+            body.Structure.Select(x => (x.Name, x.Kind))
         );
-        Assert.Equal(body.Items.Count, body.Structure.Count(x => x.Kind is UiStructureMemberKind.Item));
-        Assert.Equal(body.Actions.Count, body.Structure.Count(x => x.Kind is UiStructureMemberKind.Action));
-        Assert.Equal(["Name", "Enabled", "Count", "Ratio", "Mode"], body.Items.Keys.Take(5));
-        Assert.Equal(["DoTheThingAction", "DoAnotherThingAction"], body.Actions.Keys);
+        Assert.Equal(["General", "Behaviour"], body.FloatingSections.Keys);
+        Assert.Equal(
+            ["Name", "Enabled", "Count", "Ratio", "Secret", "Note", "Script", "Weights", "Toggles", "Picked"],
+            body.FloatingSections["General"].Structure.Select(x => x.Name)
+        );
+        Assert.Equal(["Mode", "Modes"], body.FloatingSections["Behaviour"].Structure.Select(x => x.Name));
+
+        // Both actions are pinned rather than inline, each to the section that
+        // holds it, and neither to the container itself.
+        Assert.Equal(["DoTheThingAction"], body.FloatingSections["General"].StartActions);
+        Assert.Equal(["DoAnotherThingAction"], body.FloatingSections["Behaviour"].EndActions);
+        Assert.Empty(body.StartActions);
+        Assert.Empty(body.EndActions);
+
+        // Every item and every action is reachable from the structure exactly
+        // once, whether directly or through a section.
+        var reached = Reach(body).ToList();
+        Assert.Equal(body.Items.Keys.Order(StringComparer.Ordinal), reached.Where(x => x.Kind is UiStructureMemberKind.Item).Select(x => x.Name).Order(StringComparer.Ordinal));
+        Assert.Equal(body.Actions.Keys.Order(StringComparer.Ordinal), reached.Where(x => x.Kind is UiStructureMemberKind.Action).Select(x => x.Name).Order(StringComparer.Ordinal));
+
+        // The twin's root is laid out as tabs and holds nothing but the body,
+        // which labels its own tab.
+        var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
+        var entry = Assert.Single(root.Structure);
+        Assert.Equal(("Body", UiStructureMemberKind.Item), (entry.Name, entry.Kind));
+        Assert.Empty(root.FloatingSections);
+    }
+
+    [Fact]
+    public void SectionContainer_WithoutADefaultSectionName_KeepsLooseMembersInPlace()
+    {
+        var (definition, _) = BuildForServerSettings();
+        var plugins = Find<UiSectionContainerElement>(definition.Root, "Plugins");
+        var web = Find<UiSectionContainerElement>(definition.Root, "Web");
+
+        // `PluginSettings` names no default section and is not laid out as tabs,
+        // so nothing is gathered: its loose members and its two nested
+        // containers all render where they stand.
+        Assert.Empty(plugins.FloatingSections);
+        Assert.Equal(["EnabledPlugins", "Priority", "Renamer", "Updates"], plugins.Structure.Select(x => x.Name));
+        Assert.All(plugins.Structure, x => Assert.Equal(UiStructureMemberKind.Item, x.Kind));
+
+        // `WebSettings` is nothing but loose members, and gets no section either.
+        Assert.Empty(web.FloatingSections);
+        Assert.Equal(web.Items.Keys, web.Structure.Select(x => x.Name));
+    }
+
+    [Fact]
+    public void ServerSettings_StructureFollowsTheAuthoredTabs()
+    {
+        var (definition, _) = BuildForServerSettings();
+        var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
+
+        // Every nested settings object stays an item and labels its own tab,
+        // with the gathered sections appended after them.
+        Assert.Equal(
+            ["Image", "Import", "AniDb", "TMDB", "Database", "Queue", "Connectivity", "Language", "Plex", "Plugins", "ReleaseComparisonPreferences", "Logging", "Linux", "Web", "Misc.", "Web UI"],
+            root.Structure.Select(x => x.Name)
+        );
+        Assert.Equal(["Misc.", "Web UI"], root.Structure.TakeLast(2).Select(x => x.Name));
+        Assert.All(root.Structure.TakeLast(2), x => Assert.Equal(UiStructureMemberKind.FloatingSection, x.Kind));
+        Assert.All(root.Structure.SkipLast(2), x => Assert.IsType<UiSectionContainerElement>(root.Items[x.Name]));
+        Assert.Equal(["WebUI_Settings"], root.FloatingSections["Web UI"].Structure.Select(x => x.Name));
+
+        // `AniDbSettings` gives every member a section name, so it is nothing
+        // but gathered sections, and `Test` pins to the top of `Login`.
+        var anidb = Find<UiSectionContainerElement>(definition.Root, "AniDb");
+        Assert.Equal(["Login", "Download", "MyList", "Update", "URLs", "HTTP", "UDP", "AVDump"], anidb.Structure.Select(x => x.Name));
+        Assert.All(anidb.Structure, x => Assert.Equal(UiStructureMemberKind.FloatingSection, x.Kind));
+        Assert.Equal(["Username", "Password"], anidb.FloatingSections["Login"].Structure.Select(x => x.Name));
+        Assert.Equal(["Test"], anidb.FloatingSections["Login"].StartActions);
+        // A nested container filed under a section name is an item in it.
+        Assert.Contains(anidb.FloatingSections["AVDump"].Structure, x => x.Name is "AVDump" && x.Kind is UiStructureMemberKind.Item);
     }
 
     [Fact]
@@ -162,10 +246,12 @@ public class UiDefinitionBuilderTests
         var name = root.Items["Name"];
         Assert.True(name.RequiresRestart);
         Assert.Equal("INHERITED_NAME", name.EnvironmentVariable?.Name);
-        Assert.Equal("Inherited", root.Items["Mode"].SectionName);
-        // The derived class's own section attribute wins over the base's.
+        // The derived class's own section attribute wins over the base's, while
+        // the inherited section name survives.
         Assert.Equal(DisplaySectionType.Tab, root.SectionType);
-        Assert.Equal("Derived", root.DefaultSectionName);
+        Assert.Equal(["Derived", "Inherited", "Endpoints"], root.Structure.Select(x => x.Name));
+        Assert.Equal(["Name", "Count", "DoTheInheritedThingAction"], root.FloatingSections["Derived"].Structure.Select(x => x.Name));
+        Assert.Equal(["Mode"], root.FloatingSections["Inherited"].Structure.Select(x => x.Name));
         Assert.True(root.ShowSaveAction);
         // An inherited list still resolves its item class and primary key.
         var endpoints = Assert.IsType<UiListElement>(root.Items["Endpoints"]);
@@ -266,17 +352,19 @@ public class UiDefinitionBuilderTests
     {
         foreach (var type in new[] { typeof(NewtonsoftTwinConfiguration), typeof(SystemTextJsonTwinConfiguration) })
         {
-            var actions = Flatten(BuildFor(type, "Twin").Root).OfType<UiSectionContainerElement>()
-                .SelectMany(x => x.Actions)
-                .ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
+            var sections = Find<UiSectionContainerElement>(BuildFor(type, "Twin").Root, "Body").FloatingSections;
 
-            // Every member of the enum now carries a distinct value, so name
-            // resolution is deterministic and reaches the attribute. While the
-            // aliases existed, a button authored as `Start`/`Top` went out as
-            // `"Left"` and one authored as `End` went out as `"Right"`, on both
-            // serializer paths.
-            Assert.Equal(DisplayButtonPosition.Start, actions["DoTheThingAction"].Position);
-            Assert.Equal(DisplayButtonPosition.End, actions["DoAnotherThingAction"].Position);
+            // The authored position decides which of a section's three lists an
+            // action lands in, so it is read at build time rather than sent on.
+            // While the aliases existed, a button authored as `Start`/`Top` went
+            // out as `"Left"` and one authored as `End` went out as `"Right"`,
+            // on both serializer paths, and neither reached the right list.
+            Assert.Equal(["DoTheThingAction"], sections.Values.SelectMany(x => x.StartActions));
+            Assert.Equal(["DoAnotherThingAction"], sections.Values.SelectMany(x => x.EndActions));
+            Assert.DoesNotContain(
+                sections.Values.SelectMany(x => x.Structure),
+                x => x.Kind is UiStructureMemberKind.Action
+            );
             Assert.Equal("\"start\"", JsonConvert.SerializeObject(DisplayButtonPosition.Start));
             Assert.Equal("\"end\"", JsonConvert.SerializeObject(DisplayButtonPosition.End));
             Assert.Equal("\"auto\"", JsonConvert.SerializeObject(DisplayButtonPosition.Auto));

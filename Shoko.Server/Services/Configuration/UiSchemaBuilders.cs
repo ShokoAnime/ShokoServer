@@ -441,9 +441,6 @@ internal sealed class UiActionBuilder
     /// <summary>The icon name for the action's button, if any.</summary>
     public string? Icon { get; init; }
 
-    /// <summary>The member the action is attached to, if any.</summary>
-    public string? MemberName { get; init; }
-
     /// <summary>The section the action belongs to, if any.</summary>
     public string? SectionName { get; init; }
 

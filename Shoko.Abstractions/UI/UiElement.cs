@@ -67,12 +67,6 @@ public abstract class UiElement
     public UiEnvironmentVariable? EnvironmentVariable { get; set; }
 
     /// <summary>
-    /// The name of the section within the parent container this element belongs
-    /// to, or <c>null</c> to place it in the container's default section.
-    /// </summary>
-    public string? SectionName { get; set; }
-
-    /// <summary>
     /// The default value for the element, if the schema declared one.
     /// </summary>
     public JToken? Default { get; set; }
