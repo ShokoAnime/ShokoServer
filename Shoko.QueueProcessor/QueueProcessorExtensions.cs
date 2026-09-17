@@ -54,6 +54,11 @@ public static class QueueProcessorExtensions
         services.AddScoped<JobChainContextAccessor>();
         services.AddScoped<IJobChainContextAccessor>(sp => sp.GetRequiredService<JobChainContextAccessor>());
 
+        // ── Job cancellation ──────────────────────────────────────────────────
+        // Stamped per job by the worker; falls back to CancellationToken.None outside one.
+        services.AddScoped<JobCancellationAccessor>();
+        services.AddScoped<IJobCancellationAccessor>(sp => sp.GetRequiredService<JobCancellationAccessor>());
+
         // ── Job type registration ─────────────────────────────────────────────
         // Jobs are resolved from DI by their concrete type only — never via IQueueJob.
         // The interface is used solely for reflection-based discovery (attributes, TypeName,

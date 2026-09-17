@@ -128,6 +128,12 @@ internal sealed class Worker
                     ? _chainScopeRegistry.GetOrCreateChainScope(job.ChainId!.Value)
                     : _serviceProvider.CreateScope();
 
+                // Stamp this worker's shutdown token onto the scope so jobs that inject
+                // IJobCancellationAccessor can observe it. Done per job rather than per scope:
+                // a chain scope is shared by every job in the chain, and those jobs can run on
+                // workers from different pools, each with its own token.
+                scope.ServiceProvider.GetRequiredService<JobCancellationAccessor>().SetCurrentToken(ct);
+
                 // Hydrate chain context accessor on first job in this chain (or after crash-recovery scope rebuild),
                 // then update which job is currently executing so SetResult tags results by job ID.
                 if (isChainJob)

@@ -8,6 +8,7 @@ using Shoko.Abstractions.User;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 
@@ -30,7 +31,8 @@ public class ActionExecutionJob(
     AnimeSeriesRepository series,
     AnimeGroupRepository groups,
     AnimeEpisodeRepository episodes,
-    VideoLocalRepository videos
+    VideoLocalRepository videos,
+    IJobCancellationAccessor cancellation
 ) : BaseJob
 {
     [JobKeyMember(index: 0)]
@@ -115,9 +117,10 @@ public class ActionExecutionJob(
         // ActionService.InvokeAsync before this job was even enqueued. Re-running it
         // here would be redundant and could observe different state than what the
         // caller saw when they got their 200.
-        // The job's own lifetime token, not request-bound — there is no live
-        // HTTP request left by the time a queued action runs.
-        await action.Execute();
+        // The worker's shutdown token, not request-bound — there is no live HTTP
+        // request left by the time a queued action runs. It fires when the pool
+        // running this job is stopped, and never for a single job on its own.
+        await action.Execute(cancellation.Token);
 
         _logger.LogInformation("Finished executing action \"{ActionName}\" ({ActionId})", info.Name, ActionId);
     }
