@@ -565,7 +565,8 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         {
             builder.Element = new UiTextAreaElementBuilder();
         }
-        else if (info.GetAttribute<PasswordPropertyTextAttribute>(false) is not null)
+        else if (info.GetAttribute<PasswordPropertyTextAttribute>(false) is not null ||
+            info.GetAttribute<DataTypeAttribute>(false) is { DataType: DataType.Password })
         {
             builder.Element = new UiPasswordElementBuilder();
         }
@@ -609,6 +610,17 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         else
         {
             classBuilder.SectionType = DisplaySectionType.FieldSet;
+        }
+
+        // A section a member names but the class never describes is the common
+        // case, and one the class describes but no member names leaves nothing
+        // behind — only the sections that end up with members are emitted.
+        foreach (var floatingSection in contextualType.Type.GetCustomAttributes<FloatingSectionAttribute>(false))
+        {
+            if (string.IsNullOrWhiteSpace(floatingSection.Name) || string.IsNullOrWhiteSpace(floatingSection.Description))
+                continue;
+
+            classBuilder.FloatingSectionDescriptions[floatingSection.Name] = floatingSection.Description.CleanDescription();
         }
 
         classBuilder.PrimaryKey = classBuilder.Properties.FirstOrDefault(x => x.IsPrimaryKey)?.Key;

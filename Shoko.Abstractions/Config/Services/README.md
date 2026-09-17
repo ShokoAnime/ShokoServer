@@ -22,7 +22,7 @@ sub-interfaces:
 public class MyConfiguration : IConfiguration
 {
     [Display(Name = "API Token", Description = "Your personal API token.")]
-    [PasswordPropertyText]
+    [DataType(DataType.Password)]
     public string? ApiToken { get; set; }
 
     [Display(Name = "Sweep Interval (Hours)")]
@@ -130,7 +130,7 @@ value at runtime instead:
 
 ```csharp
 // The property itself makes no demands.
-[PasswordPropertyText]
+[DataType(DataType.Password)]
 [Display(Name = "App Token", Description = "Register an app to get one.")]
 public string? AppToken { get; set; }
 ```
@@ -256,7 +256,7 @@ nothing stored behind it.
 The WebUI renders from the generated schema, so standard
 `System.ComponentModel.DataAnnotations` attributes do most of the work:
 `[Display(Name, Description)]`, `[DefaultValue]`, `[Range]`,
-`[PasswordPropertyText]`, `[Description]`.
+`[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[Description]`.
 
 `UI/Attributes/` adds the Shoko-specific ones, and
 [`UI/README.md`](../../UI/README.md) covers how a form is laid out, how it
@@ -267,6 +267,7 @@ reacts while the user edits, and the patterns worth copying:
 | `[Section(DisplaySectionType)]` | Class | Picks the section style, names the default section, controls whether a save button is shown. |
 | `[CustomAction(AttachToMember = ...)]` | Method | Renders the button on that member's row rather than among the class's own members. |
 | `[SectionName("Login")]` | Member | Groups members into a named section. |
+| `[FloatingSection("Login", Description = ...)]` | Class | Describes a section members are grouped into. |
 | `[Visibility]` | Member | Hides a member, marks it advanced, or sets its size. |
 | `[Badge("Advanced", Theme = ...)]` | Member | A coloured label next to the field. |
 | `[EnvironmentVariable("MY_TOKEN")]` | Member | Seeds the value from an environment variable. `AllowOverride` decides whether the user may still change it. |

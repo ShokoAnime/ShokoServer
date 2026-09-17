@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -335,6 +337,36 @@ public class UiDefinitionBuilderTests
     }
 
     [Fact]
+    public void FloatingSections_TakeTheDescriptionTheClassGaveThem()
+    {
+        var definition = BuildFor(typeof(DescribedSectionRoot), "Described");
+        var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
+
+        // A gathered section is not a type of its own, so the class is where its
+        // description comes from.
+        Assert.Equal("Credentials for the service.", root.FloatingSections["Login"].Description);
+        // One the class said nothing about still renders, without a description.
+        Assert.Null(root.FloatingSections["Download"].Description);
+        // One the class described but no member named leaves nothing behind.
+        Assert.Equal(["Login", "Download"], root.FloatingSections.Keys);
+        // The wrapping in the XML-doc-style description is cleaned up the same
+        // as any other.
+        Assert.DoesNotContain("\n", root.FloatingSections["Login"].Description!);
+    }
+
+    [Fact]
+    public void DataTypePassword_ProducesAPasswordElement()
+    {
+        var definition = BuildFor(typeof(DescribedSectionRoot), "Described");
+        var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
+
+        // `[PasswordPropertyText]` has always produced one; `[DataType]` says
+        // the same thing and is what a plugin author reaches for first.
+        Assert.IsType<UiPasswordElement>(root.Items["Password"]);
+        Assert.IsType<UiPasswordElement>(root.Items["Token"]);
+    }
+
+    [Fact]
     public void BothSerializerPaths_ProduceTheSameDefinition()
     {
         var newtonsoft = Serialize(BuildFor(typeof(NewtonsoftTwinConfiguration), "Twin"))
@@ -476,6 +508,33 @@ public class UiDefinitionBuilderTests
             ContractResolver = new DefaultContractResolver { NamingStrategy = new DefaultNamingStrategy() },
             NullValueHandling = NullValueHandling.Include,
         });
+
+    /// <summary>
+    ///   A shape whose gathered sections are described by the class.
+    /// </summary>
+    [Section(DisplaySectionType.FieldSet)]
+    [FloatingSection("Login", Description = "Credentials for\n            the service.")]
+    [FloatingSection("Unused", Description = "Nothing names this one.")]
+    public class DescribedSectionRoot
+    {
+        /// <summary>The user name.</summary>
+        [SectionName("Login")]
+        public string? Username { get; set; }
+
+        /// <summary>The password, the long-standing way.</summary>
+        [SectionName("Login")]
+        [PasswordPropertyText]
+        public string? Password { get; set; }
+
+        /// <summary>The token, the way a data annotation says it.</summary>
+        [SectionName("Login")]
+        [DataType(DataType.Password)]
+        public string? Token { get; set; }
+
+        /// <summary>How much to fetch.</summary>
+        [SectionName("Download")]
+        public int Depth { get; set; }
+    }
 
     /// <summary>
     ///   A shape whose actions render on a member's row.

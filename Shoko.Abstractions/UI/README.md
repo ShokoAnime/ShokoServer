@@ -84,6 +84,19 @@ public class MyConfiguration : IConfiguration
 }
 ```
 
+A gathered section has no type of its own, so the class is where it is
+described:
+
+```csharp
+[Section(DisplaySectionType.Tab, DefaultSectionName = "Misc.")]
+[FloatingSection("Login", Description = "Credentials for the service.")]
+public class MyConfiguration : IConfiguration { … }
+```
+
+The member still names the section it belongs to; this only describes the
+section it names. A name no member uses leaves nothing behind, and a section no
+`[FloatingSection]` describes still renders — without a description.
+
 `DisplaySectionType` picks how a group is drawn — `Tab`, `FieldSet`, `Minimal`,
 `Checkbox`. Laid out as tabs, a member with no section name has nowhere to live,
 so those members are gathered into the default section; give it a name with
@@ -114,7 +127,7 @@ and whatever constraints apply to it.
 | `Kind` | Authored as |
 |---|---|
 | `boolean`, `integer`, `float`, `string` | The property's own type |
-| `password` | `[PasswordPropertyText]` — `[DataType(DataType.Password)]` is *not* read |
+| `password` | `[PasswordPropertyText]` or `[DataType(DataType.Password)]` |
 | `text-area`, `code-editor` | `[TextArea]`, `[CodeEditor(CodeEditorLanguage.Json)]` |
 | `enum` | An `enum`, with its members and aliases resolved |
 | `select` | `SelectComponent<T>` |
