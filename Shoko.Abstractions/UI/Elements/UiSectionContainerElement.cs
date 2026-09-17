@@ -44,7 +44,7 @@ public sealed class UiSectionContainerElement : UiElement
 
     /// <summary>
     /// The actions attached to this container, keyed by
-    /// <see cref="UiAction.ID"/> — the same key
+    /// <see cref="UiAction.Name"/> — the same key
     /// <see cref="UiStructureEntry.Name"/> carries for a
     /// <see cref="UiStructureMemberKind.Action"/> entry.
     /// </summary>
@@ -63,13 +63,13 @@ public sealed class UiSectionContainerElement : UiElement
 
     /// <summary>
     /// The actions pinned to the top of the container, outside every section,
-    /// keyed by <see cref="UiAction.ID"/>.
+    /// keyed by <see cref="UiAction.Name"/>.
     /// </summary>
     public IReadOnlyList<string> StartActions { get; init; } = [];
 
     /// <summary>
     /// The actions pinned to the bottom of the container, outside every section,
-    /// keyed by <see cref="UiAction.ID"/>.
+    /// keyed by <see cref="UiAction.Name"/>.
     /// </summary>
     /// <remarks>
     /// The built-in save action, when <see cref="ShowSaveAction"/> is set,
