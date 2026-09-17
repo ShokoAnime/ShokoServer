@@ -407,7 +407,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
 
             if (!drafts.TryGetValue(title, out var draft))
             {
-                drafts.Add(title, draft = new FloatingSectionDraft(title));
+                drafts.Add(title, draft = new FloatingSectionDraft(title, classBuilder?.FloatingSectionDescriptions.GetValueOrDefault(title)));
                 structure.Add(new UiStructureEntry { Name = title, Kind = UiStructureMemberKind.FloatingSection });
             }
             draft.HasNestedLiveEdit |= member.Element is { } sectionElement && HasLiveEditAtOrBelow(sectionElement);
@@ -634,7 +634,8 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     ///   A floating section being assembled.
     /// </summary>
     /// <param name="Title">The section's title.</param>
-    private sealed record FloatingSectionDraft(string Title)
+    /// <param name="Description">The description the class gave it, if any.</param>
+    private sealed record FloatingSectionDraft(string Title, string? Description)
     {
         public List<UiStructureEntry> Structure { get; } = [];
 
@@ -648,6 +649,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             => new()
             {
                 Title = Title,
+                Description = Description,
                 HasNestedLiveEdit = HasNestedLiveEdit,
                 StartActions = StartActions,
                 EndActions = EndActions,
