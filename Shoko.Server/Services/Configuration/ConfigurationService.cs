@@ -530,6 +530,40 @@ public partial class ConfigurationService : IConfigurationService
     [GeneratedRegex(@"(?<=\w|\]|^)\[", RegexOptions.Compiled | RegexOptions.ECMAScript)]
     private static partial Regex IndexNotationFixRegex();
 
+    /// <summary>
+    ///   Finds the handler a class declares for a lifecycle hook.
+    /// </summary>
+    /// <remarks>
+    ///   Every lookup here used to ask for a
+    ///   <see cref="ConfigurationActionType.LiveEdit"/> handler whatever hook was
+    ///   being run, so a class declaring one of the other four was answered with
+    ///   its live-edit handler, or with nothing — and the endpoint that had
+    ///   already checked <c>HasCustomLoad</c> to get here failed with a conflict.
+    ///   Only live edit is raised by an event, so it is the only hook an event
+    ///   type narrows.
+    /// </remarks>
+    /// <param name="type">The class to search.</param>
+    /// <param name="actionType">The hook being run.</param>
+    /// <param name="reactiveEventType">The event that raised it.</param>
+    /// <returns>The handler, or <see langword="null"/> when the class declares none.</returns>
+    internal static MethodInfo? FindReactiveHandler(ContextualType type, ConfigurationActionType actionType, ReactiveEventType reactiveEventType)
+    {
+        if (actionType is not ConfigurationActionType.LiveEdit)
+            return FindHandler(type, actionType, null);
+
+        // A handler for the event itself wins, and one that took everything
+        // stands in for it.
+        return FindHandler(type, actionType, reactiveEventType) ??
+            (reactiveEventType is ReactiveEventType.All ? null : FindHandler(type, actionType, ReactiveEventType.All));
+    }
+
+    private static MethodInfo? FindHandler(ContextualType type, ConfigurationActionType actionType, ReactiveEventType? reactiveEventType)
+        => type.Methods
+            .FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { } attribute &&
+                attribute.ActionType == actionType &&
+                (reactiveEventType is not { } eventType || attribute.ReactiveEventType == eventType))
+            ?.MethodInfo;
+
     private static (ContextualType, JsonSchema, object?, MethodInfo?) GetContextualTypeForConfigurationInfo(ConfigurationInfo info, string path, object config, ConfigurationActionType? actionType = null, string? actionID = null, ReactiveEventType reactiveEventType = ReactiveEventType.All)
     {
         var schema = info.Schema;
@@ -538,28 +572,11 @@ public partial class ConfigurationService : IConfigurationService
         var innovationValue = (object?)null;
         var innovationMethodInfo = (MethodInfo?)null;
         var isNewtonsoftJson = info.Type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration));
-        if (actionType.HasValue && reactiveEventType is not ReactiveEventType.NewValue)
+        if (actionType is { } rootActionType && reactiveEventType is not ReactiveEventType.NewValue &&
+            FindReactiveHandler(type, rootActionType, reactiveEventType) is { } rootMethod)
         {
-            if (reactiveEventType is ReactiveEventType.All)
-            {
-                var method = type.Methods
-                    .FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.All });
-                if (method is not null)
-                {
-                    innovationValue = value;
-                    innovationMethodInfo = method.MethodInfo;
-                }
-            }
-            else
-            {
-                var method = type.Methods.FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: var methodEventType } && methodEventType == reactiveEventType) ??
-                    type.Methods.FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.All });
-                if (method is not null)
-                {
-                    innovationValue = value;
-                    innovationMethodInfo = method.MethodInfo;
-                }
-            }
+            innovationValue = value;
+            innovationMethodInfo = rootMethod;
         }
 
         var parts = path.Replace(IndexNotationFixRegex(), ".[").Split(SplitPathToPartsRegex(), StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -639,28 +656,11 @@ public partial class ConfigurationService : IConfigurationService
                 type = propertyInfo.PropertyType;
             }
 
-            if (actionType is ConfigurationActionType.LiveEdit && reactiveEventType is not ReactiveEventType.NewValue)
+            if (actionType is ConfigurationActionType.LiveEdit && reactiveEventType is not ReactiveEventType.NewValue &&
+                FindReactiveHandler(type, ConfigurationActionType.LiveEdit, reactiveEventType) is { } nestedMethod)
             {
-                if (reactiveEventType is ReactiveEventType.All)
-                {
-                    var method = type.Methods
-                        .FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.All });
-                    if (method is not null)
-                    {
-                        innovationValue = value;
-                        innovationMethodInfo = method.MethodInfo;
-                    }
-                }
-                else
-                {
-                    var method = type.Methods.FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: var methodEventType } && methodEventType == reactiveEventType) ??
-                        type.Methods.FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.All });
-                    if (method is not null)
-                    {
-                        innovationValue = value;
-                        innovationMethodInfo = method.MethodInfo;
-                    }
-                }
+                innovationValue = value;
+                innovationMethodInfo = nestedMethod;
             }
         }
 
@@ -676,16 +676,11 @@ public partial class ConfigurationService : IConfigurationService
                 innovationMethodInfo = method.MethodInfo;
             }
         }
-        else if (actionType is ConfigurationActionType.LiveEdit && reactiveEventType is ReactiveEventType.NewValue)
+        else if (actionType is ConfigurationActionType.LiveEdit && reactiveEventType is ReactiveEventType.NewValue &&
+            FindReactiveHandler(type, ConfigurationActionType.LiveEdit, ReactiveEventType.NewValue) is { } newValueMethod)
         {
-            var method = type.Methods
-                .FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.NewValue }) ??
-                type.Methods.FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: ConfigurationActionType.LiveEdit, ReactiveEventType: ReactiveEventType.All });
-            if (method is not null)
-            {
-                innovationValue = value;
-                innovationMethodInfo = method.MethodInfo;
-            }
+            innovationValue = value;
+            innovationMethodInfo = newValueMethod;
         }
 
         return (type, schema, innovationValue, innovationMethodInfo);
