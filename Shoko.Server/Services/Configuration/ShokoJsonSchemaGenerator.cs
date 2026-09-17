@@ -8,15 +8,14 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
-using NJsonSchema;
-using NJsonSchema.Generation;
-using NJsonSchema.Generation.TypeMappers;
-using NJsonSchema.NewtonsoftJson.Generation;
 using Namotion.Reflection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using NJsonSchema;
+using NJsonSchema.Generation;
+using NJsonSchema.Generation.TypeMappers;
+using NJsonSchema.NewtonsoftJson.Generation;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
@@ -62,7 +61,6 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     private readonly Dictionary<JsonSchema, string> _schemaKeys = [];
 
-    private readonly Regex _newlineCollapseRegex = new(@"(\r\n|\r|\n)+", RegexOptions.Compiled);
 
     /// <summary>
     ///   Generates the schema for a configuration type, on the serialiser the
@@ -186,11 +184,22 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             var schema = generator.Generate(type);
             var uiBuilders = new Dictionary<JsonSchema, UiClassBuilder>();
             var wrappedSchema = new WrappedJsonSchema { Schema = schema, UiBuilders = uiBuilders, EmitContext = emitContext };
-            var schemaDefinitions = schema.Definitions.Values.Where(s => !s.IsEnumeration).Prepend(schema).ToList();
+            var schemaDefinitions = schema.Definitions.Values.Prepend(schema).ToList();
             // Post-process the schema; add the UI definitions at the correct locations.
             foreach (var subSchema in schemaDefinitions)
             {
-                subSchema.Description = string.IsNullOrEmpty(subSchema.Description) ? null : subSchema.Description.Replace(_newlineCollapseRegex, "\n");
+                subSchema.Description = string.IsNullOrEmpty(subSchema.Description) ? null : subSchema.Description.CleanDescription();
+                // An enum carries a description like anything else, but nothing
+                // below this has anything to add to one.
+                if (subSchema.IsEnumeration)
+                    continue;
+
+                // Ahead of the lookups below, which skip every definition the
+                // generator does not describe — a select component, say — and
+                // would leave its descriptions as the raw XML docs.
+                foreach (var (_, schemaValue) in subSchema.Properties)
+                    schemaValue.Description = string.IsNullOrEmpty(schemaValue.Description) ? null : schemaValue.Description.CleanDescription();
+
                 if (!_schemaKeys.TryGetValue(subSchema, out var schemaKey))
                     continue;
 
@@ -229,7 +238,6 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 }
                 foreach (var (propertyName, schemaValue) in subSchema.Properties)
                 {
-                    schemaValue.Description = string.IsNullOrEmpty(schemaValue.Description) ? null : schemaValue.Description.Replace(_newlineCollapseRegex, "\n");
                     var propertyKey = propertyName;
                     if (schemaValue.Item is not null)
                         propertyKey += "+List";
