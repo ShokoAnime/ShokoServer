@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using Shoko.Abstractions.UI.Enums;
 
 namespace Shoko.Abstractions.UI;
 
@@ -20,12 +22,19 @@ public class UiCondition
     public string Path { get; init; } = string.Empty;
 
     /// <summary>
-    /// The value the path has to equal for the condition to hold.
+    /// How the value at <see cref="Path"/> is compared.
+    /// </summary>
+    public UiConditionOperator Operator { get; init; }
+
+    /// <summary>
+    /// The value to compare against, for an operator that takes one.
     /// </summary>
     public JToken? Value { get; init; }
 
     /// <summary>
-    /// Whether the outcome of the comparison should be inverted.
+    /// The values to compare against, for
+    /// <see cref="UiConditionOperator.In"/> and
+    /// <see cref="UiConditionOperator.NotIn"/>.
     /// </summary>
-    public bool InverseCondition { get; init; }
+    public IReadOnlyList<JToken?>? Values { get; init; }
 }

@@ -60,14 +60,20 @@ public class CustomActionAttribute : Attribute
     public string? AttachToMember { get; set; }
 
     /// <summary>
-    /// When set, will toggle the member from visible to hidden and vice versa. <seealso cref="ToggleWhenSetTo"/> also
-    /// needs to be set for this to take effect. <seealso cref="InverseToggleCondition"/> will flip the functionality
-    /// so it will toggle from hidden to visible instead of visible to hidden.
+    /// The member whose value shows the action, which stays hidden otherwise.
+    /// <see cref="ToggleOperator"/> picks how it is compared.
     /// </summary>
     public string? ToggleWhenMemberIsSet { get; set; }
 
     /// <summary>
-    /// Indicates that the visibility should change when the specified member is set to the specified value.
+    /// Whether a value was authored for the condition. <c>null</c> is a value,
+    /// so this is not the same as <see cref="ToggleWhenSetTo"/> being unset.
+    /// </summary>
+    public bool HasToggleValue => _hasToggleWhenSetTo;
+
+    /// <summary>
+    /// The value <see cref="ToggleWhenMemberIsSet"/> is compared against, for
+    /// an operator that compares one value.
     /// </summary>
     public object? ToggleWhenSetTo
     {
@@ -80,27 +86,44 @@ public class CustomActionAttribute : Attribute
     }
 
     /// <summary>
-    /// Indicates that the <see cref="ToggleWhenMemberIsSet"/> property is properly set
-    /// and the toggle trigger should be toggled.
+    /// Whether the toggle condition names a member and has whatever its
+    /// operator compares with.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ToggleWhenMemberIsSet))]
-    public bool HasToggleCondition => !string.IsNullOrEmpty(ToggleWhenMemberIsSet) && _hasToggleWhenSetTo;
+    public bool HasToggleCondition => !string.IsNullOrEmpty(ToggleWhenMemberIsSet) &&
+        ConditionAuthoring.HasComparand(ToggleOperator, _hasToggleWhenSetTo, ToggleWhenSetToAny);
 
     /// <summary>
-    /// Indicates that the action should be hidden by default. This means that <see cref="ToggleWhenMemberIsSet"/> and
-    /// <see cref="ToggleWhenSetTo"/> will show the action instead of hiding it.
+    /// How <see cref="ToggleWhenMemberIsSet"/> is compared. Defaults to
+    /// equality, and decides which of <see cref="ToggleWhenSetTo"/> and
+    /// <see cref="ToggleWhenSetToAny"/> the condition reads, or neither for
+    /// <see cref="UiConditionOperator.IsEmpty"/> and
+    /// <see cref="UiConditionOperator.IsNotEmpty"/>.
     /// </summary>
-    public bool InverseToggleCondition { get; set; }
+    public UiConditionOperator ToggleOperator { get; set; }
 
     /// <summary>
-    /// When set, will toggle the member from visible to hidden and vice versa. <seealso cref="DisableWhenSetTo"/> also
-    /// needs to be set for this to take effect. <seealso cref="InverseDisableCondition"/> will flip the functionality
-    /// so it will toggle from hidden to visible instead of visible to hidden.
+    /// The values <see cref="ToggleWhenMemberIsSet"/> is compared against, for
+    /// <see cref="UiConditionOperator.In"/> and
+    /// <see cref="UiConditionOperator.NotIn"/>.
+    /// </summary>
+    public object?[]? ToggleWhenSetToAny { get; set; }
+
+    /// <summary>
+    /// The member whose value disables the action.
+    /// <see cref="DisableOperator"/> picks how it is compared.
     /// </summary>
     public string? DisableWhenMemberIsSet { get; set; }
 
     /// <summary>
-    /// Indicates that the visibility should change when the specified member is set to the specified value.
+    /// Whether a value was authored for the condition. <c>null</c> is a value,
+    /// so this is not the same as <see cref="DisableWhenSetTo"/> being unset.
+    /// </summary>
+    public bool HasDisableValue => _hasDisableWhenSetTo;
+
+    /// <summary>
+    /// The value <see cref="DisableWhenMemberIsSet"/> is compared against, for
+    /// an operator that compares one value.
     /// </summary>
     public object? DisableWhenSetTo
     {
@@ -113,17 +136,28 @@ public class CustomActionAttribute : Attribute
     }
 
     /// <summary>
-    /// Indicates that the <see cref="DisableWhenMemberIsSet"/> property is properly set
-    /// and the toggle trigger should be toggled.
+    /// Whether the disable condition names a member and has whatever its
+    /// operator compares with.
     /// </summary>
     [MemberNotNullWhen(true, nameof(DisableWhenMemberIsSet))]
-    public bool HasDisableCondition => !string.IsNullOrEmpty(DisableWhenMemberIsSet) && _hasDisableWhenSetTo;
+    public bool HasDisableCondition => !string.IsNullOrEmpty(DisableWhenMemberIsSet) &&
+        ConditionAuthoring.HasComparand(DisableOperator, _hasDisableWhenSetTo, DisableWhenSetToAny);
 
     /// <summary>
-    /// Indicates that the action should be disabled by default. This means that <see cref="DisableWhenMemberIsSet"/> and
-    /// <see cref="DisableWhenSetTo"/> will show the action instead of hiding it.
+    /// How <see cref="DisableWhenMemberIsSet"/> is compared. Defaults to
+    /// equality, and decides which of <see cref="DisableWhenSetTo"/> and
+    /// <see cref="DisableWhenSetToAny"/> the condition reads, or neither for
+    /// <see cref="UiConditionOperator.IsEmpty"/> and
+    /// <see cref="UiConditionOperator.IsNotEmpty"/>.
     /// </summary>
-    public bool InverseDisableCondition { get; set; }
+    public UiConditionOperator DisableOperator { get; set; }
+
+    /// <summary>
+    /// The values <see cref="DisableWhenMemberIsSet"/> is compared against, for
+    /// <see cref="UiConditionOperator.In"/> and
+    /// <see cref="UiConditionOperator.NotIn"/>.
+    /// </summary>
+    public object?[]? DisableWhenSetToAny { get; set; }
 
     /// <summary>
     /// When set, will disable the action if no changes are made to the configuration.
