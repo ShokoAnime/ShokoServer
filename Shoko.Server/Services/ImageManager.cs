@@ -203,8 +203,7 @@ public partial class ImageManager(
 
         if (templateUrl is not null)
         {
-            var urlErrors = new List<string>();
-            if (!Uri.TryCreate(templateUrl, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttp || uri.Scheme != Uri.UriSchemeHttps)
+            if (!Uri.TryCreate(templateUrl, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                 throw new ArgumentException($"{nameof(templateUrl)} must be a valid http:// or https:// URL.", nameof(templateUrl));
             if (!templateUrl.Contains("{0}"))
                 throw new ArgumentException($"{nameof(templateUrl)} must contain {{0}}.", nameof(templateUrl));
