@@ -121,10 +121,15 @@ the info was built, so it is already stale for the current file.
 
 ### Reading entries
 
-`ReadLogFile(fileInfo, options)` pages through one file, ascending by default.
-`ReadRange(options)` pages across every readable file, descending by default.
-Both return a `LogReadResult` with `Entries` and a `NextOffset` that is `null`
-once there is nothing left:
+`ReadLogFile(fileInfo, options)` pages through one file and `ReadRange(options)`
+pages across every readable file. Both return a `LogReadResult` with `Entries`
+and a `NextOffset` that is `null` once there is nothing left.
+
+**Order is ascending unless you ask for descending.** `LogReadOptions.Descending`
+is a plain `bool`, so it is `false` on any options object you construct.
+`ReadRange` substitutes `Descending = true` only when you pass no options at
+all, which means `ReadRange()` and `ReadRange(new LogReadOptions())` return
+opposite orders. Set `Descending` explicitly whenever you pass options:
 
 ```csharp
 var options = new LogReadOptions

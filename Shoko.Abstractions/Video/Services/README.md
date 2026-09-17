@@ -25,26 +25,41 @@ README.
 ## Getting hold of one
 
 Every service here is registered as a singleton in the core container before
-plugins are constructed, so plain constructor injection works everywhere: in
-your `IPlugin`, in a service you register yourself, in a queue job, in a
-controller.
+plugins are constructed, so plain constructor injection works everywhere: in a
+service you register yourself, in a hosted service, in a queue job, in a
+controller. The one place it does *not* work is the class implementing
+`IPlugin`, which is built without DI during the plugin scan and must have a
+public parameterless constructor; see
+[the plugin overview](../../README.md#iplugin-needs-a-public-parameterless-constructor).
+
+Subscribing to an event means holding the subscription for the life of the
+process and dropping it on shutdown, so a hosted service is the natural home:
 
 ```csharp
-public class Plugin(
+// Registered from your plugin's RegisterServices with
+// services.AddHostedService<UnmatchedFileLogger>().
+public sealed class UnmatchedFileLogger(
     IVideoService videoService,
     IVideoReleaseService releaseService,
-    ILogger<Plugin> logger
-) : IPlugin
+    ILogger<UnmatchedFileLogger> logger
+) : IHostedService
 {
-    public string Name => "MyPlugin";
-
-    public void Load()
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        videoService.VideoFileHashed += (_, e) =>
-        {
-            if (releaseService.GetCurrentReleaseForVideo(e.Video) is null)
-                logger.LogInformation("{File} is not matched yet", e.File.FileName);
-        };
+        videoService.VideoFileHashed += OnVideoFileHashed;
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        videoService.VideoFileHashed -= OnVideoFileHashed;
+        return Task.CompletedTask;
+    }
+
+    private void OnVideoFileHashed(object? sender, VideoFileHashedEventArgs e)
+    {
+        if (releaseService.GetCurrentReleaseForVideo(e.Video) is null)
+            logger.LogInformation("{File} is not matched yet", e.File.FileName);
     }
 }
 ```

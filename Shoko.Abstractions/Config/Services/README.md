@@ -291,5 +291,9 @@ a no-op, and a plugin has no reason to call it at all.
 | Exception | When |
 |---|---|
 | `ConfigurationValidationException` | Schema or custom validation failed on `Load` or `Save`. Carries the per-path errors and which of the two operations it was. |
-| `InvalidOperationException` | Loading or saving an `IBaseConfiguration`. |
 | `InvalidConfigurationActionException` | A custom or reactive action was asked for that does not exist, or the path to it is invalid. |
+
+An `IBaseConfiguration` throws for neither operation: `Load` returns a fresh
+instance and `Save` returns `false` without writing anything, so a save against
+one fails silently rather than telling you. Check the returned `bool` if it
+matters.

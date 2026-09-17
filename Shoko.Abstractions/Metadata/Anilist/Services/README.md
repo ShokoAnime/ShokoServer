@@ -146,11 +146,22 @@ rather than relying on the default.
 | Member | Notes |
 |---|---|
 | `AddAnimeLink(anidbAnimeId, anilistAnimeId, additiveLink, matchRating)` | Creates or updates the link. |
-| `RemoveAnimeLink(anidbAnimeId, anilistAnimeId, purge)` | Removes one link. `purge` also drops the AniList anime when nothing links to it any more. |
+| `RemoveAnimeLink(anidbAnimeId, anilistAnimeId, purge)` | Removes one link. `purge` **unconditionally** queues a purge of the AniList anime itself. |
 | `RemoveAllAnimeLinksForAnidbAnime(anidbAnimeId, purge)` | Every AniList link for one AniDB anime. |
 | `RemoveAllAnimeLinksForAnilistAnime(anilistAnimeId)` | Every AniDB link to one AniList anime. |
 | `RemoveAllLinks()` | Every AniDB ↔ AniList link in the database. Destructive, and exactly as broad as it sounds. |
 | `ResetAutoLinkingState(disabled)` | Re-enables (or disables) automatic linking for *all* series at once. |
+
+**`purge: true` does not check whether anything else still links to the anime.**
+It is a bare "also purge" flag: the link is deleted, and then
+`PurgeAnilistAnimeJob` is queued for that AniList anime ID regardless of how
+many other AniDB anime still point at it. Since an anime can carry several
+AniList links, and one AniList anime can be linked from more than one AniDB
+anime, purging while another link survives leaves that other cross-reference
+pointing at data that is no longer there. Pass `purge: true` only when you
+already know you are removing the last link. The same applies to
+`RemoveAllAnimeLinksForAnidbAnime(anidbAnimeId, purge)`, which forwards the flag
+to each link it removes.
 
 ### Episode links
 

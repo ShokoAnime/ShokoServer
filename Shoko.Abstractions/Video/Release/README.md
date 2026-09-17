@@ -44,8 +44,7 @@ public class MyReleaseProvider : IReleaseInfoProvider
         {
             ID = result.Id,
             CrossReferences = result.Episodes
-                .Select(ep => new ReleaseVideoCrossReference()
-                    .ForAniDB(ep.AnidbEpisodeId, ep.AnidbAnimeId))
+                .Select(ep => ReleaseVideoCrossReference.ForAniDB(ep.AnidbEpisodeId, ep.AnidbAnimeId))
                 .ToList(),
         };
     }
@@ -106,12 +105,21 @@ Use `ReleaseVideoCrossReferenceExtensions.ForAniDB` (from
 
 ```csharp
 // Single full episode
-new ReleaseVideoCrossReference().ForAniDB(episodeID: 123, animeID: 456)
+ReleaseVideoCrossReference.ForAniDB(episodeID: 123, animeID: 456)
 
 // File covers a range of the episode
-new ReleaseVideoCrossReference().ForAniDB(episodeID: 123, animeID: 456,
+ReleaseVideoCrossReference.ForAniDB(episodeID: 123, animeID: 456,
     percentStart: 0, percentEnd: 50)
 ```
+
+`ForAniDB` is called **on the type, not on an instance**. Core declares its
+extensions with C# 14 `extension(...)` blocks, and a member declared `static`
+inside one becomes a static member of the extended type rather than an instance
+method on it. `ForAniDB` is such a member: it is a factory that builds and
+returns a new cross-reference, so there is nothing to call it on.
+`new ReleaseVideoCrossReference().ForAniDB(…)` does not compile. The
+`this`-style extension in the next section is the older form, which *is* called
+on an instance; both forms are in use, so check which one you are looking at.
 
 ### Adding your own provider IDs
 
@@ -167,6 +175,15 @@ replacement.
 To react to a release being saved, replaced or removed, subscribe to the events
 on `IVideoReleaseService`: `ReleaseSaved`, `ReleaseDeleted` and
 `SearchCompleted`.
+
+**Do not rename or move the provider class.** Its ID is derived as a v5 UUID
+over `"ReleaseProvider={type.FullName}"` in the plugin's own ID namespace, so
+changing the class name or its namespace produces a different ID. The user's
+enabled flags and priority order are both keyed on that ID, so the renamed
+provider comes back disabled and last in priority, while the old ID lingers in
+the settings pointing at nothing. Hash providers and relocation providers derive
+their IDs the same way and carry the same hazard. Pick the type's name and
+namespace before you ship, and treat both as part of your public contract.
 
 ---
 

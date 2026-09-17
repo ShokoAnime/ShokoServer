@@ -29,9 +29,14 @@ release search                 ScheduleFindReleaseForVideo, keyed on ED2K + size
 Two consequences worth internalising before writing a provider:
 
 1. **ED2K is not optional.** If no provider returns a well-formed ED2K digest
-   for a file, `GetHashesForVideo` throws and the file is never imported. The
-   service defends against this by always mapping ED2K back to the built-in
-   provider when nothing else claims it.
+   for a file, the hash run throws and the file is never imported. The throw
+   comes from the service, inside `GetHashesForPath` / `GetHashesForFile`, once
+   it has collected every provider's answer; your own
+   `IHashProvider.GetHashesForVideo` is not where it happens and never throws
+   for this. (There is no `GetHashesForVideo` on `IVideoHashingService` at all;
+   the name belongs to the provider contract.) The service defends against this
+   by always mapping ED2K back to the built-in provider when nothing else
+   claims it.
 2. **A hash run happens once per file,** not once per provider run. Your
    provider is called with the file already open to the rest of the pipeline,
    so a slow provider slows down every import.

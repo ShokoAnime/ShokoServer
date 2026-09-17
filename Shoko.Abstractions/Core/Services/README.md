@@ -6,12 +6,23 @@ when it changes) and `ISystemUpdateService` (what versions exist).
 
 Neither is an extension point. Nothing here is discovered by
 `PluginManager.GetExports<T>()`; there is no interface in this folder for a
-plugin to implement. Both are registered as singletons in DI, so a plugin gets
-them the ordinary way:
+plugin to implement. Both are registered as singletons in DI, so anything the
+container builds gets them the ordinary way:
 
 ```csharp
-public class MyPlugin(ISystemService systemService) : IPlugin { }
+public class MyServerWatcher(ISystemService systemService, ISystemUpdateService updateService)
+{
+    public bool ServerIsUp => systemService.IsStarted;
+}
 ```
+
+Note the class taking them is *not* the one implementing `IPlugin`. The plugin
+class is built with `Activator.CreateInstance` during the plugin scan, before
+any container exists, so it must have a public parameterless constructor and can
+take no dependencies at all; see
+[the plugin overview](../../README.md#iplugin-needs-a-public-parameterless-constructor).
+Register a class like the one above from your `RegisterServices` and inject the
+services there instead.
 
 ---
 
@@ -36,11 +47,27 @@ below mark the points where it becomes safe:
 `IServiceProvider`, so a handler can resolve anything it needs without reaching
 for `StaticServices`.
 
+Subscribe from a hosted service rather than from the class implementing
+`IPlugin`, which cannot take `ISystemService` in its constructor at all. Hosted
+services are started with the host, and `AboutToStart` is fired later, from
+`LateStart()`, so the subscription is always in place before the event fires.
+
 ```csharp
-public class MyPlugin : IPlugin
+// Registered from your plugin's RegisterServices with
+// services.AddHostedService<MyStartupWork>().
+public sealed class MyStartupWork(ISystemService systemService) : IHostedService
 {
-    public MyPlugin(ISystemService systemService)
-        => systemService.AboutToStart += OnAboutToStart;
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        systemService.AboutToStart += OnAboutToStart;
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        systemService.AboutToStart -= OnAboutToStart;
+        return Task.CompletedTask;
+    }
 
     private void OnAboutToStart(object? sender, ServerAboutToStartEventArgs e)
     {

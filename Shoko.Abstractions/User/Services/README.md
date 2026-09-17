@@ -55,6 +55,8 @@ player *fetched*, not what anyone watched, since players read ahead and seek, so
 ```csharp
 public class LegacyScrobbleObserver(IUserDataService userDataService) : IPlaybackObserver
 {
+    public string Name => "Legacy Scrobbler";
+
     public async Task OnPlaybackProgress(PlaybackProgressContext context, CancellationToken cancellationToken)
     {
         if (context.User is null || !context.IsFinalUnit)
@@ -233,8 +235,10 @@ Beyond watch state, `IUserDataService` covers the rest of a user's opinions:
 | Series | `RateSeries` (with an optional `SeriesVoteType`, `Permanent` or `Temporary`), `UnrateSeries`, `ToggleSeriesAsFavorite`, `SetSeriesAsFavorite`, and the same three tag methods |
 | Group | `AddUserTagsForGroup`, `RemoveUserTagsForGroup`, `SetUserTagsForGroup` |
 
-The tag methods come in `params string[]` and `IEnumerable<string>?` overloads.
-`Add`/`Remove` are incremental, `Set` replaces the whole set.
+`Add`/`Remove` are incremental, `Set` replaces the whole set. The `Add` and
+`Remove` methods come in `params string[]` and `IEnumerable<string>?`
+overloads; the three `Set` methods take `IEnumerable<string>?` only, so pass a
+collection rather than loose arguments there.
 
 Rating an episode or series as a user flagged `IsAnidbUser` also queues the
 corresponding AniDB vote job. That is a network round trip on a rate limiter, so
@@ -264,9 +268,15 @@ for:
   `DeleteUser(IUser)`, `ChangeUserPassword`, `ResetUserPassword` (which sets an
   empty password, it does not mail anyone anything). Create and update throw
   `GenericValidationException` when the update does not validate, which reports
-  every problem at once rather than failing on the first. `DeleteUser` throws
-  `ArgumentException` for a user that is not stored, and for the last
-  administrator.
+  every problem at once rather than failing on the first. `DeleteUser` faults
+  with `GenericValidationException` when the user is the last administrator.
+  For a user that is not stored it throws **nothing**: it quietly skips the
+  delete and still clears that user ID's API tokens and group/series user rows,
+  so a wrong ID looks like success. Check `GetUserByID` first if you need to
+  know. (`IUserService`'s own XML docs claim `ArgumentException` for both
+  cases; the docs are stale, the behaviour above is what the implementation
+  does. `GenericValidationException` derives directly from `Exception`, so
+  catching `ArgumentException` will not catch it.)
 - **API tokens.** `GenerateApiTokenForUser(user, deviceName)` returns the
   existing token for that device if there is one; the overload taking an
   `expiresAt` always creates a new one and requires at least 57 seconds in the

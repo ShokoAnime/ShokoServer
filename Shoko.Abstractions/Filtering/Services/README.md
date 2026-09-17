@@ -28,7 +28,7 @@ Every node of the tree evaluates against two objects, and nothing else:
 | | |
 |---|---|
 | `IFilterableInfo` | A flat, precomputed projection of one series or group: names, tags, seasons, episode counts, file sources, languages, paths, image types, cross-reference counts. Always present. |
-| `IFilterableUserInfo` | The same idea for one user against that entity: watched counts, votes, user tags, watched dates. Present only when the call was given a user. |
+| `IFilterableUserInfo` | The same idea for one user against that entity: watched counts, votes, user tags, watched dates. Present only when a user was passed **and** the expression (or sorting expression) declares `UserDependent`; `null` otherwise, even if a user was passed. |
 
 These are deliberately not the metadata interfaces. A *group's* filterable
 aggregates every series beneath it, so `Names`, `Seasons`, `AudioLanguages` and
@@ -83,8 +83,14 @@ sets both, and the last overload lets you state them yourself. Getting them
 wrong is the usual cause of a `NullReferenceException` inside a handler, since a
 handler that reads `userInfo` without the flag set is called with `null`.
 
-The core expression classes in `Filtering/Expressions/` are `IFilterExpression<bool>`
-implementations too, so a tree can mix them with your own lambdas:
+The core expression classes in `Filtering/Expressions/` cannot be combined with
+your own lambdas in one tree. `AndExpression`, `OrExpression`, `XorExpression`
+and `NotExpression` take the abstract **class** `FilterExpression<bool>`, not
+the `IFilterExpression<bool>` interface, and `GenericFilterExpression` is
+`sealed` and implements only the interface, so it cannot be passed to any of
+them. A tree is therefore either all core expressions or a single
+`GenericFilterExpression`; to combine your own predicates, do the combining
+inside one lambda. Core expressions compose with each other as usual:
 
 ```csharp
 var filter = new GenericFilter
@@ -221,7 +227,8 @@ Four things to build around:
   pass the user whenever the result is going to be shown to one.
 
 `IMetadataFilteringService` adds group-shaped reads on top:
-`GetAllFilteredGroups`, `GetTopLevelFilteredGroups`, `GetFilteredSubGroups` and
+`GetAllFilteredGroups` returns a plain `IReadOnlyList<IShokoGroup>`.
+`GetTopLevelFilteredGroups`, `GetFilteredSubGroups` and
 `GetAllFilteredGroupsWithChains` return `FilteredGroupResult`, which carries the
 resolved group, every chain of group IDs from top level down to the match, and
 the set of series IDs that matched inside that scope. `GetFilteredSeriesInGroup`

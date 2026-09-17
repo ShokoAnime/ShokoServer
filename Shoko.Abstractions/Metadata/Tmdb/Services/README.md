@@ -44,12 +44,14 @@ IReadOnlyList<ITmdbMovie> episodeMovies = shokoEpisode.TmdbMovies;
 By ID, through `IMetadataService`:
 
 ```csharp
-ISeries? show = metadataService.GetSeriesByProviderID(tmdbShowID, ProviderName.TMDB);
-IMovie? movie = metadataService.GetMovieByProviderID(tmdbMovieID, ProviderName.TMDB);
+ISeries? show = metadataService.GetSeriesByProviderID(tmdbShowID, IMetadataService.ProviderName.TMDB);
+IMovie? movie = metadataService.GetMovieByProviderID(tmdbMovieID, IMetadataService.ProviderName.TMDB);
 ```
 
-`ProviderName.TMDB` resolves shows on the series methods and movies on the
-movie methods; there is no single call that covers both.
+`ProviderName` is nested inside `IMetadataService`, so it is spelled
+`IMetadataService.ProviderName.TMDB` unless you have a `using static` for the
+interface. It resolves shows on the series methods and movies on the movie
+methods; there is no single call that covers both.
 
 Call the services below when the cached copy is missing or stale, or when you
 need TMDB itself to answer something.
@@ -164,9 +166,21 @@ breaker: `IsPaused`, and `RemainingPauseTime`, which is `null` when not paused.
 | Member | Notes |
 |---|---|
 | `AddShowLink(anidbAnimeId, tmdbShowId, additiveLink, matchRating)` | Creates or updates the link, then runs the episode auto-matcher and saves what it finds. |
-| `RemoveShowLink(anidbAnimeId, tmdbShowId, purge)` | Removes one link. `purge` also drops the TMDB show when nothing links to it any more. |
+| `RemoveShowLink(anidbAnimeId, tmdbShowId, purge)` | Removes one link. `purge` **unconditionally** queues a purge of the TMDB show itself. |
 | `RemoveAllShowLinksForAnime(animeId, purge)` | Every show link for one AniDB anime. |
 | `RemoveAllShowLinksForShow(showId)` | Every AniDB link to one TMDB show. |
+
+**`purge: true` does not check whether anything else still links to the show.**
+It is a bare "also purge" flag: the link is deleted, and then
+`PurgeTmdbShowJob` is queued for that show ID regardless of how many other
+AniDB anime still point at it. Because one TMDB show can legitimately be
+linked from several anime (the split-cour case described above),
+`RemoveShowLink(animeA, show, purge: true)` destroys the cached show out from
+under animeB, whose own cross-reference row survives while the data it refers
+to does not. Pass `purge: true` only when you already know you are removing the
+last link, and prefer `purge: false` whenever you are unlinking one anime among
+several. The same applies to `RemoveAllShowLinksForAnime(animeId, purge)`,
+which forwards the flag to each link it removes.
 
 ### Movie links
 

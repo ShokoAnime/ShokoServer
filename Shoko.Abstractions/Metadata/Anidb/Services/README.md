@@ -33,7 +33,7 @@ and reading it costs nothing. None of the following touches the network:
 IAnidbAnime anime = shokoSeries.AnidbAnime;
 
 // Or by AniDB anime ID, through IMetadataService.
-var series = metadataService.GetSeriesByProviderID(anidbAnimeID, ProviderName.AniDB);
+var series = metadataService.GetSeriesByProviderID(anidbAnimeID, IMetadataService.ProviderName.AniDB);
 
 // Episodes come along the same way.
 IAnidbEpisode anidbEpisode = shokoEpisode.AnidbEpisode;
@@ -132,7 +132,7 @@ entirely, so spell out every flag you need:
 |---|---|
 | `GetAllTags(topLevelOnly)` | Every AniDB tag in the local database. Local read, no network. |
 | `ScheduleImagesForAnimeByID(id, onlyPosters, forceDownload, prioritize)` | Queues the image records, cross-references and downloads for an anime. |
-| `PurgeAllUnusedAnime()` | Drops every AniDB anime no longer linked to a shoko series. |
+| `PurgeAllUnusedAnime()` | Queues one `PurgeAniDBAnimeJob` per AniDB anime no longer linked to a shoko series. It schedules the work and returns; nothing is dropped by the time the call completes. |
 | `PurgeAnimeByID(id, removeFromMylist)` / `SchedulePurgeOfAnimeByID(...)` | Inline and queued purge of one anime. `removeFromMylist` defaults to `true`, so a careless call removes the user's MyList entries too. |
 | `AnidbHttpApiBaseUrlOverride`, `AnidbCdnBaseUrlOverride`, `AnidbTitleCacheUrlOverride` | Settable overrides, written straight to the server settings and saved. Setting one to `null`, an empty string, or the default value clears it. These exist for mirrors and for testing; a plugin changing them changes them for the whole server. |
 
@@ -275,9 +275,15 @@ does not belong to the file or episode it names, or naming nothing its kind can
 act on, fails the lot with a `GenericValidationException` reporting every bad
 step keyed by its index in `Actions`. Past that check the steps are independent:
 one that fails unexpectedly is logged and skipped rather than abandoning the
-rest. A plan carries no values, only steps, so every value is read from current
-state when the step runs and an old plan is safe to apply.
-`MylistSyncPlan.CreatedAt` is there so you can show its age, not to gate it.
+rest.
+
+**A plan is a snapshot, not a set of instructions to re-derive.** Each
+`MylistSyncAction` carries the values it was built with (`WatchedAt`, `State`
+and `DeleteType`), and applying it writes those values rather than re-reading
+current state. Replaying a stale plan therefore pushes stale data: a watched
+date the user has since changed, or a state that no longer matches. Build a
+plan and apply it in the same pass. `MylistSyncPlan.CreatedAt` is there so you
+can check its age before deciding to apply it.
 
 `MylistSyncTargets` picks which tiers to reconcile (`Videos`, `Episodes`, or
 `All`), and `MylistWatchedEpisodeMode` decides how a locally watched episode is

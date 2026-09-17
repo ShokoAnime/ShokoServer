@@ -196,7 +196,7 @@ feed. Delay inference is left on, so a pre-emption or a moved slot is worked
 out for you.
 
 ```csharp
-public class MyTvProvider(IAiringScheduleService airingScheduleService) : IAiringScheduleProvider
+public class MyTvProvider(IAiringScheduleService airingScheduleService, MyTvGuideClient client) : IAiringScheduleProvider
 {
     public string Name => "MyTvGuide";
     public IReadOnlySet<AiringKind> AvailableKinds { get; } = new HashSet<AiringKind> { AiringKind.Original };
@@ -228,7 +228,8 @@ public class MyTvProvider(IAiringScheduleService airingScheduleService) : IAirin
             {
                 Episode = entry.Episode,
                 AiredAt = entry.AiredAtUtc,
-                Key = entry.Episode.ID,
+                // Key is a string; IEpisode.ID is an int, so convert it.
+                Key = entry.Episode.ID.ToString(),
             })
             .ToList();
         var written = airingScheduleService.SetAirings(this, schedule, airings);
@@ -236,7 +237,8 @@ public class MyTvProvider(IAiringScheduleService airingScheduleService) : IAirin
         // 4. Link a double-episode slot after the airings exist.
         foreach (var doubleBill in listing.DoubleBills)
         {
-            var members = written.Where(a => doubleBill.EpisodeIDs.Contains(a.EpisodeID)).ToList();
+            // IEpisodeAiring.EpisodeID is a string, so compare it as one.
+            var members = written.Where(a => doubleBill.EpisodeIDs.Any(id => id.ToString() == a.EpisodeID)).ToList();
             if (members.Count >= 2)
                 airingScheduleService.LinkAirings(this, members);
         }
@@ -282,7 +284,7 @@ public async Task<bool> RefreshAsync(ISeries series, CancellationToken cancellat
         {
             Episode = episode,
             AiredAt = drop.ReleasedAtUtc,   // every episode, the same instant
-            Key = episode.ID,
+            Key = episode.ID.ToString(),    // Key is a string, IEpisode.ID an int
         })
         .ToList();
 
@@ -480,10 +482,12 @@ reach.
   swept again on the next run. A provider backfilling history should trim its
   own submission to a recent window rather than relying on the write to do it.
 - **A schedule's series, season, key and channel never change** once created —
-  changing any of them is a different schedule, by design (its identity is
-  exactly those four things). Likewise an airing's schedule, key and episode
-  never change on an existing row. `AddOrUpdateSchedule`/`UpdateSchedule` and
-  `AddOrUpdateAiring`/`UpdateAiring` reject an attempt to change them.
+  `AddOrUpdateSchedule` rejects an attempt to change any of them. Its identity,
+  though, is `(provider, series, season, key)`: that is what `GetScheduleID`
+  hashes, and the channel is immutable without being part of it. Likewise an
+  airing's schedule, key and episode never change on an existing row.
+  `AddOrUpdateSchedule`/`UpdateSchedule` and `AddOrUpdateAiring`/`UpdateAiring`
+  reject an attempt to change them.
 - **Prefer passing a stable `Key`.** Without one, a schedule's key is derived
   from its channel and full track set, so adding a language to a keyless
   schedule silently creates a *new* schedule instead of updating the old one.
@@ -526,8 +530,10 @@ public class MyEntityResolver : IAiringScheduleEntityResolver
 
     // Key → entity, used both to enrich a stored schedule or airing back into
     // your own types, and to answer range queries.
+    // DataSource is a closed enum : byte, so a plugin cannot add a member to
+    // it. Everything a plugin owns arrives as DataSource.Plugin.
     public IMetadata? GetEntity(DataSource source, DataEntityType type, string id)
-        => source == MyDataSource.Instance ? _repository.GetByID(type, id) : null;
+        => source == DataSource.Plugin ? _repository.GetByID(type, id) : null;
 
     // Shoko entity → this resolver's entities linked to it, in link order.
     // Added to what the service already walks itself (IShokoSeries.LinkedSeries,

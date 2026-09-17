@@ -168,15 +168,30 @@ Consequences worth internalising:
   `Validate` computes is thrown away. Do the work again in `Execute`, or keep it
   in an injected singleton.
 - **`Validate` runs on the request thread and `Execute` does not.** `Validate`
-  should be a cheap precondition check, not the work. Its token is the API
-  request's; `Execute`'s token is the queue job's lifecycle, because there is no
-  live request left by then.
+  should be a cheap precondition check, not the work, and its token is the API
+  request's.
+- **`Execute`'s token is never anything but `CancellationToken.None`.**
+  `ActionExecutionJob` calls `await action.Execute()` with no argument, so the
+  optional parameter falls to its default and nothing is ever wired to it. An
+  action that polls the token for cancellation will wait forever; it is not
+  cancelled on shutdown, and there is no way to cancel it from outside. Keep
+  `Execute` short enough that this does not matter, or carry your own stop
+  signal on an injected singleton. (Both the comment above that call site and
+  `IExecutableAction`'s own XML doc describe the parameter as the job's
+  lifetime token. They overstate it; the call site is what runs.)
 - **There is no result hook.** An action reports what it did by logging, the same
   as every other queue job. Exceptions out of `Execute` are caught by the worker
   and recorded as a job failure.
-- **Concurrency is the queue's business.** There is no per-action opt-in flag;
-  use the queue's own `[LimitConcurrency]`, `[DisallowConcurrentExecution]` and
-  `[DisallowConcurrencyGroup]` where it matters.
+- **Nothing constrains how many actions run at once, and you cannot change
+  that.** The queue's `[LimitConcurrency]`, `[DisallowConcurrentExecution]` and
+  `[DisallowConcurrencyGroup]` attributes are read only off registered
+  `IQueueJob` types. An action is not one: every action runs inside the single
+  wrapper job `ActionExecutionJob`, which carries no concurrency attributes at
+  all, so an attribute you put on your own action class is never looked at.
+  Every action in the server shares that one job's unconstrained pool, which
+  also means two invocations of *your* action can overlap, as can your action
+  and someone else's. If your action is long-running or not reentrant, guard it
+  yourself, with a lock or a semaphore on an injected singleton.
 
 ---
 

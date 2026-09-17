@@ -44,12 +44,16 @@ back as `application/json`, `text/json` or `text/plain`, and the CSS as
 ## Getting hold of it
 
 The service is registered as a singleton in the core container, so constructor
-injection works as usual:
+injection works as usual in anything the container builds. It does not work on
+the class implementing `IPlugin`, which is built without DI during the plugin
+scan and must have a public parameterless constructor; see
+[the plugin overview](../../README.md#iplugin-needs-a-public-parameterless-constructor).
 
 ```csharp
-public class Plugin(IWebThemeService themeService) : IPlugin
+// Registered from your plugin's RegisterServices.
+public class MyThemeInstaller(IWebThemeService themeService)
 {
-    public string Name => "MyPlugin";
+    public IWebThemeDefinition? GetMine() => themeService.GetTheme("my-theme");
 }
 ```
 
@@ -106,10 +110,13 @@ await themeService.InstallOrUpdateThemeFromData(new WebThemeDefinitionData
 }, fileName: "my-theme");
 ```
 
-Call it from `Load` if you want the theme to reappear after a user deletes it,
-or once on first run if you would rather let them keep it deleted. Either way
-you are writing into the user's `themes/` directory, so use an ID unlikely to
-collide: an existing theme with the same ID is overwritten without warning.
+There is no plugin init hook to call it from: `IPlugin` has no `Load` method,
+and nothing calls one. Call it from the `StartAsync` of a hosted service you
+register, or from an `ISystemService.AboutToStart` handler, if you want the
+theme to reappear after a user deletes it; guard it on your own stored flag if
+you would rather let them keep it deleted. Either way you are writing into the
+user's `themes/` directory, so use an ID unlikely to collide: an existing theme
+with the same ID is overwritten without warning.
 
 ---
 
