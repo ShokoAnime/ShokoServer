@@ -46,6 +46,8 @@ providers.
 
 - [Video services](Video/Services/README.md), to find files, hash them, match
   them to episodes and move them
+- [Metadata services](Metadata/Services/README.md), to look up series, episodes
+  and groups, manage grouping, and work with images
 - [User and user data](User/Services/README.md), for watch state, ratings and
   user tags
 - [Configuration](Config/Services/README.md), declared as a plain C# class with
