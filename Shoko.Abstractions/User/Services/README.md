@@ -51,7 +51,7 @@ The core's own scrobbler is the shortest useful example. It is an
 watched when playback reaches the end:
 
 ```csharp
-public class ScrobbleObserver(IUserDataService userDataService) : IPlaybackObserver
+public class LegacyScrobbleObserver(IUserDataService userDataService) : IPlaybackObserver
 {
     public async Task OnPlaybackProgress(PlaybackProgressContext context, CancellationToken cancellationToken)
     {

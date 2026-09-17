@@ -17,7 +17,7 @@ Transforms are opt-in on both sides, and so are observers that come from a
 plugin. The one exception is an observer shipped by the core plugin, which
 defaults to enabled so that an install keeps behaving the way it did before the
 behaviour moved out of the endpoint (see [the built-in
-`ScrobbleObserver`](#reading-query-parameters)).
+`LegacyScrobbleObserver`](#reading-query-parameters)).
 
 ---
 
@@ -166,9 +166,9 @@ request, with no priority ordering, since running an additional passive
 observer alongside another is harmless.
 
 ```csharp
-public class ScrobbleObserver(IUserDataService userDataService) : IPlaybackObserver
+public class LegacyScrobbleObserver(IUserDataService userDataService) : IPlaybackObserver
 {
-    public string Name => "Scrobble";
+    public string Name => "Legacy Scrobbler";
 
     public async Task OnPlaybackProgress(PlaybackProgressContext context, CancellationToken cancellationToken)
     {
@@ -195,7 +195,7 @@ a quality/profile hint for a transform or a legacy flag an observer wants to
 stay compatible with, without the stream endpoints needing a dedicated
 parameter for every plugin.
 
-The built-in `ScrobbleObserver` (`Shoko.Server.Streaming.ScrobbleObserver`) uses
+The built-in `LegacyScrobbleObserver` (`Shoko.Server.Streaming.LegacyScrobbleObserver`) uses
 this to stay backwards-compatible with the old
 `/Stream?streamPositionScrobbling=true` per-request flag: for
 `PlaybackKind.Progressive` it only marks a video watched if that query parameter
@@ -212,7 +212,7 @@ plugins stay opt-in.
 ### Registering
 
 Like a transform, an observer usually needs no registration. It is discovered
-and constructed with constructor injection (that is how the `ScrobbleObserver`
+and constructed with constructor injection (that is how the `LegacyScrobbleObserver`
 above receives its `IUserDataService`), and `VideoStreamPipelineService` holds
 the single instance every request goes through.
 

@@ -21,11 +21,11 @@ namespace Shoko.Server.Streaming;
 ///   flag to honor — a client using HLS has already opted in by requesting a
 ///   transform — so it acts whenever the observer is enabled.
 /// </remarks>
-public class ScrobbleObserver(IUserDataService userDataService) : IPlaybackObserver
+public class LegacyScrobbleObserver(IUserDataService userDataService) : IPlaybackObserver
 {
     private const string LegacyQueryParameterName = "streamPositionScrobbling";
 
-    public string Name => "Scrobble";
+    public string Name => "Legacy Scrobbler";
 
     public string? Description =>
         "Marks a video as watched when playback reaches the end. For progressive streams, this only applies " +
