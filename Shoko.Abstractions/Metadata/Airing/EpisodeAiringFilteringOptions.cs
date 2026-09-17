@@ -106,6 +106,12 @@ public sealed class EpisodeAiringFilteringOptions
     ///   the one <c>GetAiringForEpisode</c> would return. Defaults to
     ///   <c>false</c>.
     /// </summary>
+    /// <remarks>
+    ///   A range read reduces after it has narrowed the airings to its window,
+    ///   so an episode is answered with the best airing it has <em>in the
+    ///   window</em> rather than dropping out of it over a better airing
+    ///   somewhere else.
+    /// </remarks>
     public bool PreferredOnly { get; set; }
 
     #endregion

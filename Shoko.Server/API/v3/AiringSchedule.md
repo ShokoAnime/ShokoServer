@@ -75,11 +75,41 @@ still comes back so it can be shown as-is. `GET
 /api/v3/AiringSchedule/TimeZone` lists the zones a schedule may use, all
 resolved.
 
+### One channel, and one schedule
+
+`GET /api/v3/AiringSchedule/Channel/{channelID}/Airing` is the same range read
+narrowed to one channel, and filters the same way: `type`, `includeMissing`,
+`includeRestricted`, `includeEstimates`, `includeDelayedOriginalSlots`,
+`preferredOnly` and `entityAnchor` all mean what they mean on `/Airing`, and a
+series nothing has been downloaded for, or a restricted (H) one, is hidden
+unless it is asked for.
+
+`kind` is the one deliberate difference: it defaults to every kind rather than
+to `Original`, because naming a channel has already narrowed the read and a
+streaming channel carries no `Original` track at all, so the calendar's default
+would answer nothing for one.
+
+`GET /api/v3/AiringSchedule/{scheduleID}/Airing` is one provider's whole line
+for one run: every episode it covers, in airing order, with no window and no
+channel filter of its own, since a schedule has exactly one channel.
+
 ## Preference
 
 Several airings can cover the same episode: two channels, a broadcast and a
 simulcast, two providers reporting the same channel. `preferredOnly=true`
 reduces the list to one airing per episode, the one the server would pick.
+
+Two providers reporting one channel are collapsed before any of this, whether
+or not `preferredOnly` is set, and whether they spell the language `en` or
+`eng`. A channel's own repeat broadcasts are not: a late-night rerun is a
+second slot the channel listed itself, so it is a second airing with its own
+ID, and it is what a read of the day it falls on answers with.
+
+On a range read the window is applied first and the preference second, so
+`preferredOnly=true` answers with one airing per episode *that airs in the
+window* rather than dropping an episode whose best airing is somewhere else.
+An episode airing on AT-X on the 5th and on TBS on the 3rd is on the 5th's
+calendar as its AT-X airing, not missing from it.
 
 The server's preference is two ordered lists, both under
 `/api/v3/AiringSchedule`:
@@ -101,6 +131,15 @@ provider has not reported yet. An estimate carries `IsEstimated: true` and is
 otherwise shaped like a real airing, with an ID of its own. Nothing is estimated
 past a schedule's last covered episode, on a finished schedule, or while the
 schedule is on hiatus. Pass `includeEstimates=false` to leave them out.
+
+An estimate's ID is derived from its schedule's and its episode's exactly as a
+stored airing's is, so `GET /Airing/{airingID}` resolves it and
+`GET /Airing/{airingID}/Linked` answers with an empty list, an estimate never
+being part of a link set. The ID is stable for as long as the estimate exists,
+but the estimate itself is recomputed on every read and its slot can move.
+When the provider finally reports the real airing it is a different airing with
+its own ID, and the estimate's ID stops resolving, which means the guess is
+gone, not the episode.
 
 ## Delays
 

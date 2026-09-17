@@ -755,6 +755,12 @@ public interface IAiringScheduleService
     /// <summary>
     ///   Gets the airing with the given ID.
     /// </summary>
+    /// <remarks>
+    ///   An estimate resolves here as well as a stored airing does, since a
+    ///   caller handed an ID has no way of telling the two apart. An estimate
+    ///   is recomputed on every read, so its ID stops resolving once the
+    ///   schedule no longer makes it.
+    /// </remarks>
     /// <param name="airingID">
     ///   The ID of the airing.
     /// </param>

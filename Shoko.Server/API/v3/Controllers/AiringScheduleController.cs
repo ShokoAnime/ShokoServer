@@ -468,11 +468,27 @@ public class AiringScheduleController(
     /// <summary>
     /// Get what airs on a channel in the given time-frame.
     /// </summary>
+    /// <remarks>
+    /// The same read as <c>GET /api/v3/AiringSchedule/Airing</c>, narrowed to
+    /// one channel, and filtered the same way: a series nothing has been
+    /// downloaded for and a restricted (H) series are hidden unless they are
+    /// asked for. <paramref name="kind"/> is the one deliberate difference,
+    /// defaulting to every kind rather than to
+    /// <see cref="AiringKind.Original"/>: a caller that names a channel has
+    /// already narrowed the read to it, and a streaming channel carries no
+    /// <see cref="AiringKind.Original"/> track at all, so the calendar's
+    /// default would answer nothing for one.
+    /// </remarks>
     /// <param name="channelID">The ID of the channel.</param>
     /// <param name="startDate">Start date. Defaults to today.</param>
     /// <param name="endDate">End date. Defaults to a week after the start date.</param>
-    /// <param name="kind">Only include airings whose schedule has a track of these kinds.</param>
+    /// <param name="kind">Only include airings whose schedule has a track of these kinds. Defaults to every kind.</param>
+    /// <param name="type">Only include airings of episodes of these AniDB episode types.</param>
+    /// <param name="includeMissing">Include airings of series with no local files.</param>
+    /// <param name="includeRestricted">Include airings of restricted (H) series.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
+    /// <param name="includeDelayedOriginalSlots">Also match a delayed airing by the slot it was moved out of.</param>
+    /// <param name="preferredOnly">Only return one airing per episode, using the server's preference.</param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
     /// <returns>The channel's airings in the time-frame, in airing order.</returns>
@@ -484,7 +500,12 @@ public class AiringScheduleController(
         [FromQuery] DateOnly? startDate = null,
         [FromQuery] DateOnly? endDate = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery] bool includeEstimates = true,
+        [FromQuery] bool includeDelayedOriginalSlots = true,
+        [FromQuery] bool preferredOnly = false,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
     )
@@ -507,12 +528,14 @@ public class AiringScheduleController(
             Kinds = kind is { Count: > 0 } ? kind : null,
             ChannelIDs = new HashSet<Guid> { channelID },
             IncludeEstimates = includeEstimates,
+            IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
+            PreferredOnly = preferredOnly,
             EntityAnchor = entityAnchor,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsInRange(fromUtc, toUtc, options)
             .Select(airing => (airing, series: context.GetSeries(airing)))
-            .Where(tuple => tuple.series.IsAllowed)
+            .Where(tuple => IsVisible(tuple.series, type, includeMissing, includeRestricted, tuple.airing))
             .OrderBy(tuple => GetSortTime(tuple.airing, fromUtc, toUtc))
             .ThenBy(tuple => tuple.airing.LinkID)
             .ThenBy(tuple => tuple.airing.ID)

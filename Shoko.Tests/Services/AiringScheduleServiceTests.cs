@@ -412,6 +412,152 @@ public class AiringScheduleServiceTests
         Assert.Single(harness.Service.GetAiringsForEpisode(harness.Episodes[0], new EpisodeAiringFilteringOptions() { PreferredOnly = true }));
     }
 
+    [Fact]
+    public void GetAiringsForEpisode_CollapsesOneChannelTwoProvidersSpellTheLanguageOfDifferently()
+    {
+        using var harness = new Harness();
+        var crunchyroll = harness.Service.FindOrRegisterChannel("Crunchyroll", AiringChannelType.Streaming);
+        harness.Schedule(harness.Primary, "first", crunchyroll.ID, [new AiringTrackData(AiringKind.Subtitled, "en")], (0, harness.Air(1, 15)));
+        harness.Schedule(harness.Secondary, "second", crunchyroll.ID, [new AiringTrackData(AiringKind.Subtitled, "eng")], (0, harness.Air(1, 15)));
+
+        // "en" and "eng" are the same language, so the two lines are one slot.
+        var airing = Assert.Single(harness.Service.GetAiringsForEpisode(harness.Episodes[0], new EpisodeAiringFilteringOptions() { IncludeEstimates = false }));
+        Assert.Equal(harness.Service.GetProviderInfo(harness.Primary).ID, airing.ProviderID);
+    }
+
+    [Fact]
+    public void GetAiringsForEpisode_KeepsARepeatBroadcastOnOneChannel()
+    {
+        using var harness = new Harness();
+        var aichi = harness.Service.FindOrRegisterChannel("テレビ愛知", AiringChannelType.Television);
+        harness.Repeats(aichi.ID, 0, harness.Air(1, 23), harness.Air(4, 2), harness.Air(6, 3));
+
+        // Three slots the channel itself lists for the one episode, which is a
+        // run of repeats rather than three providers reporting one broadcast.
+        var airings = harness.Service.GetAiringsForEpisode(harness.Episodes[0], new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+
+        Assert.Equal(3, airings.Count);
+        Assert.Equal([harness.Air(1, 23), harness.Air(4, 2), harness.Air(6, 3)], airings.Select(airing => airing.AiredAt).ToList());
+    }
+
+    [Fact]
+    public void GetAiringsForSchedule_KeepsEveryEpisodeOnTheSchedule()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var schedule = harness.Schedule(
+            harness.Primary,
+            "mx",
+            tokyo.ID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(1, 23)),
+            (1, harness.Air(8, 23)),
+            (2, harness.Air(15, 23))
+        );
+
+        // Every airing on a schedule shares its channel and its tracks, so a
+        // read that de-duplicated on those alone answered with one episode.
+        var airings = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+
+        Assert.Equal(3, airings.Count);
+        Assert.Equal(3, airings.Select(airing => airing.EpisodeID).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void GetAiringsInRange_FindsARepeatBroadcastOnItsOwnDay()
+    {
+        using var harness = new Harness();
+        var aichi = harness.Service.FindOrRegisterChannel("テレビ愛知", AiringChannelType.Television);
+        harness.Repeats(aichi.ID, 0, harness.Air(1, 23), harness.Air(4, 2), harness.Air(6, 3));
+
+        var airings = harness.Service.GetAiringsInRange(
+            harness.Air(4, 0),
+            harness.Air(4, 23, 59),
+            new EpisodeAiringFilteringOptions() { IncludeEstimates = false }
+        );
+
+        var airing = Assert.Single(airings);
+        Assert.Equal(harness.Air(4, 2), airing.AiredAt);
+    }
+
+    [Fact]
+    public void GetAiringsInRange_PreferredOnlyKeepsTheBestAiringInsideTheWindow()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        var atx = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "tbs", tbs.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(1, 23)));
+        harness.Schedule(harness.Primary, "atx", atx.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(3, 23)));
+
+        // The episode's best airing overall is the earlier one on TBS, which is
+        // outside this window; the day it actually airs on AT-X still has it.
+        var airings = harness.Service.GetAiringsInRange(
+            harness.Air(3, 0),
+            harness.Air(3, 23, 59),
+            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, PreferredOnly = true }
+        );
+
+        var airing = Assert.Single(airings);
+        Assert.Equal(atx.ID, airing.Channel?.ID);
+    }
+
+    [Fact]
+    public void GetAiringsInRange_PreferredOnlyStillGivesOneAiringPerEpisode()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        var atx = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "tbs", tbs.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(3, 22)), (1, harness.Air(3, 20)));
+        harness.Schedule(harness.Primary, "atx", atx.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(3, 23)), (1, harness.Air(3, 21)));
+
+        var airings = harness.Service.GetAiringsInRange(
+            harness.Air(3, 0),
+            harness.Air(3, 23, 59),
+            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, PreferredOnly = true }
+        );
+
+        // Two episodes air in the window, so the reduced read answers with two.
+        Assert.Equal(2, airings.Count);
+        Assert.Equal(2, airings.Select(airing => airing.EpisodeID).Distinct(StringComparer.Ordinal).Count());
+        Assert.All(airings, airing => Assert.Equal(tbs.ID, airing.Channel?.ID));
+    }
+
+    [Fact]
+    public void GetAiringByID_ResolvesAnEstimateTheSameWayItResolvesAStoredAiring()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.Schedule(
+            harness.Primary,
+            "mx",
+            tokyo.ID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(1, 15, 30)),
+            (1, harness.Air(8, 15, 30))
+        );
+
+        var estimated = Assert.Single(harness.Service.GetAiringsForEpisode(harness.Episodes[2]));
+        Assert.True(estimated.IsEstimated);
+
+        var resolved = harness.Service.GetAiringByID(estimated.ID);
+
+        Assert.NotNull(resolved);
+        Assert.True(resolved.IsEstimated);
+        Assert.Equal(estimated.ID, resolved.ID);
+        Assert.Equal(estimated.AiredAt, resolved.AiredAt);
+        Assert.Empty(harness.Service.GetLinkedAirings(estimated.ID));
+    }
+
+    [Fact]
+    public void GetAiringByID_StillAnswersNothingForAnIDNothingProduces()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "mx", tokyo.ID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(1, 15, 30)));
+
+        Assert.Null(harness.Service.GetAiringByID(Guid.NewGuid()));
+    }
+
     #endregion
 
     #region Linked Entities
@@ -1325,6 +1471,22 @@ public class AiringScheduleServiceTests
                     AiredAt = entry.AiredAt,
                 }));
 
+            return schedule;
+        }
+
+        /// <summary>
+        ///   One channel's own run of repeats of a single episode: several slots on one schedule,
+        ///   each under its own key, which is how a provider lists a late-night rerun.
+        /// </summary>
+        public IAiringSchedule Repeats(Guid? channelID, int episode, params DateTime[] slots)
+        {
+            var schedule = Service.AddOrUpdateSchedule(Primary, ScheduleData("repeats", channelID));
+            Service.SetAirings(Primary, schedule, slots.Select((airedAt, index) => new EpisodeAiringData()
+            {
+                Key = $"{episode}-{index}",
+                Episode = Episodes[episode],
+                AiredAt = airedAt,
+            }));
             return schedule;
         }
 

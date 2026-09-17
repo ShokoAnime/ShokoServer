@@ -59,6 +59,15 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     public AiringScheduleView ScheduleView => _schedule;
 
     /// <summary>
+    /// The episode the read this view belongs to ran for, or
+    /// <see langword="null"/> when the read named none and the view stands for
+    /// the airing's own episode. A read that resolved one is what says two
+    /// views of different stored episodes are the same episode after the links
+    /// were followed.
+    /// </summary>
+    public IEpisode? ResolvedFor => _resolvedFor;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="EpisodeAiringView"/> class
     /// over a stored airing.
     /// </summary>

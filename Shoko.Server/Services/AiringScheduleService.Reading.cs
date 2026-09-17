@@ -170,9 +170,17 @@ public partial class AiringScheduleService
                 targets.TryAdd(GetEntityKey(target), target);
         }
 
+        // The window narrows first and the preference reduces afterwards, so an
+        // episode is answered with the best airing it has in the window. The
+        // other way round an episode whose best airing is elsewhere would drop
+        // out of the day it actually airs on.
         return targets.Values
-            .SelectMany(episode => ReadAirings(context, episode, options, anchor))
-            .Where(airing => IsInRange(airing, fromUtc, toUtc, options.IncludeDelayedOriginalSlots))
+            .SelectMany(episode =>
+            {
+                var airings = ReadAirings(context, episode, options, anchor, preferredOnly: false)
+                    .Where(airing => IsInRange(airing, fromUtc, toUtc, options.IncludeDelayedOriginalSlots));
+                return options.PreferredOnly ? airings.Take(1) : airings;
+            })
             .OrderBy(airing => airing.AiredAt ?? airing.OriginalAiredAt ?? DateTime.MaxValue)
             .ThenBy(airing => airing.Channel?.Name ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(airing => airing.Key, StringComparer.Ordinal)
@@ -192,8 +200,15 @@ public partial class AiringScheduleService
     /// <param name="episode">The episode the read is for.</param>
     /// <param name="options">The filters and preference to read with.</param>
     /// <param name="anchor">The resolved entity anchor, never <see cref="AiringEntityAnchor.Auto"/>.</param>
+    /// <param name="preferredOnly">Whether to reduce the answer to the episode's best airing, overriding <see cref="EpisodeAiringFilteringOptions.PreferredOnly"/>.</param>
     /// <returns>The episode's airings, best first.</returns>
-    private List<IEpisodeAiring> ReadAirings(AiringReadContext context, IEpisode episode, EpisodeAiringFilteringOptions options, AiringEntityAnchor anchor)
+    private List<IEpisodeAiring> ReadAirings(
+        AiringReadContext context,
+        IEpisode episode,
+        EpisodeAiringFilteringOptions options,
+        AiringEntityAnchor anchor,
+        bool? preferredOnly = null
+    )
     {
         var now = DateTime.UtcNow;
         var linked = options.LinkedEntityAirings ?? episode is IShokoEpisode;
@@ -222,7 +237,7 @@ public partial class AiringScheduleService
         // Before the ordering, so a preferred-only read is handed the best of
         // what the anchor kept rather than nothing at all.
         ApplyAnchor(views, anchor);
-        return Order(context, views, options).ToList();
+        return Order(context, views, options, preferredOnly).ToList();
     }
 
     /// <summary>
@@ -314,8 +329,21 @@ public partial class AiringScheduleService
     /// <param name="context">The read the views belong to.</param>
     /// <param name="views">The airings that survived the filters.</param>
     /// <param name="options">The preference to order by.</param>
+    /// <param name="preferredOnly">
+    /// Whether to reduce the answer to the best airing of each episode,
+    /// overriding <see cref="EpisodeAiringFilteringOptions.PreferredOnly"/>. A
+    /// range read passes <see langword="false"/> here and reduces after it has
+    /// narrowed the airings to its window, so an episode keeps the best airing
+    /// it has <em>in the window</em> rather than dropping out of it over a
+    /// better one somewhere else.
+    /// </param>
     /// <returns>The airings, best first.</returns>
-    private IEnumerable<IEpisodeAiring> Order(AiringReadContext context, IReadOnlyList<EpisodeAiringView> views, EpisodeAiringFilteringOptions options)
+    private IEnumerable<IEpisodeAiring> Order(
+        AiringReadContext context,
+        IReadOnlyList<EpisodeAiringView> views,
+        EpisodeAiringFilteringOptions options,
+        bool? preferredOnly = null
+    )
     {
         // Ordering runs once per episode, and loading the settings goes through
         // the configuration provider, so the read holds on to them instead.
@@ -323,9 +351,13 @@ public partial class AiringScheduleService
         var preferredChannels = options.PreferredChannels ?? settings.PreferredChannels;
         var preferredTracks = options.PreferredTracks ?? settings.PreferredTracks;
         var deduplicated = views
-            // Airings without a channel are never de-duplicated: there is nothing to say they are the same slot.
-            .GroupBy(view => view.ScheduleView.Row.ChannelID)
-            .SelectMany(group => group.Key is null ? group : DeduplicateChannel(context, group))
+            // De-duplication is per episode per channel: it collapses the copies
+            // two providers make of one slot, never two episodes that share a
+            // channel, and never a channel's own repeat broadcasts of an episode.
+            // Airings without a channel are never de-duplicated at all: there is
+            // nothing to say they are the same slot.
+            .GroupBy(view => (view.ScheduleView.Row.ChannelID, Episode: GetDeduplicationKey(view)))
+            .SelectMany(group => group.Key.ChannelID is null ? group : DeduplicateChannel(context, group))
             .ToList();
 
         var ordered = deduplicated
@@ -335,32 +367,68 @@ public partial class AiringScheduleService
             .ThenBy(view => view.AiredAt ?? view.OriginalAiredAt ?? DateTime.MaxValue)
             .ThenBy(view => context.GetProvider(view.ProviderID)?.Priority ?? int.MaxValue)
             .ThenBy(view => view.Channel?.Name ?? string.Empty, StringComparer.Ordinal)
-            .ThenBy(view => view.Key, StringComparer.Ordinal)
-            .Cast<IEpisodeAiring>();
-        return options.PreferredOnly ? ordered.Take(1) : ordered;
+            .ThenBy(view => view.Key, StringComparer.Ordinal);
+        if (!(preferredOnly ?? options.PreferredOnly))
+            return ordered.Cast<IEpisodeAiring>();
+
+        // One per episode rather than one overall, so a read that spans several
+        // episodes keeps the best of each.
+        var seen = new HashSet<(DataSource Source, string ID)>();
+        return ordered.Where(view => seen.Add(GetDeduplicationKey(view))).Cast<IEpisodeAiring>();
     }
 
     /// <summary>
-    /// Collapse the airings several providers report for one channel down to
-    /// one per release, keeping the best of each: a real airing over an
-    /// estimate, then the higher-priority provider.
+    /// Which episode a view counts as, for de-duplication and for the one
+    /// airing a preferred-only read keeps. A read that resolved the episode it
+    /// ran for answers with that, so the same slot stored against two linked
+    /// provider episodes is still one episode; a read that named none falls
+    /// back to the airing's own stored episode.
     /// </summary>
+    /// <param name="view">The airing.</param>
+    /// <returns>The episode's key.</returns>
+    private static (DataSource Source, string ID) GetDeduplicationKey(EpisodeAiringView view)
+        => view.ResolvedFor is { } episode ? GetEntityKey(episode) : (view.EpisodeSource, view.EpisodeID);
+
+    /// <summary>
+    /// Collapse the airings several providers report for one episode on one
+    /// channel down to one schedule's, keeping the best of them: a real airing
+    /// over an estimate, then the higher-priority provider.
+    /// </summary>
+    /// <remarks>
+    /// Whole schedules are collapsed against each other rather than single
+    /// airings, because a schedule is one provider's line for one channel and
+    /// everything on it is that provider's own account of the slots. Two rows
+    /// on one schedule are therefore two broadcasts, a rerun or a late-night
+    /// repeat, and both are kept, while another provider's copy of the same
+    /// release is dropped whole.
+    /// </remarks>
     /// <param name="context">The read the views belong to.</param>
-    /// <param name="views">The airings of a single channel.</param>
-    /// <returns>One airing per release the channel carries.</returns>
+    /// <param name="views">The airings of one episode on a single channel.</param>
+    /// <returns>The airings of the best schedule per release the channel carries.</returns>
     private static IEnumerable<EpisodeAiringView> DeduplicateChannel(AiringReadContext context, IEnumerable<EpisodeAiringView> views)
     {
         var kept = new List<EpisodeAiringView>();
+        var keptSchedules = new HashSet<int>();
         foreach (var view in views
             .OrderBy(entry => entry.IsEstimated)
             .ThenBy(entry => context.GetProvider(entry.ProviderID)?.Priority ?? int.MaxValue)
+            .ThenBy(entry => entry.AiredAt ?? entry.OriginalAiredAt ?? DateTime.MaxValue)
             .ThenBy(entry => entry.Key, StringComparer.Ordinal))
         {
+            // Another slot on a schedule the channel already kept is a second
+            // broadcast, not a second provider's copy of the first.
+            if (keptSchedules.Contains(view.ScheduleView.Row.AiringScheduleID))
+            {
+                kept.Add(view);
+                continue;
+            }
+
             // A release already kept wins, so the first match ends it; nothing
             // else can promote a view once a better one covers it.
             if (kept.Any(entry => IsSameRelease(entry, view)))
                 continue;
 
+            keptSchedules.Add(view.ScheduleView.Row.AiringScheduleID);
             kept.Add(view);
         }
 

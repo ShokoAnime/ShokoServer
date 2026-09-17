@@ -456,13 +456,50 @@ public partial class AiringScheduleService
         if (!_loaded)
             throw new InvalidOperationException("Parts have not been added yet.");
 
-        if (GetAiringRow(airingID) is not { } entry)
-            return null;
-
         var context = new AiringReadContext(this, includeDisabled: true);
+        if (GetAiringRow(airingID) is not { } entry)
+            return GetEstimateByID(context, airingID);
+
         return context.GetSchedule(entry.AiringScheduleID) is { } scheduleView
             ? new EpisodeAiringView(context, scheduleView, entry)
             : null;
+    }
+
+    /// <summary>
+    /// The estimate behind a public ID, for the airings a list read filled in
+    /// rather than read out of a provider's line. An estimate's ID derives from
+    /// its schedule's and its episode's the way a stored airing's does, and a
+    /// client that was handed one has no way of telling the two apart, so the
+    /// same ID has to resolve either way.
+    /// </summary>
+    /// <remarks>
+    /// The ID can't be inverted, so the schedules are walked and their episodes'
+    /// IDs are derived until one matches, which is the same sweep a range read
+    /// makes to work out what it can estimate at all, and no more expensive.
+    /// </remarks>
+    /// <param name="context">The read the view belongs to.</param>
+    /// <param name="airingID">The airing's public ID.</param>
+    /// <returns>The estimate, or <see langword="null"/> when no schedule makes one under that ID.</returns>
+    private IEpisodeAiring? GetEstimateByID(AiringReadContext context, Guid airingID)
+    {
+        foreach (var row in RepoFactory.AiringSchedule.GetAll())
+        {
+            var covered = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID)
+                .Select(entry => (entry.EpisodeSource, entry.EpisodeID))
+                .ToHashSet();
+            foreach (var episode in GetScheduleEpisodes(context, row))
+            {
+                var key = GetEntityKey(episode);
+                if (covered.Contains(key))
+                    continue;
+                if (AiringScheduleUtility.GetEpisodeAiringID(row.ID, AiringScheduleUtility.GetDerivedAiringKey(key.Source, key.ID)) != airingID)
+                    continue;
+                if (Estimate(context, row, context.GetSchedule(row), episode, key) is { } estimate)
+                    return estimate;
+            }
+        }
+
+        return null;
     }
 
     #endregion
