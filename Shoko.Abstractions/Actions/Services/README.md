@@ -170,15 +170,16 @@ Consequences worth internalising:
 - **`Validate` runs on the request thread and `Execute` does not.** `Validate`
   should be a cheap precondition check, not the work, and its token is the API
   request's.
-- **`Execute`'s token is never anything but `CancellationToken.None`.**
-  `ActionExecutionJob` calls `await action.Execute()` with no argument, so the
-  optional parameter falls to its default and nothing is ever wired to it. An
-  action that polls the token for cancellation will wait forever; it is not
-  cancelled on shutdown, and there is no way to cancel it from outside. Keep
-  `Execute` short enough that this does not matter, or carry your own stop
-  signal on an injected singleton. (Both the comment above that call site and
-  `IExecutableAction`'s own XML doc describe the parameter as the job's
-  lifetime token. They overstate it; the call site is what runs.)
+- **`Execute`'s token is the worker pool's, so it only fires on shutdown.**
+  `ActionExecutionJob` passes the token of the pool running it, taken from
+  `IJobCancellationAccessor`. It is cancelled when that pool stops, which means
+  server shutdown or an explicit queue stop, and at no other time. There is no
+  way to cancel one running action, so an action that polls the token expecting
+  a user to be able to stop it will wait forever. Honour it anyway, so a long
+  action does not hold up shutdown, and keep `Execute` short enough that the
+  difference does not matter. Note nothing kills a running action either: the
+  pool waits for in-flight work to finish, and the token only lets a polite
+  action cut its own work short.
 - **There is no result hook.** An action reports what it did by logging, the same
   as every other queue job. Exceptions out of `Execute` are caught by the worker
   and recorded as a job failure.
