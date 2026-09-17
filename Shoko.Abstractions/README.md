@@ -46,6 +46,8 @@ providers.
 
 - [Video services](Video/Services/README.md), to find files, hash them, match
   them to episodes and move them
+- [Executable actions](Actions/Services/README.md), to list and invoke named
+  units of work, your own or another plugin's
 - [Metadata services](Metadata/Services/README.md), to look up series, episodes
   and groups, manage grouping, and work with images
 - [User and user data](User/Services/README.md), for watch state, ratings and
@@ -71,6 +73,21 @@ A plugin is one assembly that references `Shoko.Abstractions` and contains
 exactly one public class implementing `IPlugin`. That class carries the
 plugin's identity (a stable `Guid`, a name, a description) and nothing else
 you need at runtime.
+
+Reference it as a package, and keep its assemblies out of your output:
+
+```xml
+<PackageReference Include="Shoko.Abstractions" Version="..." ExcludeAssets="runtime" />
+```
+
+`ExcludeAssets="runtime"` is load bearing. The server already has these
+assemblies, and a plugin that ships its own copy resolves `IPlugin` against
+that copy instead, so the type check never matches and the plugin is skipped
+without an error. That failure has happened, and it looks like the plugin is
+simply absent rather than broken. If you reference the server's projects
+directly during development, a `ProjectReference` needs `Private="false"` as
+well, since `ExcludeAssets="runtime"` alone does not stop a project reference
+copying to the output directory.
 
 ```csharp
 public class Plugin : IPlugin, IPluginServiceRegistration, IPluginApplicationRegistration
@@ -315,7 +332,14 @@ rebuild with `shoko-build`, or add the `Shoko.BuildTools.Targets` NuGet package
 to your project for automatic metadata injection.
 ```
 
-Do one of the two things it says. The metadata is a set of
+Do one of the two things it says. The targets package injects the metadata at
+build time:
+
+```xml
+<PackageReference Include="Shoko.BuildTools.Targets" Version="..." PrivateAssets="All" />
+```
+
+The metadata is a set of
 `AssemblyMetadataAttribute` entries (`PackageID`, `PackageName`,
 `PackageOverview`, `PackageDependencies`, `RepositoryUrl`, `PackageProjectUrl`,
 `PackageTags`, `RuntimeIdentifier`, `ReleaseChannel`, `ReleaseTag`,
