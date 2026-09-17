@@ -4,13 +4,10 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Enums;
-using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;
-using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Settings;

@@ -18,7 +18,6 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Configuration;
 using Shoko.Server.Plugin;
-using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
