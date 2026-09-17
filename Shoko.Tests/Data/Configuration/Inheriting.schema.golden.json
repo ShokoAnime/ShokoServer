@@ -51,7 +51,6 @@
   "definitions": {
     "TwinMode": {
       "type": "string",
-      "description": "",
       "x-enumNames": [
         "Slow",
         "Balanced",
