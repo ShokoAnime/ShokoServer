@@ -25,23 +25,23 @@ seven days.
 
 The hard filters:
 
-- `kind` — comma-delimited, defaults to `Original`. `Original` is the broadcast
+- `kind`: comma-delimited, defaults to `Original`. `Original` is the broadcast
   or the platform's own first release, `Subtitled` and `Dubbed` are localised
   releases.
-- `language` — comma-delimited `TitleLanguage` values, matched against the
+- `language`: comma-delimited `TitleLanguage` values, matched against the
   schedule's tracks. Pass the enum's declared names, as everywhere else in v3:
   `Japanese`, `English`, `Portuguese`, `BrazilianPortuguese`. A language code
   such as `en`, `eng` or `pt-BR` is not a `TitleLanguage` and does not bind.
   The matching itself is per language, not per code, so a track a provider
   reported as `en` and one another reported as `eng` both answer to `English`,
   while `Portuguese` and `BrazilianPortuguese` are two languages.
-- `channel` — comma-delimited channel IDs, from `GET
+- `channel`: comma-delimited channel IDs, from `GET
   /api/v3/AiringSchedule/Channel`.
-- `type` — comma-delimited AniDB episode types. Omit it for every type.
-- `includeMissing` / `includeRestricted` — the same three-state filters the rest
+- `type`: comma-delimited AniDB episode types. Omit it for every type.
+- `includeMissing` / `includeRestricted`: the same three-state filters the rest
   of v3 uses. By default a series nothing has been downloaded for is hidden, and
   restricted (H) series are hidden.
-- `entityAnchor` — whose entities the answer is about. See *Entity anchor*,
+- `entityAnchor`: whose entities the answer is about. See *Entity anchor*,
   below.
 
 An item's `Tracks` are the schedule's, repeated on every airing so a row can be
@@ -54,15 +54,15 @@ airing and stays on the dashboard calendars.
 ### Display data is opt-in
 
 The default item is deliberately slim: IDs, times, flags, the channel, the time
-zone, the tracks, the episode's `Type` and `Number`, and `VideoCount` — how many
+zone, the tracks, the episode's `Type` and `Number`, and `VideoCount` (how many
 videos the collection holds for the episode, `0` when none are or when no
-episode could be resolved. A calendar week is many episodes of few series, so
+episode could be resolved). A calendar week is many episodes of few series, so
 anything that costs a lookup is asked for through `include`:
 
-- `EpisodeTitle` — the episode's title.
-- `Series` — the series' title and IDs.
-- `Poster` — the series' primary image.
-- `Thumbnail` — the episode's backdrop, falling back to the series' own.
+- `EpisodeTitle`: the episode's title.
+- `Series`: the series' title and IDs.
+- `Poster`: the series' primary image.
+- `Thumbnail`: the episode's backdrop, falling back to the series' own.
 
 `Poster` and `Series` resolve once per distinct series in the response;
 `Thumbnail` is per episode and therefore the pricier of the two. Both images use
@@ -118,14 +118,14 @@ calendar as its AT-X airing, not missing from it.
 The server's preference is two ordered lists, both under
 `/api/v3/AiringSchedule`:
 
-- `GET`/`PUT /Channel/Priority` — channel IDs, best first.
-- `GET`/`PUT /Track/Priority` — `{ Kind, LanguageCode }` entries, best first. A
+- `GET`/`PUT /Channel/Priority`: channel IDs, best first.
+- `GET`/`PUT /Track/Priority`: `{ Kind, LanguageCode }` entries, best first. A
   `null` language matches any language of that kind.
 
 An empty list means no preference at all, and the earliest airing wins. Track
 preference beats channel preference, which beats a real airing over an
 estimated one, which beats the earlier time. Provider priority only ranks
-sources — it is not where someone would rather watch, which is why these two
+sources; it is not where someone would rather watch, which is why these two
 lists exist.
 
 ## Estimates
@@ -149,7 +149,7 @@ gone, not the episode.
 
 `AiredAt` is where an episode airs now; `OriginalAiredAt` is the slot it was
 first scheduled for, and is only set once the slot moved. `IsDelayed` marks the
-airing whose own slot was postponed — the episodes that merely shifted behind it
+airing whose own slot was postponed; the episodes that merely shifted behind it
 are not flagged, because they were not the cause.
 
 By default a range read also returns a delayed airing whose *original* slot
@@ -162,7 +162,7 @@ since every airing belongs to exactly one schedule.
 ## Linked airings
 
 One slot can cover several episodes, e.g. a double bill. Those airings share a
-`LinkID` — the ID of the link head — and are adjacent in a list, so a client can
+`LinkID` (the ID of the link head) and are adjacent in a list, so a client can
 render one card per link. `GET /api/v3/AiringSchedule/Airing/{airingID}/Linked`
 returns the whole set, the head first. `LinkID` is `null` for an unlinked
 airing, and changes if the head is removed.
@@ -182,15 +182,15 @@ reached from either side of a link, and `entityAnchor` says which side you want
 back. It takes one of three values, spelled in `PascalCase` like every other
 enum over this API:
 
-- `Auto` (the default) — infer it. A route that takes an entity takes the anchor
+- `Auto` (the default): infer it. A route that takes an entity takes the anchor
   from that entity, so `/api/v3/Series/{seriesID}/AiringSchedule/Airing` and
   `/api/v3/Episode/{episodeID}/AiringSchedule/Airing` anchor to shoko because a
   shoko series and episode is what they were given. A route that takes no entity
   (`/Airing`, `/{scheduleID}/Airing`, `/Channel/{channelID}/Airing`) falls back
   to `Raw`.
-- `Raw` — the providers' own entities, exactly as stored. Nothing is dropped for
+- `Raw`: the providers' own entities, exactly as stored. Nothing is dropped for
   having no counterpart in the collection.
-- `Shoko` — only what resolves to a shoko entity. An airing whose episode is not
+- `Shoko`: only what resolves to a shoko entity. An airing whose episode is not
   in the collection drops out, and on the series schedules route a schedule with
   no shoko series behind it does too.
 
@@ -205,12 +205,12 @@ that `linkedEntityAirings` uses: a bool has no room for a third name.
 
 ## Series and episode routes
 
-- `GET /api/v3/Series/{seriesID}/AiringSchedule` — the schedules covering a
+- `GET /api/v3/Series/{seriesID}/AiringSchedule`: the schedules covering a
   shoko series, including its seasons' own unless `includeSeasonSchedules=false`.
 - `GET /api/v3/Series/{seriesID}/AiringSchedule/Airing` and `GET
-  /api/v3/Episode/{episodeID}/AiringSchedule/Airing` — the airings, best first
+  /api/v3/Episode/{episodeID}/AiringSchedule/Airing`: the airings, best first
   for the episode route.
-- `POST …/AiringSchedule/Refresh` — asks every enabled provider to refresh.
+- `POST …/AiringSchedule/Refresh`: asks every enabled provider to refresh.
   `wait=false` (the default) queues the work and answers `202 Accepted`;
   `wait=true` waits up to `timeout` seconds (60 by default, capped at 300) and
   answers with what each provider did and the schedules afterwards. Disconnect
@@ -219,7 +219,7 @@ that `linkedEntityAirings` uses: a bool has no room for a third name.
 
 The `linkedEntitySchedules` and `linkedEntityAirings` queries are the same
 three-state switch as `linkedEntityImages`: `false` for the entity's own,
-`true` to also walk its linked entities, and omitted to let the server decide —
+`true` to also walk its linked entities, and omitted to let the server decide,
 which means linked for shoko entities and own-only for everything else.
 
 ## Live updates
