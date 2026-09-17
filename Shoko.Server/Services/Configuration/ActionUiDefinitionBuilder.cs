@@ -3,7 +3,6 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using NJsonSchema;
-using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.UI;
 
 namespace Shoko.Server.Services.Configuration;

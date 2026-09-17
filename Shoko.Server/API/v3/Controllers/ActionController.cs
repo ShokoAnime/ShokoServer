@@ -7,20 +7,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
-using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.UI;
-using Shoko.Abstractions.Video.Services;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Action;
-using Shoko.Server.Settings;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
