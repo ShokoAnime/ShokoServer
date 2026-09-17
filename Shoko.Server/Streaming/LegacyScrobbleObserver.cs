@@ -6,9 +6,11 @@ using Shoko.Abstractions.Video.Streaming;
 namespace Shoko.Server.Streaming;
 
 /// <summary>
-///   Built-in playback observer that marks a video as watched once playback
-///   reaches the end. This is a core plugin — disabled by default — and is
-///   discovered/toggled the same way any other <see cref="IPlaybackObserver"/>
+///   Built-in playback observer that marks a video as watched once the final
+///   unit has been served. That is a fetch rather than a measurement of
+///   viewing, which is why the progressive path stays behind an explicit
+///   opt-in. Being a core plugin part it is enabled by default, and is
+///   discovered and toggled the same way any other <see cref="IPlaybackObserver"/>
 ///   would be (see <see cref="Shoko.Abstractions.Video.Services.IVideoStreamPipelineService"/>).
 /// </summary>
 /// <remarks>
