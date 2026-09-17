@@ -186,6 +186,13 @@ A hook is declared on the class it belongs to, so a nested class handles its own
 edits. Only `LiveEdit` is raised by an event, and it can name which one it wants
 with `ReactiveEventType`; a handler that names none takes them all.
 
+A hook owns its side of the job, which is the point of declaring one:
+
+- **`Load`** is handed a fresh instance, not the stored document. Build on the
+  saved one by loading it yourself and returning what you want the user to edit.
+- **`Save`** is handed what the user submitted, and nothing is written unless it
+  writes it. This is the place to drop anything that should not reach disk.
+
 So that a client knows when it is worth posting the document, every container
 says whether it reacts:
 
@@ -265,7 +272,12 @@ What each piece buys:
   leaves no trace rather than persisting a null.
 - **Populate on `Load` instead** if the options are cheap and always wanted: the
   same body under `ConfigurationActionType.Load` fills the selector before the
-  form is ever drawn, and no live edit is needed.
+  form is ever drawn, and no live edit is needed. Remember that the handler
+  starts from a fresh instance, so load the stored document yourself first.
+- **Or strip it on `Save`** if the selector is not nullable, or you would rather
+  not think about when it is populated: clear it in a
+  `ConfigurationActionType.Save` handler, then write the document. Nothing is
+  persisted but what that handler writes.
 
 Guard the handler on state rather than on which member changed, as above. It is
 then safe to run for any event.
