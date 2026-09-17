@@ -275,7 +275,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
                     continue;
 
                 actions.Add(action.ID, ReadAction(state, action));
-                members.Add(new(new UiStructureEntry { Name = action.ID, Kind = UiStructureMemberKind.Action }, action.SectionName, null, action.Position));
+                members.Add(new(new UiStructureEntry { Name = action.ID, Kind = UiStructureMemberKind.Action }, action.SectionName, null, action.Position, action.MemberName));
                 continue;
             }
 
@@ -301,9 +301,10 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
                 continue;
 
             actions.Add(action.ID, ReadAction(state, action));
-            members.Add(new(new UiStructureEntry { Name = action.ID, Kind = UiStructureMemberKind.Action }, action.SectionName, null, action.Position));
+            members.Add(new(new UiStructureEntry { Name = action.ID, Kind = UiStructureMemberKind.Action }, action.SectionName, null, action.Position, action.MemberName));
         }
 
+        AttachActionsToMembers(members, uiItems, propertyNames);
         var sectionType = classBuilder?.SectionType ?? DisplaySectionType.FieldSet;
         var layout = BuildLayout(members, classBuilder, sectionType, label);
         var hasLiveEdit = classBuilder?.ReactiveActions.Any(x => x.ActionType is ConfigurationActionType.LiveEdit) ?? false;
@@ -344,7 +345,33 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         var property = classBuilder?.GetProperty(propertyKey);
         var element = BuildElement(state, propertySchema, property, propertyName, isRoot: false, propertySchema.IsRequired);
         items.Add(propertyName, element);
-        return new(new UiStructureEntry { Name = propertyName, Kind = UiStructureMemberKind.Item }, property?.SectionName, element, null);
+        return new(new UiStructureEntry { Name = propertyName, Kind = UiStructureMemberKind.Item }, property?.SectionName, element, null, null);
+    }
+
+    /// <summary>
+    ///   Moves every action that named a member onto that member's element, and
+    ///   out of the container's own render order.
+    /// </summary>
+    /// <remarks>
+    ///   An attached action renders on the member's row, so it takes no part in
+    ///   the order the container lays its members out in. One naming a member the
+    ///   class does not have is left where it was, to render with the rest rather
+    ///   than vanish.
+    /// </remarks>
+    private static void AttachActionsToMembers(List<SectionMember> members, OrderedDictionary<string, UiElement> items, Dictionary<string, string>? propertyNames)
+    {
+        foreach (var member in members.Where(x => x.MemberName is { Length: > 0 }).ToList())
+        {
+            var propertyName = propertyNames?.GetValueOrDefault(member.MemberName!) ?? member.MemberName!;
+            if (!items.TryGetValue(propertyName, out var element))
+                continue;
+
+            if (member.Position is DisplayButtonPosition.Start)
+                element.AttachedStartActions = [.. element.AttachedStartActions, member.Entry.Name];
+            else
+                element.AttachedEndActions = [.. element.AttachedEndActions, member.Entry.Name];
+            members.Remove(member);
+        }
     }
 
     /// <summary>
@@ -591,7 +618,8 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     /// <param name="SectionName">The authored section name, if any.</param>
     /// <param name="Element">The built element, or <c>null</c> for an action.</param>
     /// <param name="Position">Where an action's button is pinned, if it is one.</param>
-    private sealed record SectionMember(UiStructureEntry Entry, string? SectionName, UiElement? Element, DisplayButtonPosition? Position);
+    /// <param name="MemberName">The member an action renders on the row of, if it names one.</param>
+    private sealed record SectionMember(UiStructureEntry Entry, string? SectionName, UiElement? Element, DisplayButtonPosition? Position, string? MemberName);
 
     /// <summary>
     ///   Everything a container needs to say about how its members render.

@@ -310,6 +310,31 @@ public class UiDefinitionBuilderTests
     }
 
     [Fact]
+    public void AttachedActions_RenderOnTheirMembersRowAndNowhereElse()
+    {
+        var definition = BuildFor(typeof(AttachedActionRoot), "Attached");
+        var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
+
+        // The pattern `Tsumugu` uses: a refresh button sitting on the trailing
+        // edge of the field it refreshes.
+        var path = root.Items["Path"];
+        Assert.Equal(["RefreshAction"], path.AttachedEndActions);
+        Assert.Equal(["ResetAction"], path.AttachedStartActions);
+
+        // Both are still in the container's map, so the button is described
+        // once and pointed at from the element.
+        Assert.Contains("RefreshAction", root.Actions.Keys);
+        Assert.Contains("ResetAction", root.Actions.Keys);
+
+        // An attached action takes no part in the container's own order.
+        var structure = Reach(root).ToList();
+        Assert.DoesNotContain(structure, x => x.Name is "RefreshAction" or "ResetAction");
+        // One naming a member the class does not have renders with the rest.
+        Assert.Contains(structure, x => x.Name is "StrayAction");
+        Assert.Empty(root.Items["Name"].AttachedEndActions);
+    }
+
+    [Fact]
     public void BothSerializerPaths_ProduceTheSameDefinition()
     {
         var newtonsoft = Serialize(BuildFor(typeof(NewtonsoftTwinConfiguration), "Twin"))
@@ -451,6 +476,30 @@ public class UiDefinitionBuilderTests
             ContractResolver = new DefaultContractResolver { NamingStrategy = new DefaultNamingStrategy() },
             NullValueHandling = NullValueHandling.Include,
         });
+
+    /// <summary>
+    ///   A shape whose actions render on a member's row.
+    /// </summary>
+    public class AttachedActionRoot
+    {
+        /// <summary>A member.</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>The member the buttons sit on.</summary>
+        public string Path { get; set; } = string.Empty;
+
+        /// <summary>Refreshes the path.</summary>
+        [CustomAction(AttachToMember = nameof(Path), Position = DisplayButtonPosition.End)]
+        public void RefreshAction() { }
+
+        /// <summary>Resets the path.</summary>
+        [CustomAction(AttachToMember = nameof(Path), Position = DisplayButtonPosition.Start)]
+        public void ResetAction() { }
+
+        /// <summary>Names a member that does not exist.</summary>
+        [CustomAction(AttachToMember = "Nonexistent")]
+        public void StrayAction() { }
+    }
 
     /// <summary>
     ///   A shape with one reactive branch and one quiet one.
