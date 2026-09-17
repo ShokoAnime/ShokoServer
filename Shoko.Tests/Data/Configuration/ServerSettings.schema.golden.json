@@ -16,7 +16,7 @@
         "null",
         "string"
       ],
-      "description": "Path where the images are stored. If set to `null` then it will use\nthe default location.",
+      "description": "Path where the images are stored. If set to `null` then it will use the default location.",
       "x-uiDefinition": {
         "elementType": "auto",
         "requiresRestart": true,
@@ -80,7 +80,7 @@
     "ThreadPoolMinThreads": {
       "title": "Thread Pool Minimum Threads",
       "type": "integer",
-      "description": "Minimum number of .NET thread pool worker/I-O completion threads to\nkeep warm. Raising this avoids the runtime's gradual \"hill-climbing\"\nthread injection delay under bursts of concurrent, blocking, or\nsynchronous work. Set to 0 to leave the runtime's own default\nuntouched. Positive values are used directly. Negative values are\ntreated as a multiplier against the CPU count, offset by one, e.g.\n-1 means CPU count x 2, -2 means CPU count x 3, up to -9 meaning\nCPU count x 10.",
+      "description": "Minimum number of .NET thread pool worker/I-O completion threads to keep warm. Raising this avoids the runtime's gradual \"hill-climbing\" thread injection delay under bursts of concurrent, blocking, or synchronous work. Set to 0 to leave the runtime's own default untouched. Positive values are used directly. Negative values are treated as a multiplier against the CPU count, offset by one, e.g. -1 means CPU count x 2, -2 means CPU count x 3, up to -9 meaning CPU count x 10.",
       "format": "int32",
       "maximum": 2147483647.0,
       "minimum": -9.0,
@@ -98,17 +98,17 @@
     },
     "AniDb": {
       "title": "AniDB",
-      "description": "Configure the information Shoko retrieves from AniDB for the series in\nyour collection, and set your preferences for MyList options and the\ngeneral updating of AniDB data.",
+      "description": "Configure the information Shoko retrieves from AniDB for the series in your collection, and set your preferences for MyList options and the general updating of AniDB data.",
       "$ref": "#/definitions/AniDb"
     },
     "TMDB": {
       "title": "TMDB",
-      "description": "Configure the information Shoko retrieves from TMDB for the series in\nyour collection.",
+      "description": "Configure the information Shoko retrieves from TMDB for the series in your collection.",
       "$ref": "#/definitions/TMDB"
     },
     "Database": {
       "title": "Database",
-      "description": "Configure the main database settings. These settings will not affect the\nqueue database.",
+      "description": "Configure the main database settings. These settings will not affect the queue database.",
       "$ref": "#/definitions/Database"
     },
     "Queue": {
@@ -182,7 +182,7 @@
     "SentryOptOut": {
       "title": "Sentry Opt-Out",
       "type": "boolean",
-      "description": "Disable Sentry error reporting in the server. This will not affect the\nweb UI error reporting.",
+      "description": "Disable Sentry error reporting in the server. This will not affect the web UI error reporting.",
       "x-uiDefinition": {
         "elementType": "auto",
         "requiresRestart": true,
@@ -198,7 +198,7 @@
         "ImageTemplateUrls": {
           "title": "Image Template Urls",
           "type": "array",
-          "description": "List of user-registered image template URLs.\n            ",
+          "description": "List of user-registered image template URLs.",
           "items": {
             "$ref": "#/definitions/ImageTemplateUrl"
           }
@@ -206,25 +206,25 @@
         "AutoPurge": {
           "title": "Auto Purge Orphaned Images",
           "type": "boolean",
-          "description": "Automatically purge orphaned images on a periodic schedule (every 24 hours).\nOrphaned images are no longer referenced by any entity in the database.\n            "
+          "description": "Automatically purge orphaned images on a periodic schedule (every 24 hours). Orphaned images are no longer referenced by any entity in the database."
         },
         "AutoValidate": {
           "title": "Auto Validate Image Integrity",
           "type": "boolean",
-          "description": "Automatically validate the integrity of all available images on a periodic schedule\n(every 24 hours). Invalid images will be re-downloaded.\n            "
+          "description": "Automatically validate the integrity of all available images on a periodic schedule (every 24 hours). Invalid images will be re-downloaded."
         }
       }
     },
     "ImageTemplateUrl": {
       "type": "object",
-      "description": "Configuration for the image template URL.\n            ",
+      "description": "Configuration for the image template URL.",
       "required": [
         "ImageSource"
       ],
       "properties": {
         "ImageSource": {
           "title": "Image Source",
-          "description": "The image source.\n            ",
+          "description": "The image source.",
           "default": "AniDB",
           "$ref": "#/definitions/DataSource",
           "x-uiDefinition": {
@@ -321,7 +321,7 @@
     },
     "DataSource": {
       "type": "string",
-      "description": "The data source.\n            ",
+      "description": "The data source.",
       "x-enumNames": [
         "AniDB",
         "TMDB",
@@ -414,12 +414,12 @@
         "CleanUpStructure": {
           "title": "Clean Up Structure on Managed Folder Scan",
           "type": "boolean",
-          "description": "Determines if we should clean up the managed folder structure when doing\na scan of the folder by default if it's not overridden on a per job\nbasis."
+          "description": "Determines if we should clean up the managed folder structure when doing a scan of the folder by default if it's not overridden on a per job basis."
         },
         "CheckFileSize": {
           "title": "Check File Size on Managed Folder Scan",
           "type": "boolean",
-          "description": "Check the file size when scanning managed folders. This has a higher\ncost than not checking the file size, as it will check the file size on\nEVERY file in the folder at the path to scan."
+          "description": "Check the file size when scanning managed folders. This has a higher cost than not checking the file size, as it will check the file size on EVERY file in the folder at the path to scan."
         },
         "MaxAutoScanAttemptsPerFile": {
           "title": "Max auto-scan attempts per file",
@@ -466,7 +466,7 @@
         "AggressiveFileLockChecking": {
           "title": "Use Aggressive File Lock Checking",
           "type": "boolean",
-          "description": "For file systems without proper locking, with this option enabled, Shoko\nwill try to use a more aggressive method to check if a file is currently\nbeing written to.",
+          "description": "For file systems without proper locking, with this option enabled, Shoko will try to use a more aggressive method to check if a file is currently being written to.",
           "default": true,
           "x-uiDefinition": {
             "elementType": "auto",
@@ -503,7 +503,7 @@
         "MediaInfoTimeoutMinutes": {
           "title": "MediaInfo Timeout (minutes)",
           "type": "integer",
-          "description": "Timeout for wait for MediaInfo to finish scanning a file before killing\nit.",
+          "description": "Timeout for wait for MediaInfo to finish scanning a file before killing it.",
           "format": "int32",
           "default": 5,
           "maximum": 60.0,
@@ -553,12 +553,12 @@
         "DownloadCreators": {
           "title": "Download Creator Images & Data",
           "type": "boolean",
-          "description": "Download creator images and extra data from AniDB. The extra data is\nneeded for staff to get images and to properly detect studios among\nother staff, etc.."
+          "description": "Download creator images and extra data from AniDB. The extra data is needed for staff to get images and to properly detect studios among other staff, etc.."
         },
         "DownloadRelatedAnime": {
           "title": "Always Download Related Anime",
           "type": "boolean",
-          "description": "Always download related anime, regardless of if the auto-group setting\nis enabled."
+          "description": "Always download related anime, regardless of if the auto-group setting is enabled."
         },
         "MaxRelationDepth": {
           "title": "Max Relation Depth",
@@ -571,7 +571,7 @@
         "MinimumHoursToRedownloadAnimeInfo": {
           "title": "Minimum Hours To Redownload Anime Info",
           "type": "integer",
-          "description": "The minimum number of hours to wait before attempting to re-downloading\nan AniDB anime.",
+          "description": "The minimum number of hours to wait before attempting to re-downloading an AniDB anime.",
           "format": "int32",
           "default": 24,
           "maximum": 48.0,
@@ -676,7 +676,7 @@
         },
         "Calendar_UpdateFrequency": {
           "title": "Calendar",
-          "description": "Check which AniDB anime is currently airing in the next/previous week,\nand schedule an update for all of them, adding them to the local\ncollection if they're not already part of it.",
+          "description": "Check which AniDB anime is currently airing in the next/previous week, and schedule an update for all of them, adding them to the local collection if they're not already part of it.",
           "$ref": "#/definitions/ScheduledUpdateFrequency",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -711,7 +711,7 @@
         },
         "Anime_UpdateFrequency": {
           "title": "Anime Updates",
-          "description": "Check which AniDB anime has been updated since the last time we asked,\nand schedule an update for any in the local collection.",
+          "description": "Check which AniDB anime has been updated since the last time we asked, and schedule an update for any in the local collection.",
           "$ref": "#/definitions/ScheduledUpdateFrequency",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -816,7 +816,7 @@
         },
         "Notification_UpdateFrequency": {
           "title": "Notifications & Messages",
-          "description": "Check for any unread notifications and messages and download them if\nthere are any.",
+          "description": "Check for any unread notifications and messages and download them if there are any.",
           "$ref": "#/definitions/ScheduledUpdateFrequency",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -875,7 +875,7 @@
             "null",
             "string"
           ],
-          "description": "The full URL for where to fetch the title cache used for the \"remote\"\nAniDB search capabilities within Shoko.",
+          "description": "The full URL for where to fetch the title cache used for the \"remote\" AniDB search capabilities within Shoko.",
           "format": "uri",
           "x-uiDefinition": {
             "elementType": "auto",
@@ -960,7 +960,7 @@
             "null",
             "string"
           ],
-          "description": "The API key to use when using AVDump to dump files for AniDB. The key is\ncreated on their site and is separate from the username and password.",
+          "description": "The API key to use when using AVDump to dump files for AniDB. The key is created on their site and is separate from the username and password.",
           "x-uiDefinition": {
             "elementType": "password",
             "requiresRestart": false,
@@ -971,7 +971,7 @@
         "AVDumpClientPort": {
           "title": "Client Port",
           "type": "integer",
-          "description": "The client port to prefer binding to when using AVDump to dump files for\nAniDB."
+          "description": "The client port to prefer binding to when using AVDump to dump files for AniDB."
         },
         "AVDump": {
           "title": "Advanced AVDump Settings",
@@ -982,7 +982,6 @@
     },
     "MyList_State": {
       "type": "string",
-      "description": "",
       "x-enumNames": [
         "Unknown",
         "HDD",
@@ -1000,7 +999,6 @@
     },
     "AniDBFileDeleteType": {
       "type": "string",
-      "description": "",
       "x-enumNames": [
         "Delete",
         "DeleteLocalOnly",
@@ -1020,7 +1018,6 @@
     },
     "ScheduledUpdateFrequency": {
       "type": "string",
-      "description": "",
       "x-enumNames": [
         "Never",
         "HoursSix",
@@ -1116,27 +1113,27 @@
         "AutoLinkRestricted": {
           "title": "Auto Link Restricted",
           "type": "boolean",
-          "description": "Automagically link restricted AniDB anime to TMDB shows and movies.\nAutoLink also needs to be set for this setting to take\neffect."
+          "description": "Automagically link restricted AniDB anime to TMDB shows and movies. AutoLink also needs to be set for this setting to take effect."
         },
         "ConsiderExistingOtherLinks": {
           "title": "Consider Existing Other Links",
           "type": "boolean",
-          "description": "Determines whether to consider existing cross-reference links to other\nAniDB anime when linking an AniDB anime to a TMDB show."
+          "description": "Determines whether to consider existing cross-reference links to other AniDB anime when linking an AniDB anime to a TMDB show."
         },
         "DownloadAllTitles": {
           "title": "Download All Titles",
           "type": "boolean",
-          "description": "Indicates that all titles should be stored locally for the TMDB entity,\notherwise it will use\n or\n depending\non the entity type to determine which titles to store locally."
+          "description": "Indicates that all titles should be stored locally for the TMDB entity, otherwise it will use or depending on the entity type to determine which titles to store locally."
         },
         "DownloadAllOverviews": {
           "title": "Download All Overviews",
           "type": "boolean",
-          "description": "Indicates that all overviews should be stored locally for the TMDB\nentity, otherwise it will use\n to determine\nwhich overviews should be stored locally."
+          "description": "Indicates that all overviews should be stored locally for the TMDB entity, otherwise it will use to determine which overviews should be stored locally."
         },
         "DownloadAllContentRatings": {
           "title": "Download All Content Ratings",
           "type": "boolean",
-          "description": "Indicates that all content-ratings should be stored locally for the TMDB\nentity, otherwise it will use\n or\n depending\non the entity type to determine which content-ratings to store locally."
+          "description": "Indicates that all content-ratings should be stored locally for the TMDB entity, otherwise it will use or depending on the entity type to determine which content-ratings to store locally."
         },
         "ImageLanguageOrder": {
           "title": "Image Language Order",
@@ -1149,17 +1146,17 @@
         "AutoDownloadCrewAndCast": {
           "title": "Auto Download Crew And Cast",
           "type": "boolean",
-          "description": "Automagically download crew and cast for movies and tv shows in the\nlocal collection."
+          "description": "Automagically download crew and cast for movies and tv shows in the local collection."
         },
         "AutoDownloadCollections": {
           "title": "Auto Download Collections",
           "type": "boolean",
-          "description": "Automagically download collections for movies and tv shows in the local\ncollection."
+          "description": "Automagically download collections for movies and tv shows in the local collection."
         },
         "AutoDownloadAlternateOrdering": {
           "title": "Auto Download Alternate Ordering",
           "type": "boolean",
-          "description": "Automagically download episode groups to use with alternate ordering\nfor tv shows."
+          "description": "Automagically download episode groups to use with alternate ordering for tv shows."
         },
         "AutoDownloadNetworks": {
           "title": "Auto Download Networks",
@@ -1169,12 +1166,12 @@
         "AutoDownloadBackdrops": {
           "title": "Auto Download Backdrops",
           "type": "boolean",
-          "description": "Automagically download backdrops for TMDB entities that supports\nbackdrops up to  images per entity."
+          "description": "Automagically download backdrops for TMDB entities that supports backdrops up to images per entity."
         },
         "MaxAutoBackdrops": {
           "title": "Max Auto Backdrops",
           "type": "integer",
-          "description": "The maximum number of backdrops to download for each TMDB entity that\nsupports backdrops.",
+          "description": "The maximum number of backdrops to download for each TMDB entity that supports backdrops.",
           "format": "int32",
           "maximum": 30.0,
           "minimum": 0.0
@@ -1182,12 +1179,12 @@
         "AutoDownloadPosters": {
           "title": "Auto Download Posters",
           "type": "boolean",
-          "description": "Automagically download posters for TMDB entities that supports\nposters up to  images per entity."
+          "description": "Automagically download posters for TMDB entities that supports posters up to images per entity."
         },
         "MaxAutoPosters": {
           "title": "Max Auto Posters",
           "type": "integer",
-          "description": "The maximum number of posters to download for each TMDB entity that\nsupports posters.",
+          "description": "The maximum number of posters to download for each TMDB entity that supports posters.",
           "format": "int32",
           "maximum": 30.0,
           "minimum": 0.0
@@ -1195,12 +1192,12 @@
         "AutoDownloadLogos": {
           "title": "Auto Download Logos",
           "type": "boolean",
-          "description": "Automagically download logos for TMDB entities that supports\nlogos up to  images per entity."
+          "description": "Automagically download logos for TMDB entities that supports logos up to images per entity."
         },
         "MaxAutoLogos": {
           "title": "Max Auto Logos",
           "type": "integer",
-          "description": "The maximum number of logos to download for each TMDB entity that\nsupports logos.",
+          "description": "The maximum number of logos to download for each TMDB entity that supports logos.",
           "format": "int32",
           "maximum": 30.0,
           "minimum": 0.0
@@ -1208,12 +1205,12 @@
         "AutoDownloadThumbnails": {
           "title": "Auto Download Thumbnails",
           "type": "boolean",
-          "description": "Automagically download thumbnail images for TMDB entities that supports\nthumbnails."
+          "description": "Automagically download thumbnail images for TMDB entities that supports thumbnails."
         },
         "MaxAutoThumbnails": {
           "title": "Max Auto Thumbnails",
           "type": "integer",
-          "description": "The maximum number of thumbnail images to download for each TMDB entity\nthat supports thumbnail images.",
+          "description": "The maximum number of thumbnail images to download for each TMDB entity that supports thumbnail images.",
           "format": "int32",
           "maximum": 30.0,
           "minimum": 0.0
@@ -1226,7 +1223,7 @@
         "MaxAutoStaffImages": {
           "title": "Max Auto Staff Images",
           "type": "integer",
-          "description": "The maximum number of staff member and voice-actor images to download\nfor each TMDB entity that supports staff member and voice-actor images.",
+          "description": "The maximum number of staff member and voice-actor images to download for each TMDB entity that supports staff member and voice-actor images.",
           "format": "int32",
           "maximum": 30.0,
           "minimum": 0.0
@@ -1268,7 +1265,7 @@
         "IncrementalChangesWindowDays": {
           "title": "Incremental Changes Window Days",
           "type": "integer",
-          "description": "The number of days to check for incremental changes. Set to `0` to\ndisable incremental changes.",
+          "description": "The number of days to check for incremental changes. Set to `0` to disable incremental changes.",
           "format": "int32",
           "default": 1,
           "maximum": 14.0,
@@ -1283,7 +1280,7 @@
         "AutoSearchShowCandidateCount": {
           "title": "Auto Search Show Candidate Count",
           "type": "integer",
-          "description": "The maximum number of TMDB search candidates to evaluate per auto-search\nattempt for shows. Each candidate that passes the animation filter is fetched\nin full (title translations + episode count) and scored; the highest-scoring\nresult is used. Higher values improve accuracy at the cost of more TMDB\nAPI calls. All calls are paced by `TmdbRateLimiter` (sliding-window,\n~40 req/sec) with automatic 429 backoff, so increasing this value slows\nsearches but will not trigger rate-limit errors.\nThe year-free candidate pool cap is `2 × this value`. At the minimum\nof 1, year-free searches collect at most 2 candidates total — sufficient for\nmost titles, but edge cases may benefit from a higher value.",
+          "description": "The maximum number of TMDB search candidates to evaluate per auto-search attempt for shows. Each candidate that passes the animation filter is fetched in full (title translations + episode count) and scored; the highest-scoring result is used. Higher values improve accuracy at the cost of more TMDB API calls. All calls are paced by `TmdbRateLimiter` (sliding-window, ~40 req/sec) with automatic 429 backoff, so increasing this value slows searches but will not trigger rate-limit errors.\nThe year-free candidate pool cap is `2 × this value`. At the minimum of 1, year-free searches collect at most 2 candidates total — sufficient for most titles, but edge cases may benefit from a higher value.",
           "format": "int32",
           "maximum": 10.0,
           "minimum": 1.0
@@ -1291,7 +1288,7 @@
         "AutoSearchMovieCandidateCount": {
           "title": "Auto Search Movie Candidate Count",
           "type": "integer",
-          "description": "The maximum number of TMDB search candidates to evaluate per auto-search\nattempt for movies. Each candidate that passes the animation filter is fetched\nin full (title translations + release dates) and scored; the highest-scoring\nresult is used. Higher values improve accuracy at the cost of more TMDB\nAPI calls. All calls are paced by `TmdbRateLimiter` (sliding-window,\n~40 req/sec) with automatic 429 backoff, so increasing this value slows\nsearches but will not trigger rate-limit errors.\nThe year-free candidate pool cap is `2 × this value`. At the minimum\nof 1, year-free searches collect at most 2 candidates total — sufficient for\nmost titles, but edge cases may benefit from a higher value.",
+          "description": "The maximum number of TMDB search candidates to evaluate per auto-search attempt for movies. Each candidate that passes the animation filter is fetched in full (title translations + release dates) and scored; the highest-scoring result is used. Higher values improve accuracy at the cost of more TMDB API calls. All calls are paced by `TmdbRateLimiter` (sliding-window, ~40 req/sec) with automatic 429 backoff, so increasing this value slows searches but will not trigger rate-limit errors.\nThe year-free candidate pool cap is `2 × this value`. At the minimum of 1, year-free searches collect at most 2 candidates total — sufficient for most titles, but edge cases may benefit from a higher value.",
           "format": "int32",
           "maximum": 10.0,
           "minimum": 1.0
@@ -1304,7 +1301,7 @@
         "AutoPurgeUnlinkedAfterDays": {
           "title": "Auto Purge Unlinked After Days",
           "type": "integer",
-          "description": "Number of days a TMDB show or movie can remain in the local database\nwithout any AniDB cross-reference before it is automatically purged.\nSet to `0` to disable automatic purging.",
+          "description": "Number of days a TMDB show or movie can remain in the local database without any AniDB cross-reference before it is automatically purged. Set to `0` to disable automatic purging.",
           "format": "int32",
           "default": 14,
           "maximum": 365.0,
@@ -1325,7 +1322,7 @@
         "MaxRequestsPerWindow": {
           "title": "Max Requests Per Window",
           "type": "integer",
-          "description": "Maximum number of requests allowed within the rate limit window.\nTMDB enforces a maximum of 40 requests per second; this defaults to 10 to avoid overwhelming\nend-user hardware with API requests and the data processing that follows each one.\n            ",
+          "description": "Maximum number of requests allowed within the rate limit window. TMDB enforces a maximum of 40 requests per second; this defaults to 10 to avoid overwhelming end-user hardware with API requests and the data processing that follows each one.",
           "format": "int32",
           "maximum": 40.0,
           "minimum": 1.0,
@@ -1409,7 +1406,7 @@
         "Host": {
           "title": "Host",
           "type": "string",
-          "description": "SQL Server or MySQL/MariaDB host address, optionally with port if it's\nnot the default port for the database type.",
+          "description": "SQL Server or MySQL/MariaDB host address, optionally with port if it's not the default port for the database type.",
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -1487,7 +1484,6 @@
     },
     "DatabaseType": {
       "type": "string",
-      "description": "",
       "x-enumNames": [
         "SQLite",
         "SQLServer",
@@ -1534,7 +1530,7 @@
         "SQLiteFilePath": {
           "title": "Database File",
           "type": "string",
-          "description": "Path to the SQLite queue database file. Relative paths are resolved against\nthe application data directory. Only used when Provider is SQLite.",
+          "description": "Path to the SQLite queue database file. Relative paths are resolved against the application data directory. Only used when Provider is SQLite.",
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": true,
@@ -1635,7 +1631,7 @@
             "array",
             "null"
           ],
-          "description": "The list of connectivity monitor definitions used for WAN availability checks.\nWhen `null`, the built-in defaults are used.",
+          "description": "The list of connectivity monitor definitions used for WAN availability checks. When `null`, the built-in defaults are used.",
           "items": {
             "$ref": "#/definitions/ConnectivityMonitorDefinition"
           }
@@ -1823,7 +1819,7 @@
         "Priority": {
           "title": "Plugin Load Order",
           "type": "array",
-          "description": "Load order of plugins. It will show both enabled and disabled, but\ndisabled plugins will not be loaded.",
+          "description": "Load order of plugins. It will show both enabled and disabled, but disabled plugins will not be loaded.",
           "items": {
             "type": "string"
           },
@@ -1836,12 +1832,12 @@
         },
         "Renamer": {
           "title": "Renamer",
-          "description": "Settings for renamers.\n            ",
+          "description": "Settings for renamers.",
           "$ref": "#/definitions/Relocation"
         },
         "Updates": {
           "title": "Updates",
-          "description": "Settings for plugin updates.\n            ",
+          "description": "Settings for plugin updates.",
           "$ref": "#/definitions/PluginUpdates"
         }
       }
@@ -1852,17 +1848,17 @@
         "RenameOnImport": {
           "title": "Rename On Import",
           "type": "boolean",
-          "description": "Indicates that we should rename a video file on import, and after metadata\nupdates when the metadata related to the file may have changed."
+          "description": "Indicates that we should rename a video file on import, and after metadata updates when the metadata related to the file may have changed."
         },
         "MoveOnImport": {
           "title": "Move On Import",
           "type": "boolean",
-          "description": "Indicates that we should move a video file on import, and after metadata\nupdates when the metadata related to the file may have changed."
+          "description": "Indicates that we should move a video file on import, and after metadata updates when the metadata related to the file may have changed."
         },
         "AllowRelocationInsideDestinationOnImport": {
           "title": "Allow Relocation Inside Destination On Import",
           "type": "boolean",
-          "description": "Indicates that we should relocate a video file that lives inside a\ndrop destination managed folder that's not also a drop source on import."
+          "description": "Indicates that we should relocate a video file that lives inside a drop destination managed folder that's not also a drop source on import."
         }
       }
     },
@@ -1872,18 +1868,18 @@
         "IsAutoSyncEnabled": {
           "title": "Is Auto Sync Enabled",
           "type": "boolean",
-          "description": "Whether automatic repository syncing is enabled.\n            ",
+          "description": "Whether automatic repository syncing is enabled.",
           "default": false
         },
         "IsAutoUpgradeEnabled": {
           "title": "Is Auto Upgrade Enabled",
           "type": "boolean",
-          "description": "Whether automatic plugin upgrades are enabled.\n            ",
+          "description": "Whether automatic plugin upgrades are enabled.",
           "default": false
         },
         "AutoUpdateFrequency": {
           "title": "Auto Update Frequency",
-          "description": "How often to automatically check for and apply plugin updates if enabled.\nDefaults to every 6 hours.\n            ",
+          "description": "How often to automatically check for and apply plugin updates if enabled. Defaults to every 6 hours.",
           "default": "HoursSix",
           "$ref": "#/definitions/ScheduledUpdateFrequency",
           "x-uiDefinition": {
@@ -1920,14 +1916,14 @@
         "DefaultRepositoryStaleTime": {
           "title": "Default Repository Stale Time",
           "type": "string",
-          "description": "Default time before a repository's packages are considered stale.\nDefaults to 12 hours.\n            ",
+          "description": "Default time before a repository's packages are considered stale. Defaults to 12 hours.",
           "format": "duration",
           "default": "12:00:00.000000"
         },
         "InactivePluginVersionRetention": {
           "title": "Inactive Plugin Version Retention",
           "type": "string",
-          "description": "Time to retain old plugin versions before auto-cleanup. Defaults to\n30 days.\n            ",
+          "description": "Time to retain old plugin versions before auto-cleanup. Defaults to 30 days.",
           "format": "duration",
           "default": "720.00:00.000000"
         }
@@ -1939,7 +1935,7 @@
         "SignalPriority": {
           "title": "Signal Priority",
           "type": "array",
-          "description": "Ordered list of quality signals used to rank release candidates.\nComparison stops at the first signal where the two candidates differ.",
+          "description": "Ordered list of quality signals used to rank release candidates. Comparison stops at the first signal where the two candidates differ.",
           "items": {
             "$ref": "#/definitions/ReleaseSignalType"
           }
@@ -1979,7 +1975,7 @@
         "AudioLanguageOrder": {
           "title": "Audio Language Order",
           "type": "array",
-          "description": "Ordered audio language preference: first entry is most preferred.\nCandidates are compared against this list in order — the first preferred\nlanguage present in one candidate but not the other decides the winner.\nEmpty list means no language preference — audio language comparison is always a tie.",
+          "description": "Ordered audio language preference: first entry is most preferred. Candidates are compared against this list in order — the first preferred language present in one candidate but not the other decides the winner. Empty list means no language preference — audio language comparison is always a tie.",
           "items": {
             "type": "string"
           }
@@ -1987,7 +1983,7 @@
         "SubtitleLanguageOrder": {
           "title": "Subtitle Language Order",
           "type": "array",
-          "description": "Ordered subtitle language preference: first entry is most preferred.\nCandidates are compared against this list in order — the first preferred\nlanguage present in one candidate but not the other decides the winner.\nEmpty list means no language preference — subtitle language comparison is always a tie.",
+          "description": "Ordered subtitle language preference: first entry is most preferred. Candidates are compared against this list in order — the first preferred language present in one candidate but not the other decides the winner. Empty list means no language preference — subtitle language comparison is always a tie.",
           "items": {
             "type": "string"
           }
@@ -1995,7 +1991,7 @@
         "SubGroupOrder": {
           "title": "Sub Group Order",
           "type": "array",
-          "description": "Ordered release-group preference: first entry is most preferred.\nEmpty list means no group preference — subgroup comparison is always a tie.",
+          "description": "Ordered release-group preference: first entry is most preferred. Empty list means no group preference — subgroup comparison is always a tie.",
           "items": {
             "type": "string"
           }
@@ -2008,21 +2004,21 @@
         "AutoDeleteOnImport": {
           "title": "Auto Delete On Import",
           "type": "boolean",
-          "description": "When true, the auto-management check runs at the end of every import.\nWhen false, no redundancy check is triggered on import; the check can\nstill be invoked manually via the API."
+          "description": "When true, the auto-management check runs at the end of every import. When false, no redundancy check is triggered on import; the check can still be invoked manually via the API."
         },
         "AllowDeletion": {
           "title": "Allow Deletion",
           "type": "boolean",
-          "description": "When true, redundant release candidates are automatically deleted.\nWhen false, the check still runs but only logs what would be removed\n(preview/display mode). Requires AutoDeleteOnImport to\nbe true for the deletion to trigger automatically on import."
+          "description": "When true, redundant release candidates are automatically deleted. When false, the check still runs but only logs what would be removed (preview/display mode). Requires AutoDeleteOnImport to be true for the deletion to trigger automatically on import."
         },
         "PerFileDeletionForAiringSeries": {
           "title": "Per File Deletion For Airing Series",
           "type": "boolean",
-          "description": "When true and a series is still airing, redundancy is evaluated per-file\nrather than per-candidate. Individual files whose episode coverage is\nalready provided by a higher-ranked candidate are deleted, while the\nremaining files in that candidate (covering episodes the primary has not\nyet reached) are retained.\n            \nWhen false (or when the series has finished airing), the existing\nwhole-candidate rule applies: a secondary candidate is only deleted if\nits entire episode coverage is already subsumed by the primary."
+          "description": "When true and a series is still airing, redundancy is evaluated per-file rather than per-candidate. Individual files whose episode coverage is already provided by a higher-ranked candidate are deleted, while the remaining files in that candidate (covering episodes the primary has not yet reached) are retained. When false (or when the series has finished airing), the existing whole-candidate rule applies: a secondary candidate is only deleted if its entire episode coverage is already subsumed by the primary."
         },
         "EpisodeTypeScope": {
           "title": "Episode Type Scope",
-          "description": "Controls how episode coverage is measured for mixed-type releases\n(releases that contain both regular episodes and specials).",
+          "description": "Controls how episode coverage is measured for mixed-type releases (releases that contain both regular episodes and specials).",
           "$ref": "#/definitions/EpisodeTypeScope",
           "x-uiDefinition": {
             "elementType": "enum",
@@ -2083,7 +2079,7 @@
     },
     "EpisodeTypeScope": {
       "type": "string",
-      "description": "Controls whether releases covering mixed episode types (regular + specials)\nare treated as a single unit or ranked independently per type.",
+      "description": "Controls whether releases covering mixed episode types (regular + specials) are treated as a single unit or ranked independently per type.",
       "x-enumNames": [
         "KeepTogether",
         "BestPerType"
@@ -2378,7 +2374,7 @@
     },
     "LogSerializeFormat": {
       "type": "string",
-      "description": "Serialization layout for a LogEntry and for log downloads.\n            ",
+      "description": "Serialization layout for a LogEntry and for log downloads.",
       "x-enumNames": [
         "Simple",
         "Full",
@@ -2509,7 +2505,7 @@
         "AutoReplaceWebUIWithIncluded": {
           "title": "Auto Replace Web UI With Included Version",
           "type": "boolean",
-          "description": "Automagically replace the current web ui with the included version if\nthe current version is older then the included version.",
+          "description": "Automagically replace the current web ui with the included version if the current version is older then the included version.",
           "default": true,
           "x-uiDefinition": {
             "elementType": "auto",
@@ -2521,7 +2517,7 @@
         "EnableWebUI": {
           "title": "Enable Web UI",
           "type": "boolean",
-          "description": "Enable the Web UI. Disabling this will run the server in \"headless\"\nmode.",
+          "description": "Enable the Web UI. Disabling this will run the server in \"headless\" mode.",
           "default": true,
           "x-uiDefinition": {
             "elementType": "auto",
@@ -2545,7 +2541,7 @@
         "WebUIPath": {
           "title": "Web UI Path",
           "type": "string",
-          "description": "A relative path from the DataPath\nto where the Web UI is installed, or an absolute path if you have it\nsomewhere else. Will be used to populate the\nWebPath field.",
+          "description": "A relative path from the DataPath to where the Web UI is installed, or an absolute path if you have it somewhere else. Will be used to populate the WebPath field.",
           "default": "webui",
           "x-uiDefinition": {
             "elementType": "auto",
@@ -2581,7 +2577,7 @@
         "EnableIndexRedirect": {
           "title": "Enable Index Redirect",
           "type": "boolean",
-          "description": "Enable the built-in index redirect available at `/`, redirecting\nthe user to the .\n            ",
+          "description": "Enable the built-in index redirect available at `/`, redirecting the user to the .",
           "default": true,
           "x-uiDefinition": {
             "elementType": "auto",
@@ -2593,7 +2589,7 @@
         "EnableSignalR": {
           "title": "Enable SignalR",
           "type": "boolean",
-          "description": "Enable the built-in SignalR hubs available at `/signalr`.\n            ",
+          "description": "Enable the built-in SignalR hubs available at `/signalr`.",
           "default": true,
           "x-uiDefinition": {
             "elementType": "auto",
@@ -2641,7 +2637,7 @@
         "EnableLegacyPlexAPI": {
           "title": "Enable Legacy Plex API",
           "type": "boolean",
-          "description": "Enable the built-in legacy Plex API available at `/plex`, once\npart of APIv2, but separated so that it can be toggled separately.\n            ",
+          "description": "Enable the built-in legacy Plex API available at `/plex`, once part of APIv2, but separated so that it can be toggled separately.",
           "default": true,
           "x-uiDefinition": {
             "elementType": "auto",
