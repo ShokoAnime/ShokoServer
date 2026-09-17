@@ -21,6 +21,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
 
