@@ -13,32 +13,42 @@ link back here rather than repeating any of it.
 plugin system was built around renaming and moving files, and most plugins
 written before 5.x are relocation providers.
 
-- [Relocation providers](Video/Relocation/README.md), for deciding where a file
-  belongs and what it is called
-- [Hash providers](Video/Hashing/README.md)
-- [Release info providers](Video/Release/README.md)
-- [Airing schedule providers](Metadata/Airing/README.md)
-- [Managed folder ignore rules](Video/README.md)
-- [Video stream transforms and playback observers](Video/Streaming/README.md)
-- [Image cross-reference resolvers](Metadata/Image/CrossReferences/README.md)
-- [Resource resolvers](Metadata/Resources/README.md)
-- [Supplementary metadata providers](Metadata/Services/README.md)
-- [Executable actions](Actions/Services/README.md)
+- [Relocation providers](Video/Relocation/README.md), deciding where a video
+  file should live and what it should be called
+- [Hash providers](Video/Hashing/README.md), computing digests of a video file
+- [Release info providers](Video/Release/README.md), identifying which episodes
+  a video file contains
+- [Airing schedule providers](Metadata/Airing/README.md), tracking when episodes
+  air, including delays and simulcasts
+- [Managed folder ignore rules](Video/README.md), keeping paths out of a scan
+- [Video stream transforms and playback observers](Video/Streaming/README.md),
+  reshaping a stream on its way out, or reacting to what was served
+- [Image cross-reference resolvers](Metadata/Image/CrossReferences/README.md),
+  attaching images to entities the server has no case for
+- [Resource resolvers](Metadata/Resources/README.md), contributing external
+  links to an entity
+- [Supplementary metadata providers](Metadata/Services/README.md), reacting when
+  a series is added or refreshed
+- [Executable actions](Actions/Services/README.md), exposing a named unit of
+  work a user or client can invoke
 
 **Services a plugin consumes.**
 
-- [Video services](Video/Services/README.md) and
-  [user data](User/Services/README.md)
+- [Video services](Video/Services/README.md), to find files, hash them, match
+  them to episodes and move them, and
+  [user data](User/Services/README.md), for watch state, ratings and user tags
 - [AniDB](Metadata/Anidb/Services/README.md),
   [AniList](Metadata/Anilist/Services/README.md) and
-  [TMDB](Metadata/Tmdb/Services/README.md)
-- [Configuration](Config/Services/README.md),
-  [logging](Logging/Services/README.md),
+  [TMDB](Metadata/Tmdb/Services/README.md), each covering search, metadata and
+  linking for that source
+- [Configuration](Config/Services/README.md), declared as a plain C# class with
+  no `appsettings.json`, plus [logging](Logging/Services/README.md),
   [system lifecycle](Core/Services/README.md) and
   [connectivity](Connectivity/Services/README.md)
-- [Filtering](Filtering/Services/README.md),
-  [web themes](Web/Services/README.md) and the
-  [plugin namespace itself](Plugin/README.md)
+- [Filtering](Filtering/Services/README.md), for evaluating filters and presets
+  over a collection, [web themes](Web/Services/README.md), and the
+  [plugin namespace itself](Plugin/README.md), covering the plugin and package
+  managers
 
 ---
 
