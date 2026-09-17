@@ -214,7 +214,7 @@ public class UiDefinitionBuilderTests
         // Every nested settings object stays an item and labels its own tab,
         // with the gathered sections appended after them.
         Assert.Equal(
-            ["Image", "Import", "AniDb", "TMDB", "Database", "Queue", "Connectivity", "Language", "Plex", "Plugins", "ReleaseComparisonPreferences", "Logging", "Linux", "Web", "Misc.", "Web UI"],
+            ["Image", "Import", "AniDb", "TMDB", "Anilist", "Database", "Queue", "Connectivity", "Language", "Plex", "Plugins", "ReleaseComparisonPreferences", "Logging", "Linux", "Web", "Misc.", "Web UI"],
             root.Structure.Select(x => x.Name)
         );
         Assert.Equal(["Misc.", "Web UI"], root.Structure.TakeLast(2).Select(x => x.Name));
