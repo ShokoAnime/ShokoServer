@@ -33,12 +33,12 @@ Channel ──< Schedule >── Episode Airing
 
 | Term | Meaning |
 |---|---|
-| **Provider** | A source of schedules — AniList, or a plugin's own — identified by a stable `Guid`. |
+| **Provider** | A source of schedules, AniList or a plugin's own, identified by a stable `Guid`. |
 | **Channel** | Where something airs, from a registry shared by every provider: "TOKYO MX" (`Television`), "Crunchyroll" (`Streaming`). Regional services carry the region in the name, e.g. `Amazon (US)`. |
 | **Schedule** | One provider's run of a series, optionally narrowed to a season, on one channel (or none), releasing a fixed set of tracks. Owned by the provider that created it. |
 | **Track** | What a schedule releases: a `Kind` (`Original`, `Subtitled`, `Dubbed`) plus a language code, an optional country code, and the `TitleLanguage` inferred from them. A language released at a different time is a different schedule, not another track on this one. |
 | **Episode airing** | One episode on one schedule: a time, the slot it was first scheduled for, a delay flag, and an optional link to the other airings of the same slot. |
-| **Coverage** | Which episodes a schedule is for — an optional episode range, plus whether the provider considers the run finished. Estimates never go past it. |
+| **Coverage** | Which episodes a schedule is for: an optional episode range, plus whether the provider considers the run finished. Estimates never go past it. |
 | **Link** | Ties two or more airings on the same schedule into one unit, for a double-episode slot or a season released at once. |
 | **Estimate** | An airing the service computed from a schedule's own line, for an episode nobody has reported a time for yet. Never stored, never submitted by a provider. |
 
@@ -110,12 +110,12 @@ the reference your own constructor was given, and pass it to every write.
 
 - **`AvailableKinds`** works like `IHashProvider.AvailableHashTypes`: it is
   fixed for the provider's lifetime, and a schedule with a track of an
-  undeclared kind throws. Languages and channels are never declared up front —
-  they depend on the anime, which a provider can't know in advance.
+  undeclared kind throws. Languages and channels are never declared up front,
+  because they depend on the anime, which a provider can't know in advance.
 - **`RefreshAsync(ISeries, ...)`** is the only required method, and the only
-  call core ever makes into a provider. It answers `false` for a series the
-  provider has nothing for — an anime it can't key on, or a show it has never
-  heard of — rather than throwing. The `ISeason` and `IEpisode` overloads
+  call core ever makes into a provider. It answers `false`, rather than
+  throwing, for a series the provider has nothing for: an anime it can't key
+  on, or a show it has never heard of. The `ISeason` and `IEpisode` overloads
   default to calling it with the entity's series, so a provider that only ever
   refreshes whole runs still answers every overload without extra code.
 - **Fetching is entirely the provider's own job.** Core never walks providers
@@ -139,17 +139,17 @@ user, not the provider:
 - **`EnabledKinds`** (a subset of `AvailableKinds`) is what the user turned on.
   A track of a kind you declared but the user disabled is still stored, but
   hidden from every read. Check your own `EnabledKinds` before fetching a kind
-  at all — there's no point calling out to a dub schedule nobody asked for —
-  and listen for `ProvidersUpdated` to notice when it changes.
+  at all, since there's no point calling out to a dub schedule nobody asked
+  for, and listen for `ProvidersUpdated` to notice when it changes.
 - **`Priority`** is source order, not a ranking of "better" data or a stand-in
   for what a viewer would rather watch. Its only real job is breaking a tie
   when two enabled providers report the *same channel* for the *same episode*
-  — which happens when two sources both track one streaming platform — and, a
+  (which happens when two sources both track one streaming platform) and, a
   distant second, breaking ties during selection after track and channel
   preference. It never hides another provider's airings. What a viewer wants
   to watch is a separate, ordered list of channel and track preference (see
   `AiringTrackPreference` and the `Preferred…` options on
-  `EpisodeAiringFilteringOptions`) — priority answers "whose data for this
+  `EpisodeAiringFilteringOptions`): priority answers "whose data for this
   channel", preference answers "which channel do I care about".
 
 ---
@@ -173,19 +173,20 @@ job a second instance and every write from it throws. Letting the provider do
 its own writing avoids the question entirely, including when it runs its own
 scheduling, because `this` is always the instance core registered.
 
-1. **`FindOrRegisterChannel(name, type)`** — get or create a channel from the
+1. **`FindOrRegisterChannel(name, type)`**: get or create a channel from the
    shared registry. An existing channel with a matching, normalised name comes
    back as-is; an unknown one is registered. Never invent a channel `Guid`
    yourself.
-2. **`AddOrUpdateSchedule(provider, data)`** — create or update the one run
+2. **`AddOrUpdateSchedule(provider, data)`**: create or update the one run
    this data describes. Identity is `(provider, series, season, key)`: calling
    this again with the same identity updates everything mutable on the
    existing schedule rather than creating a second one.
-3. **`SetAirings(provider, schedule, airings)`** — replace the schedule's whole
+3. **`SetAirings(provider, schedule, airings)`**: replace the schedule's whole
    line of airings in one call. This is the normal way to write: the service
    matches new airings to old ones by key, and runs full delay inference over
-   the line (see *Rules*, below).
-4. **`LinkAirings(provider, airings)`** — after the airings above exist, tie
+   the line (see *Rules*, below). A provider that only ever sees part of a run
+   at a time writes with `MergeAirings` instead; see *Writing part of a run*.
+4. **`LinkAirings(provider, airings)`**: after the airings above exist, tie
    two or more of them together when one slot actually covers several
    episodes: a double-episode broadcast, or a whole season dropped at once.
 
@@ -206,7 +207,7 @@ public class MyTvProvider(IAiringScheduleService airingScheduleService, MyTvGuid
         if (await client.LookupAsync(series, cancellationToken) is not { } listing)
             return false;
 
-        // 1. Channels come from the shared registry — never made up.
+        // 1. Channels come from the shared registry, never made up.
         var channel = airingScheduleService.FindOrRegisterChannel(listing.ChannelName, AiringChannelType.Television);
 
         // 2. One schedule per (series, channel). The provider's own channel
@@ -256,7 +257,7 @@ cause and the rest merely moved behind it (see *Rules*).
 ### Worked example: a whole-season release
 
 A streaming platform that drops every episode of a season at the same moment
-has no cadence to speak of — every airing shares one timestamp, and they
+has no cadence to speak of: every airing shares one timestamp, and they
 belong together as a single release rather than twelve independent slots.
 Delay inference has nothing useful to learn here, so it's turned off, and the
 whole season is linked as one unit:
@@ -301,9 +302,110 @@ public async Task<bool> RefreshAsync(ISeries series, CancellationToken cancellat
 ```
 
 `OffsetFromOriginal` on each of these airings then reads however far this
-release landed from the episode's earliest known `Original` airing — a large,
+release landed from the episode's earliest known `Original` airing: a large,
 uniform number for a season that streamed well after it broadcast, small or
 negative for one released early or day-and-date.
+
+### Writing part of a run: `MergeAirings`
+
+Both examples above hand over a whole run, because `SetAirings` reads the
+submission as the schedule's entire line. Some sources don't work that way. A
+weekly guide that only publishes the coming fortnight, or a feed that hands you
+one week at a time, would have to refetch a show's whole run every time just to
+resubmit it, or else append and lose every judgement the inference makes.
+
+`MergeAirings(provider, schedule, airings, removals, options)` is the write for
+that. It adds or updates what you pass, takes away what you name in
+`removals`, and leaves every other airing on the schedule alone. What it does
+*not* change is the inference: the service still assembles the schedule's whole
+stored line, still works out which airings merely shifted behind a break, and
+still decides whether something that went away is a hiatus or history. The one
+difference is where the removal set comes from.
+
+**The one thing to get right:**
+
+| | `SetAirings` | `MergeAirings` |
+|---|---|---|
+| An airing you pass | added or updated | added or updated |
+| An airing you leave out | **removed** | **untouched** |
+| An airing you name in `removals` | n/a | removed |
+
+Silence means opposite things in the two calls. That is the whole reason they
+are separate methods rather than one with a flag, so pick by which default you
+want and never by which is shorter to call.
+
+```csharp
+public async Task<bool> RefreshAsync(ISeries series, CancellationToken cancellationToken = default)
+{
+    if (await client.LookupAsync(series, cancellationToken) is not { } listing)
+        return false;
+
+    var channel = airingScheduleService.FindOrRegisterChannel(listing.ChannelName, AiringChannelType.Television);
+    var schedule = airingScheduleService.AddOrUpdateSchedule(this, new AiringScheduleData
+    {
+        Series = series,
+        ChannelID = channel.ID,
+        Key = listing.ChannelId,
+        Tracks = [new AiringTrackData(AiringKind.Original, "ja")],
+    });
+
+    // This week's slots, and nothing else. Every earlier week this provider
+    // already wrote stays exactly as it is.
+    var week = listing.ThisWeek
+        .Select(entry => new EpisodeAiringData
+        {
+            Episode = entry.Episode,
+            AiredAt = entry.AiredAtUtc,
+            Key = entry.Episode.ID.ToString(),
+        })
+        .ToList();
+
+    // A slot the guide dropped from a week it still publishes. Say so, because
+    // leaving it out of the submission no longer means anything.
+    var stored = airingScheduleService.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions { IncludeEstimates = false });
+    var pulled = stored
+        .Where(airing => listing.CoversSlot(airing.AiredAt) && !listing.ThisWeek.Any(entry => entry.Episode.ID.ToString() == airing.Key))
+        .ToList();
+
+    airingScheduleService.MergeAirings(this, schedule, week, pulled);
+    return true;
+}
+```
+
+A removal is the same signal an omission is to `SetAirings`, and **not** the
+outright delete `RemoveAiring` performs. A removed airing whose slot is still
+ahead of us is what a source pre-empting an episode looks like, so it is kept
+without a slot, with the slot it lost on `OriginalAiredAt`. One whose slot has
+already passed, or that falls outside what the schedule covers, is deleted as
+history. Reach for `RemoveAiring` when you mean "this row was a mistake", and
+for a `removals` entry when you mean "my source no longer lists this".
+
+**Coverage is not guessed from a delta.** Where a run starts and ends, and
+whether it has finished, decide whether a removal is a hiatus or history, and a
+provider writing one week has no view on any of it. So `MergeAirings` never
+writes `FirstEpisodeNumber`, `LastEpisodeNumber` or `IsFinished`; only
+`AddOrUpdateSchedule` and `UpdateSchedule` do. If this particular write does
+know something, say it on `EpisodeAiringUpdateOptions`, where a property left
+alone means "no opinion" and the schedule's own value is read:
+
+```csharp
+// This week's feed says the run ended, so the slot the guide dropped is
+// history rather than a pre-emption. The schedule's own coverage is untouched;
+// call AddOrUpdateSchedule to change that.
+airingScheduleService.MergeAirings(this, schedule, week, pulled, new EpisodeAiringUpdateOptions { IsFinished = true });
+```
+
+Stated coverage judges this write's removals and nothing else. It never widens
+what an airing is allowed to be: an episode outside what the *schedule* covers
+is still rejected, exactly as it is on `SetAirings`.
+
+Everything else is shared with `SetAirings`. Ownership, the
+episode-belongs-to-this-schedule check, duplicate keys and the retention window
+are the same checks reported the same way, links are re-pointed the same way,
+and the `AiringsUpdated` event carries the same `UpdateReason.Updated` for the
+airings the write wrote, so a consumer can't tell which of the two you used.
+The one extra rejection is naming an airing in both `airings` and `removals`,
+which contradicts itself.
 
 ---
 
@@ -455,34 +557,37 @@ reach.
 - **Ownership.** Every change is checked against the registered provider
   instance and the schedule or airing's stored owner. Passing another
   provider's schedule, or calling from an unregistered instance, throws
-  `ArgumentException` — see the table below.
+  `ArgumentException`; see the table below.
 - **Submit whole schedules through `SetAirings`.** It's the normal path
-  because delay inference needs the *whole* line at once — a pre-emption, a
+  because delay inference needs the *whole* line at once: a pre-emption, a
   hiatus and which airings merely shifted behind it are all judgements made
-  by comparing an entire schedule's old airings to its new ones. Reach for
+  by comparing an entire schedule's old airings to its new ones. A source that
+  only ever hands you part of a run goes through `MergeAirings`, which reaches
+  the same inference with the removals stated rather than left out. Reach for
   `AddOrUpdateAiring` / `UpdateAiring` only for a genuinely incremental or
   manual edit to one entry; they run no cause detection and no hiatus
   inference at all.
 - **Leave `IsDelayed` (and usually `OriginalAiredAt`) null and let the service
   infer them**, unless your source already reports delays itself. If it does,
-  pass `EpisodeAiringUpdateOptions { InferDelays = false }` to `SetAirings` and
-  set both fields yourself on every airing — with inference off, airings are
+  pass `EpisodeAiringUpdateOptions { InferDelays = false }` to the write and
+  set both fields yourself on every airing. With inference off, airings are
   stored exactly as submitted, and an airing you don't resubmit is deleted
   rather than kept as a possible hiatus.
 - **Name regional channels with `IAiringScheduleService.GetRegionalChannelName`**,
-  never by hand — `GetRegionalChannelName("Amazon", "US")` → `"Amazon (US)"`.
+  never by hand. `GetRegionalChannelName("Amazon", "US")` → `"Amazon (US)"`.
   It is the only supported spelling, so two providers naming the same regional
   service never drift into two channels. Leave the suffix off entirely for a
   worldwide or region-unknown service, and never add one to a broadcast
   station.
-- **Respect retention.** `SetAirings`, `AddOrUpdateAiring` and `UpdateAiring`
-  reject (as part of `AiringScheduleValidationException`) an airing older than
-  the service's configured retention window while automatic cleanup is on.
+- **Respect retention.** `SetAirings`, `MergeAirings`, `AddOrUpdateAiring` and
+  `UpdateAiring` reject (as part of `AiringScheduleValidationException`) an
+  airing older than the service's configured retention window while automatic
+  cleanup is on.
   There's no point submitting a slot from four years ago; it would only be
   swept again on the next run. A provider backfilling history should trim its
   own submission to a recent window rather than relying on the write to do it.
-- **A schedule's series, season, key and channel never change** once created —
-  `AddOrUpdateSchedule` rejects an attempt to change any of them. Its identity,
+- **A schedule's series, season, key and channel never change** once created,
+  and `AddOrUpdateSchedule` rejects an attempt to change any of them. Its identity,
   though, is `(provider, series, season, key)`: that is what `GetScheduleID`
   hashes, and the channel is immutable without being part of it. Likewise an
   airing's schedule, key and episode never change on an existing row.
@@ -491,8 +596,8 @@ reach.
 - **Prefer passing a stable `Key`.** Without one, a schedule's key is derived
   from its channel and full track set, so adding a language to a keyless
   schedule silently creates a *new* schedule instead of updating the old one.
-  Use whatever your own source already treats as stable — a channel ID, a
-  slug, an internal ID — rather than anything computed from the tracks.
+  Use whatever your own source already treats as stable (a channel ID, a slug,
+  an internal ID) rather than anything computed from the tracks.
 
 ### Which mistakes throw
 
@@ -508,7 +613,8 @@ the shape of the contract:
 | `AddChannelAliases` | `ChannelAliasConflictException` | An alias is another channel's own name, or another channel's alias, of the same type. Carries the alias, the channel already holding it, and which of the two it holds it as, so a bulk seeder can skip that one and move on. |
 | `AddOrUpdateSchedule`, `UpdateSchedule` | `ArgumentException` | No tracks; a track of a kind the provider doesn't declare; an unregistered channel; a different channel for the same identity; a coverage range whose first episode is after its last. |
 | Anything taking a time zone | `TimeZoneNotFoundException` | The zone can't be normalised to an IANA id or a fixed offset. |
-| `SetAirings`, `AddOrUpdateAiring`, `UpdateAiring` | `AiringScheduleValidationException` | An episode outside the schedule's series, season or coverage; two airings sharing a key in one call; an airing older than the retention window while cleanup is on. This is a `GenericValidationException`, so a batch call reports *every* rejected airing at once, keyed by airing key, instead of failing on the first. |
+| `SetAirings`, `MergeAirings`, `AddOrUpdateAiring`, `UpdateAiring` | `AiringScheduleValidationException` | An episode outside the schedule's series, season or coverage; two airings sharing a key in one call; an airing both submitted and removed by the same `MergeAirings` call; an airing older than the retention window while cleanup is on. This is a `GenericValidationException`, so a batch call reports *every* rejected airing at once, keyed by airing key, instead of failing on the first. |
+| `MergeAirings` | `ArgumentException` | A removal is an estimate, is unknown, or is on another schedule. |
 | `LinkAirings`, `UnlinkAiring` | `ArgumentException` | Fewer than two airings passed to `LinkAirings`, or the airings span more than one schedule. |
 | `RefreshAsync` (the awaitable overloads) | `OperationCanceledException` | The token was cancelled. A provider that throws instead is reported in the result, never re-thrown. |
 
@@ -518,8 +624,8 @@ the shape of the contract:
 
 Schedules and airings key on `ISeries`/`ISeason`/`IEpisode`, which the core
 entities (AniDB, TMDB, AniList, Shoko) already implement. A plugin with its
-*own* series, seasons or episodes — one backed by another metadata source
-entirely — registers an `IAiringScheduleEntityResolver` so the service can
+*own* series, seasons or episodes, one backed by another metadata source
+entirely, registers an `IAiringScheduleEntityResolver` so the service can
 still enrich and follow links for them, the same role
 `IImageCrossReferenceResolver` plays for images:
 
@@ -554,6 +660,6 @@ singleton so the two of you share one instance, and never register it under
 services.AddSingleton<MyEntityResolver>();
 ```
 
-If your provider only ever schedules AniDB, TMDB or AniList entities directly
-— the common case, since a plugin usually keys on IDs a metadata source
-already understands — you don't need a resolver at all.
+If your provider only ever schedules AniDB, TMDB or AniList entities directly,
+which is the common case since a plugin usually keys on IDs a metadata source
+already understands, you don't need a resolver at all.

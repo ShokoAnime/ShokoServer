@@ -297,28 +297,101 @@ public static class AiringScheduleUtility
     {
         ArgumentNullException.ThrowIfNull(existingAirings);
         ArgumentNullException.ThrowIfNull(submittedAirings);
-        options ??= new AiringInferenceOptions();
 
-        var existing = existingAirings.Where(airing => airing is not null).ToList();
-        var submitted = submittedAirings.Where(airing => airing is not null).ToList();
-        var existingByKey = new Dictionary<string, ExistingAiring>(StringComparer.Ordinal);
-        foreach (var airing in existing)
-            if (!existingByKey.TryAdd(airing.Key, airing))
-                throw new ArgumentException($"Two existing airings share the key \"{airing.Key}\".", nameof(existingAirings));
-
-        var submittedKeys = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var airing in submitted)
-            if (!submittedKeys.Add(airing.Key))
-                throw new ArgumentException($"Two submitted airings share the key \"{airing.Key}\".", nameof(submittedAirings));
-
+        var (existing, submitted, existingByKey) = PrepareLine(existingAirings, submittedAirings, nameof(existingAirings), nameof(submittedAirings));
         var pairs = PairAirings(existing, submitted, existingByKey);
-        var pairedKeys = pairs.Values
-            .Where(airing => airing is not null)
-            .Select(airing => airing!.Key)
-            .ToHashSet(StringComparer.Ordinal);
+        var pairedKeys = GetPairedKeys(pairs);
         var removed = existing.Where(airing => !pairedKeys.Contains(airing.Key)).ToList();
+        return Infer(existing, submitted, pairs, removed, [], now, options ?? new AiringInferenceOptions());
+    }
+
+    /// <summary>
+    /// Work out what a delta write does to one schedule's line of airings, where
+    /// the removals are stated rather than derived. It is the same inference
+    /// <see cref="InferAirings"/> runs, and it reaches it the same way; the only
+    /// difference is where the removal set comes from. An existing airing that is
+    /// neither submitted nor named in <paramref name="removedKeys"/> is left
+    /// exactly as it is, while still counting as part of the line, so a break two
+    /// untouched airings apart is two breaks rather than one run.
+    /// </summary>
+    /// <param name="existingAirings">The schedule's current airings.</param>
+    /// <param name="submittedAirings">The airings the provider submitted, added to or updating the current ones.</param>
+    /// <param name="removedKeys">The keys of the current airings the provider no longer reports.</param>
+    /// <param name="now">The current time, in UTC. It decides whether a removed airing is a hiatus or history, and when a slotless airing has expired.</param>
+    /// <param name="options">Optional. The schedule's coverage and the thresholds to infer with. Defaults to the service's own.</param>
+    /// <returns>The airings to store and the airings to remove. An untouched airing the write did not change is in neither list.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="existingAirings"/>, <paramref name="submittedAirings"/> or <paramref name="removedKeys"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Two existing or two submitted airings share a key, a removed key names no existing airing, or a key is both submitted and removed.</exception>
+    public static AiringInferenceResult MergeAirings(
+        IEnumerable<ExistingAiring> existingAirings,
+        IEnumerable<SubmittedAiring> submittedAirings,
+        IEnumerable<string> removedKeys,
+        DateTime now,
+        AiringInferenceOptions? options = null
+    )
+    {
+        ArgumentNullException.ThrowIfNull(existingAirings);
+        ArgumentNullException.ThrowIfNull(submittedAirings);
+        ArgumentNullException.ThrowIfNull(removedKeys);
+
+        var (existing, submitted, existingByKey) = PrepareLine(existingAirings, submittedAirings, nameof(existingAirings), nameof(submittedAirings));
+        var removals = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var key in removedKeys)
+        {
+            if (key is null || !existingByKey.ContainsKey(key))
+                throw new ArgumentException($"No existing airing has the key \"{key}\".", nameof(removedKeys));
+
+            removals.Add(key);
+        }
+
+        foreach (var airing in submitted)
+            if (removals.Contains(airing.Key))
+                throw new ArgumentException($"The airing with the key \"{airing.Key}\" is both submitted and removed.", nameof(removedKeys));
+
+        // A removal is taken out of what a submission may claim, so an entry the
+        // provider re-keyed can't quietly adopt the row it just said was gone.
+        var remaining = existing.Where(airing => !removals.Contains(airing.Key)).ToList();
+        var remainingByKey = remaining.ToDictionary(airing => airing.Key, StringComparer.Ordinal);
+        var pairs = PairAirings(remaining, submitted, remainingByKey);
+        var pairedKeys = GetPairedKeys(pairs);
+        var removed = existing.Where(airing => removals.Contains(airing.Key)).ToList();
+        var retained = remaining.Where(airing => !pairedKeys.Contains(airing.Key)).ToList();
+
+        // An untouched airing rides along as a submission of its own current
+        // state, so the cause detection below sees the whole line rather than
+        // just the delta. Carrying its stored values as the explicit ones pins
+        // it where it is, and whatever comes back unchanged is dropped from the
+        // result rather than rewritten.
+        var line = submitted.Concat(retained.Select(AsSubmitted)).ToList();
+        foreach (var airing in retained)
+            pairs[airing.Key] = airing;
+
+        return Infer(existing, line, pairs, removed, retained, now, options ?? new AiringInferenceOptions());
+    }
+
+    /// <summary>
+    /// Run the inference over one line, whoever worked out the removal set.
+    /// </summary>
+    /// <param name="existing">The schedule's current airings.</param>
+    /// <param name="submitted">The line to store, which is every submitted airing plus every untouched one riding along.</param>
+    /// <param name="pairs">The existing airing behind every key in <paramref name="submitted"/>.</param>
+    /// <param name="removed">The existing airings the write takes away, whether by omission or by name.</param>
+    /// <param name="retained">The untouched airings among <paramref name="submitted"/>, which are dropped from the result when the write left them as they were.</param>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <param name="options">The schedule's coverage and the thresholds to infer with.</param>
+    /// <returns>The airings to store and the airings to remove.</returns>
+    private static AiringInferenceResult Infer(
+        IReadOnlyList<ExistingAiring> existing,
+        IReadOnlyList<SubmittedAiring> submitted,
+        Dictionary<string, ExistingAiring?> pairs,
+        IReadOnlyList<ExistingAiring> removed,
+        IReadOnlyList<ExistingAiring> retained,
+        DateTime now,
+        AiringInferenceOptions options
+    )
+    {
         if (!options.InferDelays)
-            return StoreAsSubmitted(existing, submitted, pairs, removed);
+            return DropUntouched(StoreAsSubmitted(existing, submitted, pairs, removed), retained);
 
         var pending = new List<PendingAiring>();
         foreach (var airing in submitted)
@@ -368,8 +441,101 @@ public static class AiringScheduleUtility
             })
             .ToList();
         UnlinkStaleMembers(toSave, existing, toDelete);
-        return new AiringInferenceResult(toSave, toDelete);
+        return DropUntouched(new AiringInferenceResult(toSave, toDelete), retained);
     }
+
+    /// <summary>
+    /// Split a write into the two lists the inference works on, and refuse a line
+    /// that keys the same airing twice on either side of it.
+    /// </summary>
+    /// <param name="existingAirings">The schedule's current airings.</param>
+    /// <param name="submittedAirings">The airings the provider submitted.</param>
+    /// <param name="existingParamName">The name of the argument the current airings arrived as.</param>
+    /// <param name="submittedParamName">The name of the argument the submitted airings arrived as.</param>
+    /// <returns>The current airings, the submitted airings, and the current airings by key.</returns>
+    /// <exception cref="ArgumentException">Two existing or two submitted airings share a key.</exception>
+    private static (List<ExistingAiring> Existing, List<SubmittedAiring> Submitted, Dictionary<string, ExistingAiring> ExistingByKey) PrepareLine(
+        IEnumerable<ExistingAiring> existingAirings,
+        IEnumerable<SubmittedAiring> submittedAirings,
+        string existingParamName,
+        string submittedParamName
+    )
+    {
+        var existing = existingAirings.Where(airing => airing is not null).ToList();
+        var submitted = submittedAirings.Where(airing => airing is not null).ToList();
+        var existingByKey = new Dictionary<string, ExistingAiring>(StringComparer.Ordinal);
+        foreach (var airing in existing)
+            if (!existingByKey.TryAdd(airing.Key, airing))
+                throw new ArgumentException($"Two existing airings share the key \"{airing.Key}\".", existingParamName);
+
+        var submittedKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var airing in submitted)
+            if (!submittedKeys.Add(airing.Key))
+                throw new ArgumentException($"Two submitted airings share the key \"{airing.Key}\".", submittedParamName);
+
+        return (existing, submitted, existingByKey);
+    }
+
+    /// <summary>
+    /// The keys of the existing airings a submission claimed, which is what a
+    /// whole-line write takes the removal set to be the complement of.
+    /// </summary>
+    /// <param name="pairs">The existing airing behind every submitted key.</param>
+    /// <returns>The claimed keys.</returns>
+    private static HashSet<string> GetPairedKeys(Dictionary<string, ExistingAiring?> pairs)
+        => pairs.Values
+            .Where(airing => airing is not null)
+            .Select(airing => airing!.Key)
+            .ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
+    /// An untouched airing as a submission of its own current state, so it takes
+    /// part in the line without the write moving it.
+    /// </summary>
+    /// <param name="airing">The untouched airing.</param>
+    /// <returns>The submission standing in for it.</returns>
+    private static SubmittedAiring AsSubmitted(ExistingAiring airing)
+        => new()
+        {
+            Key = airing.Key,
+            EpisodeKey = airing.EpisodeKey,
+            AiredAt = airing.AiredAt,
+            OriginalAiredAt = airing.OriginalAiredAt,
+            IsDelayed = airing.IsDelayed,
+        };
+
+    /// <summary>
+    /// Drop every untouched airing the write left exactly as it was, so a delta
+    /// neither rewrites nor reports what it never mentioned. One the write did
+    /// change, say a member unlinked from a head that drifted, stays.
+    /// </summary>
+    /// <param name="result">What the inference decided.</param>
+    /// <param name="retained">The untouched airings that rode along in the line.</param>
+    /// <returns>The result without the airings nothing happened to.</returns>
+    private static AiringInferenceResult DropUntouched(AiringInferenceResult result, IReadOnlyList<ExistingAiring> retained)
+    {
+        if (retained.Count is 0)
+            return result;
+
+        var untouched = retained.ToDictionary(airing => airing.Key, StringComparer.Ordinal);
+        var toSave = result.ToSave
+            .Where(airing => !untouched.TryGetValue(airing.Key, out var existing) || HasChanged(existing, airing))
+            .ToList();
+        return toSave.Count == result.ToSave.Count ? result : new AiringInferenceResult(toSave, result.ToDelete);
+    }
+
+    /// <summary>
+    /// Whether the inference moved an airing off the row it started on.
+    /// </summary>
+    /// <param name="existing">The airing as it is stored.</param>
+    /// <param name="inferred">The airing as the inference resolved it.</param>
+    /// <returns><see langword="true"/> when the row has to be written.</returns>
+    private static bool HasChanged(ExistingAiring existing, InferredAiring inferred)
+        => !string.Equals(inferred.ExistingKey, existing.Key, StringComparison.Ordinal) ||
+            inferred.AiredAt != existing.AiredAt ||
+            inferred.OriginalAiredAt != existing.OriginalAiredAt ||
+            inferred.IsDelayed != existing.IsDelayed ||
+            !string.Equals(inferred.LinkKey, existing.LinkKey, StringComparison.Ordinal);
 
     /// <summary>
     /// Match every submitted airing to the existing airing it replaces: by key

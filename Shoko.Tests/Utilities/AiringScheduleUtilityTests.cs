@@ -473,6 +473,67 @@ public class AiringScheduleUtilityTests
 
     #endregion
 
+    #region Delta writes
+
+    [Fact]
+    public void MergeAirings_LeavesWhatItDoesNotMentionOutOfTheResult()
+    {
+        var existing = new[] { Existing(4, Week(0)), Existing(5, Week(1)), Existing(6, Week(2)) };
+
+        var result = AiringScheduleUtility.MergeAirings(existing, [Submitted(7, Week(3))], [], Week(0));
+
+        // Episodes 4 to 6 are neither stored again nor removed, so the write is
+        // exactly the one row it was given.
+        Assert.Empty(result.ToDelete);
+        var added = Assert.Single(result.ToSave);
+        Assert.Equal("ep7", added.Key);
+        Assert.True(added.IsNew);
+    }
+
+    [Fact]
+    public void MergeAirings_ReadsAStatedRemovalTheWayAnOmissionIsRead()
+    {
+        var existing = new[] { Existing(4, Week(0)), Existing(5, Week(1)), Existing(6, Week(2)) };
+
+        // Episode 6's slot is still ahead, so it is a hiatus; episode 4's has
+        // passed, so it is history.
+        var hiatus = AiringScheduleUtility.MergeAirings(existing, [], ["ep6"], Week(1).AddHours(1));
+        Assert.Empty(hiatus.ToDelete);
+        var kept = Assert.Single(hiatus.ToSave);
+        Assert.Null(kept.AiredAt);
+        Assert.Equal(Week(2), kept.OriginalAiredAt);
+
+        var history = AiringScheduleUtility.MergeAirings(existing, [], ["ep4"], Week(1).AddHours(1));
+        Assert.Empty(history.ToSave);
+        Assert.Equal("ep4", Assert.Single(history.ToDelete).Key);
+    }
+
+    [Fact]
+    public void MergeAirings_CountsUntouchedAiringsAsPartOfTheLine()
+    {
+        var existing = new[] { Existing(4, Week(0)), Existing(5, Week(1)), Existing(6, Week(2)), Existing(7, Week(3)) };
+
+        // Two breaks of a week each, with an airing that did not move between
+        // them. Both causes are flagged, because the untouched airing in the
+        // middle ends the first run rather than extending it.
+        var result = AiringScheduleUtility.MergeAirings(existing, [Submitted(5, Week(2)), Submitted(7, Week(4))], [], Week(0));
+
+        Assert.Empty(result.ToDelete);
+        Assert.True(Saved(result, "ep5").IsDelayed);
+        Assert.True(Saved(result, "ep7").IsDelayed);
+    }
+
+    [Fact]
+    public void MergeAirings_ThrowsOnARemovalItCannotPlace()
+    {
+        var existing = new[] { Existing(4, Week(0)) };
+
+        Assert.Throws<ArgumentException>(() => AiringScheduleUtility.MergeAirings(existing, [], ["ep9"], Week(0)));
+        Assert.Throws<ArgumentException>(() => AiringScheduleUtility.MergeAirings(existing, [Submitted(4, Week(1))], ["ep4"], Week(0)));
+    }
+
+    #endregion
+
     #region Estimation | Offsets
 
     private static (DateTime, DateTime) OffsetSample(int day, int hour, int minute = 0)

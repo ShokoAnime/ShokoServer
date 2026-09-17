@@ -538,6 +538,12 @@ public interface IAiringScheduleService
     ///   Replaces a schedule's airings, running delay inference over the whole
     ///   line unless it is turned off. This is how providers normally write.
     /// </summary>
+    /// <remarks>
+    ///   The submission is the schedule's whole line: an airing left out of it
+    ///   is removed, which is what lets the inference tell a hiatus from
+    ///   history. A provider that only ever sees part of a run at a time wants
+    ///   <see cref="MergeAirings"/>, where silence means the opposite.
+    /// </remarks>
     /// <param name="provider">
     ///   The provider that owns the schedule.
     /// </param>
@@ -573,6 +579,83 @@ public interface IAiringScheduleService
         IAiringScheduleProvider provider,
         IAiringSchedule schedule,
         IEnumerable<EpisodeAiringData> airings,
+        EpisodeAiringUpdateOptions? options = null
+    );
+
+    /// <summary>
+    ///   Applies a delta to a schedule's airings: the airings in
+    ///   <paramref name="airings"/> are added or updated, the airings in
+    ///   <paramref name="removals"/> are taken away, and every other airing on
+    ///   the schedule is left exactly as it is. It runs the same delay and
+    ///   hiatus inference <see cref="SetAirings"/> does, over the same whole
+    ///   line, and raises the same event.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     This is the write for a provider that learns about a run a piece at
+    ///     a time and cannot resubmit the whole of it. The one difference from
+    ///     <see cref="SetAirings"/> is what silence means: there, an airing left
+    ///     out of the call is removed, and here it is untouched. Say what went
+    ///     through <paramref name="removals"/>.
+    ///   </para>
+    ///   <para>
+    ///     A removal is the same signal as an omission is to
+    ///     <see cref="SetAirings"/>, not the outright delete
+    ///     <see cref="RemoveAiring"/> performs: a removed airing whose slot is
+    ///     still ahead is kept, slotless, as a hiatus, and one whose slot has
+    ///     passed, or that falls outside the run, is deleted as history.
+    ///   </para>
+    ///   <para>
+    ///     The write never changes what the schedule covers. The coverage on
+    ///     <see cref="EpisodeAiringUpdateOptions"/> only states what this write
+    ///     judges a removal against, and the schedule's own value is read for
+    ///     anything left alone.
+    ///   </para>
+    /// </remarks>
+    /// <param name="provider">
+    ///   The provider that owns the schedule.
+    /// </param>
+    /// <param name="schedule">
+    ///   The schedule to write the airings to.
+    /// </param>
+    /// <param name="airings">
+    ///   The airings to add or update, one per episode this write knows a slot
+    ///   for.
+    /// </param>
+    /// <param name="removals">
+    ///   Optional. The airings on the schedule the provider no longer reports.
+    /// </param>
+    /// <param name="options">
+    ///   Optional. How to write the airings.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="provider"/>, <paramref name="schedule"/> or
+    ///   <paramref name="airings"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Parts have not been added yet.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="provider"/> is not the registered instance or does not
+    ///   own the schedule, or a removal is estimated, unknown, or on another
+    ///   schedule.
+    /// </exception>
+    /// <exception cref="AiringScheduleValidationException">
+    ///   An episode falls outside the schedule's series, season or coverage,
+    ///   two airings share a key, an airing is both submitted and removed, or
+    ///   an airing is older than the retention window while automatic cleanup
+    ///   is on.
+    /// </exception>
+    /// <returns>
+    ///   The enriched airings this write wrote: everything in
+    ///   <paramref name="airings"/>, plus any airing it could not leave alone,
+    ///   such as a removal kept as a hiatus.
+    /// </returns>
+    IReadOnlyList<IEpisodeAiring> MergeAirings(
+        IAiringScheduleProvider provider,
+        IAiringSchedule schedule,
+        IEnumerable<EpisodeAiringData> airings,
+        IEnumerable<IEpisodeAiring>? removals = null,
         EpisodeAiringUpdateOptions? options = null
     );
 

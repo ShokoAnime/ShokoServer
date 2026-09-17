@@ -30,12 +30,48 @@ public partial class AiringScheduleService
 
         var info = GetRegisteredProvider(provider, nameof(provider));
         var row = GetOwnedSchedule(info, schedule, nameof(schedule));
-        options ??= new EpisodeAiringUpdateOptions();
+        return WriteAirings(row, airings, null, options ?? new EpisodeAiringUpdateOptions());
+    }
 
+    /// <inheritdoc/>
+    public IReadOnlyList<IEpisodeAiring> MergeAirings(
+        IAiringScheduleProvider provider,
+        IAiringSchedule schedule,
+        IEnumerable<EpisodeAiringData> airings,
+        IEnumerable<IEpisodeAiring>? removals = null,
+        EpisodeAiringUpdateOptions? options = null
+    )
+    {
+        ArgumentNullException.ThrowIfNull(airings);
+
+        var info = GetRegisteredProvider(provider, nameof(provider));
+        var row = GetOwnedSchedule(info, schedule, nameof(schedule));
+        return WriteAirings(row, airings, ResolveRemovals(info, row, removals), options ?? new EpisodeAiringUpdateOptions());
+    }
+
+    /// <summary>
+    /// The one write behind <see cref="SetAirings"/> and
+    /// <see cref="MergeAirings"/>. The only thing that tells them apart is where
+    /// the removal set comes from: a whole-line write derives it from what was
+    /// left out, and a delta states it.
+    /// </summary>
+    /// <param name="row">The schedule to write to, already checked against its owner.</param>
+    /// <param name="airings">The airings to add or update.</param>
+    /// <param name="removalKeys">The keys of the airings to take away, or <see langword="null"/> to take away everything not submitted.</param>
+    /// <param name="options">How to write the airings.</param>
+    /// <returns>The enriched airings the write wrote.</returns>
+    /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, is both submitted and removed, or is older than the retention window.</exception>
+    private IReadOnlyList<IEpisodeAiring> WriteAirings(
+        AiringSchedule row,
+        IEnumerable<EpisodeAiringData> airings,
+        IReadOnlySet<string>? removalKeys,
+        EpisodeAiringUpdateOptions options
+    )
+    {
         var now = DateTime.UtcNow;
         var context = new AiringReadContext(this, includeDisabled: true);
         var scheduleView = context.GetSchedule(row);
-        var submissions = ValidateAirings(context, row, airings, now);
+        var submissions = ValidateAirings(context, row, airings, now, removalKeys);
         var existingRows = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID);
         var existingByKey = existingRows.ToDictionary(entry => entry.Key, StringComparer.Ordinal);
         var linkKeys = GetLinkKeys(existingRows);
@@ -61,14 +97,19 @@ public partial class AiringScheduleService
                 IsDelayed = entry.Data.IsDelayed,
             })
             .ToList();
-        var result = AiringScheduleUtility.InferAirings(existing, submitted, now, new AiringInferenceOptions
+        // Coverage is the schedule's own unless this write stated otherwise; a
+        // stated value judges this write's removals and is never written back.
+        var inferenceOptions = new AiringInferenceOptions
         {
             InferDelays = options.InferDelays,
-            IsFinished = row.IsFinished,
-            FirstEpisodeNumber = row.FirstEpisodeNumber,
-            LastEpisodeNumber = row.LastEpisodeNumber,
+            IsFinished = options.IsFinished ?? row.IsFinished,
+            FirstEpisodeNumber = options.HasFirstEpisodeNumberSet ? options.FirstEpisodeNumber : row.FirstEpisodeNumber,
+            LastEpisodeNumber = options.HasLastEpisodeNumberSet ? options.LastEpisodeNumber : row.LastEpisodeNumber,
             SupersededEpisodeKeys = GetSupersededEpisodeKeys(row, existingRows, now),
-        });
+        };
+        var result = removalKeys is null
+            ? AiringScheduleUtility.InferAirings(existing, submitted, now, inferenceOptions)
+            : AiringScheduleUtility.MergeAirings(existing, submitted, removalKeys, now, inferenceOptions);
 
         // Removals go first, so a re-keyed airing can't collide with a row that
         // is on its way out, and a promoted link head is picked from what lives.
@@ -446,9 +487,16 @@ public partial class AiringScheduleService
     /// <param name="row">The schedule being written to.</param>
     /// <param name="airings">The submitted airings.</param>
     /// <param name="now">The current time, in UTC.</param>
+    /// <param name="removalKeys">Optional. The keys the same write takes away, which nothing it submits may name.</param>
     /// <returns>The accepted submissions, in submission order.</returns>
-    /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, or is older than the retention window.</exception>
-    private List<AiringSubmission> ValidateAirings(AiringReadContext context, AiringSchedule row, IEnumerable<EpisodeAiringData> airings, DateTime now)
+    /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, is also being removed, or is older than the retention window.</exception>
+    private List<AiringSubmission> ValidateAirings(
+        AiringReadContext context,
+        AiringSchedule row,
+        IEnumerable<EpisodeAiringData> airings,
+        DateTime now,
+        IReadOnlySet<string>? removalKeys = null
+    )
     {
         var settings = LoadSettings();
         var window = settings.AutoCleanup ? now.AddMonths(-settings.RetentionMonths) : (DateTime?)null;
@@ -475,6 +523,8 @@ public partial class AiringScheduleService
             var key = string.IsNullOrWhiteSpace(airing.Key) ? AiringScheduleUtility.GetDerivedAiringKey(source, id) : airing.Key.Trim();
             if (!seen.Add(key))
                 problems.Add($"Two airings share the key \"{key}\".");
+            if (removalKeys is not null && removalKeys.Contains(key))
+                problems.Add("The airing is both submitted and removed by the same write.");
             if (source != row.SeriesSource || episode.SeriesID.ToString() != row.SeriesID)
                 problems.Add("The episode does not belong to the schedule's series.");
             else if (seasonEpisodes is not null && !seasonEpisodes.Contains((source, id)))
@@ -633,6 +683,37 @@ public partial class AiringScheduleService
             throw new ArgumentException("The airing is owned by another provider.", paramName);
 
         return (row, entry);
+    }
+
+    /// <summary>
+    /// The keys of the airings a delta write names for removal, checked the same
+    /// way every other change is: the provider has to own them, and they have to
+    /// be on the schedule being written to.
+    /// </summary>
+    /// <param name="info">The registered provider making the change.</param>
+    /// <param name="row">The schedule being written to.</param>
+    /// <param name="removals">The airings the provider handed in, which may be <see langword="null"/> or empty.</param>
+    /// <returns>The keys to remove, which is empty when nothing was named.</returns>
+    /// <exception cref="ArgumentException">An airing is estimated or unknown, is owned by another provider, or is on another schedule.</exception>
+    private IReadOnlySet<string> ResolveRemovals(AiringScheduleProviderInfo info, AiringSchedule row, IEnumerable<IEpisodeAiring>? removals)
+    {
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        if (removals is null)
+            return keys;
+
+        foreach (var airing in removals)
+        {
+            if (airing is null)
+                continue;
+
+            var (schedule, entry) = GetOwnedAiring(info, airing, nameof(removals));
+            if (schedule.AiringScheduleID != row.AiringScheduleID)
+                throw new ArgumentException("Every airing removed by a write must be on the schedule it writes to.", nameof(removals));
+
+            keys.Add(entry.Key);
+        }
+
+        return keys;
     }
 
     /// <summary>
