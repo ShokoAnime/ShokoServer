@@ -23,6 +23,27 @@ public sealed class UiSectionContainerElement : UiElement
     public bool ShowSaveAction { get; init; }
 
     /// <summary>
+    /// Whether this container's own class handles live edits, so an edit to one
+    /// of the members listed in <see cref="Structure"/> is worth sending to the
+    /// server.
+    /// </summary>
+    /// <remarks>
+    /// A handler is declared on the class, not on the member, so this says the
+    /// container has one and not which of its members it cares about.
+    /// </remarks>
+    public bool HasLiveEdit { get; init; }
+
+    /// <summary>
+    /// Whether any container below this one handles live edits.
+    /// </summary>
+    /// <remarks>
+    /// Lets a client skip a whole branch: with both this and
+    /// <see cref="HasLiveEdit"/> unset, nothing under this container reacts to
+    /// anything, so there is no reason to post the document while it is edited.
+    /// </remarks>
+    public bool HasNestedLiveEdit { get; init; }
+
+    /// <summary>
     /// The key in <see cref="Items"/> of the element that identifies an
     /// instance of this container when the container is a list item, or
     /// <c>null</c> when there is none.

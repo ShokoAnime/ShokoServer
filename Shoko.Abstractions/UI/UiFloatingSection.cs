@@ -39,6 +39,17 @@ public class UiFloatingSection
     public string? Description { get; init; }
 
     /// <summary>
+    /// Whether any container among this section's members, or below one, handles
+    /// live edits.
+    /// </summary>
+    /// <remarks>
+    /// The section's own members are handled by the container's class, so
+    /// <see cref="Elements.UiSectionContainerElement.HasLiveEdit"/> covers those;
+    /// this is what tells one section of a container apart from another.
+    /// </remarks>
+    public bool HasNestedLiveEdit { get; init; }
+
+    /// <summary>
     /// The actions pinned to the top of the section, keyed by
     /// <see cref="UiAction.Name"/>, in the order they were authored.
     /// </summary>

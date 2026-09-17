@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
+using Shoko.Abstractions.Config.Attributes;
+using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Abstractions.UI.Enums;
@@ -282,6 +285,31 @@ public class UiDefinitionBuilderTests
     }
 
     [Fact]
+    public void LiveEditFlags_MarkOnlyTheBranchesThatReact()
+    {
+        var definition = BuildFor(typeof(ReactiveRoot), "Reactive");
+        var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
+
+        // The root declares no handler of its own, but two of its branches do,
+        // so a client knows to post an edit made below them and to leave the
+        // quiet branch alone.
+        Assert.False(root.HasLiveEdit);
+        Assert.True(root.HasNestedLiveEdit);
+        Assert.False(root.FloatingSections["Left"].HasNestedLiveEdit);
+        Assert.True(root.FloatingSections["Right"].HasNestedLiveEdit);
+        // A list of reactive containers counts the same as one of them.
+        Assert.True(root.FloatingSections["Many"].HasNestedLiveEdit);
+
+        var quiet = Assert.IsType<UiSectionContainerElement>(root.Items["Quiet"]);
+        Assert.False(quiet.HasLiveEdit);
+        Assert.False(quiet.HasNestedLiveEdit);
+
+        var live = Assert.IsType<UiSectionContainerElement>(root.Items["Live"]);
+        Assert.True(live.HasLiveEdit);
+        Assert.False(live.HasNestedLiveEdit);
+    }
+
+    [Fact]
     public void BothSerializerPaths_ProduceTheSameDefinition()
     {
         var newtonsoft = Serialize(BuildFor(typeof(NewtonsoftTwinConfiguration), "Twin"))
@@ -423,6 +451,45 @@ public class UiDefinitionBuilderTests
             ContractResolver = new DefaultContractResolver { NamingStrategy = new DefaultNamingStrategy() },
             NullValueHandling = NullValueHandling.Include,
         });
+
+    /// <summary>
+    ///   A shape with one reactive branch and one quiet one.
+    /// </summary>
+    public class ReactiveRoot
+    {
+        /// <summary>A loose member.</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>A branch that handles nothing.</summary>
+        [SectionName("Left")]
+        public QuietBranch Quiet { get; set; } = new();
+
+        /// <summary>A branch that handles live edits.</summary>
+        [SectionName("Right")]
+        public LiveBranch Live { get; set; } = new();
+
+        /// <summary>A list of branches that handle live edits.</summary>
+        [SectionName("Many")]
+        public List<LiveBranch> Branches { get; set; } = [];
+    }
+
+    /// <summary>A branch that handles nothing.</summary>
+    public class QuietBranch
+    {
+        /// <summary>A member.</summary>
+        public string Name { get; set; } = string.Empty;
+    }
+
+    /// <summary>A branch that handles live edits.</summary>
+    public class LiveBranch
+    {
+        /// <summary>A member.</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>Reacts to an edit.</summary>
+        [ConfigurationAction(ConfigurationActionType.LiveEdit)]
+        public void OnEdit() { }
+    }
 
     /// <summary>
     ///   A deliberately self-recursive shape; nothing in-tree currently
