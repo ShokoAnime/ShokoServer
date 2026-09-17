@@ -290,6 +290,180 @@ public class AiringScheduleServiceTests
 
     #endregion
 
+    #region Write Events
+
+    [Fact]
+    public void SetAirings_SplitsTheEventIntoWhatItAddedUpdatedAndWithdrew()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        var before = harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(38) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(45) },
+            new EpisodeAiringData() { Episode = harness.Episodes[2], AiredAt = harness.Air(52) },
+        ]);
+        var untouched = before.Single(airing => airing.EpisodeID == harness.Episodes[0].ID.ToString());
+        // A view reads the row it stands on, so the timestamp is taken now.
+        var untouchedAt = untouched.LastUpdatedAt;
+        var events = new List<EpisodeAiringsUpdatedEventArgs>();
+        harness.Service.AiringsUpdated += (_, e) => events.Add(e);
+
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            // Exactly where it stands.
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(38) },
+            // A day later than it stood.
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(46) },
+            // The third episode is left out of the line, and the fourth is new to it.
+            new EpisodeAiringData() { Episode = harness.Episodes[3], AiredAt = harness.Air(59) },
+        ]);
+
+        // One event for the whole write, with the three things it did told apart.
+        var raised = Assert.Single(events);
+        Assert.Equal(UpdateReason.Updated, raised.Reason);
+        Assert.Equal(harness.Episodes[3].ID.ToString(), Assert.Single(raised.Added).EpisodeID);
+        Assert.Equal(harness.Episodes[1].ID.ToString(), Assert.Single(raised.Updated).EpisodeID);
+        Assert.Equal(harness.Episodes[2].ID.ToString(), Assert.Single(raised.Withdrawn).EpisodeID);
+
+        // The one the write handed back as it stands is in none of the three,
+        // and its timestamp never moved.
+        Assert.DoesNotContain(raised.Airings, airing => airing.EpisodeID == untouched.EpisodeID);
+        var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+        var kept = Assert.Single(after, entry => entry.EpisodeID == untouched.EpisodeID);
+        Assert.Equal(untouchedAt, kept.LastUpdatedAt);
+    }
+
+    [Fact]
+    public void SetAirings_RewritesNothingWhenTheWholeLineIsUnchanged()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        var line = new List<EpisodeAiringData>()
+        {
+            new() { Episode = harness.Episodes[0], AiredAt = harness.Air(38) },
+            new() { Episode = harness.Episodes[1], AiredAt = harness.Air(45) },
+        };
+        var before = harness.Service.SetAirings(harness.Primary, schedule, line)
+            .ToDictionary(airing => airing.EpisodeID, airing => airing.LastUpdatedAt);
+        var events = new List<EpisodeAiringsUpdatedEventArgs>();
+        harness.Service.AiringsUpdated += (_, e) => events.Add(e);
+
+        var written = harness.Service.SetAirings(harness.Primary, schedule, line);
+
+        // The same line again writes nothing and reports nothing, but the write
+        // is still announced, so a consumer counting writes sees it happen.
+        Assert.Empty(written);
+        var raised = Assert.Single(events);
+        Assert.Equal(UpdateReason.None, raised.Reason);
+        Assert.Empty(raised.Added);
+        Assert.Empty(raised.Updated);
+        Assert.Empty(raised.Withdrawn);
+        Assert.Empty(raised.Airings);
+
+        // And no timestamp moved with it.
+        var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+        Assert.Equal(before, after.ToDictionary(airing => airing.EpisodeID, airing => airing.LastUpdatedAt));
+    }
+
+    [Fact]
+    public void SetAirings_CountsAUrlTheProviderChangedAsAnUpdate()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(38), Url = "https://example.test/one" },
+        ]);
+        var events = new List<EpisodeAiringsUpdatedEventArgs>();
+        harness.Service.AiringsUpdated += (_, e) => events.Add(e);
+
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(38), Url = "https://example.test/two" },
+        ]);
+
+        // The slot didn't move, so the skip has to weigh more of the row than
+        // the inference itself carries.
+        var raised = Assert.Single(events);
+        Assert.Equal(UpdateReason.Updated, raised.Reason);
+        Assert.Equal("https://example.test/two", Assert.Single(raised.Updated).Url);
+    }
+
+    [Fact]
+    public void SetAirings_ReportsAKeptHiatusAndADeletedHistoryAlikeAsWithdrawn()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(1) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(45) },
+        ]);
+        var events = new List<EpisodeAiringsUpdatedEventArgs>();
+        harness.Service.AiringsUpdated += (_, e) => events.Add(e);
+
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[2], AiredAt = harness.Air(52) },
+        ]);
+
+        var raised = Assert.Single(events);
+        Assert.Equal(UpdateReason.Updated, raised.Reason);
+        Assert.Equal(harness.Episodes[2].ID.ToString(), Assert.Single(raised.Added).EpisodeID);
+        Assert.Empty(raised.Updated);
+        Assert.Equal(2, raised.Withdrawn.Count);
+
+        // A slot still ahead of us is kept without one, so it is off the line
+        // rather than gone, and it is reported under the same heading as ...
+        var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+        var hiatus = Assert.Single(raised.Withdrawn, airing => airing.EpisodeID == harness.Episodes[1].ID.ToString());
+        Assert.Null(hiatus.AiredAt);
+        Assert.Equal(harness.Air(45), hiatus.OriginalAiredAt);
+        Assert.Contains(after, entry => entry.ID == hiatus.ID);
+
+        // ... the one whose slot has passed, which is history, and history goes.
+        var history = Assert.Single(raised.Withdrawn, airing => airing.EpisodeID == harness.Episodes[0].ID.ToString());
+        Assert.DoesNotContain(after, entry => entry.ID == history.ID);
+    }
+
+    [Fact]
+    public void MergeAirings_RaisesAnEventAWholeLineWriteCannotBeToldFrom()
+    {
+        using var harness = new Harness();
+        var whole = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData(key: "whole"));
+        var delta = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData(key: "delta"));
+        foreach (var schedule in new[] { whole, delta })
+            harness.Service.SetAirings(harness.Primary, schedule, [
+                new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(38) },
+                new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(45) },
+                new EpisodeAiringData() { Episode = harness.Episodes[2], AiredAt = harness.Air(52) },
+            ]);
+        var pulled = harness.Service.GetAiringsForSchedule(delta.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false })
+            .Single(airing => airing.EpisodeID == harness.Episodes[2].ID.ToString());
+        var events = new List<EpisodeAiringsUpdatedEventArgs>();
+        harness.Service.AiringsUpdated += (_, e) => events.Add(e);
+
+        // The same change stated the two ways it can be: the whole line, with
+        // the dropped entry left out of it, against only the parts that moved.
+        harness.Service.SetAirings(harness.Primary, whole, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(38) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(46) },
+            new EpisodeAiringData() { Episode = harness.Episodes[3], AiredAt = harness.Air(59) },
+        ]);
+        harness.Service.MergeAirings(harness.Primary, delta, [
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(46) },
+            new EpisodeAiringData() { Episode = harness.Episodes[3], AiredAt = harness.Air(59) },
+        ], [pulled]);
+
+        // Which entry point a provider reached for is not something a consumer
+        // can read off the event.
+        Assert.Equal(2, events.Count);
+        Assert.Equal(events[0].Reason, events[1].Reason);
+        Assert.Equal(Describe(events[0].Added), Describe(events[1].Added));
+        Assert.Equal(Describe(events[0].Updated), Describe(events[1].Updated));
+        Assert.Equal(Describe(events[0].Withdrawn), Describe(events[1].Withdrawn));
+
+        static List<(string EpisodeID, DateTime? AiredAt, DateTime? OriginalAiredAt, bool IsDelayed)> Describe(IReadOnlyList<IEpisodeAiring> airings)
+            => airings.Select(airing => (airing.EpisodeID, airing.AiredAt, airing.OriginalAiredAt, airing.IsDelayed)).ToList();
+    }
+
+    #endregion
+
     #region Selection & Preference
 
     [Fact]

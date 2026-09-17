@@ -113,6 +113,7 @@ public partial class AiringScheduleService
 
         // Removals go first, so a re-keyed airing can't collide with a row that
         // is on its way out, and a promoted link head is picked from what lives.
+        var deleted = new List<EpisodeAiring>();
         foreach (var airing in result.ToDelete)
         {
             if (!existingByKey.TryGetValue(airing.Key, out var entry))
@@ -121,17 +122,22 @@ public partial class AiringScheduleService
             ForgetAiringID(row, entry);
             existingByKey.Remove(airing.Key);
             RepoFactory.EpisodeAiring.Delete(entry);
+            deleted.Add(entry);
         }
 
         var submissionsByKey = submissions.ToDictionary(entry => entry.Key, StringComparer.Ordinal);
         var renamedKeys = new Dictionary<string, string>(StringComparer.Ordinal);
         var saved = new List<EpisodeAiring>();
-        foreach (var airing in result.ToSave)
+        var states = new AiringWriteState[result.ToSave.Count];
+        for (var index = 0; index < result.ToSave.Count; index++)
         {
+            var airing = result.ToSave[index];
             var entry = airing.ExistingKey is { } existingKey && existingByKey.TryGetValue(existingKey, out var match)
                 ? match
                 : new EpisodeAiring() { AiringScheduleID = row.AiringScheduleID, CreatedAt = now };
-            if (entry.EpisodeAiringID is not 0 && !string.Equals(entry.Key, airing.Key, StringComparison.Ordinal))
+            var isNew = entry.EpisodeAiringID is 0;
+            var before = GetRowState(entry);
+            if (!isNew && !string.Equals(entry.Key, airing.Key, StringComparison.Ordinal))
             {
                 ForgetAiringID(row, entry);
                 renamedKeys[entry.Key] = airing.Key;
@@ -148,17 +154,33 @@ public partial class AiringScheduleService
             entry.AiredAt = airing.AiredAt;
             entry.OriginalAiredAt = airing.OriginalAiredAt;
             entry.IsDelayed = airing.IsDelayed;
-            entry.LastUpdatedAt = now;
-            RepoFactory.EpisodeAiring.Save(entry);
-            RememberAiringID(row, entry);
+            // A row a write hands back exactly as it is stored is left alone,
+            // timestamp and all, and reported in none of the three lists.
+            var changed = isNew || GetRowState(entry) != before;
+            if (changed)
+            {
+                entry.LastUpdatedAt = now;
+                RepoFactory.EpisodeAiring.Save(entry);
+                RememberAiringID(row, entry);
+            }
+
             saved.Add(entry);
+            states[index] = !changed
+                ? AiringWriteState.Unchanged
+                : isNew
+                    ? AiringWriteState.Added
+                    : airing.IsWithdrawn
+                        ? AiringWriteState.Withdrawn
+                        : AiringWriteState.Updated;
         }
 
         // Links are carried as keys through the inference, so they are re-pointed
         // once every row has its final key and local ID.
         var savedByKey = saved.ToDictionary(entry => entry.Key, StringComparer.Ordinal);
-        foreach (var (airing, entry) in result.ToSave.Zip(saved))
+        for (var index = 0; index < result.ToSave.Count; index++)
         {
+            var airing = result.ToSave[index];
+            var entry = saved[index];
             var linkKey = airing.LinkKey is { } key ? renamedKeys.GetValueOrDefault(key, key) : null;
             var linkedToID = (int?)null;
             if (linkKey is not null)
@@ -178,7 +200,10 @@ public partial class AiringScheduleService
                 continue;
 
             entry.LinkedToID = linkedToID;
+            entry.LastUpdatedAt = now;
             RepoFactory.EpisodeAiring.Save(entry);
+            if (states[index] is AiringWriteState.Unchanged)
+                states[index] = AiringWriteState.Updated;
         }
 
         NormalizeLinkSets(row.AiringScheduleID, saved);
@@ -193,13 +218,37 @@ public partial class AiringScheduleService
             return [];
         }
 
-        var views = saved
-            .OrderBy(entry => entry.AiredAt ?? entry.OriginalAiredAt ?? DateTime.MaxValue)
-            .ThenBy(entry => entry.Key, StringComparer.Ordinal)
-            .Select(IEpisodeAiring (entry) => new EpisodeAiringView(context, scheduleView, entry))
-            .ToList();
-        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Updated, Schedule = scheduleView, Airings = views });
-        return views;
+        var added = new List<EpisodeAiring>();
+        var updated = new List<EpisodeAiring>();
+        var hiatus = new List<EpisodeAiring>();
+        for (var index = 0; index < saved.Count; index++)
+        {
+            switch (states[index])
+            {
+                case AiringWriteState.Added:
+                    added.Add(saved[index]);
+                    break;
+                case AiringWriteState.Updated:
+                    updated.Add(saved[index]);
+                    break;
+                case AiringWriteState.Withdrawn:
+                    hiatus.Add(saved[index]);
+                    break;
+            }
+        }
+
+        // A row kept as a hiatus and a row deleted as history are the same
+        // signal to a consumer: the schedule no longer lists it.
+        var withdrawn = hiatus.Concat(deleted).ToList();
+        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs
+        {
+            Reason = GetWriteReason(added.Count, updated.Count, withdrawn.Count),
+            Schedule = scheduleView,
+            Added = ToViews(context, scheduleView, added),
+            Updated = ToViews(context, scheduleView, updated),
+            Withdrawn = ToViews(context, scheduleView, withdrawn),
+        });
+        return ToViews(context, scheduleView, [.. added, .. updated, .. hiatus]);
     }
 
     /// <inheritdoc/>
@@ -247,9 +296,15 @@ public partial class AiringScheduleService
         _profiles.TryRemove(row.AiringScheduleID, out _);
         InvalidateProfilesForSeries(row.SeriesSource, row.SeriesID);
 
-        var view = new EpisodeAiringView(context, scheduleView, entry);
-        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = reason, Schedule = scheduleView, Airings = [view] });
-        return view;
+        var views = new List<IEpisodeAiring>() { new EpisodeAiringView(context, scheduleView, entry) };
+        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs
+        {
+            Reason = reason,
+            Schedule = scheduleView,
+            Added = reason is UpdateReason.Added ? views : [],
+            Updated = reason is UpdateReason.Added ? [] : views,
+        });
+        return views[0];
     }
 
     /// <inheritdoc/>
@@ -285,7 +340,7 @@ public partial class AiringScheduleService
         var context = new AiringReadContext(this, includeDisabled: true);
         var scheduleView = context.GetSchedule(row);
         var view = new EpisodeAiringView(context, scheduleView, entry);
-        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Updated, Schedule = scheduleView, Airings = [view] });
+        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Updated, Schedule = scheduleView, Updated = [view] });
         return view;
     }
 
@@ -305,7 +360,7 @@ public partial class AiringScheduleService
         _profiles.TryRemove(row.AiringScheduleID, out _);
         InvalidateProfilesForSeries(row.SeriesSource, row.SeriesID);
 
-        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Removed, Schedule = scheduleView, Airings = [view] });
+        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Removed, Schedule = scheduleView, Withdrawn = [view] });
         return true;
     }
 
@@ -359,7 +414,7 @@ public partial class AiringScheduleService
             .OrderBy(entry => entry.EpisodeAiringID)
             .Select(IEpisodeAiring (entry) => new EpisodeAiringView(context, scheduleView, entry))
             .ToList();
-        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Updated, Schedule = scheduleView, Airings = views });
+        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Updated, Schedule = scheduleView, Updated = views });
         return views;
     }
 
@@ -381,7 +436,7 @@ public partial class AiringScheduleService
         var context = new AiringReadContext(this, includeDisabled: true);
         var scheduleView = context.GetSchedule(row);
         var view = new EpisodeAiringView(context, scheduleView, entry);
-        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Updated, Schedule = scheduleView, Airings = [view] });
+        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Updated, Schedule = scheduleView, Updated = [view] });
         return view;
     }
 
@@ -515,6 +570,98 @@ public partial class AiringScheduleService
     /// <param name="ID">The ID of the episode within its source.</param>
     /// <param name="Data">The submission itself.</param>
     private sealed record AiringSubmission(string Key, DataSource Source, string ID, EpisodeAiringData Data);
+
+    /// <summary>
+    /// What a write did to one airing row, which is what the three lists on
+    /// <see cref="EpisodeAiringsUpdatedEventArgs"/> are filled from.
+    /// </summary>
+    private enum AiringWriteState
+    {
+        /// <summary>
+        /// The write handed the row back exactly as it was stored, so it was
+        /// neither rewritten nor reported.
+        /// </summary>
+        Unchanged = 0,
+
+        /// <summary>
+        /// The row is new to the schedule.
+        /// </summary>
+        Added = 1,
+
+        /// <summary>
+        /// The row was already there and something about it moved.
+        /// </summary>
+        Updated = 2,
+
+        /// <summary>
+        /// The write took the row off the schedule's listing and kept it
+        /// without a slot, which is how a hiatus is stored.
+        /// </summary>
+        Withdrawn = 3,
+    }
+
+    /// <summary>
+    /// Everything a write can change on an airing row, so a write that changed
+    /// something can be told from one that handed the row back as it was.
+    /// </summary>
+    /// <param name="Key">The airing's key.</param>
+    /// <param name="EpisodeSource">The source of the episode.</param>
+    /// <param name="EpisodeID">The ID of the episode within its source.</param>
+    /// <param name="Url">The airing's url.</param>
+    /// <param name="AiredAt">The airing's slot.</param>
+    /// <param name="OriginalAiredAt">The first slot the airing was scheduled for.</param>
+    /// <param name="IsDelayed">Whether the airing's own slot was postponed.</param>
+    /// <param name="LinkedToID">The local ID of the airing's link head.</param>
+    private readonly record struct AiringRowState(
+        string Key,
+        DataSource EpisodeSource,
+        string EpisodeID,
+        string? Url,
+        DateTime? AiredAt,
+        DateTime? OriginalAiredAt,
+        bool IsDelayed,
+        int? LinkedToID
+    );
+
+    /// <summary>
+    /// The state of an airing row as it stands, taken before and after a write
+    /// touches it.
+    /// </summary>
+    /// <param name="entry">The stored airing.</param>
+    /// <returns>The row's state.</returns>
+    private static AiringRowState GetRowState(EpisodeAiring entry)
+        => new(entry.Key, entry.EpisodeSource, entry.EpisodeID, entry.Url, entry.AiredAt, entry.OriginalAiredAt, entry.IsDelayed, entry.LinkedToID);
+
+    /// <summary>
+    /// The one coarse reason a write dispatches, for a consumer that doesn't
+    /// read the three lists apart.
+    /// </summary>
+    /// <param name="added">How many airings the write added.</param>
+    /// <param name="updated">How many airings the write changed.</param>
+    /// <param name="withdrawn">How many airings the write took off the listing.</param>
+    /// <returns>The reason.</returns>
+    private static UpdateReason GetWriteReason(int added, int updated, int withdrawn)
+        => (added, updated, withdrawn) switch
+        {
+            (0, 0, 0) => UpdateReason.None,
+            ( > 0, 0, 0) => UpdateReason.Added,
+            (0, 0, > 0) => UpdateReason.Removed,
+            _ => UpdateReason.Updated,
+        };
+
+    /// <summary>
+    /// The enriched views of the rows a write touched, in slot order.
+    /// </summary>
+    /// <param name="context">The read the views belong to.</param>
+    /// <param name="scheduleView">The schedule the airings are on.</param>
+    /// <param name="rows">The rows to build views over.</param>
+    /// <returns>The views.</returns>
+    private static List<IEpisodeAiring> ToViews(AiringReadContext context, AiringScheduleView scheduleView, IReadOnlyList<EpisodeAiring> rows)
+        => rows
+            .OrderBy(entry => entry.AiredAt ?? entry.OriginalAiredAt ?? DateTime.MaxValue)
+            .ThenBy(entry => entry.Key, StringComparer.Ordinal)
+            .Select(IEpisodeAiring (entry) => new EpisodeAiringView(context, scheduleView, entry))
+            .ToList();
 
     /// <summary>
     /// Check every airing of a write at once, so a batch reports all of its

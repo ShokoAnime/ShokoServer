@@ -48,6 +48,14 @@ public sealed record InferredAiring
     public string? LinkKey { get; init; }
 
     /// <summary>
+    /// Whether the write took the airing off the schedule's listing and kept it
+    /// without a slot, rather than storing it as it was submitted. A hiatus is
+    /// written like any other row, so this is what tells the two apart after
+    /// the fact.
+    /// </summary>
+    public bool IsWithdrawn { get; init; }
+
+    /// <summary>
     /// Whether the airing is a new row rather than an update of an existing one.
     /// </summary>
     public bool IsNew => ExistingKey is null;

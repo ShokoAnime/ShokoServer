@@ -156,7 +156,7 @@ public partial class AiringScheduleService
         InvalidateProfilesForSeries(row.SeriesSource, row.SeriesID);
 
         if (airingViews.Count > 0)
-            AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Removed, Schedule = view, Airings = airingViews });
+            AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Removed, Schedule = view, Withdrawn = airingViews });
         ScheduleUpdated?.Invoke(this, new AiringScheduleEventArgs { Reason = UpdateReason.Removed, Schedule = view });
         return true;
     }

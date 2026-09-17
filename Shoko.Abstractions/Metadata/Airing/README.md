@@ -402,10 +402,41 @@ is still rejected, exactly as it is on `SetAirings`.
 Everything else is shared with `SetAirings`. Ownership, the
 episode-belongs-to-this-schedule check, duplicate keys and the retention window
 are the same checks reported the same way, links are re-pointed the same way,
-and the `AiringsUpdated` event carries the same `UpdateReason.Updated` for the
-airings the write wrote, so a consumer can't tell which of the two you used.
-The one extra rejection is naming an airing in both `airings` and `removals`,
-which contradicts itself.
+and the `AiringsUpdated` event is filled in the same way from what the write
+did, so a consumer can't tell which of the two you used. The one extra
+rejection is naming an airing in both `airings` and `removals`, which
+contradicts itself.
+
+### What a write raises
+
+Every write dispatches `AiringsUpdated` exactly once, once the schedule is
+whole again, carrying the schedule and three lists. One event per airing would
+hand a consumer a half-written schedule, and a sweep over a long run writes
+thousands of rows at a time, so the whole write arrives as one event instead:
+
+- `Added`: the airings that weren't on the schedule before.
+- `Updated`: the airings that kept their place while something about them
+  moved, which is the slot, the slot it was first scheduled for, the delay
+  flag, the link, the url, or the episode behind the key.
+- `Withdrawn`: the airings the write took off the line. That is not the same as
+  deleted: a slot still ahead of us is kept without one, as a hiatus, exactly
+  as above, while a slot already past is deleted as history. Both are reported
+  here, and reading the schedule back is what tells them apart, since the
+  hiatus is still on it and the history isn't.
+
+`Airings` is the three of them in that order, for a consumer that only wants
+"what did this write touch".
+
+An airing a write hands back exactly as it is stored is in none of the three.
+The row isn't rewritten, its `LastUpdatedAt` doesn't move, and nothing is
+reported for it, whichever of the two entry points the write came in through.
+A write that changed nothing at all is still dispatched, with three empty lists
+and a `Reason` of `UpdateReason.None`.
+
+`Reason` is the one coarse value left for a consumer that doesn't read the
+three lists apart: `Added` when the write only added, `Removed` when it only
+withdrew, `None` when it did nothing, and `Updated` for everything else,
+including a write that did more than one of those things.
 
 ---
 

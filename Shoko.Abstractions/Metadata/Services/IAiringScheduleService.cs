@@ -529,8 +529,9 @@ public interface IAiringScheduleService
     #region Episode Airings
 
     /// <summary>
-    ///   Event raised when the airings of a schedule are added, updated or
-    ///   removed.
+    ///   Event raised once per write, carrying what the write added, updated
+    ///   and withdrew on one schedule as three separate lists. An airing a
+    ///   write left exactly as it was is in none of them.
     /// </summary>
     event EventHandler<EpisodeAiringsUpdatedEventArgs>? AiringsUpdated;
 

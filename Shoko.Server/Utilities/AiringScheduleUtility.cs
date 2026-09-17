@@ -438,6 +438,7 @@ public static class AiringScheduleUtility
                 OriginalAiredAt = entry.OriginalAiredAt,
                 IsDelayed = entry.IsDelayed,
                 LinkKey = entry.LinkKey,
+                IsWithdrawn = entry.IsWithdrawn,
             })
             .ToList();
         UnlinkStaleMembers(toSave, existing, toDelete);
@@ -699,6 +700,7 @@ public static class AiringScheduleUtility
             IsDelayed = existing.IsDelayed,
             LinkKey = existing.LinkKey,
             Move = AiringMove.LostSlot,
+            IsWithdrawn = true,
         };
 
     /// <summary>
@@ -964,6 +966,12 @@ public static class AiringScheduleUtility
         /// The delay flag the provider set itself, which always wins.
         /// </summary>
         public bool? ExplicitIsDelayed { get; init; }
+
+        /// <summary>
+        /// Whether the airing is one the write took off the listing and kept
+        /// without a slot, rather than one it was handed.
+        /// </summary>
+        public bool IsWithdrawn { get; init; }
     }
 
     #endregion
