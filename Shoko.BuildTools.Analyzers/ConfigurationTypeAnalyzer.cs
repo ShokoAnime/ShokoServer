@@ -30,7 +30,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         Diagnostics.UnusableDictionaryKey,
         Diagnostics.IncompatibleListType,
         Diagnostics.MissingPrimaryKey,
-        Diagnostics.NotAGenericDictionary);
+        Diagnostics.NotAGenericDictionary,
+        Diagnostics.UnusableCondition);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -62,13 +63,58 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         {
             foreach (var member in current.GetMembers())
             {
+                // A condition sits on a member the schema generator may well skip, and is
+                // checked all the same: the generator reads the attribute before it decides
+                // what to do with the member.
+                if (member is IMethodSymbol method)
+                {
+                    AnalyzeConditions(context, method, method.Name, type, known.CustomActionAttribute, known, reported);
+                    continue;
+                }
+
                 if (member is not IPropertySymbol property || !seenNames.Add(property.Name))
                     continue;
+
+                AnalyzeConditions(context, property, property.Name, type, known.VisibilityAttribute, known, reported);
                 if (!ConfigurationMembers.ReachesSchemaGenerator(property, known))
                     continue;
 
                 AnalyzeProperty(context, property, type, known, reported);
             }
+        }
+    }
+
+    /// <summary>
+    /// Checks the toggle and disable conditions one attribute carries.
+    /// </summary>
+    private static void AnalyzeConditions(
+        SymbolAnalysisContext context,
+        ISymbol member,
+        string memberName,
+        INamedTypeSymbol owner,
+        INamedTypeSymbol? attributeType,
+        KnownSymbols known,
+        ConcurrentDictionary<string, byte> reported
+    )
+    {
+        if (attributeType is null)
+            return;
+        if (ConfigurationMembers.FindAttribute(member, attributeType) is not { } attribute)
+            return;
+
+        var fallback = member.Locations.FirstOrDefault() ?? Location.None;
+        foreach (var prefix in new[] { "Toggle", "Disable" })
+        {
+            if (ConditionShape.Read(attribute, prefix, fallback, context.CancellationToken) is not { } condition)
+                continue;
+            if (condition.Fault(owner, known) is not { } fault)
+                continue;
+
+            Report(context, reported, Diagnostic.Create(
+                Diagnostics.UnusableCondition,
+                condition.Location,
+                $"{owner.Name}.{memberName}",
+                fault));
         }
     }
 

@@ -84,4 +84,17 @@ public static class Diagnostics
         isEnabledByDefault: true,
         description: "A non-generic dictionary such as Hashtable still becomes a JSON object with additionalProperties, so the generator takes the record path and then asks the type for its key and value types. Only the generic dictionary interfaces can answer that.",
         helpLinkUri: HelpLinkPrefix + "shoko0005");
+
+    /// <summary>
+    /// A condition compares something it cannot compare, or names something that is not there.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnusableCondition = new(
+        id: "SHOKO0006",
+        title: "Condition can never hold",
+        messageFormat: "The condition on '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A condition names a member of the type it is declared on, optionally descending into a nested class, and compares it with an operator. The operator decides what it is handed: the emptiness operators take no value, the set operators take a value set, and every other operator takes a single value. An ordering comparison needs numbers on both sides, and a containment check needs a string or a collection. A path cannot point through a list or a dictionary, because it carries no index to say which entry it meant.",
+        helpLinkUri: HelpLinkPrefix + "shoko0006");
 }
