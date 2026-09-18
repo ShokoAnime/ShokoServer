@@ -18,6 +18,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
+using System.ComponentModel.DataAnnotations;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Settings;
@@ -214,7 +215,11 @@ public class SettingsProvider : ISettingsProvider, IDisposable
                 value = Serialize(value!);
             }
 
-            if (prop.GetCustomAttribute<PasswordPropertyTextAttribute>() is not null)
+            // Whatever renders as a password is a secret, however it was
+            // marked; a field the user is shown stars for does not belong in
+            // the log in plaintext.
+            if (prop.GetCustomAttribute<PasswordPropertyTextAttribute>() is not null ||
+                prop.GetCustomAttribute<DataTypeAttribute>() is { DataType: DataType.Password })
             {
                 value = "***HIDDEN***";
             }

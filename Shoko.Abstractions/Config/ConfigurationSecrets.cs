@@ -28,10 +28,12 @@ namespace Shoko.Abstractions.Config;
 ///   </para>
 ///   <para>
 ///     A property is a secret when it is marked with
-///     <see cref="PasswordPropertyTextAttribute"/>, the same marker the schema
-///     generator uses to render a password field and
-///     <c>SettingsProvider.DumpSettings</c> uses to keep credentials out of the
-///     log.
+///     <see cref="PasswordPropertyTextAttribute"/> or with
+///     <see cref="DataTypeAttribute"/> naming
+///     <see cref="DataType.Password"/>, the same pair the schema generator
+///     renders a password field for. Masking has to follow whatever renders as
+///     a password, or a field the user is shown stars for goes out in
+///     plaintext.
 ///   </para>
 ///   <para>
 ///     On the way out, a secret that holds a value is replaced with
@@ -349,7 +351,8 @@ public static class ConfigurationSecrets
     #region Reflection
 
     private static bool IsSecret(PropertyInfo property)
-        => property.GetCustomAttribute<PasswordPropertyTextAttribute>(inherit: true) is not null;
+        => property.GetCustomAttribute<PasswordPropertyTextAttribute>(inherit: true) is not null ||
+            property.GetCustomAttribute<DataTypeAttribute>(inherit: true) is { DataType: DataType.Password };
 
     private static bool ContainsSecrets(Type type, HashSet<Type> visiting)
     {

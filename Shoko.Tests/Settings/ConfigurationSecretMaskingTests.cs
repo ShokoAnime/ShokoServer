@@ -23,6 +23,9 @@ public class ConfigurationSecretMaskingTests
         [PasswordPropertyText]
         public string? Password { get; set; }
 
+        [DataType(DataType.Password)]
+        public string? Token { get; set; }
+
         public Nested Nested { get; set; } = new();
 
         public List<IdentifiedProvider> Identified { get; set; } = [];
@@ -61,6 +64,29 @@ public class ConfigurationSecretMaskingTests
     #endregion
 
     #region Masking
+
+    [Fact]
+    public void Mask_ReplacesASecretMarkedWithADataType()
+    {
+        // The schema generator renders a password element for either marker, so
+        // masking has to follow both; this one used to go out in plaintext.
+        var masked = ConfigurationSecrets.Mask(Parse("""{"Username":"me","Token":"t0ken"}"""), typeof(Credentials));
+
+        Assert.Equal(ConfigurationSecrets.Sentinel, masked["Token"]!.Value<string>());
+        Assert.Equal("me", masked["Username"]!.Value<string>());
+    }
+
+    [Fact]
+    public void Restore_KeepsAStoredSecretMarkedWithADataType()
+    {
+        var (restored, errors) = ConfigurationSecrets.Restore(
+            Parse($$"""{"Token":"{{ConfigurationSecrets.Sentinel}}"}"""),
+            Parse("""{"Token":"t0ken"}"""),
+            typeof(Credentials));
+
+        Assert.Empty(errors);
+        Assert.Equal("t0ken", restored["Token"]!.Value<string>());
+    }
 
     [Fact]
     public void Mask_ReplacesASetSecret()

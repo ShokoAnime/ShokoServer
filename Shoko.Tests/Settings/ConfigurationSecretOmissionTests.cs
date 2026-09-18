@@ -82,7 +82,7 @@ public class ConfigurationSecretOmissionTests
         Assert.True(offenders.Count is 0, string.Join(
             Environment.NewLine,
             [
-                $"{configurationType.Name} has properties that read as credentials but are not marked with [PasswordPropertyText]:",
+                $"{configurationType.Name} has properties that read as credentials but are not marked with [PasswordPropertyText] or [DataType(DataType.Password)]:",
                 .. offenders.Select(offender => $"  - {offender}"),
                 "Mark each one so it is masked on its way out of the server, or add it to the allowlist in this test with a reason.",
             ]));
@@ -101,7 +101,7 @@ public class ConfigurationSecretOmissionTests
         Assert.True(offenders.Count is 0, string.Join(
             Environment.NewLine,
             [
-                $"{configurationType.Name} marks non-string properties with [PasswordPropertyText]:",
+                $"{configurationType.Name} marks non-string properties as secrets:",
                 .. offenders.Select(offender => $"  - {offender}"),
             ]));
     }
@@ -117,7 +117,7 @@ public class ConfigurationSecretOmissionTests
         {
             var propertyPath = string.IsNullOrEmpty(path) ? property.Name : $"{path}.{property.Name}";
             if (_secretNamePattern.IsMatch(property.Name) &&
-                property.GetCustomAttribute<PasswordPropertyTextAttribute>(inherit: true) is null &&
+                !IsMarkedAsSecret(property) &&
                 // A property marked [Key] is the identity a list element is paired
                 // up by. It is compared in the clear by design, so it can never be
                 // a secret.
@@ -132,6 +132,14 @@ public class ConfigurationSecretOmissionTests
         visiting.Remove(type);
     }
 
+    /// <summary>
+    /// Whether a property is marked as a secret, by either of the two markers
+    /// the masker and the schema generator both honour.
+    /// </summary>
+    private static bool IsMarkedAsSecret(PropertyInfo property)
+        => property.GetCustomAttribute<PasswordPropertyTextAttribute>(inherit: true) is not null ||
+            property.GetCustomAttribute<DataTypeAttribute>(inherit: true) is { DataType: DataType.Password };
+
     private static void WalkMarked(Type type, HashSet<Type> visiting, List<string> offenders, string path = "")
     {
         if (!visiting.Add(type))
@@ -140,7 +148,7 @@ public class ConfigurationSecretOmissionTests
         foreach (var property in GetSerializableProperties(type))
         {
             var propertyPath = string.IsNullOrEmpty(path) ? property.Name : $"{path}.{property.Name}";
-            if (property.GetCustomAttribute<PasswordPropertyTextAttribute>(inherit: true) is not null && property.PropertyType != typeof(string))
+            if (IsMarkedAsSecret(property) && property.PropertyType != typeof(string))
                 offenders.Add($"{propertyPath} is {property.PropertyType.Name}");
 
             if (Unwrap(property.PropertyType) is { } inner && IsWalkable(inner))
