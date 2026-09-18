@@ -58,12 +58,17 @@ public static class SubtitleHelper
 
     public static string? GetLanguageFromFilename(string path)
     {
-        // sub format of filename.eng.srt
         var lastSeparator = path.Trim(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).LastIndexOfAny(
         [
             Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar
         ]);
         var filename = path[(lastSeparator + 1)..];
+
+        // sub format of filename_eng.srt or filename_eng_1.srt (duplicate-track suffix)
+        if (GetTrailingLanguageSuffix(Path.GetFileNameWithoutExtension(filename)) is { } underscoreLang)
+            return underscoreLang.Length == 3 ? MediaInfoUtility.GetLanguageFromCode(underscoreLang) ?? underscoreLang : underscoreLang;
+
+        // sub format of filename.eng.srt
         var parts = filename.Split('.');
         // if there aren't 3 parts, then it's not in the format for this to work
         if (parts.Length < 3) return null;
@@ -75,7 +80,24 @@ public static class SubtitleHelper
         {
             2 => lang,
             3 => MediaInfoUtility.GetLanguageFromCode(lang) ?? lang,
-            _ => MediaInfoUtility.GetLanguageFromName(lang) ?? lang
+            // an unrecognised segment isn't a language — don't pass raw text through
+            _ => MediaInfoUtility.GetLanguageFromName(lang),
         };
+    }
+
+    private static string? GetTrailingLanguageSuffix(string basename)
+    {
+        var parts = basename.Split('_');
+        if (parts.Length < 2) return null;
+
+        var last = parts[^1];
+        // strip a duplicate-track disambiguator, e.g. "..._eng_1"
+        if (int.TryParse(last, out _))
+        {
+            if (parts.Length < 3) return null;
+            last = parts[^2];
+        }
+
+        return last.Length is 2 or 3 && last.All(char.IsAsciiLetter) ? last : null;
     }
 }
