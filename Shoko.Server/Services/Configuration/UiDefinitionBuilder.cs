@@ -248,14 +248,24 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     {
         var classBuilder = state.GetClass(resolved);
         var liveEditHandlers = classBuilder?.ReactiveActions.Where(x => x.ActionType is ConfigurationActionType.LiveEdit).ToList() ?? [];
-        // A handler that named nothing watches the whole class, and everything
-        // below it that does not handle its own edits.
-        var watchesEverything = liveEditHandlers.Any(x => x.Members is null) || state.AncestorWatchesEverything;
-        var watchedMembers = liveEditHandlers
-            .SelectMany(x => x.Members ?? [])
-            .ToHashSet(StringComparer.Ordinal);
-        var outerWatchesEverything = state.AncestorWatchesEverything;
-        state.AncestorWatchesEverything = watchesEverything;
+        // A handler that named no members watches the whole class, and
+        // everything below it that does not handle its own edits, on whichever
+        // events it named.
+        var eventsForEverything = liveEditHandlers
+            .Where(x => x.Members is null)
+            .SelectMany(x => x.EventTypes)
+            .Concat(state.InheritedLiveEditEvents)
+            .Distinct()
+            .ToList();
+        // A member may be named by more than one handler, each interested in
+        // its own events.
+        var eventsByMember = liveEditHandlers
+            .Where(x => x.Members is not null)
+            .SelectMany(x => x.Members!.Select(member => (Member: member, x.EventTypes)))
+            .GroupBy(x => x.Member, StringComparer.Ordinal)
+            .ToDictionary(x => x.Key, x => (IReadOnlyList<ReactiveEventType>)[.. x.SelectMany(y => y.EventTypes).Distinct()], StringComparer.Ordinal);
+        var outerInheritedEvents = state.InheritedLiveEditEvents;
+        state.InheritedLiveEditEvents = eventsForEverything;
         // Kept as a list as well as a lookup, so the fallback pass below walks
         // the schema in schema order rather than in hash order.
         var properties = resolved.Properties
@@ -313,19 +323,19 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             members.Add(new(new UiStructureEntry { Name = action.ID, Kind = UiStructureMemberKind.Action }, action.SectionName, null, action.Position, action.MemberName));
         }
 
-        state.AncestorWatchesEverything = outerWatchesEverything;
-        // A watched member is named as the class spells it, while the items are
-        // keyed as the document does, so the structure's mapping applies here
-        // too.
-        foreach (var member in watchedMembers)
-        {
-            if (uiItems.TryGetValue(propertyNames?.GetValueOrDefault(member) ?? member, out var watchedElement))
-                watchedElement.ReactsToLiveEdit = true;
-        }
-        if (watchesEverything)
+        state.InheritedLiveEditEvents = outerInheritedEvents;
+        if (eventsForEverything.Count > 0)
         {
             foreach (var element in uiItems.Values)
-                element.ReactsToLiveEdit = true;
+                element.ReactsToLiveEdit = eventsForEverything;
+        }
+        // A watched member is named as the class spells it, while the items are
+        // keyed as the document does, so the structure's mapping applies here
+        // too — and the name may descend into a nested class.
+        foreach (var (member, events) in eventsByMember)
+        {
+            if (Descend(uiItems, propertyNames, member) is { } watchedElement)
+                watchedElement.ReactsToLiveEdit = [.. watchedElement.ReactsToLiveEdit.Concat(events).Distinct()];
         }
 
         AttachActionsToMembers(members, uiItems, propertyNames);
@@ -348,6 +358,27 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             EndActions = layout.EndActions,
             Structure = layout.Structure,
         };
+    }
+
+    /// <summary>
+    ///   Walks a watched member's name to the element it names, descending into
+    ///   nested containers for a dotted one.
+    /// </summary>
+    private static UiElement? Descend(OrderedDictionary<string, UiElement> items, Dictionary<string, string>? propertyNames, string member)
+    {
+        var current = (UiElement?)null;
+        var lookup = items;
+        foreach (var segment in member.Split('.'))
+        {
+            if (lookup is null || !lookup.TryGetValue(propertyNames?.GetValueOrDefault(segment) ?? segment, out current))
+                return null;
+
+            lookup = current is UiSectionContainerElement container
+                ? new OrderedDictionary<string, UiElement>(container.Items, StringComparer.Ordinal)
+                : null;
+        }
+
+        return current;
     }
 
     private SectionMember AddItem(
@@ -778,11 +809,11 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         public HashSet<JsonSchema> OnStack { get; } = [];
 
         /// <summary>
-        ///   Whether a class above the one being walked handles live edits
-        ///   without naming what it watches, which reaches everything below it
-        ///   that has no handler of its own.
+        ///   The events a class above the one being walked handles without
+        ///   naming what it watches, which reach everything below it that has
+        ///   no handler of its own.
         /// </summary>
-        public bool AncestorWatchesEverything { get; set; }
+        public IReadOnlyList<ReactiveEventType> InheritedLiveEditEvents { get; set; } = [];
 
         public Dictionary<string, UiElement> Definitions { get; } = new(StringComparer.Ordinal);
 

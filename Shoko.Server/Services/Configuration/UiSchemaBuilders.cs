@@ -472,8 +472,11 @@ internal sealed class UiReactiveActionBuilder
     /// <summary>What the hook does.</summary>
     public required ConfigurationActionType ActionType { get; init; }
 
-    /// <summary>Which reactive events the hook handles.</summary>
-    public required ReactiveEventType EventType { get; init; }
+    /// <summary>
+    ///   Which reactive events the hook handles. Empty stands for all of them,
+    ///   carried as <see cref="ReactiveEventType.All"/>.
+    /// </summary>
+    public required IReadOnlyList<ReactiveEventType> EventTypes { get; init; }
 
     /// <summary>
     ///   The members the hook watches, or <c>null</c> when it watches

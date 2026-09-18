@@ -757,35 +757,31 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                     DisableIfNoChanges = action.DisableIfNoChanges,
                 });
             }
-            else if (methodInfo.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: var actionType, ReactiveEventType: var eventType })
+            else if (methodInfo.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: var actionType } configurationAction)
             {
-                var watched = methodInfo.GetAttribute<ReactiveMembersAttribute>(false)?.Members
+                var watched = configurationAction.ReactiveMembers?
                     .Where(x => !string.IsNullOrWhiteSpace(x))
                     .ToList();
-                if (watched is not null)
-                {
-                    // Only a live edit is raised by an edit, so narrowing any
-                    // other hook to a set of members says nothing.
-                    if (actionType is not ConfigurationActionType.LiveEdit)
-                        throw new NotSupportedException(
-                            $"{contextualType.Type.Name}.{methodInfo.Name} handles {actionType}, which is not raised by an edit, so it cannot name the members it watches.");
+                var events = configurationAction.Events?.Distinct().ToList() ?? [];
+                if (actionType is not ConfigurationActionType.LiveEdit && (watched is not null || events.Count > 0))
+                    // Only a live edit is raised by an event, so narrowing any
+                    // other hook to events or members says nothing.
+                    throw new NotSupportedException(
+                        $"{contextualType.Type.Name}.{methodInfo.Name} handles {actionType}, which is not raised by an event, so it cannot narrow what it reacts to.");
 
-                    // A name that resolves to nothing would quietly watch
-                    // nothing, and the member it meant would never be posted.
-                    foreach (var member in watched)
-                    {
-                        if (contextualType.Type.GetProperty(member, BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy) is null &&
-                            contextualType.Type.GetField(member, BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy) is null)
-                            throw new NotSupportedException(
-                                $"{contextualType.Type.Name}.{methodInfo.Name} watches \"{member}\", which {contextualType.Type.Name} does not have.");
-                    }
+                // A name that resolves to nothing would quietly watch nothing,
+                // and the member it meant would never be posted.
+                foreach (var member in watched ?? [])
+                {
+                    if (UiConditionValidator.ResolvePath(contextualType.Type, member, out var failure) is null)
+                        throw new NotSupportedException($"{contextualType.Type.Name}.{methodInfo.Name} watches a member that {failure}.");
                 }
 
                 classBuilder.ReactiveActions.Add(new UiReactiveActionBuilder
                 {
                     ID = methodInfo.Name,
                     ActionType = actionType,
-                    EventType = eventType,
+                    EventTypes = events.Count > 0 ? events : [ReactiveEventType.All],
                     Members = watched,
                 });
             }

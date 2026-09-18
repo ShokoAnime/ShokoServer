@@ -241,19 +241,27 @@ With both unset, nothing under that branch reacts, and a client editing there
 posts nothing. A live edit returns JSON Patch operations against the document
 that was posted, not a whole configuration.
 
-A handler can narrow that to the members it actually watches, which puts the
-flag on the element itself as `ReactsToLiveEdit`:
+A handler can narrow that to the events and the members it actually cares about,
+which reaches the element as `ReactsToLiveEdit` — the events an edit to it is
+worth sending on, empty when nothing watches it:
 
 ```csharp
-[ConfigurationAction(ConfigurationActionType.LiveEdit)]
-[ReactiveMembers(nameof(FfmpegPath), nameof(HardwareAcceleration))]
+[ConfigurationAction(ConfigurationActionType.LiveEdit,
+    Events = [ReactiveEventType.Unfocused, ReactiveEventType.Edited],
+    ReactiveMembers = [nameof(FfmpegPath), $"{nameof(Nested)}.{nameof(NestedConfiguration.Mode)}"])]
 public ConfigurationActionResult OnEdit(ConfigurationActionContext<MyConfiguration> context) { … }
 ```
 
-Leave `[ReactiveMembers]` off and the handler keeps its old reach: everything in
-its own class, and everything below it that has no handler of its own. Naming a
-member the class does not have, or putting it on a hook that is not raised by an
-edit, fails when the configuration is described.
+A request carries one event and a handler is interested in as many as it likes,
+so `Events` is the plural side of the same enum: name none and the handler takes
+them all, which reaches the element as `All`. Dispatch prefers the handler that
+named the raised event, and falls back to one that named none.
+
+`ReactiveMembers` may descend into a nested class, and leaving it off keeps the
+handler's old reach: everything in its own class, and everything below it that
+has no handler of its own. A member a handler names but the class does not have,
+a name pointing through a list or dictionary, or either property on a hook that
+no event raises, fails when the configuration is described.
 
 ---
 

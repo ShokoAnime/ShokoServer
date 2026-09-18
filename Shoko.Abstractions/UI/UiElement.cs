@@ -67,15 +67,16 @@ public abstract class UiElement
     public UiEnvironmentVariable? EnvironmentVariable { get; set; }
 
     /// <summary>
-    /// Whether editing this element is worth sending to the server, because a
-    /// live-edit handler watches it.
+    /// The events on which editing this element is worth sending to the server,
+    /// or an empty list when no live-edit handler watches it.
     /// </summary>
     /// <remarks>
-    /// Set when the handler named this member, and when it named none at all —
-    /// a handler that names nothing watches everything in its class, and
-    /// everything below it that has no handler of its own.
+    /// A handler that named no events contributes
+    /// <see cref="Config.Enums.ReactiveEventType.All"/>, which stands for any
+    /// of them. A handler that named no members watches everything in its
+    /// class, and everything below it that has no handler of its own.
     /// </remarks>
-    public bool ReactsToLiveEdit { get; set; }
+    public IReadOnlyList<Config.Enums.ReactiveEventType> ReactsToLiveEdit { get; set; } = [];
 
     /// <summary>
     /// Actions rendering on the leading edge of this element's row, keyed by
