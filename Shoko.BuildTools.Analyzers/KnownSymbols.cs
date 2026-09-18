@@ -34,6 +34,16 @@ internal sealed class KnownSymbols
     public INamedTypeSymbol? KeyAttribute { get; }
 
     /// <summary>
+    /// <c>Shoko.Abstractions.UI.Attributes.VisibilityAttribute</c>, if referenced.
+    /// </summary>
+    public INamedTypeSymbol? VisibilityAttribute { get; }
+
+    /// <summary>
+    /// <c>Shoko.Abstractions.UI.Attributes.CustomActionAttribute</c>, if referenced.
+    /// </summary>
+    public INamedTypeSymbol? CustomActionAttribute { get; }
+
+    /// <summary>
     /// <c>System.Collections.IDictionary</c>, the non-generic one.
     /// </summary>
     public INamedTypeSymbol? NonGenericDictionary { get; }
@@ -85,6 +95,8 @@ internal sealed class KnownSymbols
         ExecutableAction = executableAction;
         ListAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.ListAttribute");
         KeyAttribute = compilation.GetTypeByMetadataName("System.ComponentModel.DataAnnotations.KeyAttribute");
+        VisibilityAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.VisibilityAttribute");
+        CustomActionAttribute = compilation.GetTypeByMetadataName("Shoko.Abstractions.UI.Attributes.CustomActionAttribute");
         NonGenericDictionary = compilation.GetTypeByMetadataName("System.Collections.IDictionary");
         GenericDictionary = compilation.GetTypeByMetadataName("System.Collections.Generic.IDictionary`2");
         GenericReadOnlyDictionary = compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlyDictionary`2");
