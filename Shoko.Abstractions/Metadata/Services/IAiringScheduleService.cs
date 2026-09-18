@@ -549,10 +549,20 @@ public interface IAiringScheduleService
     ///   line unless it is turned off. This is how providers normally write.
     /// </summary>
     /// <remarks>
-    ///   The submission is the schedule's whole line: an airing left out of it
-    ///   is removed, which is what lets the inference tell a hiatus from
-    ///   history. A provider that only ever sees part of a run at a time wants
-    ///   <see cref="MergeAirings"/>, where silence means the opposite.
+    ///   <para>
+    ///     The submission is the schedule's whole line: an airing left out of it
+    ///     is removed, which is what lets the inference tell a hiatus from
+    ///     history. A provider that only ever sees part of a run at a time wants
+    ///     <see cref="MergeAirings"/>, where silence means the opposite.
+    ///   </para>
+    ///   <para>
+    ///     Absence is a hiatus and an explicit removal deletes. This is the
+    ///     absence half: an airing left out whose slot is still ahead of us is
+    ///     kept, slotless, with the slot it lost, and one whose slot has passed,
+    ///     or that falls outside the run, is deleted as history.
+    ///     <see cref="EpisodeAiringUpdateOptions.InferDelays"/> turned off is
+    ///     the one thing that changes it, and it then deletes the lot.
+    ///   </para>
     /// </remarks>
     /// <param name="provider">
     ///   The provider that owns the schedule.
@@ -595,10 +605,10 @@ public interface IAiringScheduleService
     /// <summary>
     ///   Applies a delta to a schedule's airings: the airings in
     ///   <paramref name="airings"/> are added or updated, the airings in
-    ///   <paramref name="removals"/> are taken away, and every other airing on
-    ///   the schedule is left exactly as it is. It runs the same delay and
-    ///   hiatus inference <see cref="SetAirings"/> does, over the same whole
-    ///   line, and raises the same event.
+    ///   <paramref name="removals"/> are deleted, and every other airing on
+    ///   the schedule is left exactly as it is. It runs the same delay
+    ///   inference <see cref="SetAirings"/> does, over the same whole line, and
+    ///   raises the same event.
     /// </summary>
     /// <remarks>
     ///   <para>
@@ -609,11 +619,16 @@ public interface IAiringScheduleService
     ///     through <paramref name="removals"/>.
     ///   </para>
     ///   <para>
-    ///     A removal is the same signal as an omission is to
-    ///     <see cref="SetAirings"/>, not the outright delete
-    ///     <see cref="RemoveAiring"/> performs: a removed airing whose slot is
-    ///     still ahead is kept, slotless, as a hiatus, and one whose slot has
-    ///     passed, or that falls outside the run, is deleted as history.
+    ///     Explicit removal deletes; absence is a hiatus. Naming an airing in
+    ///     <paramref name="removals"/> is the same signal
+    ///     <see cref="RemoveAiring"/> carries, so it is deleted whichever side
+    ///     of now its slot is. A provider whose removal means "my source
+    ///     pre-empted this" rather than "this row should go" asks for the
+    ///     judgement an omission gets with
+    ///     <see cref="EpisodeAiringUpdateOptions.KeepRemovalsAsHiatus"/>: a
+    ///     removed airing whose slot is still ahead is then kept, slotless, as
+    ///     a hiatus, while one whose slot has passed, or that falls outside the
+    ///     run, is still deleted as history.
     ///   </para>
     ///   <para>
     ///     The write never changes what the schedule covers. The coverage on
@@ -633,7 +648,10 @@ public interface IAiringScheduleService
     ///   for.
     /// </param>
     /// <param name="removals">
-    ///   Optional. The airings on the schedule the provider no longer reports.
+    ///   Optional. The airings on the schedule to take away. They are deleted
+    ///   unless
+    ///   <see cref="EpisodeAiringUpdateOptions.KeepRemovalsAsHiatus"/> asks for
+    ///   the hiatus judgement an omission gets.
     /// </param>
     /// <param name="options">
     ///   Optional. How to write the airings.
@@ -654,7 +672,9 @@ public interface IAiringScheduleService
     ///   An episode falls outside the schedule's series, season or coverage,
     ///   two airings share a key, an airing is both submitted and removed, or
     ///   the write would leave the schedule with no airing inside the retention
-    ///   window while automatic cleanup is on.
+    ///   window while automatic cleanup is on. A removal kept as a hiatus still
+    ///   counts towards that window, since it holds on to the slot it lost, and
+    ///   a deleted one does not.
     /// </exception>
     /// <returns>
     ///   The enriched airings this write wrote: everything in
@@ -740,6 +760,14 @@ public interface IAiringScheduleService
     /// <summary>
     ///   Removes an airing outright. An explicit removal is not a hiatus.
     /// </summary>
+    /// <remarks>
+    ///   Naming an airing in <see cref="MergeAirings"/>'s removals does the
+    ///   same thing, so reach for this one when there is nothing else to write.
+    ///   Neither of them is what a source pre-empting an episode looks like:
+    ///   that is an airing left out of a <see cref="SetAirings"/> submission,
+    ///   or a removal a write asked to keep with
+    ///   <see cref="EpisodeAiringUpdateOptions.KeepRemovalsAsHiatus"/>.
+    /// </remarks>
     /// <param name="provider">
     ///   The provider that owns the airing.
     /// </param>

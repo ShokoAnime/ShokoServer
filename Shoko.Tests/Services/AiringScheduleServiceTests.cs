@@ -153,7 +153,7 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
-    public void MergeAirings_KeepsAnExplicitRemovalWithAFutureSlotAsAHiatus()
+    public void MergeAirings_DeletesAnExplicitRemovalWithAFutureSlot()
     {
         using var harness = new Harness();
         var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
@@ -166,8 +166,30 @@ public class AiringScheduleServiceTests
 
         harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled]);
 
-        // A stated removal is the same signal an omission is to SetAirings, so a
-        // slot still ahead of us is kept without one rather than deleted.
+        // Naming an airing is the same signal RemoveAiring carries, so the slot
+        // still ahead of us goes rather than being kept as a hiatus.
+        var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+        Assert.Equal(2, after.Count);
+        Assert.DoesNotContain(after, entry => entry.ID == pulled.ID);
+    }
+
+    [Fact]
+    public void MergeAirings_KeepsAnExplicitRemovalWithAFutureSlotAsAHiatusWhenAskedTo()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        var airings = harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(31) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(38) },
+            new EpisodeAiringData() { Episode = harness.Episodes[2], AiredAt = harness.Air(45) },
+        ]);
+        var pulled = airings.Single(airing => airing.AiredAt == harness.Air(45));
+
+        harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled], new EpisodeAiringUpdateOptions() { KeepRemovalsAsHiatus = true });
+
+        // A provider whose removal means "my source pre-empted this" asks for
+        // the judgement an omission gets, and a slot still ahead of us is then
+        // kept without one.
         var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
         Assert.Equal(3, after.Count);
         var hiatus = Assert.Single(after, entry => entry.ID == pulled.ID);
@@ -175,8 +197,10 @@ public class AiringScheduleServiceTests
         Assert.Equal(harness.Air(45), hiatus.OriginalAiredAt);
     }
 
-    [Fact]
-    public void MergeAirings_DeletesAnExplicitRemovalWhoseSlotHasPassed()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MergeAirings_DeletesAnExplicitRemovalWhoseSlotHasPassed(bool keepRemovalsAsHiatus)
     {
         using var harness = new Harness();
         var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
@@ -187,10 +211,13 @@ public class AiringScheduleServiceTests
         ]);
         var pulled = airings.Single(airing => airing.AiredAt == harness.Air(15));
 
-        harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled]);
+        harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled], new EpisodeAiringUpdateOptions()
+        {
+            KeepRemovalsAsHiatus = keepRemovalsAsHiatus,
+        });
 
-        // The same removal a fortnight the other side of now is history, and
-        // history goes.
+        // The same removal a fortnight the other side of now is history either
+        // way: there is no slot ahead of us left to hold open.
         var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
         Assert.Equal(2, after.Count);
         Assert.DoesNotContain(after, entry => entry.ID == pulled.ID);
@@ -207,7 +234,11 @@ public class AiringScheduleServiceTests
         ]);
         var pulled = airings.Single(airing => airing.AiredAt == harness.Air(45));
 
-        harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled], new EpisodeAiringUpdateOptions() { LastEpisodeNumber = 1 });
+        harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled], new EpisodeAiringUpdateOptions()
+        {
+            KeepRemovalsAsHiatus = true,
+            LastEpisodeNumber = 1,
+        });
 
         // Stated coverage decided the removal — episode 3 is outside it, so the
         // future slot is history rather than a hiatus — and the schedule still
@@ -286,6 +317,48 @@ public class AiringScheduleServiceTests
         var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
         var kept = Assert.Single(after);
         Assert.Equal(harness.Air(1), kept.AiredAt);
+    }
+
+    [Fact]
+    public void SetAirings_StillReadsAnOmittedFutureSlotAsAHiatus()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(31) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(38) },
+        ]);
+
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(31) },
+        ]);
+
+        // Absence really is the source no longer listing it, so the inference
+        // the option took away from a named removal is untouched here.
+        var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+        Assert.Equal(2, after.Count);
+        var hiatus = Assert.Single(after, entry => entry.EpisodeID == harness.Episodes[1].ID.ToString());
+        Assert.Null(hiatus.AiredAt);
+        Assert.Equal(harness.Air(38), hiatus.OriginalAiredAt);
+    }
+
+    [Fact]
+    public void RemoveAiring_StillDeletesAFutureSlotOutright()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        var airings = harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(31) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(38) },
+        ]);
+        var pulled = airings.Single(airing => airing.AiredAt == harness.Air(38));
+
+        Assert.True(harness.Service.RemoveAiring(harness.Primary, pulled));
+
+        // The rule the delta write now matches: an explicit removal deletes.
+        var after = harness.Service.GetAiringsForSchedule(schedule.ID, new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
+        var kept = Assert.Single(after);
+        Assert.Equal(harness.Air(31), kept.AiredAt);
     }
 
     #endregion
@@ -440,6 +513,8 @@ public class AiringScheduleServiceTests
 
         // The same change stated the two ways it can be: the whole line, with
         // the dropped entry left out of it, against only the parts that moved.
+        // The delta asks for the hiatus judgement, since that is what leaving an
+        // airing out of a whole-line write means.
         harness.Service.SetAirings(harness.Primary, whole, [
             new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = harness.Air(38) },
             new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(46) },
@@ -448,7 +523,7 @@ public class AiringScheduleServiceTests
         harness.Service.MergeAirings(harness.Primary, delta, [
             new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = harness.Air(46) },
             new EpisodeAiringData() { Episode = harness.Episodes[3], AiredAt = harness.Air(59) },
-        ], [pulled]);
+        ], [pulled], new EpisodeAiringUpdateOptions() { KeepRemovalsAsHiatus = true });
 
         // Which entry point a provider reached for is not something a consumer
         // can read off the event.
@@ -1064,6 +1139,31 @@ public class AiringScheduleServiceTests
             new EpisodeAiringUpdateOptions() { IsFinished = true }
         ));
         Assert.Equal("#schedule", Assert.Single(exception.ValidationErrors).Key);
+    }
+
+    [Fact]
+    public void MergeAirings_CountsARemovalTowardsRetentionOnlyWhileItIsKept()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        var airings = harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = DateTime.UtcNow.AddDays(7) },
+        ]);
+        var pulled = airings.Single(airing => airing.EpisodeID == harness.Episodes[1].ID.ToString());
+
+        // Deleting the only slot inside the window leaves nothing behind for
+        // retention to judge on, so the write is refused outright.
+        var exception = Assert.Throws<AiringScheduleValidationException>(
+            () => harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled])
+        );
+        Assert.Equal("#schedule", Assert.Single(exception.ValidationErrors).Key);
+
+        // Keeping it as a hiatus does not: the row loses its slot but holds on
+        // to the one it lost, and that is what retention judges it by.
+        harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled], new EpisodeAiringUpdateOptions() { KeepRemovalsAsHiatus = true });
+        Assert.Equal(2, harness.Airings.Object.GetAll().Count);
+        Assert.Equal(0, harness.Service.RunRetentionSweep());
     }
 
     [Fact]

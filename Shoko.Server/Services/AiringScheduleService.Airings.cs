@@ -101,6 +101,7 @@ public partial class AiringScheduleService
         var inferenceOptions = new AiringInferenceOptions
         {
             InferDelays = options.InferDelays,
+            KeepRemovalsAsHiatus = options.KeepRemovalsAsHiatus,
             IsFinished = options.IsFinished ?? row.IsFinished,
             FirstEpisodeNumber = options.HasFirstEpisodeNumberSet ? options.FirstEpisodeNumber : row.FirstEpisodeNumber,
             LastEpisodeNumber = options.HasLastEpisodeNumberSet ? options.LastEpisodeNumber : row.LastEpisodeNumber,

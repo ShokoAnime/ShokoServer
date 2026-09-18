@@ -27,9 +27,20 @@ public sealed record AiringInferenceOptions
 
     /// <summary>
     /// Whether to infer delays at all. With it off, airings are stored exactly as
-    /// submitted and every removed airing is deleted.
+    /// submitted and an airing taken away by omission is deleted. It has no say
+    /// over a removal the write named, which
+    /// <see cref="KeepRemovalsAsHiatus"/> decides under either setting.
     /// </summary>
     public bool InferDelays { get; init; } = true;
+
+    /// <summary>
+    /// Whether an airing named for removal is kept, slotless, as a hiatus rather
+    /// than deleted. It only applies to
+    /// <see cref="AiringScheduleUtility.MergeAirings"/>, where the removals are
+    /// stated; an airing <see cref="AiringScheduleUtility.InferAirings"/> takes
+    /// away by omission is judged by <see cref="InferDelays"/> instead.
+    /// </summary>
+    public bool KeepRemovalsAsHiatus { get; init; }
 
     /// <summary>
     /// Whether the provider considers the run finished. A removed airing on a

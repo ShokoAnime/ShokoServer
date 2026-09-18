@@ -491,21 +491,61 @@ public class AiringScheduleUtilityTests
     }
 
     [Fact]
-    public void MergeAirings_ReadsAStatedRemovalTheWayAnOmissionIsRead()
+    public void MergeAirings_DeletesAStatedRemovalWhicheverSideOfNowItsSlotIs()
     {
         var existing = new[] { Existing(4, Week(0)), Existing(5, Week(1)), Existing(6, Week(2)) };
 
+        // Naming an airing is the caller saying to take it away, so the slot
+        // still ahead of us goes the same way the one that has passed does.
+        var ahead = AiringScheduleUtility.MergeAirings(existing, [], ["ep6"], Week(1).AddHours(1));
+        Assert.Empty(ahead.ToSave);
+        Assert.Equal("ep6", Assert.Single(ahead.ToDelete).Key);
+
+        var passed = AiringScheduleUtility.MergeAirings(existing, [], ["ep4"], Week(1).AddHours(1));
+        Assert.Empty(passed.ToSave);
+        Assert.Equal("ep4", Assert.Single(passed.ToDelete).Key);
+    }
+
+    [Fact]
+    public void MergeAirings_ReadsAStatedRemovalTheWayAnOmissionIsReadWhenAskedTo()
+    {
+        var existing = new[] { Existing(4, Week(0)), Existing(5, Week(1)), Existing(6, Week(2)) };
+        var options = new AiringInferenceOptions() { KeepRemovalsAsHiatus = true };
+
         // Episode 6's slot is still ahead, so it is a hiatus; episode 4's has
-        // passed, so it is history.
-        var hiatus = AiringScheduleUtility.MergeAirings(existing, [], ["ep6"], Week(1).AddHours(1));
+        // passed, so it is history either way.
+        var hiatus = AiringScheduleUtility.MergeAirings(existing, [], ["ep6"], Week(1).AddHours(1), options);
         Assert.Empty(hiatus.ToDelete);
         var kept = Assert.Single(hiatus.ToSave);
         Assert.Null(kept.AiredAt);
         Assert.Equal(Week(2), kept.OriginalAiredAt);
 
-        var history = AiringScheduleUtility.MergeAirings(existing, [], ["ep4"], Week(1).AddHours(1));
+        var history = AiringScheduleUtility.MergeAirings(existing, [], ["ep4"], Week(1).AddHours(1), options);
         Assert.Empty(history.ToSave);
         Assert.Equal("ep4", Assert.Single(history.ToDelete).Key);
+    }
+
+    [Fact]
+    public void MergeAirings_KeepsTheHiatusItWasAskedForWithDelayInferenceOff()
+    {
+        var existing = new[] { Existing(4, Week(0)), Existing(6, Week(2)) };
+
+        // A provider that reports its own delays still gets the removal it
+        // asked to keep, and still deletes the one it didn't.
+        var kept = AiringScheduleUtility.MergeAirings(existing, [], ["ep6"], Week(1), new AiringInferenceOptions()
+        {
+            InferDelays = false,
+            KeepRemovalsAsHiatus = true,
+        });
+        Assert.Empty(kept.ToDelete);
+        var hiatus = Assert.Single(kept.ToSave);
+        Assert.Equal("ep6", hiatus.Key);
+        Assert.Null(hiatus.AiredAt);
+        Assert.Equal(Week(2), hiatus.OriginalAiredAt);
+
+        var deleted = AiringScheduleUtility.MergeAirings(existing, [], ["ep6"], Week(1), new AiringInferenceOptions() { InferDelays = false });
+        Assert.Empty(deleted.ToSave);
+        Assert.Equal("ep6", Assert.Single(deleted.ToDelete).Key);
     }
 
     [Fact]

@@ -328,8 +328,8 @@ difference is where the removal set comes from.
 | | `SetAirings` | `MergeAirings` |
 |---|---|---|
 | An airing you pass | added or updated | added or updated |
-| An airing you leave out | **removed** | **untouched** |
-| An airing you name in `removals` | n/a | removed |
+| An airing you leave out | **removed, as a hiatus** | **untouched** |
+| An airing you name in `removals` | n/a | **deleted** |
 
 Silence means opposite things in the two calls. That is the whole reason they
 are separate methods rather than one with a flag, so pick by which default you
@@ -373,17 +373,37 @@ public async Task<bool> RefreshAsync(ISeries series, CancellationToken cancellat
 }
 ```
 
-A removal is the same signal an omission is to `SetAirings`, and **not** the
-outright delete `RemoveAiring` performs. A removed airing whose slot is still
-ahead of us is what a source pre-empting an episode looks like, so it is kept
-without a slot, with the slot it lost on `OriginalAiredAt`. One whose slot has
-already passed, or that falls outside what the schedule covers, is deleted as
-history. Reach for `RemoveAiring` when you mean "this row was a mistake", and
-for a `removals` entry when you mean "my source no longer lists this".
+**Explicit removal deletes; absence is a hiatus.** Naming an airing in
+`removals` is the same signal `RemoveAiring` carries, so it goes whichever side
+of now its slot is. Leaving one out of a `SetAirings` submission is the other
+signal: an airing with a slot still ahead of us is what a source pre-empting an
+episode looks like, so it is kept without a slot, with the slot it lost on
+`OriginalAiredAt`, while one whose slot has already passed, or that falls
+outside what the schedule covers, is deleted as history.
+
+A windowed source has a removal that means the absence rather than the delete:
+it asked its source about a stretch of time, and a slot inside that stretch is
+simply not listed any more. Say so with `KeepRemovalsAsHiatus`, and every
+removal on that write is judged the way an omission is:
+
+```csharp
+// Withdrawn is "the guide stopped listing it", not "this row was a mistake",
+// so a slot still ahead of us is a pre-emption rather than something to delete.
+airingScheduleService.MergeAirings(this, schedule, week, pulled, new EpisodeAiringUpdateOptions { KeepRemovalsAsHiatus = true });
+```
+
+It only ever holds a slot open that is still ahead of us and inside the run this
+write judges against, so a past slot, a run this write calls finished and an
+episode outside the stated coverage are deleted as history with it on.
+
+Reach for `RemoveAiring` when you mean "this row was a mistake" and have nothing
+else to write, for a plain `removals` entry when you mean the same thing in the
+middle of a delta, and for `KeepRemovalsAsHiatus` when you mean "my source
+stopped listing this".
 
 **Coverage is not guessed from a delta.** Where a run starts and ends, and
-whether it has finished, decide whether a removal is a hiatus or history, and a
-provider writing one week has no view on any of it. So `MergeAirings` never
+whether it has finished, decide whether a removal you asked to keep is a hiatus
+or history, and a provider writing one week has no view on any of it. So `MergeAirings` never
 writes `FirstEpisodeNumber`, `LastEpisodeNumber` or `IsFinished`; only
 `AddOrUpdateSchedule` and `UpdateSchedule` do. If this particular write does
 know something, say it on `EpisodeAiringUpdateOptions`, where a property left
@@ -420,10 +440,10 @@ thousands of rows at a time, so the whole write arrives as one event instead:
   moved, which is the slot, the slot it was first scheduled for, the delay
   flag, the link, the url, or the episode behind the key.
 - `Withdrawn`: the airings the write took off the line. That is not the same as
-  deleted: a slot still ahead of us is kept without one, as a hiatus, exactly
-  as above, while a slot already past is deleted as history. Both are reported
-  here, and reading the schedule back is what tells them apart, since the
-  hiatus is still on it and the history isn't.
+  deleted: where the write kept a slot still ahead of us as a hiatus, exactly
+  as above, the row is held without one, while everything else it took off is
+  deleted. Both are reported here, and reading the schedule back is what tells
+  them apart, since the hiatus is still on it and the history isn't.
 
 `Airings` is the three of them in that order, for a consumer that only wants
 "what did this write touch".
@@ -591,11 +611,13 @@ of budget is slow, one that returned the same cursor is stuck.
 A sweep almost never wants `SetAirings`, because `SetAirings` reads a submission
 as a schedule's *entire* line and a chunk holds part of one. `MergeAirings`
 (see [Writing part of a run](#writing-part-of-a-run-mergeairings)) is the write
-a chunk wants: it adds and updates what you pass, removes what you name, leaves
-every other airing on the schedule alone, and still runs the full inference over
-the schedule's whole stored line. A week-at-a-time or chunk-at-a-time walk gets
-the same delay and hiatus judgements as a provider that resubmits a whole run,
-without refetching the run to do it.
+a chunk wants: it adds and updates what you pass, takes away what you name,
+leaves every other airing on the schedule alone, and still runs the full
+inference over the schedule's whole stored line. A week-at-a-time or
+chunk-at-a-time walk gets the same delay judgements as a provider that
+resubmits a whole run, without refetching the run to do it, and the same hiatus
+judgements once it says its removals are the source dropping a slot rather than
+a delete, with `KeepRemovalsAsHiatus`.
 
 ### What a sweep leaves behind
 
@@ -770,12 +792,20 @@ reach.
   `AddOrUpdateAiring` / `UpdateAiring` only for a genuinely incremental or
   manual edit to one entry; they run no cause detection and no hiatus
   inference at all.
+- **Explicit removal deletes; absence is a hiatus.** An airing you leave out of
+  a `SetAirings` submission whose slot is still ahead of us is kept as a
+  hiatus, because your source stopped listing it. An airing you name, whether
+  in `MergeAirings`'s `removals` or through `RemoveAiring`, is deleted. If your
+  removals are really absence inside a window you asked about, say so with
+  `EpisodeAiringUpdateOptions { KeepRemovalsAsHiatus = true }`.
 - **Leave `IsDelayed` (and usually `OriginalAiredAt`) null and let the service
   infer them**, unless your source already reports delays itself. If it does,
   pass `EpisodeAiringUpdateOptions { InferDelays = false }` to the write and
   set both fields yourself on every airing. With inference off, airings are
-  stored exactly as submitted, and an airing you don't resubmit is deleted
-  rather than kept as a possible hiatus.
+  stored exactly as submitted, and an airing you leave out of a `SetAirings`
+  submission is deleted rather than kept as a possible hiatus. It says nothing
+  about an airing you name for removal, which `KeepRemovalsAsHiatus` decides
+  with inference on or off.
 - **Name regional channels with `IAiringScheduleService.GetRegionalChannelName`**,
   never by hand. `GetRegionalChannelName("Amazon", "US")` → `"Amazon (US)"`.
   It is the only supported spelling, so two providers naming the same regional
@@ -790,7 +820,10 @@ reach.
   that would leave the schedule with no airing inside the window at all, while
   automatic cleanup is on. Backfilling a long-running show's history is fine.
   Submitting a run that ended four years ago on its own is not; it would only be
-  swept again on the next run.
+  swept again on the next run. A removal a write keeps as a hiatus holds on to
+  the slot it lost, so it still counts towards the window; one the write
+  deletes stops counting, and taking away a schedule's last slot inside the
+  window that way is what the rejection is for.
 - **A schedule's series, season, key and channel never change** once created,
   and `AddOrUpdateSchedule` rejects an attempt to change any of them. Its identity,
   though, is `(provider, series, season, key)`: that is what `GetScheduleID`

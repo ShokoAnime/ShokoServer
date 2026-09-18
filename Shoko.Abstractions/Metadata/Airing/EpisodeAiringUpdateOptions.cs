@@ -18,10 +18,30 @@ public sealed class EpisodeAiringUpdateOptions
     /// <summary>
     ///   Whether to infer delays while writing the airings. Turn it off for a
     ///   provider that reports delays itself; airings are then stored exactly
-    ///   as submitted, and removed airings are deleted. Defaults to
-    ///   <c>true</c>.
+    ///   as submitted, and an airing the write takes away by leaving it out is
+    ///   deleted rather than kept as a possible hiatus. It has no say over an
+    ///   airing named for removal, which
+    ///   <see cref="KeepRemovalsAsHiatus"/> decides under either setting.
+    ///   Defaults to <c>true</c>.
     /// </summary>
     public bool InferDelays { get; init; } = true;
+
+    /// <summary>
+    ///   Whether an airing this write names for removal is kept, slotless, as a
+    ///   hiatus instead of being deleted. It only has anything to say about the
+    ///   airings handed to <c>MergeAirings</c> as removals: naming one deletes
+    ///   it by default, exactly as <c>RemoveAiring</c> does, and an airing left
+    ///   out of a <c>SetAirings</c> submission is a hiatus whatever this says.
+    ///   Turn it on for a provider whose removal means "my source pre-empted
+    ///   this" rather than "this row should go". Defaults to <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    ///   A hiatus is only ever kept for a slot that is still ahead of us and
+    ///   inside what the write judges the run to be. One whose slot has passed,
+    ///   one on a run this write calls finished, and one outside the stated
+    ///   coverage is deleted as history with this on.
+    /// </remarks>
+    public bool KeepRemovalsAsHiatus { get; init; }
 
     /// <summary>
     ///   Whether the provider considers the run finished, for this write's

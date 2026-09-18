@@ -302,21 +302,24 @@ public static class AiringScheduleUtility
         var pairs = PairAirings(existing, submitted, existingByKey);
         var pairedKeys = GetPairedKeys(pairs);
         var removed = existing.Where(airing => !pairedKeys.Contains(airing.Key)).ToList();
-        return Infer(existing, submitted, pairs, removed, [], now, options ?? new AiringInferenceOptions());
+        return Infer(existing, submitted, pairs, removed, [], removalsAreNamed: false, now, options ?? new AiringInferenceOptions());
     }
 
     /// <summary>
     /// Work out what a delta write does to one schedule's line of airings, where
     /// the removals are stated rather than derived. It is the same inference
-    /// <see cref="InferAirings"/> runs, and it reaches it the same way; the only
-    /// difference is where the removal set comes from. An existing airing that is
+    /// <see cref="InferAirings"/> runs, and it reaches it the same way; what
+    /// differs is where the removal set comes from, and what it means. A named
+    /// removal is deleted, the way a caller asking for one row to go expects,
+    /// unless <see cref="AiringInferenceOptions.KeepRemovalsAsHiatus"/> asks for
+    /// the hiatus judgement an omission gets instead. An existing airing that is
     /// neither submitted nor named in <paramref name="removedKeys"/> is left
     /// exactly as it is, while still counting as part of the line, so a break two
     /// untouched airings apart is two breaks rather than one run.
     /// </summary>
     /// <param name="existingAirings">The schedule's current airings.</param>
     /// <param name="submittedAirings">The airings the provider submitted, added to or updating the current ones.</param>
-    /// <param name="removedKeys">The keys of the current airings the provider no longer reports.</param>
+    /// <param name="removedKeys">The keys of the current airings to take away.</param>
     /// <param name="now">The current time, in UTC. It decides whether a removed airing is a hiatus or history, and when a slotless airing has expired.</param>
     /// <param name="options">Optional. The schedule's coverage and the thresholds to infer with. Defaults to the service's own.</param>
     /// <returns>The airings to store and the airings to remove. An untouched airing the write did not change is in neither list.</returns>
@@ -366,7 +369,7 @@ public static class AiringScheduleUtility
         foreach (var airing in retained)
             pairs[airing.Key] = airing;
 
-        return Infer(existing, line, pairs, removed, retained, now, options ?? new AiringInferenceOptions());
+        return Infer(existing, line, pairs, removed, retained, removalsAreNamed: true, now, options ?? new AiringInferenceOptions());
     }
 
     /// <summary>
@@ -377,6 +380,7 @@ public static class AiringScheduleUtility
     /// <param name="pairs">The existing airing behind every key in <paramref name="submitted"/>.</param>
     /// <param name="removed">The existing airings the write takes away, whether by omission or by name.</param>
     /// <param name="retained">The untouched airings among <paramref name="submitted"/>, which are dropped from the result when the write left them as they were.</param>
+    /// <param name="removalsAreNamed">Whether the write stated <paramref name="removed"/> rather than leaving those airings out.</param>
     /// <param name="now">The current time, in UTC.</param>
     /// <param name="options">The schedule's coverage and the thresholds to infer with.</param>
     /// <returns>The airings to store and the airings to remove.</returns>
@@ -386,45 +390,25 @@ public static class AiringScheduleUtility
         Dictionary<string, ExistingAiring?> pairs,
         IReadOnlyList<ExistingAiring> removed,
         IReadOnlyList<ExistingAiring> retained,
+        bool removalsAreNamed,
         DateTime now,
         AiringInferenceOptions options
     )
     {
+        // Explicit removal deletes and absence is a hiatus, so a named removal
+        // only gets the hiatus judgement when the write asks for it. Without
+        // delay inference an omission is simply not part of the submission, and
+        // goes the way a named removal does by default.
+        var keepAsHiatus = removalsAreNamed ? options.KeepRemovalsAsHiatus : options.InferDelays;
+        var (toDelete, withdrawn) = SplitRemovals(removed, keepAsHiatus, now, options);
         if (!options.InferDelays)
-            return DropUntouched(StoreAsSubmitted(existing, submitted, pairs, removed), retained);
+            return DropUntouched(StoreAsSubmitted(existing, submitted, pairs, toDelete, withdrawn), retained);
 
         var pending = new List<PendingAiring>();
         foreach (var airing in submitted)
             pending.Add(CreatePending(airing, pairs[airing.Key], options));
-
-        var toDelete = new List<ExistingAiring>();
-        foreach (var airing in removed)
-        {
-            // An explicit removal on a finished schedule, or outside what the
-            // schedule covers, is history rather than a hiatus.
-            if (options.IsFinished || !IsWithinCoverage(airing.EpisodeNumber, options))
-            {
-                toDelete.Add(airing);
-                continue;
-            }
-
-            // A slotless airing lives until something contradicts it.
-            if (airing.AiredAt is null)
-            {
-                if (options.SupersededEpisodeKeys is { } superseded && superseded.Contains(airing.EpisodeKey))
-                    toDelete.Add(airing);
-                else if (airing.OriginalAiredAt is { } originalAiredAt && originalAiredAt + options.SlotlessRetention <= now)
-                    toDelete.Add(airing);
-                continue;
-            }
-
-            // A removed airing whose slot is still ahead of us is how a source
-            // indicates a hiatus; one in the past is simply gone.
-            if (airing.AiredAt > now)
-                pending.Add(CreateHiatusPending(airing));
-            else
-                toDelete.Add(airing);
-        }
+        foreach (var airing in withdrawn)
+            pending.Add(CreateHiatusPending(airing));
 
         DetectCauses(pending, options);
 
@@ -443,6 +427,58 @@ public static class AiringScheduleUtility
             .ToList();
         UnlinkStaleMembers(toSave, existing, toDelete);
         return DropUntouched(new AiringInferenceResult(toSave, toDelete), retained);
+    }
+
+    /// <summary>
+    /// Sort the airings a write takes away into the ones it deletes and the ones
+    /// it keeps without a slot, as a hiatus. An airing in neither list is left
+    /// exactly as it is, which is how a slotless one outlives the write that
+    /// took its slot.
+    /// </summary>
+    /// <param name="removed">The existing airings the write takes away.</param>
+    /// <param name="keepAsHiatus">Whether this write's removals are eligible to be kept as a hiatus at all.</param>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <param name="options">The schedule's coverage and the thresholds to infer with.</param>
+    /// <returns>The airings to delete and the airings to keep as a hiatus.</returns>
+    private static (List<ExistingAiring> ToDelete, List<ExistingAiring> Withdrawn) SplitRemovals(
+        IReadOnlyList<ExistingAiring> removed,
+        bool keepAsHiatus,
+        DateTime now,
+        AiringInferenceOptions options
+    )
+    {
+        var toDelete = new List<ExistingAiring>();
+        var withdrawn = new List<ExistingAiring>();
+        foreach (var airing in removed)
+        {
+            // A removal this write has no hiatus judgement to make on, one on a
+            // finished schedule, and one outside what the schedule covers are all
+            // history rather than a hiatus.
+            if (!keepAsHiatus || options.IsFinished || !IsWithinCoverage(airing.EpisodeNumber, options))
+            {
+                toDelete.Add(airing);
+                continue;
+            }
+
+            // A slotless airing lives until something contradicts it.
+            if (airing.AiredAt is null)
+            {
+                if (options.SupersededEpisodeKeys is { } superseded && superseded.Contains(airing.EpisodeKey))
+                    toDelete.Add(airing);
+                else if (airing.OriginalAiredAt is { } originalAiredAt && originalAiredAt + options.SlotlessRetention <= now)
+                    toDelete.Add(airing);
+                continue;
+            }
+
+            // A removed airing whose slot is still ahead of us is how a source
+            // indicates a hiatus; one in the past is simply gone.
+            if (airing.AiredAt > now)
+                withdrawn.Add(airing);
+            else
+                toDelete.Add(airing);
+        }
+
+        return (toDelete, withdrawn);
     }
 
     /// <summary>
@@ -588,19 +624,22 @@ public static class AiringScheduleUtility
     }
 
     /// <summary>
-    /// Store the submitted airings as they came in, and delete everything that
-    /// went, for a provider that reports delays itself.
+    /// Store the submitted airings as they came in, for a provider that reports
+    /// delays itself. Nothing is inferred here, so a hiatus only appears among
+    /// them because the write asked for one by name.
     /// </summary>
     /// <param name="existing">The schedule's current airings.</param>
     /// <param name="submitted">The airings the provider submitted.</param>
     /// <param name="pairs">The existing airing for every submitted key.</param>
-    /// <param name="removed">The existing airings the provider no longer reports.</param>
+    /// <param name="removed">The existing airings the write deletes.</param>
+    /// <param name="withdrawn">The existing airings the write keeps without a slot, as a hiatus.</param>
     /// <returns>The airings to store and the airings to remove.</returns>
     private static AiringInferenceResult StoreAsSubmitted(
         IReadOnlyList<ExistingAiring> existing,
         IReadOnlyList<SubmittedAiring> submitted,
         Dictionary<string, ExistingAiring?> pairs,
-        IReadOnlyList<ExistingAiring> removed
+        IReadOnlyList<ExistingAiring> removed,
+        IReadOnlyList<ExistingAiring> withdrawn
     )
     {
         var toSave = submitted
@@ -615,6 +654,18 @@ public static class AiringScheduleUtility
                 LinkKey = pairs[airing.Key]?.LinkKey,
             })
             .ToList();
+        toSave.AddRange(withdrawn
+            .Select(airing => new InferredAiring
+            {
+                Key = airing.Key,
+                EpisodeKey = airing.EpisodeKey,
+                ExistingKey = airing.Key,
+                AiredAt = null,
+                OriginalAiredAt = airing.OriginalAiredAt ?? airing.AiredAt,
+                IsDelayed = airing.IsDelayed,
+                LinkKey = airing.LinkKey,
+                IsWithdrawn = true,
+            }));
         var toDelete = removed.ToList();
         UnlinkStaleMembers(toSave, existing, toDelete);
         return new AiringInferenceResult(toSave, toDelete);
