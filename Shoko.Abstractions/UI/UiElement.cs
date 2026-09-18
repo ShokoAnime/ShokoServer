@@ -67,6 +67,17 @@ public abstract class UiElement
     public UiEnvironmentVariable? EnvironmentVariable { get; set; }
 
     /// <summary>
+    /// Whether editing this element is worth sending to the server, because a
+    /// live-edit handler watches it.
+    /// </summary>
+    /// <remarks>
+    /// Set when the handler named this member, and when it named none at all —
+    /// a handler that names nothing watches everything in its class, and
+    /// everything below it that has no handler of its own.
+    /// </remarks>
+    public bool ReactsToLiveEdit { get; set; }
+
+    /// <summary>
     /// Actions rendering on the leading edge of this element's row, keyed by
     /// <see cref="UiAction.Name"/> in the containing section container's
     /// <see cref="Elements.UiSectionContainerElement.Actions"/>.
