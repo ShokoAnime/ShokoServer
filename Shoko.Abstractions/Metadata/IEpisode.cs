@@ -54,7 +54,9 @@ public interface IEpisode : IWithTitles, IWithDescriptions, IWithBackdropImage, 
 
     /// <summary>
     /// The day the episode aired, if available. When a precise air time is
-    /// known this is its UTC calendar day, so the two never disagree.
+    /// known this is the UTC calendar day of <see cref="AirDateWithTime"/>, so
+    /// the two never disagree. Broadcast schedules are served by
+    /// <c>IAiringScheduleService</c> and never change this date.
     /// </summary>
     DateOnly? AirDate { get; }
 

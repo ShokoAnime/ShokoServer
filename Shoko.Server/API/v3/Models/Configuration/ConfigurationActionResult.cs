@@ -3,7 +3,9 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using JsonDiffPatchDotNet;
 using JsonDiffPatchDotNet.Formatters.JsonPatch;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 
 using AbstractConfigurationActionResult = Shoko.Abstractions.Config.ConfigurationActionResult;
@@ -73,8 +75,13 @@ public class ConfigurationActionResult
         Refresh = actionResult.Refresh;
         if (!string.IsNullOrEmpty(json) && actionResult.Configuration is { } result)
         {
+            // Both sides of the diff are masked, so a secret can never end up in
+            // a patch operation, and a secret that neither side changed reads as
+            // unchanged instead of as a move from a real value to a sentinel.
+            var before = ConfigurationSecrets.Mask(JToken.Parse(json), result.GetType()).ToString(Formatting.None);
+            var after = configurationService.SerializeWithMasking(result);
             var diff = new JsonDiffPatch(new() { TextDiff = TextDiffMode.Simple, DiffArrayOptions = new() { DetectMove = true, IncludeValueOnMove = true } })
-                .Diff(json, configurationService.Serialize(result)) ?? "{}";
+                .Diff(before, after) ?? "{}";
             PatchOperations = new JsonDeltaFormatter()
                 .Format(JToken.Parse(diff))
                 .Select(op => new Operation(op.Op, op.Path, op.From, op.Value))

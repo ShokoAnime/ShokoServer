@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using NHibernate;
-using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 

@@ -125,7 +125,7 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
         .ToList();
 
     IReadOnlyList<ITmdbSeason> IShokoSeason.TmdbSeasons => series.Episodes
-        .Where(x => x.Type == episodeType && x.SeasonNumber != seasonNumber)
+        .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
         .OfType<AnimeEpisode>()
         .SelectMany(x => x.TmdbEpisodeCrossReferences)
         .Select(xref => xref.TmdbSeason)
@@ -161,7 +161,7 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
         .ToList();
 
     IReadOnlyList<ISeason> IShokoSeason.LinkedSeasons => series.Episodes
-        .Where(x => x.Type == episodeType && x.SeasonNumber != seasonNumber)
+        .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
         .OfType<AnimeEpisode>()
         .SelectMany(x => x.TmdbEpisodeCrossReferences)
         .Select(xref => xref.TmdbSeason)

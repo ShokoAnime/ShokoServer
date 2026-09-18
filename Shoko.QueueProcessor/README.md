@@ -275,7 +275,7 @@ public class HashFileJob : IQueueJob
 | `[DisallowConcurrentExecution]` | Shorthand for `[LimitConcurrency(1)]`. |
 | `[Acquisition(priority: N)]` | Sets the pool's dispatch priority. Lower `N` = higher priority. Subclass to bundle priority with domain semantics (e.g. `[AniDBHttpRequired]`). Defaults to `AcquisitionAttribute.LowestPriority` (999) if absent. |
 | `[RetryPolicy(MaxRetries = …, BaseDelaySeconds = …, MaxDelaySeconds = …)]` | Per-type override of the global retry backoff. |
-| `[LongRunning]` | Exempts this job from the deadlock watchdog. Apply to jobs that are expected to run for a long time (e.g. hashing a large file, full-library scans). |
+| `[LongRunning]` | Exempts this job from the deadlock watchdog. Apply to jobs that are expected to run for a long time (e.g. hashing a large file, full-library scans). A job with a deadline of its own registers an `IJobWatchdogThreshold` instead and stays watched. |
 | `[DatabaseRequired]` | Job won't run while the database is unavailable. |
 | `[NetworkRequired]` | Job won't run while the network is offline. Subclass to make custom gates (e.g. AniDB rate limit). |
 | `[JobKeyGroup("name")]` | Namespaces the dedup key (`Import/HashFileJob_path:"…"`). |
@@ -616,7 +616,7 @@ All knobs live on `QueueProcessorOptions`:
 | `MaxIdlePollIntervalMs` | `5000` | Worker idle poll cadence for `ScheduledAt` checks. |
 | `MetricsWindowSeconds` | `60` | Sliding window for the jobs/sec metric. |
 | `MetricsRollingAvgSamples` | `100` | Rolling sample count for per-type execution time. |
-| `WatchdogTimeoutSeconds` | `90` | Jobs running longer than this are flagged as possible deadlocks. Jobs with `[LongRunning]` are exempt. |
+| `WatchdogTimeoutSeconds` | `90` | Jobs running longer than this are flagged as possible deadlocks. Jobs with `[LongRunning]` are exempt, and a job type with a registered `IJobWatchdogThreshold` is watched against that threshold instead. |
 | `LimitedConcurrencyOverrides` | `{}` | `JobTypeName → maxWorkers`. Lowers a pool's concurrency at runtime (can't exceed `[LimitConcurrency]`'s `MaxAllowedConcurrentJobs`). |
 
 ---
@@ -627,7 +627,7 @@ All knobs live on `QueueProcessorOptions`:
 flowchart TD
     EXEC[("ExecutingSet\nId → ExecutingEntry\n(type · key · startedAt)\n\nfrom Orchestrator")]
     WPOLL["Poll every 15 s"]
-    WCHECK{"elapsed > WatchdogTimeoutSeconds?\n[LongRunning] jobs exempt"}
+    WCHECK{"elapsed > threshold for the type?\nIJobWatchdogThreshold, else WatchdogTimeoutSeconds\n[LongRunning] jobs exempt"}
     WFIRST["First detection\nLogError: type · elapsed\n+ IJobFactory.Execute call stack\n(from SubExecutionTracker if available)"]
     WHEAT["Subsequent polls while still stuck\nLogWarning heartbeat: type · key · elapsed"]
 
@@ -639,8 +639,9 @@ flowchart TD
 ```
 
 `JobWatchdog` runs as a background task (started by `WorkerPoolManager`) and polls executing
-jobs every 15 seconds. Any job that has been running longer than `WatchdogTimeoutSeconds` (default
-90s) and is not decorated with `[LongRunning]` triggers:
+jobs every 15 seconds. Any job that has been running longer than the threshold for its type, which
+is `WatchdogTimeoutSeconds` (default 90s) unless the type declares one of its own, and is not
+decorated with `[LongRunning]`, triggers:
 
 1. **One `LogError`** on first detection — includes the job type, elapsed time, and the call
    stack captured at the last `IJobFactory.Execute` entry point (if any). This is the event to
@@ -654,6 +655,42 @@ Apply `[LongRunning]` to jobs that are expected to exceed the timeout by design:
 [LimitConcurrency(2)]
 public class HashFileJob : IQueueJob { … }
 ```
+
+### Per-job thresholds
+
+`[LongRunning]` is the right answer for a job with no bound on how long it may legitimately take.
+A job that has a deadline of its own, longer than the global threshold, wants the watchdog to keep
+watching it: an overrun means the job is past a deadline it set for itself, which is exactly what
+the watchdog exists to report. Register an `IJobWatchdogThreshold` for it:
+
+```csharp
+public class SweepWatchdogThreshold(IMySettings settings) : IJobWatchdogThreshold
+{
+    public Type JobType => typeof(SweepJob);
+
+    // Never below the global threshold, and half as long again as the deadline past that.
+    public TimeSpan? GetThreshold(TimeSpan defaultThreshold)
+    {
+        var threshold = settings.ChunkDeadline * 1.5;
+        return threshold > defaultThreshold ? threshold : defaultThreshold;
+    }
+}
+```
+
+```csharp
+services.AddSingleton<IJobWatchdogThreshold, SweepWatchdogThreshold>();
+```
+
+- **One per job type.** Subtypes are not covered, and a second registration for a type already
+  covered is logged and ignored.
+- **Asked on every poll,** so a threshold worked out from a setting follows that setting while the
+  server runs. Keep it cheap and non-blocking: it runs on the watchdog's own task, on the way
+  through every executing job.
+- **Anything it cannot answer with falls back to the global threshold.** `null`, a value that is
+  zero or negative, and an exception all mean `WatchdogTimeoutSeconds`, and the job stays watched.
+- **A type that declares both** an `IJobWatchdogThreshold` and `[LongRunning]` is watched against
+  the threshold. The attribute says the global threshold is wrong; the threshold says what the right
+  one is.
 
 The watchdog cannot obtain a managed stack trace of a running thread without suspending it
 (unavailable in .NET Core). Instead, `JobFactory.Execute<T>` captures its call stack when

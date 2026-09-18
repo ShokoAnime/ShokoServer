@@ -2,6 +2,7 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.Airing;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Anilist;
 using Shoko.Server.Repositories.Cached.TMDB;
@@ -59,6 +60,10 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_CreatorRepository>();
         services.AddCachedRepository<AniDB_TagRepository>();
         services.AddCachedRepository<AniDB_GroupStatusRepository>();
+        services.AddCachedRepository<AiringChannelRepository>();
+        services.AddCachedRepository<AiringScheduleRepository>();
+        services.AddCachedRepository<AiringScheduleSweepStateRepository>();
+        services.AddCachedRepository<EpisodeAiringRepository>();
         services.AddCachedRepository<AnimeEpisodeRepository>();
         services.AddCachedRepository<AnimeEpisode_UserRepository>();
         services.AddCachedRepository<AnimeGroupRepository>();

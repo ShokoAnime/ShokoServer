@@ -6,11 +6,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
-using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.Annotations;
-using Shoko.Server.API.Authentication;
 using Shoko.Server.API.v3.Models.Auth;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
@@ -25,8 +23,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="userService"></param>
 /// <param name="authTokensRepository"></param>
 /// <param name="settingsProvider"></param>
-/// <param name="loginThrottler"></param>
-/// <param name="logger"></param>
+/// <param name="authenticationThrottleService"></param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]"), Tags("Authentication")]
 [ApiV3]
@@ -34,8 +31,7 @@ public class AuthController(
     IUserService userService,
     AuthTokensRepository authTokensRepository,
     ISettingsProvider settingsProvider,
-    LoginThrottler loginThrottler,
-    ILogger<AuthController> logger
+    IAuthenticationThrottleService authenticationThrottleService
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -50,16 +46,16 @@ public class AuthController(
     public async Task<ActionResult<ApiToken>> SignIn([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SignInRequest request)
     {
         var username = request.User.Trim();
-        if (loginThrottler.ThrottleLogin(HttpContext, username, logger) is { } throttled)
+        if (authenticationThrottleService.ThrottleAuthentication(HttpContext, username) is { } throttled)
             return throttled;
 
         if (userService.AuthenticateUser(username, request.Password) is not { } user)
         {
-            loginThrottler.RegisterFailure(HttpContext.ClientKey());
+            authenticationThrottleService.RegisterFailure(HttpContext);
             return Unauthorized();
         }
 
-        loginThrottler.Reset(HttpContext.ClientKey());
+        authenticationThrottleService.Reset(HttpContext);
 
         var expiresAt = ParseExpires(request.Expires);
         if (expiresAt is null && request.Expires is not null)

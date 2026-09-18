@@ -44,6 +44,15 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     ///   the image from the source, or an MD5 hash digest for locally generated
     ///   or user uploaded images.
     /// </summary>
+    /// <remarks>
+    ///   This is the remainder of the remote URL, which the source's template
+    ///   URL is completed with as <c>string.Format(template, resourceID)</c>,
+    ///   so it carries path segments and a file extension where the source has
+    ///   them. It is stored in 128 characters, and a longer one is to be
+    ///   refused rather than truncated, since a truncated identifier both
+    ///   completes into a URL that downloads nothing and stands for a
+    ///   different image.
+    /// </remarks>
     string ResourceID { get; }
 
     /// <summary>

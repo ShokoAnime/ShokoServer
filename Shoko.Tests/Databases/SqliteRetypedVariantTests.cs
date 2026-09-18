@@ -26,6 +26,18 @@ public class SqliteRetypedVariantTests
     private const string TmdbEpisode =
         "CREATE TABLE TMDB_Episode ( TMDB_EpisodeID INTEGER PRIMARY KEY AUTOINCREMENT, EpisodeNumber INTEGER NOT NULL, Runtime TEXT NULL, UserRating REAL NOT NULL )";
 
+    // As a tool that rebuilt the table outside Shoko, such as DB Browser for SQLite, leaves it.
+    private const string QuotedVideoLocal = """
+        CREATE TABLE "VideoLocal" (
+            "VideoLocalID"    INTEGER,
+            "Hash"    text NOT NULL,
+            "FileSize"    int NOT NULL,
+            "DateTimeUpdated"    datetime NOT NULL,
+            "DateTimeCreated"    datetime,
+            PRIMARY KEY("VideoLocalID" AUTOINCREMENT)
+        )
+        """;
+
     #region The columns the migration retypes
 
     [Fact]
@@ -43,6 +55,10 @@ public class SqliteRetypedVariantTests
     [Fact]
     public void ATextColumnBecomesAnIntegerOne()
         => Assert.Contains("Runtime INTEGER NULL", SQLite.RetypedVariantOf(TmdbEpisode, "Runtime", "INTEGER"));
+
+    [Fact]
+    public void AQuotedIdentifierIsRetyped()
+        => Assert.Contains("\"DateTimeCreated\" DATETIME,", SQLite.RetypedVariantOf(QuotedVideoLocal, "DateTimeCreated", "DATETIME"));
 
     [Fact]
     public void RetypingTwiceRetypesBothColumns()

@@ -4,13 +4,13 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
-using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Repositories;

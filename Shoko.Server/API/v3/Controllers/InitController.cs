@@ -109,6 +109,7 @@ public class InitController : BaseController
     /// not in setup mode or a failed startup.
     /// </remarks>
     /// <returns></returns>
+    [OptionalAuthentication]
     [HttpGet("Status")]
     public ServerStatus GetServerStatus()
     {

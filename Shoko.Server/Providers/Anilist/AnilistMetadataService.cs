@@ -4,11 +4,15 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anilist;
+using Shoko.Abstractions.Metadata.Anilist.Enums;
 using Shoko.Abstractions.Metadata.Anilist.Services;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.Anilist;
@@ -41,6 +45,10 @@ public class AnilistMetadataService : IAnilistMetadataService
     private readonly AnilistImageService _imageService;
 
     private readonly AnilistLinkingService _linkingService;
+
+    private readonly IAiringScheduleService _airingScheduleService;
+
+    private readonly ConfigurationProvider<AiringScheduleServiceSettings> _airingScheduleSettings;
 
     private readonly AnimeSeriesRepository _animeSeries;
 
@@ -89,6 +97,8 @@ public class AnilistMetadataService : IAnilistMetadataService
         AnilistRateLimiter rateLimiter,
         AnilistImageService imageService,
         AnilistLinkingService linkingService,
+        IAiringScheduleService airingScheduleService,
+        ConfigurationProvider<AiringScheduleServiceSettings> airingScheduleSettings,
         AnimeSeriesRepository animeSeries,
         Anilist_AnimeRepository anilistAnime,
         Anilist_EpisodeRepository anilistEpisodes,
@@ -114,6 +124,8 @@ public class AnilistMetadataService : IAnilistMetadataService
         _rateLimiter = rateLimiter;
         _imageService = imageService;
         _linkingService = linkingService;
+        _airingScheduleService = airingScheduleService;
+        _airingScheduleSettings = airingScheduleSettings;
         _animeSeries = animeSeries;
         _anilistAnime = anilistAnime;
         _anilistEpisodes = anilistEpisodes;
@@ -252,8 +264,6 @@ public class AnilistMetadataService : IAnilistMetadataService
             }
 
             await UpdateAnimeEpisodes(anime, mediaNode).ConfigureAwait(false);
-            foreach (var xref in xrefs)
-                xref.AnimeSeries?.ResetAnilistAirTimeOffset();
             UpdateAnimeTags(anilistAnimeId, mediaNode);
             UpdateAnimeStudios(anilistAnimeId, mediaNode);
             UpdateAnimeRelations(anilistAnimeId, mediaNode);
@@ -466,6 +476,8 @@ public class AnilistMetadataService : IAnilistMetadataService
 
         if (toSave.Count > 0 || toRemove.Count > 0)
             _logger.LogDebug("Synthesized episodes for AniList anime {AnimeId}: {Saved} saved, {Removed} removed, {Scheduled} with a schedule entry.", anilistAnimeId, toSave.Count, toRemove.Count, schedule.Count);
+
+        UpdateAiringSchedule(anime, schedule, episodeCount);
     }
 
     private void UpdateAnimeTags(int anilistAnimeId, JsonNode media)
@@ -807,6 +819,141 @@ public class AnilistMetadataService : IAnilistMetadataService
 
     #endregion
 
+    #region Anime - Airing Schedule
+
+    /// <summary>
+    /// The key of the single schedule AniList supplies per anime. AniList names
+    /// neither a station nor a platform, so every broadcast time it knows lives
+    /// on one channel-less schedule. The seed migration keys its rows on the
+    /// same value, so both write the same schedule.
+    /// </summary>
+    internal const string AiringScheduleKey = "original";
+
+    /// <summary>
+    /// Push the anime's broadcast times to the airing schedule service as the
+    /// AniList provider's schedule for the run, with one airing per episode
+    /// AniList knows a slot for.
+    /// </summary>
+    /// <remarks>
+    /// A failure is logged and swallowed. The schedule is a view of the
+    /// metadata, so losing it must not sink the update that produced it.
+    /// </remarks>
+    /// <param name="anime">The anime the schedule belongs to.</param>
+    /// <param name="schedule">The anime's airing schedule entries, by episode number.</param>
+    /// <param name="episodeCount">The number of episodes rows were synthesized for.</param>
+    private void UpdateAiringSchedule(Anilist_Anime anime, Dictionary<int, (int ScheduleId, DateTime? AiredAt)> schedule, int episodeCount)
+    {
+        if (GetAiringScheduleProviderInfo() is not { } info)
+            return;
+
+        try
+        {
+            // An anime AniList knows no broadcast times for gets no schedule of
+            // its own, unless it already has one to empty out.
+            if (schedule.Count is 0 && GetOwnSchedules(anime, info).Count is 0)
+                return;
+
+            var provider = info.Provider;
+            var languageCode = string.IsNullOrWhiteSpace(anime.OriginalLanguageCode) ? "unk" : anime.OriginalLanguageCode;
+            var scheduleView = _airingScheduleService.AddOrUpdateSchedule(provider, new()
+            {
+                Series = anime,
+                Key = AiringScheduleKey,
+                Tracks = [new AiringTrackData(AiringKind.Original, languageCode)],
+                FirstEpisodeNumber = 1,
+                LastEpisodeNumber = anime.EpisodeCount > 0 ? episodeCount : null,
+                IsFinished = anime.ReleasingStatus is AnilistMediaStatus.Finished,
+            });
+
+            var episodes = _anilistEpisodes.GetByAnilistAnimeID(anime.AnilistAnimeID).ToDictionary(episode => episode.EpisodeNumber);
+            var cutoff = GetAiringRetentionCutoff();
+            var airings = schedule
+                .OrderBy(entry => entry.Key)
+                .Where(entry => episodes.ContainsKey(entry.Key))
+                // A run that has aged out whole is dropped here, so the write is an empty line the service clears the schedule on rather than one it rejects.
+                .Where(entry => cutoff is not { } window || entry.Value.AiredAt is not { } airedAt || airedAt >= window)
+                .Select(entry => new EpisodeAiringData() { Episode = episodes[entry.Key], AiredAt = entry.Value.AiredAt })
+                .ToList();
+            _airingScheduleService.SetAirings(provider, scheduleView, airings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Unable to update the airing schedule for AniList anime {AnimeId}.", anime.AnilistAnimeID);
+        }
+    }
+
+    /// <summary>
+    /// Remove the schedules the AniList provider owns for the anime, for a
+    /// purge of the anime itself.
+    /// </summary>
+    /// <remarks>
+    /// A failure is logged and swallowed, the same way the write is.
+    /// </remarks>
+    /// <param name="anime">The anime being purged.</param>
+    private void RemoveAiringSchedules(Anilist_Anime anime)
+    {
+        if (GetAiringScheduleProviderInfo() is not { } info)
+            return;
+
+        try
+        {
+            var removed = _airingScheduleService.RemoveSchedulesForSeries(info.Provider, anime);
+            if (removed > 0)
+                _logger.LogDebug("Removed {Count} airing schedules for AniList anime {AnimeId}.", removed, anime.AnilistAnimeID);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Unable to remove the airing schedules for AniList anime {AnimeId}.", anime.AnilistAnimeID);
+        }
+    }
+
+    /// <summary>
+    /// The registered entry for the AniList airing schedule provider. Every
+    /// write is checked against the provider instance it carries, by reference.
+    /// </summary>
+    /// <returns>
+    /// The provider entry, or <c>null</c> when it isn't registered yet, which
+    /// is the case until the plugins are initialized.
+    /// </returns>
+    private AiringScheduleProviderInfo? GetAiringScheduleProviderInfo()
+    {
+        try
+        {
+            return _airingScheduleService.GetProviderInfo<AnilistAiringScheduleProvider>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "The AniList airing schedule provider isn't available. Skipping the airing schedule write.");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The schedules the AniList provider already owns for the anime itself,
+    /// whether or not the provider is enabled.
+    /// </summary>
+    /// <param name="anime">The anime to read the schedules for.</param>
+    /// <param name="info">The registered entry for the provider.</param>
+    /// <returns>The schedules.</returns>
+    private IReadOnlyList<IAiringSchedule> GetOwnSchedules(Anilist_Anime anime, AiringScheduleProviderInfo info)
+        => _airingScheduleService.GetSchedulesForSeries(anime, new() { ProviderID = info.ID, IncludeDisabled = true, LinkedEntitySchedules = false });
+
+    /// <summary>
+    /// The oldest slot worth submitting while automatic cleanup is on, since
+    /// anything older is only removed again by the next sweep.
+    /// </summary>
+    /// <returns>The cutoff in UTC, or <c>null</c> when every slot is submitted.</returns>
+    private DateTime? GetAiringRetentionCutoff()
+    {
+        var settings = _airingScheduleSettings.Load();
+        if (!settings.AutoCleanup)
+            return null;
+
+        return DateTime.UtcNow.AddMonths(-Math.Max(settings.RetentionMonths, AiringScheduleServiceSettings.MinimumRetentionMonths));
+    }
+
+    #endregion
+
     #region Anime - Images
 
     /// <inheritdoc/>
@@ -896,7 +1043,10 @@ public class AnilistMetadataService : IAnilistMetadataService
 
             var anime = _anilistAnime.GetByAnilistAnimeID(anilistAnimeId);
             if (anime is not null)
+            {
                 _imageService.PurgeImages(anime);
+                RemoveAiringSchedules(anime);
+            }
 
             var xrefs = _xrefAnidbAnilistAnime.GetByAnilistAnimeID(anilistAnimeId);
             if (xrefs.Count > 0)

@@ -1,6 +1,6 @@
-using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Anilist;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached.Anilist;

@@ -44,10 +44,16 @@ public class VideoRelocationGuardTests
 
         public VideoLocal_Place Place { get; }
 
+        /// <summary>
+        /// The source folder as the service sees it, with its platform-normalized path.
+        /// </summary>
+        public ShokoManagedFolder SourceFolder { get; }
+
         private readonly RepoFactoryScope _scope;
 
         public Harness(ShokoManagedFolder sourceFolder, ShokoManagedFolder destinationFolder)
         {
+            SourceFolder = sourceFolder;
             Place = new VideoLocal_Place { ID = 1, VideoID = VideoID, ManagedFolderID = sourceFolder.ID, RelativePath = RelativePath };
 
             _scope = new RepoFactoryScope()
@@ -258,7 +264,7 @@ public class VideoRelocationGuardTests
         await harness.Service.DirectlyRelocateFile(
             harness.Place, Request(Folder(DestinationFolderID, DestinationPath), RelativePath));
 
-        harness.FileSystem.Verify(f => f.FileExists(Path.Combine(SourcePath, RelativePath)), Times.AtLeastOnce);
+        harness.FileSystem.Verify(f => f.FileExists(Path.Combine(harness.SourceFolder.Path, RelativePath)), Times.AtLeastOnce);
     }
 
     #endregion

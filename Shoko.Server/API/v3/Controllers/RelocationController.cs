@@ -769,7 +769,7 @@ public class RelocationController(
         try
         {
             var config = presetInfo.LoadConfiguration();
-            return Content(configurationService.Serialize(config), "application/json");
+            return Content(configurationService.MaskSecrets(providerInfo.ConfigurationInfo, configurationService.Serialize(config)), "application/json");
         }
         catch (ConfigurationValidationException ex)
         {
@@ -799,6 +799,17 @@ public class RelocationController(
         try
         {
             var json = body is null or { Type: JTokenType.Null } ? null : body.ToString(Formatting.None, [new StringEnumConverter()]);
+            // A preset keeps its own configuration document, so the stored copy
+            // for the restore pass is the preset's, not the provider's.
+            if (json is not null && presetInfo.ProviderInfo?.ConfigurationInfo is { } configurationInfo && ConfigurationSecrets.ContainsSecrets(configurationInfo.Type))
+            {
+                var current = presetInfo.Configuration is { } stored ? JToken.Parse(Encoding.UTF8.GetString(stored)) : null;
+                var (restored, errors) = ConfigurationSecrets.Restore(JToken.Parse(json), current, configurationInfo.Type);
+                if (errors.Count > 0)
+                    return ValidationProblem(errors);
+                json = restored.ToString(Formatting.None);
+            }
+
             presetInfo.SaveConfiguration(json);
 
             return Ok();

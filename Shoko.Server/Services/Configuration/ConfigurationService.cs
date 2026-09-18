@@ -274,6 +274,18 @@ public partial class ConfigurationService : IConfigurationService
 
     public IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(ConfigurationInfo info, string json)
     {
+        // Validating a masked document has to judge the values that would
+        // actually be stored, not the sentinels standing in for them. A secret
+        // that cannot be restored is itself a validation error, so it is
+        // reported rather than thrown here.
+        if (ConfigurationSecrets.ContainsSecrets(info.Type))
+        {
+            var (restored, secretErrors) = ConfigurationSecrets.Restore(JToken.Parse(json), GetCurrentToken(info), info.Type);
+            if (secretErrors.Count > 0)
+                return secretErrors;
+            json = restored.ToJson();
+        }
+
         try
         {
             var (_, errors) = ((JToken, Dictionary<string, IReadOnlyList<string>>))typeof(ConfigurationService)
@@ -902,6 +914,21 @@ public partial class ConfigurationService : IConfigurationService
         if (info.IsBase)
             return false;
 
+        // Put the stored secrets back before anything validates the document, so
+        // a required secret is never judged on a sentinel that is about to be
+        // replaced, nor faulted on a property the sender never touched.
+        if (ConfigurationSecrets.ContainsSecrets(info.Type))
+        {
+            var restored = RestoreMaskedSecrets(info, JToken.Parse(originalJson), out var restoredAnything);
+            if (restoredAnything)
+            {
+                originalJson = restored.ToJson();
+                // The instance we were handed still holds the masked values, so it
+                // can no longer stand in for the document we are about to store.
+                config = null;
+            }
+        }
+
         var storedJson = AddSchemaProperty(info, originalJson);
         var pendingRestart = InternalRestartPendingFor.Count > 0;
         var (token, errors) = ValidateInternal(info, storedJson, config, saveValidation: true);
@@ -1128,6 +1155,105 @@ public partial class ConfigurationService : IConfigurationService
         => typeof(TConfig).IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
             ? JsonConvert.SerializeObject(config, _newtonsoftJsonSerializerSettings)
             : JsonSerializer.Serialize(config, _systemTextJsonSerializerOptions)!;
+
+    #endregion
+
+    #region Secrets
+
+    public string SerializeWithMasking(IConfiguration config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        var type = config.GetType();
+        var json = Serialize(config);
+        // An unregistered type has no ConfigurationInfo to look the shape up
+        // from, but it still has the shape, and failing open here would leak.
+        return ConfigurationSecrets.ContainsSecrets(type) ? ConfigurationSecrets.Mask(JToken.Parse(json), type).ToJson() : json;
+    }
+
+    public string MaskSecrets(ConfigurationInfo info, string json)
+    {
+        ArgumentNullException.ThrowIfNull(info);
+        ArgumentNullException.ThrowIfNull(json);
+
+        if (!ConfigurationSecrets.ContainsSecrets(info.Type))
+            return json;
+
+        return ConfigurationSecrets.Mask(JToken.Parse(json), info.Type).ToJson();
+    }
+
+    public string RestoreMaskedSecrets(ConfigurationInfo info, string json)
+    {
+        ArgumentNullException.ThrowIfNull(info);
+        ArgumentNullException.ThrowIfNull(json);
+
+        if (!ConfigurationSecrets.ContainsSecrets(info.Type))
+            return json;
+
+        var restored = RestoreMaskedSecrets(info, JToken.Parse(json), out var modified);
+        return modified ? restored.ToJson() : json;
+    }
+
+    /// <summary>
+    ///   Runs the restore pass over an incoming document, using whatever is
+    ///   currently persisted for <paramref name="info"/> as the source of the
+    ///   values to put back.
+    /// </summary>
+    /// <param name="info">The configuration the document belongs to.</param>
+    /// <param name="incoming">The incoming document.</param>
+    /// <param name="modified">Whether the pass changed anything.</param>
+    /// <exception cref="ConfigurationValidationException">
+    ///   Thrown when a secret cannot be restored.
+    /// </exception>
+    /// <returns>The restored document.</returns>
+    private JToken RestoreMaskedSecrets(ConfigurationInfo info, JToken incoming, out bool modified)
+    {
+        var (restored, errors) = ConfigurationSecrets.Restore(incoming, GetCurrentToken(info), info.Type);
+        if (errors.Count > 0)
+        {
+            foreach (var (path, messages) in errors)
+                _logger.LogError("Unable to restore a masked secret for {Type} at \"{Path}\": {Message}", info.Name, path, string.Join(", ", messages));
+            throw new ConfigurationValidationException("save", info, errors);
+        }
+
+        modified = !JToken.DeepEquals(incoming, restored);
+        return restored;
+    }
+
+    /// <summary>
+    ///   Gets the currently persisted document for <paramref name="info"/>,
+    ///   without going through <see cref="Load(ConfigurationInfo, bool)"/>.
+    /// </summary>
+    /// <remarks>
+    ///   Loading would validate, cache and possibly write a fresh configuration
+    ///   to disk, and it is reached from the save path, so it would recurse. All
+    ///   the restore pass needs is the document as it stands right now, which is
+    ///   the in-memory instance when one is loaded and the stored copy otherwise.
+    /// </remarks>
+    /// <param name="info">The configuration to read.</param>
+    /// <returns>
+    ///   The stored document, or <c>null</c> when nothing has been persisted yet.
+    /// </returns>
+    private JToken? GetCurrentToken(ConfigurationInfo info)
+    {
+        try
+        {
+            if (_loadedConfigurations.TryGetValue(info.ID, out var loaded))
+                return JToken.Parse(Serialize(loaded));
+
+            if (info.Path is null)
+                return _savedMemoryConfigurations.TryGetValue(info.ID, out var memoryJson) ? JToken.Parse(memoryJson) : null;
+
+            return File.Exists(info.Path) ? JToken.Parse(File.ReadAllText(info.Path)) : null;
+        }
+        catch (Exception ex)
+        {
+            // Nothing readable behind us means nothing to restore, which the
+            // restore pass already handles by rejecting the sentinel outright.
+            _logger.LogWarning(ex, "Unable to read the stored configuration for {Name} while restoring masked secrets.", info.Name);
+            return null;
+        }
+    }
 
     #endregion
 

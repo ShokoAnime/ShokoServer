@@ -55,6 +55,7 @@ public class VideoReleaseService(
     StoredReleaseInfoRepository releaseInfoRepository,
     StoredReleaseInfo_MatchAttemptRepository releaseInfoMatchAttemptRepository,
     AniDB_EpisodeRepository anidbEpisodeRepository,
+    AnimeEpisodeRepository animeEpisodeRepository,
     CrossRef_File_EpisodeRepository xrefRepository,
     AnimeMetadataOrchestrator animeMetadataOrchestrator
 ) : IVideoReleaseService
@@ -1147,18 +1148,47 @@ public class VideoReleaseService(
             .Cast<IVideo>()
             .ToList();
 
-        if (otherVideos.Count == 0)
+        // The episode-level watched record outlives every file of the episode, so it
+        // can still carry the watched state after the watched release was deleted.
+        var episodes = releaseInfo.CrossReferences
+            .Select(xref => animeEpisodeRepository.GetByAniDBEpisodeID(xref.AnidbEpisodeID))
+            .WhereNotNull()
+            .DistinctBy(a => a.AnimeEpisodeID)
+            .ToList();
+
+        if (otherVideos.Count == 0 && episodes.Count == 0)
             return;
 
         foreach (var user in userService.GetUsers())
         {
-            var watchedVideo = otherVideos
-                .FirstOrDefault(video => userDataService.Value.GetVideoUserData(video, user)?.LastPlayedAt is not null);
-            if (watchedVideo is null)
+            // Never overwrite watched state the new file already has.
+            if (userDataService.Value.GetVideoUserData(video, user)?.LastPlayedAt is not null)
                 continue;
 
-            var watchedRecord = userDataService.Value.GetVideoUserData(watchedVideo, user)!;
-            userDataService.Value.ImportVideoUserData(video, user, new(watchedRecord), "Video", false);
+            var watchedVideo = otherVideos
+                .FirstOrDefault(video => userDataService.Value.GetVideoUserData(video, user)?.LastPlayedAt is not null);
+            if (watchedVideo is not null)
+            {
+                var watchedRecord = userDataService.Value.GetVideoUserData(watchedVideo, user)!;
+                userDataService.Value.ImportVideoUserData(video, user, new(watchedRecord), "Video", false);
+                continue;
+            }
+
+            // No watched file is left, so fall back to the episode-level record of
+            // any episode the incoming file maps to.
+            var watchedEpisodeUser = episodes
+                .SelectMany(episode => userDataService.Value.GetEpisodeUserDataForEpisode(episode))
+                .Where(userData => userData.UserID == user.ID && userData.LastPlayedAt is not null)
+                .OrderByDescending(userData => userData.LastPlayedAt)
+                .FirstOrDefault();
+            if (watchedEpisodeUser is null)
+                continue;
+
+            userDataService.Value.ImportVideoUserData(video, user, new()
+            {
+                PlaybackCount = watchedEpisodeUser.PlaybackCount,
+                LastPlayedAt = watchedEpisodeUser.LastPlayedAt,
+            }, "Video", false);
         }
     }
 

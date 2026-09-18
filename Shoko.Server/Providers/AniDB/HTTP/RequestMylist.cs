@@ -30,7 +30,7 @@ public class RequestMylist : HttpRequest<List<MylistEntry>>
                 var error = doc.Descendants("error").FirstOrDefault();
                 if (error is not null)
                 {
-                    var errorCode = (int)error.Attribute("value")!;
+                    var errorCode = (int)error.Attribute("code")!;
                     if (errorCode == 330) // 'mylist empty'
                     {
                         Logger.LogTrace("MyList is empty.");

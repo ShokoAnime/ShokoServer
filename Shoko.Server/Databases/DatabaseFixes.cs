@@ -19,8 +19,10 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Anilist.Enums;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Services;
@@ -36,13 +38,16 @@ using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.v1.Models;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters.Legacy;
+using Shoko.Server.Models.Airing;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Release;
+using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
@@ -2565,6 +2570,199 @@ public class DatabaseFixes
         _logger.Info("Populated availability flag for {Updated} of {Total} images.", updatedCount, images.Count);
         systemService.StartupMessage = $"{str} - Populated availability flag for {updatedCount} images.";
     }
+
+    #region AniList Airing Schedules
+
+    /// <summary>
+    /// How many AniList anime are turned into schedules and airings between each write, so a large
+    /// library neither writes a row at a time nor holds every row it will ever write in memory.
+    /// </summary>
+    private const int AnilistAiringSeedBatchSize = 250;
+
+    /// <summary>
+    /// Seeds the AniList provider's airing schedules from the broadcast times already stored on the
+    /// AniList episodes, so the calendar keeps every time it had before the airing schedules existed
+    /// instead of losing them until each anime is refreshed online.
+    /// </summary>
+    /// <remarks>
+    /// The rows are built exactly as <see cref="AnilistMetadataService"/> would submit them, but are
+    /// written straight to the repositories, so no inference, events or invalidation run during
+    /// startup. Re-running is safe: a schedule or an airing whose key already exists is left as it
+    /// is. Airings the retention sweep would only remove again are skipped, and an anime left with
+    /// none of them gets no schedule at all, since an empty schedule is swept an hour later.
+    /// </remarks>
+    public static void SeedAnilistAiringSchedules()
+    {
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
+        var str = systemService.StartupMessage ?? string.Empty;
+        if (GetAnilistAiringScheduleProvider() is not { } info)
+            return;
+
+        var cutoff = GetAnilistAiringRetentionCutoff();
+        var animeList = RepoFactory.Anilist_Anime.GetAll();
+        var scannedCount = 0;
+        var loggedCount = 0;
+        var scheduleCount = 0;
+        var airingCount = 0;
+        systemService.StartupMessage = $"{str} - Seeding AniList airing schedules... 0/{animeList.Count}";
+        foreach (var batch in animeList.Chunk(AnilistAiringSeedBatchSize))
+        {
+            // An airing needs its schedule's local ID, so the schedules of the
+            // whole batch are written before any airing is built.
+            var pending = new List<(AiringSchedule Schedule, IReadOnlyList<Anilist_Episode> Airings)>();
+            var newSchedules = new List<AiringSchedule>();
+            foreach (var anime in batch)
+            {
+                var episodes = RepoFactory.Anilist_Episode.GetByAnilistAnimeID(anime.AnilistAnimeID);
+                var aired = episodes
+                    .Where(episode => episode.AiredAt is { } airedAt && (cutoff is not { } window || airedAt >= window))
+                    .OrderBy(episode => episode.EpisodeNumber)
+                    .ToList();
+                if (aired.Count is 0)
+                    continue;
+
+                var (schedule, isNew) = GetOrBuildAnilistAiringSchedule(info, anime, episodes);
+                if (isNew)
+                    newSchedules.Add(schedule);
+                pending.Add((schedule, aired));
+            }
+
+            if (newSchedules.Count > 0)
+            {
+                RepoFactory.AiringSchedule.Save(newSchedules);
+                scheduleCount += newSchedules.Count;
+            }
+
+            var newAirings = new List<EpisodeAiring>();
+            foreach (var (schedule, aired) in pending)
+            {
+                var existingKeys = RepoFactory.EpisodeAiring.GetByScheduleID(schedule.AiringScheduleID)
+                    .Select(airing => airing.Key)
+                    .ToHashSet(StringComparer.Ordinal);
+                foreach (var episode in aired)
+                {
+                    var episodeID = episode.AnilistEpisodeID.ToString();
+                    var key = AiringScheduleUtility.GetDerivedAiringKey(DataSource.AniList, episodeID);
+                    if (!existingKeys.Add(key))
+                        continue;
+
+                    newAirings.Add(new EpisodeAiring()
+                    {
+                        AiringScheduleID = schedule.AiringScheduleID,
+                        Key = key,
+                        EpisodeSource = DataSource.AniList,
+                        EpisodeID = episodeID,
+                        AiredAt = episode.AiredAt,
+                        CreatedAt = AsUtc(episode.CreatedAt),
+                        LastUpdatedAt = AsUtc(episode.LastUpdatedAt),
+                    });
+                }
+            }
+
+            if (newAirings.Count > 0)
+            {
+                RepoFactory.EpisodeAiring.Save(newAirings);
+                airingCount += newAirings.Count;
+            }
+
+            scannedCount += batch.Length;
+            systemService.StartupMessage = $"{str} - Seeding AniList airing schedules... {scannedCount}/{animeList.Count}";
+            if (scannedCount - loggedCount >= 1000)
+            {
+                loggedCount = scannedCount;
+                _logger.Info("Seeding AniList airing schedules... {Scanned}/{Total} anime, {Schedules} schedules, {Airings} airings.", scannedCount, animeList.Count, scheduleCount, airingCount);
+            }
+        }
+
+        _logger.Info("Seeded {Schedules} AniList airing schedules with {Airings} airings.", scheduleCount, airingCount);
+        systemService.StartupMessage = $"{str} - Seeded {scheduleCount} AniList airing schedules with {airingCount} airings.";
+    }
+
+    /// <summary>
+    /// The registered entry for the AniList airing schedule provider, which the seeded schedules are
+    /// owned by.
+    /// </summary>
+    /// <returns>
+    /// The provider entry, or <c>null</c> when it isn't registered, in which case there is nothing to
+    /// seed for.
+    /// </returns>
+    private static AiringScheduleProviderInfo? GetAnilistAiringScheduleProvider()
+    {
+        try
+        {
+            return ISystemService.StaticServices.GetRequiredService<IAiringScheduleService>().GetProviderInfo<AnilistAiringScheduleProvider>();
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn(ex, "The AniList airing schedule provider isn't registered. Skipping the airing schedule seed.");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The oldest slot worth seeding while automatic cleanup is on, since anything older is only
+    /// removed again by the next retention sweep.
+    /// </summary>
+    /// <returns>The cutoff in UTC, or <c>null</c> when every slot is kept.</returns>
+    private static DateTime? GetAnilistAiringRetentionCutoff()
+    {
+        var settings = ISystemService.StaticServices.GetRequiredService<ConfigurationProvider<AiringScheduleServiceSettings>>().Load();
+        if (!settings.AutoCleanup)
+            return null;
+
+        return DateTime.UtcNow.AddMonths(-Math.Max(settings.RetentionMonths, AiringScheduleServiceSettings.MinimumRetentionMonths));
+    }
+
+    /// <summary>
+    /// The AniList provider's schedule for the anime: the one already stored under its key, or a new
+    /// one shaped the way the provider would submit it.
+    /// </summary>
+    /// <param name="info">The registered entry for the AniList airing schedule provider.</param>
+    /// <param name="anime">The anime the schedule is for.</param>
+    /// <param name="episodes">Every episode stored for the anime.</param>
+    /// <returns>The schedule, and whether it still has to be written.</returns>
+    private static (AiringSchedule Schedule, bool IsNew) GetOrBuildAnilistAiringSchedule(AiringScheduleProviderInfo info, Anilist_Anime anime, IReadOnlyList<Anilist_Episode> episodes)
+    {
+        var seriesID = anime.AnilistAnimeID.ToString();
+        var scheduleID = AiringScheduleUtility.GetScheduleID(info.ID, DataSource.AniList, seriesID, string.Empty, AnilistMetadataService.AiringScheduleKey);
+        if (RepoFactory.AiringSchedule.GetByScheduleID(scheduleID) is { } existing)
+            return (existing, false);
+
+        // The coverage the provider would report: the synthesized episode count, which is the larger
+        // of what AniList reports and the highest episode it knows a slot for.
+        var episodeCount = Math.Min(
+            Math.Max(anime.EpisodeCount, episodes.Where(episode => episode.AnilistScheduleEpisodeID.HasValue).Select(episode => episode.EpisodeNumber).DefaultIfEmpty(0).Max()),
+            AnilistUtility.MaxEpisodeNumber
+        );
+        var languageCode = string.IsNullOrWhiteSpace(anime.OriginalLanguageCode) ? "unk" : anime.OriginalLanguageCode.Trim().ToLowerInvariant();
+        return (new AiringSchedule()
+        {
+            ProviderID = info.ID,
+            ProviderName = info.Name,
+            SeriesSource = DataSource.AniList,
+            SeriesID = seriesID,
+            SeasonID = string.Empty,
+            Key = AnilistMetadataService.AiringScheduleKey,
+            ChannelID = null,
+            Tracks = [new AiringTrackData(AiringKind.Original, languageCode)],
+            FirstEpisodeNumber = 1,
+            LastEpisodeNumber = anime.EpisodeCount > 0 ? episodeCount : null,
+            IsFinished = anime.ReleasingStatus is AnilistMediaStatus.Finished,
+            CreatedAt = AsUtc(anime.CreatedAt),
+            LastUpdatedAt = AsUtc(anime.LastUpdatedAt),
+        }, true);
+    }
+
+    /// <summary>
+    /// A timestamp as UTC. The AniList rows stamp themselves in local time, while every airing
+    /// timestamp is UTC, so the seeded rows are converted rather than copied.
+    /// </summary>
+    /// <param name="value">The timestamp to convert.</param>
+    /// <returns>The timestamp in UTC.</returns>
+    private static DateTime AsUtc(DateTime value)
+        => value.Kind is DateTimeKind.Utc ? value : value.ToUniversalTime();
+
+    #endregion
 
     private class DNF_UserAvatarMetadata
     {

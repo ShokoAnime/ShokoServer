@@ -82,6 +82,7 @@ public enum ScheduledUpdateType
     AniDBFileUpdates = 10,
     AniDBNotify = 15,
     PluginUpdates = 16,
+    EpisodeAiringNotifications = 17,
 }
 
 public enum AniDBNotifyType

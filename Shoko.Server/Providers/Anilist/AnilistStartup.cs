@@ -1,4 +1,6 @@
 using System;
+using System.Net;
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
@@ -35,7 +37,14 @@ public static class AnilistStartup
             client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("deflate");
             client.DefaultRequestHeaders.AcceptEncoding.ParseAdd("br");
             client.Timeout = TimeSpan.FromSeconds(30);
-        });
+        })
+            .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
+            .UseSocketsHttpHandler((handler, _) =>
+            {
+                // Without this the compressed body we asked for above reaches the JSON parser as-is.
+                handler.AutomaticDecompression = DecompressionMethods.All;
+                handler.PooledConnectionLifetime = TimeSpan.FromMinutes(2);
+            });
 
         // Register rate limiter, API client and image registration
         services.AddSingleton<AnilistRateLimiter>();

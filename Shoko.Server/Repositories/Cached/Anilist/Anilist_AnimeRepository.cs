@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Anilist;
+using Shoko.Server.Utilities;
 
 #nullable enable
 namespace Shoko.Server.Repositories.Cached.Anilist;

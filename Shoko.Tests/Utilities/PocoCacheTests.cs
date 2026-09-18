@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using NutzCode.InMemoryIndex;
+using Shoko.Server.Utilities;
 using Xunit;
 
 namespace Shoko.Tests.Utilities;

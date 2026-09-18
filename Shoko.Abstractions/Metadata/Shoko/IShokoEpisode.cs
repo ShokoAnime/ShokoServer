@@ -26,14 +26,6 @@ public interface IShokoEpisode : IEpisode, IWithCreationDate, IWithUpdateDate
     bool IsHidden { get; }
 
     /// <summary>
-    /// Whether <see cref="IEpisode.AirDateWithTime"/> is an estimate, built
-    /// from the AniDB air date and the broadcast time learned from the
-    /// series' other AniList-linked episodes, rather than a time a provider
-    /// reported for this episode.
-    /// </summary>
-    bool IsAirTimeEstimated { get; }
-
-    /// <summary>
     /// Get the shoko series info for the episode, if available.
     /// </summary>
     new IShokoSeries? Series { get; }

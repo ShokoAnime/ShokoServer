@@ -40,7 +40,6 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Filters;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
-using Shoko.Server.API.Authentication;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
@@ -55,10 +54,14 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Image;
+using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Server;
 using Shoko.Server.Services.Abstraction;
+using Shoko.Server.Services.Airing;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Services.Connectivity;
 using Shoko.Server.Services.ErrorHandling;
@@ -442,22 +445,35 @@ public class SystemService : ISystemService
             services.AddSingleton<IMetadataService, AbstractMetadataService>();
             services.AddSingleton<IVideoService, VideoService>();
             services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
+            services.AddSingleton<IVideoStreamPipelineService, VideoStreamPipelineService>();
+            services.AddSingleton<VideoStreamSessionManager>();
             services.AddSingleton<VideoReleaseGroupingService>();
             services.AddSingleton<ReleaseComparisonService>();
             services.AddSingleton<ReleaseAutoManagementService>();
+            services.AddSingleton<IReleaseManagementService, ReleaseManagementService>();
             services.AddSingleton<IVideoHashingService, VideoHashingService>();
             services.AddSingleton<VideoRelocationService>();
             services.AddSingleton<IVideoRelocationService>(sp => sp.GetRequiredService<VideoRelocationService>());
             services.AddSingleton<IRelocationPresetManager>(sp => sp.GetRequiredService<VideoRelocationService>());
             services.AddTransient<RelocationPresetMigrationService>();
             services.AddSingleton(typeof(ConfigurationProvider<>));
-            services.AddSingleton<LoginThrottler>();
+            services.AddSingleton<AuthenticationThrottleService>();
+            services.AddSingleton<IAuthenticationThrottleService>(sp => sp.GetRequiredService<AuthenticationThrottleService>());
             services.AddSingleton<IUserService, UserService>();
             // lets a service in a dependency cycle take a Lazy<T> rather than
             // injecting IServiceProvider and resolving by hand on first use
             services.AddTransient(typeof(Lazy<>), typeof(LazyResolver<>));
             services.AddSingleton<IUserDataService, UserDataService>();
             services.AddSingleton<IImageManager, ImageManager>();
+            // Registered concretely as well, and forwarded, so the two resolve to one
+            // instance. The sweep watchdog threshold needs the concrete type for the
+            // internal GetSweepBudget(), and a cast off the interface would only fail
+            // at runtime.
+            services.AddSingleton<AiringScheduleService>();
+            services.AddSingleton<IAiringScheduleService>(provider => provider.GetRequiredService<AiringScheduleService>());
+            // Minute-level precision, so it runs on its own clock rather than
+            // through the queue, where it would wait behind every other job.
+            services.AddHostedService<EpisodeAiringNotificationService>();
             services.AddSingleton<IConnectivityService, ConnectivityService>();
             services.AddScoped<AnimeGroupCreator>();
 
@@ -484,6 +500,9 @@ public class SystemService : ISystemService
             services.AddSingleton<IAcquisitionFilter, AnilistApiRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
+
+            // Register per-job watchdog thresholds
+            services.AddSingleton<IJobWatchdogThreshold, AiringScheduleSweepWatchdogThreshold>();
 
             services.AddHttpClient("Default", client =>
                 {
@@ -535,6 +554,9 @@ public class SystemService : ISystemService
             registry.Register<CleanupExpiredTokensJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<PurgeOrphanedTmdbDataJob>(TimeSpan.FromHours(24), runImmediately: false);
             registry.Register<PurgeOrphanedAnilistDataJob>(TimeSpan.FromHours(24), runImmediately: false);
+            registry.Register<StreamSessionCleanupJob>(TimeSpan.FromMinutes(1), runImmediately: true);
+            registry.Register<AiringScheduleRetentionJob>(TimeSpan.FromHours(24), runImmediately: false);
+            registry.Register<SweepAiringSchedulesJob>(TimeSpan.FromMinutes(15), runImmediately: false);
 
             // Register settings-driven recurring jobs. Jobs whose frequency is Never are skipped
             // entirely at startup; they are registered on-demand when settings change.

@@ -69,6 +69,11 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         // Always update the trace logging settings when the settings change.
         LogService.ApplyLoggingSettings(eventArgs.Configuration.Logging);
 
+        // Invalidate the cached exclude regexes; per-item JSON Patch operations on
+        // `Import.Exclude` mutate the list in place without invoking the property
+        // setter, so the cache must be invalidated whenever settings are saved.
+        eventArgs.Configuration.Import.ResetExcludeRegexes();
+
         // Init language settings and react to changes.
         var shouldRenameAllGroups = false;
         if (_seriesTitleLanguageOrder is null)

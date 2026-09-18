@@ -1,7 +1,7 @@
-using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories.NHibernate;
+using Shoko.Server.Utilities;
 
 namespace Shoko.TestData.Repositories;
 

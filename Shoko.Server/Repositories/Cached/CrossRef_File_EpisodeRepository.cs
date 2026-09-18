@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NutzCode.InMemoryIndex;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 

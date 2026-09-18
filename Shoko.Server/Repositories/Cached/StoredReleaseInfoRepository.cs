@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
-using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 

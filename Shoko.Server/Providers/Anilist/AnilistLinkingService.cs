@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anilist.CrossReferences;
 using Shoko.Abstractions.Metadata.Anilist.Services;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Extensions;
@@ -39,6 +40,8 @@ public class AnilistLinkingService : IAnilistLinkingService
 
     private readonly ISettingsProvider _settingsProvider;
 
+    private readonly IAiringScheduleService _airingScheduleService;
+
     private readonly AnimeSeriesRepository _animeSeries;
 
     private readonly AniDB_AnimeRepository _anidbAnime;
@@ -57,6 +60,7 @@ public class AnilistLinkingService : IAnilistLinkingService
         ILogger<AnilistLinkingService> logger,
         IQueueScheduler scheduler,
         ISettingsProvider settingsProvider,
+        IAiringScheduleService airingScheduleService,
         AnimeSeriesRepository animeSeries,
         AniDB_AnimeRepository anidbAnime,
         AniDB_EpisodeRepository anidbEpisodes,
@@ -69,6 +73,7 @@ public class AnilistLinkingService : IAnilistLinkingService
         _logger = logger;
         _scheduler = scheduler;
         _settingsProvider = settingsProvider;
+        _airingScheduleService = airingScheduleService;
         _animeSeries = animeSeries;
         _anidbAnime = anidbAnime;
         _anidbEpisodes = anidbEpisodes;
@@ -106,7 +111,11 @@ public class AnilistLinkingService : IAnilistLinkingService
         series.ResetAnimeTitles();
         series.ResetPreferredTitle();
         series.ResetPreferredOverview();
-        series.ResetAnilistAirTimeOffset();
+
+        // The links decide which schedules cover the shoko series and which
+        // episodes their estimates run over, and they changed outside the
+        // service, so the cached profiles have to go.
+        _airingScheduleService.InvalidateForSeries(series);
     }
 
     // Only the overview descends into the episode links. The titles come from

@@ -17,6 +17,7 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Resources;
 using Shoko.Abstractions.Metadata.Services;
@@ -29,6 +30,7 @@ using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Relocation;
 using Shoko.Abstractions.Video.Services;
+using Shoko.Abstractions.Video.Streaming;
 using Shoko.QueueProcessor;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -582,6 +584,9 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         var videoHashingService = ISystemService.StaticServices.GetRequiredService<IVideoHashingService>();
         videoHashingService.AddParts(GetExports<IHashProvider>());
 
+        var airingScheduleService = ISystemService.StaticServices.GetRequiredService<IAiringScheduleService>();
+        airingScheduleService.AddParts(GetExports<IAiringScheduleProvider>(), GetExports<IAiringScheduleEntityResolver>());
+
         var relocationService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
         relocationService.AddParts(GetExports<IRelocationProvider>());
 
@@ -592,6 +597,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         actionService.AddParts(GetTypes<IExecutableAction>()
             .Where(type => type is { IsClass: true, IsAbstract: false })
             .Select(type => (GetPluginInfo(type.Assembly)!.ID, type)));
+
+        var videoStreamPipelineService = ISystemService.StaticServices.GetRequiredService<IVideoStreamPipelineService>();
+        videoStreamPipelineService.AddTransformParts(GetExports<IVideoStreamTransform>());
+        videoStreamPipelineService.AddObserverParts(GetExports<IPlaybackObserver>());
     }
 
     private IEnumerable<(string?, string[], bool)> GetPluginDirectories()
@@ -1524,6 +1533,16 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     private LocalPluginInfo TogglePlugin(LocalPluginInfo pluginInfo, bool enabled)
     {
+        // Every provider the core itself registers -- its hash provider, its relocation
+        // providers, its playback observers -- is attributed to this plugin entry, because
+        // `GetPluginInfo(Assembly)` resolves them through the assembly it names. Disabling it
+        // would therefore not disable one plugin; it would disable the core's participation in
+        // every provider service at once. It is not a plugin in that sense and is not offered
+        // as one (`showCorePlugin` defaults to false), so the toggle is refused here rather
+        // than special-cased at each caller.
+        if (pluginInfo.ID == CorePlugin.StaticID)
+            return pluginInfo;
+
         var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
         var settings = ISettingsProvider.Instance.GetSettings();
         if (enabled)

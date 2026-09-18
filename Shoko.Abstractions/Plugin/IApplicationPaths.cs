@@ -37,6 +37,12 @@ public interface IApplicationPaths
     string PluginsPath { get; }
 
     /// <summary>
+    /// Gets the path to the video stream transcode/rendition cache directory.
+    /// </summary>
+    /// <value>The stream cache directory path.</value>
+    string StreamCachePath { get; }
+
+    /// <summary>
     /// Gets the path to the themes directory.
     /// </summary>
     string ThemesPath { get; }

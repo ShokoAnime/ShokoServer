@@ -50,6 +50,12 @@ public interface IReleaseInfoProviderConfiguration : IHiddenConfiguration { }
 public interface IRelocationProviderConfiguration : IHiddenConfiguration, IBaseConfiguration { }
 
 /// <summary>
+/// Interface for signaling that the configuration is tied to a video stream
+/// transform.
+/// </summary>
+public interface IVideoStreamTransformConfiguration : IHiddenConfiguration { }
+
+/// <summary>
 /// Interface for allowing plugins to apply migrations to their configuration
 /// before loading it from disk.
 /// </summary>

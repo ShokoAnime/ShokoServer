@@ -57,6 +57,11 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
             errors.Add("AniDb.Username", ["AniDb.Username cannot be empty or null if FirstRun is set to false."]);
         if (!config.FirstRun && config.AniDb.Password is not { Length: > 0 })
             errors.Add("AniDb.Password", ["AniDb.Password cannot be empty or null if FirstRun is set to false."]);
+        if (config.Web.AuthenticationThrottle.InitialLockoutMinutes > config.Web.AuthenticationThrottle.MaxLockoutMinutes)
+            errors.Add(
+                "Web.AuthenticationThrottle.InitialLockoutMinutes",
+                ["Web.AuthenticationThrottle.InitialLockoutMinutes cannot be greater than Web.AuthenticationThrottle.MaxLockoutMinutes."]
+            );
         return errors;
     }
 

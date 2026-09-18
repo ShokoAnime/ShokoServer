@@ -1101,13 +1101,15 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         // Seven tables were created before the version 180 sweep but missed by it, leaving them
         // without a primary key on SQL Server while SQLite and MySQL both declare one. Every one of
         // them keys off an IDENTITY column, so the values are already unique and non-null.
-        new(182,  1, "ALTER TABLE AniDB_Anime_PreferredImage ADD CONSTRAINT PK_AniDB_Anime_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Anime_PreferredImageID);"),
-        new(182,  2, "ALTER TABLE AniDB_Episode_PreferredImage ADD CONSTRAINT PK_AniDB_Episode_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Episode_PreferredImageID);"),
-        new(182,  3, "ALTER TABLE AniDB_FileUpdate ADD CONSTRAINT PK_AniDB_FileUpdate PRIMARY KEY CLUSTERED (AniDB_FileUpdateID);"),
+        // Five of them were since dropped by the 150.4 and 157.3 fixes, so on any database past
+        // those the alter must be skipped rather than fail the whole patch run.
+        new(182,  1, "IF OBJECT_ID(N'[dbo].[AniDB_Anime_PreferredImage]', 'U') IS NOT NULL ALTER TABLE AniDB_Anime_PreferredImage ADD CONSTRAINT PK_AniDB_Anime_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Anime_PreferredImageID);"),
+        new(182,  2, "IF OBJECT_ID(N'[dbo].[AniDB_Episode_PreferredImage]', 'U') IS NOT NULL ALTER TABLE AniDB_Episode_PreferredImage ADD CONSTRAINT PK_AniDB_Episode_PreferredImage PRIMARY KEY CLUSTERED (AniDB_Episode_PreferredImageID);"),
+        new(182,  3, "IF OBJECT_ID(N'[dbo].[AniDB_FileUpdate]', 'U') IS NOT NULL ALTER TABLE AniDB_FileUpdate ADD CONSTRAINT PK_AniDB_FileUpdate PRIMARY KEY CLUSTERED (AniDB_FileUpdateID);"),
         new(182,  4, "ALTER TABLE AuthTokens ADD CONSTRAINT PK_AuthTokens PRIMARY KEY CLUSTERED (AuthID);"),
         new(182,  5, "ALTER TABLE ShokoImage_Entity ADD CONSTRAINT PK_ShokoImage_Entity PRIMARY KEY CLUSTERED (ID);"),
-        new(182,  6, "ALTER TABLE TMDB_Image ADD CONSTRAINT PK_TMDB_Image PRIMARY KEY CLUSTERED (TMDB_ImageID);"),
-        new(182,  7, "ALTER TABLE TMDB_Image_Entity ADD CONSTRAINT PK_TMDB_Image_Entity PRIMARY KEY CLUSTERED (TMDB_Image_EntityID);"),
+        new(182,  6, "IF OBJECT_ID(N'[dbo].[TMDB_Image]', 'U') IS NOT NULL ALTER TABLE TMDB_Image ADD CONSTRAINT PK_TMDB_Image PRIMARY KEY CLUSTERED (TMDB_ImageID);"),
+        new(182,  7, "IF OBJECT_ID(N'[dbo].[TMDB_Image_Entity]', 'U') IS NOT NULL ALTER TABLE TMDB_Image_Entity ADD CONSTRAINT PK_TMDB_Image_Entity PRIMARY KEY CLUSTERED (TMDB_Image_EntityID);"),
 
         // These back non-nullable model properties, so a null could never have been read into one.
         // Rows are filled first, since a stored null would fail the alter.
@@ -1189,6 +1191,21 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(185, 39, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnilistEpisodeID ON CrossRef_AniDB_Anilist_Episode(AnilistEpisodeID);"),
         new(185, 40, "CREATE TABLE Anilist_Anime_ExternalLink ( Anilist_Anime_ExternalLinkID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, AnilistLinkID INT NOT NULL, Url NVARCHAR(512) NOT NULL, Site NVARCHAR(128) NOT NULL, AnilistSiteID INT NULL, LinkType NVARCHAR(32) NOT NULL, LanguageCode NVARCHAR(32) NULL, CONSTRAINT PK_Anilist_Anime_ExternalLink PRIMARY KEY CLUSTERED (Anilist_Anime_ExternalLinkID) );"),
         new(185, 41, "CREATE INDEX IX_Anilist_Anime_ExternalLink_AnilistAnimeID ON Anilist_Anime_ExternalLink(AnilistAnimeID);"),
+        new(186,  1, "CREATE TABLE AiringSchedule ( AiringScheduleID INT IDENTITY(1,1) NOT NULL, ProviderID NVARCHAR(40) NOT NULL, ProviderName NVARCHAR(128) NOT NULL, SeriesSource TINYINT NOT NULL, SeriesID NVARCHAR(64) NOT NULL, SeasonID NVARCHAR(64) NOT NULL, [Key] NVARCHAR(128) NOT NULL, ChannelID NVARCHAR(40) NULL, Tracks NVARCHAR(MAX) NOT NULL, FirstEpisodeNumber INT NULL, LastEpisodeNumber INT NULL, IsFinished BIT NOT NULL, TimeZoneID NVARCHAR(64) NULL, Url NVARCHAR(512) NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_AiringSchedule PRIMARY KEY CLUSTERED (AiringScheduleID) );"),
+        new(186,  2, "CREATE TABLE EpisodeAiring ( EpisodeAiringID INT IDENTITY(1,1) NOT NULL, AiringScheduleID INT NOT NULL, [Key] NVARCHAR(128) NOT NULL, EpisodeSource TINYINT NOT NULL, EpisodeID NVARCHAR(64) NOT NULL, Url NVARCHAR(512) NULL, AiredAt DATETIME NULL, OriginalAiredAt DATETIME NULL, IsDelayed BIT NOT NULL, LinkedToID INT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_EpisodeAiring PRIMARY KEY CLUSTERED (EpisodeAiringID) );"),
+        new(186,  3, "CREATE TABLE AiringChannel ( AiringChannelID INT IDENTITY(1,1) NOT NULL, ChannelID NVARCHAR(40) NOT NULL, Name NVARCHAR(512) NOT NULL, NormalizedName NVARCHAR(512) NOT NULL, Type TINYINT NOT NULL, Aliases NVARCHAR(MAX) NOT NULL, CreatedAt DATETIME NOT NULL, CONSTRAINT PK_AiringChannel PRIMARY KEY CLUSTERED (AiringChannelID) );"),
+        new(186,  4, "CREATE UNIQUE INDEX UIX_AiringSchedule_Provider_Series_Season_Key ON AiringSchedule(ProviderID, SeriesSource, SeriesID, SeasonID, [Key]);"),
+        new(186,  5, "CREATE INDEX IX_AiringSchedule_ProviderID ON AiringSchedule(ProviderID);"),
+        new(186,  6, "CREATE INDEX IX_AiringSchedule_SeriesSource_SeriesID ON AiringSchedule(SeriesSource, SeriesID);"),
+        new(186,  7, "CREATE INDEX IX_AiringSchedule_ChannelID ON AiringSchedule(ChannelID);"),
+        new(186,  8, "CREATE UNIQUE INDEX UIX_EpisodeAiring_AiringScheduleID_Key ON EpisodeAiring(AiringScheduleID, [Key]);"),
+        new(186,  9, "CREATE INDEX IX_EpisodeAiring_EpisodeSource_EpisodeID ON EpisodeAiring(EpisodeSource, EpisodeID);"),
+        new(186, 10, "CREATE INDEX IX_EpisodeAiring_LinkedToID ON EpisodeAiring(LinkedToID);"),
+        new(186, 11, "CREATE UNIQUE INDEX UIX_AiringChannel_ChannelID ON AiringChannel(ChannelID);"),
+        new(186, 12, "CREATE INDEX IX_AiringChannel_Type_NormalizedName ON AiringChannel(Type, NormalizedName);"),
+        new(186, 13, DatabaseFixes.SeedAnilistAiringSchedules),
+        new(187,  1, "CREATE TABLE AiringScheduleSweepState ( AiringScheduleSweepStateID INT IDENTITY(1,1) NOT NULL, ProviderID NVARCHAR(40) NOT NULL, [Cursor] NVARCHAR(512) NULL, LastRunAt DATETIME NOT NULL, LastOutcome TINYINT NOT NULL, NoProgressCount INT NOT NULL, CONSTRAINT PK_AiringScheduleSweepState PRIMARY KEY CLUSTERED (AiringScheduleSweepStateID) );"),
+        new(187,  2, "CREATE UNIQUE INDEX UIX_AiringScheduleSweepState_ProviderID ON AiringScheduleSweepState(ProviderID);"),
     ];
 
     #endregion

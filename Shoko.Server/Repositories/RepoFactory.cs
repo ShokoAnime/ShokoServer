@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.Airing;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Anilist;
 using Shoko.Server.Repositories.Cached.TMDB;
@@ -41,6 +42,10 @@ public class RepoFactory
     public static AniDB_MessageRepository AniDB_Message = null!;
     public static AniDB_NotifyQueueRepository AniDB_NotifyQueue = null!;
     public static AniDB_TagRepository AniDB_Tag = null!;
+    public static AiringChannelRepository AiringChannel = null!;
+    public static AiringScheduleRepository AiringSchedule = null!;
+    public static AiringScheduleSweepStateRepository AiringScheduleSweepState = null!;
+    public static EpisodeAiringRepository EpisodeAiring = null!;
     public static AnimeEpisode_UserRepository AnimeEpisode_User = null!;
     public static AnimeEpisodeRepository AnimeEpisode = null!;
     public static AnimeGroup_UserRepository AnimeGroup_User = null!;
@@ -131,6 +136,10 @@ public class RepoFactory
         AniDB_MessageRepository anidbMessage,
         AniDB_NotifyQueueRepository anidbNotifyQueue,
         AniDB_TagRepository anidbTag,
+        AiringChannelRepository airingChannel,
+        AiringScheduleRepository airingSchedule,
+        AiringScheduleSweepStateRepository airingScheduleSweepState,
+        EpisodeAiringRepository episodeAiring,
         AnimeEpisode_UserRepository animeEpisodeUser,
         AnimeEpisodeRepository animeEpisode,
         AnimeGroup_UserRepository animeGroupUser,
@@ -221,6 +230,10 @@ public class RepoFactory
         AniDB_NotifyQueue = anidbNotifyQueue;
         AniDB_Tag = anidbTag;
         AnimeEpisode = animeEpisode;
+        AiringChannel = airingChannel;
+        AiringSchedule = airingSchedule;
+        AiringScheduleSweepState = airingScheduleSweepState;
+        EpisodeAiring = episodeAiring;
         AnimeEpisode_User = animeEpisodeUser;
         AnimeGroup = animeGroup;
         AnimeGroup_User = animeGroupUser;

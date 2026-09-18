@@ -47,6 +47,7 @@ public static partial class APIExtensions
     public static IServiceCollection AddAPI(this IServiceCollection services, IPluginManager pluginManager)
     {
         services.AddSingleton<LoggingEmitter>();
+        services.AddSingleton<IEventEmitter, AiringEventEmitter>();
         services.AddSingleton<IEventEmitter, AnidbEventEmitter>();
         services.AddSingleton<IEventEmitter, AvdumpEventEmitter>();
         services.AddSingleton<IEventEmitter, ConfigurationEventEmitter>();
@@ -125,12 +126,21 @@ public static partial class APIExtensions
                 // Use document inclusion predicate to separate server and plugin controllers.
                 options.DocInclusionPredicate(new PluginDocumentInclusionPredicate(pluginManager).Include);
 
-                options.AddSecurityDefinition("ApiKey",
+                options.AddSecurityDefinition(AuthorizeOperationFilter.ApiKeyHeaderScheme,
                     new OpenApiSecurityScheme()
                     {
                         Description = "Shoko API Key Header",
                         Name = "apikey",
                         In = ParameterLocation.Header,
+                        Type = SecuritySchemeType.ApiKey,
+                        Scheme = "apikey"
+                    });
+                options.AddSecurityDefinition(AuthorizeOperationFilter.ApiKeyQueryScheme,
+                    new OpenApiSecurityScheme()
+                    {
+                        Description = "Shoko API Key Query Parameter. Useful for clients that can't set headers, such as media players.",
+                        Name = "apikey",
+                        In = ParameterLocation.Query,
                         Type = SecuritySchemeType.ApiKey,
                         Scheme = "apikey"
                     });

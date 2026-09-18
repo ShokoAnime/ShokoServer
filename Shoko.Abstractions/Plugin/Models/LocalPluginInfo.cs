@@ -182,4 +182,58 @@ public sealed class LocalPluginInfo
             .DistinctBy(x => x.Url)
             .ToList();
     }
+
+    /// <summary>
+    ///   Get the valid features advertised by the plugin, in the order the
+    ///   plugin returned them.
+    /// </summary>
+    /// <returns>
+    ///   The features advertised by the plugin.
+    /// </returns>
+    public IReadOnlyList<LocalPluginFeature> GetFeatures()
+        => GetFeatures(null);
+
+    /// <summary>
+    ///   Get the valid features advertised by the plugin, in the order the
+    ///   plugin returned them, reporting every dropped feature.
+    /// </summary>
+    /// <param name="onInvalidFeature">
+    ///   Called with the dropped feature and the reason it was dropped.
+    /// </param>
+    /// <returns>
+    ///   The features advertised by the plugin.
+    /// </returns>
+    internal IReadOnlyList<LocalPluginFeature> GetFeatures(Action<PluginFeature?, string>? onInvalidFeature)
+    {
+        if (Plugin is null)
+            return [];
+
+        var names = new HashSet<string>();
+        var features = new List<LocalPluginFeature>();
+        foreach (var feature in Plugin.GetFeatures())
+        {
+            if (!PluginFeature.IsValid(feature, out var error))
+            {
+                onInvalidFeature?.Invoke(feature, error!);
+                continue;
+            }
+
+            if (!names.Add(feature!.Name))
+            {
+                onInvalidFeature?.Invoke(feature, "Another feature with the same name was already advertised.");
+                continue;
+            }
+
+            features.Add(new()
+            {
+                Name = feature.Name,
+                Version = new(feature.Version.Major, feature.Version.Minor, Math.Max(feature.Version.Build, 0)),
+                Visibility = feature.Visibility,
+                Metadata = feature.Metadata,
+                PluginInfo = this,
+            });
+        }
+
+        return features;
+    }
 }

@@ -27,7 +27,6 @@ using Shoko.Abstractions.Metadata.Image.Options;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
-using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User;
@@ -43,6 +42,7 @@ using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.Airing;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB;
@@ -69,6 +69,7 @@ public partial class ImageManager(
     AnimeEpisodeRepository _animeEpisodes,
     VideoLocalRepository _videoLocals,
     JMMUserRepository _jmmUsers,
+    AiringChannelRepository _airingChannels,
     AniDB_AnimeRepository _anidbAnimes,
     AniDB_EpisodeRepository _anidbEpisodes,
     AniDB_CreatorRepository _anidbCreators,
@@ -202,8 +203,7 @@ public partial class ImageManager(
 
         if (templateUrl is not null)
         {
-            var urlErrors = new List<string>();
-            if (!Uri.TryCreate(templateUrl, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttp || uri.Scheme != Uri.UriSchemeHttps)
+            if (!Uri.TryCreate(templateUrl, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                 throw new ArgumentException($"{nameof(templateUrl)} must be a valid http:// or https:// URL.", nameof(templateUrl));
             if (!templateUrl.Contains("{0}"))
                 throw new ArgumentException($"{nameof(templateUrl)} must contain {{0}}.", nameof(templateUrl));
@@ -1603,9 +1603,16 @@ public partial class ImageManager(
                 entityID = studio.ID.ToString();
                 return true;
 
-            case ITmdbNetwork tmdbNetwork:
-                entityID = tmdbNetwork.ID.ToString();
-                return true;
+            // Both a TMDB network and an airing channel are networks, keyed
+            // by an int and a guid respectively.
+            case INetwork network:
+                entityID = network switch
+                {
+                    IMetadata<int> intKeyed => intKeyed.ID.ToString(),
+                    IMetadata<Guid> guidKeyed => guidKeyed.ID.ToString(),
+                    _ => null,
+                };
+                return entityID is not null;
 
             case ITmdbShowCrossReference xref:
                 entitySource = DataSource.TMDB;
@@ -1683,6 +1690,9 @@ public partial class ImageManager(
 
         (DataSource.Shoko, DataEntityType.User) => !int.TryParse(entityID, out var userID)
             ? null : _jmmUsers.GetByID(userID),
+
+        (DataSource.Shoko, DataEntityType.Channel) => !Guid.TryParse(entityID, out var channelID)
+            ? null : _airingChannels.GetByChannelID(channelID),
 
         // AniDB
         (DataSource.AniDB, DataEntityType.Anime) => !int.TryParse(entityID, out var anidbAnimeID)

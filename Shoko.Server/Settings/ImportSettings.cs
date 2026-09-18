@@ -109,6 +109,12 @@ public class ImportSettings
     }
 
     /// <summary>
+    /// Invalidate the cached compiled exclude regular expressions, so they are
+    /// rebuilt from <see cref="Exclude"/> on the next access.
+    /// </summary>
+    public void ResetExcludeRegexes() => _internalExcludeRegexes = null;
+
+    /// <summary>
     /// Run the import scheduled task on startup.
     /// </summary>
     [Display(Name = "Run Import on Startup")]
@@ -147,7 +153,9 @@ public class ImportSettings
     public int MaxAutoScanAttemptsPerFile { get; set; } = 15;
 
     /// <summary>
-    /// Use the existing episode watched status when importing files.
+    /// Use the existing episode watched status when importing files. Falls back to
+    /// the episode-level watched record, so replacing a watched release (e.g. TV
+    /// with blu-ray) after deleting the watched copy keeps the new file watched.
     /// </summary>
     [Display(Name = "Use Existing Watched Status")]
     public bool UseExistingFileWatchedStatus { get; set; } = true;

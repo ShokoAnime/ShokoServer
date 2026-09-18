@@ -954,9 +954,12 @@ public class VideoRelocationService(
                 "Could not find the associated video for the video file location."
             ), false);
 
-        // Sanitize relative path and reject paths leading to outside the managed folder.
-        var fullPath = Path.GetFullPath(Path.Combine(request.ManagedFolder.Path, request.RelativePath));
-        if (!fullPath.StartsWith(request.ManagedFolder.Path, StringComparison.OrdinalIgnoreCase))
+        // Sanitize relative path and reject paths leading to outside the managed folder. Both sides
+        // are fully resolved before comparing, as GetFullPath can add a drive letter on Windows and
+        // normalize separators, which a raw folder path never matches against.
+        var folderPath = Path.GetFullPath(request.ManagedFolder.Path);
+        var fullPath = Path.GetFullPath(Path.Combine(folderPath, request.RelativePath));
+        if (!fullPath.StartsWith(folderPath, StringComparison.OrdinalIgnoreCase))
             return (RelocationResponse.FromError(
                 "The provided relative path leads outside the managed folder."
             ), false);
@@ -992,9 +995,9 @@ public class VideoRelocationService(
                 "Could not find or access the video file in the file system!"
             ), true);
 
-        var newRelativePath = Path.GetRelativePath(request.ManagedFolder.Path, fullPath);
+        var newRelativePath = Path.GetRelativePath(folderPath, fullPath);
         var newFolderPath = Path.GetDirectoryName(newRelativePath);
-        var newFullPath = Path.Combine(request.ManagedFolder.Path, newRelativePath);
+        var newFullPath = Path.Combine(folderPath, newRelativePath);
         var newFileName = Path.GetFileName(newRelativePath);
         var renamed = !string.Equals(Path.GetFileName(oldRelativePath), newFileName, StringComparison.OrdinalIgnoreCase);
         var moved = !string.Equals(Path.GetDirectoryName(oldFullPath), Path.GetDirectoryName(newFullPath), StringComparison.OrdinalIgnoreCase);

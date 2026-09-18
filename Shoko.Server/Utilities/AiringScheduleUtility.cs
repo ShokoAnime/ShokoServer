@@ -1,0 +1,1287 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Utilities;
+using Shoko.Server.Utilities.Airing;
+
+namespace Shoko.Server.Utilities;
+
+/// <summary>
+/// The pure logic behind airing schedules: the keys a schedule and an airing
+/// derive when a provider gives none, the delay inference a write runs, the
+/// profile a schedule's estimates come from, and the cadence a line of releases
+/// keeps. Nothing here touches a repository, a service or an entity, so every
+/// part of it can be exercised on its own.
+/// </summary>
+public static class AiringScheduleUtility
+{
+    #region Keys
+
+    /// <summary>
+    /// Derive the key of a schedule that the provider gave none for, from its
+    /// channel and its full track set. Adding a language to a keyless schedule
+    /// therefore makes a new schedule, which is why providers should pass a key
+    /// of their own.
+    /// </summary>
+    /// <param name="channelID">The schedule's channel, or <see langword="null"/> when it has none.</param>
+    /// <param name="tracks">The schedule's tracks. Duplicates collapse.</param>
+    /// <returns>The derived key.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="tracks"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="tracks"/> is empty.</exception>
+    public static string GetDerivedScheduleKey(Guid? channelID, IEnumerable<AiringTrackData> tracks)
+    {
+        ArgumentNullException.ThrowIfNull(tracks);
+
+        var trackKeys = tracks
+            .Where(track => track is not null)
+            .Select(GetTrackKey)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(key => key, StringComparer.Ordinal)
+            .ToList();
+        if (trackKeys.Count is 0)
+            throw new ArgumentException("A schedule needs at least one track to derive a key from.", nameof(tracks));
+
+        return $"{(channelID.HasValue ? channelID.Value.ToString("D") : "-")}:{string.Join(",", trackKeys)}";
+    }
+
+    /// <summary>
+    /// Derive the key of an airing that the provider gave none for, from the
+    /// episode it is for.
+    /// </summary>
+    /// <param name="episodeSource">The source of the episode.</param>
+    /// <param name="episodeID">The ID of the episode within its source.</param>
+    /// <returns>The derived key.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="episodeID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="episodeID"/> is blank.</exception>
+    public static string GetDerivedAiringKey(DataSource episodeSource, string episodeID)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(episodeID);
+
+        return $"{episodeSource}:{episodeID}";
+    }
+
+    /// <summary>
+    /// Derive the key of an airing for a provider whose own ID names a whole slot
+    /// rather than a single episode, by appending the episode's place in the slot.
+    /// </summary>
+    /// <param name="slotKey">The provider's key for the slot.</param>
+    /// <param name="episodeIndex">The episode's zero-based place in the slot.</param>
+    /// <returns>The derived key.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="slotKey"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="slotKey"/> is blank.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="episodeIndex"/> is negative.</exception>
+    public static string GetDerivedSlotAiringKey(string slotKey, int episodeIndex)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(slotKey);
+        ArgumentOutOfRangeException.ThrowIfNegative(episodeIndex);
+
+        return $"{slotKey}:{episodeIndex}";
+    }
+
+    /// <summary>
+    /// Key one track, so a derived schedule key is stable whatever order or
+    /// casing the provider submitted its tracks in.
+    /// </summary>
+    /// <param name="track">The track to key.</param>
+    /// <returns>The track's key.</returns>
+    private static string GetTrackKey(AiringTrackData track)
+    {
+        var languageCode = string.IsNullOrWhiteSpace(track.LanguageCode) ? "unk" : track.LanguageCode.Trim().ToLowerInvariant();
+        var countryCode = string.IsNullOrWhiteSpace(track.CountryCode) ? null : track.CountryCode.Trim().ToUpperInvariant();
+        return countryCode is null ? $"{track.Kind}/{languageCode}" : $"{track.Kind}/{languageCode}/{countryCode}";
+    }
+
+    #endregion
+
+    #region Identifiers
+
+    /// <summary>
+    /// The namespace every airing schedule's public ID is derived within.
+    /// </summary>
+    public static Guid ScheduleIdentifierNamespace { get; } = UuidUtility.GetV5("AiringScheduleIdentifierNamespace", UuidUtility.PublicUuidNamespaces.OID);
+
+    /// <summary>
+    /// The namespace every episode airing's public ID is derived within.
+    /// </summary>
+    public static Guid AiringIdentifierNamespace { get; } = UuidUtility.GetV5("EpisodeAiringIdentifierNamespace", UuidUtility.PublicUuidNamespaces.OID);
+
+    /// <summary>
+    /// The namespace every airing channel's ID is derived within.
+    /// </summary>
+    public static Guid ChannelIdentifierNamespace { get; } = UuidUtility.GetV5("AiringChannelIdentifierNamespace", UuidUtility.PublicUuidNamespaces.OID);
+
+    /// <summary>
+    /// Derive the public ID of a schedule from what makes it unique, so nothing
+    /// has to be stored or kept in step.
+    /// </summary>
+    /// <param name="providerID">The ID of the provider owning the schedule.</param>
+    /// <param name="seriesSource">The source of the series the schedule is for.</param>
+    /// <param name="seriesID">The ID of the series within its source.</param>
+    /// <param name="seasonID">The ID of the season the schedule is narrowed to, or <see langword="null"/> when it covers the whole run.</param>
+    /// <param name="key">The schedule's key, from the provider or derived.</param>
+    /// <returns>The schedule's public ID.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="seriesID"/> or <paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="seriesID"/> or <paramref name="key"/> is blank.</exception>
+    public static Guid GetScheduleID(Guid providerID, DataSource seriesSource, string seriesID, string? seasonID, string key)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(seriesID);
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        return UuidUtility.GetV5(
+            $"ProviderID={providerID:D},SeriesSource={seriesSource},SeriesID={seriesID},SeasonID={seasonID ?? string.Empty},Key={key}",
+            ScheduleIdentifierNamespace
+        );
+    }
+
+    /// <summary>
+    /// Derive the public ID of an airing from its schedule and its key.
+    /// Estimates get one the same way, from the key they would have had.
+    /// </summary>
+    /// <param name="scheduleID">The public ID of the schedule the airing belongs to.</param>
+    /// <param name="key">The airing's key, from the provider or derived.</param>
+    /// <returns>The airing's public ID.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="key"/> is blank.</exception>
+    public static Guid GetEpisodeAiringID(Guid scheduleID, string key)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        return UuidUtility.GetV5($"ScheduleID={scheduleID:D},Key={key}", AiringIdentifierNamespace);
+    }
+
+    /// <summary>
+    /// Derive the ID of a channel from its type and its normalised name,
+    /// without registering it, so lookups and filters can name a channel that
+    /// may not exist yet.
+    /// </summary>
+    /// <param name="name">The name of the channel, in any spelling.</param>
+    /// <param name="type">The type of the channel.</param>
+    /// <returns>The channel's ID.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
+    public static Guid GetChannelID(string name, AiringChannelType type)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        return UuidUtility.GetV5($"ChannelType={type},Name={NormalizeChannelName(name)}", ChannelIdentifierNamespace);
+    }
+
+    /// <summary>
+    /// Normalise a channel name, so the same station spelled in full-width,
+    /// half-width, padded or differently cased forms is the same channel.
+    /// </summary>
+    /// <param name="name">The name of the channel, in any spelling.</param>
+    /// <returns>The normalised name.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <see langword="null"/>.</exception>
+    public static string NormalizeChannelName(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        // NFKC first, so an EPG's full-width name folds onto its half-width spelling.
+        var parts = name.Normalize(NormalizationForm.FormKC).Split(default(char[]), StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', parts).ToLowerInvariant();
+    }
+
+    #endregion
+
+    #region Offsets
+
+    /// <summary>
+    /// Default number of most recent samples to learn from, so a long-running
+    /// series follows its current time slot rather than one it had years ago.
+    /// </summary>
+    public const int DefaultWindow = 10;
+
+    /// <summary>
+    /// Learn the offset between an AniDB air date, taken as midnight UTC, and
+    /// the actual air time in UTC, from the most recent samples.
+    /// </summary>
+    /// <param name="samples">Pairs of the AniDB air date and the precise air time (UTC) for the same episode.</param>
+    /// <param name="window">How many of the most recent samples to consider.</param>
+    /// <param name="minimumSamples">How many samples are needed before an offset is trusted.</param>
+    /// <returns>The median offset, or <see langword="null"/> with too few samples.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    public static TimeSpan? LearnAirTimeOffset(IEnumerable<(DateTime AnidbAirDate, DateTime AiredAtUtc)> samples, int window = DefaultWindow, int minimumSamples = 2)
+    {
+        ArgumentNullException.ThrowIfNull(samples);
+
+        return LearnOffset(samples.Select(sample => (GetMidnightUtc(sample.AnidbAirDate), sample.AiredAtUtc)), window, minimumSamples);
+    }
+
+    /// <summary>
+    /// Learn the offset between an anchor instant and the actual air time in UTC,
+    /// from the most recent samples. The anchor is midnight UTC of the AniDB air
+    /// date for most schedules, and the episode's earliest known Original airing
+    /// for a subtitled or dubbed one.
+    /// </summary>
+    /// <param name="samples">Pairs of the anchor (UTC) and the precise air time (UTC) for the same episode.</param>
+    /// <param name="window">How many of the most recent samples to consider.</param>
+    /// <param name="minimumSamples">How many samples are needed before an offset is trusted.</param>
+    /// <returns>The median offset, or <see langword="null"/> with too few samples.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    public static TimeSpan? LearnOffset(IEnumerable<(DateTime AnchorUtc, DateTime AiredAtUtc)> samples, int window = DefaultWindow, int minimumSamples = 2)
+    {
+        ArgumentNullException.ThrowIfNull(samples);
+
+        var offsets = samples
+            .OrderByDescending(sample => sample.AnchorUtc)
+            .Take(window)
+            .Select(sample => sample.AiredAtUtc - sample.AnchorUtc)
+            .ToList();
+        if (offsets.Count < minimumSamples)
+            return null;
+
+        // The median, so a special aired in another slot or a one-off delay doesn't skew it.
+        return GetMedian(offsets);
+    }
+
+    /// <summary>
+    /// Apply a learned offset to an AniDB air date.
+    /// </summary>
+    /// <param name="anidbAirDate">The AniDB air date.</param>
+    /// <param name="offset">The learned offset from midnight UTC.</param>
+    /// <returns>The estimated air time in UTC.</returns>
+    public static DateTime EstimateAirTime(DateTime anidbAirDate, TimeSpan offset)
+        => GetMidnightUtc(anidbAirDate) + offset;
+
+    /// <summary>
+    /// Midnight UTC of a date, whatever kind the value carried.
+    /// </summary>
+    /// <param name="date">The date to take midnight of.</param>
+    /// <returns>Midnight UTC of the date.</returns>
+    private static DateTime GetMidnightUtc(DateTime date)
+        => DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+
+    /// <summary>
+    /// The median of a set of spans, averaging the two middle values for an even
+    /// count.
+    /// </summary>
+    /// <param name="values">The values to take the median of. At least one is required.</param>
+    /// <returns>The median value.</returns>
+    private static TimeSpan GetMedian(IReadOnlyCollection<TimeSpan> values)
+    {
+        var ordered = values.OrderBy(value => value).ToList();
+        var middle = ordered.Count / 2;
+        return ordered.Count % 2 is 1
+            ? ordered[middle]
+            : TimeSpan.FromTicks((ordered[middle - 1].Ticks + ordered[middle].Ticks) / 2);
+    }
+
+    #endregion
+
+    #region Delay inference
+
+    /// <summary>
+    /// Work out what a write does to one schedule's line of airings: which rows
+    /// to store, with the delay state they end up in, and which rows to remove.
+    /// The line is followed in the order the existing airings were in, so a
+    /// pre-emption on one station, or a dub slipping while the subtitled release
+    /// doesn't, stays on its own schedule.
+    /// </summary>
+    /// <param name="existingAirings">The schedule's current airings.</param>
+    /// <param name="submittedAirings">The airings the provider submitted, replacing the current ones.</param>
+    /// <param name="now">The current time, in UTC. It decides whether a removed airing is a hiatus or history, and when a slotless airing has expired.</param>
+    /// <param name="options">Optional. The schedule's coverage and the thresholds to infer with. Defaults to the service's own.</param>
+    /// <returns>The airings to store and the airings to remove.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="existingAirings"/> or <paramref name="submittedAirings"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Two existing or two submitted airings share a key.</exception>
+    public static AiringInferenceResult InferAirings(
+        IEnumerable<ExistingAiring> existingAirings,
+        IEnumerable<SubmittedAiring> submittedAirings,
+        DateTime now,
+        AiringInferenceOptions? options = null
+    )
+    {
+        ArgumentNullException.ThrowIfNull(existingAirings);
+        ArgumentNullException.ThrowIfNull(submittedAirings);
+
+        var (existing, submitted, existingByKey) = PrepareLine(existingAirings, submittedAirings, nameof(existingAirings), nameof(submittedAirings));
+        var pairs = PairAirings(existing, submitted, existingByKey);
+        var pairedKeys = GetPairedKeys(pairs);
+        var removed = existing.Where(airing => !pairedKeys.Contains(airing.Key)).ToList();
+        return Infer(existing, submitted, pairs, removed, [], removalsAreNamed: false, now, options ?? new AiringInferenceOptions());
+    }
+
+    /// <summary>
+    /// Work out what a delta write does to one schedule's line of airings, where
+    /// the removals are stated rather than derived. It is the same inference
+    /// <see cref="InferAirings"/> runs, and it reaches it the same way; what
+    /// differs is where the removal set comes from, and what it means. A named
+    /// removal is deleted, the way a caller asking for one row to go expects,
+    /// unless <see cref="AiringInferenceOptions.KeepRemovalsAsHiatus"/> asks for
+    /// the hiatus judgement an omission gets instead. An existing airing that is
+    /// neither submitted nor named in <paramref name="removedKeys"/> is left
+    /// exactly as it is, while still counting as part of the line, so a break two
+    /// untouched airings apart is two breaks rather than one run.
+    /// </summary>
+    /// <param name="existingAirings">The schedule's current airings.</param>
+    /// <param name="submittedAirings">The airings the provider submitted, added to or updating the current ones.</param>
+    /// <param name="removedKeys">The keys of the current airings to take away.</param>
+    /// <param name="now">The current time, in UTC. It decides whether a removed airing is a hiatus or history, and when a slotless airing has expired.</param>
+    /// <param name="options">Optional. The schedule's coverage and the thresholds to infer with. Defaults to the service's own.</param>
+    /// <returns>The airings to store and the airings to remove. An untouched airing the write did not change is in neither list.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="existingAirings"/>, <paramref name="submittedAirings"/> or <paramref name="removedKeys"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Two existing or two submitted airings share a key, a removed key names no existing airing, or a key is both submitted and removed.</exception>
+    public static AiringInferenceResult MergeAirings(
+        IEnumerable<ExistingAiring> existingAirings,
+        IEnumerable<SubmittedAiring> submittedAirings,
+        IEnumerable<string> removedKeys,
+        DateTime now,
+        AiringInferenceOptions? options = null
+    )
+    {
+        ArgumentNullException.ThrowIfNull(existingAirings);
+        ArgumentNullException.ThrowIfNull(submittedAirings);
+        ArgumentNullException.ThrowIfNull(removedKeys);
+
+        var (existing, submitted, existingByKey) = PrepareLine(existingAirings, submittedAirings, nameof(existingAirings), nameof(submittedAirings));
+        var removals = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var key in removedKeys)
+        {
+            if (key is null || !existingByKey.ContainsKey(key))
+                throw new ArgumentException($"No existing airing has the key \"{key}\".", nameof(removedKeys));
+
+            removals.Add(key);
+        }
+
+        foreach (var airing in submitted)
+            if (removals.Contains(airing.Key))
+                throw new ArgumentException($"The airing with the key \"{airing.Key}\" is both submitted and removed.", nameof(removedKeys));
+
+        // A removal is taken out of what a submission may claim, so an entry the
+        // provider re-keyed can't quietly adopt the row it just said was gone.
+        var remaining = existing.Where(airing => !removals.Contains(airing.Key)).ToList();
+        var remainingByKey = remaining.ToDictionary(airing => airing.Key, StringComparer.Ordinal);
+        var pairs = PairAirings(remaining, submitted, remainingByKey);
+        var pairedKeys = GetPairedKeys(pairs);
+        var removed = existing.Where(airing => removals.Contains(airing.Key)).ToList();
+        var retained = remaining.Where(airing => !pairedKeys.Contains(airing.Key)).ToList();
+
+        // An untouched airing rides along as a submission of its own current
+        // state, so the cause detection below sees the whole line rather than
+        // just the delta. Carrying its stored values as the explicit ones pins
+        // it where it is, and whatever comes back unchanged is dropped from the
+        // result rather than rewritten.
+        var line = submitted.Concat(retained.Select(AsSubmitted)).ToList();
+        foreach (var airing in retained)
+            pairs[airing.Key] = airing;
+
+        return Infer(existing, line, pairs, removed, retained, removalsAreNamed: true, now, options ?? new AiringInferenceOptions());
+    }
+
+    /// <summary>
+    /// Run the inference over one line, whoever worked out the removal set.
+    /// </summary>
+    /// <param name="existing">The schedule's current airings.</param>
+    /// <param name="submitted">The line to store, which is every submitted airing plus every untouched one riding along.</param>
+    /// <param name="pairs">The existing airing behind every key in <paramref name="submitted"/>.</param>
+    /// <param name="removed">The existing airings the write takes away, whether by omission or by name.</param>
+    /// <param name="retained">The untouched airings among <paramref name="submitted"/>, which are dropped from the result when the write left them as they were.</param>
+    /// <param name="removalsAreNamed">Whether the write stated <paramref name="removed"/> rather than leaving those airings out.</param>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <param name="options">The schedule's coverage and the thresholds to infer with.</param>
+    /// <returns>The airings to store and the airings to remove.</returns>
+    private static AiringInferenceResult Infer(
+        IReadOnlyList<ExistingAiring> existing,
+        IReadOnlyList<SubmittedAiring> submitted,
+        Dictionary<string, ExistingAiring?> pairs,
+        IReadOnlyList<ExistingAiring> removed,
+        IReadOnlyList<ExistingAiring> retained,
+        bool removalsAreNamed,
+        DateTime now,
+        AiringInferenceOptions options
+    )
+    {
+        // Explicit removal deletes and absence is a hiatus, so a named removal
+        // only gets the hiatus judgement when the write asks for it. Without
+        // delay inference an omission is simply not part of the submission, and
+        // goes the way a named removal does by default.
+        var keepAsHiatus = removalsAreNamed ? options.KeepRemovalsAsHiatus : options.InferDelays;
+        var (toDelete, withdrawn) = SplitRemovals(removed, keepAsHiatus, now, options);
+        if (!options.InferDelays)
+            return DropUntouched(StoreAsSubmitted(existing, submitted, pairs, toDelete, withdrawn), retained);
+
+        var pending = new List<PendingAiring>();
+        foreach (var airing in submitted)
+            pending.Add(CreatePending(airing, pairs[airing.Key], options));
+        foreach (var airing in withdrawn)
+            pending.Add(CreateHiatusPending(airing));
+
+        DetectCauses(pending, options);
+
+        var toSave = pending
+            .Select(entry => new InferredAiring
+            {
+                Key = entry.Key,
+                EpisodeKey = entry.EpisodeKey,
+                ExistingKey = entry.Existing?.Key,
+                AiredAt = entry.AiredAt,
+                OriginalAiredAt = entry.OriginalAiredAt,
+                IsDelayed = entry.IsDelayed,
+                LinkKey = entry.LinkKey,
+                IsWithdrawn = entry.IsWithdrawn,
+            })
+            .ToList();
+        UnlinkStaleMembers(toSave, existing, toDelete);
+        return DropUntouched(new AiringInferenceResult(toSave, toDelete), retained);
+    }
+
+    /// <summary>
+    /// Sort the airings a write takes away into the ones it deletes and the ones
+    /// it keeps without a slot, as a hiatus. An airing in neither list is left
+    /// exactly as it is, which is how a slotless one outlives the write that
+    /// took its slot.
+    /// </summary>
+    /// <param name="removed">The existing airings the write takes away.</param>
+    /// <param name="keepAsHiatus">Whether this write's removals are eligible to be kept as a hiatus at all.</param>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <param name="options">The schedule's coverage and the thresholds to infer with.</param>
+    /// <returns>The airings to delete and the airings to keep as a hiatus.</returns>
+    private static (List<ExistingAiring> ToDelete, List<ExistingAiring> Withdrawn) SplitRemovals(
+        IReadOnlyList<ExistingAiring> removed,
+        bool keepAsHiatus,
+        DateTime now,
+        AiringInferenceOptions options
+    )
+    {
+        var toDelete = new List<ExistingAiring>();
+        var withdrawn = new List<ExistingAiring>();
+        foreach (var airing in removed)
+        {
+            // A removal this write has no hiatus judgement to make on, one on a
+            // finished schedule, and one outside what the schedule covers are all
+            // history rather than a hiatus.
+            if (!keepAsHiatus || options.IsFinished || !IsWithinCoverage(airing.EpisodeNumber, options))
+            {
+                toDelete.Add(airing);
+                continue;
+            }
+
+            // A slotless airing lives until something contradicts it.
+            if (airing.AiredAt is null)
+            {
+                if (options.SupersededEpisodeKeys is { } superseded && superseded.Contains(airing.EpisodeKey))
+                    toDelete.Add(airing);
+                else if (airing.OriginalAiredAt is { } originalAiredAt && originalAiredAt + options.SlotlessRetention <= now)
+                    toDelete.Add(airing);
+                continue;
+            }
+
+            // A removed airing whose slot is still ahead of us is how a source
+            // indicates a hiatus; one in the past is simply gone.
+            if (airing.AiredAt > now)
+                withdrawn.Add(airing);
+            else
+                toDelete.Add(airing);
+        }
+
+        return (toDelete, withdrawn);
+    }
+
+    /// <summary>
+    /// Split a write into the two lists the inference works on, and refuse a line
+    /// that keys the same airing twice on either side of it.
+    /// </summary>
+    /// <param name="existingAirings">The schedule's current airings.</param>
+    /// <param name="submittedAirings">The airings the provider submitted.</param>
+    /// <param name="existingParamName">The name of the argument the current airings arrived as.</param>
+    /// <param name="submittedParamName">The name of the argument the submitted airings arrived as.</param>
+    /// <returns>The current airings, the submitted airings, and the current airings by key.</returns>
+    /// <exception cref="ArgumentException">Two existing or two submitted airings share a key.</exception>
+    private static (List<ExistingAiring> Existing, List<SubmittedAiring> Submitted, Dictionary<string, ExistingAiring> ExistingByKey) PrepareLine(
+        IEnumerable<ExistingAiring> existingAirings,
+        IEnumerable<SubmittedAiring> submittedAirings,
+        string existingParamName,
+        string submittedParamName
+    )
+    {
+        var existing = existingAirings.Where(airing => airing is not null).ToList();
+        var submitted = submittedAirings.Where(airing => airing is not null).ToList();
+        var existingByKey = new Dictionary<string, ExistingAiring>(StringComparer.Ordinal);
+        foreach (var airing in existing)
+            if (!existingByKey.TryAdd(airing.Key, airing))
+                throw new ArgumentException($"Two existing airings share the key \"{airing.Key}\".", existingParamName);
+
+        var submittedKeys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var airing in submitted)
+            if (!submittedKeys.Add(airing.Key))
+                throw new ArgumentException($"Two submitted airings share the key \"{airing.Key}\".", submittedParamName);
+
+        return (existing, submitted, existingByKey);
+    }
+
+    /// <summary>
+    /// The keys of the existing airings a submission claimed, which is what a
+    /// whole-line write takes the removal set to be the complement of.
+    /// </summary>
+    /// <param name="pairs">The existing airing behind every submitted key.</param>
+    /// <returns>The claimed keys.</returns>
+    private static HashSet<string> GetPairedKeys(Dictionary<string, ExistingAiring?> pairs)
+        => pairs.Values
+            .Where(airing => airing is not null)
+            .Select(airing => airing!.Key)
+            .ToHashSet(StringComparer.Ordinal);
+
+    /// <summary>
+    /// An untouched airing as a submission of its own current state, so it takes
+    /// part in the line without the write moving it.
+    /// </summary>
+    /// <param name="airing">The untouched airing.</param>
+    /// <returns>The submission standing in for it.</returns>
+    private static SubmittedAiring AsSubmitted(ExistingAiring airing)
+        => new()
+        {
+            Key = airing.Key,
+            EpisodeKey = airing.EpisodeKey,
+            AiredAt = airing.AiredAt,
+            OriginalAiredAt = airing.OriginalAiredAt,
+            IsDelayed = airing.IsDelayed,
+        };
+
+    /// <summary>
+    /// Drop every untouched airing the write left exactly as it was, so a delta
+    /// neither rewrites nor reports what it never mentioned. One the write did
+    /// change, say a member unlinked from a head that drifted, stays.
+    /// </summary>
+    /// <param name="result">What the inference decided.</param>
+    /// <param name="retained">The untouched airings that rode along in the line.</param>
+    /// <returns>The result without the airings nothing happened to.</returns>
+    private static AiringInferenceResult DropUntouched(AiringInferenceResult result, IReadOnlyList<ExistingAiring> retained)
+    {
+        if (retained.Count is 0)
+            return result;
+
+        var untouched = retained.ToDictionary(airing => airing.Key, StringComparer.Ordinal);
+        var toSave = result.ToSave
+            .Where(airing => !untouched.TryGetValue(airing.Key, out var existing) || HasChanged(existing, airing))
+            .ToList();
+        return toSave.Count == result.ToSave.Count ? result : new AiringInferenceResult(toSave, result.ToDelete);
+    }
+
+    /// <summary>
+    /// Whether the inference moved an airing off the row it started on.
+    /// </summary>
+    /// <param name="existing">The airing as it is stored.</param>
+    /// <param name="inferred">The airing as the inference resolved it.</param>
+    /// <returns><see langword="true"/> when the row has to be written.</returns>
+    private static bool HasChanged(ExistingAiring existing, InferredAiring inferred)
+        => !string.Equals(inferred.ExistingKey, existing.Key, StringComparison.Ordinal) ||
+            inferred.AiredAt != existing.AiredAt ||
+            inferred.OriginalAiredAt != existing.OriginalAiredAt ||
+            inferred.IsDelayed != existing.IsDelayed ||
+            !string.Equals(inferred.LinkKey, existing.LinkKey, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Match every submitted airing to the existing airing it replaces: by key
+    /// first, then, for what is left, by episode, so an entry a source recreated
+    /// under a new key keeps its row instead of leaving a stale one behind.
+    /// </summary>
+    /// <param name="existing">The schedule's current airings.</param>
+    /// <param name="submitted">The airings the provider submitted.</param>
+    /// <param name="existingByKey">The current airings by key.</param>
+    /// <returns>The existing airing for every submitted key, or <see langword="null"/> where there is none.</returns>
+    private static Dictionary<string, ExistingAiring?> PairAirings(
+        IReadOnlyList<ExistingAiring> existing,
+        IReadOnlyList<SubmittedAiring> submitted,
+        Dictionary<string, ExistingAiring> existingByKey
+    )
+    {
+        var pairs = new Dictionary<string, ExistingAiring?>(StringComparer.Ordinal);
+        var paired = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var airing in submitted)
+        {
+            if (existingByKey.TryGetValue(airing.Key, out var match))
+            {
+                pairs[airing.Key] = match;
+                paired.Add(match.Key);
+                continue;
+            }
+
+            pairs[airing.Key] = null;
+        }
+
+        var unpaired = existing.Where(airing => !paired.Contains(airing.Key)).ToList();
+        foreach (var airing in submitted.Where(entry => pairs[entry.Key] is null))
+        {
+            var match = unpaired
+                .Where(entry => string.Equals(entry.EpisodeKey, airing.EpisodeKey, StringComparison.Ordinal))
+                // A slotless airing first, so a recreated entry claims the hiatus row it left behind.
+                .OrderBy(entry => entry.AiredAt.HasValue ? 1 : 0)
+                .ThenBy(entry => entry.AiredAt ?? entry.OriginalAiredAt ?? DateTime.MaxValue)
+                .ThenBy(entry => entry.Key, StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (match is null)
+                continue;
+
+            pairs[airing.Key] = match;
+            unpaired.Remove(match);
+        }
+
+        return pairs;
+    }
+
+    /// <summary>
+    /// Store the submitted airings as they came in, for a provider that reports
+    /// delays itself. Nothing is inferred here, so a hiatus only appears among
+    /// them because the write asked for one by name.
+    /// </summary>
+    /// <param name="existing">The schedule's current airings.</param>
+    /// <param name="submitted">The airings the provider submitted.</param>
+    /// <param name="pairs">The existing airing for every submitted key.</param>
+    /// <param name="removed">The existing airings the write deletes.</param>
+    /// <param name="withdrawn">The existing airings the write keeps without a slot, as a hiatus.</param>
+    /// <returns>The airings to store and the airings to remove.</returns>
+    private static AiringInferenceResult StoreAsSubmitted(
+        IReadOnlyList<ExistingAiring> existing,
+        IReadOnlyList<SubmittedAiring> submitted,
+        Dictionary<string, ExistingAiring?> pairs,
+        IReadOnlyList<ExistingAiring> removed,
+        IReadOnlyList<ExistingAiring> withdrawn
+    )
+    {
+        var toSave = submitted
+            .Select(airing => new InferredAiring
+            {
+                Key = airing.Key,
+                EpisodeKey = airing.EpisodeKey,
+                ExistingKey = pairs[airing.Key]?.Key,
+                AiredAt = airing.AiredAt,
+                OriginalAiredAt = airing.OriginalAiredAt,
+                IsDelayed = airing.IsDelayed ?? false,
+                LinkKey = pairs[airing.Key]?.LinkKey,
+            })
+            .ToList();
+        toSave.AddRange(withdrawn
+            .Select(airing => new InferredAiring
+            {
+                Key = airing.Key,
+                EpisodeKey = airing.EpisodeKey,
+                ExistingKey = airing.Key,
+                AiredAt = null,
+                OriginalAiredAt = airing.OriginalAiredAt ?? airing.AiredAt,
+                IsDelayed = airing.IsDelayed,
+                LinkKey = airing.LinkKey,
+                IsWithdrawn = true,
+            }));
+        var toDelete = removed.ToList();
+        UnlinkStaleMembers(toSave, existing, toDelete);
+        return new AiringInferenceResult(toSave, toDelete);
+    }
+
+    /// <summary>
+    /// Resolve one submitted airing against the row it replaces, leaving the
+    /// cause of a move to be settled once the whole line is known.
+    /// </summary>
+    /// <param name="submitted">The submitted airing.</param>
+    /// <param name="existing">The existing airing it replaces, or <see langword="null"/> when it is new.</param>
+    /// <param name="options">The thresholds to infer with.</param>
+    /// <returns>The airing's state so far.</returns>
+    private static PendingAiring CreatePending(SubmittedAiring submitted, ExistingAiring? existing, AiringInferenceOptions options)
+    {
+        var pending = new PendingAiring
+        {
+            Key = submitted.Key,
+            EpisodeKey = submitted.EpisodeKey,
+            Existing = existing,
+            ExplicitOriginalAiredAt = submitted.OriginalAiredAt,
+            ExplicitIsDelayed = submitted.IsDelayed,
+            AiredAt = submitted.AiredAt,
+            LinkKey = existing?.LinkKey,
+        };
+        if (existing is null)
+        {
+            pending.Move = AiringMove.Added;
+            pending.OriginalAiredAt = submitted.OriginalAiredAt;
+            pending.IsDelayed = submitted.IsDelayed ?? false;
+            return pending;
+        }
+
+        pending.OriginalAiredAt = existing.OriginalAiredAt;
+        pending.IsDelayed = existing.IsDelayed;
+        switch (existing.AiredAt, submitted.AiredAt)
+        {
+            // It never had a slot, or it returned to one: either way nothing moved.
+            case (null, _):
+                pending.Move = AiringMove.None;
+                break;
+
+            // It lost the slot it had.
+            case ({ } previous, null):
+                pending.Move = AiringMove.LostSlot;
+                pending.OriginalAiredAt = existing.OriginalAiredAt ?? previous;
+                break;
+
+            case ({ } previous, { } current):
+                var shift = current - previous;
+                if (shift.Duration() < options.MoveThreshold)
+                {
+                    // A correction of the current slot, not a delay.
+                    pending.Move = shift == TimeSpan.Zero ? AiringMove.None : AiringMove.Correction;
+                    break;
+                }
+
+                pending.Shift = shift;
+                pending.Move = shift > TimeSpan.Zero ? AiringMove.Postponed : AiringMove.MovedEarlier;
+                pending.OriginalAiredAt = existing.OriginalAiredAt ?? previous;
+                if (pending.Move is AiringMove.MovedEarlier)
+                    pending.IsDelayed = false;
+                break;
+        }
+
+        return pending;
+    }
+
+    /// <summary>
+    /// Keep a removed airing whose slot is still ahead of us, with no slot and
+    /// the slot it lost, which is how a hiatus is stored.
+    /// </summary>
+    /// <param name="existing">The removed airing.</param>
+    /// <returns>The airing's state so far.</returns>
+    private static PendingAiring CreateHiatusPending(ExistingAiring existing)
+        => new()
+        {
+            Key = existing.Key,
+            EpisodeKey = existing.EpisodeKey,
+            Existing = existing,
+            AiredAt = null,
+            OriginalAiredAt = existing.OriginalAiredAt ?? existing.AiredAt,
+            IsDelayed = existing.IsDelayed,
+            LinkKey = existing.LinkKey,
+            Move = AiringMove.LostSlot,
+            IsWithdrawn = true,
+        };
+
+    /// <summary>
+    /// Flag the airing that caused each break, and only that one. Consecutive
+    /// releases that moved by the same amount, or that all lost their slot, are
+    /// one break: the first of the run is delayed and the rest merely shifted. A
+    /// link set counts as one release, so every member of a delayed slot is
+    /// flagged together.
+    /// </summary>
+    /// <param name="pending">Every airing on the line, in any order.</param>
+    /// <param name="options">The thresholds to infer with.</param>
+    private static void DetectCauses(IReadOnlyList<PendingAiring> pending, AiringInferenceOptions options)
+    {
+        var units = new List<List<PendingAiring>>();
+        var unitsByKey = new Dictionary<string, List<PendingAiring>>(StringComparer.Ordinal);
+        var line = pending
+            .Where(entry => entry.Existing is not null)
+            .OrderBy(entry => entry.PreviousAiredAt ?? DateTime.MaxValue)
+            .ThenBy(entry => entry.Key, StringComparer.Ordinal);
+        foreach (var entry in line)
+        {
+            var key = entry.Existing!.LinkKey ?? $"\0{entry.Existing.Key}";
+            if (!unitsByKey.TryGetValue(key, out var unit))
+            {
+                unitsByKey[key] = unit = [];
+                units.Add(unit);
+            }
+
+            unit.Add(entry);
+        }
+
+        // A link set only counts as one release while its members moved
+        // together; one that drifted is on its own, and is unlinked below.
+        var releases = new List<List<PendingAiring>>();
+        foreach (var unit in units)
+        {
+            if (unit.Count is 1 || unit.All(entry => entry.Move == unit[0].Move && (entry.Shift - unit[0].Shift).Duration() <= options.CauseTolerance))
+                releases.Add(unit);
+            else
+                releases.AddRange(unit.Select(entry => new List<PendingAiring> { entry }));
+        }
+
+        var runMove = AiringMove.None;
+        var runShift = TimeSpan.Zero;
+        foreach (var unit in releases)
+        {
+            var move = unit[0].Move;
+            var shift = unit[0].Shift;
+            if (move is not (AiringMove.LostSlot or AiringMove.Postponed))
+            {
+                runMove = AiringMove.None;
+                continue;
+            }
+
+            var continues = runMove == move && (move is AiringMove.LostSlot || (shift - runShift).Duration() <= options.CauseTolerance);
+            foreach (var entry in unit)
+                entry.IsDelayed = !continues;
+
+            if (continues)
+                continue;
+
+            runMove = move;
+            runShift = shift;
+        }
+
+        // Whatever the provider said about an airing outranks what we inferred.
+        foreach (var entry in pending)
+        {
+            if (entry.ExplicitOriginalAiredAt is not null)
+                entry.OriginalAiredAt = entry.ExplicitOriginalAiredAt;
+            if (entry.ExplicitIsDelayed is { } isDelayed)
+                entry.IsDelayed = isDelayed;
+        }
+    }
+
+    /// <summary>
+    /// Unlink every member that drifted from its link head, so a slot that no
+    /// longer covers the same episodes stops being one airing.
+    /// </summary>
+    /// <param name="toSave">The airings about to be stored. Members that drifted are updated in place.</param>
+    /// <param name="existing">The schedule's current airings.</param>
+    /// <param name="toDelete">The airings about to be removed.</param>
+    private static void UnlinkStaleMembers(List<InferredAiring> toSave, IReadOnlyList<ExistingAiring> existing, IReadOnlyList<ExistingAiring> toDelete)
+    {
+        var savedByExistingKey = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (var index = 0; index < toSave.Count; index++)
+            if (toSave[index].ExistingKey is { } existingKey)
+                savedByExistingKey[existingKey] = index;
+        var deletedKeys = toDelete.Select(airing => airing.Key).ToHashSet(StringComparer.Ordinal);
+
+        // What every existing row ends up as, so an untouched member can still be
+        // measured against a head that moved.
+        var states = new Dictionary<string, (ExistingAiring Existing, DateTime? AiredAt)>(StringComparer.Ordinal);
+        foreach (var airing in existing.Where(airing => !deletedKeys.Contains(airing.Key)))
+            states[airing.Key] = (airing, savedByExistingKey.TryGetValue(airing.Key, out var saved) ? toSave[saved].AiredAt : airing.AiredAt);
+
+        foreach (var (key, (airing, airedAt)) in states)
+        {
+            if (airing.LinkKey is not { } linkKey || string.Equals(linkKey, key, StringComparison.Ordinal))
+                continue;
+            if (!states.TryGetValue(linkKey, out var head))
+                continue;
+            if (!HasDriftedFromHead(airing, airedAt, head.Existing, head.AiredAt))
+                continue;
+
+            if (savedByExistingKey.TryGetValue(key, out var index))
+                toSave[index] = toSave[index] with { LinkKey = null };
+            else
+                toSave.Add(new InferredAiring
+                {
+                    Key = airing.Key,
+                    EpisodeKey = airing.EpisodeKey,
+                    ExistingKey = airing.Key,
+                    AiredAt = airing.AiredAt,
+                    OriginalAiredAt = airing.OriginalAiredAt,
+                    IsDelayed = airing.IsDelayed,
+                    LinkKey = null,
+                });
+        }
+    }
+
+    /// <summary>
+    /// Whether a linked airing moved a day or more relative to its link head.
+    /// Members may sit at different times, so what is measured is the distance
+    /// between them rather than the times themselves.
+    /// </summary>
+    /// <param name="member">The member's existing state.</param>
+    /// <param name="memberAiredAt">The member's slot after the write.</param>
+    /// <param name="head">The head's existing state.</param>
+    /// <param name="headAiredAt">The head's slot after the write.</param>
+    /// <returns><see langword="true"/> when the member should be unlinked.</returns>
+    private static bool HasDriftedFromHead(ExistingAiring member, DateTime? memberAiredAt, ExistingAiring head, DateTime? headAiredAt)
+    {
+        // One of them lost its slot while the other kept one.
+        if (memberAiredAt.HasValue != headAiredAt.HasValue)
+            return true;
+        if (memberAiredAt is not { } memberSlot || headAiredAt is not { } headSlot)
+            return false;
+        if (member.AiredAt is not { } previousMemberSlot || head.AiredAt is not { } previousHeadSlot)
+            return false;
+
+        return ((memberSlot - headSlot) - (previousMemberSlot - previousHeadSlot)).Duration() >= AiringInferenceOptions.DefaultMoveThreshold;
+    }
+
+    /// <summary>
+    /// Whether an episode number falls inside what a schedule covers. An unknown
+    /// number is always inside it.
+    /// </summary>
+    /// <param name="episodeNumber">The episode's number, if known.</param>
+    /// <param name="options">The schedule's coverage.</param>
+    /// <returns><see langword="true"/> when the episode is covered.</returns>
+    private static bool IsWithinCoverage(int? episodeNumber, AiringInferenceOptions options)
+    {
+        if (episodeNumber is not { } number)
+            return true;
+        if (options.FirstEpisodeNumber is { } first && number < first)
+            return false;
+        if (options.LastEpisodeNumber is { } last && number > last)
+            return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// How an airing's slot changed in a write.
+    /// </summary>
+    private enum AiringMove
+    {
+        /// <summary>
+        /// The slot didn't change.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// A new airing, with nothing to compare against.
+        /// </summary>
+        Added = 1,
+
+        /// <summary>
+        /// The slot moved by less than a day, which is a correction.
+        /// </summary>
+        Correction = 2,
+
+        /// <summary>
+        /// The slot moved a day or more later.
+        /// </summary>
+        Postponed = 3,
+
+        /// <summary>
+        /// The slot moved a day or more earlier, which is never a delay.
+        /// </summary>
+        MovedEarlier = 4,
+
+        /// <summary>
+        /// The airing lost its slot, either because it was submitted without one
+        /// or because the provider stopped reporting it.
+        /// </summary>
+        LostSlot = 5,
+    }
+
+    /// <summary>
+    /// One airing as the inference works it out, before it becomes an
+    /// <see cref="InferredAiring"/>.
+    /// </summary>
+    private sealed record PendingAiring
+    {
+        /// <summary>
+        /// The airing's key after the write.
+        /// </summary>
+        public required string Key { get; init; }
+
+        /// <summary>
+        /// The key of the episode the airing is for.
+        /// </summary>
+        public required string EpisodeKey { get; init; }
+
+        /// <summary>
+        /// The row the airing updates, or <see langword="null"/> when it is new.
+        /// </summary>
+        public ExistingAiring? Existing { get; init; }
+
+        /// <summary>
+        /// The slot the row had before the write.
+        /// </summary>
+        public DateTime? PreviousAiredAt => Existing?.AiredAt ?? Existing?.OriginalAiredAt;
+
+        /// <summary>
+        /// The slot the airing ends up with.
+        /// </summary>
+        public DateTime? AiredAt { get; set; }
+
+        /// <summary>
+        /// The first slot the airing was scheduled for.
+        /// </summary>
+        public DateTime? OriginalAiredAt { get; set; }
+
+        /// <summary>
+        /// Whether the airing ends up flagged as delayed.
+        /// </summary>
+        public bool IsDelayed { get; set; }
+
+        /// <summary>
+        /// The link head the airing belongs to.
+        /// </summary>
+        public string? LinkKey { get; set; }
+
+        /// <summary>
+        /// How the slot changed.
+        /// </summary>
+        public AiringMove Move { get; set; }
+
+        /// <summary>
+        /// How far the slot moved, for a move of a day or more.
+        /// </summary>
+        public TimeSpan Shift { get; set; }
+
+        /// <summary>
+        /// The original slot the provider set itself, which always wins.
+        /// </summary>
+        public DateTime? ExplicitOriginalAiredAt { get; init; }
+
+        /// <summary>
+        /// The delay flag the provider set itself, which always wins.
+        /// </summary>
+        public bool? ExplicitIsDelayed { get; init; }
+
+        /// <summary>
+        /// Whether the airing is one the write took off the listing and kept
+        /// without a slot, rather than one it was handed.
+        /// </summary>
+        public bool IsWithdrawn { get; init; }
+    }
+
+    #endregion
+
+    #region Estimates
+
+    /// <summary>
+    /// Learn what one schedule's own airings say about its slot. The profile
+    /// belongs to the schedule, so two channels carrying the same series each
+    /// learn their own, and one station's hiatus leaves the others alone.
+    /// </summary>
+    /// <param name="samples">The schedule's own stored airings. Estimates are never samples.</param>
+    /// <param name="options">Optional. What the schedule's tracks and coverage say. Defaults to an open-ended Original schedule.</param>
+    /// <returns>The schedule's profile. Its offset is <see langword="null"/> when too few samples were known to trust one.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    public static AiringScheduleProfile LearnProfile(IEnumerable<AiringProfileSample> samples, AiringProfileOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(samples);
+        options ??= new AiringProfileOptions();
+
+        var all = samples.Where(sample => sample is not null).ToList();
+        var lastEstimableEpisode = options.IsFinished ? 0 : options.LastEpisodeNumber;
+        var hiatusFrom = all
+            .Where(sample => sample.AiredAt is null && sample.IsDelayed && sample.OriginalAiredAt.HasValue)
+            .Select(sample => sample.OriginalAiredAt!.Value)
+            .OrderBy(slot => slot)
+            .Cast<DateTime?>()
+            .FirstOrDefault();
+
+        // A link set is one release, timed at its earliest member, in every step
+        // and in every minimum below.
+        var releases = CollapseLinkSets(all)
+            .Where(sample => sample.AiredAt.HasValue && !sample.IsDelayed)
+            .ToList();
+        var anidbPairs = releases
+            .Where(sample => sample.AnidbAirDate.HasValue)
+            .Select(sample => (AnchorUtc: GetMidnightUtc(sample.AnidbAirDate!.Value), AiredAtUtc: sample.AiredAt!.Value))
+            .OrderBy(pair => pair.AiredAtUtc)
+            .ToList();
+        var (trailingShiftDays, trailingCount) = LearnTrailingShift(anidbPairs, options.MinimumSamples);
+        var anidbOffset = LearnOffset(anidbPairs.Take(anidbPairs.Count - trailingCount), options.Window, options.MinimumSamples);
+        // The shift belongs to the tail of the run, so it starts at the earliest
+        // anchor it covers: an episode anchored before that sits inside the
+        // already-aired range and keeps the slot the older airings kept.
+        var trailingShiftFrom = trailingCount is 0
+            ? (DateTime?)null
+            : anidbPairs.Skip(anidbPairs.Count - trailingCount).Min(pair => pair.AnchorUtc);
+
+        if (options.AnchorOnFirstOriginalAiring)
+        {
+            var anchoredPairs = releases
+                .Where(sample => sample.FirstOriginalAiringAt.HasValue)
+                .Select(sample => (AnchorUtc: sample.FirstOriginalAiringAt!.Value, AiredAtUtc: sample.AiredAt!.Value))
+                .OrderBy(pair => pair.AiredAtUtc)
+                .ToList();
+            if (anchoredPairs.Count >= options.MinimumSamples && LearnOffset(anchoredPairs, options.Window, options.MinimumSamples) is { } anchoredOffset)
+                return new AiringScheduleProfile(AiringAnchor.FirstOriginalAiring, anchoredOffset, 0, null, hiatusFrom, lastEstimableEpisode, anidbOffset);
+        }
+
+        return new AiringScheduleProfile(
+            AiringAnchor.AnidbDate, anidbOffset, trailingShiftDays, trailingShiftFrom, hiatusFrom, lastEstimableEpisode, anidbOffset
+        );
+    }
+
+    /// <summary>
+    /// Estimate when one episode airs on the schedule a profile belongs to.
+    /// </summary>
+    /// <param name="profile">The schedule's profile.</param>
+    /// <param name="target">The episode the schedule has no airing for.</param>
+    /// <returns>The estimate, or <see langword="null"/> when the schedule can't estimate that episode.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="profile"/> or <paramref name="target"/> is <see langword="null"/>.</exception>
+    public static AiringEstimate? EstimateAiring(AiringScheduleProfile profile, AiringEstimateTarget target)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullException.ThrowIfNull(target);
+
+        // Specials are never estimated, and coverage stops extrapolation: a
+        // finished schedule for episodes 1-12 estimates nothing for 13-24.
+        if (!target.IsNormalEpisode)
+            return null;
+        if (profile.LastEstimableEpisode is { } lastEpisode && (lastEpisode is 0 || target.EpisodeNumber > lastEpisode))
+            return null;
+
+        DateTime slot;
+        DateTime? withoutShift = null;
+        if (profile.Anchor is AiringAnchor.FirstOriginalAiring && target.FirstOriginalAiringAt is { } originalAiring && profile.Offset is { } anchoredOffset)
+        {
+            // A simulpub follows the broadcast, so a delayed broadcast moves it.
+            slot = originalAiring + anchoredOffset;
+        }
+        else
+        {
+            // Without a real Original airing to anchor on, fall back to the
+            // AniDB date: an estimate is never anchored on another estimate.
+            var offset = profile.Anchor is AiringAnchor.AnidbDate ? profile.Offset : profile.AnidbOffset;
+            if (offset is not { } anidbOffset || target.AnidbAirDate is not { } anidbAirDate)
+                return null;
+
+            var anchor = GetMidnightUtc(anidbAirDate);
+            slot = anchor + anidbOffset;
+
+            // Only the tail of the run slipped, so an episode anchored before the
+            // shift starts is filling a gap inside the aired range and keeps the
+            // older slot.
+            if (profile.Anchor is AiringAnchor.AnidbDate && profile.TrailingShiftDays is not 0 &&
+                profile.TrailingShiftFrom is { } trailingShiftFrom && anchor >= trailingShiftFrom)
+            {
+                withoutShift = slot;
+                slot += TimeSpan.FromDays(profile.TrailingShiftDays);
+            }
+        }
+
+        // The schedule is on hiatus from here on, so it knows the slot the
+        // episode would have had, but not when it airs.
+        if (profile.HiatusFrom is { } hiatusFrom && slot >= hiatusFrom)
+            return new AiringEstimate(target.EpisodeKey, null, slot);
+
+        return new AiringEstimate(target.EpisodeKey, slot, withoutShift);
+    }
+
+    /// <summary>
+    /// Reduce every link set to its earliest member, so a double slot counts once
+    /// wherever releases are counted.
+    /// </summary>
+    /// <param name="samples">The schedule's own airings.</param>
+    /// <returns>One sample per release.</returns>
+    private static List<AiringProfileSample> CollapseLinkSets(IReadOnlyList<AiringProfileSample> samples)
+    {
+        var releases = new List<AiringProfileSample>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var sample in samples)
+        {
+            if (sample.LinkKey is not { } linkKey)
+            {
+                releases.Add(sample);
+                continue;
+            }
+
+            if (!seen.Add(linkKey))
+                continue;
+
+            releases.Add(samples
+                .Where(entry => string.Equals(entry.LinkKey, linkKey, StringComparison.Ordinal))
+                .OrderBy(entry => entry.AiredAt ?? DateTime.MaxValue)
+                .First());
+        }
+
+        return releases;
+    }
+
+    /// <summary>
+    /// Learn whether the latest airings sit a whole number of days away from the
+    /// slot the older ones kept, which is what a run that slipped a week looks
+    /// like while AniDB still carries the original dates.
+    /// </summary>
+    /// <param name="pairs">The anchor and air time of every sample, oldest first.</param>
+    /// <param name="minimumSamples">How many samples are needed on either side before a shift is trusted.</param>
+    /// <returns>The shift in whole days, and how many of the latest samples it covers.</returns>
+    private static (int Days, int Count) LearnTrailingShift(IReadOnlyList<(DateTime AnchorUtc, DateTime AiredAtUtc)> pairs, int minimumSamples)
+    {
+        var minimum = Math.Max(minimumSamples, 2);
+        var offsets = pairs.Select(pair => pair.AiredAtUtc - pair.AnchorUtc).ToList();
+        var shift = (Days: 0, Count: 0);
+        for (var count = 2; count <= offsets.Count - minimum; count++)
+        {
+            var older = offsets.Take(offsets.Count - count).ToList();
+            var median = GetMedian(older);
+            var trailing = offsets.Skip(offsets.Count - count).ToList();
+            var days = (int)Math.Round((trailing[0] - median).TotalDays);
+            if (days is 0)
+                continue;
+
+            var candidate = TimeSpan.FromDays(days);
+            if (trailing.All(offset => (offset - median - candidate).Duration() <= TimeSpan.FromHours(12)))
+                shift = (days, count);
+        }
+
+        return shift;
+    }
+
+    #endregion
+
+    #region Cadence
+
+    /// <summary>
+    /// Find the breaks a line of airings already had the first time it was
+    /// fetched, which no write can infer because nothing moved. Gaps are measured
+    /// between releases rather than episodes: a link set, or a set of airings at
+    /// the same time, is one release timed at its earliest member, so a
+    /// double-length premiere shifts nothing and a season released at once has no
+    /// cadence at all.
+    /// </summary>
+    /// <param name="airings">One schedule's own airings.</param>
+    /// <param name="options">Optional. The limits to measure within. Defaults to the service's own.</param>
+    /// <returns>Every release that arrived after a gap of a whole skipped slot or more, oldest first.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="airings"/> is <see langword="null"/>.</exception>
+    public static IReadOnlyList<AiringCadenceBreak> FindCadenceBreaks(IEnumerable<AiringProfileSample> airings, AiringCadenceOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(airings);
+        options ??= new AiringCadenceOptions();
+
+        var releases = new List<(DateTime AiredAt, List<string> EpisodeKeys)>();
+        var units = new Dictionary<string, List<AiringProfileSample>>(StringComparer.Ordinal);
+        foreach (var airing in airings
+            .Where(airing => airing is not null && airing.AiredAt.HasValue)
+            .Where(airing => options.LastEpisodeNumber is not { } last || airing.EpisodeNumber is not { } number || number <= last)
+            .OrderBy(airing => airing.AiredAt!.Value))
+        {
+            // A link set, or a set of airings sharing a slot, is one release.
+            var key = airing.LinkKey ?? airing.AiredAt!.Value.Ticks.ToString();
+            if (!units.TryGetValue(key, out var unit))
+                units[key] = unit = [];
+
+            unit.Add(airing);
+        }
+
+        foreach (var unit in units.Values)
+            releases.Add((unit.Min(airing => airing.AiredAt!.Value), unit.Select(airing => airing.EpisodeKey).ToList()));
+
+        releases.Sort((left, right) => left.AiredAt.CompareTo(right.AiredAt));
+        if (releases.Count < Math.Max(options.MinimumReleases, 3))
+            return [];
+
+        var gaps = new List<TimeSpan>();
+        for (var index = 1; index < releases.Count; index++)
+            gaps.Add(releases[index].AiredAt - releases[index - 1].AiredAt);
+
+        // A split cour leaves a season-long gap, which is neither the cadence nor
+        // a break in it.
+        var measured = gaps.Where(gap => gap < options.MaximumGap).ToList();
+        if (measured.Count is 0)
+            return [];
+
+        var cadence = GetMedian(measured);
+        if (cadence <= TimeSpan.Zero)
+            return [];
+
+        var breaks = new List<AiringCadenceBreak>();
+        for (var index = 1; index < releases.Count; index++)
+        {
+            var gap = releases[index].AiredAt - releases[index - 1].AiredAt;
+            if (gap >= options.MaximumGap || gap + options.Tolerance < cadence * 2)
+                continue;
+
+            var skipped = (int)Math.Round(gap / cadence) - 1;
+            if (skipped < 1)
+                continue;
+
+            breaks.Add(new AiringCadenceBreak(
+                releases[index].AiredAt,
+                releases[index - 1].AiredAt + cadence,
+                cadence,
+                skipped,
+                releases[index].EpisodeKeys
+            ));
+        }
+
+        return breaks;
+    }
+
+    #endregion
+}

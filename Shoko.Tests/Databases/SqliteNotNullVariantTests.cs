@@ -47,6 +47,18 @@ public class SqliteNotNullVariantTests
     private const string AniDBAnimeTitle =
         "CREATE TABLE AniDB_Anime_Title ( AniDB_Anime_TitleID INTEGER PRIMARY KEY AUTOINCREMENT, AnimeID INTEGER NOT NULL, TitleType TEXT NOT NULL, Language TEXT NOT NULL, Title TEXT NULL )";
 
+    // As a tool that rebuilt the table outside Shoko, such as DB Browser for SQLite, leaves it.
+    private const string AniDBAnimeTitleWithQuotedIdentifiers = """
+        CREATE TABLE "AniDB_Anime_Title" (
+            "AniDB_Anime_TitleID"    INTEGER,
+            "AnimeID"    int NOT NULL,
+            "TitleType"    text NOT NULL,
+            "Language"    text NOT NULL,
+            "Title"    text,
+            PRIMARY KEY("AniDB_Anime_TitleID" AUTOINCREMENT)
+        )
+        """;
+
     #region The two columns the migration tightens
 
     [Theory]
@@ -66,6 +78,14 @@ public class SqliteNotNullVariantTests
         var patched = SQLite.NotNullVariantOf(AniDBAnimeTitle, "Title");
 
         Assert.Contains("Title TEXT NOT NULL )", patched);
+    }
+
+    [Fact]
+    public void TheTitleColumnIsTightenedWhenTheIdentifiersAreQuoted()
+    {
+        var patched = SQLite.NotNullVariantOf(AniDBAnimeTitleWithQuotedIdentifiers, "Title");
+
+        Assert.Contains("\"Title\"    text NOT NULL,", patched);
     }
 
     #endregion
@@ -111,6 +131,17 @@ public class SqliteNotNullVariantTests
         Assert.Contains("DateTimeCreatedRaw TEXT NULL", patched);
         Assert.Contains("XDateTimeCreated TEXT NULL", patched);
         Assert.Contains("DateTimeCreated DATETIME NOT NULL", patched);
+    }
+
+    [Fact]
+    public void EveryColumnButTitleSurvivesWhenTheIdentifiersAreQuoted()
+    {
+        var patched = SQLite.NotNullVariantOf(AniDBAnimeTitleWithQuotedIdentifiers, "Title");
+
+        Assert.Contains("\"AnimeID\"    int NOT NULL,", patched);
+        Assert.Contains("\"TitleType\"    text NOT NULL,", patched);
+        Assert.Contains("\"Language\"    text NOT NULL,", patched);
+        Assert.Contains("PRIMARY KEY(\"AniDB_Anime_TitleID\" AUTOINCREMENT)", patched);
     }
 
     #endregion

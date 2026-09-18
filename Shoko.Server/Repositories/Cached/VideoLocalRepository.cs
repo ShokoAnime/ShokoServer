@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
-using NutzCode.InMemoryIndex;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;

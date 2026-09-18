@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using NutzCode.InMemoryIndex;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 

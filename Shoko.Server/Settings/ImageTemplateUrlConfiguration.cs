@@ -35,7 +35,7 @@ public class ImageTemplateUrlConfiguration
         if (config.TemplateUrl is not null)
         {
             var urlErrors = new List<string>();
-            if (!Uri.TryCreate(config.TemplateUrl, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttp || uri.Scheme != Uri.UriSchemeHttps)
+            if (!Uri.TryCreate(config.TemplateUrl, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                 urlErrors.Add($"{nameof(config.TemplateUrl)} must be a valid http:// or https:// URL.");
             if (!config.TemplateUrl.Contains("{0}"))
                 urlErrors.Add($"{nameof(config.TemplateUrl)} must contain {{0}}.");

@@ -97,9 +97,12 @@ public interface IExecutableAction
     ///   report something log it, same as the rest of the queue already does.
     /// </remarks>
     /// <param name="token">
-    ///   The cancellation token, bound to the queue job lifecycle rather than
-    ///   the invoking request — there is no live HTTP request left by the
-    ///   time a queued action runs.
+    ///   The cancellation token of the queue worker running the action, not of
+    ///   the invoking request — there is no live HTTP request left by the time a
+    ///   queued action runs. It is cancelled when the worker pool is stopped
+    ///   (server shutdown, or an explicit queue stop) and at no other time:
+    ///   there is no way to cancel a single running action. Long-running actions
+    ///   should still honour it so shutdown is not held up.
     /// </param>
     Task Execute(CancellationToken token = default);
 }
