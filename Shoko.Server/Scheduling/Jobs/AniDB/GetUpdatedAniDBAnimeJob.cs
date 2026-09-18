@@ -3,9 +3,11 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
@@ -25,7 +27,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimeRepository, AniDB_AnimeUpdateRepository anidbAnimeUpdates, AnimeSeriesRepository animeSeries, ScheduledUpdateRepository scheduledUpdates) : BaseJob
+public class GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimeRepository, AniDB_AnimeUpdateRepository anidbAnimeUpdates, AnimeSeriesRepository animeSeries, ScheduledUpdateRepository scheduledUpdates, IQueueScheduler scheduler) : BaseJob
 {
     public bool ForceRefresh { get; set; }
 
@@ -144,6 +146,9 @@ public class GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbServi
 
             await anidbService.ScheduleRefreshOfAnimeByID(animeID, AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful).ConfigureAwait(false);
             countSeries++;
+
+            await scheduler.StartJob<GetAniDBReleaseGroupStatusJob>(
+                c => (c.AnimeID, c.ForceRefresh) = (animeID, ForceRefresh));
         }
 
         return (response, countAnime, countSeries);

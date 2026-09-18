@@ -23,7 +23,6 @@ public static class RepositoryStartup
 
         services.AddDirectRepository<AniDB_Anime_RelationRepository>();
         services.AddDirectRepository<AniDB_Anime_StaffRepository>();
-        services.AddDirectRepository<AniDB_GroupStatusRepository>();
         services.AddDirectRepository<FileNameHashRepository>();
         services.AddDirectRepository<PlaylistRepository>();
         services.AddDirectRepository<ScanFileRepository>();
@@ -60,6 +59,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<AniDB_Episode_TitleRepository>();
         services.AddCachedRepository<AniDB_CreatorRepository>();
         services.AddCachedRepository<AniDB_TagRepository>();
+        services.AddCachedRepository<AniDB_GroupStatusRepository>();
         services.AddCachedRepository<AiringChannelRepository>();
         services.AddCachedRepository<AiringScheduleRepository>();
         services.AddCachedRepository<AiringScheduleSweepStateRepository>();

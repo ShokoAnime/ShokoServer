@@ -279,6 +279,28 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     public IReadOnlyList<CrossRef_File_Episode> FileCrossReferences
         => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(AniDB_EpisodeID);
 
+    /// <summary>
+    /// Determines whether an aired episode with no local files should be counted as missing,
+    /// based on the cached AniDB group release statuses for its anime.
+    /// </summary>
+    /// <param name="groupStatuses">Group statuses already scoped to this episode's anime. An empty list is treated as missing.</param>
+    /// <returns><see langword="true"/> if the episode is considered missing; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>
+    /// This predicate is intended for <see cref="EpisodeType.Episode"/> episodes only; callers must
+    /// pre-filter by episode type AND file presence before calling it.
+    /// </remarks>
+    public bool IsMissingEpisode(IReadOnlyList<AniDB_GroupStatus> groupStatuses)
+    {
+        if (IsHidden) return false;
+        var anidb = AniDB_Episode;
+        if (anidb == null) return false;
+        if (!anidb.HasAired) return false;
+
+        return groupStatuses.Count == 0 || groupStatuses.Any(gs =>
+            gs.CompletionState is (int)GroupCompletionStatus.Complete or (int)GroupCompletionStatus.Finished
+            || gs.LastEpisodeNumber >= anidb.EpisodeNumber);
+    }
+
     #endregion
 
     #region AniDB
