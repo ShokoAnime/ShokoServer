@@ -169,13 +169,18 @@ jobs:
       - name: Get Latest Web UI Release
         id: webui_release
         run: |
-          download_url=$(curl -s https://raw.githubusercontent.com/ShokoAnime/Shoko-WebUI/metadata/manifest.json | jq -r '.Dev[0].downloadUrl')
+          # `--fail` keeps an error body out of `jq`; unchecked, this once resolved to the literal string "null" and curled that.
+          download_url=$(curl --fail --silent --show-error https://raw.githubusercontent.com/ShokoAnime/Shoko-WebUI/metadata/manifest.json | jq -r '.Dev[0].downloadUrl')
+          if [ -z "${download_url}" ] || [ "${download_url}" = "null" ]; then
+            echo "could not resolve the web ui download url" >&2
+            exit 1
+          fi
           echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
 
       - name: Download and Extract Web UI
         run: |
           mkdir -p webui
-          curl -L "${{ steps.webui_release.outputs.download_url }}" -o webui/latest.zip
+          curl --fail --location "${{ steps.webui_release.outputs.download_url }}" -o webui/latest.zip
           cd webui
           unzip -o latest.zip
           rm latest.zip
@@ -195,14 +200,21 @@ jobs:
     steps:
       - name: Get Latest Stable Offline Importer Release
         id: plugin_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          download_url=$(curl -s https://api.github.com/repos/revam/dotnet-shoko-plugin-offline-importer/releases/latest | jq -r '.assets[0].browser_download_url')
+          # `--fail` keeps an error body out of `jq`; unchecked, this once resolved to the literal string "null" and curled that.
+          download_url=$(curl --fail --silent --show-error -H "Authorization: Bearer ${GH_TOKEN}" https://api.github.com/repos/revam/dotnet-shoko-plugin-offline-importer/releases/latest | jq -r '.assets[0].browser_download_url')
+          if [ -z "${download_url}" ] || [ "${download_url}" = "null" ]; then
+            echo "could not resolve the offline importer download url" >&2
+            exit 1
+          fi
           echo "download_url=${download_url}" >> "$GITHUB_OUTPUT"
 
       - name: Download and Extract Offline Importer
         run: |
           mkdir -p plugins
-          curl -L "${{ steps.plugin_release.outputs.download_url }}" -o plugins/latest.zip
+          curl --fail --location "${{ steps.plugin_release.outputs.download_url }}" -o plugins/latest.zip
           cd plugins
           unzip -o latest.zip
           rm latest.zip
