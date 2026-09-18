@@ -367,6 +367,41 @@ public class UiDefinitionBuilderTests
     }
 
     [Fact]
+    public void AHandlerThatNamesMembers_MarksOnlyThose()
+    {
+        var definition = BuildFor(typeof(WatchfulRoot), "Watchful");
+        var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
+
+        // Only the members the handler named are worth posting for.
+        Assert.True(root.Items["FfmpegPath"].ReactsToLiveEdit);
+        Assert.True(root.Items["Acceleration"].ReactsToLiveEdit);
+        Assert.False(root.Items["Comment"].ReactsToLiveEdit);
+        // The class still says it handles live edits at all.
+        Assert.True(root.HasLiveEdit);
+
+        // A class with a handler that named nothing watches all of its own
+        // members, and everything below it that has no handler of its own.
+        var everything = Assert.IsType<UiSectionContainerElement>(root.Items["Watching"]);
+        Assert.All(everything.Items.Values, x => Assert.True(x.ReactsToLiveEdit));
+        var below = Assert.IsType<UiSectionContainerElement>(everything.Items["Below"]);
+        Assert.All(below.Items.Values, x => Assert.True(x.ReactsToLiveEdit));
+
+        // A branch with no handler anywhere above it reacts to nothing.
+        var quiet = Assert.IsType<UiSectionContainerElement>(root.Items["Quiet"]);
+        Assert.All(quiet.Items.Values, x => Assert.False(x.ReactsToLiveEdit));
+    }
+
+    [Theory]
+    [InlineData(typeof(WatchesAMemberThatIsNotThere), "does not have")]
+    [InlineData(typeof(WatchesFromTheWrongHook), "not raised by an edit")]
+    public void AHandlerThatCannotWatchWhatItNames_Fails(Type type, string because)
+    {
+        var exception = Assert.ThrowsAny<Exception>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type));
+
+        Assert.Contains(because, exception.InnerException?.Message ?? exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BothSerializerPaths_ProduceTheSameDefinition()
     {
         var newtonsoft = Serialize(BuildFor(typeof(NewtonsoftTwinConfiguration), "Twin"))
@@ -508,6 +543,70 @@ public class UiDefinitionBuilderTests
             ContractResolver = new DefaultContractResolver { NamingStrategy = new DefaultNamingStrategy() },
             NullValueHandling = NullValueHandling.Include,
         });
+
+    /// <summary>
+    ///   A shape whose handler watches two of its members.
+    /// </summary>
+    public class WatchfulRoot
+    {
+        /// <summary>Watched.</summary>
+        public string FfmpegPath { get; set; } = string.Empty;
+
+        /// <summary>Watched.</summary>
+        public string Acceleration { get; set; } = string.Empty;
+
+        /// <summary>Not watched.</summary>
+        public string Comment { get; set; } = string.Empty;
+
+        /// <summary>A branch whose class watches everything.</summary>
+        public WatchesEverything Watching { get; set; } = new();
+
+        /// <summary>A branch nothing watches.</summary>
+        public QuietBranch Quiet { get; set; } = new();
+
+        /// <summary>Reacts to two of the members above.</summary>
+        [ConfigurationAction(ConfigurationActionType.LiveEdit)]
+        [ReactiveMembers(nameof(FfmpegPath), nameof(Acceleration))]
+        public void OnEdit() { }
+    }
+
+    /// <summary>A class whose handler names nothing.</summary>
+    public class WatchesEverything
+    {
+        /// <summary>A member.</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>A branch below it, with no handler of its own.</summary>
+        public QuietBranch Below { get; set; } = new();
+
+        /// <summary>Reacts to anything here or below.</summary>
+        [ConfigurationAction(ConfigurationActionType.LiveEdit)]
+        public void OnEdit() { }
+    }
+
+    /// <summary>A handler naming a member the class does not have.</summary>
+    public class WatchesAMemberThatIsNotThere
+    {
+        /// <summary>A member.</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>Watches nothing that exists.</summary>
+        [ConfigurationAction(ConfigurationActionType.LiveEdit)]
+        [ReactiveMembers("Nonexistent")]
+        public void OnEdit() { }
+    }
+
+    /// <summary>A hook that is not raised by an edit, naming members.</summary>
+    public class WatchesFromTheWrongHook
+    {
+        /// <summary>A member.</summary>
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>Runs on save, so it watches nothing in particular.</summary>
+        [ConfigurationAction(ConfigurationActionType.Save)]
+        [ReactiveMembers(nameof(Name))]
+        public void OnSave() { }
+    }
 
     /// <summary>
     ///   A shape whose gathered sections are described by the class.
