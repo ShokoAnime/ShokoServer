@@ -40,6 +40,25 @@ public interface IPlugin
     string? EmbeddedThumbnailResourceName { get => null; }
 
     /// <summary>
+    ///   Called once after the plugin is resolved from DI, to acquire the
+    ///   services it needs. The default implementation is a no-op; override
+    ///   only when needed.
+    /// </summary>
+    /// <remarks>
+    ///   A plugin is built twice. Discovery builds it with
+    ///   <see cref="System.Activator.CreateInstance(System.Type)"/> to read the
+    ///   identity above, which needs a public parameterless constructor and
+    ///   throws without one, so a plugin that takes a constructor dependency
+    ///   never loads at all. This hook is how a plugin reaches the container
+    ///   instead. It mirrors <c>IQueueJob.Setup</c>, which exists for the same
+    ///   reason.
+    /// </remarks>
+    /// <param name="serviceProvider">
+    ///   The service provider to resolve services from.
+    /// </param>
+    void Setup(IServiceProvider serviceProvider) { }
+
+    /// <summary>
     ///   Get the pages exposed by the plugin.
     /// </summary>
     /// <returns>

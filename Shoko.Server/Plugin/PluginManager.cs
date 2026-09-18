@@ -533,6 +533,22 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
             var pluginType = localPluginInfo.PluginType!;
             var pluginInstance = (IPlugin)ActivatorUtilities.CreateInstance(ISystemService.StaticServices, pluginType);
+            try
+            {
+                pluginInstance.Setup(ISystemService.StaticServices);
+            }
+            catch (Exception ex)
+            {
+                // A plugin whose setup threw never got the services it asked for, so anything it
+                // does afterwards fails in whatever way that particular member happens to fail.
+                // Skipping it keeps the fault here, where the log explains it, rather than
+                // surfacing later as unrelated misbehaviour from a plugin that looks loaded.
+                logger.LogError(ex, "Skipping plugin \"{Name}\" because it threw while setting itself up. ({DllName}, {Version})", pluginInstance.Name, dllName, localPluginInfo.Version);
+                if (pluginInstance is IDisposable disposable)
+                    disposable.Dispose();
+
+                continue;
+            }
             _pluginTypes[localPluginInfo.LoadOrder] = new()
             {
                 ID = pluginInstance.ID,
