@@ -221,8 +221,8 @@ Besides `[CustomAction]`, a class can declare lifecycle hooks with
 | `LiveEdit` | While the user is editing, before anything is saved |
 
 A hook is declared on the class it belongs to, so a nested class handles its own
-edits. Only `LiveEdit` is raised by an event, and it can name which one it wants
-with `ReactiveEventType`; a handler that names none takes them all.
+edits. Only `LiveEdit` is raised by an event, and it can name the ones it wants
+with `Events`; a handler that names none takes them all.
 
 A hook owns its side of the job, which is the point of declaring one:
 
@@ -241,19 +241,27 @@ With both unset, nothing under that branch reacts, and a client editing there
 posts nothing. A live edit returns JSON Patch operations against the document
 that was posted, not a whole configuration.
 
-A handler can narrow that to the members it actually watches, which puts the
-flag on the element itself as `ReactsToLiveEdit`:
+A handler can narrow that to the events and the members it actually cares about,
+which reaches the element as `ReactsToLiveEdit`: the events an edit to it is
+worth sending on, empty when nothing watches it:
 
 ```csharp
-[ConfigurationAction(ConfigurationActionType.LiveEdit)]
-[ReactiveMembers(nameof(FfmpegPath), nameof(HardwareAcceleration))]
+[ConfigurationAction(ConfigurationActionType.LiveEdit,
+    Events = [ReactiveEventType.Unfocused, ReactiveEventType.Edited],
+    ReactiveMembers = [nameof(FfmpegPath), $"{nameof(Nested)}.{nameof(NestedConfiguration.Mode)}"])]
 public ConfigurationActionResult OnEdit(ConfigurationActionContext<MyConfiguration> context) { … }
 ```
 
-Leave `[ReactiveMembers]` off and the handler keeps its old reach: everything in
-its own class, and everything below it that has no handler of its own. Naming a
-member the class does not have, or putting it on a hook that is not raised by an
-edit, fails when the configuration is described.
+A request carries one event and a handler is interested in as many as it likes,
+so `Events` is the plural side of the same enum: name none and the handler takes
+them all, which reaches the element as `All`. Dispatch prefers the handler that
+named the raised event, and falls back to one that named none.
+
+`ReactiveMembers` may descend into a nested class. Leave it off and the handler
+watches everything in its own class, and everything below it that has no handler
+of its own. A member a handler names but the class does not have,
+a name pointing through a list or dictionary, or either property on a hook that
+no event raises, fails when the configuration is described.
 
 ---
 

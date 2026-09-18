@@ -372,28 +372,38 @@ public class UiDefinitionBuilderTests
         var definition = BuildFor(typeof(WatchfulRoot), "Watchful");
         var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
 
-        // Only the members the handler named are worth posting for.
-        Assert.True(root.Items["FfmpegPath"].ReactsToLiveEdit);
-        Assert.True(root.Items["Acceleration"].ReactsToLiveEdit);
-        Assert.False(root.Items["Comment"].ReactsToLiveEdit);
+        // Only the members the handler named are worth posting for, and only on
+        // the events it named.
+        Assert.Equal([ReactiveEventType.Unfocused, ReactiveEventType.Edited], root.Items["FfmpegPath"].ReactsToLiveEdit);
+        Assert.Equal([ReactiveEventType.Unfocused, ReactiveEventType.Edited], root.Items["Acceleration"].ReactsToLiveEdit);
+        Assert.Empty(root.Items["Comment"].ReactsToLiveEdit);
         // The class still says it handles live edits at all.
         Assert.True(root.HasLiveEdit);
 
         // A class with a handler that named nothing watches all of its own
         // members, and everything below it that has no handler of its own.
         var everything = Assert.IsType<UiSectionContainerElement>(root.Items["Watching"]);
-        Assert.All(everything.Items.Values, x => Assert.True(x.ReactsToLiveEdit));
+        Assert.All(
+            everything.Items.Where(x => x.Key is not "Name").Select(x => x.Value),
+            x => Assert.Equal([ReactiveEventType.All], x.ReactsToLiveEdit)
+        );
         var below = Assert.IsType<UiSectionContainerElement>(everything.Items["Below"]);
-        Assert.All(below.Items.Values, x => Assert.True(x.ReactsToLiveEdit));
+        Assert.All(below.Items.Values, x => Assert.Equal([ReactiveEventType.All], x.ReactsToLiveEdit));
+        // `Watching.Name` is watched by both its own class and the dotted name
+        // the root handler gave, so it carries the union.
+        Assert.Equal(
+            [ReactiveEventType.All, ReactiveEventType.Unfocused, ReactiveEventType.Edited],
+            everything.Items["Name"].ReactsToLiveEdit
+        );
 
         // A branch with no handler anywhere above it reacts to nothing.
         var quiet = Assert.IsType<UiSectionContainerElement>(root.Items["Quiet"]);
-        Assert.All(quiet.Items.Values, x => Assert.False(x.ReactsToLiveEdit));
+        Assert.All(quiet.Items.Values, x => Assert.Empty(x.ReactsToLiveEdit));
     }
 
     [Theory]
     [InlineData(typeof(WatchesAMemberThatIsNotThere), "does not have")]
-    [InlineData(typeof(WatchesFromTheWrongHook), "not raised by an edit")]
+    [InlineData(typeof(WatchesFromTheWrongHook), "not raised by an event")]
     public void AHandlerThatCannotWatchWhatItNames_Fails(Type type, string because)
     {
         var exception = Assert.ThrowsAny<Exception>(() => ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(type));
@@ -565,8 +575,11 @@ public class UiDefinitionBuilderTests
         public QuietBranch Quiet { get; set; } = new();
 
         /// <summary>Reacts to two of the members above.</summary>
-        [ConfigurationAction(ConfigurationActionType.LiveEdit)]
-        [ReactiveMembers(nameof(FfmpegPath), nameof(Acceleration))]
+        [ConfigurationAction(
+            ConfigurationActionType.LiveEdit,
+            Events = [ReactiveEventType.Unfocused, ReactiveEventType.Edited],
+            ReactiveMembers = [nameof(FfmpegPath), nameof(Acceleration), $"{nameof(Watching)}.{nameof(WatchesEverything.Name)}"]
+        )]
         public void OnEdit() { }
     }
 
@@ -591,8 +604,7 @@ public class UiDefinitionBuilderTests
         public string Name { get; set; } = string.Empty;
 
         /// <summary>Watches nothing that exists.</summary>
-        [ConfigurationAction(ConfigurationActionType.LiveEdit)]
-        [ReactiveMembers("Nonexistent")]
+        [ConfigurationAction(ConfigurationActionType.LiveEdit, ReactiveMembers = ["Nonexistent"])]
         public void OnEdit() { }
     }
 
@@ -603,8 +615,7 @@ public class UiDefinitionBuilderTests
         public string Name { get; set; } = string.Empty;
 
         /// <summary>Runs on save, so it watches nothing in particular.</summary>
-        [ConfigurationAction(ConfigurationActionType.Save)]
-        [ReactiveMembers(nameof(Name))]
+        [ConfigurationAction(ConfigurationActionType.Save, ReactiveMembers = [nameof(Name)])]
         public void OnSave() { }
     }
 
