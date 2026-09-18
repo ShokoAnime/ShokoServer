@@ -373,13 +373,13 @@ public async Task<bool> RefreshAsync(ISeries series, CancellationToken cancellat
 }
 ```
 
-**Explicit removal deletes; absence is a hiatus.** Naming an airing in
-`removals` is the same signal `RemoveAiring` carries, so it goes whichever side
-of now its slot is. Leaving one out of a `SetAirings` submission is the other
-signal: an airing with a slot still ahead of us is what a source pre-empting an
-episode looks like, so it is kept without a slot, with the slot it lost on
-`OriginalAiredAt`, while one whose slot has already passed, or that falls
-outside what the schedule covers, is deleted as history.
+**Explicit removal deletes; absence is a hiatus.** An airing named in
+`removals` goes whichever side of now its slot is. Leaving one out of a
+`SetAirings` submission is the other signal: an airing with a slot still ahead
+of us is what a source pre-empting an episode looks like, so it is kept without
+a slot, with the slot it lost on `OriginalAiredAt`, while one whose slot has
+already passed, or that falls outside what the schedule covers, is deleted as
+history.
 
 A windowed source has a removal that means the absence rather than the delete:
 it asked its source about a stretch of time, and a slot inside that stretch is
@@ -396,10 +396,8 @@ It only ever holds a slot open that is still ahead of us and inside the run this
 write judges against, so a past slot, a run this write calls finished and an
 episode outside the stated coverage are deleted as history with it on.
 
-Reach for `RemoveAiring` when you mean "this row was a mistake" and have nothing
-else to write, for a plain `removals` entry when you mean the same thing in the
-middle of a delta, and for `KeepRemovalsAsHiatus` when you mean "my source
-stopped listing this".
+Reach for a plain `removals` entry when you mean "this row was a mistake", and
+for `KeepRemovalsAsHiatus` when you mean "my source stopped listing this".
 
 **Coverage is not guessed from a delta.** Where a run starts and ends, and
 whether it has finished, decide whether a removal you asked to keep is a hiatus
@@ -788,15 +786,14 @@ reach.
   hiatus and which airings merely shifted behind it are all judgements made
   by comparing an entire schedule's old airings to its new ones. A source that
   only ever hands you part of a run goes through `MergeAirings`, which reaches
-  the same inference with the removals stated rather than left out. Reach for
-  `AddOrUpdateAiring` / `UpdateAiring` only for a genuinely incremental or
-  manual edit to one entry; they run no cause detection and no hiatus
-  inference at all.
+  the same inference with the removals stated rather than left out. A one-off
+  edit to a single entry is a `MergeAirings` call naming that one airing; there
+  is no separate single-airing write, so every write gets the same inference.
 - **Explicit removal deletes; absence is a hiatus.** An airing you leave out of
   a `SetAirings` submission whose slot is still ahead of us is kept as a
-  hiatus, because your source stopped listing it. An airing you name, whether
-  in `MergeAirings`'s `removals` or through `RemoveAiring`, is deleted. If your
-  removals are really absence inside a window you asked about, say so with
+  hiatus, because your source stopped listing it. An airing you name in
+  `MergeAirings`'s `removals` is deleted. If your removals are really absence
+  inside a window you asked about, say so with
   `EpisodeAiringUpdateOptions { KeepRemovalsAsHiatus = true }`.
 - **Leave `IsDelayed` (and usually `OriginalAiredAt`) null and let the service
   infer them**, unless your source already reports delays itself. If it does,
@@ -814,13 +811,12 @@ reach.
   station.
 - **Respect retention.** The sweep judges a schedule on its *latest* airing, so
   a run with one slot inside the window keeps every older slot alongside it, and
-  `SetAirings`, `MergeAirings`, `AddOrUpdateAiring` and `UpdateAiring` judge a
-  write the same way: they reject (as part of
-  `AiringScheduleValidationException`, under the key `#schedule`) only a write
-  that would leave the schedule with no airing inside the window at all, while
-  automatic cleanup is on. Backfilling a long-running show's history is fine.
-  Submitting a run that ended four years ago on its own is not; it would only be
-  swept again on the next run. A removal a write keeps as a hiatus holds on to
+  `SetAirings` and `MergeAirings` judge a write the same way: they reject (as
+  part of `AiringScheduleValidationException`, under the key `#schedule`) only
+  a write that would leave the schedule with no airing inside the window at
+  all, while automatic cleanup is on. Backfilling a long-running show's history
+  is fine. Submitting a run that ended four years ago on its own is not; it
+  would only be swept again on the next run. A removal a write keeps as a hiatus holds on to
   the slot it lost, so it still counts towards the window; one the write
   deletes stops counting, and taking away a schedule's last slot inside the
   window that way is what the rejection is for.
@@ -829,8 +825,9 @@ reach.
   though, is `(provider, series, season, key)`: that is what `GetScheduleID`
   hashes, and the channel is immutable without being part of it. Likewise an
   airing's schedule, key and episode never change on an existing row.
-  `AddOrUpdateSchedule`/`UpdateSchedule` and `AddOrUpdateAiring`/`UpdateAiring`
-  reject an attempt to change them.
+  A write naming a different episode or key writes a different airing;
+  `AddOrUpdateSchedule`/`UpdateSchedule` reject an attempt to change a
+  schedule's own.
 - **Prefer passing a stable `Key`.** Without one, a schedule's key is derived
   from its channel and full track set, so adding a language to a keyless
   schedule silently creates a *new* schedule instead of updating the old one.
@@ -851,7 +848,7 @@ the shape of the contract:
 | `AddChannelAliases` | `ChannelAliasConflictException` | An alias is another channel's own name, or another channel's alias, of the same type. Carries the alias, the channel already holding it, and which of the two it holds it as, so a bulk seeder can skip that one and move on. |
 | `AddOrUpdateSchedule`, `UpdateSchedule` | `ArgumentException` | No tracks; a track of a kind the provider doesn't declare; an unregistered channel; a different channel for the same identity; a coverage range whose first episode is after its last. |
 | Anything taking a time zone | `TimeZoneNotFoundException` | The zone can't be normalised to an IANA id or a fixed offset. |
-| `SetAirings`, `MergeAirings`, `AddOrUpdateAiring`, `UpdateAiring` | `AiringScheduleValidationException` | An episode outside the schedule's series, season or coverage; two airings sharing a key in one call; an airing both submitted and removed by the same `MergeAirings` call; a write that would leave the schedule with no airing inside the retention window while cleanup is on. This is a `GenericValidationException`, so a batch call reports *every* rejected airing at once, keyed by airing key, instead of failing on the first. The retention rejection is about the schedule rather than any one airing, so it is keyed `#schedule`. |
+| `SetAirings`, `MergeAirings` | `AiringScheduleValidationException` | An episode outside the schedule's series, season or coverage; two airings sharing a key in one call; an airing both submitted and removed by the same `MergeAirings` call; a write that would leave the schedule with no airing inside the retention window while cleanup is on. This is a `GenericValidationException`, so a batch call reports *every* rejected airing at once, keyed by airing key, instead of failing on the first. The retention rejection is about the schedule rather than any one airing, so it is keyed `#schedule`. |
 | `MergeAirings` | `ArgumentException` | A removal is an estimate, is unknown, or is on another schedule. |
 | `LinkAirings`, `UnlinkAiring` | `ArgumentException` | Fewer than two airings passed to `LinkAirings`, or the airings span more than one schedule. |
 | `RefreshAsync` (the awaitable overloads) | `OperationCanceledException` | The token was cancelled. A provider that throws instead is reported in the result, never re-thrown. |

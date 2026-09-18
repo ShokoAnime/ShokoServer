@@ -30,8 +30,8 @@ public sealed class EpisodeAiringUpdateOptions
     ///   Whether an airing this write names for removal is kept, slotless, as a
     ///   hiatus instead of being deleted. It only has anything to say about the
     ///   airings handed to <c>MergeAirings</c> as removals: naming one deletes
-    ///   it by default, exactly as <c>RemoveAiring</c> does, and an airing left
-    ///   out of a <c>SetAirings</c> submission is a hiatus whatever this says.
+    ///   it by default, and an airing left out of a <c>SetAirings</c>
+    ///   submission is a hiatus whatever this says.
     ///   Turn it on for a provider whose removal means "my source pre-empted
     ///   this" rather than "this row should go". Defaults to <c>false</c>.
     /// </summary>

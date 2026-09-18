@@ -252,115 +252,6 @@ public partial class AiringScheduleService
         return ToViews(context, scheduleView, [.. added, .. updated, .. hiatus]);
     }
 
-    /// <inheritdoc/>
-    public IEpisodeAiring AddOrUpdateAiring(IAiringScheduleProvider provider, IAiringSchedule schedule, EpisodeAiringData airing)
-    {
-        ArgumentNullException.ThrowIfNull(airing);
-
-        var info = GetRegisteredProvider(provider, nameof(provider));
-        var row = GetOwnedSchedule(info, schedule, nameof(schedule));
-        var now = DateTime.UtcNow;
-        var context = new AiringReadContext(this, includeDisabled: true);
-        var scheduleView = context.GetSchedule(row);
-        var submission = ValidateAirings(context, row, [airing]).Single();
-
-        var stored = RepoFactory.EpisodeAiring.GetByScheduleIDAndKey(row.AiringScheduleID, submission.Key);
-        // A move of a day or more keeps the first scheduled slot; cause
-        // detection belongs to a whole-line write, so it doesn't run here.
-        var originalAiredAt = stored is null
-            ? airing.OriginalAiredAt
-            : airing.OriginalAiredAt ?? (HasMoved(stored.AiredAt, airing.AiredAt) ? stored.OriginalAiredAt ?? stored.AiredAt : stored.OriginalAiredAt);
-        // Judged before anything on the row moves, so a refusal leaves the
-        // stored airing exactly as it was.
-        ValidateRetention(row, stored, airing.AiredAt ?? originalAiredAt, now);
-
-        var entry = stored ?? new EpisodeAiring()
-        {
-            AiringScheduleID = row.AiringScheduleID,
-            Key = submission.Key,
-            CreatedAt = now,
-        };
-        var reason = stored is null ? UpdateReason.Added : UpdateReason.Updated;
-        entry.OriginalAiredAt = originalAiredAt;
-        entry.IsDelayed = airing.IsDelayed ?? entry.IsDelayed;
-        entry.EpisodeSource = submission.Source;
-        entry.EpisodeID = submission.ID;
-        entry.Url = string.IsNullOrWhiteSpace(airing.Url) ? null : airing.Url.Trim();
-        entry.AiredAt = airing.AiredAt;
-        entry.LastUpdatedAt = now;
-        RepoFactory.EpisodeAiring.Save(entry);
-        RememberAiringID(row, entry);
-        _profiles.TryRemove(row.AiringScheduleID, out _);
-        InvalidateProfilesForSeries(row.SeriesSource, row.SeriesID);
-
-        var views = new List<IEpisodeAiring>() { new EpisodeAiringView(context, scheduleView, entry) };
-        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs
-        {
-            Reason = reason,
-            Schedule = scheduleView,
-            Added = reason is UpdateReason.Added ? views : [],
-            Updated = reason is UpdateReason.Added ? [] : views,
-        });
-        return views[0];
-    }
-
-    /// <inheritdoc/>
-    public IEpisodeAiring UpdateAiring(IAiringScheduleProvider provider, IEpisodeAiring airing, EpisodeAiringUpdateData data)
-    {
-        ArgumentNullException.ThrowIfNull(airing);
-        ArgumentNullException.ThrowIfNull(data);
-
-        var info = GetRegisteredProvider(provider, nameof(provider));
-        var (row, entry) = GetOwnedAiring(info, airing, nameof(airing));
-        var now = DateTime.UtcNow;
-        if (data.HasAiredAtSet)
-        {
-            if (!data.HasOriginalAiredAtSet && HasMoved(entry.AiredAt, data.AiredAt))
-                entry.OriginalAiredAt ??= entry.AiredAt;
-
-            entry.AiredAt = data.AiredAt;
-        }
-
-        if (data.HasOriginalAiredAtSet)
-            entry.OriginalAiredAt = data.OriginalAiredAt;
-        if (data.IsDelayed is { } isDelayed)
-            entry.IsDelayed = isDelayed;
-        if (data.HasUrlSet)
-            entry.Url = string.IsNullOrWhiteSpace(data.Url) ? null : data.Url.Trim();
-
-        ValidateRetention(row, entry, entry.AiredAt ?? entry.OriginalAiredAt, now);
-        entry.LastUpdatedAt = now;
-        RepoFactory.EpisodeAiring.Save(entry);
-        _profiles.TryRemove(row.AiringScheduleID, out _);
-        InvalidateProfilesForSeries(row.SeriesSource, row.SeriesID);
-
-        var context = new AiringReadContext(this, includeDisabled: true);
-        var scheduleView = context.GetSchedule(row);
-        var view = new EpisodeAiringView(context, scheduleView, entry);
-        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Updated, Schedule = scheduleView, Updated = [view] });
-        return view;
-    }
-
-    /// <inheritdoc/>
-    public bool RemoveAiring(IAiringScheduleProvider provider, IEpisodeAiring airing)
-    {
-        ArgumentNullException.ThrowIfNull(airing);
-
-        var info = GetRegisteredProvider(provider, nameof(provider));
-        var (row, entry) = GetOwnedAiring(info, airing, nameof(airing));
-        var context = new AiringReadContext(this, includeDisabled: true);
-        var scheduleView = context.GetSchedule(row);
-        var view = new EpisodeAiringView(context, scheduleView, entry);
-        ForgetAiringID(row, entry);
-        RepoFactory.EpisodeAiring.Delete(entry);
-        NormalizeLinkSets(row.AiringScheduleID, []);
-        _profiles.TryRemove(row.AiringScheduleID, out _);
-        InvalidateProfilesForSeries(row.SeriesSource, row.SeriesID);
-
-        AiringsUpdated?.Invoke(this, new EpisodeAiringsUpdatedEventArgs { Reason = UpdateReason.Removed, Schedule = scheduleView, Withdrawn = [view] });
-        return true;
-    }
-
     #endregion
 
     #region Episode Airings | Links
@@ -675,14 +566,14 @@ public partial class AiringScheduleService
     /// <param name="context">The read the resolutions belong to.</param>
     /// <param name="row">The schedule being written to.</param>
     /// <param name="airings">The submitted airings.</param>
-    /// <param name="removalKeys">Optional. The keys the same write takes away, which nothing it submits may name.</param>
+    /// <param name="removalKeys">The keys the same write takes away, which nothing it submits may name, or <see langword="null"/> when it names none.</param>
     /// <returns>The accepted submissions, in submission order.</returns>
     /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, or is also being removed.</exception>
     private List<AiringSubmission> ValidateAirings(
         AiringReadContext context,
         AiringSchedule row,
         IEnumerable<EpisodeAiringData> airings,
-        IReadOnlySet<string>? removalKeys = null
+        IReadOnlySet<string>? removalKeys
     )
     {
         var season = string.IsNullOrEmpty(row.SeasonID) ? null : context.GetSeason(row.SeriesSource, row.SeasonID);
@@ -767,29 +658,6 @@ public partial class AiringScheduleService
         var latest = result.ToSave
             .Select(airing => airing.AiredAt ?? airing.OriginalAiredAt)
             .Concat(existingRows.Where(entry => !touched.Contains(entry.Key)).Select(entry => entry.AiredAt ?? entry.OriginalAiredAt))
-            .Max();
-        RejectRetention(latest, now, settings);
-    }
-
-    /// <summary>
-    /// Refuse a change to one airing on the same terms, for the writes that
-    /// touch a single row rather than running the inference over a whole line.
-    /// </summary>
-    /// <param name="row">The schedule the airing is on.</param>
-    /// <param name="entry">The stored airing the change touches, or <see langword="null"/> when it adds one.</param>
-    /// <param name="slot">The slot the change gives the airing.</param>
-    /// <param name="now">The current time, in UTC.</param>
-    /// <exception cref="AiringScheduleValidationException">The change would leave the schedule without an airing inside the retention window while cleanup is on.</exception>
-    private void ValidateRetention(AiringSchedule row, EpisodeAiring? entry, DateTime? slot, DateTime now)
-    {
-        var settings = LoadSettings();
-        if (!settings.AutoCleanup)
-            return;
-
-        var latest = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID)
-            .Where(other => entry is null || other.EpisodeAiringID != entry.EpisodeAiringID)
-            .Select(other => other.AiredAt ?? other.OriginalAiredAt)
-            .Append(slot)
             .Max();
         RejectRetention(latest, now, settings);
     }
@@ -886,15 +754,6 @@ public partial class AiringScheduleService
 
         return one.Language == other.Language;
     }
-
-    /// <summary>
-    /// Whether a slot moved far enough to be a move rather than a correction.
-    /// </summary>
-    /// <param name="from">The slot the airing had.</param>
-    /// <param name="to">The slot it moved to.</param>
-    /// <returns><see langword="true"/> when the first scheduled slot should be kept.</returns>
-    private static bool HasMoved(DateTime? from, DateTime? to)
-        => from is { } before && (to is not { } after || (after - before).Duration() >= AiringInferenceOptions.DefaultMoveThreshold);
 
     /// <summary>
     /// The episode number an airing counts as for coverage, which only normal

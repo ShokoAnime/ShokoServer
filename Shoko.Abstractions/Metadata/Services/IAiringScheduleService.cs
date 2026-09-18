@@ -619,12 +619,11 @@ public interface IAiringScheduleService
     ///     through <paramref name="removals"/>.
     ///   </para>
     ///   <para>
-    ///     Explicit removal deletes; absence is a hiatus. Naming an airing in
-    ///     <paramref name="removals"/> is the same signal
-    ///     <see cref="RemoveAiring"/> carries, so it is deleted whichever side
-    ///     of now its slot is. A provider whose removal means "my source
-    ///     pre-empted this" rather than "this row should go" asks for the
-    ///     judgement an omission gets with
+    ///     Explicit removal deletes; absence is a hiatus. An airing named in
+    ///     <paramref name="removals"/> is deleted whichever side of now its
+    ///     slot is. A provider whose removal means "my source pre-empted this"
+    ///     rather than "this row should go" asks for the judgement an omission
+    ///     gets with
     ///     <see cref="EpisodeAiringUpdateOptions.KeepRemovalsAsHiatus"/>: a
     ///     removed airing whose slot is still ahead is then kept, slotless, as
     ///     a hiatus, while one whose slot has passed, or that falls outside the
@@ -688,107 +687,6 @@ public interface IAiringScheduleService
         IEnumerable<IEpisodeAiring>? removals = null,
         EpisodeAiringUpdateOptions? options = null
     );
-
-    /// <summary>
-    ///   Adds or updates a single airing on the schedule. It records the
-    ///   original slot on a move of 24 hours or more and takes
-    ///   <see cref="EpisodeAiringData.IsDelayed"/> as given, but runs no cause
-    ///   detection or hiatus inference.
-    /// </summary>
-    /// <param name="provider">
-    ///   The provider that owns the schedule.
-    /// </param>
-    /// <param name="schedule">
-    ///   The schedule to write the airing to.
-    /// </param>
-    /// <param name="airing">
-    ///   The airing.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///   <paramref name="provider"/>, <paramref name="schedule"/> or
-    ///   <paramref name="airing"/> is <c>null</c>.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    ///   <paramref name="provider"/> is not the registered instance or does not
-    ///   own the schedule.
-    /// </exception>
-    /// <exception cref="AiringScheduleValidationException">
-    ///   The episode falls outside the schedule's series, season or coverage,
-    ///   or the write would leave the schedule with no airing inside the
-    ///   retention window while automatic cleanup is on.
-    /// </exception>
-    /// <returns>
-    ///   The enriched airing.
-    /// </returns>
-    IEpisodeAiring AddOrUpdateAiring(IAiringScheduleProvider provider, IAiringSchedule schedule, EpisodeAiringData airing);
-
-    /// <summary>
-    ///   Updates single fields on an existing airing, leaving the rest alone.
-    /// </summary>
-    /// <param name="provider">
-    ///   The provider that owns the airing.
-    /// </param>
-    /// <param name="airing">
-    ///   The airing to update.
-    /// </param>
-    /// <param name="data">
-    ///   The fields to update.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///   <paramref name="provider"/>, <paramref name="airing"/> or
-    ///   <paramref name="data"/> is <c>null</c>.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    ///   <paramref name="provider"/> is not the registered instance or does not
-    ///   own the airing.
-    /// </exception>
-    /// <exception cref="AiringScheduleValidationException">
-    ///   The change would leave the schedule with no airing inside the
-    ///   retention window while automatic cleanup is on.
-    /// </exception>
-    /// <returns>
-    ///   The enriched airing.
-    /// </returns>
-    IEpisodeAiring UpdateAiring(IAiringScheduleProvider provider, IEpisodeAiring airing, EpisodeAiringUpdateData data);
-
-    /// <summary>
-    ///   Removes an airing outright. An explicit removal is not a hiatus.
-    /// </summary>
-    /// <remarks>
-    ///   Naming an airing in <see cref="MergeAirings"/>'s removals does the
-    ///   same thing, so reach for this one when there is nothing else to write.
-    ///   Neither of them is what a source pre-empting an episode looks like:
-    ///   that is an airing left out of a <see cref="SetAirings"/> submission,
-    ///   or a removal a write asked to keep with
-    ///   <see cref="EpisodeAiringUpdateOptions.KeepRemovalsAsHiatus"/>.
-    /// </remarks>
-    /// <param name="provider">
-    ///   The provider that owns the airing.
-    /// </param>
-    /// <param name="airing">
-    ///   The airing to remove.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///   <paramref name="provider"/> or <paramref name="airing"/> is
-    ///   <c>null</c>.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Parts have not been added yet.
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    ///   <paramref name="provider"/> is not the registered instance or does not
-    ///   own the airing.
-    /// </exception>
-    /// <returns>
-    ///   <c>true</c> if the airing was removed, otherwise <c>false</c>.
-    /// </returns>
-    bool RemoveAiring(IAiringScheduleProvider provider, IEpisodeAiring airing);
 
     /// <summary>
     ///   Gets the airing with the given ID.
