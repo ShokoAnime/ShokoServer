@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.475",
+      "tag": "v6.0.0-dev.475",
+      "commit": "7c7f38478ab58bc1aebf050330419662e6deae8d",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.475/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-18T12:43:25Z",
+      "releaseNotes": "\n`fix` (`plugin`): **Set a plugin up before the database, and record the failure instead of throwing**:\n\n`SetupPlugins` ran from `LateStart`, which is after the database is opened,\nand let the exception reach that handler. Both were wrong. A plugin should\ntake its services while the rest of the server is still ahead of it, and\nthrowing out of the start-up path skips the web host and lets the process\ndie with nothing left running to report why.\n\nThe failure is recorded where it happens and the boot is abandoned once the\nweb host is listening, so the server stays reachable in a state that names\nthe plugin that stopped it.\n\n- Moved the call to right after `InitPlugins`, before any database work\n- Recorded `StartupFailedException` rather than throwing, and returned the\n  host once it is up instead of continuing into setup mode or `LateStart`\n- Corrected the contract, which said `Setup` runs after the server is up\n\n`chore` (`abstractions`): **Bump to `6.0.0-alpha.91`**:\n\n`IPlugin.Setup`'s documentation changed after `alpha.90` was cut, and the XML\ndocs ship in the package, so a plugin author reading it needs a version that\ncarries the corrected text.\n"
+    },
+    {
       "version": "6.0.0.474",
       "tag": "v6.0.0-dev.474",
       "commit": "6bd003e5d188d44fa92b4af1decbf9ca21a916d7",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.446/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-06T22:24:27Z",
       "releaseNotes": "\n`fix` (`images`): **Fall back to the other series in a group without images**:\n\nA group resolved its images from its main series alone, so a group whose\nmain series had none — an AniDB anime without a poster, for instance —\nreported no images at all even when its sibling series had art. That also\ncontradicted `AnimeGroup.AvailableImageTypes`, which already aggregates\nacross `AllSeries`.\n\n- Fell back to the group's remaining series in `GetImagesForEntity` and\n  `GetImageCrossReferencesForEntity`, but only when the group would\n  otherwise be left blank, so groups that already resolve an image keep\n  the images and the ordering they had\n- Guarded every entity against being visited twice, since the same linked\n  entity can be reached through more than one series and\n  `GetImageCrossReferencesForEntity` has no `DistinctBy` to fall back on\n- Collapsed the `IShokoSeries` case into the shared series traversal, which\n  the visited-entity guard makes safe\n"
-    },
-    {
-      "version": "6.0.0.445",
-      "tag": "v6.0.0-dev.445",
-      "commit": "ab8820cd0be1ef0a692f31d79ac25fe414720dc0",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.445/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-06T21:12:47Z",
-      "releaseNotes": "\n`fix` (`api`): **Skip group and serie art thumb when no poster exists**:\n\nAnime without a poster on AniDB are a valid state, and neither a TMDB\nlink nor a user image is guaranteed either. When a group or serie had\nno posters at all, the v2 art population passed a null poster into\n`ConstructImageLinkFromTypeAndId`, which threw a\n`NullReferenceException` and 500'd the entire v2 `/api/filter` and\n`/api/serie` responses. The thumb is now only added when a poster is\nfound; fanart and banner population was already guarded.\n"
     }
   ]
 }
