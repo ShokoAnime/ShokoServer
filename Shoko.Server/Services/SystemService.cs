@@ -695,6 +695,15 @@ public class SystemService : ISystemService
             if (cancellationToken.IsCancellationRequested)
                 return;
 
+            // Here rather than beside `InitPlugins`, which runs before the web host and before the
+            // hosted services a plugin registered. A plugin that fails to set itself up is fatal,
+            // and being fatal here leaves the web host up to say so.
+            StartupMessage = "Setting up plugins...";
+            _pluginManager.SetupPlugins();
+
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
             if (ProcessPasswordResetFile())
                 return;
 

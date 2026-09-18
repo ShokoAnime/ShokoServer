@@ -509,6 +509,37 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         }
     }
 
+    /// <summary>
+    /// Hands every loaded plugin the container, so it can take the services it needs.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not part of <see cref="InitPlugins"/>. A plugin's services, hosted ones
+    /// included, are registered before initialization and cannot be taken back out of a built
+    /// container, so a plugin that fails here cannot be quietly dropped: its hosted services would
+    /// start anyway and fail somewhere that names neither the plugin nor this moment. Running
+    /// after the web host is up makes the failure fatal on purpose while leaving the Web UI
+    /// reachable to say so.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">A plugin threw while setting itself up.</exception>
+    public void SetupPlugins()
+    {
+        foreach (var localPluginInfo in _pluginTypes.ToArray())
+        {
+            if (!localPluginInfo.IsActive)
+                continue;
+
+            try
+            {
+                localPluginInfo.Plugin.Setup(ISystemService.StaticServices);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Plugin \"{Name}\" threw while setting itself up. ({Version})", localPluginInfo.Name, localPluginInfo.Version);
+                throw new InvalidOperationException($"Plugin \"{localPluginInfo.Name}\" threw while setting itself up.", ex);
+            }
+        }
+    }
+
     public void InitPlugins()
     {
         if (_exportedTypes.Count > 0)
@@ -533,22 +564,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
             var pluginType = localPluginInfo.PluginType!;
             var pluginInstance = (IPlugin)ActivatorUtilities.CreateInstance(ISystemService.StaticServices, pluginType);
-            try
-            {
-                pluginInstance.Setup(ISystemService.StaticServices);
-            }
-            catch (Exception ex)
-            {
-                // A plugin whose setup threw never got the services it asked for, so anything it
-                // does afterwards fails in whatever way that particular member happens to fail.
-                // Skipping it keeps the fault here, where the log explains it, rather than
-                // surfacing later as unrelated misbehaviour from a plugin that looks loaded.
-                logger.LogError(ex, "Skipping plugin \"{Name}\" because it threw while setting itself up. ({DllName}, {Version})", pluginInstance.Name, dllName, localPluginInfo.Version);
-                if (pluginInstance is IDisposable disposable)
-                    disposable.Dispose();
-
-                continue;
-            }
             _pluginTypes[localPluginInfo.LoadOrder] = new()
             {
                 ID = pluginInstance.ID,

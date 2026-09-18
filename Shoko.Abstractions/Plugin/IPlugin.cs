@@ -40,9 +40,10 @@ public interface IPlugin
     string? EmbeddedThumbnailResourceName { get => null; }
 
     /// <summary>
-    ///   Called once after the plugin is resolved from DI, to acquire the
-    ///   services it needs. The default implementation is a no-op; override
-    ///   only when needed.
+    ///   Called once after the server is up, to acquire the services the
+    ///   plugin needs. The default implementation is a no-op; override only
+    ///   when needed. Throwing stops the server starting, so take services
+    ///   here and leave the work that uses them for later.
     /// </summary>
     /// <remarks>
     ///   A plugin is built twice. Discovery builds it with
@@ -52,6 +53,11 @@ public interface IPlugin
     ///   never loads at all. This hook is how a plugin reaches the container
     ///   instead. It mirrors <c>IQueueJob.Setup</c>, which exists for the same
     ///   reason.
+    ///   <para>
+    ///   A plugin only gets this on recompile: a <c>Setup</c> method compiled
+    ///   against an abstraction that did not declare one is an ordinary public
+    ///   method the runtime never maps, so it silently keeps the default.
+    ///   </para>
     /// </remarks>
     /// <param name="serviceProvider">
     ///   The service provider to resolve services from.
