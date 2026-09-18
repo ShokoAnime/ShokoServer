@@ -549,8 +549,8 @@ public partial class ConfigurationService : IConfigurationService
         if (actionType is not ConfigurationActionType.LiveEdit)
             return FindHandler(type, actionType, null);
 
-        // A handler for the event itself wins, and one that took everything
-        // stands in for it.
+        // A handler that named the event wins, and one that named none stands
+        // in for it.
         return FindHandler(type, actionType, reactiveEventType) ??
             (reactiveEventType is ReactiveEventType.All ? null : FindHandler(type, actionType, ReactiveEventType.All));
     }
@@ -559,8 +559,17 @@ public partial class ConfigurationService : IConfigurationService
         => type.Methods
             .FirstOrDefault(method => method.GetAttribute<ConfigurationActionAttribute>(false) is { } attribute &&
                 attribute.ActionType == actionType &&
-                (reactiveEventType is not { } eventType || attribute.ReactiveEventType == eventType))
+                (reactiveEventType is not { } eventType || Handles(attribute, eventType)))
             ?.MethodInfo;
+
+    /// <summary>
+    ///   Whether a handler named the event, where naming none stands for all of
+    ///   them.
+    /// </summary>
+    private static bool Handles(ConfigurationActionAttribute attribute, ReactiveEventType eventType)
+        => attribute.Events is not { Length: > 0 } events
+            ? eventType is ReactiveEventType.All
+            : events.Contains(eventType);
 
     private static (ContextualType, JsonSchema, object?, MethodInfo?) GetContextualTypeForConfigurationInfo(ConfigurationInfo info, string path, object config, ConfigurationActionType? actionType = null, string? actionID = null, ReactiveEventType reactiveEventType = ReactiveEventType.All)
     {

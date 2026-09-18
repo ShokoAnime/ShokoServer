@@ -109,11 +109,11 @@ public class ReactiveHandlerDispatchTests
     public class EventfulConfiguration : IConfiguration
     {
         /// <summary>Runs when a field is unfocused.</summary>
-        [ConfigurationAction(ConfigurationActionType.LiveEdit, ReactiveEventType = ReactiveEventType.Unfocused)]
+        [ConfigurationAction(ConfigurationActionType.LiveEdit, Events = [ReactiveEventType.Unfocused])]
         public void OnUnfocused() { }
 
         /// <summary>Runs when a new value is being added.</summary>
-        [ConfigurationAction(ConfigurationActionType.LiveEdit, ReactiveEventType = ReactiveEventType.NewValue)]
+        [ConfigurationAction(ConfigurationActionType.LiveEdit, Events = [ReactiveEventType.NewValue])]
         public void OnNewValue() { }
 
         /// <summary>Runs for everything else.</summary>
@@ -125,7 +125,7 @@ public class ReactiveHandlerDispatchTests
     public class UnfocusedOnlyConfiguration : IConfiguration
     {
         /// <summary>Runs when a field is unfocused.</summary>
-        [ConfigurationAction(ConfigurationActionType.LiveEdit, ReactiveEventType = ReactiveEventType.Unfocused)]
+        [ConfigurationAction(ConfigurationActionType.LiveEdit, Events = [ReactiveEventType.Unfocused])]
         public void OnUnfocused() { }
     }
 }
