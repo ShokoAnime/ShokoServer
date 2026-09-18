@@ -870,7 +870,7 @@ public class AnilistMetadataService : IAnilistMetadataService
             var airings = schedule
                 .OrderBy(entry => entry.Key)
                 .Where(entry => episodes.ContainsKey(entry.Key))
-                // A slot the next retention sweep would remove is rejected outright, so it never reaches the service.
+                // A run that has aged out whole is dropped here, so the write is an empty line the service clears the schedule on rather than one it rejects.
                 .Where(entry => cutoff is not { } window || entry.Value.AiredAt is not { } airedAt || airedAt >= window)
                 .Select(entry => new EpisodeAiringData() { Episode = episodes[entry.Key], AiredAt = entry.Value.AiredAt })
                 .ToList();
@@ -939,10 +939,10 @@ public class AnilistMetadataService : IAnilistMetadataService
         => _airingScheduleService.GetSchedulesForSeries(anime, new() { ProviderID = info.ID, IncludeDisabled = true, LinkedEntitySchedules = false });
 
     /// <summary>
-    /// The oldest slot the service accepts while automatic cleanup is on, since
-    /// anything older is rejected as something the next sweep would remove.
+    /// The oldest slot worth submitting while automatic cleanup is on, since
+    /// anything older is only removed again by the next sweep.
     /// </summary>
-    /// <returns>The cutoff in UTC, or <c>null</c> when every slot is accepted.</returns>
+    /// <returns>The cutoff in UTC, or <c>null</c> when every slot is submitted.</returns>
     private DateTime? GetAiringRetentionCutoff()
     {
         var settings = _airingScheduleSettings.Load();

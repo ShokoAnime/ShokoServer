@@ -952,19 +952,209 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
-    public void SetAirings_RefusesAnAiringOlderThanTheRetentionWindow()
+    public void SetAirings_RefusesARunThatHasAgedOutWhole()
     {
         using var harness = new Harness();
         var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
 
-        Assert.Throws<AiringScheduleValidationException>(() => harness.Service.SetAirings(harness.Primary, schedule, [
+        var exception = Assert.Throws<AiringScheduleValidationException>(() => harness.Service.SetAirings(harness.Primary, schedule, [
             new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) },
         ]));
+        // The whole schedule is what would go, so the error is keyed on it
+        // rather than on the airing that carries the slot.
+        Assert.Equal("#schedule", Assert.Single(exception.ValidationErrors).Key);
 
         harness.Settings.AutoCleanup = false;
         Assert.Single(harness.Service.SetAirings(harness.Primary, schedule, [
             new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) },
         ]));
+
+        harness.Settings.AutoCleanup = true;
+        // And what the write refuses is exactly what the sweep takes away.
+        Assert.Equal(1, harness.Service.RunRetentionSweep());
+    }
+
+    [Fact]
+    public void SetAirings_KeepsOldAiringsBesideOneInsideTheWindow()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+
+        var written = harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-8) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = DateTime.UtcNow.AddYears(-7) },
+            new EpisodeAiringData() { Episode = harness.Episodes[2], AiredAt = DateTime.UtcNow.AddDays(-1) },
+        ]);
+
+        Assert.Equal(3, written.Count);
+        // A run that still airs keeps its whole history, and the sweep agrees.
+        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(3, harness.Airings.Object.GetAll().Count);
+    }
+
+    [Fact]
+    public void SetAirings_TakesTheSlotOnTheNearSideOfTheCutoff()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        // The service reads the clock itself, so the cutoff is approached from a
+        // minute either side of it rather than landed on exactly.
+        var months = harness.Service.LoadSettings().RetentionMonths;
+
+        Assert.Single(harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddMonths(-months).AddMinutes(1) },
+        ]));
+        Assert.Equal(0, harness.Service.RunRetentionSweep());
+
+        var exception = Assert.Throws<AiringScheduleValidationException>(() => harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddMonths(-months).AddMinutes(-1) },
+        ]));
+        Assert.Equal("#schedule", Assert.Single(exception.ValidationErrors).Key);
+    }
+
+    [Fact]
+    public void SetAirings_TakesAScheduleOfSlotlessAirings()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+
+        var written = harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = null },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = null },
+        ]);
+
+        // An airing with no slot has no date to judge, which is the arm the
+        // sweep keeps the schedule under as well.
+        Assert.Equal(2, written.Count);
+        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(2, harness.Airings.Object.GetAll().Count);
+
+        // One aged-out slot beside them still decides it.
+        var exception = Assert.Throws<AiringScheduleValidationException>(() => harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = null },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = DateTime.UtcNow.AddYears(-3) },
+        ]));
+        Assert.Equal("#schedule", Assert.Single(exception.ValidationErrors).Key);
+    }
+
+    [Fact]
+    public void SetAirings_CountsAHiatusTheWriteKeepsTowardsRetention()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = DateTime.UtcNow.AddDays(7) },
+        ]);
+
+        // Leaving the slot ahead of us out keeps it as a hiatus, so it is still
+        // on the schedule the sweep would find.
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) },
+        ]);
+        Assert.Equal(2, harness.Airings.Object.GetAll().Count);
+        Assert.Equal(0, harness.Service.RunRetentionSweep());
+
+        // The same omission on a finished run is history rather than a hiatus,
+        // which leaves nothing inside the window at all.
+        var exception = Assert.Throws<AiringScheduleValidationException>(() => harness.Service.SetAirings(
+            harness.Primary,
+            schedule,
+            [new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) }],
+            new EpisodeAiringUpdateOptions() { IsFinished = true }
+        ));
+        Assert.Equal("#schedule", Assert.Single(exception.ValidationErrors).Key);
+    }
+
+    [Fact]
+    public void MergeAirings_JudgesRetentionOnWhatTheDeltaLeavesBehind()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddDays(-1) },
+        ]);
+
+        // The delta on its own has aged out; the airing it leaves alone has not.
+        harness.Service.MergeAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = DateTime.UtcNow.AddYears(-3) },
+        ]);
+
+        Assert.Equal(2, harness.Airings.Object.GetAll().Count);
+        Assert.Equal(0, harness.Service.RunRetentionSweep());
+    }
+
+    [Fact]
+    public void MergeAirings_RefusesARemovalThatTakesTheLastAiringInsideTheWindow()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        var airings = harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = DateTime.UtcNow.AddDays(-1) },
+        ]);
+        var recent = airings.Single(airing => airing.EpisodeID == harness.Episodes[1].ID.ToString());
+
+        var exception = Assert.Throws<AiringScheduleValidationException>(
+            () => harness.Service.MergeAirings(harness.Primary, schedule, [], [recent])
+        );
+
+        Assert.Equal("#schedule", Assert.Single(exception.ValidationErrors).Key);
+        Assert.Equal(2, harness.Airings.Object.GetAll().Count);
+    }
+
+    [Fact]
+    public void AddOrUpdateAiring_JudgesRetentionOnTheWholeSchedule()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+
+        // Nothing else is on the schedule, so the one slot decides it.
+        var exception = Assert.Throws<AiringScheduleValidationException>(() => harness.Service.AddOrUpdateAiring(
+            harness.Primary,
+            schedule,
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) }
+        ));
+        Assert.Equal("#schedule", Assert.Single(exception.ValidationErrors).Key);
+
+        harness.Service.AddOrUpdateAiring(
+            harness.Primary,
+            schedule,
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = DateTime.UtcNow.AddDays(-1) }
+        );
+
+        // The same slot beside a current one is the history the sweep keeps.
+        harness.Service.AddOrUpdateAiring(
+            harness.Primary,
+            schedule,
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) }
+        );
+        Assert.Equal(2, harness.Airings.Object.GetAll().Count);
+        Assert.Equal(0, harness.Service.RunRetentionSweep());
+    }
+
+    [Fact]
+    public void UpdateAiring_JudgesRetentionOnTheWholeSchedule()
+    {
+        using var harness = new Harness();
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        var airings = harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddDays(-2) },
+            new EpisodeAiringData() { Episode = harness.Episodes[1], AiredAt = DateTime.UtcNow.AddDays(-1) },
+        ]);
+        var first = airings.Single(airing => airing.EpisodeID == harness.Episodes[0].ID.ToString());
+        var second = airings.Single(airing => airing.EpisodeID == harness.Episodes[1].ID.ToString());
+
+        // The other airing is still inside the window, so moving this one back
+        // is history rather than a schedule the sweep would take.
+        harness.Service.UpdateAiring(harness.Primary, first, new EpisodeAiringUpdateData() { AiredAt = DateTime.UtcNow.AddYears(-3) });
+        Assert.Equal(0, harness.Service.RunRetentionSweep());
+
+        // Moving the last one inside the window back empties the window out.
+        var exception = Assert.Throws<AiringScheduleValidationException>(
+            () => harness.Service.UpdateAiring(harness.Primary, second, new EpisodeAiringUpdateData() { AiredAt = DateTime.UtcNow.AddYears(-3) })
+        );
+        Assert.Equal("#schedule", Assert.Single(exception.ValidationErrors).Key);
     }
 
     #endregion

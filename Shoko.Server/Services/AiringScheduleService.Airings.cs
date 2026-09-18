@@ -11,7 +11,6 @@ using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.Airing;
 
-#nullable enable
 namespace Shoko.Server.Services;
 
 public partial class AiringScheduleService
@@ -60,7 +59,7 @@ public partial class AiringScheduleService
     /// <param name="removalKeys">The keys of the airings to take away, or <see langword="null"/> to take away everything not submitted.</param>
     /// <param name="options">How to write the airings.</param>
     /// <returns>The enriched airings the write wrote.</returns>
-    /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, is both submitted and removed, or is older than the retention window.</exception>
+    /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, is both submitted and removed, or the write would leave the schedule without an airing inside the retention window.</exception>
     private IReadOnlyList<IEpisodeAiring> WriteAirings(
         AiringSchedule row,
         IEnumerable<EpisodeAiringData> airings,
@@ -71,7 +70,7 @@ public partial class AiringScheduleService
         var now = DateTime.UtcNow;
         var context = new AiringReadContext(this, includeDisabled: true);
         var scheduleView = context.GetSchedule(row);
-        var submissions = ValidateAirings(context, row, airings, now, removalKeys);
+        var submissions = ValidateAirings(context, row, airings, removalKeys);
         var existingRows = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID);
         var existingByKey = existingRows.ToDictionary(entry => entry.Key, StringComparer.Ordinal);
         var linkKeys = GetLinkKeys(existingRows);
@@ -110,6 +109,7 @@ public partial class AiringScheduleService
         var result = removalKeys is null
             ? AiringScheduleUtility.InferAirings(existing, submitted, now, inferenceOptions)
             : AiringScheduleUtility.MergeAirings(existing, submitted, removalKeys, now, inferenceOptions);
+        ValidateRetention(existingRows, result, now);
 
         // Removals go first, so a re-keyed airing can't collide with a row that
         // is on its way out, and a promoted link head is picked from what lives.
@@ -261,31 +261,27 @@ public partial class AiringScheduleService
         var now = DateTime.UtcNow;
         var context = new AiringReadContext(this, includeDisabled: true);
         var scheduleView = context.GetSchedule(row);
-        var submission = ValidateAirings(context, row, [airing], now).Single();
+        var submission = ValidateAirings(context, row, [airing]).Single();
 
-        var entry = RepoFactory.EpisodeAiring.GetByScheduleIDAndKey(row.AiringScheduleID, submission.Key);
-        var reason = UpdateReason.Added;
-        if (entry is null)
-        {
-            entry = new EpisodeAiring()
-            {
-                AiringScheduleID = row.AiringScheduleID,
-                Key = submission.Key,
-                CreatedAt = now,
-                OriginalAiredAt = airing.OriginalAiredAt,
-                IsDelayed = airing.IsDelayed ?? false,
-            };
-        }
-        else
-        {
-            reason = UpdateReason.Updated;
-            // A move of a day or more keeps the first scheduled slot; cause
-            // detection belongs to a whole-line write, so it doesn't run here.
-            entry.OriginalAiredAt = airing.OriginalAiredAt
-                ?? (HasMoved(entry.AiredAt, airing.AiredAt) ? entry.OriginalAiredAt ?? entry.AiredAt : entry.OriginalAiredAt);
-            entry.IsDelayed = airing.IsDelayed ?? entry.IsDelayed;
-        }
+        var stored = RepoFactory.EpisodeAiring.GetByScheduleIDAndKey(row.AiringScheduleID, submission.Key);
+        // A move of a day or more keeps the first scheduled slot; cause
+        // detection belongs to a whole-line write, so it doesn't run here.
+        var originalAiredAt = stored is null
+            ? airing.OriginalAiredAt
+            : airing.OriginalAiredAt ?? (HasMoved(stored.AiredAt, airing.AiredAt) ? stored.OriginalAiredAt ?? stored.AiredAt : stored.OriginalAiredAt);
+        // Judged before anything on the row moves, so a refusal leaves the
+        // stored airing exactly as it was.
+        ValidateRetention(row, stored, airing.AiredAt ?? originalAiredAt, now);
 
+        var entry = stored ?? new EpisodeAiring()
+        {
+            AiringScheduleID = row.AiringScheduleID,
+            Key = submission.Key,
+            CreatedAt = now,
+        };
+        var reason = stored is null ? UpdateReason.Added : UpdateReason.Updated;
+        entry.OriginalAiredAt = originalAiredAt;
+        entry.IsDelayed = airing.IsDelayed ?? entry.IsDelayed;
         entry.EpisodeSource = submission.Source;
         entry.EpisodeID = submission.ID;
         entry.Url = string.IsNullOrWhiteSpace(airing.Url) ? null : airing.Url.Trim();
@@ -331,7 +327,7 @@ public partial class AiringScheduleService
         if (data.HasUrlSet)
             entry.Url = string.IsNullOrWhiteSpace(data.Url) ? null : data.Url.Trim();
 
-        ValidateRetention(entry.Key, entry.AiredAt ?? entry.OriginalAiredAt, now);
+        ValidateRetention(row, entry, entry.AiredAt ?? entry.OriginalAiredAt, now);
         entry.LastUpdatedAt = now;
         RepoFactory.EpisodeAiring.Save(entry);
         _profiles.TryRemove(row.AiringScheduleID, out _);
@@ -562,6 +558,14 @@ public partial class AiringScheduleService
     #region Episode Airings | Helpers
 
     /// <summary>
+    /// The key a schedule-level rejection is reported under. Retention judges
+    /// the whole line rather than any one airing, so the error belongs to no
+    /// airing key, the same way a submission with no episode at all is reported
+    /// under its position.
+    /// </summary>
+    private const string ScheduleErrorKey = "#schedule";
+
+    /// <summary>
     /// One submitted airing, resolved down to the key and episode it is stored
     /// under.
     /// </summary>
@@ -670,20 +674,16 @@ public partial class AiringScheduleService
     /// <param name="context">The read the resolutions belong to.</param>
     /// <param name="row">The schedule being written to.</param>
     /// <param name="airings">The submitted airings.</param>
-    /// <param name="now">The current time, in UTC.</param>
     /// <param name="removalKeys">Optional. The keys the same write takes away, which nothing it submits may name.</param>
     /// <returns>The accepted submissions, in submission order.</returns>
-    /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, is also being removed, or is older than the retention window.</exception>
+    /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, or is also being removed.</exception>
     private List<AiringSubmission> ValidateAirings(
         AiringReadContext context,
         AiringSchedule row,
         IEnumerable<EpisodeAiringData> airings,
-        DateTime now,
         IReadOnlySet<string>? removalKeys = null
     )
     {
-        var settings = LoadSettings();
-        var window = settings.AutoCleanup ? now.AddMonths(-settings.RetentionMonths) : (DateTime?)null;
         var season = string.IsNullOrEmpty(row.SeasonID) ? null : context.GetSeason(row.SeriesSource, row.SeasonID);
         var seasonEpisodes = season?.Episodes.Select(GetEntityKey).ToHashSet();
         var submissions = new List<AiringSubmission>();
@@ -721,9 +721,6 @@ public partial class AiringScheduleService
                     problems.Add($"The episode is past the schedule's coverage, which ends at episode {last}.");
             }
 
-            if (window is { } cutoff && (airing.AiredAt ?? airing.OriginalAiredAt) is { } slot && slot < cutoff)
-                problems.Add($"The airing is older than the {settings.RetentionMonths} month retention window, which the next sweep would remove it under.");
-
             if (problems.Count > 0)
                 errors[key] = problems;
             else
@@ -737,22 +734,86 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// Refuse a single airing whose slot the retention sweep would only remove
-    /// again.
+    /// Refuse a write that would leave a schedule the next retention sweep only
+    /// removes again. It is judged on the line the write leaves behind, the way
+    /// the sweep judges the line it finds: a schedule keeps its whole history as
+    /// long as one of its airings still falls inside the window, so an episode
+    /// from years ago is fine beside one that aired last week.
     /// </summary>
-    /// <param name="key">The airing's key, which the error is reported under.</param>
-    /// <param name="slot">The airing's slot.</param>
+    /// <remarks>
+    /// The inference decides what a removal becomes, and a removal kept as a
+    /// hiatus is still part of the schedule, so the check runs on its result
+    /// rather than on the submission. Nothing has been stored by then, so a
+    /// refusal still leaves the schedule exactly as it was.
+    /// </remarks>
+    /// <param name="existingRows">The schedule's airings as they stand.</param>
+    /// <param name="result">What the inference decided to store and to remove.</param>
     /// <param name="now">The current time, in UTC.</param>
-    /// <exception cref="AiringScheduleValidationException">The airing is older than the retention window while cleanup is on.</exception>
-    private void ValidateRetention(string key, DateTime? slot, DateTime now)
+    /// <exception cref="AiringScheduleValidationException">The write would leave the schedule without an airing inside the retention window while cleanup is on.</exception>
+    private void ValidateRetention(IReadOnlyList<EpisodeAiring> existingRows, AiringInferenceResult result, DateTime now)
     {
         var settings = LoadSettings();
-        if (!settings.AutoCleanup || slot is not { } value || value >= now.AddMonths(-settings.RetentionMonths))
+        if (!settings.AutoCleanup)
+            return;
+
+        // An existing row the write neither stores nor removes is left exactly
+        // as it is, and counts for as much as the rest of the line.
+        var touched = result.ToSave
+            .Select(airing => airing.ExistingKey)
+            .OfType<string>()
+            .Concat(result.ToDelete.Select(airing => airing.Key))
+            .ToHashSet(StringComparer.Ordinal);
+        var latest = result.ToSave
+            .Select(airing => airing.AiredAt ?? airing.OriginalAiredAt)
+            .Concat(existingRows.Where(entry => !touched.Contains(entry.Key)).Select(entry => entry.AiredAt ?? entry.OriginalAiredAt))
+            .Max();
+        RejectRetention(latest, now, settings);
+    }
+
+    /// <summary>
+    /// Refuse a change to one airing on the same terms, for the writes that
+    /// touch a single row rather than running the inference over a whole line.
+    /// </summary>
+    /// <param name="row">The schedule the airing is on.</param>
+    /// <param name="entry">The stored airing the change touches, or <see langword="null"/> when it adds one.</param>
+    /// <param name="slot">The slot the change gives the airing.</param>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <exception cref="AiringScheduleValidationException">The change would leave the schedule without an airing inside the retention window while cleanup is on.</exception>
+    private void ValidateRetention(AiringSchedule row, EpisodeAiring? entry, DateTime? slot, DateTime now)
+    {
+        var settings = LoadSettings();
+        if (!settings.AutoCleanup)
+            return;
+
+        var latest = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID)
+            .Where(other => entry is null || other.EpisodeAiringID != entry.EpisodeAiringID)
+            .Select(other => other.AiredAt ?? other.OriginalAiredAt)
+            .Append(slot)
+            .Max();
+        RejectRetention(latest, now, settings);
+    }
+
+    /// <summary>
+    /// Throw when the schedule a write leaves behind has aged out whole, which
+    /// is the one arm <see cref="RunRetentionSweep"/> removes a filled schedule
+    /// under. A schedule whose airings have no slot at all has no date to judge
+    /// and is kept, there and here.
+    /// </summary>
+    /// <param name="latest">The latest slot the schedule is left with, or <see langword="null"/> when none of its airings has one.</param>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <param name="settings">The service's settings, with the window already clamped.</param>
+    /// <exception cref="AiringScheduleValidationException">The schedule would be left without an airing inside the retention window.</exception>
+    private static void RejectRetention(DateTime? latest, DateTime now, AiringScheduleServiceSettings settings)
+    {
+        if (latest is not { } value || value >= now.AddMonths(-settings.RetentionMonths))
             return;
 
         throw new AiringScheduleValidationException("One or more airings were rejected.", new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
         {
-            [key] = [$"The airing is older than the {settings.RetentionMonths} month retention window, which the next sweep would remove it under."],
+            [ScheduleErrorKey] =
+            [
+                $"The write would leave no airing inside the {settings.RetentionMonths} month retention window, so the next sweep would remove the whole schedule.",
+            ],
         });
     }
 
@@ -793,8 +854,8 @@ public partial class AiringScheduleService
 
     /// <summary>
     /// Whether two schedules release anything in common: the same kind in the
-    /// same language, matched through <see cref="Shoko.Abstractions.Metadata.Enums.TitleLanguage"/>
-    /// where the enum knows the codes and on the raw pair where it doesn't.
+    /// same language, matched through <see cref="TitleLanguage"/> where the enum
+    /// knows the codes and on the raw pair where it doesn't.
     /// </summary>
     /// <param name="left">One schedule's tracks.</param>
     /// <param name="right">The other schedule's tracks.</param>

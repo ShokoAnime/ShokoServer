@@ -401,7 +401,7 @@ what an airing is allowed to be: an episode outside what the *schedule* covers
 is still rejected, exactly as it is on `SetAirings`.
 
 Everything else is shared with `SetAirings`. Ownership, the
-episode-belongs-to-this-schedule check, duplicate keys and the retention window
+episode-belongs-to-this-schedule check, duplicate keys and the retention rule
 are the same checks reported the same way, links are re-pointed the same way,
 and the `AiringsUpdated` event is filled in the same way from what the write
 did, so a consumer can't tell which of the two you used. The one extra
@@ -782,13 +782,15 @@ reach.
   service never drift into two channels. Leave the suffix off entirely for a
   worldwide or region-unknown service, and never add one to a broadcast
   station.
-- **Respect retention.** `SetAirings`, `MergeAirings`, `AddOrUpdateAiring` and
-  `UpdateAiring` reject (as part of `AiringScheduleValidationException`) an
-  airing older than the service's configured retention window while automatic
-  cleanup is on.
-  There's no point submitting a slot from four years ago; it would only be
-  swept again on the next run. A provider backfilling history should trim its
-  own submission to a recent window rather than relying on the write to do it.
+- **Respect retention.** The sweep judges a schedule on its *latest* airing, so
+  a run with one slot inside the window keeps every older slot alongside it, and
+  `SetAirings`, `MergeAirings`, `AddOrUpdateAiring` and `UpdateAiring` judge a
+  write the same way: they reject (as part of
+  `AiringScheduleValidationException`, under the key `#schedule`) only a write
+  that would leave the schedule with no airing inside the window at all, while
+  automatic cleanup is on. Backfilling a long-running show's history is fine.
+  Submitting a run that ended four years ago on its own is not; it would only be
+  swept again on the next run.
 - **A schedule's series, season, key and channel never change** once created,
   and `AddOrUpdateSchedule` rejects an attempt to change any of them. Its identity,
   though, is `(provider, series, season, key)`: that is what `GetScheduleID`
@@ -816,7 +818,7 @@ the shape of the contract:
 | `AddChannelAliases` | `ChannelAliasConflictException` | An alias is another channel's own name, or another channel's alias, of the same type. Carries the alias, the channel already holding it, and which of the two it holds it as, so a bulk seeder can skip that one and move on. |
 | `AddOrUpdateSchedule`, `UpdateSchedule` | `ArgumentException` | No tracks; a track of a kind the provider doesn't declare; an unregistered channel; a different channel for the same identity; a coverage range whose first episode is after its last. |
 | Anything taking a time zone | `TimeZoneNotFoundException` | The zone can't be normalised to an IANA id or a fixed offset. |
-| `SetAirings`, `MergeAirings`, `AddOrUpdateAiring`, `UpdateAiring` | `AiringScheduleValidationException` | An episode outside the schedule's series, season or coverage; two airings sharing a key in one call; an airing both submitted and removed by the same `MergeAirings` call; an airing older than the retention window while cleanup is on. This is a `GenericValidationException`, so a batch call reports *every* rejected airing at once, keyed by airing key, instead of failing on the first. |
+| `SetAirings`, `MergeAirings`, `AddOrUpdateAiring`, `UpdateAiring` | `AiringScheduleValidationException` | An episode outside the schedule's series, season or coverage; two airings sharing a key in one call; an airing both submitted and removed by the same `MergeAirings` call; a write that would leave the schedule with no airing inside the retention window while cleanup is on. This is a `GenericValidationException`, so a batch call reports *every* rejected airing at once, keyed by airing key, instead of failing on the first. The retention rejection is about the schedule rather than any one airing, so it is keyed `#schedule`. |
 | `MergeAirings` | `ArgumentException` | A removal is an estimate, is unknown, or is on another schedule. |
 | `LinkAirings`, `UnlinkAiring` | `ArgumentException` | Fewer than two airings passed to `LinkAirings`, or the airings span more than one schedule. |
 | `RefreshAsync` (the awaitable overloads) | `OperationCanceledException` | The token was cancelled. A provider that throws instead is reported in the result, never re-thrown. |

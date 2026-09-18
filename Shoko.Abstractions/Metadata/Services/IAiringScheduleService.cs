@@ -579,8 +579,8 @@ public interface IAiringScheduleService
     /// </exception>
     /// <exception cref="AiringScheduleValidationException">
     ///   An episode falls outside the schedule's series, season or coverage,
-    ///   two airings share a key, or an airing is older than the retention
-    ///   window while automatic cleanup is on.
+    ///   two airings share a key, or the write would leave the schedule with no
+    ///   airing inside the retention window while automatic cleanup is on.
     /// </exception>
     /// <returns>
     ///   The enriched airings on the schedule afterwards.
@@ -653,8 +653,8 @@ public interface IAiringScheduleService
     /// <exception cref="AiringScheduleValidationException">
     ///   An episode falls outside the schedule's series, season or coverage,
     ///   two airings share a key, an airing is both submitted and removed, or
-    ///   an airing is older than the retention window while automatic cleanup
-    ///   is on.
+    ///   the write would leave the schedule with no airing inside the retention
+    ///   window while automatic cleanup is on.
     /// </exception>
     /// <returns>
     ///   The enriched airings this write wrote: everything in
@@ -697,8 +697,8 @@ public interface IAiringScheduleService
     /// </exception>
     /// <exception cref="AiringScheduleValidationException">
     ///   The episode falls outside the schedule's series, season or coverage,
-    ///   or the airing is older than the retention window while automatic
-    ///   cleanup is on.
+    ///   or the write would leave the schedule with no airing inside the
+    ///   retention window while automatic cleanup is on.
     /// </exception>
     /// <returns>
     ///   The enriched airing.
@@ -729,8 +729,8 @@ public interface IAiringScheduleService
     ///   own the airing.
     /// </exception>
     /// <exception cref="AiringScheduleValidationException">
-    ///   The airing is older than the retention window while automatic cleanup
-    ///   is on.
+    ///   The change would leave the schedule with no airing inside the
+    ///   retention window while automatic cleanup is on.
     /// </exception>
     /// <returns>
     ///   The enriched airing.
