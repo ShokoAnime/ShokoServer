@@ -303,6 +303,23 @@ public class SystemService : ISystemService
 
             StartupMessage = "Plugins initialized.";
 
+            // Before the database, so a plugin takes its services while the rest of the server is
+            // still ahead of it. A failure here is fatal, but it is recorded rather than thrown:
+            // throwing would skip the web host below and leave the process to die, which in a
+            // container is a restart loop that never explains itself. The web host comes up, the
+            // boot stops, and the Web UI is there to say which plugin stopped it.
+            StartupMessage = "Setting up plugins.";
+            try
+            {
+                _pluginManager.SetupPlugins();
+            }
+            catch (Exception ex)
+            {
+                StartupMessage = "Failed to start. Check your logs for more information.";
+                StartupFailedException = new(innerException: ex);
+                _logger.LogError(ex, "A plugin failed to set itself up; the server will not continue starting");
+            }
+
             StartupMessage = "Starting Web Hosts.";
 
             // Start the web server and all IHostedService services.
@@ -315,6 +332,12 @@ public class SystemService : ISystemService
 
             // Start the database unblock loop.
             _ = Task.Factory.StartNew(DatabaseUnblockLoop, TaskCreationOptions.LongRunning);
+
+            if (StartupFailedException is not null)
+            {
+                _logger.LogError("The server is reachable but will not finish starting. {Message}", StartupFailedException.Message);
+                return _webHost;
+            }
 
             if (InSetupMode)
             {
@@ -691,15 +714,6 @@ public class SystemService : ISystemService
             StartupMessage = "Initializing Session Factory...";
             databaseFactory.CloseSessionFactory();
             _ = databaseFactory.SessionFactory;
-
-            if (cancellationToken.IsCancellationRequested)
-                return;
-
-            // Here rather than beside `InitPlugins`, which runs before the web host and before the
-            // hosted services a plugin registered. A plugin that fails to set itself up is fatal,
-            // and being fatal here leaves the web host up to say so.
-            StartupMessage = "Setting up plugins...";
-            _pluginManager.SetupPlugins();
 
             if (cancellationToken.IsCancellationRequested)
                 return;
