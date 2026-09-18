@@ -241,6 +241,20 @@ With both unset, nothing under that branch reacts, and a client editing there
 posts nothing. A live edit returns JSON Patch operations against the document
 that was posted, not a whole configuration.
 
+A handler can narrow that to the members it actually watches, which puts the
+flag on the element itself as `ReactsToLiveEdit`:
+
+```csharp
+[ConfigurationAction(ConfigurationActionType.LiveEdit)]
+[ReactiveMembers(nameof(FfmpegPath), nameof(HardwareAcceleration))]
+public ConfigurationActionResult OnEdit(ConfigurationActionContext<MyConfiguration> context) { … }
+```
+
+Leave `[ReactiveMembers]` off and the handler keeps its old reach: everything in
+its own class, and everything below it that has no handler of its own. Naming a
+member the class does not have, or putting it on a hook that is not raised by an
+edit, fails when the configuration is described.
+
 ---
 
 ## Pattern: a choice only the server can enumerate

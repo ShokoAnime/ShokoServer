@@ -247,6 +247,15 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     private UiElement BuildSectionContainer(WalkState state, JsonSchema resolved, bool isRoot, string label, string? description)
     {
         var classBuilder = state.GetClass(resolved);
+        var liveEditHandlers = classBuilder?.ReactiveActions.Where(x => x.ActionType is ConfigurationActionType.LiveEdit).ToList() ?? [];
+        // A handler that named nothing watches the whole class, and everything
+        // below it that does not handle its own edits.
+        var watchesEverything = liveEditHandlers.Any(x => x.Members is null) || state.AncestorWatchesEverything;
+        var watchedMembers = liveEditHandlers
+            .SelectMany(x => x.Members ?? [])
+            .ToHashSet(StringComparer.Ordinal);
+        var outerWatchesEverything = state.AncestorWatchesEverything;
+        state.AncestorWatchesEverything = watchesEverything;
         // Kept as a list as well as a lookup, so the fallback pass below walks
         // the schema in schema order rather than in hash order.
         var properties = resolved.Properties
@@ -304,10 +313,25 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             members.Add(new(new UiStructureEntry { Name = action.ID, Kind = UiStructureMemberKind.Action }, action.SectionName, null, action.Position, action.MemberName));
         }
 
+        state.AncestorWatchesEverything = outerWatchesEverything;
+        // A watched member is named as the class spells it, while the items are
+        // keyed as the document does, so the structure's mapping applies here
+        // too.
+        foreach (var member in watchedMembers)
+        {
+            if (uiItems.TryGetValue(propertyNames?.GetValueOrDefault(member) ?? member, out var watchedElement))
+                watchedElement.ReactsToLiveEdit = true;
+        }
+        if (watchesEverything)
+        {
+            foreach (var element in uiItems.Values)
+                element.ReactsToLiveEdit = true;
+        }
+
         AttachActionsToMembers(members, uiItems, propertyNames);
         var sectionType = classBuilder?.SectionType ?? DisplaySectionType.FieldSet;
         var layout = BuildLayout(members, classBuilder, sectionType, label);
-        var hasLiveEdit = classBuilder?.ReactiveActions.Any(x => x.ActionType is ConfigurationActionType.LiveEdit) ?? false;
+        var hasLiveEdit = liveEditHandlers.Count > 0;
         return new UiSectionContainerElement
         {
             SectionType = sectionType,
@@ -752,6 +776,13 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             .ToDictionary(kv => kv.Value.ActualSchema, kv => kv.Key);
 
         public HashSet<JsonSchema> OnStack { get; } = [];
+
+        /// <summary>
+        ///   Whether a class above the one being walked handles live edits
+        ///   without naming what it watches, which reaches everything below it
+        ///   that has no handler of its own.
+        /// </summary>
+        public bool AncestorWatchesEverything { get; set; }
 
         public Dictionary<string, UiElement> Definitions { get; } = new(StringComparer.Ordinal);
 

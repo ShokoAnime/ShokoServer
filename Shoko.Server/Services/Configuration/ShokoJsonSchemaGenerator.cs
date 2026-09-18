@@ -759,11 +759,34 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             }
             else if (methodInfo.GetAttribute<ConfigurationActionAttribute>(false) is { ActionType: var actionType, ReactiveEventType: var eventType })
             {
+                var watched = methodInfo.GetAttribute<ReactiveMembersAttribute>(false)?.Members
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .ToList();
+                if (watched is not null)
+                {
+                    // Only a live edit is raised by an edit, so narrowing any
+                    // other hook to a set of members says nothing.
+                    if (actionType is not ConfigurationActionType.LiveEdit)
+                        throw new NotSupportedException(
+                            $"{contextualType.Type.Name}.{methodInfo.Name} handles {actionType}, which is not raised by an edit, so it cannot name the members it watches.");
+
+                    // A name that resolves to nothing would quietly watch
+                    // nothing, and the member it meant would never be posted.
+                    foreach (var member in watched)
+                    {
+                        if (contextualType.Type.GetProperty(member, BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy) is null &&
+                            contextualType.Type.GetField(member, BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy) is null)
+                            throw new NotSupportedException(
+                                $"{contextualType.Type.Name}.{methodInfo.Name} watches \"{member}\", which {contextualType.Type.Name} does not have.");
+                    }
+                }
+
                 classBuilder.ReactiveActions.Add(new UiReactiveActionBuilder
                 {
                     ID = methodInfo.Name,
                     ActionType = actionType,
                     EventType = eventType,
+                    Members = watched,
                 });
             }
         }
