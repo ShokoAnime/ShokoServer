@@ -205,12 +205,12 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
                 if (result.ValidationErrors is { Count: > 0 })
                     return ValidationProblem(result.ValidationErrors);
                 if (result.Configuration is not null)
-                    return Content(configurationService.Serialize(result.Configuration), "application/json");
+                    return Content(configurationService.SerializeWithMasking(result.Configuration), "application/json");
                 return Conflict("Unable to load custom configuration object for the user.");
             }
 
             var config = configurationService.Load(configInfo);
-            return Content(configurationService.Serialize(config), "application/json");
+            return Content(configurationService.SerializeWithMasking(config), "application/json");
         }
         catch (ConfigurationValidationException ex)
         {
@@ -232,7 +232,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
         try
         {
-            var json = body.ToString(Formatting.None, new StringEnumConverter());
+            var json = configurationService.RestoreMaskedSecrets(configInfo, body.ToString(Formatting.None, new StringEnumConverter()));
             if (configInfo.HasCustomSave)
             {
                 if (configurationService.Validate(configInfo, json) is { Count: > 0 } errors)
@@ -271,7 +271,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
             if (configInfo.HasCustomSave)
             {
-                var json = configurationService.Serialize(config);
+                var json = configurationService.SerializeWithMasking(config);
                 var result = configurationService.PerformReactiveAction(configInfo, config, "", ConfigurationActionType.Save, default, User, BaseUri);
                 return Ok(new ConfigurationActionResult(result, configurationService, json));
             }
@@ -332,14 +332,14 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             return NotFound($"Configuration '{configID}' not found!");
 
         var config = configurationService.New(configInfo);
-        var json = configurationService.Serialize(config);
+        var json = configurationService.SerializeWithMasking(config);
         if (configInfo.HasCustomNewFactory)
         {
             var result = configurationService.PerformReactiveAction(configInfo, config, "", ConfigurationActionType.New, default, User, BaseUri);
             if (result.ValidationErrors is { Count: > 0 })
                 return ValidationProblem(result.ValidationErrors);
             if (result.Configuration is not null)
-                return Content(configurationService.Serialize(result.Configuration), "application/json");
+                return Content(configurationService.SerializeWithMasking(result.Configuration), "application/json");
             return Conflict("Unable to create a new custom configuration object for the user.");
         }
 
@@ -365,6 +365,7 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
         if (errors.Count > 0)
             return Ok(new ConfigurationActionResult { ValidationErrors = errors });
 
+        json = configurationService.RestoreMaskedSecrets(configInfo, json);
         if (configInfo.HasCustomValidation)
         {
             var config = configurationService.Deserialize(configInfo, json);
@@ -402,8 +403,9 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
         try
         {
-            var json = body?.ToString(Formatting.None, new StringEnumConverter());
-            json ??= configurationService.Serialize(configurationService.Load(configInfo));
+            var json = body?.ToString(Formatting.None, new StringEnumConverter()) is { } incomingJson
+                ? configurationService.RestoreMaskedSecrets(configInfo, incomingJson)
+                : configurationService.Serialize(configurationService.Load(configInfo));
             var config = configurationService.Deserialize(configInfo, json);
             var result = configurationService.PerformCustomAction(configInfo, config, path, actionName, User, BaseUri);
             return Ok(new ConfigurationActionResult(result, configurationService, json));
@@ -441,7 +443,9 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
 
         try
         {
-            var json = body?.ToString(Formatting.None, new StringEnumConverter()) ?? "null";
+            var json = body?.ToString(Formatting.None, new StringEnumConverter()) is { } incomingJson
+                ? configurationService.RestoreMaskedSecrets(configInfo, incomingJson)
+                : "null";
             var config = configurationService.Deserialize(configInfo, json);
             if (config is null)
                 return ValidationProblem("Unable to deserialize configuration!");

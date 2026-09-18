@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.JsonPatch.Operations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Newtonsoft.Json.Linq;
+using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Settings;
 using Xunit;
@@ -98,6 +100,37 @@ public class SettingsJsonPatchTests
 
         Assert.Equal(oldCount, settings.Import.Exclude.Count);
         Assert.Equal(oldCount, settings.Import.ExcludeExpressions.Count);
+    }
+
+    [Theory]
+    [InlineData("/AniDb/Username", "some-user", "hunter2")]
+    [InlineData("/AniDb/Password", ConfigurationSecrets.Sentinel, "hunter2")]
+    [InlineData("/AniDb/Password", "hunter3", "hunter3")]
+    [InlineData("/AniDb/Password", "", "")]
+    public void PatchingSettings_NeverDestroysASecretItDidNotChange(string path, string value, string expectedPassword)
+    {
+        // `SettingsController.SetSettings` patches a copy of the current settings
+        // and saves it, and the save runs the secret restore pass. A patch that
+        // does not mention the password, or that round-trips the sentinel it was
+        // handed, has to leave the stored credential standing; only a real new
+        // value or an explicit clear may change it.
+        var stored = new ServerSettings();
+        stored.AniDb.Password = "hunter2";
+
+        var patched = new ServerSettings();
+        patched.AniDb.Password = ConfigurationSecrets.Sentinel;
+
+        var patch = new JsonPatchDocument<ServerSettings>();
+        patch.Operations.Add(new Operation<ServerSettings>("replace", path, null, value));
+        patch.ApplyTo(patched);
+
+        var (restored, errors) = ConfigurationSecrets.Restore(
+            JObject.FromObject(patched),
+            JObject.FromObject(stored),
+            typeof(ServerSettings));
+
+        Assert.Empty(errors);
+        Assert.Equal(expectedPassword, restored["AniDb"]!["Password"]!.Value<string>() ?? string.Empty);
     }
 
     [Fact]

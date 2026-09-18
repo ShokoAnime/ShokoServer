@@ -7,9 +7,12 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
@@ -26,9 +29,20 @@ namespace Shoko.Server.API.v3.Controllers;
 [Authorize(Roles = "admin,init")]
 [DatabaseBlockedExempt]
 [InitFriendly]
-public class SettingsController(ISettingsProvider settingsProvider, ConfigurationProvider<ServerSettings> configurationProvider, ILogger<SettingsController> logger, AniDBUDPConnectionHandler udpHandler) : BaseController(settingsProvider)
+public class SettingsController(
+    ISettingsProvider settingsProvider,
+    ConfigurationProvider<ServerSettings> configurationProvider,
+    IConfigurationService configurationService,
+    IOptions<MvcNewtonsoftJsonOptions> jsonOptions,
+    ILogger<SettingsController> logger,
+    AniDBUDPConnectionHandler udpHandler
+) : BaseController(settingsProvider)
 {
     private readonly ConfigurationProvider<ServerSettings> _configurationProvider = configurationProvider;
+
+    private readonly IConfigurationService _configurationService = configurationService;
+
+    private readonly IOptions<MvcNewtonsoftJsonOptions> _jsonOptions = jsonOptions;
 
     private readonly AniDBUDPConnectionHandler _udpHandler = udpHandler;
 
@@ -42,10 +56,23 @@ public class SettingsController(ISettingsProvider settingsProvider, Configuratio
     /// <summary>
     /// Get all settings
     /// </summary>
+    /// <remarks>
+    /// The settings are serialized here rather than handed to the formatter as
+    /// an object, because every secret is masked on the way out and masking
+    /// works on the serialized document. The serializer is the one MVC would
+    /// have used, so the shape of the response is unchanged.
+    /// </remarks>
     /// <returns></returns>
+    [Produces("application/json")]
+    [ProducesResponseType<IServerSettings>(StatusCodes.Status200OK)]
     [HttpGet]
-    public ActionResult<IServerSettings> GetSettings()
-        => new(SettingsProvider.GetSettings());
+    public ActionResult GetSettings()
+    {
+        var settings = SettingsProvider.GetSettings();
+        var serializer = JsonSerializer.Create(_jsonOptions.Value.SerializerSettings);
+        var json = JObject.FromObject(settings, serializer).ToString(Formatting.None);
+        return Content(_configurationService.MaskSecrets(_configurationProvider.ConfigurationInfo, json), "application/json");
+    }
 
     /// <summary>
     /// JsonPatch the settings

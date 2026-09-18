@@ -531,6 +531,86 @@ public interface IConfigurationService
     string Serialize(IConfiguration config);
 
     /// <summary>
+    ///   Serializes the specified configuration to JSON with every secret
+    ///   replaced by <see cref="ConfigurationSecrets.Sentinel"/>.
+    /// </summary>
+    /// <remarks>
+    ///   This is what every outward-facing surface should serialize with — the
+    ///   REST API, a plugin handing a configuration to a client of its own —
+    ///   so that all of them mask the same properties the same way. Code that
+    ///   needs the real credentials, such as a plugin reading its own settings,
+    ///   should keep using <see cref="Load{TConfig}(bool)"/> and the object
+    ///   graph instead, which is never masked.
+    /// </remarks>
+    /// <param name="config">
+    ///   The configuration to serialize.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="config"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>
+    ///   The serialized JSON configuration, with secrets masked.
+    /// </returns>
+    string SerializeWithMasking(IConfiguration config);
+
+    /// <summary>
+    ///   Replaces every set secret in an already serialized configuration with
+    ///   <see cref="ConfigurationSecrets.Sentinel"/>.
+    /// </summary>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <param name="json">
+    ///   The serialized configuration to mask.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="info"/> or <paramref name="json"/> is
+    ///   <c>null</c>.
+    /// </exception>
+    /// <exception cref="Newtonsoft.Json.JsonReaderException">
+    ///   Thrown when <paramref name="json"/> is not valid JSON.
+    /// </exception>
+    /// <returns>
+    ///   The serialized configuration, with secrets masked.
+    /// </returns>
+    string MaskSecrets(ConfigurationInfo info, string json);
+
+    /// <summary>
+    ///   Puts the stored secrets back into an incoming serialized configuration,
+    ///   so a document that was handed out masked can be saved again without
+    ///   destroying the credentials it was masking.
+    /// </summary>
+    /// <remarks>
+    ///   <see cref="Save(ConfigurationInfo, string)"/> and its overloads already
+    ///   do this before validating, so a caller that only saves does not need to
+    ///   call this. It is public for the surfaces that do something else with an
+    ///   incoming document first — validating it, running a custom action on it —
+    ///   and need the real values in hand for that.
+    /// </remarks>
+    /// <param name="info">
+    ///   The <see cref="ConfigurationInfo" />.
+    /// </param>
+    /// <param name="json">
+    ///   The incoming serialized configuration.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="info"/> or <paramref name="json"/> is
+    ///   <c>null</c>.
+    /// </exception>
+    /// <exception cref="ConfigurationValidationException">
+    ///   Thrown when a secret cannot be restored: when the sentinel arrives with
+    ///   no stored value behind it, or when it arrives inside a list whose
+    ///   elements carry no stable identity to match them by.
+    /// </exception>
+    /// <exception cref="Newtonsoft.Json.JsonReaderException">
+    ///   Thrown when <paramref name="json"/> is not valid JSON.
+    /// </exception>
+    /// <returns>
+    ///   The serialized configuration, with secrets restored.
+    /// </returns>
+    string RestoreMaskedSecrets(ConfigurationInfo info, string json);
+
+    /// <summary>
     ///   Deserializes the specified JSON configuration.
     /// </summary>
     /// <param name="info">
