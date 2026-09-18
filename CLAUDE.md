@@ -173,7 +173,7 @@ Never persisted; built from persistence models in controllers/services.
 ### Repository Pattern
 
 Two variants in `Shoko.Server/Repositories/`:
-- **`Cached/`** — `BaseCachedRepository<T, S>` loads all rows at startup into a `PocoCache` (from `NutzCode.InMemoryIndex`). Reads are `ReaderWriterLockSlim`-protected. Each repository builds typed indexes via `PopulateIndexes()` (e.g., `_animeIDs = Cache.CreateIndex(a => a.AnimeID)`). All writes go to DB then invalidate/update the in-memory cache. Use for hot data.
+- **`Cached/`** — `BaseCachedRepository<T, S>` loads all rows at startup into a `PocoCache` (vendored in `Shoko.Server/Utilities/PocoCache.cs`, namespace `Shoko.Server.Utilities`). Reads are `ReaderWriterLockSlim`-protected. Each repository builds typed indexes via `PopulateIndexes()` (e.g., `_animeIDs = Cache.CreateIndex(a => a.AnimeID)`). All writes go to DB then invalidate/update the in-memory cache. Use for hot data.
 - **`Direct/`** — no cache; hits DB on every call. Use for infrequently accessed or large data.
 - `BaseDirectRepository` is the base class.
 
