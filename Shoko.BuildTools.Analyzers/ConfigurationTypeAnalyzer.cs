@@ -31,7 +31,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         Diagnostics.IncompatibleListType,
         Diagnostics.MissingPrimaryKey,
         Diagnostics.NotAGenericDictionary,
-        Diagnostics.UnusableCondition);
+        Diagnostics.UnusableCondition,
+        Diagnostics.UnusableReactiveHandler);
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -69,6 +70,7 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
                 if (member is IMethodSymbol method)
                 {
                     AnalyzeConditions(context, method, method.Name, type, known.CustomActionAttribute, known, reported);
+                    AnalyzeReactiveHandler(context, method, type, known, reported);
                     continue;
                 }
 
@@ -81,6 +83,59 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
 
                 AnalyzeProperty(context, property, type, known, reported);
             }
+        }
+    }
+
+    /// <summary>
+    /// Checks what a lifecycle hook says it reacts to.
+    /// </summary>
+    private static void AnalyzeReactiveHandler(
+        SymbolAnalysisContext context,
+        IMethodSymbol method,
+        INamedTypeSymbol owner,
+        KnownSymbols known,
+        ConcurrentDictionary<string, byte> reported
+    )
+    {
+        const int liveEdit = 4;
+        if (known.ConfigurationActionAttribute is null)
+            return;
+        if (ConfigurationMembers.FindAttribute(method, known.ConfigurationActionAttribute) is not { } attribute)
+            return;
+
+        var arguments = attribute.NamedArguments.ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
+        var members = arguments.TryGetValue("ReactiveMembers", out var named) && !named.IsNull ? named.Values : default;
+        var events = arguments.TryGetValue("Events", out var raised) && !raised.IsNull ? raised.Values : default;
+        if (members.IsDefaultOrEmpty && events.IsDefaultOrEmpty)
+            return;
+
+        var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
+            ?? method.Locations.FirstOrDefault()
+            ?? Location.None;
+        // Only a live edit is raised by an event; the type is the attribute's one positional
+        // argument, and an unreadable one is left alone rather than guessed at.
+        if (attribute.ConstructorArguments.FirstOrDefault().Value is int actionType && actionType != liveEdit)
+        {
+            Report(context, reported, Diagnostic.Create(
+                Diagnostics.UnusableReactiveHandler,
+                location,
+                $"{owner.Name}.{method.Name}",
+                "handles a hook that no event raises, so it cannot narrow what it reacts to"));
+            return;
+        }
+
+        foreach (var member in members)
+        {
+            if (member.Value is not string path || string.IsNullOrWhiteSpace(path))
+                continue;
+            if (ConditionShape.ResolvePath(owner, path, known, out var failure) is not null || failure is null)
+                continue;
+
+            Report(context, reported, Diagnostic.Create(
+                Diagnostics.UnusableReactiveHandler,
+                location,
+                $"{owner.Name}.{method.Name}",
+                $"watches a member that {failure}"));
         }
     }
 

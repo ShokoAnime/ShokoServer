@@ -120,10 +120,22 @@ internal readonly struct ConditionShape(
     /// Walks the dotted path from the declaring type to the member it lands on.
     /// </summary>
     private ITypeSymbol? Resolve(INamedTypeSymbol owner, KnownSymbols known, out string? failure)
+        => ResolvePath(owner, Path, known, out failure);
+
+    /// <summary>
+    /// Walks a dotted path from a type to the member it lands on, the same way the server walks it
+    /// through reflection.
+    /// </summary>
+    /// <param name="owner">The type to start from.</param>
+    /// <param name="path">The dotted path.</param>
+    /// <param name="known">The resolved symbols.</param>
+    /// <param name="failure">Why the walk stopped, when it did.</param>
+    /// <returns>The member's type, or <see langword="null"/>.</returns>
+    public static ITypeSymbol? ResolvePath(INamedTypeSymbol owner, string path, KnownSymbols known, out string? failure)
     {
         failure = null;
         ITypeSymbol current = owner;
-        var segments = Path.Split('.');
+        var segments = path.Split('.');
         for (var index = 0; index < segments.Length; index++)
         {
             var segment = segments[index];
