@@ -52,8 +52,9 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
     ///   generator cannot render is a defect in the action, not a condition to
     ///   recover from, so it fails startup exactly as the equivalent
     ///   configuration would rather than leaving a half-usable action behind
-    ///   with no way to invoke it from a UI. The SHOKO0001-0005 analyzer rules
-    ///   catch these shapes at compile time for anyone referencing the package.
+    ///   with no way to invoke it from a UI. The SHOKO0001 to SHOKO0007 analyzer
+    ///   rules catch these shapes at compile time for anyone referencing the
+    ///   package.
     /// </remarks>
     /// <param name="id">The action's id.</param>
     /// <param name="name">The action's display name.</param>
@@ -63,8 +64,20 @@ public class ActionUiDefinitionBuilder(ILoggerFactory loggerFactory)
     ///   The description, or <see langword="null"/> when the action declares no
     ///   parameters.
     /// </returns>
-    /// <exception cref="Exception">
-    ///   Thrown when the action declares parameters that cannot be described.
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="actionType"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="actionType"/> is not an executable action, or a
+    ///   parameter is a dictionary keyed by a type not serializable to text.
+    /// </exception>
+    /// <exception cref="NotSupportedException">
+    ///   A parameter nests a collection in a collection or asks for a list
+    ///   layout its items cannot take, a condition could never hold, or a hook
+    ///   cannot react to what it names.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   A parameter is laid out as a dictionary without implementing one.
     /// </exception>
     public ActionParameterDescription? Build(Guid id, string name, string? description, Type actionType)
     {
