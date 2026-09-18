@@ -30,6 +30,19 @@ public class ConfigurationTypeAnalyzerTests
 
         namespace Shoko.Abstractions.UI.Enums
         {
+            public enum UiConditionOperator
+            {
+                Equals = 0,
+                NotEquals = 1,
+                IsEmpty = 2,
+                IsNotEmpty = 3,
+                In = 4,
+                NotIn = 5,
+                GreaterThan = 6,
+                LessThan = 7,
+                Contains = 8,
+            }
+
             public enum DisplayListType
             {
                 Auto = 0,
@@ -48,6 +61,32 @@ public class ConfigurationTypeAnalyzerTests
             public class ListAttribute : System.Attribute
             {
                 public DisplayListType ListType { get; set; }
+            }
+
+            [System.AttributeUsage(System.AttributeTargets.Property | System.AttributeTargets.Field)]
+            public class VisibilityAttribute : System.Attribute
+            {
+                public string? ToggleWhenMemberIsSet { get; set; }
+                public UiConditionOperator ToggleOperator { get; set; }
+                public object? ToggleWhenSetTo { get; set; }
+                public object?[]? ToggleWhenSetToAny { get; set; }
+                public string? DisableWhenMemberIsSet { get; set; }
+                public UiConditionOperator DisableOperator { get; set; }
+                public object? DisableWhenSetTo { get; set; }
+                public object?[]? DisableWhenSetToAny { get; set; }
+            }
+
+            [System.AttributeUsage(System.AttributeTargets.Method)]
+            public class CustomActionAttribute : System.Attribute
+            {
+                public string? ToggleWhenMemberIsSet { get; set; }
+                public UiConditionOperator ToggleOperator { get; set; }
+                public object? ToggleWhenSetTo { get; set; }
+                public object?[]? ToggleWhenSetToAny { get; set; }
+                public string? DisableWhenMemberIsSet { get; set; }
+                public UiConditionOperator DisableOperator { get; set; }
+                public object? DisableWhenSetTo { get; set; }
+                public object?[]? DisableWhenSetToAny { get; set; }
             }
         }
         """;
@@ -635,4 +674,123 @@ public class ConfigurationTypeAnalyzerTests
             }
             """);
     }
+    [Fact]
+    public async Task EmptinessOperatorWithAValue_IsReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+            using Shoko.Abstractions.UI.Enums;
+
+            public class MyConfig : IConfiguration
+            {
+                public string Path { get; set; } = "";
+
+                [{|#0:Visibility(DisableWhenMemberIsSet = nameof(Path), DisableOperator = UiConditionOperator.IsEmpty, DisableWhenSetTo = "")|}]
+                public string Guarded { get; set; } = "";
+            }
+            """,
+            new DiagnosticResult(Diagnostics.UnusableCondition)
+                .WithLocation(0)
+                .WithArguments("MyConfig.Guarded", "uses 'IsEmpty', which compares nothing, so it takes no value"));
+    }
+
+    [Fact]
+    public async Task SetOperatorWithoutValues_IsReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+            using Shoko.Abstractions.UI.Enums;
+
+            public class MyConfig : IConfiguration
+            {
+                public string Mode { get; set; } = "";
+
+                [{|#0:Visibility(ToggleWhenMemberIsSet = nameof(Mode), ToggleOperator = UiConditionOperator.In)|}]
+                public string Guarded { get; set; } = "";
+            }
+            """,
+            new DiagnosticResult(Diagnostics.UnusableCondition)
+                .WithLocation(0)
+                .WithArguments("MyConfig.Guarded", "uses 'In', which matches against a set, so it needs one or more values"));
+    }
+
+    [Fact]
+    public async Task APathThroughACollection_IsReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using System.Collections.Generic;
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+
+            public class Nested { public string Mode { get; set; } = ""; }
+
+            public class MyConfig : IConfiguration
+            {
+                public List<Nested> Items { get; set; } = new();
+
+                [{|#0:Visibility(DisableWhenMemberIsSet = "Items.Mode", DisableWhenSetTo = "local")|}]
+                public string Guarded { get; set; } = "";
+            }
+            """,
+            new DiagnosticResult(Diagnostics.UnusableCondition)
+                .WithLocation(0)
+                .WithArguments("MyConfig.Guarded", "points through 'Items', which is a collection, and a condition has no index to say which entry it meant"));
+    }
+
+    [Fact]
+    public async Task AnActionNamingAMemberThatIsNotThere_IsReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+
+            public class MyConfig : IConfiguration
+            {
+                [{|#0:CustomAction(DisableWhenMemberIsSet = "Nonexistent", DisableWhenSetTo = true)|}]
+                public void DoTheThing() { }
+            }
+            """,
+            new DiagnosticResult(Diagnostics.UnusableCondition)
+                .WithLocation(0)
+                .WithArguments("MyConfig.DoTheThing", "names 'Nonexistent', which MyConfig does not have"));
+    }
+
+    [Fact]
+    public async Task ConditionsThatCanHold_AreNotReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.UI.Attributes;
+            using Shoko.Abstractions.UI.Enums;
+
+            public class Nested { public int Depth { get; set; } }
+
+            public class MyConfig : IConfiguration
+            {
+                public string Path { get; set; } = "";
+                public string Mode { get; set; } = "";
+                public Nested Nested { get; set; } = new();
+
+                [Visibility(DisableWhenMemberIsSet = nameof(Path), DisableOperator = UiConditionOperator.IsEmpty)]
+                public string Encoder { get; set; } = "";
+
+                [Visibility(ToggleWhenMemberIsSet = nameof(Mode), ToggleOperator = UiConditionOperator.In, ToggleWhenSetToAny = new object?[] { "vaapi", "qsv" })]
+                public string Device { get; set; } = "";
+
+                [Visibility(DisableWhenMemberIsSet = $"{nameof(Nested)}.{nameof(Nested.Depth)}", DisableOperator = UiConditionOperator.GreaterThan, DisableWhenSetTo = 3)]
+                public string Deep { get; set; } = "";
+
+                [Visibility(DisableWhenMemberIsSet = nameof(Path), DisableOperator = UiConditionOperator.Contains, DisableWhenSetTo = "ffmpeg")]
+                public string Contained { get; set; } = "";
+            }
+            """);
+    }
+
 }

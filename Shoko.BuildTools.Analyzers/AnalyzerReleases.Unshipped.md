@@ -10,3 +10,4 @@ SHOKO0002 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a dictionar
 SHOKO0003 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a `[List]` display type that the element type cannot support makes UI schema generation throw.
 SHOKO0004 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a complex `[List]` display type without a `[Key]` property makes UI schema generation throw.
 SHOKO0005 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a record-shaped property that is not a generic dictionary makes UI schema generation throw.
+SHOKO0006 | Shoko.Configuration | Error | ConfigurationTypeAnalyzer, a condition that could never hold makes UI schema generation throw.
