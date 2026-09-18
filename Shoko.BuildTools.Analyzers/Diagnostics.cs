@@ -97,4 +97,17 @@ public static class Diagnostics
         isEnabledByDefault: true,
         description: "A condition names a member of the type it is declared on, optionally descending into a nested class, and compares it with an operator. The operator decides what it is handed: the emptiness operators take no value, the set operators take a value set, and every other operator takes a single value. An ordering comparison needs numbers on both sides, and a containment check needs a string or a collection. A path cannot point through a list or a dictionary, because it carries no index to say which entry it meant.",
         helpLinkUri: HelpLinkPrefix + "shoko0006");
+
+    /// <summary>
+    /// A lifecycle hook narrows what it reacts to, and cannot.
+    /// </summary>
+    public static readonly DiagnosticDescriptor UnusableReactiveHandler = new(
+        id: "SHOKO0007",
+        title: "Handler cannot react to what it names",
+        messageFormat: "The handler '{0}' {1}. Schema generation throws, leaving the whole type without a schema and without a UI.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "A live-edit handler names the members it watches so a client can tell whether an edit is worth sending, and the events it wants so the client knows when to send one. A member the class does not have is watched by nothing, and a name pointing through a list or a dictionary carries no index to say which entry it meant. Only the live-edit hook is raised by an event, so no other hook can narrow what it reacts to.",
+        helpLinkUri: HelpLinkPrefix + "shoko0007");
 }

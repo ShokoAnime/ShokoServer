@@ -28,6 +28,40 @@ public class ConfigurationTypeAnalyzerTests
             public interface IExecutableAction { }
         }
 
+        namespace Shoko.Abstractions.Config.Enums
+        {
+            public enum ConfigurationActionType
+            {
+                New = 0,
+                Validate = 1,
+                Save = 2,
+                Load = 3,
+                LiveEdit = 4,
+            }
+
+            public enum ReactiveEventType
+            {
+                All = 0,
+                Edited = 1,
+                Focused = 2,
+                Unfocused = 3,
+            }
+        }
+
+        namespace Shoko.Abstractions.Config.Attributes
+        {
+            using Shoko.Abstractions.Config.Enums;
+
+            [System.AttributeUsage(System.AttributeTargets.Method)]
+            public class ConfigurationActionAttribute : System.Attribute
+            {
+                public ConfigurationActionAttribute(ConfigurationActionType actionType) { ActionType = actionType; }
+                public ConfigurationActionType ActionType { get; set; }
+                public ReactiveEventType[]? Events { get; set; }
+                public string[]? ReactiveMembers { get; set; }
+            }
+        }
+
         namespace Shoko.Abstractions.UI.Enums
         {
             public enum UiConditionOperator
@@ -789,6 +823,102 @@ public class ConfigurationTypeAnalyzerTests
 
                 [Visibility(DisableWhenMemberIsSet = nameof(Path), DisableOperator = UiConditionOperator.Contains, DisableWhenSetTo = "ffmpeg")]
                 public string Contained { get; set; } = "";
+            }
+            """);
+    }
+
+    [Fact]
+    public async Task AHandlerWatchingAMemberThatIsNotThere_IsReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.Config.Attributes;
+            using Shoko.Abstractions.Config.Enums;
+
+            public class MyConfig : IConfiguration
+            {
+                public string Path { get; set; } = "";
+
+                [{|#0:ConfigurationAction(ConfigurationActionType.LiveEdit, ReactiveMembers = new[] { "Nonexistent" })|}]
+                public void OnEdit() { }
+            }
+            """,
+            new DiagnosticResult(Diagnostics.UnusableReactiveHandler)
+                .WithLocation(0)
+                .WithArguments("MyConfig.OnEdit", "watches a member that names 'Nonexistent', which MyConfig does not have"));
+    }
+
+    [Fact]
+    public async Task AHandlerWatchingThroughACollection_IsReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using System.Collections.Generic;
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.Config.Attributes;
+            using Shoko.Abstractions.Config.Enums;
+
+            public class Nested { public string Mode { get; set; } = ""; }
+
+            public class MyConfig : IConfiguration
+            {
+                public List<Nested> Items { get; set; } = new();
+
+                [{|#0:ConfigurationAction(ConfigurationActionType.LiveEdit, ReactiveMembers = new[] { "Items.Mode" })|}]
+                public void OnEdit() { }
+            }
+            """,
+            new DiagnosticResult(Diagnostics.UnusableReactiveHandler)
+                .WithLocation(0)
+                .WithArguments("MyConfig.OnEdit", "watches a member that points through 'Items', which is a collection, and a condition has no index to say which entry it meant"));
+    }
+
+    [Fact]
+    public async Task AHookNoEventRaisesNarrowingItself_IsReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.Config.Attributes;
+            using Shoko.Abstractions.Config.Enums;
+
+            public class MyConfig : IConfiguration
+            {
+                public string Path { get; set; } = "";
+
+                [{|#0:ConfigurationAction(ConfigurationActionType.Save, ReactiveMembers = new[] { nameof(Path) })|}]
+                public void OnSave() { }
+            }
+            """,
+            new DiagnosticResult(Diagnostics.UnusableReactiveHandler)
+                .WithLocation(0)
+                .WithArguments("MyConfig.OnSave", "handles a hook that no event raises, so it cannot narrow what it reacts to"));
+    }
+
+    [Fact]
+    public async Task AHandlerWatchingWhatIsThere_IsNotReported()
+    {
+        await VerifyAsync("""
+            #nullable enable
+            using Shoko.Abstractions.Config;
+            using Shoko.Abstractions.Config.Attributes;
+            using Shoko.Abstractions.Config.Enums;
+
+            public class Nested { public string Mode { get; set; } = ""; }
+
+            public class MyConfig : IConfiguration
+            {
+                public string Path { get; set; } = "";
+                public Nested Nested { get; set; } = new();
+
+                [ConfigurationAction(ConfigurationActionType.LiveEdit,
+                    Events = new[] { ReactiveEventType.Unfocused, ReactiveEventType.Edited },
+                    ReactiveMembers = new[] { nameof(Path), $"{nameof(Nested)}.{nameof(Nested.Mode)}" })]
+                public void OnEdit() { }
+
+                [ConfigurationAction(ConfigurationActionType.Save)]
+                public void OnSave() { }
             }
             """);
     }
