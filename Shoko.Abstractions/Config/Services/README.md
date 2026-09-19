@@ -208,15 +208,18 @@ Uninstalling a plugin with "purge configuration" deletes its folder under
 
 A property marked `[DataType(DataType.Password)]` or `[PasswordPropertyText]` is
 a secret. The settings page renders it as a password field, and the REST API
-never sends its value: a secret that holds something goes out as
-`ConfigurationSecrets.Sentinel` (`***SECRET-UNCHANGED***`), while one that is
-`null` or empty goes out as it is, so "nothing set" still looks different from
-"withheld".
+never sends its value. A secret that holds something goes out masked, as
+`***SECRET-UNCHANGED:<fingerprint>***`, while one that is `null` or empty goes
+out as it is, so "nothing set" still looks different from "withheld". The
+fingerprint is a keyed hash under a random key kept in the data directory, in
+its own file rather than the settings, so it says nothing about the value
+beyond whether two secrets are equal. Use `ConfigurationSecrets.IsMasked` to
+recognise a masked value rather than comparing strings.
 
-When a document comes back in, the stored value is put back wherever the
-sentinel arrived or the property was left out. Any other value replaces it, and
-an explicit `null` or empty string clears it. `Save(info, json)` does this
-itself, so you only need to know about it in three cases:
+When a document comes back in, the stored value is put back wherever a masked
+value arrived or the property was left out. Any other value replaces it, and an
+explicit `null` or empty string clears it. `Save(info, json)` does this itself,
+so you only need to know about it in three cases:
 
 - **Your own code reads the object graph, not JSON.** `Load()` always returns
   the real values. Masking belongs to the wire, never to the model.
@@ -226,15 +229,16 @@ itself, so you only need to know about it in three cases:
   exactly as the REST API masks them. If a document you masked comes back and
   you do something with it other than saving (validating it, running a custom
   action on it), call `RestoreMaskedSecrets(info, json)` first.
-- **A secret sits inside a list.** Putting the stored value back means pairing
-  each incoming element with the element it came from, and a list's order can't
-  be trusted for that. A dictionary pairs by its key. A list pairs by the
-  element property marked `[Key]`, so give the element type one. Without it,
-  restoring throws `ConfigurationValidationException` as soon as a sentinel
-  arrives inside that list, and the user has to type the value in again on
-  every save.
+- **A secret sits inside a list.** Nothing on a list element reliably says
+  which stored element it came from: the position shifts on every insert,
+  delete or reorder, and a label can repeat or be renamed. So inside a list the
+  masked value is matched by its fingerprint against every secret stored for
+  the same property, wherever that element now sits. Send back what you were
+  given unchanged. A masked value whose fingerprint matches nothing stored, or
+  the bare `ConfigurationSecrets.Sentinel` inside a list, is rejected with
+  `ConfigurationValidationException`.
 
-The same exception is thrown when the sentinel arrives for a secret that has
+The same exception is thrown when a masked value arrives for a secret that has
 nothing stored behind it.
 
 ---

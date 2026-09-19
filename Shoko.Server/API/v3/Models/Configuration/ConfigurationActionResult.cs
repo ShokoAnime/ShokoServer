@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -7,6 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Server.Services.Configuration;
 
 using AbstractConfigurationActionResult = Shoko.Abstractions.Config.ConfigurationActionResult;
 using Operation = Microsoft.AspNetCore.JsonPatch.Operations.Operation;
@@ -78,7 +80,10 @@ public class ConfigurationActionResult
             // Both sides of the diff are masked, so a secret can never end up in
             // a patch operation, and a secret that neither side changed reads as
             // unchanged instead of as a move from a real value to a sentinel.
-            var before = ConfigurationSecrets.Mask(JToken.Parse(json), result.GetType()).ToString(Formatting.None);
+            if (configurationService is not ConfigurationService service)
+                throw new InvalidOperationException("Masking a configuration needs the server's own configuration service.");
+
+            var before = service.MaskSecrets(JToken.Parse(json), result.GetType()).ToString(Formatting.None);
             var after = configurationService.SerializeWithMasking(result);
             var diff = new JsonDiffPatch(new() { TextDiff = TextDiffMode.Simple, DiffArrayOptions = new() { DetectMove = true, IncludeValueOnMove = true } })
                 .Diff(before, after) ?? "{}";

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.JsonPatch.Operations;
 using Microsoft.AspNetCore.Mvc;
@@ -127,7 +128,8 @@ public class SettingsJsonPatchTests
         var (restored, errors) = ConfigurationSecrets.Restore(
             JObject.FromObject(patched),
             JObject.FromObject(stored),
-            typeof(ServerSettings));
+            typeof(ServerSettings),
+            [.. Enumerable.Range(1, 32).Select(i => (byte)i)]);
 
         Assert.Empty(errors);
         Assert.Equal(expectedPassword, restored["AniDb"]!["Password"]!.Value<string>() ?? string.Empty);

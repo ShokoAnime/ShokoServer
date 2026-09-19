@@ -803,8 +803,11 @@ public class RelocationController(
             // for the restore pass is the preset's, not the provider's.
             if (json is not null && presetInfo.ProviderInfo?.ConfigurationInfo is { } configurationInfo && ConfigurationSecrets.ContainsSecrets(configurationInfo.Type))
             {
+                if (configurationService is not ConfigurationService service)
+                    throw new InvalidOperationException("Restoring a masked secret needs the server's own configuration service.");
+
                 var current = presetInfo.Configuration is { } stored ? JToken.Parse(Encoding.UTF8.GetString(stored)) : null;
-                var (restored, errors) = ConfigurationSecrets.Restore(JToken.Parse(json), current, configurationInfo.Type);
+                var (restored, errors) = service.RestoreMaskedSecrets(JToken.Parse(json), current, configurationInfo.Type);
                 if (errors.Count > 0)
                     return ValidationProblem(errors);
                 json = restored.ToString(Formatting.None);

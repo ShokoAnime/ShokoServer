@@ -1,10 +1,14 @@
 using System;
+using System.Buffers.Text;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using Newtonsoft.Json.Linq;
 
 using NewtonsoftJsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
@@ -36,10 +40,14 @@ namespace Shoko.Abstractions.Config;
 ///     plaintext.
 ///   </para>
 ///   <para>
-///     On the way out, a secret that holds a value is replaced with
-///     <see cref="Sentinel"/>. A secret that holds <c>null</c> or an empty
-///     string is left alone, so "nothing configured" stays distinguishable from
-///     "withheld".
+///     On the way out, a secret that holds a value is replaced with a masked
+///     value: <see cref="Sentinel"/> with a fingerprint of the secret folded
+///     into it, <c>***SECRET-UNCHANGED:&lt;fingerprint&gt;***</c>. The
+///     fingerprint is a keyed hash under a key that belongs to the install and
+///     never leaves it, so it tells a client nothing about the value beyond
+///     whether two secrets are equal. A secret that holds <c>null</c> or an
+///     empty string is left alone, so "nothing configured" stays
+///     distinguishable from "withheld".
 ///   </para>
 ///   <para>
 ///     On the way back in, <see cref="Restore"/> merges the incoming document
@@ -50,7 +58,7 @@ namespace Shoko.Abstractions.Config;
 ///   </para>
 ///   <list type="bullet">
 ///     <item><description>the property is absent — a patch that does not mention it; the stored value is kept;</description></item>
-///     <item><description>the property equals <see cref="Sentinel"/> — a masked value round-tripped unchanged; the stored value is kept;</description></item>
+///     <item><description>the property holds a masked value — it round-tripped unchanged; the stored value is kept;</description></item>
 ///     <item><description>the property holds some other value — the user changed it; the incoming value wins;</description></item>
 ///     <item><description>the property is explicitly <c>null</c> or an empty string — the user cleared it; the secret is cleared.</description></item>
 ///   </list>
@@ -60,15 +68,18 @@ namespace Shoko.Abstractions.Config;
 ///     distinguishable from leaving it alone.
 ///   </para>
 ///   <para>
-///     Restoring a secret nested inside a collection needs each incoming element
-///     paired with the element that holds the stored value, and the position in
-///     a list cannot do that: reorder the list and every secret lands on the
-///     wrong element. A dictionary pairs up by its key. A list pairs up by the
-///     element property marked with <see cref="KeyAttribute"/>, the same marker
-///     the schema generator already uses to tell the UI which field identifies a
-///     record. A list whose elements carry no such property cannot be paired up
-///     at all, and rather than guess, <see cref="Restore"/> rejects a sentinel
-///     arriving inside one and says the real value is required there.
+///     Restoring a secret nested inside a list is what the fingerprint is for.
+///     The position in a list cannot pair an incoming element with a stored
+///     one, since a reorder, an insert or a delete moves every secret after it
+///     onto the wrong element, and nothing else on an element is guaranteed to
+///     identify it. So inside a list a masked value is matched by its
+///     fingerprint against every stored secret at the same property, whichever
+///     element it sits on. Two elements holding the same secret share a
+///     fingerprint, which is harmless, since either match restores the same
+///     value. A masked value whose fingerprint matches nothing stored, or the
+///     bare <see cref="Sentinel"/> inside a list, is rejected rather than
+///     guessed at. A dictionary pairs its entries up by key, as does every
+///     object outside a list, so the fingerprint is not needed there.
 ///   </para>
 /// </remarks>
 public static class ConfigurationSecrets
@@ -76,7 +87,11 @@ public static class ConfigurationSecrets
     #region Constants
 
     /// <summary>
-    ///   The value a masked secret is replaced with on the wire.
+    ///   The bare form of a masked secret. Masking always adds a fingerprint,
+    ///   <c>***SECRET-UNCHANGED:&lt;fingerprint&gt;***</c>, but this form is
+    ///   still accepted anywhere outside a list, where the stored value can be
+    ///   found without one. Use <see cref="IsMasked(string?)"/> to recognise
+    ///   either form.
     /// </summary>
     /// <remarks>
     ///   This is deliberately not the <c>***HIDDEN***</c> marker used when
@@ -88,13 +103,21 @@ public static class ConfigurationSecrets
     /// </remarks>
     public const string Sentinel = "***SECRET-UNCHANGED***";
 
+    private const string MaskedPrefix = "***SECRET-UNCHANGED:";
+
+    private const string MaskedSuffix = "***";
+
+    /// <summary>
+    ///   The number of hash bytes kept for a fingerprint. Sixteen bytes is far
+    ///   beyond what an accidental collision between two stored secrets needs.
+    /// </summary>
+    private const int FingerprintLength = 16;
+
     #endregion
 
     #region Caches
 
     private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, PropertyInfo>> _serializableProperties = [];
-
-    private static readonly ConcurrentDictionary<Type, string?> _identityNames = [];
 
     private static readonly ConcurrentDictionary<Type, bool> _containsSecrets = [];
 
@@ -124,8 +147,21 @@ public static class ConfigurationSecrets
     }
 
     /// <summary>
-    ///   Replaces every set secret in <paramref name="token"/> with
-    ///   <see cref="Sentinel"/>.
+    ///   Checks whether <paramref name="value"/> is a masked secret, in either
+    ///   the bare or the fingerprinted form.
+    /// </summary>
+    /// <param name="value">
+    ///   The value to check.
+    /// </param>
+    /// <returns>
+    ///   <c>true</c> when the value stands for a withheld secret.
+    /// </returns>
+    public static bool IsMasked([NotNullWhen(true)] string? value)
+        => value is not null && (string.Equals(value, Sentinel, StringComparison.Ordinal) || TryGetFingerprint(value, out _));
+
+    /// <summary>
+    ///   Replaces every set secret in <paramref name="token"/> with a masked
+    ///   value carrying its fingerprint.
     /// </summary>
     /// <param name="token">
     ///   The serialized configuration. It is not modified; a masked copy is
@@ -134,20 +170,29 @@ public static class ConfigurationSecrets
     /// <param name="type">
     ///   The configuration type the document was serialized from.
     /// </param>
+    /// <param name="fingerprintKey">
+    ///   The key the fingerprints are computed under. It has to be the same key
+    ///   <see cref="Restore"/> is later given, and it must never be sent to
+    ///   whoever receives the masked document.
+    /// </param>
     /// <exception cref="ArgumentNullException">
-    ///   Thrown when <paramref name="token"/> or <paramref name="type"/> is
-    ///   <c>null</c>.
+    ///   Thrown when <paramref name="token"/>, <paramref name="type"/> or
+    ///   <paramref name="fingerprintKey"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   Thrown when <paramref name="fingerprintKey"/> is empty.
     /// </exception>
     /// <returns>
     ///   A masked copy of the document.
     /// </returns>
-    public static JToken Mask(JToken token, Type type)
+    public static JToken Mask(JToken token, Type type, byte[] fingerprintKey)
     {
         ArgumentNullException.ThrowIfNull(token);
         ArgumentNullException.ThrowIfNull(type);
+        ValidateKey(fingerprintKey);
 
         var masked = token.DeepClone();
-        MaskValue(masked, type);
+        MaskValue(masked, type, fingerprintKey);
         return masked;
     }
 
@@ -161,28 +206,35 @@ public static class ConfigurationSecrets
     /// <param name="current">
     ///   The currently stored document, or <c>null</c> when nothing has been
     ///   persisted yet. With nothing stored there is nothing to restore, and an
-    ///   incoming <see cref="Sentinel"/> is reported as an error instead.
+    ///   incoming masked value is reported as an error instead.
     /// </param>
     /// <param name="type">
     ///   The configuration type both documents belong to.
     /// </param>
+    /// <param name="fingerprintKey">
+    ///   The key the incoming document was masked under.
+    /// </param>
     /// <exception cref="ArgumentNullException">
-    ///   Thrown when <paramref name="incoming"/> or <paramref name="type"/> is
-    ///   <c>null</c>.
+    ///   Thrown when <paramref name="incoming"/>, <paramref name="type"/> or
+    ///   <paramref name="fingerprintKey"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   Thrown when <paramref name="fingerprintKey"/> is empty.
     /// </exception>
     /// <returns>
     ///   The restored copy, and any errors keyed by the property path that
     ///   produced them. A non-empty error set means the document must be
     ///   rejected rather than saved.
     /// </returns>
-    public static (JToken Token, IReadOnlyDictionary<string, IReadOnlyList<string>> Errors) Restore(JToken incoming, JToken? current, Type type)
+    public static (JToken Token, IReadOnlyDictionary<string, IReadOnlyList<string>> Errors) Restore(JToken incoming, JToken? current, Type type, byte[] fingerprintKey)
     {
         ArgumentNullException.ThrowIfNull(incoming);
         ArgumentNullException.ThrowIfNull(type);
+        ValidateKey(fingerprintKey);
 
         var restored = incoming.DeepClone();
         var errors = new Dictionary<string, List<string>>();
-        RestoreValue(restored, current, type, string.Empty, errors, withinUnidentifiedList: false);
+        RestoreValue(restored, current, type, string.Empty, string.Empty, errors, fingerprintKey, pool: null);
         return (restored, errors.ToDictionary(a => a.Key, a => (IReadOnlyList<string>)a.Value));
     }
 
@@ -190,13 +242,13 @@ public static class ConfigurationSecrets
 
     #region Masking
 
-    private static void MaskValue(JToken token, Type declaredType)
+    private static void MaskValue(JToken token, Type declaredType, byte[] key)
     {
         if (GetDictionaryValueType(declaredType) is { } dictionaryValueType)
         {
             if (token is JObject map)
                 foreach (var entry in map.Properties())
-                    MaskValue(entry.Value, dictionaryValueType);
+                    MaskValue(entry.Value, dictionaryValueType, key);
             return;
         }
 
@@ -204,15 +256,15 @@ public static class ConfigurationSecrets
         {
             if (token is JArray array)
                 foreach (var item in array)
-                    MaskValue(item, elementType);
+                    MaskValue(item, elementType, key);
             return;
         }
 
         if (token is JObject obj && IsWalkable(declaredType))
-            MaskObject(obj, declaredType);
+            MaskObject(obj, declaredType, key);
     }
 
-    private static void MaskObject(JObject obj, Type type)
+    private static void MaskObject(JObject obj, Type type, byte[] key)
     {
         var properties = GetSerializableProperties(type);
         foreach (var jsonProperty in obj.Properties())
@@ -222,12 +274,12 @@ public static class ConfigurationSecrets
 
             if (IsSecret(property))
             {
-                if (jsonProperty.Value.Type is JTokenType.String && !string.IsNullOrEmpty(jsonProperty.Value.Value<string>()))
-                    jsonProperty.Value = Sentinel;
+                if (jsonProperty.Value.Type is JTokenType.String && jsonProperty.Value.Value<string>() is { Length: > 0 } secret)
+                    jsonProperty.Value = $"{MaskedPrefix}{GetFingerprint(secret, key)}{MaskedSuffix}";
                 continue;
             }
 
-            MaskValue(jsonProperty.Value, property.PropertyType);
+            MaskValue(jsonProperty.Value, property.PropertyType, key);
         }
     }
 
@@ -235,7 +287,12 @@ public static class ConfigurationSecrets
 
     #region Restoring
 
-    private static void RestoreValue(JToken incoming, JToken? current, Type declaredType, string path, Dictionary<string, List<string>> errors, bool withinUnidentifiedList)
+    // `path` is the concrete path, with list indices and dictionary keys, used
+    // to report errors. `shape` is the path through the type's properties
+    // alone, which scopes a fingerprint match to one property. `pool` is set
+    // once the walk is inside a list, and holds every stored secret under that
+    // list keyed by shape and fingerprint.
+    private static void RestoreValue(JToken incoming, JToken? current, Type declaredType, string path, string shape, Dictionary<string, List<string>> errors, byte[] key, Dictionary<string, string>? pool)
     {
         if (!ContainsSecrets(declaredType))
             return;
@@ -245,11 +302,11 @@ public static class ConfigurationSecrets
             if (incoming is not JObject map)
                 return;
 
-            // A dictionary key is an identity by construction, so entries pair up
-            // without needing a marked property on the value type.
+            // A dictionary key is an identity by construction, so outside a list
+            // the entries pair up by it.
             var currentMap = current as JObject;
             foreach (var entry in map.Properties())
-                RestoreValue(entry.Value, currentMap?.Property(entry.Name, StringComparison.Ordinal)?.Value, dictionaryValueType, Join(path, entry.Name), errors, withinUnidentifiedList);
+                RestoreValue(entry.Value, currentMap?.Property(entry.Name, StringComparison.Ordinal)?.Value, dictionaryValueType, Join(path, entry.Name), shape, errors, key, pool);
             return;
         }
 
@@ -258,54 +315,47 @@ public static class ConfigurationSecrets
             if (incoming is not JArray array)
                 return;
 
-            var identityName = GetIdentityName(elementType);
-            var currentArray = current as JArray;
-            for (var index = 0; index < array.Count; index++)
+            // Nothing about a list element's position or content identifies it, so
+            // from here on a masked value is found by its fingerprint among every
+            // secret stored under this list. A nested list is already covered by
+            // the outermost one's pool.
+            if (pool is null)
             {
-                var elementPath = $"{path}[{index}]";
-                if (identityName is null)
-                {
-                    // Nothing on the element identifies it across a reorder, so we
-                    // refuse to guess which stored element a masked secret belongs
-                    // to. Anything already unmasked passes straight through.
-                    RestoreValue(array[index], null, elementType, elementPath, errors, withinUnidentifiedList: true);
-                    continue;
-                }
-
-                var identity = (array[index] as JObject)?.Property(identityName, StringComparison.OrdinalIgnoreCase)?.Value;
-                var match = identity is null
-                    ? null
-                    : currentArray?
-                        .OfType<JObject>()
-                        .FirstOrDefault(element => JToken.DeepEquals(element.Property(identityName, StringComparison.OrdinalIgnoreCase)?.Value, identity));
-                RestoreValue(array[index], match, elementType, elementPath, errors, withinUnidentifiedList);
+                pool = [];
+                if (current is JArray currentArray)
+                    foreach (var element in currentArray)
+                        CollectSecrets(element, elementType, shape, key, pool);
             }
+
+            for (var index = 0; index < array.Count; index++)
+                RestoreValue(array[index], null, elementType, $"{path}[{index}]", shape, errors, key, pool);
             return;
         }
 
         if (incoming is JObject obj && IsWalkable(declaredType))
-            RestoreObject(obj, current as JObject, declaredType, path, errors, withinUnidentifiedList);
+            RestoreObject(obj, current as JObject, declaredType, path, shape, errors, key, pool);
     }
 
-    private static void RestoreObject(JObject incoming, JObject? current, Type type, string path, Dictionary<string, List<string>> errors, bool withinUnidentifiedList)
+    private static void RestoreObject(JObject incoming, JObject? current, Type type, string path, string shape, Dictionary<string, List<string>> errors, byte[] key, Dictionary<string, string>? pool)
     {
         foreach (var (jsonName, property) in GetSerializableProperties(type))
         {
             var incomingProperty = incoming.Property(jsonName, StringComparison.OrdinalIgnoreCase);
             var currentValue = current?.Property(jsonName, StringComparison.OrdinalIgnoreCase)?.Value;
             var propertyPath = Join(path, property.Name);
+            var propertyShape = Join(shape, property.Name);
             if (IsSecret(property))
             {
-                RestoreSecret(incoming, incomingProperty, jsonName, currentValue, propertyPath, errors, withinUnidentifiedList);
+                RestoreSecret(incoming, incomingProperty, jsonName, currentValue, propertyPath, propertyShape, errors, pool);
                 continue;
             }
 
             if (incomingProperty is not null)
-                RestoreValue(incomingProperty.Value, currentValue, property.PropertyType, propertyPath, errors, withinUnidentifiedList);
+                RestoreValue(incomingProperty.Value, currentValue, property.PropertyType, propertyPath, propertyShape, errors, key, pool);
         }
     }
 
-    private static void RestoreSecret(JObject incoming, JProperty? incomingProperty, string jsonName, JToken? currentValue, string path, Dictionary<string, List<string>> errors, bool withinUnidentifiedList)
+    private static void RestoreSecret(JObject incoming, JProperty? incomingProperty, string jsonName, JToken? currentValue, string path, string shape, Dictionary<string, List<string>> errors, Dictionary<string, string>? pool)
     {
         var stored = currentValue is { Type: JTokenType.String } ? currentValue.Value<string>() : null;
         var hasStored = !string.IsNullOrEmpty(stored);
@@ -319,22 +369,80 @@ public static class ConfigurationSecrets
             return;
         }
 
-        // Anything that is not the sentinel is the sender's own intent: an
-        // explicit null or empty string clears the secret, any other value
-        // replaces it. Both stand as sent.
-        if (incomingProperty.Value.Type is not JTokenType.String || !string.Equals(incomingProperty.Value.Value<string>(), Sentinel, StringComparison.Ordinal))
+        // Anything that is not masked is the sender's own intent: an explicit
+        // null or empty string clears the secret, any other value replaces it.
+        // Both stand as sent.
+        var value = incomingProperty.Value.Type is JTokenType.String ? incomingProperty.Value.Value<string>() : null;
+        if (!IsMasked(value))
             return;
 
+        // Inside a list the fingerprint is the only thing that says which stored
+        // secret this was, so a bare sentinel, or a fingerprint nothing stored
+        // matches, is refused rather than guessed at.
+        if (pool is not null)
+        {
+            if (TryGetFingerprint(value, out var fingerprint) && pool.TryGetValue(PoolKey(shape, fingerprint), out var match))
+            {
+                incomingProperty.Value = match;
+                return;
+            }
+
+            AddError(errors, path, fingerprint is null
+                ? $"\"{Sentinel}\" cannot be restored inside a list, because it does not say which stored value it stands for. Send the masked value you were given, or the real value."
+                : "The masked value does not match any value stored for this property, so it cannot be restored. Send the real value instead.");
+            return;
+        }
+
+        // Outside a list there is only one stored value it can stand for.
         if (hasStored)
         {
             incomingProperty.Value = stored;
             return;
         }
 
-        AddError(errors, path, withinUnidentifiedList
-            ? $"\"{Sentinel}\" cannot be restored here because the list element has no property marked with [Key] to match it against a stored element. Send the real value for this property instead."
-            : $"\"{Sentinel}\" is reserved to mean \"keep the stored value\" and cannot be stored as a value. There is no stored value to keep here, so send the real value or clear the property instead.");
+        AddError(errors, path, $"\"{value}\" is reserved to mean \"keep the stored value\" and cannot be stored as a value. There is no stored value to keep here, so send the real value or clear the property instead.");
     }
+
+    private static void CollectSecrets(JToken token, Type declaredType, string shape, byte[] key, Dictionary<string, string> pool)
+    {
+        if (GetDictionaryValueType(declaredType) is { } dictionaryValueType)
+        {
+            if (token is JObject map)
+                foreach (var entry in map.Properties())
+                    CollectSecrets(entry.Value, dictionaryValueType, shape, key, pool);
+            return;
+        }
+
+        if (GetEnumerableElementType(declaredType) is { } elementType)
+        {
+            if (token is JArray array)
+                foreach (var item in array)
+                    CollectSecrets(item, elementType, shape, key, pool);
+            return;
+        }
+
+        if (token is not JObject obj || !IsWalkable(declaredType))
+            return;
+
+        foreach (var (jsonName, property) in GetSerializableProperties(declaredType))
+        {
+            if (obj.Property(jsonName, StringComparison.OrdinalIgnoreCase)?.Value is not { } value)
+                continue;
+
+            var propertyShape = Join(shape, property.Name);
+            if (IsSecret(property))
+            {
+                if (value.Type is JTokenType.String && value.Value<string>() is { Length: > 0 } secret)
+                    pool[PoolKey(propertyShape, GetFingerprint(secret, key))] = secret;
+                continue;
+            }
+
+            CollectSecrets(value, property.PropertyType, propertyShape, key, pool);
+        }
+    }
+
+    private static string PoolKey(string shape, string fingerprint)
+        => $"{shape}\n{fingerprint}";
 
     private static void AddError(Dictionary<string, List<string>> errors, string path, string message)
     {
@@ -345,6 +453,31 @@ public static class ConfigurationSecrets
 
     private static string Join(string path, string name)
         => string.IsNullOrEmpty(path) ? name : $"{path}.{name}";
+
+    #endregion
+
+    #region Fingerprints
+
+    private static void ValidateKey(byte[] key)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        if (key.Length is 0)
+            throw new ArgumentException("The fingerprint key cannot be empty.", nameof(key));
+    }
+
+    private static string GetFingerprint(string secret, byte[] key)
+        => Base64Url.EncodeToString(HMACSHA256.HashData(key, Encoding.UTF8.GetBytes(secret)).AsSpan(0, FingerprintLength));
+
+    private static bool TryGetFingerprint(string? value, [NotNullWhen(true)] out string? fingerprint)
+    {
+        fingerprint = value is not null &&
+            value.Length > MaskedPrefix.Length + MaskedSuffix.Length &&
+            value.StartsWith(MaskedPrefix, StringComparison.Ordinal) &&
+            value.EndsWith(MaskedSuffix, StringComparison.Ordinal)
+            ? value[MaskedPrefix.Length..^MaskedSuffix.Length]
+            : null;
+        return fingerprint is not null;
+    }
 
     #endregion
 
@@ -415,12 +548,6 @@ public static class ConfigurationSecrets
             }
             return properties;
         });
-
-    private static string? GetIdentityName(Type type)
-        => _identityNames.GetOrAdd(type, static key => GetSerializableProperties(key)
-            .Where(pair => pair.Value.GetCustomAttribute<KeyAttribute>(inherit: true) is not null)
-            .Select(pair => pair.Key)
-            .FirstOrDefault());
 
     private static Type? GetDictionaryValueType(Type type)
     {

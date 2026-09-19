@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -37,6 +38,10 @@ namespace Shoko.Server.Services.Configuration;
 
 public partial class ConfigurationService : IConfigurationService
 {
+    private const string SecretFingerprintKeyFileName = "configuration-secrets.key";
+
+    private const int SecretFingerprintKeyLength = 32;
+
     private readonly ILogger<ConfigurationService> _logger;
 
     private readonly ILoggerFactory _loggerFactory;
@@ -59,6 +64,8 @@ public partial class ConfigurationService : IConfigurationService
 
     private readonly ConcurrentDictionary<Guid, string> _savedMemoryConfigurations = [];
 
+    private readonly Lazy<byte[]> _secretFingerprintKey;
+
     private bool _loaded = false;
 
     internal readonly Dictionary<Guid, Dictionary<string, string?>> InternalRestartPendingFor = [];
@@ -79,6 +86,7 @@ public partial class ConfigurationService : IConfigurationService
         _loggerFactory = loggerFactory;
         _applicationPaths = applicationPaths;
         _pluginManager = pluginManager;
+        _secretFingerprintKey = new(LoadOrCreateSecretFingerprintKey);
         _newtonsoftJsonSerializerSettings = new()
         {
             Formatting = Formatting.Indented,
@@ -280,7 +288,7 @@ public partial class ConfigurationService : IConfigurationService
         // reported rather than thrown here.
         if (ConfigurationSecrets.ContainsSecrets(info.Type))
         {
-            var (restored, secretErrors) = ConfigurationSecrets.Restore(JToken.Parse(json), GetCurrentToken(info), info.Type);
+            var (restored, secretErrors) = RestoreMaskedSecrets(JToken.Parse(json), GetCurrentToken(info), info.Type);
             if (secretErrors.Count > 0)
                 return secretErrors;
             json = restored.ToJson();
@@ -1160,6 +1168,59 @@ public partial class ConfigurationService : IConfigurationService
 
     #region Secrets
 
+    /// <summary>
+    ///   Masks every set secret in <paramref name="token"/> under this
+    ///   install's fingerprint key.
+    /// </summary>
+    /// <param name="token">The serialized configuration. It is not modified.</param>
+    /// <param name="type">The configuration type it was serialized from.</param>
+    /// <returns>A masked copy of the document.</returns>
+    public JToken MaskSecrets(JToken token, Type type)
+        => ConfigurationSecrets.Mask(token, type, _secretFingerprintKey.Value);
+
+    /// <summary>
+    ///   Puts the secrets stored in <paramref name="current"/> back into
+    ///   <paramref name="incoming"/>, for a caller that keeps its own stored
+    ///   copy of a configuration rather than the one this service persists.
+    /// </summary>
+    /// <param name="incoming">The incoming document. It is not modified.</param>
+    /// <param name="current">The stored document, or <c>null</c> when there is none.</param>
+    /// <param name="type">The configuration type both documents belong to.</param>
+    /// <returns>The restored copy, and any errors keyed by property path.</returns>
+    public (JToken Token, IReadOnlyDictionary<string, IReadOnlyList<string>> Errors) RestoreMaskedSecrets(JToken incoming, JToken? current, Type type)
+        => ConfigurationSecrets.Restore(incoming, current, type, _secretFingerprintKey.Value);
+
+    /// <summary>
+    ///   Reads the key masked secrets are fingerprinted under, creating it on
+    ///   first use. The key belongs to the data directory and never leaves the
+    ///   server; it is kept out of the settings file because that file gets
+    ///   shared for support, and the key together with a masked document would
+    ///   let anyone test guesses at a secret offline.
+    /// </summary>
+    /// <returns>The key.</returns>
+    private byte[] LoadOrCreateSecretFingerprintKey()
+    {
+        var path = Path.Join(_applicationPaths.DataPath, SecretFingerprintKeyFileName);
+        if (File.Exists(path))
+        {
+            var existing = File.ReadAllBytes(path);
+            if (existing.Length >= SecretFingerprintKeyLength)
+                return existing;
+
+            _logger.LogWarning("The secret fingerprint key at {Path} is too short, so a new one is being created. Masked secrets handed out before now cannot be restored inside lists.", path);
+        }
+
+        var key = RandomNumberGenerator.GetBytes(SecretFingerprintKeyLength);
+        Directory.CreateDirectory(_applicationPaths.DataPath);
+        var options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write, Share = FileShare.None };
+        if (!OperatingSystem.IsWindows())
+            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        using (var stream = new FileStream(path, options))
+            stream.Write(key);
+
+        return key;
+    }
+
     public string SerializeWithMasking(IConfiguration config)
     {
         ArgumentNullException.ThrowIfNull(config);
@@ -1168,7 +1229,7 @@ public partial class ConfigurationService : IConfigurationService
         var json = Serialize(config);
         // An unregistered type has no ConfigurationInfo to look the shape up
         // from, but it still has the shape, and failing open here would leak.
-        return ConfigurationSecrets.ContainsSecrets(type) ? ConfigurationSecrets.Mask(JToken.Parse(json), type).ToJson() : json;
+        return ConfigurationSecrets.ContainsSecrets(type) ? MaskSecrets(JToken.Parse(json), type).ToJson() : json;
     }
 
     public string MaskSecrets(ConfigurationInfo info, string json)
@@ -1179,7 +1240,7 @@ public partial class ConfigurationService : IConfigurationService
         if (!ConfigurationSecrets.ContainsSecrets(info.Type))
             return json;
 
-        return ConfigurationSecrets.Mask(JToken.Parse(json), info.Type).ToJson();
+        return MaskSecrets(JToken.Parse(json), info.Type).ToJson();
     }
 
     public string RestoreMaskedSecrets(ConfigurationInfo info, string json)
@@ -1208,7 +1269,7 @@ public partial class ConfigurationService : IConfigurationService
     /// <returns>The restored document.</returns>
     private JToken RestoreMaskedSecrets(ConfigurationInfo info, JToken incoming, out bool modified)
     {
-        var (restored, errors) = ConfigurationSecrets.Restore(incoming, GetCurrentToken(info), info.Type);
+        var (restored, errors) = RestoreMaskedSecrets(incoming, GetCurrentToken(info), info.Type);
         if (errors.Count > 0)
         {
             foreach (var (path, messages) in errors)

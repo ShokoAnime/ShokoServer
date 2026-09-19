@@ -506,7 +506,8 @@ public interface IConfigurationService
 
     /// <summary>
     ///   Serializes the specified configuration to JSON with every secret
-    ///   replaced by <see cref="ConfigurationSecrets.Sentinel"/>.
+    ///   replaced by a masked value, which carries a fingerprint of the secret
+    ///   keyed to this install. See <see cref="ConfigurationSecrets"/>.
     /// </summary>
     /// <remarks>
     ///   This is what every outward-facing surface should serialize with — the
@@ -529,7 +530,7 @@ public interface IConfigurationService
 
     /// <summary>
     ///   Replaces every set secret in an already serialized configuration with
-    ///   <see cref="ConfigurationSecrets.Sentinel"/>.
+    ///   a masked value, as <see cref="SerializeWithMasking"/> does.
     /// </summary>
     /// <param name="info">
     ///   The <see cref="ConfigurationInfo" />.

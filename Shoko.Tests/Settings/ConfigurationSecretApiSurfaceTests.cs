@@ -90,7 +90,7 @@ public sealed class ConfigurationSecretApiSurfaceTests : IDisposable
         foreach (var secret in _secrets)
             Assert.DoesNotContain(secret, emitted, StringComparison.Ordinal);
 
-        Assert.Contains(ConfigurationSecrets.Sentinel, emitted, StringComparison.Ordinal);
+        Assert.True(ConfigurationSecrets.IsMasked(JObject.Parse(emitted)["AniDb"]!["Password"]!.Value<string>()));
         // A string that merely looks sensitive but carries no marker must still
         // come through untouched; masking follows the attribute, not the name.
         Assert.Contains(PlexToken, emitted, StringComparison.Ordinal);
@@ -101,10 +101,10 @@ public sealed class ConfigurationSecretApiSurfaceTests : IDisposable
     {
         var masked = JObject.Parse(_service.SerializeWithMasking(_service.Load<ServerSettings>()));
 
-        Assert.Equal(ConfigurationSecrets.Sentinel, masked["AniDb"]!["Password"]!.Value<string>());
-        Assert.Equal(ConfigurationSecrets.Sentinel, masked["AniDb"]!["AVDumpKey"]!.Value<string>());
-        Assert.Equal(ConfigurationSecrets.Sentinel, masked["Database"]!["Password"]!.Value<string>());
-        Assert.Equal(ConfigurationSecrets.Sentinel, masked["TMDB"]!["UserApiKey"]!.Value<string>());
+        Assert.True(ConfigurationSecrets.IsMasked(masked["AniDb"]!["Password"]!.Value<string>()));
+        Assert.True(ConfigurationSecrets.IsMasked(masked["AniDb"]!["AVDumpKey"]!.Value<string>()));
+        Assert.True(ConfigurationSecrets.IsMasked(masked["Database"]!["Password"]!.Value<string>()));
+        Assert.True(ConfigurationSecrets.IsMasked(masked["TMDB"]!["UserApiKey"]!.Value<string>()));
     }
 
     [Fact]
@@ -217,6 +217,26 @@ public sealed class ConfigurationSecretApiSurfaceTests : IDisposable
         var settings = _service.Load<ServerSettings>();
         Assert.Equal("some-user", settings.AniDb.Username);
         Assert.Equal(AnidbPassword, settings.AniDb.Password);
+    }
+
+    [Fact]
+    public void TheFingerprintKey_BelongsToTheDataDirectory()
+    {
+        // The key is created on first use, kept out of the settings file, and
+        // shared by anything reading the same data directory.
+        var first = _service.SerializeWithMasking(_service.Load<ServerSettings>());
+
+        var keyPath = Path.Join(_dataPath, "configuration-secrets.key");
+        Assert.Equal(32, File.ReadAllBytes(keyPath).Length);
+        Assert.DoesNotContain(Convert.ToBase64String(File.ReadAllBytes(keyPath)), File.ReadAllText(_info.Path!), StringComparison.Ordinal);
+
+        var applicationPaths = new Mock<IApplicationPaths>(MockBehavior.Loose);
+        applicationPaths.SetupGet(paths => paths.DataPath).Returns(_dataPath);
+        var sameInstall = new ConfigurationService(NullLoggerFactory.Instance, applicationPaths.Object, new Mock<IPluginManager>(MockBehavior.Loose).Object);
+        var token = JObject.Parse(first)["AniDb"]!["Password"]!.DeepClone();
+        var masked = sameInstall.MaskSecrets(JObject.Parse(_service.Serialize(_service.Load<ServerSettings>())), typeof(ServerSettings));
+
+        Assert.Equal(token.Value<string>(), masked["AniDb"]!["Password"]!.Value<string>());
     }
 
     [Fact]
