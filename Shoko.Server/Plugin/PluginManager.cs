@@ -517,30 +517,13 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     /// <remarks>
     /// Deliberately not part of <see cref="InitPlugins"/>. A plugin's services, hosted ones
     /// included, are registered before initialization and cannot be taken back out of a built
-    /// container, so a plugin that fails here cannot be quietly dropped: its hosted services would
-    /// start anyway and fail somewhere that names neither the plugin nor this moment. Running
-    /// after the web host is up makes the failure fatal on purpose while leaving the Web UI
-    /// reachable to say so.
+    /// container, so a plugin that fails here cannot be quietly dropped. The caller records the
+    /// failure and lets the web host start anyway, so the server stays reachable to say which
+    /// plugin stopped it.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">A plugin threw while setting itself up.</exception>
+    /// <exception cref="AggregateException">One or more plugins threw while setting themselves up.</exception>
     public void SetupPlugins()
-    {
-        foreach (var localPluginInfo in _pluginTypes.ToArray())
-        {
-            if (!localPluginInfo.IsActive)
-                continue;
-
-            try
-            {
-                localPluginInfo.Plugin.Setup(ISystemService.StaticServices);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Plugin \"{Name}\" threw while setting itself up. ({Version})", localPluginInfo.Name, localPluginInfo.Version);
-                throw new InvalidOperationException($"Plugin \"{localPluginInfo.Name}\" threw while setting itself up.", ex);
-            }
-        }
-    }
+        => RunForEveryActivePlugin(plugin => plugin.Setup(ISystemService.StaticServices), "setting itself up");
 
     /// <summary>
     /// Tells every loaded plugin that all plugins have been set up.
@@ -549,9 +532,25 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     /// Separate from <see cref="SetupPlugins"/> because setup runs in load order, so a plugin that
     /// collects what other plugins contribute cannot see them all from its own <c>Setup</c>.
     /// </remarks>
-    /// <exception cref="InvalidOperationException">A plugin threw while getting ready.</exception>
+    /// <exception cref="AggregateException">One or more plugins threw while getting ready.</exception>
     public void ReadyPlugins()
+        => RunForEveryActivePlugin(plugin => plugin.Ready(), "getting ready");
+
+    /// <summary>
+    /// Runs one start-up step on every active plugin, and only then fails if any of them threw.
+    /// </summary>
+    /// <remarks>
+    /// Stopping at the first failure would leave every later plugin without the step, and its
+    /// hosted services and middleware would still start once the web host does, assuming state it
+    /// never got. Running them all means only the plugins that actually failed are left unset, and
+    /// the error names every one of them rather than the first.
+    /// </remarks>
+    /// <param name="step">The step to run on each plugin.</param>
+    /// <param name="doing">What the step is, for the log and the error.</param>
+    /// <exception cref="AggregateException">One or more plugins threw.</exception>
+    private void RunForEveryActivePlugin(Action<IPlugin> step, string doing)
     {
+        var failures = new List<(string Name, Exception Error)>();
         foreach (var localPluginInfo in _pluginTypes.ToArray())
         {
             if (!localPluginInfo.IsActive)
@@ -559,14 +558,23 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
             try
             {
-                localPluginInfo.Plugin.Ready();
+                step(localPluginInfo.Plugin);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Plugin \"{Name}\" threw while getting ready. ({Version})", localPluginInfo.Name, localPluginInfo.Version);
-                throw new InvalidOperationException($"Plugin \"{localPluginInfo.Name}\" threw while getting ready.", ex);
+                logger.LogError(ex, "Plugin \"{Name}\" threw while {Doing}. ({Version})", localPluginInfo.Name, doing, localPluginInfo.Version);
+                failures.Add((localPluginInfo.Name, ex));
             }
         }
+
+        if (failures.Count is 0)
+            return;
+
+        var names = string.Join(", ", failures.Select(failure => $"\"{failure.Name}\""));
+        var message = failures.Count is 1
+            ? $"Plugin {names} threw while {doing}."
+            : $"Plugins {names} threw while {doing}.";
+        throw new AggregateException(message, failures.Select(failure => failure.Error));
     }
 
     public void InitPlugins()
