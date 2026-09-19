@@ -31,4 +31,12 @@ public enum DisplayRecordType
     [EnumMember(Value = "complex-tab")]
     [System.Text.Json.Serialization.JsonStringEnumMemberName("complex-tab")]
     ComplexTab = 2,
+
+    /// <summary>
+    /// Every entry is a plain row: one field per key and value pair, with whatever add, remove and
+    /// reorder controls the record allows.
+    /// </summary>
+    [EnumMember(Value = "flat")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("flat")]
+    Flat = 3,
 }
