@@ -278,12 +278,14 @@ public class HashFileJob : IQueueJob
 | `[LongRunning]` | Exempts this job from the deadlock watchdog. Apply to jobs that are expected to run for a long time (e.g. hashing a large file, full-library scans). A job with a deadline of its own registers an `IJobWatchdogThreshold` instead and stays watched. |
 | `[DatabaseRequired]` | Job won't run while the database is unavailable. |
 | `[NetworkRequired]` | Job won't run while the network is offline. Subclass to make custom gates (e.g. AniDB rate limit). |
-| `[JobKeyGroup("name")]` | Namespaces the dedup key (`Import/HashFileJob_path:"…"`). |
+| `[JobKeyGroup("name")]` | Namespaces the dedup key (`Import/<full type name>_path:"…"`). |
 | `[JobKeyMember(id, index)]` | Explicit field in the dedup key. Falls back to all primitive props if absent. |
 
 ### How dedup keys work
 
-`JobKeyBuilder<T>` builds a string like `Import/HashFileJob_path:"/movies/foo.mkv"`. Two `Enqueue` calls that produce the same key collapse to one. If you have no `[JobKeyMember]` annotations, **all public settable primitive properties** participate, so two jobs with identical inputs naturally dedup.
+`JobKeyBuilder<T>` builds a string like `Import/Shoko.Server.Scheduling.Jobs.Shoko.HashFileJob_path:"/movies/foo.mkv"`. Two `Enqueue` calls that produce the same key collapse to one. If you have no `[JobKeyMember]` annotations, **all public settable primitive properties** participate, so two jobs with identical inputs naturally dedup.
+
+The key starts with the job type's full name, so two plugins with a job class of the same name never dedup against each other. A class-level `[JobKeyMember("id")]` replaces that prefix with your own id, and then keeping it unique is up to you. Keys stored by an older version started with the short type name; they are rewritten to the full name once, when the queue loads at startup.
 
 ### How job registration works
 

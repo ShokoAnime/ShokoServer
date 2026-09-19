@@ -104,4 +104,14 @@ public class JobRepository : IJobRepository
                 .Where(j => j.Id == id)
                 .ExecuteUpdateAsync(s => s.SetProperty(j => j.JobDataJson, newJson), ct);
     }
+
+    public async Task UpdateKeyBatchAsync(IReadOnlyCollection<(Guid Id, string NewKey)> updates, CancellationToken ct = default)
+    {
+        if (updates.Count == 0) return;
+        await using var db = await _factory.CreateDbContextAsync(ct);
+        foreach (var (id, newKey) in updates)
+            await db.Jobs
+                .Where(j => j.Id == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(j => j.JobKey, newKey), ct);
+    }
 }

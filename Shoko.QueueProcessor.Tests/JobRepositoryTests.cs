@@ -344,4 +344,22 @@ public class JobRepositoryTests
             Assert.Equal(scheduledAt.ToUnixTimeMilliseconds(), loaded.ScheduledAt!.Value.ToUnixTimeMilliseconds());
         }
     }
+
+    [Fact]
+    public async Task UpdateKeyBatchAsync_RewritesOnlyTheSpecifiedKeys()
+    {
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
+        {
+            var upgraded = FakeJob(jobKey: "SimpleJob_Id:1");
+            var untouched = FakeJob(jobKey: "SimpleJob_Id:2");
+
+            await repo.InsertBatchAsync([upgraded, untouched], TestContext.Current.CancellationToken);
+            await repo.UpdateKeyBatchAsync([(upgraded.Id, "Sample.Jobs.SimpleJob_Id:1")], TestContext.Current.CancellationToken);
+
+            var loaded = await repo.LoadAllAsync(TestContext.Current.CancellationToken);
+            Assert.Equal("Sample.Jobs.SimpleJob_Id:1", loaded.Single(j => j.Id == upgraded.Id).JobKey);
+            Assert.Equal("SimpleJob_Id:2", loaded.Single(j => j.Id == untouched.Id).JobKey);
+        }
+    }
 }

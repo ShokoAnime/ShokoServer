@@ -84,10 +84,11 @@ public class JobKeyBuilderTests
     // ── Tests ─────────────────────────────────────────────────────────────────
 
     [Fact]
-    public void Build_NoData_UsesTypeName()
+    public void Build_NoData_UsesFullTypeName()
     {
+        // The full name, so two plugins with a job class of the same name cannot collide.
         var key = JobKeyBuilder<SimpleJob>.Create().Build();
-        Assert.StartsWith("SimpleJob", key);
+        Assert.Equal(typeof(SimpleJob).FullName, key);
     }
 
     [Fact]
@@ -212,5 +213,55 @@ public class JobKeyBuilderTests
             .Build();
 
         Assert.Contains("9999", key);
+    }
+
+    // ── Upgrading keys built with the short type name ─────────────────────────
+
+    private static string ToLegacy<T>(string key)
+        => key.Replace(typeof(T).FullName!, typeof(T).Name);
+
+    [Fact]
+    public void UpgradeLegacyKey_RewritesAShortNamePrefix()
+    {
+        var key = JobKeyBuilder<SimpleJob>.Create().UsingJobData(j => j.FilePath = "/ep01.mkv").Build();
+
+        Assert.Equal(key, JobKeyBuilder.UpgradeLegacyKey(typeof(SimpleJob), ToLegacy<SimpleJob>(key)));
+    }
+
+    [Fact]
+    public void UpgradeLegacyKey_RewritesABareShortName()
+    {
+        Assert.Equal(typeof(SimpleJob).FullName, JobKeyBuilder.UpgradeLegacyKey(typeof(SimpleJob), nameof(SimpleJob)));
+    }
+
+    [Fact]
+    public void UpgradeLegacyKey_KeepsTheGroupPrefix()
+    {
+        var key = JobKeyBuilder<GroupedJob>.Create().UsingJobData(j => j.SeriesId = 42).Build();
+
+        Assert.StartsWith("Import/", key);
+        Assert.Equal(key, JobKeyBuilder.UpgradeLegacyKey(typeof(GroupedJob), ToLegacy<GroupedJob>(key)));
+    }
+
+    [Fact]
+    public void UpgradeLegacyKey_LeavesACurrentKeyAlone()
+    {
+        var key = JobKeyBuilder<SimpleJob>.Create().UsingJobData(j => j.FilePath = "/ep01.mkv").Build();
+
+        Assert.Null(JobKeyBuilder.UpgradeLegacyKey(typeof(SimpleJob), key));
+    }
+
+    [Fact]
+    public void UpgradeLegacyKey_LeavesAClassLevelPrefixAlone()
+    {
+        var key = JobKeyBuilder<CustomPrefixJob>.Create().UsingJobData(j => j.AnimeId = 1234).Build();
+
+        Assert.Null(JobKeyBuilder.UpgradeLegacyKey(typeof(CustomPrefixJob), key));
+    }
+
+    [Fact]
+    public void UpgradeLegacyKey_DoesNotMatchALongerTypeName()
+    {
+        Assert.Null(JobKeyBuilder.UpgradeLegacyKey(typeof(SimpleJob), "SimpleJobber_FilePath:\"x\""));
     }
 }

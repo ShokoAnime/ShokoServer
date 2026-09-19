@@ -38,6 +38,10 @@ public static class JobKeyBuilder
             data[prop.Name] = prop.GetValue(job);
         return JobKeyBuilder<IQueueJob>.BuildForType(type, data);
     }
+
+    /// <inheritdoc cref="JobKeyBuilder{T}.UpgradeLegacyKey"/>
+    internal static string? UpgradeLegacyKey(Type type, string jobKey)
+        => JobKeyBuilder<IQueueJob>.UpgradeLegacyKey(type, jobKey);
 }
 
 /// <summary>
@@ -115,7 +119,7 @@ public class JobKeyBuilder<T> where T : class, IQueueJob
         var segments = new List<string>();
         // Class-level attribute can override the type name prefix
         var classAttr = type.GetCustomAttribute<JobKeyMemberAttribute>();
-        segments.Add(classAttr?.Id ?? type.Name);
+        segments.Add(classAttr?.Id ?? GetTypePrefix(type));
 
         foreach (var (prop, attr) in members)
         {
@@ -128,6 +132,44 @@ public class JobKeyBuilder<T> where T : class, IQueueJob
         var group = type.GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
         var key = string.Join("_", segments);
         return group != null ? $"{group}/{key}" : key;
+    }
+
+    /// <summary>
+    /// The key prefix for a job type without a class-level <see cref="JobKeyMemberAttribute"/>.
+    /// The full name, so two plugins with a job class of the same name cannot dedup against
+    /// each other.
+    /// </summary>
+    private static string GetTypePrefix(Type type) => type.FullName ?? type.Name;
+
+    /// <summary>
+    /// Rewrites a key built before job keys started with the type's full name, when
+    /// <paramref name="jobKey"/> is one. Keys used to start with the short type name, which let
+    /// two plugins with a job class of the same name collide.
+    /// </summary>
+    /// <param name="type">The job type the key belongs to.</param>
+    /// <param name="jobKey">The stored key.</param>
+    /// <returns>The upgraded key, or <c>null</c> when <paramref name="jobKey"/> needs no change.</returns>
+    internal static string? UpgradeLegacyKey(Type type, string jobKey)
+    {
+        // A class-level id replaces the type name entirely, so it never changed.
+        if (type.GetCustomAttribute<JobKeyMemberAttribute>()?.Id is not null)
+            return null;
+
+        var legacyPrefix = type.Name;
+        var prefix = GetTypePrefix(type);
+        if (string.Equals(legacyPrefix, prefix, StringComparison.Ordinal))
+            return null;
+
+        var group = type.GetCustomAttribute<JobKeyGroupAttribute>()?.GroupName;
+        var groupPrefix = group is null ? string.Empty : group + "/";
+        if (!jobKey.StartsWith(groupPrefix, StringComparison.Ordinal))
+            return null;
+
+        var body = jobKey[groupPrefix.Length..];
+        if (!string.Equals(body, legacyPrefix, StringComparison.Ordinal) && !body.StartsWith(legacyPrefix + "_", StringComparison.Ordinal))
+            return null;
+
+        return groupPrefix + prefix + body[legacyPrefix.Length..];
     }
 
     private static PropertyInfo[] GetProperties(Type type) =>
@@ -177,7 +219,7 @@ public class JobKeyBuilder<T> where T : class, IQueueJob
 
         var segments = new List<string>();
         var classAttr = type.GetCustomAttribute<JobKeyMemberAttribute>();
-        segments.Add(classAttr?.Id ?? type.Name);
+        segments.Add(classAttr?.Id ?? GetTypePrefix(type));
 
         foreach (var (prop, attr) in members)
         {

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
@@ -100,6 +101,8 @@ public sealed class WorkerPoolManager : IHostedService
         // Build pools
         _pools = _poolDiscovery.Discover(jobTypes, _acquisitionFilters);
 
+        await UpgradeLegacyJobKeys(persistedJobs, _pools, ct);
+
         // Seed orchestrator
         _orchestrator.Initialize(persistedJobs, _pools);
 
@@ -183,4 +186,31 @@ public sealed class WorkerPoolManager : IHostedService
     }
 
     private IEnumerable<Type> DiscoverJobTypes() => _jobTypeRegistry.JobTypes;
+
+    /// <summary>
+    /// Rewrites persisted job keys that still start with the short type name, in memory and in
+    /// the database, before anything reads them for deduplication.
+    /// </summary>
+    private async Task UpgradeLegacyJobKeys(List<QueuedJob> persistedJobs, IReadOnlyList<WorkerPool> pools, CancellationToken ct)
+    {
+        var typeByName = new Dictionary<string, Type>(StringComparer.Ordinal);
+        foreach (var type in pools.SelectMany(pool => pool.HandledTypes))
+            typeByName[type.FullName + ", " + type.Assembly.GetName().Name] = type;
+
+        var updates = new List<(Guid Id, string NewKey)>();
+        foreach (var job in persistedJobs)
+        {
+            if (!typeByName.TryGetValue(job.JobType, out var type) || JobKeyBuilder.UpgradeLegacyKey(type, job.JobKey) is not { } newKey)
+                continue;
+
+            job.JobKey = newKey;
+            updates.Add((job.Id, newKey));
+        }
+
+        if (updates.Count is 0)
+            return;
+
+        await _repo.UpdateKeyBatchAsync(updates, ct);
+        _logger.LogInformation("Upgraded {Count} persisted job keys to the full type name", updates.Count);
+    }
 }

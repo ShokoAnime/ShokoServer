@@ -53,4 +53,10 @@ public interface IJobRepository
     /// Called by <see cref="Orchestration.PersistenceBuffer"/> on upgrade flush.
     /// </summary>
     Task UpdateDataBatchAsync(IReadOnlyCollection<(Guid Id, string? NewJson)> updates, CancellationToken ct = default);
+
+    /// <summary>
+    /// Updates <see cref="QueuedJob.JobKey"/> for each (Id, NewKey) pair. Called once at startup
+    /// to upgrade keys stored in an older format.
+    /// </summary>
+    Task UpdateKeyBatchAsync(IReadOnlyCollection<(Guid Id, string NewKey)> updates, CancellationToken ct = default);
 }
