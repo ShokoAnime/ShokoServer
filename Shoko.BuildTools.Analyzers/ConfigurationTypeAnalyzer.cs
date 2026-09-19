@@ -241,8 +241,8 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         if (GetListType(attribute) is not { } listType)
             return;
 
-        // Auto is the only display type the generator never rejects.
-        if (listType is DisplayListType.Auto)
+        // Auto and Flat are the display types the generator never rejects.
+        if (listType is DisplayListType.Auto or DisplayListType.Flat)
             return;
 
         var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
@@ -384,6 +384,7 @@ public sealed class ConfigurationTypeAnalyzer : DiagnosticAnalyzer
         ComplexDropdown = 2,
         ComplexTab = 3,
         ComplexInline = 4,
+        Flat = 5,
     }
 
     private static DisplayListType? GetListType(AttributeData attribute)
