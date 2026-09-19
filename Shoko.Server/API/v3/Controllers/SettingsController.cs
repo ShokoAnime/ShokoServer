@@ -124,11 +124,19 @@ public class SettingsController(
         }
 
         var settings = SettingsProvider.GetSettings();
+        // The settings endpoint hands out a masked password, so a client that
+        // posts what it was given, rather than what the user retyped, sends the
+        // mask. It stands for the stored password, which is what testing
+        // without retyping means.
+        var password = ConfigurationSecrets.Resolve(credentials.Password, settings.AniDb.Password);
+        if (string.IsNullOrWhiteSpace(password))
+            return ValidationProblem("There is no stored password to test with.", nameof(credentials.Password));
+
         if (!_udpHandler.IsAlive)
-            await _udpHandler.InitAsync(credentials.Username, credentials.Password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort, cancellationToken);
+            await _udpHandler.InitAsync(credentials.Username, password, settings.AniDb.UDPServerAddress, settings.AniDb.UDPServerPort, settings.AniDb.ClientPort, cancellationToken);
         else await _udpHandler.ForceLogoutAsync(cancellationToken);
 
-        if (!await _udpHandler.TestLoginAsync(credentials.Username, credentials.Password, cancellationToken))
+        if (!await _udpHandler.TestLoginAsync(credentials.Username, password, cancellationToken))
         {
             _logger.LogInformation("Failed AniDB Login and Connection");
             return ValidationProblem("Failed to log in.", "Connection");

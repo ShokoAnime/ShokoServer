@@ -147,6 +147,23 @@ public static class ConfigurationSecrets
     }
 
     /// <summary>
+    ///   Resolves a secret an endpoint was handed against the one that is
+    ///   stored, for an endpoint that uses a secret rather than saving it.
+    /// </summary>
+    /// <remarks>
+    ///   A client reads a configuration with its secrets masked, so a form that
+    ///   posts a secret straight back, to test a login with, sends the mask
+    ///   unless the user retyped it. The mask says "the stored one", which is
+    ///   what it resolves to here. Saving goes through the restore path
+    ///   instead, which pairs each mask with the value it stands for.
+    /// </remarks>
+    /// <param name="posted">What the caller sent.</param>
+    /// <param name="stored">What is stored for that property.</param>
+    /// <returns>The secret to use.</returns>
+    public static string? Resolve(string? posted, string? stored)
+        => IsMasked(posted) ? stored : posted;
+
+    /// <summary>
     ///   Checks whether <paramref name="value"/> is a masked secret, in either
     ///   the bare or the fingerprinted form.
     /// </summary>

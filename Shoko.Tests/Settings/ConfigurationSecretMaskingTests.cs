@@ -73,6 +73,19 @@ public class ConfigurationSecretMaskingTests
     #region Masking
 
     [Fact]
+    public void Resolve_TakesTheStoredSecret_WhenHandedAMask()
+    {
+        // An endpoint that uses a secret rather than saving it, testing a login
+        // with it, is handed the mask whenever the user did not retype.
+        var masked = Mask("""{"Password":"hunter2"}""")["Password"]!.Value<string>();
+
+        Assert.Equal("hunter2", ConfigurationSecrets.Resolve(masked, "hunter2"));
+        Assert.Equal("retyped", ConfigurationSecrets.Resolve("retyped", "hunter2"));
+        Assert.Null(ConfigurationSecrets.Resolve(null, "hunter2"));
+        Assert.Equal(string.Empty, ConfigurationSecrets.Resolve(string.Empty, "hunter2"));
+    }
+
+    [Fact]
     public void Mask_ReplacesASecretMarkedWithADataType()
     {
         // The schema generator renders a password element for either marker, so
