@@ -61,6 +61,20 @@ public interface IPlugin
     void Setup(IServiceProvider serviceProvider) { }
 
     /// <summary>
+    ///   Called once after every plugin has been set up, and before the web
+    ///   host starts. The default implementation is a no-op; override only
+    ///   when needed. Throwing stops the server finishing its start-up.
+    /// </summary>
+    /// <remarks>
+    ///   <see cref="Setup"/> runs in load order, and a dependency always loads
+    ///   before the plugins depending on it, so a plugin that owns something
+    ///   other plugins contribute to has been set up before any of its
+    ///   contributors. Contributions belong in <see cref="Setup"/>; whatever
+    ///   has to see all of them, such as freezing a registry, belongs here.
+    /// </remarks>
+    void Ready() { }
+
+    /// <summary>
     ///   Get the pages exposed by the plugin.
     /// </summary>
     /// <returns>

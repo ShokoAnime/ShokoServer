@@ -540,6 +540,33 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         }
     }
 
+    /// <summary>
+    /// Tells every loaded plugin that all plugins have been set up.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="SetupPlugins"/> because setup runs in load order, so a plugin that
+    /// collects what other plugins contribute cannot see them all from its own <c>Setup</c>.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">A plugin threw while getting ready.</exception>
+    public void ReadyPlugins()
+    {
+        foreach (var localPluginInfo in _pluginTypes.ToArray())
+        {
+            if (!localPluginInfo.IsActive)
+                continue;
+
+            try
+            {
+                localPluginInfo.Plugin.Ready();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Plugin \"{Name}\" threw while getting ready. ({Version})", localPluginInfo.Name, localPluginInfo.Version);
+                throw new InvalidOperationException($"Plugin \"{localPluginInfo.Name}\" threw while getting ready.", ex);
+            }
+        }
+    }
+
     public void InitPlugins()
     {
         if (_exportedTypes.Count > 0)

@@ -320,6 +320,21 @@ public class SystemService : ISystemService
                 _logger.LogError(ex, "A plugin failed to set itself up; the server will not continue starting");
             }
 
+            if (StartupFailedException is null)
+            {
+                StartupMessage = "Getting plugins ready.";
+                try
+                {
+                    _pluginManager.ReadyPlugins();
+                }
+                catch (Exception ex)
+                {
+                    StartupMessage = "Failed to start. Check your logs for more information.";
+                    StartupFailedException = new(innerException: ex);
+                    _logger.LogError(ex, "A plugin failed to get ready; the server will not continue starting");
+                }
+            }
+
             StartupMessage = "Starting Web Hosts.";
 
             // Start the web server and all IHostedService services.
