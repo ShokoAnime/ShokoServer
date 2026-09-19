@@ -12,7 +12,6 @@ using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;

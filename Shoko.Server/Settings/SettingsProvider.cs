@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -18,7 +19,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
-using System.ComponentModel.DataAnnotations;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Settings;
