@@ -12,6 +12,9 @@ public class VideoFileRelocatedEventArgs : VideoFileEventArgs
     /// <summary>
     /// The previous relative path of the file from the
     /// <see cref="PreviousManagedFolder"/>'s base location.
+    /// Uses an OS dependent directory separator, and always starts with one, so
+    /// join it to a folder with <c>Path.Join</c> rather than <c>Path.Combine</c>, which
+    /// discards the folder when the second path is rooted.
     /// </summary>
     public string PreviousRelativePath { get; set; }
 

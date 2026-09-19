@@ -160,10 +160,12 @@ A transform that needs user-editable settings implements
 
 ## `IPlaybackObserver`: observing playback
 
-An observer is notified after each byte-range (progressive) or segment (HLS)
-is served, via `OnPlaybackProgress`. All enabled observers run on every
-request, with no priority ordering, since running an additional passive
-observer alongside another is harmless.
+An observer is notified through `OnPlaybackProgress` for each byte-range
+(progressive) or segment (HLS) request, before that response is sent. All
+enabled observers run on every request, one after another, and each is awaited
+with no cancellation token, so the request waits on every observer in turn. A
+throwing observer is logged and skipped. Keep `OnPlaybackProgress` fast, and
+hand anything slow off to a queue job rather than doing it inline.
 
 ```csharp
 public class LegacyScrobbleObserver(IUserDataService userDataService) : IPlaybackObserver

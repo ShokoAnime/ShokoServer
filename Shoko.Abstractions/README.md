@@ -290,7 +290,7 @@ as a recurring job from the `IApplicationBuilder` overload above.
 | 2 | `IPluginServiceRegistration.RegisterServices(IServiceCollection, …)` | Registering services only; nothing can be resolved |
 | 3 | Initialization builds your `IPlugin` class a second time, then every contract implementation you export (providers, resolvers, rules, transforms, observers) | Constructor injection works, but the database is not open: cached repositories are still empty, and some services refuse calls this early (the hashing service throws "Providers have not been added yet") |
 | 4 | `IPlugin.Setup`, for every plugin, then `IPlugin.Ready`, for every plugin | Resolving services; still no database |
-| 5 | The web host starts: `IPluginApplicationRegistration.RegisterServices(IApplicationBuilder, …)`, then every hosted service's `StartAsync` | Middleware and recurring jobs; still no database |
+| 5 | The web host starts: the request pipeline is built, which calls `IPluginApplicationRegistration.RegisterServices(IApplicationBuilder, …)`, and every hosted service's `StartAsync` runs | Middleware and recurring jobs; still no database |
 | 6 | The database is opened, and the server raises `AboutToStart` and then `Started` (see [`Core/Services/README.md`](Core/Services/README.md)) | Everything |
 
 In setup mode, step 6 waits until the first-time setup is completed.

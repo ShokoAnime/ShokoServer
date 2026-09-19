@@ -138,8 +138,13 @@ Both live on `AiringScheduleProviderInfo`, read through
 user, not the provider:
 
 - **`EnabledKinds`** (a subset of `AvailableKinds`) is what the user turned on.
-  A track of a kind you declared but the user disabled is still stored, but
-  hidden from every read. Check your own `EnabledKinds` before fetching a kind
+  A newly discovered plugin provider starts with **none** enabled, so it is
+  listed but contributes nothing until a user switches its kinds on. Only
+  core's own providers are seeded with theirs, and only on a first run with
+  nothing stored at all. A provider whose airings never
+  show up is almost always this, not a registration problem. A track of a kind
+  you declared but the user disabled is still stored, but hidden from every
+  read. Check your own `EnabledKinds` before fetching a kind
   at all, since there's no point calling out to a dub schedule nobody asked
   for, and listen for `ProvidersUpdated` to notice when it changes.
 - **`Priority`** is source order, not a ranking of "better" data or a stand-in

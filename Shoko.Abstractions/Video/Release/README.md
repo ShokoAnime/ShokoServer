@@ -20,6 +20,12 @@ time for each video file. For each provider the outcome is one of three things:
 If every provider in the chain returns `null`, the file is left unrecognised.
 If every provider defers, the last provisional result stands.
 
+A provider that **throws** ends the search there. `SearchCompleted` is raised
+with the exception, and the rest of the chain is abandoned: later providers are
+not asked, and the finalizing step below never runs, so the attempt is not
+marked completed and no relocation follows. Return `null` for "no match" and
+keep exceptions for genuine failures.
+
 After the chain finishes, `FinalizeReleaseSearchJob` marks the match attempt
 `IsCompleted = true` and fires `IVideoReleaseService.SearchCompleted`.
 
@@ -74,6 +80,13 @@ job or a controller of yours, and never register it under
 `IReleaseInfoProvider`. The reasons behind each of those three branches are in
 [Contracts the server discovers for you](../../README.md#contracts-the-server-discovers-for-you),
 in the plugin overview.
+
+A newly discovered provider starts **disabled**. The one exception is by name:
+a provider whose `Name` is `AniDB` starts enabled, which is how core's own
+provider is switched on. It is found and listed, but it is not asked about any file until a
+user enables it on the release provider settings. A provider that never seems
+to run is almost always this, and not a registration problem, so resist
+registering it under its interface to "make it load".
 
 A provider that needs user-editable settings implements
 `IReleaseInfoProvider<TConfiguration>` where

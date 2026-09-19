@@ -39,30 +39,34 @@ process and dropping it on shutdown, so a hosted service is the natural home:
 // Registered from your plugin's RegisterServices with
 // services.AddHostedService<UnmatchedFileLogger>().
 public sealed class UnmatchedFileLogger(
-    IVideoService videoService,
     IVideoReleaseService releaseService,
     ILogger<UnmatchedFileLogger> logger
 ) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        videoService.VideoFileHashed += OnVideoFileHashed;
+        releaseService.SearchCompleted += OnSearchCompleted;
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        videoService.VideoFileHashed -= OnVideoFileHashed;
+        releaseService.SearchCompleted -= OnSearchCompleted;
         return Task.CompletedTask;
     }
 
-    private void OnVideoFileHashed(object? sender, VideoFileHashedEventArgs e)
+    private void OnSearchCompleted(object? sender, VideoReleaseSearchCompletedEventArgs e)
     {
-        if (releaseService.GetCurrentReleaseForVideo(e.Video) is null)
-            logger.LogInformation("{File} is not matched yet", e.File.FileName);
+        if (e.ReleaseInfo is null && e.Exception is null)
+            logger.LogInformation("Video {VideoID} was not matched by any provider", e.Video.ID);
     }
 }
 ```
+
+`SearchCompleted` is the event to use for "was this file matched". Checking the
+current release from `VideoFileHashed` looks equivalent and is not: that event
+fires before the release search has even been scheduled, so every new file
+looks unmatched there.
 
 `IVideoRelocationService` and `IRelocationPresetManager` are two faces of the
 same object: the core registers one `VideoRelocationService` singleton and
@@ -349,11 +353,6 @@ in the last attempt for a `GetRescanDelay`, and queues a fresh chain of the ones
 whose delay has elapsed. It returns `false` when nobody wanted to rescan, and it
 refuses outright when the stored release has `PreventRescan` set.
 
-> As it stands, this method records the new attempt and builds the chain but
-> never submits it, so a `true` return means "a rescan was decided on", not
-> "jobs are queued". Use `ScheduleFindReleaseForVideo(video, force: true)` if
-> you need the chain to actually run.
-
 ### Provider info
 
 `GetAvailableProviders(onlyEnabled)` and the four `GetProviderInfo` overloads
@@ -580,8 +579,10 @@ the stream is served as a raw passthrough.
 **Reporting playback from your own endpoint.** If your plugin serves video
 itself rather than through `/api/v3/File/{fileID}/Stream*`, call
 `NotifyPlaybackProgress(context)` so enabled observers (scrobbling, for
-instance) still see the playback. Observers are dispatched independently and a
-failing one cannot break your response.
+instance) still see the playback. The observers run one after another and are
+awaited, with no cancellation token, so a slow observer holds up the others and
+your response until it returns. A failing one is logged and cannot break your
+response.
 
 `TransformsUpdated` and `ObserversUpdated` fire when the enabled or priority
 state changes, so a cached view of the pipeline can refresh itself.

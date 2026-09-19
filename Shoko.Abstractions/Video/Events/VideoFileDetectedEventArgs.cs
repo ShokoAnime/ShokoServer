@@ -9,7 +9,10 @@ namespace Shoko.Abstractions.Video.Events;
 public class VideoFileDetectedEventArgs : EventArgs
 {
     /// <summary>
-    /// The relative path from the <see cref="ManagedFolder"/>'s root. Uses an OS dependent directory separator.
+    /// The relative path from the <see cref="ManagedFolder"/>'s root.
+    /// Uses an OS dependent directory separator, and always starts with one, so
+    /// join it to a folder with <c>Path.Join</c> rather than <c>Path.Combine</c>, which
+    /// discards the folder when the second path is rooted.
     /// </summary>
     public string RelativePath { get; }
 
