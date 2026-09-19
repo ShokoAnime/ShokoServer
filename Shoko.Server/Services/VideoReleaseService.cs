@@ -629,6 +629,10 @@ public class VideoReleaseService(
             c.ShouldRelocate = true;
         });
 
+        // A plain enqueue, unlike the new-file path: this is called by a recurring sweep over many
+        // videos, and jumping each rescan ahead of the queue would crowd out everything else.
+        await chain.Enqueue();
+
         return true;
     }
 
