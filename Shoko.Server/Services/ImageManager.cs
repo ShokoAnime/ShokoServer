@@ -241,13 +241,27 @@ public partial class ImageManager(
 
     private List<IImageCrossReferenceResolver> _resolvers = [];
 
+    private bool _resolversLoaded;
+
     /// <inheritdoc/>
     public IReadOnlyList<IImageCrossReferenceResolver> ImageCrossReferenceResolvers => _resolvers;
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Takes the image cross-reference resolvers the plugins provide. Called once during
+    /// start-up; later calls have no effect.
+    /// </summary>
+    /// <remarks>
+    /// The guard matches the other services'. Without it a second call replaced the list outright,
+    /// so any caller after start-up would have dropped every resolver the plugins contributed.
+    /// </remarks>
+    /// <param name="resolvers">The image cross-reference resolvers.</param>
     public void AddParts(IEnumerable<IImageCrossReferenceResolver> resolvers)
     {
+        if (_resolversLoaded)
+            return;
+
         _resolvers = resolvers.ToList();
+        _resolversLoaded = true;
     }
 
     #endregion

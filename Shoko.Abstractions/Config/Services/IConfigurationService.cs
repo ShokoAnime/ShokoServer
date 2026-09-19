@@ -40,18 +40,6 @@ public interface IConfigurationService
     public IReadOnlyDictionary<Guid, IReadOnlySet<string>> LoadedEnvironmentVariables { get; }
 
     /// <summary>
-    ///   Adds the necessary parts for the service to function.
-    /// </summary>
-    /// <remarks>
-    ///   This should be called once per instance of the service. Calling it
-    ///   multiple times will have no effect.
-    /// </remarks>
-    /// <param name="configurationTypes">
-    ///   The configurations.
-    /// </param>
-    void AddParts(IEnumerable<Type> configurationTypes);
-
-    /// <summary>
     ///   Create a new <see cref="ConfigurationProvider{TConfig}"/> instance for
     ///   the specified configuration type.
     /// </summary>

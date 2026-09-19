@@ -78,7 +78,7 @@ public class MyAiringScheduleProvider(MyClient client) : IAiringScheduleProvider
 
 Providers are found by reflection rather than resolved from DI, so most need no
 entry in `RegisterServices` at all: core constructs the type with constructor
-injection and `AddParts` holds that instance for the life of the process. That
+injection and holds that instance for the life of the process. That
 includes a provider running its own internal timer for its own cadence, and
 anything the constructor asks for (an `HttpClient`, your own rate limiter, a
 `ConfigurationProvider<T>`) still resolves from DI. The full rule, and the
@@ -88,7 +88,7 @@ plugin overview.
 
 One consequence bites harder here than for any other contract. Every write on
 `IAiringScheduleService` is checked **by reference** against the instance
-`AddParts` was handed, so anything else in your plugin that writes has to hold
+core discovered, so anything else in your plugin that writes has to hold
 that very object. If a job or controller of yours calls into the provider,
 register the **concrete** type as a singleton:
 
@@ -502,8 +502,8 @@ public class MyAiringScheduleProvider(IAiringScheduleService airingScheduleServi
 }
 ```
 
-Nothing is registered for this. The server holds the instance `AddParts` was
-handed and sweeps that object, so `this` inside `SweepAsync` is the same
+Nothing is registered for this. The server holds the instance it discovered
+and sweeps that object, so `this` inside `SweepAsync` is the same
 instance every write is checked against, and there is no job, hosted service or
 singleton of the plugin's involved for the container to have to line up.
 
@@ -842,7 +842,7 @@ the shape of the contract:
 | Members | Exception | When |
 |---|---|---|
 | All of them | `ArgumentNullException` | A required argument is `null`. |
-| All but the channel and time-zone reads | `InvalidOperationException` | `AddParts` has not run yet. |
+| All but the channel and time-zone reads | `InvalidOperationException` | Startup has not handed the service its providers yet. |
 | Every change, and `GetProviderInfo(provider)` | `ArgumentException` | The provider isn't the registered instance, or doesn't own the schedule or airing it was handed. |
 | `FindOrRegisterChannel` | `ArgumentException` | The name is blank once normalised. |
 | `AddChannelAliases` | `ChannelAliasConflictException` | An alias is another channel's own name, or another channel's alias, of the same type. Carries the alias, the channel already holding it, and which of the two it holds it as, so a bulk seeder can skip that one and move on. |

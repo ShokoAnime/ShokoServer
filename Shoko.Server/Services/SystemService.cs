@@ -569,7 +569,10 @@ public class SystemService : ISystemService
             services.AddSingleton<AnimeMetadataOrchestrator>();
             services.AddSingleton<TmdbSupplementaryProvider>();
 
-            pluginManager.RegisterPlugins(services);
+            // Registering the plugins' services is a host step and not on the interface, so it is
+            // reached through the implementation that does it.
+            if (pluginManager is PluginManager manager)
+                manager.RegisterPlugins(services);
 
             services.AddAPI(pluginManager);
         }

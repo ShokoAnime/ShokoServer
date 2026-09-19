@@ -54,8 +54,8 @@ That is the whole setup. There is nothing to register.
 Two separate mechanisms meet here, and neither needs you:
 
 - **Discovery.** `PluginManager` collects every exported type assignable to
-  `IConfiguration` with `GetTypes<IConfiguration>()` and hands the list to
-  `IConfigurationService.AddParts`. Note that this is `GetTypes`, not
+  `IConfiguration` with `GetTypes<IConfiguration>()` and hands the list to the
+  configuration service. Note that this is `GetTypes`, not
   `GetExports`: core registers the *type*, and instantiates configurations
   itself. The three-branch "register the concrete type as a singleton, never the
   interface" rule in [the main README](../../README.md) applies to
@@ -281,8 +281,8 @@ time: the API layer, a settings browser, a plugin inspecting another plugin.
 - `Saved` and `RequiresRestart`, the unfiltered counterparts of the provider's
   own `Saved`
 
-`AddParts` is called once by `PluginManager` during startup. Calling it again is
-a no-op, and a plugin has no reason to call it at all.
+The configuration service takes the discovered types once, during startup, and
+there is nothing for a plugin to call.
 
 ---
 

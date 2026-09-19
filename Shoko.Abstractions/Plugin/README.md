@@ -240,10 +240,6 @@ itself. Three things about them:
 removed from disk. `LoadFromPath(string)` loads plugin info from a path inside
 the user plugin directory, and fails for anything outside it.
 
-`ScanForPlugins()`, `RegisterPlugins(IServiceCollection)` and `InitPlugins()`
-are the host's own startup sequence. A plugin never calls them; `InitPlugins()`
-throws `InvalidOperationException` if it has already run.
-
 `PluginInstalled` and `PluginUninstalled` are raised with a
 `PluginInstallationEventArgs` carrying the `Plugin` and `OccurredAt`.
 

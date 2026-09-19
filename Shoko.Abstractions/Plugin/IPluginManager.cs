@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Plugin.Events;
 using Shoko.Abstractions.Plugin.Models;
 
@@ -45,31 +44,6 @@ public interface IPluginManager
     ///   <c>true</c> if compatible, <c>false</c> otherwise.
     /// </returns>
     bool IsAbiAndRuntimeCompatible(Version abstractionVersion, string runtimeIdentifier);
-
-    #endregion
-
-    #region Setup
-
-    /// <summary>
-    ///   Searches for plugins.
-    /// </summary>
-    void ScanForPlugins();
-
-    /// <summary>
-    ///   Register plugin related services to the service collection.
-    /// </summary>
-    /// <param name="serviceCollection">
-    ///   The service collection.
-    /// </param>
-    void RegisterPlugins(IServiceCollection serviceCollection);
-
-    /// <summary>
-    ///   Initializes the plugins.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">
-    ///   Thrown if the plugins have already been initialized.
-    /// </exception>
-    void InitPlugins();
 
     #endregion
 

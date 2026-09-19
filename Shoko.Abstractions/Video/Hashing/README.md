@@ -117,7 +117,7 @@ and subscribe to `ProvidersUpdated` to notice when the user changes it.
 
 ### What the defaults are
 
-`VideoHashingService.AddParts` seeds the map **only when it is completely
+At startup, the hashing service seeds the map **only when it is completely
 empty**, which in practice means the first ever startup:
 
 ```

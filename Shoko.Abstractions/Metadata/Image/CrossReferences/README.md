@@ -142,8 +142,7 @@ custom entities is all three.
 
 Usually you don't. `PluginManager.GetExports<IImageCrossReferenceResolver>()`
 finds the type in your assembly, constructs it with constructor injection and
-hands it to `IImageManager.AddParts`, which holds it for the life of the
-process. Register the **concrete type** as a singleton only when your own code
+hands it to `IImageManager`, which holds it for the life of the process. Register the **concrete type** as a singleton only when your own code
 resolves the resolver, and never register it under the
 `IImageCrossReferenceResolver` interface.
 

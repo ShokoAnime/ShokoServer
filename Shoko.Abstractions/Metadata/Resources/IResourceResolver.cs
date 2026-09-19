@@ -7,8 +7,8 @@ namespace Shoko.Abstractions.Metadata.Resources;
 /// <summary>
 ///   A plugin-registered resolver that contributes additional
 ///   <see cref="Resource"/> entries for <see cref="IWithResources"/> entities.
-///   Resolvers are registered with <see cref="Services.IMetadataService"/>
-///   via <c>AddParts</c> and are called by
+///   Resolvers are discovered in the plugin's assembly, held by
+///   <see cref="Services.IMetadataService"/>, and called by
 ///   <see cref="Services.IMetadataService.GatherResourcesForEntity"/>.
 /// </summary>
 /// <remarks>

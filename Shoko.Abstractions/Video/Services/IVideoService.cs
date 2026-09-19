@@ -12,17 +12,6 @@ namespace Shoko.Abstractions.Video.Services;
 /// </summary>
 public interface IVideoService
 {
-    /// <summary>
-    ///   Adds the video file ignore rules to the service.
-    /// </summary>
-    /// <remarks>
-    ///   This should be called once per instance of the service, and will be
-    ///   called during start-up. Calling it multiple times will have no effect.
-    /// </remarks>
-    /// <param name="rules">
-    ///   The ignore rules to add.
-    /// </param>
-    void AddParts(IEnumerable<IManagedFolderIgnoreRule> rules);
 
     /// <summary>
     ///   Gets a read-only list of the managed folder ignore rules registered

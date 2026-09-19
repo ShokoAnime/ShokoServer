@@ -53,18 +53,6 @@ public interface IVideoHashingService
     IReadOnlySet<string> AllEnabledHashTypes { get; }
 
     /// <summary>
-    ///   Adds the needed parts for the service to function.
-    /// </summary>
-    /// <remarks>
-    ///   This should be called once per instance of the service, and will be
-    ///   called during start-up. Calling it multiple times will have no effect.
-    /// </remarks>
-    /// <param name="providers">
-    ///   The hash providers.
-    /// </param>
-    void AddParts(IEnumerable<IHashProvider> providers);
-
-    /// <summary>
     ///   Gets all providers that are available, optionally filtered by enabled
     ///   state.
     /// </summary>

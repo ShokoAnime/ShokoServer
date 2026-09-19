@@ -33,6 +33,8 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Video.Streaming;
 using Shoko.QueueProcessor;
 using Shoko.Server.Services;
+using Shoko.Server.Services.Abstraction;
+using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -623,42 +625,49 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             logger.LogInformation("Initialized plugin \"{Name}\". ({DllName}, {Version})", pluginInstance.Name, dllName, localPluginInfo.Version);
         }
 
-        var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
-        configurationService.AddParts(GetTypes<IConfiguration>());
+        // Adding parts is a start-up step the host owns, so it is not on the service interfaces a
+        // plugin can reach. Each service is resolved through its interface and only fed its parts
+        // when it is the implementation that takes them.
+        var services = ISystemService.StaticServices;
 
-        var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
-        imageManager.AddParts(GetExports<IImageCrossReferenceResolver>());
+        if (services.GetRequiredService<IConfigurationService>() is ConfigurationService configurationService)
+            configurationService.AddParts(GetTypes<IConfiguration>());
 
-        var metadataService = ISystemService.StaticServices.GetRequiredService<IMetadataService>();
-        metadataService.AddParts(GetExports<IResourceResolver>());
+        if (services.GetRequiredService<IImageManager>() is ImageManager imageManager)
+            imageManager.AddParts(GetExports<IImageCrossReferenceResolver>());
 
-        var videoService = ISystemService.StaticServices.GetRequiredService<IVideoService>();
-        videoService.AddParts(GetExports<IManagedFolderIgnoreRule>());
+        if (services.GetRequiredService<IMetadataService>() is AbstractMetadataService metadataService)
+            metadataService.AddParts(GetExports<IResourceResolver>());
+
+        if (services.GetRequiredService<IVideoService>() is VideoService videoService)
+            videoService.AddParts(GetExports<IManagedFolderIgnoreRule>());
 
         // Used to store the updated priorities for the providers in the settings file.
-        var videoReleaseService = ISystemService.StaticServices.GetRequiredService<IVideoReleaseService>();
-        videoReleaseService.AddParts(GetExports<IReleaseInfoProvider>());
+        if (services.GetRequiredService<IVideoReleaseService>() is VideoReleaseService videoReleaseService)
+            videoReleaseService.AddParts(GetExports<IReleaseInfoProvider>());
 
-        var videoHashingService = ISystemService.StaticServices.GetRequiredService<IVideoHashingService>();
-        videoHashingService.AddParts(GetExports<IHashProvider>());
+        if (services.GetRequiredService<IVideoHashingService>() is VideoHashingService videoHashingService)
+            videoHashingService.AddParts(GetExports<IHashProvider>());
 
-        var airingScheduleService = ISystemService.StaticServices.GetRequiredService<IAiringScheduleService>();
-        airingScheduleService.AddParts(GetExports<IAiringScheduleProvider>(), GetExports<IAiringScheduleEntityResolver>());
+        if (services.GetRequiredService<IAiringScheduleService>() is AiringScheduleService airingScheduleService)
+            airingScheduleService.AddParts(GetExports<IAiringScheduleProvider>(), GetExports<IAiringScheduleEntityResolver>());
 
-        var relocationService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
-        relocationService.AddParts(GetExports<IRelocationProvider>());
+        if (services.GetRequiredService<IVideoRelocationService>() is VideoRelocationService relocationService)
+            relocationService.AddParts(GetExports<IRelocationProvider>());
 
-        var supplementaryMetadataService = ISystemService.StaticServices.GetRequiredService<SupplementaryMetadataService>();
+        var supplementaryMetadataService = services.GetRequiredService<SupplementaryMetadataService>();
         supplementaryMetadataService.AddParts(GetExports<ISupplementaryMetadataProvider>());
 
-        var actionService = ISystemService.StaticServices.GetRequiredService<ActionService>();
+        var actionService = services.GetRequiredService<ActionService>();
         actionService.AddParts(GetTypes<IExecutableAction>()
             .Where(type => type is { IsClass: true, IsAbstract: false })
             .Select(type => (GetPluginInfo(type.Assembly)!.ID, type)));
 
-        var videoStreamPipelineService = ISystemService.StaticServices.GetRequiredService<IVideoStreamPipelineService>();
-        videoStreamPipelineService.AddTransformParts(GetExports<IVideoStreamTransform>());
-        videoStreamPipelineService.AddObserverParts(GetExports<IPlaybackObserver>());
+        if (services.GetRequiredService<IVideoStreamPipelineService>() is VideoStreamPipelineService videoStreamPipelineService)
+        {
+            videoStreamPipelineService.AddTransformParts(GetExports<IVideoStreamTransform>());
+            videoStreamPipelineService.AddObserverParts(GetExports<IPlaybackObserver>());
+        }
     }
 
     private IEnumerable<(string?, string[], bool)> GetPluginDirectories()

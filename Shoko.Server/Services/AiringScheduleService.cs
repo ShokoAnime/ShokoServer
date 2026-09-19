@@ -331,7 +331,13 @@ public partial class AiringScheduleService(
 
     #region Add Parts
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Takes the airing schedule providers and entity resolvers the plugins provide. Called once
+    /// during start-up; later calls have no effect.
+    /// </summary>
+    /// <param name="providers">The airing schedule providers.</param>
+    /// <param name="resolvers">The airing schedule entity resolvers.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="providers"/> or <paramref name="resolvers"/> is <c>null</c>.</exception>
     public void AddParts(IEnumerable<IAiringScheduleProvider> providers, IEnumerable<IAiringScheduleEntityResolver> resolvers)
     {
         ArgumentNullException.ThrowIfNull(providers);

@@ -249,8 +249,11 @@ as a recurring job from the `IApplicationBuilder` overload above.
 Eleven contracts are found by reflection rather than through DI. For each one,
 `PluginManager.GetExports<T>()` takes every exported type that implements `T`,
 calls `ActivatorUtilities.GetServiceOrCreateInstance` on the **concrete** type,
-and hands the result to the owning service's `AddParts`, which holds it for the
-life of the process.
+and hands the result to the owning service, which holds it for the life of the
+process.
+
+Implementing the contract is the whole of it; there is nothing to call, and no
+way to hand a service an implementation yourself.
 
 | Contract | Owning service | Folder |
 |---|---|---|
@@ -316,8 +319,8 @@ services.AddSingleton<IReleaseInfoProvider, MyProvider>(); // don't
   unregistered, `GetServiceOrCreateInstance` builds a fresh one, and now there
   are two: the one in DI that nothing calls, and the one the server holds.
   Singleton state (rate limiters, caches, HTTP clients, warn-once flags) splits
-  between them, and any service that checks a call against the instance
-  `AddParts` handed it rejects the one you resolved out of DI.
+  between them, and any service that checks a call against the instance it
+  was handed at startup rejects the one you resolved out of DI.
 
 ---
 

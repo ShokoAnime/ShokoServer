@@ -41,9 +41,9 @@ public class MyLibraryService(
 }
 ```
 
-Each of the three also carries an `AddParts` method. Those belong to the core:
-`PluginManager` calls them once during start-up with the contract
-implementations it discovered in your assembly. Never call `AddParts` yourself.
+Each of the three is also handed, once during start-up, the contract
+implementations `PluginManager` discovered in your assembly. There is nothing
+for you to call.
 
 ---
 
@@ -168,8 +168,8 @@ is cheap to express, and do not rely on it running.
 
 Usually you don't. `PluginManager.GetExports<ISupplementaryMetadataProvider>()`
 finds the type in your assembly, constructs it with constructor injection and
-hands it to `SupplementaryMetadataService.AddParts`, which holds it for the life
-of the process. Register the **concrete type** as a singleton only when your own
+hands it to the supplementary metadata service, which holds it for the life of
+the process. Register the **concrete type** as a singleton only when your own
 code resolves the provider, and never register it under the
 `ISupplementaryMetadataProvider` interface.
 
@@ -332,8 +332,7 @@ plugin rarely calls it directly. Writing a resolver, what an entity does with
 the result, and the re-entrance guard are all in
 [`../Resources/README.md`](../Resources/README.md).
 
-`ResourceResolvers` exposes the registered resolvers, and `AddParts` is the
-core's to call.
+`ResourceResolvers` exposes the registered resolvers.
 
 ---
 
@@ -534,8 +533,8 @@ and every link from an image to an entity is a cross-reference row. This service
 owns both. A plugin uses it to read the images an entity has, to add its own, and
 to schedule downloads.
 
-The other half of the interface, `TryGetMetadataForEntity`, `GetEntityForImage`,
-`AddParts` and `ImageCrossReferenceResolvers`, exists so a plugin's own entity
+The other half of the interface, `TryGetMetadataForEntity`, `GetEntityForImage` and
+`ImageCrossReferenceResolvers`, exists so a plugin's own entity
 types can take part in that scheme, and is covered in
 [`../Image/CrossReferences/README.md`](../Image/CrossReferences/README.md).
 

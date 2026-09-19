@@ -23,22 +23,6 @@ public interface IVideoStreamPipelineService
     event EventHandler? ObserversUpdated;
 
     /// <summary>
-    ///   Adds the video stream transforms. This should be called once per
-    ///   instance of the service, and will be called during start-up. Calling
-    ///   it multiple times will have no effect.
-    /// </summary>
-    /// <param name="transforms">The video stream transforms.</param>
-    void AddTransformParts(IEnumerable<IVideoStreamTransform> transforms);
-
-    /// <summary>
-    ///   Adds the playback observers. This should be called once per instance
-    ///   of the service, and will be called during start-up. Calling it
-    ///   multiple times will have no effect.
-    /// </summary>
-    /// <param name="observers">The playback observers.</param>
-    void AddObserverParts(IEnumerable<IPlaybackObserver> observers);
-
-    /// <summary>
     ///   List out all available transforms and their enabled/priority state.
     /// </summary>
     /// <param name="onlyEnabled">If true, only enabled transforms are returned.</param>

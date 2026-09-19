@@ -59,8 +59,8 @@ be a thin shell over it.
 
 ### Two mistakes that fail at startup
 
-Both throw `InvalidOperationException` out of `AddParts`, which happens while the
-server is coming up, so they are loud rather than subtle.
+Both throw `InvalidOperationException` while the action service takes the
+discovered actions during startup, so they are loud rather than subtle.
 
 **Declare `Permission` on the action class itself.** There is deliberately no
 default, and the registry checks that the getter's declaring type is the action

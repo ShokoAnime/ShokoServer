@@ -29,29 +29,6 @@ namespace Shoko.Abstractions.Metadata.Services;
 /// </remarks>
 public interface IAiringScheduleService
 {
-    #region Parts
-
-    /// <summary>
-    ///   Adds the airing schedule providers and entity resolvers.
-    /// </summary>
-    /// <remarks>
-    ///   This should be called once per instance of the service, and will be
-    ///   called during start-up. Calling it multiple times will have no effect.
-    /// </remarks>
-    /// <param name="providers">
-    ///   The airing schedule providers.
-    /// </param>
-    /// <param name="resolvers">
-    ///   The airing schedule entity resolvers.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///   <paramref name="providers"/> or <paramref name="resolvers"/> is
-    ///   <c>null</c>.
-    /// </exception>
-    void AddParts(IEnumerable<IAiringScheduleProvider> providers, IEnumerable<IAiringScheduleEntityResolver> resolvers);
-
-    #endregion
-
     #region Providers
 
     /// <summary>

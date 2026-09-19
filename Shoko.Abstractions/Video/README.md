@@ -148,7 +148,6 @@ mainly useful for diagnostics.
 - **Keeping mutable state.** Calls come in concurrently from multiple walker
   threads, and there is no per-scan begin or end callback to reset anything
   against. Keep the rule pure, or make its state thread-safe.
-- **Expecting the rule set to be reloadable.** `IVideoService.AddParts` runs at
-  startup and does nothing once rules are loaded, so the set is fixed for the
-  life of the process. Anything the user should be able to change has to be
+- **Expecting the rule set to be reloadable.** The rules are taken once, at
+  startup, so the set is fixed for the life of the process. Anything the user should be able to change has to be
   read inside `ShouldIgnore`.

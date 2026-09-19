@@ -102,7 +102,11 @@ public partial class AbstractMetadataService : IMetadataService
 
     public IReadOnlyList<IResourceResolver> ResourceResolvers => _resolvers ?? [];
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Takes the resource resolvers the plugins provide. Called once during start-up; later
+    /// calls have no effect.
+    /// </summary>
+    /// <param name="resolvers">The resource resolvers.</param>
     public void AddParts(IEnumerable<IResourceResolver> resolvers)
     {
         if (_resolvers is not null)

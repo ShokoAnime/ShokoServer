@@ -109,7 +109,7 @@ language doesn't apply). `ResourceType` is one of `Website`, `Streaming`,
 
 Usually you don't. `PluginManager.GetExports<IResourceResolver>()` finds the type
 in your assembly, constructs it with constructor injection and hands it to
-`IMetadataService.AddParts`, which holds it for the life of the process.
+`IMetadataService`, which holds it for the life of the process.
 Register the **concrete type** as a singleton only when your own code resolves
 the resolver, and never register it under the `IResourceResolver` interface.
 

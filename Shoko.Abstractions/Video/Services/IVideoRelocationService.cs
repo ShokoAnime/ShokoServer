@@ -31,18 +31,6 @@ public interface IVideoRelocationService
     #region Providers
 
     /// <summary>
-    ///   Adds the needed parts for the service to function.
-    /// </summary>
-    /// <remarks>
-    ///   This should be called once per instance of the service, and will be
-    ///   called during start-up. Calling it multiple times will have no effect.
-    /// </remarks>
-    /// <param name="parts">
-    ///   The relocation providers.
-    /// </param>
-    void AddParts(IEnumerable<IRelocationProvider> parts);
-
-    /// <summary>
     ///   Gets all providers that are available.
     /// </summary>
     /// <returns>

@@ -48,18 +48,6 @@ public interface IVideoReleaseService
     bool AutoMatchEnabled { get; }
 
     /// <summary>
-    ///   Adds the release info providers.
-    /// </summary>
-    /// <remarks>
-    ///   This should be called once per instance of the service, and will be
-    ///   called during start-up. Calling it multiple times will have no effect.
-    /// </remarks>
-    /// <param name="providers">
-    ///   The release info providers.
-    /// </param>
-    void AddParts(IEnumerable<IReleaseInfoProvider> providers);
-
-    /// <summary>
     ///   List out all available providers, if they're enabled for use in
     ///   <see cref="FindReleaseForVideo(IVideo, bool, bool, bool, CancellationToken)"/>
     ///   and their priority order when used in said method.

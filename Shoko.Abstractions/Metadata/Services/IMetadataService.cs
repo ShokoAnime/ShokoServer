@@ -23,14 +23,6 @@ public interface IMetadataService
     IReadOnlyList<IResourceResolver> ResourceResolvers { get; }
 
     /// <summary>
-    ///   Registers plugin-provided <see cref="IResourceResolver"/> instances.
-    ///   Called during plugin initialization; all resolvers should be added
-    ///   before any entity's <c>Resources</c> property is queried.
-    /// </summary>
-    /// <param name="resolvers">The resolvers to register.</param>
-    void AddParts(IEnumerable<IResourceResolver> resolvers);
-
-    /// <summary>
     ///   Collects additional <see cref="Resource"/> entries for
     ///   <paramref name="entity"/> from all registered
     ///   <see cref="IResourceResolver"/> instances.

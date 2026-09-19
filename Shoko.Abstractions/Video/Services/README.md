@@ -69,15 +69,13 @@ same object: the core registers one `VideoRelocationService` singleton and
 resolves both interfaces from it. Inject whichever half you need, or both, and
 you get the same instance.
 
-## `AddParts` belongs to the core
+## What each service collects
 
-Each service exposes an `AddParts` method (`IVideoStreamPipelineService` splits
-it into `AddTransformParts` and `AddObserverParts`). `PluginManager` calls it
-once during start-up with everything it discovered through `GetExports<T>()`,
-and every later call is a no-op. Never call one yourself; implement the
-extension point instead and let discovery do the rest.
+Each service is handed, once during start-up, everything `PluginManager`
+discovered through `GetExports<T>()`. There is nothing to call; implement the
+extension point and discovery does the rest.
 
-| `AddParts` on | Collects | Written up in |
+| Service | Collects | Written up in |
 |---|---|---|
 | `IVideoService` | `IManagedFolderIgnoreRule` | [`../README.md`](../README.md) |
 | `IVideoHashingService` | `IHashProvider` | [`../Hashing/README.md`](../Hashing/README.md) |

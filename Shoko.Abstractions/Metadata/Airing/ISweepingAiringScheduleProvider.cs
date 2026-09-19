@@ -13,7 +13,7 @@ namespace Shoko.Abstractions.Metadata.Airing;
 /// <remarks>
 ///   <para>
 ///     Implementing this needs no DI registration of any kind. Core already
-///     holds the instance it was handed in <c>AddParts</c> and sweeps that very
+///     holds the instance it discovered at startup and sweeps that very
 ///     object, so the sweep passes the same <c>this</c> every write on
 ///     <c>IAiringScheduleService</c> is checked against. Nothing else of the
 ///     plugin's is involved in a sweep, so there is nothing for the container
