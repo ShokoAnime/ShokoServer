@@ -85,7 +85,10 @@ public class FinalizeReleaseSearchJob(IVideoReleaseService videoReleaseService, 
 
         // Fire SearchCompleted now that auto-management has run. IsCancelled lets subscribers
         // (plugins, internal handlers) skip provider-specific post-import work.
-        var args = await _videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt);
+        // The provider jobs saved the release as they found it, so a successful attempt's release
+        // is the video's current one. Leaving it out made every queued search look unmatched.
+        var releaseInfo = releaseFound ? _videoReleaseService.GetCurrentReleaseForVideo(_vlocal) : null;
+        var args = await _videoReleaseService.FireSearchCompleted(_vlocal, matchAttempt, releaseInfo);
         if (args.IsCancelled)
             return;
 
