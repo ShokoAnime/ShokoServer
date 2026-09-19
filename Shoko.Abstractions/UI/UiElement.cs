@@ -118,5 +118,11 @@ public abstract class UiElement
     /// <summary>
     /// Values the element must not be set to, or <c>null</c> when unrestricted.
     /// </summary>
+    /// <remarks>
+    /// Only an element holding a value of its own carries these. Authored on a
+    /// collection they describe an entry, so they are filed on the item; an
+    /// element with no value to match, a container or a select whose options
+    /// live in the configuration value, carries none.
+    /// </remarks>
     public IReadOnlyList<JToken?>? DeniedValues { get; set; }
 }
