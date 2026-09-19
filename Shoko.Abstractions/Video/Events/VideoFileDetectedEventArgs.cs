@@ -14,6 +14,16 @@ public class VideoFileDetectedEventArgs : EventArgs
     public string RelativePath { get; }
 
     /// <summary>
+    /// The absolute path to the video file, as it was when the file was detected.
+    /// </summary>
+    /// <remarks>
+    /// The event is raised before any record exists for the path, so this is the only place the
+    /// full path is recorded as a fact of the event rather than derived later from
+    /// <see cref="ManagedFolder"/> and <see cref="RelativePath"/>, which may have changed by then.
+    /// </remarks>
+    public string Path { get; }
+
+    /// <summary>
     /// The raw <see cref="System.IO.FileInfo"/> for the video file.
     /// </summary>
     public FileInfo FileInfo { get; }
@@ -32,11 +42,12 @@ public class VideoFileDetectedEventArgs : EventArgs
     public VideoFileDetectedEventArgs(string relativePath, FileInfo fileInfo, IManagedFolder managedFolder)
     {
         relativePath = relativePath
-            .Replace('/', Path.DirectorySeparatorChar)
-            .Replace('\\', Path.DirectorySeparatorChar);
-        if (relativePath[0] != Path.DirectorySeparatorChar)
-            relativePath = Path.DirectorySeparatorChar + relativePath;
+            .Replace('/', System.IO.Path.DirectorySeparatorChar)
+            .Replace('\\', System.IO.Path.DirectorySeparatorChar);
+        if (relativePath[0] != System.IO.Path.DirectorySeparatorChar)
+            relativePath = System.IO.Path.DirectorySeparatorChar + relativePath;
         RelativePath = relativePath;
+        Path = fileInfo.FullName;
         FileInfo = fileInfo;
         ManagedFolder = managedFolder;
     }

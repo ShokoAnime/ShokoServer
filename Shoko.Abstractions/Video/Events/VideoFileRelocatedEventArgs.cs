@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using Shoko.Abstractions.Metadata.Shoko;
 
 namespace Shoko.Abstractions.Video.Events;
@@ -24,17 +23,17 @@ public class VideoFileRelocatedEventArgs : VideoFileEventArgs
     /// <summary>
     /// Whether or not the file was moved.
     /// </summary>
-    public bool Moved => !string.Equals(Path.GetDirectoryName(RelativePath), Path.GetDirectoryName(PreviousRelativePath), StringComparison.InvariantCulture) || PreviousManagedFolder != ManagedFolder;
+    public bool Moved => !string.Equals(System.IO.Path.GetDirectoryName(RelativePath), System.IO.Path.GetDirectoryName(PreviousRelativePath), StringComparison.InvariantCulture) || PreviousManagedFolder != ManagedFolder;
 
     /// <summary>
     /// Whether or not the file was renamed.
     /// </summary>
-    public bool Renamed => Path.GetFileName(RelativePath) != Path.GetFileName(PreviousRelativePath);
+    public bool Renamed => System.IO.Path.GetFileName(RelativePath) != System.IO.Path.GetFileName(PreviousRelativePath);
 
     /// <summary>
     /// The absolute path leading to the previous location of the file. Uses an OS dependent directory separator.
     /// </summary>
-    public string PreviousPath => Path.Join(PreviousManagedFolder.Path, PreviousRelativePath.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+    public string PreviousPath => System.IO.Path.Join(PreviousManagedFolder.Path, PreviousRelativePath.TrimStart(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar));
 
     /// <summary>
     /// Initializes a new instance of the <see cref="VideoFileRelocatedEventArgs"/> class.
@@ -52,10 +51,10 @@ public class VideoFileRelocatedEventArgs : VideoFileEventArgs
         : base(relativePath, managedFolder, fileInfo, videoInfo, episodeInfo, animeInfo, groupInfo)
     {
         previousRelativePath = previousRelativePath
-            .Replace('/', Path.DirectorySeparatorChar)
-            .Replace('\\', Path.DirectorySeparatorChar);
-        if (previousRelativePath[0] != Path.DirectorySeparatorChar)
-            previousRelativePath = Path.DirectorySeparatorChar + previousRelativePath;
+            .Replace('/', System.IO.Path.DirectorySeparatorChar)
+            .Replace('\\', System.IO.Path.DirectorySeparatorChar);
+        if (previousRelativePath[0] != System.IO.Path.DirectorySeparatorChar)
+            previousRelativePath = System.IO.Path.DirectorySeparatorChar + previousRelativePath;
         PreviousRelativePath = previousRelativePath;
         PreviousManagedFolder = previousManagedFolder;
     }

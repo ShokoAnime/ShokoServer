@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Shoko.Abstractions.Metadata.Shoko;
 
@@ -34,11 +33,12 @@ public class VideoFileEventArgs : EventArgs
     public VideoFileEventArgs(string relativePath, IManagedFolder managedFolder, IVideoFile fileInfo, IVideo videoInfo)
     {
         relativePath = relativePath
-            .Replace('/', Path.DirectorySeparatorChar)
-            .Replace('\\', Path.DirectorySeparatorChar);
-        if (relativePath[0] != Path.DirectorySeparatorChar)
-            relativePath = Path.DirectorySeparatorChar + relativePath;
+            .Replace('/', System.IO.Path.DirectorySeparatorChar)
+            .Replace('\\', System.IO.Path.DirectorySeparatorChar);
+        if (relativePath[0] != System.IO.Path.DirectorySeparatorChar)
+            relativePath = System.IO.Path.DirectorySeparatorChar + relativePath;
         RelativePath = relativePath;
+        Path = fileInfo.Path;
         ManagedFolder = managedFolder;
         File = fileInfo;
         Video = videoInfo;
@@ -76,11 +76,12 @@ public class VideoFileEventArgs : EventArgs
     public VideoFileEventArgs(string relativePath, IManagedFolder managedFolder, IVideoFile fileInfo, IVideo videoInfo, IEnumerable<IShokoEpisode> episodeInfo, IEnumerable<IShokoSeries> animeInfo, IEnumerable<IShokoGroup> groupInfo)
     {
         relativePath = relativePath
-            .Replace('/', Path.DirectorySeparatorChar)
-            .Replace('\\', Path.DirectorySeparatorChar);
-        if (relativePath[0] != Path.DirectorySeparatorChar)
-            relativePath = Path.DirectorySeparatorChar + relativePath;
+            .Replace('/', System.IO.Path.DirectorySeparatorChar)
+            .Replace('\\', System.IO.Path.DirectorySeparatorChar);
+        if (relativePath[0] != System.IO.Path.DirectorySeparatorChar)
+            relativePath = System.IO.Path.DirectorySeparatorChar + relativePath;
         RelativePath = relativePath;
+        Path = fileInfo.Path;
         ManagedFolder = managedFolder;
         File = fileInfo;
         Video = videoInfo;
@@ -94,6 +95,12 @@ public class VideoFileEventArgs : EventArgs
     /// Uses an OS dependent directory separator.
     /// </summary>
     public string RelativePath { get; }
+
+    /// <summary>
+    /// The absolute path to the file, as it was when the event was raised.
+    /// Uses an OS dependent directory separator.
+    /// </summary>
+    public string Path { get; }
 
     /// <summary>
     /// The video file location.
