@@ -25,9 +25,10 @@ consumer side of the last two.
 ## Getting hold of one
 
 Every service here is registered as a singleton in `SystemService` before
-plugins are constructed, so plain constructor injection works everywhere: in
-your `IPlugin`, in a service you register yourself, in a queue job, in a
-controller.
+plugins are constructed, so plain constructor injection works in a service you
+register yourself, in a queue job and in a controller. The class implementing
+`IPlugin` is the exception: it must keep a parameterless constructor, and takes
+these in `IPlugin.Setup` instead.
 
 ```csharp
 public class MyLibraryService(

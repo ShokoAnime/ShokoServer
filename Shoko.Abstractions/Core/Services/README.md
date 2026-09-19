@@ -22,7 +22,8 @@ any container exists, so it must have a public parameterless constructor and can
 take no dependencies at all; see
 [the plugin overview](../../README.md#iplugin-needs-a-public-parameterless-constructor).
 Register a class like the one above from your `RegisterServices` and inject the
-services there instead.
+services there instead, or take them in `IPlugin.Setup(IServiceProvider)`, which
+exists for the plugin class.
 
 ---
 
@@ -30,10 +31,12 @@ services there instead.
 
 ### The startup timeline, and where a plugin fits into it
 
-A plugin's constructor runs during `InitPlugins()`, which happens while the web
-host is coming up. At that point the database is not initialised yet, so a
-constructor is the wrong place to touch anything that needs one. The events
-below mark the points where it becomes safe:
+Your plugin class is constructed twice, then `IPlugin.Setup` and `IPlugin.Ready`
+run, and only after the web host has started is the database opened. The full
+order is in
+[the plugin overview](../../README.md#the-order-a-plugin-is-started-in). None of
+those points is the right place to touch anything that needs the database. The
+events below mark the points where it becomes safe:
 
 | Event | Fired | What is ready |
 |---|---|---|
@@ -41,14 +44,14 @@ below mark the points where it becomes safe:
 | `SetupRequired` | When the server boots into first-run setup instead of starting | Nothing. The server is waiting for the user. |
 | `AboutToStart` | After the database, relocation presets, the AniDB UDP handler and the file watchers are all up, and before `Started` | Everything. This is the hook to initialise against. |
 | `SetupCompleted` | After `AboutToStart`, on the first run only | Same as `AboutToStart`. |
-| `Started` | Immediately after, once `StartedAt` is stamped | Same, plus the startup jobs have been queued. |
+| `Started` | Immediately after, once `StartedAt` is stamped | Same. It is raised before the startup scan and import jobs are queued, so do not expect them to be waiting yet. |
 
 `AboutToStart` is the one to use. Its `ServerAboutToStartEventArgs` carries the
 `IServiceProvider`, so a handler can resolve anything it needs without reaching
 for `StaticServices`.
 
-Subscribe from a hosted service rather than from the class implementing
-`IPlugin`, which cannot take `ISystemService` in its constructor at all. Hosted
+Subscribe from a hosted service, or from `IPlugin.Setup`; the class implementing
+`IPlugin` cannot take `ISystemService` in its constructor at all. Hosted
 services are started with the host, and `AboutToStart` is fired later, from
 `LateStart()`, so the subscription is always in place before the event fires.
 
@@ -125,9 +128,8 @@ members cover it:
 - `DatabaseBlockedChanged`, carrying `IsBlocked`.
 - `WaitForDatabaseUnblockedAsync()`, to await the gate opening.
 
-A queue job does not need any of this. `[DatabaseRequired]` already holds the job
-back until the database is up (see the scheduling section of the repository's
-`CLAUDE.md`). These members are for code that runs outside the queue.
+A queue job does not need any of this. `[DatabaseRequired]`, from the `Shoko.QueueProcessor`
+package, already holds the job back until the database is up. These members are for code that runs outside the queue.
 
 ### Version and identity
 
@@ -154,8 +156,9 @@ as a warning.
 
 Prefer, in order:
 
-1. **Constructor injection.** A plugin, a provider, an action and a queue job are
-   all constructed through the container, so they can just ask.
+1. **Constructor injection.** A provider, an action and a queue job are all
+   constructed through the container, so they can just ask. The class
+   implementing `IPlugin` is the exception: it takes its services in `Setup`.
 2. **`ServerAboutToStartEventArgs.ServiceProvider`**, for a handler that needs to
    resolve something late.
 3. `StaticServices`, only when neither is available.

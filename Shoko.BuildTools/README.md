@@ -312,7 +312,13 @@ in their `.csproj`. The tool handles all of that. A minimal plugin `.csproj`:
     <Version>1.0.5</Version>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Shoko.Abstractions" Version="..." />
+    <PackageReference Include="Shoko.Abstractions" Version="..." ExcludeAssets="runtime" />
   </ItemGroup>
 </Project>
 ```
+
+Keep `ExcludeAssets="runtime"` on the `Shoko.Abstractions` reference. The tool
+packs everything in the build's output directory, and without it your plugin
+ships its own copy of `Shoko.Abstractions.dll`, which makes the server skip the
+plugin without an error. A plugin with queue jobs also references
+`Shoko.QueueProcessor`, with `ExcludeAssets="runtime;native"`.

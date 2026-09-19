@@ -110,10 +110,11 @@ await themeService.InstallOrUpdateThemeFromData(new WebThemeDefinitionData
 }, fileName: "my-theme");
 ```
 
-There is no plugin init hook to call it from: `IPlugin` has no `Load` method,
-and nothing calls one. Call it from the `StartAsync` of a hosted service you
-register, or from an `ISystemService.AboutToStart` handler, if you want the
-theme to reappear after a user deletes it; guard it on your own stored flag if
+Call it once per start from `IPlugin.Setup`, the plugin class's own start-up
+hook (the theme service only touches files, so it is usable that early), from
+the `StartAsync` of a hosted service you register, or from an
+`ISystemService.AboutToStart` handler, if you want the theme to reappear after
+a user deletes it; guard it on your own stored flag if
 you would rather let them keep it deleted. Either way you are writing into the
 user's `themes/` directory, so use an ID unlikely to collide: an existing theme
 with the same ID is overwritten without warning.

@@ -191,16 +191,54 @@ runs later, when the container is live.
 `StreamCachePath`, `WebPath`, `ThemesPath`. It is the supported way to find
 them. Do not compute them yourself.
 
+### `IPlugin.Setup(IServiceProvider)` and `IPlugin.Ready()`, for the plugin class itself
+
+This is where the class that implements `IPlugin` gets its services, since it
+cannot take them in its constructor. Both have empty defaults, so override only
+what you need.
+
+```csharp
+public class Plugin : IPlugin
+{
+    private ConfigurationProvider<MyConfiguration>? _configurationProvider;
+
+    public void Setup(IServiceProvider serviceProvider)
+        => _configurationProvider = serviceProvider.GetRequiredService<ConfigurationProvider<MyConfiguration>>();
+
+    public IReadOnlyList<PluginFeature> GetFeatures()
+        => _configurationProvider?.Load() is { IsComplete: true } ? [new() { Name = "my-feature" }] : [];
+}
+```
+
+- **`Setup`** runs once, after every plugin has been initialized and before the
+  database is opened. Take the services you need here and leave the work that
+  uses them for later.
+- **`Ready`** runs once after *every* plugin's `Setup`, and before the web host
+  starts. `Setup` runs in load order, and a dependency always loads before the
+  plugins that depend on it, so a plugin that collects what other plugins
+  contribute has been set up before any of them. Contributions go in `Setup`;
+  anything that has to see all of them, such as freezing a registry, goes in
+  `Ready`.
+
+A throw from either stops the server finishing its start-up. See
+[The order a plugin is started in](#the-order-a-plugin-is-started-in) for what
+that leaves running.
+
+Both only bind when your plugin is compiled against a `Shoko.Abstractions`
+version that declares them. Compiled against an older one, a `Setup` method is an
+ordinary method the server never calls.
+
 ### `IPluginApplicationRegistration.RegisterServices(IApplicationBuilder, IApplicationPaths)`
 
 Called from `UseAPI()` while the HTTP pipeline is built: after
 `UseAuthentication`, `UseAuthorization` and the SignalR hub endpoints, and
 before `UseCors` and `UseMvc`. Register your own middleware here.
 
-It is also the first point at which a plugin holds a *built* container, as
-`application.ApplicationServices`, and it runs before the hosted services boot.
-That combination is what makes it the place to register recurring queue jobs,
-which is what the shipping airing plugins do:
+It hands you the built container as `application.ApplicationServices`, and it
+runs before the hosted services boot. That combination makes it a good place to
+register recurring queue jobs, which is what the shipping airing plugins do
+(`RecurringJobRegistry` comes from the `Shoko.QueueProcessor` package; see
+[Other things wired up for you](#other-things-wired-up-for-you)):
 
 ```csharp
 public static void RegisterServices(IApplicationBuilder application, IApplicationPaths applicationPaths)
@@ -241,6 +279,28 @@ whenever the worker pool and the acquisition filters let a job through.
 Pick the other way around when the work is a discrete unit that should queue,
 retry, deduplicate and show up in the queue UI. That is a queue job, registered
 as a recurring job from the `IApplicationBuilder` overload above.
+
+---
+
+## The order a plugin is started in
+
+| Step | What runs | What is safe here |
+|---|---|---|
+| 1 | Discovery builds your `IPlugin` class with its parameterless constructor | Nothing but identity: there is no container yet |
+| 2 | `IPluginServiceRegistration.RegisterServices(IServiceCollection, …)` | Registering services only; nothing can be resolved |
+| 3 | Initialization builds your `IPlugin` class a second time, then every contract implementation you export (providers, resolvers, rules, transforms, observers) | Constructor injection works, but the database is not open: cached repositories are still empty, and some services refuse calls this early (the hashing service throws "Providers have not been added yet") |
+| 4 | `IPlugin.Setup`, for every plugin, then `IPlugin.Ready`, for every plugin | Resolving services; still no database |
+| 5 | The web host starts: `IPluginApplicationRegistration.RegisterServices(IApplicationBuilder, …)`, then every hosted service's `StartAsync` | Middleware and recurring jobs; still no database |
+| 6 | The database is opened, and the server raises `AboutToStart` and then `Started` (see [`Core/Services/README.md`](Core/Services/README.md)) | Everything |
+
+In setup mode, step 6 waits until the first-time setup is completed.
+
+**If `Setup` or `Ready` throws,** every other plugin still gets its call, and
+then the server records the failure and stops before step 6. The web host still
+starts, so the server stays reachable and the Web UI names the plugins that
+failed. That means step 5 still runs, for *every* active plugin, including one
+whose `Setup` threw or never got as far as `Ready`. A hosted service or
+middleware must not assume `Setup` succeeded.
 
 ---
 
@@ -287,6 +347,14 @@ resolving its constructor parameters from the container as usual, so an
 `HttpClient`, your own rate limiter or a `ConfigurationProvider<T>` all arrive
 the normal way. The held instance is long lived, which covers an implementation
 with its own caches or its own internal timer.
+
+It is one instance *per contract*, though. An unregistered class that implements
+two contracts, such as a transform that is also an observer, is built twice and
+holds two separate sets of state. Your `IPlugin` class is never registered in DI
+either, so if it also implements a contract, the instance the server holds for
+that contract is a separate object that never had `Setup` called. Keep contract
+implementations on their own classes, or register the concrete type as a
+singleton (branch 2 below) so every contract resolves to the same object.
 
 **2. Register the concrete type as a singleton,** only when your own code
 resolves it: a queue job, a controller, a hosted service of yours that calls
@@ -400,26 +468,39 @@ configuration is handled:
 A provider declares its configuration type through the generic form of its own
 contract, for example `IReleaseInfoProvider<TConfiguration>` or
 `IAiringScheduleProvider<TConfiguration>`, which is what tells the Web UI to
-render that page under the provider.
+render that page under the provider. The exception is
+`ISupplementaryMetadataProvider<TConfiguration>`: its configuration marker is
+not an `IConfiguration`, and nothing reads it yet, so the generic form binds no
+page.
 
 ---
 
 ## Other things wired up for you
 
-- **Queue jobs.** Every plugin assembly is scanned with
-  `AddQueueJobsFromAssembly` during `RegisterPlugins`. You do not call it
-  yourself; write the `IQueueJob` and enqueue it. See the scheduling section of
-  the repository's `CLAUDE.md` for `IQueueScheduler`, `IJobChainBuilder`,
-  `RecurringJobRegistry` and the concurrency and acquisition attributes.
+- **Queue jobs.** `IQueueJob`, `IQueueScheduler`, `IJobChainBuilder`,
+  `RecurringJobRegistry` and the concurrency and acquisition attributes (such as
+  `[DatabaseRequired]`) live in the separate **`Shoko.QueueProcessor`** package,
+  so a plugin with jobs references it as well as `Shoko.Abstractions`. Use
+  `ExcludeAssets="runtime;native"` on it: the server already ships the package,
+  and it brings EF Core and SQLite, whose native libraries `runtime` alone does
+  not exclude. Every plugin assembly is scanned with
+  `AddQueueJobsFromAssembly` during service registration; you do not call it
+  yourself, only write the `IQueueJob` and enqueue it.
 - **Controllers.** Each enabled plugin assembly is added as an MVC application
-  part, so a controller in your plugin is routed like any other.
+  part, so a controller in your plugin is routed like any other, and gated like
+  any other. Until the server has finished starting (and in setup mode, and
+  after a failed start) every endpoint answers `503` unless it is marked
+  `[InitFriendly]`; while the database is blocked, every action answers `400`
+  unless it is marked `[DatabaseBlockedExempt]`. Both attributes are in
+  `Shoko.Abstractions.Web.Attributes`. Plugin middleware sits behind the same
+  `503` gate, and has no endpoint to carry the attribute.
 - **Executable actions.** Exported types implementing `IExecutableAction` are
   registered as transient, and resolved fresh from DI per execution.
 - **Pages and features.** `IPlugin.GetPages()` advertises `PluginPage` entries
   (a name and a URL, embeddable by default) to clients, and `GetFeatures()`
   advertises `PluginFeature` entries. `GetFeatures()` is called every time a
   client asks, so a plugin can leave out a feature its current configuration
-  cannot deliver.
+  cannot deliver. The plugin class reaches its configuration through `Setup`.
 
 ---
 

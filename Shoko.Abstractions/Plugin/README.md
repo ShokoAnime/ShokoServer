@@ -14,8 +14,8 @@ registering the contracts the server discovers, lives one level up in the
 | Type | Your plugin |
 |---|---|
 | `IPlugin` | **Implements.** Exactly one class per plugin assembly. |
-| `IPluginServiceRegistration` | **Implements**, optionally, on that same class. Static abstract. |
-| `IPluginApplicationRegistration` | **Implements**, optionally, on that same class. Static abstract. |
+| `IPluginServiceRegistration` | **Implements**, optionally, on any one exported class, usually the plugin class. Static abstract. |
+| `IPluginApplicationRegistration` | **Implements**, optionally, on any one exported class, usually the plugin class. Static abstract. |
 | `IApplicationPaths` | **Consumes.** Injected, or handed to the two registration hooks. |
 | `IPluginManager` | **Consumes.** Core-provided singleton. |
 | `IPluginPackageManager` | **Consumes.** Core-provided singleton. |
@@ -62,8 +62,9 @@ public class MyPlugin : IPlugin
 `EmbeddedThumbnailResourceName`, `GetPages()` and `GetFeatures()` all have
 default implementations. The class itself needs a public parameterless
 constructor, because the plugin scan instantiates it before any container
-exists; anything needing injected services belongs in a service of your own
-instead. The [plugin overview](../README.md) covers that in full.
+exists. It takes the services it needs in `Setup(IServiceProvider)`, and
+anything that has to see every plugin's contributions goes in `Ready()`; both
+have empty defaults. The [plugin overview](../README.md) covers that in full.
 
 ### Pages
 
@@ -82,7 +83,8 @@ plugin's ID: stable across restarts, and it changes when you change the URL.
 A `PluginFeature` is how a plugin tells clients what the server can do, so a
 client can turn UI on without sniffing for endpoints. `GetFeatures()` is called
 every time a client asks, so a feature whose configuration is incomplete should
-simply not be returned that time.
+simply not be returned that time. The plugin class reaches its configuration
+through a `ConfigurationProvider<T>` taken in `Setup`.
 
 - **`Name`** must be lowercase kebab-case and at most 64 characters, so it can
   go straight into a URL. It is unique per plugin, and identity is the pair of
@@ -105,8 +107,11 @@ check your own before returning them.
 
 `IPluginServiceRegistration` and `IPluginApplicationRegistration` each declare a
 single `static abstract RegisterServices` method, taking an `IServiceCollection`
-or an `IApplicationBuilder` alongside `IApplicationPaths`. They are static
-because the core calls them before any plugin instance exists. What belongs in
+or an `IApplicationBuilder` alongside `IApplicationPaths`. The service hook
+is static because it runs while the container is still being assembled, before
+the plugin instance that lives for the process is built; the application hook
+runs later, once it exists. Each is taken from the first exported type that
+implements it, so a second implementation in the same assembly is never called. What belongs in
 each, and how to register your own services, is covered in the
 [plugin overview](../README.md).
 
