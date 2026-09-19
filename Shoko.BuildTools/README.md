@@ -322,7 +322,9 @@ Keep `ExcludeAssets="runtime"` on the `Shoko.Abstractions` reference. The tool
 packs everything in the build's output directory, and without it your plugin
 ships its own copy of `Shoko.Abstractions.dll`, which makes the server skip the
 plugin without an error. A plugin with queue jobs also references
-`Shoko.QueueProcessor`, with `ExcludeAssets="runtime;native"`.
+`Shoko.QueueProcessor`, with `ExcludeAssets="runtime;native"`. Keep the two
+on matching versions: the same stable version for a stable server, the latest
+prereleases of both for daily.
 
 `GenerateDocumentationFile` is what lets a setting fall back to its XML doc
 summary for its description; without it those descriptions are empty. See the

@@ -9,6 +9,91 @@ The models it deals in are next door in `Shoko.Abstractions/Web`:
 `IWebThemeDefinition` (a theme as the server sees it) and
 `WebThemeDefinitionData` (the JSON shape authors write).
 
+This page also covers where a plugin's own web surface goes, in
+[Routes a plugin serves](#routes-a-plugin-serves).
+
+---
+
+## Routes a plugin serves
+
+A plugin that serves anything over HTTP picks one **namespace**: a short,
+URL-safe name that is its own, usually the plugin's name. The casing is up to
+you; for reference, core's own APIv3 uses PascalCase. Everything the plugin
+serves lives under `plugin/<namespace>`, in three places:
+
+| What | Path |
+|---|---|
+| API endpoints | `/api/plugin/<namespace>/<your paths>` |
+| Pages and static assets | `/plugin/<namespace>/<your paths>` |
+| SignalR hubs | `/signalr/plugin/<namespace>/<your paths>` |
+
+Use the same namespace in all three, so a client that knows one of your paths
+can find the others. For a plugin whose namespace is `Template`:
+
+```csharp
+[ApiController]
+[Authorize]
+[Route("api/plugin/Template/[controller]")]
+public class StatusController : ControllerBase { … }
+```
+
+A hub would go at `/signalr/plugin/Template/<hub>`, and pages or assets
+under `/plugin/Template/`.
+
+### Mapping a SignalR hub
+
+Map a hub from `IPluginApplicationRegistration.RegisterServices`, the hook that
+runs while the request pipeline is built:
+
+```csharp
+public static void RegisterServices(IApplicationBuilder application, IApplicationPaths applicationPaths)
+{
+    application.UseEndpoints(endpoints =>
+    {
+        endpoints.MapHub<TemplateHub>("/signalr/plugin/Template/events").RequireAuthorization();
+    });
+}
+```
+
+- **You don't have to call `AddSignalR`.** Core already registers it, with a
+  60-second client timeout, so a mapped hub works with no registration of your
+  own and is on exactly the same footing as core's own hubs.
+- **Call it when you need per-hub options**, since `AddHubOptions<THub>` is only
+  reachable from the builder `AddSignalR()` returns. Raising
+  `MaximumReceiveMessageSize` past the 32 KB default and adding a hub filter
+  both require it:
+
+  ```csharp
+  serviceCollection.AddSignalR()
+      .AddHubOptions<TemplateHub>(options =>
+      {
+          options.MaximumReceiveMessageSize = 512 * 1024;
+          options.AddFilter(MyHubFilter.Instance);
+      });
+  ```
+
+  Calling it a second time is safe and changes nothing about the protocols on
+  offer. Core's own `AddSignalR()` already registered System.Text.Json's
+  `JsonHubProtocol`, and its `AddNewtonsoftJsonProtocol()` appended Newtonsoft
+  rather than replacing it, so both are registered with or without your call.
+
+  ⚠️ Both being registered means a client negotiates whichever it asks for, so
+  write hubs and their payloads to tolerate either serializer rather than
+  assuming Newtonsoft's settings. Both ignore unknown members by default, so a
+  retired field still on the wire is skipped rather than refused.
+- **Always require authorization.** `RequireAuthorization()` admits any
+  signed-in user, and `RequireAuthorization("admin")` admits administrators only.
+- **Clients sign in with their API key** as a bearer token, which a browser
+  can't set on a WebSocket, or as an `access_token` query parameter. The
+  JavaScript client does this with
+  `withUrl(url, { accessTokenFactory: () => apiKey })`.
+- **To push from anywhere else in your plugin**, inject `IHubContext<TemplateHub>`
+  rather than holding on to a hub instance, which only lives for one call.
+
+Core keeps `/plugin` clear, and the WebUI never answers for it, even when it is
+served from the root. Two plugins choosing the same namespace is a conflict
+nothing detects for you, so pick something unmistakably yours.
+
 ---
 
 ## What a theme is

@@ -309,8 +309,12 @@ public int SweepIntervalHours { get; set; } = 24;
 ### A custom action
 
 A `[CustomAction]` method takes a `ConfigurationActionContext<TConfig>` and
-returns a `ConfigurationActionResult`. This is how a "Test connection" button
-works:
+returns a `ConfigurationActionResult`. It is an instance method on the
+configuration class itself, or on the class of a nested object in it, and it
+runs on that object. The button's label is the method's `[Display(Name)]`, or
+failing that its name split into words with a trailing "Action" or "Handler"
+dropped, so `TestTokenAction` reads "Test Token". This is how a "Test
+connection" button works:
 
 ```csharp
 [CustomAction(Theme = DisplayColorTheme.Primary, Position = DisplayButtonPosition.Top, SectionName = "Login")]

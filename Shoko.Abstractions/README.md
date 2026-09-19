@@ -234,7 +234,9 @@ ordinary method the server never calls.
 
 Called from `UseAPI()` while the HTTP pipeline is built: after
 `UseAuthentication`, `UseAuthorization` and the SignalR hub endpoints, and
-before `UseCors` and `UseMvc`. Register your own middleware here.
+before `UseCors` and `UseMvc`. Register your own middleware here, and map your
+own SignalR hubs; see
+[Mapping a SignalR hub](Web/Services/README.md#mapping-a-signalr-hub).
 
 It hands you the built container as `application.ApplicationServices`, and it
 runs before the hosted services boot. That combination makes it a good place to
@@ -487,7 +489,10 @@ page.
   and it brings EF Core and SQLite, whose native libraries `runtime` alone does
   not exclude. Every plugin assembly is scanned with
   `AddQueueJobsFromAssembly` during service registration; you do not call it
-  yourself, only write the `IQueueJob` and enqueue it.
+  yourself, only write the `IQueueJob` and enqueue it. The two packages move in
+  lock step with the server: a stable server ships both as the same stable
+  version (`6.0.0`), so reference that pair, and a daily build pairs with the
+  latest prerelease (alpha or beta) of each.
 - **Controllers.** Each enabled plugin assembly is added as an MVC application
   part, so a controller in your plugin is routed like any other, and gated like
   any other. Until the server has finished starting (and in setup mode, and
@@ -495,7 +500,9 @@ page.
   `[InitFriendly]`; while the database is blocked, every action answers `400`
   unless it is marked `[DatabaseBlockedExempt]`. Both attributes are in
   `Shoko.Abstractions.Web.Attributes`. Plugin middleware sits behind the same
-  `503` gate, and has no endpoint to carry the attribute.
+  `503` gate, and has no endpoint to carry the attribute. Put everything a
+  plugin serves under one namespace of its own; the paths are in
+  [Routes a plugin serves](Web/Services/README.md#routes-a-plugin-serves).
 - **Executable actions.** Exported types implementing `IExecutableAction` are
   registered as transient, and resolved fresh from DI per execution. See the
   [actions README](Actions/Services/README.md) for the two rules that fail
