@@ -101,7 +101,7 @@ Two shapes, and the difference matters:
 | Member | Behaviour |
 |---|---|
 | `RefreshAnimeByID(id, method, ct)` / `RefreshAnime(anime, method, ct)` | Does the work inline and awaits it. Returns the refreshed `IAnidbAnime` (`RefreshAnimeByID` returns `null` when the anime does not exist on AniDB). Throws `AnidbHttpBannedException`, carrying `ExpiresAt`, when a ban is in the way. |
-| `ScheduleRefreshOfAnimeByID(id, method, prioritize)` / `ScheduleRefreshOfAnime(anime, method, prioritize)` | Queues the refresh job and returns. The queue's own AniDB acquisition filters and concurrency group then apply. |
+| `ScheduleRefreshOfAnimeByID(id, method, prioritize)` / `ScheduleRefreshOfAnime(anime, method, prioritize)` | Queues the refresh job and returns. The queue's own AniDB acquisition filters and concurrency group then apply. Called from inside a job, the new job runs straight after that one, ahead of everything already waiting; called from anywhere else, it goes to the front of the queue. |
 
 **Prefer the scheduled form for anything that is not a direct response to a
 user action.** A queued job waits for a ban to lift and respects the HTTP
@@ -158,7 +158,9 @@ can still queue up far more work than the budget can drain.
   effect.
 - **Never loop a refresh over a library.** A thousand anime at the sustained
   UDP rate is over an hour of solid traffic, and the same loop against HTTP is
-  how bans happen. Schedule the work and let the queue pace it.
+  how bans happen. Schedule the work and let the queue pace it, and bear in
+  mind that every scheduled refresh jumps ahead of what is already waiting, so
+  a thousand of them push the user's own imports to the back.
 - **Check `IsAnidbHttpBanned` / `IsAnidbUdpBanned` before starting a sweep**,
   and subscribe to `BanOccurred` / `BanExpired` to stop and resume one already
   running.

@@ -744,3 +744,10 @@ does; `ImageDownloaded` is the one that means there are bytes on disk.
 Demoting a sibling preferred image raises its own `ImageUpdated` and
 `ImageCrossReferenceUpdated`, so setting one preferred image can produce two
 pairs of events.
+
+Every one of them is raised on its own thread-pool task and nothing waits for
+it. Handlers can therefore run in any order, including two events for the same
+image arriving the other way round, and can run at the same time as each other.
+Read the current state back from `IImageManager` rather than trusting the order
+events arrived in, and catch inside the handler, since an exception it throws
+is never observed.

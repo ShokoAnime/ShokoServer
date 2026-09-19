@@ -100,7 +100,7 @@ are nullable, so branch on `IsMovie` rather than null-checking one of them.
 | Member | Behaviour |
 |---|---|
 | `UpdateShow(options)` / `UpdateMovie(options)` | Does the fetch inline and awaits it. Returns whether anything was updated. |
-| `ScheduleUpdateOfShow(options)` / `ScheduleUpdateOfMovie(options)` | Queues the update job and returns. |
+| `ScheduleUpdateOfShow(options)` / `ScheduleUpdateOfMovie(options)` | Queues the update job and returns. Called from inside a job, the new job runs straight after that one, ahead of everything already waiting; called from anywhere else, it goes to the front of the queue. |
 | `UpdateAllShows(force, downloadImages)` / `UpdateAllMovies(force, saveImages)` | Despite the names, these **queue** one job per existing cross-reference. They return once the jobs are queued, not once they have run. |
 | `ScheduleDownloadAllShowImages(id, force)` / `ScheduleDownloadAllMovieImages(id, force)` | Queues just the images for one entity. |
 
@@ -263,7 +263,9 @@ concurrent workers against `AnidbProcessFileJob`'s 4. That is not a licence to
 hammer it.
 
 - **Prefer the `Schedule…` forms** for bulk work. A queued job resumes on its
-  own once a pause lifts; a direct `await UpdateShow(…)` sits there.
+  own once a pause lifts; a direct `await UpdateShow(…)` sits there. Each one
+  jumps ahead of what is already waiting, though, so a long loop of them
+  pushes everything else back.
 - **Never loop `UpdateShow` over a library.** `UpdateAllShows` exists, and it
   queues rather than blocks, for exactly this reason.
 - **Check `GetPauseStatus()` before starting a sweep of your own.** If the

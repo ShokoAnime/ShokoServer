@@ -87,7 +87,7 @@ plugin that wants to propose links rather than invent its own matching.
 | Member | Behaviour |
 |---|---|
 | `UpdateAnime(options)` | Does the fetch inline and awaits it. Returns whether the anime was updated. |
-| `ScheduleUpdateOfAnime(options)` | Queues the update job and returns. |
+| `ScheduleUpdateOfAnime(options)` | Queues the update job and returns. Called from inside a job, the new job runs straight after that one, ahead of everything already waiting; called from anywhere else, it goes to the front of the queue. |
 | `UpdateAllAnime(force, downloadImages)` | Despite the name, this **queues** one update job per existing AniDB ↔ AniList cross-reference. It returns once they are all queued, not once they have run. |
 | `ScheduleDownloadAllAnimeImages(id, forceDownload)` | Queues just the images for one anime. |
 
@@ -228,7 +228,9 @@ Practical consequences for a plugin:
 
 - **Prefer the `Schedule…` forms.** A queued job re-queues and resumes on its
   own once a pause lifts, so nothing is lost by waiting. A direct
-  `await UpdateAnime(…)` will simply sit there for the duration.
+  `await UpdateAnime(…)` will simply sit there for the duration. Each one
+  jumps ahead of what is already waiting, though, so a long loop of them
+  pushes everything else back.
 - **Never loop `UpdateAnime` over a library.** `UpdateAllAnime` exists, and it
   queues rather than blocks, for exactly this reason.
 - **Check `GetPauseStatus()` before starting a sweep of your own**, and use

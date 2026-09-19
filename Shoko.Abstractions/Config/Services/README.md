@@ -98,6 +98,12 @@ public MyProvider(ConfigurationProvider<MyConfiguration> configurationProvider)
 }
 ```
 
+`Saved` is raised on a thread-pool task after the save has returned, not on the
+thread that saved. Nothing observes that task, so an exception your handler
+throws is lost without a log line; catch and log inside the handler. The same
+goes for `RequiresRestart`. Don't rely on the new values being applied by the
+time `Save` returns either, since the handler may not have run yet.
+
 ---
 
 ## The `[Required]` trap

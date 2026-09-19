@@ -462,6 +462,14 @@ three lists apart: `Added` when the write only added, `Removed` when it only
 withdrew, `None` when it did nothing, and `Updated` for everything else,
 including a write that did more than one of those things.
 
+`AiringsUpdated`, like `ScheduleUpdated` and `ChannelRegistered`, is raised
+synchronously on the thread that made the write, after the rows are saved.
+`SweepCompleted` is raised the same way on the sweep's thread. A slow handler
+holds up the writer, which during a sweep is the sweep itself. A handler that
+throws doesn't undo anything, but the exception comes out of the write call, so
+the provider sees its write fail even though it was stored. Keep handlers
+short, catch inside them, and hand anything heavy to the queue.
+
 ---
 
 ## Core-driven sweeps: `ISweepingAiringScheduleProvider`
