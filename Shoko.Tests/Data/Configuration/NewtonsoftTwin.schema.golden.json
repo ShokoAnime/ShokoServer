@@ -170,11 +170,11 @@
       "type": "object",
       "description": "A select component for the UI.",
       "required": [
-        "options",
-        "groups"
+        "Options",
+        "Groups"
       ],
       "properties": {
-        "options": {
+        "Options": {
           "type": "array",
           "description": "The options for the select component in the UI.",
           "default": [],
@@ -182,7 +182,7 @@
             "$ref": "#/definitions/SelectOption_1"
           }
         },
-        "groups": {
+        "Groups": {
           "type": "array",
           "description": "The groups for the select component in the UI.",
           "default": [],
@@ -196,38 +196,38 @@
       "type": "object",
       "description": "A select option for the UI.",
       "required": [
-        "value"
+        "Value"
       ],
       "properties": {
-        "label": {
+        "Label": {
           "type": [
             "null",
             "string"
           ],
           "description": "The label for the option."
         },
-        "groupId": {
+        "GroupID": {
           "type": [
             "integer",
             "null"
           ],
           "description": "The unique identifier for the group this option belongs to, or `null` if it should be rendered outside of a group."
         },
-        "value": {
+        "Value": {
           "type": "string",
           "description": "The value of the option."
         },
-        "selected": {
+        "IsSelected": {
           "type": "boolean",
           "description": "Whether the option is selected.",
           "default": false
         },
-        "default": {
+        "IsDefault": {
           "type": "boolean",
           "description": "Whether the option is the default.",
           "default": false
         },
-        "disabled": {
+        "IsDisabled": {
           "type": "boolean",
           "description": "Whether the option is disabled.",
           "default": false
@@ -238,19 +238,19 @@
       "type": "object",
       "description": "A select group for the UI.",
       "required": [
-        "label",
-        "disabled"
+        "Label",
+        "IsDisabled"
       ],
       "properties": {
-        "id": {
+        "ID": {
           "type": "integer",
           "description": "The unique identifier for the group."
         },
-        "label": {
+        "Label": {
           "type": "string",
           "description": "The label for the group."
         },
-        "disabled": {
+        "IsDisabled": {
           "type": "boolean",
           "description": "Whether the group is disabled.",
           "default": false

@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace Shoko.Abstractions.UI.Components;
@@ -94,8 +93,6 @@ public class SelectComponent<TValue> where TValue : IEquatable<TValue>
     ///   The options for the select component in the UI.
     /// </summary>
     [Required, MinLength(0), DefaultValue(new object[] { })]
-    [JsonProperty("options")]
-    [JsonPropertyName("options")]
     public IReadOnlyList<SelectOption<TValue>> Options { get => _options; set => _options = value.Distinct().ToArray(); }
 
     private SelectGroup[] _groups = [];
@@ -104,8 +101,6 @@ public class SelectComponent<TValue> where TValue : IEquatable<TValue>
     ///   The groups for the select component in the UI.
     /// </summary>
     [Required, MinLength(0), DefaultValue(new object[] { })]
-    [JsonProperty("groups")]
-    [JsonPropertyName("groups")]
     public IReadOnlyList<SelectGroup> Groups { get => _groups; set => _groups = value.Distinct().ToArray(); }
 
     /// <summary>
