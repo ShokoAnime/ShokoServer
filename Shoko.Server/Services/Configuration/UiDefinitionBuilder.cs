@@ -656,9 +656,41 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
         element.Default = ToToken(declared.Default ?? resolved.Default);
         element.IsRequired = isRequired;
         element.IsNullable = declared.IsNullable(SchemaType.JsonSchema) || resolved.IsNullable(SchemaType.JsonSchema);
-        element.DeniedValues = property?.DeniedValues?.Select(state.ConvertToken).ToList();
+        ApplyDeniedValues(state, element, property);
         return element;
     }
+
+    /// <summary>
+    ///   Files the authored denied values on the element that can act on them.
+    /// </summary>
+    /// <remarks>
+    ///   Authored on a collection, they say which values an entry may not hold:
+    ///   the collection itself is never equal to one of them, so they belong on
+    ///   the item. Anything that holds no value of its own carries none at all,
+    ///   which includes a select, whose options live in the configuration value
+    ///   rather than in the definition.
+    /// </remarks>
+    private static void ApplyDeniedValues(WalkState state, UiElement element, UiPropertyBuilder? property)
+    {
+        if (property?.DeniedValues is not { Count: > 0 } denied)
+            return;
+
+        var target = element switch
+        {
+            UiListElement list => list.Item,
+            UiRecordElement record => record.Item,
+            _ => element,
+        };
+        if (CanDenyValues(target))
+            target.DeniedValues = [.. denied.Select(state.ConvertToken)];
+    }
+
+    /// <summary>
+    ///   Whether an element holds a value a denied one could match.
+    /// </summary>
+    private static bool CanDenyValues(UiElement element)
+        => element.Kind is UiElementKind.Boolean or UiElementKind.Integer or UiElementKind.Float or UiElementKind.String or
+            UiElementKind.Password or UiElementKind.TextArea or UiElementKind.CodeEditor or UiElementKind.Enum;
 
     private static string ResolveLabel(JsonSchema declared, JsonSchema resolved, UiPropertyBuilder? property, string? key)
         => declared.Title ?? resolved.Title ?? (key is not null ? property?.Label : null) ?? key ?? string.Empty;
