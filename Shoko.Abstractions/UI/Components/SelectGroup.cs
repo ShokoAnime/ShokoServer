@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace Shoko.Abstractions.UI.Components;
@@ -14,24 +13,18 @@ public class SelectGroup : IEquatable<SelectGroup>
     /// <summary>
     ///   The unique identifier for the group.
     /// </summary>
-    [JsonProperty("id")]
-    [JsonPropertyName("id")]
     public uint ID { get; set; }
 
     /// <summary>
     ///   The label for the group.
     /// </summary>
     [Required(AllowEmptyStrings = true)]
-    [JsonProperty("label")]
-    [JsonPropertyName("label")]
     public string Label { get; set; } = string.Empty;
 
     /// <summary>
     ///   Whether the group is disabled.
     /// </summary>
     [Required, DefaultValue(false)]
-    [JsonProperty("disabled")]
-    [JsonPropertyName("disabled")]
     public bool IsDisabled { get; set; } = false;
 
     /// <summary>
