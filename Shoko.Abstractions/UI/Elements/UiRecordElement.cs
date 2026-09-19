@@ -28,6 +28,23 @@ public sealed class UiRecordElement : UiElement
     public UiElement Item { get; init; } = null!;
 
     /// <summary>
+    /// The path within an entry's value to read its title from, relative to the
+    /// value, or <c>null</c> to label the entry with the key it is stored under.
+    /// </summary>
+    /// <remarks>
+    /// Set when the value's class holds a
+    /// <see cref="Components.TitleComponent"/> saying what it calls itself, or
+    /// carries the member marked <c>[Key]</c>.
+    /// </remarks>
+    public string? ItemTitlePath { get; init; }
+
+    /// <summary>
+    /// The path within an entry's value to read the line under its title from,
+    /// or <c>null</c> when there is none.
+    /// </summary>
+    public string? ItemCategoryPath { get; init; }
+
+    /// <summary>
     /// Whether the user may reorder the entries.
     /// </summary>
     public bool Sortable { get; init; }

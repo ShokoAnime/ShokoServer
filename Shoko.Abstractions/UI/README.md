@@ -374,11 +374,9 @@ public async Task<ConfigurationActionResult> RefreshPaths(ConfigurationActionCon
 
 ## Pattern: rows that identify themselves
 
-A list of classes renders as a list of rows, and each row needs a label. Mark
-the member that identifies a row with `[Key]`: it becomes the list's
-`ItemTitlePath`, and the client labels the row from that value instead of
-guessing which member to show. Pick something the user can read — the value is
-what they will see in the tab, the header or the picker.
+A list of classes renders as a list of rows, and each row needs a label. The
+clearest way to give it one is a `TitleComponent`, which says what the row calls
+itself rather than leaving it to be inferred:
 
 ```csharp
 [List(ListType = DisplayListType.ComplexTab)]
@@ -386,15 +384,29 @@ public List<EndpointConfiguration> Endpoints { get; set; } = [];
 
 public class EndpointConfiguration
 {
-    [Key]
-    [Display(Order = 1)]
-    public string Name { get; set; } = string.Empty;
+    /// <summary>What this row calls itself.</summary>
+    public TitleComponent Name { get; set; } = new();
 
-    [Display(Order = 2), Url]
+    [Display(Order = 1), Url]
     public string Url { get; set; } = string.Empty;
 }
 ```
 
-`DisplayListType` decides the shape: `ComplexInline` stacks the rows,
-`ComplexTab` gives each a tab, `ComplexDropdown` folds them behind a picker, and
-`EnumCheckbox` renders a list of enum values as checkboxes.
+The list points at it, `ItemTitlePath` at the component's `Title` and
+`ItemCategoryPath` at its `SubTitle`, and a record's values are labelled the same
+way. Failing that the member marked `[Key]` is used, and a record entry with
+neither is labelled by the key it is stored under. Pick something the user can
+read: the value is what they will see in the tab, the header or the picker.
+
+`DisplayListType` decides the shape: `Flat` is one row per entry, `ComplexInline`
+stacks them, `ComplexTab` gives each a tab, `ComplexDropdown` folds them behind a
+picker, and `EnumCheckbox` renders a list of enum values as checkboxes.
+`DisplayRecordType` is the same for a dictionary, without the inline and checkbox
+variants.
+
+Leave the layout unset and the server settles it before serving: an entry that is
+a class of its own is laid out one per entry, anything else is a plain row, and a
+select follows whether it takes more than one value. `Auto` never reaches a
+client, so a renderer switches on the answer rather than working it out again. A
+list of enums stays flat, since rendering those as checkboxes is a choice worth
+making with `EnumCheckbox` rather than inferring.

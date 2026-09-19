@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using NJsonSchema;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.UI;
+using Shoko.Abstractions.UI.Components;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Abstractions.UI.Enums;
 
@@ -163,7 +164,8 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
             DisplayElementType.Record => BuildRecord(state, resolved, property?.Element as UiRecordElementBuilder),
             DisplayElementType.Select when property?.Element is UiSelectElementBuilder select => new UiSelectElement
             {
-                SelectType = select.SelectType,
+                SelectType = select.SelectType is not DisplaySelectType.Auto ? select.SelectType
+                    : select.MultipleItems ? DisplaySelectType.CheckboxList : DisplaySelectType.FlatList,
                 MultipleItems = select.MultipleItems,
             },
             DisplayElementType.Enum => new UiEnumElement
@@ -543,10 +545,10 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     {
         var itemSchema = resolved.Item ?? resolved.Items.FirstOrDefault() ?? new JsonSchema();
         var itemElement = BuildElement(state, itemSchema, list?.Item, null, isRoot: false, isRequired: true);
-        var (titlePath, categoryPath) = ResolveItemLabelPaths(itemElement);
+        var (titlePath, categoryPath) = ResolveItemLabelPaths(itemElement, state.GetClass(itemSchema.ActualTypeSchema));
         return new UiListElement
         {
-            ListType = list?.ListType ?? DisplayListType.Auto,
+            ListType = ResolveListType(list?.ListType ?? DisplayListType.Auto, itemElement),
             Item = itemElement,
             Sortable = list?.Sortable ?? true,
             UniqueItems = list?.UniqueItems ?? false,
@@ -562,17 +564,24 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     private UiElement BuildRecord(WalkState state, JsonSchema resolved, UiRecordElementBuilder? record)
     {
         var valueSchema = resolved.AdditionalPropertiesSchema ?? new JsonSchema();
+        // The generator funnels a record's key type and value type through the
+        // same property key, so the inner builder only describes the value when
+        // it is not the key that landed there.
+        var valueElement = BuildElement(state, valueSchema, record is { DescribesValue: true } ? record.Item : null, null, isRoot: false, isRequired: true);
+        var (valueTitlePath, valueCategoryPath) = ResolveItemLabelPaths(valueElement, state.GetClass(valueSchema.ActualTypeSchema));
         return new UiRecordElement
         {
-            RecordType = record?.RecordType ?? DisplayRecordType.Auto,
+            RecordType = ResolveRecordType(record?.RecordType ?? DisplayRecordType.Auto, valueElement),
             KeyItem = BuildKeyElement(record),
             // The generator funnels a record's key type and value type through
             // the same property key, so the inner builder only describes the
             // value when it is not the key that landed there.
-            Item = BuildElement(state, valueSchema, record is { DescribesValue: true } ? record.Item : null, null, isRoot: false, isRequired: true),
+            Item = valueElement,
             Sortable = record?.Sortable ?? true,
             HideAddAction = record?.HideAddAction ?? false,
             HideRemoveAction = record?.HideRemoveAction ?? false,
+            ItemTitlePath = valueTitlePath,
+            ItemCategoryPath = valueCategoryPath,
         };
     }
 
@@ -604,12 +613,38 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     }
 
     /// <summary>
+    ///   Settles how a collection lays out, so a client switches on the answer
+    ///   rather than working it out from the item all over again.
+    /// </summary>
+    /// <remarks>
+    ///   Only an unauthored layout is resolved; a class that asked for one keeps
+    ///   it. An entry that is a container of its own is laid out one per entry,
+    ///   and anything else is a plain row, including a list of enums: rendering
+    ///   those as checkboxes is a choice worth making deliberately with
+    ///   <see cref="DisplayListType.EnumCheckbox"/> rather than inferring.
+    /// </remarks>
+    private static DisplayListType ResolveListType(DisplayListType listType, UiElement item)
+        => listType is not DisplayListType.Auto ? listType
+            : IsContainer(item) ? DisplayListType.ComplexInline
+            : DisplayListType.Flat;
+
+    /// <inheritdoc cref="ResolveListType"/>
+    private static DisplayRecordType ResolveRecordType(DisplayRecordType recordType, UiElement value)
+        => recordType is not DisplayRecordType.Auto ? recordType
+            : IsContainer(value) ? DisplayRecordType.ComplexDropdown
+            : DisplayRecordType.Flat;
+
+    /// <summary>
     ///   Computes the paths the client should read an item's primary and
     ///   secondary label from, replacing the field-name guessing the client
     ///   does today.
     /// </summary>
-    private static (string? TitlePath, string? CategoryPath) ResolveItemLabelPaths(UiElement itemElement)
+    private static (string? TitlePath, string? CategoryPath) ResolveItemLabelPaths(UiElement itemElement, UiClassBuilder? itemClass)
     {
+        // A class that says what it calls itself is taken at its word.
+        if (itemClass?.TitleMember is { Length: > 0 } titleMember)
+            return ($"{titleMember}.{nameof(TitleComponent.Title)}", $"{titleMember}.{nameof(TitleComponent.SubTitle)}");
+
         if (itemElement is not UiSectionContainerElement { PrimaryKey: { Length: > 0 } primaryKey } container)
             return (null, null);
 

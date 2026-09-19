@@ -531,6 +531,12 @@ internal sealed class UiClassBuilder
     /// <summary>The JSON name of the property that identifies an instance.</summary>
     public string? PrimaryKey { get; set; }
 
+    /// <summary>
+    ///   The JSON name of the property holding what a row calls itself, if the
+    ///   class has one.
+    /// </summary>
+    public string? TitleMember { get; set; }
+
     /// <summary>The descriptions the class gave its gathered sections, by name.</summary>
     public Dictionary<string, string> FloatingSectionDescriptions { get; } = new(StringComparer.Ordinal);
 
