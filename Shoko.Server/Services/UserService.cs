@@ -261,6 +261,8 @@ public class UserService(
 
     public Task DeleteUser(IUser user)
     {
+        ArgumentNullException.ThrowIfNull(user);
+
         if (_userRepository.GetByID(user.ID) is { } nativeUser)
         {
             var allAdmins = _userRepository.GetAll().Where(a => a.IsAdmin == 1).ToList();
