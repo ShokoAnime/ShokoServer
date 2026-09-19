@@ -229,6 +229,7 @@ Plugin controllers are registered via `AddPluginControllers` during API setup.
 - **`ConfigurationProvider<T>`** — generic provider using `INewtonsoftJsonConfiguration` for JSON serialization
 - **`SettingsProvider`** — singleton accessor (`ISettingsProvider.Instance`) for runtime settings access
 - `appsettings.json` is configured as an **optional** overlay in the host builder but is not shipped
+- **Settings migrations** — versioned JSON transforms on the persisted settings file, in `Shoko.Server/Settings/SettingsMigrations.cs`. Each entry in the `_migrations` dictionary runs once (on upgrade past its key) via `MigrateSettings`; append new migrations, never modify existing ones.
 
 ### Testing
 
