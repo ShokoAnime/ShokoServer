@@ -48,10 +48,16 @@ return false;
 ```
 
 So an entity of yours that implements `ISeries` is handled by core's `ISeries`
-arm, with `entityID = series.ID.ToString()`, and your resolver is never called
-for it. That is usually what you want. You need a resolver only for an entity
-that implements `IWithImages` (directly or through `IMetadata`) without matching
-any of the interfaces above.
+arm, with `entityID = series.ID.ToString()` and the source and type taken from
+the entity's own `Source` and `EntityType`, and your resolver's
+`TryGetMetadataForEntity` is never called for it. That half needs a resolver
+only for an entity that implements `IWithImages` (directly or through
+`IMetadata`) without matching any of the interfaces above.
+
+The other half is not so lenient. The reverse lookup below has arms only for
+core's own sources, so a plugin entity under `DataSource.Plugin` always ends up
+at the resolvers, whichever interfaces it implements. Without a resolver whose
+`GetEntity` recognises it, the row is written but never resolves back.
 
 ### triplet → entity, and when you are asked
 
@@ -205,8 +211,9 @@ always false.
   plugin's entities depending on install order.
 - **Expecting to be asked about a core entity.** If your type implements
   `ISeries`, `IEpisode`, `ICreator` or any of the other interfaces in the core
-  switch, that arm wins and the resolver is dead code. Check the list before
-  writing one.
+  switch, that arm wins and your `TryGetMetadataForEntity` is never called for
+  it. Your `GetEntity` still is, unless the entity reports one of core's
+  sources, so keep that half even when the other one is dead code.
 - **An ID longer than 128 characters,** or one that isn't stable. `EntityID` is
   `NVARCHAR(128)` and is the only thing tying a stored row back to your entity.
   A Guid, an int or a short slug is fine; a path or a title is not.

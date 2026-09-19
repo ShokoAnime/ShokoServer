@@ -111,7 +111,11 @@ from.
 The persisted form is the important detail: the service stores a
 `Dictionary<string hashType, Guid providerID>`, so **a hash type has exactly
 one owning provider at a time**. Two providers both offering `CRC32` do not
-both compute it; enabling it for yours takes it away from whoever held it. Read
+both compute it. When more than one has a type enabled, the first in the
+service's order keeps it: the built-in provider first, then plugins by plugin
+name. So enabling a type for yours does nothing while an earlier provider still
+has it enabled. To take it over, disable it on the current holder in the same
+`UpdateProviders` call, and check afterwards that you actually got it. Read
 your own current state through `IVideoHashingService.GetProviderInfo(this)`,
 and subscribe to `ProvidersUpdated` to notice when the user changes it.
 
@@ -186,9 +190,10 @@ state thread-safe, or keep none.
 - **Computing a hash type that is not enabled.** The result is discarded. Check
   `request.EnabledHashTypes` first and return `[]` when there is nothing to do,
   rather than hashing the file and throwing the answer away.
-- **Claiming `ED2K` without being able to produce it.** Enabling it for your
-  provider disables it for the built-in one, so if your provider returns
-  nothing for a file the whole hash run throws and the file never imports.
+- **Taking over `ED2K` without being able to produce it.** Taking it means
+  disabling it on the built-in provider as well; do that and then return
+  nothing for a file, and the whole hash run throws and the file never
+  imports.
 - **Renaming or moving the provider class.** The provider ID is derived as a
   v5 UUID over `"HashProvider={type.FullName}"` in the plugin's own ID
   namespace, so changing the namespace or the class name produces a different

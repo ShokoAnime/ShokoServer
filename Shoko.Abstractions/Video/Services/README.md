@@ -190,11 +190,14 @@ other services entirely.
 
 | Event | Fires when |
 |---|---|
-| `VideoFileDetected` | A file is first seen by a scan or a watched folder. Nothing has been done with it yet, so there is no `IVideo` to speak of |
+| `VideoFileDetected` | A scan or a watched folder finds a file Shoko has no location record for yet. Nothing has been done with it, so there is no `IVideo` to speak of. It is not a one-time "first seen": it is raised again on every scan until the file has been hashed and its location saved, and a folder scan raises it from several threads at once, so a handler must be thread-safe and idempotent |
 | `VideoFileHashed` | Hashing finished and the records are in the database. The file is ready to be matched |
 | `VideoFileRelocated` | A file was moved or renamed |
 | `VideoFileDeleted` | A file was removed from Shoko |
 | `ManagedFolderAdded` / `ManagedFolderUpdated` / `ManagedFolderRemoved` | A managed folder changed |
+
+Every file event carries both `RelativePath`, from the managed folder's root, and
+`Path`, the absolute path as it was when the event was raised.
 
 The service is a process-wide singleton, so unsubscribe when your plugin shuts
 down rather than leaving handlers attached to it.
