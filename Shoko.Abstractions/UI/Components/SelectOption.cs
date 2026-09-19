@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
 namespace Shoko.Abstractions.UI.Components;
@@ -14,23 +13,18 @@ public class SelectOption<TValue> : IEquatable<SelectOption<TValue>> where TValu
     /// <summary>
     ///   The label for the option.
     /// </summary>
-    [JsonProperty("label")]
-    [JsonPropertyName("label")]
     public string? Label { get; set; }
 
     /// <summary>
     ///   The unique identifier for the group this option belongs to, or
     ///   <c>null</c> if it should be rendered outside of a group.
     /// </summary>
-    [JsonProperty("groupId", NullValueHandling = NullValueHandling.Ignore)]
-    [JsonPropertyName("groupId")]
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public uint? GroupID { get; set; }
 
     /// <summary>
     ///   The value of the option.
     /// </summary>
-    [JsonProperty("value")]
-    [JsonPropertyName("value")]
     [Required(AllowEmptyStrings = true)]
     public TValue Value { get; set; } = default!;
 
@@ -38,24 +32,18 @@ public class SelectOption<TValue> : IEquatable<SelectOption<TValue>> where TValu
     ///   Whether the option is selected.
     /// </summary>
     [DefaultValue(false)]
-    [JsonProperty("selected")]
-    [JsonPropertyName("selected")]
     public bool IsSelected { get; set; } = false;
 
     /// <summary>
     ///   Whether the option is the default.
     /// </summary>
     [DefaultValue(false)]
-    [JsonProperty("default")]
-    [JsonPropertyName("default")]
     public bool IsDefault { get; set; }
 
     /// <summary>
     ///   Whether the option is disabled.
     /// </summary>
     [DefaultValue(false)]
-    [JsonProperty("disabled")]
-    [JsonPropertyName("disabled")]
     public bool IsDisabled { get; set; } = false;
 
     /// <summary>
