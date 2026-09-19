@@ -438,19 +438,20 @@ internal sealed class UiActionBuilder
 
 /// <summary>
 ///   A lifecycle hook the configuration declared. Never emitted into the
-///   schema; only used to work out which capabilities the configuration has.
+///   schema; used to work out which capabilities the configuration has and
+///   what its live edits react to.
 /// </summary>
-internal sealed class UiReactiveActionBuilder
+internal sealed class UiLifecycleHookBuilder
 {
     /// <summary>The name of the method behind the hook.</summary>
-    public required string ID { get; init; }
+    public required string Name { get; init; }
 
     /// <summary>What the hook does.</summary>
     public required ConfigurationActionType ActionType { get; init; }
 
     /// <summary>
-    ///   Which reactive events the hook handles. Empty stands for all of them,
-    ///   carried as <see cref="ReactiveEventType.All"/>.
+    ///   Which reactive events the hook handles, or only
+    ///   <see cref="ReactiveEventType.All"/> when it named none.
     /// </summary>
     public required IReadOnlyList<ReactiveEventType> EventTypes { get; init; }
 
@@ -523,7 +524,7 @@ internal sealed class UiClassBuilder
     public List<UiActionBuilder> Actions { get; } = [];
 
     /// <summary>The lifecycle hooks the class declared.</summary>
-    public List<UiReactiveActionBuilder> ReactiveActions { get; } = [];
+    public List<UiLifecycleHookBuilder> LifecycleHooks { get; } = [];
 
     /// <summary>
     ///   The class's own property definitions, in the order they were seen,

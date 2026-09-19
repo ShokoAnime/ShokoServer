@@ -26,7 +26,7 @@ public class ReactiveHandlerDispatchTests
     [InlineData(ConfigurationActionType.LiveEdit, nameof(EveryHookConfiguration.OnEdit))]
     public void EachHook_ResolvesItsOwnHandler(ConfigurationActionType actionType, string expected)
     {
-        var method = ConfigurationService.FindReactiveHandler(typeof(EveryHookConfiguration).ToContextualType(), actionType, ReactiveEventType.All);
+        var method = ConfigurationService.FindHookHandler(typeof(EveryHookConfiguration).ToContextualType(), actionType, ReactiveEventType.All);
 
         Assert.Equal(expected, method?.Name);
     }
@@ -38,11 +38,11 @@ public class ReactiveHandlerDispatchTests
         // shape that used to answer every hook with `OnEdit`.
         var type = typeof(LiveEditOnlyConfiguration).ToContextualType();
 
-        Assert.Null(ConfigurationService.FindReactiveHandler(type, ConfigurationActionType.Load, ReactiveEventType.All));
-        Assert.Null(ConfigurationService.FindReactiveHandler(type, ConfigurationActionType.New, ReactiveEventType.All));
-        Assert.Null(ConfigurationService.FindReactiveHandler(type, ConfigurationActionType.Save, ReactiveEventType.All));
-        Assert.Null(ConfigurationService.FindReactiveHandler(type, ConfigurationActionType.Validate, ReactiveEventType.All));
-        Assert.Equal(nameof(LiveEditOnlyConfiguration.OnEdit), ConfigurationService.FindReactiveHandler(type, ConfigurationActionType.LiveEdit, ReactiveEventType.All)?.Name);
+        Assert.Null(ConfigurationService.FindHookHandler(type, ConfigurationActionType.Load, ReactiveEventType.All));
+        Assert.Null(ConfigurationService.FindHookHandler(type, ConfigurationActionType.New, ReactiveEventType.All));
+        Assert.Null(ConfigurationService.FindHookHandler(type, ConfigurationActionType.Save, ReactiveEventType.All));
+        Assert.Null(ConfigurationService.FindHookHandler(type, ConfigurationActionType.Validate, ReactiveEventType.All));
+        Assert.Equal(nameof(LiveEditOnlyConfiguration.OnEdit), ConfigurationService.FindHookHandler(type, ConfigurationActionType.LiveEdit, ReactiveEventType.All)?.Name);
     }
 
     [Theory]
@@ -54,7 +54,7 @@ public class ReactiveHandlerDispatchTests
     [InlineData(ReactiveEventType.All, nameof(EventfulConfiguration.OnAnything))]
     public void LiveEdit_PicksTheHandlerForTheEvent(ReactiveEventType reactiveEventType, string expected)
     {
-        var method = ConfigurationService.FindReactiveHandler(typeof(EventfulConfiguration).ToContextualType(), ConfigurationActionType.LiveEdit, reactiveEventType);
+        var method = ConfigurationService.FindHookHandler(typeof(EventfulConfiguration).ToContextualType(), ConfigurationActionType.LiveEdit, reactiveEventType);
 
         Assert.Equal(expected, method?.Name);
     }
@@ -66,9 +66,9 @@ public class ReactiveHandlerDispatchTests
         // handed another one.
         var type = typeof(UnfocusedOnlyConfiguration).ToContextualType();
 
-        Assert.Equal(nameof(UnfocusedOnlyConfiguration.OnUnfocused), ConfigurationService.FindReactiveHandler(type, ConfigurationActionType.LiveEdit, ReactiveEventType.Unfocused)?.Name);
-        Assert.Null(ConfigurationService.FindReactiveHandler(type, ConfigurationActionType.LiveEdit, ReactiveEventType.Edited));
-        Assert.Null(ConfigurationService.FindReactiveHandler(type, ConfigurationActionType.LiveEdit, ReactiveEventType.All));
+        Assert.Equal(nameof(UnfocusedOnlyConfiguration.OnUnfocused), ConfigurationService.FindHookHandler(type, ConfigurationActionType.LiveEdit, ReactiveEventType.Unfocused)?.Name);
+        Assert.Null(ConfigurationService.FindHookHandler(type, ConfigurationActionType.LiveEdit, ReactiveEventType.Edited));
+        Assert.Null(ConfigurationService.FindHookHandler(type, ConfigurationActionType.LiveEdit, ReactiveEventType.All));
     }
 
     /// <summary>A configuration declaring one handler per hook.</summary>

@@ -237,7 +237,7 @@ public class UiDefinitionBuilder(ILogger<UiDefinitionBuilder> logger)
     private UiElement BuildSectionContainer(WalkState state, JsonSchema resolved, bool isRoot, string label)
     {
         var classBuilder = state.GetClass(resolved);
-        var liveEditHandlers = classBuilder?.ReactiveActions.Where(x => x.ActionType is ConfigurationActionType.LiveEdit).ToList() ?? [];
+        var liveEditHandlers = classBuilder?.LifecycleHooks.Where(x => x.ActionType is ConfigurationActionType.LiveEdit).ToList() ?? [];
         // A handler that named no members watches the whole class, and
         // everything below it that does not handle its own edits, on whichever
         // events it named.
