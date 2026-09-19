@@ -342,7 +342,7 @@ public class UserDataService(
             var settings = settingsProvider.GetSettings();
             var syncAnidb = user.IsAnidbUser &&
                 !(reason is VideoUserDataSaveReason.Import && importSource is "AniDB") &&
-                ((userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetWatched) || (!userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList_SetUnwatched));
+                ((userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList.SetWatched) || (!userDataUpdate.LastPlayedAt.HasValue && settings.AniDb.MyList.SetUnwatched));
             if (syncAnidb)
             {
                 _mylistService ??= serviceProvider.GetRequiredService<IMylistService>();

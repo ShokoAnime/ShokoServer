@@ -69,7 +69,7 @@ public record MylistSyncResult
 
     /// <summary>
     ///   How many entries were left alone because the sync could not tell
-    ///   whether they were generic. See <c>MyList_UseGenericFileIndex</c>.
+    ///   whether they were generic. See <c>AniDb.MyList.UseGenericFileIndex</c>.
     /// </summary>
     public int UnclassifiedEntries { get; init; }
 

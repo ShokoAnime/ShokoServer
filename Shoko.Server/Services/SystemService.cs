@@ -612,8 +612,8 @@ public class SystemService : ISystemService
                 registry.Register<GetAniDBCalendarJob>(TimeSpan.FromHours(anidb.Calendar_UpdateFrequency.Hours), runImmediately: false);
             if (anidb.Anime_UpdateFrequency != ScheduledUpdateFrequency.Never)
                 registry.Register<GetUpdatedAniDBAnimeJob>(TimeSpan.FromHours(anidb.Anime_UpdateFrequency.Hours), runImmediately: false);
-            if (anidb.MyList_UpdateFrequency != ScheduledUpdateFrequency.Never)
-                registry.Register<SyncAniDBMylistRecurringJob>(TimeSpan.FromHours(anidb.MyList_UpdateFrequency.Hours), runImmediately: false);
+            if (anidb.MyList.UpdateFrequency != ScheduledUpdateFrequency.Never)
+                registry.Register<SyncAniDBMylistRecurringJob>(TimeSpan.FromHours(anidb.MyList.UpdateFrequency.Hours), runImmediately: false);
             if (anidb.File_UpdateFrequency != ScheduledUpdateFrequency.Never)
                 registry.Register<CheckAniDBFileUpdatesJob>(TimeSpan.FromHours(anidb.File_UpdateFrequency.Hours), runImmediately: false);
             if (pluginUpdates.IsAutoSyncEnabled && pluginUpdates.AutoUpdateFrequency != ScheduledUpdateFrequency.Never)
@@ -627,7 +627,7 @@ public class SystemService : ISystemService
                 RescheduleByFrequency<CheckAniDBNotificationsJob>(registry, s.AniDb.Notification_UpdateFrequency);
                 RescheduleByFrequency<GetAniDBCalendarJob>(registry, s.AniDb.Calendar_UpdateFrequency);
                 RescheduleByFrequency<GetUpdatedAniDBAnimeJob>(registry, s.AniDb.Anime_UpdateFrequency);
-                RescheduleByFrequency<SyncAniDBMylistRecurringJob>(registry, s.AniDb.MyList_UpdateFrequency);
+                RescheduleByFrequency<SyncAniDBMylistRecurringJob>(registry, s.AniDb.MyList.UpdateFrequency);
                 RescheduleByFrequency<CheckAniDBFileUpdatesJob>(registry, s.AniDb.File_UpdateFrequency);
 
                 var pu = s.Plugins.Updates;

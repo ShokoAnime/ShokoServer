@@ -22,7 +22,7 @@ namespace Shoko.Server.Services.Mylist;
 /// gives an exact answer for the entries the convention misses.
 ///
 /// Reaching for it means talking to someone other than AniDB, so it is gated
-/// behind <c>MyList_UseGenericFileIndex</c>. It is also
+/// behind <c>AniDb.MyList.UseGenericFileIndex</c>. It is also
 /// strictly supplementary: every failure path leaves the sync falling back to
 /// the file-state convention on its own.
 /// </summary>

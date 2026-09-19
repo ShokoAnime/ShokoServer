@@ -87,6 +87,7 @@ public static partial class SettingsMigrations
         { 16, MigrateDefaultRenamerToStatic },
         { 17, MigrateReleaseSignalTypeNames },
         { 18, MigrateTmdbIncrementalChangesWindow },
+        { 19, MigrateAniDbMyListToOwnObject },
     };
 
     /// <summary>
@@ -335,6 +336,31 @@ public static partial class SettingsMigrations
             if (value is not null && _releaseSignalRenames.TryGetValue(value, out var newName))
                 signalPriority[i] = newName;
         }
+
+        return currentSettings.ToString();
+    }
+
+    private static string MigrateAniDbMyListToOwnObject(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var aniDb = currentSettings["AniDb"] as JObject;
+        if (aniDb is null)
+            return settings;
+
+        var myListObj = new JObject();
+        var propsToRemove = aniDb.Properties()
+            .Where(p => p.Name.StartsWith("MyList_", StringComparison.Ordinal))
+            .ToList();
+
+        foreach (var prop in propsToRemove)
+        {
+            var newName = prop.Name.Substring("MyList_".Length);
+            myListObj[newName] = prop.Value.DeepClone();
+            prop.Remove();
+        }
+
+        if (aniDb["MyList"] is null)
+            aniDb["MyList"] = myListObj;
 
         return currentSettings.ToString();
     }

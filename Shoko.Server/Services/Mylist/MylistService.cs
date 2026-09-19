@@ -64,7 +64,7 @@ public class MylistService(
     /// <summary>
     /// How long the locally cached MyList is considered fresh enough to serve
     /// without going back to AniDB over HTTP. Deliberately independent of
-    /// <c>MyList_UpdateFrequency</c>, which schedules the sync rather than
+    /// <c>AniDb.MyList.UpdateFrequency</c>, which schedules the sync rather than
     /// bounding the cache; callers that need a guaranteed-current entry pass
     /// <see cref="MylistFetchMode.IgnoreTimeCheck"/> instead.
     /// </summary>
@@ -94,13 +94,13 @@ public class MylistService(
 
     public MylistFetchMode FetchMode
     {
-        get => settingsProvider.GetSettings().AniDb.MyList_FetchMode;
+        get => settingsProvider.GetSettings().AniDb.MyList.FetchMode;
         set
         {
             if (value is MylistFetchMode.Auto or MylistFetchMode.None)
                 throw new ArgumentOutOfRangeException(nameof(value), value, "Fetch mode cannot be Auto or None");
             var settings = settingsProvider.GetSettings();
-            settings.AniDb.MyList_FetchMode = value;
+            settings.AniDb.MyList.FetchMode = value;
             settingsProvider.SaveSettings();
         }
     }
@@ -121,12 +121,12 @@ public class MylistService(
     internal MylistFetchMode ResolveFetchMode(MylistFetchMode fetchMode)
     {
         if (fetchMode is MylistFetchMode.Auto)
-            return settingsProvider.GetSettings().AniDb.MyList_FetchMode;
+            return settingsProvider.GetSettings().AniDb.MyList.FetchMode;
 
         if (fetchMode is MylistFetchMode.None || (fetchMode & TransportFlags) is not MylistFetchMode.None)
             return fetchMode;
 
-        return settingsProvider.GetSettings().AniDb.MyList_FetchMode | fetchMode;
+        return settingsProvider.GetSettings().AniDb.MyList.FetchMode | fetchMode;
     }
 
     private MylistReadStates ResolveReadStates(MylistReadStates readStates)
@@ -136,8 +136,8 @@ public class MylistService(
 
         var settings = settingsProvider.GetSettings();
         var resolved = MylistReadStates.None;
-        if (settings.AniDb.MyList_ReadWatched) resolved |= MylistReadStates.Watched;
-        if (settings.AniDb.MyList_ReadUnwatched) resolved |= MylistReadStates.Unwatched;
+        if (settings.AniDb.MyList.ReadWatched) resolved |= MylistReadStates.Watched;
+        if (settings.AniDb.MyList.ReadUnwatched) resolved |= MylistReadStates.Unwatched;
         return resolved;
     }
 
@@ -314,7 +314,7 @@ public class MylistService(
                 return mylistCache.GetAll();
 
             var settings = settingsProvider.GetSettings();
-            if (settings.AniDb.MyList_UseGenericFileIndex)
+            if (settings.AniDb.MyList.UseGenericFileIndex)
                 await genericsCache.EnsureLoadedAsync(cancellationToken);
             var request = requestFactory.Create<RequestMylist>(
                 r =>
@@ -386,11 +386,11 @@ public class MylistService(
             return;
         }
 
-        if (settings.AniDb.MyList_RetainedBackupCount < 0)
+        if (settings.AniDb.MyList.RetainedBackupCount < 0)
             return;
 
         var backupFiles = backupDirectory.GetFiles(MylistBackups.RotationPattern).OrderByDescending(f => f.Name).ToList();
-        foreach (var file in backupFiles.Skip(settings.AniDb.MyList_RetainedBackupCount))
+        foreach (var file in backupFiles.Skip(settings.AniDb.MyList.RetainedBackupCount))
         {
             try
             {
@@ -407,7 +407,7 @@ public class MylistService(
     {
         // the export says nothing about which entries are generic, so resolve it
         // from the index when we have one and leave it unknown when we do not
-        var useGenericsIndex = settingsProvider.GetSettings().AniDb.MyList_UseGenericFileIndex && genericsCache.IsAvailable;
+        var useGenericsIndex = settingsProvider.GetSettings().AniDb.MyList.UseGenericFileIndex && genericsCache.IsAvailable;
         var enriched = new List<MylistEntry>();
         foreach (var entry in entries)
         {
@@ -787,7 +787,7 @@ public class MylistService(
     private MylistAddData ResolveAddData(MylistAddData? data, DateTime? fallbackWatchedDate = null)
         => new()
         {
-            State = data?.State ?? settingsProvider.GetSettings().AniDb.MyList_StorageState,
+            State = data?.State ?? settingsProvider.GetSettings().AniDb.MyList.StorageState,
             FileState = data?.FileState,
             IsViewed = data?.IsViewed ?? (fallbackWatchedDate is not null ? true : null),
             ViewedAt = AniDBExtensions.TruncateToAniDBPrecision(data?.ViewedAt ?? fallbackWatchedDate),
@@ -1409,7 +1409,7 @@ public class MylistService(
     /// </summary>
     private Task DisposeEntry(MylistDeleteType? deleteType, Func<MylistState, Task> mark, Func<Task> remove)
     {
-        deleteType ??= settingsProvider.GetSettings().AniDb.MyList_DeleteType;
+        deleteType ??= settingsProvider.GetSettings().AniDb.MyList.DeleteType;
         if (deleteType is MylistDeleteType.DeleteLocalOnly)
             return Task.CompletedTask;
 
@@ -1717,7 +1717,7 @@ public class MylistService(
             ? await FetchMylistAsync(cancellationToken)
             : await GetEntriesAsync(fetchMode, cancellationToken);
 
-        if (settings.AniDb.MyList_UseGenericFileIndex && !genericsCache.IsAvailable)
+        if (settings.AniDb.MyList.UseGenericFileIndex && !genericsCache.IsAvailable)
             _logger.LogWarning("The generic file ID index is unavailable; falling back to the file state to identify generic entries");
 
         var totalItems = 0;
@@ -1929,7 +1929,7 @@ public class MylistService(
         if (unclassifiedItems > 0)
             _logger.LogWarning(
                 "MYLIST Unclassified: left {Count} unmatched entries alone because we could not tell whether they are generic. Enable {Setting} to resolve them",
-                unclassifiedItems, nameof(AniDbSettings.MyList_UseGenericFileIndex));
+                unclassifiedItems, nameof(AniDbSettings.MyListSettings.UseGenericFileIndex));
 
         _logger.LogInformation(
             "Process MyList: {TotalItems} Items, {MissingFiles} Added, {Count} Deleted, {AlreadyDisposed} Left Alone, {WatchedItems} Watched, {ModifiedItems} Modified, {UnclassifiedItems} Unclassified",
@@ -2003,17 +2003,17 @@ public class MylistService(
         var settings = settingsProvider.GetSettings();
         return new MylistSyncOptions
         {
-            FetchMode = options?.FetchMode ?? settings.AniDb.MyList_FetchMode,
-            ReadWatched = options?.ReadWatched ?? settings.AniDb.MyList_ReadWatched,
-            ReadUnwatched = options?.ReadUnwatched ?? settings.AniDb.MyList_ReadUnwatched,
-            SetWatched = options?.SetWatched ?? settings.AniDb.MyList_SetWatched,
-            SetUnwatched = options?.SetUnwatched ?? settings.AniDb.MyList_SetUnwatched,
-            WatchedSyncMode = options?.WatchedSyncMode ?? settings.AniDb.MyList_WatchedSyncMode,
-            UpdateStates = options?.UpdateStates ?? settings.AniDb.MyList_UpdateStates,
-            StorageState = options?.StorageState ?? settings.AniDb.MyList_StorageState,
-            DeleteType = options?.DeleteType ?? settings.AniDb.MyList_DeleteType,
-            Targets = options?.Targets ?? settings.AniDb.MyList_SyncTargets,
-            WatchedEpisodeMode = options?.WatchedEpisodeMode ?? settings.AniDb.MyList_WatchedEpisodeMode,
+            FetchMode = options?.FetchMode ?? settings.AniDb.MyList.FetchMode,
+            ReadWatched = options?.ReadWatched ?? settings.AniDb.MyList.ReadWatched,
+            ReadUnwatched = options?.ReadUnwatched ?? settings.AniDb.MyList.ReadUnwatched,
+            SetWatched = options?.SetWatched ?? settings.AniDb.MyList.SetWatched,
+            SetUnwatched = options?.SetUnwatched ?? settings.AniDb.MyList.SetUnwatched,
+            WatchedSyncMode = options?.WatchedSyncMode ?? settings.AniDb.MyList.WatchedSyncMode,
+            UpdateStates = options?.UpdateStates ?? settings.AniDb.MyList.UpdateStates,
+            StorageState = options?.StorageState ?? settings.AniDb.MyList.StorageState,
+            DeleteType = options?.DeleteType ?? settings.AniDb.MyList.DeleteType,
+            Targets = options?.Targets ?? settings.AniDb.MyList.SyncTargets,
+            WatchedEpisodeMode = options?.WatchedEpisodeMode ?? settings.AniDb.MyList.WatchedEpisodeMode,
         };
     }
 
@@ -2347,7 +2347,7 @@ public class MylistService(
     /// </summary>
     private async Task<int> AddMissingEpisodes(IReadOnlyList<MylistEntry> entries, SyncScope? scope, JMMUser? anidbUser, MylistWatchedEpisodeMode watchedEpisodeMode, bool planOnly, MylistSyncActionLog actions)
     {
-        if (!settingsProvider.GetSettings().AniDb.MyList_AddFiles)
+        if (!settingsProvider.GetSettings().AniDb.MyList.AddFiles)
             return 0;
 
         // a generic entry already present is the remote-driven loop's business
@@ -2489,7 +2489,7 @@ public class MylistService(
         MylistSyncActionLog actions
     )
     {
-        if (!settingsProvider.GetSettings().AniDb.MyList_AddFiles)
+        if (!settingsProvider.GetSettings().AniDb.MyList.AddFiles)
             return 0;
         var missingFiles = 0;
         var candidates = scope is null

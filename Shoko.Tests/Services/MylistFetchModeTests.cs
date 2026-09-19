@@ -22,7 +22,7 @@ public class MylistFetchModeTests
     private static MylistService CreateService(MylistFetchMode configured)
     {
         var settings = new ServerSettings();
-        settings.AniDb.MyList_FetchMode = configured;
+        settings.AniDb.MyList.FetchMode = configured;
         var settingsProvider = new Mock<ISettingsProvider>();
         settingsProvider.Setup(a => a.GetSettings(It.IsAny<bool>())).Returns(settings);
         // named so that reordering the constructor cannot silently swap the two

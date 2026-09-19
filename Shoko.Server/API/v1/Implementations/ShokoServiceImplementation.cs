@@ -390,16 +390,16 @@ public partial class ShokoServiceImplementation : Controller
 
             settings.AniDb.DownloadRelatedAnime = contractIn.AniDB_DownloadRelatedAnime;
 
-            settings.AniDb.MyList_AddFiles = contractIn.AniDB_MyList_AddFiles;
-            settings.AniDb.MyList_ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
-            settings.AniDb.MyList_ReadWatched = contractIn.AniDB_MyList_ReadWatched;
-            settings.AniDb.MyList_SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
-            settings.AniDb.MyList_SetWatched = contractIn.AniDB_MyList_SetWatched;
-            settings.AniDb.MyList_StorageState = (MylistState)contractIn.AniDB_MyList_StorageState;
-            settings.AniDb.MyList_DeleteType = (MylistDeleteType)contractIn.AniDB_MyList_DeleteType;
+            settings.AniDb.MyList.AddFiles = contractIn.AniDB_MyList_AddFiles;
+            settings.AniDb.MyList.ReadUnwatched = contractIn.AniDB_MyList_ReadUnwatched;
+            settings.AniDb.MyList.ReadWatched = contractIn.AniDB_MyList_ReadWatched;
+            settings.AniDb.MyList.SetUnwatched = contractIn.AniDB_MyList_SetUnwatched;
+            settings.AniDb.MyList.SetWatched = contractIn.AniDB_MyList_SetWatched;
+            settings.AniDb.MyList.StorageState = (MylistState)contractIn.AniDB_MyList_StorageState;
+            settings.AniDb.MyList.DeleteType = (MylistDeleteType)contractIn.AniDB_MyList_DeleteType;
             //settings.AniDb.MaxRelationDepth = contractIn.AniDB_MaxRelationDepth;
 
-            settings.AniDb.MyList_UpdateFrequency =
+            settings.AniDb.MyList.UpdateFrequency =
                 (ScheduledUpdateFrequency)contractIn.AniDB_MyList_UpdateFrequency;
             settings.AniDb.Calendar_UpdateFrequency =
                 (ScheduledUpdateFrequency)contractIn.AniDB_Calendar_UpdateFrequency;

@@ -78,7 +78,7 @@ ambiguous, and a fresh generic entry defaults to `0`, which is exactly the case 
 
 Which leaves the file ID as the only reliable signal. `MylistGenericsCache` holds an index of generic file IDs,
 refreshed over HTTP when it goes stale on the next use (never on a timer). It queries a third party rather than
-AniDB, so it is gated behind `MyList_UseGenericFileIndex`, which is on by default. When it is enabled and available it
+AniDB, so it is gated behind `AniDb.MyList.UseGenericFileIndex`, which is on by default. When it is enabled and available it
 is the only thing consulted.
 
 With it off the sync falls back to treating a file state outside `Normal`/`Corrupted` as generic. That heuristic is
@@ -115,10 +115,10 @@ Entries that cannot be matched are treated as missing and disposed of per the co
 we know whether they are generic. An entry whose `IsGeneric` is `null` is left alone and counted in the sync summary:
 without that answer we do not know which tier should have matched it, so calling it missing is a guess, and acting on
 the guess would remove a generic entry from the user's AniDB MyList over a file state that never meant what we read
-into it. With `MyList_UseGenericFileIndex` off this is every unmatched entry, so the sync stops disposing of anything
+into it. With `AniDb.MyList.UseGenericFileIndex` off this is every unmatched entry, so the sync stops disposing of anything
 — the safe reading of "we cannot tell", and the reason to consider turning the index on by default.
 
 The full MyList is backed up on every fetch to `<Data>/MyList/Backups/`, as dated gzipped JSON rotated by
-`MyList_RetainedBackupCount`. The working cache is `<Data>/MyList/mylist.json.gz` and is deliberately *not* the same
+`AniDb.MyList.RetainedBackupCount`. The working cache is `<Data>/MyList/mylist.json.gz` and is deliberately *not* the same
 file — the two used to share a path, so each fetch overwrote the cache with a plain array moments after writing it,
 losing the fetch stamp and making the cache read as never-fetched on the next restart.

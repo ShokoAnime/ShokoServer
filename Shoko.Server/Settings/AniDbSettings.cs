@@ -117,90 +117,6 @@ public class AniDbSettings
     [Display(Name = "Automatically Import Series")]
     public bool AutomaticallyImportSeries { get; set; } = false;
 
-    [Display(Name = "Add Files")]
-    [SectionName("MyList")]
-    public bool MyList_AddFiles { get; set; } = true;
-
-    /// <summary>
-    /// Which tiers of the MyList to reconcile during a sync.
-    /// </summary>
-    [SectionName("MyList")]
-    [Display(Name = "Sync Targets")]
-    public MylistSyncTargets MyList_SyncTargets { get; set; } = MylistSyncTargets.All;
-
-    /// <summary>
-    /// How to record a locally watched episode that the MyList covers only by
-    /// file entries. Defaults to leaving those alone.
-    /// </summary>
-    [SectionName("MyList")]
-    [Display(Name = "Watched Episode Mode")]
-    public MylistWatchedEpisodeMode MyList_WatchedEpisodeMode { get; set; } = MylistWatchedEpisodeMode.Ignore;
-
-    [Display(Name = "Read Watched")]
-    [SectionName("MyList")]
-    public bool MyList_ReadWatched { get; set; } = true;
-
-    [Display(Name = "Read Unwatched")]
-    [SectionName("MyList")]
-    public bool MyList_ReadUnwatched { get; set; } = true;
-
-    [Display(Name = "Set Watched")]
-    [SectionName("MyList")]
-    public bool MyList_SetWatched { get; set; } = true;
-
-    [Display(Name = "Set Unwatched")]
-    [SectionName("MyList")]
-    public bool MyList_SetUnwatched { get; set; } = true;
-
-    [Display(Name = "Storage State")]
-    [SectionName("MyList")]
-    public MylistState MyList_StorageState { get; set; } = MylistState.HDD;
-
-    /// <summary>
-    /// Update the desired state of existing MyList entries during a sync.
-    /// When disabled, only new files are added with the desired state and
-    /// existing entries are left as-is.
-    /// </summary>
-    [Display(Name = "Update States")]
-    [SectionName("MyList")]
-    public bool MyList_UpdateStates { get; set; } = true;
-
-    /// <summary>
-    /// How to resolve watched-state conflicts during a MyList sync when the
-    /// entry was updated on the same day as the local watch. Older
-    /// differences are governed by the read/set settings instead.
-    /// </summary>
-    [Display(Name = "Watched State Sync")]
-    [SectionName("MyList")]
-    public MylistWatchedSyncMode MyList_WatchedSyncMode { get; set; } = MylistWatchedSyncMode.TrustRemote;
-
-    [Display(Name = "Delete Type")]
-    [SectionName("MyList")]
-    public MylistDeleteType MyList_DeleteType { get; set; } = MylistDeleteType.MarkUnknown;
-
-    /// <summary>
-    /// Consult a third-party index of generic file IDs during a sync. AniDB's
-    /// MyList export does not mark generic entries, and the file state is only
-    /// a convention a generic entry may not follow, so without the index the
-    /// sync can mistake a generic entry for a file it no longer has. Turn this
-    /// off to keep the sync entirely between this server and AniDB, at the cost
-    /// of the sync no longer disposing of missing entries at all — it refuses to
-    /// act on an entry it cannot classify, and without the index it cannot
-    /// classify any of them.
-    /// </summary>
-    [Display(Name = "Use Generic File Index")]
-    [SectionName("MyList")]
-    public bool MyList_UseGenericFileIndex { get; set; } = true;
-
-    /// <summary>
-    /// Number of days to retain backups of the downloaded MyList for the user.
-    /// </summary>
-    [SectionName("MyList")]
-    [Visibility(Size = DisplayElementSize.Small)]
-    [Display(Name = "Retained Backup Count")]
-    [Range(0, 99, ErrorMessage = "MyList_RetainedBackupCount may only be between 0 and 99")]
-    public int MyList_RetainedBackupCount { get; set; } = 30;
-
     /// <summary>
     /// Check which AniDB anime is currently airing in the next/previous week,
     /// and schedule an update for all of them, adding them to the local
@@ -224,25 +140,6 @@ public class AniDbSettings
     [SectionName("Update")]
     [Display(Name = "Files with missing info")]
     public ScheduledUpdateFrequency File_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
-
-    /// <summary>
-    /// Sync the MyList with the local collection.
-    /// </summary>
-    [SectionName("Update")]
-    [Display(Name = "MyList")]
-    [Visibility(
-        DisableWhenMemberIsSet = nameof(MyList_UpdateFrequency),
-        DisableWhenSetTo = ScheduledUpdateFrequency.Never
-    )]
-    public ScheduledUpdateFrequency MyList_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
-
-    /// <summary>
-    /// How to fetch MyList entries from AniDB.
-    /// </summary>
-    [SectionName("MyList")]
-    [Display(Name = "Fetch Mode")]
-    [DeniedValues(MylistFetchMode.Auto, MylistFetchMode.None)]
-    public MylistFetchMode MyList_FetchMode { get; set; } = MylistFetchMode.Default;
 
     /// <summary>
     /// Check for any unread notifications and messages and download them if
@@ -381,4 +278,105 @@ public class AniDbSettings
     [SectionName("AVDump")]
     [Display(Name = "Advanced AVDump Settings")]
     public AVDumpSettings AVDump { get; set; } = new();
+
+    /// <summary>
+    /// Configure the MyList options for AniDB.
+    /// </summary>
+    [Display(Name = "MyList")]
+    public MyListSettings MyList { get; set; } = new();
+
+    /// <summary>
+    /// MyList configuration options.
+    /// </summary>
+    public class MyListSettings
+    {
+        [Display(Name = "Add Files")]
+        public bool AddFiles { get; set; } = true;
+
+        /// <summary>
+        /// Which tiers of the MyList to reconcile during a sync.
+        /// </summary>
+        [Display(Name = "Sync Targets")]
+        public MylistSyncTargets SyncTargets { get; set; } = MylistSyncTargets.All;
+
+        /// <summary>
+        /// How to record a locally watched episode that the MyList covers only by
+        /// file entries. Defaults to leaving those alone.
+        /// </summary>
+        [Display(Name = "Watched Episode Mode")]
+        public MylistWatchedEpisodeMode WatchedEpisodeMode { get; set; } = MylistWatchedEpisodeMode.Ignore;
+
+        [Display(Name = "Read Watched")]
+        public bool ReadWatched { get; set; } = true;
+
+        [Display(Name = "Read Unwatched")]
+        public bool ReadUnwatched { get; set; } = true;
+
+        [Display(Name = "Set Watched")]
+        public bool SetWatched { get; set; } = true;
+
+        [Display(Name = "Set Unwatched")]
+        public bool SetUnwatched { get; set; } = true;
+
+        [Display(Name = "Storage State")]
+        public MylistState StorageState { get; set; } = MylistState.HDD;
+
+        /// <summary>
+        /// Update the desired state of existing MyList entries during a sync.
+        /// When disabled, only new files are added with the desired state and
+        /// existing entries are left as-is.
+        /// </summary>
+        [Display(Name = "Update States")]
+        public bool UpdateStates { get; set; } = true;
+
+        /// <summary>
+        /// How to resolve watched-state conflicts during a MyList sync when the
+        /// entry was updated on the same day as the local watch. Older
+        /// differences are governed by the read/set settings instead.
+        /// </summary>
+        [Display(Name = "Watched State Sync")]
+        public MylistWatchedSyncMode WatchedSyncMode { get; set; } = MylistWatchedSyncMode.TrustRemote;
+
+        [Display(Name = "Delete Type")]
+        public MylistDeleteType DeleteType { get; set; } = MylistDeleteType.MarkUnknown;
+
+        /// <summary>
+        /// Consult a third-party index of generic file IDs during a sync. AniDB's
+        /// MyList export does not mark generic entries, and the file state is only
+        /// a convention a generic entry may not follow, so without the index the
+        /// sync can mistake a generic entry for a file it no longer has. Turn this
+        /// off to keep the sync entirely between this server and AniDB, at the cost
+        /// of the sync no longer disposing of missing entries at all — it refuses to
+        /// act on an entry it cannot classify, and without the index it cannot
+        /// classify any of them.
+        /// </summary>
+        [Display(Name = "Use Generic File Index")]
+        public bool UseGenericFileIndex { get; set; } = true;
+
+        /// <summary>
+        /// Number of days to retain backups of the downloaded MyList for the user.
+        /// </summary>
+        [Visibility(Size = DisplayElementSize.Small)]
+        [Display(Name = "Retained Backup Count")]
+        [Range(0, 99, ErrorMessage = "AniDb.MyList.RetainedBackupCount may only be between 0 and 99")]
+        public int RetainedBackupCount { get; set; } = 30;
+
+        /// <summary>
+        /// Sync the MyList with the local collection.
+        /// </summary>
+        [SectionName("Update")]
+        [Display(Name = "MyList")]
+        [Visibility(
+            DisableWhenMemberIsSet = nameof(UpdateFrequency),
+            DisableWhenSetTo = ScheduledUpdateFrequency.Never
+        )]
+        public ScheduledUpdateFrequency UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
+
+        /// <summary>
+        /// How to fetch MyList entries from AniDB.
+        /// </summary>
+        [Display(Name = "Fetch Mode")]
+        [DeniedValues(MylistFetchMode.Auto, MylistFetchMode.None)]
+        public MylistFetchMode FetchMode { get; set; } = MylistFetchMode.Default;
+    }
 }

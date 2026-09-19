@@ -134,8 +134,8 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
 
     /// <summary>
     /// Configure the information Shoko retrieves from AniDB for the series in
-    /// your collection, and set your preferences for MyList options and the
-    /// general updating of AniDB data.
+    /// your collection, and set your preferences for the general updating of
+    /// AniDB data.
     /// </summary>
     [Display(Name = "AniDB")]
     public AniDbSettings AniDb { get; set; } = new();

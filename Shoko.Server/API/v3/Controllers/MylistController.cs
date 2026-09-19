@@ -261,10 +261,10 @@ public class MylistController(
                     _ => null,
                 },
                 State = action.Kind is MylistSyncActionKind.ExportWatchedState
-                    ? settings.AniDb.MyList_StorageState
+                    ? settings.AniDb.MyList.StorageState
                     : null,
                 DeleteType = action.Kind is MylistSyncActionKind.ExportEntryRemoval
-                    ? settings.AniDb.MyList_DeleteType
+                    ? settings.AniDb.MyList.DeleteType
                     : null,
             };
 

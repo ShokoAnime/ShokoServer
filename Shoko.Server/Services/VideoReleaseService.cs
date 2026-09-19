@@ -877,7 +877,7 @@ public class VideoReleaseService(
         SetWatchedStateIfNeeded(video, releaseInfo);
 
         // Sync to MyList if needed.
-        if (!skipEvents && !releaseUriMatches && _settings.AniDb.MyList_AddFiles)
+        if (!skipEvents && !releaseUriMatches && _settings.AniDb.MyList.AddFiles)
             await mylistService.ScheduleAddVideo(video);
 
         // Rename and/or move the physical file(s) if needed.
@@ -1269,7 +1269,7 @@ public class VideoReleaseService(
 
     private async Task RemoveFromMylist(StoredReleaseInfo releaseInfo, IReleaseInfo? replacingRelease = null)
     {
-        if (_settings.AniDb.MyList_DeleteType is MylistDeleteType.DeleteLocalOnly)
+        if (_settings.AniDb.MyList.DeleteType is MylistDeleteType.DeleteLocalOnly)
         {
             logger.LogInformation("Keeping physical file and AniDB MyList entry, deleting from local DB: Hash: {Hash}", releaseInfo.ED2K);
             return;
