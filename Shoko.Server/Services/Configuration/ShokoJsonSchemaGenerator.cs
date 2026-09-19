@@ -235,12 +235,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 }
                 foreach (var (propertyName, schemaValue) in subSchema.Properties)
                 {
-                    var propertyKey = propertyName;
-                    if (schemaValue.Item is not null)
-                        propertyKey += "+List";
-                    if (schemaValue.AdditionalPropertiesSchema is not null)
-                        propertyKey += "+Dict";
-                    if (classBuilder.GetProperty(propertyKey) is not { } propertyBuilder)
+                    if (classBuilder.GetProperty(GetPropertyKey(propertyName, schemaValue)) is not { } propertyBuilder)
                         continue;
 
                     // Handle enum default values.
@@ -380,12 +375,8 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         AssertNoNestedCollection(info);
 
         var classBuilder = GetOrAddClass(info.MemberInfo.ReflectedType!);
-        var propertyName = GetPropertyKey(info);
-        var propertyKey = propertyName;
-        if (schema.Item is not null)
-            propertyKey += "+List";
-        if (schema.AdditionalPropertiesSchema is not null)
-            propertyKey += "+Dict";
+        var propertyName = GetPropertyName(info);
+        var propertyKey = GetPropertyKey(propertyName, schema);
         var builder = classBuilder.GetOrAddProperty(propertyKey, () => new UiPropertyBuilder
         {
             Key = propertyKey,
@@ -501,7 +492,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             // Only set if the referenced schema is a class definition
             if (itemSchema.HasReference && _schemaKeys.TryGetValue(itemSchema.ActualSchema, out var referencedSchemaKey))
                 element.ItemClass = _schemaCache[referencedSchemaKey];
-            element.Item = classBuilder.GetProperty(propertyKey[..^5]);
+            element.Item = classBuilder.GetProperty(propertyName);
             element.ItemElementType = ResolveInnerElementType(element.ItemClass, element.Item);
             builder.Element = element;
 
@@ -552,7 +543,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 element.KeyEnumValues = CollectEnumValues(keyType.ToContextualType()).Values;
                 element.KeyEnumIsFlag = keyType.GetCustomAttribute<FlagsAttribute>() is not null;
             }
-            element.Item = classBuilder.GetProperty(propertyKey[..^5]);
+            element.Item = classBuilder.GetProperty(propertyName);
             builder.Element = element;
         }
         else if (schema.IsEnumeration)
@@ -635,6 +626,11 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         }
 
         classBuilder.PrimaryKey = classBuilder.Properties.FirstOrDefault(x => x.IsPrimaryKey)?.Key;
+        // A row says what it calls itself by holding one of these, which beats
+        // reading the names of its other members and hoping.
+        classBuilder.TitleMember = contextualType.Properties
+            .FirstOrDefault(x => x.PropertyType.Type == typeof(TitleComponent))
+            is { } titleProperty ? GetPropertyName(titleProperty) : null;
 
         var orderCount = 0;
         var knownGetters = new Dictionary<string, int>();
@@ -994,7 +990,39 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         throw new ArgumentException($"Type \"{keyType.FullName!}\" is not serializable to text and therefore cannot be used as a key in a dictionary inside a configuration.", nameof(keyType));
     }
 
-    private static string GetPropertyKey(ContextualPropertyInfo info)
+    /// <summary>
+    ///   The suffix on the key of a list property's collection node.
+    /// </summary>
+    private const string ListKeySuffix = "+List";
+
+    /// <summary>
+    ///   The suffix on the key of a dictionary property's collection node.
+    /// </summary>
+    private const string DictionaryKeySuffix = "+Dict";
+
+    /// <summary>
+    ///   Returns the key a property's builder is filed under for one of the
+    ///   schema nodes it produced.
+    /// </summary>
+    /// <remarks>
+    ///   A collection property produces a node for the collection and one for
+    ///   its element. Only the collection node carries a suffix, so the
+    ///   element's builder stays under the bare property name.
+    /// </remarks>
+    /// <param name="propertyName">The JSON property name.</param>
+    /// <param name="schema">The schema node the builder describes.</param>
+    /// <returns>The key.</returns>
+    internal static string GetPropertyKey(string propertyName, JsonSchema schema)
+    {
+        var propertyKey = propertyName;
+        if (schema.Item is not null)
+            propertyKey += ListKeySuffix;
+        if (schema.AdditionalPropertiesSchema is not null)
+            propertyKey += DictionaryKeySuffix;
+        return propertyKey;
+    }
+
+    private static string GetPropertyName(ContextualPropertyInfo info)
     {
         if (info.GetAttribute<JsonPropertyAttribute>(false) is { } jsonPropertyAttribute)
             return jsonPropertyAttribute.PropertyName ?? info.Name;
