@@ -53,7 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.0" />
-    <PackageReference Include="AsyncKeyedLock" Version="8.0.2" />
+    <PackageReference Include="AsyncKeyedLock" Version="8.1.2" />
     <PackageReference Include="DeepCloner" Version="0.10.4" />
     <PackageReference Include="F23.StringSimilarity" Version="7.0.1" />
     <PackageReference Include="FluentNHibernate" Version="3.4.1" />
