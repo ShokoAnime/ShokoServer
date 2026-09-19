@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
-using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Attributes;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Abstractions.UI.Enums;
