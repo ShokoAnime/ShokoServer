@@ -209,9 +209,9 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                     uiBuilders[subSchema] = classBuilder;
                     if (classBuilder.Actions.Count > 0)
                         wrappedSchema.HasCustomActions = true;
-                    foreach (var reactiveAction in classBuilder.ReactiveActions)
+                    foreach (var lifecycleHook in classBuilder.LifecycleHooks)
                     {
-                        switch (reactiveAction.ActionType)
+                        switch (lifecycleHook.ActionType)
                         {
                             case ConfigurationActionType.New when isRootSchema:
                                 wrappedSchema.HasCustomNewFactory = true;
@@ -764,9 +764,9 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                         throw new NotSupportedException($"{contextualType.Type.Name}.{methodInfo.Name} watches a member that {failure}.");
                 }
 
-                classBuilder.ReactiveActions.Add(new UiReactiveActionBuilder
+                classBuilder.LifecycleHooks.Add(new UiLifecycleHookBuilder
                 {
-                    ID = methodInfo.Name,
+                    Name = methodInfo.Name,
                     ActionType = actionType,
                     EventTypes = events.Count > 0 ? events : [ReactiveEventType.All],
                     Members = watched,
