@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.477",
+      "tag": "v6.0.0-dev.477",
+      "commit": "37fbf936b8baa990f5252371f6e0b548fbb9cddf",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.477/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-19T12:24:50Z",
+      "releaseNotes": "\n`docs` (`plugin`): **Document XML summary descriptions, the csproj flag they need, and where `[Required]` is fine**: (_Skip CI_)\n\n- A setting without `[Display(Description)]` falls back to its XML `<summary>`, which needs `GenerateDocumentationFile`; the minimal `.csproj` now sets it\n- Descriptions are re-flowed and XML tags become Markdown, so a multi-line raw string reads well\n- `[Required]` is fine on a pre-populated member or on a list or record item type, just not on an empty root member\n\n`fix` (`api`): **Test an AniDB login against the stored password when none was retyped**:\n\n`GET /api/v3/Settings` masks every secret on the way out, so a client that\nposts back what it was handed, rather than what the user retyped, sends the mask\nto `POST /api/v3/Settings/AniDB/TestLogin`, which used it as the password and\nfailed the login. The WebUI's AniDB tab does exactly that: it reads `Password`\nout of the settings it fetched.\n\nSaving was never affected, since the save path restores a masked secret before\nanything reads it. This is the other kind of endpoint: one that uses a secret\nwithout storing it, where there is no document to pair the mask against.\n\n- Added `ConfigurationSecrets.Resolve`, which reads a mask as \"the stored one\",\n  for any endpoint handed a secret it only uses\n- Tested an AniDB login with the stored password when the caller sent a mask,\n  and rejected the attempt when nothing is stored to test with\n"
+    },
+    {
       "version": "6.0.0.476",
       "tag": "v6.0.0-dev.476",
       "commit": "4dc1ceee496af1a491f803b4712d7d0d0fa2c245",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.448/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-11T04:20:48Z",
       "releaseNotes": "\n`repo` (`deps`): **Bump `Shoko.BuildTools.Targets` to 0.3.0**.\n"
-    },
-    {
-      "version": "6.0.0.447",
-      "tag": "v6.0.0-dev.447",
-      "commit": "f003434fe8bd80c07be710e8d4fb5299a91714e3",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.447/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-11T04:04:52Z",
-      "releaseNotes": "\n`feat` (`buildtools`): **Accept plugin metadata and dependencies without a manifest**:\n\n`shoko-build` gained `--id`, `--name`, `--overview`, `--tags` and\n`--dependencies`, and `Shoko.BuildTools.Targets` reads the matching\n`PluginID`, `PluginName`, `PluginOverview`, `PluginTags` and\n`PluginDependencies` MSBuild properties. A flag beats the property, which\nbeats the manifest; stated lists replace the manifest's instead of merging.\n\n- Dependencies are written as `<guid>@<range>[:optional|:required]`,\n  comma-separated, with whitespace around every separator ignored. The\n  same format is now embedded as `PackageDependencies`; the legacy\n  `guid:range[:true]` entries are still read.\n- An unparseable entry, a range the server cannot evaluate, or a plugin\n  listed twice stops the build, including in the manifest's `dependencies`.\n- `--id` has to match the manifest's `id` when one is being updated.\n- The server refuses to load a plugin whose embedded dependency list is\n  invalid, instead of skipping the bad entries.\n- `PluginDependencyList` is duplicated in `Shoko.BuildTools`,\n  `Shoko.BuildTools.Targets` and `Shoko.Server`.\n- Newlines and tabs in generated attribute values are escaped, so a\n  multi-line overview no longer breaks the build.\n- Bumped `Shoko.BuildTools` to 0.5.0 and `Shoko.BuildTools.Targets` to 0.3.0.\n"
     }
   ]
 }
