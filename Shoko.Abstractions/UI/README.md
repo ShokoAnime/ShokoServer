@@ -229,6 +229,16 @@ A hook is declared on the class it belongs to, so a nested class handles its own
 edits. Only `LiveEdit` is raised by an event, and it can name which one it wants
 with `ReactiveEventType`; a handler that names none takes them all.
 
+Every live-edit handler the edited path passes through runs, innermost first,
+and only those whose declared events and `ReactiveMembers` cover the edit. Each
+is handed what the one before it returned, on the context and as an injectable
+parameter, so a handler can build on it; returning something else costs nothing,
+since the messages and validation errors of every handler are collected either
+way and they all hold the same configuration instance. A path that does not
+resolve, which is what a row still being composed client-side looks like, is not
+an error for a live edit: nothing reacts. An explicitly invoked action still
+fails, because somebody pressed a button on something that is not there.
+
 A hook owns its side of the job, which is the point of declaring one:
 
 - **`Load`** is handed a fresh instance, not the stored document. Build on the
