@@ -867,6 +867,13 @@ public class VideoRelocationService(
             var result = func(renamer, context);
             if (result.Error is not null) return result;
 
+            // A provider that says it doesn't move or rename never decides that half, whether or not
+            // it remembered to skip it.
+            if (!renamer.SupportsMoving)
+                result.SkipMove = true;
+            if (!renamer.SupportsRenaming)
+                result.SkipRename = true;
+
             context.CancellationToken.ThrowIfCancellationRequested();
 
             if (shouldRename && !result.SkipRename && (string.IsNullOrWhiteSpace(result.FileName) || result.FileName.StartsWith("*Error:")))

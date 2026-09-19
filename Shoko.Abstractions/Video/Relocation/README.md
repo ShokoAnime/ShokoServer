@@ -134,8 +134,8 @@ that does any work. Everything else has a default:
 | `Version` | Assembly version | |
 | `SupportsUnrecognized` | `false` | See below. |
 | `SupportsIncompleteMetadata` | `false` | See below. |
-| `SupportsMoving` | `true` | Advertised over the API only. |
-| `SupportsRenaming` | `true` | Advertised over the API only. |
+| `SupportsMoving` | `true` | When `false`, every result is treated as `SkipMove`. |
+| `SupportsRenaming` | `true` | When `false`, every result is treated as `SkipRename`. |
 | `GetPath(RelocationContext)` | Returns a `NotImplementedException` error | Leave it alone when you implement `IRelocationProvider<TConfig>`. |
 
 Note the shape of the configured variant: `IRelocationProvider<TConfig>.GetPath`
@@ -173,10 +173,13 @@ service *before* your `GetPath` is called, so they are guards, not hints:
   being fetched. Set it to `true` only if a partial `Episodes` list is enough
   for you.
 
-`SupportsMoving` and `SupportsRenaming` are different: the server never gates
-on them, and only reports them through the v3 API so a client can grey out an
-option. Honour `context.MoveEnabled` and `context.RenameEnabled` yourself, and
-set `SkipMove` / `SkipRename` on the result for anything you decline to decide.
+`SupportsMoving` and `SupportsRenaming` work on the result instead. The
+service still asks you when they are `false`, but whatever you return is
+treated as `SkipMove` or `SkipRename` for that half, so the file keeps its
+current folder or name. They are also reported through the v3 API so a client
+can grey out an option. Beyond that, honour `context.MoveEnabled` and
+`context.RenameEnabled` yourself, and set `SkipMove` / `SkipRename` on the
+result for anything else you decline to decide.
 
 ---
 
@@ -207,7 +210,8 @@ handles the case where a file already exists at the target.
 ## Mistakes that are easy to make
 
 - **Assuming `SupportsMoving = false` stops the service asking you to move.**
-  It does not. Only `context.MoveEnabled` and your own `SkipMove` control that.
+  It does not: `context.MoveEnabled` can still be `true`. The flag only makes
+  the service ignore the move half of whatever you return.
 - **Doing work in a preview.** `AutoRelocateRequest.Preview` is not passed
   down: the context looks identical to a real run and only the service knows
   the difference. `GetPath` must be free of side effects, every time.

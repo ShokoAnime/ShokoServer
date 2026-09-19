@@ -40,12 +40,24 @@ public interface IRelocationProvider
     ///   Indicates that the renamer supports moving files. That is, changing
     ///   the directory the file is in.
     /// </summary>
+    /// <remarks>
+    ///   When <c>false</c>, the server sets
+    ///   <see cref="RelocationResult.SkipMove"/> on every result the provider
+    ///   returns, so the file keeps its current folder whatever the result
+    ///   says.
+    /// </remarks>
     bool SupportsMoving { get => true; }
 
     /// <summary>
     ///   Indicates that the renamer supports renaming files. That is, changing
     ///   the name of the file itself.
     /// </summary>
+    /// <remarks>
+    ///   When <c>false</c>, the server sets
+    ///   <see cref="RelocationResult.SkipRename"/> on every result the provider
+    ///   returns, so the file keeps its current name whatever the result
+    ///   says.
+    /// </remarks>
     bool SupportsRenaming { get => true; }
 
     /// <summary>
