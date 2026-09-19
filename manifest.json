@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.480",
+      "tag": "v6.0.0-dev.480",
+      "commit": "a08e6ce368ba7c77069eccdf4227c8649e9f9881",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.480/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-19T20:53:27Z",
+      "releaseNotes": "\n`misc`: **Update AsyncKeyedLock package version to 8.1.2**.\n\n`merge`: **Merge branch 'master' into AsyncKeyedLock**.\n\n`merge`: **Merge pull request #1444 from MarkCiliaVincenti/AsyncKeyedLock**:\n\nchore(deps): Update AsyncKeyedLock package version to 8.1.2\n"
+    },
+    {
       "version": "6.0.0.479",
       "tag": "v6.0.0-dev.479",
       "commit": "0fe4fc582686ca26cc9cca0394760ff1e13a2b8e",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.451/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-13T21:16:47Z",
       "releaseNotes": "\n`chore`: **Correct argument name in video service**. (_Skip CI_)\n\n`fix` (`release`): **Allow a release to list the same episode more than once**:\n\n`CheckCrossReferences` inferred invalidity from a count difference, so\nevery deliberate collapse had to be compensated by hand. The `DistinctBy`\nthat merges identical percentage ranges never was, so a release listing\none episode twice threw `Release have 1 invalid cross reference(s)`\ninstead of saving. AniDB serves that shape whenever a file's related\nepisode points back at its own base episode.\n\n- Replaced the count reconciliation with an explicit `invalidXrefs`\n  count, raised only where a cross-reference is genuinely rejected — an\n  episode ID that is `<= 0`, or one AniDB answers `NO_SUCH_EPISODE` for\n- Normalised percentage ranges into the contract documented on\n  `IReleaseVideoCrossReference` rather than rejecting them: both bounds\n  are clamped before the range is reversed, so an out-of-range pair can\n  no longer come back out with the start past the end, and a zero-length\n  range is corrected to cover the whole episode\n- Kept the narrower-range override, so a related entry still replaces the\n  base entry's full range\n\n`refactor` (`release`): **Drop unused locals in CheckCrossReferences**:\n\nBoth locals were computed on every call and never read. `checkedIDs` once\nkept the method from asking AniDB about the same episode twice, a job\n`_unknownEpisodeIDs` took over. `fileName` walked the video's locations\nfor a string nothing consumed.\n"
-    },
-    {
-      "version": "6.0.0.450",
-      "tag": "v6.0.0-dev.450",
-      "commit": "9b09cee78bc9de17be8b9946053536a3580ef522",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.450/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-13T04:49:00Z",
-      "releaseNotes": "\n`feat` (`api`): **Report available and total bytes for `/api/v3/Folder/MountPoints`**:\n\nAdded `MountPointSizes`, which extends `ChildItems` with `AvailableBytes`\nand `TotalBytes`, and made it the type of `Drive.Sizes`. The values come\nfrom `DriveInfo.AvailableFreeSpace` and `DriveInfo.TotalSize` when the\ndrive is ready. `/api/v3/Folder` still returns the plain `ChildItems`.\n\n- `Drive.Sizes` hides `Folder.Sizes` with `new` and forwards to the base\n  property, so there is one backing value and the Swagger schema shows the\n  byte fields on `Drive` only\n"
     }
   ]
 }
