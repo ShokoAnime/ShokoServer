@@ -204,6 +204,41 @@ Uninstalling a plugin with "purge configuration" deletes its folder under
 
 ---
 
+## Secrets
+
+A property marked `[DataType(DataType.Password)]` or `[PasswordPropertyText]` is
+a secret. The settings page renders it as a password field, and the REST API
+never sends its value: a secret that holds something goes out as
+`ConfigurationSecrets.Sentinel` (`***SECRET-UNCHANGED***`), while one that is
+`null` or empty goes out as it is, so "nothing set" still looks different from
+"withheld".
+
+When a document comes back in, the stored value is put back wherever the
+sentinel arrived or the property was left out. Any other value replaces it, and
+an explicit `null` or empty string clears it. `Save(info, json)` does this
+itself, so you only need to know about it in three cases:
+
+- **Your own code reads the object graph, not JSON.** `Load()` always returns
+  the real values. Masking belongs to the wire, never to the model.
+- **You hand a configuration to a client of your own.** Serialize it with
+  `IConfigurationService.SerializeWithMasking(config)`, or run an existing
+  document through `MaskSecrets(info, json)`, so the credentials are masked
+  exactly as the REST API masks them. If a document you masked comes back and
+  you do something with it other than saving (validating it, running a custom
+  action on it), call `RestoreMaskedSecrets(info, json)` first.
+- **A secret sits inside a list.** Putting the stored value back means pairing
+  each incoming element with the element it came from, and a list's order can't
+  be trusted for that. A dictionary pairs by its key. A list pairs by the
+  element property marked `[Key]`, so give the element type one. Without it,
+  restoring throws `ConfigurationValidationException` as soon as a sentinel
+  arrives inside that list, and the user has to type the value in again on
+  every save.
+
+The same exception is thrown when the sentinel arrives for a secret that has
+nothing stored behind it.
+
+---
+
 ## Shaping the settings page
 
 The WebUI renders from the generated schema, so standard

@@ -112,7 +112,9 @@ it never needs an instance to do it.
 **Everything the server discovers has to be `public`.** Type scanning runs off
 `Assembly.GetExportedTypes()`, so an `internal` provider, resolver,
 configuration class or `IPlugin` implementation is invisible, with no warning
-to say so.
+to say so. For a configuration class that is worse than invisible:
+`ConfigurationProvider<T>` still resolves for it, and the first `Load()` throws
+a `NullReferenceException` because the service has no record of the type.
 
 Only the first of each is used. A second `IPlugin` or
 `IPluginServiceRegistration` in the same assembly is ignored with a warning; a
@@ -495,7 +497,9 @@ page.
   `Shoko.Abstractions.Web.Attributes`. Plugin middleware sits behind the same
   `503` gate, and has no endpoint to carry the attribute.
 - **Executable actions.** Exported types implementing `IExecutableAction` are
-  registered as transient, and resolved fresh from DI per execution.
+  registered as transient, and resolved fresh from DI per execution. See the
+  [actions README](Actions/Services/README.md) for the two rules that fail
+  startup.
 - **Pages and features.** `IPlugin.GetPages()` advertises `PluginPage` entries
   (a name and a URL, embeddable by default) to clients, and `GetFeatures()`
   advertises `PluginFeature` entries. `GetFeatures()` is called every time a

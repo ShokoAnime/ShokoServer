@@ -45,9 +45,10 @@ public class PurgeMyCacheAction(MyCache cache, ILogger<PurgeMyCacheAction> logge
 ```
 
 That is all. **There is nothing to register in DI.** `PluginManager` collects
-every non-abstract class in your assembly assignable to `IExecutableAction`,
-registers each one as a **transient** service, and hands the list to the action
-service during startup.
+every public, non-abstract class in your plugin's main assembly assignable to
+`IExecutableAction`, registers each one as a **transient** service, and hands
+the list to the action service during startup. An `internal` action, or one in
+a second assembly your plugin ships, is never found, and nothing says so.
 
 Note that this uses `GetTypes<IExecutableAction>()`, not `GetExports<T>()`, so the
 three-branch singleton rule in [the main README](../../README.md) does not apply
@@ -57,10 +58,20 @@ break that. Dependencies your action takes in its constructor still resolve
 normally, so put the long-lived state in a singleton service and let the action
 be a thin shell over it.
 
+Only the execution resolves from a job's container. The probe the action
+service takes at startup, and the instance each `Validate` runs on, come from
+the root container. That has two consequences. An action that implements
+`IDisposable` is held by the root until shutdown, once for startup and once
+more per validation, so don't give an action anything to dispose; keep it on
+the singleton. And a scoped service in the constructor is resolved from the
+root as well, where it either throws or lives for the rest of the process.
+
 ### Two mistakes that fail at startup
 
 Both throw `InvalidOperationException` while the action service takes the
-discovered actions during startup, so they are loud rather than subtle.
+discovered actions during startup. That happens inside plugin initialisation,
+so the exception takes the whole server's startup down with it, not just your
+plugin: loud rather than subtle.
 
 **Declare `Permission` on the action class itself.** There is deliberately no
 default, and the registry checks that the getter's declaring type is the action
@@ -68,9 +79,12 @@ type. Inheriting it from your own intermediate base class, or leaning on an
 interface default, is rejected. Every action states its permission in its own
 source file, where a reviewer will see it.
 
-**Derive scoped actions from the four base classes.** `IScopedAction` is internal
-to `Shoko.Abstractions`, so a plugin assembly cannot implement it anyway, but the
-check is kept so any attempt fails immediately.
+**Derive scoped actions directly from the four base classes.** The check is on
+the action's immediate base type, so `MyAction : MyBaseAction : SeriesAction` is
+rejected the same way an unrelated type would be. Share code between scoped
+actions through a helper service, not an intermediate base class. (`IScopedAction`
+itself is internal to `Shoko.Abstractions`, so a plugin can't implement it
+directly anyway.)
 
 ### Action IDs change when you rename the class
 
