@@ -310,6 +310,7 @@ in their `.csproj`. The tool handles all of that. A minimal plugin `.csproj`:
     <TargetFramework>net10.0</TargetFramework>
     <OutputType>Library</OutputType>
     <Version>1.0.5</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Shoko.Abstractions" Version="..." ExcludeAssets="runtime" />
@@ -322,3 +323,9 @@ packs everything in the build's output directory, and without it your plugin
 ships its own copy of `Shoko.Abstractions.dll`, which makes the server skip the
 plugin without an error. A plugin with queue jobs also references
 `Shoko.QueueProcessor`, with `ExcludeAssets="runtime;native"`.
+
+`GenerateDocumentationFile` is what lets a setting fall back to its XML doc
+summary for its description; without it those descriptions are empty. See the
+[configuration README](../Shoko.Abstractions/Config/Services/README.md#descriptions).
+It also warns about every undocumented public member (`CS1591`); add
+`<NoWarn>$(NoWarn);CS1591</NoWarn>` if you'd rather not see those.

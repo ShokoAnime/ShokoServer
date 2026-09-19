@@ -147,9 +147,17 @@ if (string.IsNullOrWhiteSpace(_configurationProvider.Load().AppToken))
 The plugin loads, appears in the UI, shows its settings page, and simply does
 nothing until it is configured. That is the behaviour you want.
 
-`[Required]` is still fine on something that always has a value, such as a field
-with a sensible non-null default. The problem is specifically a property whose
-correct initial state is empty.
+`[Required]` is still fine in two places:
+
+- **On a member that is pre-populated**, such as a field with a sensible
+  non-null default. The problem is specifically a property whose correct
+  initial state is empty.
+- **On the item type of a list or record**, the type behind a `[List]` or
+  `[Record]` editor. There it applies to each item the user adds, and a fresh
+  install has no items to fail.
+
+What it can't do by default is require the user to fill in a member at the
+root of the configuration.
 
 Value constraints that a default already satisfies, `[Range]` and `[MinLength]`
 for instance, are safe for the same reason: the default passes them.
@@ -265,6 +273,38 @@ The WebUI renders from the generated schema, so standard
 | `[CustomAction]` | Method | A button on the settings page. |
 | `[ConfigurationAction(ConfigurationActionType)]` | Method | A reactive handler, run as the user edits rather than on a button press. |
 | `[HideDefaultSaveAction]` | Class | Removes the built-in save button, for a configuration that saves itself through a custom action. |
+
+### Descriptions
+
+A member's description comes from `[Display(Description = …)]` when it has one,
+and otherwise from the member's XML doc `<summary>`. The same goes for the
+configuration class itself. The summary is only there to read if your plugin
+project generates its documentation file and ships it next to the assembly:
+
+```xml
+<PropertyGroup>
+  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+</PropertyGroup>
+```
+
+Without that, the build succeeds, the plugin loads, and every description that
+relies on a summary is silently empty. `shoko-build` packs the whole output
+directory, so once the file is generated it is shipped too.
+
+Either way the text is re-flowed before it reaches the schema. A single line
+break becomes a space, runs of spaces and tabs collapse to one, and a blank line
+becomes a paragraph break. XML doc tags are converted to Markdown. A longer
+description reads well as a multi-line raw string, with no stray indentation to
+worry about:
+
+```csharp
+[Display(Name = "Sweep Interval (Hours)", Description = """
+    How often the whole library is checked against the remote service.
+
+    Lower values catch changes sooner, at the cost of more requests.
+    """)]
+public int SweepIntervalHours { get; set; } = 24;
+```
 
 ### A custom action
 
