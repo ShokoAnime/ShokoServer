@@ -650,6 +650,11 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
         }
 
         classBuilder.PrimaryKey = classBuilder.Properties.FirstOrDefault(x => x.IsPrimaryKey)?.Key;
+        // A row says what it calls itself by holding one of these, which beats
+        // reading the names of its other members and hoping.
+        classBuilder.TitleMember = contextualType.Properties
+            .FirstOrDefault(x => x.PropertyType.Type == typeof(TitleComponent))
+            is { } titleProperty ? GetPropertyKey(titleProperty) : null;
 
         var orderCount = 0;
         var knownGetters = new Dictionary<string, int>();

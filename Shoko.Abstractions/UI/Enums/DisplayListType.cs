@@ -46,4 +46,12 @@ public enum DisplayListType
     [EnumMember(Value = "complex-inline")]
     [System.Text.Json.Serialization.JsonStringEnumMemberName("complex-inline")]
     ComplexInline = 4,
+
+    /// <summary>
+    /// Every entry is a plain row: one field per entry, with whatever add, remove and
+    /// reorder controls the list allows.
+    /// </summary>
+    [EnumMember(Value = "flat")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("flat")]
+    Flat = 5,
 }
