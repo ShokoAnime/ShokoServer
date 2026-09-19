@@ -124,6 +124,11 @@ is described once and drawn once.
 Every element carries `Kind`, a label, a description, its size, its visibility
 and whatever constraints apply to it.
 
+`[DeniedValues]` is filed on the element that can act on it. On a list or a
+dictionary it describes an entry, so it lands on the item rather than on the
+collection, and an element with no value of its own to match, a nested class or a
+select whose options live in the configuration value, carries none.
+
 | `Kind` | Authored as |
 |---|---|
 | `boolean`, `integer`, `float`, `string` | The property's own type |
