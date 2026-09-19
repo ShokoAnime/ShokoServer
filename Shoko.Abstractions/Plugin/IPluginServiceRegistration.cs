@@ -3,9 +3,13 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Shoko.Abstractions.Plugin;
 
 /// <summary>
-///   Interface used for service registration which requires a parameterless
-///   constructor.
+///   Lets a plugin add its own services to the container before it is built.
 /// </summary>
+/// <remarks>
+///   The method is static and called by reflection, so no instance of the
+///   implementing type is ever created. Only the first implementation in an
+///   assembly is used.
+/// </remarks>
 public interface IPluginServiceRegistration
 {
     /// <summary>

@@ -72,11 +72,13 @@ places:
 |---|---|---|
 | `AnidbService.CreateAnimeSeriesAndGroup` | `ScheduleForAnime(animeID, isNew: true)` | An `AnimeSeries` was just created for an anime that had none. |
 | `AnidbService`, after the refresh pass | `ScheduleForAnime(animeID, isNew: false)` | AniDB data for the anime was confirmed or refreshed. |
-| `AnimeMetadataOrchestrator` | `ScheduleForAnimes(animeIDs, isNew: false)` | A batch sweep over anime with missing or stale data. |
+| `AnimeMetadataOrchestrator` | `ScheduleForAnimes(animeIDs, isNew: false)` | A release was saved that links files to these anime. Runs whether or not their AniDB data is cached yet; a missing anime only has its refresh queued. |
 
-All of it is gated on one flag. `AnidbRefreshMethod.SkipSupplementaryUpdate`,
+The two `AnidbService` calls are gated on one flag. `AnidbRefreshMethod.SkipSupplementaryUpdate`,
 surfaced as `SkipSupplementaryUpdate` on `GetAniDBAnimeJob` and
-`GetRemoteAniDBAnimeJob`, suppresses both `ScheduleForAnime` calls. Core sets it
+`GetRemoteAniDBAnimeJob`, suppresses both of them. The orchestrator's call is
+not gated, so an anime can reach you from a saved release before AniDB has
+told core anything about it. Core sets it
 for refreshes that are not about new content: database fixups, bulk re-reads
 from the XML cache, and the AniDB-only refresh paths in `ActionService`. A
 provider never sees those.

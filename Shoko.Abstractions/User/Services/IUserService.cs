@@ -163,10 +163,14 @@ public interface IUserService
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="user"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="ArgumentException">
-    ///   <paramref name="user"/> is not stored in the database, or it is the
-    ///   last administrator in the database.
+    /// <exception cref="GenericValidationException">
+    ///   <paramref name="user"/> is the last administrator in the database.
+    ///   The exception is carried by the returned task rather than thrown.
     /// </exception>
+    /// <remarks>
+    ///   A user that isn't stored is not an error. Its per-user data and auth
+    ///   tokens are still cleared, and no <see cref="UserRemoved"/> is raised.
+    /// </remarks>
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>

@@ -339,11 +339,9 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Thrown when trying to load a base configuration.
-    /// </exception>
     /// <returns>
-    ///   The loaded configuration instance.
+    ///   The loaded configuration instance. A base configuration is never
+    ///   stored, so for one of those this is a new default instance.
     /// </returns>
     IConfiguration Load(ConfigurationInfo info, bool copy = false);
 
@@ -363,11 +361,9 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Thrown when trying to load a base configuration.
-    /// </exception>
     /// <returns>
-    ///   The loaded configuration instance.
+    ///   The loaded configuration instance. A base configuration is never
+    ///   stored, so for one of those this is a new default instance.
     /// </returns>
     TConfig Load<TConfig>(bool copy = false) where TConfig : class, IConfiguration, new();
 
@@ -385,12 +381,10 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Thrown when trying to save a base configuration.
-    /// </exception>
     /// <returns>
     ///   A boolean indicating whether the configuration was saved to disk. If
-    ///   set to <c>false</c> then there was no change to the configuration.
+    ///   set to <c>false</c> then there was no change to the configuration, or
+    ///   it is a base configuration, which is never stored.
     /// </returns>
     bool Save(ConfigurationInfo info, IConfiguration json);
 
@@ -409,12 +403,10 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Thrown when trying to save a base configuration.
-    /// </exception>
     /// <returns>
     ///   A boolean indicating whether the configuration was saved to disk. If
-    ///   set to <c>false</c> then there was no change to the configuration.
+    ///   set to <c>false</c> then there was no change to the configuration, or
+    ///   it is a base configuration, which is never stored.
     /// </returns>
     bool Save(ConfigurationInfo info, string json);
 
@@ -430,12 +422,10 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Thrown when trying to save a base configuration.
-    /// </exception>
     /// <returns>
     ///   A boolean indicating whether the configuration was saved to disk. If
-    ///   set to <c>false</c> then there was no change to the configuration.
+    ///   set to <c>false</c> then there was no change to the configuration, or
+    ///   it is a base configuration, which is never stored.
     /// </returns>
     bool Save<TConfig>() where TConfig : class, IConfiguration, new();
 
@@ -451,12 +441,10 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Thrown when trying to save a base configuration.
-    /// </exception>
     /// <returns>
     ///   A boolean indicating whether the configuration was saved to disk. If
-    ///   set to <c>false</c> then there was no change to the configuration.
+    ///   set to <c>false</c> then there was no change to the configuration, or
+    ///   it is a base configuration, which is never stored.
     /// </returns>
     bool Save<TConfig>(TConfig config) where TConfig : class, IConfiguration, new();
 
@@ -474,12 +462,10 @@ public interface IConfigurationService
     /// <exception cref="ConfigurationValidationException">
     ///   Thrown when a configuration fails validation.
     /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///   Thrown when trying to save a base configuration.
-    /// </exception>
     /// <returns>
     ///   A boolean indicating whether the configuration was saved to disk. If
-    ///   set to <c>false</c> then there was no change to the configuration.
+    ///   set to <c>false</c> then there was no change to the configuration, or
+    ///   it is a base configuration, which is never stored.
     /// </returns>
     bool Save<TConfig>(string json) where TConfig : class, IConfiguration, new();
 

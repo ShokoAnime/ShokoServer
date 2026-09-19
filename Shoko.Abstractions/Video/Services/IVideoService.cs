@@ -147,7 +147,8 @@ public interface IVideoService
     ///   The video file to delete.
     /// </param>
     /// <param name="removeFile">
-    ///   Optional. Set to <c>false</c> to remove the physical file.
+    ///   Optional. Set to <c>true</c> to remove the physical file as well.
+    ///   Unlike the other delete methods, this defaults to <c>false</c>.
     /// </param>
     /// <param name="removeFolders">
     ///   Optional. Set to <c>false</c> to skip cleaning up empty parent folders

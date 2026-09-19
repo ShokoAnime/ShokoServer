@@ -3,9 +3,13 @@ using Microsoft.AspNetCore.Builder;
 namespace Shoko.Abstractions.Plugin;
 
 /// <summary>
-///   Interface used for application builder registration which requires a
-///   parameterless constructor.
+///   Lets a plugin add its own middleware to the request pipeline.
 /// </summary>
+/// <remarks>
+///   The method is static and called by reflection, so no instance of the
+///   implementing type is ever created. Only the first implementation in an
+///   assembly is used.
+/// </remarks>
 public interface IPluginApplicationRegistration
 {
     /// <summary>

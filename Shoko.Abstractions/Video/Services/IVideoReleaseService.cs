@@ -175,7 +175,7 @@ public interface IVideoReleaseService
     ///   video doesn't already have a release associated with it.
     /// </param>
     /// <param name="skipEvents">
-    ///   Optional. Set to <c>false</c> to skip provider-specific post-save
+    ///   Optional. Set to <c>true</c> to skip provider-specific post-save
     ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <param name="relocateFiles">
@@ -214,7 +214,7 @@ public interface IVideoReleaseService
     ///   discarding it.
     /// </param>
     /// <param name="skipEvents">
-    ///   Optional. Set to <c>false</c> to skip provider-specific post-save
+    ///   Optional. Set to <c>true</c> to skip provider-specific post-save
     ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <param name="isAutomatic">
@@ -266,7 +266,7 @@ public interface IVideoReleaseService
     ///   discarding it.
     /// </param>
     /// <param name="skipEvents">
-    ///   Optional. Set to <c>false</c> to skip provider-specific post-save
+    ///   Optional. Set to <c>true</c> to skip provider-specific post-save
     ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <param name="isAutomatic">
@@ -293,7 +293,7 @@ public interface IVideoReleaseService
     ///   The release details to save.
     /// </param>
     /// <param name="skipEvents">
-    ///   Optional. Set to <c>false</c> to skip provider-specific post-save
+    ///   Optional. Set to <c>true</c> to skip provider-specific post-save
     ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <exception cref="InvalidOperationException">
@@ -320,7 +320,7 @@ public interface IVideoReleaseService
     ///   Optional. Set the name of the provider.
     /// </param>
     /// <param name="skipEvents">
-    ///   Optional. Set to <c>false</c> to skip provider-specific post-save
+    ///   Optional. Set to <c>true</c> to skip provider-specific post-save
     ///   state sync (e.g. adding the release to a tracking list).
     /// </param>
     /// <exception cref="InvalidOperationException">
@@ -338,7 +338,7 @@ public interface IVideoReleaseService
     ///   The video to clear the current release for.
     /// </param>
     /// <param name="skipEvents">
-    ///   Optional. Set to <c>false</c> to skip provider-specific post-clear
+    ///   Optional. Set to <c>true</c> to skip provider-specific post-clear
     ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
     /// <returns>
@@ -355,7 +355,7 @@ public interface IVideoReleaseService
     ///   provider.
     /// </param>
     /// <param name="skipEvents">
-    ///   Optional. Set to <c>false</c> to skip provider-specific post-clear
+    ///   Optional. Set to <c>true</c> to skip provider-specific post-clear
     ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
     /// <returns>
@@ -372,7 +372,7 @@ public interface IVideoReleaseService
     ///   provider.
     /// </param>
     /// <param name="skipEvents">
-    ///   Optional. Set to <c>false</c> to skip provider-specific post-clear
+    ///   Optional. Set to <c>true</c> to skip provider-specific post-clear
     ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
     /// <returns>
@@ -387,7 +387,7 @@ public interface IVideoReleaseService
     ///   The release to remove.
     /// </param>
     /// <param name="skipEvents">
-    ///   Optional. Set to <c>false</c> to skip provider-specific post-clear
+    ///   Optional. Set to <c>true</c> to skip provider-specific post-clear
     ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
     /// <returns>
