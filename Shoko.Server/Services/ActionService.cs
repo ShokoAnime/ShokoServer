@@ -7,8 +7,11 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using NJsonSchema;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Actions.Services;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -33,6 +36,7 @@ using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Services;
@@ -67,6 +71,10 @@ public class ActionService : IActionService
 
     private readonly IServiceProvider _services;
 
+    private readonly ActionUiDefinitionBuilder _actionUiDefinitionBuilder;
+
+    private readonly IConfigurationService _configurationService;
+
     /// <summary>
     ///   Registered action types and their metadata. Populated once during
     ///   <see cref="AddParts"/>. A fresh transient instance is resolved from
@@ -80,7 +88,13 @@ public class ActionService : IActionService
     ///   <see cref="ExecutableActionInfo"/> so the abstraction surface never
     ///   leaks server internals.
     /// </summary>
-    private sealed record RegisteredAction(ExecutableActionInfo Info, Type ActionType);
+    /// <param name="Info">The metadata exposed to plugins.</param>
+    /// <param name="ActionType">The concrete action type.</param>
+    /// <param name="ParameterSchema">
+    ///   The schema an invocation payload is checked against, or
+    ///   <see langword="null"/> when the action declares no parameters.
+    /// </param>
+    private sealed record RegisteredAction(ExecutableActionInfo Info, Type ActionType, JsonSchema? ParameterSchema);
 
     private readonly VideoLocalRepository _videoLocals;
 
@@ -123,6 +137,8 @@ public class ActionService : IActionService
         IPluginPackageManager pluginPackageManager,
         IPluginManager pluginManager,
         IServiceProvider services,
+        ActionUiDefinitionBuilder actionUiDefinitionBuilder,
+        IConfigurationService configurationService,
         VideoLocalRepository videoLocals,
         VideoLocal_PlaceRepository videoLocalPlaces,
         StoredReleaseInfoRepository storedReleaseInfos,
@@ -152,6 +168,8 @@ public class ActionService : IActionService
         _pluginPackageManager = pluginPackageManager;
         _pluginManager = pluginManager;
         _services = services;
+        _actionUiDefinitionBuilder = actionUiDefinitionBuilder;
+        _configurationService = configurationService;
         _videoLocals = videoLocals;
         _videoLocalPlaces = videoLocalPlaces;
         _storedReleaseInfos = storedReleaseInfos;
@@ -232,6 +250,11 @@ public class ActionService : IActionService
                 ? _pluginManager.GetPluginInfo(pluginId)?.Name ?? actionType.Assembly.GetName().Name!
                 : probe.Category.ToString();
 
+            // The action's parameters are its own settable, serialized
+            // properties, described the same way a configuration is. Null when
+            // the action declares none.
+            var parameters = _actionUiDefinitionBuilder.Build(id, probe.Name, probe.Description, actionType);
+
             _actions[id] = new RegisteredAction(new ExecutableActionInfo(
                 id,
                 probe.Name,
@@ -242,8 +265,9 @@ public class ActionService : IActionService
                 probe.Permission,
                 probe.RequiresConfirmation,
                 probe.ConfirmationMessage,
-                pluginId
-            ), actionType);
+                pluginId,
+                parameters?.Definition
+            ), actionType, parameters?.Schema);
         }
     }
 
@@ -292,7 +316,61 @@ public class ActionService : IActionService
         if (parameters is not { Count: > 0 })
             return;
 
-        JsonConvert.PopulateObject(JsonConvert.SerializeObject(parameters), action);
+        JsonConvert.PopulateObject(JsonConvert.SerializeObject(parameters), action, _populateSettings);
+    }
+
+    /// <summary>
+    ///   The action's own metadata is hidden from population as well as from
+    ///   the schema, so a payload naming <c>Name</c> or <c>Permission</c> cannot
+    ///   write to the instance even if it somehow reaches here unvalidated.
+    /// </summary>
+    private static readonly JsonSerializerSettings _populateSettings = new()
+    {
+        ContractResolver = new ActionMetadataContractResolver(),
+    };
+
+    /// <summary>
+    ///   Checks an invocation payload against the action's parameter schema.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     Only the API boundary calls this. An in-process caller passes a typed
+    ///     dictionary it built in code rather than a document it parsed, and the
+    ///     failure it wants is a compiler error, not a dictionary of paths — so
+    ///     <see cref="InvokeAsync(Guid, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    ///     stays free of it.
+    ///   </para>
+    ///   <para>
+    ///     The errors come back keyed by property path, which is the shape the
+    ///     configuration endpoints already return for a rejected body.
+    ///   </para>
+    /// </remarks>
+    /// <param name="actionId">The action being invoked.</param>
+    /// <param name="parameters">
+    ///   The payload, or <see langword="null"/> when the caller sent no body.
+    /// </param>
+    /// <returns>Errors per property path; empty when the payload is acceptable.</returns>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> ValidateParameters(Guid actionId, JObject? parameters)
+    {
+        // No body is how every action has always been invoked, and how one that
+        // takes no parameters still is. There is nothing to check.
+        if (parameters is null)
+            return new Dictionary<string, IReadOnlyList<string>>();
+
+        if (!_actions.TryGetValue(actionId, out var registered))
+            throw new KeyNotFoundException($"No action registered for {actionId}");
+
+        if (registered.ParameterSchema is not { } schema)
+        {
+            return parameters.Count is 0
+                ? new Dictionary<string, IReadOnlyList<string>>()
+                : new Dictionary<string, IReadOnlyList<string>>
+                {
+                    [string.Empty] = [$"The action '{registered.Info.Name}' does not take any parameters."],
+                };
+        }
+
+        return _configurationService.Validate(parameters.ToString(Formatting.None), schema);
     }
 
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IUser?, CancellationToken)"/>

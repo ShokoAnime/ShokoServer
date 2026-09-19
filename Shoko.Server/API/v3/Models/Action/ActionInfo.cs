@@ -67,6 +67,18 @@ public class ActionInfo
     public string? ConfirmationMessage { get; set; }
 
     /// <summary>
+    ///   Whether the action takes invocation parameters, and therefore has a
+    ///   parameter form to render before it can be invoked.
+    /// </summary>
+    /// <remarks>
+    ///   Only the flag is carried here. The definition itself is a tree that
+    ///   can run to tens of kilobytes, and a listing returns every action the
+    ///   caller may invoke, so sending one per row would dwarf the listing.
+    /// </remarks>
+    [Required]
+    public bool HasParameters { get; set; }
+
+    /// <summary>
     ///   Maps a registered action to its API representation.
     /// </summary>
     public static ActionInfo FromExecutableActionInfo(ExecutableActionInfo info) => new()
@@ -80,5 +92,6 @@ public class ActionInfo
         Permission = info.Permission,
         RequiresConfirmation = info.RequiresConfirmation,
         ConfirmationMessage = info.ConfirmationMessage,
+        HasParameters = info.Parameters is not null,
     };
 }

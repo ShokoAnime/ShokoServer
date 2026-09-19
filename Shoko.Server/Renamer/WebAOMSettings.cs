@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
 
 namespace Shoko.Server.Renamer;
 
