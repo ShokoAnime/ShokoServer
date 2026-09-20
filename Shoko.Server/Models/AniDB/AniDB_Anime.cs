@@ -695,7 +695,13 @@ public class AniDB_Anime : IAnidbAnime
         .Select(tuple => new AniDB_Anime_Tag_Abstract(tuple.tag, tuple.xref))
         .ToList();
 
-    IReadOnlyList<IAnidbSimilarAnime> IAnidbAnime.Similar => SimilarAnime;
+    IReadOnlyList<IAnidbSuggestion> IAnidbAnime.Suggestions => SimilarAnime;
+
+    IReadOnlyList<IAnidbSuggestion> IAnidbAnime.SuggestedBy => RepoFactory.AniDB_Anime_Similar.GetBySimilarAnimeID(AnimeID);
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions => SimilarAnime;
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy => RepoFactory.AniDB_Anime_Similar.GetBySimilarAnimeID(AnimeID);
 
     IReadOnlyList<IAnidbReleaseGroupStatus> IAnidbAnime.ReleaseGroupStatuses => ReleaseGroupStatuses;
 

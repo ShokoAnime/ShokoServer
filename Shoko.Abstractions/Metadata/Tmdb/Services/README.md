@@ -56,6 +56,10 @@ methods; there is no single call that covers both.
 Call the services below when the cached copy is missing or stale, or when you
 need TMDB itself to answer something.
 
+TMDB's recommendations and similar titles are part of that cache, read from
+`ITmdbShow.Suggestions` and `ITmdbMovie.Suggestions`. See
+[relations and suggestions](../../README.md).
+
 ---
 
 ## The shape of a TMDB link

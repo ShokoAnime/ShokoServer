@@ -61,6 +61,10 @@ carrying a mapping list of its own.
 Call the services below when the cached copy is missing or stale, or when you
 need something the cache cannot answer.
 
+The similar anime AniDB's users vote on are part of that cache, read from
+`IAnidbAnime.Suggestions`. See
+[relations and suggestions](../../README.md).
+
 ---
 
 ## `IAnidbService`

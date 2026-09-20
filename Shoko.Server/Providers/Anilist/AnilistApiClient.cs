@@ -120,6 +120,16 @@ public class AnilistApiClient
         }
         """;
 
+    private const string RecommendationsPage = """
+        recommendations(sort: [RATING_DESC, ID], perPage: 50, page: $recommendationPage) {
+          pageInfo { currentPage hasNextPage }
+          nodes {
+            rating
+            mediaRecommendation { id type }
+          }
+        }
+        """;
+
     private const string CharactersPage = """
         characters(perPage: 25, page: $characterPage, sort: [ROLE, RELEVANCE, ID]) {
           pageInfo { currentPage hasNextPage }
@@ -151,7 +161,7 @@ public class AnilistApiClient
     /// relations, which are not paginated.
     /// </summary>
     private static readonly string AnimeQuery = $$"""
-        query ($id: Int, $schedulePage: Int, $characterPage: Int, $staffPage: Int) {
+        query ($id: Int, $schedulePage: Int, $recommendationPage: Int, $characterPage: Int, $staffPage: Int) {
           Media(id: $id, type: ANIME) {
             ...MediaFields
             {{SchedulePage}}
@@ -168,6 +178,7 @@ public class AnilistApiClient
                 node { id type format title { romaji } }
               }
             }
+            {{RecommendationsPage}}
             {{CharactersPage}}
             {{StaffPage}}
           }
@@ -181,6 +192,14 @@ public class AnilistApiClient
         query ($id: Int, $schedulePage: Int) {
           Media(id: $id, type: ANIME) {
             {{SchedulePage}}
+          }
+        }
+        """;
+
+    private static readonly string RecommendationsQuery = $$"""
+        query ($id: Int, $recommendationPage: Int) {
+          Media(id: $id, type: ANIME) {
+            {{RecommendationsPage}}
           }
         }
         """;
@@ -220,6 +239,12 @@ public class AnilistApiClient
     /// </summary>
     public async Task<JsonNode?> GetAiringSchedulePageAsync(int anilistAnimeId, int page, CancellationToken cancellationToken = default)
         => (await ExecuteAndSelectAsync(AiringScheduleQuery, new() { ["id"] = anilistAnimeId, ["schedulePage"] = page }, "Media", $"Get airing schedule page {page} for anime {anilistAnimeId}", cancellationToken).ConfigureAwait(false))?["airingSchedule"];
+
+    /// <summary>
+    /// Get one page of the recommendations for an anime.
+    /// </summary>
+    public async Task<JsonNode?> GetRecommendationsPageAsync(int anilistAnimeId, int page, CancellationToken cancellationToken = default)
+        => (await ExecuteAndSelectAsync(RecommendationsQuery, new() { ["id"] = anilistAnimeId, ["recommendationPage"] = page }, "Media", $"Get recommendations page {page} for anime {anilistAnimeId}", cancellationToken).ConfigureAwait(false))?["recommendations"];
 
     /// <summary>
     /// Get one page of the characters (with their voice actors) for an anime.

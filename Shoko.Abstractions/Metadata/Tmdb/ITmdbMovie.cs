@@ -52,4 +52,15 @@ public interface ITmdbMovie : IMovie, IWithCreationDate, IWithUpdateDate
     /// All Shoko episode ↔ TMDB movie cross references linked to the TMDB movie.
     /// </summary>
     IReadOnlyList<ITmdbMovieCrossReference> TmdbMovieCrossReferences { get; }
+
+    /// <summary>
+    /// The movies TMDB suggests to someone looking at this one, its
+    /// recommendations and its similar titles alike.
+    /// </summary>
+    new IReadOnlyList<ITmdbMovieSuggestion> Suggestions { get; }
+
+    /// <summary>
+    /// The movies TMDB suggests this one from.
+    /// </summary>
+    new IReadOnlyList<ITmdbMovieSuggestion> SuggestedBy { get; }
 }

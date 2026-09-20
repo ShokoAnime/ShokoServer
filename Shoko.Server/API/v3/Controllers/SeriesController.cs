@@ -36,14 +36,17 @@ using Shoko.Server.API.v3.Models.TMDB.Input;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Anilist;
 using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Scheduling.Jobs.Anilist;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Jobs.TMDB;
@@ -81,6 +84,7 @@ public class SeriesController(
     AniDB_AnimeRepository _anidbAnime,
     AniDB_Anime_RelationRepository _anidbAnimeRelations,
     AniDB_Anime_SimilarRepository _anidbAnimeSimilar,
+    TMDB_SuggestionRepository _tmdbSuggestions,
     AniDB_GroupStatusRepository _anidbGroupStatus,
     AniDB_EpisodeRepository _anidbEpisodes,
     AnimeEpisodeRepository _animeEpisodes,
@@ -610,6 +614,196 @@ public class SeriesController(
             .Select(similar => new AnidbAnime(similar))
             .ToList();
     }
+
+    /// <summary>
+    /// Get everything AniDB, TMDB and AniList suggest to someone looking at
+    /// the <paramref name="seriesID"/>, best first within each source.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <param name="source">Optional. Only suggestions from this provider.</param>
+    /// <param name="kind">Optional. Only recommendations, or only similar titles.</param>
+    /// <param name="onlyInCollection">Only suggestions pointing at a series in the collection.</param>
+    /// <returns>The suggestions.</returns>
+    [HttpGet("{seriesID}/Suggested")]
+    public ActionResult<List<SeriesSuggestion>> GetSuggestedBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] DataSource? source = null,
+        [FromQuery] SuggestionKind? kind = null,
+        [FromQuery] bool onlyInCollection = false
+    )
+        => GetSuggestionsForSeries(seriesID, reverse: false, source, kind, onlyInCollection);
+
+    /// <summary>
+    /// Get the entries that suggest the <paramref name="seriesID"/>, which is
+    /// the same set read from the other end.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <param name="source">Optional. Only suggestions from this provider.</param>
+    /// <param name="kind">Optional. Only recommendations, or only similar titles.</param>
+    /// <param name="onlyInCollection">Only suggestions made by a series in the collection.</param>
+    /// <returns>The suggestions.</returns>
+    [HttpGet("{seriesID}/SuggestedBy")]
+    public ActionResult<List<SeriesSuggestion>> GetSuggestedByForSeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] DataSource? source = null,
+        [FromQuery] SuggestionKind? kind = null,
+        [FromQuery] bool onlyInCollection = false
+    )
+        => GetSuggestionsForSeries(seriesID, reverse: true, source, kind, onlyInCollection);
+
+    private ActionResult<List<SeriesSuggestion>> GetSuggestionsForSeries(int seriesID, bool reverse, DataSource? source, SuggestionKind? kind, bool onlyInCollection)
+    {
+        if (_animeSeries.GetByID(seriesID) is not { } series)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        var suggestions = new List<SeriesSuggestion>();
+        if (source is null or DataSource.AniDB)
+            suggestions.AddRange(GetAnidbSuggestions(series.AniDB_ID, reverse));
+
+        if (source is null or DataSource.TMDB)
+        {
+            suggestions.AddRange(GetTmdbSuggestions(series, DataEntityType.Show, reverse));
+            suggestions.AddRange(GetTmdbSuggestions(series, DataEntityType.Movie, reverse));
+        }
+
+        if (source is null or DataSource.AniList)
+            suggestions.AddRange(GetAnilistSuggestions(series, reverse));
+
+        return FilterSuggestions(suggestions, reverse, kind, onlyInCollection);
+    }
+
+    /// <summary>
+    /// Get the shows TMDB suggests for the shows linked to the
+    /// <paramref name="seriesID"/>.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <param name="kind">Optional. Only recommendations, or only similar titles.</param>
+    /// <param name="onlyInCollection">Only suggestions pointing at a series in the collection.</param>
+    /// <returns>The suggestions.</returns>
+    [HttpGet("{seriesID}/TMDB/Show/Suggested")]
+    public ActionResult<List<SeriesSuggestion>> GetTmdbShowSuggestedBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] SuggestionKind? kind = null,
+        [FromQuery] bool onlyInCollection = false
+    )
+        => GetTmdbSuggestionsForSeries(seriesID, DataEntityType.Show, reverse: false, kind, onlyInCollection);
+
+    /// <summary>
+    /// Get the shows whose TMDB suggestions point at the shows linked to the
+    /// <paramref name="seriesID"/>.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <param name="kind">Optional. Only recommendations, or only similar titles.</param>
+    /// <param name="onlyInCollection">Only suggestions made by a series in the collection.</param>
+    /// <returns>The suggestions.</returns>
+    [HttpGet("{seriesID}/TMDB/Show/SuggestedBy")]
+    public ActionResult<List<SeriesSuggestion>> GetTmdbShowSuggestedByForSeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] SuggestionKind? kind = null,
+        [FromQuery] bool onlyInCollection = false
+    )
+        => GetTmdbSuggestionsForSeries(seriesID, DataEntityType.Show, reverse: true, kind, onlyInCollection);
+
+    /// <summary>
+    /// Get the movies TMDB suggests for the movies linked to the
+    /// <paramref name="seriesID"/>.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <param name="kind">Optional. Only recommendations, or only similar titles.</param>
+    /// <param name="onlyInCollection">Only suggestions pointing at a series in the collection.</param>
+    /// <returns>The suggestions.</returns>
+    [HttpGet("{seriesID}/TMDB/Movie/Suggested")]
+    public ActionResult<List<SeriesSuggestion>> GetTmdbMovieSuggestedBySeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] SuggestionKind? kind = null,
+        [FromQuery] bool onlyInCollection = false
+    )
+        => GetTmdbSuggestionsForSeries(seriesID, DataEntityType.Movie, reverse: false, kind, onlyInCollection);
+
+    /// <summary>
+    /// Get the movies whose TMDB suggestions point at the movies linked to the
+    /// <paramref name="seriesID"/>.
+    /// </summary>
+    /// <param name="seriesID">Shoko ID</param>
+    /// <param name="kind">Optional. Only recommendations, or only similar titles.</param>
+    /// <param name="onlyInCollection">Only suggestions made by a series in the collection.</param>
+    /// <returns>The suggestions.</returns>
+    [HttpGet("{seriesID}/TMDB/Movie/SuggestedBy")]
+    public ActionResult<List<SeriesSuggestion>> GetTmdbMovieSuggestedByForSeriesID(
+        [FromRoute, Range(1, int.MaxValue)] int seriesID,
+        [FromQuery] SuggestionKind? kind = null,
+        [FromQuery] bool onlyInCollection = false
+    )
+        => GetTmdbSuggestionsForSeries(seriesID, DataEntityType.Movie, reverse: true, kind, onlyInCollection);
+
+    private ActionResult<List<SeriesSuggestion>> GetTmdbSuggestionsForSeries(int seriesID, DataEntityType entityType, bool reverse, SuggestionKind? kind, bool onlyInCollection)
+    {
+        if (_animeSeries.GetByID(seriesID) is not { } series)
+            return NotFound(SeriesNotFoundWithSeriesID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(SeriesForbiddenForUser);
+
+        return FilterSuggestions(GetTmdbSuggestions(series, entityType, reverse), reverse, kind, onlyInCollection);
+    }
+
+    private List<SeriesSuggestion> GetAnidbSuggestions(int anidbAnimeID, bool reverse)
+        => (reverse ? _anidbAnimeSimilar.GetBySimilarAnimeID(anidbAnimeID) : _anidbAnimeSimilar.GetByAnimeID(anidbAnimeID))
+            .Select(suggestion => new SeriesSuggestion(suggestion))
+            .ToList();
+
+    private List<SeriesSuggestion> GetTmdbSuggestions(AnimeSeries series, DataEntityType entityType, bool reverse)
+    {
+        var suggestions = new List<TMDB_Suggestion>();
+        if (entityType is DataEntityType.Movie)
+            foreach (var movieID in series.TmdbMovieCrossReferences.Select(xref => xref.TmdbMovieID).Distinct())
+                suggestions.AddRange(reverse
+                    ? _tmdbSuggestions.GetBySuggestedTmdbEntityID(DataEntityType.Movie, movieID)
+                    : _tmdbSuggestions.GetByTmdbEntityID(DataEntityType.Movie, movieID));
+        else
+            foreach (var showID in series.TmdbShowCrossReferences.Select(xref => xref.TmdbShowID).Distinct())
+                suggestions.AddRange(reverse
+                    ? _tmdbSuggestions.GetBySuggestedTmdbEntityID(DataEntityType.Show, showID)
+                    : _tmdbSuggestions.GetByTmdbEntityID(DataEntityType.Show, showID));
+
+        return suggestions
+            .Select(suggestion => new SeriesSuggestion(suggestion, entityType))
+            .ToList();
+    }
+
+    private static List<SeriesSuggestion> GetAnilistSuggestions(AnimeSeries series, bool reverse)
+        => series.AnilistAnime
+            .SelectMany(anime => reverse ? anime.SuggestedBy : anime.Suggestions)
+            .Select(suggestion => new SeriesSuggestion(suggestion))
+            .ToList();
+
+    /// <summary>
+    ///   Drops the suggestions the caller asked not to see, and the ones
+    ///   pointing at a series they are not allowed to see. A suggestion
+    ///   pointing outside the collection has nothing to check.
+    /// </summary>
+    /// <param name="suggestions">The suggestions.</param>
+    /// <param name="reverse">Which end is the other one.</param>
+    /// <param name="kind">Optional. Only this kind.</param>
+    /// <param name="onlyInCollection">Drop suggestions whose other end is not in the collection.</param>
+    /// <returns>The suggestions that survive.</returns>
+    private List<SeriesSuggestion> FilterSuggestions(List<SeriesSuggestion> suggestions, bool reverse, SuggestionKind? kind, bool onlyInCollection)
+        => suggestions
+            .Where(suggestion =>
+            {
+                if (kind is not null && suggestion.Kind != kind)
+                    return false;
+
+                var otherEnd = reverse ? suggestion.IDs : suggestion.SuggestedIDs;
+                if (otherEnd.Shoko is not { } shokoID)
+                    return !onlyInCollection;
+
+                return _animeSeries.GetByID(shokoID) is { } otherSeries && User.AllowedSeries(otherSeries);
+            })
+            .ToList();
 
     /// <summary>
     /// Get all similar <see cref="AnidbAnime"/> entries for the <paramref name="seriesID"/>.

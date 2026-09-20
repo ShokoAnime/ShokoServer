@@ -62,6 +62,20 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithPrimaryImage, IW
     IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> RelatedMovies { get; }
 
     /// <summary>
+    /// The series a provider's users suggest to someone looking at this one,
+    /// best first within each source. Most of them are not in the collection,
+    /// so their <see cref="ISuggestedMetadata{TBase,TSuggested}.Suggested"/> is
+    /// usually <see langword="null"/>.
+    /// </summary>
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> Suggestions { get; }
+
+    /// <summary>
+    /// The series in the collection that suggest this one, which is the same
+    /// set read from the other end.
+    /// </summary>
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> SuggestedBy { get; }
+
+    /// <summary>
     /// All cross-references linked to the series.
     /// </summary>
     IReadOnlyList<IVideoCrossReference> CrossReferences { get; }

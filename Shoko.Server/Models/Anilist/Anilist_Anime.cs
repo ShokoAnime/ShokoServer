@@ -351,6 +351,23 @@ public class Anilist_Anime : Anilist_Base<int>, IAnilistAnime
         => RepoFactory.Anilist_Anime_Relation.GetByAnilistAnimeID(AnilistAnimeID);
 
     /// <summary>
+    /// The anime AniList's users recommend to someone who liked this one, best
+    /// first. Most of them are not in the collection, so their
+    /// <see cref="Anilist_Anime_Suggestion.SuggestedAnime"/> is usually
+    /// <c>null</c>. Read
+    /// <see cref="Anilist_Anime_Suggestion.Rating"/> for AniList's net score.
+    /// </summary>
+    public IReadOnlyList<Anilist_Anime_Suggestion> Suggestions
+        => RepoFactory.Anilist_Anime_Suggestion.GetByAnilistAnimeID(AnilistAnimeID);
+
+    /// <summary>
+    /// The anime in the collection whose users recommend this one, best scored
+    /// first.
+    /// </summary>
+    public IReadOnlyList<Anilist_Anime_Suggestion> SuggestedBy
+        => RepoFactory.Anilist_Anime_Suggestion.GetBySuggestedAnilistAnimeID(AnilistAnimeID);
+
+    /// <summary>
     /// Get all AniDB/AniList anime cross-references for the anime.
     /// </summary>
     public IReadOnlyList<CrossRef_AniDB_Anilist_Anime> CrossReferences
@@ -476,6 +493,14 @@ public class Anilist_Anime : Anilist_Base<int>, IAnilistAnime
     IReadOnlyList<IAnilistSeason> IAnilistAnime.Seasons => Seasons;
 
     IReadOnlyList<IAnilistEpisode> IAnilistAnime.Episodes => Episodes;
+
+    IReadOnlyList<IAnilistSuggestion> IAnilistAnime.Suggestions => Suggestions;
+
+    IReadOnlyList<IAnilistSuggestion> IAnilistAnime.SuggestedBy => SuggestedBy;
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions => Suggestions;
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy => SuggestedBy;
 
     #endregion
 

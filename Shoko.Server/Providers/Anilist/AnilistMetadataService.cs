@@ -78,6 +78,8 @@ public class AnilistMetadataService : IAnilistMetadataService
 
     private readonly Anilist_Anime_RelationRepository _anilistAnimeRelations;
 
+    private readonly Anilist_Anime_SuggestionRepository _anilistAnimeSuggestions;
+
     private readonly CrossRef_AniDB_Anilist_AnimeRepository _xrefAnidbAnilistAnime;
 
     private readonly CrossRef_AniDB_Anilist_EpisodeRepository _xrefAnidbAnilistEpisodes;
@@ -113,6 +115,7 @@ public class AnilistMetadataService : IAnilistMetadataService
         Anilist_Anime_Character_CreatorRepository anilistAnimeCharacterCreators,
         Anilist_Anime_StaffRepository anilistAnimeStaff,
         Anilist_Anime_RelationRepository anilistAnimeRelations,
+        Anilist_Anime_SuggestionRepository anilistAnimeSuggestions,
         CrossRef_AniDB_Anilist_AnimeRepository xrefAnidbAnilistAnime,
         CrossRef_AniDB_Anilist_EpisodeRepository xrefAnidbAnilistEpisodes
     )
@@ -140,6 +143,7 @@ public class AnilistMetadataService : IAnilistMetadataService
         _anilistAnimeCharacterCreators = anilistAnimeCharacterCreators;
         _anilistAnimeStaff = anilistAnimeStaff;
         _anilistAnimeRelations = anilistAnimeRelations;
+        _anilistAnimeSuggestions = anilistAnimeSuggestions;
         _xrefAnidbAnilistAnime = xrefAnidbAnilistAnime;
         _xrefAnidbAnilistEpisodes = xrefAnidbAnilistEpisodes;
         _entityLock = new(logger);
@@ -267,6 +271,8 @@ public class AnilistMetadataService : IAnilistMetadataService
             UpdateAnimeTags(anilistAnimeId, mediaNode);
             UpdateAnimeStudios(anilistAnimeId, mediaNode);
             UpdateAnimeRelations(anilistAnimeId, mediaNode);
+
+            await UpdateAnimeSuggestions(anilistAnimeId, mediaNode).ConfigureAwait(false);
             UpdateAnimeExternalLinks(anilistAnimeId, mediaNode);
             if (!options.QuickRefresh)
             {
@@ -646,6 +652,77 @@ public class AnilistMetadataService : IAnilistMetadataService
 
         if (existingRelations.Count > 0)
             _anilistAnimeRelations.Delete(existingRelations.Values.ToList());
+    }
+
+    /// <summary>
+    ///   The lowest rating on a page that is worth asking for the next one
+    ///   under <see cref="AnilistRecommendationDepth.WhileWellRated"/>.
+    ///   Recommendations come back best first, so once a whole page ends this
+    ///   weak the rest is noise, and a further request is traffic spent on
+    ///   entries nothing would show.
+    /// </summary>
+    private const int MinimumRatingToKeepPaging = 10;
+
+    private async Task UpdateAnimeSuggestions(int anilistAnimeId, JsonNode media)
+    {
+        var depth = _settingsProvider.GetSettings().Anilist.RecommendationDepth;
+        var existing = _anilistAnimeSuggestions.GetByAnilistAnimeID(anilistAnimeId).ToDictionary(s => s.SuggestedAnilistAnimeID);
+        var ordering = 0;
+        var page = media["recommendations"];
+        while (page is not null)
+        {
+            var lowestRating = int.MaxValue;
+            if (page["nodes"] is JsonArray nodes)
+            {
+                foreach (var entry in nodes)
+                {
+                    // A recommendation whose target was deleted upstream comes back null.
+                    if (entry?["mediaRecommendation"] is not { } node)
+                        continue;
+
+                    var rating = entry["rating"]?.GetValue<int>() ?? 0;
+                    if (rating < lowestRating)
+                        lowestRating = rating;
+
+                    var suggestedId = node["id"]?.GetValue<int>() ?? 0;
+                    if (suggestedId is 0 || suggestedId == anilistAnimeId)
+                        continue;
+
+                    // AniList recommends manga and novels from an anime as well, and
+                    // those are not anime we could ever hold.
+                    if (!string.Equals(node["type"]?.GetValue<string>(), "ANIME", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    var order = ordering++;
+                    if (existing.Remove(suggestedId, out var suggestion))
+                    {
+                        if (suggestion.Rating == rating && suggestion.Ordering == order)
+                            continue;
+
+                        suggestion.Rating = rating;
+                        suggestion.Ordering = order;
+                        _anilistAnimeSuggestions.Save(suggestion);
+                        continue;
+                    }
+
+                    _anilistAnimeSuggestions.Save(new Anilist_Anime_Suggestion(anilistAnimeId, suggestedId, rating, order));
+                }
+            }
+
+            var pageInfo = page["pageInfo"];
+            if (pageInfo?["hasNextPage"]?.GetValue<bool>() is not true || depth is AnilistRecommendationDepth.FirstPage)
+                break;
+
+            if (depth is AnilistRecommendationDepth.WhileWellRated && lowestRating < MinimumRatingToKeepPaging)
+                break;
+
+            page = await _apiClient.GetRecommendationsPageAsync(anilistAnimeId, (pageInfo["currentPage"]?.GetValue<int>() ?? 1) + 1).ConfigureAwait(false);
+        }
+
+        // Anything left over was removed from the anime upstream, or fell past
+        // where we stopped paging.
+        if (existing.Count > 0)
+            _anilistAnimeSuggestions.Delete(existing.Values.ToList());
     }
 
     private async Task UpdateAnimeCharacters(int anilistAnimeId, JsonNode media)

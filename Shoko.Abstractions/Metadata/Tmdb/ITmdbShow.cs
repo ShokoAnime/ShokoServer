@@ -55,6 +55,17 @@ public interface ITmdbShow : ISeries, IWithCreationDate, IWithUpdateDate
     new IReadOnlyList<ITmdbEpisode> Episodes { get; }
 
     /// <summary>
+    /// The shows TMDB suggests to someone looking at this one, its
+    /// recommendations and its similar titles alike.
+    /// </summary>
+    new IReadOnlyList<ITmdbShowSuggestion> Suggestions { get; }
+
+    /// <summary>
+    /// The shows TMDB suggests this one from.
+    /// </summary>
+    new IReadOnlyList<ITmdbShowSuggestion> SuggestedBy { get; }
+
+    /// <summary>
     /// All Shoko series ↔ TMDB show cross references linked to the TMDB show.
     /// </summary>
     IReadOnlyList<ITmdbShowCrossReference> TmdbShowCrossReferences { get; }

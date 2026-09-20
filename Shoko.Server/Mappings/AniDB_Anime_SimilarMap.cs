@@ -15,5 +15,6 @@ public class AniDB_Anime_SimilarMap : ClassMap<AniDB_Anime_Similar>
         Map(x => x.Approval).Not.Nullable();
         Map(x => x.SimilarAnimeID).Not.Nullable();
         Map(x => x.Total).Not.Nullable();
+        Map(x => x.Ordering).Not.Nullable();
     }
 }

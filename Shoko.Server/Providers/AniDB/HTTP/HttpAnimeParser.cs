@@ -778,7 +778,7 @@ public class HttpAnimeParser
                 int.TryParse(TryGetAttribute(node, "approval"), out var appr);
 
                 int.TryParse(TryGetAttribute(node, "total"), out var tot);
-                var sim = new ResponseSimilar { AnimeID = animeID, SimilarAnimeID = id, Approval = appr, Total = tot };
+                var sim = new ResponseSimilar { AnimeID = animeID, SimilarAnimeID = id, Approval = appr, Total = tot, Ordering = rels.Count };
                 rels.Add(sim);
             }
             catch (Exception ex)

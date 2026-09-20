@@ -838,9 +838,49 @@ public class AnimeSeries : IShokoSeries
 
     IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => [this];
 
-    IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries => [];
+    /// <summary>
+    ///   Everything every provider linked to this series relates it to, in one
+    ///   list. A plugin that wants one provider's view reads it from that
+    ///   provider's own entity instead.
+    /// </summary>
+    IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries =>
+    [
+        .. AniDB_Anime is { } anidbAnime ? ((ISeries)anidbAnime).RelatedSeries : [],
+        .. TmdbShows.SelectMany(show => ((ISeries)show).RelatedSeries),
+        .. AnilistAnime.SelectMany(anime => ((ISeries)anime).RelatedSeries),
+    ];
 
-    IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies => [];
+    /// <summary>
+    ///   The movies every provider linked to this series relates it to.
+    /// </summary>
+    IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies =>
+    [
+        .. AniDB_Anime is { } anidbAnime ? ((ISeries)anidbAnime).RelatedMovies : [],
+        .. TmdbShows.SelectMany(show => ((ISeries)show).RelatedMovies),
+        .. AnilistAnime.SelectMany(anime => ((ISeries)anime).RelatedMovies),
+    ];
+
+    /// <summary>
+    ///   Everything every provider linked to this series suggests, in one
+    ///   list. A plugin that wants one provider's view reads it from that
+    ///   provider's own entity instead.
+    /// </summary>
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions =>
+    [
+        .. AniDB_Anime is { } anidbAnime ? ((ISeries)anidbAnime).Suggestions : [],
+        .. TmdbShows.SelectMany(show => ((ISeries)show).Suggestions),
+        .. AnilistAnime.SelectMany(anime => ((ISeries)anime).Suggestions),
+    ];
+
+    /// <summary>
+    ///   Everything every provider linked to this series is suggested by.
+    /// </summary>
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy =>
+    [
+        .. AniDB_Anime is { } anidbAnime ? ((ISeries)anidbAnime).SuggestedBy : [],
+        .. TmdbShows.SelectMany(show => ((ISeries)show).SuggestedBy),
+        .. AnilistAnime.SelectMany(anime => ((ISeries)anime).SuggestedBy),
+    ];
 
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);

@@ -1324,6 +1324,14 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(188, 13, DatabaseFixes.SeedAnilistAiringSchedules),
         new(189,  1, "CREATE TABLE `AiringScheduleSweepState` ( `AiringScheduleSweepStateID` INT NOT NULL AUTO_INCREMENT, `ProviderID` VARCHAR(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, `Cursor` VARCHAR(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, `LastRunAt` DATETIME NOT NULL, `LastOutcome` TINYINT UNSIGNED NOT NULL, `NoProgressCount` INT NOT NULL, PRIMARY KEY (`AiringScheduleSweepStateID`) );"),
         new(189,  2, "CREATE UNIQUE INDEX `UIX_AiringScheduleSweepState_ProviderID` ON `AiringScheduleSweepState`(`ProviderID`);"),
+        new(190,  1, "ALTER TABLE `AniDB_Anime_Similar` ADD COLUMN `Ordering` INT NOT NULL DEFAULT 0;"),
+        new(190,  2, DatabaseFixes.PopulateSimilarAnimeOrdering),
+        new(191,  1, "CREATE TABLE `TMDB_Suggestion` ( `TMDB_SuggestionID` INT NOT NULL AUTO_INCREMENT, `TmdbEntityType` INT NOT NULL, `TmdbEntityID` INT NOT NULL, `SuggestedTmdbEntityID` INT NOT NULL, `Kind` INT NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`TMDB_SuggestionID`) );"),
+        new(191,  2, "CREATE UNIQUE INDEX `UIX_TMDB_Suggestion_Entity_Suggested_Kind` ON `TMDB_Suggestion`(`TmdbEntityType`, `TmdbEntityID`, `SuggestedTmdbEntityID`, `Kind`);"),
+        new(191,  3, "CREATE INDEX `IX_TMDB_Suggestion_SuggestedTmdbEntityID` ON `TMDB_Suggestion`(`TmdbEntityType`, `SuggestedTmdbEntityID`);"),
+        new(192,  1, "CREATE TABLE `Anilist_Anime_Suggestion` ( `Anilist_Anime_SuggestionID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `SuggestedAnilistAnimeID` INT NOT NULL, `Rating` INT NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`Anilist_Anime_SuggestionID`) );"),
+        new(192,  2, "CREATE UNIQUE INDEX `UIX_Anilist_Anime_Suggestion_AnimeID_SuggestedID` ON `Anilist_Anime_Suggestion`(`AnilistAnimeID`, `SuggestedAnilistAnimeID`);"),
+        new(192,  3, "CREATE INDEX `IX_Anilist_Anime_Suggestion_SuggestedID` ON `Anilist_Anime_Suggestion`(`SuggestedAnilistAnimeID`);"),
     ];
 
     #endregion

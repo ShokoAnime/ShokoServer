@@ -162,19 +162,27 @@ public class Anilist_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquat
 
     int IRelatedMetadata.RelatedID => RelatedAnilistID;
 
+    IMetadata<int>? IRelatedMetadata.Base => Anime;
+
+    IMetadata<int>? IRelatedMetadata.Related => RelatedAnime;
+
     AbstractRelationType IRelatedMetadata.RelationType => AbstractRelationType;
 
     DataSource IRelatedMetadata.Source => DataSource.AniList;
 
     bool IRelatedMetadata.Verified => true;
 
+    IRelatedMetadata IRelatedMetadata.Reversed => Reversed;
+
+    #endregion
+
+    #region IRelatedMetadata<ISeries> Implementation
+
     ISeries? IRelatedMetadata<ISeries, ISeries>.Base => Anime;
 
     ISeries? IRelatedMetadata<ISeries, ISeries>.Related => RelatedAnime;
 
     IRelatedMetadata<ISeries, ISeries> IRelatedMetadata<ISeries, ISeries>.Reversed => Reversed;
-
-    IRelatedMetadata IRelatedMetadata.Reversed => Reversed;
 
     #endregion
 }

@@ -43,6 +43,10 @@ entities through the shoko series or episode that links to them, as above.
 Call the services below when the cached copy is missing or stale, or when you
 need AniList itself to answer something.
 
+The recommendations AniList's users make are part of that cache, read from
+`IAnilistAnime.Suggestions`. See
+[relations and suggestions](../../README.md).
+
 ---
 
 ## `IAnilistSearchService`

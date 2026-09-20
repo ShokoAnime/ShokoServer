@@ -1473,7 +1473,7 @@ public class AnimeCreator
         RepoFactory.AniDB_Anime_Relation.Save(toSave);
     }
 
-    private static void CreateSimilarAnime(List<ResponseSimilar> similarList, int animeID)
+    internal static void CreateSimilarAnime(List<ResponseSimilar> similarList, int animeID)
     {
         if (similarList == null) return;
 
@@ -1494,6 +1494,7 @@ public class AnimeCreator
             similar.Approval = raw.Approval;
             similar.Total = raw.Total;
             similar.SimilarAnimeID = raw.SimilarAnimeID;
+            similar.Ordering = raw.Ordering;
             toSave.Add(similar);
         }
 

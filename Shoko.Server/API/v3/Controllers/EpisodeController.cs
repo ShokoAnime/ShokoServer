@@ -28,6 +28,7 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.TMDB;
+using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -53,6 +54,7 @@ public class EpisodeController(
     AnimeEpisode_UserRepository _animeEpisodeUsers,
     TMDB_EpisodeRepository _tmdbEpisodes,
     TMDB_MovieRepository _tmdbMovies,
+    TMDB_SuggestionRepository _tmdbSuggestions,
     VideoLocalRepository _videoLocals,
     VideoLocal_PlaceRepository _videoLocalPlaces,
     VideoReleaseGroupingService _releaseGrouper,
@@ -477,6 +479,58 @@ public class EpisodeController(
     #endregion
 
     #region TMDB
+
+    /// <summary>
+    /// Get the movies TMDB suggests for the movies linked to the Shoko
+    /// Episode by ID, best first.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="kind">Optional. Only recommendations, or only similar titles.</param>
+    /// <returns>The suggestions.</returns>
+    [HttpGet("{episodeID}/TMDB/Movie/Suggested")]
+    public ActionResult<List<SeriesSuggestion>> GetTmdbMovieSuggestedByEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromQuery] SuggestionKind? kind = null
+    )
+        => GetTmdbMovieSuggestionsForEpisode(episodeID, reverse: false, kind);
+
+    /// <summary>
+    /// Get the movies whose TMDB suggestions point at the movies linked to the
+    /// Shoko Episode by ID.
+    /// </summary>
+    /// <param name="episodeID">Shoko Episode ID.</param>
+    /// <param name="kind">Optional. Only recommendations, or only similar titles.</param>
+    /// <returns>The suggestions.</returns>
+    [HttpGet("{episodeID}/TMDB/Movie/SuggestedBy")]
+    public ActionResult<List<SeriesSuggestion>> GetTmdbMovieSuggestedByForEpisodeID(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromQuery] SuggestionKind? kind = null
+    )
+        => GetTmdbMovieSuggestionsForEpisode(episodeID, reverse: true, kind);
+
+    private ActionResult<List<SeriesSuggestion>> GetTmdbMovieSuggestionsForEpisode(int episodeID, bool reverse, SuggestionKind? kind)
+    {
+        var episode = _animeEpisodes.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        return episode.TmdbMovieCrossReferences
+            .Select(xref => xref.TmdbMovieID)
+            .Distinct()
+            .SelectMany(movieID => reverse
+                ? _tmdbSuggestions.GetBySuggestedTmdbEntityID(DataEntityType.Movie, movieID)
+                : _tmdbSuggestions.GetByTmdbEntityID(DataEntityType.Movie, movieID))
+            .Where(suggestion => kind is null || suggestion.Kind == kind)
+            .Select(suggestion => new SeriesSuggestion(suggestion, DataEntityType.Movie))
+            .ToList();
+    }
 
     /// <summary>
     /// Get all TMDB Movies linked directly to the Shoko Episode by ID.

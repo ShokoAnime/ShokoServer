@@ -19,9 +19,14 @@ public interface IAnidbAnime : ISeries, IWithUpdateDate
     IReadOnlyList<IAnidbTagForAnime> Tags { get; }
 
     /// <summary>
-    /// All similar AniDB anime for the AniDB anime.
+    /// The anime AniDB's users find similar to this one, best approved first.
     /// </summary>
-    IReadOnlyList<IAnidbSimilarAnime> Similar { get; }
+    new IReadOnlyList<IAnidbSuggestion> Suggestions { get; }
+
+    /// <summary>
+    /// The anime AniDB's users find this one similar to.
+    /// </summary>
+    new IReadOnlyList<IAnidbSuggestion> SuggestedBy { get; }
 
     /// <summary>
     ///   All release group statuses for the AniDB anime.

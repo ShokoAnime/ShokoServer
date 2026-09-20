@@ -67,6 +67,19 @@ public interface IMovie : IWithTitles, IWithDescriptions, IWithPrimaryImage, IWi
     IReadOnlyList<IRelatedMetadata<IMovie, IMovie>> RelatedMovies { get; }
 
     /// <summary>
+    /// The movies a provider's users suggest to someone looking at this one,
+    /// best first. Most of them are not in the collection, so their
+    /// <see cref="ISuggestedMetadata{TBase,TSuggested}.Suggested"/> is usually
+    /// <see langword="null"/>.
+    /// </summary>
+    IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> Suggestions { get; }
+
+    /// <summary>
+    /// The movies in the collection that suggest this one.
+    /// </summary>
+    IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> SuggestedBy { get; }
+
+    /// <summary>
     /// All cross-references linked to the episode.
     /// </summary>
     IReadOnlyList<IVideoCrossReference> CrossReferences { get; }

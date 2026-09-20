@@ -13,6 +13,10 @@ implements. The other five are implemented by the server and called by you.
 | `IImageManager` | Read, add, link and download images | consume |
 | `IAiringScheduleService` | Read and write broadcast schedules | consume |
 
+The lists an entity carries about other entities, its relations and the
+suggestions a provider's users make from it, are on their own page,
+[`../README.md`](../README.md).
+
 Three of these have most of their surface documented elsewhere, and this page
 does not repeat it. `IAiringScheduleService` has its own page,
 [`../Airing/README.md`](../Airing/README.md), covering the service and the two

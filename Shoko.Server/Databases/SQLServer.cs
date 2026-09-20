@@ -1206,6 +1206,14 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(186, 13, DatabaseFixes.SeedAnilistAiringSchedules),
         new(187,  1, "CREATE TABLE AiringScheduleSweepState ( AiringScheduleSweepStateID INT IDENTITY(1,1) NOT NULL, ProviderID NVARCHAR(40) NOT NULL, [Cursor] NVARCHAR(512) NULL, LastRunAt DATETIME NOT NULL, LastOutcome TINYINT NOT NULL, NoProgressCount INT NOT NULL, CONSTRAINT PK_AiringScheduleSweepState PRIMARY KEY CLUSTERED (AiringScheduleSweepStateID) );"),
         new(187,  2, "CREATE UNIQUE INDEX UIX_AiringScheduleSweepState_ProviderID ON AiringScheduleSweepState(ProviderID);"),
+        new(188,  1, "ALTER TABLE AniDB_Anime_Similar ADD Ordering INT NOT NULL CONSTRAINT DF_AniDB_Anime_Similar_Ordering DEFAULT 0;"),
+        new(188,  2, DatabaseFixes.PopulateSimilarAnimeOrdering),
+        new(189,  1, "CREATE TABLE TMDB_Suggestion ( TMDB_SuggestionID INT IDENTITY(1,1) NOT NULL, TmdbEntityType INT NOT NULL, TmdbEntityID INT NOT NULL, SuggestedTmdbEntityID INT NOT NULL, Kind INT NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_TMDB_Suggestion PRIMARY KEY CLUSTERED (TMDB_SuggestionID) );"),
+        new(189,  2, "CREATE UNIQUE INDEX UIX_TMDB_Suggestion_Entity_Suggested_Kind ON TMDB_Suggestion(TmdbEntityType, TmdbEntityID, SuggestedTmdbEntityID, Kind);"),
+        new(189,  3, "CREATE INDEX IX_TMDB_Suggestion_SuggestedTmdbEntityID ON TMDB_Suggestion(TmdbEntityType, SuggestedTmdbEntityID);"),
+        new(190,  1, "CREATE TABLE Anilist_Anime_Suggestion ( Anilist_Anime_SuggestionID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, SuggestedAnilistAnimeID INT NOT NULL, Rating INT NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Anilist_Anime_Suggestion PRIMARY KEY CLUSTERED (Anilist_Anime_SuggestionID) );"),
+        new(190,  2, "CREATE UNIQUE INDEX UIX_Anilist_Anime_Suggestion_AnimeID_SuggestedID ON Anilist_Anime_Suggestion(AnilistAnimeID, SuggestedAnilistAnimeID);"),
+        new(190,  3, "CREATE INDEX IX_Anilist_Anime_Suggestion_SuggestedID ON Anilist_Anime_Suggestion(SuggestedAnilistAnimeID);"),
     ];
 
     #endregion

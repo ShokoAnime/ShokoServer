@@ -43,6 +43,7 @@ public static class RepositoryStartup
         services.AddDirectRepository<TMDB_OverviewRepository>();
         services.AddDirectRepository<TMDB_PersonRepository>();
         services.AddDirectRepository<TMDB_Show_NetworkRepository>();
+        services.AddDirectRepository<TMDB_SuggestionRepository>();
         services.AddDirectRepository<TMDB_TitleRepository>();
         services.AddDirectRepository<VersionsRepository>();
         services.AddDirectRepository<AniDB_MessageRepository>();
@@ -85,6 +86,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<Anilist_Anime_Character_CreatorRepository>();
         services.AddCachedRepository<Anilist_Anime_StaffRepository>();
         services.AddCachedRepository<Anilist_Anime_RelationRepository>();
+        services.AddCachedRepository<Anilist_Anime_SuggestionRepository>();
         services.AddCachedRepository<Anilist_TagRepository>();
         services.AddCachedRepository<Anilist_StudioRepository>();
         services.AddCachedRepository<Anilist_Anime_TagRepository>();

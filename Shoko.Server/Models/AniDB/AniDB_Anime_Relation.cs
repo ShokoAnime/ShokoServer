@@ -117,11 +117,17 @@ public class AniDB_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquatab
 
     int IRelatedMetadata.RelatedID => RelatedAnimeID;
 
+    IMetadata<int>? IRelatedMetadata.Base => RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+
+    IMetadata<int>? IRelatedMetadata.Related => RepoFactory.AniDB_Anime.GetByAnimeID(RelatedAnimeID);
+
     AbstractRelationType IRelatedMetadata.RelationType => AbstractRelationType;
 
     DataSource IRelatedMetadata.Source => DataSource.AniDB;
 
     bool IRelatedMetadata.Verified => Verified;
+
+    IRelatedMetadata IRelatedMetadata.Reversed => Reversed;
 
     #endregion
 
@@ -140,8 +146,6 @@ public class AniDB_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquatab
         RelationType = ((IRelatedMetadata)this).RelationType.Reverse().ToString(),
         Verified = Verified,
     };
-
-    IRelatedMetadata IRelatedMetadata.Reversed => Reversed;
 
     #endregion
 }

@@ -183,6 +183,8 @@ public class TmdbMetadataService : ITmdbMetadataService
 
     private readonly TMDB_Show_NetworkRepository _xrefTmdbShowNetwork;
 
+    private readonly TMDB_SuggestionRepository _tmdbSuggestion;
+
     private TMDbClient? _rawClient = null;
 
     // We lazy-init it on first use, this will give us time to set up the server before we attempt to init the tmdb client.
@@ -332,7 +334,8 @@ public class TmdbMetadataService : ITmdbMetadataService
         CrossRef_AniDB_TMDB_ShowRepository xrefAnidbTmdbShows,
         TMDB_Collection_MovieRepository xrefTmdbCollectionMovies,
         TMDB_Company_EntityRepository xrefTmdbCompanyEntity,
-        TMDB_Show_NetworkRepository xrefTmdbShowNetwork
+        TMDB_Show_NetworkRepository xrefTmdbShowNetwork,
+        TMDB_SuggestionRepository tmdbSuggestion
     )
     {
         _logger = logger;
@@ -364,6 +367,7 @@ public class TmdbMetadataService : ITmdbMetadataService
         _xrefTmdbCollectionMovies = xrefTmdbCollectionMovies;
         _xrefTmdbCompanyEntity = xrefTmdbCompanyEntity;
         _xrefTmdbShowNetwork = xrefTmdbShowNetwork;
+        _tmdbSuggestion = tmdbSuggestion;
         _entityLock = new(logger);
         _rateLimiter = rateLimiter;
         _instance ??= this;
@@ -534,7 +538,8 @@ public class TmdbMetadataService : ITmdbMetadataService
             }
 
             // Abort if we couldn't find the movie by id.
-            var methods = MovieMethods.Translations | MovieMethods.ReleaseDates | MovieMethods.ExternalIds | MovieMethods.Keywords;
+            var methods = MovieMethods.Translations | MovieMethods.ReleaseDates | MovieMethods.ExternalIds | MovieMethods.Keywords |
+                MovieMethods.Recommendations | MovieMethods.Similar;
             if (downloadCrewAndCast)
                 methods |= MovieMethods.Credits;
             var movie = await UseClient(c => c.GetMovieAsync(movieId, "en-US", null, methods), $"Get movie {movieId}").ConfigureAwait(false);
@@ -554,6 +559,11 @@ public class TmdbMetadataService : ITmdbMetadataService
             updated = titlesUpdated || overviewsUpdated || updated;
             updated = UpdateMovieExternalIDs(tmdbMovie, movie.ExternalIds!) || updated;
             updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies!) || updated;
+            updated = UpdateSuggestions(DataEntityType.Movie, tmdbMovie.TmdbMovieID,
+            [
+                (SuggestionKind.Recommended, movie.Recommendations?.Results?.Select(result => result.Id) ?? []),
+                (SuggestionKind.Similar, movie.Similar?.Results?.Select(result => result.Id) ?? []),
+            ]) || updated;
             if (downloadCrewAndCast)
                 updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits!, forceRefresh, downloadImages) || updated;
             if (updated)
@@ -952,6 +962,8 @@ public class TmdbMetadataService : ITmdbMetadataService
 
             await CleanupMovieCollection(movieId);
 
+            PurgeSuggestions(DataEntityType.Movie, movieId);
+
             PurgeTitlesAndOverviews(DataEntityType.Movie, movieId);
         }
     }
@@ -1160,7 +1172,8 @@ public class TmdbMetadataService : ITmdbMetadataService
                 return false;
             }
 
-            var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.ExternalIds | TvShowMethods.Keywords;
+            var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.ExternalIds | TvShowMethods.Keywords |
+                TvShowMethods.Recommendations | TvShowMethods.Similar;
             if (downloadAlternateOrdering && !quickRefresh)
                 methods |= TvShowMethods.EpisodeGroups;
             var show = await UseClient(c => c.GetTvShowAsync(showId, methods, "en-US"), $"Get Show {showId}").ConfigureAwait(false);
@@ -1197,6 +1210,11 @@ public class TmdbMetadataService : ITmdbMetadataService
             updated = titlesUpdated || overviewsUpdated || updated;
             updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds!) || updated;
             updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies!) || updated;
+            updated = UpdateSuggestions(DataEntityType.Show, tmdbShow.TmdbShowID,
+            [
+                (SuggestionKind.Recommended, show.Recommendations?.Results?.Select(result => result.Id) ?? []),
+                (SuggestionKind.Similar, show.Similar?.Results?.Select(result => result.Id) ?? []),
+            ]) || updated;
             var (episodesOrSeasonsUpdated, updatedSeasons, updatedEpisodes, episodeCount, hiddenEpisodeCount) = await UpdateShowSeasonsAndEpisodes(show, downloadCrewAndCast, forceRefresh, downloadImages, quickRefresh, shouldFireEvents, changedItems);
             updated = episodesOrSeasonsUpdated || updated;
             if (tmdbShow.EpisodeCount != episodeCount)
@@ -1943,6 +1961,76 @@ public class TmdbMetadataService : ITmdbMetadataService
         );
     }
 
+    /// <summary>
+    ///   Stores what TMDB suggests for an entry, both its recommendations and
+    ///   its similar titles. Both ride along on the entry's own request, so
+    ///   this costs no extra calls.
+    /// </summary>
+    /// <param name="entityType">Whether this is a show or a movie.</param>
+    /// <param name="entityID">The TMDB id of the entry.</param>
+    /// <param name="lists">Each of TMDB's two lists, with the ids it holds.</param>
+    /// <returns>Whether anything changed.</returns>
+    private bool UpdateSuggestions(DataEntityType entityType, int entityID, IEnumerable<(SuggestionKind Kind, IEnumerable<int> SuggestedIDs)> lists)
+    {
+        var existing = _tmdbSuggestion.GetByTmdbEntityID(entityType, entityID)
+            .ToDictionary(suggestion => (suggestion.Kind, suggestion.SuggestedTmdbEntityID));
+        var toSave = new List<TMDB_Suggestion>();
+        var toKeep = new HashSet<(SuggestionKind, int)>();
+        foreach (var (kind, suggestedIDs) in lists)
+        {
+            var ordering = 0;
+            foreach (var suggestedID in suggestedIDs)
+            {
+                // An entry cannot suggest itself, and a duplicate would fight over the same row.
+                if (suggestedID == entityID || !toKeep.Add((kind, suggestedID)))
+                    continue;
+
+                var order = ordering++;
+                if (existing.TryGetValue((kind, suggestedID), out var suggestion))
+                {
+                    if (suggestion.Ordering == order)
+                        continue;
+
+                    suggestion.Ordering = order;
+                    toSave.Add(suggestion);
+                    continue;
+                }
+
+                toSave.Add(new()
+                {
+                    TmdbEntityType = entityType,
+                    TmdbEntityID = entityID,
+                    SuggestedTmdbEntityID = suggestedID,
+                    Kind = kind,
+                    Ordering = order,
+                });
+            }
+        }
+
+        var toRemove = existing
+            .Where(pair => !toKeep.Contains(pair.Key))
+            .Select(pair => pair.Value)
+            .ToList();
+        if (toSave.Count is 0 && toRemove.Count is 0)
+            return false;
+
+        _tmdbSuggestion.Save(toSave);
+        _tmdbSuggestion.Delete(toRemove);
+        return true;
+    }
+
+    /// <summary>
+    ///   Removes the suggestions a purged entry made, and the ones pointing at
+    ///   it from entries we still have.
+    /// </summary>
+    /// <param name="entityType">Whether this is a show or a movie.</param>
+    /// <param name="entityID">The TMDB id of the entry.</param>
+    private void PurgeSuggestions(DataEntityType entityType, int entityID)
+    {
+        _tmdbSuggestion.Delete(_tmdbSuggestion.GetByTmdbEntityID(entityType, entityID));
+        _tmdbSuggestion.Delete(_tmdbSuggestion.GetBySuggestedTmdbEntityID(entityType, entityID));
+    }
+
     private async Task<bool> UpdateShowNetworks(TMDB_Show tmdbShow, TvShow show)
     {
         var index = 0;
@@ -2191,6 +2279,8 @@ public class TmdbMetadataService : ITmdbMetadataService
             PurgeShowCompanies(showId);
 
             await PurgeShowNetworks(showId);
+
+            PurgeSuggestions(DataEntityType.Show, showId);
 
             PurgeShowEpisodes(showId);
 

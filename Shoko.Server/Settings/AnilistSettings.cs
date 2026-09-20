@@ -61,6 +61,14 @@ public class AnilistSettings
     public bool AutoDownloadStudios { get; set; } = false;
 
     /// <summary>
+    /// How far down AniList's recommendations to read for an anime. The first
+    /// page costs nothing extra; the other two spend requests to reach weaker
+    /// recommendations.
+    /// </summary>
+    [Visibility(Size = DisplayElementSize.Small)]
+    public AnilistRecommendationDepth RecommendationDepth { get; set; } = AnilistRecommendationDepth.WhileWellRated;
+
+    /// <summary>
     /// The number of top search results to evaluate when automatically
     /// searching for an Anilist anime to link to an AniDB anime. Set to
     /// <c>1</c> to only consider the first result.

@@ -19,6 +19,16 @@ public interface IRelatedMetadata : IEquatable<IRelatedMetadata>
     int RelatedID { get; }
 
     /// <summary>
+    /// Base entity, if available.
+    /// </summary>
+    IMetadata<int>? Base { get; }
+
+    /// <summary>
+    /// Related entity, if available.
+    /// </summary>
+    IMetadata<int>? Related { get; }
+
+    /// <summary>
     /// Relation type.
     /// </summary>
     RelationType RelationType { get; }
@@ -51,12 +61,12 @@ public interface IRelatedMetadata<TBaseMetadata, TRelatedMetadata> : IRelatedMet
     /// <summary>
     /// Base entity, if available.
     /// </summary>
-    TBaseMetadata? Base { get; }
+    new TBaseMetadata? Base { get; }
 
     /// <summary>
     /// Related entity, if available.
     /// </summary>
-    TBaseMetadata? Related { get; }
+    new TRelatedMetadata? Related { get; }
 
     /// <summary>
     /// Reverse relation.

@@ -73,6 +73,8 @@ public class RepoFactory
     public static Anilist_Anime_Character_CreatorRepository Anilist_Anime_Character_Creator = null!;
     public static Anilist_Anime_StaffRepository Anilist_Anime_Staff = null!;
     public static Anilist_Anime_RelationRepository Anilist_Anime_Relation = null!;
+
+    public static Anilist_Anime_SuggestionRepository Anilist_Anime_Suggestion = null!;
     public static CrossRef_CustomTagRepository CrossRef_CustomTag = null!;
     public static CrossRef_File_EpisodeRepository CrossRef_File_Episode = null!;
     public static CustomTagRepository CustomTag = null!;
@@ -107,6 +109,8 @@ public class RepoFactory
     public static TMDB_PersonRepository TMDB_Person = null!;
     public static TMDB_SeasonRepository TMDB_Season = null!;
     public static TMDB_Show_NetworkRepository TMDB_Show_Network = null!;
+
+    public static TMDB_SuggestionRepository TMDB_Suggestion = null!;
     public static TMDB_ShowRepository TMDB_Show = null!;
     public static TMDB_TitleRepository TMDB_Title = null!;
     public static VersionsRepository Versions = null!;
@@ -166,6 +170,7 @@ public class RepoFactory
         Anilist_Anime_Character_CreatorRepository anilistAnimeCharacterCreator,
         Anilist_Anime_StaffRepository anilistAnimeStaff,
         Anilist_Anime_RelationRepository anilistAnimeRelation,
+        Anilist_Anime_SuggestionRepository anilistAnimeSuggestion,
         CrossRef_CustomTagRepository crossRefCustomTag,
         CrossRef_File_EpisodeRepository crossRefFileEpisode,
         CustomTagRepository customTag,
@@ -200,6 +205,7 @@ public class RepoFactory
         TMDB_PersonRepository tmdbPerson,
         TMDB_SeasonRepository tmdbSeason,
         TMDB_Show_NetworkRepository tmdbShowNetwork,
+        TMDB_SuggestionRepository tmdbSuggestion,
         TMDB_ShowRepository tmdbShow,
         TMDB_TitleRepository tmdbTitle,
         VersionsRepository versions,
@@ -259,6 +265,7 @@ public class RepoFactory
         Anilist_Anime_Character_Creator = anilistAnimeCharacterCreator;
         Anilist_Anime_Staff = anilistAnimeStaff;
         Anilist_Anime_Relation = anilistAnimeRelation;
+        Anilist_Anime_Suggestion = anilistAnimeSuggestion;
         CrossRef_CustomTag = crossRefCustomTag;
         CrossRef_File_Episode = crossRefFileEpisode;
         CustomTag = customTag;
@@ -294,6 +301,7 @@ public class RepoFactory
         TMDB_Season = tmdbSeason;
         TMDB_Show = tmdbShow;
         TMDB_Show_Network = tmdbShowNetwork;
+        TMDB_Suggestion = tmdbSuggestion;
         TMDB_Title = tmdbTitle;
         Versions = versions;
         VideoLocal = videoLocal;

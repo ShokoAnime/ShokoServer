@@ -705,6 +705,70 @@ public class DatabaseFixes
             missingIds.Count, updateCount, skippedCount);
     }
 
+    /// <summary>
+    ///   Fills in <see cref="AniDB_Anime_Similar.Ordering"/> for rows stored
+    ///   before the column existed, by re-reading AniDB's own order from the
+    ///   cached XML. An anime with no usable cache is left alone: the order is
+    ///   cosmetic, and refreshing thousands of anime over AniDB's HTTP API to
+    ///   recover it would risk a ban. Those rows sort by approval until the
+    ///   anime is refreshed for a reason of its own.
+    /// </summary>
+    public static void PopulateSimilarAnimeOrdering()
+    {
+        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
+        var xmlUtils = ISystemService.StaticServices.GetRequiredService<HttpXmlUtils>();
+        var animeParser = ISystemService.StaticServices.GetRequiredService<HttpAnimeParser>();
+
+        // Only an anime with more than one similar entry can be out of order,
+        // and only one that has never been re-read is still all zeroes.
+        var animeIDs = RepoFactory.AniDB_Anime_Similar.GetAll()
+            .GroupBy(similar => similar.AnimeID)
+            .Where(grouping => grouping.Count() > 1 && grouping.All(similar => similar.Ordering is 0))
+            .Select(grouping => grouping.Key)
+            .ToList();
+        if (animeIDs.Count is 0)
+            return;
+
+        var str = systemService.StartupMessage ?? "";
+        systemService.StartupMessage = $"{str} - 0 / {animeIDs.Count}";
+        _logger.Info($"Restoring the order of similar anime for {animeIDs.Count} anidb anime entries...");
+
+        var count = 0;
+        var skipped = 0;
+        foreach (var animeID in animeIDs)
+        {
+            if (++count % 10 == 0)
+            {
+                _logger.Info($"Restoring the order of similar anime for anidb anime entries... ({count}/{animeIDs.Count})");
+                systemService.StartupMessage = $"{str} - {count} / {animeIDs.Count}";
+            }
+
+            var xml = xmlUtils.LoadAnimeHTTPFromFile(animeID).Result;
+            if (string.IsNullOrEmpty(xml))
+            {
+                skipped++;
+                continue;
+            }
+
+            ResponseGetAnime response;
+            try
+            {
+                response = animeParser.Parse(animeID, xml)!;
+                if (response is null) throw new NullReferenceException(nameof(response));
+            }
+            catch (Exception e)
+            {
+                _logger.Error(e, $"Unable to parse cached Anime_HTTP xml dump for anime: {animeID}");
+                skipped++;
+                continue;
+            }
+
+            AnimeCreator.CreateSimilarAnime(response.Similar, animeID);
+        }
+
+        _logger.Info($"Restored the order of similar anime for {animeIDs.Count - skipped} anidb anime entries. ({skipped} skipped for want of a cached xml dump)");
+    }
+
     public static void RecreateAnimeCharactersAndCreators()
     {
         var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();

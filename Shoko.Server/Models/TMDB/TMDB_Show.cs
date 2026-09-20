@@ -385,6 +385,25 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
             .ToList();
 
     /// <summary>
+    /// The shows TMDB suggests to someone looking at this one, both its
+    /// recommendations and its similar titles, best first. Most of them are
+    /// not in the collection, so their <c>Suggested</c> is usually
+    /// <c>null</c>.
+    /// </summary>
+    public IReadOnlyList<TMDB_Show_Suggestion> TmdbSuggestions =>
+        RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(DataEntityType.Show, TmdbShowID)
+            .Select(suggestion => new TMDB_Show_Suggestion(suggestion))
+            .ToList();
+
+    /// <summary>
+    /// The shows in the collection that TMDB suggests this one from.
+    /// </summary>
+    public IReadOnlyList<TMDB_Show_Suggestion> TmdbSuggestedBy =>
+        RepoFactory.TMDB_Suggestion.GetBySuggestedTmdbEntityID(DataEntityType.Show, TmdbShowID)
+            .Select(suggestion => new TMDB_Show_Suggestion(suggestion))
+            .ToList();
+
+    /// <summary>
     ///   External resources/links associated with the show.
     /// </summary>
     public IReadOnlyList<Resource> Resources
@@ -667,6 +686,10 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
 
     IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries => [];
 
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions => TmdbSuggestions;
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy => TmdbSuggestedBy;
+
     IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies => [];
 
     IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences => CrossReferences
@@ -707,6 +730,10 @@ public class TMDB_Show : TMDB_Base<int>, IEntityMetadata, ISeries, ITmdbShow, IT
     IReadOnlyList<ITmdbSeason> ITmdbShow.Seasons => TmdbSeasons;
 
     IReadOnlyList<ITmdbEpisode> ITmdbShow.Episodes => TmdbEpisodes;
+
+    IReadOnlyList<ITmdbShowSuggestion> ITmdbShow.Suggestions => TmdbSuggestions;
+
+    IReadOnlyList<ITmdbShowSuggestion> ITmdbShow.SuggestedBy => TmdbSuggestedBy;
 
     ITmdbShowOrderingInformation ITmdbShow.PreferredOrdering =>
         string.IsNullOrEmpty(PreferredAlternateOrderingID) || PreferredAlternateOrderingID == TmdbShowID.ToString()

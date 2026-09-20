@@ -81,4 +81,15 @@ public interface IAnilistAnime : ISeries, IWithCreationDate, IWithUpdateDate
     /// All episodes for the AniList anime.
     /// </summary>
     new IReadOnlyList<IAnilistEpisode> Episodes { get; }
+
+    /// <summary>
+    /// The anime AniList's users recommend to someone who liked this one, best
+    /// scored first.
+    /// </summary>
+    new IReadOnlyList<IAnilistSuggestion> Suggestions { get; }
+
+    /// <summary>
+    /// The anime AniList's users recommend this one from.
+    /// </summary>
+    new IReadOnlyList<IAnilistSuggestion> SuggestedBy { get; }
 }

@@ -48,6 +48,8 @@ providers.
   them to episodes and move them
 - [Executable actions](Actions/Services/README.md), to list and invoke named
   units of work, your own or another plugin's
+- [Relations and suggestions](Metadata/README.md), reading what one entity says
+  about another, and what a provider's users suggest from it
 - [Metadata services](Metadata/Services/README.md), to look up series, episodes
   and groups, manage grouping, and work with images
 - [User and user data](User/Services/README.md), for watch state, ratings and

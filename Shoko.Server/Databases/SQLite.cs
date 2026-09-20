@@ -1015,6 +1015,14 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(167, 13, DatabaseFixes.SeedAnilistAiringSchedules),
         new(168,  1, "CREATE TABLE AiringScheduleSweepState ( AiringScheduleSweepStateID INTEGER PRIMARY KEY AUTOINCREMENT, ProviderID TEXT NOT NULL, [Cursor] TEXT NULL, LastRunAt DATETIME NOT NULL, LastOutcome INTEGER NOT NULL, NoProgressCount INTEGER NOT NULL );"),
         new(168,  2, "CREATE UNIQUE INDEX UIX_AiringScheduleSweepState_ProviderID ON AiringScheduleSweepState(ProviderID);"),
+        new(169,  1, "ALTER TABLE AniDB_Anime_Similar ADD COLUMN Ordering INTEGER NOT NULL DEFAULT 0;"),
+        new(169,  2, DatabaseFixes.PopulateSimilarAnimeOrdering),
+        new(170,  1, "CREATE TABLE TMDB_Suggestion ( TMDB_SuggestionID INTEGER PRIMARY KEY AUTOINCREMENT, TmdbEntityType INTEGER NOT NULL, TmdbEntityID INTEGER NOT NULL, SuggestedTmdbEntityID INTEGER NOT NULL, Kind INTEGER NOT NULL, Ordering INTEGER NOT NULL );"),
+        new(170,  2, "CREATE UNIQUE INDEX UIX_TMDB_Suggestion_Entity_Suggested_Kind ON TMDB_Suggestion(TmdbEntityType, TmdbEntityID, SuggestedTmdbEntityID, Kind);"),
+        new(170,  3, "CREATE INDEX IX_TMDB_Suggestion_SuggestedTmdbEntityID ON TMDB_Suggestion(TmdbEntityType, SuggestedTmdbEntityID);"),
+        new(171,  1, "CREATE TABLE Anilist_Anime_Suggestion ( Anilist_Anime_SuggestionID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, SuggestedAnilistAnimeID INTEGER NOT NULL, Rating INTEGER NOT NULL, Ordering INTEGER NOT NULL );"),
+        new(171,  2, "CREATE UNIQUE INDEX UIX_Anilist_Anime_Suggestion_AnimeID_SuggestedID ON Anilist_Anime_Suggestion(AnilistAnimeID, SuggestedAnilistAnimeID);"),
+        new(171,  3, "CREATE INDEX IX_Anilist_Anime_Suggestion_SuggestedID ON Anilist_Anime_Suggestion(SuggestedAnilistAnimeID);"),
     ];
 
     #endregion

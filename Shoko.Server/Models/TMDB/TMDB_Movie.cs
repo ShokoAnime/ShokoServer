@@ -392,6 +392,25 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
             .ToList();
 
     /// <summary>
+    /// The movies TMDB suggests to someone looking at this one, both its
+    /// recommendations and its similar titles, best first. Most of them are
+    /// not in the collection, so their <c>Suggested</c> is usually
+    /// <c>null</c>.
+    /// </summary>
+    public IReadOnlyList<TMDB_Movie_Suggestion> TmdbSuggestions =>
+        RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(DataEntityType.Movie, TmdbMovieID)
+            .Select(suggestion => new TMDB_Movie_Suggestion(suggestion))
+            .ToList();
+
+    /// <summary>
+    /// The movies in the collection that TMDB suggests this one from.
+    /// </summary>
+    public IReadOnlyList<TMDB_Movie_Suggestion> TmdbSuggestedBy =>
+        RepoFactory.TMDB_Suggestion.GetBySuggestedTmdbEntityID(DataEntityType.Movie, TmdbMovieID)
+            .Select(suggestion => new TMDB_Movie_Suggestion(suggestion))
+            .ToList();
+
+    /// <summary>
     ///   External resources/links associated with the movie.
     /// </summary>
     public IReadOnlyList<Resource> Resources
@@ -593,6 +612,10 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     IReadOnlyList<IRelatedMetadata<IMovie, IMovie>> IMovie.RelatedMovies => [];
 
+    IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> IMovie.Suggestions => TmdbSuggestions;
+
+    IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> IMovie.SuggestedBy => TmdbSuggestedBy;
+
     IReadOnlyList<IVideoCrossReference> IMovie.CrossReferences => CrossReferences
         .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
         .ToList();
@@ -621,6 +644,10 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     ITmdbCollection? ITmdbMovie.Collection => TmdbCollection;
 
     IReadOnlyList<ITmdbMovieCrossReference> ITmdbMovie.TmdbMovieCrossReferences => CrossReferences;
+
+    IReadOnlyList<ITmdbMovieSuggestion> ITmdbMovie.Suggestions => TmdbSuggestions;
+
+    IReadOnlyList<ITmdbMovieSuggestion> ITmdbMovie.SuggestedBy => TmdbSuggestedBy;
 
     #endregion
 }
