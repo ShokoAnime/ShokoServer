@@ -90,6 +90,13 @@ public partial class AnilistSearchService : IAnilistSearchService
             return ([], 0);
 
         var totalCount = result["pageInfo"]?["total"]?.GetValue<int>() ?? 0;
+
+        // A page size of zero asks for the total alone, the same as the TMDB
+        // search. AniList's `perPage` has a floor of 1, so the smallest page is
+        // still fetched and then dropped.
+        if (options.PageSize <= 0)
+            return ([], totalCount);
+
         var searchResults = result["media"] is JsonArray mediaArray
             ? mediaArray.Where(m => m is not null).Select(m => new AnilistAnimeSearchResult(m!)).ToList()
             : [];

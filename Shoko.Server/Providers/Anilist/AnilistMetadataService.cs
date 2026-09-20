@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
@@ -23,6 +25,7 @@ using Shoko.Server.Scheduling.Jobs.Anilist;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
+#pragma warning disable CS0618
 #nullable enable
 namespace Shoko.Server.Providers.Anilist;
 
@@ -32,6 +35,38 @@ namespace Shoko.Server.Providers.Anilist;
 /// </summary>
 public class AnilistMetadataService : IAnilistMetadataService
 {
+    #region Static Instance
+
+    private static AnilistMetadataService? _instance;
+
+    private static readonly object _instanceLockObj = new();
+
+    /// <summary>
+    /// The registered service, for the model layer, which predates DI and has
+    /// nowhere to inject it. Mirrors <see cref="TmdbMetadataService.Instance"/>.
+    /// </summary>
+    internal static AnilistMetadataService? Instance
+    {
+        get
+        {
+            if (_instance is not null)
+                return _instance;
+
+            lock (_instanceLockObj)
+            {
+                if (_instance is not null)
+                    return _instance;
+
+                if (!ISystemService.HasStaticServices)
+                    return null;
+
+                return _instance = ISystemService.StaticServices.GetService<AnilistMetadataService>();
+            }
+        }
+    }
+
+    #endregion
+
     private readonly ILogger<AnilistMetadataService> _logger;
 
     private readonly ISettingsProvider _settingsProvider;

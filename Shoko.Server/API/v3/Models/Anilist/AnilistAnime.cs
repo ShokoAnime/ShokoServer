@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -13,8 +14,10 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.Anilist.Embedded;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Providers.Anilist;
 
 using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
+using Resource = Shoko.Server.API.v3.Models.Common.Resource;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Anilist;
@@ -27,22 +30,26 @@ public class AnilistAnime
     /// <summary>
     /// Anilist Anime ID.
     /// </summary>
+    [Required]
     public int ID { get; init; }
 
     /// <summary>
     /// English title.
     /// </summary>
+    [Required]
     public string Title { get; init; }
 
     /// <summary>
     /// Main title. A transcription of the native title (romaji, pinyin, etc.),
     /// which AniList treats as the canonical title.
     /// </summary>
+    [Required]
     public string MainTitle { get; init; }
 
     /// <summary>
     /// Native title.
     /// </summary>
+    [Required]
     public string NativeTitle { get; init; }
 
     /// <summary>
@@ -54,53 +61,70 @@ public class AnilistAnime
     /// <summary>
     /// English overview/description.
     /// </summary>
+    [Required]
     public string Overview { get; init; }
 
     /// <summary>
     /// Original language the anime was produced in.
     /// </summary>
+    [Required]
     public string OriginalLanguage { get; init; }
 
     /// <summary>
     /// Indicates the anime is restricted to an age group above the legal age
     /// (adult content).
     /// </summary>
+    [Required]
     public bool IsRestricted { get; init; }
+
+    /// <summary>
+    /// Indicates the anime has been licensed for release in at least one
+    /// region outside its country of origin.
+    /// </summary>
+    [Required]
+    public bool IsLicensed { get; init; }
 
     /// <summary>
     /// User rating of the anime from Anilist users (0-100 scale).
     /// </summary>
+    [Required]
     public Rating UserRating { get; init; }
 
     /// <summary>
     /// Mean score (0-100 scale).
     /// </summary>
+    [Required]
     public double MeanScore { get; init; }
 
     /// <summary>
     /// Popularity rank.
     /// </summary>
+    [Required]
     public int Popularity { get; init; }
 
     /// <summary>
     /// Number of favorites.
     /// </summary>
+    [Required]
     public int FavoriteCount { get; init; }
 
     /// <summary>
     /// The anime type (TV, Movie, OVA, etc.).
     /// </summary>
+    [Required]
     [JsonConverter(typeof(StringEnumConverter))]
     public AnimeType Type { get; init; }
 
     /// <summary>
     /// Airing status.
     /// </summary>
+    [Required]
     public AnilistMediaStatus Status { get; init; }
 
     /// <summary>
     /// Source material.
     /// </summary>
+    [Required]
     public AnilistMediaSource Source { get; init; }
 
     /// <summary>
@@ -116,6 +140,7 @@ public class AnilistAnime
     /// <summary>
     /// Total episode count.
     /// </summary>
+    [Required]
     public int EpisodeCount { get; init; }
 
     /// <summary>
@@ -126,6 +151,7 @@ public class AnilistAnime
     /// <summary>
     /// Genres.
     /// </summary>
+    [Required]
     public IReadOnlyList<string> Genres { get; init; }
 
     /// <summary>
@@ -198,23 +224,34 @@ public class AnilistAnime
     public IReadOnlyList<CrossReference>? CrossReferences { get; init; }
 
     /// <summary>
+    /// External resources for the anime, if they should be included. Covers
+    /// the AniList page itself, the MyAnimeList cross-reference, the trailer
+    /// and every external link AniList lists, such as the official site or a
+    /// streaming service.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<Resource>? Resources { get; init; }
+
+    /// <summary>
     /// The date the anime started airing.
     /// </summary>
-    public PartialDateOnly? StartedAt { get; init; }
+    public PartialDateOnly? FirstAiredAt { get; init; }
 
     /// <summary>
     /// The date the anime ended airing.
     /// </summary>
-    public PartialDateOnly? EndedAt { get; init; }
+    public PartialDateOnly? LastAiredAt { get; init; }
 
     /// <summary>
     /// When the local metadata was first created.
     /// </summary>
+    [Required]
     public DateTime CreatedAt { get; init; }
 
     /// <summary>
     /// When the local metadata was last updated.
     /// </summary>
+    [Required]
     public DateTime LastUpdatedAt { get; init; }
 
     public AnilistAnime(Anilist_Anime anime, IncludeDetails? includeDetails = null)
@@ -230,6 +267,7 @@ public class AnilistAnime
         Overview = anime.EnglishOverview;
         OriginalLanguage = anime.OriginalLanguageCode;
         IsRestricted = anime.IsRestricted;
+        IsLicensed = anime.IsLicensed;
         UserRating = new()
         {
             Value = anime.UserRating,
@@ -249,8 +287,8 @@ public class AnilistAnime
         EpisodeCount = anime.EpisodeCount;
         EpisodeDuration = anime.EpisodeDuration;
         Genres = anime.Genres;
-        CoverImage = !string.IsNullOrEmpty(anime.CoverImagePath) ? anime.CoverImagePath : null;
-        BannerImage = !string.IsNullOrEmpty(anime.BannerImagePath) ? anime.BannerImagePath : null;
+        CoverImage = AnilistImageService.ToImageUrl(anime.CoverImagePath);
+        BannerImage = AnilistImageService.ToImageUrl(anime.BannerImagePath);
         Color = !string.IsNullOrEmpty(anime.Color) ? anime.Color : null;
         if (include.HasFlag(IncludeDetails.MalIDs))
             MalIDs = anime.MalID.HasValue ? [anime.MalID.Value] : [];
@@ -297,8 +335,12 @@ public class AnilistAnime
                 .Select(xref => new CrossReference(xref))
                 .OrderBy(xref => xref.AnidbAnimeID)
                 .ToList();
-        StartedAt = anime.FirstAiredAt;
-        EndedAt = anime.LastAiredAt;
+        if (include.HasFlag(IncludeDetails.Resources))
+            Resources = anime.Resources
+                .Select(resource => new Resource(resource))
+                .ToList();
+        FirstAiredAt = anime.FirstAiredAt;
+        LastAiredAt = anime.LastAiredAt;
         CreatedAt = anime.CreatedAt.ToUniversalTime();
         LastUpdatedAt = anime.LastUpdatedAt.ToUniversalTime();
     }
@@ -311,11 +353,13 @@ public class AnilistAnime
         /// <summary>
         /// Tag ID.
         /// </summary>
+        [Required]
         public int ID { get; init; }
 
         /// <summary>
         /// Tag name.
         /// </summary>
+        [Required]
         public string Name { get; init; }
 
         /// <summary>
@@ -326,11 +370,13 @@ public class AnilistAnime
         /// <summary>
         /// Tag rank/relevance (percentage).
         /// </summary>
+        [Required]
         public int Rank { get; init; }
 
         /// <summary>
         /// Whether the tag is a spoiler.
         /// </summary>
+        [Required]
         public bool IsSpoiler { get; init; }
 
         public AnilistTag(Anilist_Tag tag, int rank, bool isSpoiler)
@@ -351,16 +397,19 @@ public class AnilistAnime
         /// <summary>
         /// AniDB Anime ID.
         /// </summary>
+        [Required]
         public int AnidbAnimeID { get; init; }
 
         /// <summary>
         /// Anilist Anime ID.
         /// </summary>
+        [Required]
         public int AnilistAnimeID { get; init; }
 
         /// <summary>
         /// The match rating.
         /// </summary>
+        [Required]
         public string Rating { get; init; }
 
         public CrossReference(CrossRef_AniDB_Anilist_Anime xref)
@@ -386,5 +435,6 @@ public class AnilistAnime
         Images = 1 << 7,
         Cast = 1 << 8,
         Crew = 1 << 9,
+        Resources = 1 << 10,
     }
 }

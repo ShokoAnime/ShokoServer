@@ -135,24 +135,44 @@ public static class ModelHelper
         };
     }
 
-    public static List<List<CrossRef_AniDB_TMDB_Episode>> GroupByCrossReferenceType(this IEnumerable<CrossRef_AniDB_TMDB_Episode> episodes)
+    /// <summary>
+    /// Group the episode cross-references the way a mapping UI wants to show them: every AniDB episode that maps to more
+    /// than one remote episode becomes a group of its own, and whatever is left is grouped by the remote episode it maps to.
+    /// </summary>
+    /// <typeparam name="T">The cross-reference type.</typeparam>
+    /// <param name="crossReferences">The cross-references to group.</param>
+    /// <param name="getAnidbEpisodeID">Reads the AniDB episode ID off a cross-reference.</param>
+    /// <param name="getOrdering">Reads the ordering index off a cross-reference.</param>
+    /// <param name="getRemoteEpisodeID">Reads the remote episode ID off a cross-reference.</param>
+    /// <param name="getRemoteOrder">
+    /// Reads the season and episode number of the remote episode, or <see langword="null"/> when the remote episode is
+    /// unavailable, in which case the cross-reference is dropped.
+    /// </param>
+    /// <returns>The grouped cross-references.</returns>
+    public static List<List<T>> GroupByCrossReferenceType<T>(
+        this IEnumerable<T> crossReferences,
+        Func<T, int> getAnidbEpisodeID,
+        Func<T, int> getOrdering,
+        Func<T, int> getRemoteEpisodeID,
+        Func<T, (int SeasonNumber, int EpisodeNumber)?> getRemoteOrder
+    )
     {
-        var episodeList = episodes is IReadOnlyList<CrossRef_AniDB_TMDB_Episode> readOnlyList ? readOnlyList : episodes.ToList();
-        var remainingXrefs = new List<CrossRef_AniDB_TMDB_Episode>();
-        var anidbEpisodeDictionary = episodeList
-            .DistinctBy(xref => xref.AnidbEpisodeID)
-            .Select(xref => (xref, anidb: xref.AnidbEpisode))
+        var crossReferenceList = crossReferences is IReadOnlyList<T> readOnlyList ? readOnlyList : crossReferences.ToList();
+        var remainingXrefs = new List<T>();
+        var anidbEpisodeDictionary = crossReferenceList
+            .DistinctBy(getAnidbEpisodeID)
+            .Select(xref => (id: getAnidbEpisodeID(xref), anidb: RepoFactory.AniDB_Episode.GetByEpisodeID(getAnidbEpisodeID(xref))))
             .Where(tuple => tuple.anidb is not null)
-            .ToDictionary(tuple => tuple.xref.AnidbEpisodeID, tuple => tuple.anidb);
-        var anidbXrefs = episodeList
-            .Select(xref => (xref, anidb: anidbEpisodeDictionary.GetValueOrDefault(xref.AnidbEpisodeID)))
+            .ToDictionary(tuple => tuple.id, tuple => tuple.anidb);
+        var anidbXrefs = crossReferenceList
+            .Select(xref => (xref, anidb: anidbEpisodeDictionary.GetValueOrDefault(getAnidbEpisodeID(xref))))
             .Where(tuple => tuple.anidb is not null)
             .OrderBy(tuple => tuple.anidb!.EpisodeType)
             .ThenBy(tuple => tuple.anidb!.EpisodeNumber)
-            .ThenBy(tuple => tuple.xref.Ordering)
+            .ThenBy(tuple => getOrdering(tuple.xref))
             .Select(tuple => tuple.xref)
-            .GroupBy(tuple => tuple.AnidbEpisodeID)
-            .Aggregate(new List<List<CrossRef_AniDB_TMDB_Episode>>(), (list, group) =>
+            .GroupBy(getAnidbEpisodeID)
+            .Aggregate(new List<List<T>>(), (list, group) =>
             {
                 var grouped = group.ToList();
                 if (grouped.Count > 1)
@@ -161,21 +181,21 @@ public static class ModelHelper
                     remainingXrefs.Add(grouped[0]);
                 return list;
             });
-        var tmdbXrefs = remainingXrefs
-            .Select(xref => (xref, tmdb: xref.TmdbEpisode, anidb: anidbEpisodeDictionary[xref.AnidbEpisodeID]!))
-            .Where(tuple => tuple.tmdb is not null)
-            .OrderBy(tuple => tuple.tmdb!.SeasonNumber)
-            .ThenBy(tuple => tuple.tmdb!.EpisodeNumber)
+        var remoteXrefs = remainingXrefs
+            .Select(xref => (xref, remote: getRemoteOrder(xref), anidb: anidbEpisodeDictionary[getAnidbEpisodeID(xref)]!))
+            .Where(tuple => tuple.remote is not null)
+            .OrderBy(tuple => tuple.remote!.Value.SeasonNumber)
+            .ThenBy(tuple => tuple.remote!.Value.EpisodeNumber)
             .ThenBy(tuple => tuple.anidb.EpisodeType)
             .ThenBy(tuple => tuple.anidb.EpisodeNumber)
             .Select(tuple => tuple.xref)
-            .GroupBy(tuple => tuple.TmdbEpisodeID)
-            .Aggregate(new List<List<CrossRef_AniDB_TMDB_Episode>>(), (list, group) =>
+            .GroupBy(getRemoteEpisodeID)
+            .Aggregate(new List<List<T>>(), (list, group) =>
             {
-                var currentList = new List<CrossRef_AniDB_TMDB_Episode>();
+                var currentList = new List<T>();
                 foreach (var xref in group)
                 {
-                    if (currentList.Count > 0 && xref.Ordering == 0)
+                    if (currentList.Count > 0 && getOrdering(xref) == 0)
                     {
                         list.Add(currentList);
                         currentList = [];
@@ -186,15 +206,35 @@ public static class ModelHelper
                     list.Add(currentList);
                 return list;
             });
-        var allXrefs = anidbXrefs.Concat(tmdbXrefs)
-            .Select(xref => (xref, anidb: anidbEpisodeDictionary[xref[0].AnidbEpisodeID]!))
+        var allXrefs = anidbXrefs.Concat(remoteXrefs)
+            .Select(xref => (xref, anidb: anidbEpisodeDictionary[getAnidbEpisodeID(xref[0])]!))
             .OrderBy(tuple => tuple.anidb.EpisodeType)
             .ThenBy(tuple => tuple.anidb.EpisodeNumber)
-            .ThenBy(tuple => tuple.xref[0].Ordering)
+            .ThenBy(tuple => getOrdering(tuple.xref[0]))
             .Select(tuple => tuple.xref)
             .ToList();
         return allXrefs;
     }
+
+    /// <inheritdoc cref="GroupByCrossReferenceType{T}"/>
+    public static List<List<CrossRef_AniDB_TMDB_Episode>> GroupByCrossReferenceType(this IEnumerable<CrossRef_AniDB_TMDB_Episode> episodes)
+        => episodes.GroupByCrossReferenceType(
+            xref => xref.AnidbEpisodeID,
+            xref => xref.Ordering,
+            xref => xref.TmdbEpisodeID,
+            xref => xref.TmdbEpisode is { } tmdbEpisode ? (tmdbEpisode.SeasonNumber, tmdbEpisode.EpisodeNumber) : null
+        );
+
+    /// <inheritdoc cref="GroupByCrossReferenceType{T}"/>
+    public static List<List<CrossRef_AniDB_Anilist_Episode>> GroupByCrossReferenceType(this IEnumerable<CrossRef_AniDB_Anilist_Episode> episodes)
+        => episodes.GroupByCrossReferenceType(
+            xref => xref.AnidbEpisodeID,
+            xref => xref.Ordering,
+            xref => xref.AnilistEpisodeID,
+            // AniList has no seasons, and the episode number sits on the cross-reference
+            // itself rather than on the episode row, so it is always available.
+            xref => (1, xref.EpisodeNumber)
+        );
 
     public static (int, EpisodeType?, string?) GetEpisodeNumberAndTypeFromInput(string input)
     {

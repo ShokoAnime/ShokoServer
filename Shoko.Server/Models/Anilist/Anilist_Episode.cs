@@ -139,6 +139,16 @@ public class Anilist_Episode : Anilist_Base<int>, IAnilistEpisode
     public IReadOnlyList<CrossRef_AniDB_Anilist_Episode> CrossReferences
         => RepoFactory.CrossRef_AniDB_Anilist_Episode.GetByAnilistEpisodeID(AnilistEpisodeID);
 
+    /// <summary>
+    /// Get all file cross-references associated with the episode.
+    /// </summary>
+    public IReadOnlyList<CrossRef_File_Episode> FileCrossReferences
+        => CrossReferences
+            .DistinctBy(xref => xref.AnidbEpisodeID)
+            .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
+            .WhereNotNull()
+            .ToList();
+
     #endregion
 
     #region IMetadata Implementation

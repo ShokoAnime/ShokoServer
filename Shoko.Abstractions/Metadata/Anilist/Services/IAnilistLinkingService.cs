@@ -34,7 +34,7 @@ public interface IAnilistLinkingService
     /// <param name="anilistAnimeId">The Anilist anime ID.</param>
     /// <param name="additiveLink">If true, adds to existing links; if false, replaces existing links.</param>
     /// <param name="matchRating">The match rating for the link.</param>
-    Task AddAnimeLink(int anidbAnimeId, int anilistAnimeId, bool additiveLink = false, MatchRating matchRating = MatchRating.UserVerified);
+    Task AddAnimeLink(int anidbAnimeId, int anilistAnimeId, bool additiveLink = true, MatchRating matchRating = MatchRating.UserVerified);
 
     /// <summary>
     /// Removes a specific anime link between an AniDB anime and an Anilist anime.

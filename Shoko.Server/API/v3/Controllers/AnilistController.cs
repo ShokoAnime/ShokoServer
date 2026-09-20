@@ -38,6 +38,7 @@ using Shoko.Server.Utilities;
 
 using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
+using File = Shoko.Server.API.v3.Models.Shoko.File;
 using MatchRating = Shoko.Abstractions.Metadata.Enums.MatchRating;
 
 #pragma warning disable CA1822
@@ -101,6 +102,16 @@ public partial class AnilistController(
         _logger.LogInformation("AniList is currently paused. Online lookup refused; retry in approximately {Seconds} second(s).", seconds);
         Response.Headers.RetryAfter = seconds.ToString();
         return StatusCode(503);
+    }
+
+    // Episode rows are synthesized during an anime refresh; if the parent anime is mid-update,
+    // wait for it and re-read so the caller gets the finalized row.
+    private Anilist_Episode? GetEpisodeWaitingForUpdate(int episodeID)
+    {
+        var episode = _anilistEpisodes.GetByAnilistEpisodeID(episodeID);
+        if (episode is not null && _anilistMetadataService.WaitForAnimeUpdate(episode.AnilistAnimeID))
+            episode = _anilistEpisodes.GetByAnilistEpisodeID(episodeID);
+        return episode;
     }
 
     #region Anime
@@ -173,6 +184,8 @@ public partial class AnilistController(
                 .ToListResult(searchResult =>
                 {
                     var anime = searchResult.Result;
+                    if (_anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+                        anime = _anilistAnime.GetByAnilistAnimeID(anime.AnilistAnimeID) ?? anime;
                     return new AnilistAnime(anime, include?.CombineFlags());
                 }, page, pageSize);
         }
@@ -180,7 +193,12 @@ public partial class AnilistController(
         return animes
             .OrderBy(anime => anime.PreferredTitle)
             .ThenBy(anime => anime.AnilistAnimeID)
-            .ToListResult(anime => new AnilistAnime(anime, include?.CombineFlags()), page, pageSize);
+            .ToListResult(anime =>
+            {
+                if (_anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+                    anime = _anilistAnime.GetByAnilistAnimeID(anime.AnilistAnimeID) ?? anime;
+                return new AnilistAnime(anime, include?.CombineFlags());
+            }, page, pageSize);
     }
 
     /// <summary>
@@ -223,31 +241,6 @@ public partial class AnilistController(
             .ToList();
 
     /// <summary>
-    /// Get multiple local Anilist episodes at once.
-    /// </summary>
-    /// <param name="body">Body containing the IDs and details to include.</param>
-    /// <returns></returns>
-    [HttpPost("Episode/Bulk")]
-    public ActionResult<List<AnilistEpisode>> BulkGetAnilistEpisodesByEpisodeIDs([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AnilistBulkFetchBody<AnilistEpisode.IncludeDetails> body) =>
-        body.IDs
-            .Select(episodeID => episodeID <= 0 ? null : _anilistEpisodes.GetByAnilistEpisodeID(episodeID))
-            .WhereNotNull()
-            .GroupBy(episode => episode.AnilistAnimeID)
-            .SelectMany(group =>
-            {
-                // Episode rows are synthesized during an anime refresh; if one is mid-update,
-                // wait for it and re-read so the caller gets the finalized row.
-                if (!_anilistMetadataService.WaitForAnimeUpdate(group.Key))
-                    return group.AsEnumerable();
-
-                return group
-                    .Select(episode => _anilistEpisodes.GetByAnilistEpisodeID(episode.AnilistEpisodeID) ?? episode)
-                    .ToList();
-            })
-            .Select(episode => new AnilistEpisode(episode, body.Include?.CombineFlags()))
-            .ToList();
-
-    /// <summary>
     /// Get all titles for an Anilist anime.
     /// </summary>
     /// <param name="animeID">Anilist Anime ID.</param>
@@ -256,6 +249,8 @@ public partial class AnilistController(
     public ActionResult<IReadOnlyList<Title>> GetTitlesForAnilistAnimeByAnimeID([FromRoute] int animeID)
     {
         var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
         if (anime is null)
             return NotFound(AnimeNotFound);
 
@@ -273,6 +268,8 @@ public partial class AnilistController(
     public ActionResult<IReadOnlyList<Overview>> GetOverviewsForAnilistAnimeByAnimeID([FromRoute] int animeID)
     {
         var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
         if (anime is null)
             return NotFound(AnimeNotFound);
 
@@ -318,6 +315,8 @@ public partial class AnilistController(
     )
     {
         var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
         if (anime is null)
             return NotFound(AnimeNotFound);
 
@@ -336,6 +335,8 @@ public partial class AnilistController(
     public ActionResult<IReadOnlyList<Studio>> GetStudiosForAnilistAnimeByAnimeID([FromRoute] int animeID)
     {
         var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
         if (anime is null)
             return NotFound(AnimeNotFound);
 
@@ -412,12 +413,62 @@ public partial class AnilistController(
     )
     {
         var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
         if (anime is null)
             return NotFound(AnimeNotFound);
 
         return anime.CrossReferences
             .Select(xref => new AnilistAnime.CrossReference(xref))
             .OrderBy(xref => xref.AnidbAnimeID)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all external resources for an Anilist anime. Covers the Anilist
+    /// page itself, the MyAnimeList cross-reference, the trailer and every
+    /// external link Anilist lists, such as the official site or a streaming
+    /// service.
+    /// </summary>
+    /// <param name="animeID">Anilist Anime ID.</param>
+    /// <returns></returns>
+    [HttpGet("Anime/{animeID}/Resources")]
+    public ActionResult<IReadOnlyList<Resource>> GetResourcesForAnilistAnimeByAnimeID(
+        [FromRoute] int animeID
+    )
+    {
+        var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is null)
+            return NotFound(AnimeNotFound);
+
+        return anime.Resources
+            .Select(resource => new Resource(resource))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get every day of the week the anime has aired an episode on.
+    /// </summary>
+    /// <param name="animeID">Anilist Anime ID.</param>
+    /// <returns></returns>
+    [HttpGet("Anime/{animeID}/DaysOfWeek")]
+    public ActionResult<IReadOnlyList<string>> GetDaysOfWeekForAnilistAnimeByAnimeID(
+        [FromRoute] int animeID
+    )
+    {
+        var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is null)
+            return NotFound(AnimeNotFound);
+
+        return anime.Episodes
+            .Select(episode => episode.AiredAt?.DayOfWeek.ToString())
+            .WhereNotNullOrDefault()
+            .Distinct()
+            .Order()
             .ToList();
     }
 
@@ -443,6 +494,8 @@ public partial class AnilistController(
     )
     {
         var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
         if (anime is null)
             return NotFound(AnimeNotFound);
 
@@ -477,6 +530,56 @@ public partial class AnilistController(
             .ToListResult(episode => new AnilistEpisode(episode, include?.CombineFlags()), page, pageSize);
     }
 
+    /// <summary>
+    /// Get all episode cross-references for an Anilist anime.
+    /// </summary>
+    /// <param name="animeID">Anilist Anime ID.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns>The list of episode cross-references.</returns>
+    [HttpGet("Anime/{animeID}/Episode/CrossReferences")]
+    public ActionResult<ListResult<AnilistEpisode.CrossReference>> GetEpisodeCrossReferencesForAnilistAnimeByAnimeID(
+        [FromRoute] int animeID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is null)
+            return NotFound(AnimeNotFound);
+
+        return anime.EpisodeCrossReferences
+            .ToListResult(xref => new AnilistEpisode.CrossReference(xref), page, pageSize);
+    }
+
+    /// <summary>
+    /// Shows all existing episode cross-references for an Anilist anime grouped
+    /// by their corresponding cross-reference groups.
+    /// </summary>
+    /// <param name="animeID">Anilist Anime ID.</param>
+    /// <param name="pageSize">The page size.</param>
+    /// <param name="page">The page index.</param>
+    /// <returns>The list of grouped episode cross-references.</returns>
+    [HttpGet("Anime/{animeID}/Episode/CrossReferences/EpisodeGroups")]
+    public ActionResult<ListResult<List<AnilistEpisode.CrossReference>>> GetGroupedEpisodeCrossReferencesForAnilistAnimeByAnimeID(
+        [FromRoute] int animeID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is null)
+            return NotFound(AnimeNotFound);
+
+        return anime.EpisodeCrossReferences
+            .GroupByCrossReferenceType()
+            .ToListResult(list => list.Select((xref, index) => new AnilistEpisode.CrossReference(xref, index)).ToList(), page, pageSize);
+    }
+
     #endregion
 
     #region Cross-Source Linked Entries
@@ -492,6 +595,8 @@ public partial class AnilistController(
     )
     {
         var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
         if (anime is null)
             return NotFound(AnimeNotFound);
 
@@ -517,6 +622,8 @@ public partial class AnilistController(
     )
     {
         var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
         if (anime is null)
             return NotFound(AnimeNotFound);
 
@@ -525,6 +632,44 @@ public partial class AnilistController(
             .WhereNotNull()
             .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
             .ToList();
+    }
+
+    /// <summary>
+    /// Get all files linked to an Anilist anime.
+    /// </summary>
+    /// <param name="animeID">Anilist Anime ID.</param>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
+    /// <param name="releaseProviders">Filter to only include files from certain release providers. Append <c>!</c> to the provider name to exclude the files</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
+    /// <returns></returns>
+    [HttpGet("Anime/{animeID}/Shoko/File")]
+    public ActionResult<ListResult<File>> GetShokoFilesByAnilistAnimeID(
+        [FromRoute] int animeID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? releaseProviders = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
+    )
+    {
+        var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is not null && _anilistMetadataService.WaitForAnimeUpdate(anime.AnilistAnimeID))
+            anime = _anilistAnime.GetByAnilistAnimeID(animeID);
+        if (anime is null)
+            return NotFound(AnimeNotFound);
+
+        var videoLocals = anime.EpisodeCrossReferences
+            .Select(xref => xref.AnimeEpisode)
+            .WhereNotNull()
+            .SelectMany(shokoEpisode => shokoEpisode.VideoLocals)
+            .DistinctBy(video => video.VideoLocalID);
+        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
     }
 
     #endregion
@@ -551,6 +696,9 @@ public partial class AnilistController(
         // just return early. This is answered entirely from local state, so it must run before the pause check
         // below — it never touches AniList and shouldn't be refused just because AniList itself is unavailable.
         if (body.Immediate && body.QuickRefresh && _anilistMetadataService.IsAnimeUpdating(animeID) && _anilistEpisodes.GetByAnilistAnimeID(animeID).Count > 0)
+            return Ok();
+
+        if (body.SkipIfExists && _anilistAnime.GetByAnilistAnimeID(animeID) is not null)
             return Ok();
 
         // QuickRefresh is only meaningful for a synchronous, immediate caller waiting on the
@@ -624,6 +772,10 @@ public partial class AnilistController(
     /// </summary>
     /// <param name="query">Query to search for.</param>
     /// <param name="includeRestricted">Include restricted (adult) anime.</param>
+    /// <param name="year">Only include anime that started airing in this year.</param>
+    /// <param name="season">Only include anime released in this season. Combine with <paramref name="seasonYear"/> to pin a specific yearly season.</param>
+    /// <param name="seasonYear">Only include anime released in this season year. Unlike <paramref name="year"/> this matches AniList's own season year, which can differ from the start date for late-December premieres.</param>
+    /// <param name="type">Only include anime of these types.</param>
     /// <param name="pageSize">The page size. Set to 0 to only grab the total.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
@@ -632,6 +784,10 @@ public partial class AnilistController(
     public async Task<ActionResult<ListResult<AnilistSearch.RemoteSearchAnime>>> SearchOnlineForAnilistAnime(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
+        [FromQuery, Range(0, int.MaxValue)] int year = 0,
+        [FromQuery] YearlySeason? season = null,
+        [FromQuery, Range(0, int.MaxValue)] int seasonYear = 0,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery, Range(0, 100)] int pageSize = 6,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
@@ -639,7 +795,17 @@ public partial class AnilistController(
         if (RefuseWhenPaused() is { } paused)
             return paused;
 
-        var (results, total) = await _anilistSearchService.SearchAnime(new() { Query = query, IncludeRestricted = includeRestricted, Page = page, PageSize = pageSize });
+        var (results, total) = await _anilistSearchService.SearchAnime(new()
+        {
+            Query = query,
+            IncludeRestricted = includeRestricted,
+            Year = year > 0 ? year : null,
+            Season = season,
+            SeasonYear = seasonYear > 0 ? seasonYear : null,
+            Types = type is { Count: > 0 } ? [.. type] : null,
+            Page = page,
+            PageSize = pageSize,
+        });
 
         return new ListResult<AnilistSearch.RemoteSearchAnime>(total, results.Select(a => new AnilistSearch.RemoteSearchAnime(a)));
     }
@@ -674,34 +840,303 @@ public partial class AnilistController(
     /// Look up multiple Anilist anime by ID, using the local copy when
     /// available and fetching the rest from Anilist.
     /// </summary>
+    /// <remarks>
+    /// If any of the IDs are not found, a <see cref="ValidationProblemDetails"/> is returned.
+    /// </remarks>
     /// <param name="body">Body containing the IDs to look up.</param>
-    /// <returns></returns>
+    /// <returns>
+    /// A list of <see cref="AnilistSearch.RemoteSearchAnime"/> containing the results.
+    /// The order of the returned anime is determined by the order of the IDs in <paramref name="body"/>.
+    /// </returns>
     [Authorize("admin")]
     [HttpPost("Anime/Online/Bulk")]
     public async Task<ActionResult<List<AnilistSearch.RemoteSearchAnime>>> SearchBulkForAnilistAnime(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AnilistBulkSearchBody body
     )
     {
-        var results = new List<AnilistSearch.RemoteSearchAnime>();
-        foreach (var id in body.IDs.Distinct())
+        // We don't care if the inputs are non-unique, but we don't want to double fetch,
+        // so we do a distinct here, then at the end we map back to the original order.
+        var uniqueIds = body.IDs.Distinct().ToList();
+        var animeDict = uniqueIds
+            .Select(id => id <= 0 ? null : _anilistAnime.GetByAnilistAnimeID(id))
+            .WhereNotNull()
+            .Select(anime => new AnilistSearch.RemoteSearchAnime(anime))
+            .ToDictionary(anime => anime.ID);
+
+        var remainingIds = uniqueIds.Except(animeDict.Keys).Where(id => id > 0).ToList();
+        // Refuse before the first remote lookup instead of part-way through it, so a
+        // pause never throws away the anime already fetched.
+        if (remainingIds.Count > 0 && RefuseWhenPaused() is { } paused)
+            return paused;
+
+        foreach (var id in remainingIds)
         {
-            if (id <= 0)
+            if (await _anilistApiClient.GetAnimeByIdAsync(id) is not { } remoteAnime)
                 continue;
 
-            if (_anilistAnime.GetByAnilistAnimeID(id) is { } localAnime)
-            {
-                results.Add(new AnilistSearch.RemoteSearchAnime(localAnime));
-                continue;
-            }
-
-            if (RefuseWhenPaused() is { } paused)
-                return paused;
-
-            if (await _anilistApiClient.GetAnimeByIdAsync(id) is { } remoteAnime)
-                results.Add(new AnilistSearch.RemoteSearchAnime(new AnilistAnimeSearchResult(remoteAnime)));
+            animeDict[id] = new AnilistSearch.RemoteSearchAnime(new AnilistAnimeSearchResult(remoteAnime));
         }
 
-        return results;
+        var unknownAnime = uniqueIds.Except(animeDict.Keys).ToList();
+        if (unknownAnime.Count > 0)
+        {
+            foreach (var id in unknownAnime)
+                ModelState.AddModelError(nameof(body.IDs), $"Anime with id '{id}' not found.");
+
+            return ValidationProblem(ModelState);
+        }
+
+        return body.IDs
+            .Select(id => animeDict[id])
+            .ToList();
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Episodes
+
+    #region Constants
+
+    internal const string EpisodeNotFound = "An Anilist.Episode by the given `episodeID` was not found.";
+
+    internal const string AnimeNotFoundByEpisodeID = "An Anilist.Anime by the given `episodeID` was not found.";
+
+    #endregion
+
+    #region Basics
+
+    /// <summary>
+    /// Get multiple local Anilist episodes at once.
+    /// </summary>
+    /// <param name="body">Body containing the IDs and details to include.</param>
+    /// <returns></returns>
+    [HttpPost("Episode/Bulk")]
+    public ActionResult<List<AnilistEpisode>> BulkGetAnilistEpisodesByEpisodeIDs([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AnilistBulkFetchBody<AnilistEpisode.IncludeDetails> body) =>
+        body.IDs
+            .Select(episodeID => episodeID <= 0 ? null : _anilistEpisodes.GetByAnilistEpisodeID(episodeID))
+            .WhereNotNull()
+            .GroupBy(episode => episode.AnilistAnimeID)
+            .SelectMany(group =>
+            {
+                // Episode rows are synthesized during an anime refresh; if one is mid-update,
+                // wait for it and re-read so the caller gets the finalized row.
+                if (!_anilistMetadataService.WaitForAnimeUpdate(group.Key))
+                    return group.AsEnumerable();
+
+                return group
+                    .Select(episode => _anilistEpisodes.GetByAnilistEpisodeID(episode.AnilistEpisodeID) ?? episode)
+                    .ToList();
+            })
+            .Select(episode => new AnilistEpisode(episode, body.Include?.CombineFlags()))
+            .ToList();
+
+    /// <summary>
+    /// Get the local metadata for an Anilist episode.
+    /// </summary>
+    /// <param name="episodeID">Anilist Episode ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/{episodeID}")]
+    public ActionResult<AnilistEpisode> GetAnilistEpisodeByEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnilistEpisode.IncludeDetails>? include = null
+    )
+    {
+        if (GetEpisodeWaitingForUpdate(episodeID) is not { } episode)
+            return NotFound(EpisodeNotFound);
+
+        return new AnilistEpisode(episode, include?.CombineFlags());
+    }
+
+    /// <summary>
+    /// Get all cross-references for an Anilist episode.
+    /// </summary>
+    /// <param name="episodeID">Anilist Episode ID.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/{episodeID}/CrossReferences")]
+    public ActionResult<IReadOnlyList<AnilistEpisode.CrossReference>> GetCrossReferencesForAnilistEpisodeByEpisodeID(
+        [FromRoute] int episodeID
+    )
+    {
+        if (GetEpisodeWaitingForUpdate(episodeID) is not { } episode)
+            return NotFound(EpisodeNotFound);
+
+        return episode.CrossReferences
+            .Select(xref => new AnilistEpisode.CrossReference(xref))
+            .OrderBy(xref => xref.AnidbEpisodeID)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all file cross-references for an Anilist episode.
+    /// </summary>
+    /// <param name="episodeID">Anilist Episode ID.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/{episodeID}/FileCrossReferences")]
+    public ActionResult<IReadOnlyList<FileCrossReference>> GetFileCrossReferencesForAnilistEpisodeByEpisodeID(
+        [FromRoute] int episodeID
+    )
+    {
+        if (GetEpisodeWaitingForUpdate(episodeID) is not { } episode)
+            return NotFound(EpisodeNotFound);
+
+        return FileCrossReference.From(episode.FileCrossReferences);
+    }
+
+    #endregion
+
+    #region Same-Source Linked Entries
+
+    /// <summary>
+    /// Get the Anilist anime the episode belongs to.
+    /// </summary>
+    /// <param name="episodeID">Anilist Episode ID.</param>
+    /// <param name="include">Extra details to include.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/{episodeID}/Anime")]
+    public ActionResult<AnilistAnime> GetAnilistAnimeByEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnilistAnime.IncludeDetails>? include = null
+    )
+    {
+        if (GetEpisodeWaitingForUpdate(episodeID) is not { } episode)
+            return NotFound(EpisodeNotFound);
+
+        if (_anilistAnime.GetByAnilistAnimeID(episode.AnilistAnimeID) is not { } anime)
+            return NotFound(AnimeNotFoundByEpisodeID);
+
+        return new AnilistAnime(anime, include?.CombineFlags());
+    }
+
+    #endregion
+
+    #region Cross-Source Linked Entries
+
+    /// <summary>
+    /// Get all AniDB anime linked to an Anilist episode.
+    /// </summary>
+    /// <param name="episodeID">Anilist Episode ID.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/{episodeID}/AniDB/Anime")]
+    public ActionResult<List<AnidbAnime>> GetAniDBAnimeByAnilistEpisodeID(
+        [FromRoute] int episodeID
+    )
+    {
+        if (GetEpisodeWaitingForUpdate(episodeID) is not { } episode)
+            return NotFound(EpisodeNotFound);
+
+        return episode.CrossReferences
+            .DistinctBy(xref => xref.AnidbAnimeID)
+            .Select(xref => _anidbAnime.GetByAnimeID(xref.AnidbAnimeID))
+            .WhereNotNull()
+            .Select(anime => new AnidbAnime(anime))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all AniDB episodes linked to an Anilist episode.
+    /// </summary>
+    /// <param name="episodeID">Anilist Episode ID.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/{episodeID}/AniDB/Episode")]
+    public ActionResult<List<AnidbEpisode>> GetAniDBEpisodesByAnilistEpisodeID(
+        [FromRoute] int episodeID
+    )
+    {
+        if (GetEpisodeWaitingForUpdate(episodeID) is not { } episode)
+            return NotFound(EpisodeNotFound);
+
+        return episode.CrossReferences
+            .DistinctBy(xref => xref.AnidbEpisodeID)
+            .Select(xref => xref.AnidbEpisode)
+            .WhereNotNull()
+            .Select(anidbEpisode => new AnidbEpisode(anidbEpisode))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all Shoko series linked to an Anilist episode.
+    /// </summary>
+    /// <param name="episodeID">Anilist Episode ID.</param>
+    /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/{episodeID}/Shoko/Series")]
+    public ActionResult<List<Series>> GetShokoSeriesByAnilistEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery] bool randomImages = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
+    )
+    {
+        if (GetEpisodeWaitingForUpdate(episodeID) is not { } episode)
+            return NotFound(EpisodeNotFound);
+
+        return episode.CrossReferences
+            .DistinctBy(xref => xref.AnidbAnimeID)
+            .Select(xref => xref.AnimeSeries)
+            .WhereNotNull()
+            .Select(series => new Series(series, User.JMMUserID, randomImages, includeDataFrom))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all Shoko episodes linked to an Anilist episode.
+    /// </summary>
+    /// <param name="episodeID">Anilist Episode ID.</param>
+    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/{episodeID}/Shoko/Episode")]
+    public ActionResult<List<Episode>> GetShokoEpisodesByAnilistEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
+    )
+    {
+        if (GetEpisodeWaitingForUpdate(episodeID) is not { } episode)
+            return NotFound(EpisodeNotFound);
+
+        return episode.CrossReferences
+            .DistinctBy(xref => xref.AnidbEpisodeID)
+            .Select(xref => xref.AnimeEpisode)
+            .WhereNotNull()
+            .Select(shokoEpisode => new Episode(HttpContext, shokoEpisode, includeDataFrom))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get all files linked to an Anilist episode.
+    /// </summary>
+    /// <param name="episodeID">Anilist Episode ID.</param>
+    /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
+    /// <param name="page">Page number.</param>
+    /// <param name="include">Include items that are not included by default</param>
+    /// <param name="exclude">Exclude items of certain types</param>
+    /// <param name="include_only">Filter to only include items of certain types</param>
+    /// <param name="releaseProviders">Filter to only include files from certain release providers. Append <c>!</c> to the provider name to exclude the files</param>
+    /// <param name="sortOrder">Sort ordering. Attach '-' at the start to reverse the order of the criteria.</param>
+    /// <returns></returns>
+    [HttpGet("Episode/{episodeID}/Shoko/File")]
+    public ActionResult<ListResult<File>> GetShokoFilesByAnilistEpisodeID(
+        [FromRoute] int episodeID,
+        [FromQuery, Range(0, 1000)] int pageSize = 100,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileNonDefaultIncludeType[]? include = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileExcludeTypes[]? exclude = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] FileIncludeOnlyType[]? include_only = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? releaseProviders = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
+    )
+    {
+        if (GetEpisodeWaitingForUpdate(episodeID) is not { } episode)
+            return NotFound(EpisodeNotFound);
+
+        var videoLocals = episode.CrossReferences
+            .Select(xref => xref.AnimeEpisode)
+            .WhereNotNull()
+            .SelectMany(shokoEpisode => shokoEpisode.VideoLocals)
+            .DistinctBy(video => video.VideoLocalID);
+        return ModelHelper.FilterFiles(videoLocals, User, pageSize, page, include, exclude, include_only, releaseProviders, sortOrder);
     }
 
     #endregion

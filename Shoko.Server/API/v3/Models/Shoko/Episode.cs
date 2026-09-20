@@ -15,9 +15,11 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 
+using AnilistEpisode = Shoko.Server.API.v3.Models.Anilist.AnilistEpisode;
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.TmdbEpisode;
 using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.TmdbMovie;
@@ -28,7 +30,7 @@ namespace Shoko.Server.API.v3.Models.Shoko;
 public class Episode : BaseModel
 {
     /// <summary>
-    /// The relevant IDs for the Episode: Shoko, AniDB, TMDB.
+    /// The relevant IDs for the Episode: Shoko, AniDB, TMDB, AniList.
     /// </summary>
     [Required]
     public EpisodeIDs IDs { get; set; }
@@ -127,6 +129,13 @@ public class Episode : BaseModel
     public TmdbData? TMDB { get; set; }
 
     /// <summary>
+    /// The <see cref="AnilistData"/> entries, if
+    /// <see cref="DataSourceType.AniList"/> is included in the data to add.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public AnilistData? AniList { get; set; }
+
+    /// <summary>
     /// Files associated with the episode, if included with the metadata.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -147,6 +156,7 @@ public class Episode : BaseModel
             throw new NullReferenceException($"Unable to get AniDB Episode {episode.AniDB_EpisodeID} for Anime Episode {episode.AnimeEpisodeID}");
         var tmdbMovieXRefs = episode.TmdbMovieCrossReferences;
         var tmdbEpisodeXRefs = episode.TmdbEpisodeCrossReferences;
+        var anilistEpisodeXRefs = episode.AnilistEpisodeCrossReferences;
         var files = episode.VideoLocals;
         var (file, fileUserRecord) = files
             .Select(file => (file, userRecord: RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(userID, file.VideoLocalID)))
@@ -178,6 +188,11 @@ public class Episode : BaseModel
                     .Distinct()
                     .ToList(),
             },
+            AniList = anilistEpisodeXRefs
+                .Where(xref => xref.AnilistEpisodeID != 0)
+                .Select(xref => xref.AnilistEpisodeID)
+                .Distinct()
+                .ToList(),
         };
         HasCustomName = !string.IsNullOrEmpty(episode.EpisodeNameOverride);
         Images = ((IWithImages)episode).GetImages(new() { IsEnabled = true, IsDesired = true }).ToDto(preferredImages: true);
@@ -242,6 +257,21 @@ public class Episode : BaseModel
                     .Select(tmdbMovie => new TmdbMovie(tmdbMovie))
                     .ToList(),
             };
+        if (includeDataFrom.Contains(DataSourceType.AniList))
+            AniList = new()
+            {
+                Episodes = anilistEpisodeXRefs
+                    .Select(anilistEpisodeXref =>
+                    {
+                        var anilistEpisode = anilistEpisodeXref.AnilistEpisode;
+                        if (anilistEpisode is not null && (AnilistMetadataService.Instance?.WaitForAnimeUpdate(anilistEpisode.AnilistAnimeID) ?? false))
+                            anilistEpisode = RepoFactory.Anilist_Episode.GetByAnilistEpisodeID(anilistEpisode.AnilistEpisodeID);
+                        return anilistEpisode;
+                    })
+                    .WhereNotNull()
+                    .Select(anilistEpisode => new AnilistEpisode(anilistEpisode))
+                    .ToList(),
+            };
         if (includeFiles)
             Files = files
                 .Select(f => new File(context, f, false, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths))
@@ -291,6 +321,12 @@ public class Episode : BaseModel
         [Required]
         public TmdbEpisodeIDs TMDB { get; init; } = new();
 
+        /// <summary>
+        /// The AniList episode IDs.
+        /// </summary>
+        [Required]
+        public List<int> AniList { get; set; } = [];
+
         public class TmdbEpisodeIDs
         {
             [Required]
@@ -311,6 +347,12 @@ public class Episode : BaseModel
 
         [Required]
         public IEnumerable<TmdbMovie> Movies { get; init; } = [];
+    }
+
+    public class AnilistData
+    {
+        [Required]
+        public IEnumerable<AnilistEpisode> Episodes { get; init; } = [];
     }
 
     /// <summary>

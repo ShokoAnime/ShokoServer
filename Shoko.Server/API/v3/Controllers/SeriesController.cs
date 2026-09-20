@@ -2268,7 +2268,12 @@ public class SeriesController(
             return Forbid(SeriesForbiddenForUser);
 
         return series.AnilistAnime
-            .Select(anilistAnime => new AnilistAnime(anilistAnime, include?.CombineFlags()))
+            .Select(anilistAnime =>
+            {
+                if (_anilistMetadataService.WaitForAnimeUpdate(anilistAnime.AnilistAnimeID))
+                    anilistAnime = _anilistAnime.GetByAnilistAnimeID(anilistAnime.AnilistAnimeID) ?? anilistAnime;
+                return new AnilistAnime(anilistAnime, include?.CombineFlags());
+            })
             .ToList();
     }
 

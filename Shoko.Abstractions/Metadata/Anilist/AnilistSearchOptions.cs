@@ -48,7 +48,8 @@ public sealed class AnilistSearchOptions
     public int Page { get; set; } = 1;
 
     /// <summary>
-    /// The number of results per page. AniList caps this at 50.
+    /// The number of results per page. AniList caps this at 50. Set to 0 to
+    /// only get the total count.
     /// </summary>
     public int PageSize { get; set; } = 6;
 }

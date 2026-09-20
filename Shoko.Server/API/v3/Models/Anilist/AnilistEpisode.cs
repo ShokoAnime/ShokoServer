@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Anilist.CrossReferences;
+using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.CrossReference;
 
@@ -18,11 +20,13 @@ public class AnilistEpisode
     /// <summary>
     /// Anilist Episode ID.
     /// </summary>
+    [Required]
     public int ID { get; init; }
 
     /// <summary>
     /// Anilist Anime ID.
     /// </summary>
+    [Required]
     public int AnimeID { get; init; }
 
     /// <summary>
@@ -33,11 +37,13 @@ public class AnilistEpisode
     /// <summary>
     /// Episode number.
     /// </summary>
+    [Required]
     public int EpisodeNumber { get; init; }
 
     /// <summary>
     /// Episode runtime in minutes.
     /// </summary>
+    [Required]
     public TimeSpan Runtime { get; init; }
 
     /// <summary>
@@ -48,11 +54,13 @@ public class AnilistEpisode
     /// <summary>
     /// When the local metadata was first created.
     /// </summary>
+    [Required]
     public DateTime CreatedAt { get; init; }
 
     /// <summary>
     /// When the local metadata was last updated.
     /// </summary>
+    [Required]
     public DateTime LastUpdatedAt { get; init; }
 
     /// <summary>
@@ -60,6 +68,12 @@ public class AnilistEpisode
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IReadOnlyList<CrossReference>? CrossReferences { get; init; }
+
+    /// <summary>
+    /// Anilist episode to file cross-references.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<FileCrossReference>? FileCrossReferences { get; init; }
 
     public AnilistEpisode(Anilist_Episode episode, IncludeDetails? includeDetails = null)
     {
@@ -76,6 +90,8 @@ public class AnilistEpisode
                 .Select(xref => new CrossReference(xref))
                 .OrderBy(xref => xref.AnidbEpisodeID)
                 .ToList();
+        if (include.HasFlag(IncludeDetails.FileCrossReferences))
+            FileCrossReferences = FileCrossReference.From(episode.FileCrossReferences);
         CreatedAt = episode.CreatedAt.ToUniversalTime();
         LastUpdatedAt = episode.LastUpdatedAt.ToUniversalTime();
     }
@@ -88,37 +104,44 @@ public class AnilistEpisode
         /// <summary>
         /// AniDB Anime ID.
         /// </summary>
+        [Required]
         public int AnidbAnimeID { get; init; }
 
         /// <summary>
         /// AniDB Episode ID.
         /// </summary>
+        [Required]
         public int AnidbEpisodeID { get; init; }
 
         /// <summary>
         /// Anilist Anime ID.
         /// </summary>
+        [Required]
         public int AnilistAnimeID { get; init; }
 
         /// <summary>
         /// Anilist Episode ID.
         /// </summary>
+        [Required]
         public int AnilistEpisodeID { get; init; }
 
         /// <summary>
         /// Episode number in Anilist.
         /// </summary>
+        [Required]
         public int EpisodeNumber { get; init; }
 
         /// <summary>
         /// The index to order the cross-reference if multiple references
         /// exists for the same anidb or anilist episode.
         /// </summary>
+        [Required]
         public int Index { get; init; }
 
         /// <summary>
         /// The match rating.
         /// </summary>
+        [Required]
         public string Rating { get; init; }
 
         public CrossReference(CrossRef_AniDB_Anilist_Episode xref, int? index = null)
@@ -142,5 +165,6 @@ public class AnilistEpisode
     {
         None = 0,
         CrossReferences = 1 << 0,
+        FileCrossReferences = 1 << 1,
     }
 }

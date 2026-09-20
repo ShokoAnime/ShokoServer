@@ -30,6 +30,11 @@ public class AnilistRefreshAnimeBody
     public bool Immediate { get; set; } = false;
 
     /// <summary>
+    /// Skip the refresh entirely if the anime is already stored locally.
+    /// </summary>
+    public bool SkipIfExists { get; set; } = false;
+
+    /// <summary>
     /// Only fetch the anime and its episodes, for the linking UI. Only
     /// meaningful together with <see cref="Immediate"/>; a queued refresh
     /// always does the full job.

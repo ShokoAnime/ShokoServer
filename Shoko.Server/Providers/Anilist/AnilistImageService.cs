@@ -58,6 +58,25 @@ public class AnilistImageService(ILogger<AnilistImageService> logger, IImageMana
     }
 
     /// <summary>
+    /// Convert a resource ID stored on an image back into the absolute image
+    /// URL, using the CDN base from <see cref="ImageServerUrl"/>.
+    /// </summary>
+    /// <param name="resourceID">The relative resource ID, or <see langword="null"/>.</param>
+    /// <returns>The absolute image URL, or <see langword="null"/> if the resource ID is empty.</returns>
+    public static string? ToImageUrl(string? resourceID)
+    {
+        if (string.IsNullOrWhiteSpace(resourceID))
+            return null;
+
+        // Anything that never matched the CDN marker was stored as-is by
+        // ToResourceID, so it is already absolute and must not be prefixed.
+        if (resourceID.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || resourceID.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            return resourceID;
+
+        return _imageServerUrl + resourceID;
+    }
+
+    /// <summary>
     /// Register the image of the given type for the entity, unregister any
     /// other AniList image of that type still linked to it, and schedule the
     /// download if wanted.

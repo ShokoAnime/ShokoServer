@@ -716,6 +716,7 @@ public partial class TmdbController(
     /// A list of <see cref="Search.RemoteSearchMovie"/> containing the search results.
     /// The order of the returned movies is determined by the order of the IDs in <paramref name="body"/>.
     /// </returns>
+    [Authorize("admin")]
     [HttpPost("Movie/Online/Bulk")]
     public async Task<ActionResult<List<Search.RemoteSearchMovie>>> SearchBulkForTmdbMovies(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkSearchBody body
@@ -1896,6 +1897,7 @@ public partial class TmdbController(
     /// A list of <see cref="Search.RemoteSearchShow"/> containing the search results.
     /// The order of the returned shows is determined by the order of the IDs in <paramref name="body"/>.
     /// </returns>
+    [Authorize("admin")]
     [HttpPost("Show/Online/Bulk")]
     public async Task<ActionResult<List<Search.RemoteSearchShow>>> SearchBulkForTmdbShows(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkSearchBody body
@@ -2990,6 +2992,7 @@ public partial class TmdbController(
     /// </summary>
     /// <param name="body">Optional. Export options.</param>
     /// <returns></returns>
+    [Authorize("admin")]
     [HttpPost("Export")]
     public ActionResult ExportCrossReferences(
         [FromBody] TmdbExportBody? body
@@ -3213,6 +3216,7 @@ public partial class TmdbController(
     /// <param name="addMissingMovies">Add missing movies.</param>
     /// <param name="addMissingShows">Add missing shows.</param>
     /// <returns>Void.</returns>
+    [Authorize("admin")]
     [HttpPost("Import")]
     public async Task<ActionResult> ImportMovieCrossReferences(
         IFormFile file,

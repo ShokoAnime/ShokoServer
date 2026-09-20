@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata;
@@ -23,22 +25,26 @@ public static class AnilistSearch
         /// <summary>
         /// AniDB Anime ID.
         /// </summary>
+        [Required]
         public int AnimeID { get; set; }
 
         /// <summary>
         /// Indicates that this is a local match using existing data instead of a
         /// remote match.
         /// </summary>
+        [Required]
         public bool IsLocal { get; set; }
 
         /// <summary>
         /// Indicates that this is a remote match.
         /// </summary>
+        [Required]
         public bool IsRemote { get; set; }
 
         /// <summary>
         /// Remote Anilist Anime information.
         /// </summary>
+        [Required]
         public RemoteSearchAnime Anime { get; set; }
 
         public AutoMatchResult(AnilistAutoSearchResult result)
@@ -58,39 +64,52 @@ public static class AnilistSearch
         /// <summary>
         /// Anilist Anime ID.
         /// </summary>
+        [Required]
         public int ID { get; init; }
 
         /// <summary>
         /// English title.
         /// </summary>
+        [Required]
         public string Title { get; init; }
 
         /// <summary>
         /// Native/original title.
         /// </summary>
+        [Required]
         public string OriginalTitle { get; init; }
 
         /// <summary>
         /// Original language the anime was produced in.
         /// </summary>
+        [Required]
         public string OriginalLanguage { get; init; }
 
         /// <summary>
         /// Overview/description.
         /// </summary>
+        [Required]
         public string Overview { get; init; }
 
         /// <summary>
         /// Indicates the anime is restricted to an age group above the legal age
         /// (adult content).
         /// </summary>
+        [Required]
         public bool IsRestricted { get; init; }
 
         /// <summary>
         /// The anime type (TV, Movie, OVA, etc.).
         /// </summary>
+        [Required]
         [JsonConverter(typeof(StringEnumConverter))]
         public AnimeType Type { get; init; }
+
+        /// <summary>
+        /// Genres.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> Genres { get; init; }
 
         /// <summary>
         /// The date the anime started airing.
@@ -110,6 +129,7 @@ public static class AnilistSearch
         /// <summary>
         /// User rating of the anime from Anilist users.
         /// </summary>
+        [Required]
         public Rating UserRating { get; init; }
 
         public RemoteSearchAnime(Anilist_Anime anime)
@@ -121,9 +141,10 @@ public static class AnilistSearch
             Overview = anime.EnglishOverview ?? string.Empty;
             IsRestricted = anime.IsRestricted;
             Type = anime.Type;
+            Genres = anime.Genres;
             FirstAiredAt = anime.FirstAiredAt;
-            CoverImage = !string.IsNullOrEmpty(anime.CoverImagePath) ? anime.CoverImagePath : null;
-            BannerImage = !string.IsNullOrEmpty(anime.BannerImagePath) ? anime.BannerImagePath : null;
+            CoverImage = AnilistImageService.ToImageUrl(anime.CoverImagePath);
+            BannerImage = AnilistImageService.ToImageUrl(anime.BannerImagePath);
             UserRating = new()
             {
                 Value = anime.UserRating,
@@ -143,6 +164,7 @@ public static class AnilistSearch
             Overview = anime.Overview;
             IsRestricted = anime.IsRestricted;
             Type = anime.Type;
+            Genres = anime.Genres;
             FirstAiredAt = anime.FirstAiredAt;
             CoverImage = anime.CoverImageUrl;
             BannerImage = anime.BannerImageUrl;

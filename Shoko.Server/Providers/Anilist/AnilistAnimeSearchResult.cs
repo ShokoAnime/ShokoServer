@@ -201,8 +201,8 @@ public class AnilistAnimeSearchResult : IAnilistAnimeSearchResult
         Season = anime.Season;
         SeasonYear = anime.SeasonYear;
         FirstAiredAt = anime.FirstAiredAt;
-        CoverImageUrl = anime.CoverImagePath;
-        BannerImageUrl = anime.BannerImagePath;
+        CoverImageUrl = AnilistImageService.ToImageUrl(anime.CoverImagePath);
+        BannerImageUrl = AnilistImageService.ToImageUrl(anime.BannerImagePath);
         UserRating = (decimal)anime.UserRating;
         UserVotes = anime.FavoriteCount;
         Genres = anime.Genres;

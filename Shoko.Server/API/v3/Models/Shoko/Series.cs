@@ -19,11 +19,13 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
+using AnilistAnime = Shoko.Server.API.v3.Models.Anilist.AnilistAnime;
 using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 
 #pragma warning disable CS0618
@@ -126,6 +128,13 @@ public class Series : BaseModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public TmdbData? TMDB { get; set; }
 
+    /// <summary>
+    /// The <see cref="AnilistData"/> entries, if
+    /// <see cref="DataSourceType.AniList"/> is included in the data to add.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public AnilistData? AniList { get; set; }
+
     public Series(AnimeSeries ser, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
     {
         var anime = ser.AniDB_Anime ??
@@ -135,6 +144,7 @@ public class Series : BaseModel
         var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userId, ser.AnimeSeriesID);
         var tmdbMovieXRefs = ser.TmdbMovieCrossReferences;
         var tmdbShowXRefs = ser.TmdbShowCrossReferences;
+        var anilistAnimeXRefs = ser.AnilistAnimeCrossReferences;
         var groupStatusesByAnime = new Dictionary<int, List<AniDB_GroupStatus>> { [ser.AniDB_ID] = RepoFactory.AniDB_GroupStatus.GetByAnimeID(ser.AniDB_ID) };
         var sizes = ModelHelper.GenerateSeriesSizes(allEpisodes, userId, groupStatusesByAnime);
         IDs = new()
@@ -155,7 +165,7 @@ public class Series : BaseModel
                 Show = tmdbShowXRefs.Select(a => a.TmdbShowID).Distinct().ToList(),
             },
             MAL = ser.MalCrossReferences.Select(a => a.MALID).Distinct().ToList(),
-            AniList = ser.AnilistAnimeCrossReferences.Select(a => a.AnilistAnimeID).Distinct().ToList(),
+            AniList = anilistAnimeXRefs.Select(a => a.AnilistAnimeID).Distinct().ToList(),
         };
         Links = anime.Resources
             .Select(resource => new Resource(resource))
@@ -207,6 +217,21 @@ public class Series : BaseModel
                     })
                     .WhereNotNull()
                     .Select(show => new TmdbShow(show, show.PreferredAlternateOrdering))
+                    .ToList(),
+            };
+        if (includeDataFrom?.Contains(DataSourceType.AniList) ?? false)
+            AniList = new()
+            {
+                Anime = anilistAnimeXRefs
+                    .Select(xref =>
+                    {
+                        var anilistAnime = xref.AnilistAnime;
+                        if (anilistAnime is not null && (AnilistMetadataService.Instance?.WaitForAnimeUpdate(anilistAnime.AnilistAnimeID) ?? false))
+                            anilistAnime = RepoFactory.Anilist_Anime.GetByAnilistAnimeID(anilistAnime.AnilistAnimeID);
+                        return anilistAnime;
+                    })
+                    .WhereNotNull()
+                    .Select(anilistAnime => new AnilistAnime(anilistAnime))
                     .ToList(),
             };
     }
@@ -491,6 +516,12 @@ public class Series : BaseModel
 
         [Required]
         public IEnumerable<TmdbShow> Shows { get; init; } = [];
+    }
+
+    public class AnilistData
+    {
+        [Required]
+        public IEnumerable<AnilistAnime> Anime { get; init; } = [];
     }
 
     #region User Data
