@@ -347,27 +347,7 @@ public class ActionService : IActionService
         ContractResolver = new ActionMetadataContractResolver(),
     };
 
-    /// <summary>
-    ///   Checks an invocation payload against the action's parameter schema.
-    /// </summary>
-    /// <remarks>
-    ///   <para>
-    ///     Only the API boundary calls this. An in-process caller passes a typed
-    ///     dictionary it built in code rather than a document it parsed, and the
-    ///     failure it wants is a compiler error, not a dictionary of paths — so
-    ///     <see cref="InvokeAsync(Guid, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
-    ///     stays free of it.
-    ///   </para>
-    ///   <para>
-    ///     The errors come back keyed by property path, which is the shape the
-    ///     configuration endpoints already return for a rejected body.
-    ///   </para>
-    /// </remarks>
-    /// <param name="actionId">The action being invoked.</param>
-    /// <param name="parameters">
-    ///   The payload, or <see langword="null"/> when the caller sent no body.
-    /// </param>
-    /// <returns>Errors per property path; empty when the payload is acceptable.</returns>
+    /// <inheritdoc />
     public IReadOnlyDictionary<string, IReadOnlyList<string>> ValidateParameters(Guid actionId, JObject? parameters)
     {
         // No body is how every action has always been invoked, and how one that
