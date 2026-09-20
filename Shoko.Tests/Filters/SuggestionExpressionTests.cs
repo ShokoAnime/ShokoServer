@@ -191,19 +191,24 @@ public class SuggestionExpressionTests
         using var scope = Scope();
         var filterable = new FilterableAnimeSeries(s_heldSeries, s_date);
 
-        // Three suggestions point at this series, and none of them count here: the expressions
-        // measure what a series suggests, not what suggests it.
+        // Three suggestions point at this series. The AniDB and TMDB ones do not count here,
+        // because the expressions measure what a series suggests and those two providers do not
+        // reverse: their reverse entry is a separate opinion with its own weight.
         Assert.Equal(0, filterable.AnidbSuggestions);
         Assert.Equal(0, filterable.TmdbSuggestions);
-        Assert.Equal(0, filterable.AnilistSuggestions);
-        Assert.Equal(0, filterable.TotalSuggestions);
-        Assert.Equal(0, filterable.LocalSuggestions);
-
         Assert.False(new HasAnidbSuggestionExpression().Evaluate(filterable, null, s_date));
         Assert.False(new HasTmdbSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.False(new HasAnilistSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.False(new HasSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.False(new HasLocalSuggestionExpression().Evaluate(filterable, null, s_date));
+
+        // AniList does reverse, and this is the difference showing up. It holds one undirected
+        // recommendation and serves it from both sides with the same score, so the entry stored
+        // while fetching the other anime is this one's recommendation too. It resolves back to a
+        // held series, so it is local as well.
+        Assert.Equal(1, filterable.AnilistSuggestions);
+        Assert.Equal(1, filterable.TotalSuggestions);
+        Assert.Equal(1, filterable.LocalSuggestions);
+        Assert.True(new HasAnilistSuggestionExpression().Evaluate(filterable, null, s_date));
+        Assert.True(new HasSuggestionExpression().Evaluate(filterable, null, s_date));
+        Assert.True(new HasLocalSuggestionExpression().Evaluate(filterable, null, s_date));
     }
 
     [Fact]

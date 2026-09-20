@@ -57,8 +57,14 @@ internal static class FilterableSuggestions
     /// </summary>
     /// <param name="sources">The linked provider entities.</param>
     /// <returns>The count.</returns>
+    /// <remarks>
+    /// Counted through <c>GetMergedByAnilistAnimeID</c>, because AniList's
+    /// edges are stored in whichever direction they were fetched and belong to
+    /// both ends. Counting one direction's rows would disagree with what
+    /// <c>/api/v3/Series/{id}/Suggested</c> returns.
+    /// </remarks>
     public static int CountAnilist(SuggestionSources sources)
-        => sources.AnilistAnimeIDs.Sum(animeID => RepoFactory.Anilist_Anime_Suggestion.GetByAnilistAnimeID(animeID).Count);
+        => sources.AnilistAnimeIDs.Sum(animeID => RepoFactory.Anilist_Anime_Suggestion.GetMergedByAnilistAnimeID(animeID).Count);
 
     /// <summary>
     /// The number of suggestions, from any source, whose other end traces back
@@ -82,7 +88,7 @@ internal static class FilterableSuggestions
                 .Count(suggestion => IsTmdbMovieInCollection(suggestion.SuggestedTmdbEntityID));
 
         foreach (var animeID in sources.AnilistAnimeIDs)
-            count += RepoFactory.Anilist_Anime_Suggestion.GetByAnilistAnimeID(animeID)
+            count += RepoFactory.Anilist_Anime_Suggestion.GetMergedByAnilistAnimeID(animeID)
                 .Count(suggestion => IsAnilistInCollection(suggestion.SuggestedAnilistAnimeID));
 
         return count;

@@ -357,15 +357,31 @@ public class Anilist_Anime : Anilist_Base<int>, IAnilistAnime
     /// <c>null</c>. Read
     /// <see cref="Anilist_Anime_Suggestion.Rating"/> for AniList's net score.
     /// </summary>
+    /// <remarks>
+    /// Both directions are read and merged, because AniList's recommendations
+    /// are one undirected edge served from both sides with the same score. An
+    /// edge we stored while fetching the other anime is therefore this anime's
+    /// recommendation too, and how far
+    /// <see cref="Settings.AnilistSettings.RecommendationDepth"/> pages means
+    /// an edge can be above the cutoff on one side and below it on the other,
+    /// so merging recovers entries rather than merely duplicating them. The
+    /// direct entry wins the deduplication, since only it carries this side's
+    /// own position.
+    /// </remarks>
     public IReadOnlyList<Anilist_Anime_Suggestion> Suggestions
-        => RepoFactory.Anilist_Anime_Suggestion.GetByAnilistAnimeID(AnilistAnimeID);
+        => RepoFactory.Anilist_Anime_Suggestion.GetMergedByAnilistAnimeID(AnilistAnimeID);
 
     /// <summary>
-    /// The anime in the collection whose users recommend this one, best scored
-    /// first.
+    /// The anime whose users recommend this one, best scored first.
     /// </summary>
+    /// <remarks>
+    /// The same set as <see cref="Suggestions"/> with the ends swapped, and
+    /// not a narrower one: the relation is symmetric, so everything this anime
+    /// recommends also recommends it back. Kept as its own member because the
+    /// contract asks the two to differ in which end is this anime.
+    /// </remarks>
     public IReadOnlyList<Anilist_Anime_Suggestion> SuggestedBy
-        => RepoFactory.Anilist_Anime_Suggestion.GetBySuggestedAnilistAnimeID(AnilistAnimeID);
+        => Suggestions.Select(suggestion => suggestion.Reversed).ToList();
 
     /// <summary>
     /// Get all AniDB/AniList anime cross-references for the anime.

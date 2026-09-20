@@ -99,14 +99,37 @@ TMDB movies are linked to Shoko **episodes**, not to a series, so a movie's
 suggestions are reached through the episode, or through the series as the union
 of its episodes' movies.
 
+### AniList is symmetric, and is merged because of it
+
+AniList holds one undirected recommendation and serves it from both sides with
+the same score. Measured against the live API on 2026-09-20: the top five
+recommendations on anime 1 each named it back with an identical rating.
+
+So an AniList anime's `Suggestions` merges both stored directions, flipping the
+ones stored the other way round, and `SuggestedBy` is the same set with the
+ends swapped rather than a narrower one. This is worth doing rather than
+merely tidy, because how far `RecommendationDepth` pages means an edge can sit
+above the cutoff on one side and below it on the other: merging recovers
+entries instead of only deduplicating them. Where the same edge was stored
+twice, the direct copy wins, since only it carries this side's own `Order`.
+
+**The other two are not merged, and must not be.** AniDB's similar anime
+reciprocate 99.2% of the time, but 12.4% of reciprocal pairs carry different
+approval and vote counts, so the reverse entry is a second opinion rather than
+a copy. TMDB's recommendations reciprocate at different ranks, and its similar
+titles do not reciprocate at all. Both measured on 2026-09-20.
+
 ---
 
 ## Mistakes that are easy to make
 
 - **Treating a suggestion as a relation.** They are separate contracts on
-  purpose. A suggestion is somebody's opinion, it does not reverse into a
-  matching statement on the other entity, and walking it as though it were the
-  relation graph produces nonsense.
+  purpose. A suggestion is somebody's opinion, and walking it as though it were
+  the relation graph produces nonsense.
+- **Assuming a suggestion reverses.** In general it does not: whether the other
+  entity says anything back, and with what weight, is the provider's business.
+  AniList is the one exception, and it is handled for you rather than being
+  something to rely on per provider. See above.
 - **Assuming `Suggested` resolves.** See above; most do not.
 - **Comparing `Votes` across providers.** Only AniDB publishes a voter count.
   A null there means "not published", never "nobody voted".

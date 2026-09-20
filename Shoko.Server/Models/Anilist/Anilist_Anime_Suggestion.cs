@@ -71,6 +71,30 @@ public class Anilist_Anime_Suggestion : IAnilistSuggestion
     /// </summary>
     public Anilist_Anime? SuggestedAnime => RepoFactory.Anilist_Anime.GetByAnilistAnimeID(SuggestedAnilistAnimeID);
 
+    /// <summary>
+    /// The same recommendation seen from the other end.
+    /// </summary>
+    /// <remarks>
+    /// AniList holds one undirected edge and serves it from both sides with
+    /// the same score, so this is the same recommendation rather than a second
+    /// opinion about it. Measured against the live API on 2026-09-20: the top
+    /// five recommendations on anime 1 each named it back with an identical
+    /// rating. That is why <see cref="Rating"/> carries over unchanged.
+    ///
+    /// <see cref="Ordering"/> carries over too, and there it is an
+    /// approximation: a position is per-side, and the other side's position is
+    /// the only one AniList gave us for this edge. A reversed entry only
+    /// survives the merge when the direct one is absent, so the approximation
+    /// is never preferred over a real position.
+    /// </remarks>
+    public Anilist_Anime_Suggestion Reversed => new()
+    {
+        AnilistAnimeID = SuggestedAnilistAnimeID,
+        SuggestedAnilistAnimeID = AnilistAnimeID,
+        Rating = Rating,
+        Ordering = Ordering,
+    };
+
     #endregion
 
     #region ISuggestedMetadata Implementation
