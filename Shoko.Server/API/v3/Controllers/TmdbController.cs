@@ -1510,7 +1510,7 @@ public partial class TmdbController(
     }
 
 
-    [GeneratedRegex(@"^\s*(?=[SsEe])(?:(?<isSpecial>[Ss]pecial(?:s|\s*(?<specialNumber>\d+))?)|(?:[Ss](?<seasonNumber>\d+))?((?=[Ee])\s+)?(?:[Ee](?<episodeNumber>\d+))?)", RegexOptions.Compiled)]
+    [GeneratedRegex(@"^\s*(?=[SsEe#])(?:(?<isSpecial>[Ss]pecial(?:s|\s*(?<specialNumber>\d+))?)|(?:[Ss](?<seasonNumber>\d+))?((?=[Ee])\s+)?(?:[Ee#](?<episodeNumber>\d+))?)", RegexOptions.Compiled)]
     private static partial Regex SeasonEpisodeRegex();
 
     /// <summary>
@@ -1523,7 +1523,7 @@ public partial class TmdbController(
     /// <param name="alternateOrderingID">The optional ID of an alternate ordering.</param>
     /// <param name="pageSize">The number of entries to return per page.</param>
     /// <param name="page">The page of entries to return.</param>
-    /// <param name="search">The optional search string to filter the results by.</param>
+    /// <param name="search">The optional search string to filter the results by. A leading <c>S1</c>, <c>E2</c>, <c>#2</c> or <c>Special 3</c> narrows to that season or episode, and whatever follows is searched against the titles.</param>
     /// <param name="fuzzy">Whether or not to search fuzzily.</param>
     /// <returns>The list of episodes.</returns>
     [HttpGet("Show/{showID}/Episode")]
