@@ -18,7 +18,7 @@ public sealed class SyncEpisodeMylistAction(IMylistService mylistService) : Epis
 
     public override string? Description => "Reconciles your AniDB MyList with the local state for the episode, with or without files.";
 
-    public override ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.Sync;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

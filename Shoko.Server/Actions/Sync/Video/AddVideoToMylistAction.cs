@@ -15,7 +15,7 @@ public sealed class AddVideoToMylistAction(IMylistService mylistService) : Video
 
     public override string? Description => "Adds the file to your AniDB MyList.";
 
-    public override ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.Sync;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

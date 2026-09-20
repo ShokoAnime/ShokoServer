@@ -16,7 +16,7 @@ public sealed class RemoveVideoFromMylistAction(IMylistService mylistService) : 
 
     public override string? Description => "Removes the file from your AniDB MyList, following your configured delete type.";
 
-    public override ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.Sync;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

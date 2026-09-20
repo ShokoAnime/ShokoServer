@@ -42,7 +42,7 @@ public class GroupActionController(IActionService actionService, AnimeGroupRepos
         if (groupEntity is null)
             return NotFound("Group not found.");
 
-        var validation = await actionService.InvokeAsync(actionID, groupEntity, User, token);
+        var validation = await actionService.InvokeAsync(actionID, groupEntity, caller: User, token: token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 }

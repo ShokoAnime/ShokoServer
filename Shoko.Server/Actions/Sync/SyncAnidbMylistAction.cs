@@ -16,7 +16,7 @@ public sealed class SyncAnidbMylistAction(IMylistService mylistService) : IExecu
 
     public string? Description => "Sync all local state to the AniDB MyList. This can overwrite AniDB data irreversibly.";
 
-    public ActionCategory Category => ActionCategory.AniDB;
+    public ActionCategory Category => ActionCategory.Sync;
 
     public ActionPermission Permission => ActionPermission.Admin;
 

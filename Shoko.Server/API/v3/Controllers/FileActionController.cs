@@ -42,7 +42,7 @@ public class FileActionController(IActionService actionService, VideoLocalReposi
         if (videoEntity is null)
             return NotFound("File not found.");
 
-        var validation = await actionService.InvokeAsync(actionID, videoEntity, User, token);
+        var validation = await actionService.InvokeAsync(actionID, videoEntity, caller: User, token: token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 }

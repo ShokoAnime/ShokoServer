@@ -7,13 +7,13 @@ using Shoko.Server.Models.Shoko;
 namespace Shoko.Server.Actions;
 
 /// <summary>
-///   Rescan all files for the series, re-running release matching.
+///   Rescan the file, re-running release matching.
 /// </summary>
-public sealed class RescanSeriesFilesAction(IVideoReleaseService releaseService) : SeriesAction
+public sealed class RescanVideoFileAction(IVideoReleaseService releaseService) : VideoAction
 {
-    public override string Name => "Rescan Files";
+    public override string Name => "Rescan File";
 
-    public override string? Description => "Rescans every file associated with the series.";
+    public override string? Description => "Rescans the file, re-running release matching.";
 
     public override ActionCategory Category => ActionCategory.Import;
 
@@ -24,10 +24,6 @@ public sealed class RescanSeriesFilesAction(IVideoReleaseService releaseService)
             ? null
             : new ActionValidationResult("Release auto-matching is currently disabled."));
 
-    public override async Task Execute(CancellationToken token = default)
-    {
-        var animeSeries = (AnimeSeries)Series;
-        foreach (var file in animeSeries.VideoLocals)
-            await releaseService.ScheduleFindReleaseForVideo(file, force: true);
-    }
+    public override Task Execute(CancellationToken token = default)
+        => releaseService.ScheduleFindReleaseForVideo((VideoLocal)Video, force: true);
 }

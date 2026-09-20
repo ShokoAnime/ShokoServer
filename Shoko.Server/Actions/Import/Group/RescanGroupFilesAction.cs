@@ -20,6 +20,11 @@ public sealed class RescanGroupFilesAction(IVideoReleaseService releaseService) 
 
     public override ActionPermission Permission => ActionPermission.Admin;
 
+    public override Task<ActionValidationResult?> Validate(CancellationToken token = default)
+        => Task.FromResult(releaseService.AutoMatchEnabled
+            ? null
+            : new ActionValidationResult("Release auto-matching is currently disabled."));
+
     public override async Task Execute(CancellationToken token = default)
     {
         var animeGroup = (AnimeGroup)Group;

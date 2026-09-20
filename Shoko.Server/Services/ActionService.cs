@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Actions.Services;
+using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -81,6 +83,11 @@ public class ActionService : IActionService
     ///   leaks server internals.
     /// </summary>
     private sealed record RegisteredAction(ExecutableActionInfo Info, Type ActionType);
+
+    /// <summary>
+    ///   The same registrations keyed by their concrete action type.
+    /// </summary>
+    private readonly Dictionary<Type, RegisteredAction> _actionsByType = new();
 
     private readonly VideoLocalRepository _videoLocals;
 
@@ -232,12 +239,13 @@ public class ActionService : IActionService
                 ? _pluginManager.GetPluginInfo(pluginId)?.Name ?? actionType.Assembly.GetName().Name!
                 : probe.Category.ToString();
 
-            _actions[id] = new RegisteredAction(new ExecutableActionInfo(
+            _actions[id] = _actionsByType[actionType] = new RegisteredAction(new ExecutableActionInfo(
                 id,
                 probe.Name,
                 probe.Description,
                 probe.Category,
                 categoryName,
+                probe.IsPrimaryAction,
                 scope,
                 probe.Permission,
                 probe.RequiresConfirmation,
@@ -264,6 +272,16 @@ public class ActionService : IActionService
 
     public ExecutableActionInfo? GetActionInfo(Guid actionId)
         => _actions.TryGetValue(actionId, out var info) ? info.Info : null;
+
+    public ExecutableActionInfo? GetActionInfo<TAction>() where TAction : class, IExecutableAction
+        => GetActionInfo(typeof(TAction));
+
+    public ExecutableActionInfo? GetActionInfo(Type actionType)
+    {
+        ArgumentNullException.ThrowIfNull(actionType);
+
+        return _actionsByType.TryGetValue(actionType, out var info) ? info.Info : null;
+    }
 
     public string GetActionName(Guid actionId)
         => _actions.TryGetValue(actionId, out var info) ? info.Info.Name : actionId.ToString();
@@ -295,45 +313,61 @@ public class ActionService : IActionService
         JsonConvert.PopulateObject(JsonConvert.SerializeObject(parameters), action);
     }
 
-    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IUser?, CancellationToken)"/>
-    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IUser? caller = null, CancellationToken token = default)
-        => InvokeCoreAsync(actionId, scopeEntity: null, parameters: null, caller, token);
-
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
-    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
         => InvokeCoreAsync(actionId, scopeEntity: null, parameters, caller, token);
 
-    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoGroup, IUser?, CancellationToken)"/>
-    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoGroup group, IUser? caller = null, CancellationToken token = default)
-        => InvokeCoreAsync(actionId, group, parameters: null, caller, token);
-
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoGroup, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
-    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoGroup group, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoGroup group, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
         => InvokeCoreAsync(actionId, group, parameters, caller, token);
 
-    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoSeries, IUser?, CancellationToken)"/>
-    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoSeries series, IUser? caller = null, CancellationToken token = default)
-        => InvokeCoreAsync(actionId, series, parameters: null, caller, token);
-
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoSeries, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
-    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoSeries series, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoSeries series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
         => InvokeCoreAsync(actionId, series, parameters, caller, token);
 
-    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoEpisode, IUser?, CancellationToken)"/>
-    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IUser? caller = null, CancellationToken token = default)
-        => InvokeCoreAsync(actionId, episode, parameters: null, caller, token);
-
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IShokoEpisode, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
-    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
         => InvokeCoreAsync(actionId, episode, parameters, caller, token);
 
-    /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IVideo, IUser?, CancellationToken)"/>
-    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IVideo video, IUser? caller = null, CancellationToken token = default)
-        => InvokeCoreAsync(actionId, video, parameters: null, caller, token);
-
     /// <inheritdoc cref="IActionService.InvokeAsync(Guid, IVideo, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
-    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?> parameters, IUser? caller = null, CancellationToken token = default)
+    public Task<ActionValidationResult?> InvokeAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
         => InvokeCoreAsync(actionId, video, parameters, caller, token);
+
+    /// <inheritdoc cref="IActionService.ValidateAsync(Guid, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> ValidateAsync(Guid actionId, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
+        => ValidateCoreAsync(actionId, scopeEntity: null, parameters, caller, token);
+
+    /// <inheritdoc cref="IActionService.ValidateAsync(Guid, IShokoGroup, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoGroup group, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
+        => ValidateCoreAsync(actionId, group, parameters, caller, token);
+
+    /// <inheritdoc cref="IActionService.ValidateAsync(Guid, IShokoSeries, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoSeries series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
+        => ValidateCoreAsync(actionId, series, parameters, caller, token);
+
+    /// <inheritdoc cref="IActionService.ValidateAsync(Guid, IShokoEpisode, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
+        => ValidateCoreAsync(actionId, episode, parameters, caller, token);
+
+    /// <inheritdoc cref="IActionService.ValidateAsync(Guid, IVideo, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task<ActionValidationResult?> ValidateAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
+        => ValidateCoreAsync(actionId, video, parameters, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeBulkAsync(Guid, IReadOnlyList{IShokoGroup}, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task InvokeBulkAsync(Guid actionId, IReadOnlyList<IShokoGroup> groups, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
+        => InvokeBulkCoreAsync(actionId, groups, ActionScope.Group, parameters, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeBulkAsync(Guid, IReadOnlyList{IShokoSeries}, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task InvokeBulkAsync(Guid actionId, IReadOnlyList<IShokoSeries> series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
+        => InvokeBulkCoreAsync(actionId, series, ActionScope.Series, parameters, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeBulkAsync(Guid, IReadOnlyList{IShokoEpisode}, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task InvokeBulkAsync(Guid actionId, IReadOnlyList<IShokoEpisode> episodes, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
+        => InvokeBulkCoreAsync(actionId, episodes, ActionScope.Episode, parameters, caller, token);
+
+    /// <inheritdoc cref="IActionService.InvokeBulkAsync(Guid, IReadOnlyList{IVideo}, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    public Task InvokeBulkAsync(Guid actionId, IReadOnlyList<IVideo> videos, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default)
+        => InvokeBulkCoreAsync(actionId, videos, ActionScope.Video, parameters, caller, token);
 
     /// <summary>
     ///   The invoke entry point. Scope-agnostic on purpose — the caller
@@ -349,15 +383,95 @@ public class ActionService : IActionService
     /// </returns>
     private async Task<ActionValidationResult?> InvokeCoreAsync(Guid actionId, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
     {
-        if (!_actions.TryGetValue(actionId, out var registered))
-            throw new KeyNotFoundException($"No action registered for {actionId}");
+        var registered = ResolveAction(actionId);
+        if (CheckApplicable(registered, ScopeOf(scopeEntity), caller) is { } rejection)
+            return rejection;
 
-        var info = registered.Info;
+        if (await ValidateEntryAsync(registered, scopeEntity, parameters, caller, token) is { } validation)
+            return validation;
 
-        // Reject invocations via the wrong scope (e.g. a series-scoped action invoked
-        // with no series, or a global action invoked with one) instead of letting the
-        // context cast fail later in the job.
-        var expectedScope = scopeEntity switch
+        await EnqueueAsync(registered, scopeEntity, parameters, caller, token);
+
+        // Bare ack — no tracking ID.
+        return null;
+    }
+
+    /// <summary>
+    ///   The bulk entry point, scope-agnostic in the same way as
+    ///   <see cref="InvokeCoreAsync"/>. Every entry is validated before any of
+    ///   them is queued.
+    /// </summary>
+    /// <remarks>
+    ///   Whether the action exists, applies to the scope and may be invoked by
+    ///   this caller are properties of the action, so they are checked once and
+    ///   fail the whole call rather than producing one identical complaint per
+    ///   entry.
+    /// </remarks>
+    /// <exception cref="GenericValidationException">
+    ///   The action, or at least one entry, was rejected. Nothing was queued.
+    /// </exception>
+    private async Task InvokeBulkCoreAsync(Guid actionId, IReadOnlyList<object> scopeEntities, ActionScope scope, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
+    {
+        var errors = await ValidateBulkCoreAsync(actionId, scopeEntities, scope, parameters, caller, token);
+        if (errors.Count > 0)
+        {
+            throw new GenericValidationException(
+                errors.ContainsKey(string.Empty)
+                    ? "The action cannot be invoked."
+                    : $"{errors.Count} of {scopeEntities.Count} entries were rejected.",
+                errors
+            );
+        }
+
+        var registered = ResolveAction(actionId);
+        foreach (var scopeEntity in scopeEntities)
+            await EnqueueAsync(registered, scopeEntity, parameters, caller, token);
+    }
+
+    /// <summary>
+    ///   Everything <see cref="InvokeCoreAsync"/> does before it queues, and
+    ///   nothing after. Scope-agnostic in the same way.
+    /// </summary>
+    /// <returns>
+    ///   <see langword="null"/> when the action would be accepted, or the
+    ///   reason it would be refused.
+    /// </returns>
+    private async Task<ActionValidationResult?> ValidateCoreAsync(Guid actionId, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
+    {
+        var registered = ResolveAction(actionId);
+        return CheckApplicable(registered, ScopeOf(scopeEntity), caller)
+            ?? await ValidateEntryAsync(registered, scopeEntity, parameters, caller, token);
+    }
+
+    /// <summary>
+    ///   Validates every entry and reports the refusals rather than throwing,
+    ///   so <see cref="InvokeBulkCoreAsync"/> can decide what to do with them.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> ValidateBulkCoreAsync(Guid actionId, IReadOnlyList<object> scopeEntities, ActionScope scope, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
+    {
+        var registered = ResolveAction(actionId);
+        if (CheckApplicable(registered, scope, caller) is { } rejection)
+            return new Dictionary<string, IReadOnlyList<string>> { [string.Empty] = [rejection.Reason] };
+
+        var errors = new Dictionary<string, IReadOnlyList<string>>();
+        for (var index = 0; index < scopeEntities.Count; index++)
+            if (await ValidateEntryAsync(registered, scopeEntities[index], parameters, caller, token) is { } validation)
+                errors[string.Create(CultureInfo.InvariantCulture, $"IDs[{index}]")] = [validation.Reason];
+
+        return errors;
+    }
+
+    private RegisteredAction ResolveAction(Guid actionId)
+        => _actions.TryGetValue(actionId, out var registered)
+            ? registered
+            : throw new KeyNotFoundException($"No action registered for {actionId}");
+
+    /// <summary>
+    ///   The scope an entity implies. A <see langword="null"/> entity is the
+    ///   global scope rather than an absent one.
+    /// </summary>
+    private static ActionScope ScopeOf(object? scopeEntity)
+        => scopeEntity switch
         {
             AnimeSeries => ActionScope.Series,
             AnimeGroup => ActionScope.Group,
@@ -365,10 +479,25 @@ public class ActionService : IActionService
             VideoLocal => ActionScope.Video,
             _ => ActionScope.Global,
         };
-        if (info.Scope != expectedScope)
+
+    /// <summary>
+    ///   Whether the action can be invoked at all, independently of which
+    ///   entity it would be applied to.
+    /// </summary>
+    /// <returns>
+    ///   A rejection, or <see langword="null"/> when the action is applicable.
+    /// </returns>
+    private static ActionValidationResult? CheckApplicable(RegisteredAction registered, ActionScope scope, IUser? caller)
+    {
+        var info = registered.Info;
+
+        // Reject invocations via the wrong scope (e.g. a series-scoped action invoked
+        // with no series, or a global action invoked with one) instead of letting the
+        // context cast fail later in the job.
+        if (info.Scope != scope)
         {
             return new ActionValidationResult(
-                $"The action '{info.Name}' ({info.Id}) is not applicable to the {expectedScope.ToString().ToLowerInvariant()} scope."
+                $"The action '{info.Name}' ({info.Id}) is not applicable to the {scope.ToString().ToLowerInvariant()} scope."
             );
         }
 
@@ -377,16 +506,30 @@ public class ActionService : IActionService
         if (caller is not null && info.Permission is ActionPermission.Admin && !caller.IsAdmin)
             return new ActionValidationResult("Administrator privileges are required for this action.");
 
-        // Validate runs synchronously, before anything touches the queue. It needs a
-        // real instance (not just JobDataJson) since Validate isn't queued — resolved,
-        // context-populated, and discarded, with the same transient lifetime as execution.
+        return null;
+    }
+
+    /// <summary>
+    ///   Runs the action's own validation against one entity, on a throwaway
+    ///   instance.
+    /// </summary>
+    /// <remarks>
+    ///   Validate runs synchronously, before anything touches the queue. It needs a
+    ///   real instance (not just JobDataJson) since Validate isn't queued — resolved,
+    ///   context-populated, and discarded, with the same transient lifetime as execution.
+    /// </remarks>
+    /// <returns>
+    ///   A rejection, or <see langword="null"/> when the entity passed.
+    /// </returns>
+    private async Task<ActionValidationResult?> ValidateEntryAsync(RegisteredAction registered, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
+    {
         var probe = (IExecutableAction)_services.GetRequiredService(registered.ActionType);
         if (probe is IScopedAction scoped && scopeEntity is not null)
             scoped.SetContext(scopeEntity);
         if (probe is IActionCaller callerAware)
         {
             if (caller is null)
-                return new ActionValidationResult($"The action '{info.Name}' requires a calling user.");
+                return new ActionValidationResult($"The action '{registered.Info.Name}' requires a calling user.");
 
             callerAware.SetCaller(caller);
         }
@@ -395,16 +538,18 @@ public class ActionService : IActionService
         // observes the same values Execute will, not the compiled-in defaults.
         PopulateParameters(probe, parameters);
 
-        var validation = await probe.Validate(token);
-        if (validation is not null)
-            return validation;
+        return await probe.Validate(token);
+    }
 
-        // Always queued from here on — there is no direct-execution path. The job
-        // re-resolves a fresh transient instance later; the probe instance above is
-        // discarded.
-        await _scheduler.Enqueue<ActionExecutionJob>(j =>
+    /// <summary>
+    ///   Queues the action for one entity. Always queued — there is no
+    ///   direct-execution path. The job re-resolves a fresh transient instance
+    ///   later; the probe instance validation used is discarded.
+    /// </summary>
+    private async Task EnqueueAsync(RegisteredAction registered, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
+        => await _scheduler.Enqueue<ActionExecutionJob>(j =>
         {
-            j.ActionId = actionId;
+            j.ActionId = registered.Info.Id;
             j.ScopeEntityId = scopeEntity switch
             {
                 AnimeSeries series => series.AnimeSeriesID,
@@ -413,14 +558,10 @@ public class ActionService : IActionService
                 VideoLocal video => video.VideoLocalID,
                 _ => null,
             };
-            j.Scope = info.Scope;
+            j.Scope = registered.Info.Scope;
             j.CallerUserId = caller?.ID ?? 0;
             j.Parameters = parameters?.ToDictionary(pair => pair.Key, pair => pair.Value);
         }, ct: token);
-
-        // Bare ack — no tracking ID.
-        return null;
-    }
 
     #endregion
 

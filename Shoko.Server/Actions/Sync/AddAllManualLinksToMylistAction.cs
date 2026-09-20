@@ -14,7 +14,7 @@ public sealed class AddAllManualLinksToMylistAction(IMylistService mylistService
 
     public string? Description => "Forcibly run AddToMylist commands for all files with manual links.";
 
-    public ActionCategory Category => ActionCategory.AniDB;
+    public ActionCategory Category => ActionCategory.Sync;
 
     public ActionPermission Permission => ActionPermission.Admin;
 

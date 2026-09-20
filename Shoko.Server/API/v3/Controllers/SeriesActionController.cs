@@ -42,7 +42,7 @@ public class SeriesActionController(IActionService actionService, AnimeSeriesRep
         if (seriesEntity is null)
             return NotFound("Series not found.");
 
-        var validation = await actionService.InvokeAsync(actionID, seriesEntity, User, token);
+        var validation = await actionService.InvokeAsync(actionID, seriesEntity, caller: User, token: token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 }

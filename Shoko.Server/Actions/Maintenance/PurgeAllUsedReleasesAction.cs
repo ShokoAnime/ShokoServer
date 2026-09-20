@@ -15,7 +15,7 @@ public sealed class PurgeAllUsedReleasesAction(IVideoReleaseService videoRelease
 
     public string? Description => "Remove all used (linked) releases from the database, optionally filtered by provider.";
 
-    public ActionCategory Category => ActionCategory.Destructive;
+    public ActionCategory Category => ActionCategory.Maintenance;
 
     public ActionPermission Permission => ActionPermission.Admin;
 

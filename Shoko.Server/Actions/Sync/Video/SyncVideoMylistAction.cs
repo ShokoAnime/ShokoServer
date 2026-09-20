@@ -16,7 +16,7 @@ public sealed class SyncVideoMylistAction(IMylistService mylistService) : VideoA
 
     public override string? Description => "Reconciles your AniDB MyList with the local state for the file.";
 
-    public override ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.Sync;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 

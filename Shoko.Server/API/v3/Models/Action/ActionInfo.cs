@@ -41,6 +41,13 @@ public class ActionInfo
     public required string CategoryName { get; set; }
 
     /// <summary>
+    ///   Whether the action is prominent enough to offer on its own, rather
+    ///   than inside the group its category names.
+    /// </summary>
+    [Required]
+    public bool IsPrimaryAction { get; set; }
+
+    /// <summary>
     ///   The entity level the action is bound to.
     /// </summary>
     [Required]
@@ -76,6 +83,7 @@ public class ActionInfo
         Description = info.Description,
         Category = info.Category,
         CategoryName = info.CategoryName,
+        IsPrimaryAction = info.IsPrimaryAction,
         Scope = info.Scope,
         Permission = info.Permission,
         RequiresConfirmation = info.RequiresConfirmation,

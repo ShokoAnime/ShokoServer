@@ -25,6 +25,10 @@ namespace Shoko.Abstractions.Actions;
 ///   for <see cref="ActionCategory.PluginInferred"/>, otherwise the
 ///   category's own name.
 /// </param>
+/// <param name="IsPrimaryAction">
+///   Whether the action is prominent enough to offer on its own, rather than
+///   inside the group its category names.
+/// </param>
 /// <param name="Scope">
 ///   The entity level the action is bound to.
 /// </param>
@@ -46,6 +50,7 @@ public sealed record ExecutableActionInfo(
     string? Description,
     ActionCategory Category,
     string CategoryName,
+    bool IsPrimaryAction,
     ActionScope Scope,
     ActionPermission Permission,
     bool RequiresConfirmation,

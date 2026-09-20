@@ -16,7 +16,7 @@ public sealed class RemoveSeriesFromMylistAction(IMylistService mylistService) :
 
     public override string? Description => "Removes every file in the series from your AniDB MyList, following your configured delete type.";
 
-    public override ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.Sync;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 
@@ -26,7 +26,7 @@ public sealed class RemoveSeriesFromMylistAction(IMylistService mylistService) :
 
     public override async Task Execute(CancellationToken token = default)
     {
-        foreach (var video in MylistActionScope.VideosOf(Series))
+        foreach (var video in Series.Videos)
             await mylistService.ScheduleDisposeVideo(video);
     }
 }

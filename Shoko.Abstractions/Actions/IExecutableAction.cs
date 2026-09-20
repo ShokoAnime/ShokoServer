@@ -47,6 +47,20 @@ public interface IExecutableAction
     ActionCategory Category => ActionCategory.Miscellaneous;
 
     /// <summary>
+    ///   Whether the action is prominent enough to offer on its own, rather
+    ///   than inside the group its <see cref="Category"/> names. Defaults to
+    ///   <see langword="false"/>.
+    /// </summary>
+    /// <remarks>
+    ///   This says how prominently to offer the action, not what the action
+    ///   is about, so it is independent of <see cref="Category"/>: an action
+    ///   keeps the category it belongs to whether or not it is promoted. A
+    ///   client is free to ignore the flag, and one with no room for the
+    ///   distinction should.
+    /// </remarks>
+    bool IsPrimaryAction => false;
+
+    /// <summary>
     ///   The permission required to invoke the action.
     /// </summary>
     /// <remarks>
@@ -71,13 +85,28 @@ public interface IExecutableAction
     string? ConfirmationMessage { get => null; }
 
     /// <summary>
-    ///   Optional synchronous pre-check, run by the API before the action is
-    ///   enqueued. Return a non-null result to reject the invocation
-    ///   immediately (e.g. HTTP 400) without ever touching the queue.
-    ///   Default: always allowed.
+    ///   Optional pre-check. Return a non-null result to refuse. Default:
+    ///   always allowed.
     /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     Asked <b>twice</b>, on two different instances. Once before the
+    ///     action is enqueued, so a caller is refused immediately (e.g. HTTP
+    ///     400) rather than handed a job that was never going to work; and
+    ///     again inside the queue immediately before <see cref="Execute"/>,
+    ///     against the state the action is about to act on. A refusal there
+    ///     skips the action and completes the job rather than failing it.
+    ///   </para>
+    ///   <para>
+    ///     Write it so it can be asked twice: cheap, free of side effects, and
+    ///     answering about the present rather than about when it was queued. A
+    ///     queue can be hours deep, so the second answer is the one that
+    ///     decides.
+    ///   </para>
+    /// </remarks>
     /// <param name="token">
-    ///   The cancellation token bound to the current API request.
+    ///   Bound to the current API request on the first call, and to the worker
+    ///   pool on the second.
     /// </param>
     /// <returns>
     ///   A rejection reason, or <see langword="null"/> to allow the

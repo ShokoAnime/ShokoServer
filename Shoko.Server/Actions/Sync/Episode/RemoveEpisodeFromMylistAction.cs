@@ -6,27 +6,27 @@ using Shoko.Abstractions.Metadata.Anidb.Services;
 namespace Shoko.Server.Actions;
 
 /// <summary>
-///   Dispose of the AniDB MyList entries covering every file in the group, applying
+///   Dispose of the AniDB MyList entries covering every file for the episode, applying
 ///   the configured delete type — which may mark the entries rather than
 ///   remove them outright.
 /// </summary>
-public sealed class RemoveGroupFromMylistAction(IMylistService mylistService) : GroupAction
+public sealed class RemoveEpisodeFromMylistAction(IMylistService mylistService) : EpisodeAction
 {
     public override string Name => "Remove from MyList";
 
-    public override string? Description => "Removes every file in the group from your AniDB MyList, following your configured delete type.";
+    public override string? Description => "Removes every file for the episode from your AniDB MyList, following your configured delete type.";
 
-    public override ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.Sync;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 
     public override bool RequiresConfirmation => true;
 
-    public override string? ConfirmationMessage => "Are you sure you want to remove every file in this group from your AniDB MyList?";
+    public override string? ConfirmationMessage => "Are you sure you want to remove every file for this episode from your AniDB MyList?";
 
     public override async Task Execute(CancellationToken token = default)
     {
-        foreach (var video in MylistActionScope.VideosOf(Group))
+        foreach (var video in Episode.Videos)
             await mylistService.ScheduleDisposeVideo(video);
     }
 }

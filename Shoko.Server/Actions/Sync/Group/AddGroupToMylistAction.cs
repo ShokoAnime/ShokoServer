@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
@@ -15,13 +16,13 @@ public sealed class AddGroupToMylistAction(IMylistService mylistService) : Group
 
     public override string? Description => "Adds every file in the group to your AniDB MyList.";
 
-    public override ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.Sync;
 
     public override ActionPermission Permission => ActionPermission.Admin;
 
     public override async Task Execute(CancellationToken token = default)
     {
-        foreach (var video in MylistActionScope.VideosOf(Group))
+        foreach (var video in Group.AllSeries.SelectMany(series => series.Videos).DistinctBy(video => video.ID))
             await mylistService.ScheduleAddVideo(video);
     }
 }

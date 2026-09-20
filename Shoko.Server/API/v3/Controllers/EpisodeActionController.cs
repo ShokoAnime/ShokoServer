@@ -42,7 +42,7 @@ public class EpisodeActionController(IActionService actionService, AnimeEpisodeR
         if (episodeEntity is null)
             return NotFound("Episode not found.");
 
-        var validation = await actionService.InvokeAsync(actionID, episodeEntity, User, token);
+        var validation = await actionService.InvokeAsync(actionID, episodeEntity, caller: User, token: token);
         return validation is null ? Ok() : BadRequest(validation.Reason);
     }
 }

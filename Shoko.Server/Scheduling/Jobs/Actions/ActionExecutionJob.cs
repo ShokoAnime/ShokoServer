@@ -16,7 +16,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 /// <summary>
 ///   The one generic wrapper job that executes every registered action.
-///   Enqueued by <see cref="ActionService.InvokeAsync(Guid, IUser?, System.Threading.CancellationToken)"/> with the action ID,
+///   Enqueued by <see cref="ActionService.InvokeAsync(Guid, System.Collections.Generic.IReadOnlyDictionary{string, object}, IUser?, System.Threading.CancellationToken)"/> with the action ID,
 ///   scope, scope entity ID, and calling user ID populated from
 ///   <c>JobDataJson</c> — the same mechanism every other
 ///   <see cref="IQueueJob"/> in this codebase already uses.
@@ -100,23 +100,42 @@ public class ActionExecutionJob(
 
         if (action is IScopedAction scoped)
         {
+            // No entity ID on a scoped action is a bug in whatever enqueued it, not a
+            // condition that changed, so it throws rather than being skipped.
             if (ScopeEntityId is not { } entityId)
                 throw new InvalidOperationException($"Scoped action '{info.Name}' ({info.Id}) has no scope entity ID.");
 
-            scoped.SetContext(ResolveScopeEntity(info.Scope, entityId));
+            if (ResolveScopeEntity(info.Scope, entityId) is not { } entity)
+            {
+                _logger.LogWarning("Skipping action \"{ActionName}\" ({ActionId}): the {Scope} it was queued for ({EntityId}) no longer exists", info.Name, ActionId, info.Scope, entityId);
+                return;
+            }
+
+            scoped.SetContext(entity);
         }
 
         if (CallerUserId > 0 && action is IActionCaller callerAware)
         {
-            var caller = users.GetByID(CallerUserId)
-                ?? throw new InvalidOperationException($"User not found: {CallerUserId}");
+            if (users.GetByID(CallerUserId) is not { } caller)
+            {
+                _logger.LogWarning("Skipping action \"{ActionName}\" ({ActionId}): the user that queued it ({UserId}) no longer exists", info.Name, ActionId, CallerUserId);
+                return;
+            }
+
             callerAware.SetCaller(caller);
         }
 
-        // Validate is NOT re-run here — it already ran synchronously in
-        // ActionService.InvokeAsync before this job was even enqueued. Re-running it
-        // here would be redundant and could observe different state than what the
-        // caller saw when they got their 200.
+        // Validate ran before this job was enqueued, and that answer can be hours old
+        // by the time the job reaches the front of the queue. What actions check is
+        // exactly the sort of thing that changes in between — auto-matching still being
+        // enabled, a file still having a location, a user still being linked to AniDB —
+        // so it is asked again here, against the state the action is about to act on.
+        if (await action.Validate(cancellation.Token) is { } validation)
+        {
+            _logger.LogWarning("Skipping action \"{ActionName}\" ({ActionId}): {Reason}", info.Name, ActionId, validation.Reason);
+            return;
+        }
+
         // The worker's shutdown token, not request-bound — there is no live HTTP
         // request left by the time a queued action runs. It fires when the pool
         // running this job is stopped, and never for a single job on its own.
@@ -125,12 +144,20 @@ public class ActionExecutionJob(
         _logger.LogInformation("Finished executing action \"{ActionName}\" ({ActionId})", info.Name, ActionId);
     }
 
-    private object ResolveScopeEntity(ActionScope scope, int entityId) => scope switch
+    /// <summary>
+    ///   Looks up the entity the action was queued for.
+    /// </summary>
+    /// <remarks>
+    ///   Returns <see langword="null"/> when it is gone rather than throwing:
+    ///   an entity deleted between enqueue and execution is permanent, and
+    ///   throwing would spend the job's whole retry budget rediscovering that.
+    /// </remarks>
+    private object? ResolveScopeEntity(ActionScope scope, int entityId) => scope switch
     {
-        ActionScope.Series => series.GetByID(entityId) ?? throw new KeyNotFoundException($"Series not found: {entityId}"),
-        ActionScope.Group => groups.GetByID(entityId) ?? throw new KeyNotFoundException($"Group not found: {entityId}"),
-        ActionScope.Episode => episodes.GetByID(entityId) ?? throw new KeyNotFoundException($"Episode not found: {entityId}"),
-        ActionScope.Video => videos.GetByID(entityId) ?? throw new KeyNotFoundException($"Video not found: {entityId}"),
+        ActionScope.Series => series.GetByID(entityId),
+        ActionScope.Group => groups.GetByID(entityId),
+        ActionScope.Episode => episodes.GetByID(entityId),
+        ActionScope.Video => videos.GetByID(entityId),
         _ => throw new InvalidOperationException("Global actions have no scope entity."),
     };
 }

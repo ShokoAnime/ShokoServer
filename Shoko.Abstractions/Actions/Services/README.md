@@ -98,6 +98,9 @@ move**. Anything holding the old ID, a saved shortcut, a script hitting
 `/api/v3`, another plugin, stops resolving. Treat the class's full name as part
 of your public surface and rename with the same care.
 
+To get the ID of one of your own actions, ask for it by type with
+`IActionService.GetActionInfo<TAction>()` rather than deriving it yourself.
+
 ---
 
 ## Scope
@@ -173,14 +176,25 @@ Every invocation, from the API or from a plugin, follows the same sequence:
    probe instance is then discarded.
 4. **Enqueue.** An `ActionExecutionJob` goes onto the queue carrying the action
    ID, scope, entity ID, caller ID and parameters.
-5. **Execute.** The job resolves **another** fresh instance, repopulates it, and
-   awaits `Execute`.
+5. **Validate again.** The job resolves **another** fresh instance, repopulates
+   it, and awaits `Validate` a second time. A rejection here is not a failure:
+   the job logs the reason and completes without running, and without spending
+   its retry budget rediscovering a condition that is not going to change back.
+6. **Execute.** Only then is `Execute` awaited, on that same second instance.
 
 Consequences worth internalising:
 
+- **`Validate` runs twice, on two different instances, and the second answer is
+  the one that decides.** The first runs on the request thread so a caller gets
+  a 400 instead of a job that was never going to work; the second runs in the
+  queue, where the state has moved on. A queue can be hours deep, and what
+  actions check — a provider still being enabled, a file still having a
+  location, a user still being linked — is exactly what changes in that time.
+  Write `Validate` so it can be asked twice: cheap, side-effect free, and
+  truthful about the present rather than about when it was queued.
 - **The instance that validated is not the instance that executes.** Anything
-  `Validate` computes is thrown away. Do the work again in `Execute`, or keep it
-  in an injected singleton.
+  the first `Validate` computes is thrown away. Do the work again in `Execute`,
+  or keep it in an injected singleton.
 - **`Validate` runs on the request thread and `Execute` does not.** `Validate`
   should be a cheap precondition check, not the work, and its token is the API
   request's.
@@ -235,6 +249,7 @@ public class MyService(IActionService actionService)
 |---|---|
 | `GetActions(scope?, callerPermission?)` | `scope` is a filter, not a required partition: omit it to list everything. Passing `ActionPermission.User` narrows the list to actions a regular user may invoke. Ordered by category, then category name, then name. |
 | `GetActionInfo(Guid)` | `null` when the ID is not registered. |
+| `GetActionInfo<TAction>()` / `GetActionInfo(Type)` | The same, by action type. `null` when the type is not a registered action. |
 | `InvokeAsync(...)` | One overload per scope, each with a `parameters` variant. |
 
 **The return value reads backwards from the usual convention.** `null` means
@@ -244,8 +259,9 @@ rather than returning a rejection, so check with `GetActionInfo` first if the ID
 came from somewhere you do not control.
 
 `ExecutableActionInfo` is the whole of what a plugin sees: `Id`, `Name`,
-`Description`, `Category`, `CategoryName`, `Scope`, `Permission`,
-`RequiresConfirmation`, `ConfirmationMessage` and `PluginId`. The concrete action
+`Description`, `Category`, `CategoryName`, `IsPrimaryAction`, `Scope`,
+`Permission`, `RequiresConfirmation`, `ConfirmationMessage` and `PluginId`. The
+concrete action
 type stays inside the server on purpose, so you invoke by ID rather than by type.
 
 ### Invocation parameters
@@ -275,12 +291,70 @@ like everything working. Both the validation probe and the executing instance ar
 populated, so `Validate` sees what `Execute` will see rather than the compiled-in
 defaults.
 
+### Asking without running
+
+`ValidateAsync` runs everything `InvokeAsync` does before it queues — scope,
+permission, and the action's own `Validate` — and queues nothing:
+
+```csharp
+var refusal = await actionService.ValidateAsync(actionId, series, caller: user);
+```
+
+`null` means it would be accepted. This is how a client greys out an action it
+would otherwise only learn about by invoking it and reading the rejection.
+For a list, loop it — validation is advisory, so asking once per entity loses
+nothing that asking in one call would have kept.
+
+⚠️ **The answer is advisory.** Nothing holds still between asking and invoking,
+so an invocation can still be refused for a reason that was not true a moment
+earlier. Invoke and handle the rejection; do not treat a clean validation as
+permission to skip that.
+
+Validating a *parameter payload* is a separate question and a separate method,
+`ValidateParameters`, which checks a document against the action's parameter
+schema. `ValidateAsync` takes parameters that are already a typed dictionary.
+
+### Applying one action to many entities
+
+`InvokeBulkAsync` takes a list of entities of one scope instead of a single one,
+and queues the action **for all of them or for none**:
+
+```csharp
+await actionService.InvokeBulkAsync(actionId, selectedSeries, caller: user);
+```
+
+Every entry is validated first, and the action is queued for all of them only if
+all of them passed. A set containing one entry the action refuses therefore
+changes nothing, which is the point: a caller applying an action to a selection
+wants to fix the selection and retry, not discover afterwards which half of it
+ran.
+
+A rejection throws `GenericValidationException` rather than returning a reason,
+because a single reason cannot say which of twenty entries objected. Each entry's
+failure is keyed `IDs[i]`, by its position in the list you passed, so a caller can
+map every failure back to what it sent. Whether the action exists, applies to the
+scope, and may be invoked by this caller are properties of the *action* rather
+than of any entry, so they fail the call as a whole — keyed by the empty string —
+instead of repeating the same complaint once per entry.
+
+Queuing is still all it does, so all-or-none is a promise about the queue rather
+than about the work. Each entry is validated again when its own job runs, and one
+whose conditions have changed by then skips while the rest go through. An entry
+that fails outright once it reaches the front of the queue is a failed job and is
+reported as one; neither reaches back into the call that enqueued it.
+
+Over HTTP this is `POST /api/v3/Action/{actionID}/{Group,Series,Episode,File}/Bulk`,
+taking `{ "IDs": [1, 2, 3], "Parameters": { … } }`. An ID naming nothing is
+reported the same way, against the same key, before the action is consulted.
+
 ### Repeated invocations collapse
 
 The queue deduplicates, and an action's dedup key is the action ID, the scope
 entity ID, the caller's user ID and the parameters. Invoking the same action, on
 the same entity, as the same user, with the same parameters, while an identical
-job is still waiting is a no-op rather than a second run. Differing parameters
+job is still waiting is a no-op rather than a second run. A bulk invocation is
+one job per entity and dedups per entity, so an entity already queued for the
+same action is skipped while the rest go through. Differing parameters
 enqueue separately. This is usually what you want from a button, and something to
 remember if you were expecting a per-call fan-out.
 
@@ -304,6 +378,13 @@ Two of them are the plugin author's real choices:
 
 Picking a core category such as `TMDB` is reasonable when your action genuinely
 belongs alongside core's, and misleading otherwise.
+
+`IsPrimaryAction` is a separate axis and defaults to `false`. A category says
+what an action is about and groups it with its peers; this says whether the
+action is prominent enough to be offered on its own, outside that group. The two
+do not trade off, so an action keeps the category it belongs to whether or not
+it is promoted, and a client with no room for the distinction is free to ignore
+the flag. Promote sparingly: a list where everything is primary has no primary.
 
 `RequiresConfirmation` and `ConfirmationMessage` are UI hints. The WebUI prompts
 before invoking, falling back to a generic prompt when the message is null. They

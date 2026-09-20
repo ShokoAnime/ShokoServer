@@ -36,6 +36,9 @@ public abstract class GroupAction : IExecutableAction, IScopedAction
     /// <inheritdoc cref="IExecutableAction.Category"/>
     public virtual ActionCategory Category => ActionCategory.Miscellaneous;
 
+    /// <inheritdoc cref="IExecutableAction.IsPrimaryAction"/>
+    public virtual bool IsPrimaryAction => false;
+
     /// <inheritdoc cref="IExecutableAction.Permission"/>
     public abstract ActionPermission Permission { get; }
 

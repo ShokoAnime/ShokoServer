@@ -749,10 +749,12 @@ public class AiringScheduleController(
     /// <param name="wait">Wait for the providers to finish instead of returning as soon as the work is queued.</param>
     /// <param name="timeout">How long to wait, in seconds. Clamped to at most <see cref="MaxRefreshTimeoutSeconds"/>.</param>
     /// <returns>What each provider did and the series' schedules afterwards, or nothing when the caller didn't wait.</returns>
+    /// <remarks>Refreshing is an administrator operation; reading a schedule is not.</remarks>
     [ProducesResponseType(200)]
     [ProducesResponseType(202)]
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]
+    [Authorize(Roles = "admin")]
     [HttpPost("~/api/v{version:apiVersion}/Series/{seriesID}/AiringSchedule/Refresh"), Tags("Series")]
     public async Task<ActionResult<AiringRefreshResult>> RefreshSchedulesBySeriesID(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
@@ -846,10 +848,12 @@ public class AiringScheduleController(
     /// <param name="wait">Wait for the providers to finish instead of returning as soon as the work is queued.</param>
     /// <param name="timeout">How long to wait, in seconds. Clamped to at most <see cref="MaxRefreshTimeoutSeconds"/>.</param>
     /// <returns>What each provider did and the series' schedules afterwards, or nothing when the caller didn't wait.</returns>
+    /// <remarks>Refreshing is an administrator operation; reading a schedule is not.</remarks>
     [ProducesResponseType(200)]
     [ProducesResponseType(202)]
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]
+    [Authorize(Roles = "admin")]
     [HttpPost("~/api/v{version:apiVersion}/Episode/{episodeID}/AiringSchedule/Refresh"), Tags("Episode")]
     public async Task<ActionResult<AiringRefreshResult>> RefreshSchedulesByEpisodeID(
         [FromRoute, Range(1, int.MaxValue)] int episodeID,
