@@ -10,12 +10,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.UI;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -25,7 +25,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [ApiV3]
 [Authorize]
 public class ActionController(
-    ActionService actionService,
+    IActionService actionService,
     AnimeGroupRepository groups,
     AnimeSeriesRepository series,
     AnimeEpisodeRepository episodes,
