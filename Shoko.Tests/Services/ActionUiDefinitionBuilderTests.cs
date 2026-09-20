@@ -48,13 +48,13 @@ public class ActionUiDefinitionBuilderTests
     }
 
     [Fact]
-    public void MetadataSurface_IsExactlyTheKnownSeven()
+    public void MetadataSurface_IsExactlyTheKnownEight()
     {
         // Pins what the mechanical rule actually resolves to, so a member added
         // to `IExecutableAction` or to a scoped base shows up here rather than
         // silently becoming a parameter.
         Assert.Equal(
-            ["Category", "ConfirmationMessage", "Description", "Name", "Permission", "RequiresConfirmation", "Scope"],
+            ["Category", "ConfirmationMessage", "Description", "IsPrimaryAction", "Name", "Permission", "RequiresConfirmation", "Scope"],
             ActionMetadataContractResolver.MetadataMembers.Keys.Order(StringComparer.Ordinal)
         );
     }

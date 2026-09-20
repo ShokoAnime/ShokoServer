@@ -10,16 +10,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions;
-using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Exceptions;
-using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.UI;
-using Shoko.Abstractions.Video;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Action;
-using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Settings;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 

@@ -98,7 +98,7 @@
     },
     "AniDb": {
       "title": "AniDB",
-      "description": "Configure the information Shoko retrieves from AniDB for the series in your collection, and set your preferences for MyList options and the general updating of AniDB data.",
+      "description": "Configure the information Shoko retrieves from AniDB for the series in your collection, and set your preferences for the general updating of AniDB data.",
       "$ref": "#/definitions/AniDb"
     },
     "TMDB": {
@@ -587,181 +587,6 @@
           "type": "boolean",
           "description": "Automatically create a Shoko Series for each AniDB anime."
         },
-        "MyList_AddFiles": {
-          "title": "Add Files",
-          "type": "boolean"
-        },
-        "MyList_SyncTargets": {
-          "title": "Sync Targets",
-          "description": "Which tiers of the MyList to reconcile during a sync.",
-          "$ref": "#/definitions/MylistSyncTargets",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "None",
-                "aliasValues": ""
-              },
-              {
-                "value": "Videos",
-                "aliasValues": ""
-              },
-              {
-                "value": "Episodes",
-                "aliasValues": ""
-              },
-              {
-                "value": "All",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "MyList_WatchedEpisodeMode": {
-          "title": "Watched Episode Mode",
-          "description": "How to record a locally watched episode that the MyList covers only by file entries. Defaults to leaving those alone.",
-          "$ref": "#/definitions/MylistWatchedEpisodeMode",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Ignore",
-                "aliasValues": ""
-              },
-              {
-                "value": "AttachToOldest",
-                "aliasValues": ""
-              },
-              {
-                "value": "CreateGeneric",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "MyList_ReadWatched": {
-          "title": "Read Watched",
-          "type": "boolean"
-        },
-        "MyList_ReadUnwatched": {
-          "title": "Read Unwatched",
-          "type": "boolean"
-        },
-        "MyList_SetWatched": {
-          "title": "Set Watched",
-          "type": "boolean"
-        },
-        "MyList_SetUnwatched": {
-          "title": "Set Unwatched",
-          "type": "boolean"
-        },
-        "MyList_StorageState": {
-          "title": "Storage State",
-          "$ref": "#/definitions/MylistState",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Unknown",
-                "aliasValues": ""
-              },
-              {
-                "value": "HDD",
-                "aliasValues": ""
-              },
-              {
-                "value": "Disk",
-                "aliasValues": ""
-              },
-              {
-                "value": "Deleted",
-                "aliasValues": ""
-              },
-              {
-                "value": "Remote",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "MyList_UpdateStates": {
-          "title": "Update States",
-          "type": "boolean",
-          "description": "Update the desired state of existing MyList entries during a sync. When disabled, only new files are added with the desired state and existing entries are left as-is."
-        },
-        "MyList_WatchedSyncMode": {
-          "title": "Watched State Sync",
-          "description": "How to resolve watched-state conflicts during a MyList sync when the entry was updated on the same day as the local watch. Older differences are governed by the read/set settings instead.",
-          "$ref": "#/definitions/MylistWatchedSyncMode",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Ignore",
-                "aliasValues": ""
-              },
-              {
-                "value": "TrustLocal",
-                "aliasValues": ""
-              },
-              {
-                "value": "TrustRemote",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "MyList_DeleteType": {
-          "title": "Delete Type",
-          "$ref": "#/definitions/MylistDeleteType",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Delete",
-                "aliasValues": ""
-              },
-              {
-                "value": "DeleteLocalOnly",
-                "aliasValues": ""
-              },
-              {
-                "value": "MarkDeleted",
-                "aliasValues": ""
-              },
-              {
-                "value": "MarkExternalStorage",
-                "aliasValues": ""
-              },
-              {
-                "value": "MarkUnknown",
-                "aliasValues": ""
-              },
-              {
-                "value": "MarkDisk",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "MyList_UseGenericFileIndex": {
-          "title": "Use Generic File Index",
-          "type": "boolean",
-          "description": "Consult a third-party index of generic file IDs during a sync. AniDB's MyList export does not mark generic entries, and the file state is only a convention a generic entry may not follow, so without the index the sync can mistake a generic entry for a file it no longer has. Turn this off to keep the sync entirely between this server and AniDB, at the cost of the sync no longer disposing of missing entries at all — it refuses to act on an entry it cannot classify, and without the index it cannot classify any of them."
-        },
-        "MyList_RetainedBackupCount": {
-          "title": "Retained Backup Count",
-          "type": "integer",
-          "description": "Number of days to retain backups of the downloaded MyList for the user.",
-          "format": "int32",
-          "maximum": 99.0,
-          "minimum": 0.0
-        },
         "Calendar_UpdateFrequency": {
           "title": "Calendar",
           "description": "Check which AniDB anime is currently airing in the next/previous week, and schedule an update for all of them, adding them to the local collection if they're not already part of it.",
@@ -874,84 +699,6 @@
               },
               {
                 "value": "EveryHour",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "MyList_UpdateFrequency": {
-          "title": "MyList",
-          "description": "Sync the MyList with the local collection.",
-          "$ref": "#/definitions/ScheduledUpdateFrequency",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Never",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursSix",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursTwelve",
-                "aliasValues": ""
-              },
-              {
-                "value": "Daily",
-                "aliasValues": ""
-              },
-              {
-                "value": "WeekOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "MonthOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "EveryHour",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "MyList_FetchMode": {
-          "title": "Fetch Mode",
-          "description": "How to fetch MyList entries from AniDB.",
-          "$ref": "#/definitions/MylistFetchMode",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "None",
-                "aliasValues": ""
-              },
-              {
-                "value": "Http",
-                "aliasValues": ""
-              },
-              {
-                "value": "Udp",
-                "aliasValues": ""
-              },
-              {
-                "value": "Cache",
-                "aliasValues": ""
-              },
-              {
-                "value": "Default",
-                "aliasValues": ""
-              },
-              {
-                "value": "IgnoreTimeCheck",
-                "aliasValues": ""
-              },
-              {
-                "value": "Auto",
                 "aliasValues": ""
               }
             ]
@@ -1124,6 +871,358 @@
           "title": "Advanced AVDump Settings",
           "description": "AVDump settings",
           "$ref": "#/definitions/AVDump"
+        },
+        "MyList": {
+          "title": "MyList",
+          "description": "Configure the MyList options for AniDB.",
+          "$ref": "#/definitions/MyList"
+        }
+      }
+    },
+    "ScheduledUpdateFrequency": {
+      "type": "string",
+      "x-enumNames": [
+        "Never",
+        "HoursSix",
+        "HoursTwelve",
+        "Daily",
+        "WeekOne",
+        "MonthOne",
+        "EveryHour"
+      ],
+      "enum": [
+        "Never",
+        "HoursSix",
+        "HoursTwelve",
+        "Daily",
+        "WeekOne",
+        "MonthOne",
+        "EveryHour"
+      ]
+    },
+    "AnidbRateLimit": {
+      "type": "object",
+      "description": "Settings for rate limiting the Anidb provider.",
+      "properties": {
+        "BaseRateInSeconds": {
+          "title": "Base Rate (seconds)",
+          "type": "integer",
+          "description": "Base rate in seconds for request and the multipliers.",
+          "format": "int32",
+          "maximum": 60.0,
+          "minimum": 2.0
+        },
+        "SlowRateMultiplier": {
+          "title": "Slow Rate Multiplier",
+          "type": "integer",
+          "description": "Slow rate multiplier applied to the Base Rate.",
+          "format": "int32",
+          "maximum": 99.0,
+          "minimum": 2.0
+        },
+        "SlowRatePeriodMultiplier": {
+          "title": "Slow Rate Period Multiplier",
+          "type": "integer",
+          "description": "Slow rate period multiplier applied to the Base Rate.",
+          "format": "int32",
+          "maximum": 99.0,
+          "minimum": 2.0
+        },
+        "ResetPeriodMultiplier": {
+          "title": "Reset Period Multiplier",
+          "type": "integer",
+          "description": "Reset period multiplier applied to the Base Rate.",
+          "format": "int32",
+          "maximum": 99.0,
+          "minimum": 2.0
+        }
+      }
+    },
+    "AVDump": {
+      "type": "object",
+      "properties": {
+        "MaxConcurrency": {
+          "title": "Max Concurrency",
+          "type": "integer",
+          "description": "Max concurrent hashing jobs to run in AVDump at the same time.",
+          "format": "int32",
+          "maximum": 64.0,
+          "minimum": 0.0
+        },
+        "CreqTimeout": {
+          "title": "Creq Timeout",
+          "type": "integer",
+          "description": "Sets the timeout for a creq upload before retrying or bailing.",
+          "format": "int32",
+          "maximum": 300.0,
+          "minimum": 20.0
+        },
+        "CreqMaxRetries": {
+          "title": "Creq Max Retries",
+          "type": "integer",
+          "description": "Sets the max retry attempts for a creq upload before bailing.",
+          "format": "int32",
+          "maximum": 20.0,
+          "minimum": 1.0
+        }
+      }
+    },
+    "MyList": {
+      "type": "object",
+      "description": "MyList configuration options.",
+      "properties": {
+        "AddFiles": {
+          "title": "Add Files",
+          "type": "boolean"
+        },
+        "SyncTargets": {
+          "title": "Sync Targets",
+          "description": "Which tiers of the MyList to reconcile during a sync.",
+          "$ref": "#/definitions/MylistSyncTargets",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "None",
+                "aliasValues": ""
+              },
+              {
+                "value": "Videos",
+                "aliasValues": ""
+              },
+              {
+                "value": "Episodes",
+                "aliasValues": ""
+              },
+              {
+                "value": "All",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "WatchedEpisodeMode": {
+          "title": "Watched Episode Mode",
+          "description": "How to record a locally watched episode that the MyList covers only by file entries. Defaults to leaving those alone.",
+          "$ref": "#/definitions/MylistWatchedEpisodeMode",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Ignore",
+                "aliasValues": ""
+              },
+              {
+                "value": "AttachToOldest",
+                "aliasValues": ""
+              },
+              {
+                "value": "CreateGeneric",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "ReadWatched": {
+          "title": "Read Watched",
+          "type": "boolean"
+        },
+        "ReadUnwatched": {
+          "title": "Read Unwatched",
+          "type": "boolean"
+        },
+        "SetWatched": {
+          "title": "Set Watched",
+          "type": "boolean"
+        },
+        "SetUnwatched": {
+          "title": "Set Unwatched",
+          "type": "boolean"
+        },
+        "StorageState": {
+          "title": "Storage State",
+          "$ref": "#/definitions/MylistState",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Unknown",
+                "aliasValues": ""
+              },
+              {
+                "value": "HDD",
+                "aliasValues": ""
+              },
+              {
+                "value": "Disk",
+                "aliasValues": ""
+              },
+              {
+                "value": "Deleted",
+                "aliasValues": ""
+              },
+              {
+                "value": "Remote",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "UpdateStates": {
+          "title": "Update States",
+          "type": "boolean",
+          "description": "Update the desired state of existing MyList entries during a sync. When disabled, only new files are added with the desired state and existing entries are left as-is."
+        },
+        "WatchedSyncMode": {
+          "title": "Watched State Sync",
+          "description": "How to resolve watched-state conflicts during a MyList sync when the entry was updated on the same day as the local watch. Older differences are governed by the read/set settings instead.",
+          "$ref": "#/definitions/MylistWatchedSyncMode",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Ignore",
+                "aliasValues": ""
+              },
+              {
+                "value": "TrustLocal",
+                "aliasValues": ""
+              },
+              {
+                "value": "TrustRemote",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "DeleteType": {
+          "title": "Delete Type",
+          "$ref": "#/definitions/MylistDeleteType",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Delete",
+                "aliasValues": ""
+              },
+              {
+                "value": "DeleteLocalOnly",
+                "aliasValues": ""
+              },
+              {
+                "value": "MarkDeleted",
+                "aliasValues": ""
+              },
+              {
+                "value": "MarkExternalStorage",
+                "aliasValues": ""
+              },
+              {
+                "value": "MarkUnknown",
+                "aliasValues": ""
+              },
+              {
+                "value": "MarkDisk",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "UseGenericFileIndex": {
+          "title": "Use Generic File Index",
+          "type": "boolean",
+          "description": "Consult a third-party index of generic file IDs during a sync. AniDB's MyList export does not mark generic entries, and the file state is only a convention a generic entry may not follow, so without the index the sync can mistake a generic entry for a file it no longer has. Turn this off to keep the sync entirely between this server and AniDB, at the cost of the sync no longer disposing of missing entries at all — it refuses to act on an entry it cannot classify, and without the index it cannot classify any of them."
+        },
+        "RetainedBackupCount": {
+          "title": "Retained Backup Count",
+          "type": "integer",
+          "description": "Number of days to retain backups of the downloaded MyList for the user.",
+          "format": "int32",
+          "maximum": 99.0,
+          "minimum": 0.0
+        },
+        "UpdateFrequency": {
+          "title": "MyList",
+          "description": "Sync the MyList with the local collection.",
+          "$ref": "#/definitions/ScheduledUpdateFrequency",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "Never",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursSix",
+                "aliasValues": ""
+              },
+              {
+                "value": "HoursTwelve",
+                "aliasValues": ""
+              },
+              {
+                "value": "Daily",
+                "aliasValues": ""
+              },
+              {
+                "value": "WeekOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "MonthOne",
+                "aliasValues": ""
+              },
+              {
+                "value": "EveryHour",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "FetchMode": {
+          "title": "Fetch Mode",
+          "description": "How to fetch MyList entries from AniDB.",
+          "$ref": "#/definitions/MylistFetchMode",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "None",
+                "aliasValues": ""
+              },
+              {
+                "value": "Http",
+                "aliasValues": ""
+              },
+              {
+                "value": "Udp",
+                "aliasValues": ""
+              },
+              {
+                "value": "Cache",
+                "aliasValues": ""
+              },
+              {
+                "value": "Default",
+                "aliasValues": ""
+              },
+              {
+                "value": "IgnoreTimeCheck",
+                "aliasValues": ""
+              },
+              {
+                "value": "Auto",
+                "aliasValues": ""
+              }
+            ]
+          }
         }
       }
     },
@@ -1210,27 +1309,6 @@
         "MarkDisk"
       ]
     },
-    "ScheduledUpdateFrequency": {
-      "type": "string",
-      "x-enumNames": [
-        "Never",
-        "HoursSix",
-        "HoursTwelve",
-        "Daily",
-        "WeekOne",
-        "MonthOne",
-        "EveryHour"
-      ],
-      "enum": [
-        "Never",
-        "HoursSix",
-        "HoursTwelve",
-        "Daily",
-        "WeekOne",
-        "MonthOne",
-        "EveryHour"
-      ]
-    },
     "MylistFetchMode": {
       "type": "string",
       "description": "How to fetch entries from the AniDB MyList. The freshness of the local cache only gates the HTTP transport, while UDP is never time-gated.",
@@ -1253,73 +1331,6 @@
         "IgnoreTimeCheck",
         "Auto"
       ]
-    },
-    "AnidbRateLimit": {
-      "type": "object",
-      "description": "Settings for rate limiting the Anidb provider.",
-      "properties": {
-        "BaseRateInSeconds": {
-          "title": "Base Rate (seconds)",
-          "type": "integer",
-          "description": "Base rate in seconds for request and the multipliers.",
-          "format": "int32",
-          "maximum": 60.0,
-          "minimum": 2.0
-        },
-        "SlowRateMultiplier": {
-          "title": "Slow Rate Multiplier",
-          "type": "integer",
-          "description": "Slow rate multiplier applied to the Base Rate.",
-          "format": "int32",
-          "maximum": 99.0,
-          "minimum": 2.0
-        },
-        "SlowRatePeriodMultiplier": {
-          "title": "Slow Rate Period Multiplier",
-          "type": "integer",
-          "description": "Slow rate period multiplier applied to the Base Rate.",
-          "format": "int32",
-          "maximum": 99.0,
-          "minimum": 2.0
-        },
-        "ResetPeriodMultiplier": {
-          "title": "Reset Period Multiplier",
-          "type": "integer",
-          "description": "Reset period multiplier applied to the Base Rate.",
-          "format": "int32",
-          "maximum": 99.0,
-          "minimum": 2.0
-        }
-      }
-    },
-    "AVDump": {
-      "type": "object",
-      "properties": {
-        "MaxConcurrency": {
-          "title": "Max Concurrency",
-          "type": "integer",
-          "description": "Max concurrent hashing jobs to run in AVDump at the same time.",
-          "format": "int32",
-          "maximum": 64.0,
-          "minimum": 0.0
-        },
-        "CreqTimeout": {
-          "title": "Creq Timeout",
-          "type": "integer",
-          "description": "Sets the timeout for a creq upload before retrying or bailing.",
-          "format": "int32",
-          "maximum": 300.0,
-          "minimum": 20.0
-        },
-        "CreqMaxRetries": {
-          "title": "Creq Max Retries",
-          "type": "integer",
-          "description": "Sets the max retry attempts for a creq upload before bailing.",
-          "format": "int32",
-          "maximum": 20.0,
-          "minimum": 1.0
-        }
-      }
     },
     "TMDB": {
       "type": "object",
@@ -1626,6 +1637,29 @@
           "type": "boolean",
           "description": "Automagically download studio information for anime in the local collection."
         },
+        "RecommendationDepth": {
+          "title": "Recommendation Depth",
+          "description": "How far down AniList's recommendations to read for an anime. The first page costs nothing extra; the other two spend requests to reach weaker recommendations.",
+          "$ref": "#/definitions/AnilistRecommendationDepth",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "FirstPage",
+                "aliasValues": ""
+              },
+              {
+                "value": "WhileWellRated",
+                "aliasValues": ""
+              },
+              {
+                "value": "Everything",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
         "AutoSearchCandidateCount": {
           "title": "Auto Search Candidate Count",
           "type": "integer",
@@ -1648,6 +1682,20 @@
           "$ref": "#/definitions/AnilistRateLimit"
         }
       }
+    },
+    "AnilistRecommendationDepth": {
+      "type": "string",
+      "description": "How far down AniList's recommendations to read for an anime. They come back best first, so the tail is weakly rated entries pointing at anime few would want shown, and each extra page is another request against the rate limit.",
+      "x-enumNames": [
+        "FirstPage",
+        "WhileWellRated",
+        "Everything"
+      ],
+      "enum": [
+        "FirstPage",
+        "WhileWellRated",
+        "Everything"
+      ]
     },
     "AnilistRateLimit": {
       "type": "object",
