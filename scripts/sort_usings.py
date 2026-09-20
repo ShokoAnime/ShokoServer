@@ -254,7 +254,9 @@ def process_file(filepath, strip_bom=False):
         new_content += nullable_directive + '\n'
     new_content += rest
 
-    if new_content == original:
+    # A stripped BOM is a change even when nothing else moved: `original` was
+    # captured after the strip, so comparing the two says nothing about it.
+    if new_content == original and not (bom and strip_bom):
         return False
 
     result = new_content.encode('utf-8')
