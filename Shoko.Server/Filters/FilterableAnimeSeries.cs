@@ -258,6 +258,28 @@ public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IF
         }
     }
 
+    private SuggestionSources? _suggestionSources;
+    private SuggestionSources SuggestionSources => _suggestionSources ??= new(
+        [series.AniDB_ID],
+        [.. series.TmdbShowCrossReferences.Select(xref => xref.TmdbShowID).Distinct()],
+        [.. series.TmdbMovieCrossReferences.Select(xref => xref.TmdbMovieID).Distinct()],
+        [.. series.AnilistAnimeCrossReferences.Select(xref => xref.AnilistAnimeID).Distinct()]
+    );
+
+    private int? _anidbSuggestions;
+    public int AnidbSuggestions => _anidbSuggestions ??= FilterableSuggestions.CountAnidb(SuggestionSources);
+
+    private int? _tmdbSuggestions;
+    public int TmdbSuggestions => _tmdbSuggestions ??= FilterableSuggestions.CountTmdb(SuggestionSources);
+
+    private int? _anilistSuggestions;
+    public int AnilistSuggestions => _anilistSuggestions ??= FilterableSuggestions.CountAnilist(SuggestionSources);
+
+    public int TotalSuggestions => AnidbSuggestions + TmdbSuggestions + AnilistSuggestions;
+
+    private int? _localSuggestions;
+    public int LocalSuggestions => _localSuggestions ??= FilterableSuggestions.CountLocal(SuggestionSources);
+
     public bool IsFinished => _anime?.EndDate is { } endDate && endDate < now.Date;
 
     public bool IsRestricted => _anime?.IsRestricted ?? false;

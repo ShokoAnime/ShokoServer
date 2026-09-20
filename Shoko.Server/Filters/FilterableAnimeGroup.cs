@@ -284,6 +284,30 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
         return acc + ser.AnimeEpisodes.Count(episode => !allAnilistLinkedEpisodes.Contains(episode.AniDB_EpisodeID));
     });
 
+    // Deduplicated across the series, since two series in one group can be linked to the same
+    // provider entry and its suggestions would otherwise be counted twice.
+    private SuggestionSources? _suggestionSources;
+    private SuggestionSources SuggestionSources => _suggestionSources ??= new(
+        [.. AllSeries.Select(a => a.AniDB_ID).Distinct()],
+        [.. AllSeries.SelectMany(a => a.TmdbShowCrossReferences).Select(xref => xref.TmdbShowID).Distinct()],
+        [.. AllSeries.SelectMany(a => a.TmdbMovieCrossReferences).Select(xref => xref.TmdbMovieID).Distinct()],
+        [.. AllSeries.SelectMany(a => a.AnilistAnimeCrossReferences).Select(xref => xref.AnilistAnimeID).Distinct()]
+    );
+
+    private int? _anidbSuggestions;
+    public int AnidbSuggestions => _anidbSuggestions ??= FilterableSuggestions.CountAnidb(SuggestionSources);
+
+    private int? _tmdbSuggestions;
+    public int TmdbSuggestions => _tmdbSuggestions ??= FilterableSuggestions.CountTmdb(SuggestionSources);
+
+    private int? _anilistSuggestions;
+    public int AnilistSuggestions => _anilistSuggestions ??= FilterableSuggestions.CountAnilist(SuggestionSources);
+
+    public int TotalSuggestions => AnidbSuggestions + TmdbSuggestions + AnilistSuggestions;
+
+    private int? _localSuggestions;
+    public int LocalSuggestions => _localSuggestions ??= FilterableSuggestions.CountLocal(SuggestionSources);
+
     public bool IsFinished =>
         AllSeries.All(a => a.EndDate is not null && a.EndDate <= now.Date);
 

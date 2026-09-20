@@ -43,7 +43,6 @@ public static class RepositoryStartup
         services.AddDirectRepository<TMDB_OverviewRepository>();
         services.AddDirectRepository<TMDB_PersonRepository>();
         services.AddDirectRepository<TMDB_Show_NetworkRepository>();
-        services.AddDirectRepository<TMDB_SuggestionRepository>();
         services.AddDirectRepository<TMDB_TitleRepository>();
         services.AddDirectRepository<VersionsRepository>();
         services.AddDirectRepository<AniDB_MessageRepository>();
@@ -107,6 +106,7 @@ public static class RepositoryStartup
         services.AddCachedRepository<TMDB_MovieRepository>();
         services.AddCachedRepository<TMDB_SeasonRepository>();
         services.AddCachedRepository<TMDB_ShowRepository>();
+        services.AddCachedRepository<TMDB_SuggestionRepository>();
         services.AddCachedRepository<VideoLocalRepository>();
         services.AddCachedRepository<VideoLocal_PlaceRepository>();
         services.AddCachedRepository<VideoLocal_UserRepository>();

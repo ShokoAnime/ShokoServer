@@ -244,6 +244,37 @@ public interface IFilterableInfo
     IReadOnlySet<string> AnilistTags { get; }
 
     /// <summary>
+    /// Number of suggestions the filterable makes through its AniDB links.
+    /// Counts what it suggests, not what suggests it.
+    /// </summary>
+    int AnidbSuggestions { get; }
+
+    /// <summary>
+    /// Number of suggestions the filterable makes through its TMDB links,
+    /// across both the shows and the movies it is linked to. Counts what it
+    /// suggests, not what suggests it.
+    /// </summary>
+    int TmdbSuggestions { get; }
+
+    /// <summary>
+    /// Number of suggestions the filterable makes through its AniList links.
+    /// Counts what it suggests, not what suggests it.
+    /// </summary>
+    int AnilistSuggestions { get; }
+
+    /// <summary>
+    /// Number of suggestions the filterable makes across every source.
+    /// </summary>
+    int TotalSuggestions { get; }
+
+    /// <summary>
+    /// Number of suggestions the filterable makes that point at a series in
+    /// the collection. Most suggestions point somewhere else, so this is
+    /// usually far below <see cref="TotalSuggestions"/>.
+    /// </summary>
+    int LocalSuggestions { get; }
+
+    /// <summary>
     /// Has Finished airing
     /// </summary>
     bool IsFinished { get; }

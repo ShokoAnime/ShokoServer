@@ -47,6 +47,11 @@ public class TestFilterable : IFilterableInfo
     public int MissingAnilistEpisodeLinks { get; init; }
     public int AutomaticAnilistEpisodeLinks { get; init; }
     public int UserVerifiedAnilistEpisodeLinks { get; init; }
+    public int AnidbSuggestions { get; init; }
+    public int TmdbSuggestions { get; init; }
+    public int AnilistSuggestions { get; init; }
+    public int TotalSuggestions { get; init; }
+    public int LocalSuggestions { get; init; }
     public bool HasTraktLink { get; init; }
     public bool HasTraktAutoLinkingDisabled { get; init; }
     public bool HasMissingTraktLink { get; init; }

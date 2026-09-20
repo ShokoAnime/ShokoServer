@@ -3,11 +3,26 @@ using System.Linq;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Utilities;
 
-namespace Shoko.Server.Repositories.Direct.TMDB.Optional;
+#nullable enable
+namespace Shoko.Server.Repositories.Cached.TMDB;
 
-public class TMDB_SuggestionRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<TMDB_Suggestion, int>(databaseFactory)
+public class TMDB_SuggestionRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<TMDB_Suggestion, int>(databaseFactory)
 {
+    private PocoIndex<int, TMDB_Suggestion, (DataEntityType Type, int ID)>? _entityIDs;
+
+    private PocoIndex<int, TMDB_Suggestion, (DataEntityType Type, int ID)>? _suggestedEntityIDs;
+
+    protected override int SelectKey(TMDB_Suggestion entity)
+        => entity.TMDB_SuggestionID;
+
+    public override void PopulateIndexes()
+    {
+        _entityIDs = Cache.CreateIndex(a => (a.TmdbEntityType, a.TmdbEntityID));
+        _suggestedEntityIDs = Cache.CreateIndex(a => (a.TmdbEntityType, a.SuggestedTmdbEntityID));
+    }
+
     /// <summary>
     /// The entries suggested for <paramref name="entityID"/>.
     /// </summary>
@@ -16,15 +31,11 @@ public class TMDB_SuggestionRepository(DatabaseFactory databaseFactory) : BaseDi
     /// <param name="kind">Optional. Only one of the two lists.</param>
     /// <returns>The suggestions, best first.</returns>
     public IReadOnlyList<TMDB_Suggestion> GetByTmdbEntityID(DataEntityType entityType, int entityID, SuggestionKind? kind = null)
-    {
-        using var session = _databaseFactory.SessionFactory.OpenSession();
-        return session
-            .Query<TMDB_Suggestion>()
-            .Where(a => a.TmdbEntityType == entityType && a.TmdbEntityID == entityID && (kind == null || a.Kind == kind))
+        => _entityIDs!.GetMultiple((entityType, entityID))
+            .Where(a => kind is null || a.Kind == kind)
             .OrderBy(a => a.Kind)
             .ThenBy(a => a.Ordering)
             .ToList();
-    }
 
     /// <summary>
     /// The entries that suggest <paramref name="entityID"/>, which works
@@ -35,13 +46,9 @@ public class TMDB_SuggestionRepository(DatabaseFactory databaseFactory) : BaseDi
     /// <param name="kind">Optional. Only one of the two lists.</param>
     /// <returns>The suggestions pointing at it, best first.</returns>
     public IReadOnlyList<TMDB_Suggestion> GetBySuggestedTmdbEntityID(DataEntityType entityType, int entityID, SuggestionKind? kind = null)
-    {
-        using var session = _databaseFactory.SessionFactory.OpenSession();
-        return session
-            .Query<TMDB_Suggestion>()
-            .Where(a => a.TmdbEntityType == entityType && a.SuggestedTmdbEntityID == entityID && (kind == null || a.Kind == kind))
+        => _suggestedEntityIDs!.GetMultiple((entityType, entityID))
+            .Where(a => kind is null || a.Kind == kind)
             .OrderBy(a => a.Kind)
             .ThenBy(a => a.Ordering)
             .ToList();
-    }
 }
