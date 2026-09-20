@@ -24,6 +24,7 @@ using Shoko.Server.API.v3.Models.Anilist;
 using Shoko.Server.API.v3.Models.Anilist.Input;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Repositories.Cached;
@@ -423,6 +424,7 @@ public class AnilistController(
     /// </summary>
     /// <param name="animeID">Anilist Anime ID.</param>
     /// <param name="include">Extra details to include.</param>
+    /// <param name="search">Optional filter matched against episode numbers as digits. "1" matches 1, 10, 11, 100, ... Any other input matches nothing.</param>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
@@ -431,14 +433,25 @@ public class AnilistController(
         [FromRoute] int animeID,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnilistEpisode.IncludeDetails>? include = null,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] string? search = null
     )
     {
         var anime = _anilistAnime.GetByAnilistAnimeID(animeID);
         if (anime is null)
             return NotFound(AnimeNotFound);
 
-        return anime.Episodes
+        IEnumerable<Anilist_Episode> episodes = anime.Episodes;
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var numberText = search.Trim();
+            if (numberText.Length == 0 || numberText.Any(ch => ch is < '0' or > '9'))
+                return new ListResult<AnilistEpisode>(0, Array.Empty<AnilistEpisode>());
+
+            episodes = episodes.Where(episode => episode.EpisodeNumber.ToString().Contains(numberText));
+        }
+
+        return episodes
             .OrderBy(episode => episode.EpisodeNumber)
             .ToListResult(episode => new AnilistEpisode(episode, include?.CombineFlags()), page, pageSize);
     }
