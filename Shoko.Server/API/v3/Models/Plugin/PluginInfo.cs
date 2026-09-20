@@ -98,7 +98,12 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     /// <summary>
     ///   The thumbnail for the plugin, if it is available for the plugin.
     /// </summary>
-    public PackageThumbnailInfo? Thumbnail { get; init; } = pluginInfo.Thumbnail is null ? null : new PackageThumbnailInfo(pluginInfo.Thumbnail);
+    public PackageImageInfo? Thumbnail { get; init; } = pluginInfo.Thumbnail is null ? null : new PackageImageInfo(pluginInfo.Thumbnail);
+
+    /// <summary>
+    ///   The icon for the plugin, if it is available for the plugin.
+    /// </summary>
+    public PackageImageInfo? Icon { get; init; } = pluginInfo.Icon is null ? null : new PackageImageInfo(pluginInfo.Icon);
 
     /// <summary>
     /// When the plugin was installed locally.

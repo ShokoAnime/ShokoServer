@@ -229,6 +229,7 @@ public partial class PluginPackageManager(
                         HomepageUrl = plugin.HomepageUrl,
                         Tags = plugin.Tags,
                         Thumbnail = plugin.Thumbnail,
+                        Icon = plugin.Icon,
                         Releases = [release],
                         LastFetchedAt = plugin.InstalledAt,
                     };
@@ -592,6 +593,7 @@ public partial class PluginPackageManager(
                 RepositoryUrl = list[0].RepositoryUrl,
                 HomepageUrl = list[0].HomepageUrl,
                 Thumbnail = list.FirstOrDefault(m => m.Thumbnail is not null)?.Thumbnail,
+                Icon = list.FirstOrDefault(m => m.Icon is not null)?.Icon,
                 Name = list[0].Name,
                 Releases = list.SelectMany(m => m.Releases)
                     .OrderByDescending(m => m.Version, new SemverVersionComparer())
@@ -974,7 +976,13 @@ public partial class PluginPackageManager(
     {
         if (manifestInfo.IsReference)
             return null;
-        var thumbnail = await DownloadAndCacheThumbnailAsync(manifestInfo.ImageUrl, manifestInfo.PackageID, cancellationToken).ConfigureAwait(false);
+        // `image_url` is deprecated but still honoured, so a manifest written before
+        // the split keeps its image rather than silently losing it.
+#pragma warning disable CS0618
+        var thumbnailUrl = manifestInfo.ThumbnailUrl ?? manifestInfo.ImageUrl;
+#pragma warning restore CS0618
+        var thumbnail = await DownloadAndCacheImageAsync(thumbnailUrl, manifestInfo.PackageID, cancellationToken).ConfigureAwait(false);
+        var icon = await DownloadAndCacheImageAsync(manifestInfo.IconUrl, manifestInfo.PackageID, cancellationToken).ConfigureAwait(false);
 
         return new PackageManifestInfo
         {
@@ -989,6 +997,7 @@ public partial class PluginPackageManager(
                 .Distinct()
                 .ToArray(),
             Thumbnail = thumbnail,
+            Icon = icon,
             Releases = manifestInfo.Releases
                 .Select(remoteRelease => new PackageReleaseInfo
                 {
@@ -1014,7 +1023,19 @@ public partial class PluginPackageManager(
         };
     }
 
-    private async Task<PackageThumbnailInfo?> DownloadAndCacheThumbnailAsync(string? imageUrl, Guid packageId, CancellationToken cancellationToken)
+    /// <summary>
+    ///   Download an image named by a manifest, or return the copy already
+    ///   cached for that url. Keyed by the url, so the thumbnail and the icon
+    ///   share one cache without colliding.
+    /// </summary>
+    /// <param name="imageUrl">The url the manifest gave, if any.</param>
+    /// <param name="packageId">The package, for the log line.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>
+    ///   The image, or <see langword="null"/> when there was no url, the
+    ///   download failed, or what came back was not an image we serve.
+    /// </returns>
+    private async Task<PackageImageInfo?> DownloadAndCacheImageAsync(string? imageUrl, Guid packageId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(imageUrl))
             return null;
@@ -1032,7 +1053,7 @@ public partial class PluginPackageManager(
                 var imageInfo = new MagickImageInfo(existingFile);
                 var mime = PluginManager.GetMimeFromFormat(imageInfo);
                 if (mime is not null)
-                    return new PackageThumbnailInfo
+                    return new PackageImageInfo
                     {
                         MimeType = mime,
                         Width = (int)imageInfo.Width,
@@ -1067,7 +1088,7 @@ public partial class PluginPackageManager(
                 var mime = PluginManager.GetMimeFromFormat(imageInfo);
                 if (mime is not null)
                 {
-                    return new PackageThumbnailInfo
+                    return new PackageImageInfo
                     {
                         MimeType = mime,
                         Width = (int)imageInfo.Width,

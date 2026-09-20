@@ -40,6 +40,26 @@ public interface IPlugin
     string? EmbeddedThumbnailResourceName { get => null; }
 
     /// <summary>
+    ///   Get the embedded icon image resource name for the plugin. Used to
+    ///   load the icon image from the embedded resources. Must be an absolute
+    ///   resource name, including the assembly name.
+    /// </summary>
+    /// <remarks>
+    ///   The icon is the plugin's mark, shown beside its name wherever the
+    ///   list has no room for the thumbnail. Supply something square that is
+    ///   still readable at 16 pixels; the server neither crops nor scales it.
+    /// </remarks>
+    /// <example>
+    ///   A valid resource name for the icon image located at
+    ///   "assets/Icon.png" for the example plugin "Shoko.Plugin.Example"
+    ///   would be:
+    ///   <code>
+    ///   "Shoko.Plugin.Example.assets.Icon.png"
+    ///   </code>
+    /// </example>
+    string? EmbeddedIconResourceName { get => null; }
+
+    /// <summary>
     ///   Called once during start-up, after the plugins are initialized and
     ///   before the database is opened, to acquire the services the plugin
     ///   needs. The default implementation is a no-op; override only when

@@ -44,8 +44,25 @@ internal sealed class Manifest
     [JsonPropertyName("tags")]
     public List<string>? Tags { get; set; }
 
+    /// <summary>
+    ///   Deprecated in favour of <see cref="ThumbnailUrl"/> and
+    ///   <see cref="IconUrl"/>. Still read, and still used as the thumbnail
+    ///   when no <see cref="ThumbnailUrl"/> is given.
+    /// </summary>
     [JsonPropertyName("image_url")]
     public string? ImageUrl { get; set; }
+
+    /// <summary>
+    ///   The wide image, shown where there is room for one.
+    /// </summary>
+    [JsonPropertyName("thumbnail_url")]
+    public string? ThumbnailUrl { get; set; }
+
+    /// <summary>
+    ///   The square image, shown beside the plugin's name where there is not.
+    /// </summary>
+    [JsonPropertyName("icon_url")]
+    public string? IconUrl { get; set; }
 
     /// <summary>
     ///   Top-level dependencies for the plugin. These are injected into the

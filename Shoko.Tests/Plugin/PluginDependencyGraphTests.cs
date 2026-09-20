@@ -41,6 +41,7 @@ public class PluginDependencyGraphTests
             HomepageUrl = null,
             Tags = [],
             Thumbnail = null,
+            Icon = null,
             InstalledAt = DateTime.UnixEpoch,
             IsEnabled = isEnabled,
             IsPinned = false,

@@ -37,8 +37,10 @@ public class MyPlugin : IPlugin
 
     public string Description => "Does a useful thing.";
 
-    // Absolute resource name, assembly name included. Optional.
+    // Absolute resource names, assembly name included. Both optional.
     public string? EmbeddedThumbnailResourceName => "MyPlugin.assets.Thumbnail.png";
+
+    public string? EmbeddedIconResourceName => "MyPlugin.assets.Icon.png";
 
     public IReadOnlyList<PluginPage> GetPages() =>
     [
@@ -59,8 +61,8 @@ public class MyPlugin : IPlugin
 ```
 
 `ID` and `Name` are the only required members. `Description`,
-`EmbeddedThumbnailResourceName`, `GetPages()` and `GetFeatures()` all have
-default implementations. The class itself needs a public parameterless
+`EmbeddedThumbnailResourceName`, `EmbeddedIconResourceName`, `GetPages()` and
+`GetFeatures()` all have default implementations. The class itself needs a public parameterless
 constructor, because the plugin scan instantiates it before any container
 exists. It takes the services it needs in `Setup(IServiceProvider)`, and
 anything that has to see every plugin's contributions goes in `Ready()`; both
@@ -136,9 +138,32 @@ the data directory and several of these follow settings.
 | `ThemesPath` | Web UI themes. |
 | `LogsPath` | Log files. |
 
-`PackageThumbnailInfo.GetStream(IApplicationPaths)` is the one place these are
-substituted into a stored string: a thumbnail path may contain `%PluginsPath%`
+`PackageImageInfo.GetStream(IApplicationPaths)` is the one place these are
+substituted into a stored string: an image path may contain `%PluginsPath%`
 or `%ApplicationPaths%`, which that method expands before opening the file.
+
+### Thumbnail and icon
+
+A plugin has two images and neither is required. The **thumbnail** is the wide
+one, shown where there is room for it; the **icon** is square, shown beside the
+plugin's name where there is not. Supply an icon that is still readable at 16
+pixels, since the server neither crops nor scales what it is given.
+
+Either can be shipped two ways, and a file on disk wins over an embedded
+resource:
+
+| | in a plugin directory | as a loose dll |
+|---|---|---|
+| thumbnail | `thumbnail.*` | `<dll name>.thumbnail.*` |
+| icon | `icon.*` | `<dll name>.icon.*` |
+
+An embedded resource is named through `EmbeddedThumbnailResourceName` or
+`EmbeddedIconResourceName`, must be rooted in the plugin's own assembly name,
+and is written out beside the plugin the first time it is read so both cases
+end up being served from a path. PNG, JPEG, WebP and SVG are accepted.
+
+They are served from `/api/v3/Plugin/{pluginID}/Thumbnail` and
+`/api/v3/Plugin/{pluginID}/Icon`, and from the same two paths under a version.
 
 ---
 

@@ -90,6 +90,18 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     ///   Basic information about a plugin, used during initial loading before
     ///   the full <see cref="LocalPluginInfo"/> is available.
     /// </summary>
+    /// <summary>
+    ///   The plugin's wide image, shipped as <c>thumbnail.*</c> beside the
+    ///   plugin or as <c>&lt;dll&gt;.thumbnail.*</c> when it has no directory.
+    /// </summary>
+    private const string ThumbnailKind = "thumbnail";
+
+    /// <summary>
+    ///   The plugin's square mark, named the same way as
+    ///   <see cref="ThumbnailKind"/>.
+    /// </summary>
+    private const string IconKind = "icon";
+
     private sealed class InternalPluginInfo
     {
         /// <summary>
@@ -193,6 +205,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         ///   The raw thumbnail image byte array for the plugin, if available.
         /// </summary>
         public byte[]? Thumbnail { get; set; }
+
+        public byte[]? Icon { get; set; }
 
         /// <summary>
         ///   The dependencies of this plugin version.
@@ -321,7 +335,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         ContainingDirectory = internalPluginInfo.ContainingDirectory,
                         DLLs = internalPluginInfo.DLLs,
                         Types = [],
-                        Thumbnail = LoadPluginThumbnailInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail),
+                        Thumbnail = LoadPluginImageInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail, ThumbnailKind),
+                        Icon = LoadPluginImageInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Icon, IconKind),
                         Dependencies = internalPluginInfo.Dependencies,
                     });
                     continue;
@@ -355,7 +370,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                     ContainingDirectory = internalPluginInfo.ContainingDirectory,
                     DLLs = internalPluginInfo.DLLs,
                     Types = types,
-                    Thumbnail = LoadPluginThumbnailInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail),
+                    Thumbnail = LoadPluginImageInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail, ThumbnailKind),
+                    Icon = LoadPluginImageInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Icon, IconKind),
                     Dependencies = internalPluginInfo.Dependencies,
                 });
             }
@@ -626,6 +642,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                 DLLs = localPluginInfo.DLLs,
                 Types = localPluginInfo.Types,
                 Thumbnail = localPluginInfo.Thumbnail,
+                Icon = localPluginInfo.Icon,
                 Dependencies = localPluginInfo.Dependencies,
             };
             _exportedTypes.AddRange(localPluginInfo.Types);
@@ -868,6 +885,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             CanUninstall = !isSystem,
                             DLLs = [dllPath, .. dlls.Except([dllPath])],
                             Thumbnail = null,
+                            Icon = null,
                         };
                     }
 
@@ -916,6 +934,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             CanUninstall = !isSystem,
                             DLLs = [dllPath, .. dlls.Except([dllPath])],
                             Thumbnail = null,
+                            Icon = null,
                         };
                     }
 
@@ -956,6 +975,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             CanUninstall = !isSystem,
                             DLLs = [dllPath, .. dlls.Except([dllPath])],
                             Thumbnail = null,
+                            Icon = null,
                         };
                     }
 
@@ -993,6 +1013,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                             CanUninstall = !isSystem,
                             DLLs = [dllPath, .. dlls.Except([dllPath])],
                             Thumbnail = null,
+                            Icon = null,
                         };
                     }
 
@@ -1053,28 +1074,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         logger.LogWarning("Skipping {DllName} because it has the same ID as the core plugin.", dllPath);
                         continue;
                     }
-                    var thumbnailImage = (byte[]?)null;
-                    if (instance.EmbeddedThumbnailResourceName is { Length: > 0 } thumbnailResourceName && thumbnailResourceName.StartsWith(assemblyName + "."))
-                    {
-                        try
-                        {
-                            using var thumbnailStream = assembly.GetManifestResourceStream(thumbnailResourceName);
-                            if (thumbnailStream is null)
-                            {
-                                logger.LogInformation("Failed to load thumbnail for {DllName}", dllPath);
-                            }
-                            else
-                            {
-                                var thumbnailImage0 = new byte[thumbnailStream.Length];
-                                thumbnailStream.ReadExactly(thumbnailImage0);
-                                thumbnailImage = thumbnailImage0;
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogWarning(ex, "Failed to load thumbnail for {DllName}", dllPath);
-                        }
-                    }
+                    var thumbnailImage = ReadEmbeddedImage(assembly, assemblyName, instance.EmbeddedThumbnailResourceName, ThumbnailKind, dllPath);
+                    var iconImage = ReadEmbeddedImage(assembly, assemblyName, instance.EmbeddedIconResourceName, IconKind, dllPath);
 
                     return new()
                     {
@@ -1098,6 +1099,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
                         CanUninstall = !isSystem,
                         DLLs = [dllPath, .. dlls.Except([dllPath])],
                         Thumbnail = thumbnailImage,
+                        Icon = iconImage,
                         Dependencies = embeddedDependencies
                             .Select(dependency => new PluginDependency
                             {
@@ -1483,7 +1485,8 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
             ContainingDirectory = internalPluginInfo.ContainingDirectory,
             DLLs = internalPluginInfo.DLLs,
             Types = existingPluginInfo?.Types ?? [],
-            Thumbnail = LoadPluginThumbnailInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail),
+            Thumbnail = LoadPluginImageInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Thumbnail, ThumbnailKind),
+            Icon = LoadPluginImageInfo(internalPluginInfo.ContainingDirectory, internalPluginInfo.DLLs[0], internalPluginInfo.Icon, IconKind),
             Dependencies = internalPluginInfo.Dependencies,
         };
         if (existingPluginInfo is not null && _pluginTypes.IndexOf(existingPluginInfo) is { } index && index is not -1)
@@ -1511,82 +1514,110 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
         return pluginInfo;
     }
 
-    private PackageThumbnailInfo? LoadPluginThumbnailInfo(string? containingDirectory, string dll, byte[]? thumbnailBytes)
+    /// <summary>
+    ///   Read an image a plugin embedded in its own assembly.
+    /// </summary>
+    /// <param name="assembly">The plugin assembly to read from.</param>
+    /// <param name="assemblyName">
+    ///   The assembly's name. A resource name not rooted in it is refused,
+    ///   since a plugin may only name its own resources.
+    /// </param>
+    /// <param name="resourceName">The resource name the plugin advertised, if any.</param>
+    /// <param name="kind">Which image this is, for the log line.</param>
+    /// <param name="dllPath">The dll being read, for the log line.</param>
+    /// <returns>
+    ///   The image bytes, or <see langword="null"/> when the plugin advertised
+    ///   none, named something outside its own assembly, or the read failed.
+    /// </returns>
+    private byte[]? ReadEmbeddedImage(Assembly assembly, string assemblyName, string? resourceName, string kind, string dllPath)
     {
-        if (!string.IsNullOrEmpty(containingDirectory))
+        if (resourceName is not { Length: > 0 } || !resourceName.StartsWith(assemblyName + "."))
+            return null;
+
+        try
         {
-            foreach (var fileName in Directory.EnumerateFiles(containingDirectory, "thumbnail.*", new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream is null)
             {
-                if (ContentTypeHelper.TryGetContentType(fileName, out _))
-                {
-                    var imageInfo = new MagickImageInfo(fileName);
-                    if (GetMimeFromFormat(imageInfo) is not { } mime)
-                        continue;
-
-                    return new()
-                    {
-                        Height = (int)imageInfo.Height,
-                        Width = (int)imageInfo.Width,
-                        FilePath = fileName
-                            .Replace(applicationPaths.PluginsPath, "%PluginsPath%")
-                            .Replace(applicationPaths.ApplicationPath, "%ApplicationPaths%"),
-                        MimeType = mime,
-                    };
-                }
-            }
-        }
-        else
-        {
-            var thumbnailFile = Path.ChangeExtension(Path.GetFileName(dll), ".thumbnail.*");
-            foreach (var fileName in Directory.EnumerateFiles(Path.GetDirectoryName(dll)!, thumbnailFile, new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
-            {
-                if (ContentTypeHelper.TryGetContentType(fileName, out _))
-                {
-                    var imageInfo = new MagickImageInfo(fileName);
-                    if (GetMimeFromFormat(imageInfo) is not { } mime)
-                        continue;
-
-                    return new()
-                    {
-                        Height = (int)imageInfo.Height,
-                        Width = (int)imageInfo.Width,
-                        FilePath = fileName
-                            .Replace(applicationPaths.PluginsPath, "%PluginsPath%")
-                            .Replace(applicationPaths.ApplicationPath, "%ApplicationPaths%"),
-                        MimeType = mime,
-                    };
-                }
-            }
-        }
-
-        if (thumbnailBytes is { Length: > 8 })
-        {
-            var imageInfo = new MagickImageInfo(thumbnailBytes);
-            var mime = GetMimeFromFormat(imageInfo);
-            if (mime is null)
+                logger.LogInformation("Failed to load {Kind} for {DllName}", kind, dllPath);
                 return null;
+            }
 
-            if (!ContentTypeHelper.TryGetExtensionForMimeType(mime, out var extName))
-                return null;
-
-            var fileName = !string.IsNullOrEmpty(containingDirectory)
-                ? Path.Combine(containingDirectory, "thumbnail" + extName)
-                : Path.ChangeExtension(dll, ".thumbnail" + extName);
-            File.WriteAllBytes(fileName, thumbnailBytes);
-
-            return new()
-            {
-                Height = (int)imageInfo.Height,
-                Width = (int)imageInfo.Width,
-                FilePath = fileName
-                    .Replace(applicationPaths.PluginsPath, "%PluginsPath%")
-                    .Replace(applicationPaths.ApplicationPath, "%ApplicationPaths%"),
-                MimeType = mime,
-            };
+            var bytes = new byte[stream.Length];
+            stream.ReadExactly(bytes);
+            return bytes;
         }
-
-        return null;
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to load {Kind} for {DllName}", kind, dllPath);
+            return null;
+        }
     }
+
+    /// <summary>
+    ///   Find a plugin's image of the given kind: a file shipped beside the
+    ///   plugin, or the bytes it embedded, which are written out so both cases
+    ///   end up being served from a path.
+    /// </summary>
+    /// <param name="containingDirectory">
+    ///   The plugin's own directory, when it has one. A plugin installed as a
+    ///   loose dll does not, and names its files after the dll instead.
+    /// </param>
+    /// <param name="dll">The plugin's main dll.</param>
+    /// <param name="imageBytes">The embedded bytes, when the plugin supplied any.</param>
+    /// <param name="kind">
+    ///   <see cref="ThumbnailKind"/> or <see cref="IconKind"/>, which is both
+    ///   the file name looked for and the one written.
+    /// </param>
+    /// <returns>The image, or <see langword="null"/> when there is none.</returns>
+    /// <exception cref="IOException">
+    ///   The embedded bytes could not be written beside the plugin.
+    /// </exception>
+    private PackageImageInfo? LoadPluginImageInfo(string? containingDirectory, string dll, byte[]? imageBytes, string kind)
+    {
+        var hasDirectory = !string.IsNullOrEmpty(containingDirectory);
+        var directory = hasDirectory ? containingDirectory! : Path.GetDirectoryName(dll)!;
+        var pattern = hasDirectory ? kind + ".*" : Path.ChangeExtension(Path.GetFileName(dll), "." + kind + ".*");
+        foreach (var fileName in Directory.EnumerateFiles(directory, pattern, new EnumerationOptions() { IgnoreInaccessible = true, RecurseSubdirectories = false }))
+        {
+            if (!ContentTypeHelper.TryGetContentType(fileName, out _))
+                continue;
+
+            var existing = new MagickImageInfo(fileName);
+            if (GetMimeFromFormat(existing) is not { } existingMime)
+                continue;
+
+            return ToImageInfo(fileName, (int)existing.Width, (int)existing.Height, existingMime);
+        }
+
+        if (imageBytes is not { Length: > 8 })
+            return null;
+
+        var imageInfo = new MagickImageInfo(imageBytes);
+        if (GetMimeFromFormat(imageInfo) is not { } mime)
+            return null;
+
+        if (!ContentTypeHelper.TryGetExtensionForMimeType(mime, out var extName))
+            return null;
+
+        var targetName = hasDirectory
+            ? Path.Combine(containingDirectory!, kind + extName)
+            : Path.ChangeExtension(dll, "." + kind + extName);
+        File.WriteAllBytes(targetName, imageBytes);
+
+        return ToImageInfo(targetName, (int)imageInfo.Width, (int)imageInfo.Height, mime);
+    }
+
+    private PackageImageInfo ToImageInfo(string fileName, int width, int height, string mime)
+        => new()
+        {
+            Height = height,
+            Width = width,
+            FilePath = fileName
+                .Replace(applicationPaths.PluginsPath, "%PluginsPath%")
+                .Replace(applicationPaths.ApplicationPath, "%ApplicationPaths%"),
+            MimeType = mime,
+        };
 
     internal static string? GetMimeFromFormat(MagickImageInfo imageInfo)
         => imageInfo.Format switch

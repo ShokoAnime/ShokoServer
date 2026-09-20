@@ -62,7 +62,13 @@ public sealed class LocalPluginInfo
     /// <summary>
     ///   The thumbnail for the plugin, if it is available for the plugin.
     /// </summary>
-    public required PackageThumbnailInfo? Thumbnail { get; init; }
+    public required PackageImageInfo? Thumbnail { get; init; }
+
+    /// <summary>
+    ///   The icon for the plugin, if it is available for the plugin. Square,
+    ///   and meant for the places the thumbnail is too wide for.
+    /// </summary>
+    public required PackageImageInfo? Icon { get; init; }
 
     /// <summary>
     /// When the plugin was installed to the local system.

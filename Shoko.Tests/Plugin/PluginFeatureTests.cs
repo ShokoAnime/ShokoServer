@@ -133,6 +133,7 @@ public class PluginFeatureTests
             HomepageUrl = null,
             Tags = [],
             Thumbnail = null,
+            Icon = null,
             InstalledAt = DateTime.UnixEpoch,
             IsEnabled = true,
             IsPinned = false,

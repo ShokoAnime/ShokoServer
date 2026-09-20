@@ -41,6 +41,7 @@ public static class PluginTestDoubles
             HomepageUrl = null,
             Tags = [],
             Thumbnail = null,
+            Icon = null,
             InstalledAt = DateTime.UnixEpoch,
             // An entry that is loaded is enabled; the tests asking about a toggle need to see
             // the toggle actually refused rather than a default they never set.

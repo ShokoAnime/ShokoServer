@@ -5,40 +5,41 @@ using Newtonsoft.Json;
 namespace Shoko.Abstractions.Plugin.Models;
 
 /// <summary>
-/// Information about a package or plugin thumbnail.
+/// Information about an image belonging to a package or plugin, such as its
+/// thumbnail or its logo.
 /// </summary>
-public sealed class PackageThumbnailInfo
+public sealed class PackageImageInfo
 {
     /// <summary>
-    /// The mime type of the thumbnail image.
+    /// The mime type of the image.
     /// </summary>
     [JsonPropertyName("mime")]
     [JsonProperty("mime")]
     public required string MimeType { get; init; }
 
     /// <summary>
-    /// The width of the thumbnail image.
+    /// The width of the image.
     /// </summary>
     [JsonPropertyName("width")]
     [JsonProperty("width")]
     public required int Width { get; init; }
 
     /// <summary>
-    /// The height of the thumbnail image.
+    /// The height of the image.
     /// </summary>
     [JsonPropertyName("height")]
     [JsonProperty("height")]
     public required int Height { get; init; }
 
     /// <summary>
-    /// The path to the thumbnail image.
+    /// The path to the image.
     /// </summary>
     [JsonPropertyName("path")]
     [JsonProperty("path")]
     public required string FilePath { get; init; }
 
     /// <summary>
-    /// Get the thumbnail image stream.
+    /// Get the image stream.
     /// </summary>
     public Stream? GetStream(IApplicationPaths applicationPaths)
     {

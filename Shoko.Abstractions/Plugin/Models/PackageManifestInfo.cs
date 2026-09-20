@@ -68,7 +68,15 @@ public sealed class PackageManifestInfo
     /// </summary>
     [JsonPropertyName("thumbnail")]
     [JsonProperty("thumbnail")]
-    public required PackageThumbnailInfo? Thumbnail { get; init; }
+    public required PackageImageInfo? Thumbnail { get; init; }
+
+    /// <summary>
+    ///   The icon for the plugin, if it's available. Square, and meant for
+    ///   the places the thumbnail is too wide for.
+    /// </summary>
+    [JsonPropertyName("icon")]
+    [JsonProperty("icon")]
+    public required PackageImageInfo? Icon { get; init; }
 
     /// <summary>
     ///   Available releases from the manifest.

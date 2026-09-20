@@ -52,7 +52,18 @@
       "format": "uri"
     },
     "image_url": {
-      "description": "Optional banner or thumbnail image URL.",
+      "description": "Deprecated: use thumbnail_url for the wide image, icon_url for the square one, or both. One field could not say which of the two it was, so it was read as a thumbnail while authors supplied logos to it. Still honoured as a fallback for thumbnail_url, so an existing manifest keeps working unchanged.",
+      "deprecated": true,
+      "type": "string",
+      "format": "uri"
+    },
+    "thumbnail_url": {
+      "description": "Optional wide image URL, shown where there is room for one. Takes precedence over image_url.",
+      "type": "string",
+      "format": "uri"
+    },
+    "icon_url": {
+      "description": "Optional square image URL, shown beside the plugin's name where there is no room for the thumbnail. Supply something that is still readable at 16 pixels; it is neither cropped nor scaled for you.",
       "type": "string",
       "format": "uri"
     },

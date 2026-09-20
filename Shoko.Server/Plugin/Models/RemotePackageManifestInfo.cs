@@ -99,9 +99,32 @@ public sealed class RemotePackageManifestInfo
     /// <summary>
     /// Optional banner URL.
     /// </summary>
+    /// <remarks>
+    /// Deprecated in favour of <see cref="ThumbnailUrl"/> and
+    /// <see cref="IconUrl"/>, which say which of the two a manifest means.
+    /// Still read, and still used as the thumbnail when no
+    /// <see cref="ThumbnailUrl"/> is given, so existing manifests keep
+    /// working.
+    /// </remarks>
+    [Obsolete("Use ThumbnailUrl or IconUrl instead. Still read as a fallback for ThumbnailUrl.")]
     [JsonPropertyName("image_url")]
     [JsonProperty("image_url")]
     public string? ImageUrl { get; set; }
+
+    /// <summary>
+    /// Optional wide image URL, shown where there is room for one.
+    /// </summary>
+    [JsonPropertyName("thumbnail_url")]
+    [JsonProperty("thumbnail_url")]
+    public string? ThumbnailUrl { get; set; }
+
+    /// <summary>
+    /// Optional square image URL, shown beside the plugin's name where there
+    /// is not.
+    /// </summary>
+    [JsonPropertyName("icon_url")]
+    [JsonProperty("icon_url")]
+    public string? IconUrl { get; set; }
 
     /// <summary>
     /// Available releases from the manifest.

@@ -136,8 +136,9 @@ injects:
 1. **Discovery**, in `PluginManager.LoadInternalPluginInfo`. Each candidate DLL
    is loaded into a throwaway collectible `AssemblyLoadContext` and the plugin
    type is built with `Activator.CreateInstance(pluginImpl[0])`, purely to read
-   `ID`, `Name`, `Description` and `EmbeddedThumbnailResourceName` off it. That
-   overload requires a public parameterless constructor. There is no container
+   `ID`, `Name`, `Description`, `EmbeddedThumbnailResourceName` and
+   `EmbeddedIconResourceName` off it. That overload requires a public
+   parameterless constructor. There is no container
    to inject from at this point: discovery happens during `ScanForPlugins()`,
    before the web host, and therefore before the service collection, exists.
 2. **Initialization**, in `PluginManager.InitPlugins`, which runs after the host

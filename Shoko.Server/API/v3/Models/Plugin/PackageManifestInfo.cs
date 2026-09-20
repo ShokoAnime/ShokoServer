@@ -48,9 +48,16 @@ public class PackageManifestInfo(AbstractPackageManifestInfo manifestInfo, IRead
     /// <summary>
     ///   The thumbnail for the plugin, if it's available.
     /// </summary>
-    public PackageThumbnailInfo? Thumbnail { get; init; } = manifestInfo.Thumbnail is null
+    public PackageImageInfo? Thumbnail { get; init; } = manifestInfo.Thumbnail is null
         ? null
-        : new PackageThumbnailInfo(manifestInfo.Thumbnail);
+        : new PackageImageInfo(manifestInfo.Thumbnail);
+
+    /// <summary>
+    ///   The icon for the plugin, if it's available.
+    /// </summary>
+    public PackageImageInfo? Icon { get; init; } = manifestInfo.Icon is null
+        ? null
+        : new PackageImageInfo(manifestInfo.Icon);
 
     /// <summary>
     ///   Available releases from the manifest.

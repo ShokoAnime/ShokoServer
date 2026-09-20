@@ -344,6 +344,27 @@ public class PluginPackageController(
         return File(stream, manifest.Thumbnail.MimeType);
     }
 
+    /// <summary>
+    ///   Gets the icon for a package manifest by package ID.
+    /// </summary>
+    /// <param name="packageID">
+    ///   The package ID.
+    /// </param>
+    /// <returns>
+    ///   The icon image if available.
+    /// </returns>
+    [AllowAnonymous]
+    [HttpGet("{packageID}/Icon")]
+    public async Task<ActionResult> GetIconForManifestByPackageID([FromRoute] Guid packageID)
+    {
+        var manifests = await packageManager.GetAvailablePackageManifests(allowSync: false).ConfigureAwait(false);
+        var manifest = manifests.FirstOrDefault(m => m.PackageID == packageID);
+        if (manifest?.Icon?.GetStream(applicationPaths) is not { } stream)
+            return NotFound("Package or icon not found");
+
+        return File(stream, manifest.Icon.MimeType);
+    }
+
     #endregion
 
     #region Package Installation
