@@ -7,4 +7,4 @@ namespace Shoko.Abstractions.Core.Exceptions;
 /// </summary>
 /// <param name="message">Message.</param>
 /// <param name="innerException">Inner exception.</param>
-public class StartupFailedException(string? message = null, Exception? innerException = null) : Exception(message ?? innerException?.Message);
+public class StartupFailedException(string? message = null, Exception? innerException = null) : Exception(message ?? innerException?.Message, innerException);
