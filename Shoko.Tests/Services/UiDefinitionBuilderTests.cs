@@ -224,11 +224,14 @@ public class UiDefinitionBuilderTests
         Assert.All(root.Structure.SkipLast(2), x => Assert.IsType<UiSectionContainerElement>(root.Items[x.Name]));
         Assert.Equal(["WebUI_Settings"], root.FloatingSections["Web UI"].Structure.Select(x => x.Name));
 
-        // `AniDbSettings` gives every member a section name, so it is nothing
-        // but gathered sections, and `Test` pins to the top of `Login`.
+        // `AniDbSettings` gives its own members a section name each, so those are
+        // gathered sections, and `Test` pins to the top of `Login`. `MyList` is a
+        // class of its own, so it stays an item and labels its own tab.
         var anidb = Find<UiSectionContainerElement>(definition.Root, "AniDb");
-        Assert.Equal(["Login", "Download", "MyList", "Update", "URLs", "HTTP", "UDP", "AVDump"], anidb.Structure.Select(x => x.Name));
-        Assert.All(anidb.Structure, x => Assert.Equal(UiStructureMemberKind.FloatingSection, x.Kind));
+        Assert.Equal(["Login", "Download", "Update", "URLs", "HTTP", "UDP", "AVDump", "MyList"], anidb.Structure.Select(x => x.Name));
+        Assert.All(anidb.Structure.SkipLast(1), x => Assert.Equal(UiStructureMemberKind.FloatingSection, x.Kind));
+        Assert.Equal(UiStructureMemberKind.Item, anidb.Structure[^1].Kind);
+        Assert.IsType<UiSectionContainerElement>(anidb.Items["MyList"]);
         Assert.Equal(["Username", "Password"], anidb.FloatingSections["Login"].Structure.Select(x => x.Name));
         Assert.Equal(["Test"], anidb.FloatingSections["Login"].StartActions);
         // A nested container filed under a section name is an item in it.
