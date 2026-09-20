@@ -220,6 +220,31 @@ public class AnilistController(
             .ToList();
 
     /// <summary>
+    /// Get multiple local Anilist episodes at once.
+    /// </summary>
+    /// <param name="body">Body containing the IDs and details to include.</param>
+    /// <returns></returns>
+    [HttpPost("Episode/Bulk")]
+    public ActionResult<List<AnilistEpisode>> BulkGetAnilistEpisodesByEpisodeIDs([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AnilistBulkFetchBody<AnilistEpisode.IncludeDetails> body) =>
+        body.IDs
+            .Select(episodeID => episodeID <= 0 ? null : _anilistEpisodes.GetByAnilistEpisodeID(episodeID))
+            .WhereNotNull()
+            .GroupBy(episode => episode.AnilistAnimeID)
+            .SelectMany(group =>
+            {
+                // Episode rows are synthesized during an anime refresh; if one is mid-update,
+                // wait for it and re-read so the caller gets the finalized row.
+                if (!_anilistMetadataService.WaitForAnimeUpdate(group.Key))
+                    return group.AsEnumerable();
+
+                return group
+                    .Select(episode => _anilistEpisodes.GetByAnilistEpisodeID(episode.AnilistEpisodeID) ?? episode)
+                    .ToList();
+            })
+            .Select(episode => new AnilistEpisode(episode, body.Include?.CombineFlags()))
+            .ToList();
+
+    /// <summary>
     /// Get all titles for an Anilist anime.
     /// </summary>
     /// <param name="animeID">Anilist Anime ID.</param>
