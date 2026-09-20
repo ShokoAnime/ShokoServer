@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -46,7 +48,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
 [Authorize]
-public class AnilistController(
+public partial class AnilistController(
     ISettingsProvider settingsProvider,
     ILogger<AnilistController> _logger,
     AnilistSearchService _anilistSearchService,
@@ -419,12 +421,15 @@ public class AnilistController(
             .ToList();
     }
 
+    [GeneratedRegex(@"^(?<qualified>[#eE])?(?<number>\d+)$", RegexOptions.Compiled)]
+    private static partial Regex EpisodeNumberSearchRegex();
+
     /// <summary>
     /// Get all episodes for an Anilist anime.
     /// </summary>
     /// <param name="animeID">Anilist Anime ID.</param>
     /// <param name="include">Extra details to include.</param>
-    /// <param name="search">Optional filter matched against episode numbers as digits. "1" matches 1, 10, 11, 100, ... Any other input matches nothing.</param>
+    /// <param name="search">Optional filter matched against episode numbers. A bare number is matched anywhere in the number, so "1" matches 1, 10, 21 and 213. An <c>E</c> or <c>#</c> prefix says the number is the episode, and matches only that one, so "E1" and "#01" both match episode 1 alone. Anything else matches nothing.</param>
     /// <param name="pageSize">The page size.</param>
     /// <param name="page">The page index.</param>
     /// <returns></returns>
@@ -444,11 +449,27 @@ public class AnilistController(
         IEnumerable<Anilist_Episode> episodes = anime.Episodes;
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var numberText = search.Trim();
-            if (numberText.Length == 0 || numberText.Any(ch => ch is < '0' or > '9'))
-                return new ListResult<AnilistEpisode>(0, Array.Empty<AnilistEpisode>());
+            // AniList keeps no episode titles, so a number is all there is to
+            // search by. A bare number is a loose filter over the digits, while
+            // an "E" or "#" prefix says the number is the episode and nothing
+            // else will do.
+            if (EpisodeNumberSearchRegex().Match(search.Trim()) is not { Success: true } match)
+                return new ListResult<AnilistEpisode>(0, []);
 
-            episodes = episodes.Where(episode => episode.EpisodeNumber.ToString().Contains(numberText));
+            var numberText = match.Groups["number"].Value;
+            if (match.Groups["qualified"].Success)
+            {
+                // More digits than an episode number can hold matches nothing,
+                // rather than throwing on the way to the comparison.
+                if (!int.TryParse(numberText, NumberStyles.None, CultureInfo.InvariantCulture, out var episodeNumber))
+                    return new ListResult<AnilistEpisode>(0, []);
+
+                episodes = episodes.Where(episode => episode.EpisodeNumber == episodeNumber);
+            }
+            else
+            {
+                episodes = episodes.Where(episode => episode.EpisodeNumber.ToString(CultureInfo.InvariantCulture).Contains(numberText, StringComparison.Ordinal));
+            }
         }
 
         return episodes
