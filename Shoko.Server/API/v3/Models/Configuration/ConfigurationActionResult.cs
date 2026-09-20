@@ -6,7 +6,6 @@ using JsonDiffPatchDotNet;
 using JsonDiffPatchDotNet.Formatters.JsonPatch;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Server.Services.Configuration;
 

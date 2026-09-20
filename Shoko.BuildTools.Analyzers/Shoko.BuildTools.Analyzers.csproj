@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <!--
+      Analyzers are loaded into the compiler host (csc, VBCSCompiler, Visual Studio, Rider), which
+      may run on .NET Framework. netstandard2.0 is the only target framework every host can load,
+      and it is what RS1038 enforces. It is also why this cannot live in Shoko.BuildTools.Targets,
+      which has to be net10.0 for the MSBuild task API surface.
+    -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Shoko.BuildTools.Analyzers</AssemblyName>
+    <RootNamespace>Shoko.BuildTools.Analyzers</RootNamespace>
+    <PackageId>Shoko.BuildTools.Analyzers</PackageId>
+    <Description>Roslyn analyzers for Shoko plugin authors. Reports configuration shapes the configuration UI schema generator cannot render.</Description>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- The analyzer ships under analyzers/dotnet/cs, never under lib, so consumers get no runtime dependency. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_ShokoPackAnalyzer</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Pinned to the oldest Roslyn the analyzer has to run on. An analyzer built against a newer
+         Microsoft.CodeAnalysis than the running compiler is rejected with CS9057, while an older one
+         always loads, so the floor is the compatibility surface. 4.14.0 covers the .NET 9 SDK and
+         VS 17.14 onwards, including the Roslyn 5.x in the .NET 10 SDK this repo builds with. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.6.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <Target Name="_ShokoPackAnalyzer">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(TargetPath)" PackagePath="analyzers/dotnet/cs" />
+    </ItemGroup>
+  </Target>
+
+</Project>

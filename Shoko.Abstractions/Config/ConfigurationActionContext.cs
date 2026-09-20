@@ -30,6 +30,19 @@ public class ConfigurationActionContext
     public required ConfigurationInfo Info { get; init; }
 
     /// <summary>
+    /// What the handler before this one in the chain returned, or an empty
+    /// result for the first of them.
+    /// </summary>
+    /// <remarks>
+    /// Every handler along the edited path runs, innermost first, and each is
+    /// handed what the one before it decided so it can build on it. Returning
+    /// something else loses nothing: the messages and validation errors of every
+    /// handler are collected whatever each one returns, and they all edit the
+    /// same configuration instance.
+    /// </remarks>
+    public ConfigurationActionResult Result { get; init; } = new();
+
+    /// <summary>
     /// The configuration service.
     /// </summary>
     public required IConfigurationService ConfigurationService { get; init; }

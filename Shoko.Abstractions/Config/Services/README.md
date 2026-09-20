@@ -258,12 +258,16 @@ The WebUI renders from the generated schema, so standard
 `[Display(Name, Description)]`, `[DefaultValue]`, `[Range]`,
 `[DataType(DataType.Password)]`, `[PasswordPropertyText]`, `[Description]`.
 
-`Config/Attributes/` adds the Shoko-specific ones:
+`UI/Attributes/` adds the Shoko-specific ones, and
+[`UI/README.md`](../../UI/README.md) covers how a form is laid out, how it
+reacts while the user edits, and the patterns worth copying:
 
 | Attribute | On | What it does |
 |---|---|---|
 | `[Section(DisplaySectionType)]` | Class | Picks the section style, names the default section, controls whether a save button is shown. |
+| `[CustomAction(AttachToMember = ...)]` | Method | Renders the button on that member's row rather than among the class's own members. |
 | `[SectionName("Login")]` | Member | Groups members into a named section. |
+| `[FloatingSection("Login", Description = ...)]` | Class | Describes a section members are grouped into. |
 | `[Visibility]` | Member | Hides a member, marks it advanced, or sets its size. |
 | `[Badge("Advanced", Theme = ...)]` | Member | A coloured label next to the field. |
 | `[EnvironmentVariable("MY_TOKEN")]` | Member | Seeds the value from an environment variable. `AllowOverride` decides whether the user may still change it. |
@@ -317,7 +321,7 @@ dropped, so `TestTokenAction` reads "Test Token". This is how a "Test
 connection" button works:
 
 ```csharp
-[CustomAction(Theme = DisplayColorTheme.Primary, Position = DisplayButtonPosition.Top, SectionName = "Login")]
+[CustomAction(Theme = DisplayColorTheme.Primary, Position = DisplayButtonPosition.Start, SectionName = "Login")]
 public ConfigurationActionResult TestToken(ConfigurationActionContext<MyConfiguration> context)
 {
     try

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
@@ -53,6 +54,32 @@ public interface IActionService
     ///   Gets the metadata for a registered action by its ID.
     /// </summary>
     ExecutableActionInfo? GetActionInfo(Guid actionId);
+
+    /// <summary>
+    ///   Checks an invocation payload against the action's parameter schema.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     For a caller holding a document it parsed rather than values it built
+    ///     in code: an endpoint, core's own or a plugin's, that took a body and
+    ///     wants to answer with errors the sender can attach to fields. An
+    ///     in-process caller reaches for
+    ///     <see cref="InvokeAsync(Guid, IReadOnlyDictionary{string, object?}, IUser?, CancellationToken)"/>
+    ///     instead, since it passes a typed dictionary and the failure it wants
+    ///     is a compiler error rather than a dictionary of paths.
+    ///   </para>
+    ///   <para>
+    ///     The errors come back keyed by property path, which is the shape the
+    ///     configuration endpoints already return for a rejected body, so the
+    ///     two are surfaced the same way.
+    ///   </para>
+    /// </remarks>
+    /// <param name="actionId">The action being invoked.</param>
+    /// <param name="parameters">
+    ///   The payload, or <see langword="null"/> when the caller sent no body.
+    /// </param>
+    /// <returns>Errors per property path; empty when the payload is acceptable.</returns>
+    IReadOnlyDictionary<string, IReadOnlyList<string>> ValidateParameters(Guid actionId, JObject? parameters);
 
     /// <summary>
     ///   Gets the metadata for a registered action by its type, so a plugin
