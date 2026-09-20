@@ -7,10 +7,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Newtonsoft.Json.Linq;
+using Shoko.Abstractions.Actions.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Action;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -19,7 +19,7 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/Group/{groupID:int}/Action"), Tags("Action")]
 [ApiV3]
 [Authorize]
-public class GroupActionController(ActionService actionService, AnimeGroupRepository groups, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
+public class GroupActionController(IActionService actionService, AnimeGroupRepository groups, ISettingsProvider settingsProvider) : BaseController(settingsProvider)
 {
     /// <summary>
     ///   Invoke a group-scoped action by its ID. Entity existence is
