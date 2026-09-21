@@ -1,6 +1,4 @@
-﻿
-using System;
-using Shoko.Abstractions.Metadata;
+﻿using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
