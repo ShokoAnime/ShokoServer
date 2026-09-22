@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Shoko.Abstractions.Metadata.Anilist.Services;
@@ -54,6 +55,18 @@ public interface IAnilistMetadataService
     /// </summary>
     /// <param name="anilistAnimeId">The Anilist anime ID.</param>
     Task PurgeAnime(int anilistAnimeId);
+
+    #endregion
+
+    #region AniList Tags
+
+    /// <summary>
+    /// Gets all the AniList tags stored in the local database.
+    /// </summary>
+    /// <returns>
+    ///   All tags in the local database.
+    /// </returns>
+    IEnumerable<IAnilistTag> GetAllTags();
 
     #endregion
 

@@ -121,11 +121,6 @@ public class AnilistMetadataService : IAnilistMetadataService
 
     private readonly KeyedEntityLockHelper _entityLock;
 
-    /// <summary>
-    /// Cached tags dictionary.
-    /// </summary>
-    private IReadOnlyDictionary<int, string>? _tags;
-
     public AnilistMetadataService(
         ILogger<AnilistMetadataService> logger,
         ISettingsProvider settingsProvider,
@@ -187,14 +182,8 @@ public class AnilistMetadataService : IAnilistMetadataService
     #region Tags
 
     /// <inheritdoc/>
-    public Task<IReadOnlyDictionary<int, string>> GetTags()
-    {
-        if (_tags is not null)
-            return Task.FromResult(_tags);
-
-        _tags = _anilistTags.GetAll().ToDictionary(t => t.AnilistTagID, t => t.Name);
-        return Task.FromResult(_tags);
-    }
+    public IEnumerable<IAnilistTag> GetAllTags()
+        => _anilistTags.GetAll();
 
     #endregion
 
@@ -316,9 +305,6 @@ public class AnilistMetadataService : IAnilistMetadataService
                 if (options.DownloadCharactersAndStaff ?? settings.Anilist.AutoDownloadStaff)
                     await UpdateAnimeStaff(anilistAnimeId, mediaNode).ConfigureAwait(false);
             }
-
-            // Clear tag cache since tags may have been updated
-            _tags = null;
 
             // Match the episodes for every linked series now that the episodes exist.
             foreach (var xref in xrefs)
