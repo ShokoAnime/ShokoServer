@@ -52,12 +52,6 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
     public IReadOnlyList<AnimeEpisode_User> GetByUserID(int userid)
         => _userIDs!.GetMultiple(userid);
 
-    public IReadOnlyList<AnimeEpisode_User> GetMostRecentlyWatched(int userid, int limit = 100)
-        => GetByUserID(userid).Where(a => a.WatchedCount > 0)
-            .OrderByDescending(a => a.WatchedDate)
-            .Take(limit)
-            .ToList();
-
     public IReadOnlyList<AnimeEpisode_User> GetByEpisodeID(int episodeID)
         => _episodeIDs!.GetMultiple(episodeID);
 }

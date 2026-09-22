@@ -34,10 +34,4 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User,
 
     public List<AnimeSeries_User> GetBySeriesID(int seriesID)
         => _seriesIDs!.GetMultiple(seriesID);
-
-    public List<AnimeSeries_User> GetMostRecentlyWatched(int userID)
-        => GetByUserID(userID)
-            .Where(a => a.UnwatchedEpisodeCount > 0)
-            .OrderByDescending(a => a.WatchedDate)
-            .ToList();
 }
