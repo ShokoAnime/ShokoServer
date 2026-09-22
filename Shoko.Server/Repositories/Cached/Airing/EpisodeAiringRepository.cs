@@ -53,19 +53,6 @@ public class EpisodeAiringRepository(DatabaseFactory databaseFactory) : BaseCach
             .ToList();
 
     /// <summary>
-    /// Gets the airing on a schedule with the given key, which is the pair the
-    /// store is unique on.
-    /// </summary>
-    /// <param name="scheduleID">The local database ID of the schedule.</param>
-    /// <param name="key">The airing's key.</param>
-    /// <returns>The airing, or <c>null</c> when there is none.</returns>
-    public EpisodeAiring? GetByScheduleIDAndKey(int scheduleID, string key)
-        => string.IsNullOrEmpty(key)
-            ? null
-            : _scheduleIDs!.GetMultiple(scheduleID)
-                .FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.Ordinal));
-
-    /// <summary>
     /// Gets every airing attached to an episode, across every schedule and
     /// provider.
     /// </summary>
@@ -91,18 +78,6 @@ public class EpisodeAiringRepository(DatabaseFactory databaseFactory) : BaseCach
             .ToList();
 
     /// <summary>
-    /// Gets every airing whose current slot, or the slot it was first scheduled
-    /// for when it has no current one, falls on the given UTC day.
-    /// </summary>
-    /// <param name="day">The UTC day.</param>
-    /// <returns>The airings, ordered by their current slot.</returns>
-    public IReadOnlyList<EpisodeAiring> GetByDay(DateOnly day)
-        => _dayBuckets!.GetMultiple(day)
-            .OrderBy(a => a.AiredAt ?? a.OriginalAiredAt ?? DateTime.MaxValue)
-            .ThenBy(a => a.EpisodeAiringID)
-            .ToList();
-
-    /// <summary>
     /// Gets every airing falling within a range of UTC days, both ends
     /// included.
     /// </summary>
@@ -121,19 +96,6 @@ public class EpisodeAiringRepository(DatabaseFactory databaseFactory) : BaseCach
             .ThenBy(a => a.EpisodeAiringID)
             .ToList();
     }
-
-    /// <summary>
-    /// Gets every delayed airing whose original slot fell on the given UTC day,
-    /// so a week an episode was delayed out of still has something to draw its
-    /// gap from.
-    /// </summary>
-    /// <param name="day">The UTC day.</param>
-    /// <returns>The airings, ordered by their original slot.</returns>
-    public IReadOnlyList<EpisodeAiring> GetDelayedByOriginalDay(DateOnly day)
-        => _delayedDayBuckets!.GetMultiple(day)
-            .OrderBy(a => a.OriginalAiredAt ?? DateTime.MaxValue)
-            .ThenBy(a => a.EpisodeAiringID)
-            .ToList();
 
     /// <summary>
     /// Gets every delayed airing whose original slot fell within a range of UTC
