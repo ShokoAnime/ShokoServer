@@ -2984,18 +2984,6 @@
             "envVarOverridable": false
           }
         },
-        "EnableAPIv1": {
-          "title": "Enable API v1",
-          "type": "boolean",
-          "description": "Enable the deprecated API v1 endpoints.",
-          "default": false,
-          "x-uiDefinition": {
-            "elementType": "auto",
-            "requiresRestart": true,
-            "envVar": "SHOKO_API_V1_ENABLED",
-            "envVarOverridable": false
-          }
-        },
         "EnableAPIv2": {
           "title": "Enable API v2",
           "type": "boolean",
