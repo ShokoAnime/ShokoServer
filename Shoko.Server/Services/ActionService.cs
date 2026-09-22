@@ -497,7 +497,7 @@ public class ActionService : IActionService
         if (info.Scope != scope)
         {
             return new ActionValidationResult(
-                $"The action '{info.Name}' ({info.Id}) is not applicable to the {scope.ToString().ToLowerInvariant()} scope."
+                $"The action '{info.Name}' ({info.ID}) is not applicable to the {scope.ToString().ToLowerInvariant()} scope."
             );
         }
 
@@ -549,7 +549,7 @@ public class ActionService : IActionService
     private async Task EnqueueAsync(RegisteredAction registered, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
         => await _scheduler.Enqueue<ActionExecutionJob>(j =>
         {
-            j.ActionId = registered.Info.Id;
+            j.ActionId = registered.Info.ID;
             j.ScopeEntityId = scopeEntity switch
             {
                 AnimeSeries series => series.AnimeSeriesID,

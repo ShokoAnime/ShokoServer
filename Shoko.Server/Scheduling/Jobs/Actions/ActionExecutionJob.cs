@@ -103,7 +103,7 @@ public class ActionExecutionJob(
             // No entity ID on a scoped action is a bug in whatever enqueued it, not a
             // condition that changed, so it throws rather than being skipped.
             if (ScopeEntityId is not { } entityId)
-                throw new InvalidOperationException($"Scoped action '{info.Name}' ({info.Id}) has no scope entity ID.");
+                throw new InvalidOperationException($"Scoped action '{info.Name}' ({info.ID}) has no scope entity ID.");
 
             if (ResolveScopeEntity(info.Scope, entityId) is not { } entity)
             {

@@ -78,7 +78,7 @@ public class ActionInfo
     /// </summary>
     public static ActionInfo FromExecutableActionInfo(ExecutableActionInfo info) => new()
     {
-        ID = info.Id,
+        ID = info.ID,
         Name = info.Name,
         Description = info.Description,
         Category = info.Category,

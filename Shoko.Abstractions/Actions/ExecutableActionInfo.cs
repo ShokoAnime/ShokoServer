@@ -7,7 +7,7 @@ namespace Shoko.Abstractions.Actions;
 ///   listing and invocation. The concrete action type stays internal to the
 ///   server; plugins work with this metadata and the action's ID only.
 /// </summary>
-/// <param name="Id">
+/// <param name="ID">
 ///   The action's stable UUIDv5 identifier, derived from the action type's
 ///   fully-qualified name namespaced by the owning plugin's ID.
 /// </param>
@@ -45,7 +45,7 @@ namespace Shoko.Abstractions.Actions;
 ///   The ID of the plugin that owns the action.
 /// </param>
 public sealed record ExecutableActionInfo(
-    Guid Id,
+    Guid ID,
     string Name,
     string? Description,
     ActionCategory Category,
