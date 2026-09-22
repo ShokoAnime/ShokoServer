@@ -5,10 +5,8 @@ using Microsoft.AspNetCore.Http;
 
 namespace Shoko.Server.API.Swagger;
 
-public class ShokoApiReader(bool enableV1, bool enableV2) : IApiVersionReader
+public class ShokoApiReader(bool enableV2) : IApiVersionReader
 {
-    private static readonly PathString[] _v1 = ["/v1", "/api/Image", "/api/Kodi", "/api/Metro", "/api/Plex", "/Stream"];
-
     private static readonly PathString[] _v2 =
     [
         "/api/webui", "/api/version", "/plex", "/api/init", "/api/dev", "/api/modules", "/api/core",
@@ -16,7 +14,7 @@ public class ShokoApiReader(bool enableV1, bool enableV2) : IApiVersionReader
         "/api/file", "/api/queue", "/api/myid", "/api/news", "/api/search", "/api/remove_missing_files",
         "/api/stats_update", "/api/medainfo_update", "/api/hash", "/api/rescan", "/api/rescanunlinked",
         "/api/folder", "/api/rescanmanuallinks", "/api/rehash", "/api/config", "/api/rehashunlinked",
-        "/api/rehashmanuallinks", "/api/ep", "/api/ping", "/api/avdumpmismatchedfiles"
+        "/api/rehashmanuallinks", "/api/ep", "/api/ping", "/api/avdumpmismatchedfiles", "/Stream"
     ];
     public void AddParameters(IApiVersionParameterDescriptionContext context)
     {
@@ -25,9 +23,6 @@ public class ShokoApiReader(bool enableV1, bool enableV2) : IApiVersionReader
 
     public IReadOnlyList<string> Read(HttpRequest request)
     {
-        if (enableV1 && _v1.Any(request.Path.StartsWithSegments))
-            return ["1.0"];
-
         if (enableV2 && _v2.Any(request.Path.StartsWithSegments))
             return ["2.0"];
 

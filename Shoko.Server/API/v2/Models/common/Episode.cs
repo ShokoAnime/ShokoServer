@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.API.v1.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
@@ -84,21 +83,22 @@ public class Episode : BaseDirectory
             }
         }
 
-        var epService = ISystemService.StaticServices.GetRequiredService<ShokoServiceImplementationService>();
-        if (epService.GetV1Contract(aep, uid) is { } cae)
+        if (aep.AniDB_Episode is { } anidb)
         {
-            ep.name = cae.AniDB_EnglishName;
-            ep.summary = cae.Description;
+            var airDate = anidb.GetAirDateAsDate();
+            var watchedDate = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(uid, aep.AnimeEpisodeID)?.WatchedDate;
+            ep.name = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidb.EpisodeID, TitleLanguage.English).FirstOrDefault()?.Title!;
+            ep.summary = anidb.Description;
 
-            ep.year = cae.AniDB_AirDate?.Year.ToString(CultureInfo.InvariantCulture)!;
-            ep.air = cae.AniDB_AirDate?.ToISO8601Date()!;
+            ep.year = airDate?.Year.ToString(CultureInfo.InvariantCulture)!;
+            ep.air = airDate?.ToISO8601Date()!;
 
-            ep.votes = cae.AniDB_Votes;
-            ep.rating = cae.AniDB_Rating;
+            ep.votes = anidb.Votes;
+            ep.rating = anidb.Rating;
 
-            ep.view = cae.WatchedDate != null ? 1 : 0;
-            ep.view_date = cae.WatchedDate;
-            ep.epnumber = cae.EpisodeNumber;
+            ep.view = watchedDate != null ? 1 : 0;
+            ep.view_date = watchedDate;
+            ep.epnumber = anidb.EpisodeNumber;
         }
 
         if (pic > 0)

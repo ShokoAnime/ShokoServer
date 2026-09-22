@@ -30,7 +30,6 @@ using Shoko.Server.API.FileProviders;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.Swagger;
-using Shoko.Server.API.v1.Services;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
@@ -61,7 +60,6 @@ public static partial class APIExtensions
         services.AddSingleton<IEventEmitter, UserEventEmitter>();
         services.AddSingleton<IEventEmitter, GroupEventEmitter>();
         services.AddSingleton<IEventEmitter, PluginEventEmitter>();
-        services.AddSingleton<ShokoServiceImplementationService>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
         services.AddScoped<WebUIFactory>();
@@ -92,13 +90,11 @@ public static partial class APIExtensions
                 // Add a swagger document for each discovered API version (server-only).
                 foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                 {
-                    if (description.GroupName is "v1" && !webSettings.EnableAPIv1)
-                        continue;
                     if (description.GroupName is "v2" or "v2.1" && !webSettings.EnableAPIv2)
                         continue;
                     if (description.GroupName is "v3" && !webSettings.EnableAPIv3)
                         continue;
-                    if (description.GroupName is not ("v1" or "v2" or "v2.1" or "v3"))
+                    if (description.GroupName is not ("v2" or "v2.1" or "v3"))
                         continue;
                     options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description, "Shoko Server"));
                 }
@@ -251,9 +247,7 @@ public static partial class APIExtensions
                 options.ReportApiVersions = true;
                 options.AssumeDefaultVersionWhenUnspecified = true;
                 options.DefaultApiVersion = new ApiVersion(1, 0);
-                options.ApiVersionReader = new ShokoApiReader(
-                    webSettings.EnableAPIv1,
-                    webSettings.EnableAPIv2);
+                options.ApiVersionReader = new ShokoApiReader(webSettings.EnableAPIv2);
             })
             .AddMvc()
             .AddApiExplorer(options =>
@@ -390,7 +384,7 @@ public static partial class APIExtensions
                 .Replace("Tmdb.Tmdb", "Tmdb.")
                 .Replace("Image.Image", "Image");
 
-        // All else exposed in APIv3 (mostly from the settings object), in addition to anything in APIv1 & APIv2.
+        // All else exposed in APIv3 (mostly from the settings object), in addition to anything in APIv2.
         else
             title = string.Join(".", fullName.Replace("+", ".").Replace("`1", "").Split(".").TakeLast(2));
 
@@ -524,7 +518,7 @@ public static partial class APIExtensions
                     // Server API bundles (listed first)
                     foreach (var description in provider.ApiVersionDescriptions.OrderByDescending(a => a.ApiVersion))
                     {
-                        if (description.GroupName is "v1" && !webSettings.EnableAPIv1)
+                        if (description.GroupName is not ("v2" or "v2.1" or "v3"))
                             continue;
                         if (description.GroupName is "v2" or "v2.1" && !webSettings.EnableAPIv2)
                             continue;

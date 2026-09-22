@@ -128,7 +128,7 @@ and should not be used for new code unless DI is not an option and only as a las
 - During first-run setup, `InitUser` (synthetic admin) is used — no real auth required
 - No cookie sessions; every request is authenticated by API key
 
-**API versioning**: `v0` (version-less: auth + legacy Plex webhooks + index redirect), `v1` (legacy REST, off by default), `v2` (legacy REST, can be kill-switched), `v3` (current, all new endpoints). Version can be resolved from query string, `api-version` header, or custom `ShokoApiReader`. `ApiVersionControllerFeatureProvider` excludes disabled versions at startup via individual flags (`EnableAPIv1`, `EnableAPIv2`, `EnableAPIv3`, `EnableLegacyPlexAPI`, `EnableAuthAPI`).
+**API versioning**: `v0` (version-less: auth + legacy Plex webhooks + index redirect), `v2` (legacy REST, including the `/Stream` routes, can be kill-switched), `v3` (current, all new endpoints). APIv1 has been removed. Version can be resolved from query string, `api-version` header, or custom `ShokoApiReader`. `ApiVersionControllerFeatureProvider` excludes disabled controllers at startup via individual flags (`EnableAPIv2`, `EnableAPIv3`, `EnableIndexRedirect`, `EnableLegacyPlexAPI`). The default API version (`1.0`) applies to every unversioned controller, in plugins and in the core alike, so do not change it.
 
 **Serialization**: MVC uses `AddNewtonsoftJson()` (not `System.Text.Json`) with: `MaxDepth = 10`, `DefaultContractResolver`, `NullValueHandling.Include`, `DefaultValueHandling.Populate`. SignalR also uses `AddNewtonsoftJsonProtocol()`.
 
@@ -156,13 +156,13 @@ NHibernate-mapped entities. Organized by source:
 - `Shoko.Server.Models.Release` — release/video file associations
 - `Shoko.Server.Models.Image` — image metadata
 - `Shoko.Server.Models.Internal` — internal tracking entities
-- `Shoko.Server.Models.Legacy` — legacy entities scheduled for removal once APIv1 is finally removed or before if they can be mocked using other methods/models
+- `Shoko.Server.Models.Legacy` — legacy entities (`Playlist`, `Scan`, `ScanFile`) still used by APIv2, APIv3 and the integrity scanner; scheduled for removal once they can be replaced or mocked using other models
 
 NHibernate mappings live in `Shoko.Server/Mappings/` as `*Map.cs` files. Schemas should be maintained to match, as they will be migrated to Entity Framework Code-First in a future version.
 
 **2. API response DTOs** (`Shoko.Server/API/v*/Models/`)
 Never persisted; built from persistence models in controllers/services.
-- `v1/Models/` — legacy `CL_*` contract classes (50+ files), kept for backward compatibility
+- `v2/Models/` — legacy APIv2 response shapes; `v2/Models/legacy/` holds the few `CL_*` contract classes APIv2 still accepts or returns
 - `v3/Models/Shoko/` — modern response models (`Series`, `Episode`, `Group`, `File`, `User`, …) extending `BaseModel`
 - `v3/Models/AniDB/` and `v3/Models/TMDB/` — provider-specific response shapes
 - `v3/Models/Common/` — shared types (`Images`, `Rating`, `Tag`, `Title`, etc.)

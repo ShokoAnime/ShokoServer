@@ -7,8 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Web.Attributes;
-using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.v2.Models.legacy;
 using Shoko.Server.Properties;
 using Shoko.Server.Settings;
 

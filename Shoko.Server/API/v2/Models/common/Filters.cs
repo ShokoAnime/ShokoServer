@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Filtering.Services;
-using Shoko.Server.API.v1.Models;
+using Shoko.Server.API.v2.Models.legacy;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;

@@ -126,9 +126,9 @@ public class VideoStreamSessionManager(
     ///   Finds a session by the key it was created with, or <c>null</c> if there is none.
     /// </summary>
     /// <remarks>
-    ///   Exists for the deprecated APIv1 <c>/Stream</c> routes. Every other entry point mints
+    ///   Exists for the legacy APIv2 <c>/Stream</c> routes. Every other entry point mints
     ///   a session, hands its id to the client, and gets it back on each subsequent request --
-    ///   which is what keeps two viewers of one video on two independent renditions. A v1 URL
+    ///   which is what keeps two viewers of one video on two independent renditions. A legacy URL
     ///   has nowhere to put an id and cannot redirect to one, because it is unauthenticated
     ///   while the v3 session route is not (unless
     ///   <c>Web.AllowAnonymousFileStreamingInAPIv3</c> says otherwise). Every byte-range
@@ -309,7 +309,7 @@ public class StreamSession(IVideo video, IStreamRendition rendition, string cach
 
     /// <summary>
     ///   The lookup key this session was created under, if any, so eviction can clean up the
-    ///   mapping. Only the APIv1 stream routes use one -- see
+    ///   mapping. Only the legacy APIv2 stream routes use one -- see
     ///   <see cref="VideoStreamSessionManager.TryGetSessionByKey"/>.
     /// </summary>
     public string? Key { get; init; }

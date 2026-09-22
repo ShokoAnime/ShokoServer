@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Filtering.Services;
-using Shoko.Server.API.v1.Models;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;

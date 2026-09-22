@@ -122,17 +122,6 @@ public class WebSettings
     public bool EnableSignalR { get; set; } = true;
 
     /// <summary>
-    /// Enable the deprecated API v1 endpoints.
-    /// </summary>
-    [Badge("Deprecated", Theme = DisplayColorTheme.Warning)]
-    [Visibility(Advanced = true)]
-    [Display(Name = "Enable API v1")]
-    [RequiresRestart]
-    [EnvironmentVariable("SHOKO_API_V1_ENABLED")]
-    [DefaultValue(false)]
-    public bool EnableAPIv1 { get; set; } = false;
-
-    /// <summary>
     /// Enable the API v2 endpoints.
     /// </summary>
     [Badge("Deprecated", Theme = DisplayColorTheme.Warning)]

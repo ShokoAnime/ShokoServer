@@ -14,7 +14,6 @@ using Shoko.Abstractions.Filtering.Expressions.Selectors.NumberSelectors;
 using Shoko.Abstractions.Filtering.Expressions.User;
 using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Abstractions.Filtering.Sorting.Selectors;
-using Shoko.Server.API.v1.Models;
 using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Filters.Legacy;

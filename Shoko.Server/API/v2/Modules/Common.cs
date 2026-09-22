@@ -23,9 +23,9 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
-using Shoko.Server.API.v1.Models;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
+using Shoko.Server.API.v2.Models.legacy;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
@@ -2932,5 +2932,23 @@ public class Common_v2_1 : BaseController
 
     public Common_v2_1(ISettingsProvider settingsProvider) : base(settingsProvider)
     {
+    }
+}
+
+public static class APIv2ManagedFolderExtensions
+{
+    extension(ShokoManagedFolder managedFolder)
+    {
+        public CL_ImportFolder ToClient()
+            => new()
+            {
+                ImportFolderID = managedFolder.ID,
+                ImportFolderLocation = managedFolder.Path,
+                ImportFolderName = managedFolder.Name,
+                ImportFolderType = 1 /* HDD */,
+                IsDropDestination = managedFolder.IsDropDestination ? 1 : 0,
+                IsDropSource = managedFolder.IsDropSource ? 1 : 0,
+                IsWatched = managedFolder.IsWatched ? 1 : 0,
+            };
     }
 }

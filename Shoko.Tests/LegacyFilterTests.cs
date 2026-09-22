@@ -3,7 +3,6 @@ using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.User;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.API.v1.Models;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models.Shoko;
 using Xunit;

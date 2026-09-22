@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
-using Shoko.Server.API.v1.Models;
 using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models.Shoko;
 using Xunit;

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using NLog;
-using Shoko.Server.API.v1.Models;
+using Shoko.Server.API.v2.Models.legacy;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
