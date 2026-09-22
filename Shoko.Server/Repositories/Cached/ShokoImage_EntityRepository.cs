@@ -16,8 +16,6 @@ public class ShokoImage_EntityRepository(DatabaseFactory databaseFactory) : Base
 
     private PocoIndex<int, ShokoImage_Entity, (DataSource, DataEntityType)>? _entities;
 
-    private PocoIndex<int, ShokoImage_Entity, (DataSource, DataEntityType, ImageEntityType)>? _entitiesWithType;
-
     private PocoIndex<int, ShokoImage_Entity, (DataSource, DataEntityType, string)>? _entitiesByID;
 
     private PocoIndex<int, ShokoImage_Entity, (DataSource, DataEntityType, string, ImageEntityType)>? _entitiesByIDWithType;
@@ -30,7 +28,6 @@ public class ShokoImage_EntityRepository(DatabaseFactory databaseFactory) : Base
         _imageID = Cache.CreateIndex(a => a.ImageID);
         _primaryImageID = Cache.CreateIndex(a => a.PrimaryImageID);
         _entities = Cache.CreateIndex(a => (a.EntitySource, a.EntityType));
-        _entitiesWithType = Cache.CreateIndex(a => (a.EntitySource, a.EntityType, a.ImageType));
         _entitiesByID = Cache.CreateIndex(a => (a.EntitySource, a.EntityType, a.EntityID));
         _entitiesByIDWithType = Cache.CreateIndex(a => (a.EntitySource, a.EntityType, a.EntityID, a.ImageType));
     }
@@ -47,15 +44,6 @@ public class ShokoImage_EntityRepository(DatabaseFactory databaseFactory) : Base
     public IReadOnlyList<ShokoImage_Entity> GetByEntity(DataSource entitySource, DataEntityType entityType, string entityID)
         => _entitiesByID!.GetMultiple((entitySource, entityType, entityID));
 
-    public IReadOnlyList<ShokoImage_Entity> GetByEntityForType(DataSource entitySource, DataEntityType entityType, ImageEntityType imageType)
-        => _entitiesWithType!.GetMultiple((entitySource, entityType, imageType));
-
     public IReadOnlyList<ShokoImage_Entity> GetByEntityForType(DataSource entitySource, DataEntityType entityType, string entityId, ImageEntityType imageType)
         => _entitiesByIDWithType!.GetMultiple((entitySource, entityType, entityId, imageType));
-
-    public IReadOnlyList<ShokoImage_Entity> GetPreferredImagesByEntity(DataSource entitySource, DataEntityType entityType, string entityId)
-        => GetByEntity(entitySource, entityType, entityId).Where(xref => xref.IsPreferred).ToList();
-
-    public ShokoImage_Entity? GetPreferredImageByEntityForType(DataSource entitySource, DataEntityType entityType, string entityId, ImageEntityType imageType)
-        => GetByEntityForType(entitySource, entityType, entityId, imageType).SingleOrDefault(xref => xref.IsPreferred);
 }
