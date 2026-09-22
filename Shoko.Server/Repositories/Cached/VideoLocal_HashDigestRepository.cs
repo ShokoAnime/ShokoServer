@@ -9,10 +9,6 @@ public class VideoLocal_HashDigestRepository(DatabaseFactory databaseFactory) : 
 {
     private PocoIndex<int, VideoLocal_HashDigest, int>? _videoIDs;
 
-    private PocoIndex<int, VideoLocal_HashDigest, (int videoID, string hashType)>? _videoIDAndHashTypes;
-
-    private PocoIndex<int, VideoLocal_HashDigest, string>? _hashTypes;
-
     private PocoIndex<int, VideoLocal_HashDigest, (string type, string value)>? _hashTypeAndValues;
 
     protected override int SelectKey(VideoLocal_HashDigest entity)
@@ -21,24 +17,12 @@ public class VideoLocal_HashDigestRepository(DatabaseFactory databaseFactory) : 
     public override void PopulateIndexes()
     {
         _videoIDs = Cache.CreateIndex(a => a.VideoLocalID);
-        _videoIDAndHashTypes = Cache.CreateIndex(a => (a.VideoLocalID, a.Type));
-        _hashTypes = Cache.CreateIndex(a => a.Type);
         _hashTypeAndValues = Cache.CreateIndex(a => (a.Type, a.Value));
     }
 
     public IReadOnlyList<VideoLocal_HashDigest> GetByVideoLocalID(int videoLocalID)
         => videoLocalID > 0
             ? _videoIDs!.GetMultiple(videoLocalID)
-            : [];
-
-    public IReadOnlyList<VideoLocal_HashDigest> GetByHashType(string hashType)
-        => !string.IsNullOrEmpty(hashType)
-            ? _hashTypes!.GetMultiple(hashType)
-            : [];
-
-    public IReadOnlyList<VideoLocal_HashDigest> GetByVideoIDAndHashType(int videoLocalID, string hashType)
-        => videoLocalID > 0 && !string.IsNullOrEmpty(hashType)
-            ? _videoIDAndHashTypes!.GetMultiple((videoLocalID, hashType))
             : [];
 
     public IReadOnlyList<VideoLocal_HashDigest> GetByHashTypeAndValue(string hashType, string value)
