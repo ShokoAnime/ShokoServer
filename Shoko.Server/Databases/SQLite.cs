@@ -1029,6 +1029,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(172,  4, "ALTER TABLE AnimeSeries_User DROP COLUMN StoppedCount;"),
         new(172,  5, "ALTER TABLE AnimeGroup_User DROP COLUMN PlayedCount;"),
         new(172,  6, "ALTER TABLE AnimeGroup_User DROP COLUMN StoppedCount;"),
+        new(172,  7, "DROP TABLE ScanFile;"),
+        new(172,  8, "DROP TABLE Scan;"),
     ];
 
     #endregion

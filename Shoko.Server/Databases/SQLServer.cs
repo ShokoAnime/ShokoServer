@@ -1215,6 +1215,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(190,  2, "CREATE UNIQUE INDEX UIX_Anilist_Anime_Suggestion_AnimeID_SuggestedID ON Anilist_Anime_Suggestion(AnilistAnimeID, SuggestedAnilistAnimeID);"),
         new(190,  3, "CREATE INDEX IX_Anilist_Anime_Suggestion_SuggestedID ON Anilist_Anime_Suggestion(SuggestedAnilistAnimeID);"),
         new(191,  1, DropUserPlayedAndStoppedCounts),
+        new(191,  2, "DROP TABLE ScanFile;"),
+        new(191,  3, "DROP TABLE Scan;"),
     ];
 
     #endregion
