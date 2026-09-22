@@ -303,25 +303,6 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
                 .ToList();
     }
 
-    private const string MultipleReleasesIgnoreVariationsQuery =
-        @"SELECT DISTINCT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.IsVariation = 0 AND vl.Hash != '' GROUP BY ani.AnimeID, ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-    private const string MultipleReleasesCountVariationsQuery =
-        @"SELECT DISTINCT ani.AnimeID FROM VideoLocal AS vl JOIN CrossRef_File_Episode ani ON vl.Hash = ani.Hash WHERE vl.Hash != '' GROUP BY ani.AnimeID, ani.EpisodeID HAVING COUNT(ani.EpisodeID) > 1";
-
-    public IEnumerable<AnimeSeries> GetWithMultipleReleases(bool ignoreVariations)
-    {
-        using var session = _databaseFactory.SessionFactory.OpenSession();
-        var query = ignoreVariations ? MultipleReleasesIgnoreVariationsQuery : MultipleReleasesCountVariationsQuery;
-        var ids = session.CreateSQLQuery(query)
-            .AddScalar("AnimeID", NHibernateUtil.Int32)
-            .List<int>();
-
-        return ids
-            .Distinct()
-            .Select(GetByAnimeID)
-            .WhereNotNull();
-    }
-
     private const string DuplicateFilesQuery = @"
 SELECT DISTINCT
     ani.AnimeID
