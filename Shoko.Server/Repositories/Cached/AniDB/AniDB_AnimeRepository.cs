@@ -27,9 +27,4 @@ public class AniDB_AnimeRepository(DatabaseFactory databaseFactory) : BaseCached
 
     public AniDB_Anime? GetByAnimeID(int animeID)
         => _animeIDs!.GetOne(animeID);
-
-    public List<AniDB_Anime> GetForDate(DateTime startDate, DateTime endDate)
-        => Cache.GetAll()
-            .Where(a => a.AirDate.HasValue && a.AirDate.Value >= startDate && a.AirDate.Value <= endDate)
-            .ToList();
 }
