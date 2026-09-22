@@ -156,7 +156,6 @@ NHibernate-mapped entities. Organized by source:
 - `Shoko.Server.Models.Release` — release/video file associations
 - `Shoko.Server.Models.Image` — image metadata
 - `Shoko.Server.Models.Internal` — internal tracking entities
-- `Shoko.Server.Models.Legacy` — legacy entities (`Playlist`) still used by APIv3; scheduled for removal once they can be replaced or mocked using other models
 
 NHibernate mappings live in `Shoko.Server/Mappings/` as `*Map.cs` files. Schemas should be maintained to match, as they will be migrated to Entity Framework Code-First in a future version.
 

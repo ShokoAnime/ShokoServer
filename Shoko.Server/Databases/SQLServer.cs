@@ -1217,6 +1217,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(191,  1, DropUserPlayedAndStoppedCounts),
         new(191,  2, "DROP TABLE ScanFile;"),
         new(191,  3, "DROP TABLE Scan;"),
+        new(191,  4, "DROP TABLE Playlist;"),
     ];
 
     #endregion

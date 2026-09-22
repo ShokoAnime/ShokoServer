@@ -24,7 +24,6 @@ public static class RepositoryStartup
         services.AddDirectRepository<AniDB_Anime_RelationRepository>();
         services.AddDirectRepository<AniDB_Anime_StaffRepository>();
         services.AddDirectRepository<FileNameHashRepository>();
-        services.AddDirectRepository<PlaylistRepository>();
         services.AddDirectRepository<ScheduledUpdateRepository>();
         services.AddDirectRepository<TMDB_AlternateOrdering_EpisodeRepository>();
         services.AddDirectRepository<TMDB_AlternateOrdering_SeasonRepository>();

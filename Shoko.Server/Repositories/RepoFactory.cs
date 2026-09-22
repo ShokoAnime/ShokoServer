@@ -81,7 +81,6 @@ public class RepoFactory
     public static FileNameHashRepository FileNameHash = null!;
     public static FilterPresetRepository FilterPreset = null!;
     public static JMMUserRepository JMMUser = null!;
-    public static PlaylistRepository Playlist = null!;
     public static ScheduledUpdateRepository ScheduledUpdate = null!;
     public static ShokoImage_EntityRepository ShokoImage_Entity = null!;
     public static ShokoImageRepository ShokoImage = null!;
@@ -175,7 +174,6 @@ public class RepoFactory
         FileNameHashRepository fileNameHash,
         FilterPresetRepository filterPreset,
         JMMUserRepository jmmUser,
-        PlaylistRepository playlist,
         ScheduledUpdateRepository scheduledUpdate,
         ShokoImage_EntityRepository shokoImageEntity,
         ShokoImageRepository shokoImage,
@@ -268,7 +266,6 @@ public class RepoFactory
         FileNameHash = fileNameHash;
         FilterPreset = filterPreset;
         JMMUser = jmmUser;
-        Playlist = playlist;
         ScheduledUpdate = scheduledUpdate;
         ShokoImage = shokoImage;
         ShokoImage_Entity = shokoImageEntity;

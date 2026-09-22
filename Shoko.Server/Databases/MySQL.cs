@@ -1337,6 +1337,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(193,  3, "ALTER TABLE `AnimeGroup_User` DROP COLUMN `PlayedCount`, DROP COLUMN `StoppedCount`;"),
         new(193,  4, "DROP TABLE `ScanFile`;"),
         new(193,  5, "DROP TABLE `Scan`;"),
+        new(193,  6, "DROP TABLE `Playlist`;"),
     ];
 
     #endregion
