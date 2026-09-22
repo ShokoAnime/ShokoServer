@@ -13,8 +13,6 @@ public class Anilist_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCa
 
     private PocoIndex<int, Anilist_Episode, int>? _anilistEpisodeIDs;
 
-    private PocoIndex<int, Anilist_Episode, int?>? _anilistScheduleEpisodeIDs;
-
     protected override int SelectKey(Anilist_Episode entity)
         => entity.Anilist_EpisodeID;
 
@@ -22,7 +20,6 @@ public class Anilist_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCa
     {
         _anilistAnimeIDs = Cache.CreateIndex(a => a.AnilistAnimeID);
         _anilistEpisodeIDs = Cache.CreateIndex(a => a.AnilistEpisodeID);
-        _anilistScheduleEpisodeIDs = Cache.CreateIndex(a => a.AnilistScheduleEpisodeID);
     }
 
     public IReadOnlyList<Anilist_Episode> GetByAnilistAnimeID(int anilistAnimeId)
@@ -32,7 +29,4 @@ public class Anilist_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCa
 
     public Anilist_Episode? GetByAnilistEpisodeID(int anilistEpisodeId)
         => _anilistEpisodeIDs!.GetOne(anilistEpisodeId);
-
-    public Anilist_Episode? GetByAnilistScheduleEpisodeID(int anilistScheduleEpisodeId)
-        => _anilistScheduleEpisodeIDs!.GetOne(anilistScheduleEpisodeId);
 }
