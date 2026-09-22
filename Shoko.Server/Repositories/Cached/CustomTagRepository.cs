@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using NHibernate;
 using Shoko.Abstractions.Extensions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
@@ -16,10 +17,11 @@ public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
 
     public CustomTagRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
-        DeleteWithOpenTransactionCallback = (ses, obj) =>
-        {
-            RepoFactory.CrossRef_CustomTag.DeleteWithOpenTransaction(ses, RepoFactory.CrossRef_CustomTag.GetByCustomTagID(obj.CustomTagID));
-        };
+    }
+
+    protected override void OnDeleteWithOpenTransaction(ISession session, CustomTag obj)
+    {
+        RepoFactory.CrossRef_CustomTag.DeleteWithOpenTransaction(session, RepoFactory.CrossRef_CustomTag.GetByCustomTagID(obj.CustomTagID));
     }
 
     public override void PopulateIndexes()

@@ -21,11 +21,12 @@ public class AnimeEpisodeRepository : BaseCachedRepository<AnimeEpisode, int>
 
     public AnimeEpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
-        BeginDeleteCallback = cr =>
-        {
-            RepoFactory.AnimeEpisode_User.Delete(
-                RepoFactory.AnimeEpisode_User.GetByEpisodeID(cr.AnimeEpisodeID));
-        };
+    }
+
+    protected override void OnBeginDelete(AnimeEpisode obj)
+    {
+        RepoFactory.AnimeEpisode_User.Delete(
+            RepoFactory.AnimeEpisode_User.GetByEpisodeID(obj.AnimeEpisodeID));
     }
 
     protected override int SelectKey(AnimeEpisode entity)

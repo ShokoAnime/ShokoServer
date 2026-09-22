@@ -11,7 +11,11 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_File_Episode, int>
+public class CrossRef_File_EpisodeRepository(
+    ILogger<CrossRef_File_EpisodeRepository> logger,
+    IServiceProvider serviceProvider,
+    DatabaseFactory databaseFactory
+) : BaseCachedRepository<CrossRef_File_Episode, int>(databaseFactory)
 {
     private IQueueScheduler? _scheduler;
 
@@ -21,21 +25,19 @@ public class CrossRef_File_EpisodeRepository : BaseCachedRepository<CrossRef_Fil
 
     private PocoIndex<int, CrossRef_File_Episode, int>? _anidbEpisodeIDs;
 
-    public CrossRef_File_EpisodeRepository(ILogger<CrossRef_File_EpisodeRepository> logger, IServiceProvider serviceProvider, DatabaseFactory databaseFactory) : base(databaseFactory)
+    protected override void OnEndSave(CrossRef_File_Episode obj)
     {
-        EndSaveCallback = obj =>
-        {
-            _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
-            _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
-        };
-        EndDeleteCallback = obj =>
-        {
-            if (obj is not { AnimeID: > 0 }) return;
+        _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
+        _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
+    }
 
-            logger.LogTrace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {AnimeID}", obj.AnimeID);
-            _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
-            _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
-        };
+    protected override void OnEndDelete(CrossRef_File_Episode obj)
+    {
+        if (obj is not { AnimeID: > 0 }) return;
+
+        logger.LogTrace("Updating group stats by anime from CrossRef_File_EpisodeRepository.Delete: {AnimeID}", obj.AnimeID);
+        _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
+        _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = obj.AnimeID).GetAwaiter().GetResult();
     }
 
     protected override int SelectKey(CrossRef_File_Episode entity)

@@ -30,26 +30,28 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
     public AnimeSeriesRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
-        BeginDeleteCallback = cr =>
-        {
-            RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(cr.AnimeSeriesID));
-        };
-        EndDeleteCallback = cr =>
-        {
-            SeriesSearch.MarkDirty();
-            if (cr.AnimeGroupID <= 0)
-            {
-                return;
-            }
+    }
 
-            logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}",
-                cr.AnimeGroupID);
-            var oldGroup = RepoFactory.AnimeGroup.GetByID(cr.AnimeGroupID);
-            if (oldGroup != null)
-            {
-                RepoFactory.AnimeGroup.Save(oldGroup, true);
-            }
-        };
+    protected override void OnBeginDelete(AnimeSeries obj)
+    {
+        RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(obj.AnimeSeriesID));
+    }
+
+    protected override void OnEndDelete(AnimeSeries obj)
+    {
+        SeriesSearch.MarkDirty();
+        if (obj.AnimeGroupID <= 0)
+        {
+            return;
+        }
+
+        logger.Trace("Updating group stats by group from AnimeSeriesRepository.Delete: {0}",
+            obj.AnimeGroupID);
+        var oldGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
+        if (oldGroup != null)
+        {
+            RepoFactory.AnimeGroup.Save(oldGroup, true);
+        }
     }
 
     protected override int SelectKey(AnimeSeries entity)

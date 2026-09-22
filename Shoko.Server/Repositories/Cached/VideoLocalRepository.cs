@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentNHibernate.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using NHibernate;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
@@ -33,12 +34,13 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
 
     public VideoLocalRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
-        DeleteWithOpenTransactionCallback = (ses, obj) =>
-        {
-            RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(ses, obj.Places.ToList());
-            RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(ses, RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID));
-            RepoFactory.VideoLocalHashDigest.DeleteWithOpenTransaction(ses, RepoFactory.VideoLocalHashDigest.GetByVideoLocalID(obj.VideoLocalID));
-        };
+    }
+
+    protected override void OnDeleteWithOpenTransaction(ISession session, VideoLocal obj)
+    {
+        RepoFactory.VideoLocalPlace.DeleteWithOpenTransaction(session, obj.Places.ToList());
+        RepoFactory.VideoLocalUser.DeleteWithOpenTransaction(session, RepoFactory.VideoLocalUser.GetByVideoLocalID(obj.VideoLocalID));
+        RepoFactory.VideoLocalHashDigest.DeleteWithOpenTransaction(session, RepoFactory.VideoLocalHashDigest.GetByVideoLocalID(obj.VideoLocalID));
     }
 
     protected override int SelectKey(VideoLocal entity)

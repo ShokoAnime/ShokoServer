@@ -20,11 +20,12 @@ public class ShokoImageRepository : BaseCachedRepository<ShokoImage, Guid>
 
     public ShokoImageRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
-        BeginSaveCallback = obj =>
-        {
-            if (obj.LocalID == 0)
-                obj.LocalID = Interlocked.Increment(ref _lastLocalID);
-        };
+    }
+
+    protected override void OnBeginSave(ShokoImage obj)
+    {
+        if (obj.LocalID == 0)
+            obj.LocalID = Interlocked.Increment(ref _lastLocalID);
     }
 
     protected override Guid SelectKey(ShokoImage entity)

@@ -28,17 +28,47 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     // Assigned by Populate() during startup, before any consumer can read it.
     public PocoCache<S, T> Cache = null!;
 
-    public Action<T>? BeginDeleteCallback { get; set; }
+    /// <summary>
+    ///   Runs before an entity is deleted.
+    /// </summary>
+    protected virtual void OnBeginDelete(T obj)
+    {
+    }
 
-    public Action<ISession, T>? DeleteWithOpenTransactionCallback { get; set; }
+    /// <summary>
+    ///   Runs inside the delete transaction, before the entity itself is deleted.
+    /// </summary>
+    protected virtual void OnDeleteWithOpenTransaction(ISession session, T obj)
+    {
+    }
 
-    public Action<T>? EndDeleteCallback { get; set; }
+    /// <summary>
+    ///   Runs after an entity is deleted.
+    /// </summary>
+    protected virtual void OnEndDelete(T obj)
+    {
+    }
 
-    public Action<T>? BeginSaveCallback { get; set; }
+    /// <summary>
+    ///   Runs before an entity is saved.
+    /// </summary>
+    protected virtual void OnBeginSave(T obj)
+    {
+    }
 
-    public Action<ISessionWrapper, T>? SaveWithOpenTransactionCallback { get; set; }
+    /// <summary>
+    ///   Runs inside the save transaction, after the entity itself is saved.
+    /// </summary>
+    protected virtual void OnSaveWithOpenTransaction(ISessionWrapper session, T obj)
+    {
+    }
 
-    public Action<T>? EndSaveCallback { get; set; }
+    /// <summary>
+    ///   Runs after an entity is saved.
+    /// </summary>
+    protected virtual void OnEndSave(T obj)
+    {
+    }
 
     protected BaseCachedRepository(DatabaseFactory databaseFactory)
     {
@@ -125,10 +155,10 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             return;
         }
 
-        if (BeginDeleteCallback != null) BeginDeleteCallback(cr);
+        OnBeginDelete(cr);
         DeleteFromDatabaseUnsafe(cr);
         DeleteFromCacheUnsafe(cr);
-        if (EndDeleteCallback != null) EndDeleteCallback(cr);
+        OnEndDelete(cr);
     }
 
     protected void DeleteFromCache(T cr)
@@ -150,7 +180,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         foreach (var cr in objs)
         {
-            if (BeginDeleteCallback != null) BeginDeleteCallback(cr);
+            OnBeginDelete(cr);
         }
 
         DeleteFromDatabaseUnsafe(objs);
@@ -162,11 +192,11 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         foreach (var cr in objs)
         {
-            if (EndDeleteCallback != null) EndDeleteCallback(cr);
+            OnEndDelete(cr);
         }
     }
 
-    //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+    //This function does not run OnBeginDelete and OnEndDelete
     public virtual void DeleteWithOpenTransaction(ISession session, T cr)
     {
         if (cr == null)
@@ -174,19 +204,19 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             return;
         }
 
-        if (DeleteWithOpenTransactionCallback != null) DeleteWithOpenTransactionCallback(session, cr);
+        OnDeleteWithOpenTransaction(session, cr);
         session.Delete(cr);
         DeleteFromCacheUnsafe(cr);
     }
 
-    //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+    //This function does not run OnBeginDelete and OnEndDelete
     public void DeleteWithOpenTransaction(ISession session, IReadOnlyList<T> objs)
     {
         if (objs.Count == 0) return;
 
         foreach (var cr in objs)
         {
-            if (DeleteWithOpenTransactionCallback != null) DeleteWithOpenTransactionCallback(session, cr);
+            OnDeleteWithOpenTransaction(session, cr);
             session.Delete(cr);
         }
 
@@ -196,16 +226,16 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
     public virtual void Save(T obj)
     {
-        if (BeginSaveCallback != null) BeginSaveCallback(obj);
+        OnBeginSave(obj);
 
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using var transaction = session.BeginTransaction();
         session.SaveOrUpdate(obj);
-        if (SaveWithOpenTransactionCallback != null) SaveWithOpenTransactionCallback(session.Wrap(), obj);
+        OnSaveWithOpenTransaction(session.Wrap(), obj);
         transaction.Commit();
 
         UpdateCacheUnsafe(obj);
-        if (EndSaveCallback != null) EndSaveCallback(obj);
+        OnEndSave(obj);
     }
 
     public virtual void Save(IReadOnlyCollection<T> objs)
@@ -217,7 +247,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         foreach (var obj in objs)
         {
-            if (BeginSaveCallback != null) BeginSaveCallback(obj);
+            OnBeginSave(obj);
         }
 
         using var session = _databaseFactory.SessionFactory.OpenSession();
@@ -226,7 +256,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
         foreach (var obj in objs)
         {
             session.SaveOrUpdate(obj);
-            if (SaveWithOpenTransactionCallback != null) SaveWithOpenTransactionCallback(wrapper, obj);
+            OnSaveWithOpenTransaction(wrapper, obj);
         }
         transaction.Commit();
 
@@ -237,11 +267,11 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         foreach (var obj in objs)
         {
-            if (EndSaveCallback != null) EndSaveCallback(obj);
+            OnEndSave(obj);
         }
     }
 
-    //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+    //This function does not run OnBeginDelete and OnEndDelete
     public virtual void SaveWithOpenTransaction(ISessionWrapper session, T obj)
     {
         if (Equals(SelectKey(obj), default(S)))
@@ -253,19 +283,19 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
             session.Update(obj);
         }
 
-        if (SaveWithOpenTransactionCallback != null) SaveWithOpenTransactionCallback(session, obj);
+        OnSaveWithOpenTransaction(session, obj);
         UpdateCacheUnsafe(obj);
     }
 
-    //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+    //This function does not run OnBeginDelete and OnEndDelete
     public virtual void SaveWithOpenTransaction(ISession session, T obj)
     {
         session.SaveOrUpdate(obj);
-        if (SaveWithOpenTransactionCallback != null) SaveWithOpenTransactionCallback(session.Wrap(), obj);
+        OnSaveWithOpenTransaction(session.Wrap(), obj);
         UpdateCacheUnsafe(obj);
     }
 
-    //This function do not run the BeginDeleteCallback and the EndDeleteCallback
+    //This function does not run OnBeginDelete and OnEndDelete
     public void SaveWithOpenTransaction(ISession session, List<T> objs)
     {
         if (objs.Count == 0)
@@ -280,7 +310,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         foreach (var obj in objs)
         {
-            if (SaveWithOpenTransactionCallback != null) SaveWithOpenTransactionCallback(session.Wrap(), obj);
+            OnSaveWithOpenTransaction(session.Wrap(), obj);
         }
 
         foreach (var obj in objs)
@@ -325,7 +355,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using var transaction = session.BeginTransaction();
-        if (DeleteWithOpenTransactionCallback != null) DeleteWithOpenTransactionCallback(session, cr);
+        OnDeleteWithOpenTransaction(session, cr);
         session.Delete(cr);
         transaction.Commit();
     }
@@ -337,7 +367,7 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
 
         foreach (var cr in objs)
         {
-            if (DeleteWithOpenTransactionCallback != null) DeleteWithOpenTransactionCallback(session, cr);
+            OnDeleteWithOpenTransaction(session, cr);
             session.Delete(cr);
         }
 

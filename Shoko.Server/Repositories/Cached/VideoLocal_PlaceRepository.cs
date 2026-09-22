@@ -19,15 +19,16 @@ public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place,
 
     public VideoLocal_PlaceRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
-        BeginSaveCallback = place =>
-        {
-            if (place.VideoID == 0)
-                throw new InvalidStateException("Attempting to save a VideoLocal_Place with a VideoLocalID of 0");
-            if (string.IsNullOrEmpty(place.RelativePath))
-                throw new InvalidStateException("Attempting to save a VideoLocal_Place with a null or empty FilePath");
-            if (place.ID is 0 && GetByRelativePathAndManagedFolderID(place.RelativePath, place.ManagedFolderID) is not null)
-                throw new InvalidStateException("Attempting to save a VideoLocal_Place with a FilePath and ManagedFolderID that already exists in the database");
-        };
+    }
+
+    protected override void OnBeginSave(VideoLocal_Place obj)
+    {
+        if (obj.VideoID == 0)
+            throw new InvalidStateException("Attempting to save a VideoLocal_Place with a VideoLocalID of 0");
+        if (string.IsNullOrEmpty(obj.RelativePath))
+            throw new InvalidStateException("Attempting to save a VideoLocal_Place with a null or empty FilePath");
+        if (obj.ID is 0 && GetByRelativePathAndManagedFolderID(obj.RelativePath, obj.ManagedFolderID) is not null)
+            throw new InvalidStateException("Attempting to save a VideoLocal_Place with a FilePath and ManagedFolderID that already exists in the database");
     }
 
     protected override int SelectKey(VideoLocal_Place entity)

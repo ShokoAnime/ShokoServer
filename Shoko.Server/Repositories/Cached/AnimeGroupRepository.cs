@@ -19,22 +19,24 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
     public AnimeGroupRepository(ILogger<AnimeGroupRepository> logger, DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         _logger = logger;
-        BeginDeleteCallback = cr =>
+    }
+
+    protected override void OnBeginDelete(AnimeGroup obj)
+    {
+        RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(obj.AnimeGroupID));
+    }
+
+    protected override void OnEndDelete(AnimeGroup obj)
+    {
+        if (obj.AnimeGroupParentID.HasValue && obj.AnimeGroupParentID.Value > 0)
         {
-            RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(cr.AnimeGroupID));
-        };
-        EndDeleteCallback = cr =>
-        {
-            if (cr.AnimeGroupParentID.HasValue && cr.AnimeGroupParentID.Value > 0)
+            _logger.LogTrace("Updating group stats by group from AnimeGroupRepository.Delete: {Count}", obj.AnimeGroupParentID.Value);
+            var parentGroup = GetByID(obj.AnimeGroupParentID.Value);
+            if (parentGroup != null)
             {
-                _logger.LogTrace("Updating group stats by group from AnimeGroupRepository.Delete: {Count}", cr.AnimeGroupParentID.Value);
-                var parentGroup = GetByID(cr.AnimeGroupParentID.Value);
-                if (parentGroup != null)
-                {
-                    Save(parentGroup, true);
-                }
+                Save(parentGroup, true);
             }
-        };
+        }
     }
 
     protected override int SelectKey(AnimeGroup entity)

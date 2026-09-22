@@ -12,24 +12,22 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class StoredReleaseInfoRepository : BaseCachedRepository<StoredReleaseInfo, int>
+public class StoredReleaseInfoRepository(DatabaseFactory databaseFactory, IServiceProvider serviceProvider) : BaseCachedRepository<StoredReleaseInfo, int>(databaseFactory)
 {
     private IQueueScheduler? _scheduler;
 
-    public StoredReleaseInfoRepository(DatabaseFactory databaseFactory, IServiceProvider serviceProvider) : base(databaseFactory)
+    protected override void OnEndSave(StoredReleaseInfo obj)
     {
-        EndSaveCallback = obj =>
-        {
-            _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
-            foreach (var animeID in obj.CrossReferences.Select(x => x.AnidbAnimeID).WhereNotNull().Distinct())
-                _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = animeID).GetAwaiter().GetResult();
-        };
-        EndDeleteCallback = obj =>
-        {
-            _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
-            foreach (var animeID in obj.CrossReferences.Select(x => x.AnidbAnimeID).WhereNotNull().Distinct())
-                _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = animeID).GetAwaiter().GetResult();
-        };
+        _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
+        foreach (var animeID in obj.CrossReferences.Select(x => x.AnidbAnimeID).WhereNotNull().Distinct())
+            _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = animeID).GetAwaiter().GetResult();
+    }
+
+    protected override void OnEndDelete(StoredReleaseInfo obj)
+    {
+        _scheduler ??= serviceProvider.GetRequiredService<IQueueScheduler>();
+        foreach (var animeID in obj.CrossReferences.Select(x => x.AnidbAnimeID).WhereNotNull().Distinct())
+            _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = animeID).GetAwaiter().GetResult();
     }
     private PocoIndex<int, StoredReleaseInfo, string>? _ed2k;
     private PocoIndex<int, StoredReleaseInfo, (string groupId, string source)>? _groupIDs;

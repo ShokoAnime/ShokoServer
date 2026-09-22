@@ -18,12 +18,47 @@ public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRe
         _databaseFactory = databaseFactory;
     }
 
-    public Action<T>? BeginDeleteCallback { get; set; }
-    public Action<ISession, T>? DeleteWithOpenTransactionCallback { get; set; }
-    public Action<T>? EndDeleteCallback { get; set; }
-    public Action<T>? BeginSaveCallback { get; set; }
-    public Action<ISessionWrapper, T>? SaveWithOpenTransactionCallback { get; set; }
-    public Action<T>? EndSaveCallback { get; set; }
+    /// <summary>
+    ///   Runs before an entity is deleted.
+    /// </summary>
+    protected virtual void OnBeginDelete(T obj)
+    {
+    }
+
+    /// <summary>
+    ///   Runs inside the delete transaction, before the entity itself is deleted.
+    /// </summary>
+    protected virtual void OnDeleteWithOpenTransaction(ISession session, T obj)
+    {
+    }
+
+    /// <summary>
+    ///   Runs after an entity is deleted.
+    /// </summary>
+    protected virtual void OnEndDelete(T obj)
+    {
+    }
+
+    /// <summary>
+    ///   Runs before an entity is saved.
+    /// </summary>
+    protected virtual void OnBeginSave(T obj)
+    {
+    }
+
+    /// <summary>
+    ///   Runs inside the save transaction, after the entity itself is saved.
+    /// </summary>
+    protected virtual void OnSaveWithOpenTransaction(ISessionWrapper session, T obj)
+    {
+    }
+
+    /// <summary>
+    ///   Runs after an entity is saved.
+    /// </summary>
+    protected virtual void OnEndSave(T obj)
+    {
+    }
 
     public virtual T? GetByID(S id)
     {
@@ -68,13 +103,13 @@ public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRe
     {
         if (cr == null) return;
 
-        BeginDeleteCallback?.Invoke(cr);
+        OnBeginDelete(cr);
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using var transaction = session.BeginTransaction();
-        DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+        OnDeleteWithOpenTransaction(session, cr);
         session.Delete(cr);
         transaction.Commit();
-        EndDeleteCallback?.Invoke(cr);
+        OnEndDelete(cr);
     }
 
     public void Delete(IReadOnlyCollection<T> objs)
@@ -83,14 +118,14 @@ public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRe
 
         foreach (var obj in objs)
         {
-            BeginDeleteCallback?.Invoke(obj);
+            OnBeginDelete(obj);
         }
 
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using var transaction = session.BeginTransaction();
         foreach (var cr in objs)
         {
-            DeleteWithOpenTransactionCallback?.Invoke(session, cr);
+            OnDeleteWithOpenTransaction(session, cr);
             session.Delete(cr);
         }
 
@@ -98,19 +133,19 @@ public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRe
 
         foreach (var obj in objs)
         {
-            EndDeleteCallback?.Invoke(obj);
+            OnEndDelete(obj);
         }
     }
 
     public virtual void Save(T obj)
     {
-        BeginSaveCallback?.Invoke(obj);
+        OnBeginSave(obj);
         using var session = _databaseFactory.SessionFactory.OpenSession();
         using var transaction = session.BeginTransaction();
         session.SaveOrUpdate(obj);
-        SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
+        OnSaveWithOpenTransaction(session.Wrap(), obj);
         transaction.Commit();
-        EndSaveCallback?.Invoke(obj);
+        OnEndSave(obj);
     }
 
     public void Save(IReadOnlyCollection<T> objs)
@@ -121,10 +156,10 @@ public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRe
         using var transaction = session.BeginTransaction();
         foreach (var obj in objs)
         {
-            BeginSaveCallback?.Invoke(obj);
+            OnBeginSave(obj);
             session.SaveOrUpdate(obj);
-            SaveWithOpenTransactionCallback?.Invoke(session.Wrap(), obj);
-            EndSaveCallback?.Invoke(obj);
+            OnSaveWithOpenTransaction(session.Wrap(), obj);
+            OnEndSave(obj);
         }
 
         transaction.Commit();
