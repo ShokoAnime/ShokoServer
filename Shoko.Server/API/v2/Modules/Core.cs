@@ -160,7 +160,7 @@ public class Core : BaseController
     /// </summary>
     /// <returns>APIStatus</returns>
     [HttpPost("config/import")]
-    public ActionResult ImportConfig(CL_ServerSettings settings)
+    public ActionResult ImportConfig(object settings)
     {
         return BadRequest("This settings model is deprecated. It will break the settings file. Use APIv3");
     }
