@@ -12,8 +12,6 @@ public class AniDB_Anime_SimilarRepository(DatabaseFactory databaseFactory) : Ba
 
     private PocoIndex<int, AniDB_Anime_Similar, int>? _similarAnimeIDs;
 
-    private PocoIndex<int, AniDB_Anime_Similar, (int AnimeID, int SimilarID)>? _pairedIDs;
-
     protected override int SelectKey(AniDB_Anime_Similar entity)
         => entity.AniDB_Anime_SimilarID;
 
@@ -21,7 +19,6 @@ public class AniDB_Anime_SimilarRepository(DatabaseFactory databaseFactory) : Ba
     {
         _animeIDs = Cache.CreateIndex(a => a.AnimeID);
         _similarAnimeIDs = Cache.CreateIndex(a => a.SimilarAnimeID);
-        _pairedIDs = Cache.CreateIndex(a => (a.AnimeID, a.SimilarAnimeID));
     }
 
     /// <summary>
@@ -42,7 +39,4 @@ public class AniDB_Anime_SimilarRepository(DatabaseFactory databaseFactory) : Ba
         => _similarAnimeIDs!.GetMultiple(similarAnimeID)
             .OrderByDescending(a => a.Total is 0 ? 0 : a.Approval / (double)a.Total)
             .ToList();
-
-    public AniDB_Anime_Similar? GetByAnimeIDAndSimilarID(int animeID, int similarAnimeID)
-        => _pairedIDs!.GetOne((animeID, similarAnimeID));
 }
