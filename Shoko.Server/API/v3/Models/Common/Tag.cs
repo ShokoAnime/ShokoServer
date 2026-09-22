@@ -43,6 +43,18 @@ public class Tag
         Source = "AniList";
     }
 
+    public Tag(Anilist_Tag tag, bool excludeDescription = false, int? size = null)
+    {
+        ID = tag.AnilistTagID;
+        Name = tag.Name;
+        if (!excludeDescription)
+            Description = tag.Description;
+        IsSpoiler = tag.IsSpoiler;
+        Size = size;
+        LastUpdated = tag.LastUpdatedAt.ToUniversalTime();
+        Source = "AniList";
+    }
+
     public Tag(AniDB_Tag tag, bool excludeDescription = false, int? size = null)
     {
         ID = tag.TagID;

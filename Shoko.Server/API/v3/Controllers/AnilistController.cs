@@ -63,6 +63,8 @@ public partial class AnilistController(
     AnimeSeriesRepository _animeSeries,
     Anilist_AnimeRepository _anilistAnime,
     Anilist_EpisodeRepository _anilistEpisodes,
+    Anilist_TagRepository _anilistTags,
+    Anilist_Anime_TagRepository _anilistAnimeTags,
     CrossRef_AniDB_Anilist_AnimeRepository _crossRefAnidbAnilistAnime,
     CrossRef_AniDB_Anilist_EpisodeRepository _crossRefAnidbAnilistEpisodes
 ) : BaseController(settingsProvider)
@@ -1140,6 +1142,68 @@ public partial class AnilistController(
     }
 
     #endregion
+
+    #endregion
+
+    #region Tags
+
+    #region Constants
+
+    internal const string TagNotFound = "An Anilist.Tag by the given `tagID` was not found.";
+
+    #endregion
+
+    /// <summary>
+    /// Get the local metadata for an Anilist tag.
+    /// </summary>
+    /// <param name="tagID">Anilist Tag ID.</param>
+    /// <param name="excludeDescription">Exclude the tag description.</param>
+    /// <param name="includeCount">Include the number of local anime the tag is set on.</param>
+    /// <returns></returns>
+    [HttpGet("Tag/{tagID}")]
+    public ActionResult<Tag> GetAnilistTagByTagID(
+        [FromRoute] int tagID,
+        [FromQuery] bool excludeDescription = false,
+        [FromQuery] bool includeCount = false
+    )
+    {
+        var tag = _anilistTags.GetByAnilistTagID(tagID);
+        if (tag is null)
+            return NotFound(TagNotFound);
+
+        return new Tag(tag, excludeDescription, includeCount ? _anilistAnimeTags.GetByAnilistTagID(tag.AnilistTagID).Count : null);
+    }
+
+    /// <summary>
+    /// List the local Anilist anime an Anilist tag is set on.
+    /// </summary>
+    /// <param name="tagID">Anilist Tag ID.</param>
+    /// <param name="include"></param>
+    /// <param name="restricted"></param>
+    /// <param name="pageSize"></param>
+    /// <param name="page"></param>
+    /// <returns></returns>
+    [HttpGet("Tag/{tagID}/Anime")]
+    public ActionResult<ListResult<AnilistAnime>> GetAnilistAnimeByTagID(
+        [FromRoute] int tagID,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnilistAnime.IncludeDetails>? include = null,
+        [FromQuery] IncludeOnlyFilter restricted = IncludeOnlyFilter.True,
+        [FromQuery, Range(0, 1000)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1
+    )
+    {
+        var tag = _anilistTags.GetByAnilistTagID(tagID);
+        if (tag is null)
+            return NotFound(TagNotFound);
+
+        return _anilistAnimeTags.GetByAnilistTagID(tag.AnilistTagID)
+            .Select(animeTag => _anilistAnime.GetByAnilistAnimeID(animeTag.AnilistAnimeID))
+            .WhereNotNull()
+            .Where(anime => restricted is IncludeOnlyFilter.True || anime.IsRestricted == (restricted is IncludeOnlyFilter.Only))
+            .OrderBy(anime => anime.PreferredTitle)
+            .ThenBy(anime => anime.AnilistAnimeID)
+            .ToListResult(anime => new AnilistAnime(anime, include?.CombineFlags()), page, pageSize);
+    }
 
     #endregion
 

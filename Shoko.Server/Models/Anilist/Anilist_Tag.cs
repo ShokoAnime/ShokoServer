@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anilist;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.Repositories;
 
 #nullable enable
 namespace Shoko.Server.Models.Anilist;
@@ -83,9 +86,21 @@ public class Anilist_Tag : Anilist_Base<int>, IAnilistTag
 
     #endregion
 
+    #region Navigation Properties
+
+    /// <summary>
+    /// Gets every anime the tag is set on, with the tag's weight and spoiler
+    /// flag for each.
+    /// </summary>
+    public IReadOnlyList<Anilist_Anime_Tag> AnimeTags
+        => RepoFactory.Anilist_Anime_Tag.GetByAnilistTagID(AnilistTagID);
+
+    #endregion
+
     #region IAnilistTag Implementation
 
-    IReadOnlyList<IAnilistAnime> IAnilistTag.AllAnilistAnime => [];
+    IReadOnlyList<IAnilistAnime> IAnilistTag.AllAnilistAnime
+        => AnimeTags.Select(animeTag => animeTag.Anime).WhereNotNull().ToList();
 
     #endregion
 
