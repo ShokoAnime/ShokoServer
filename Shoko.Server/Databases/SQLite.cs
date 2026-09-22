@@ -610,7 +610,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(105,  1, "CREATE TABLE FilterPreset( FilterPresetID INTEGER PRIMARY KEY AUTOINCREMENT, ParentFilterPresetID INTEGER, Name TEXT NOT NULL, FilterType INTEGER NOT NULL, Locked INTEGER NOT NULL, Hidden INTEGER NOT NULL, ApplyAtSeriesLevel INTEGER NOT NULL, Expression TEXT, SortingExpression TEXT ); "),
         new(105,  2, "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
         new(105,  3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
-        new(105,  4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
+        new(105,  4),
         new(105,  5, DatabaseFixes.DropGroupFilter),
         new(106,  1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
         new(107,  1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeEpisode DROP COLUMN PlexContractSize;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractSize;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractVersion;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractSize;"),

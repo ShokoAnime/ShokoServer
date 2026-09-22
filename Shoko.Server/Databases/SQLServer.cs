@@ -648,7 +648,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(112,  1, "CREATE TABLE FilterPreset( FilterPresetID INT IDENTITY(1,1), ParentFilterPresetID int, Name nvarchar(250) NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression nvarchar(max), SortingExpression nvarchar(max) ); "),
         new(112,  2, "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
         new(112,  3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
-        new(112,  4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
+        new(112,  4),
         new(112,  5, DatabaseFixes.DropGroupFilter),
         new(113,  1, "ALTER TABLE AnimeGroup DROP COLUMN SortName;"),
         new(114,  1, "ALTER TABLE AnimeEpisode DROP COLUMN PlexContractBlob;ALTER TABLE AnimeGroup_User DROP COLUMN PlexContractBlob;ALTER TABLE AnimeSeries_User DROP COLUMN PlexContractBlob;"),

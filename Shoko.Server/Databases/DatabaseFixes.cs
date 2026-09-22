@@ -36,7 +36,6 @@ using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Extensions;
-using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Anilist;
@@ -71,79 +70,6 @@ public class DatabaseFixes
         var scheduler = ISystemService.StaticServices.GetRequiredService<IQueueScheduler>();
         Task.WhenAll(RepoFactory.AnimeSeries.GetAll().Select(a => scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID))).GetAwaiter()
             .GetResult();
-    }
-
-    public static void MigrateGroupFilterToFilterPreset()
-    {
-        var legacyConverter = ISystemService.StaticServices.GetRequiredService<LegacyFilterConverter>();
-        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
-        var groupFilters = session.CreateSQLQuery(
-                "SELECT GroupFilterID, " +
-                "ParentGroupFilterID, " +
-                "GroupFilterName, " +
-                "ApplyToSeries, " +
-                "BaseCondition, " +
-                "Locked, " +
-                "FilterType, " +
-                "InvisibleInClients, " +
-                "GroupConditions, " +
-                "SortingCriteria " +
-                "FROM GroupFilter")
-            .AddScalar("GroupFilterID", NHibernateUtil.Int32)
-            .AddScalar("ParentGroupFilterID", NHibernateUtil.Int32)
-            .AddScalar("GroupFilterName", NHibernateUtil.String)
-            .AddScalar("ApplyToSeries", NHibernateUtil.Int32)
-            .AddScalar("BaseCondition", NHibernateUtil.Int32)
-            .AddScalar("Locked", NHibernateUtil.Int32)
-            .AddScalar("FilterType", NHibernateUtil.Int32)
-            .AddScalar("InvisibleInClients", NHibernateUtil.Int32)
-            .AddScalar("GroupConditions", NHibernateUtil.StringClob)
-            .AddScalar("SortingCriteria", NHibernateUtil.String)
-            .List();
-
-        var filters = new Dictionary<CL_GroupFilter, List<CL_GroupFilterCondition>>();
-        foreach (var item in groupFilters)
-        {
-            var fields = (object[])item;
-            var filter = new CL_GroupFilter
-            {
-                GroupFilterID = (int)fields[0],
-                ParentGroupFilterID = (int?)fields[1],
-                GroupFilterName = (string)fields[2],
-                ApplyToSeries = (int)fields[3],
-                BaseCondition = (int)fields[4],
-                Locked = (int?)fields[5],
-                FilterType = (int)fields[6],
-                InvisibleInClients = (int)fields[7]
-            };
-            var conditions = JsonConvert.DeserializeObject<List<CL_GroupFilterCondition>>((string)fields[8]);
-            filters[filter] = conditions!;
-        }
-
-        var idMappings = new Dictionary<int, int>();
-        // first, do the ones with no parent
-        foreach (var key in filters.Keys.Where(a => a.ParentGroupFilterID is null).OrderBy(a => a.GroupFilterID))
-        {
-            var filter = legacyConverter.FromLegacy(key, filters[key]);
-            RepoFactory.FilterPreset.Save(filter);
-            idMappings[key.GroupFilterID] = filter.FilterPresetID;
-        }
-
-        var filtersToProcess = filters.Keys.Where(a => !idMappings.ContainsKey(a.GroupFilterID) && idMappings.ContainsKey(a.ParentGroupFilterID!.Value))
-            .ToList();
-        while (filtersToProcess.Count > 0)
-        {
-            foreach (var key in filtersToProcess)
-            {
-                var filter = legacyConverter.FromLegacy(key, filters[key]);
-                filter.ParentFilterPresetID = idMappings[key.ParentGroupFilterID!.Value];
-                RepoFactory.FilterPreset.Save(filter);
-                idMappings[key.GroupFilterID] = filter.FilterPresetID;
-            }
-
-            filtersToProcess = filters.Keys.Where(a => !idMappings.ContainsKey(a.GroupFilterID) && idMappings.ContainsKey(a.ParentGroupFilterID!.Value))
-                .ToList();
-        }
     }
 
     public static void DropGroupFilter()

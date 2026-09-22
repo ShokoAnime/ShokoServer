@@ -43,7 +43,6 @@ using Shoko.Server.API;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
-using Shoko.Server.Filters.Legacy;
 using Shoko.Server.Hashing;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Plugin;
@@ -471,7 +470,6 @@ public class SystemService : ISystemService
             services.AddSingleton<IMetadataFilteringService, MetadataFilteringService>();
             services.AddSingleton<IFilterPresetManager, FilterPresetManager>();
             services.AddSingleton<IFuzzySearchService, FuzzySearchService>();
-            services.AddSingleton<LegacyFilterConverter>();
             services.AddSingleton<ActionService>();
             services.AddSingleton<IActionService>(sp => sp.GetRequiredService<ActionService>());
             services.AddSingleton<AnimeSeriesService>();

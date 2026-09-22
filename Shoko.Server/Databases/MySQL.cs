@@ -783,7 +783,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(119,  1, "CREATE TABLE FilterPreset( FilterPresetID INT NOT NULL AUTO_INCREMENT, ParentFilterPresetID int, Name text NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression longtext, SortingExpression longtext, PRIMARY KEY (`FilterPresetID`) ); "),
         new(119,  2, "ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_ParentFilterPresetID (ParentFilterPresetID); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_Name (Name(255)); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_FilterType (FilterType); ALTER TABLE FilterPreset ADD INDEX IX_FilterPreset_LockedHidden (Locked, Hidden);"),
         new(119,  3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
-        new(119,  4, DatabaseFixes.MigrateGroupFilterToFilterPreset),
+        new(119,  4),
         new(119,  5, DatabaseFixes.DropGroupFilter),
         new(120,  1, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeGroup' AND COLUMN_NAME='SortName' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeGroup DROP COLUMN SortName', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
         new(121,  1, "SET @exist_Check := (SELECT count(1) FROM information_schema.columns WHERE TABLE_NAME='AnimeEpisode' AND COLUMN_NAME='PlexContractVersion' AND TABLE_SCHEMA=database()) ; SET @sqlstmt := IF(@exist_Check>0,'ALTER TABLE AnimeEpisode DROP COLUMN PlexContractVersion', 'SELECT ''''') ; PREPARE stmt FROM @sqlstmt ; EXECUTE stmt ;"),
