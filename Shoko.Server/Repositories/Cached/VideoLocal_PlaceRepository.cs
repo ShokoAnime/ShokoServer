@@ -9,17 +9,13 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class VideoLocal_PlaceRepository : BaseCachedRepository<VideoLocal_Place, int>
+public class VideoLocal_PlaceRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<VideoLocal_Place, int>(databaseFactory)
 {
     private PocoIndex<int, VideoLocal_Place, int>? _videoLocalIDs;
 
     private PocoIndex<int, VideoLocal_Place, int>? _managedFolderIDs;
 
     private PocoIndex<int, VideoLocal_Place, string>? _paths;
-
-    public VideoLocal_PlaceRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
 
     protected override void OnBeginSave(VideoLocal_Place obj)
     {

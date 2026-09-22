@@ -9,15 +9,13 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class AnimeGroup_UserRepository : BaseCachedRepository<AnimeGroup_User, int>
+public class AnimeGroup_UserRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AnimeGroup_User, int>(databaseFactory)
 {
     private PocoIndex<int, AnimeGroup_User, int>? _groupIDs;
 
     private PocoIndex<int, AnimeGroup_User, int>? _userIDs;
 
     private PocoIndex<int, AnimeGroup_User, (int, int)>? _userGroupIDs;
-
-    public AnimeGroup_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory) { }
 
     protected override int SelectKey(AnimeGroup_User entity)
         => entity.AnimeGroup_UserID;

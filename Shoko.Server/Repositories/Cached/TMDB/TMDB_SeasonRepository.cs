@@ -6,7 +6,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached.TMDB;
 
-public class TMDB_SeasonRepository : BaseCachedRepository<TMDB_Season, int>
+public class TMDB_SeasonRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<TMDB_Season, int>(databaseFactory)
 {
     protected override int SelectKey(TMDB_Season entity) => entity.Id;
     private PocoIndex<int, TMDB_Season, int> _showIDs = null!;
@@ -29,9 +29,5 @@ public class TMDB_SeasonRepository : BaseCachedRepository<TMDB_Season, int>
     public TMDB_Season? GetByTmdbSeasonID(int tmdbSeasonId)
     {
         return _seasonIDs.GetOne(tmdbSeasonId);
-    }
-
-    public TMDB_SeasonRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

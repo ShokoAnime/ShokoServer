@@ -8,11 +8,14 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
-public class AniDB_GroupStatusRepository : BaseCachedRepository<AniDB_GroupStatus, int>
+public class AniDB_GroupStatusRepository(
+    DatabaseFactory databaseFactory,
+    IQueueScheduler scheduler
+) : BaseCachedRepository<AniDB_GroupStatus, int>(databaseFactory)
 {
     private PocoIndex<int, AniDB_GroupStatus, int>? _animeIDs;
 
-    private readonly IQueueScheduler _scheduler;
+    private readonly IQueueScheduler _scheduler = scheduler;
 
     protected override int SelectKey(AniDB_GroupStatus entity)
         => entity.AniDB_GroupStatusID;
@@ -46,10 +49,5 @@ public class AniDB_GroupStatusRepository : BaseCachedRepository<AniDB_GroupStatu
         Delete(_animeIDs!.GetMultiple(animeid));
 
         _scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(j => j.AnimeID = animeid).GetAwaiter().GetResult();
-    }
-
-    public AniDB_GroupStatusRepository(DatabaseFactory databaseFactory, IQueueScheduler scheduler) : base(databaseFactory)
-    {
-        _scheduler = scheduler;
     }
 }

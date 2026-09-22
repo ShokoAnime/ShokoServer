@@ -10,16 +10,14 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
+public class AnimeGroupRepository(
+    ILogger<AnimeGroupRepository> logger,
+    DatabaseFactory databaseFactory
+) : BaseCachedRepository<AnimeGroup, int>(databaseFactory)
 {
-    private readonly ILogger<AnimeGroupRepository> _logger;
+    private readonly ILogger<AnimeGroupRepository> _logger = logger;
 
     private PocoIndex<int, AnimeGroup, int>? _parentIDs;
-
-    public AnimeGroupRepository(ILogger<AnimeGroupRepository> logger, DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-        _logger = logger;
-    }
 
     protected override void OnBeginDelete(AnimeGroup obj)
     {

@@ -21,16 +21,12 @@ using Shoko.Server.Utilities;
 #pragma warning disable CA1822
 namespace Shoko.Server.Repositories.Cached;
 
-public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
+public class AnimeSeriesRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AnimeSeries, int>(databaseFactory)
 {
     private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
     private PocoIndex<int, AnimeSeries, int>? AniDBIds;
     private PocoIndex<int, AnimeSeries, int>? Groups;
-
-    public AnimeSeriesRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
 
     protected override void OnBeginDelete(AnimeSeries obj)
     {

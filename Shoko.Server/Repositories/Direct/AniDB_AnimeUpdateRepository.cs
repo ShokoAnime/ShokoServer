@@ -4,7 +4,7 @@ using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Repositories.Direct;
 
-public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdate, int>
+public class AniDB_AnimeUpdateRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<AniDB_AnimeUpdate, int>(databaseFactory)
 {
     public AniDB_AnimeUpdate? GetByAnimeID(int id)
     {
@@ -22,9 +22,5 @@ public class AniDB_AnimeUpdateRepository : BaseDirectRepository<AniDB_AnimeUpdat
         }
 
         return cat;
-    }
-
-    public AniDB_AnimeUpdateRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

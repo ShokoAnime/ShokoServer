@@ -5,7 +5,9 @@ using Shoko.Server.Models.TMDB;
 
 namespace Shoko.Server.Repositories.Direct.TMDB.Optional;
 
-public class TMDB_AlternateOrdering_SeasonRepository : BaseDirectRepository<TMDB_AlternateOrdering_Season, int>
+public class TMDB_AlternateOrdering_SeasonRepository(
+    DatabaseFactory databaseFactory
+) : BaseDirectRepository<TMDB_AlternateOrdering_Season, int>(databaseFactory)
 {
     public IReadOnlyList<TMDB_AlternateOrdering_Season> GetByTmdbShowID(int showId)
     {
@@ -38,9 +40,5 @@ public class TMDB_AlternateOrdering_SeasonRepository : BaseDirectRepository<TMDB
             .Where(a => a.TmdbEpisodeGroupID == groupId)
             .Take(1)
             .SingleOrDefault();
-    }
-
-    public TMDB_AlternateOrdering_SeasonRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

@@ -8,16 +8,12 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class CustomTagRepository : BaseCachedRepository<CustomTag, int>
+public class CustomTagRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<CustomTag, int>(databaseFactory)
 {
     private PocoIndex<int, CustomTag, string>? _names;
 
     protected override int SelectKey(CustomTag entity)
         => entity.CustomTagID;
-
-    public CustomTagRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
 
     protected override void OnDeleteWithOpenTransaction(ISession session, CustomTag obj)
     {

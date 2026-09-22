@@ -5,7 +5,7 @@ using Shoko.Server.Models.TMDB;
 
 namespace Shoko.Server.Repositories.Direct.TMDB.Optional;
 
-public class TMDB_Show_NetworkRepository : BaseDirectRepository<TMDB_Show_Network, int>
+public class TMDB_Show_NetworkRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<TMDB_Show_Network, int>(databaseFactory)
 {
     public IReadOnlyList<TMDB_Show_Network> GetByTmdbNetworkID(int networkId)
     {
@@ -25,9 +25,5 @@ public class TMDB_Show_NetworkRepository : BaseDirectRepository<TMDB_Show_Networ
             .Where(a => a.TmdbShowID == showId)
             .OrderBy(e => e.Ordering)
             .ToList();
-    }
-
-    public TMDB_Show_NetworkRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

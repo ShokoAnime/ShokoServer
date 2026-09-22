@@ -16,11 +16,11 @@ using Shoko.Server.Utilities;
 namespace Shoko.Server.Repositories;
 
 // ReSharper disable once InconsistentNaming
-public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedRepository, IRepository<T, S>
+public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory) : BaseRepository, ICachedRepository, IRepository<T, S>
     where T : class, new()
     where S : notnull
 {
-    protected readonly DatabaseFactory _databaseFactory;
+    protected readonly DatabaseFactory _databaseFactory = databaseFactory;
 
     // A hack to not have to pass the system service to every cached repository.
     protected SystemService SystemService => field ??= ISystemService.StaticServices.GetRequiredService<SystemService>();
@@ -68,11 +68,6 @@ public abstract class BaseCachedRepository<T, S> : BaseRepository, ICachedReposi
     /// </summary>
     protected virtual void OnEndSave(T obj)
     {
-    }
-
-    protected BaseCachedRepository(DatabaseFactory databaseFactory)
-    {
-        _databaseFactory = databaseFactory;
     }
 
     public virtual void Populate(ISessionWrapper session, bool displayName = true, CancellationToken cancellationToken = default)

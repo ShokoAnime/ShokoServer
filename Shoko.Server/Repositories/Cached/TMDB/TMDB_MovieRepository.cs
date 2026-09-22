@@ -7,7 +7,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached.TMDB;
 
-public class TMDB_MovieRepository : BaseCachedRepository<TMDB_Movie, int>
+public class TMDB_MovieRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<TMDB_Movie, int>(databaseFactory)
 {
     protected override int SelectKey(TMDB_Movie entity) => entity.Id;
     private PocoIndex<int, TMDB_Movie, int> _movieIDs = null!;
@@ -59,9 +59,5 @@ public class TMDB_MovieRepository : BaseCachedRepository<TMDB_Movie, int>
             .Except([""])
             .Order()
             .ToList();
-    }
-
-    public TMDB_MovieRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

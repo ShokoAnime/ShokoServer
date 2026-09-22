@@ -5,7 +5,7 @@ using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Repositories.Direct;
 
-public class AniDB_Anime_StaffRepository : BaseDirectRepository<AniDB_Anime_Staff, int>
+public class AniDB_Anime_StaffRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<AniDB_Anime_Staff, int>(databaseFactory)
 {
     public List<AniDB_Anime_Staff> GetByAnimeID(int animeID)
     {
@@ -21,9 +21,5 @@ public class AniDB_Anime_StaffRepository : BaseDirectRepository<AniDB_Anime_Staf
         return session.Query<AniDB_Anime_Staff>()
             .Where(a => a.CreatorID == creatorID)
             .ToList();
-    }
-
-    public AniDB_Anime_StaffRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

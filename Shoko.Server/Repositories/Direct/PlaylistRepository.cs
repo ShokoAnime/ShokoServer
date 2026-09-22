@@ -7,7 +7,7 @@ using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct;
 
-public class PlaylistRepository : BaseDirectRepository<Playlist, int>
+public class PlaylistRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<Playlist, int>(databaseFactory)
 {
     public override IReadOnlyList<Playlist> GetAll()
     {
@@ -22,9 +22,5 @@ public class PlaylistRepository : BaseDirectRepository<Playlist, int>
     public override IReadOnlyList<Playlist> GetAll(ISessionWrapper session)
     {
         return base.GetAll(session).OrderBy(a => a.PlaylistName).ToList();
-    }
-
-    public PlaylistRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

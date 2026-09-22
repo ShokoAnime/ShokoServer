@@ -13,15 +13,11 @@ using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class AnimeEpisodeRepository : BaseCachedRepository<AnimeEpisode, int>
+public class AnimeEpisodeRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AnimeEpisode, int>(databaseFactory)
 {
     private PocoIndex<int, AnimeEpisode, int>? _seriesIDs;
 
     private PocoIndex<int, AnimeEpisode, int>? _anidbEpisodeIDs;
-
-    public AnimeEpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
 
     protected override void OnBeginDelete(AnimeEpisode obj)
     {

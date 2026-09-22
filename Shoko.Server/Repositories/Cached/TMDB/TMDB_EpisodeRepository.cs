@@ -6,7 +6,7 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached.TMDB;
 
-public class TMDB_EpisodeRepository : BaseCachedRepository<TMDB_Episode, int>
+public class TMDB_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<TMDB_Episode, int>(databaseFactory)
 {
     protected override int SelectKey(TMDB_Episode entity) => entity.Id;
     private PocoIndex<int, TMDB_Episode, int> _showIDs = null!;
@@ -38,9 +38,5 @@ public class TMDB_EpisodeRepository : BaseCachedRepository<TMDB_Episode, int>
     public TMDB_Episode? GetByTmdbEpisodeID(int episodeId)
     {
         return _episodeIDs.GetOne(episodeId);
-    }
-
-    public TMDB_EpisodeRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

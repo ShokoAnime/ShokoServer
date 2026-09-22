@@ -7,7 +7,7 @@ using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Direct;
 
-public class AniDB_NotifyQueueRepository : BaseDirectRepository<AniDB_NotifyQueue, int>
+public class AniDB_NotifyQueueRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<AniDB_NotifyQueue, int>(databaseFactory)
 {
     public AniDB_NotifyQueue? GetByTypeID(AniDBNotifyType type, int id)
     {
@@ -31,9 +31,5 @@ public class AniDB_NotifyQueueRepository : BaseDirectRepository<AniDB_NotifyQueu
         using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
         // Query can't batch delete, while Query can
         session.Query<AniDB_NotifyQueue>().Where(a => a.Type == type && a.ID == id).Delete();
-    }
-
-    public AniDB_NotifyQueueRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

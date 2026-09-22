@@ -9,14 +9,9 @@ using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories;
 
-public class BaseDirectRepository<T, S> : BaseRepository, IDirectRepository, IRepository<T, S> where T : class where S : notnull
+public class BaseDirectRepository<T, S>(DatabaseFactory databaseFactory) : BaseRepository, IDirectRepository, IRepository<T, S> where T : class where S : notnull
 {
-    protected readonly DatabaseFactory _databaseFactory;
-
-    public BaseDirectRepository(DatabaseFactory databaseFactory)
-    {
-        _databaseFactory = databaseFactory;
-    }
+    protected readonly DatabaseFactory _databaseFactory = databaseFactory;
 
     /// <summary>
     ///   Runs before an entity is deleted.

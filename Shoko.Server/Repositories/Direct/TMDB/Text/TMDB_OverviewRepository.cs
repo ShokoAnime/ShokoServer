@@ -7,7 +7,7 @@ using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Direct.TMDB.Text;
 
-public class TMDB_OverviewRepository : BaseDirectRepository<TMDB_Overview, int>
+public class TMDB_OverviewRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<TMDB_Overview, int>(databaseFactory)
 {
     public IReadOnlyList<TMDB_Overview> GetByParentTypeAndID(DataEntityType parentType, int parentId)
     {
@@ -17,9 +17,5 @@ public class TMDB_OverviewRepository : BaseDirectRepository<TMDB_Overview, int>
             .Query<TMDB_Overview>()
             .Where(a => a.ForeignParentType == foreignParentType && a.ParentID == parentId)
             .ToList();
-    }
-
-    public TMDB_OverviewRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

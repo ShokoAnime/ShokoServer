@@ -5,7 +5,7 @@ using Shoko.Server.Models.TMDB;
 
 namespace Shoko.Server.Repositories.Direct.TMDB;
 
-public class TMDB_Episode_CrewRepository : BaseDirectRepository<TMDB_Episode_Crew, int>
+public class TMDB_Episode_CrewRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<TMDB_Episode_Crew, int>(databaseFactory)
 {
     public IReadOnlyList<TMDB_Episode_Crew> GetByTmdbPersonID(int personId)
     {
@@ -54,9 +54,5 @@ public class TMDB_Episode_CrewRepository : BaseDirectRepository<TMDB_Episode_Cre
             .ThenBy(e => e.Job)
             .ThenBy(e => e.TmdbCreditID)
             .ToList();
-    }
-
-    public TMDB_Episode_CrewRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

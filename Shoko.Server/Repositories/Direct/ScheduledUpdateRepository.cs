@@ -4,7 +4,7 @@ using Shoko.Server.Models.Internal;
 
 namespace Shoko.Server.Repositories.Direct;
 
-public class ScheduledUpdateRepository : BaseDirectRepository<ScheduledUpdate, int>
+public class ScheduledUpdateRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<ScheduledUpdate, int>(databaseFactory)
 {
     public virtual ScheduledUpdate? GetByUpdateType(int uptype)
     {
@@ -13,9 +13,5 @@ public class ScheduledUpdateRepository : BaseDirectRepository<ScheduledUpdate, i
             .Where(a => a.UpdateType == uptype)
             .Take(1)
             .SingleOrDefault();
-    }
-
-    public ScheduledUpdateRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

@@ -8,7 +8,7 @@ using Shoko.Server.Server;
 
 namespace Shoko.Server.Repositories.Direct.TMDB;
 
-public class TMDB_Company_EntityRepository : BaseDirectRepository<TMDB_Company_Entity, int>
+public class TMDB_Company_EntityRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<TMDB_Company_Entity, int>(databaseFactory)
 {
     public IReadOnlyList<TMDB_Company_Entity> GetByTmdbCompanyID(int companyId)
     {
@@ -40,9 +40,5 @@ public class TMDB_Company_EntityRepository : BaseDirectRepository<TMDB_Company_E
             .Where(a => a.ForeignTmdbEntityType == foreignEntityType && a.TmdbEntityID == entityId)
             .OrderBy(xref => xref.Ordering)
             .ToList();
-    }
-
-    public TMDB_Company_EntityRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

@@ -5,7 +5,7 @@ using Shoko.Server.Models.TMDB;
 
 namespace Shoko.Server.Repositories.Direct.TMDB;
 
-public class TMDB_PersonRepository : BaseDirectRepository<TMDB_Person, int>
+public class TMDB_PersonRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<TMDB_Person, int>(databaseFactory)
 {
     public TMDB_Person? GetByTmdbPersonID(int creditId)
     {
@@ -26,9 +26,5 @@ public class TMDB_PersonRepository : BaseDirectRepository<TMDB_Person, int>
             .Where(a => personIds.Contains(a.TmdbPersonID))
             .Select(a => a.TmdbPersonID)
             .ToHashSet();
-    }
-
-    public TMDB_PersonRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

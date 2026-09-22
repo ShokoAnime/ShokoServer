@@ -5,7 +5,7 @@ using Shoko.Server.Models.TMDB;
 
 namespace Shoko.Server.Repositories.Direct.TMDB;
 
-public class TMDB_Movie_CastRepository : BaseDirectRepository<TMDB_Movie_Cast, int>
+public class TMDB_Movie_CastRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<TMDB_Movie_Cast, int>(databaseFactory)
 {
     public IReadOnlyList<TMDB_Movie_Cast> GetByTmdbPersonID(int personId)
     {
@@ -26,9 +26,5 @@ public class TMDB_Movie_CastRepository : BaseDirectRepository<TMDB_Movie_Cast, i
             .Where(a => a.TmdbMovieID == movieId)
             .OrderBy(e => e.Ordering)
             .ToList();
-    }
-
-    public TMDB_Movie_CastRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

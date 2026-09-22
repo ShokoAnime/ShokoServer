@@ -24,17 +24,13 @@ using Shoko.Server.Utilities;
 #pragma warning disable CA2012
 namespace Shoko.Server.Repositories.Cached;
 
-public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
+public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<VideoLocal, int>(databaseFactory)
 {
     private VideoService? _videoService;
 
     private PocoIndex<int, VideoLocal, string>? _ed2k;
 
     private PocoIndex<int, VideoLocal, bool>? _ignored;
-
-    public VideoLocalRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
 
     protected override void OnDeleteWithOpenTransaction(ISession session, VideoLocal obj)
     {

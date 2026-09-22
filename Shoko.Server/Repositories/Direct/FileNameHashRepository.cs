@@ -5,7 +5,7 @@ using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Repositories.Direct;
 
-public class FileNameHashRepository : BaseDirectRepository<FileNameHash, int>
+public class FileNameHashRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<FileNameHash, int>(databaseFactory)
 {
     public List<FileNameHash> GetByHash(string hash)
     {
@@ -23,9 +23,5 @@ public class FileNameHashRepository : BaseDirectRepository<FileNameHash, int>
             .Query<FileNameHash>()
             .Where(a => a.FileName == filename && a.FileSize == filesize)
             .ToList();
-    }
-
-    public FileNameHashRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

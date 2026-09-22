@@ -4,7 +4,7 @@ using Shoko.Server.Models.TMDB;
 
 namespace Shoko.Server.Repositories.Direct.TMDB.Optional;
 
-public class TMDB_NetworkRepository : BaseDirectRepository<TMDB_Network, int>
+public class TMDB_NetworkRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<TMDB_Network, int>(databaseFactory)
 {
     public TMDB_Network? GetByTmdbNetworkID(int tmdbNetworkId)
     {
@@ -14,9 +14,5 @@ public class TMDB_NetworkRepository : BaseDirectRepository<TMDB_Network, int>
             .Where(a => a.TmdbNetworkID == tmdbNetworkId)
             .Take(1)
             .SingleOrDefault();
-    }
-
-    public TMDB_NetworkRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }

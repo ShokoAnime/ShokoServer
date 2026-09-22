@@ -10,17 +10,13 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached;
 
-public class ShokoImageRepository : BaseCachedRepository<ShokoImage, Guid>
+public class ShokoImageRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<ShokoImage, Guid>(databaseFactory)
 {
     private int _lastLocalID;
 
     private PocoIndex<Guid, ShokoImage, int>? _localImageID;
 
     private PocoIndex<Guid, ShokoImage, Guid>? _primaryImageID;
-
-    public ShokoImageRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-    }
 
     protected override void OnBeginSave(ShokoImage obj)
     {

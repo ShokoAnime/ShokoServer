@@ -6,7 +6,7 @@ using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories.Direct;
 
-public class AniDB_Anime_RelationRepository : BaseDirectRepository<AniDB_Anime_Relation, int>
+public class AniDB_Anime_RelationRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<AniDB_Anime_Relation, int>(databaseFactory)
 {
     public List<AniDB_Anime_Relation> GetByAnimeID(int id)
     {
@@ -50,9 +50,5 @@ public class AniDB_Anime_RelationRepository : BaseDirectRepository<AniDB_Anime_R
         return session.Query<AniDB_Anime_Relation>()
             .Where(a => a.RelatedAnimeID == id)
             .ToList();
-    }
-
-    public AniDB_Anime_RelationRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
     }
 }
