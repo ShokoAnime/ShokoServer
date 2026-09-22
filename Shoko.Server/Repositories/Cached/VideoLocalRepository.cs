@@ -157,13 +157,6 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
         }
     }
 
-    public IReadOnlyList<VideoLocal> GetByManagedFolderID(int importFolderID)
-        => RepoFactory.VideoLocalPlace.GetByManagedFolderID(importFolderID)
-            .Select(a => GetByID(a.VideoID))
-            .WhereNotNull()
-            .Distinct()
-            .ToList();
-
     public override void Delete(VideoLocal obj)
     {
         var list = obj.AnimeEpisodes;
@@ -264,16 +257,6 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             .Select(a => GetByID(a.VideoLocalID))
             .WhereNotNull()
             .FirstOrDefault(a => a.FileSize == fileSize);
-    }
-
-    public IReadOnlyList<VideoLocal> GetByName(string fileName)
-    {
-        if (string.IsNullOrEmpty(fileName))
-            throw new InvalidStateException("Trying to lookup a VideoLocal by an empty Filename");
-
-        return Cache.GetAll()
-            .Where(p => p.Places.Any(a => a.RelativePath.FuzzyMatch(fileName)))
-            .ToList();
     }
 
     public IReadOnlyList<VideoLocal> GetMostRecentlyAdded(int maxResults, int userID)
