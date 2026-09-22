@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.485",
+      "tag": "v6.0.0-dev.485",
+      "commit": "9cdc3cc14eebfb7d25ce697da8d2d711bbd565a3",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.485/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-22T16:50:31Z",
+      "releaseNotes": "\n`refactor` (`api`): **Drop the legacy `CL_ServerSettings` model**. (_Skip CI_)\n\n`fix` (`abstractions`): **Rename Id to ID on ExecutableActionInfo**.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.94**.\n"
+    },
+    {
       "version": "6.0.0.484",
       "tag": "v6.0.0-dev.484",
       "commit": "62f079a28ff9920be34c2b4655a54547cca5eabe",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.456/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-14T16:48:53Z",
       "releaseNotes": "\n`fix` (`abstractions`): **Make `LanguageExtensions` unknown-language tracking thread-safe** ([#1426](https://github.com/ShokoAnime/ShokoServer/pull/1426)):\n\n`GetTitleLanguage()` mutated an unsynchronized static `HashSet<string>`\nto dedupe unknown-language reports. Concurrent callers (e.g. API\nrequests building File DTOs) corrupted it and crashed with\n`InvalidOperationException`.\n\nReplaced the `HashSet` with a `ConcurrentDictionary` used as a set, so\nno external synchronization is needed at any call site.\n"
-    },
-    {
-      "version": "6.0.0.455",
-      "tag": "v6.0.0-dev.455",
-      "commit": "f8d3f928e06d3fed856106d0d103484be91a2085",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.455/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-14T04:37:01Z",
-      "releaseNotes": "\n`fix` (`db`): **Declare the AniList text columns as utf8mb4 on MySQL**:\n\nThe schema parity job failed on 26 AniList text columns that MySQL\nreported as nullable while SQLite and SQL Server had them `NOT NULL`.\nThe tables declared their text columns with the old `UTF8` character\nset, so the after-patch charset fix rebuilt every one of them with a\nbare `MODIFY`, which drops anything left unstated, the null constraint\nincluded. Declared them `utf8mb4` with the unicode collation up front,\nmatching the repaired columns from v185, so the fix leaves them alone.\n\nVerified with `scripts/compare_schemas.sh` against MariaDB and SQL\nServer: all twelve parity tests pass.\n"
     }
   ]
 }
