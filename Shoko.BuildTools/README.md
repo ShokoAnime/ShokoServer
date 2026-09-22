@@ -217,11 +217,12 @@ The source probe maps Shoko service interfaces to discovery tags:
 | Interface | Tag |
 |-----------|-----|
 | `IReleaseInfoProvider` | `release-provider` |
-| `IHashProvider` | `hash-provider` |
-| `IRelocationProvider` | `relocation-provider` |
+| `IHashProvider` | `hasher` |
+| `IRelocationProvider` | `relocator` |
 | `IImageCrossReferenceResolver` | `image-cross-reference-resolver` |
 | `IManagedFolderIgnoreRule` | `managed-folder-ignore-rule` |
 | `IResourceResolver` | `resource-resolver` |
+| `IAiringScheduleProvider` | `airing-scheduler` |
 | `ISupplementaryMetadataProvider` | `supplementary-metadata-provider` |
 | `IHostedService` | `hosted-service` |
 | `IPluginServiceRegistration` | `service-registration` |

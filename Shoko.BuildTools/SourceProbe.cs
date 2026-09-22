@@ -16,11 +16,12 @@ internal static class SourceProbe
     private static readonly Dictionary<string, string[]> InterfaceTagMap = new()
     {
         ["IReleaseInfoProvider"] = ["release-provider"],
-        ["IHashProvider"] = ["hash-provider"],
-        ["IRelocationProvider"] = ["relocation-provider"],
+        ["IHashProvider"] = ["hasher"],
+        ["IRelocationProvider"] = ["relocator"],
         ["IImageCrossReferenceResolver"] = ["image-cross-reference-resolver"],
         ["IManagedFolderIgnoreRule"] = ["managed-folder-ignore-rule"],
         ["IResourceResolver"] = ["resource-resolver"],
+        ["IAiringScheduleProvider"] = ["airing-scheduler"],
         ["ISupplementaryMetadataProvider"] = ["supplementary-metadata-provider"],
         ["IHostedService"] = ["hosted-service"],
         ["IPluginServiceRegistration"] = ["service-registration"],
