@@ -12,12 +12,6 @@ namespace Shoko.Server.Repositories.Cached;
 
 public class ShokoImageRepository : BaseCachedRepository<ShokoImage, Guid>
 {
-    // ISO OID → "ImageRootIdentifierNamespace"
-    private static readonly Guid _imageRootIdentifierNamespace = new("052d1dff-40bf-559f-b059-2b8bf0b32393");
-
-    internal static Guid GetIDForSourceAndResourceID(DataSource imageSource, string resourceID)
-        => UuidUtility.GetV5($"ImageSource={imageSource},ImageResourceID={resourceID}", _imageRootIdentifierNamespace);
-
     private int _lastLocalID;
 
     private PocoIndex<Guid, ShokoImage, int>? _localImageID;
