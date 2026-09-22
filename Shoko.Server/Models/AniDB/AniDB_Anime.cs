@@ -422,9 +422,6 @@ public class AniDB_Anime : IAnidbAnime
         }
     }
 
-    public string PreferredOrDefaultPosterPath
-        => (this as IWithPrimaryImage).PrimaryImageCrossReference?.GetImage() is { } primaryImage ? primaryImage.LocalPath! : PosterPath;
-
     #endregion
 
     #region AniDB

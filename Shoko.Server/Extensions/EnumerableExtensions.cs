@@ -99,30 +99,6 @@ public static class EnumerableExtensions
         return string.Join(", ", ranges);
     }
 
-    public static string ToRanges(this List<int> ints)
-    {
-        if (ints.Count < 1) return "";
-        if (ints.Count == 1) return ints[0].ToString();
-        ints.Sort();
-        var lng = ints.Count;
-        var fromnums = new List<int>();
-        var tonums = new List<int>();
-        for (var i = 0; i < lng - 1; i++)
-        {
-            if (i == 0)
-                fromnums.Add(ints[0]);
-            if (ints[i + 1] > ints[i] + 1)
-            {
-                tonums.Add(ints[i]);
-                fromnums.Add(ints[i + 1]);
-            }
-        }
-        tonums.Add(ints[lng - 1]);
-        return string.Join(", ", Enumerable.Range(0, tonums.Count).Select(
-            i => fromnums[i] + (tonums[i] == fromnums[i] ? "" : "-" + tonums[i])
-        ));
-    }
-
     /// <summary>
     /// Splits up the sequence into batches of the specified <paramref name="size"/>.
     /// </summary>

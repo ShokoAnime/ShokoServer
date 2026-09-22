@@ -22,7 +22,7 @@ public class ShokoImage : IImage
     #region Properties
 
     /// <summary>
-    ///   Locally incrementing ID for APIv1-APIv3 backwards compatibility.
+    ///   Locally incrementing ID for APIv2 and APIv3 backwards compatibility.
     /// </summary>
     public int LocalID { get; set; }
 

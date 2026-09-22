@@ -635,49 +635,6 @@ public class UserDataService(
         });
     }
 
-    internal async Task IncrementEpisodeStats(IShokoEpisode episode, IUser user, int statCountType)
-    {
-        if (episode is null || episode.Series is not { } series)
-            return;
-
-        var episodeUserData = episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)
-            ?? new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID, AnimeSeriesID = episode.SeriesID };
-        var shouldSave = false;
-        switch (statCountType)
-        {
-            case 2 /* playback started */:
-                episodeUserData.PlayedCount++;
-                shouldSave = true;
-                break;
-            case 3 /* playback stopped */:
-                episodeUserData.StoppedCount++;
-                shouldSave = true;
-                break;
-            // Forward to save method if it's a stat we care about outside compatibility reasons.
-            case 1 /* Completed */:
-                await SaveEpisodeUserDataInternal(episode, user, new() { PlaybackCount = episodeUserData.WatchedCount + 1 });
-                return;
-        }
-
-        var seriesUserData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)
-            ?? new() { JMMUserID = user.ID, AnimeSeriesID = series.ID };
-        switch (statCountType)
-        {
-            case 2 /* playback started */:
-                seriesUserData.PlayedCount++;
-                break;
-            case 3 /* playback stopped */:
-                seriesUserData.StoppedCount++;
-                break;
-        }
-
-        if (shouldSave)
-        {
-            episodeUserDataRepository.Save(episodeUserData);
-            seriesUserDataRepository.Save(seriesUserData);
-        }
-    }
-
     internal void CreateUserRecordsForNewEpisode(IShokoEpisode episode)
     {
         var videoUserDataList = episode
@@ -710,9 +667,7 @@ public class UserDataService(
                 AnimeEpisodeID = episode.ID,
                 AnimeSeriesID = episode.SeriesID,
                 WatchedDate = watchedAt,
-                PlayedCount = watchedCount,
                 WatchedCount = watchedCount,
-                StoppedCount = watchedCount,
                 LastUpdated = DateTime.Now,
             };
             episodeUserDataRepository.Save(episodeUserData);
@@ -1197,8 +1152,6 @@ public class UserDataService(
         // Reset stats
         var watchedCount = 0;
         var unwatchedEpisodeCount = 0;
-        var playedCount = 0;
-        var stoppedCount = 0;
         var watchedEpisodeCount = 0;
         var watchedDate = (DateTime?)null;
 
@@ -1206,8 +1159,6 @@ public class UserDataService(
         {
             watchedCount += serUserRecord.WatchedCount;
             unwatchedEpisodeCount += serUserRecord.UnwatchedEpisodeCount;
-            playedCount += serUserRecord.PlayedCount;
-            stoppedCount += serUserRecord.StoppedCount;
             watchedEpisodeCount += serUserRecord.WatchedEpisodeCount;
             if (serUserRecord.WatchedDate != null
                 && (watchedDate is null || serUserRecord.WatchedDate > watchedDate))
@@ -1220,8 +1171,6 @@ public class UserDataService(
             isNew ||
             userData.WatchedCount != watchedCount ||
             userData.UnwatchedEpisodeCount != unwatchedEpisodeCount ||
-            userData.PlayedCount != playedCount ||
-            userData.StoppedCount != stoppedCount ||
             userData.WatchedEpisodeCount != watchedEpisodeCount ||
             userData.WatchedDate != watchedDate
         );

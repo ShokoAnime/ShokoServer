@@ -14,16 +14,7 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User,
 
     private PocoIndex<int, AnimeSeries_User, (int UserID, int SeriesID)>? _userSeriesIDs;
 
-    private readonly Dictionary<int, ChangeTracker<int>> _changes = [];
-
-    public AnimeSeries_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
-    {
-        EndDeleteCallback = cr =>
-        {
-            _changes.TryAdd(cr.JMMUserID, new ChangeTracker<int>());
-            _changes[cr.JMMUserID].Remove(cr.AnimeSeriesID);
-        };
-    }
+    public AnimeSeries_UserRepository(DatabaseFactory databaseFactory) : base(databaseFactory) { }
 
     protected override int SelectKey(AnimeSeries_User entity)
         => entity.AnimeSeries_UserID;
@@ -33,13 +24,6 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User,
         _userIDs = Cache.CreateIndex(a => a.JMMUserID);
         _seriesIDs = Cache.CreateIndex(a => a.AnimeSeriesID);
         _userSeriesIDs = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeSeriesID));
-    }
-
-    public override void Save(AnimeSeries_User obj)
-    {
-        base.Save(obj);
-        _changes.TryAdd(obj.JMMUserID, new());
-        _changes[obj.JMMUserID].AddOrUpdate(obj.AnimeSeriesID);
     }
 
     public AnimeSeries_User? GetByUserAndSeriesID(int userID, int seriesID)
@@ -56,7 +40,4 @@ public class AnimeSeries_UserRepository : BaseCachedRepository<AnimeSeries_User,
             .Where(a => a.UnwatchedEpisodeCount > 0)
             .OrderByDescending(a => a.WatchedDate)
             .ToList();
-
-    public ChangeTracker<int> GetChangeTracker(int userID)
-        => _changes.TryGetValue(userID, out var change) ? change : new ChangeTracker<int>();
 }

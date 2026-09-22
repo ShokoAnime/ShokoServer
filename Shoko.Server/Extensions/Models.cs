@@ -189,19 +189,6 @@ public static class Models
         return new HashSet<string>(anime.AllTitles.Split('|').Select(a => a.Trim()), StringComparer.InvariantCultureIgnoreCase);
     }
 
-    public static double GetApprovalPercentage(this AniDB_Anime_Similar similar)
-    {
-        if (similar.Total == 0) return 0;
-        return similar.Approval / (double)similar.Total * 100;
-    }
-
-    public static decimal GetAniDBRating(this AniDB_Anime anime)
-    {
-        if (anime.GetAniDBTotalVotes() == 0)
-            return 0;
-        return anime.GetAniDBTotalRating() / anime.GetAniDBTotalVotes();
-    }
-
     public static decimal GetAniDBTotalRating(this AniDB_Anime anime)
     {
         decimal totalRating = 0;

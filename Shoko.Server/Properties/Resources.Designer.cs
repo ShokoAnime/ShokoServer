@@ -62,16 +62,6 @@ namespace Shoko.Server.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        public static byte[] blank {
-            get {
-                object obj = ResourceManager.GetObject("blank", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
         public static byte[] plex_404 {
             get {
                 object obj = ResourceManager.GetObject("plex_404", resourceCulture);

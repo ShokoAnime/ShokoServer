@@ -22,9 +22,6 @@ public class AniDB_CharacterRepository(DatabaseFactory databaseFactory) : BaseCa
     public AniDB_Character? GetByCharacterID(int characterID)
         => _characterIDs!.GetOne(characterID);
 
-    public IReadOnlyList<AniDB_Character> GetCharactersForAnime(int animeID)
-        => RepoFactory.AniDB_Anime_Character.GetByAnimeID(animeID).Select(xref => GetByCharacterID(xref.CharacterID)).WhereNotNull().ToList();
-
     public AniDB_Character? GetByName(string creatorName)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();

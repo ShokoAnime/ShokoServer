@@ -28,14 +28,11 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
     private PocoIndex<int, AnimeSeries, int>? AniDBIds;
     private PocoIndex<int, AnimeSeries, int>? Groups;
 
-    private readonly ChangeTracker<int> Changes = new();
-
     public AnimeSeriesRepository(DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         BeginDeleteCallback = cr =>
         {
             RepoFactory.AnimeSeries_User.Delete(RepoFactory.AnimeSeries_User.GetBySeriesID(cr.AnimeSeriesID));
-            Changes.Remove(cr.AnimeSeriesID);
         };
         EndDeleteCallback = cr =>
         {
@@ -62,7 +59,6 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
     public override void PopulateIndexes()
     {
-        Changes.AddOrUpdateRange(Cache.GetAllKeys());
         AniDBIds = Cache.CreateIndex(a => a.AniDB_ID);
         Groups = Cache.CreateIndex(a => a.AnimeGroupID);
     }
@@ -116,11 +112,6 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
             Console.WriteLine(e);
             throw;
         }
-    }
-
-    public ChangeTracker<int> GetChangeTracker()
-    {
-        return Changes;
     }
 
     public override void Save(AnimeSeries obj)
@@ -204,7 +195,6 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
 
         if (updateGroups && !isMigrating) UpdateGroups(obj, animeID, sw, oldGroup!);
 
-        Changes.AddOrUpdate(obj.AnimeSeriesID);
         SeriesSearch.MarkDirty();
 
         if (alsoupdateepisodes) UpdateEpisodes(obj, sw, animeID);
@@ -284,7 +274,6 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
         {
             await session.UpdateAsync(series);
             UpdateCache(series);
-            Changes.AddOrUpdate(series.AnimeSeriesID);
         }
 
         SeriesSearch.MarkDirty();
@@ -303,13 +292,6 @@ public class AnimeSeriesRepository : BaseCachedRepository<AnimeSeries, int>
             return [];
 
         return Groups!.GetMultiple(groupID);
-    }
-
-    public List<AnimeSeries> GetWithMissingEpisodes()
-    {
-        return Cache.GetAll().Where(a => a.MissingEpisodeCountGroups > 0)
-            .OrderByDescending(a => a.EpisodeAddedDate)
-            .ToList();
     }
 
     public List<AnimeSeries> GetMostRecentlyAdded(int maxResults, int userID)

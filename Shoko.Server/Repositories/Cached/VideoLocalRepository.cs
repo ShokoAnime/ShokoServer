@@ -304,50 +304,6 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             .Take(maxResults).ToList();
     }
 
-    public IReadOnlyList<VideoLocal> GetRandomFiles(int maxResults)
-    {
-        var values = Cache.GetAll().Where(a => a.EpisodeCrossReferences.Any()).ToList();
-
-        using var en = new UniqueRandoms(0, values.Count - 1).GetEnumerator();
-        var list = new List<VideoLocal>();
-        if (maxResults > values.Count)
-            maxResults = values.Count;
-
-        while (en.MoveNext())
-        {
-            list.Add(values.ElementAt(en.Current));
-            if (list.Count >= maxResults)
-                break;
-        }
-
-        return list;
-    }
-
-    public class UniqueRandoms : IEnumerable<int>
-    {
-        private readonly Random _rand = new();
-        private readonly List<int> _candidates;
-
-        public UniqueRandoms(int minInclusive, int maxInclusive)
-        {
-            _candidates = Enumerable.Range(minInclusive, maxInclusive - minInclusive + 1).ToList();
-        }
-
-        public IEnumerator<int> GetEnumerator()
-        {
-            while (_candidates.Count > 0)
-            {
-                var index = _rand.Next(_candidates.Count);
-                yield return _candidates[index];
-                _candidates.RemoveAt(index);
-            }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-            => GetEnumerator();
-    }
-
-
     /// <summary>
     /// returns all the VideoLocal records associate with an AnimeEpisode Record
     /// </summary>
@@ -359,14 +315,6 @@ public class VideoLocalRepository : BaseCachedRepository<VideoLocal, int>
             .Select(a => GetByEd2k(a.Hash))
             .WhereNotNull()
             .ToList();
-
-    public IReadOnlyList<VideoLocal> GetMostRecentlyAddedForAnime(int maxResults, int animeID)
-        => animeID is not > 0 ? [] : RepoFactory.CrossRef_File_Episode.GetByAnimeID(animeID)
-                .Select(a => GetByEd2k(a.Hash))
-                .WhereNotNull()
-                .OrderByDescending(a => a.DateTimeCreated)
-                .Take(maxResults)
-                .ToList();
 
     /// <summary>
     /// returns all the VideoLocal records associate with an AniDB_Anime Record

@@ -50,21 +50,9 @@ public class AnimeSeries_User : ISeriesUserData
     public DateTime? WatchedDate { get; set; }
 
     /// <summary>
-    ///   How many times videos have been started/played for the series. Only
-    ///   used by Shoko Desktop and APIv1.
-    /// </summary>
-    public int PlayedCount { get; set; }
-
-    /// <summary>
     ///   How many videos have been played to completion for the series.
     /// </summary>
     public int WatchedCount { get; set; }
-
-    /// <summary>
-    ///   How many times videos have been stopped for the series. Only used by
-    ///   Shoko Desktop and APIv1.
-    /// </summary>
-    public int StoppedCount { get; set; }
 
     /// <summary>
     ///   The last time an episode was updated, regardless of if it was watched

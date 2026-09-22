@@ -14,8 +14,6 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
 
     private PocoIndex<int, AnimeEpisode_User, (int UserID, int EpisodeID)>? _userEpisodeIDs;
 
-    private PocoIndex<int, AnimeEpisode_User, (int UserID, int SeriesID)>? _userSeriesIDs;
-
     protected override int SelectKey(AnimeEpisode_User entity)
         => entity.AnimeEpisode_UserID;
 
@@ -24,7 +22,6 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
         _userIDs = Cache.CreateIndex(a => a.JMMUserID);
         _episodeIDs = Cache.CreateIndex(a => a.AnimeEpisodeID);
         _userEpisodeIDs = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeEpisodeID));
-        _userSeriesIDs = Cache.CreateIndex(a => (a.JMMUserID, a.AnimeSeriesID));
     }
 
     public override void RegenerateDb()
@@ -61,15 +58,6 @@ public class AnimeEpisode_UserRepository(DatabaseFactory databaseFactory) : Base
             .Take(limit)
             .ToList();
 
-    public AnimeEpisode_User? GetLastWatchedEpisodeForSeries(int seriesID, int userID)
-        => GetByUserIDAndSeriesID(userID, seriesID)
-            .Where(a => a.WatchedCount > 0)
-            .OrderByDescending(a => a.WatchedDate)
-            .FirstOrDefault();
-
     public IReadOnlyList<AnimeEpisode_User> GetByEpisodeID(int episodeID)
         => _episodeIDs!.GetMultiple(episodeID);
-
-    public IReadOnlyList<AnimeEpisode_User> GetByUserIDAndSeriesID(int userID, int seriesID)
-        => _userSeriesIDs!.GetMultiple((userID, seriesID));
 }

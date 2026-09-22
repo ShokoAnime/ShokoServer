@@ -39,19 +39,9 @@ public class AnimeEpisode_User : IEpisodeUserData
     public DateTime? WatchedDate { get; set; }
 
     /// <summary>
-    ///  How many times videos have been started/played for the episode. Only used by Shoko Desktop and APIv1.
-    /// </summary>
-    public int PlayedCount { get; set; }
-
-    /// <summary>
     /// How many videos have been played to completion for the episode.
     /// </summary>
     public int WatchedCount { get; set; }
-
-    /// <summary>
-    ///  How many times videos have been stopped for the episode. Only used by Shoko Desktop and APIv1.
-    /// </summary>
-    public int StoppedCount { get; set; }
 
     /// <summary>
     /// Indicates that the user has watched the episode to completion at least once.

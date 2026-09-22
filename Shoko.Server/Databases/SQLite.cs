@@ -1023,6 +1023,12 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(171,  1, "CREATE TABLE Anilist_Anime_Suggestion ( Anilist_Anime_SuggestionID INTEGER PRIMARY KEY AUTOINCREMENT, AnilistAnimeID INTEGER NOT NULL, SuggestedAnilistAnimeID INTEGER NOT NULL, Rating INTEGER NOT NULL, Ordering INTEGER NOT NULL );"),
         new(171,  2, "CREATE UNIQUE INDEX UIX_Anilist_Anime_Suggestion_AnimeID_SuggestedID ON Anilist_Anime_Suggestion(AnilistAnimeID, SuggestedAnilistAnimeID);"),
         new(171,  3, "CREATE INDEX IX_Anilist_Anime_Suggestion_SuggestedID ON Anilist_Anime_Suggestion(SuggestedAnilistAnimeID);"),
+        new(172,  1, "ALTER TABLE AnimeEpisode_User DROP COLUMN PlayedCount;"),
+        new(172,  2, "ALTER TABLE AnimeEpisode_User DROP COLUMN StoppedCount;"),
+        new(172,  3, "ALTER TABLE AnimeSeries_User DROP COLUMN PlayedCount;"),
+        new(172,  4, "ALTER TABLE AnimeSeries_User DROP COLUMN StoppedCount;"),
+        new(172,  5, "ALTER TABLE AnimeGroup_User DROP COLUMN PlayedCount;"),
+        new(172,  6, "ALTER TABLE AnimeGroup_User DROP COLUMN StoppedCount;"),
     ];
 
     #endregion

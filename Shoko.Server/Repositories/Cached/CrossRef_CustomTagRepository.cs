@@ -25,7 +25,4 @@ public class CrossRef_CustomTagRepository(DatabaseFactory databaseFactory) : Bas
 
     public IReadOnlyList<CrossRef_CustomTag> GetByAnimeID(int animeID)
         => _entityIDandType!.GetMultiple((animeID, 1));
-
-    public CrossRef_CustomTag? GetByUniqueID(int customTagID, int animeID)
-        => _entityIDandType!.GetMultiple((animeID, 1)).FirstOrDefault(a => a.CustomTagID == customTagID);
 }

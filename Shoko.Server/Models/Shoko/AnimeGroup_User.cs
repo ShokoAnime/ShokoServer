@@ -24,11 +24,7 @@ public class AnimeGroup_User : IGroupUserData
 
     public DateTime? WatchedDate { get; set; }
 
-    public int PlayedCount { get; set; }
-
     public int WatchedCount { get; set; }
-
-    public int StoppedCount { get; set; }
 
     /// <summary>
     ///   The unique tags assigned to the group by the user.

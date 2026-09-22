@@ -16,8 +16,6 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
 
     private PocoIndex<int, AnimeGroup, int>? _parentIDs;
 
-    private readonly ChangeTracker<int> _changes = new();
-
     public AnimeGroupRepository(ILogger<AnimeGroupRepository> logger, DatabaseFactory databaseFactory) : base(databaseFactory)
     {
         _logger = logger;
@@ -44,7 +42,6 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
 
     public override void PopulateIndexes()
     {
-        _changes.AddOrUpdateRange(Cache.GetAllKeys());
         _parentIDs = Cache.CreateIndex(a => a.AnimeGroupParentID ?? 0);
     }
 
@@ -68,8 +65,6 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
             SaveWithOpenTransaction(session, group);
             transaction.Commit();
         }
-
-        _changes.AddOrUpdate(group.AnimeGroupID);
 
         if (group.AnimeGroupParentID.HasValue && recursive)
         {
@@ -96,8 +91,6 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
         }
 
         await trans.CommitAsync();
-
-        _changes.AddOrUpdateRange(groups.Select(g => g.AnimeGroupID));
     }
 
     /// <summary>
@@ -113,7 +106,7 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        // First, get all of the current groups so that we can inform the change tracker that they have been removed later
+        // First, get all of the current groups so the excluded one can be put back in the cache later
         var allGroups = GetAll();
 
         // Then, actually delete the AnimeGroups
@@ -127,16 +120,6 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
         {
             await session.CreateSQLQuery("DELETE FROM AnimeGroup WHERE AnimeGroupID > 0")
                 .ExecuteUpdateAsync();
-        }
-
-        if (excludeGroupId != null)
-        {
-            _changes.RemoveRange(allGroups.Select(g => g.AnimeGroupID)
-                .Where(id => id != excludeGroupId.Value));
-        }
-        else
-        {
-            _changes.RemoveRange(allGroups.Select(g => g.AnimeGroupID));
         }
 
         // Finally, we need to clear the cache so that it is in sync with the database
@@ -156,7 +139,4 @@ public class AnimeGroupRepository : BaseCachedRepository<AnimeGroup, int>
 
     public List<AnimeGroup> GetByParentID(int parentID)
         => parentID <= 0 ? [] : _parentIDs!.GetMultiple(parentID);
-
-    public ChangeTracker<int> GetChangeTracker()
-        => _changes;
 }

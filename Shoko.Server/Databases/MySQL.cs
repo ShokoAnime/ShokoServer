@@ -1332,6 +1332,9 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(192,  1, "CREATE TABLE `Anilist_Anime_Suggestion` ( `Anilist_Anime_SuggestionID` INT NOT NULL AUTO_INCREMENT, `AnilistAnimeID` INT NOT NULL, `SuggestedAnilistAnimeID` INT NOT NULL, `Rating` INT NOT NULL, `Ordering` INT NOT NULL, PRIMARY KEY (`Anilist_Anime_SuggestionID`) );"),
         new(192,  2, "CREATE UNIQUE INDEX `UIX_Anilist_Anime_Suggestion_AnimeID_SuggestedID` ON `Anilist_Anime_Suggestion`(`AnilistAnimeID`, `SuggestedAnilistAnimeID`);"),
         new(192,  3, "CREATE INDEX `IX_Anilist_Anime_Suggestion_SuggestedID` ON `Anilist_Anime_Suggestion`(`SuggestedAnilistAnimeID`);"),
+        new(193,  1, "ALTER TABLE `AnimeEpisode_User` DROP COLUMN `PlayedCount`, DROP COLUMN `StoppedCount`;"),
+        new(193,  2, "ALTER TABLE `AnimeSeries_User` DROP COLUMN `PlayedCount`, DROP COLUMN `StoppedCount`;"),
+        new(193,  3, "ALTER TABLE `AnimeGroup_User` DROP COLUMN `PlayedCount`, DROP COLUMN `StoppedCount`;"),
     ];
 
     #endregion

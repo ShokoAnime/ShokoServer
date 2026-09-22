@@ -1214,6 +1214,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(190,  1, "CREATE TABLE Anilist_Anime_Suggestion ( Anilist_Anime_SuggestionID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, SuggestedAnilistAnimeID INT NOT NULL, Rating INT NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Anilist_Anime_Suggestion PRIMARY KEY CLUSTERED (Anilist_Anime_SuggestionID) );"),
         new(190,  2, "CREATE UNIQUE INDEX UIX_Anilist_Anime_Suggestion_AnimeID_SuggestedID ON Anilist_Anime_Suggestion(AnilistAnimeID, SuggestedAnilistAnimeID);"),
         new(190,  3, "CREATE INDEX IX_Anilist_Anime_Suggestion_SuggestedID ON Anilist_Anime_Suggestion(SuggestedAnilistAnimeID);"),
+        new(191,  1, DropUserPlayedAndStoppedCounts),
     ];
 
     #endregion
@@ -1339,6 +1340,17 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
     private static Tuple<bool, string?> DropLastEpisodeUpdateDefaultOnAnimeSeries_User(object connection)
     {
         DropDefaultConstraint("AnimeSeries_User", "LastEpisodeUpdate");
+        return Tuple.Create<bool, string?>(true, null);
+    }
+
+    private static Tuple<bool, string?> DropUserPlayedAndStoppedCounts(object connection)
+    {
+        foreach (var table in new[] { "AnimeEpisode_User", "AnimeSeries_User", "AnimeGroup_User" })
+        {
+            DropColumnWithDefaultConstraint(table, "PlayedCount");
+            DropColumnWithDefaultConstraint(table, "StoppedCount");
+        }
+
         return Tuple.Create<bool, string?>(true, null);
     }
 

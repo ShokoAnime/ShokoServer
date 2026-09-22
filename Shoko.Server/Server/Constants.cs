@@ -94,13 +94,6 @@ public static class Constants
 
     public struct URLS
     {
-        public const string MAL_Series = @"https://myanimelist.net/anime/{0}";
-
-        public const string AniDB_Series = @"https://anidb.net/perl-bin/animedb.pl?show=anime&aid={0}";
-
-        public const string AniDB_SeriesDiscussion =
-            @"https://anidb.net/perl-bin/animedb.pl?show=threads&do=anime&id={0}";
-
         public const string AniDB_Images = @"{0}/images/main/{{0}}";
     }
 
