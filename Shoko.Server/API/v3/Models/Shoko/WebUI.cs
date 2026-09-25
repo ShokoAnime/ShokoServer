@@ -259,7 +259,9 @@ public class WebUI
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileLocation))
                         groupByDetails.FileLocation = Path.GetDirectoryName(location.Path)!;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsDeprecated))
-                        groupByDetails.FileIsDeprecated = release?.IsCorrupted ?? false;
+                        groupByDetails.FileIsDeprecated = release?.IsDeprecated ?? false;
+                    if (groupByCriteria.Contains(FileSummaryGroupByCriteria.FileIsCorrupted))
+                        groupByDetails.FileIsCorrupted = release?.IsCorrupted ?? false;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ManagedFolder))
                         groupByDetails.ManagedFolder = location.ManagedFolderID;
                     if (groupByCriteria.Contains(FileSummaryGroupByCriteria.ED2K))
@@ -424,6 +426,7 @@ public class WebUI
                         FileSource = details.FileSource,
                         FileLocation = details.FileLocation,
                         FileIsDeprecated = details.FileIsDeprecated,
+                        FileIsCorrupted = details.FileIsCorrupted,
                         ManagedFolder = details.ManagedFolder,
                         ED2K = details.ED2K,
                         VideoCodecs = details.VideoCodecs,
@@ -494,6 +497,7 @@ public class WebUI
             ManagedFolder = 32768,
             ED2K = 65536,
             MultipleLocations = 131072,
+            FileIsCorrupted = 262144,
         }
 
         /// <summary>
@@ -541,6 +545,12 @@ public class WebUI
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public bool? FileIsDeprecated { get; set; }
+
+            /// <summary>
+            /// Indicates that the file is corrupted.
+            /// </summary>
+            [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+            public bool? FileIsCorrupted { get; set; }
 
             /// <summary>
             /// The managed folder ID of the files in this range.
@@ -821,6 +831,8 @@ public class WebUI
 
             public bool? FileIsDeprecated { get; set; }
 
+            public bool? FileIsCorrupted { get; set; }
+
             public int? ManagedFolder { get; set; }
 
             public string? ED2K { get; set; }
@@ -842,6 +854,7 @@ public class WebUI
                     FileSource == other.FileSource &&
                     FileLocation == other.FileLocation &&
                     FileIsDeprecated == other.FileIsDeprecated &&
+                    FileIsCorrupted == other.FileIsCorrupted &&
                     ManagedFolder == other.ManagedFolder &&
                     ED2K == other.ED2K &&
 
@@ -872,6 +885,7 @@ public class WebUI
                         FileSource,
                         FileLocation,
                         FileIsDeprecated,
+                        FileIsCorrupted,
                         ManagedFolder,
                         ED2K
                     ),

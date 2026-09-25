@@ -1401,7 +1401,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
             var isDeprecated = false;
             if (aniFile != null)
             {
-                isDeprecated = aniFile.IsCorrupted;
+                isDeprecated = aniFile.IsDeprecated;
             }
 
             if (!isDeprecated)
@@ -1989,7 +1989,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
         if (action.Trim().Contains(Constants.FileRenameTag.Deprecated))
         {
             var depr = "New";
-            if (aniFile?.IsCorrupted ?? false) depr = "DEPR";
+            if (aniFile?.IsDeprecated ?? false) depr = "DEPR";
 
             newFileName = newFileName.Replace(Constants.FileRenameTag.Deprecated, depr);
         }

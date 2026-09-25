@@ -152,7 +152,8 @@ public partial class AnidbReleaseProvider(
             IsCensored = anidbFile.Censored,
             IsChaptered = anidbFile.Chaptered,
             IsCreditless = creditless,
-            IsCorrupted = anidbFile.Deprecated,
+            IsCorrupted = anidbFile.Quality is GetFile_Quality.Corrupted,
+            IsDeprecated = anidbFile.Deprecated,
             Source = anidbFile.Source switch
             {
                 GetFile_Source.TV => ReleaseSource.TV,

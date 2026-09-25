@@ -27,6 +27,7 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Map(x => x.IsChaptered);
         Map(x => x.IsCreditless);
         Map(x => x.IsCorrupted).Not.Nullable();
+        Map(x => x.IsDeprecated).Not.Nullable();
         Map(x => x.Source).CustomType<ReleaseSource>().Not.Nullable();
         Map(x => x.GroupID);
         Map(x => x.GroupSource);

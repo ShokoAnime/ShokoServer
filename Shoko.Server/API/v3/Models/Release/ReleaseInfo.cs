@@ -81,6 +81,12 @@ public class ReleaseInfo : IReleaseInfo
     public bool IsCorrupted { get; init; }
 
     /// <summary>
+    /// Indicates that a newer release supersedes this file.
+    /// </summary>
+    [Required]
+    public bool IsDeprecated { get; init; }
+
+    /// <summary>
     /// The source of the release. What the video file was created from.
     /// </summary>
     [Required, JsonConverter(typeof(StringEnumConverter))]
@@ -173,6 +179,7 @@ public class ReleaseInfo : IReleaseInfo
         IsCreditless = releaseInfo.IsCreditless;
         IsChaptered = releaseInfo.IsChaptered;
         IsCorrupted = releaseInfo.IsCorrupted;
+        IsDeprecated = releaseInfo.IsDeprecated;
         Source = releaseInfo.Source;
         Group = releaseInfo.Group is not null ? new(releaseInfo.Group) : null;
         Hashes = releaseInfo.Hashes?.Select(h => new File.HashDigest(h)).ToList();

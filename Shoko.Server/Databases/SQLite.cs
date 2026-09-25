@@ -1032,6 +1032,8 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(172,  7, "DROP TABLE ScanFile;"),
         new(172,  8, "DROP TABLE Scan;"),
         new(172,  9, "DROP TABLE Playlist;"),
+        new(172, 10, "ALTER TABLE StoredReleaseInfo ADD COLUMN IsDeprecated INTEGER NOT NULL DEFAULT 0;"),
+        new(172, 11, "UPDATE StoredReleaseInfo SET IsDeprecated = 1, IsCorrupted = 0 WHERE IsCorrupted <> 0 AND (ProviderName = 'AniDB' OR ProviderName LIKE 'AniDB+%' OR ProviderName LIKE '%+AniDB');"),
     ];
 
     #endregion

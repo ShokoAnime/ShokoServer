@@ -75,6 +75,11 @@ public interface IReleaseInfo
     bool IsCorrupted { get; }
 
     /// <summary>
+    /// Indicates that a newer release supersedes this file.
+    /// </summary>
+    bool IsDeprecated { get; }
+
+    /// <summary>
     /// The source of the release. What the video file was created from.
     /// </summary>
     ReleaseSource Source { get; }
