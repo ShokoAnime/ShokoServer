@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.487",
+      "tag": "v6.0.0-dev.487",
+      "commit": "8f8507b9b68d9cd47b073f3dbfec57c1281fb05f",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.487/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-25T15:55:05Z",
+      "releaseNotes": "\n`fix` (`anidb`): **Stop GetAniDBAnimeJob from busy-looping while HTTP banned**:\n\nProcessInternal already queues a rate-limited GetRemoteAniDBAnimeJob to\nretry once the ban lifts, but it also unconditionally rethrew the ban\nexception afterward. BaseJob.Process converts that into a\nRequeueJobException, putting GetAniDBAnimeJob itself back on the queue\ntoo -- but unlike GetRemoteAniDBAnimeJob, it isn't (and can't be)\n[AniDBHttpRateLimited], since it can also run pure cache-only with no\nnetwork dependency at all. With nothing to hold the requeued instance\nback, it re-ran instantly, hit the same ban, and requeued again,\nforever -- filled a 116GB syslog in about 11 hours and took the disk to\n0 bytes free.\n\nOnly suppress the rethrow once we've actually deferred to\nGetRemoteAniDBAnimeJob, and only for AniDBBannedException specifically;\nother exceptions still surface/fail normally.\n\nCo-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>\n"
+    },
+    {
       "version": "6.0.0.486",
       "tag": "v6.0.0-dev.486",
       "commit": "e8fd06dd2cbd0c6cb45d120f8f922c3ea6889983",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.458/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-14T18:41:11Z",
       "releaseNotes": "\n`repo`: **Revert fork-only tooling commits that leaked in via #1426** ([#1439](https://github.com/ShokoAnime/ShokoServer/pull/1439)):\n\n* Revert \"repo(workflows): bump codeql-action to v4\"\n\nThis reverts commit 056b553dbc0345a2789423e9384012a8bd993d42.\n\n* Revert \"Add workflow_dispatch trigger to CodeQL\"\n\nThis reverts commit f09452e395369dba1ee0e9c37cc8d7d276cca47d.\n\n* Revert \"Add Dependabot and CodeQL to fork tooling\"\n\nThis reverts commit 815009a2dc187620e9d1a00260235cf95391c903.\n"
-    },
-    {
-      "version": "6.0.0.457",
-      "tag": "v6.0.0-dev.457",
-      "commit": "462734a1acef5cf2cd53e5468afa022b96397957",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.457/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-14T16:53:28Z",
-      "releaseNotes": "\n`misc`: **Add Dependabot and CodeQL to fork tooling**:\n\nDependabot covers NuGet + GitHub Actions weekly. CodeQL scans C# on\npush/PR to master plus a weekly schedule. Fork-local only, not for\nupstream PRs.\n\n`misc`: **Add workflow_dispatch trigger to CodeQL**:\n\nLets the workflow be run on demand for verification, without waiting\nfor the weekly schedule or a push.\n\n`repo` (`workflows`): **Bump codeql-action to v4**:\n\nv3 forces Node 20 actions onto the runner's Node 24, which GitHub\nflags as deprecated. v4 targets Node 24 natively.\n\n`feat` (`auth`): **Add password-reset file on startup and harden API login**:\n\nAdd a startup password recovery path: a password-reset.json file in the\ndata folder resets the named user's password, invalidates their API\ntokens, and the server exits so it can be restarted with the new\ncredentials. The file is kept when the user is not found so it can be\ncorrected and retried; malformed files are ignored so they cannot block\nstartup.\n\nHarden login with per-username and per-client throttling (escalating\nlockout, 429 with Retry-After on the v0/v3 login endpoints), constant\ntime password hash comparison, and logging of failed attempts.\n"
     }
   ]
 }
