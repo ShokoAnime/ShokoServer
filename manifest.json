@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.486",
+      "tag": "v6.0.0-dev.486",
+      "commit": "e8fd06dd2cbd0c6cb45d120f8f922c3ea6889983",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.486/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-25T10:23:41Z",
+      "releaseNotes": "\n`feat` (`release`): **Separate deprecated and corrupted states** ([#1446](https://github.com/ShokoAnime/ShokoServer/pull/1446)):\n\nAniDB's deprecated flag was previously stored as `IsCorrupted`, causing\nsuperseded files to appear corrupt. Added an independent `IsDeprecated`\nstate through release storage, API responses, and WebUI grouping. Mapped\n`IsCorrupted` to AniDB's corrupted quality instead.\n\nAdded schema revisions and a one-time data fix that moved existing AniDB\n`IsCorrupted` values to `IsDeprecated` and cleared `IsCorrupted`. Those\nstored values represented deprecation, so the migration could not infer\nthe files' actual corruption state. Refresh all AniDB file infos to\nupdate the corruption state from AniDB.\n\nVerified the SQLite migration during a regular server startup against\nan existing database.\n"
+    },
+    {
       "version": "6.0.0.485",
       "tag": "v6.0.0-dev.485",
       "commit": "9cdc3cc14eebfb7d25ce697da8d2d711bbd565a3",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.457/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-14T16:53:28Z",
       "releaseNotes": "\n`misc`: **Add Dependabot and CodeQL to fork tooling**:\n\nDependabot covers NuGet + GitHub Actions weekly. CodeQL scans C# on\npush/PR to master plus a weekly schedule. Fork-local only, not for\nupstream PRs.\n\n`misc`: **Add workflow_dispatch trigger to CodeQL**:\n\nLets the workflow be run on demand for verification, without waiting\nfor the weekly schedule or a push.\n\n`repo` (`workflows`): **Bump codeql-action to v4**:\n\nv3 forces Node 20 actions onto the runner's Node 24, which GitHub\nflags as deprecated. v4 targets Node 24 natively.\n\n`feat` (`auth`): **Add password-reset file on startup and harden API login**:\n\nAdd a startup password recovery path: a password-reset.json file in the\ndata folder resets the named user's password, invalidates their API\ntokens, and the server exits so it can be restarted with the new\ncredentials. The file is kept when the user is not found so it can be\ncorrected and retried; malformed files are ignored so they cannot block\nstartup.\n\nHarden login with per-username and per-client throttling (escalating\nlockout, 429 with Retry-After on the v0/v3 login endpoints), constant\ntime password hash comparison, and logging of failed attempts.\n"
-    },
-    {
-      "version": "6.0.0.456",
-      "tag": "v6.0.0-dev.456",
-      "commit": "375462e2f11abf3a46b817477e2666685a10c006",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.456/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-14T16:48:53Z",
-      "releaseNotes": "\n`fix` (`abstractions`): **Make `LanguageExtensions` unknown-language tracking thread-safe** ([#1426](https://github.com/ShokoAnime/ShokoServer/pull/1426)):\n\n`GetTitleLanguage()` mutated an unsynchronized static `HashSet<string>`\nto dedupe unknown-language reports. Concurrent callers (e.g. API\nrequests building File DTOs) corrupted it and crashed with\n`InvalidOperationException`.\n\nReplaced the `HashSet` with a `ConcurrentDictionary` used as a set, so\nno external synchronization is needed at any call site.\n"
     }
   ]
 }
