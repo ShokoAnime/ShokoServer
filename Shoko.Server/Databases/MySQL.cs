@@ -1339,7 +1339,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(193,  5, "DROP TABLE `Scan`;"),
         new(193,  6, "DROP TABLE `Playlist`;"),
         new(193,  7, "ALTER TABLE `StoredReleaseInfo` ADD COLUMN `IsDeprecated` INT NOT NULL DEFAULT 0;"),
-        new(193,  8, DatabaseFixes.SeparateAnidbDeprecatedFromCorrupted),
+        new(193,  8, "UPDATE `StoredReleaseInfo` SET `IsDeprecated` = 1, `IsCorrupted` = 0 WHERE `IsCorrupted` <> 0 AND (`ProviderName` = 'AniDB' OR `ProviderName` LIKE 'AniDB+%' OR `ProviderName` LIKE '%+AniDB');"),
     ];
 
     #endregion

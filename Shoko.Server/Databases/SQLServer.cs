@@ -1219,7 +1219,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(191,  3, "DROP TABLE Scan;"),
         new(191,  4, "DROP TABLE Playlist;"),
         new(191,  5, "ALTER TABLE StoredReleaseInfo ADD IsDeprecated INT NOT NULL CONSTRAINT DF_StoredReleaseInfo_IsDeprecated DEFAULT 0;"),
-        new(191,  6, DatabaseFixes.SeparateAnidbDeprecatedFromCorrupted),
+        new(191,  6, "UPDATE StoredReleaseInfo SET IsDeprecated = 1, IsCorrupted = 0 WHERE IsCorrupted <> 0 AND (ProviderName = 'AniDB' OR ProviderName LIKE 'AniDB+%' OR ProviderName LIKE '%+AniDB');"),
     ];
 
     #endregion
