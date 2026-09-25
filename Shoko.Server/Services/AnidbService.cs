@@ -544,6 +544,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             // exception (if one exists) or return null.
             if (response is null)
             {
+                var deferredToRemote = false;
                 if (job.DeferToRemoteIfUnsuccessful)
                 {
                     _logger.LogDebug("Deferring to remote update for anime with ID {AnimeID}", job.AnimeID);
@@ -562,8 +563,22 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                         // Don't fire immediately if we recently updated the record.
                         startTime: animeRecentlyUpdated is not null ? DateTime.Now.AddHours(animeRecentlyUpdated.Value) : null
                     ).ConfigureAwait(false);
+                    deferredToRemote = true;
                 }
-                if (ex is null)
+
+                // A ban is not a real failure once we've deferred: GetRemoteAniDBAnimeJob is
+                // marked [AniDBHttpRateLimited], so the queue itself holds it back until the ban
+                // lifts -- it owns the retry now. Rethrowing `ex` here (as this used to
+                // unconditionally do) converts to a RequeueJobException in BaseJob.Process and
+                // puts THIS job (GetAniDBAnimeJob) back on the queue too, but unlike
+                // GetRemoteAniDBAnimeJob, GetAniDBAnimeJob has no rate-limit gate -- it can also
+                // run pure cache-only (UseRemote=false), so it can't be blanket-excluded during a
+                // ban like GetRemoteAniDBAnimeJob is. With nothing to hold the requeued instance
+                // back, it re-ran instantly, hit the same ban again, and requeued again --
+                // forever, logging the whole way (the actual cause of a 116GB syslog in ~11
+                // hours). Only suppressed for AniDBBannedException specifically: other exceptions
+                // (e.g. a genuine parse error) should still surface/fail normally.
+                if (ex is null || (deferredToRemote && ex is AniDBBannedException))
                 {
                     // Anime data is fresh but a new file may have just been linked; refresh stats
                     // so missing-episode counts stay accurate without waiting for the next HTTP fetch.
