@@ -80,7 +80,10 @@ public class ReleaseInfo : IReleaseInfo
     [Required]
     public bool IsCorrupted { get; init; }
 
-    /// <summary>Indicates that a newer release supersedes this file.</summary>
+    /// <summary>
+    /// Indicates that a newer release supersedes this file.
+    /// </summary>
+    [Required]
     public bool IsDeprecated { get; init; }
 
     /// <summary>

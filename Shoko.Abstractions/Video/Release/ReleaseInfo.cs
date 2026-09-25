@@ -75,7 +75,9 @@ public class ReleaseInfo
     /// </summary>
     public bool IsCorrupted { get; set; }
 
-    /// <summary>Indicates that a newer release supersedes this file.</summary>
+    /// <summary>
+    /// Indicates that a newer release supersedes this file.
+    /// </summary>
     public bool IsDeprecated { get; set; }
 
     /// <summary>
