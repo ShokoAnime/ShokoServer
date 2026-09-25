@@ -1338,6 +1338,8 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(193,  4, "DROP TABLE `ScanFile`;"),
         new(193,  5, "DROP TABLE `Scan`;"),
         new(193,  6, "DROP TABLE `Playlist`;"),
+        new(193,  7, "ALTER TABLE `StoredReleaseInfo` ADD COLUMN `IsDeprecated` INT NOT NULL DEFAULT 0;"),
+        new(193,  8, DatabaseFixes.SeparateAnidbDeprecatedFromCorrupted),
     ];
 
     #endregion

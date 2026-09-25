@@ -1218,6 +1218,8 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(191,  2, "DROP TABLE ScanFile;"),
         new(191,  3, "DROP TABLE Scan;"),
         new(191,  4, "DROP TABLE Playlist;"),
+        new(191,  5, "ALTER TABLE StoredReleaseInfo ADD IsDeprecated INT NOT NULL CONSTRAINT DF_StoredReleaseInfo_IsDeprecated DEFAULT 0;"),
+        new(191,  6, DatabaseFixes.SeparateAnidbDeprecatedFromCorrupted),
     ];
 
     #endregion

@@ -114,6 +114,24 @@ public class RequestGetFileTests
         Assert.True(result.Response.Deprecated);
     }
 
+    [Theory]
+    [InlineData("1", "high", true, GetFile_Quality.High)]
+    [InlineData("0", "corrupted", false, GetFile_Quality.Corrupted)]
+    [InlineData("1", "corrupted", true, GetFile_Quality.Corrupted)]
+    public void ParseResponse_KeepsDeprecationAndQualityIndependent(string deprecated, string quality, bool expectedDeprecated, GetFile_Quality expectedQuality)
+    {
+        var response = new UDPResponse<string>
+        {
+            Code = UDPReturnCode.FILE,
+            Response = $"1|2|3|4||{deprecated}|0|{quality}|tv|jpn|eng|desc|0|file.mkv|G|GRP"
+        };
+
+        var result = _request.ParseResponse(response);
+
+        Assert.Equal(expectedDeprecated, result.Response.Deprecated);
+        Assert.Equal(expectedQuality, result.Response.Quality);
+    }
+
     [Fact]
     public void ParseResponse_ParsesVersionFlags()
     {

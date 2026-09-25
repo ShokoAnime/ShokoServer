@@ -1509,6 +1509,27 @@ public class DatabaseFixes
         File.WriteAllBytes(filePath, data ?? []);
     }
 
+    public static void SeparateAnidbDeprecatedFromCorrupted()
+    {
+        var releases = RepoFactory.StoredReleaseInfo.GetAll()
+            .Where(release => release.ProviderName == "AniDB" && release.IsCorrupted)
+            .ToList();
+        if (releases.Count == 0)
+            return;
+
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenSession();
+        using var transaction = session.BeginTransaction();
+        session.CreateSQLQuery("UPDATE StoredReleaseInfo SET IsDeprecated = 1, IsCorrupted = 0 WHERE ProviderName = 'AniDB' AND IsCorrupted <> 0")
+            .ExecuteUpdate();
+        transaction.Commit();
+
+        foreach (var release in releases)
+        {
+            release.IsDeprecated = true;
+            release.IsCorrupted = false;
+        }
+    }
+
     public static void SetDefaultRenamer()
     {
         var presets = RepoFactory.StoredRelocationPreset.GetAll();

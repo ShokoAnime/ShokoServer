@@ -31,6 +31,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         IsCreditless = releaseInfo.IsCreditless;
         IsChaptered = releaseInfo.IsChaptered;
         IsCorrupted = releaseInfo.IsCorrupted;
+        IsDeprecated = releaseInfo.IsDeprecated;
         Source = releaseInfo.Source;
         if (releaseInfo.Group is { } group)
         {
@@ -92,6 +93,8 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     public bool? IsChaptered { get; set; }
 
     public bool IsCorrupted { get; set; }
+
+    public bool IsDeprecated { get; set; }
 
     public ReleaseSource Source { get; set; }
 
@@ -269,6 +272,7 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
             HashCode.Combine(
                 IsCensored,
                 IsCorrupted,
+                IsDeprecated,
                 IsChaptered,
                 Source,
                 FileSize

@@ -46,6 +46,9 @@ public class ReleaseInfoSignalRModel : IReleaseInfo
     public bool IsCorrupted { get; init; }
 
     /// <inheritdoc />
+    public bool IsDeprecated { get; init; }
+
+    /// <inheritdoc />
     [JsonConverter(typeof(StringEnumConverter))]
     public ReleaseSource Source { get; init; }
 
@@ -97,6 +100,7 @@ public class ReleaseInfoSignalRModel : IReleaseInfo
         IsCreditless = releaseInfo.IsCreditless;
         IsChaptered = releaseInfo.IsChaptered;
         IsCorrupted = releaseInfo.IsCorrupted;
+        IsDeprecated = releaseInfo.IsDeprecated;
         Source = releaseInfo.Source;
         Group = releaseInfo.Group is not null ? new(releaseInfo.Group) : null;
         Hashes = releaseInfo.Hashes?.Select(h => new HashDigest { Type = h.Type, Value = h.Value, Metadata = h.Metadata }).ToList();
