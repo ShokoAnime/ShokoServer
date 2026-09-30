@@ -37,11 +37,10 @@ public class SeriesSuggestion
     public SuggestionKind Kind { get; set; }
 
     /// <summary>
-    /// AniDB, TMDB, AniList.
+    /// The source that made the suggestion.
     /// </summary>
     [Required]
-    [JsonConverter(typeof(StringEnumConverter))]
-    public DataSource Source { get; set; }
+    public MetadataSource Source { get; set; }
 
     /// <summary>
     /// The source's own ordering, best first, starting at <c>0</c>. Null when
@@ -59,15 +58,22 @@ public class SeriesSuggestion
     /// </summary>
     public int? Votes { get; set; }
 
-    public SeriesSuggestion(ISuggestedMetadata suggestion, DataEntityType entityType = DataEntityType.Show)
+    /// <summary>
+    /// The source's net score for the suggestion, where it keeps one. May be
+    /// negative.
+    /// </summary>
+    public int? Score { get; set; }
+
+    public SeriesSuggestion(ISuggestedMetadata suggestion)
     {
-        IDs = SuggestionIDs.FromSource(suggestion.Source, suggestion.BaseID, entityType);
-        SuggestedIDs = SuggestionIDs.FromSource(suggestion.Source, suggestion.SuggestedID, entityType);
+        IDs = SuggestionIDs.FromEntry(suggestion.BaseID);
+        SuggestedIDs = SuggestionIDs.FromEntry(suggestion.SuggestedID);
         Kind = suggestion.Kind;
         Source = suggestion.Source;
         Order = suggestion.Order;
         ApprovalRating = suggestion.ApprovalRating;
         Votes = suggestion.Votes;
+        Score = suggestion.Score;
     }
 
     /// <summary>
@@ -98,45 +104,47 @@ public class SeriesSuggestion
         public int? TmdbMovie { get; set; }
 
         /// <summary>
-        /// The ID of the AniList anime.
+        /// The source's own ID, for a source other than AniDB and TMDB.
         /// </summary>
-        public int? AniList { get; set; }
+        public string? Provider { get; set; }
 
         /// <summary>
         /// Builds the IDs for one end of a suggestion, tracing the provider's
         /// own ID back to a local series where a cross-reference exists.
         /// </summary>
-        /// <param name="source">The provider the suggestion came from.</param>
-        /// <param name="id">The provider's ID for this end.</param>
-        /// <param name="entityType">
-        /// For TMDB, whether the ID is a show or a movie. Ignored for the
-        /// other sources, which only deal in anime.
+        /// <param name="entry">
+        /// The entry at this end. AniDB and TMDB use numbers, so for them one
+        /// that is not a number yields no IDs.
         /// </param>
         /// <returns>The IDs.</returns>
-        public static SuggestionIDs FromSource(DataSource source, int id, DataEntityType entityType = DataEntityType.Show)
+        public static SuggestionIDs FromEntry(MetadataGuid entry)
         {
             var ids = new SuggestionIDs();
+            var source = entry.Source;
             switch (source)
             {
-                case DataSource.AniDB:
-                    ids.AniDB = id;
+                case var _ when (source == MetadataSource.AniDB || source == MetadataSource.TMDB) && !entry.TryGetNumericID(out int _):
+                    return ids;
+
+                case var _ when source == MetadataSource.AniDB:
+                    ids.AniDB = entry.GetNumericID<int>();
                     break;
 
-                case DataSource.TMDB when entityType is DataEntityType.Movie:
-                    ids.TmdbMovie = id;
-                    ids.AniDB = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(id)
+                case var _ when source == MetadataSource.TMDB && entry.EntityType == MetadataEntityType.Movie:
+                    ids.TmdbMovie = entry.GetNumericID<int>();
+                    ids.AniDB = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(ids.TmdbMovie.Value)
                         .FirstOrDefault()?.AnidbAnimeID;
                     break;
 
-                case DataSource.TMDB:
-                    ids.TmdbShow = id;
-                    ids.AniDB = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(id)
+                case var _ when source == MetadataSource.TMDB:
+                    ids.TmdbShow = entry.GetNumericID<int>();
+                    ids.AniDB = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(ids.TmdbShow.Value)
                         .FirstOrDefault()?.AnidbAnimeID;
                     break;
 
-                case DataSource.AniList:
-                    ids.AniList = id;
-                    ids.AniDB = RepoFactory.CrossRef_AniDB_Anilist_Anime.GetByAnilistAnimeID(id)
+                default:
+                    ids.Provider = entry.ID;
+                    ids.AniDB = RepoFactory.CrossRef_AniDB_Metadata_Series.GetByProviderID(source, entry.ID)
                         .FirstOrDefault()?.AnidbAnimeID;
                     break;
             }

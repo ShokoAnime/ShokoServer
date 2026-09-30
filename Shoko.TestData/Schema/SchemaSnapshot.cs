@@ -10,8 +10,9 @@ namespace Shoko.TestData.Schema;
 /// <param name="Name">Column name, as declared.</param>
 /// <param name="Family">Backend-neutral type family; see <see cref="SchemaSnapshot.FamilyOf"/>.</param>
 /// <param name="Size">
-/// <c>"500"</c>, <c>"6,2"</c>, <c>"max"</c>, or <see langword="null"/> where the backend declares no
-/// size — SQLite uses type affinity, so most of its columns report <see langword="null"/>.
+/// <c>"500"</c>, <c>"6,2"</c>, <c>"max"</c>, <c>"double"</c> or <c>"single"</c> for a floating-point
+/// column, or <see langword="null"/> where the backend declares no size (SQLite uses type affinity,
+/// so most of its columns report <see langword="null"/>).
 /// </param>
 /// <param name="Nullable">Whether the column accepts nulls.</param>
 /// <param name="PrimaryKey">Whether the column takes part in the primary key.</param>
@@ -130,6 +131,18 @@ public sealed class SchemaSnapshot
 
     private static string? SizeOf(string type, long? length, int? precision, int? scale)
     {
+        // A floating-point column has no chosen width, only a storage size: MySQL reports 22 digits
+        // for `DOUBLE` and SQL Server 53 bits for `FLOAT`, and both are the same 8-byte value.
+        switch (type.Trim().ToLowerInvariant())
+        {
+            case "double":
+                return "double";
+            case "real":
+                return "single";
+            case "float":
+                return precision is > 24 ? "double" : "single";
+        }
+
         if (FamilyOf(type) is "decimal")
             return precision is null ? null : $"{precision},{scale ?? 0}";
 

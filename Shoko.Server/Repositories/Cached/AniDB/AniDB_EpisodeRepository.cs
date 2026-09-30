@@ -1,15 +1,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Episode, int>(databaseFactory)
 {
+    /// <inheritdoc />
+    /// <remarks>
+    ///   The episode's texts read its row, and its anime's read its episodes.
+    /// </remarks>
+    protected override IEnumerable<MetadataGuid> TextEntriesOf(AniDB_Episode entity, bool removed)
+        => [((IMetadata)entity).ID, MetadataTextManager.AnidbAnimeID(entity.AnimeID)];
+
     private PocoIndex<int, AniDB_Episode, int>? _episodesIDs;
 
     private PocoIndex<int, AniDB_Episode, int>? _animeIDs;

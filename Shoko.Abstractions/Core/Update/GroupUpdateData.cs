@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Shoko;
 
@@ -6,7 +7,7 @@ namespace Shoko.Abstractions.Core.Update;
 /// <summary>
 ///   Represents an update to a group. Leave a property at its default value
 ///   to leave it unchanged. For flagged properties (<see cref="HasName"/>,
-///   <see cref="HasDescription"/>, <see cref="HasParentGroup"/>,
+///   <see cref="HasOverview"/>, <see cref="HasParentGroup"/>,
 ///   <see cref="HasMainSeries"/>), set the value to explicitly indicate
 ///   intent — including setting the corresponding property to <c>null</c> to
 ///   clear or reset it.
@@ -46,24 +47,36 @@ public sealed class GroupUpdateData
         set { HasName = true; _name = value; }
     }
 
-    private string? _description;
+    private string? _overview;
 
     /// <summary>
-    ///   Indicates that <see cref="Description"/> has been explicitly set
-    ///   (including to <c>null</c> to reset to automatic description).
+    ///   Indicates that <see cref="Overview"/> has been explicitly set
+    ///   (including to <c>null</c> to reset to the automatic overview).
     /// </summary>
-    public bool HasDescription { get; private set; }
+    public bool HasOverview { get; private set; }
 
     /// <summary>
-    ///   The group's new description. Set to <c>null</c> to reset to automatic
-    ///   description based on the main series. Only applied when
-    ///   <see cref="HasDescription"/> is <c>true</c>.
+    ///   The group's new overview. Set to <c>null</c> to reset to the automatic
+    ///   overview based on the main series. Only applied when
+    ///   <see cref="HasOverview"/> is <c>true</c>.
     /// </summary>
-    public string? Description
+    public string? Overview
     {
-        get => _description;
-        set { HasDescription = true; _description = value; }
+        get => _overview;
+        set { HasOverview = true; _overview = value; }
     }
+
+    /// <summary>
+    ///   Indicates that <see cref="Overview"/> has been explicitly set.
+    /// </summary>
+    [Obsolete("Use HasOverview instead.")]
+    public bool HasDescription { get => HasOverview; }
+
+    /// <summary>
+    ///   The group's new description.
+    /// </summary>
+    [Obsolete("Use Overview instead.")]
+    public string? Description { get => Overview; set => Overview = value; }
 
     private IShokoGroup? _parentGroup;
 

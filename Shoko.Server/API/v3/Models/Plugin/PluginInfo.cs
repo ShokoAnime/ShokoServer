@@ -138,17 +138,31 @@ public class PluginInfo(AbstractPluginInfo pluginInfo)
     public bool IsActive { get; init; } = pluginInfo.IsActive;
 
     /// <summary>
-    ///   Indicates the plugin requires a restart for changes to take effect.
+    ///   Indicates a restart would change whether the plugin is loaded: it is
+    ///   enabled, not loaded and can load, or it is loaded but disabled or no
+    ///   longer able to load, such as when a plugin it requires was disabled.
+    ///   An enabled plugin that is not loaded and cannot load is not waiting
+    ///   on a restart; see <see cref="CanLoad"/> and
+    ///   <see cref="CannotLoadReason"/> instead.
     /// </summary>
     [Required]
     public bool RestartPending { get; init; } = pluginInfo.RestartPending;
 
     /// <summary>
     ///   Indicates the plugin can be loaded by the current runtime. Missing
-    ///   assemblies or incompatible ABI versions will prevent loading.
+    ///   assemblies, incompatible ABI versions or unsatisfied plugin
+    ///   dependencies will prevent loading. Follows the dependencies as they
+    ///   are enabled, disabled, installed and uninstalled, so a loaded plugin
+    ///   can show it will not load after a restart.
     /// </summary>
     [Required]
     public bool CanLoad { get; init; } = pluginInfo.CanLoad;
+
+    /// <summary>
+    ///   Why the plugin cannot be loaded, when <see cref="CanLoad"/> is
+    ///   <c>false</c> and the reason is known. Otherwise <c>null</c>.
+    /// </summary>
+    public string? CannotLoadReason { get; init; } = pluginInfo.CannotLoadReason;
 
     /// <summary>
     ///   Indicates if the plugin can be uninstalled by the user.

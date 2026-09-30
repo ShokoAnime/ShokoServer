@@ -6,13 +6,14 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories;
 using TMDbLib.Objects.General;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Company : IStudio
+public class TMDB_Company : IStudio, IInlineTextSource
 {
     #region Properties
 
@@ -90,19 +91,23 @@ public class TMDB_Company : IStudio
 
     #endregion
 
+    #region IInlineTextSource Implementation
+
+    ITitle? IInlineTextSource.InlineTitle => InlineText.Title(MetadataSource.TMDB, Name, TitleLanguage.Unknown, "unk");
+
+    IText? IInlineTextSource.InlineOverview => null;
+
+    #endregion
+
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Company;
-
-    int IMetadata<int>.ID => TmdbCompanyID;
-
-    DataSource IMetadata.Source => DataSource.TMDB;
+    MetadataGuid IMetadata.ID => new(MetadataSource.TMDB, MetadataEntityType.Studio, TmdbCompanyID.ToString());
 
     #endregion
 
     #region IWithImages Implementation
 
-    public IImageCrossReference? DefaultPrimaryImageCrossReference => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = DataSource.TMDB, ImageType = ImageEntityType.Primary }).FirstOrDefault();
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = MetadataSource.TMDB, ImageType = ImageEntityType.Primary }).FirstOrDefault();
 
     #endregion
 

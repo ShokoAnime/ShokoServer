@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Utilities;
+using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Services.FileSystemWatcher;
@@ -248,6 +249,9 @@ public class RecoveringFileSystemWatcher : IDisposable
         if (_watcher is { EnableRaisingEvents: true } && _recoveringTimer != null && _consumerTask is { IsCompleted: false })
             return;
 
+        // The watcher's thread, the timer and the consumer outlive whatever started them, which
+        // may be a request adding a managed folder, so none of them takes that flow along.
+        using var detached = DetachedFlow.Suppress();
         _watcher ??= InitWatcher();
         _recoveringTimer ??= new Timer(RecoveringTimerElapsed);
         _recoveringTimer.Change(_directoryRetryInterval, Timeout.InfiniteTimeSpan);

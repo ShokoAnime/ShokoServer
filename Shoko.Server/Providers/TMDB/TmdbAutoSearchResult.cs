@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.Models.AniDB;
 using TMDbLib.Objects.Search;
@@ -17,6 +18,36 @@ public class TmdbAutoSearchResult : ITmdbAutoSearchResult
 
     /// <inheritdoc/>
     public MatchRating MatchRating { get; set; }
+
+    /// <summary>
+    ///   The candidate as the matching engine judged it, fetched whole, or
+    ///   <see langword="null"/> when it was not fetched.
+    /// </summary>
+    public MetadataSearchResult? Candidate { get; init; }
+
+    /// <summary>
+    ///   Why the auto-search turned the candidate down, or
+    ///   <see langword="null"/> when it took it.
+    /// </summary>
+    public MetadataAutoLinkRejection? Rejection { get; set; }
+
+    /// <summary>
+    ///   Where the candidate came from: the search, a link listed for
+    ///   context, the anime's AniDB resources or its links on other sources.
+    /// </summary>
+    public MetadataAutoLinkOrigin Origin { get; init; } = MetadataAutoLinkOrigin.Search;
+
+    /// <summary>
+    ///   The rating of the stored link a candidate listed for context came
+    ///   from, or <see langword="null"/> for a search result.
+    /// </summary>
+    public MatchRating? LinkMatchRating { get; init; }
+
+    /// <summary>
+    ///   The AniDB anime whose link a prequel's candidate is, or
+    ///   <see langword="null"/> for any other.
+    /// </summary>
+    public int? PrequelAnidbAnimeID { get; init; }
 
     /// <inheritdoc/>
     [MemberNotNullWhen(true, nameof(AnidbEpisode))]
@@ -102,5 +133,10 @@ public class TmdbAutoSearchResult : ITmdbAutoSearchResult
         _tmdbMovieResult = result._tmdbMovieResult;
         _tmdbShowResult = result._tmdbShowResult;
         MatchRating = result.MatchRating;
+        Candidate = result.Candidate;
+        Rejection = result.Rejection;
+        Origin = result.Origin;
+        LinkMatchRating = result.LinkMatchRating;
+        PrequelAnidbAnimeID = result.PrequelAnidbAnimeID;
     }
 }

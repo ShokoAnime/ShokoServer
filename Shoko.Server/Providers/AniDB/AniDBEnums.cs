@@ -321,23 +321,170 @@ public enum Group_CompletionStatus
     SpecialsOnly = 6,
 }
 
+/// <summary>
+///   The type of an AniDB resource, the <c>type</c> attribute of a
+///   <c>resource</c> element. AniDB adds types without notice, so a value
+///   missing here is still kept and shown as it came.
+/// </summary>
 public enum ResourceLinkType
 {
+    /// <summary>
+    ///   Anime News Network encyclopedia ID.
+    /// </summary>
     ANN = 1,
-    MAL = 2, // MAL ID, there may be more than one
-    AnimeNFO = 3, // Dead site.
-    Site_JP = 4, // Official Japanese Site
-    Site_EN = 5, // Official English Site
-    Wiki_EN = 6, // wikipedia.com
-    Wiki_JP = 7, // wikipedia.jp
-    Syoboi = 8, // Airing Schedule (Japanese site)
+
+    /// <summary>
+    ///   MyAnimeList ID. An anime may have several.
+    /// </summary>
+    MAL = 2,
+
+    /// <summary>
+    ///   AnimeNfo ID and slug. The site is gone.
+    /// </summary>
+    AnimeNfo = 3,
+
+    /// <summary>
+    ///   Official Japanese site, as a URL.
+    /// </summary>
+    Site_JP = 4,
+
+    /// <summary>
+    ///   Official English site, as a URL.
+    /// </summary>
+    Site_EN = 5,
+
+    /// <summary>
+    ///   English Wikipedia page title.
+    /// </summary>
+    Wiki_EN = 6,
+
+    /// <summary>
+    ///   Japanese Wikipedia page title.
+    /// </summary>
+    Wiki_JP = 7,
+
+    /// <summary>
+    ///   Syoboi Calendar title ID.
+    /// </summary>
+    Syoboi = 8,
+
+    /// <summary>
+    ///   allcinema ID.
+    /// </summary>
     ALLCinema = 9,
+
+    /// <summary>
+    ///   anison.info program ID.
+    /// </summary>
     Anison = 10,
-    DotLain = 11, // .lain (JP VA and anime site)
-    VNDB = 14, // The Visual Novel Database, for related VN game, if any.
-    Crunchyroll = 28, // Series page, not episodes
-    Amazon = 32, // amazon.com
-    Funimation = 34, // See Crunchyroll comment ☝
-    Bangumi = 38, // Japanese site
-    HiDive = 42, // Streaming service, series page.
+
+    /// <summary>
+    ///   .lain path, e.g. <c>mediadb/media/270</c>.
+    /// </summary>
+    DotLain = 11,
+
+    /// <summary>
+    ///   VNDB ID and its prefix, for a related visual novel.
+    /// </summary>
+    VNDB = 14,
+
+    /// <summary>
+    ///   Marumegane path, e.g. <c>2002/chobits</c>.
+    /// </summary>
+    Marumegane = 15,
+
+    /// <summary>
+    ///   Korean Wikipedia page title.
+    /// </summary>
+    Wiki_KO = 19,
+
+    /// <summary>
+    ///   Chinese Wikipedia page title.
+    /// </summary>
+    Wiki_ZH = 20,
+
+    /// <summary>
+    ///   Facebook page path.
+    /// </summary>
+    Facebook = 22,
+
+    /// <summary>
+    ///   X (Twitter) account name.
+    /// </summary>
+    Twitter = 23,
+
+    /// <summary>
+    ///   YouTube path, e.g. <c>watch?v=…</c>.
+    /// </summary>
+    YouTube = 26,
+
+    /// <summary>
+    ///   Crunchyroll ID: a series on an anime, an episode on an episode.
+    /// </summary>
+    Crunchyroll = 28,
+
+    /// <summary>
+    ///   Amazon product ID (ASIN).
+    /// </summary>
+    Amazon = 32,
+
+    /// <summary>
+    ///   Baidu Baike item path.
+    /// </summary>
+    BaiduBaike = 33,
+
+    /// <summary>
+    ///   Official stream, as a URL.
+    /// </summary>
+    OfficialStream = 34,
+
+    /// <summary>
+    ///   Bangumi subject ID.
+    /// </summary>
+    Bangumi = 38,
+
+    /// <summary>
+    ///   Douban subject ID.
+    /// </summary>
+    Douban = 39,
+
+    /// <summary>
+    ///   Netflix title ID.
+    /// </summary>
+    Netflix = 41,
+
+    /// <summary>
+    ///   HIDIVE path, e.g. <c>tv/wizard-barristers</c>.
+    /// </summary>
+    HiDive = 42,
+
+    /// <summary>
+    ///   IMDb title ID.
+    /// </summary>
+    IMDb = 43,
+
+    /// <summary>
+    ///   TMDB ID and its kind, <c>tv</c> or <c>movie</c>.
+    /// </summary>
+    TMDB = 44,
+
+    /// <summary>
+    ///   Funimation show slug, e.g. <c>space-dandy</c>. The site is gone.
+    /// </summary>
+    Funimation = 45,
+
+    /// <summary>
+    ///   Tencent Video detail path.
+    /// </summary>
+    TencentVideo = 46,
+
+    /// <summary>
+    ///   Bilibili path, e.g. <c>bangumi/media/md3756</c>.
+    /// </summary>
+    Bilibili = 47,
+
+    /// <summary>
+    ///   Prime Video detail ID.
+    /// </summary>
+    PrimeVideo = 48,
 }

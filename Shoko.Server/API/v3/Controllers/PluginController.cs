@@ -52,6 +52,10 @@ public class PluginController(
     // Features are fetched on every request, so each dropped feature is only reported once per run.
     private static readonly ConcurrentDictionary<(Guid PluginID, string? Name, string Reason), byte> _reportedInvalidFeatures = new();
 
+    private const string PurgeDataForbidden =
+        "Removing a plugin's data needs an admin's API key, which the server does not take while it is being set up or after its start-up failed. " +
+        "Uninstall without purgeData, or remove the data once the server has started.";
+
     /// <summary>
     ///   Gets information about the server/plugin compatibility.
     /// </summary>
@@ -79,11 +83,15 @@ public class PluginController(
         var enumerable = (IEnumerable<AbstractPluginInfo>)pluginManager.GetPluginInfos();
         if (!allVersions)
             enumerable = enumerable.DistinctBy(pluginInfo => pluginInfo.ID);
-        if (!string.IsNullOrEmpty(query))
-            enumerable = enumerable
-                .Search(query, p => [p.Name])
-                .Select(pluginInfo => pluginInfo.Result)
-                .OrderBy(pluginInfo => pluginInfo.LoadOrder);
+        // A search puts a name hit before a tag or author hit, and those
+        // before a word found only in a description, then keeps load order.
+        enumerable = string.IsNullOrEmpty(query)
+            ? enumerable.OrderBy(pluginInfo => pluginInfo.LoadOrder)
+            : enumerable
+                .Search(query, [p => [p.Name], p => [.. p.Tags, p.Authors], p => [p.Description]])
+                .OrderBy(result => result.Tier)
+                .ThenBy(result => result.Result.LoadOrder)
+                .Select(result => result.Result);
         return enumerable
             .Where(pluginInfo =>
             {
@@ -113,7 +121,6 @@ public class PluginController(
                 }
                 return true;
             })
-            .OrderBy(pluginInfo => pluginInfo.LoadOrder)
             .SelectMany(pluginInfo => pluginInfo.GetPages())
             .Select(page => new PluginPage(page, true))
             .ToList();
@@ -183,7 +190,9 @@ public class PluginController(
     ///   Gets a list of all registered plugins.
     /// </summary>
     /// <param name="query">
-    ///   An optional query to filter plugins by name.
+    ///   An optional query to filter plugins by name, tags, authors or
+    ///   description. The results are then ranked by the best hit, a name
+    ///   hit first, instead of sorted by name.
     /// </param>
     /// <param name="active">
     ///   Whether to include all active plugins, include only active plugins,
@@ -200,7 +209,7 @@ public class PluginController(
     /// <param name="restartPending">
     ///   Whether to include all plugins that require a restart, include only
     ///   plugins that require a restart, or exclude all plugins that require a
-    ///   restart.
+    ///   restart. An enabled plugin that cannot load never requires one.
     /// </param>
     /// <param name="showCorePlugin">
     ///   Whether to include the core plugin in the results.
@@ -229,9 +238,9 @@ public class PluginController(
             enumerable = enumerable.DistinctBy(pluginInfo => pluginInfo.ID);
         if (!string.IsNullOrEmpty(query))
             enumerable = enumerable
-                .Search(query, p => [p.Name])
+                .Search(query, [p => [p.Name], p => [.. p.Tags, p.Authors], p => [p.Description]])
                 .Select(pluginInfo => pluginInfo.Result);
-        return enumerable
+        var plugins = enumerable
             .Where(pluginInfo =>
             {
                 if (!showCorePlugin && pluginInfo.ID == CorePlugin.StaticID)
@@ -263,9 +272,10 @@ public class PluginController(
                 }
                 return true;
             })
-            .Select(pluginInfo => new PluginInfo(pluginInfo))
-            .OrderBy(pluginInfo => pluginInfo.Name)
-            .ToList();
+            .Select(pluginInfo => new PluginInfo(pluginInfo));
+
+        // A search keeps its ranking, so a name hit comes before a word found in a description.
+        return (string.IsNullOrEmpty(query) ? plugins.OrderBy(pluginInfo => pluginInfo.Name) : plugins).ToList();
     }
 
     /// <summary>
@@ -519,6 +529,12 @@ public class PluginController(
     /// <param name="purgeConfiguration">
     ///   Whether to purge the plugin configuration.
     /// </param>
+    /// <param name="purgeData">
+    ///   Whether to also remove the plugin's databases and cache along with its
+    ///   configuration, on the next start. Off by default. Needs a real admin:
+    ///   refused with <c>403</c> during setup or after a failed start-up, when
+    ///   every caller is let in without an API key.
+    /// </param>
     /// <param name="force">
     ///   Whether to also uninstall any dependent plugins.
     /// </param>
@@ -529,9 +545,13 @@ public class PluginController(
     public ActionResult UninstallPluginByID(
         [FromRoute] Guid pluginID,
         [FromQuery] bool purgeConfiguration = false,
+        [FromQuery] bool purgeData = false,
         [FromQuery] bool force = false
     )
     {
+        if (purgeData && !HttpContext.User.IsInRole("admin"))
+            return Forbid(PurgeDataForbidden);
+
         if (pluginManager.GetPluginInfo(pluginID) is not { } pluginInfo)
             return NotFound("Plugin not found");
 
@@ -549,10 +569,10 @@ public class PluginController(
         if (force)
         {
             foreach (var dependent in cascade)
-                pluginManager.UninstallPlugin(dependent, purgeConfiguration);
+                pluginManager.UninstallPlugin(dependent, purgeConfiguration, purgeData);
         }
 
-        pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration);
+        pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration, purgeData);
 
         return NoContent();
     }
@@ -741,6 +761,12 @@ public class PluginController(
     /// <param name="purgeConfiguration">
     ///   Whether to purge the plugin configuration.
     /// </param>
+    /// <param name="purgeData">
+    ///   Whether to also remove the plugin's databases and cache along with its
+    ///   configuration, on the next start. Off by default. Needs a real admin:
+    ///   refused with <c>403</c> during setup or after a failed start-up, when
+    ///   every caller is let in without an API key.
+    /// </param>
     /// <param name="force">
     ///   Whether to also uninstall any dependent plugins.
     /// </param>
@@ -752,9 +778,13 @@ public class PluginController(
         [FromRoute] Guid pluginID,
         [FromRoute] Version pluginVersion,
         [FromQuery] bool purgeConfiguration = false,
+        [FromQuery] bool purgeData = false,
         [FromQuery] bool force = false
     )
     {
+        if (purgeData && !HttpContext.User.IsInRole("admin"))
+            return Forbid(PurgeDataForbidden);
+
         if (pluginManager.GetPluginInfo(pluginID, pluginVersion) is not { } pluginInfo)
             return NotFound("Plugin not found");
 
@@ -771,10 +801,10 @@ public class PluginController(
         if (force)
         {
             foreach (var dependent in cascade)
-                pluginManager.UninstallPlugin(dependent, purgeConfiguration);
+                pluginManager.UninstallPlugin(dependent, purgeConfiguration, purgeData);
         }
 
-        pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration);
+        pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration, purgeData);
 
         return NoContent();
     }
@@ -805,6 +835,12 @@ public class PluginController(
     /// <param name="purgeConfiguration">
     ///   Whether to purge the plugin configuration.
     /// </param>
+    /// <param name="purgeData">
+    ///   Whether to also remove the plugin's databases and cache along with its
+    ///   configuration, on the next start. Off by default. Needs a real admin:
+    ///   refused with <c>403</c> during setup or after a failed start-up, when
+    ///   every caller is let in without an API key.
+    /// </param>
     /// <param name="force">
     ///   Whether to also uninstall any dependent plugins.
     /// </param>
@@ -815,9 +851,13 @@ public class PluginController(
     public ActionResult UninstallAllPluginsByID(
         [FromRoute] Guid pluginID,
         [FromQuery] bool purgeConfiguration = false,
+        [FromQuery] bool purgeData = false,
         [FromQuery] bool force = false
     )
     {
+        if (purgeData && !HttpContext.User.IsInRole("admin"))
+            return Forbid(PurgeDataForbidden);
+
         if (pluginManager.GetPluginInfos(pluginID) is not { Count: > 0 } pluginInfos)
             return NotFound("Plugin not found");
 
@@ -838,12 +878,12 @@ public class PluginController(
             if (force)
             {
                 foreach (var dependent in cascade)
-                    pluginManager.UninstallPlugin(dependent, purgeConfiguration);
+                    pluginManager.UninstallPlugin(dependent, purgeConfiguration, purgeData);
             }
         }
 
         foreach (var pluginInfo in pluginInfos)
-            pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration);
+            pluginManager.UninstallPlugin(pluginInfo, purgeConfiguration, purgeData);
 
         return NoContent();
     }

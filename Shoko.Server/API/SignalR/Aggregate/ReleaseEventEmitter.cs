@@ -9,6 +9,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class ReleaseEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "release";
+
     private readonly IVideoReleaseService _videoService;
 
     private readonly ILogger<ReleaseEventEmitter> _logger;

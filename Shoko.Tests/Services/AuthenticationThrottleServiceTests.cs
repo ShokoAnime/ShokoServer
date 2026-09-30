@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -6,6 +8,7 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.User;
+using Shoko.Abstractions.User.Events;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Xunit;
@@ -230,6 +233,115 @@ public class AuthenticationThrottleServiceTests
         var errors = ServerSettings.Validate(new ServerSettings(), null!, null!);
 
         Assert.False(errors.ContainsKey("Web.AuthenticationThrottle.InitialLockoutMinutes"));
+    }
+
+    [Fact]
+    public void FailedEvent_HttpContext_CarriesAddressPathAndThrottledUsername()
+    {
+        var (throttler, _, _) = CreateThrottler();
+        var events = Capture(throttler);
+        var context = CreateContext("10.0.0.9");
+        context.Request.Path = "/api/plugin/forgotten/reset";
+
+        Assert.Null(throttler.ThrottleAuthentication(context, "alice"));
+        throttler.RegisterFailure(context);
+
+        var e = Assert.Single(events);
+        Assert.Equal(System.Net.IPAddress.Parse("10.0.0.9"), e.RemoteAddress);
+        Assert.Equal("alice", e.Username);
+        Assert.Null(e.User);
+        Assert.Equal("/api/plugin/forgotten/reset", e.Path);
+        Assert.False(e.StartedLockout);
+        Assert.Null(e.LockedOutUntil);
+    }
+
+    [Fact]
+    public void FailedEvent_HttpContext_HasNoUsernameWithoutThrottleCheck()
+    {
+        var (throttler, _, _) = CreateThrottler();
+        var events = Capture(throttler);
+
+        throttler.RegisterFailure(CreateContext("10.0.0.10"));
+
+        Assert.Null(Assert.Single(events).Username);
+    }
+
+    [Fact]
+    public void FailedEvent_HubCallerContext_CarriesAddressAndPath()
+    {
+        var (throttler, _, _) = CreateThrottler();
+        var events = Capture(throttler);
+        var http = CreateContext("10.0.0.11");
+        http.Request.Path = "/signalr/aggregate";
+        var hub = new Mock<Microsoft.AspNetCore.SignalR.HubCallerContext>();
+        http.Features.Set<Microsoft.AspNetCore.Http.Connections.Features.IHttpContextFeature>(new HttpContextFeature { HttpContext = http });
+        hub.SetupGet(h => h.Features).Returns(http.Features);
+
+        throttler.RegisterFailure(hub.Object);
+
+        var e = Assert.Single(events);
+        Assert.Equal(System.Net.IPAddress.Parse("10.0.0.11"), e.RemoteAddress);
+        Assert.Equal("/signalr/aggregate", e.Path);
+        Assert.Null(e.Username);
+    }
+
+    [Fact]
+    public void FailedEvent_User_CarriesUserAndName()
+    {
+        var (throttler, _, _) = CreateThrottler();
+        var events = Capture(throttler);
+        var user = CreateUser("bob");
+
+        throttler.RegisterFailure(user);
+
+        var e = Assert.Single(events);
+        Assert.Same(user, e.User);
+        Assert.Equal("bob", e.Username);
+        Assert.Null(e.RemoteAddress);
+        Assert.Null(e.Path);
+    }
+
+    [Fact]
+    public void FailedEvent_SaysWhenItStartedTheLockout()
+    {
+        var (throttler, _, _) = CreateThrottler();
+        var events = Capture(throttler);
+        var user = CreateUser("carol");
+
+        for (var attempt = 0; attempt < throttler.MaxFailedAttempts + 1; attempt++)
+            throttler.RegisterFailure(user);
+
+        Assert.All(events.Take(throttler.MaxFailedAttempts - 1), e => Assert.False(e.StartedLockout));
+        var started = events[throttler.MaxFailedAttempts - 1];
+        Assert.True(started.StartedLockout);
+        Assert.NotNull(started.LockedOutUntil);
+        Assert.InRange(started.LockedOutUntil!.Value - started.OccurredAt, throttler.InitialLockout - TimeSpan.FromSeconds(1), throttler.InitialLockout);
+        var extended = events[^1];
+        Assert.False(extended.StartedLockout);
+        Assert.True(extended.LockedOutUntil > started.LockedOutUntil);
+    }
+
+    [Fact]
+    public void FailedEvent_NotRaisedForTheUsernameChargedByAuthenticateUser()
+    {
+        var (throttler, _, _) = CreateThrottler();
+        var events = Capture(throttler);
+
+        throttler.RegisterFailure("ghost");
+
+        Assert.Empty(events);
+    }
+
+    private sealed class HttpContextFeature : Microsoft.AspNetCore.Http.Connections.Features.IHttpContextFeature
+    {
+        public HttpContext? HttpContext { get; set; }
+    }
+
+    private static List<AuthenticationFailedEventArgs> Capture(AuthenticationThrottleService throttler)
+    {
+        var events = new List<AuthenticationFailedEventArgs>();
+        throttler.AuthenticationFailed += (_, e) => events.Add(e);
+        return events;
     }
 
     private static (AuthenticationThrottleService Throttler, ServerSettings Settings, Action Save) CreateThrottler()

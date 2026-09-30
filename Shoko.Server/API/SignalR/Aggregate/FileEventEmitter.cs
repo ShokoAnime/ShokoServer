@@ -9,6 +9,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class FileEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "file";
+
     private readonly IVideoService _videoService;
 
     private readonly ILogger<FileEventEmitter> _logger;

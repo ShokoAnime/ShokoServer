@@ -7,11 +7,13 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Network : ITmdbNetwork
+public class TMDB_Network : ITmdbNetwork, IInlineTextSource
 {
     #region Properties
 
@@ -49,24 +51,30 @@ public class TMDB_Network : ITmdbNetwork
 
     #endregion
 
+    #region IInlineTextSource Implementation
+
+    ITitle? IInlineTextSource.InlineTitle => InlineText.Title(MetadataSource.TMDB, Name, TitleLanguage.Unknown, "unk");
+
+    IText? IInlineTextSource.InlineOverview => null;
+
+    #endregion
+
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Network;
-
-    int IMetadata<int>.ID => TmdbNetworkID;
-
-    DataSource IMetadata.Source => DataSource.TMDB;
+    MetadataGuid IMetadata.ID => new(MetadataSource.TMDB, MetadataEntityType.Network, TmdbNetworkID.ToString());
 
     #endregion
 
     #region IWithImages Implementation
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference
-        => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = DataSource.TMDB, ImageType = ImageEntityType.Primary }).FirstOrDefault();
+        => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = MetadataSource.TMDB, ImageType = ImageEntityType.Primary }).FirstOrDefault();
 
     #endregion
 
     #region ITmdbNetwork Implementation
+
+    int ITmdbNetwork.TmdbID => TmdbNetworkID;
 
     IReadOnlyList<ITmdbShow> ITmdbNetwork.Shows => GetTmdbNetworkCrossReferences()
         .Select(x => x.GetTmdbShow())

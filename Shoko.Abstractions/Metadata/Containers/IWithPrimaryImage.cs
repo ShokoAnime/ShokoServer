@@ -13,8 +13,7 @@ public interface IWithPrimaryImage : IWithImages
     ///   The primary image of the entity. The preferred or first available
     ///   image of type <see cref="ImageEntityType.Primary"/> for the entity.
     /// </summary>
-    IImage? PrimaryImage
-        => GetBestImageForType(ImageEntityType.Primary);
+    IImage? PrimaryImage { get => GetBestImageForType(ImageEntityType.Primary); }
 
     /// <summary>
     ///   The cross-reference for the primary image for the entity. Same as the
@@ -22,6 +21,5 @@ public interface IWithPrimaryImage : IWithImages
     ///   first available image of type <see cref="ImageEntityType.Primary"/>
     ///   for the entity.
     /// </summary>
-    IImageCrossReference? PrimaryImageCrossReference
-        => GetBestImageCrossReferenceForType(ImageEntityType.Primary);
+    IImageCrossReference? PrimaryImageCrossReference { get => GetBestImageCrossReferenceForType(ImageEntityType.Primary); }
 }

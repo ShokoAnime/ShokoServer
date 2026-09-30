@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Video.Events;
 
@@ -133,4 +134,11 @@ public class VideoFileEventArgs : EventArgs
     /// Groups linked to the series that are in turn linked to the video.
     /// </summary>
     public IReadOnlyList<IShokoGroup> Groups { get; }
+
+    /// <summary>
+    ///   The API token of whoever caused the change to the file, or
+    ///   <see langword="null"/> when the system did it. Stamped when the event is
+    ///   raised.
+    /// </summary>
+    public ApiToken? Actor { get; init; }
 }

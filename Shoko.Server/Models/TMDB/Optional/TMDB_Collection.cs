@@ -4,12 +4,9 @@ using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.Models.Interfaces;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 using TMDbLib.Objects.Collections;
 
 #pragma warning disable CS0618
@@ -18,7 +15,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Movie Collection Database Model.
 /// </summary>
-public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
+public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection, IInlineTextSource
 {
     #region Properties
 
@@ -48,6 +45,18 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
     /// available in the preferred language.
     /// </summary>
     public string EnglishOverview { get; set; } = string.Empty;
+
+    /// <summary>
+    ///   Whether TMDB lists <see cref="EnglishTitle"/> among the collection's
+    ///   translations, where it is not stored a second time.
+    /// </summary>
+    public bool EnglishTitleListed { get; set; }
+
+    /// <summary>
+    ///   Whether TMDB lists <see cref="EnglishOverview"/> among the collection's
+    ///   translations, where it is not stored a second time.
+    /// </summary>
+    public bool EnglishOverviewListed { get; set; }
 
     /// <summary>
     /// Number of movies in the collection.
@@ -108,98 +117,34 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
     }
 
     /// <summary>
-    /// Get the preferred title using the preferred episode title preference
-    /// from the application settings.
+    ///   The title the user's picks and language settings choose for the
+    ///   collection.
     /// </summary>
-    /// <param name="useFallback">Use a fallback title if no title was found in
-    /// any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all movie collection titles if
-    /// they're already cached from a previous call to
-    /// <seealso cref="GetAllTitles"/>.
-    /// </param>
-    /// <returns>The preferred movie collection title, or null if no preferred
-    /// title was found.</returns>
-    public TMDB_Title? GetPreferredTitle(bool useFallback = true, bool force = false)
-    {
-        var titles = GetAllTitles(force);
-
-        foreach (var preferredLanguage in Languages.PreferredEpisodeNamingLanguages)
-        {
-            if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(DataEntityType.Collection, TmdbCollectionID, EnglishTitle, "en", "US");
-
-            var title = titles.GetByLanguage(preferredLanguage.Language);
-            if (title != null)
-                return title;
-        }
-
-        return useFallback ? new(DataEntityType.Collection, TmdbCollectionID, EnglishTitle, "en", "US") : null;
-    }
+    /// <returns>The title, or the English one when none is in a preferred language.</returns>
+    public ITitle GetPreferredTitle()
+        => TextAccess.Manager.PreferredTitleFor(this) ?? TmdbInlineText.TitleOrEmpty(EnglishTitle);
 
     /// <summary>
-    /// Cached reference to all titles for the movie collection, so we won't
-    /// have to hit the database twice to get all titles _and_ the preferred
-    /// title.
+    ///   The collection's titles: the ones TMDB lists, then any other source's.
     /// </summary>
-    private IReadOnlyList<TMDB_Title>? _allTitles;
+    /// <returns>The titles.</returns>
+    public IReadOnlyList<ITitle> GetAllTitles()
+        => TextAccess.Manager.ListTitles(this);
 
     /// <summary>
-    /// Get all titles for the movie collection.
+    ///   The overview the user's picks and language settings choose for the
+    ///   collection.
     /// </summary>
-    /// <param name="force">Forcefully re-fetch all movie collection titles if
-    /// they're already cached from a previous call.</param>
-    /// <returns>All titles for the movie collection.</returns>
-    public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID);
-
-    /// <inheritdoc/>
-    public void ResetAllTitles() => _allTitles = null;
+    /// <returns>The overview, or the English one when none is in a preferred language.</returns>
+    public IText GetPreferredOverview()
+        => TextAccess.Manager.PreferredOverviewFor(this) ?? TmdbInlineText.OverviewOrEmpty(EnglishOverview);
 
     /// <summary>
-    /// Get the preferred overview using the preferred episode title preference
-    /// from the application settings.
+    ///   The collection's overviews: the ones TMDB lists, then any other source's.
     /// </summary>
-    /// <param name="useFallback">Use a fallback overview if no overview was
-    /// found in any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all movie collection overviews if they're
-    /// already cached from a previous call to
-    /// <seealso cref="GetAllOverviews"/>.
-    /// </param>
-    /// <returns>The preferred movie collection overview, or null if no preferred overview
-    /// was found.</returns>
-    public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
-    {
-        var overviews = GetAllOverviews(force);
-
-        foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
-        {
-            var overview = overviews.GetByLanguage(preferredLanguage.Language);
-            if (overview != null)
-                return overview;
-        }
-
-        return useFallback ? new(DataEntityType.Collection, TmdbCollectionID, EnglishOverview, "en", "US") : null;
-    }
-
-    /// <summary>
-    /// Cached reference to all overviews for the movie collection, so we won't have to hit
-    /// the database twice to get all overviews _and_ the preferred overview.
-    /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allOverviews;
-
-    /// <summary>
-    /// Get all overviews for the movie collection.
-    /// </summary>
-    /// <param name="force">Forcefully re-fetch all movie collection overviews
-    /// if they're already cached from a previous call.</param>
-    /// <returns>All overviews for the movie collection.</returns>
-    public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Collection, TmdbCollectionID);
-
-    /// <inheritdoc/>
-    public void ResetAllOverviews() => _allOverviews = null;
+    /// <returns>The overviews.</returns>
+    public IReadOnlyList<IText> GetAllOverviews()
+        => TextAccess.Manager.ListOverviews(this);
     /// <summary>
     /// Get all local TMDB movies associated with the movie collection.
     /// </summary>
@@ -211,9 +156,9 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
 
     #region IEntityMetadata
 
-    DataEntityType IEntityMetadata.Type => DataEntityType.Collection;
+    MetadataEntityType IEntityMetadata.Type => MetadataEntityType.Collection;
 
-    DataSource IEntityMetadata.DataSource => DataSource.TMDB;
+    MetadataSource IEntityMetadata.DataSource => MetadataSource.TMDB;
 
     string? IEntityMetadata.OriginalTitle => null;
 
@@ -227,26 +172,27 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Collection;
+    MetadataGuid IMetadata.ID => new(MetadataSource.TMDB, MetadataEntityType.Collection, TmdbCollectionID.ToString());
 
-    DataSource IMetadata.Source => DataSource.TMDB;
+    #endregion
 
-    string IMetadata<string>.ID => TmdbCollectionID.ToString();
+    #region IInlineTextSource Implementation
+
+    ITitle? IInlineTextSource.InlineTitle => TmdbInlineText.Title(EnglishTitle);
+
+    IText? IInlineTextSource.InlineOverview => TmdbInlineText.Overview(EnglishOverview);
+
+    InlineTextPlacement IInlineTextSource.InlineTitlePlacement => TmdbInlineText.Placement(EnglishTitleListed);
+
+    InlineTextPlacement IInlineTextSource.InlineOverviewPlacement => TmdbInlineText.Placement(EnglishOverviewListed);
 
     #endregion
 
     #region IWithTitles Implementation
 
-    string IWithTitles.Title => GetPreferredTitle()?.Value ?? EnglishTitle;
+    string IWithTitles.Title => GetPreferredTitle().Value;
 
-    ITitle IWithTitles.DefaultTitle => new TitleStub
-    {
-        Language = TitleLanguage.EnglishAmerican,
-        CountryCode = "US",
-        LanguageCode = "en",
-        Value = EnglishTitle,
-        Source = DataSource.TMDB,
-    };
+    ITitle IWithTitles.DefaultTitle => TmdbInlineText.TitleOrEmpty(EnglishTitle);
 
     ITitle? IWithTitles.PreferredTitle => GetPreferredTitle();
 
@@ -254,20 +200,13 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
 
     #endregion
 
-    #region IWithDescriptions Implementation
+    #region IWithOverviews Implementation
 
-    IText? IWithDescriptions.DefaultDescription => new TextStub
-    {
-        Language = TitleLanguage.EnglishAmerican,
-        CountryCode = "US",
-        LanguageCode = "en",
-        Value = EnglishOverview,
-        Source = DataSource.TMDB,
-    };
+    IText? IWithOverviews.DefaultOverview => TmdbInlineText.OverviewOrEmpty(EnglishOverview);
 
-    IText? IWithDescriptions.PreferredDescription => GetPreferredOverview();
+    IText? IWithOverviews.PreferredOverview => GetPreferredOverview();
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => GetAllOverviews();
+    IReadOnlyList<IText> IWithOverviews.Overviews => GetAllOverviews();
 
     #endregion
 
@@ -284,6 +223,8 @@ public class TMDB_Collection : TMDB_Base<int>, IEntityMetadata, ITmdbCollection
     #endregion
 
     #region ITmdbCollection Implementation
+
+    int ITmdbCollection.TmdbID => TmdbCollectionID;
 
     IReadOnlyList<ITmdbMovie> ITmdbCollection.Movies => GetTmdbMovies();
 

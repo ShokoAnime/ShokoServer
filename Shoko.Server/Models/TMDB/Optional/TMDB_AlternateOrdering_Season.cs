@@ -4,20 +4,19 @@ using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.CrossReference.Embedded;
+using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
-using Shoko.Server.Settings;
 using TMDbLib.Objects.TvShows;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
+public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason, IInlineTextSource
 {
     #region Properties
 
@@ -82,6 +81,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
     public DateTime LastUpdatedAt { get; set; }
 
     #endregion
+
     #region Constructors
 
     public TMDB_AlternateOrdering_Season() { }
@@ -94,6 +94,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
     }
 
     #endregion
+
     #region Methods
 
     public bool Populate(TvGroup episodeGroup, string collectionId, int showId, int seasonNumber)
@@ -110,39 +111,27 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
         return updates.Any(updated => updated);
     }
 
-    /// <inheritdoc/>
-    public ITitle GetDefaultTitle() => new TitleStub
-    {
-        Language = TitleLanguage.EnglishAmerican,
-        CountryCode = "US",
-        LanguageCode = "en",
-        Value = EnglishTitle,
-        Source = DataSource.TMDB,
-    };
+    /// <summary>
+    ///   The season's name on its row, as its default title.
+    /// </summary>
+    /// <returns>The title, which is empty when the season has no name.</returns>
+    public ITitle GetDefaultTitle()
+        => TmdbInlineText.TitleOrEmpty(EnglishTitle);
 
-    /// <inheritdoc/>
-    public ITitle? GetPreferredTitle() => ISettingsProvider.Instance.GetSettings().Language.SeriesTitleLanguageOrder.Contains("en-US")
-        ? new TitleStub
-        {
-            Language = TitleLanguage.EnglishAmerican,
-            CountryCode = "US",
-            LanguageCode = "en",
-            Value = EnglishTitle,
-            Source = DataSource.TMDB,
-        }
-        : null;
+    /// <summary>
+    ///   The title the user's picks and language settings choose for the
+    ///   season.
+    /// </summary>
+    /// <returns>The title, or <c>null</c> when none is picked or in a preferred language.</returns>
+    public ITitle? GetPreferredTitle()
+        => TextAccess.Manager.PreferredTitleFor(this);
 
-    public IReadOnlyList<ITitle> GetAllTitles() =>
-    [
-        new TitleStub
-        {
-            Language = TitleLanguage.EnglishAmerican,
-            CountryCode = "US",
-            LanguageCode = "en",
-            Value = EnglishTitle,
-            Source = DataSource.TMDB,
-        },
-    ];
+    /// <summary>
+    ///   The season's titles: its name, then any other source's.
+    /// </summary>
+    /// <returns>The titles.</returns>
+    public IReadOnlyList<ITitle> GetAllTitles()
+        => TextAccess.Manager.ListTitles(this);
 
     /// <summary>
     /// Get all cast members that have worked on this season.
@@ -221,17 +210,21 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Season;
+    MetadataGuid IMetadata.ID => new(MetadataSource.TMDB, MetadataEntityType.Season, TmdbEpisodeGroupID);
 
-    string IMetadata<string>.ID => TmdbEpisodeGroupID;
+    #endregion
 
-    DataSource IMetadata.Source => DataSource.TMDB;
+    #region IInlineTextSource Implementation
+
+    ITitle? IInlineTextSource.InlineTitle => TmdbInlineText.Title(EnglishTitle);
+
+    IText? IInlineTextSource.InlineOverview => null;
 
     #endregion
 
     #region IWithTitles Implementation
 
-    string IWithTitles.Title => EnglishTitle;
+    string IWithTitles.Title => GetPreferredTitle()?.Value ?? EnglishTitle;
 
     ITitle IWithTitles.DefaultTitle => GetDefaultTitle();
 
@@ -241,13 +234,13 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
 
     #endregion
 
-    #region IWithDescriptions Implementation
+    #region IWithOverviews Implementation
 
-    IText? IWithDescriptions.DefaultDescription => null;
+    IText? IWithOverviews.DefaultOverview => null;
 
-    IText? IWithDescriptions.PreferredDescription => null;
+    IText? IWithOverviews.PreferredOverview => null;
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => [];
+    IReadOnlyList<IText> IWithOverviews.Overviews => [];
 
     #endregion
 
@@ -273,35 +266,37 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason
 
     #region ISeason Implementation
 
-    int ISeason.SeriesID => TmdbShowID;
+    MetadataGuid? ISeason.OrderingID => new(MetadataSource.TMDB, MetadataEntityType.Ordering, TmdbEpisodeGroupCollectionID);
 
     ISeries? ISeason.Series => TmdbShow;
 
     IReadOnlyList<IEpisode> ISeason.Episodes => TmdbAlternateOrderingEpisodes;
 
-    #endregion
-
-    #region ITmdbSeason Implementation
-
-    string ITmdbSeason.OrderingID => TmdbEpisodeGroupCollectionID;
-
-    ITmdbShow? ITmdbSeason.Series => TmdbShow;
-
-    ITmdbShowOrderingInformation? ITmdbSeason.CurrentShowOrdering => TmdbAlternateOrdering;
-
-    IReadOnlyList<ITmdbEpisode> ITmdbSeason.Episodes => TmdbAlternateOrderingEpisodes;
-
-    IReadOnlyList<ITmdbSeasonCrossReference> ITmdbSeason.TmdbSeasonCrossReferences =>
+    IReadOnlyList<IMetadataSeasonCrossReference> ISeason.MetadataSeasonCrossReferences =>
         TmdbAlternateOrderingEpisodes
             .SelectMany(e => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByTmdbEpisodeID(e.TmdbEpisodeID))
             .DistinctBy(xref => xref.AnidbAnimeID)
             .Select(xref => new CrossRef_AniDB_TMDB_Season(xref.AnidbAnimeID, TmdbEpisodeGroupID, TmdbShowID, SeasonNumber))
             .ToList();
 
-    IReadOnlyList<ITmdbEpisodeCrossReference> ITmdbSeason.TmdbEpisodeCrossReferences =>
+    IReadOnlyList<IMetadataEpisodeCrossReference> ISeason.MetadataEpisodeCrossReferences =>
         TmdbAlternateOrderingEpisodes
             .SelectMany(e => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByTmdbEpisodeID(e.TmdbEpisodeID))
             .ToList();
 
+    // A film sits in no season, so nothing links one to a TMDB season.
+    IReadOnlyList<IMetadataMovieCrossReference> ISeason.MetadataMovieCrossReferences => [];
+
+    #endregion
+
+    #region ITmdbSeason Implementation
+
+    string ITmdbSeason.TmdbOrderingID => TmdbEpisodeGroupCollectionID;
+
+    ITmdbShow? ITmdbSeason.Series => TmdbShow;
+
+    ITmdbShowOrderingInformation? ITmdbSeason.CurrentShowOrdering => TmdbAlternateOrdering;
+
+    IReadOnlyList<ITmdbEpisode> ITmdbSeason.Episodes => TmdbAlternateOrderingEpisodes;
     #endregion
 }

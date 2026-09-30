@@ -137,9 +137,10 @@ public class JobKeyBuilder<T> where T : class, IQueueJob
     /// <summary>
     /// The key prefix for a job type without a class-level <see cref="JobKeyMemberAttribute"/>.
     /// The full name, so two plugins with a job class of the same name cannot dedup against
-    /// each other.
+    /// each other, and for a closed generic type one without assembly versions, so a key
+    /// stored before a plugin update still matches.
     /// </summary>
-    private static string GetTypePrefix(Type type) => type.FullName ?? type.Name;
+    private static string GetTypePrefix(Type type) => JobTypeNames.Full(type);
 
     /// <summary>
     /// Rewrites a key built before job keys started with the type's full name, when

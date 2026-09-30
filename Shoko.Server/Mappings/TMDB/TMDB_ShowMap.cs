@@ -19,6 +19,8 @@ public class TMDB_ShowMap : ClassMap<TMDB_Show>
         Map(x => x.BackdropPath).Nullable();
         Map(x => x.EnglishTitle).Not.Nullable();
         Map(x => x.EnglishOverview).Not.Nullable();
+        Map(x => x.EnglishTitleListed).Not.Nullable();
+        Map(x => x.EnglishOverviewListed).Not.Nullable();
         Map(x => x.OriginalTitle).Not.Nullable();
         Map(x => x.OriginalLanguageCode).Not.Nullable();
         Map(x => x.IsRestricted).Not.Nullable();
@@ -36,6 +38,6 @@ public class TMDB_ShowMap : ClassMap<TMDB_Show>
         Map(x => x.LastAiredAt).CustomType<DateOnlyConverter>();
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
-        Map(x => x.PreferredAlternateOrderingID);
+        Map(x => x.PreferredOrderingID).CustomType<MetadataGuidType>().Nullable();
     }
 }

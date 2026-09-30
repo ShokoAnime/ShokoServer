@@ -7,7 +7,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// A studio.
 /// </summary>
-public interface IStudio : IMetadata<int>, IWithPrimaryImage
+public interface IStudio : IMetadata, IWithPrimaryImage
 {
     /// <summary>
     /// The name of the studio.
@@ -46,9 +46,9 @@ public interface IStudio : IMetadata<int>, IWithPrimaryImage
 public interface IStudio<TMetadata> : IStudio where TMetadata : IMetadata
 {
     /// <summary>
-    /// Parent entity ID.
+    ///   The entry the studio worked on, which may be a series or a film.
     /// </summary>
-    int ParentID { get; }
+    MetadataGuid ParentID { get; }
 
     /// <summary>
     /// Parent metadata entity.

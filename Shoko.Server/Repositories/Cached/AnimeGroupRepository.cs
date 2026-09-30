@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases;
+using Shoko.Server.Models;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Utilities;
@@ -19,6 +22,29 @@ public class AnimeGroupRepository(
 
     private PocoIndex<int, AnimeGroup, int>? _parentIDs;
 
+    /// <summary>
+    ///   What decides each cached group's name, as the cache last saw it, so
+    ///   a save that changes none of it keeps the texts worked out.
+    /// </summary>
+    private readonly ConcurrentDictionary<int, GroupShape> _shapes = new();
+
+    /// <summary>
+    ///   What decides a group's name besides its series and its texts.
+    /// </summary>
+    /// <param name="ParentID">The parent group ID.</param>
+    /// <param name="DefaultSeriesID">The series chosen as the main one.</param>
+    /// <param name="MainAnimeID">The AniDB anime chosen as the main one.</param>
+    private readonly record struct GroupShape(int? ParentID, int? DefaultSeriesID, int? MainAnimeID)
+    {
+        /// <summary>
+        ///   A group's shape.
+        /// </summary>
+        /// <param name="group">The group.</param>
+        /// <returns>The shape.</returns>
+        internal static GroupShape Of(AnimeGroup group)
+            => new(group.AnimeGroupParentID, group.DefaultAnimeSeriesID, group.MainAniDBAnimeID);
+    }
+
     protected override void OnBeginDelete(AnimeGroup obj)
     {
         RepoFactory.AnimeGroup_User.Delete(RepoFactory.AnimeGroup_User.GetByGroupID(obj.AnimeGroupID));
@@ -26,6 +52,8 @@ public class AnimeGroupRepository(
 
     protected override void OnEndDelete(AnimeGroup obj)
     {
+        // The name and overview a user gave the group go with it.
+        TextAccess.Reachable?.RemoveTexts(((IMetadata)obj).ID);
         if (obj.AnimeGroupParentID.HasValue && obj.AnimeGroupParentID.Value > 0)
         {
             _logger.LogTrace("Updating group stats by group from AnimeGroupRepository.Delete: {Count}", obj.AnimeGroupParentID.Value);
@@ -40,9 +68,51 @@ public class AnimeGroupRepository(
     protected override int SelectKey(AnimeGroup entity)
         => entity.AnimeGroupID;
 
+    protected override void UpdateCacheUnsafe(AnimeGroup cr)
+    {
+        base.UpdateCacheUnsafe(cr);
+
+        var shape = GroupShape.Of(cr);
+        var hadShape = _shapes.TryGetValue(cr.AnimeGroupID, out var before);
+        _shapes[cr.AnimeGroupID] = shape;
+        if (hadShape && before == shape)
+            return;
+
+        // The names above follow this group's: the old parent's is forgotten
+        // with it, the new parent's here.
+        TextAccess.Forget(((IMetadata)cr).ID);
+        if (shape.ParentID is > 0 && shape.ParentID != before.ParentID)
+            TextAccess.Forget(GroupEntry(shape.ParentID.Value));
+    }
+
+    protected override void DeleteFromCacheUnsafe(AnimeGroup cr)
+    {
+        base.DeleteFromCacheUnsafe(cr);
+        _shapes.TryRemove(cr.AnimeGroupID, out _);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///   A save forgets the group only when its shape changed, which
+    ///   <see cref="UpdateCacheUnsafe"/> sees, as most saves only count.
+    /// </remarks>
+    protected override IEnumerable<MetadataGuid> TextEntriesOf(AnimeGroup entity, bool removed)
+        => removed ? base.TextEntriesOf(entity, removed) : [];
+
+    /// <summary>
+    ///   The text manager's entry for a Shoko group.
+    /// </summary>
+    /// <param name="groupID">The Shoko group ID.</param>
+    /// <returns>The entry.</returns>
+    private static MetadataGuid GroupEntry(int groupID)
+        => new(MetadataSource.Shoko, MetadataEntityType.Collection, groupID.ToString());
+
     public override void PopulateIndexes()
     {
         _parentIDs = Cache.CreateIndex(a => a.AnimeGroupParentID ?? 0);
+        _shapes.Clear();
+        foreach (var group in Cache.GetAll())
+            _shapes[group.AnimeGroupID] = GroupShape.Of(group);
     }
 
     public override void Save(AnimeGroup obj)
@@ -124,6 +194,9 @@ public class AnimeGroupRepository(
 
         // Finally, we need to clear the cache so that it is in sync with the database
         ClearCache();
+        _shapes.Clear();
+        foreach (var group in allGroups)
+            TextAccess.Forget(((IMetadata)group).ID);
 
         // If we're excluding a group from deletion, and it was in the cache originally, then re-add it back in
         if (excludeGroupId != null)

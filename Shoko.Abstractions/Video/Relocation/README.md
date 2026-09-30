@@ -1,9 +1,8 @@
 # Relocation Providers
 
-This folder defines the public API surface for deciding **where a video file
-should live and what it should be called**. Providers are pluggable: any plugin
-can register one or more `IRelocationProvider` implementations, historically
-called renamers, alongside the WebAOM renamer that ships in core.
+The API for deciding **where a video file should live and what it should be
+called**. Any plugin can add `IRelocationProvider` implementations (renamers),
+alongside the WebAOM renamer that ships in core.
 
 A provider never touches the file system. It is handed everything known about
 one file and answers with a destination; `IVideoRelocationService` does the

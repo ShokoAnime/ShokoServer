@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -51,7 +52,9 @@ public sealed class AniDbBanState
         _type = type;
         _resetLengthHours = resetLengthHours;
         _logger = logger;
-        _ = WatchForExpiryAsync();
+        // Watches for as long as the state lives, so it starts from an empty context.
+        using (DetachedFlow.Suppress())
+            _ = Task.Run(WatchForExpiryAsync);
     }
 
     /// <summary>

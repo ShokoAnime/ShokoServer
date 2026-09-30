@@ -6,10 +6,12 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Update;
 using Shoko.Abstractions.Exceptions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Server.Models;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
@@ -26,6 +28,7 @@ public class ShokoGroupManager : IShokoGroupManager
     private readonly AnimeSeriesRepository _animeSeriesRepo;
     private readonly ISettingsProvider _settingsProvider;
     private readonly AnimeGroupCreator _animeGroupCreator;
+    private readonly MetadataTextManager _textManager;
 
     public ShokoGroupManager(
         ILogger<ShokoGroupManager> logger,
@@ -34,7 +37,8 @@ public class ShokoGroupManager : IShokoGroupManager
         AnimeGroupRepository animeGroupRepo,
         AnimeSeriesRepository animeSeriesRepo,
         ISettingsProvider settingsProvider,
-        AnimeGroupCreator animeGroupCreator)
+        AnimeGroupCreator animeGroupCreator,
+        IMetadataTextManager textManager)
     {
         _logger = logger;
         _animeGroupService = animeGroupService;
@@ -43,6 +47,7 @@ public class ShokoGroupManager : IShokoGroupManager
         _animeSeriesRepo = animeSeriesRepo;
         _settingsProvider = settingsProvider;
         _animeGroupCreator = animeGroupCreator;
+        _textManager = (MetadataTextManager)textManager;
 
         ShokoEventHandler.Instance.GroupUpdated += (_, e) =>
         {
@@ -82,26 +87,36 @@ public class ShokoGroupManager : IShokoGroupManager
 
         var now = DateTime.Now;
         var group = new AnimeGroup { DateTimeCreated = now, DateTimeUpdated = now };
-        UpdateGroupInternal(group, new GroupUpdateData
+        var updateData = new GroupUpdateData
         {
             Groups = data.Groups,
             Series = data.Series,
             MainSeries = data.MainSeries,
             Name = data.Name,
-            Description = data.Description,
-        }, isNew: true);
+            Overview = data.Overview,
+        };
+        if (data.ParentGroup is not null)
+            updateData.ParentGroup = data.ParentGroup;
+
+        UpdateGroupInternal(group, updateData, isNew: true);
 
         return group;
     }
 
     public void SetMainSeries(IShokoGroup group, IShokoSeries? series)
-        => UpdateGroupInternal((AnimeGroup)group, new() { MainSeries = series });
+        => UpdateGroupInternal(AsAnimeGroup(group, nameof(group)), new() { MainSeries = series });
 
     public void MoveSeries(IShokoSeries series, IShokoGroup targetGroup)
-        => UpdateGroup(targetGroup, new() { Series = [series] });
+    {
+        ArgumentNullException.ThrowIfNull(series);
+        if (series is not AnimeSeries)
+            throw new ArgumentException("Series must be an AnimeSeries instance", nameof(series));
+
+        UpdateGroupInternal(AsAnimeGroup(targetGroup, nameof(targetGroup)), new() { Series = [series] });
+    }
 
     public IShokoGroup UpdateGroup(IShokoGroup group, GroupUpdateData updateData)
-        => UpdateGroupInternal((AnimeGroup)group, updateData);
+        => UpdateGroupInternal(AsAnimeGroup(group, nameof(group)), updateData);
 
     public async Task DeleteGroup(IShokoGroup group, bool deleteSeries = false, bool deleteFiles = false)
     {
@@ -110,7 +125,8 @@ public class ShokoGroupManager : IShokoGroupManager
         if (group is not AnimeGroup animeGroup)
             throw new ArgumentException("Group must be an AnimeGroup instance", nameof(group));
 
-        // If the group has any series, delete or move them.
+        // If the group has any series, delete or move them. Moving the last
+        // one out removes the emptied groups already.
         if (animeGroup.AllSeries is { Count: > 0 } seriesList)
         {
             if (deleteSeries)
@@ -124,19 +140,18 @@ public class ShokoGroupManager : IShokoGroupManager
                     CreateGroup(new() { Series = [series] });
             }
         }
-        // We'll recurse into this function to delete the group after the last
-        // series has been deleted from a group.
-        else
-        {
-            _animeGroupRepo.Delete(animeGroup);
-            ShokoEventHandler.Instance.OnGroupUpdated(group, UpdateReason.Removed);
 
-            _animeGroupService.UpdateStatsFromTopLevel(animeGroup.Parent?.TopLevelAnimeGroup, true, true);
-        }
-
+        // A group has no name without a series, so none is left empty.
+        RemoveEmptyGroups(animeGroup);
     }
 
     #region CRUD | Internals
+
+    private static AnimeGroup AsAnimeGroup(IShokoGroup group, string paramName)
+    {
+        ArgumentNullException.ThrowIfNull(group, paramName);
+        return group as AnimeGroup ?? throw new ArgumentException("Group must be an AnimeGroup instance", paramName);
+    }
 
     private IShokoGroup UpdateGroupInternal(AnimeGroup group, GroupUpdateData updateData, bool? isNew = null)
     {
@@ -145,14 +160,14 @@ public class ShokoGroupManager : IShokoGroupManager
         isNew ??= group.AnimeGroupID is 0;
 
         var errors = new Dictionary<string, IReadOnlyList<string>>();
-        if (updateData.HasParentGroup && updateData.ParentGroup is { } pg && (pg.ID == group.AnimeGroupID || IsDescendant(pg, group.AnimeGroupID)))
+        if (updateData.HasParentGroup && updateData.ParentGroup is { } pg && (pg.LocalID == group.AnimeGroupID || IsDescendant(pg, group.AnimeGroupID)))
             errors["ParentGroup"] = ["Infinite recursion detected between the selected parent group and the current group."];
 
         if (updateData.HasParentGroup && updateData.ParentGroup is { } pg2 && updateData.Groups is { Count: > 0 } childGroupsForCheck)
         {
             foreach (var childGroup in childGroupsForCheck)
             {
-                if (childGroup.ID == pg2.ID || IsDescendant(pg2, childGroup.ID))
+                if (childGroup.LocalID == pg2.LocalID || IsDescendant(pg2, childGroup.LocalID))
                 {
                     errors["ParentGroup"] = ["Infinite recursion detected between the selected parent group and the child groups."];
                     break;
@@ -163,10 +178,19 @@ public class ShokoGroupManager : IShokoGroupManager
         if (updateData.HasMainSeries && updateData.MainSeries is { } && updateData.MainSeries is not AnimeSeries)
             errors["PreferredSeries"] = ["The preferred series must be an AnimeSeries instance."];
 
+        if (updateData.HasParentGroup && updateData.ParentGroup is { } && updateData.ParentGroup is not AnimeGroup)
+            errors["ParentGroup"] = ["The parent group must be an AnimeGroup instance."];
+
+        if (updateData.Series.Any(series => series is not AnimeSeries))
+            errors["Series"] = ["Every series must be an AnimeSeries instance."];
+
+        if (updateData.Groups.Any(childGroup => childGroup is not AnimeGroup))
+            errors["Groups"] = ["Every child group must be an AnimeGroup instance."];
+
         var allSeries = group.AllSeries
-            .Concat(updateData.Series)
-            .Concat(updateData.Groups.SelectMany(g => g.AllSeries))
-            .DistinctBy(s => s.ID)
+            .Concat(updateData.Series.OfType<AnimeSeries>())
+            .Concat(updateData.Groups.OfType<AnimeGroup>().SelectMany(g => g.AllSeries))
+            .DistinctBy(s => s.AnimeSeriesID)
             .ToHashSet();
         if (allSeries.Count == 0)
         {
@@ -174,11 +198,9 @@ public class ShokoGroupManager : IShokoGroupManager
             errors["Groups"] = ["At least one series or child group with series is required."];
         }
 
-        if (group.DefaultAnimeSeriesID.HasValue && !allSeries.Any(s => s.ID == group.DefaultAnimeSeriesID.Value))
-            throw new GenericValidationException("The preferred series was not found within the group.", new Dictionary<string, IReadOnlyList<string>>
-            {
-                ["PreferredSeries"] = ["The preferred series must exist within the group."],
-            });
+        var mainSeriesID = updateData.HasMainSeries ? updateData.MainSeries?.LocalID : group.DefaultAnimeSeriesID;
+        if (mainSeriesID.HasValue && !allSeries.Any(s => s.AnimeSeriesID == mainSeriesID.Value))
+            errors.TryAdd("PreferredSeries", ["The preferred series must exist within the group."]);
 
         if (errors.Count > 0)
             throw new GenericValidationException("One or more validation errors occurred.", errors);
@@ -188,17 +210,15 @@ public class ShokoGroupManager : IShokoGroupManager
 
         var existingGroups = new HashSet<int>(group.Children.Select(c => c.AnimeGroupID));
         var existingSeries = new HashSet<int>(group.Series.Select(s => s.AnimeSeriesID));
-        var oldSeriesDict = updateData.Series.ToDictionary(s => s.ID, s => s.ParentGroupID);
+        var oldSeriesDict = updateData.Series.ToDictionary(s => s.LocalID, s => s.ParentGroupID);
 
         var updated = false;
         if (updateData.Groups is { Count: > 0 } childGroups0)
         {
             var existingChildren = new HashSet<int>(group.AllChildren.Select(c => c.AnimeGroupID));
-            foreach (var childGroup in childGroups0.ExceptBy(existingChildren, c => c.ID))
+            foreach (var childGroup in childGroups0.ExceptBy(existingChildren, c => c.LocalID))
             {
-                if (childGroup is not AnimeGroup child)
-                    continue;
-
+                var child = (AnimeGroup)childGroup;
                 child.AnimeGroupParentID = group.AnimeGroupID;
                 child.DateTimeUpdated = DateTime.Now;
                 _animeGroupRepo.Save(child, false);
@@ -208,89 +228,43 @@ public class ShokoGroupManager : IShokoGroupManager
 
         if (updateData.Series is { Count: > 0 })
         {
-            foreach (var series in updateData.Series.ExceptBy(existingSeries, s => s.ID))
+            foreach (var series in updateData.Series.ExceptBy(existingSeries, s => s.LocalID))
             {
-                if (series is not AnimeSeries s)
-                    continue;
-
-                MoveSeries(s, group, updateGroupStats: false);
+                MoveSeries((AnimeSeries)series, group, updateGroupStats: false);
                 updated = true;
             }
         }
 
-        var needsAutoName = isNew.Value;
-        var needsAutoDescription = isNew.Value;
         if (updateData.HasMainSeries)
         {
             if (updateData.MainSeries is { } ps)
             {
-                if (group.DefaultAnimeSeriesID != ps.ID)
+                if (group.DefaultAnimeSeriesID != ps.LocalID)
                 {
-                    group.DefaultAnimeSeriesID = ps.ID;
+                    group.DefaultAnimeSeriesID = ps.LocalID;
                     updated = true;
-                    needsAutoName = group.IsManuallyNamed == 0;
-                    needsAutoDescription = group.OverrideDescription == 0;
                 }
             }
             else if (group.DefaultAnimeSeriesID.HasValue)
             {
                 group.DefaultAnimeSeriesID = null;
-                needsAutoName = true;
-                needsAutoDescription = true;
                 updated = true;
             }
         }
 
-        // HasName is true whenever Name was explicitly set (including to null).
+        // A name or overview given is kept as the group's user text, and one
+        // set to null is removed, so the main series' is read again.
+        var groupID = ((IMetadata)group).ID;
         if (updateData.HasName)
         {
-            // The group name was explicitly provided — mark as custom.
-            if (updateData.Name is { } name)
-            {
-                group.IsManuallyNamed = 1;
-                needsAutoName = false;
-                if (!string.Equals(group.GroupName, name))
-                    group.GroupName = name;
-            }
-            // Name was explicitly set to null — reset to automatic naming.
-            else
-            {
-                group.IsManuallyNamed = 0;
-                needsAutoName = true;
-            }
+            _textManager.SetCustomTitle(groupID, updateData.Name);
             updated = true;
         }
 
-        // Same as above, but for the description.
-        if (updateData.HasDescription)
+        if (updateData.HasOverview)
         {
-            // The description was explicitly provided — mark as custom.
-            if (updateData.Description is { } description)
-            {
-                group.OverrideDescription = 1;
-                needsAutoDescription = false;
-                if (!string.Equals(group.Description, description))
-                    group.Description = description;
-            }
-            // Description was explicitly set to null — reset to automatic.
-            else
-            {
-                group.OverrideDescription = 0;
-                needsAutoDescription = true;
-            }
+            _textManager.SetCustomOverview(groupID, updateData.Overview);
             updated = true;
-        }
-
-        // Set auto. name/description.
-        if (needsAutoName && group.IsManuallyNamed == 0)
-        {
-            var main = updateData.MainSeries ?? group.MainSeries;
-            group.GroupName = (main as AnimeSeries)?.Title ?? group.GroupName;
-        }
-        if (needsAutoDescription && group.OverrideDescription == 0)
-        {
-            var main = updateData.MainSeries ?? group.MainSeries;
-            group.Description = (main as AnimeSeries)?.PreferredOverview?.Value ?? group.Description;
         }
 
         if (updateData.HasParentGroup)
@@ -309,7 +283,7 @@ public class ShokoGroupManager : IShokoGroupManager
 
             if (updateData.Groups is { Count: > 0 } childGroups1)
             {
-                foreach (var childGroup in childGroups1.ExceptBy(existingGroups, c => c.ID))
+                foreach (var childGroup in childGroups1.ExceptBy(existingGroups, c => c.LocalID))
                 {
                     ShokoEventHandler.Instance.OnGroupUpdated(childGroup, UpdateReason.Updated);
                 }
@@ -317,9 +291,9 @@ public class ShokoGroupManager : IShokoGroupManager
 
             if (updateData.Series is { Count: > 0 } seriesList1)
             {
-                foreach (var series in seriesList1.ExceptBy(existingSeries, s => s.ID))
+                foreach (var series in seriesList1.ExceptBy(existingSeries, s => s.LocalID))
                 {
-                    var oldGroupID = oldSeriesDict[series.ID];
+                    var oldGroupID = oldSeriesDict[series.LocalID];
                     ShokoEventHandler.Instance.OnSeriesUpdated(series, UpdateReason.Updated);
                     ShokoEventHandler.Instance.OnSeriesMoved(series, oldGroupID, group.AnimeGroupID);
                 }
@@ -327,6 +301,39 @@ public class ShokoGroupManager : IShokoGroupManager
         }
 
         return group;
+    }
+
+    /// <summary>
+    ///   Removes a group left without series, with the groups below it, and
+    ///   then every group above it left without series too, since a group
+    ///   takes its name from its series.
+    /// </summary>
+    /// <param name="group">The group to start from.</param>
+    private void RemoveEmptyGroups(AnimeGroup group)
+    {
+        var current = group;
+        while (current is not null && current.AllSeries.Count == 0)
+        {
+            var parent = current.Parent;
+            RemoveGroupTree(current);
+            current = parent;
+        }
+
+        if (current is not null)
+            _animeGroupService.UpdateStatsFromTopLevel(current.TopLevelAnimeGroup, true, true);
+    }
+
+    /// <summary>
+    ///   Removes a group and every group below it, the lowest first.
+    /// </summary>
+    /// <param name="group">The group, holding no series.</param>
+    private void RemoveGroupTree(AnimeGroup group)
+    {
+        foreach (var child in group.Children.ToList())
+            RemoveGroupTree(child);
+
+        _animeGroupRepo.Delete(group);
+        ShokoEventHandler.Instance.OnGroupUpdated(group, UpdateReason.Removed);
     }
 
     private void MoveSeries(AnimeSeries series, AnimeGroup newGroup, bool updateGroupStats)
@@ -346,8 +353,7 @@ public class ShokoGroupManager : IShokoGroupManager
         {
             if (oldGroup.AllSeries.Count == 0)
             {
-                _animeGroupRepo.Delete(oldGroup);
-                ShokoEventHandler.Instance.OnGroupUpdated(oldGroup, UpdateReason.Removed);
+                RemoveEmptyGroups(oldGroup);
             }
             else
             {
@@ -379,7 +385,7 @@ public class ShokoGroupManager : IShokoGroupManager
         var parent = group.ParentGroup;
         while (parent != null)
         {
-            if (parent.ID == ancestorGroupID)
+            if (parent.LocalID == ancestorGroupID)
                 return true;
             parent = parent.ParentGroup;
         }
@@ -484,24 +490,10 @@ public class ShokoGroupManager : IShokoGroupManager
 
     public void RenameAllGroups()
     {
+        // A group without a name of its own reads its main series', so the
+        // series' titles and overviews are worked out again.
         _logger.LogInformation("Starting RenameAllGroups");
-        foreach (var grp in _animeGroupRepo.GetAll())
-        {
-            if (grp.IsManuallyNamed == 1 && grp.OverrideDescription == 1)
-                continue;
-
-            var series = grp.MainSeries;
-            if (series != null)
-            {
-                if (grp.IsManuallyNamed == 0)
-                    grp.GroupName = series.Title;
-                if (grp.OverrideDescription == 0)
-                    grp.Description = series.PreferredOverview?.Value ?? string.Empty;
-
-                grp.DateTimeUpdated = DateTime.Now;
-                _animeGroupRepo.Save(grp, false);
-            }
-        }
+        TextAccess.Manager.ForgetAll();
         _logger.LogInformation("Finished RenameAllGroups");
     }
 

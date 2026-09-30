@@ -1,24 +1,20 @@
 # Logging
 
-Two separate things share this word, and it helps to keep them apart:
+Two separate things share this word:
 
-- **Writing a log line.** Standard `Microsoft.Extensions.Logging`. There is no
-  Shoko-specific API for it, and nothing in this folder is involved.
-- **Reading log files back.** That is `ILogService`, the interface in this
-  folder. It lists, reads, filters and downloads the server's own log files, and
-  it is what `/api/v3/Logging` and the WebUI's log viewer are built on.
-
-`ILogService` is not an extension point. Nothing here is discovered by
-`PluginManager.GetExports<T>()`, and there is no interface for a plugin to
-implement. It is a DI singleton you inject when you want it.
+- **Writing a log line** is standard `Microsoft.Extensions.Logging`, with no
+  Shoko-specific API.
+- **Reading log files back** is `ILogService`, a DI singleton in this folder. It
+  lists, reads, filters and downloads the server's own log files, and backs
+  `/api/v3/Logging` and the WebUI's log viewer.
 
 ---
 
 ## Writing: getting a logger
 
-Ask for `ILogger<T>` in your constructor. Everything a plugin is constructed
-through, the plugin class, a provider, an action, a queue job, resolves through
-the container, so this works everywhere:
+Ask for `ILogger<T>` in the constructor of anything the container builds: a
+provider, an action, a queue job, a service. The class implementing `IPlugin` is
+the exception; it takes a logger in `Setup`.
 
 ```csharp
 public class MyProvider(ILogger<MyProvider> logger)
@@ -28,37 +24,17 @@ public class MyProvider(ILogger<MyProvider> logger)
 }
 ```
 
-`Microsoft.Extensions.Logging.Abstractions` arrives with the ASP.NET Core
-framework reference that `Shoko.Abstractions` already carries, so there is no
-package to add.
+The logging abstractions come with the ASP.NET Core framework reference
+`Shoko.Abstractions` already carries, so there is no package to add.
 
-Use message templates with named placeholders, as above, rather than string
-interpolation. The values are captured as structured fields, which is what makes
-them filterable later (see the DSL below). `$"Refreshing anime {animeId}"`
-collapses the whole thing into one opaque string and loses that.
+Use message templates with named placeholders, as above, not string
+interpolation: the values are captured as structured fields.
 
 ### Pick the level by what an operator should act on
 
-This is the part plugins get wrong, and it is a question of *level*, not volume.
-
-A sweep is allowed to be chatty. `Debug` and `Trace` exist precisely so that a
-job walking thousands of anime can narrate every one of them, and a plugin
-should feel free to do that. Nobody sees it unless they turn it on, and when
-they are debugging your plugin they will be glad it is there.
-
-What a sweep must not do is log per item at `Information` or above. `Information`
-and up is what a user sees without turning anything on, so a line that fires once
-per item in a loop is almost never the right thing to put there.
-
-The bug this comes from: the AnimeSchedule.net plugin logged a **`Warning` for
-every week it found no data in** while sweeping. A perfectly ordinary barren
-range, an off-season, a show that has not started yet, filled the log with
-warnings describing nothing wrong. Its per-anime "AnimeSchedule.net does not know
-AniDB anime X" lines were already at `Debug`, and those were fine at any volume.
-The fix was to move the no-data case down to `Debug` and keep `Warning` for
-requests that genuinely failed.
-
-A rough guide:
+A sweep may narrate every item at `Debug` or `Trace`; nobody sees it unless
+they turn it on. It must not log per item at `Information` or above, which is
+what a user sees by default.
 
 | Level | For |
 |---|---|
@@ -67,17 +43,15 @@ A rough guide:
 | `Warning` | Something an operator should look into. A request that failed, a response that did not parse, a configuration that cannot work as written. |
 | `Error` | Your plugin could not do its job and someone has to intervene. |
 
-The trap is that "there is no data here" reads like a warning while you are
-writing the code, and is normal in production. An empty week, a 404 from a
-metadata source, an anime the provider has never heard of: all normal, all
-`Debug`.
+"There is no data here" reads like a warning while you write the code, and is
+normal in production: an empty week, a 404 from a metadata source, an anime
+the provider has never heard of are all `Debug`.
 
 ### Warning once for a persistent condition
 
-Some conditions really are worth a warning but recur on every call: an unset API
-token, for instance, is something the user should fix, and a `Debug` line they
-will never see does not tell them. Warn the first time and drop to `Debug`
-afterwards, so the message is seen without the log being flooded:
+A condition the user should fix but that recurs on every call, such as an unset
+API token, is worth one warning. Warn the first time and drop to `Debug`
+afterwards:
 
 ```csharp
 private int _hasWarnedMissingToken;
@@ -93,9 +67,8 @@ if (string.IsNullOrWhiteSpace(token))
 }
 ```
 
-This only works if the instance holding the flag is long lived. A provider that
-core constructs once and holds is; an action, which is resolved fresh per
-execution, is not.
+The flag needs a long-lived instance: a provider the core holds, not an action,
+which is resolved fresh per execution.
 
 ---
 
@@ -178,13 +151,12 @@ out-of-range value throws `ArgumentOutOfRangeException`. Unlike reading, a
 ### Deleting
 
 `DeleteLogFile(fileInfo)` throws `InvalidOperationException` when handed the
-current file. It returns `void`, whatever its doc comment suggests.
+current file.
 
 ### Maintenance
 
-`StartMaintenance()` and `RunRotationMaintenance()` are driven by core out of the
-logging configuration. A plugin has no reason to call either, and calling
-`StartMaintenance()` a second time fights with the schedule core already set up.
+`StartMaintenance()` and `RunRotationMaintenance()` are driven by core from the
+logging configuration. A plugin has no reason to call either.
 
 ---
 

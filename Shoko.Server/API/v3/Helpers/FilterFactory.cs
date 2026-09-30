@@ -289,6 +289,7 @@ public class FilterFactory
         var currentExpression = expression;
         while (currentExpression.Next != null)
         {
+            currentExpression = currentExpression.Next;
             currentCriteria.Next = new Filter.SortingCriteria
             {
                 Type = currentExpression.GetType().Name.TrimEnd("SortingSelector"),
@@ -296,7 +297,6 @@ public class FilterFactory
                 Parameter = (currentExpression as IWithStringParameter)?.Parameter
             };
             currentCriteria = currentCriteria.Next;
-            currentExpression = currentExpression.Next;
         }
 
         return result;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -7,11 +8,14 @@ using System.Text;
 using F23.StringSimilarity;
 using F23.StringSimilarity.Interfaces;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Utilities;
@@ -60,23 +64,60 @@ public static class SeriesSearch
 
     private static volatile FuzzySearchIndex<AnimeSeries>? _seriesIndex;
     private static volatile bool _isDirty = true;
+    private static int _indexGeneration = -1;
+    private static readonly ConcurrentDictionary<int, byte> _stale = new();
     private static readonly object _indexLock = new();
 
+    /// <summary>
+    ///   Makes the next search build the whole index again.
+    /// </summary>
     public static void MarkDirty() => _isDirty = true;
+
+    /// <summary>
+    ///   Makes the next search read a series' titles again, as when its texts
+    ///   changed or it was added or removed.
+    /// </summary>
+    /// <param name="seriesID">The Shoko series ID.</param>
+    internal static void MarkStale(int seriesID)
+        => _stale.TryAdd(seriesID, 0);
 
     private static FuzzySearchIndex<AnimeSeries> EnsureSeriesIndex()
     {
-        if (!_isDirty && _seriesIndex != null)
-            return _seriesIndex;
+        var generation = MetadataTextManager.Generation;
+        if (!_isDirty && _seriesIndex is { } current && _indexGeneration == generation && _stale.IsEmpty)
+            return current;
         lock (_indexLock)
         {
-            if (!_isDirty && _seriesIndex != null)
-                return _seriesIndex;
-            var idx = new FuzzySearchIndex<AnimeSeries>();
-            idx.Build(RepoFactory.AnimeSeries.GetAll(), CreateSeriesTitleDelegate());
-            _seriesIndex = idx;
-            _isDirty = false;
-            return idx;
+            generation = MetadataTextManager.Generation;
+            var index = _seriesIndex;
+            // Building it whole is quicker than replacing many series one by
+            // one, and covers the marks made before it.
+            if (_isDirty || index is null || _indexGeneration != generation || index.Waste > index.Count || _stale.Count > index.Count / 8)
+            {
+                _isDirty = false;
+                _stale.Clear();
+                var idx = new FuzzySearchIndex<AnimeSeries>();
+                var titles = CreateSeriesTitleDelegate();
+                idx.Build(RepoFactory.AnimeSeries.GetAll(), titles, series => series.AnimeSeriesID);
+                _indexGeneration = generation;
+                _seriesIndex = idx;
+                return idx;
+            }
+
+            if (!_stale.IsEmpty)
+            {
+                var titles = CreateSeriesTitleDelegate();
+                foreach (var seriesID in _stale.Keys.Order())
+                {
+                    _stale.TryRemove(seriesID, out _);
+                    if (RepoFactory.AnimeSeries.GetByID(seriesID) is { } series)
+                        index.Upsert(series, titles(series));
+                    else
+                        index.Remove(seriesID);
+                }
+            }
+
+            return index;
         }
     }
 
@@ -99,11 +140,101 @@ public static class SeriesSearch
         {
             if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
                 continue;
-            // U+301C 〜 survives NFKD unchanged; '~'/'|' join it as decorative separators (e.g. "~X~"/": X", "A | B"/"A / B").
-            sb.Append(c is '-' or '_' or '.' or ':' or ',' or '!' or ';' or '/' or '\\' or '(' or ')' or '[' or ']' or '〜' or '~' or '|' ? ' ' : c);
+            sb.Append(IsSeparator(c) ? ' ' : c);
         }
 
         return sb.ToString().Normalize(NormalizationForm.FormKC).ToLowerInvariant().CompactWhitespaces();
+    }
+
+    /// <summary>
+    ///   Whether a character only separates the words of a title, and is
+    ///   folded into a space by <see cref="NormalizeForIndex"/>.
+    /// </summary>
+    /// <remarks>
+    ///   NFKD folds the full-width forms to ASCII but leaves the CJK
+    ///   punctuation alone, so the wave dashes, ideographic comma and full
+    ///   stop, CJK brackets and horizontal bar are listed beside the ASCII
+    ///   marks they stand for. '~' and '|' are decorative separators
+    ///   (e.g. "~X~"/": X", "A | B"/"A / B").
+    /// </remarks>
+    /// <param name="c">The character, after NFKD.</param>
+    /// <returns><see langword="true"/> when it becomes a space.</returns>
+    private static bool IsSeparator(char c)
+        => c is '-' or '_' or '.' or ':' or ',' or '!' or ';' or '/' or '\\' or '(' or ')' or '[' or ']' or '~' or '|'
+            or '、' or '。' or '〜' or '〰' or '―' or (>= '\u3008' and <= '\u3011') or (>= '\u3014' and <= '\u301B');
+
+    /// <summary>
+    ///   Drops the marks of a normalised title that carry no meaning the fold
+    ///   keeps, for comparing two titles whole where one writes such a mark
+    ///   the other leaves out.
+    /// </summary>
+    /// <remarks>
+    ///   Drops the middle dots and the CJK quotes and brackets, turns the
+    ///   Unicode dashes into spaces (as the fold does '-') and typographic
+    ///   apostrophes into '\''. Every other mark is kept, since it may be all
+    ///   that sets a sequel's title apart. Only for comparing two titles
+    ///   whole, like <see cref="JoinUnspacedScripts"/>.
+    /// </remarks>
+    /// <param name="normalized">A title already run through <see cref="NormalizeForIndex"/>.</param>
+    /// <returns>The title without those marks, its spaces compacted.</returns>
+    internal static string WithoutDecorativeMarks(string normalized)
+    {
+        var sb = new StringBuilder(normalized.Length);
+        var changed = false;
+        foreach (var c in normalized)
+        {
+            switch (c)
+            {
+                case '\u00B7' or '\u2027' or '\u30FB' or (>= '\u3008' and <= '\u3011') or (>= '\u3014' and <= '\u301F'):
+                    changed = true;
+                    break;
+                case >= '\u2010' and <= '\u2015':
+                    sb.Append(' ');
+                    changed = true;
+                    break;
+                case '\u2018' or '\u2019' or '\u02BC':
+                    sb.Append('\'');
+                    changed = true;
+                    break;
+                default:
+                    sb.Append(c);
+                    break;
+            }
+        }
+
+        return changed ? sb.ToString().CompactWhitespaces() : normalized;
+    }
+
+    /// <summary>
+    ///   Drops the spaces between two letters of a script written without
+    ///   them, such as Japanese or Chinese, where a title is spelt with or
+    ///   without spaces between its words.
+    /// </summary>
+    /// <remarks>
+    ///   Only for comparing two titles whole: it would break the word
+    ///   boundaries a prefix or a fuzzy search relies on.
+    /// </remarks>
+    /// <param name="normalized">A title already run through <see cref="NormalizeForIndex"/>.</param>
+    /// <returns>The title without those spaces.</returns>
+    internal static string JoinUnspacedScripts(string normalized)
+    {
+        if (normalized.IndexOf(' ') < 0)
+            return normalized;
+
+        var sb = new StringBuilder(normalized.Length);
+        for (var index = 0; index < normalized.Length; index++)
+        {
+            var c = normalized[index];
+            if (c is ' ' && index > 0 && index < normalized.Length - 1 && IsUnspacedLetter(normalized[index - 1]) && IsUnspacedLetter(normalized[index + 1]))
+                continue;
+
+            sb.Append(c);
+        }
+
+        return sb.ToString();
+
+        static bool IsUnspacedLetter(char c)
+            => c > 'ɏ' && char.GetUnicodeCategory(c) is UnicodeCategory.OtherLetter or UnicodeCategory.ModifierLetter;
     }
 
     internal static int GetMaxErrors(int queryLength)
@@ -236,23 +367,6 @@ public static class SeriesSearch
         };
     }
 
-    private static SearchResult<T> IndexOfSearch<T>(string text, string pattern, T value)
-    {
-        var index = text.IndexOf(pattern, StringComparison.OrdinalIgnoreCase);
-        if (index == -1)
-            return new();
-
-        var lengthDiff = Math.Abs(pattern.Length - text.Length);
-        return new()
-        {
-            ExactMatch = true,
-            Index = index,
-            LengthDifference = lengthDiff,
-            Match = text,
-            Result = value,
-        };
-    }
-
     public static bool FuzzyMatch(this string text, string query)
     {
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(query))
@@ -268,12 +382,29 @@ public static class SeriesSearch
     }
 
     public static IEnumerable<SearchResult<T>> Search<T>(this IEnumerable<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
-        => SearchCollection(enumerable is ParallelQuery<T> parallel ? parallel : enumerable.AsParallel(), query, selector, fuzzy, take, skip);
+        => SearchCollection(enumerable is ParallelQuery<T> parallel ? parallel : enumerable.AsParallel(), query, [selector], fuzzy, take, skip);
 
     public static ParallelQuery<SearchResult<T>> Search<T>(this ParallelQuery<T> enumerable, string query, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
-        => SearchCollection(enumerable, query, selector, fuzzy, take, skip);
+        => SearchCollection(enumerable, query, [selector], fuzzy, take, skip);
 
-    private static ParallelQuery<SearchResult<T>> SearchCollection<T>(ParallelQuery<T> items, string search, Func<T, IEnumerable<string>> selector, bool fuzzy = false, int? take = null, int? skip = null)
+    /// <summary>
+    ///   Searches a collection over several groups of fields, ranking a match
+    ///   in an earlier group above any match of the same kind in a later one.
+    /// </summary>
+    /// <param name="enumerable">The items to search.</param>
+    /// <param name="query">The search query.</param>
+    /// <param name="tiers">
+    ///   The field groups, most important first, e.g. the name, then the tags,
+    ///   then the description; empty or <c>null</c> fields are skipped.
+    /// </param>
+    /// <param name="fuzzy">Whether to also accept fuzzy matches.</param>
+    /// <param name="take">The number of results to take, if limited.</param>
+    /// <param name="skip">The number of results to skip, if any.</param>
+    /// <returns>The matching items, best match first.</returns>
+    public static IEnumerable<SearchResult<T>> Search<T>(this IEnumerable<T> enumerable, string query, IReadOnlyList<Func<T, IEnumerable<string?>>> tiers, bool fuzzy = false, int? take = null, int? skip = null)
+        => SearchCollection(enumerable is ParallelQuery<T> parallel ? parallel : enumerable.AsParallel(), query, tiers, fuzzy, take, skip);
+
+    private static ParallelQuery<SearchResult<T>> SearchCollection<T>(ParallelQuery<T> items, string search, IReadOnlyList<Func<T, IEnumerable<string?>>> tiers, bool fuzzy = false, int? take = null, int? skip = null)
     {
         if (take.HasValue && take.Value <= 0)
             return new List<SearchResult<T>>().AsParallel();
@@ -289,68 +420,78 @@ public static class SeriesSearch
             .Select(t =>
             {
                 SearchResult<T>? best = null;
-                foreach (var title in selector(t))
+                for (var tier = 0; tier < tiers.Count; tier++)
                 {
-                    if (string.IsNullOrWhiteSpace(title))
-                        continue;
+                    // An exact match always outranks one from a later tier.
+                    if (best is { ExactMatch: true })
+                        break;
 
-                    var normalizedTitle = NormalizeForIndex(title);
-                    if (string.IsNullOrWhiteSpace(normalizedTitle))
-                        continue;
-
-                    SearchResult<T> result;
-                    if (!isLatin)
+                    foreach (var title in tiers[tier](t))
                     {
-                        var idx = normalizedTitle.IndexOf(normalizedSearch, StringComparison.Ordinal);
-                        if (idx < 0)
+                        if (string.IsNullOrWhiteSpace(title))
                             continue;
-                        result = new SearchResult<T>
+
+                        var normalizedTitle = NormalizeForIndex(title);
+                        if (string.IsNullOrWhiteSpace(normalizedTitle))
+                            continue;
+
+                        SearchResult<T> result;
+                        if (!isLatin)
                         {
-                            ExactMatch = true,
-                            Index = idx,
-                            Distance = 0,
-                            LengthDifference = Math.Abs(normalizedSearch.Length - normalizedTitle.Length),
-                            Match = title,
-                            Result = t,
-                        };
-                    }
-                    else
-                    {
-                        var containsIdx = normalizedTitle.IndexOf(normalizedSearch, StringComparison.Ordinal);
-                        if (containsIdx >= 0)
-                        {
+                            var idx = normalizedTitle.IndexOf(normalizedSearch, StringComparison.Ordinal);
+                            if (idx < 0)
+                                continue;
                             result = new SearchResult<T>
                             {
                                 ExactMatch = true,
-                                Index = containsIdx,
+                                Index = idx,
                                 Distance = 0,
                                 LengthDifference = Math.Abs(normalizedSearch.Length - normalizedTitle.Length),
                                 Match = title,
                                 Result = t,
-                            };
-                        }
-                        else if (fuzzy && IsLatinScript(normalizedTitle) && TryGetFuzzyDistance(normalizedSearch, normalizedTitle, out var dist))
-                        {
-                            if (dist > maxErrors)
-                                continue;
-                            result = new SearchResult<T>
-                            {
-                                ExactMatch = false,
-                                Index = 0,
-                                Distance = normalizedSearch.Length > 0 ? (double)dist / normalizedSearch.Length : 0,
-                                LengthDifference = Math.Abs(normalizedSearch.Length - normalizedTitle.Length),
-                                Match = title,
-                                Result = t,
+                                Tier = tier,
                             };
                         }
                         else
                         {
-                            continue;
+                            var containsIdx = normalizedTitle.IndexOf(normalizedSearch, StringComparison.Ordinal);
+                            if (containsIdx >= 0)
+                            {
+                                result = new SearchResult<T>
+                                {
+                                    ExactMatch = true,
+                                    Index = containsIdx,
+                                    Distance = 0,
+                                    LengthDifference = Math.Abs(normalizedSearch.Length - normalizedTitle.Length),
+                                    Match = title,
+                                    Result = t,
+                                    Tier = tier,
+                                };
+                            }
+                            else if (fuzzy && IsLatinScript(normalizedTitle) && TryGetFuzzyDistance(normalizedSearch, normalizedTitle, out var dist))
+                            {
+                                if (dist > maxErrors)
+                                    continue;
+                                result = new SearchResult<T>
+                                {
+                                    ExactMatch = false,
+                                    Index = 0,
+                                    Distance = normalizedSearch.Length > 0 ? (double)dist / normalizedSearch.Length : 0,
+                                    LengthDifference = Math.Abs(normalizedSearch.Length - normalizedTitle.Length),
+                                    Match = title,
+                                    Result = t,
+                                    Tier = tier,
+                                };
+                            }
+                            else
+                            {
+                                continue;
+                            }
                         }
-                    }
 
-                    if (result.CompareTo(best) < 0)
-                        best = result;
+                        if (result.CompareTo(best) < 0)
+                            best = result;
+                    }
                 }
 
                 return best;
@@ -594,11 +735,24 @@ public static class SeriesSearch
         var settings = ISettingsProvider.Instance.GetSettings();
         var languages = new HashSet<string> { "en", "x-jat" };
         languages.UnionWith(settings.Language.SeriesTitleLanguageOrder);
-        return series => RepoFactory.AniDB_Anime_Title.GetByAnimeID(series.AniDB_ID)
-            .Where(title => title.TitleType is TitleType.Main || languages.Contains(title.LanguageCode))
-            .Select(title => title.Title)
-            .Append(series.Title)
-            .Distinct();
+        IReadOnlyList<string> TitlesOf(AnimeSeries series)
+            => [
+                .. (series.AniDB_Anime?.Titles ?? [])
+                    .Where(title => title.Type is TitleType.Main || languages.Contains(title.LanguageCode))
+                    .Select(title => title.Value)
+                    .Append(series.Title)
+                    .Distinct(),
+            ];
+
+        // The titles are kept with the series' other texts, so they are read
+        // again only once one of them changes.
+        return series => TextAccess.Current is { } manager
+            ? manager.Remember(((IMetadata)series).ID, TextMemoSlot.SearchTitles, () =>
+            {
+                manager.Record(MetadataTextManager.AnidbAnimeID(series.AniDB_ID));
+                return TitlesOf(series);
+            }, () => TitlesOf(series))
+            : TitlesOf(series);
     }
 
     public class SearchResult<T> : IComparable<SearchResult<T>>
@@ -607,6 +761,13 @@ public static class SeriesSearch
         /// Indicates whether the search result is an exact match to the query.
         /// </summary>
         public bool ExactMatch { get; set; } = false;
+
+        /// <summary>
+        /// The rank of the field group the match was found in, where a lower
+        /// value is a more important group, e.g. a name before a description.
+        /// Only a multi-group search sets it; every other search leaves it at 0.
+        /// </summary>
+        public int Tier { get; set; } = 0;
 
         /// <summary>
         /// Represents the position of the match within the sanitized string.
@@ -639,13 +800,9 @@ public static class SeriesSearch
         public T Result { get; set; } = default!;
 
         /// <summary>
-        /// Compares the current SearchResult instance with another SearchResult instance.
-        /// The comparison is performed in the following order:
-        /// 1. ExactMatch (descending): prioritize exact matches
-        /// 2. Index (ascending): prioritize matches that occur earlier in the string
-        /// 3. Distance (ascending): prioritize matches with smaller similarity distances
-        /// 4. LengthDifference (ascending): prioritize matches with a more similar length to the query
-        /// 5. Match (ascending): prioritize matches based on their lexicographic order
+        /// Compares the current SearchResult instance with another SearchResult instance, by
+        /// ExactMatch (exact first), then ascending Tier, Index, Distance, LengthDifference and
+        /// Match.
         /// </summary>
         /// <param name="other">The SearchResult instance to compare with the current instance.</param>
         /// <returns>A negative, zero, or positive integer indicating the relative order of the objects being compared.</returns>
@@ -667,6 +824,10 @@ public static class SeriesSearch
             if (exactMatchComparison != 0)
                 return exactMatchComparison;
 
+            var tierComparison = Tier.CompareTo(other.Tier);
+            if (tierComparison != 0)
+                return tierComparison;
+
             var indexComparison = Index.CompareTo(other.Index);
             if (indexComparison != 0)
                 return indexComparison;
@@ -686,6 +847,7 @@ public static class SeriesSearch
             => new()
             {
                 ExactMatch = ExactMatch,
+                Tier = Tier,
                 Index = Index,
                 Distance = Distance,
                 LengthDifference = LengthDifference,

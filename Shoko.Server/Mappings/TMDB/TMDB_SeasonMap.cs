@@ -17,6 +17,8 @@ public class TMDB_SeasonMap : ClassMap<TMDB_Season>
         Map(x => x.PosterPath).Nullable();
         Map(x => x.EnglishTitle).Not.Nullable();
         Map(x => x.EnglishOverview).Not.Nullable();
+        Map(x => x.EnglishTitleListed).Not.Nullable();
+        Map(x => x.EnglishOverviewListed).Not.Nullable();
         Map(x => x.EpisodeCount).Not.Nullable();
         Map(x => x.HiddenEpisodeCount).Not.Nullable();
         Map(x => x.SeasonNumber).Not.Nullable();

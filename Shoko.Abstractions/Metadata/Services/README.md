@@ -1,297 +1,108 @@
 # Metadata Services
 
-This folder holds six interfaces. One of them,
-`ISupplementaryMetadataProvider`, is an extension point your plugin
-implements. The other five are implemented by the server and called by you.
+Every interface here is implemented by the server and called by you.
 
-| Interface | Use it to | You |
-|---|---|---|
-| `ISupplementaryMetadataProvider` | React when AniDB data for an anime is confirmed or refreshed | implement |
-| `ISupplementaryMetadataService` | Dispatch that reaction to every registered provider | consume |
-| `IMetadataService` | Look up series, episodes, seasons, movies, groups and custom tags, and subscribe to metadata events | consume |
-| `IShokoGroupManager` | Create, name, nest and delete groups, and move series between them | consume |
-| `IImageManager` | Read, add, link and download images | consume |
-| `IAiringScheduleService` | Read and write broadcast schedules | consume |
-
-The lists an entity carries about other entities, its relations and the
-suggestions a provider's users make from it, are on their own page,
-[`../README.md`](../README.md).
-
-Three of these have most of their surface documented elsewhere, and this page
-does not repeat it. `IAiringScheduleService` has its own page,
-[`../Airing/README.md`](../Airing/README.md), covering the service and the two
-contracts that feed it. The resolver half of `IImageManager` is in
-[`../Image/CrossReferences/README.md`](../Image/CrossReferences/README.md), and
-the resolver half of `IMetadataService` is in
-[`../Resources/README.md`](../Resources/README.md). What follows is the
-consumer side of the last two.
-
-## Getting hold of one
-
-Every service here is registered as a singleton in `SystemService` before
-plugins are constructed, so plain constructor injection works in a service you
-register yourself, in a queue job and in a controller. The class implementing
-`IPlugin` is the exception: it must keep a parameterless constructor, and takes
-these in `IPlugin.Setup` instead.
-
-```csharp
-public class MyLibraryService(
-    IMetadataService metadataService,
-    IShokoGroupManager groupManager,
-    IImageManager imageManager
-)
-{
-    public IShokoSeries? Find(int anidbAnimeID)
-        => metadataService.GetShokoSeriesByAnidbID(anidbAnimeID);
-}
-```
-
-Each of the three is also handed, once during start-up, the contract
-implementations `PluginManager` discovered in your assembly. There is nothing
-for you to call.
-
----
-
-# `ISupplementaryMetadataProvider`
-
-`ISupplementaryMetadataProvider` is a single callback with a single question
-behind it: *AniDB just told us about anime N, who else wants to know?*
-
-It is not a metadata provider in the usual sense. It returns nothing, it is
-never asked for titles, images or episodes, and core never reads anything back
-out of it. It is a hook at one specific moment in the import pipeline, and the
-thing an implementation does with that moment is normally to enqueue a job.
-
-TMDB and AniList ship as implementations, and both do exactly that: look up
-whether this anime already has a link, and schedule either a search or a
-refresh.
-
-## When core calls it
-
-`SupplementaryMetadataService` holds the registered providers and dispatches to
-them. Core reaches it through `ISupplementaryMetadataService`, from three
-places:
-
-| Caller | Call | Situation |
-|---|---|---|
-| `AnidbService.CreateAnimeSeriesAndGroup` | `ScheduleForAnime(animeID, isNew: true)` | An `AnimeSeries` was just created for an anime that had none. |
-| `AnidbService`, after the refresh pass | `ScheduleForAnime(animeID, isNew: false)` | AniDB data for the anime was confirmed or refreshed. |
-| `AnimeMetadataOrchestrator` | `ScheduleForAnimes(animeIDs, isNew: false)` | A release was saved that links files to these anime. Runs whether or not their AniDB data is cached yet; a missing anime only has its refresh queued. |
-
-The two `AnidbService` calls are gated on one flag. `AnidbRefreshMethod.SkipSupplementaryUpdate`,
-surfaced as `SkipSupplementaryUpdate` on `GetAniDBAnimeJob` and
-`GetRemoteAniDBAnimeJob`, suppresses both of them. The orchestrator's call is
-not gated, so an anime can reach you from a saved release before AniDB has
-told core anything about it. Core sets it
-for refreshes that are not about new content: database fixups, bulk re-reads
-from the XML cache, and the AniDB-only refresh paths in `ActionService`. A
-provider never sees those.
-
-### A new anime gets two calls, not one
-
-The two `ScheduleForAnime` calls above sit in the same execution path, both
-behind the same flag. For an anime Shoko has never seen, the first fires from
-inside series creation with `isNew: true`, and the second fires later in the
-same pass with `isNew: false`. Both are real, both reach every provider, and
-neither is a bug.
-
-The shipping providers survive this because they enqueue through
-`IQueueScheduler.RunAfterCurrent`, and the queue deduplicates by job key: the
-second call builds the same key as the first and collapses into it. If your
-provider does anything other than enqueue a keyed job, it has to be idempotent
-per anime by itself.
-
-### `isNew: true` is earlier than it looks
-
-The `isNew: true` call happens inside `CreateAnimeSeriesAndGroup`, immediately
-after the `AnimeSeries` row is saved and **before** `CreateAnimeEpisodes` runs.
-At that moment the series exists, its group exists, and it has no
-`AnimeEpisode` records at all. Treat `isNew: true` as "the series row now
-exists", not as "the series is ready to read". Anything that needs episodes
-belongs on the `isNew: false` call, or in the job you enqueue, which runs after
-the current one finishes.
-
-## Implementing one
-
-```csharp
-public class MySupplementaryProvider(
-    IQueueScheduler scheduler,
-    MyLinkRepository linkRepository
-) : ISupplementaryMetadataProvider
-{
-    public string Name => "MyProvider";
-
-    public async Task ScheduleForAnime(int anidbAnimeID, bool isNew)
-    {
-        // No link yet: let the search job find one.
-        var links = linkRepository.GetByAnidbAnimeID(anidbAnimeID);
-        if (links.Count == 0)
-        {
-            await scheduler.RunAfterCurrent<SearchMyProviderJob>(job => job.AnimeID = anidbAnimeID);
-            return;
-        }
-
-        // Already linked: refresh what it points at.
-        foreach (var link in links)
-            await scheduler.RunAfterCurrent<UpdateMyProviderJob>(job =>
-            {
-                job.RemoteID = link.RemoteID;
-                job.DownloadImages = true;
-            });
-    }
-}
-```
-
-That is the whole shape, and it is close to line-for-line what
-`TmdbSupplementaryProvider` and `AnilistSupplementaryProvider` do.
-
-### Required versus defaulted
-
-| Member | |
+| Interface | Use it to |
 |---|---|
-| `Name` | Required. A display name. Nothing dispatches on it. |
-| `ScheduleForAnime(int anidbAnimeID, bool isNew)` | Required. The only call core makes. |
-| `Description` | Defaults to `null`. |
-| `Version` | Defaults to your assembly version. |
-| `OnSeriesRemoved(int anidbAnimeID)` | Defaults to a completed task. See below. |
+| `IMetadataService` | Look up entries of any source, Shoko's series, episodes and groups, and custom tags, and subscribe to metadata events |
+| `IShokoGroupManager` | Create, name, nest and delete groups, and move series between them |
+| `IImageManager` | Read, add, link and download images |
+| `IAiringScheduleService` | Read and write broadcast schedules ([`../Airing/README.md`](../Airing/README.md)) |
+| `IMetadataTextManager` | Keep, choose and gather the titles and overviews of any entry |
+| `IMetadataProviderManager` | See which provider answers for which source, and which sources are reserved |
+| `IMetadataImageContributorManager` | List the image contributors and turn each one on or off per source and kind |
+| `IMetadataLinkingService` | Make, break and correct links between Shoko entries and a source's, one at a time or in bulk |
+| `IMetadataRefreshService` | Ask the providers to refresh entries, download their images and auto-search, and read why a source is paused |
+| `IMetadataPurgeService` | Purge a source's entries, unused entries, collections and orphaned people, studios and networks |
+| `IMetadataCrossReferenceTransferService` | Export a source's links to CSV and import them back |
+| `IMetadataMatchingEngine` | Judge how well a source's data lines up with AniDB's |
+| `IMetadataOrderingService` | Read and keep the orderings of any source's series, choose the one each series uses, and hide episodes |
+| `IMetadataOrderingTransferService` | Export orderings with their images and import them back as local orderings |
 
-There is no priority, no enabled flag and no per-provider settings page.
-`ISupplementaryMetadataProvider<TConfiguration>` and its
-`ISupplementaryMetadataProviderConfiguration` marker exist in the abstractions,
-but nothing in the server reflects over them the way `VideoReleaseService` does
-for `IReleaseInfoProvider<>`, so implementing the typed variant currently gets
-you no configuration UI. Use a `ConfigurationProvider<T>` injected into the
-constructor instead.
+This page covers how the services behave together; each member's doc comment
+is the reference. Relations and suggestions are in
+[`../README.md`](../README.md), the provider side of refreshing, linking and
+storing in [`../Providers/README.md`](../Providers/README.md), and the typed
+stores sit next to their records in [`../Storage/`](../Storage/). The resolver
+halves of `IImageManager` and `IMetadataService` have their own pages:
+[`../Image/CrossReferences/README.md`](../Image/CrossReferences/README.md) and
+[`../Resources/README.md`](../Resources/README.md).
 
-### `OnSeriesRemoved` has no caller today
-
-`ISupplementaryMetadataService.OnSeriesRemoved` is implemented and fans out to
-every provider, and `AnilistSupplementaryProvider` overrides it to drop its
-links. But nothing in `Shoko.Server` calls the service method, so as of this
-writing the hook never fires. Implement it if cleaning up after a removed series
-is cheap to express, and do not rely on it running.
-
-## Registering it
-
-Usually you don't. `PluginManager.GetExports<ISupplementaryMetadataProvider>()`
-finds the type in your assembly, constructs it with constructor injection and
-hands it to the supplementary metadata service, which holds it for the life of
-the process. Register the **concrete type** as a singleton only when your own
-code resolves the provider, and never register it under the
-`ISupplementaryMetadataProvider` interface.
-
-The full rule, and why the interface registration is actively harmful, is in the
-[abstractions README](../../README.md).
-
-## Mistakes that are easy to make
-
-- **Doing the work instead of scheduling it.** The method is called
-  `ScheduleForAnime` for a reason. Providers are awaited one after another, in
-  registration order, inline in the middle of the AniDB job that triggered them.
-  Time spent here is time the AniDB job is not finishing, and it is multiplied
-  by every provider and every anime in a batch. Enqueue and return.
-- **Throwing.** `SupplementaryMetadataService` loops the providers with no
-  try/catch. An exception from one provider skips every provider after it and
-  propagates into the AniDB job that called it. Catch your own failures, log
-  them, and return.
-- **Treating `isNew` as "this is the only call".** See above: a genuinely new
-  anime produces one `true` call and one `false` call. `isNew` answers "did an
-  `AnimeSeries` exist before this call", nothing more.
-- **Reading episodes on the `isNew: true` call.** They do not exist yet.
-- **Assuming a refresh means something changed.** The `isNew: false` call fires
-  on a completed refresh pass whether or not any field actually moved. If your
-  provider only wants to act on real changes, subscribe to the metadata events
-  instead, or make the job you enqueue decide.
-- **Expecting to be called for every AniDB read.** `SkipSupplementaryUpdate` is
-  set on a good number of internal refresh paths, and a provider that treats
-  `ScheduleForAnime` as its only trigger will have gaps. A recurring sweep job
-  of your own, registered through `RecurringJobRegistry`, is the usual way to
-  cover them.
-
-## `ISupplementaryMetadataService`
-
-The dispatcher side, and the only reason to inject it is to trigger the fan-out
-yourself, for an anime your own code just linked or re-read. It has three
-methods, `ScheduleForAnime`, `ScheduleForAnimes` and `OnSeriesRemoved`, each
-awaiting every registered provider in turn. `ScheduleForAnimes` is a loop over
-`ScheduleForAnime`, so a batch of 500 anime is 500 sequential passes over every
-provider, not one.
-
-It exposes no list of registered providers and no way to call just one.
+Every service is a singleton registered before plugins are constructed, so
+constructor injection works in your services, queue jobs and controllers. The
+class implementing `IPlugin` keeps a parameterless constructor and takes them
+in `IPlugin.Setup` instead.
 
 ---
 
 # `IMetadataService`
 
-The main entry point into library metadata. If a plugin needs to turn an ID into
-a series, walk the collection, or hear that something changed, this is the
-service it injects.
-
 ## Looking things up
 
-The shoko-side lookups return Shoko's own wrappers, and are what most plugin
-code wants:
+The Shoko lookups return Shoko's own wrappers and are what most plugin code
+wants: `GetShokoSeriesByID`, `GetShokoSeriesByAnidbID`, `GetShokoEpisodeByID`,
+`GetShokoEpisodeByAnidbID`, `GetShokoGroupByID` and the `GetAllShoko…`
+enumerations.
 
-| Call | Returns |
-|---|---|
-| `GetAllShokoSeries()`, `GetShokoSeriesByID(int)`, `GetShokoSeriesByAnidbID(int)` | `IShokoSeries` |
-| `GetAllShokoEpisodes()`, `GetShokoEpisodeByID(int)`, `GetShokoEpisodeByAnidbID(int)` | `IShokoEpisode` |
-| `GetAllShokoGroups()`, `GetShokoGroupByID(int)` | `IShokoGroup` |
+Everything else takes a `MetadataGuid`. `GetEntry(id)` answers any kind;
+`GetEntry<TMetadata>(id)` only when the entry is a `TMetadata`. `GetSeries`,
+`GetSeason`, `GetEpisode`, `GetMovie` and `GetCollection` are the typed forms,
+and `MetadataServiceExtensions` adds overloads taking a source and an `int`
+(`metadataService.GetEpisode(MetadataSource.AniDB, 1)`). What each source
+answers, by kind:
 
-The provider-side lookups take an `IMetadataService.ProviderName` and hand back
-the raw per-provider record behind it:
+| Kind | `shoko` | `user` | `anidb` | `tmdb` | Any plugin source |
+|---|---|---|---|---|---|
+| `series` | `AnimeSeries` | | `AniDB_Anime` | TMDB's show | the series store |
+| `season` | a Shoko season | a group of a user's ordering | an AniDB season | TMDB's season, or an alternate ordering's | the series store, then a group of a stored ordering |
+| `episode` | `AnimeEpisode` | | `AniDB_Episode` | TMDB's episode | the series store |
+| `movie` | | | | TMDB's movie | the movie store |
+| `collection` | `AnimeGroup` | | | TMDB's collection | the collection store |
+| `ordering` | the default | a user's ordering | the default | the default, or an alternate ordering | a stored ordering, or the default |
+| `creator` | | | AniDB's creator | TMDB's person | the people store |
+| `character` | | | AniDB's character | | the people store |
+| `studio` | | | AniDB's creator, as a studio | TMDB's company | the studio store |
+| `network` | | | | TMDB's network | the studio store |
+| `tag` | | a custom tag | AniDB's tag | a genre or keyword | the tag store |
+| `video` | `VideoLocal` | | | | |
+| `user` | `JMMUser` | | | | |
+| `filter` | `FilterPreset` | | | | |
+| `channel` | an airing channel | | | | |
+| any other | | | | | the plugin's `IMetadataResolver`, if one took it |
 
-| Call | `Shoko` | `AniDB` | `TMDB` |
-|---|---|---|---|
-| `GetAllSeriesForProvider`, `GetSeriesByProviderID` | `AnimeSeries` | `AniDB_Anime` | `TMDB_Show` |
-| `GetAllEpisodesForProvider`, `GetEpisodeByProviderID` | `AnimeEpisode` | `AniDB_Episode` | `TMDB_Episode` |
-| `GetAllMoviesForProvider`, `GetMovieByProviderID` | nothing | nothing | `TMDB_Movie` |
-| `GetAllSeasonsForProvider`, `GetSeasonByProviderID` | nothing | nothing | `TMDB_Season` |
-| `GetAllCollectionsForProvider`, `GetCollectionByProviderID` | `AnimeGroup` | nothing | `TMDB_Collection` |
+A blank cell answers nothing, and `generated` answers nothing at all. For a
+plugin source the resolver that took the ID's source and kind is asked first
+and the stores answer when it returns `null`
+([resolving your own kinds](../Providers/README.md#resolving-your-own-kinds)).
+No provider is ever asked, so a disabled or removed plugin's stored entries
+still read. "Nothing" is `null` or an empty sequence, never an exception.
 
-"Nothing" means an empty sequence or `null`, not an exception: those pairs are
-answered, because the concept does not exist for that provider. Every `int`
-lookup here also returns `null` for an ID of zero or less without touching a
-repository, so an unset ID is safe to pass. A `ProviderName` outside the three
-values, which you can only produce by casting, throws
-`ArgumentOutOfRangeException`.
+Some IDs are shaped rather than numbered: a Shoko or AniDB season is
+`<series ID>:<episode type>:<season number>` (found but not enumerated), a
+video `<ED2K>+<file size>`, a TMDB genre or keyword `genre/<name>` or
+`keyword/<name>` (hashed when too long), and an airing channel its GUID. Cast
+and crew credits, cross-references and search results are not entries; a
+cross-reference carries the ID of the entry it points at.
 
-`GetSeasonByProviderID` is the odd one out: its `providerID` is a `string`,
-because a TMDB season is either a numeric season ID or the 24-character hex ID
-of an episode group used for an alternate ordering. The implementation matches
-`^(?:[0-9]{1,23}|[a-f0-9]{24})$` and routes on length, and anything else returns
-`null`. `GetAllSeasonsForProvider(TMDB, includeAlternativeSeasons: true)`
-concatenates real seasons with alternate-ordering ones; the default is real
-seasons only.
-
-### `ProviderName` has three values, and AniList is not one of them
-
-`IMetadataService.ProviderName` is `Shoko`, `AniDB` and `TMDB`. The wider
-`DataSource` enum used everywhere else in the abstractions has fourteen more,
-AniList among them, and AniList metadata does ship in core. None of it is
-reachable through these lookups. Go through
-[`../Anilist/Services/README.md`](../Anilist/Services/README.md) instead, and
-read `IShokoSeries` for the links between the two.
+`GetCollectionsWith` answers the stored collections a series, movie or group
+is in. `GetAllSeasonsForSource(TMDB, includeAlternativeSeasons: true)` adds
+TMDB's alternate-ordering seasons to its real ones.
 
 ## Events
 
-Twelve events, in four families: `Movie`, `Episode`, `Season` and `Series`, each
-with `…Added`, `…Updated` and `…Removed`. They are relays of the server's
-internal update events, split on `UpdateReason`: `Added` and `Removed` go to
-their own event and **everything else**, including reasons you might not think
-of as an update, goes to `…Updated`.
+`Series…`, `Season…`, `Episode…` and `Movie…`, each with `Added`, `Updated`
+and `Removed`. `Added` and `Removed` get their own event and every other
+`UpdateReason` arrives as `…Updated`. A store write raises them for what
+changed, provider refreshes included; providers raise nothing themselves.
 
-The payload is provider-agnostic. `SeriesInfoUpdatedEventArgs.SeriesInfo` is an
-`ISeries`, which may be an `AnimeSeries`, an `AniDB_Anime`, a `TMDB_Show` or an
-`Anilist_Anime`, so check `SeriesInfo.Source` before assuming. It also carries
-`Seasons` and `Episodes`, the nested event args for whatever moved along with
-the series, which is how you avoid subscribing to three events to learn one
-thing.
-
-There are no group events here. Those live on `IShokoGroupManager`.
+The payload is provider-agnostic: `SeriesInfoUpdatedEventArgs.SeriesInfo` is
+an `ISeries` of any source, so check `SeriesInfo.Source`. It also carries the
+nested `Seasons` and `Episodes` that changed with it, and `Actor`, the API
+token the change was made for (from `IActorContext`), or `null` for the
+system. Group events live on `IShokoGroupManager`.
 
 ```csharp
-public class MyWatcher(IMetadataService metadataService) : IHostedService
+public class MyWatcher(IMetadataService metadataService, ILogger<MyWatcher> logger) : IHostedService
 {
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -313,447 +124,521 @@ public class MyWatcher(IMetadataService metadataService) : IHostedService
 }
 ```
 
-Subscribe and unsubscribe from a hosted service, not from your `IPlugin` class.
-The reasons are in the [abstractions README](../../README.md).
+Subscribe from a hosted service, not from your `IPlugin` class; see the
+[abstractions README](../../README.md).
 
 ## Custom tags
 
-`GetAllCustomTags`, `GetCustomTagByID`, `CreateCustomTag`, `UpdateCustomTag` and
-`DeleteCustomTag` manage the tag itself; `AddCustomTagsToSeries`,
-`RemoveCustomTagsFromSeries` and `ClearCustomTagsForSeries` manage the links.
-The three link methods return `true` when something actually changed and
-`false` when the call was a no-op, and they throw `ArgumentException` if any
-tag in the list is not one the server knows about.
+`GetAllCustomTags`, `GetCustomTagByID`, `CreateCustomTag`, `UpdateCustomTag`
+and `DeleteCustomTag` manage the tags; `AddCustomTagsToSeries`,
+`RemoveCustomTagsFromSeries` and `ClearCustomTagsForSeries` manage the links
+and return whether anything changed. Names are unique (`DuplicateNameException`
+on a clash), and the links are keyed by AniDB anime ID, so they survive a
+series being removed and re-added.
 
-Tag names are unique. `CreateCustomTag` throws `DuplicateNameException` (from
-`System.Data`) when the name is taken, and `UpdateCustomTag` throws the same
-when a rename collides. The links are keyed by AniDB anime ID, not by shoko
-series ID, so they survive a series being removed and re-added.
+## Resources
 
-## Contributing resources
+`GatherResourcesForEntity(entity)` runs every `IResourceResolver` over an
+entity. Entities call it from their own `Resources` getter, so a plugin rarely
+does; see [`../Resources/README.md`](../Resources/README.md).
 
-`GatherResourcesForEntity(entity)` is the read side of the resource system: it
-runs every registered `IResourceResolver` over the entity and returns what they
-contributed. Entities call it themselves from their `Resources` getter, so a
-plugin rarely calls it directly. Writing a resolver, what an entity does with
-the result, and the re-entrance guard are all in
-[`../Resources/README.md`](../Resources/README.md).
+---
 
-`ResourceResolvers` exposes the registered resolvers.
+# Refreshing, purging and linking
+
+`IMetadataRefreshService` queues the providers' jobs, TMDB's among them:
+`RefreshEntry` (one series, film or collection), `RefreshForAnime` and
+`RefreshAllLinked`, the image jobs (`DownloadImages`, `DownloadImagesForAnime`,
+`DownloadAllImages`) and the auto-linker's searches (`AutoSearch`,
+`AutoSearchAll`). A force flag skips the hour-long freshness window, and
+`MetadataRefreshOptions` carries TMDB's switches. `IsRefreshing` and
+`WaitForRefresh` let a reader avoid handing back a copy that is about to
+change. `GetPauseStatus` and `PauseStatusChanged` say why a source cannot take
+work.
+
+`IMetadataPurgeService` queues the core's purge job: `PurgeEntry`,
+`PurgeUnused` (entries nothing links to, optionally by age or kind),
+`PurgeCollections` and `PurgeOrphaned` (unused people, studios and networks).
+The core runs `PurgeUnused` and `PurgeOrphaned` daily as scheduled actions, by
+the admin's settings (two weeks and a week unless changed). A purged series
+takes every ordering of it along. Keep any cutoff you pass a day or more in
+the past, since a running refresh may have saved something it has not used
+yet.
+
+`IMetadataCrossReferenceTransferService` writes a source's links as CSV in the
+format TMDB's export always used, and reads them back. An import reads every
+line before writing, so a bad line changes nothing.
+
+## Linking
+
+`IMetadataLinkingService` writes links for every source, TMDB included, with
+the checks and follow-ups a person's change needs. The store's `Merge…Links`
+methods write links without any of them.
+
+- **Adding.** `AddSeriesLink` also matches the anime's episodes to the series
+  and saves them, keeping the episode links already there. Adding and matching
+  need a provider enabled for the kind, and throw `NotSupportedException`
+  otherwise; every removal works regardless.
+- **Removing.** `RemoveSeriesLink`, `RemoveMovieLink` and the bulk
+  `RemoveAllLinks`, `RemoveLinksForAnime`, `RemoveLinksForEpisode` and
+  `RemoveLinksTo` can queue a purge of what the links pointed at. A request
+  with `DisableAutoLinking` sets the anime's veto on the source;
+  `ResetAutoLinkingState` sets or lifts it for every anime. Removing an
+  anime's last series link also takes the episode links naming no series.
+- **Auto-linking.** `PreviewAutoLink` hands back every candidate the source's
+  auto-linker scored, each one turned down saying why (the core's own
+  refusals included). `AutoLink` queues the search that links the ones taken.
+  The entries the anime's AniDB resources name (`AnidbResource`) and those its
+  links on other sources name (`CrossSourceLink`, from `GetCrossSourceHints`)
+  are hints: one at most is taken, only where the search took nothing it
+  outranks, and never as `UserVerified`. The matching engine also lines up a
+  season's episodes by air date when a candidate carries them
+  (`MetadataSearchResultSeason.Episodes`); see `IMetadataMatchingEngine`.
+- **Verifying.** `SetMatchRating` changes only the rating of links as read
+  from the store, keeping their place, writer, season and numbers. The
+  `…SourceLinks` filter expressions find series whose links still need a
+  look ([`../../Filtering/Services/README.md`](../../Filtering/Services/README.md)).
+- **Episodes.** `MatchEpisodes` asks the source's provider and previews
+  unless told to save; a saved result replaces the links of each episode it
+  names. `ResetEpisodeLinks` clears an anime's episode links, or with
+  `allowAutoMatch: false` leaves each deliberately linked to nothing.
+
+No linking call queues a refresh. The caller asks
+`IMetadataRefreshService.RefreshEntry` when the entry is not stored yet or a
+person asked for one. The core's search job is the exception: it refreshes
+what it linked. Every change to an anime's links drops what its series cached
+about its titles and overview.
+
+`LinksChanged` is raised once per write that added, removed, replaced or
+re-rated links, through this service or straight through
+`IMetadataCrossReferenceStore`. Each `MetadataLinkChange` names the source,
+level, AniDB anime and episode, the entry (and the one it replaced) and the
+rating before and after; `MetadataLinkChangeReason` says why, and `Actor` who
+for. Reordering links and syncing an episode link's season and numbers raise
+nothing. SignalR clients of the `metadata` feed get it as `links.changed`.
+
+```csharp
+linkingService.LinksChanged += (_, eventArgs) =>
+{
+    foreach (var change in eventArgs.Changes.Where(change => change.Source == mySource))
+        logger.LogInformation("{Kind} {Entry} on AniDB anime {AnimeID} ({Reason})", change.Kind, change.ProviderID, change.AnidbAnimeID, eventArgs.Reason);
+};
+```
+
+`ITmdbLinkingService` is a shim over this service; see
+[`../Tmdb/Services/README.md`](../Tmdb/Services/README.md).
+
+---
+
+# `IMetadataTextManager`
+
+Every stored title and overview belongs to one entry (by `MetadataGuid`) and
+to the source that wrote it, in two tables held in memory. A source's own
+default, such as TMDB's English title, stays on the entry's row and is read
+beside them (`IText.IsInlineDefault`).
+
+## Who writes what
+
+The manager checks no source; the conventions are:
+
+- A provider writes its own entries' texts under its source with `SetTitles`
+  and `SetOverviews`, each call replacing that source's texts on the entry. A
+  text that stays keeps its ID, so a user's picks on it stay too.
+- A plugin may add texts under its own source to any entry.
+  `GetContributedTitles` and `GetContributedOverviews` list them, and
+  `RemoveContributions` takes a source's additions off every entry but its own.
+- `user` holds what a person picked or typed (`AddText`, `UpdateText`,
+  `EnableText`, `SetPreferredTitle`, `SetPreferredOverview` and the unsetting
+  members); `shoko` is for text the core makes.
+
+## A user's picks
+
+A disabled text is kept, so a refresh does not bring it back, but it is not
+listed by default or chosen. `TextPreference.Overall` beats every other text
+of the entry; `TextPreference.Language` wins once the language order reaches
+its language. Picking something that is not a stored text of the entry (the
+row's default, another entry's text, a typed value) stores a `user` copy; a
+copy of another stored text follows it through `ReferenceID` and goes when it
+goes.
+
+## How a text is chosen
+
+One chooser serves every entry and `ChoosePreferredTitle`:
+
+1. A user's overall pick.
+2. Language by language: a user's pick for that language, then the sources in
+   their order. `x-main` reads each source's main title. For an entry whose
+   texts the store keeps, `user` texts come after the ranked sources, and an
+   unranked own source is read between the two. A text in a lower language
+   never beats the entry's own in a higher one.
+3. For episodes, real titles in every preferred language before generic ones
+   such as `Episode 5` or `第5話`.
+4. When the own source is ranked and nothing was found, its own titles by the
+   rule in step 2.
+5. The entry's default.
+6. For an episode with no title at all, a generic title made up in the first
+   preferred language that has a form for it (`ITitle.IsSynthesized`), never
+   stored.
+
+Overviews follow steps 1, 2, 4 and 5.
+
+## Entries of each source
+
+- **Plugin sources.** Series, seasons, episodes, films, collections, creators
+  and characters read their texts through the manager. `PreferredTitle` is
+  steps 1 to 4, else `null`, so `Title` falls back on the default. A person's
+  `AlternativeNames` are the titles its source stored. Tags, studios, networks
+  and orderings keep their name on their own rows.
+- **TMDB.** The English title and overview stay on the row; the translations
+  are stored under `tmdb`. The row's English title answers `x-main`, and
+  English only where TMDB listed it.
+- **AniDB.** An anime's and episode's titles are stored under `anidb`; an
+  episode with no English title is named by its generic title, made up when
+  read. Descriptions and the names of characters, creators and tags stay on
+  their rows. The names the core gives the tags it renames are `shoko` titles.
+- **Shoko.** A name a user gives a series, episode or group is its `user`
+  text preferred overall. Otherwise a series or episode reads its texts from
+  AniDB, from the entries it is linked to and from plugin contributions, and a
+  group reads its main series' (`IShokoGroup.HasCustomTitle`,
+  `HasCustomOverview`).
+
+## When a choice is worked out again
+
+The manager caches what it chose until something it read changes: a text
+written through the manager or a store, a row saved by its store, a link
+added or removed, a series moved between groups, or the language settings. A
+provider that saves an entry's row any other way calls `Invalidate`.
+
+## Managing texts
+
+A text is named by its kind and its `ID` (`GetTitleByID`, `GetOverviewByID`)
+and says which entry owns it (`EntityID`). `GetAllTexts` lists stored texts by
+filter; `GetTitles` and `GetOverviews` list what an entry is chosen from, the
+row's default first and a Shoko entry's linked entries included;
+`GetOrphanedEntries`, `PurgeOrphanedTexts` and `RemoveTexts` clean up. A
+default kept on a row has no ID: it can be picked (which stores a copy) but
+not changed, disabled or removed. `/api/v3/Text/Management` offers the same
+to admins, with which chooser step picked an entry's text.
+
+## Titles and overviews from linked films
+
+For a Shoko series, a source answers with what was contributed under it, then
+with one linked entry:
+
+- **Series links.** The one stored series the anime is linked to. The
+  overview is the part the anime covers: the season it starts in, or its one
+  linked episode when it covers only specials.
+- **Film links.** Only normal episodes count. When all are linked to the same
+  film, that film speaks; when all are linked to films of one collection, the
+  collection speaks. Anything else says nothing.
+- **Older film entries.** When every normal episode is named for the whole
+  work (`Complete Movie`, `OVA`, `TV Special`) or a part of it
+  (`Part 1 of 2`), with at least one whole, the whole episode's film speaks.
+  Without a linked whole episode, the linked parts follow the film rule above.
+
+A movie, web release or TV special tries its film links first, every other
+type its series links first; the second side speaks only when the first has
+no entry, and titles and overview come from the same side. When neither has
+an entry, the next source in the order answers.
+
+An episode reads the first stored episode it is linked to, else its one film.
+A film shared by several episodes of one anime speaks only for an episode
+AniDB gave a stand-in name, keeping the label: `Part 1 of 2` becomes
+`Vampire Hunter D (Part 1 of 2)`. The stand-in names are AniDB's English
+`Complete <type>`, `Movie`, `OVA`, `OAD`, `ONA` and `TV Special`; `Part <n>`,
+`Part <n> of <m>`, `Part I`; and `Episode <n>`, `Volume <n>` and the like, each
+optionally ending in `(Part <n>)` or `(<name> Version)`.
+
+---
+
+# `IMetadataOrderingService`
+
+An ordering groups a series' episodes in viewing order, such as a DVD or arc
+order. `ISeries.Orderings`, `ISeries.PreferredOrdering`, `IEpisode.Orderings`
+and `IEpisode.PreferredOrdering` read through this service, so most code only
+calls it to write.
+
+| Kind | Made by | IDs | `Type` |
+|---|---|---|---|
+| Default | The core, from the series' own seasons; never stored | the series' ID for a core source (`tmdb://ordering/1396`), `default/<series ID>` for a plugin's | `Default` |
+| Global | A plugin, through `SaveOrdering` | the plugin's own, under its source | anything but `Default` and `User` |
+| Local | A user, through `CreateLocalOrdering` | given by the core, under `user` | `User` |
+
+A group is an `ISeason` whose `OrderingID` names its ordering, so group IDs
+share the season namespace of their source; keep them apart from season IDs.
+At most one group is special (`IsSpecial`). Nobody sets numbers; an episode's
+place is an `IEpisodeOrderingInformation`:
+
+| Ordering | `SeasonNumber` | `EpisodeNumber` | `EpisodeType` |
+|---|---|---|---|
+| Default | the episode's own season | the episode's own number | the episode's own type |
+| Stored | `0` for the special group, else the group's place, from 1 | the place in the group, from 1 | `Special` in the special group, else `Episode` |
+| TMDB's episode groups | TMDB's order of the group; `0` is special | the place in the group, from 1 | `Special` in order `0`, else `Episode` |
+
+So read `EpisodeType` on the place, not `IEpisode.Type`, when an ordering is
+in use. An episode placed in two groups has two places.
+
+`SaveOrdering` replaces a global ordering whole and is refused under a core
+source, for a `default/` ID, for a group ID another ordering holds, for an
+episode of another series and for a second special group.
+`CreateLocalOrdering`, `UpdateLocalOrdering` and `DeleteLocalOrdering` keep
+the users' own. An ordering follows its series: purging or deleting a series,
+of any source, removes every ordering of it with the choice of one and the
+hidden flags of its episodes.
+
+`SetPreferredOrdering` chooses the ordering a series uses (`null` for the
+default), and `SetEpisodeHidden` hides an episode. Both are kept on the
+entry's own row (Shoko series or episode, AniDB anime or episode, TMDB show or
+episode, or the plugin's in the series store, whose saves keep them), so an
+entry only a resolver serves can have neither. When a refresh finds that TMDB
+dropped the episode group a show chose, the show goes back to its default.
+
+TMDB's episode groups read as orderings of their shows,
+`tmdb://ordering/<collection ID>`, whose groups keep their season IDs;
+`ITmdbShow.TmdbOrderings` lists only those. An ordering carries images like
+any entry, but `IImageManager` links images only to users' and plugins'
+stored orderings and their groups, never to a default ordering or one a core
+source keeps.
+
+---
+
+# `IMetadataOrderingTransferService`
+
+`Export` writes orderings of one series or many, and `Import` reads them back
+as local orderings; APIv3 exposes both to admins
+(`Shoko.Server/API/v3/Orderings.md`). The file is JSON, alone or as
+`manifest.json` in a zip beside the images it embeds:
+
+```json
+{
+  "format": "shoko-orderings",
+  "version": 1,
+  "exportedAt": "2026-09-26T09:00:00Z",
+  "server": { "version": "5.3.0" },
+  "orderings": [
+    {
+      "series": { "anidbAnimeId": 69, "title": "One Piece" },
+      "origin": "user://ordering/1f0c…",
+      "name": "Arcs",
+      "type": "user",
+      "isPreferred": true,
+      "images": [],
+      "groups": [
+        {
+          "name": "East Blue",
+          "isSpecial": false,
+          "episodes": [{ "anidbAnimeId": 69, "anidbEpisodeId": 1234, "type": "episode", "number": 1 }],
+          "images": [
+            {
+              "imageType": "primary",
+              "isPreferred": true,
+              "source": "tmdb",
+              "resourceId": "/abc.jpg",
+              "url": "https://image.tmdb.org/t/p/original/abc.jpg",
+              "sha256": "…",
+              "contentType": "image/jpeg",
+              "file": "images/<sha256>.jpg"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+Series and episodes are named by AniDB IDs, so a file reads the same on any
+server; an ordering of another source's series is written against the anime
+most of its episodes are linked to. The import falls back on an episode's type
+and number only within the ordering's own anime. An image is written by its
+remote source, resource ID and URL, and its file embedded as `ImageMode` asks.
+
+The import reads the whole file before writing. `ConflictMode` decides what
+happens to a local ordering of the same name, `DryRun` writes nothing, and
+`ApplyPreferred` restores which orderings were chosen. Images go through
+`IImageManager`: a remote image is found or added under its source (its
+download queued when missing), an embedded file is checked against its SHA-256
+when `VerifyHashes` is set, and a file with no remote source is uploaded as a
+user's image.
 
 ---
 
 # `IShokoGroupManager`
 
-Groups are the part of the model that surprises people most, so start with what
-a group is.
-
-An `AnimeGroup` is a container for series that nests arbitrarily: a group has an
-optional parent group, any number of child groups, and any number of series
-directly in it. There is no depth limit and no schema-level shape, just a
-parent pointer. Every group belongs to a top-level group, which is itself when
-it has no parent.
-
-`IShokoGroup` exposes both the direct and the recursive view of that tree, and
-getting the two confused is the usual first bug:
+A group nests arbitrarily: an optional parent, any number of child groups and
+any number of series. Mind the direct and recursive views:
 
 | Member | |
 |---|---|
-| `Series` | The series directly in this group, ordered by air date |
-| `AllSeries` | Those plus every series in every descendant group, ordered by air date |
-| `Groups` | The direct child groups, unordered |
-| `AllGroups` | Every descendant group at any depth, unordered |
+| `Series` | The series directly in the group, by air date |
+| `AllSeries` | Those plus every descendant group's, by air date |
+| `Groups` | The direct child groups |
+| `AllGroups` | Every descendant group |
 | `ParentGroup`, `AllParentGroups`, `TopLevelGroup` | The other direction |
 
-(The concrete `AnimeGroup` calls its recursive child list `AllChildren`;
-`IShokoGroup.AllGroups` is the same walk.)
+None is cached: `AllSeries` walks the tree and sorts on every access, so read
+it once into a local rather than in a loop.
 
-None of these are cached. `AllSeries` runs a depth-first walk of the group tree,
-hits the series repository once per group, concatenates and then sorts the whole
-result, on **every** access. Reading `group.AllSeries.Count` in a loop over
-every group in the collection is quadratic. Read it once into a local.
-
-`MainSeries` is the series a group borrows its title, description and images
-from. It resolves in three steps: the user's configured main series
-(`DefaultAnimeSeriesID`), then `MainAniDBAnimeID`, then the first entry of
-`AllSeries`, which is the earliest-airing series in the group or any descendant.
-`HasConfiguredMainSeries` tells the first case from the other two. Note that
-`IShokoGroup.MainSeries` is non-nullable and **throws
-`NullReferenceException`** for a group with no series at all. Groups are not
-supposed to be able to reach that state, which is the next section.
-
-## Reading
-
-`GetAllGroups()` and `GetGroupByID(int)`. `IMetadataService.GetAllShokoGroups()`
-and `GetShokoGroupByID(int)` return the same rows from the same repository; the
-only difference is that the `IMetadataService` overload short-circuits to `null`
-for an ID of zero or less while `GetGroupByID` passes it through.
+`MainSeries` is the series a group borrows its title, overview and images
+from: the configured one (`DefaultAnimeSeriesID`), then `MainAniDBAnimeID`,
+then the earliest in `AllSeries`. `HasConfiguredMainSeries` tells the first
+case apart. It throws `NullReferenceException` for a group with no series,
+which the manager never leaves behind.
 
 ## Creating, updating and moving
 
-`CreateGroup(GroupData)` returns the new group. `UpdateGroup(IShokoGroup,
-GroupUpdateData)` returns the updated one. `SetMainSeries` and `MoveSeries` are
-thin wrappers over `UpdateGroup`.
-
-A group must contain at least one series, directly or through a child group.
-`CreateGroup` with an empty `GroupData` throws `GenericValidationException` with
-errors under both `Series` and `Groups`, and so does any update that would leave
-the group empty.
+`CreateGroup(GroupData)` and `UpdateGroup(group, GroupUpdateData)` return the
+group; `SetMainSeries` and `MoveSeries` wrap `UpdateGroup`. A group must hold
+at least one series, directly or below, or the call throws
+`GenericValidationException` under `Series` and `Groups`. So does a parent
+cycle (`ParentGroup`), a main series outside the group (`PreferredSeries`), or
+a series or group that is not the server's own. A group handed to the manager
+that is not the server's own throws `ArgumentException`.
 
 ```csharp
-// Two series, one group, named after the first.
 var group = groupManager.CreateGroup(new()
 {
     Series = [firstSeries, secondSeries],
     MainSeries = firstSeries,
+    ParentGroup = parentGroup,
 });
 
-// Nest it under an existing group. This cannot be done in CreateGroup; see below.
-groupManager.UpdateGroup(group, new() { ParentGroup = parentGroup });
-
-// Pull a third series in from wherever it currently lives.
 groupManager.MoveSeries(thirdSeries, group);
 ```
 
-`GroupUpdateData` uses a set-flag pattern: assigning `Name`, `Description`,
-`ParentGroup` or `MainSeries` sets the matching `HasName`, `HasDescription`,
-`HasParentGroup` or `HasMainSeries` to `true`, **including when you assign
-`null`**. That is deliberate, and it is how you clear a field: `Name = null`
-resets the group to automatic naming, `ParentGroup = null` promotes it to
-top level, `MainSeries = null` hands the choice back to auto-detection. A
-property you never touch is left alone.
+Assigning `Name`, `Overview`, `ParentGroup` or `MainSeries` on
+`GroupUpdateData` sets its `Has…` flag, even when assigning `null`, which is
+how a field is cleared: `Name = null` goes back to the main series' title,
+`ParentGroup = null` makes the group top-level. `Groups` and `Series` only
+add: a series always belongs to exactly one group, so it is moved rather than
+removed, and a group left empty is deleted.
 
-`Groups` and `Series` are additive. Items you list are moved into the group;
-items already there are never removed. There is no "remove a series from this
-group" call, because a series always belongs to exactly one group: you move it
-to another one. Moving the last series out of a group deletes that group
-automatically, along with clearing the old group's main-series pointers if they
-referred to the departing series.
+A name or overview a user gives is the group's `user` text
+(`HasCustomTitle`, `HasCustomOverview`). `RenameAllGroups()` works every
+series' title and overview out again, which unnamed groups follow.
 
-Parent assignment is validated against cycles, both group-to-parent and
-child-to-parent, and a cycle throws `GenericValidationException` with the error
-under `ParentGroup`.
-
-### Auto versus manual naming
-
-A group carries two flags, surfaced as `IShokoGroup.HasCustomTitle` and
-`HasCustomDescription`. Setting `Name` to a string sets the title flag and
-pins the name; setting it to `null` clears the flag and re-derives the name from
-`MainSeries.Title`. The description works the same way against the main series'
-preferred overview. Changing the main series on a group that has not been
-manually named re-derives both.
-
-`RenameAllGroups()` sweeps every group and re-derives whichever of the two is
-not pinned, skipping groups where both are. It is the repair tool for a
-collection whose titles drifted after a metadata refresh, and it is safe for
-manually named groups by construction.
-
-## Deleting
-
-`DeleteGroup(group, deleteSeries: false, deleteFiles: false)`.
-
-With `deleteSeries: false`, every series in the group and its descendants is
-moved into a new group of its own. With `deleteSeries: true`, they are deleted,
-and `deleteFiles` decides whether their files go with them. `deleteFiles` does
-nothing when `deleteSeries` is `false`.
-
-The group row itself is removed by the same empty-group cleanup that runs on any
-move, not by `DeleteGroup` directly. The observable result is the same, but it
-means the delete is a cascade rather than one statement, and the
-`GroupRemoved` event for the group arrives from that cleanup.
+`DeleteGroup(group, deleteSeries, deleteFiles)` moves each series into a
+group of its own, or deletes them (and their files with `deleteFiles`). The
+group row goes through the empty-group cleanup, which raises its
+`GroupRemoved`.
 
 ## Auto-grouping
 
-Four properties, all of them live views over server settings that save on every
-assignment. Nothing is applied retroactively: changing one affects future
-grouping decisions, and `RecreateAllGroups()` if you ask for it.
+`IsAutoGroupingEnabled`, `UseAutoGroupingRelationWeighting`,
+`AutoGroupingRelationExclusions` and `AllowDissimilarTitleExclusion` are live
+views over the server settings and save on assignment. Nothing applies
+retroactively except `RecreateAllGroups()`, which pauses the queue, drops
+every group, manual ones included, and rebuilds them. Never call it on a
+schedule or from a plugin's install.
 
-| Member | |
-|---|---|
-| `IsAutoGroupingEnabled` | Whether new series are auto-grouped by relation at all |
-| `UseAutoGroupingRelationWeighting` | Pick a group's main series by relation weight instead of earliest air date |
-| `AutoGroupingRelationExclusions` | Relation types that do not pull two series into one group |
-| `AllowDissimilarTitleExclusion` | See the warning below |
-
-`RecreateAllGroups()` is not an incremental pass. It pauses the queue, blocks the
-database, drops every group and rebuilds the lot from the current settings. Any
-manual grouping, manual naming and manually chosen main series in the collection
-is part of "every group". Do not call it on a schedule, and do not call it as
-part of installing a plugin.
-
-### Two sharp edges in the auto-grouping properties
-
-**`AllowDissimilarTitleExclusion` reads backwards.** Its doc comment says "allow
-titles that are not similar to be grouped together". The setting it toggles does
-the opposite: `true` turns **on** the fuzzy title check for secondary relations,
-so two related series whose titles are not similar enough end up in *different*
-groups. Set it to `true` to keep dissimilar titles apart.
-
-**`AutoGroupingRelationExclusions` does not round-trip cleanly.** It is stored
-as a list of strings shared with the grouping task, which parses those strings
-into its own internal enum rather than `RelationType`. The names mostly line up,
-but `RelationType.SharedCharacters` and `RelationType.MainStory` have no
-counterpart there and are silently ignored when grouping runs. In the other
-direction, entries the grouping task understands and `RelationType` does not are
-dropped from the value you read back, though the setter does preserve them in
-storage.
+- `AllowDissimilarTitleExclusion` reads backwards: `true` turns **on** the
+  title check that keeps related series with dissimilar titles apart.
+- `AutoGroupingRelationExclusions` is stored as strings the grouping task
+  parses into its own enum: `RelationType.SharedCharacters` and `MainStory`
+  are ignored when grouping, and names only the task knows are kept in storage
+  but not read back.
 
 ## Events
 
-`GroupAdded`, `GroupUpdated`, `GroupRemoved` (all
-`GroupInfoUpdatedEventArgs`), `SeriesMoved` (`SeriesMovedEventArgs`, carrying
-the old and new group IDs) and `GroupsRecreated` (a bare `EventHandler`).
-Adds and removes are split off `UpdateReason` the same way the metadata events
-are, with everything else arriving as `GroupUpdated`.
-
-One user-visible move raises more than one event. Moving a series fires
-`GroupUpdated` for the destination, `SeriesMoved` for the series, and, if the
-source group is now empty, `GroupRemoved` for it. Write handlers that tolerate
-being called several times for one logical change.
-
-## Things that are not what the doc comments say
-
-The interface documents `ArgumentException` on several methods for an argument
-that is not a concrete `AnimeGroup` or `AnimeSeries`. Only `DeleteGroup`
-actually raises it. What the others do:
-
-- `UpdateGroup`, `SetMainSeries` and `MoveSeries` cast their group argument
-  straight to `AnimeGroup`, so a foreign `IShokoGroup` raises
-  `InvalidCastException`. Every `IShokoGroup` the server hands you is an
-  `AnimeGroup`, so in practice this only bites a test double.
-- A series in `GroupUpdateData.Series` that is not an `AnimeSeries` is skipped
-  in silence rather than rejected, so the call succeeds having moved nothing.
-- `GroupData.ParentGroup` is **not applied by `CreateGroup`**. The value is
-  accepted and dropped. Create the group, then `UpdateGroup` it with
-  `ParentGroup` set, as the example above does.
-- `SetMainSeries` validates the group's *existing* main series, not the one you
-  are setting. Pointing it at a series outside the group succeeds, and the next
-  update of that group throws `GenericValidationException` for a state your
-  earlier call created. Pass a series you know is in the group.
+`GroupAdded`, `GroupUpdated`, `GroupRemoved`, `SeriesMoved` and
+`GroupsRecreated`, split on `UpdateReason` as the metadata events are. One
+move raises several (`GroupUpdated`, `SeriesMoved`, and `GroupRemoved` for an
+emptied source group), so handlers must tolerate repeats.
 
 ---
 
 # `IImageManager`
 
-Every image in Shoko, whatever provider it came from, is one row in one table,
-and every link from an image to an entity is a cross-reference row. This service
-owns both. A plugin uses it to read the images an entity has, to add its own, and
-to schedule downloads.
-
-The other half of the interface, `TryGetMetadataForEntity`, `GetEntityForImage` and
-`ImageCrossReferenceResolvers`, exists so a plugin's own entity
-types can take part in that scheme, and is covered in
+Every image is one row, and every link from an image to an entry is a
+cross-reference row naming the entry by its `MetadataGuid`.
+`GetEntityForImage` turns that ID back into an entry through
+`IMetadataService.GetEntry`; see
 [`../Image/CrossReferences/README.md`](../Image/CrossReferences/README.md).
 
-## Reading the images for an entity
+## Reading
 
-`GetImagesForEntity(entity, options)` is the call, but you rarely write it out.
-`IWithImages`, which every entity that can carry an image implements, has
-default methods that resolve the manager and forward to it:
+`IWithImages` has default methods that forward to the manager:
 
 ```csharp
-// The poster to actually show, whatever the entity has available.
+// The image to show, whatever the entity has.
 var poster = series.GetBestImageForType(ImageEntityType.Primary);
 
 // Everything, or a filtered view.
 var backdrops = series.GetImages(new() { ImageType = ImageEntityType.Backdrop });
 
-// Just what the user pinned.
+// What the user pinned, on the entity or a linked entry.
 var preferred = series.GetPreferredImageForType(ImageEntityType.Primary);
 ```
 
-`GetBestImageForType` is the one to reach for when you want *an* image and do
-not care where it came from. It tries the preferred cross-reference, then the
-entity's default one, then the first cross-reference of that type that is
-enabled and available, degrading to enabled-and-desired and finally to merely
-enabled. It returns `null` only when the entity has no usable cross-reference
-of that type at all.
+The best image is the preferred one (own or inherited), then the entity's
+default, then the first enabled and available one, degrading to enabled and
+desired, then enabled.
 
-`ImageEntityType` is `Primary`, `Backdrop`, `Banner`, `Logo` and `Disc`, plus
-`None`, which is never a valid value to pass.
+`ImageFilteringOptions` fields are tri-state `bool?` filters, except
+`AsPrimaryImage`. `LinkedEntityImages` matters most: `null` (the default)
+means `true` for `IShokoGroup`, `IShokoSeries`, `IShokoSeason` and
+`IShokoEpisode` and `false` for everything else, which is how a Shoko series
+shows TMDB posters. Results come own images first, `User` and `Generated`
+sources first within that, deduplicated on image and type. Pass `false` to see
+only what an entity itself owns.
 
-### `ImageFilteringOptions`
+When linked entries' images are included, the entity inherits the image
+preferred on a linked entry unless it prefers one of its own. `IImage.IsPreferred`
+reads only the entity's own cross-reference, and `SetPreferredImageForEntity`
+always writes the entity's own, never the (often shared) linked entry's.
 
-Every field is optional and every `bool?` is a tri-state: `true` keeps only
-matches, `false` keeps only non-matches, `null` filters nothing.
+`GetImageByID(Guid)` finds an image; `GetImageBySourceAndRemoteResourceID` is
+how a provider checks for one it stored before.
 
-| Field | |
-|---|---|
-| `ImageSource` | Restrict to images from one `DataSource` |
-| `ImageType` | Restrict to one `ImageEntityType` |
-| `XrefSource` | Restrict to cross-references created by one `DataSource` |
-| `IsEnabled`, `IsDesired`, `IsPreferred` | Cross-reference state |
-| `IsAvailable`, `IsPrimaryAvailable` | Whether the file is on disk |
-| `IsPrimaryImage` | `true` for canonical images, `false` for variants |
-| `AsPrimaryImage` | A plain `bool`, not a filter: redirect each result to its canonical primary image |
-| `LinkedEntityImages` | See below |
+## Adding and linking
 
-### `LinkedEntityImages` is a tri-state with a real default
-
-This is the field worth understanding, because leaving it unset does not mean
-"off".
-
-`false` returns only the images cross-referenced against the entity itself.
-`true` also walks the entity's links and returns theirs. `null`, the default,
-lets the service decide, and it decides `true` for `IShokoGroup`,
-`IShokoSeries`, `IShokoSeason` and `IShokoEpisode`, and `false` for everything
-else.
-
-That default is what makes a shoko series show TMDB posters without anyone
-asking: the walk covers the series, its linked provider series, its TMDB seasons
-and its linked movies, deduplicating entities reachable by more than one path. A
-group goes through its main series, and falls back to the other series in the
-group when the main series turned out to have no images of its own. A season or
-episode walks its linked seasons or episodes plus linked movies.
-
-The results are then ordered by image type, own images before linked ones, with
-user and locally-generated sources first within that, then by source, entity and
-the cross-reference's own `Ordering`, and deduplicated on image plus type. Pass
-`LinkedEntityImages = false` when you want to know what an entity itself owns,
-for example before adding a cross-reference of your own.
-
-`GetImageCrossReferencesForEntity` takes an
-`ImageCrossReferenceFilteringOptions` with the same fields plus `EntitySource`
-and `EntityType`, and behaves identically. Those two extra fields are ignored
-there, since the entity is already known; they apply to
-`GetAllImageCrossReferences`, which sweeps the whole table.
-
-## Finding an image
-
-`GetImageByID(Guid)` is the lookup. The `int` overload is for legacy IDs and is
-marked `[Obsolete]`. `GetImageBySourceAndRemoteResourceID(source, resourceID)`
-is the safe way for a provider to check whether it has already stored an image
-before adding it again. All three take a `primaryImage` flag that redirects a
-variant to its canonical image.
-
-`GetFirstSeriesForImage(image)` answers "what is this a picture of", returning
-the linked series with the earliest release date, or `null`.
-
-## Adding an image and linking it
-
-Two ways in. `AddImage(ImageData)` registers an image that lives at a provider
-and will be fetched later, which needs a template URL registered for that
-source first and throws `MissingImageSourceTemplateUrlException` when there is
-none, as the next section covers. `UploadImage(stream | byte[], contentType,
-userSubmitted)` stores bytes you already have; pass `userSubmitted: false` for
-something your plugin generated, such as an extracted thumbnail. Both reject a
-MIME type outside `AllowedMimeTypes` with `UnsupportedImageTypeException`.
-
-### A source of your own needs a template URL first
-
-The manager stores one template URL per `DataSource` and rebuilds a remote URL
-as `string.Format(template, image.ResourceID)` every time it downloads one. It
-seeds three of them: AniDB, TMDB and AniList. Every other source starts with
-none, `DataSource.Plugin` and the named ones such as `DataSource.FanartTV`
-alike, and `AddImage` throws `MissingImageSourceTemplateUrlException` for every
-image of that source until one is set.
-
-Register it with `SetTemplateUrlForSource`, before the first `AddImage` and only
-when there is none:
-
-```csharp
-private const string TemplateUrl = "https://assets.example.com/art/{0}";
-
-if (imageManager.GetTemplateUrlForSource(DataSource.FanartTV) is null)
-    imageManager.SetTemplateUrlForSource(DataSource.FanartTV, TemplateUrl);
-```
-
-The check is the half that matters. The template is persisted in the server's
-own configuration and the user owns it from then on, so a plugin that sets it
-unconditionally overwrites the mirror they pointed the source at every time the
-server starts. Once per process, on the path that is about to add images, is
-enough.
-
-The template has to be an absolute `http://` or `https://` URL containing `{0}`,
-and `SetTemplateUrlForSource` throws `ArgumentException` otherwise. It throws
-`InvalidOperationException` for `DataSource.User`, `DataSource.None` and
-`DataSource.Shoko`, which are local and have nothing to download from.
-
-`{0}` is the whole of the rest of the URL. Wherever you put the split,
-`string.Format(template, resourceID)` has to come back out as the URL the image
-is actually served from, so the resource ID is the remainder of the asset URL
-rather than an identifier in the provider's own numbering: the constant prefix
-goes in the template, and everything that varies, path segments included, goes
-in the resource ID.
-
-That remainder is stored in **128 characters** (`ResourceID` is
-`NVARCHAR(128)`). One that does not fit has to be refused, dropping that single
-image, rather than truncated: a truncated resource ID formats into a URL that
-downloads nothing, and it is also the image's identity, which
-`GetImageBySourceAndRemoteResourceID` and the duplicate check inside `AddImage`
-both go by. Check the length where you derive the resource ID from the
-provider's URL, and skip the image when it is too long.
-
-Neither `AddImage` nor `UploadImage` attaches the image to anything. That is
-`AddImageCrossReference`:
+`AddImage(ImageData)` registers a remote image, and `UploadImage` stores bytes
+you have (`userSubmitted: false` for something generated). Both reject a MIME
+type outside `AllowedMimeTypes`. Neither links anything:
 
 ```csharp
 var image = imageManager.UploadImage(stream, "image/jpeg", userSubmitted: false);
 var xref = imageManager.AddImageCrossReference(episode, image, new()
 {
     ImageType = ImageEntityType.Backdrop,
-    Source = DataSource.Plugin,
-    IsEnabled = true,
+    Source = MySources.Artwork,
     IsDesired = true,
-    IsPreferred = false,
 });
 ```
 
-`ImageType` is required and rejects `None` on assignment. `Source` defaults to
-`DataSource.User`, so a plugin that wants its rows attributed to itself has to
-say `DataSource.Plugin`. `IsEnabled` defaults to `true`, `IsDesired` (which is
-what marks an image for auto-download) and `IsPreferred` default to `false`, and
-`Ordering` appends at the end when left `null`. `Rating` and `RatingVotes` keep
-each other in step: setting one while the other is unset fills the other in.
+`Source` defaults to `MetadataSource.User`, so pass your own for attribution;
+`SetPreferredImageForEntity` creates its row under `User` too. Duplicates are
+judged on image, image type and source, and throw
+`ImageCrossReferenceExistsException` carrying the existing row. Preferring one
+image demotes the entity's previous preferred image of that type.
 
-Duplicate detection is on the triple of image, image type **and** source, so the
-same image can legitimately be attached to the same entity twice under two
-different sources. A genuine collision throws
-`ImageCrossReferenceExistsException`, which carries the existing cross-reference,
-the image and the entity, so catching it is a reasonable alternative to checking
-first.
+### A template URL for your source
 
-Setting `IsPreferred = true`, on an add or an update, demotes whichever
-cross-reference of the same image type on that entity was preferred before.
-Preferred is one image per entity per type, enforced for you.
+A remote image's URL is rebuilt as `string.Format(template, image.ResourceID)`
+on every download. The core registers AniDB's and TMDB's templates; any other
+source needs `RegisterTemplateUrl` on every start before its first `AddImage`,
+which otherwise throws `MissingImageSourceTemplateUrlException`. The default
+lives in memory; a user's own template (`SetTemplateUrlForSource`) takes
+precedence, and clearing it goes back to yours.
 
-`SetPreferredImageForEntity(entity, imageType, image)` is the shortcut, and it
-creates the cross-reference if there is none. Be aware that the row it creates
-takes the default `Source`, `DataSource.User`. Call `AddImageCrossReference`
-first if the attribution matters. The overload taking an `IImageCrossReference`
-promotes an existing row instead. `UnsetPreferredImageForEntity` and
-`UnsetAllPreferredImagesForEntity` undo it, and `RemoveImageCrossReference`
-drops the link entirely, leaving the image itself alone.
+```csharp
+imageManager.RegisterTemplateUrl(MySources.Artwork, "https://assets.example.com/art/{0}");
+```
 
-## Downloading, validating and purging
+`{0}` is the whole varying remainder of the URL, and that remainder is the
+image's identity, stored in 128 characters. Skip an image whose remainder is
+longer; a truncated one downloads nothing.
 
-`DownloadImage(image, force)` fetches now and returns whether it succeeded;
-`ScheduleDownloadOfImage` queues it. `CheckIfAvailableAtRemote` asks the
-provider without fetching. For bulk work,
-`ScheduleAutoDownloadsForEntity(entity, imageSource, imageType, xrefSource,
-force)` queues every desired image linked to one entity, and
-`ScheduleAllAutoDownloads` does the same across the collection. Only
-cross-references with `IsDesired` set are candidates unless `force` is set.
+## Downloading and purging
 
-On the other side, `GetOrphanedImages(daysOld, imageSource)` lists images no
-cross-reference points at any more, `PurgeImage` and `PurgeOrphanedImages`
-delete them, each with a `Schedule…` variant, and `ValidateAllImages` re-checks
-what is actually on disk. `daysOld` defaults to `7` throughout.
+`DownloadImage` fetches now, `ScheduleDownloadOfImage` queues;
+`ScheduleAutoDownloadsForEntity` and `ScheduleAllAutoDownloads` queue every
+desired image. `GetOrphanedImages`, `PurgeImage`, `PurgeOrphanedImages` and
+`ValidateAllImages` look after the files.
 
 ## Events
 
-`ImageAdded`, `ImageUpdated`, `ImageDownloaded`, `ImageRemoved`, and
-`ImageCrossReferenceAdded`, `ImageCrossReferenceUpdated`,
-`ImageCrossReferenceRemoved`. `ImageAdded` means a row exists, not that a file
-does; `ImageDownloaded` is the one that means there are bytes on disk.
-
-Demoting a sibling preferred image raises its own `ImageUpdated` and
-`ImageCrossReferenceUpdated`, so setting one preferred image can produce two
-pairs of events.
-
-Every one of them is raised on its own thread-pool task and nothing waits for
-it. Handlers can therefore run in any order, including two events for the same
-image arriving the other way round, and can run at the same time as each other.
-Read the current state back from `IImageManager` rather than trusting the order
-events arrived in, and catch inside the handler, since an exception it throws
-is never observed.
+`ImageAdded` means a row exists; `ImageDownloaded` means bytes are on disk.
+Every image and cross-reference event is raised on its own thread-pool task,
+so handlers may run in any order and at once: read state back from the
+manager, and catch inside the handler, since nothing observes what it throws.

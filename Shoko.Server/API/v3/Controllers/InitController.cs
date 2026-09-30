@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +9,7 @@ using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Common;
@@ -18,6 +21,7 @@ using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 using Constants = Shoko.Server.Server.Constants;
+using RestartReason = Shoko.Server.API.v3.Models.Shoko.RestartReason;
 using ServerStatus = Shoko.Server.API.v3.Models.Shoko.ServerStatus;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -37,6 +41,7 @@ public class InitController : BaseController
     private readonly AniDBUDPConnectionHandler _udpHandler;
     private readonly IHttpConnectionHandler _httpHandler;
     private readonly ISystemUpdateService _webUIUpdateService;
+    private readonly IPluginManager _pluginManager;
 
     public InitController(
         ILogger<InitController> logger,
@@ -45,7 +50,8 @@ public class InitController : BaseController
         IConnectivityService connectivityService,
         AniDBUDPConnectionHandler udpHandler,
         IHttpConnectionHandler httpHandler,
-        ISystemUpdateService webUIUpdateService
+        ISystemUpdateService webUIUpdateService,
+        IPluginManager pluginManager
     ) : base(settingsProvider)
     {
         _logger = logger;
@@ -54,6 +60,7 @@ public class InitController : BaseController
         _udpHandler = udpHandler;
         _httpHandler = httpHandler;
         _webUIUpdateService = webUIUpdateService;
+        _pluginManager = pluginManager;
     }
 
     /// <summary>
@@ -300,6 +307,19 @@ public class InitController : BaseController
             return BadRequest("Restart request blocked");
         return Ok("Restart Requested");
     }
+
+    /// <summary>
+    /// Lists every reason the server needs a restart for a change to take effect: one while any
+    /// configuration has changed restart-only settings, one while any plugin's state changes on
+    /// restart, and the reasons plugins raised themselves. Empty when no restart is needed.
+    /// </summary>
+    /// <returns>The reasons, oldest first.</returns>
+    [Authorize(Roles = "admin,init")]
+    [HttpGet("RestartReasons")]
+    public ActionResult<List<RestartReason>> GetRestartReasons()
+        => _systemService.RestartReasons
+            .Select(reason => new RestartReason(reason, _pluginManager))
+            .ToList();
 
     /// <summary>
     /// Test Database Connection with Current Settings

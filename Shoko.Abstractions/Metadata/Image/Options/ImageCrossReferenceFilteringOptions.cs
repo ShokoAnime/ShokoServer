@@ -14,7 +14,7 @@ public sealed class ImageCrossReferenceFilteringOptions
     ///   Optional. If set, will restrict the returned list to only containing
     ///   cross-references for images from the given image source.
     /// </summary>
-    public DataSource? ImageSource { get; set; }
+    public MetadataSource? ImageSource { get; set; }
 
     /// <summary>
     ///   Optional. If set, will restrict the returned list to only containing
@@ -26,17 +26,17 @@ public sealed class ImageCrossReferenceFilteringOptions
     ///   Optional. If set, will restrict the returned list to only containing
     ///   cross-references from the given source.
     /// </summary>
-    public DataSource? XrefSource { get; set; }
+    public MetadataSource? XrefSource { get; set; }
 
     /// <summary>
     ///   Optional. Filter by entity source (e.g. Shoko, AniDB, TMDB).
     /// </summary>
-    public DataSource? EntitySource { get; set; }
+    public MetadataSource? EntitySource { get; set; }
 
     /// <summary>
     ///   Optional. Filter by entity type (e.g. Series, Episode, Movie).
     /// </summary>
-    public DataEntityType? EntityType { get; set; }
+    public MetadataEntityType? EntityType { get; set; }
 
     /// <summary>
     ///   Optional. Filter by enabled state. Pass <c>true</c> to get only

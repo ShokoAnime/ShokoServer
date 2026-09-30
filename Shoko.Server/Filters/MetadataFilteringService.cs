@@ -269,7 +269,7 @@ public class MetadataFilteringService(
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var validGroupIDs = parentGroup.Groups.Select(a => a.ID).ToHashSet();
+        var validGroupIDs = parentGroup.Groups.Select(a => a.LocalID).ToHashSet();
         var scopedGroupIDChains = BuildGroupIDChains(results)
             .Where(validGroupIDs.Overlaps)
             .ToArray();
@@ -326,8 +326,8 @@ public class MetadataFilteringService(
         cancellationToken.ThrowIfCancellationRequested();
 
         var validGroupIDs = recursive
-            ? group.AllGroups.Prepend(group).Select(a => a.ID).ToHashSet()
-            : [group.ID];
+            ? group.AllGroups.Prepend(group).Select(a => a.LocalID).ToHashSet()
+            : [group.LocalID];
         var items = results
             .Where(a => validGroupIDs.Contains(a.GroupID))
             .Select(a => seriesRepository.GetByID(a.SeriesID))
@@ -357,7 +357,7 @@ public class MetadataFilteringService(
         var keyed = items.Select(item =>
         {
             var group = groupSelector(item);
-            return (item, filterable: (IFilterableInfo)new FilterableAnimeGroup(group, now), userInfo: user is null ? null : (IFilterableUserInfo)new FilterableGroupUserInfo(group, user.ID, now));
+            return (item, filterable: (IFilterableInfo)new FilterableAnimeGroup(group, now), userInfo: user is null ? null : (IFilterableUserInfo)new FilterableGroupUserInfo(group, user.LocalID, now));
         });
         var ordered = sort.Descending
             ? keyed.OrderByDescending(x =>

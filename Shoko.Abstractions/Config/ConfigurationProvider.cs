@@ -55,7 +55,13 @@ public class ConfigurationProvider<TConfig> : IDisposable where TConfig : class,
         if (eventArgs.ConfigurationInfo != ConfigurationInfo)
             return;
 
-        Saved?.Invoke(this, new ConfigurationSavedEventArgs<TConfig> { ConfigurationInfo = eventArgs.ConfigurationInfo, Configuration = Load() });
+        Saved?.Invoke(this, new ConfigurationSavedEventArgs<TConfig>
+        {
+            ConfigurationInfo = eventArgs.ConfigurationInfo,
+            Configuration = Load(),
+            ChangedPaths = eventArgs.ChangedPaths,
+            Actor = eventArgs.Actor,
+        });
     }
 
     /// <summary>

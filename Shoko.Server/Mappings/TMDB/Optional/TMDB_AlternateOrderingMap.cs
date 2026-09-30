@@ -1,6 +1,6 @@
 using FluentNHibernate.Mapping;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
 
 namespace Shoko.Server.Mappings;
 
@@ -21,7 +21,7 @@ public class TMDB_AlternateOrderingMap : ClassMap<TMDB_AlternateOrdering>
         Map(x => x.EpisodeCount).Not.Nullable();
         Map(x => x.HiddenEpisodeCount).Not.Nullable();
         Map(x => x.SeasonCount).Not.Nullable();
-        Map(x => x.Type).Not.Nullable().CustomType<AlternateOrderingType>();
+        Map(x => x.Type).Not.Nullable().CustomType<OrderingType>();
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
     }

@@ -89,6 +89,8 @@ public class QueueProcessorSettings
 
     /// <summary>
     /// A map of job type name to the number of allowed concurrent workers of that type.
+    /// A metadata provider's job is named with the provider's full type name, e.g.
+    /// <c>RefreshMetadataJob&lt;My.Plugin.MyProvider&gt;</c>.
     /// </summary>
     [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
     [Visibility(Advanced = true)]

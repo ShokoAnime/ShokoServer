@@ -35,21 +35,44 @@ public class TestFilterable : IFilterableInfo
     public IReadOnlySet<(int year, YearlySeason season)> Seasons { get; init; } = null!;
     public IReadOnlySet<ImageEntityType> AvailableImageTypes { get; init; } = null!;
     public IReadOnlySet<ImageEntityType> PreferredImageTypes { get; init; } = null!;
-    public bool HasTmdbLink { get; init; }
-    public bool HasTmdbAutoLinkingDisabled { get; init; }
-    public bool HasMissingTmdbLink { get; init; }
-    public int MissingTmdbEpisodeLinks { get; init; }
-    public int AutomaticTmdbEpisodeLinks { get; init; }
-    public int UserVerifiedTmdbEpisodeLinks { get; init; }
-    public bool HasAnilistLink { get; init; }
-    public bool HasAnilistAutoLinkingDisabled { get; init; }
-    public bool HasMissingAnilistLink { get; init; }
-    public int MissingAnilistEpisodeLinks { get; init; }
-    public int AutomaticAnilistEpisodeLinks { get; init; }
-    public int UserVerifiedAnilistEpisodeLinks { get; init; }
     public int AnidbSuggestions { get; init; }
     public int TmdbSuggestions { get; init; }
-    public int AnilistSuggestions { get; init; }
+    /// <summary>
+    /// The suggestions every source but AniDB and TMDB makes, since the double
+    /// keeps one count for all of them.
+    /// </summary>
+    public int OtherSuggestions { get; init; }
+    public IReadOnlySet<MetadataSource> LinkedSources { get; init; } = new HashSet<MetadataSource>();
+    public IReadOnlySet<MetadataSource> UnlinkedSources { get; init; } = new HashSet<MetadataSource>();
+    public IReadOnlySet<MetadataSource> AutoLinkingDisabledSources { get; init; } = new HashSet<MetadataSource>();
+    public IReadOnlyDictionary<MetadataSource, int> AutomaticEpisodeLinks { get; init; } = new Dictionary<MetadataSource, int>();
+    public IReadOnlyDictionary<MetadataSource, int> UserVerifiedEpisodeLinks { get; init; } = new Dictionary<MetadataSource, int>();
+    public IReadOnlyDictionary<MetadataSource, int> MissingEpisodeLinks { get; init; } = new Dictionary<MetadataSource, int>();
+    public IReadOnlyDictionary<MetadataSource, int> AutomaticLinks { get; init; } = new Dictionary<MetadataSource, int>();
+    public IReadOnlyDictionary<MetadataSource, int> UserVerifiedLinks { get; init; } = new Dictionary<MetadataSource, int>();
+    public IReadOnlyDictionary<MetadataSource, IReadOnlySet<string>> Genres { get; init; } = new Dictionary<MetadataSource, IReadOnlySet<string>>();
+    public IReadOnlyDictionary<MetadataSource, IReadOnlySet<string>> SourceTags { get; init; } = new Dictionary<MetadataSource, IReadOnlySet<string>>();
+    /// <summary>
+    /// The genres and tags narrowed to one kind of linked entry, by source and
+    /// entity type. The unnarrowed maps above answer when no entity type is asked for.
+    /// </summary>
+    public IReadOnlyDictionary<(MetadataSource, MetadataEntityType), IReadOnlySet<string>> NarrowedGenres { get; init; } = new Dictionary<(MetadataSource, MetadataEntityType), IReadOnlySet<string>>();
+    public IReadOnlyDictionary<(MetadataSource, MetadataEntityType), IReadOnlySet<string>> NarrowedTags { get; init; } = new Dictionary<(MetadataSource, MetadataEntityType), IReadOnlySet<string>>();
+    public int GetAutomaticEpisodeLinks(MetadataSource source) => AutomaticEpisodeLinks.GetValueOrDefault(source);
+    public int GetUserVerifiedEpisodeLinks(MetadataSource source) => UserVerifiedEpisodeLinks.GetValueOrDefault(source);
+    public int GetMissingEpisodeLinks(MetadataSource source) => MissingEpisodeLinks.GetValueOrDefault(source);
+    public int GetAutomaticLinks(MetadataSource source) => AutomaticLinks.GetValueOrDefault(source);
+    public int GetUserVerifiedLinks(MetadataSource source) => UserVerifiedLinks.GetValueOrDefault(source);
+    public IReadOnlySet<string> GetGenres(MetadataSource source, MetadataEntityType? entityType = null)
+        => (entityType is { } type ? NarrowedGenres.GetValueOrDefault((source, type)) : Genres.GetValueOrDefault(source)) ?? new HashSet<string>();
+    public IReadOnlySet<string> GetTags(MetadataSource source, MetadataEntityType? entityType = null)
+        => (entityType is { } type ? NarrowedTags.GetValueOrDefault((source, type)) : SourceTags.GetValueOrDefault(source)) ?? new HashSet<string>();
+    public int GetSuggestions(MetadataSource source) => source switch
+    {
+        _ when source == MetadataSource.AniDB => AnidbSuggestions,
+        _ when source == MetadataSource.TMDB => TmdbSuggestions,
+        _ => OtherSuggestions,
+    };
     public int TotalSuggestions { get; init; }
     public int LocalSuggestions { get; init; }
     public bool HasTraktLink { get; init; }
@@ -92,12 +115,4 @@ public class TestFilterable : IFilterableInfo
     public IReadOnlyDictionary<CrewRoleType, IReadOnlySet<string>> CreatorRoles { get; init; } = null!;
     public IReadOnlySet<string> ReleaseGroupNames { get; init; } = null!;
     public IReadOnlySet<string> ReleaseProviderNames { get; init; } = null!;
-    public IReadOnlySet<string> TmdbMovieKeywords { get; init; } = null!;
-    public IReadOnlySet<string> TmdbMovieGenres { get; init; } = null!;
-    public IReadOnlySet<string> TmdbShowKeywords { get; init; } = null!;
-    public IReadOnlySet<string> TmdbShowGenres { get; init; } = null!;
-    public IReadOnlySet<string> TmdbKeywords { get; init; } = null!;
-    public IReadOnlySet<string> TmdbGenres { get; init; } = null!;
-    public IReadOnlySet<string> AnilistGenres { get; init; } = null!;
-    public IReadOnlySet<string> AnilistTags { get; init; } = null!;
 }

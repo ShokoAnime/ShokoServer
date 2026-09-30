@@ -1,14 +1,17 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.ScheduledActions;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Purge all TMDB movie collections from the local database.
 /// </summary>
-public sealed class PurgeAllTmdbMovieCollectionsAction(TmdbMetadataService tmdbService) : IExecutableAction
+public sealed class PurgeAllTmdbMovieCollectionsAction(IMetadataPurgeService purgeService) : IScheduledAction
 {
     public string Name => "Purge TMDB Movie Collections";
 
@@ -16,12 +19,10 @@ public sealed class PurgeAllTmdbMovieCollectionsAction(TmdbMetadataService tmdbS
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    public ActionPermission Permission => ActionPermission.Admin;
-
     public bool RequiresConfirmation => true;
 
     public string? ConfirmationMessage => "Are you sure you want to remove all TMDB movie collections from the database?";
 
-    public Task Execute(CancellationToken token = default)
-        => tmdbService.PurgeAllMovieCollections();
+    public Task Execute(IProgress<decimal> progress, CancellationToken token)
+        => purgeService.PurgeCollections(MetadataSource.TMDB, token);
 }

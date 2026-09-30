@@ -14,7 +14,7 @@ public sealed class ImageFilteringOptions
     ///   Optional. If set, will restrict the returned list to only containing
     ///   images from the given source (e.g. AniDB, TMDB, AniList, User, etc.).
     /// </summary>
-    public DataSource? ImageSource { get; set; }
+    public MetadataSource? ImageSource { get; set; }
 
     /// <summary>
     ///   Optional. If set, will restrict the returned list to only containing
@@ -26,7 +26,7 @@ public sealed class ImageFilteringOptions
     ///   Optional. If set, will restrict the returned list to only containing
     ///   images that have cross-references from the given source.
     /// </summary>
-    public DataSource? XrefSource { get; set; }
+    public MetadataSource? XrefSource { get; set; }
 
     /// <summary>
     ///   Optional. Filter by enabled state. Pass <c>true</c> to get only

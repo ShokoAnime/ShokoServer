@@ -168,8 +168,8 @@ public class MylistController(
             Kind = action.Kind,
             Direction = action.Direction,
             Description = action.Description,
-            FileID = action.Video?.ID,
-            AnidbEpisodeID = action.AnidbEpisode?.ID,
+            FileID = action.Video?.LocalID,
+            AnidbEpisodeID = action.AnidbEpisode?.AnidbID,
             MylistID = action.Entry is { MylistID: not 0 } ? action.Entry.MylistID : null,
             File = action.Video is VideoLocal video ? new File(HttpContext, video) : null,
             Episode = action.ShokoEpisode is AnimeEpisode episode ? new Episode(HttpContext, episode) : null,
@@ -292,8 +292,8 @@ public class MylistController(
             MylistSyncActionKind.ExportEntryRemoval => "Remove the MyList entry",
             _ => "Leave the MyList entry alone",
         };
-        return video is not null ? $"{what} for file {video.ID}"
-            : episode is not null ? $"{what} for episode {episode.ID}"
+        return video is not null ? $"{what} for file {video.LocalID}"
+            : episode is not null ? $"{what} for episode {episode.AnidbID}"
             : what;
     }
 
@@ -308,7 +308,7 @@ public class MylistController(
             return null;
 
         var watchedDate = video is not null
-            ? videoLocalUsers.GetByUserAndVideoLocalID(anidbUser.JMMUserID, video.ID)?.WatchedDate
+            ? videoLocalUsers.GetByUserAndVideoLocalID(anidbUser.JMMUserID, video.LocalID)?.WatchedDate
             : episode is AnimeEpisode animeEpisode ? animeEpisode.GetUserRecord(anidbUser.JMMUserID)?.WatchedDate : null;
         return AniDBExtensions.TruncateToAniDBPrecision(watchedDate?.ToUniversalTime());
     }

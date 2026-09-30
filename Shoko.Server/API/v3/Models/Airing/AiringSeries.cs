@@ -1,7 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Shoko;
 
 #nullable enable
@@ -19,7 +19,7 @@ public class AiringSeries(ISeries series)
     /// The ID of the shoko series, or <c>null</c> when the series is not in the
     /// collection.
     /// </summary>
-    public int? ShokoID { get; init; } = (series as IShokoSeries)?.ID;
+    public int? ShokoID { get; init; } = (series as IShokoSeries)?.LocalID;
 
     /// <summary>
     /// The ID of the AniDB anime, or <c>null</c> when the series is not keyed
@@ -27,7 +27,7 @@ public class AiringSeries(ISeries series)
     /// </summary>
     public int? AnidbID { get; init; } = series is IShokoSeries shokoSeries
         ? shokoSeries.AnidbAnimeID
-        : series.Source is DataSource.AniDB ? series.ID : null;
+        : series is IAnidbAnime anidbSeries ? anidbSeries.AnidbID : null;
 
     /// <summary>
     /// The preferred title of the series.

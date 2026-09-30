@@ -40,6 +40,20 @@ Discord, and we'll be more than happy to provide guidance and assistance.
 `PUID`, `PGID`, `UMASK` and `NO_CHOWN` are also honoured, and the effective
 values are printed in the startup banner.
 
+What lives under `SHOKO_HOME`:
+
+| folder | what |
+|---|---|
+| `SQLite` | the server's own database, unless the database settings point elsewhere |
+| `data` | the plugins' databases, one folder per plugin ID |
+| `configuration` | configuration files, one folder per plugin ID |
+| `cache` | the plugins' caches; safe to empty while the server is stopped |
+| `plugins` | installed plugins, nothing else |
+| `DatabaseBackup` | copies of the databases taken before an upgrade or a plugin migration |
+| `images`, `logs`, `themes`, `transcodes` | images, logs, Web UI themes and streaming renditions |
+
+Back up everything but `cache` and `transcodes`.
+
 `INSTALL_PACKAGES` installs extra apt packages before the server starts.
 Space or comma separated, unset by default. It exists for userspace the image
 cannot ship for everyone but that has to be present *before* startup — GPU

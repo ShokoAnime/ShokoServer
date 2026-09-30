@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Metadata;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
@@ -77,11 +81,35 @@ public static class Search
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public RemoteSearchShow? Show { get; set; }
 
-        public AutoMatchResult(TmdbAutoSearchResult result)
+        /// <summary>
+        /// Where the match came from: the search, a prequel's link listed for
+        /// context, which an automatic search never links, or an entry the
+        /// anime's AniDB resources or its links on other sources name, linked
+        /// only when the search takes nothing it competes with or only
+        /// something rated below it.
+        /// </summary>
+        [Required, JsonConverter(typeof(StringEnumConverter))]
+        public MetadataAutoLinkOrigin Origin { get; set; }
+
+        /// <summary>
+        /// Why the match is not linked, or <see langword="null"/> when an
+        /// automatic search links it. A match turned down can still be linked
+        /// by hand.
+        /// </summary>
+        public MetadataAutoLinkRejectionResult? Rejection { get; set; }
+
+        /// <summary>
+        /// Describes a match.
+        /// </summary>
+        /// <param name="result">The match.</param>
+        /// <param name="rejection">Why it is not linked, if it is not.</param>
+        public AutoMatchResult(TmdbAutoSearchResult result, MetadataAutoLinkRejection? rejection = null)
         {
+            Rejection = rejection is null ? null : new(rejection);
             AnimeID = result.AnidbAnime.AnimeID;
             IsLocal = result.IsLocal;
             IsRemote = result.IsRemote;
+            Origin = result.Origin;
             if (result.IsMovie)
             {
                 IsMovie = true;
@@ -193,9 +221,9 @@ public static class Search
             IsRestricted = movie.IsRestricted;
             IsVideo = movie.IsVideo;
             ReleasedAt = movie.ReleasedAt;
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
+            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.PosterPath}"
                 : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
+            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
             UserRating = new Rating
             {
@@ -218,9 +246,9 @@ public static class Search
             IsRestricted = movie.Adult;
             IsVideo = movie.Video;
             ReleasedAt = movie.ReleaseDate?.ToDateOnly();
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
+            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.PosterPath}"
                 : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
+            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
             UserRating = new Rating
             {
@@ -243,9 +271,9 @@ public static class Search
             IsRestricted = movie.Adult;
             IsVideo = movie.Video;
             ReleasedAt = movie.ReleaseDate?.ToDateOnly();
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
+            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.PosterPath}"
                 : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
+            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
             UserRating = new Rating
             {
@@ -268,9 +296,9 @@ public static class Search
             IsRestricted = movie.IsRestricted;
             IsVideo = movie.IsVideo;
             ReleasedAt = movie.ReleasedAt;
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.PosterPath}"
+            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.PosterPath}"
                 : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbMetadataService.ImageServerUrl}original{movie.BackdropPath}"
+            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.BackdropPath}"
                 : null;
             UserRating = new Rating
             {
@@ -355,10 +383,10 @@ public static class Search
             Overview = show.EnglishOverview ?? string.Empty;
             FirstAiredAt = show.FirstAiredAt;
             Poster = !string.IsNullOrEmpty(show.PosterPath)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
+                ? $"{TmdbApiClient.ImageServerUrl}original{show.PosterPath}"
                 : null;
             Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
+                ? $"{TmdbApiClient.ImageServerUrl}original{show.BackdropPath}"
                 : null;
             UserRating = new Rating
             {
@@ -380,10 +408,10 @@ public static class Search
             Overview = show.Overview ?? string.Empty;
             FirstAiredAt = show.FirstAirDate?.ToDateOnly();
             Poster = !string.IsNullOrEmpty(show.PosterPath)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
+                ? $"{TmdbApiClient.ImageServerUrl}original{show.PosterPath}"
                 : null;
             Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
+                ? $"{TmdbApiClient.ImageServerUrl}original{show.BackdropPath}"
                 : null;
             UserRating = new Rating
             {
@@ -405,10 +433,10 @@ public static class Search
             Overview = show.Overview ?? string.Empty;
             FirstAiredAt = show.FirstAirDate?.ToDateOnly();
             Poster = !string.IsNullOrEmpty(show.PosterPath)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
+                ? $"{TmdbApiClient.ImageServerUrl}original{show.PosterPath}"
                 : null;
             Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
+                ? $"{TmdbApiClient.ImageServerUrl}original{show.BackdropPath}"
                 : null;
             UserRating = new Rating
             {
@@ -430,10 +458,10 @@ public static class Search
             Overview = show.Overview;
             FirstAiredAt = show.FirstAiredAt;
             Poster = !string.IsNullOrEmpty(show.PosterPath)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{show.PosterPath}"
+                ? $"{TmdbApiClient.ImageServerUrl}original{show.PosterPath}"
                 : null;
             Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
-                ? $"{TmdbMetadataService.ImageServerUrl}original{show.BackdropPath}"
+                ? $"{TmdbApiClient.ImageServerUrl}original{show.BackdropPath}"
                 : null;
             UserRating = new Rating
             {

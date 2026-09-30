@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
@@ -59,6 +61,11 @@ public static class QueueProcessorExtensions
         services.AddScoped<JobCancellationAccessor>();
         services.AddScoped<IJobCancellationAccessor>(sp => sp.GetRequiredService<JobCancellationAccessor>());
 
+        // ── Job progress ──────────────────────────────────────────────────────
+        // Stamped per job by the worker; reports go nowhere outside one.
+        services.AddScoped<JobProgressAccessor>();
+        services.AddScoped<IJobProgressAccessor>(sp => sp.GetRequiredService<JobProgressAccessor>());
+
         // ── Job type registration ─────────────────────────────────────────────
         // Jobs are resolved from DI by their concrete type only — never via IQueueJob.
         // The interface is used solely for reflection-based discovery (attributes, TypeName,
@@ -80,7 +87,8 @@ public static class QueueProcessorExtensions
         services.AddSingleton(sp => ConcurrencyRegistry.Build(
             sp.GetRequiredService<QueueJobTypeRegistry>().JobTypes.Distinct(),
             options.LimitedConcurrencyOverrides,
-            options.MaxTotalWorkers));
+            options.MaxTotalWorkers,
+            [.. sp.GetServices<IJobConcurrencyProvider>()]));
 
         services.AddSingleton(new RetryPolicy
         {
@@ -169,15 +177,75 @@ public static class QueueProcessorExtensions
         return services;
     }
 
+    /// <summary>
+    /// Registers job types that no assembly scan finds, such as the closed types of a generic job
+    /// with one type per provider, as transient services and appends them to the shared
+    /// <see cref="QueueJobTypeRegistry"/>.
+    /// </summary>
+    /// <remarks>
+    /// Must be called during service registration, like <see cref="AddQueueJobsFromAssembly"/>.
+    /// A closed generic job type is stored under its definition's full name and its type
+    /// arguments' names, without assembly versions, so its jobs survive a plugin update.
+    /// </remarks>
+    /// <param name="services">The DI service collection.</param>
+    /// <param name="jobTypes">The job types, each a concrete class implementing <see cref="IQueueJob"/>.</param>
+    /// <returns>The same service collection.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// <see cref="AddQueueProcessor"/> was not called first, or the registry is already frozen.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// A type is not a concrete, closed job type, or its stored name is longer than
+    /// <see cref="QueuedJob.JobTypeMaxLength"/> (see <see cref="FitsQueue"/>).
+    /// </exception>
+    public static IServiceCollection AddQueueJobTypes(this IServiceCollection services, IEnumerable<Type> jobTypes)
+    {
+        var registry = services
+            .Where(d => d.ServiceType == typeof(QueueJobTypeRegistry))
+            .Select(d => d.ImplementationInstance as QueueJobTypeRegistry)
+            .FirstOrDefault(r => r is not null)
+            ?? throw new InvalidOperationException(
+                $"{nameof(AddQueueJobTypes)} requires {nameof(AddQueueProcessor)} to have been called first.");
+        var types = jobTypes.Distinct().ToArray();
+        foreach (var type in types)
+        {
+            if (!IsJobType(type))
+                throw new ArgumentException($"'{type.FullName}' is not a concrete, closed {nameof(IQueueJob)} type.", nameof(jobTypes));
+            if (!FitsQueue(type))
+                throw new ArgumentException(
+                    $"'{JobTypeNames.Short(type)}' is stored under a name longer than {QueuedJob.JobTypeMaxLength} characters, so it cannot be queued.",
+                    nameof(jobTypes)
+                );
+
+            services.TryAddTransient(type);
+        }
+
+        registry.Add(types);
+        return services;
+    }
+
     private static void ScanAssemblyForJobs(IServiceCollection services, QueueJobTypeRegistry registry, Assembly assembly)
     {
+        // An open generic job type is not a job type yet; its closed types are registered
+        // through AddQueueJobTypes by whoever knows the type arguments.
         var jobTypes = assembly.GetTypes()
-            .Where(t => t.IsClass && !t.IsAbstract && typeof(IQueueJob).IsAssignableFrom(t))
+            .Where(IsJobType)
             .ToArray();
         foreach (var type in jobTypes)
             services.TryAddTransient(type);
         registry.Add(jobTypes);
     }
+
+    /// <summary>
+    /// Whether a job type's stored name fits the queue's job type column.
+    /// </summary>
+    /// <param name="type">The job type.</param>
+    /// <returns><see langword="true"/> when its jobs can be queued.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <see langword="null"/>.</exception>
+    public static bool FitsQueue(Type type)
+        => JobTypeNames.Stored(type).Length <= QueuedJob.JobTypeMaxLength;
+
+    private static bool IsJobType(Type type)
+        => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters && typeof(IQueueJob).IsAssignableFrom(type);
 
     private static void RegisterDbContext(IServiceCollection services, QueueProcessorOptions options)
     {

@@ -8,7 +8,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 
@@ -389,7 +389,7 @@ public class TmdbShow
         {
             OrderingID = ordering.TmdbEpisodeGroupCollectionID;
             OrderingName = ordering.EnglishTitle;
-            OrderingType = ordering.Type;
+            OrderingType = (AlternateOrderingType)ordering.Type;
             EpisodeCount = ordering.EpisodeCount;
             HiddenEpisodeCount = ordering.HiddenEpisodeCount;
             SeasonCount = ordering.SeasonCount;

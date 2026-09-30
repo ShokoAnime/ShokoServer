@@ -105,13 +105,13 @@ public interface ISeriesUserData : IUserData
     ///   Indicates that the series has been watched to completion at least
     ///   once by the user, be it locally or otherwise.
     /// </summary>
-    bool IsWatched => UnwatchedEpisodeCount is 0;
+    bool IsWatched { get => UnwatchedEpisodeCount is 0; }
 
     /// <summary>
     ///   Indicates that the user has rated the series.
     /// </summary>
     [MemberNotNullWhen(true, nameof(UserRating), nameof(UserRatingVoteType))]
-    bool HasUserRating => UserRating.HasValue && UserRatingVoteType.HasValue;
+    bool HasUserRating { get => UserRating.HasValue && UserRatingVoteType.HasValue; }
 
     /// <summary>
     ///   Gets the Shoko Series associated with this user data, if available.

@@ -1,7 +1,6 @@
 using System;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 
 using AbstractRelationType = Shoko.Abstractions.Metadata.Enums.RelationType;
@@ -69,8 +68,8 @@ public class AniDB_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquatab
         if (ReferenceEquals(this, other))
             return true;
 
-        return AnimeID == other.BaseID &&
-            RelatedAnimeID == other.RelatedID &&
+        return other.BaseID == ((IRelatedMetadata)this).BaseID &&
+            other.RelatedID == ((IRelatedMetadata)this).RelatedID &&
             AbstractRelationType == other.RelationType;
     }
 
@@ -113,17 +112,17 @@ public class AniDB_Anime_Relation : IRelatedMetadata<ISeries, ISeries>, IEquatab
 
     #region IRelatedMetadata implementation
 
-    int IRelatedMetadata.BaseID => AnimeID;
+    MetadataGuid IRelatedMetadata.BaseID => new(MetadataSource.AniDB, MetadataEntityType.Series, AnimeID.ToString());
 
-    int IRelatedMetadata.RelatedID => RelatedAnimeID;
+    MetadataGuid IRelatedMetadata.RelatedID => new(MetadataSource.AniDB, MetadataEntityType.Series, RelatedAnimeID.ToString());
 
-    IMetadata<int>? IRelatedMetadata.Base => RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
+    IMetadata? IRelatedMetadata.Base => RepoFactory.AniDB_Anime.GetByAnimeID(AnimeID);
 
-    IMetadata<int>? IRelatedMetadata.Related => RepoFactory.AniDB_Anime.GetByAnimeID(RelatedAnimeID);
+    IMetadata? IRelatedMetadata.Related => RepoFactory.AniDB_Anime.GetByAnimeID(RelatedAnimeID);
 
     AbstractRelationType IRelatedMetadata.RelationType => AbstractRelationType;
 
-    DataSource IRelatedMetadata.Source => DataSource.AniDB;
+    MetadataSource IRelatedMetadata.Source => MetadataSource.AniDB;
 
     bool IRelatedMetadata.Verified => Verified;
 

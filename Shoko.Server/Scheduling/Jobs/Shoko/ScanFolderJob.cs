@@ -4,6 +4,8 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Workers;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
@@ -11,7 +13,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyMember("ScanFolder")]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.Import)]
-internal class ScanFolderJob(IVideoService videoService) : BaseJob
+internal class ScanFolderJob(IVideoService videoService, IJobCancellationAccessor cancellation, IJobProgressAccessor progress) : BaseJob
 {
     private string? _managedFolder;
 
@@ -71,14 +73,16 @@ internal class ScanFolderJob(IVideoService videoService) : BaseJob
         if (managedFolder == null)
             return;
 
-        await videoService.ScanManagedFolder(
+        await ((VideoService)videoService).ScanManagedFolder(
             managedFolder,
             relativePath: RelativePath,
             onlyNewFiles: OnlyNewFiles,
             skipEvents: SkipEvents,
             cleanUpStructure: CleanUpStructure,
             checkFileSize: CheckFileSize,
-            forceScan: ForceScan
+            forceScan: ForceScan,
+            progress: progress.Progress,
+            token: cancellation.Token
         );
     }
 }

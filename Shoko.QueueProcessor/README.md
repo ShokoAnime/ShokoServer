@@ -145,8 +145,8 @@ flowchart TD
         EVTS["QueueStateEventHandler<br/>OnJobExecuting / OnJobCompleted → SignalR / UI"]
         REQX["RequeueJobException<br/>requeue · retry count unchanged<br/>AfterParent registrations preserved"]
         RERR["Real exception<br/>RetryPolicy: delay = BaseDelay × 2^retryCount (capped)"]
-        RBACK["Re-insert at ScheduledAt = now + delay<br/>RetryCount += 1 · persisted immediately (crash-safe)"]
-        RDIS["Max retries exceeded<br/>discard · LogError<br/>AfterParent children deleted · keys freed"]
+        RBACK["Re-insert at ScheduledAt = now + delay<br/>RetryCount += 1 · persisted immediately (crash-safe)<br/>stays in its chain · chain successors kept"]
+        RDIS["Max retries exceeded<br/>discard · LogError<br/>AfterParent children deleted · keys freed<br/>chain aborted · [ChainFinally] jobs still run"]
         CABT["ChainAbortException<br/>[ChainFinally] jobs activated at int.MaxValue<br/>non-finally jobs skipped + deleted from DB"]
     end
 
@@ -273,7 +273,7 @@ public class HashFileJob : IQueueJob
 | `[LimitConcurrency(n, maxAllowed: m)]` | Caps simultaneous workers for this type (or group). `m` is the hard ceiling for runtime overrides. |
 | `[DisallowConcurrencyGroup("name")]` | Puts this job into a shared pool with all other types in the same group. |
 | `[DisallowConcurrentExecution]` | Shorthand for `[LimitConcurrency(1)]`. |
-| `[Acquisition(priority: N)]` | Sets the pool's dispatch priority. Lower `N` = higher priority. Subclass to bundle priority with domain semantics (e.g. `[AniDBHttpRequired]`). Defaults to `AcquisitionAttribute.LowestPriority` (999) if absent. |
+| `[Acquisition(priority: N)]` | Sets the pool's dispatch priority. Lower `N` = higher priority. Subclass to bundle priority with domain semantics (e.g. `[AniDBHttpRateLimited]`). Defaults to `AcquisitionAttribute.LowestPriority` (999) if absent. |
 | `[RetryPolicy(MaxRetries = …, BaseDelaySeconds = …, MaxDelaySeconds = …)]` | Per-type override of the global retry backoff. |
 | `[LongRunning]` | Exempts this job from the deadlock watchdog. Apply to jobs that are expected to run for a long time (e.g. hashing a large file, full-library scans). A job with a deadline of its own registers an `IJobWatchdogThreshold` instead and stays watched. |
 | `[DatabaseRequired]` | Job won't run while the database is unavailable. |
@@ -297,6 +297,10 @@ You don't manually register job types. `AddQueueProcessor` reflects over the hos
 
 The interface is used *only* for discovery — DI never resolves `IEnumerable<IQueueJob>`, so jobs aren't instantiated at startup.
 
+An open generic job class, such as one job type per provider, is skipped by the scan: it is not a job type until its type arguments are known. Whoever knows them registers the closed types with `services.AddQueueJobTypes([...])` during service registration, and enqueues them through the `Type` overloads of `IQueueScheduler`. A closed type is stored under its definition's full name and its type arguments' names without assembly versions (`JobTypeNames.Stored`), so a queued job still finds its type after a plugin update, and one whose type argument's assembly is not loaded is kept for when it is back. Pools, concurrency overrides and metrics key it as `Job<Namespace.Argument>` (`JobTypeNames.Key`), with each type argument's full name, so two plugins' providers of the same simple name never share a pool; logs and display use the shorter `Job<Argument>` (`JobTypeNames.Short`). A closed type whose stored name is longer than the queue's job type column (`QueuedJob.JobTypeMaxLength`, 256 characters) is refused by `AddQueueJobTypes`; check it first with `QueueProcessorExtensions.FitsQueue`.
+
+Attributes are fixed per class, so a closed type cannot carry a limit of its own. An `IJobConcurrencyProvider` registered in DI supplies one instead: it is asked for any type without a concurrency attribute, when the pools are built and each time a job of the type is about to start, and a type it limits gets a pool of its own as if it carried `[LimitConcurrency]`.
+
 ---
 
 ## Enqueueing jobs
@@ -319,9 +323,12 @@ await scheduler.StartJob<HashFileJob>(j => j.FilePath = path);
 // Bulk
 await scheduler.EnqueueRange(jobs);
 
-// Remove a waiting job (no-op if already executing or not found)
+// Remove a waiting job (no-op if already executing or not found); frees its key
 await scheduler.Remove("Import/HashFileJob_path:\"/movies/foo.mkv\"");
 await scheduler.Remove<HashFileJob>(j => j.FilePath = "/movies/foo.mkv"); // key built for you
+
+// Cancel: removes a waiting job, or asks a running one to stop (see below)
+var result = await scheduler.Cancel(key); // Removed, CancellationRequested, NotCancellable or NotFound
 
 // Control
 await scheduler.Pause();
@@ -332,6 +339,54 @@ await scheduler.Clear();    // wipes waiting (executing jobs run to completion)
 var state = await scheduler.GetState();
 Console.WriteLine($"{state.TotalExecuting} running, {state.TotalWaiting} waiting");
 ```
+
+### Cancelling and reporting progress
+
+A job opts in to both by injecting a scoped accessor, which the worker stamps before every
+`Process()` call. Nothing on the job declares support; the queue reads it off the wiring.
+
+```csharp
+public class ScanJob(IJobCancellationAccessor cancellation, IJobProgressAccessor progress) : IQueueJob
+{
+    public async Task Process()
+    {
+        var files = GetFiles();
+        progress.Progress.Report(0);
+        for (var i = 0; i < files.Count; i++)
+        {
+            cancellation.Token.ThrowIfCancellationRequested();
+            await ScanAsync(files[i], cancellation.Token);
+            progress.Progress.Report(100m * (i + 1) / files.Count);
+        }
+    }
+}
+```
+
+- **Cancellable** means the job type takes `IJobCancellationAccessor` in a public constructor.
+  `Cancel(key)` on a running job that does not is refused with `NotCancellable`.
+- **A cancel is a request.** The job stays in the executing snapshot with
+  `QueueItem.CancellationRequested` set until it stops, and the request cannot be undone. When it
+  stops with an `OperationCanceledException` it ends as cancelled: it is not retried, its key is
+  freed and its row deleted, and the rest of its chain is aborted as by a `ChainAbortException`,
+  with `[ChainFinally]` jobs still running. A job that returns anyway completed, and one that
+  throws anything else failed and follows the retry policy.
+- **Shutdown is unchanged.** The token also fires when the pool stops, and a job that stops then
+  is re-queued as it was, without a retry.
+- **A retried or re-queued chain job** runs again in its chain, with the chain's scope and
+  context, and the rest of the chain waits for it. One discarded after its last retry aborts the
+  chain from there on, with `[ChainFinally]` jobs still running.
+- **Removing a waiting chain job** aborts the chain from there on. A job still waiting on its
+  parent leaves the parent to run; the chain's finally jobs then run after the parent.
+- **Progress** is a percentage from 0 to 100, kept in memory only and shown as
+  `QueueItem.Progress` on the running job. It stays `null` until the job first reports, so a job
+  that never reports shows none. `JobProgressChanged` fires at most every 100 milliseconds per job;
+  the snapshot always has the latest value.
+
+### Who a job runs for
+
+A host that tracks who asked for work registers an `IJobActorAccessor`. The scheduler calls `Capture()` when a job is queued and stores the returned `JobActor` (a user ID and a device name, never a credential) with the job; the worker calls `Restore(actor)` around `Process()`, with `null` for a job queued without one. A job queued from a job, directly, through `RunAfterCurrent` or as a chain, captures the restored actor and so inherits it; a chain captures once, when it is created. Without an accessor registered, jobs carry no actor. Shoko's own accessor looks the credentials up again at run time, so a job whose token was revoked in the meantime runs for the system.
+
+Workers, the watchdog and the flush and recurring timers start from an empty execution context, so none of them keeps the ambient state of whoever started them.
 
 ### Parent-child job chaining
 
@@ -371,7 +426,7 @@ scope so scoped services (including `IJobChainContextAccessor`) are naturally sh
 // Build a chain: A → B → C (C always runs, even if B aborts)
 await scheduler.CreateJobChain()
     .Then<GetAniDBAnimeJob>(j => j.AnimeID = animeID)
-    .Then<SearchTmdbJob>(j => j.AnimeID = animeID)
+    .Then<SearchMetadataJob<TmdbMetadataProvider>>(j => j.AnimeID = animeID)
     .Then<FinalizeReleaseSearchJob>(j => j.AnimeID = animeID)  // [ChainFinally]
     .EnqueueAfterCurrent();  // or .Enqueue() to start independently
 ```
@@ -441,7 +496,7 @@ public class GetAniDBAnimeJob : BaseJob<AniDB_Anime>
 }
 
 // Consumer job (reads the result set by the previous job)
-public class SearchTmdbJob(IJobChainContextAccessor chain) : BaseJob
+public class MatchAnimeJob(IJobChainContextAccessor chain) : BaseJob
 {
     public int AnimeID { get; set; }
 
@@ -454,8 +509,8 @@ public class SearchTmdbJob(IJobChainContextAccessor chain) : BaseJob
         // var anime = chain.GetResult<AniDB_Anime>(specificJobId);
 
         // Shared data bag — any job in the chain can read/write
-        chain.SetData("tmdbSearchQuery", anime?.MainTitle);
-        var previousQuery = chain.GetData<string>("tmdbSearchQuery");
+        chain.SetData("searchQuery", anime?.MainTitle);
+        var previousQuery = chain.GetData<string>("searchQuery");
 
         // Check what happened to a previous step
         var outcome = chain.GetCurrentContext()?.GetOutcome(typeof(GetAniDBAnimeJob));
@@ -508,6 +563,10 @@ public class MyPluginStartup
 ```
 
 Registration is safe before *or* after `StartAsync` — late registrations arm immediately. If your job needs the DB, add `[DatabaseRequired]` and it'll naturally wait until the DB acquisition filter releases it.
+
+Recurring jobs are the host's: their timers, and a registration made after start, run from an empty execution context, so they are never queued for whoever happened to register them.
+
+The interval is fixed by the code that registers it. Shoko itself no longer uses the registry: its recurring work runs as scheduled actions (`IScheduledAction.DefaultTriggers` in `Shoko.Abstractions`), whose triggers the admin sets.
 
 ---
 
@@ -583,7 +642,7 @@ The pool priority is the **minimum** `WorkerPriority` across all job types in th
 
 ## Events
 
-`QueueStateEventHandler` (singleton) exposes `QueueStarted`, `QueuePaused`, `QueueItemsAdded`, and `ExecutingJobsChanged`. Subscribe from your SignalR hub, UI, or telemetry pipeline:
+`QueueStateEventHandler` (singleton) exposes `QueueStarted`, `QueuePaused`, `QueueItemsAdded`, `QueueItemsRemoved`, `ExecutingJobsChanged`, `JobCancellationRequested` and `JobProgressChanged` (throttled per job). Subscribe from your SignalR hub, UI, or telemetry pipeline:
 
 ```csharp
 public class QueueEventEmitter
@@ -718,6 +777,7 @@ include exactly where in the code that call originated.
 | `ChainId` (Guid?) | The chain this job belongs to; null for standalone jobs. |
 | `IsChainFinally` | True when the job carries `[ChainFinally]` — it runs even if the chain aborts. |
 | `ParentJobId` (Guid?) | Non-null while the job is deferred in `AfterParentCallbacks`. Cleared (UPDATE) the moment the parent fires it. Used at startup to reconstruct `AfterParentCallbacks` from DB. |
+| `ActorUserId` (int?) / `ActorDeviceName` | Who the job was queued for, captured through `IJobActorAccessor`; null for no one. Never a credential. |
 
 There's **no status column** — executing state lives only in memory. On crash-restart, in-flight jobs are re-dispatched from their surviving row. Jobs with `ParentJobId` set whose parent is still present are placed back into `AfterParentCallbacks`; those whose parent is already gone are promoted to the active queue.
 

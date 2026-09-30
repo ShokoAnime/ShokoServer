@@ -1,0 +1,290 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Providers;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Storage;
+
+namespace Shoko.Server.Services;
+
+/// <summary>
+///   Asks the metadata providers for refreshes, images and auto-searches,
+///   through the core's jobs for each provider.
+/// </summary>
+public class MetadataRefreshService : IMetadataRefreshService
+{
+    private readonly IMetadataProviderManager _providerManager;
+
+    private readonly IMetadataCrossReferenceStore _crossReferences;
+
+    private readonly IMetadataService _metadataService;
+
+    private readonly MetadataProviderScheduler _providerScheduler;
+
+    private readonly MetadataEntryLocks _entryLocks;
+
+    private readonly IMetadataRefreshState _refreshState;
+
+    private readonly MetadataImageContributorScheduler _contributorScheduler;
+
+    /// <summary>
+    ///   Asks the providers through the core's jobs, and relays their pause
+    ///   status.
+    /// </summary>
+    /// <param name="providerManager">The registered providers, which also tell when one is paused or resumed.</param>
+    /// <param name="crossReferences">The links, to find what a source links to.</param>
+    /// <param name="metadataService">
+    ///   The Shoko series, for a search of the whole library and to tell the
+    ///   anime in it, and every source's stored collections, which nothing
+    ///   links to.
+    /// </param>
+    /// <param name="providerScheduler">Queues the providers' jobs.</param>
+    /// <param name="entryLocks">Tells when an entry is being refreshed or purged.</param>
+    /// <param name="refreshState">When each entry was last refreshed.</param>
+    /// <param name="contributorScheduler">Queues the image contributors' jobs.</param>
+    public MetadataRefreshService(
+        IMetadataProviderManager providerManager,
+        IMetadataCrossReferenceStore crossReferences,
+        IMetadataService metadataService,
+        MetadataProviderScheduler providerScheduler,
+        MetadataEntryLocks entryLocks,
+        IMetadataRefreshState refreshState,
+        MetadataImageContributorScheduler contributorScheduler
+    )
+    {
+        _providerManager = providerManager;
+        _crossReferences = crossReferences;
+        _metadataService = metadataService;
+        _providerScheduler = providerScheduler;
+        _entryLocks = entryLocks;
+        _refreshState = refreshState;
+        _contributorScheduler = contributorScheduler;
+        if (providerManager is IMetadataProviderPauseState pauseState)
+            pauseState.PausedProvidersChanged += (_, _) => PauseStatusChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    #region Refresh
+
+    /// <inheritdoc />
+    public Task<bool> RefreshEntry(
+        MetadataGuid entryID,
+        bool force = false,
+        MetadataRefreshOptions? options = null,
+        bool immediate = false,
+        bool prioritize = false,
+        CancellationToken cancellationToken = default
+    )
+        => _providerScheduler.ScheduleRefreshForEntry(entryID, force, options, immediate, prioritize, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<int> RefreshForAnime(
+        int anidbAnimeID,
+        MetadataSource? source = null,
+        bool force = false,
+        MetadataRefreshOptions? options = null,
+        CancellationToken cancellationToken = default
+    )
+        => _providerScheduler.ScheduleRefreshForAnime(anidbAnimeID, source, force, options, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<int> RefreshAllLinked(
+        MetadataSource source,
+        bool force = false,
+        MetadataRefreshOptions? options = null,
+        MetadataEntityType? entityType = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        options ??= MetadataProviderScheduler.FullRefresh(MetadataRefreshReason.Requested);
+        var queued = 0;
+        foreach (var info in _providerManager.MetadataProviders.Where(info => info.Enabled && info.Source == source))
+        {
+            // One refresh for each entry, however many anime link to it, so a
+            // forced refresh does not fetch a shared entry once per anime.
+            var entries = GetLinkedEntriesInLibrary(info.Source)
+                .Where(pair => entityType is null || pair.Entry.EntityType == entityType)
+                .DistinctBy(pair => pair.Entry)
+                .ToList();
+            foreach (var (animeID, entry) in entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!MetadataProviderScheduler.Refreshes(info.Provider, entry.EntityType) || !MetadataProviderScheduler.MayRefresh(info, entry.EntityType))
+                    continue;
+
+                if (await _providerScheduler.ScheduleRefresh(info, animeID, entry, force, options, cancellationToken).ConfigureAwait(false))
+                    queued++;
+            }
+
+            // Nothing links a collection, so each stored one is asked for by name.
+            if ((entityType is not null && entityType != MetadataEntityType.Collection) || info.Provider is not IMetadataCollectionProvider ||
+                !MetadataProviderScheduler.MayRefresh(info, MetadataEntityType.Collection))
+                continue;
+
+            foreach (var collection in _metadataService.GetAllCollectionsForSource(info.Source).ToList())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (await _providerScheduler.ScheduleRefresh(info, 0, collection.ID, force, options, cancellationToken).ConfigureAwait(false))
+                    queued++;
+            }
+        }
+
+        return queued;
+    }
+
+    /// <inheritdoc />
+    public bool IsRefreshing(MetadataGuid entryID)
+        => _entryLocks.IsUpdating(entryID);
+
+    /// <inheritdoc />
+    public Task<bool> WaitForRefresh(MetadataGuid entryID, CancellationToken cancellationToken = default)
+        => _entryLocks.WaitForUpdate(entryID, cancellationToken);
+
+    /// <inheritdoc />
+    public DateTime? GetLastRefreshedAt(MetadataGuid entryID)
+    {
+        ArgumentNullException.ThrowIfNull(entryID);
+
+        return _refreshState.GetLastRefreshedAt(entryID);
+    }
+
+    #endregion
+
+    #region Images
+
+    /// <inheritdoc />
+    public async Task<bool> DownloadImages(
+        MetadataGuid entryID,
+        bool force = false,
+        bool immediate = false,
+        bool prioritize = false,
+        CancellationToken cancellationToken = default
+    )
+    {
+        // The owner's image job queues the contributors once it has run, so
+        // they are only queued here for an entry no provider's job covers.
+        if (_providerScheduler.HasImageJobFor(entryID))
+            return await _providerScheduler.ScheduleImagesForEntry(entryID, force, immediate, prioritize, cancellationToken).ConfigureAwait(false);
+
+        return await _contributorScheduler.ScheduleForEntry(entryID, force, prioritize, cancellationToken).ConfigureAwait(false) > 0;
+    }
+
+    /// <inheritdoc />
+    public async Task<int> DownloadImagesForAnime(int anidbAnimeID, MetadataSource? source = null, bool force = false, CancellationToken cancellationToken = default)
+    {
+        var queued = 0;
+        foreach (var info in _providerScheduler.GetImageProviders(source).ToList())
+            queued += await _providerScheduler.ScheduleImagesForAnime(info, anidbAnimeID, force, cancellationToken).ConfigureAwait(false);
+
+        return queued;
+    }
+
+    /// <inheritdoc />
+    public async Task<int> DownloadAllImages(MetadataSource source, bool force = false, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var queued = 0;
+        foreach (var info in _providerScheduler.GetImageProviders(source).ToList())
+        {
+            var entries = GetLinkedEntriesInLibrary(info.Source)
+                .Select(pair => pair.Entry)
+                .Distinct()
+                .ToList();
+            foreach (var entry in entries)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (await _providerScheduler.ScheduleImages(info, entry, force, cancellationToken).ConfigureAwait(false))
+                    queued++;
+            }
+        }
+
+        return queued;
+    }
+
+    /// <summary>
+    ///   Every series and film linked on a source to an anime in the library,
+    ///   with the anime linking to each. A link imported for an anime the user
+    ///   does not have is left for when they add it.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>Each anime and the entry it links to.</returns>
+    private IEnumerable<(int AnidbAnimeID, MetadataGuid Entry)> GetLinkedEntriesInLibrary(MetadataSource source)
+    {
+        var inLibrary = new Dictionary<int, bool>();
+        return _crossReferences.GetAllLinkedEntries(source)
+            .Where(pair =>
+            {
+                if (!inLibrary.TryGetValue(pair.AnidbAnimeID, out var found))
+                    inLibrary[pair.AnidbAnimeID] = found = _metadataService.GetShokoSeriesByAnidbID(pair.AnidbAnimeID) is not null;
+                return found;
+            });
+    }
+
+    #endregion
+
+    #region Auto-search
+
+    /// <inheritdoc />
+    public Task<bool> AutoSearch(MetadataSource source, int anidbAnimeID, bool force = false, CancellationToken cancellationToken = default)
+        => _providerScheduler.ScheduleSearch(source, anidbAnimeID, force, replace: force, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<int> AutoSearchAll(MetadataSource source, bool force = false, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (_providerScheduler.GetAutoLinker(source) is not { } info || !(force || info.AutoLink))
+            return 0;
+
+        if (!_providerScheduler.IsConfigured(info, "every anime"))
+            return 0;
+
+        var queued = 0;
+        foreach (var series in _metadataService.GetAllShokoSeries().ToList())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // The search job checks these too; checking here keeps useless searches out of the queue.
+            // A bulk search never replaces links, so a linked anime is left alone even when forced.
+            if (_crossReferences.GetLinkedEntries(series.AnidbAnimeID, source).Count > 0 || (!force && (
+                series.IsAutoLinkingDisabled(source) ||
+                (!info.AutoLinkRestricted && series.AnidbAnime is { Restricted: true }))))
+                continue;
+
+            if (await _providerScheduler.ScheduleSearch(source, series.AnidbAnimeID, force, replace: false, cancellationToken).ConfigureAwait(false))
+                queued++;
+        }
+
+        return queued;
+    }
+
+    #endregion
+
+    #region Pausing
+
+    /// <inheritdoc />
+    public MetadataProviderPauseStatus GetPauseStatus(MetadataSource source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        // The provider expected to resume last decides, and one that does not
+        // say when counts as resuming last of all.
+        return _providerManager.MetadataProviders
+            .Where(info => info.Enabled && info.Source == source)
+            .Select(info => info.Provider)
+            .OfType<IPausableMetadataProvider>()
+            .Select(provider => provider.PauseStatus)
+            .Where(status => status.IsPaused)
+            .OrderByDescending(status => status.ResumesAt ?? DateTime.MaxValue)
+            .FirstOrDefault() ?? MetadataProviderPauseStatus.NotPaused;
+    }
+
+    /// <inheritdoc />
+    public event EventHandler? PauseStatusChanged;
+
+    #endregion
+}

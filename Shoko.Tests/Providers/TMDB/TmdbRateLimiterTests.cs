@@ -138,9 +138,9 @@ public class TmdbRateLimiterTests
     public void Notify5xxError_RampProgresses()
     {
         // Verify ramp schedule: levels 1–5 map to 1→3→5→15→60min.
-        Assert.Equal(TimeSpan.FromMinutes(1),  TmdbRateLimiter.Get5xxPauseDuration(1));
-        Assert.Equal(TimeSpan.FromMinutes(3),  TmdbRateLimiter.Get5xxPauseDuration(2));
-        Assert.Equal(TimeSpan.FromMinutes(5),  TmdbRateLimiter.Get5xxPauseDuration(3));
+        Assert.Equal(TimeSpan.FromMinutes(1), TmdbRateLimiter.Get5xxPauseDuration(1));
+        Assert.Equal(TimeSpan.FromMinutes(3), TmdbRateLimiter.Get5xxPauseDuration(2));
+        Assert.Equal(TimeSpan.FromMinutes(5), TmdbRateLimiter.Get5xxPauseDuration(3));
         Assert.Equal(TimeSpan.FromMinutes(15), TmdbRateLimiter.Get5xxPauseDuration(4));
         Assert.Equal(TimeSpan.FromMinutes(60), TmdbRateLimiter.Get5xxPauseDuration(5));
     }

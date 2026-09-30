@@ -31,16 +31,9 @@ public class CheckAniDBFileUpdatesJob(ISettingsProvider settingsProvider, IVideo
     {
         _logger.LogInformation("Processing {Job}", nameof(CheckAniDBFileUpdatesJob));
 
+        // How often this runs is up to the triggers of the action that queues it.
         var settings = settingsProvider.GetSettings();
-        if (settings.AniDb.File_UpdateFrequency == ScheduledUpdateFrequency.Never) return;
-
-        var freqHours = settings.AniDb.File_UpdateFrequency.Hours;
         var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBFileUpdates);
-        if (schedule is not null)
-        {
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours) return;
-        }
 
         if (videoReleaseService.AutoMatchEnabled)
         {
@@ -68,6 +61,4 @@ public class CheckAniDBFileUpdatesJob(ISettingsProvider settingsProvider, IVideo
         schedule.LastUpdate = DateTime.Now;
         scheduledUpdates.Save(schedule);
     }
-
-
 }

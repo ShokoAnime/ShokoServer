@@ -5,10 +5,10 @@ public static class JobKeyGroup
     public const string Actions = "Actions";
     public const string Airing = "Airing";
     public const string AniDB = "AniDB";
-    public const string Anilist = "Anilist";
     public const string Image = "Image";
     public const string Import = "Import";
     public const string Legacy = "Legacy";
+    public const string Metadata = "Metadata";
     public const string System = "System";
     public const string TMDB = "TMDB";
 }

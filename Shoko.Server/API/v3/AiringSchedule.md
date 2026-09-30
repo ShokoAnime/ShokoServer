@@ -159,6 +159,21 @@ card at `AiredAt` when that is in the window, and a "no episode" marker at
 by whichever of the two falls in the window first. Markers are per channel,
 since every airing belongs to exactly one schedule.
 
+## Advance screenings and reruns
+
+`Kind` on an airing says what kind of showing it is: `Normal` for the regular
+airing, `Advance` for an advance screening ahead of it, and `Rerun` for a
+repeat after it. Estimates are always `Normal`. This is a property of the
+airing, not of the schedule, so it has nothing to do with the `kind` query
+filter, which matches the schedule's track kind (`Original`, `Subtitled`,
+`Dubbed`). There is no filter on it: a calendar that only wants the regular
+showings drops the other two itself.
+
+The server learns a schedule's line from its `Normal` airings only. Advance
+screenings and reruns are returned like any other airing, but they are never
+counted towards the cadence estimates are drawn from, never flagged as delays
+or kept as a hiatus, and never taken as the airing a simulpub is measured from.
+
 ## Linked airings
 
 One slot can cover several episodes, e.g. a double bill. Those airings share a
@@ -171,8 +186,9 @@ airing, and changes if the head is removed.
 
 `OffsetFromOriginal` is this airing's time minus the episode's earliest known
 real `Original` airing, which is what a client labels as a simulcast ("+1 h") or
-a lag ("+14 d"). It is `null` when this *is* that airing, or when there is none.
-A negative offset is valid.
+a lag ("+14 d"). Advance screenings and reruns are left out when that airing is
+picked, so an early preview never becomes the anchor. It is `null` when this
+*is* that airing, or when there is none. A negative offset is valid.
 
 ## Entity anchor
 

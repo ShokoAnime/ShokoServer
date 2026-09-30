@@ -13,6 +13,7 @@ using Shoko.Abstractions.Video.Events;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
 namespace Shoko.Server;
@@ -64,7 +65,7 @@ public class ShokoEventHandler
             .Select(a => a.ParentGroup)
             .WhereNotNull()
             .ToList();
-        FileDeleted?.Invoke(null, new(path, folder, vlp, vl, episodes, series, groups));
+        FileDeleted?.Invoke(null, new(path, folder, vlp, vl, episodes, series, groups) { Actor = ActorContext.CurrentActor });
     }
 
     public void OnSeriesUpdated(AniDB_Anime anime, UpdateReason reason, IEnumerable<KeyValuePair<AniDB_Episode, UpdateReason>>? episodes = null)
@@ -76,9 +77,10 @@ public class ShokoEventHandler
     public void OnSeriesUpdated(ISeries series, UpdateReason reason, IEnumerable<(ISeason season, UpdateReason reason)>? seasons = null, IEnumerable<(IEpisode episode, UpdateReason reason)>? episodes = null)
     {
         ArgumentNullException.ThrowIfNull(series, nameof(series));
-        var seasonEvents = seasons?.Select(s => new SeasonInfoUpdatedEventArgs(series, s.season, s.reason)).ToList() ?? [];
-        var episodeEvents = episodes?.Select(e => new EpisodeInfoUpdatedEventArgs(series, e.episode, e.reason)).ToList() ?? [];
-        SeriesUpdated?.Invoke(null, new(series, reason, seasonEvents, episodeEvents));
+        var actor = ActorContext.CurrentActor;
+        var seasonEvents = seasons?.Select(s => new SeasonInfoUpdatedEventArgs(series, s.season, s.reason) { Actor = actor }).ToList() ?? [];
+        var episodeEvents = episodes?.Select(e => new EpisodeInfoUpdatedEventArgs(series, e.episode, e.reason) { Actor = actor }).ToList() ?? [];
+        SeriesUpdated?.Invoke(null, new(series, reason, seasonEvents, episodeEvents) { Actor = actor });
         foreach (var e in episodeEvents)
             EpisodeUpdated?.Invoke(null, e);
     }
@@ -89,8 +91,9 @@ public class ShokoEventHandler
     public void OnSeriesUpdated(IShokoSeries series, UpdateReason reason, IEnumerable<(IShokoEpisode episode, UpdateReason reason)>? episodes = null)
     {
         ArgumentNullException.ThrowIfNull(series, nameof(series));
-        var episodeEvents = episodes?.Select(e => new EpisodeInfoUpdatedEventArgs(series, e.episode, e.reason)).ToList() ?? [];
-        SeriesUpdated?.Invoke(null, new(series, reason, [], episodeEvents));
+        var actor = ActorContext.CurrentActor;
+        var episodeEvents = episodes?.Select(e => new EpisodeInfoUpdatedEventArgs(series, e.episode, e.reason) { Actor = actor }).ToList() ?? [];
+        SeriesUpdated?.Invoke(null, new(series, reason, [], episodeEvents) { Actor = actor });
         foreach (var e in episodeEvents)
             EpisodeUpdated?.Invoke(null, e);
     }
@@ -99,34 +102,34 @@ public class ShokoEventHandler
     {
         ArgumentNullException.ThrowIfNull(series, nameof(series));
         ArgumentNullException.ThrowIfNull(season, nameof(season));
-        SeasonUpdated?.Invoke(null, new(series, season, reason));
+        SeasonUpdated?.Invoke(null, new(series, season, reason) { Actor = ActorContext.CurrentActor });
     }
 
     public void OnSeasonUpdated(ISeries anime, ISeason season, UpdateReason reason)
     {
         ArgumentNullException.ThrowIfNull(anime, nameof(anime));
         ArgumentNullException.ThrowIfNull(season, nameof(season));
-        SeasonUpdated?.Invoke(null, new(anime, season, reason));
+        SeasonUpdated?.Invoke(null, new(anime, season, reason) { Actor = ActorContext.CurrentActor });
     }
 
     public void OnEpisodeUpdated(IShokoSeries series, IShokoEpisode episode, UpdateReason reason)
     {
         ArgumentNullException.ThrowIfNull(series, nameof(series));
         ArgumentNullException.ThrowIfNull(episode, nameof(episode));
-        EpisodeUpdated?.Invoke(null, new(series, episode, reason));
+        EpisodeUpdated?.Invoke(null, new(series, episode, reason) { Actor = ActorContext.CurrentActor });
     }
 
     public void OnEpisodeUpdated(ISeries anime, IEpisode episode, UpdateReason reason)
     {
         ArgumentNullException.ThrowIfNull(anime, nameof(anime));
         ArgumentNullException.ThrowIfNull(episode, nameof(episode));
-        EpisodeUpdated?.Invoke(null, new(anime, episode, reason));
+        EpisodeUpdated?.Invoke(null, new(anime, episode, reason) { Actor = ActorContext.CurrentActor });
     }
 
     public void OnMovieUpdated(IMovie movie, UpdateReason reason)
     {
         ArgumentNullException.ThrowIfNull(movie, nameof(movie));
-        MovieUpdated?.Invoke(null, new(movie, reason));
+        MovieUpdated?.Invoke(null, new(movie, reason) { Actor = ActorContext.CurrentActor });
     }
 
     public void OnGroupUpdated(IShokoGroup group, UpdateReason reason)

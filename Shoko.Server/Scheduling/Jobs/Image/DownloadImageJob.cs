@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
@@ -16,7 +16,7 @@ namespace Shoko.Server.Scheduling.Jobs.Image;
 [JobKeyGroup(JobKeyGroup.Image)]
 public class DownloadImageJob(IImageManager imageManager) : BaseJob
 {
-    public DataSource Source { get; set; }
+    public MetadataSource Source { get; set; } = null!;
 
     public string ResourceID { get; set; } = string.Empty;
 
@@ -29,13 +29,13 @@ public class DownloadImageJob(IImageManager imageManager) : BaseJob
     public override Dictionary<string, object> Details => ForceDownload
         ? new()
         {
-            { "Source", Source.ToString() },
+            { "Source", Source },
             { "Resource ID", ResourceID },
             { "Force Download", true },
         }
         : new()
         {
-            { "Source", Source.ToString() },
+            { "Source", Source },
             { "Resource ID", ResourceID },
         };
 

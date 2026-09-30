@@ -1,12 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Abstractions.Metadata.Tmdb.Services;
 
 /// <summary>
 /// TMDB metadata service for managing movie and show metadata.
 /// </summary>
+/// <remarks>
+/// A shim over <see cref="IMetadataRefreshService"/> and
+/// <see cref="IMetadataPurgeService"/> for the <c>tmdb</c> source, kept for
+/// callers that name TMDB. Only the genre lists are TMDB's own.
+/// </remarks>
 public interface ITmdbMetadataService
 {
     #region Genres
@@ -28,23 +34,30 @@ public interface ITmdbMetadataService
     #region Movies
 
     /// <summary>
-    /// Updates all movies that are currently linked to AniDB entries.
+    /// Queues a refresh of every movie linked to an anime in the library.
     /// </summary>
     /// <param name="force">Force refresh even if recently updated.</param>
     /// <param name="saveImages">Whether to download images.</param>
+    /// <returns>A task that completes once the refreshes are queued.</returns>
     Task UpdateAllMovies(bool force, bool saveImages);
 
     /// <summary>
-    /// Schedules a movie update job.
+    /// Queues a refresh of a movie, fetched whether or not it is linked.
     /// </summary>
     /// <param name="options">The update options.</param>
+    /// <returns>A task that completes once the refresh is queued.</returns>
     Task ScheduleUpdateOfMovie(TmdbMovieUpdateOptions options);
 
     /// <summary>
-    /// Updates a TMDB movie's metadata.
+    /// Runs a refresh of a movie at once and waits for it, fetching it whether
+    /// or not it is linked.
     /// </summary>
     /// <param name="options">The update options.</param>
-    /// <returns>True if the movie was updated, false otherwise.</returns>
+    /// <returns>
+    /// True if the refresh ran, even when it found the movie fresh or found
+    /// nothing new; false while TMDB is paused or the queue holds its jobs
+    /// back, so nothing ran.
+    /// </returns>
     Task<bool> UpdateMovie(TmdbMovieUpdateOptions options);
 
     /// <summary>
@@ -61,20 +74,30 @@ public interface ITmdbMetadataService
     Task PurgeAllUnusedMovies(DateTime? olderThan = null);
 
     /// <summary>
-    /// Schedules a movie purge job.
+    /// Queues a forced purge of a movie, which first removes every link naming
+    /// it.
     /// </summary>
     /// <param name="movieId">The TMDB movie ID.</param>
+    /// <returns>A task that completes once the purge is queued.</returns>
     Task SchedulePurgeOfMovie(int movieId);
 
     /// <summary>
-    /// Purges a TMDB movie from the local database.
+    /// Queues a forced purge of a movie, which first removes every link naming
+    /// it, the same as <see cref="SchedulePurgeOfMovie"/>.
     /// </summary>
+    /// <remarks>
+    /// The movie is still stored when the returned task completes; wait with
+    /// <see cref="IMetadataRefreshService.WaitForRefresh"/> once the purge
+    /// has started to read it back gone.
+    /// </remarks>
     /// <param name="movieId">The TMDB movie ID.</param>
+    /// <returns>A task that completes once the purge is queued.</returns>
     Task PurgeMovie(int movieId);
 
     /// <summary>
-    /// Purges all movie collections from the local database.
+    /// Queues a forced purge of every stored movie collection.
     /// </summary>
+    /// <returns>A task that completes once the purges are queued.</returns>
     Task PurgeAllMovieCollections();
 
     #endregion
@@ -82,23 +105,30 @@ public interface ITmdbMetadataService
     #region Shows
 
     /// <summary>
-    /// Updates all shows that are currently linked to AniDB entries.
+    /// Queues a refresh of every show linked to an anime in the library.
     /// </summary>
     /// <param name="force">Force refresh even if recently updated.</param>
     /// <param name="downloadImages">Whether to download images.</param>
+    /// <returns>A task that completes once the refreshes are queued.</returns>
     Task UpdateAllShows(bool force = false, bool downloadImages = false);
 
     /// <summary>
-    /// Schedules a show update job.
+    /// Queues a refresh of a show, fetched whether or not it is linked.
     /// </summary>
     /// <param name="options">The update options.</param>
+    /// <returns>A task that completes once the refresh is queued.</returns>
     Task ScheduleUpdateOfShow(TmdbShowUpdateOptions options);
 
     /// <summary>
-    /// Updates a TMDB show's metadata.
+    /// Runs a refresh of a show at once and waits for it, fetching it whether
+    /// or not it is linked.
     /// </summary>
     /// <param name="options">The update options.</param>
-    /// <returns>True if the show was updated, false otherwise.</returns>
+    /// <returns>
+    /// True if the refresh ran, even when it found the show fresh or found
+    /// nothing new; false for a show ID below 1, or while TMDB is paused or
+    /// the queue holds its jobs back, so nothing ran.
+    /// </returns>
     Task<bool> UpdateShow(TmdbShowUpdateOptions options);
 
     /// <summary>
@@ -115,15 +145,25 @@ public interface ITmdbMetadataService
     Task PurgeAllUnusedShows(DateTime? olderThan = null);
 
     /// <summary>
-    /// Schedules a show purge job.
+    /// Queues a forced purge of a show, which first removes every link naming
+    /// it and every episode link pointing into it.
     /// </summary>
     /// <param name="showId">The TMDB show ID.</param>
+    /// <returns>A task that completes once the purge is queued.</returns>
     Task SchedulePurgeOfShow(int showId);
 
     /// <summary>
-    /// Purges a TMDB show from the local database.
+    /// Queues a forced purge of a show, which first removes every link naming
+    /// it and every episode link pointing into it, the same as
+    /// <see cref="SchedulePurgeOfShow"/>.
     /// </summary>
+    /// <remarks>
+    /// The show is still stored when the returned task completes; wait with
+    /// <see cref="IMetadataRefreshService.WaitForRefresh"/> once the purge
+    /// has started to read it back gone.
+    /// </remarks>
     /// <param name="showId">The TMDB show ID.</param>
+    /// <returns>A task that completes once the purge is queued.</returns>
     Task PurgeShow(int showId);
 
     #endregion
@@ -134,7 +174,11 @@ public interface ITmdbMetadataService
     /// Schedules a search job for auto-matching an AniDB anime to TMDB.
     /// </summary>
     /// <param name="anidbId">The AniDB anime ID.</param>
-    /// <param name="force">Force search even if already linked.</param>
+    /// <param name="force">
+    ///   Search even when the anime is already linked, left alone or TMDB
+    ///   does not auto-link, replacing every TMDB link the anime has, verified
+    ///   ones and episode links included, with what is taken.
+    /// </param>
     Task ScheduleSearchForMatch(int anidbId, bool force);
 
     /// <summary>

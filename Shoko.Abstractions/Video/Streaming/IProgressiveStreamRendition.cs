@@ -74,14 +74,20 @@ public interface IProgressiveStreamRendition : IStreamRendition
 
     /// <summary>
     ///   Opens a stream yielding bytes starting at (approximately)
-    ///   <paramref name="rangeStart"/> bytes into the declared output.
+    ///   <paramref name="rangeStart"/> bytes into the declared output. For bytes
+    ///   still being produced, throw <see cref="StreamResourceNotReadyException"/>
+    ///   so the player retries, or wait for them; the core may cancel a wait
+    ///   after its configured segment timeout.
     /// </summary>
     /// <param name="rangeStart">Requested byte offset, or <c>null</c> for the start of the stream.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>
     ///   A stream positioned at (approximately) <paramref name="rangeStart"/>,
     ///   or <c>null</c> if that offset can't be served (e.g. past the end of
-    ///   the video).
+    ///   the video), which the core answers with <c>404</c>.
     /// </returns>
+    /// <exception cref="StreamResourceNotFoundException">Nothing can be served at that offset; the core answers <c>404</c> with the reason.</exception>
+    /// <exception cref="StreamResourceUnsupportedException">The request cannot be served; the core answers <c>400</c> with the reason.</exception>
+    /// <exception cref="StreamResourceNotReadyException">The bytes are not ready yet; the core answers <c>503</c> with the reason and any <c>Retry-After</c>.</exception>
     Task<Stream?> OpenAsync(long? rangeStart, CancellationToken cancellationToken);
 }

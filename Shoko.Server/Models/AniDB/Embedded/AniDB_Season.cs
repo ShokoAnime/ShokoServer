@@ -4,10 +4,12 @@ using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Models.AniDB.Embedded;
 
@@ -15,11 +17,11 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 {
     public static string GetID(int animeID, EpisodeType episodeType, int seasonNumber) => $"{animeID}:{episodeType}:{seasonNumber}";
 
-    public string ID => GetID(anime.ID, episodeType, seasonNumber);
+    MetadataGuid IMetadata.ID => new(MetadataSource.AniDB, MetadataEntityType.Season, GetID(anime.AnidbID, episodeType, seasonNumber));
 
     private readonly string? _imagePath = ((AniDB_Anime)anime).Picname;
 
-    int ISeason.SeriesID => anime.ID;
+    int IAnidbSeason.AnidbAnimeID => anime.AnidbID;
 
     int ISeason.SeasonNumber => seasonNumber;
 
@@ -28,6 +30,15 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
     IReadOnlyList<IEpisode> ISeason.Episodes => anime.Episodes
         .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
         .ToList();
+
+    IReadOnlyList<IMetadataSeasonCrossReference> ISeason.MetadataSeasonCrossReferences
+        => MetadataService.GetSeasonCrossReferences(this, ((ISeason)this).MetadataEpisodeCrossReferences);
+
+    IReadOnlyList<IMetadataEpisodeCrossReference> ISeason.MetadataEpisodeCrossReferences
+        => [.. ((ISeason)this).Episodes.SelectMany(episode => episode.MetadataEpisodeCrossReferences)];
+
+    IReadOnlyList<IMetadataMovieCrossReference> ISeason.MetadataMovieCrossReferences
+        => [.. ((ISeason)this).Episodes.SelectMany(episode => episode.MetadataMovieCrossReferences)];
 
     string IWithTitles.Title
         => seasonNumber is 0
@@ -41,7 +52,7 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
                 Value = "Specials",
-                Source = DataSource.Shoko,
+                Source = MetadataSource.Shoko,
                 Type = TitleType.Official,
             }
             : anime.DefaultTitle;
@@ -53,7 +64,7 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
                 Value = "Specials",
-                Source = DataSource.Shoko,
+                Source = MetadataSource.Shoko,
                 Type = TitleType.Official,
             }
             : anime.PreferredTitle;
@@ -65,53 +76,51 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
                 Value = "Specials",
-                Source = DataSource.Shoko,
+                Source = MetadataSource.Shoko,
                 Type = TitleType.Official,
             },
         ]
         : anime.Titles;
 
-    IText? IWithDescriptions.DefaultDescription
+    IText? IWithOverviews.DefaultOverview
         => seasonNumber is 0
             ? new TextStub
             {
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
                 Value = "Specials",
-                Source = DataSource.Shoko,
+                Source = MetadataSource.Shoko,
             }
-            : anime.DefaultDescription;
+            : anime.DefaultOverview;
 
-    IText? IWithDescriptions.PreferredDescription
+    IText? IWithOverviews.PreferredOverview
         => seasonNumber is 0
             ? new TextStub
             {
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
                 Value = "Specials",
-                Source = DataSource.Shoko,
+                Source = MetadataSource.Shoko,
             }
-            : anime.PreferredDescription;
+            : anime.PreferredOverview;
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => seasonNumber is 0
+    IReadOnlyList<IText> IWithOverviews.Overviews => seasonNumber is 0
         ? [
             new TextStub
             {
                 Language = TitleLanguage.English,
                 LanguageCode = "en",
                 Value = "Specials",
-                Source = DataSource.Shoko,
+                Source = MetadataSource.Shoko,
             },
         ]
-        : anime.Descriptions;
+        : anime.Overviews;
 
     DateTime IWithUpdateDate.LastUpdatedAt => anime.LastUpdatedAt;
 
     IReadOnlyList<ICast> IWithCastAndCrew.Cast => anime.Cast;
 
     IReadOnlyList<ICrew> IWithCastAndCrew.Crew => anime.Crew;
-
-    DataSource IMetadata.Source => DataSource.AniDB;
 
     IAnidbAnime IAnidbSeason.Series => anime;
 
@@ -124,8 +133,8 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 
     #region IWithImages Implementation
 
-    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(_imagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, _imagePath) is { } posterID
-        ? (this as IWithImages).GetImageCrossReferences(new() { ImageSource = DataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == posterID)
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(_imagePath) && IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, _imagePath) is { } posterID
+        ? (this as IWithImages).GetImageCrossReferences(new() { ImageSource = MetadataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == posterID)
         : null;
 
     #endregion

@@ -4,9 +4,10 @@ using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Abstractions.Metadata.Tmdb.Enums;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 using TMDbLib.Objects.TvShows;
 
@@ -16,7 +17,7 @@ namespace Shoko.Server.Models.TMDB;
 /// Alternate Season and Episode ordering using TMDB's "Episode Group" feature.
 /// Note: don't ask me why they called it that.
 /// </summary>
-public class TMDB_AlternateOrdering : TMDB_Base<string>, ITmdbShowOrderingInformation
+public class TMDB_AlternateOrdering : TMDB_Base<string>, ITmdbShowOrderingInformation, IInlineTextSource
 {
     #region Properties
 
@@ -71,9 +72,9 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>, ITmdbShowOrderingInform
     public int SeasonCount { get; set; }
 
     /// <summary>
-    /// 
+    /// What the episode group follows.
     /// </summary>
-    public AlternateOrderingType Type { get; set; }
+    public OrderingType Type { get; set; }
 
     /// <summary>
     /// When the metadata was first downloaded.
@@ -111,7 +112,7 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>, ITmdbShowOrderingInform
             UpdateProperty(EnglishTitle, collection.Name!, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, collection.Description!, v => EnglishOverview = v),
             UpdateProperty(SeasonCount, collection.GroupCount, v => SeasonCount = v),
-            UpdateProperty(Type, Enum.Parse<AlternateOrderingType>(collection.Type.ToString()), v => Type = v),
+            UpdateProperty(Type, Enum.Parse<OrderingType>(collection.Type.ToString()), v => Type = v),
         };
 
         return updates.Any(updated => updated);
@@ -184,6 +185,13 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>, ITmdbShowOrderingInform
     public IReadOnlyList<TMDB_AlternateOrdering_Episode> TmdbAlternateOrderingEpisodes =>
         RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbEpisodeGroupCollectionID(TmdbEpisodeGroupCollectionID);
 
+    /// <summary>
+    /// The episode group's episodes in viewing order, each once, where it
+    /// first comes.
+    /// </summary>
+    private IReadOnlyList<TMDB_AlternateOrdering_Episode> OrderedEpisodes =>
+        [.. TmdbAlternateOrderingEpisodes.DistinctBy(episode => episode.TmdbEpisodeID)];
+
     #endregion
 
     #region IWithCreationDate Implementation
@@ -198,33 +206,48 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>, ITmdbShowOrderingInform
 
     #endregion
 
-    #region IWithCastAndCrew Implementation
+    #region IMetadata Implementation
 
-    IReadOnlyList<ICast> IWithCastAndCrew.Cast => Cast;
+    MetadataGuid IMetadata.ID => new(MetadataSource.TMDB, MetadataEntityType.Ordering, TmdbEpisodeGroupCollectionID);
 
-    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => Crew;
+    #endregion
+
+    #region IInlineTextSource Implementation
+
+    ITitle? IInlineTextSource.InlineTitle => TmdbInlineText.Title(EnglishTitle);
+
+    IText? IInlineTextSource.InlineOverview => TmdbInlineText.Overview(EnglishOverview);
+
+    #endregion
+
+    #region IOrdering Implementation
+
+    string IOrdering.Name => EnglishTitle;
+
+    string IOrdering.Overview => EnglishOverview;
+
+    OrderingType IOrdering.Type => Type;
+
+    bool IOrdering.IsDefault => false;
+
+    bool IOrdering.IsPreferred => OrderingLookup.IsChosen(((IOrdering)this).SeriesID, ((IMetadata)this).ID);
+
+    int IOrdering.EpisodeCount => OrderedEpisodes.Count;
+
+    int IOrdering.HiddenEpisodeCount =>
+        OrderedEpisodes.Count(episode => OrderingLookup.IsHidden(new(MetadataSource.TMDB, MetadataEntityType.Episode, episode.TmdbEpisodeID.ToString())));
+
+    int IOrdering.SeasonCount => TmdbAlternateOrderingSeasons.Count;
 
     #endregion
 
     #region ITmdbShowOrderingInformation Implementation
 
-    int ITmdbShowOrderingInformation.SeriesID => TmdbShowID;
-
-    string ITmdbShowOrderingInformation.OrderingID => TmdbEpisodeGroupCollectionID;
-
-    TmdbAlternateOrderingType ITmdbShowOrderingInformation.OrderingType => Enum.Parse<TmdbAlternateOrderingType>(Type.ToString(), true);
-
-    string ITmdbShowOrderingInformation.OrderingName => EnglishTitle;
-
-    string ITmdbShowOrderingInformation.Description => EnglishOverview;
-
-    bool ITmdbShowOrderingInformation.IsPreferred => TmdbShow is { } tmdbShow && string.Equals(tmdbShow.PreferredAlternateOrderingID, TmdbEpisodeGroupCollectionID);
+    ITmdbShow? ITmdbShowOrderingInformation.Series => TmdbShow;
 
     IReadOnlyList<ITmdbSeason> ITmdbShowOrderingInformation.Seasons => TmdbAlternateOrderingSeasons;
 
-    IReadOnlyList<ITmdbEpisode> ITmdbShowOrderingInformation.Episodes => TmdbAlternateOrderingEpisodes;
-
-    ITmdbShow? ITmdbShowOrderingInformation.Series => TmdbShow;
+    IReadOnlyList<ITmdbEpisode> ITmdbShowOrderingInformation.Episodes => OrderedEpisodes;
 
     #endregion
 }

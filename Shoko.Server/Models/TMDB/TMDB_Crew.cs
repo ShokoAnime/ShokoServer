@@ -23,6 +23,11 @@ public abstract class TMDB_Crew : ICrew
     public abstract int TmdbParentID { get; }
 
     /// <summary>
+    /// The kind of TMDB entry the parent is.
+    /// </summary>
+    public abstract MetadataEntityType ParentType { get; }
+
+    /// <summary>
     /// TMDB Credit ID for the production job.
     /// </summary>
     public string TmdbCreditID { get; set; } = string.Empty;
@@ -44,7 +49,7 @@ public abstract class TMDB_Crew : ICrew
     public TMDB_Person? GetTmdbPerson() =>
         RepoFactory.TMDB_Person.GetByTmdbPersonID(TmdbPersonID);
 
-    public abstract IMetadata<int>? GetTmdbParent();
+    public abstract IMetadata? GetTmdbParent();
 
     /// <summary>
     /// TMDB only lists the original-language crew, so every role is in the
@@ -62,19 +67,13 @@ public abstract class TMDB_Crew : ICrew
 
     #endregion
 
-    #region IMetadata Implementation
-
-    string IMetadata<string>.ID => TmdbCreditID;
-
-    DataSource IMetadata.Source => DataSource.TMDB;
-
-    #endregion
-
     #region ICrew Implementation
 
-    int ICrew.CreatorID => TmdbPersonID;
+    MetadataSource ICrew.Source => MetadataSource.TMDB;
 
-    int ICrew.ParentID => TmdbParentID;
+    MetadataGuid ICrew.CreatorID => new(MetadataSource.TMDB, MetadataEntityType.Creator, TmdbPersonID.ToString());
+
+    MetadataGuid ICrew.ParentID => new(MetadataSource.TMDB, ParentType, TmdbParentID.ToString());
 
     string ICrew.Name => $"{Department}, {Job}";
 
@@ -84,7 +83,7 @@ public abstract class TMDB_Crew : ICrew
         _ => CrewRoleType.None,
     };
 
-    IMetadata<int>? ICrew.Parent => GetTmdbParent();
+    IMetadata? ICrew.Parent => GetTmdbParent();
 
     ICreator? ICrew.Creator => GetTmdbPerson();
 

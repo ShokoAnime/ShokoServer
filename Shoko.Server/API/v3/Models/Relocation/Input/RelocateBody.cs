@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Server.API.v3.Models.Shoko;
 
@@ -25,7 +26,8 @@ public class RelocateBody
 
     /// <summary>
     /// Indicates whether empty directories should be deleted after
-    /// relocating the file.
+    /// relocating the file. Defaults to <c>true</c>.
     /// </summary>
+    [DefaultValue(true)]
     public bool DeleteEmptyDirectories { get; set; } = true;
 }

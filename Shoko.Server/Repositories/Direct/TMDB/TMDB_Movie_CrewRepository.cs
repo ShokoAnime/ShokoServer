@@ -31,4 +31,18 @@ public class TMDB_Movie_CrewRepository(DatabaseFactory databaseFactory) : BaseDi
             .ThenBy(e => e.TmdbCreditID)
             .ToList();
     }
+
+    /// <summary>
+    ///   Every movie ID the movie crew rows name.
+    /// </summary>
+    /// <returns>The IDs, each once.</returns>
+    public IReadOnlyList<int> GetAllTmdbMovieIDs()
+    {
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        return session
+            .Query<TMDB_Movie_Crew>()
+            .Select(a => a.TmdbMovieID)
+            .Distinct()
+            .ToList();
+    }
 }

@@ -27,7 +27,7 @@ public sealed class LocalPluginPage
     /// <summary>
     ///   Indicates that the page can be embedded within the Web UI. Set to
     ///   false to force the page to open in a new window.
-    /// /// </summary>
+    /// </summary>
     public bool CanEmbed { get; set; } = true;
 
     /// <summary>

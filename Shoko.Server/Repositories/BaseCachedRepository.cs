@@ -5,8 +5,10 @@ using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -69,6 +71,20 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
     protected virtual void OnEndSave(T obj)
     {
     }
+
+    /// <summary>
+    ///   The entries whose texts the text manager works out again once an
+    ///   entity is saved or removed, told after every change to the cache.
+    /// </summary>
+    /// <remarks>
+    ///   What was worked out from an entry, as a Shoko series from its AniDB
+    ///   anime, is worked out again with it.
+    /// </remarks>
+    /// <param name="entity">The entity saved or removed.</param>
+    /// <param name="removed">Whether the entity was removed.</param>
+    /// <returns>The entity's own ID when it is an <see cref="IMetadata"/>, else none.</returns>
+    protected virtual IEnumerable<MetadataGuid> TextEntriesOf(T entity, bool removed)
+        => entity is IMetadata metadata ? [metadata.ID] : [];
 
     public virtual void Populate(ISessionWrapper session, bool displayName = true, CancellationToken cancellationToken = default)
     {
@@ -152,18 +168,18 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
 
         OnBeginDelete(cr);
         DeleteFromDatabaseUnsafe(cr);
-        DeleteFromCacheUnsafe(cr);
+        CacheRemoved(cr);
         OnEndDelete(cr);
     }
 
     protected void DeleteFromCache(T cr)
     {
-        DeleteFromCacheUnsafe(cr);
+        CacheRemoved(cr);
     }
 
     protected void UpdateCache(T cr)
     {
-        UpdateCacheUnsafe(cr);
+        CacheSaved(cr);
     }
 
     public virtual void Delete(IReadOnlyCollection<T> objs)
@@ -182,7 +198,7 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
 
         foreach (var cr in objs)
         {
-            DeleteFromCacheUnsafe(cr);
+            CacheRemoved(cr);
         }
 
         foreach (var cr in objs)
@@ -201,7 +217,7 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
 
         OnDeleteWithOpenTransaction(session, cr);
         session.Delete(cr);
-        DeleteFromCacheUnsafe(cr);
+        CacheRemoved(cr);
     }
 
     //This function does not run OnBeginDelete and OnEndDelete
@@ -216,7 +232,7 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
         }
 
         foreach (var obj in objs)
-            DeleteFromCacheUnsafe(obj);
+            CacheRemoved(obj);
     }
 
     public virtual void Save(T obj)
@@ -229,7 +245,7 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
         OnSaveWithOpenTransaction(session.Wrap(), obj);
         transaction.Commit();
 
-        UpdateCacheUnsafe(obj);
+        CacheSaved(obj);
         OnEndSave(obj);
     }
 
@@ -257,7 +273,7 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
 
         foreach (var obj in objs)
         {
-            UpdateCacheUnsafe(obj);
+            CacheSaved(obj);
         }
 
         foreach (var obj in objs)
@@ -279,7 +295,7 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
         }
 
         OnSaveWithOpenTransaction(session, obj);
-        UpdateCacheUnsafe(obj);
+        CacheSaved(obj);
     }
 
     //This function does not run OnBeginDelete and OnEndDelete
@@ -287,7 +303,7 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
     {
         session.SaveOrUpdate(obj);
         OnSaveWithOpenTransaction(session.Wrap(), obj);
-        UpdateCacheUnsafe(obj);
+        CacheSaved(obj);
     }
 
     //This function does not run OnBeginDelete and OnEndDelete
@@ -310,9 +326,48 @@ public abstract class BaseCachedRepository<T, S>(DatabaseFactory databaseFactory
 
         foreach (var obj in objs)
         {
-            UpdateCacheUnsafe(obj);
+            CacheSaved(obj);
         }
     }
+
+    #region Texts
+
+    /// <summary>
+    ///   Puts a saved entity in the cache and tells the text manager.
+    /// </summary>
+    /// <param name="entity">The entity saved.</param>
+    private void CacheSaved(T entity)
+    {
+        UpdateCacheUnsafe(entity);
+        ForgetTexts(entity, false);
+    }
+
+    /// <summary>
+    ///   Takes a removed entity out of the cache and tells the text manager.
+    /// </summary>
+    /// <param name="entity">The entity removed.</param>
+    private void CacheRemoved(T entity)
+    {
+        DeleteFromCacheUnsafe(entity);
+        ForgetTexts(entity, true);
+    }
+
+    /// <summary>
+    ///   Tells the text manager in use, if any, which entries a save or
+    ///   removal changed.
+    /// </summary>
+    /// <param name="entity">The entity saved or removed.</param>
+    /// <param name="removed">Whether the entity was removed.</param>
+    private void ForgetTexts(T entity, bool removed)
+    {
+        if (TextAccess.Current is null)
+            return;
+
+        foreach (var entry in TextEntriesOf(entity, removed))
+            TextAccess.Forget(entry);
+    }
+
+    #endregion
 
     #region Unsafe
 

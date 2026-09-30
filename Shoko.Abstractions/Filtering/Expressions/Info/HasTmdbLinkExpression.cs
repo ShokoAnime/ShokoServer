@@ -1,12 +1,20 @@
 using System;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Info;
 
 /// <summary>
 /// This condition passes if any of the anime have a TMDB link
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="HasSourceLinkExpression"/>, which it
+/// evaluates with the tmdb source. Kept under its own name so saved filters
+/// read the same.
+/// </remarks>
 public class HasTmdbLinkExpression : FilterExpression<bool>
 {
+    private static readonly HasSourceLinkExpression _tmdb = new(MetadataSource.TMDB.Value);
+
     /// <inheritdoc/>
     public override string Name => "Has TMDB Link";
 
@@ -16,7 +24,7 @@ public class HasTmdbLinkExpression : FilterExpression<bool>
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.HasTmdbLink;
+        return _tmdb.Evaluate(filterable, userInfo, time);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

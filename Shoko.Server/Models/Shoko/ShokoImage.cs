@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
@@ -40,8 +41,7 @@ public class ShokoImage : IImage
     public string ResourceID { get; set; } = string.Empty;
 
     /// <inheritdoc/>
-    [DeniedValues(DataSource.None)]
-    public DataSource Source { get; set; }
+    public MetadataSource Source { get; set; } = null!;
 
     /// <inheritdoc/>
     [MaxLength(8)]
@@ -91,7 +91,7 @@ public class ShokoImage : IImage
     bool IImage.IsPreferred => false;
 
     /// <inheritdoc/>
-    bool IImage.IsLocked => Source is not DataSource.User;
+    bool IImage.IsLocked => Source != MetadataSource.User;
 
     /// <inheritdoc/>
     public bool IsAvailable { get; set; }
@@ -126,9 +126,8 @@ public class ShokoImage : IImage
     {
         get
         {
-            var id = ID.ToString("N");
             var ext = GetExtensionForMimeType(ContentType);
-            return Path.Join(ApplicationPaths.Instance.ImagesPath, Source.ToString(), id[..2], id + ext);
+            return Path.Join(GetFolder(ApplicationPaths.Instance.ImagesPath, Source, ID), ID.ToString("N") + ext);
         }
     }
 
@@ -202,9 +201,9 @@ public class ShokoImage : IImage
     /// <inheritdoc/>
     public IReadOnlyList<ShokoImage_Entity> GetCrossReferences(
         ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        DataSource? entitySource = null,
-        DataEntityType? entityType = null,
+        MetadataSource? xrefSource = null,
+        MetadataSource? entitySource = null,
+        MetadataEntityType? entityType = null,
         bool? isEnabled = null,
         bool? isDesired = null,
         bool? isAvailable = null,
@@ -220,9 +219,9 @@ public class ShokoImage : IImage
         if (imageType is not null || xrefSource is not null || entitySource is not null || entityType is not null || isEnabled is not null || isDesired is not null || isAvailable is not null || primaryImage is not null)
             xrefs = xrefs.Where(xref =>
                 (imageType is null || xref.ImageType == imageType.Value) &&
-                (xrefSource is null || xref.Source == xrefSource.Value) &&
-                (entitySource is null || xref.EntitySource == entitySource.Value) &&
-                (entityType is null || xref.EntityType == entityType.Value) &&
+                (xrefSource is null || xref.Source == xrefSource) &&
+                (entitySource is null || xref.EntitySource == entitySource) &&
+                (entityType is null || xref.EntityType == entityType) &&
                 (isEnabled is null || xref.IsEnabled == isEnabled.Value) &&
                 (isDesired is null || xref.IsDesired == isDesired.Value) &&
                 (isAvailable is null || xref.IsAvailable == isAvailable.Value) &&
@@ -264,9 +263,9 @@ public class ShokoImage : IImage
     /// <inheritdoc/>
     IReadOnlyList<IImageCrossReference> IImage.GetCrossReferences(
         ImageEntityType? imageType,
-        DataSource? xrefSource,
-        DataSource? entitySource,
-        DataEntityType? entityType,
+        MetadataSource? xrefSource,
+        MetadataSource? entitySource,
+        MetadataEntityType? entityType,
         bool? isEnabled,
         bool? isDesired,
         bool? isAvailable,
@@ -277,6 +276,17 @@ public class ShokoImage : IImage
     #endregion
 
     #region Static Helpers
+
+    /// <summary>
+    ///   The folder an image's file is kept in: the source's value under the
+    ///   images folder, then the first two characters of the ID.
+    /// </summary>
+    /// <param name="imagesPath">The images folder.</param>
+    /// <param name="source">The image's source.</param>
+    /// <param name="imageID">The image's ID.</param>
+    /// <returns>The folder.</returns>
+    public static string GetFolder(string imagesPath, MetadataSource source, Guid imageID)
+        => Path.Join(imagesPath, source.ToString(), imageID.ToString("N")[..2]);
 
     public static string GetExtensionForMimeType(string contentType)
     {

@@ -37,12 +37,12 @@ public class AuthenticationController(
         // Only admins can list all apikeys, otherwise, just the current user
         if (User.IsAdmin == 0)
             return userService.GetApiTokensForUser(User)
-                .Select(token => new ApikeyResult(token.User.ID, token.User.Username, token.Device, token.ExpiresAt))
+                .Select(token => new ApikeyResult(token.User.LocalID, token.User.Username, token.Device, token.ExpiresAt))
                 .ToList();
 
         return userService.GetUsers()
             .SelectMany(userService.GetApiTokensForUser)
-            .Select(token => new ApikeyResult(token.User.ID, token.User.Username, token.Device, token.ExpiresAt))
+            .Select(token => new ApikeyResult(token.User.LocalID, token.User.Username, token.Device, token.ExpiresAt))
             .OrderBy(key => key.UserID)
             .ThenBy(key => key.Device)
             .ThenBy(key => key.ExpiresAt ?? DateTime.MaxValue)

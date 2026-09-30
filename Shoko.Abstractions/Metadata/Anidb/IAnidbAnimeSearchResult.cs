@@ -6,8 +6,14 @@ namespace Shoko.Abstractions.Metadata.Anidb;
 /// <summary>
 /// A search result from the local AniDB title cache.
 /// </summary>
-public interface IAnidbAnimeSearchResult : IMetadata<int>, IWithTitles
+public interface IAnidbAnimeSearchResult : IMetadata, IWithTitles
 {
+    /// <summary>
+    ///   The AniDB anime ID. The search result shares its anime's
+    ///   <see cref="IMetadata.ID"/>, which holds the same ID as text.
+    /// </summary>
+    int AnidbID { get; }
+
     /// <summary>
     /// Indicates the search result is an exact match to the query.
     /// </summary>

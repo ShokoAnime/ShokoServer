@@ -159,13 +159,13 @@ public partial class File
     public MediaInfo? MediaInfo { get; set; }
 
     public File(HttpContext context, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeLocationUID = false) :
-        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.ID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeLocationUID)
+        this(RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(context?.GetUser()?.JMMUserID ?? 0, file.LocalID), file, withXRefs, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths, includeLocationUID)
     { }
 
     public File(VideoLocal_User? userRecord, IVideo file, bool withXRefs = false, bool includeReleaseInfo = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool includeLocationUID = false)
     {
         var mediaInfo = file.MediaInfo;
-        ID = file.ID;
+        ID = file.LocalID;
         Size = file.Size;
         IsVariation = file.IsVariation;
         IsIgnored = file.IsIgnored;
@@ -356,8 +356,9 @@ public partial class File
     public class FileUserData
     {
         /// <summary>
-        /// Where to resume the next playback.
+        /// Where to resume the next playback. Defaults to the start.
         /// </summary>
+        [DefaultValue(typeof(TimeSpan), "00:00:00")]
         public TimeSpan? ProgressPosition { get; set; }
 
         /// <summary>
@@ -374,9 +375,10 @@ public partial class File
         public DateTime? LastWatchedAt { get; set; }
 
         /// <summary>
-        /// When the entry was last updated.
+        /// When the entry was last updated. Defaults to now when omitted.
         /// </summary>
         [JsonConverter(typeof(IsoDateTimeConverter))]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
         [Required]
         public DateTime LastUpdatedAt { get; set; }
 

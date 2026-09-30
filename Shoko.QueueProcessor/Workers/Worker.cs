@@ -13,6 +13,7 @@ using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
+using Shoko.QueueProcessor.Storage;
 
 namespace Shoko.QueueProcessor.Workers;
 
@@ -32,6 +33,7 @@ internal sealed class Worker
     private readonly ChannelReader<bool> _wakeReader;
     private readonly ILogger<Worker> _logger;
     private readonly int _maxIdlePollMs;
+    private readonly IJobActorAccessor? _actorAccessor;
 
     // Completes when RunAsync exits — used by WorkerPool.WhenStoppedAsync so the
     // WorkerPoolManager can wait for in-flight Process() calls to finish before flushing
@@ -49,6 +51,7 @@ internal sealed class Worker
         QueueMetrics metrics,
         QueueStateEventHandler events,
         ChannelReader<bool> wakeReader,
+        IJobActorAccessor? actorAccessor,
         int maxIdlePollMs = 5000)
     {
         _pool = pool;
@@ -61,6 +64,7 @@ internal sealed class Worker
         _wakeReader = wakeReader;
         _logger = serviceProvider.GetRequiredService<ILogger<Worker>>();
         _maxIdlePollMs = maxIdlePollMs;
+        _actorAccessor = actorAccessor;
     }
 
     public void Start(CancellationToken ct)
@@ -82,7 +86,11 @@ internal sealed class Worker
             IsBackground = true,
             Name = $"Queue.{_pool.Name}.{_index}"
         };
-        thread.Start();
+
+        // The worker outlives whatever started it, which may be a request resizing the pools, so
+        // it starts from an empty context rather than inheriting that flow's ambient state.
+        using (DetachedFlow.Suppress())
+            thread.Start();
     }
 
     private async Task RunAsync(CancellationToken ct)
@@ -112,6 +120,10 @@ internal sealed class Worker
             var sw = Stopwatch.StartNew();
             IServiceScope? scope = null;
             var isChainJob = job.ChainId.HasValue;
+            // The job's own token, linked to the pool's: a user cancel fires it for this job alone.
+            CancellationTokenSource? jobCancellation = null;
+            JobExecutionState? execution = null;
+            var thisEntry = default(ExecutingEntry);
             try
             {
                 // Resolve the job instance using the pool's pre-built type cache
@@ -128,11 +140,12 @@ internal sealed class Worker
                     ? _chainScopeRegistry.GetOrCreateChainScope(job.ChainId!.Value)
                     : _serviceProvider.CreateScope();
 
-                // Stamp this worker's shutdown token onto the scope so jobs that inject
-                // IJobCancellationAccessor can observe it. Done per job rather than per scope:
-                // a chain scope is shared by every job in the chain, and those jobs can run on
+                // Stamped per job, not per scope: a chain scope is shared by jobs that may run on
                 // workers from different pools, each with its own token.
-                scope.ServiceProvider.GetRequiredService<JobCancellationAccessor>().SetCurrentToken(ct);
+                jobCancellation = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                execution = await _orchestrator.BeginExecutionAsync(job.Id, jobCancellation).ConfigureAwait(false);
+                scope.ServiceProvider.GetRequiredService<JobCancellationAccessor>().SetCurrentToken(jobCancellation.Token);
+                scope.ServiceProvider.GetRequiredService<JobProgressAccessor>().SetCurrentReporter(execution);
 
                 // Hydrate chain context accessor on first job in this chain (or after crash-recovery scope rebuild),
                 // then update which job is currently executing so SetResult tags results by job ID.
@@ -156,14 +169,18 @@ internal sealed class Worker
                 _orchestrator.UpdateExecutingItem(job.Id, instance.TypeName, instance.Title, instance.Details);
 
                 var executingEntries = _orchestrator.GetExecuting();
-                var thisEntry = executingEntries.FirstOrDefault(e => e.Id == job.Id);
+                thisEntry = executingEntries.FirstOrDefault(e => e.Id == job.Id);
                 _events.OnJobExecuting(
                     thisEntry,
                     BuildExecutingItems(executingEntries), _orchestrator.WaitingCount,
                     _orchestrator.BlockedWaitingCount, _orchestrator.MaxConcurrentJobs);
 
                 SubExecutionTracker.CurrentJobId.Value = job.Id;
-                await instance.Process().ConfigureAwait(false);
+
+                // Run the job for whoever queued it, and for no one when it was queued without an
+                // actor. Jobs it queues capture the same actor, so they inherit it.
+                using (_actorAccessor?.Restore(job.Actor))
+                    await instance.Process().ConfigureAwait(false);
 
                 sw.Stop();
 
@@ -186,7 +203,7 @@ internal sealed class Worker
                 }
 
                 _orchestrator.OnComplete(job.Id);
-                _metrics.RecordCompletion(jobType.Name, _pool.Name, sw.Elapsed);
+                _metrics.RecordCompletion(JobTypeNames.Key(jobType), _pool.Name, sw.Elapsed);
 
                 // Reuse the entry captured pre-Process: it carries TypeName/Title/Details set by
                 // UpdateExecutingItem, and by this point the orchestrator has already removed it
@@ -197,12 +214,34 @@ internal sealed class Worker
                     _orchestrator.WaitingCount, _orchestrator.BlockedWaitingCount,
                     _orchestrator.MaxConcurrentJobs);
             }
-            catch (RequeueJobException requeueEx)
+            catch (RequeueJobException requeueEx) when (execution?.CancellationRequested is not true)
             {
                 sw.Stop();
                 _logger.LogDebug(requeueEx, "Job {Id} ({JobType}) requested re-queue (no retry increment)", job.Id, job.JobType);
                 // No chain context update — transient; job will retry with same chain state
                 await _orchestrator.OnFailureAsync(job.Id, requeueEx, incrementRetry: false, ct: ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (execution?.CancellationRequested is true && ex is not ChainAbortException)
+            {
+                // A cancelled job is never retried. A re-queue request counts as stopping; any other
+                // error (a provider wrapping the cancelled call) ends it as failed.
+                sw.Stop();
+                var failed = ex is not RequeueJobException && !IsCancellation(ex);
+                if (failed)
+                    _logger.LogWarning(ex, "Job {Id} ({JobType}) failed after its cancellation was requested; it is not retried", job.Id, job.JobType);
+                else
+                    _logger.LogInformation("Job {Id} ({JobType}) stopped after its cancellation was requested", job.Id, job.JobType);
+                if (isChainJob && scope != null)
+                    await RecordChainOutcomeAsync(scope, job, failed ? JobOutcomeStatus.Failed : JobOutcomeStatus.Cancelled, ex).ConfigureAwait(false);
+
+                await _orchestrator.OnCancelledAsync(job.Id, ex, failed).ConfigureAwait(false);
+                // Only a job that got as far as its executing event has an entry to report.
+                if (thisEntry.Id != Guid.Empty)
+                    _events.OnJobCompleted(
+                        thisEntry with { CancellationRequested = true, Progress = execution.Progress },
+                        BuildExecutingItems(_orchestrator.GetExecuting()),
+                        _orchestrator.WaitingCount, _orchestrator.BlockedWaitingCount,
+                        _orchestrator.MaxConcurrentJobs);
             }
             catch (Exception ex)
             {
@@ -216,33 +255,7 @@ internal sealed class Worker
 
                 // Record failure/abort outcome before handing off; skip for cancellation (transient)
                 if (isChainJob && scope != null && !isCancellation)
-                {
-                    try
-                    {
-                        var status = ex is ChainAbortException ? JobOutcomeStatus.Aborted : JobOutcomeStatus.Failed;
-                        var accessor = scope.ServiceProvider.GetRequiredService<JobChainContextAccessor>();
-                        var ctx = accessor.GetCurrentContext();
-                        if (ctx != null)
-                        {
-                            ctx.AddOutcome(new JobOutcome
-                            {
-                                JobId = job.Id,
-                                JobType = job.JobType,
-                                JobKey = job.JobKey,
-                                Status = status,
-                                ExceptionMessage = ex.Message,
-                                StackTrace = ex.StackTrace,
-                                CompletedAt = DateTimeOffset.UtcNow,
-                            });
-                            var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
-                            await repo.SaveAsync(ctx, CancellationToken.None).ConfigureAwait(false);
-                        }
-                    }
-                    catch (Exception saveEx)
-                    {
-                        _logger.LogError(saveEx, "Failed to save chain context outcome for job {Id}", job.Id);
-                    }
-                }
+                    await RecordChainOutcomeAsync(scope, job, ex is ChainAbortException ? JobOutcomeStatus.Aborted : JobOutcomeStatus.Failed, ex).ConfigureAwait(false);
 
                 // Use CancellationToken.None so cleanup always completes even during shutdown.
                 // Cancelled jobs use incrementRetry:false — don't penalise retry count or discard children.
@@ -250,6 +263,8 @@ internal sealed class Worker
             }
             finally
             {
+                // The orchestrator has let go of the job by now, so nothing can cancel the source any more.
+                jobCancellation?.Dispose();
                 SubExecutionTracker.ClearStack(job.Id);
                 // Only dispose per-job scopes; chain scopes live until CompleteChainScope is called
                 if (!isChainJob) scope?.Dispose();
@@ -258,18 +273,62 @@ internal sealed class Worker
         }
     }
 
+    /// <summary>
+    /// Records a chain job's outcome in the chain context and saves it. Failures are logged,
+    /// never thrown.
+    /// </summary>
+    /// <param name="scope">The chain's scope.</param>
+    /// <param name="job">The job.</param>
+    /// <param name="status">The job's outcome.</param>
+    /// <param name="ex">The exception the job ended with.</param>
+    /// <returns>A task that completes once the context is saved.</returns>
+    private async Task RecordChainOutcomeAsync(IServiceScope scope, QueuedJob job, JobOutcomeStatus status, Exception ex)
+    {
+        try
+        {
+            var accessor = scope.ServiceProvider.GetRequiredService<JobChainContextAccessor>();
+            var ctx = accessor.GetCurrentContext();
+            if (ctx == null)
+                return;
+
+            ctx.AddOutcome(new JobOutcome
+            {
+                JobId = job.Id,
+                JobType = job.JobType,
+                JobKey = job.JobKey,
+                Status = status,
+                ExceptionMessage = ex.Message,
+                StackTrace = ex.StackTrace,
+                CompletedAt = DateTimeOffset.UtcNow,
+            });
+            var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
+            await repo.SaveAsync(ctx, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception saveEx)
+        {
+            _logger.LogError(saveEx, "Failed to save chain context outcome for job {Id}", job.Id);
+        }
+    }
+
+    /// <summary>
+    /// Whether <paramref name="ex"/> is, or wraps, an <see cref="OperationCanceledException"/>,
+    /// which is how a job says it stopped because its token was cancelled.
+    /// </summary>
+    /// <param name="ex">The exception the job ended with.</param>
+    /// <returns><see langword="true"/> when the job stopped for cancellation.</returns>
+    internal static bool IsCancellation(Exception ex)
+    {
+        for (Exception? current = ex; current != null; current = current.InnerException)
+        {
+            if (current is OperationCanceledException)
+                return true;
+            if (current is AggregateException aggregate)
+                return aggregate.InnerExceptions.Count > 0 && aggregate.InnerExceptions.All(IsCancellation);
+        }
+        return false;
+    }
+
     private static IReadOnlyList<QueueItem> BuildExecutingItems(
         IReadOnlyList<ExecutingEntry> entries) =>
-        entries.Select(e => new QueueItem
-        {
-            Key = e.JobKey,
-            JobType = e.JobType.Name,
-            TypeName = string.IsNullOrEmpty(e.TypeName) ? e.JobType.Name : e.TypeName,
-            Title = e.Title,
-            Details = e.Details,
-            Running = true,
-            StartTime = e.StartedAt,
-            PoolName = e.PoolName,
-            RetryCount = e.RetryCount
-        }).ToList();
+        entries.Select(e => QueueItem.FromExecuting(e)).ToList();
 }

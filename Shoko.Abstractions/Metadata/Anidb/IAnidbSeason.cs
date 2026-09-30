@@ -9,6 +9,14 @@ namespace Shoko.Abstractions.Metadata.Anidb;
 public interface IAnidbSeason : ISeason, IWithUpdateDate
 {
     /// <summary>
+    ///   The ID of the AniDB anime this belongs to, the same ID
+    ///   <see cref="ISeason.SeriesID"/> holds as text.
+    /// </summary>
+    int AnidbAnimeID { get; }
+
+    MetadataGuid ISeason.SeriesID { get => new(MetadataSource.AniDB, MetadataEntityType.Series, AnidbAnimeID.ToString()); }
+
+    /// <summary>
     /// Get the AniDB anime info for the "season," if available.
     /// </summary>
     new IAnidbAnime Series { get; }

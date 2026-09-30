@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 
 namespace Shoko.Abstractions.Metadata.Tmdb;
 
@@ -10,12 +9,26 @@ namespace Shoko.Abstractions.Metadata.Tmdb;
 public interface ITmdbSeason : ISeason, IWithCreationDate, IWithUpdateDate
 {
     /// <summary>
-    /// The ordering ID.
+    ///   The ID of the TMDB show this belongs to, the same ID
+    ///   <see cref="ISeason.SeriesID"/> holds as text.
     /// </summary>
-    string OrderingID { get; }
+    int TmdbShowID { get; }
+
+    MetadataGuid ISeason.SeriesID { get => new(MetadataSource.TMDB, MetadataEntityType.Series, TmdbShowID.ToString()); }
 
     /// <summary>
-    /// Get the currently in use show ordering, if available.
+    ///   TMDB's own ID for the ordering the season is part of: the show ID for
+    ///   one of the show's own seasons, or the episode group collection ID for
+    ///   an alternate one. <see cref="ISeason.OrderingID"/> is the same
+    ///   ordering as a <see cref="MetadataGuid"/>, and <c>null</c> for the
+    ///   show's own seasons.
+    /// </summary>
+    string TmdbOrderingID { get; }
+
+    /// <summary>
+    ///   The TMDB ordering the season is part of: the show's default ordering
+    ///   for one of its own seasons, or the episode group of an alternate one,
+    ///   if it is available.
     /// </summary>
     ITmdbShowOrderingInformation? CurrentShowOrdering { get; }
 
@@ -28,14 +41,4 @@ public interface ITmdbSeason : ISeason, IWithCreationDate, IWithUpdateDate
     /// All episodes for the TMDB season.
     /// </summary>
     new IReadOnlyList<ITmdbEpisode> Episodes { get; }
-
-    /// <summary>
-    /// All Shoko series ↔ TMDB season cross references linked to the TMDB season.
-    /// </summary>
-    IReadOnlyList<ITmdbSeasonCrossReference> TmdbSeasonCrossReferences { get; }
-
-    /// <summary>
-    /// All Shoko episode ↔ TMDB episode cross references linked to the TMDB season.
-    /// </summary>
-    IReadOnlyList<ITmdbEpisodeCrossReference> TmdbEpisodeCrossReferences { get; }
 }

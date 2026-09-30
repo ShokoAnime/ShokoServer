@@ -16,6 +16,7 @@ using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 using Timer = System.Timers.Timer;
 
@@ -39,6 +40,11 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
     private IAniDBSocketHandler? _socketHandler;
     private readonly SemaphoreSlim _socketLock = new(1, 1);
     private readonly AniDbUdpSession _session;
+
+    // Cancelled when the server shuts down, so a request still waiting on AniDB
+    // lets go of the socket lock instead of keeping the logout (and the host's
+    // shutdown) waiting through its timeouts and retries.
+    private readonly CancellationTokenSource _shutdownSource = new();
 
     // _socketLock is a non-reentrant SemaphoreSlim, but the call graph nests
     // (SendAsync -> LoginAsync -> RequestLogin -> SendDirectlyAsync, and the same
@@ -180,10 +186,14 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
 
         _session.ResetState();
 
-        _pingTimer = new Timer { Interval = settings.AniDb.UDPPingFrequency * 1000, Enabled = true, AutoReset = true };
-        _pingTimer.Elapsed += PingTimerElapsed;
-        _logoutTimer = new Timer { Interval = LogoutPeriod, Enabled = true, AutoReset = false };
-        _logoutTimer.Elapsed += LogoutTimerElapsed;
+        // The session's timers outlive the login that armed them, which may be a request.
+        using (DetachedFlow.Suppress())
+        {
+            _pingTimer = new Timer { Interval = settings.AniDb.UDPPingFrequency * 1000, Enabled = true, AutoReset = true };
+            _pingTimer.Elapsed += PingTimerElapsed;
+            _logoutTimer = new Timer { Interval = LogoutPeriod, Enabled = true, AutoReset = false };
+            _logoutTimer.Elapsed += LogoutTimerElapsed;
+        }
 
         IsAlive = true;
     }
@@ -292,6 +302,9 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
             throw new NotLoggedInException();
         }
 
+        using var shutdownLinkedSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownSource.Token);
+        cancellationToken = shutdownLinkedSource.Token;
+
         string response = null!;
         await WithSocketLockAsync(async () =>
         {
@@ -319,6 +332,8 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
 
     private async Task<string> SendInternalAsync(string command, bool needsUnicode = true, bool isPing = false, bool isLogout = false, CancellationToken cancellationToken = default)
     {
+        // The rate limiter's wait does not observe the token, so check it before waiting.
+        cancellationToken.ThrowIfCancellationRequested();
         ObjectDisposedException.ThrowIf(_socketHandler is not { IsConnected: true }, "The connection was closed by shoko");
         var socketHandler = _socketHandler;
 
@@ -463,8 +478,42 @@ public partial class AniDBUDPConnectionHandler : ConnectionHandler, IUDPConnecti
         _socketHandler = null;
     }
 
+    /// <summary>
+    /// Ends the session for a server shutdown: cancels the requests in flight, then logs out and
+    /// closes the socket, giving up on each step once <paramref name="timeout"/> has passed.
+    /// </summary>
+    /// <param name="timeout">How long each of the logout and the close may wait, socket lock included.</param>
+    /// <returns><c>true</c> if the session was logged out and the socket closed, <c>false</c> if it gave up.</returns>
+    public async Task<bool> ShutdownAsync(TimeSpan timeout)
+    {
+        await _shutdownSource.CancelAsync();
+        if (await WithinAsync(ForceLogoutAsync, timeout) && await WithinAsync(CloseConnectionsAsync, timeout))
+            return true;
+
+        Logger.LogWarning("Gave up logging out of AniDB and closing the UDP socket after {Timeout}", timeout);
+        return false;
+    }
+
+    private static async Task<bool> WithinAsync(Func<CancellationToken, Task> action, TimeSpan timeout)
+    {
+        using var timeoutSource = new CancellationTokenSource(timeout);
+        try
+        {
+            // The token bounds the lock wait; WaitAsync bounds what does not observe it.
+            await action(timeoutSource.Token).WaitAsync(timeoutSource.Token);
+            return true;
+        }
+        catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested)
+        {
+            return false;
+        }
+    }
+
     public async Task<bool> LoginAsync(CancellationToken cancellationToken = default)
     {
+        using var shutdownLinkedSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdownSource.Token);
+        cancellationToken = shutdownLinkedSource.Token;
+
         var settings = _settingsProvider.GetSettings();
         var loggedIn = false;
         await WithSocketLockAsync(async () =>

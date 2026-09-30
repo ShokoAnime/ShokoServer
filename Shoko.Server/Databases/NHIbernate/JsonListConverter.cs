@@ -109,8 +109,12 @@ public class JsonListConverter<T> : TypeConverter, IUserType
         => typeof(List<T>);
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// A CLOB, since SQL Server's driver cuts a plain string parameter to
+    /// 4000 characters and a long list is written as invalid JSON.
+    /// </remarks>
     public SqlType[] SqlTypes
-        => [NHibernateUtil.String.SqlType];
+        => [NHibernateUtil.StringClob.SqlType];
 
     /// <inheritdoc/>
     bool IUserType.Equals(object x, object y)

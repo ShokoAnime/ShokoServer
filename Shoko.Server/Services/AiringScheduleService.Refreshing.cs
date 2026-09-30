@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Scheduling.Jobs.Airing;
 using Shoko.Server.Services.Airing;
 
@@ -24,7 +23,7 @@ public partial class AiringScheduleService
         ArgumentNullException.ThrowIfNull(series);
 
         var key = GetEntityKey(series);
-        return ScheduleRefresh(key.Source, DataEntityType.Series, key.ID);
+        return ScheduleRefresh(key.Source, MetadataEntityType.Series, key.ID);
     }
 
     /// <inheritdoc/>
@@ -33,7 +32,7 @@ public partial class AiringScheduleService
         ArgumentNullException.ThrowIfNull(season);
 
         var key = GetEntityKey(season);
-        return ScheduleRefresh(key.Source, DataEntityType.Season, key.ID);
+        return ScheduleRefresh(key.Source, MetadataEntityType.Season, key.ID);
     }
 
     /// <inheritdoc/>
@@ -42,7 +41,7 @@ public partial class AiringScheduleService
         ArgumentNullException.ThrowIfNull(episode);
 
         var key = GetEntityKey(episode);
-        return ScheduleRefresh(key.Source, DataEntityType.Episode, key.ID);
+        return ScheduleRefresh(key.Source, MetadataEntityType.Episode, key.ID);
     }
 
     /// <summary>
@@ -55,7 +54,7 @@ public partial class AiringScheduleService
     /// <param name="id">The ID of the entity within its source.</param>
     /// <returns>A task that completes once the jobs are queued.</returns>
     /// <exception cref="InvalidOperationException">Parts have not been added yet.</exception>
-    private async Task ScheduleRefresh(DataSource source, DataEntityType type, string id)
+    private async Task ScheduleRefresh(MetadataSource source, MetadataEntityType type, string id)
     {
         if (!_loaded)
             throw new InvalidOperationException("Parts have not been added yet.");
@@ -80,7 +79,7 @@ public partial class AiringScheduleService
         ArgumentNullException.ThrowIfNull(series);
 
         var key = GetEntityKey(series);
-        return RefreshAsync(key.Source, DataEntityType.Series, key.ID, () => GetSchedulesForSeries(series), cancellationToken);
+        return RefreshAsync(key.Source, MetadataEntityType.Series, key.ID, () => GetSchedulesForSeries(series), cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -89,7 +88,7 @@ public partial class AiringScheduleService
         ArgumentNullException.ThrowIfNull(season);
 
         var key = GetEntityKey(season);
-        return RefreshAsync(key.Source, DataEntityType.Season, key.ID, () => GetSchedulesForSeason(season), cancellationToken);
+        return RefreshAsync(key.Source, MetadataEntityType.Season, key.ID, () => GetSchedulesForSeason(season), cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -100,7 +99,7 @@ public partial class AiringScheduleService
         var key = GetEntityKey(episode);
         return RefreshAsync(
             key.Source,
-            DataEntityType.Episode,
+            MetadataEntityType.Episode,
             key.ID,
             () => episode.Series is { } series ? GetSchedulesForSeries(series) : [],
             cancellationToken
@@ -120,8 +119,8 @@ public partial class AiringScheduleService
     /// <exception cref="InvalidOperationException">Parts have not been added yet.</exception>
     /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
     private async Task<AiringScheduleRefreshResult> RefreshAsync(
-        DataSource source,
-        DataEntityType type,
+        MetadataSource source,
+        MetadataEntityType type,
         string id,
         Func<IReadOnlyList<IAiringSchedule>> schedules,
         CancellationToken cancellationToken
@@ -147,8 +146,8 @@ public partial class AiringScheduleService
     /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
     private async Task<AiringScheduleProviderRefresh> RefreshWithProvider(
         AiringScheduleProviderInfo info,
-        DataSource source,
-        DataEntityType type,
+        MetadataSource source,
+        MetadataEntityType type,
         string id,
         CancellationToken cancellationToken
     )
@@ -229,8 +228,8 @@ public partial class AiringScheduleService
     /// <exception cref="OperationCanceledException">The token was cancelled.</exception>
     internal async Task<AiringScheduleProviderRefresh> ExecuteRefreshAsync(
         Guid providerID,
-        DataSource source,
-        DataEntityType type,
+        MetadataSource source,
+        MetadataEntityType type,
         string id,
         CancellationToken cancellationToken = default
     )
@@ -242,9 +241,9 @@ public partial class AiringScheduleService
         var context = new AiringReadContext(this, includeDisabled: true);
         var entity = type switch
         {
-            DataEntityType.Series => context.GetSeries(source, id),
-            DataEntityType.Season => (IMetadata?)context.GetSeason(source, id),
-            DataEntityType.Episode => context.GetEpisode(source, id),
+            _ when type == MetadataEntityType.Series => context.GetSeries(source, id),
+            _ when type == MetadataEntityType.Season => (IMetadata?)context.GetSeason(source, id),
+            _ when type == MetadataEntityType.Episode => context.GetEpisode(source, id),
             _ => null,
         };
         if (entity is null)
@@ -333,7 +332,7 @@ public partial class AiringScheduleService
     /// <param name="type">The kind of entity.</param>
     /// <param name="id">The ID of the entity within its source.</param>
     /// <returns>The key.</returns>
-    private static string GetRefreshKey(Guid providerID, DataSource source, DataEntityType type, string id)
+    private static string GetRefreshKey(Guid providerID, MetadataSource source, MetadataEntityType type, string id)
         => $"{providerID:D}|{source}|{type}|{id}";
 
     #endregion

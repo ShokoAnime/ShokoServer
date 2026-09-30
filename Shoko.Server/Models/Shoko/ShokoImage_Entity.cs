@@ -1,11 +1,19 @@
 using System;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.User;
+using Shoko.Abstractions.Video;
+using Shoko.Server.Extensions;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
@@ -33,15 +41,21 @@ public class ShokoImage_Entity : IImageCrossReference
     public ImageEntityType ImageType { get; set; }
 
     /// <inheritdoc/>
-    public DataSource ImageSource { get; set; }
+    public MetadataSource ImageSource { get; set; } = null!;
 
-    /// <inheritdoc/>
-    public DataSource EntitySource { get; set; }
+    /// <summary>
+    ///   The source of the linked entity, the first part of its ID.
+    /// </summary>
+    public MetadataSource EntitySource { get; set; } = null!;
 
-    /// <inheritdoc/>
-    public DataEntityType EntityType { get; set; }
+    /// <summary>
+    ///   The kind of the linked entity, the second part of its ID.
+    /// </summary>
+    public MetadataEntityType EntityType { get; set; } = null!;
 
-    /// <inheritdoc/>
+    /// <summary>
+    ///   The source's own ID for the linked entity, the last part of its ID.
+    /// </summary>
     public string EntityID { get; set; } = string.Empty;
 
     /// <inheritdoc/>
@@ -78,7 +92,7 @@ public class ShokoImage_Entity : IImageCrossReference
     public int? RatingVotes { get; set; }
 
     /// <inheritdoc/>
-    public DataSource Source { get; set; }
+    public MetadataSource Source { get; set; } = null!;
 
     /// <inheritdoc/>
     public DateTime CreatedAt { get; set; }
@@ -95,25 +109,16 @@ public class ShokoImage_Entity : IImageCrossReference
 
     public ShokoImage_Entity(IImage image, IWithImages entity, ImageCrossReferenceData data, int xrefsCount)
     {
-        var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
-        if (!imageManager.TryGetMetadataForEntity(
-            entity,
-            out var entitySource,
-            out var entityType,
-            out var entityID,
-            out var entitySeasonNumber,
-            out var entityEpisodeNumber,
-            out var releasedAt
-        ))
-            throw new ArgumentException(nameof(entity), "Invalid entity given to constructor");
+        var entityID = entity.ID;
+        var (entitySeasonNumber, entityEpisodeNumber, releasedAt) = GetEntityDetails(entity);
 
         ImageID = image.ID;
         PrimaryImageID = image.PrimaryID;
         ImageSource = image.Source;
 
-        EntitySource = entitySource;
-        EntityType = entityType;
-        EntityID = entityID;
+        EntitySource = entityID.Source;
+        EntityType = entityID.EntityType;
+        EntityID = entityID.ID;
         EntitySeasonNumber = entitySeasonNumber;
         EntityEpisodeNumber = entityEpisodeNumber;
         EntityReleasedAt = releasedAt;
@@ -179,20 +184,10 @@ public class ShokoImage_Entity : IImageCrossReference
 
         if (entity is not null)
         {
-            var imageManager = ISystemService.StaticServices.GetRequiredService<IImageManager>();
-            if (!imageManager.TryGetMetadataForEntity(
-                entity,
-                out var entitySource,
-                out var entityType,
-                out var entityID,
-                out var entitySeasonNumber,
-                out var entityEpisodeNumber,
-                out var releasedAt
-            ))
-                throw new ArgumentException(nameof(entity), "Invalid entity given to Update method.");
+            if (entity.ID != GetEntityID())
+                throw new ArgumentException("Different entity given to Update method.", nameof(entity));
 
-            if (EntitySource != entitySource || EntityType != entityType || !string.Equals(EntityID, entityID))
-                throw new ArgumentException(nameof(entity), "Different entity given to Update method.");
+            var (entitySeasonNumber, entityEpisodeNumber, releasedAt) = GetEntityDetails(entity);
 
             if (EntitySeasonNumber != entitySeasonNumber)
             {
@@ -226,13 +221,43 @@ public class ShokoImage_Entity : IImageCrossReference
 
     public ShokoImage? GetPrimaryImage() => RepoFactory.ShokoImage.GetByID(PrimaryImageID);
 
+    /// <summary>
+    ///   The ID of the linked entity, built from <see cref="EntitySource"/>,
+    ///   <see cref="EntityType"/> and <see cref="EntityID"/>.
+    /// </summary>
+    public MetadataGuid GetEntityID() => new(EntitySource, EntityType, EntityID);
+
     public IWithImages? GetEntity() =>
         ISystemService.StaticServices.GetRequiredService<IImageManager>()
-            .GetEntityForImage(EntitySource, EntityType, EntityID);
+            .GetEntityForImage(GetEntityID());
+
+    /// <summary>
+    ///   What a cross-reference records about its entity beside the ID: the
+    ///   season and episode numbers of a season or an episode, and the date
+    ///   the entity was released or born, when it has one.
+    /// </summary>
+    /// <param name="entity">The linked entity.</param>
+    /// <returns>The season number, the episode number and the release date.</returns>
+    internal static (int? SeasonNumber, int? EpisodeNumber, DateOnly? ReleasedAt) GetEntityDetails(IWithImages entity)
+        => entity switch
+        {
+            ICollection or ICharacter or IStudio or INetwork or IAiringChannel or IUser => (null, null, null),
+            IMetadataCrossReference => (null, null, null),
+            IMovie movie => (null, null, movie.ReleaseDate?.ToDateOnly()),
+            ISeries series => (null, null, series.AirDate?.IsComplete ?? false ? series.AirDate.Value.ToDateOnly() : null),
+            ISeason season => (season.SeasonNumber, null, season.Episodes.Select(episode => episode.AirDate).WhereNotNull().Order().FirstOrDefault()),
+            IEpisode episode => (episode.SeasonNumber, episode.EpisodeNumber, episode.AirDate),
+            IVideo video => (null, null, video.ReleaseInfo?.ReleasedAt),
+            ICreator creator => (null, null, creator.BirthDay is { } birthDay && birthDay.TryGetDateOnly(out var bornAt) ? bornAt : null),
+            _ => (null, null, null),
+        };
 
     #endregion
 
     #region IImageCrossReference Implementation
+
+    /// <inheritdoc/>
+    MetadataGuid IImageCrossReference.EntityID => GetEntityID();
 
     /// <inheritdoc/>
     IImage? IImageCrossReference.GetImage() => GetImage();

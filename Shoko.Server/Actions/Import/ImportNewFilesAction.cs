@@ -1,6 +1,8 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.ScheduledActions;
 using Shoko.Abstractions.Video.Services;
 
 namespace Shoko.Server.Actions;
@@ -9,7 +11,7 @@ namespace Shoko.Server.Actions;
 ///   Scan managed folders for new files and import them without running the
 ///   full metadata/image pipeline.
 /// </summary>
-public sealed class ImportNewFilesAction(IVideoService videoService) : IExecutableAction
+public sealed class ImportNewFilesAction(IVideoService videoService) : IScheduledAction
 {
     public string Name => "Import New Files";
 
@@ -17,8 +19,6 @@ public sealed class ImportNewFilesAction(IVideoService videoService) : IExecutab
 
     public ActionCategory Category => ActionCategory.Import;
 
-    public ActionPermission Permission => ActionPermission.User;
-
-    public Task Execute(CancellationToken token = default)
+    public Task Execute(IProgress<decimal> progress, CancellationToken token)
         => videoService.ScheduleScanForManagedFolders(onlyNewFiles: true);
 }

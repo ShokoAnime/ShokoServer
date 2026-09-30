@@ -195,8 +195,33 @@ public class StreamModule(
         {
             return new EmptyResult();
         }
+        catch (StreamResourceException ex)
+        {
+            // The framing set above describes a body that is not coming, and the reason is
+            // text, not the container.
+            ClearFraming();
+            return StreamRenditionResponses.Refused(Response, ex);
+        }
 
-        return stream is null ? StatusCode((int)HttpStatusCode.NotFound) : (object)session.Track(stream, Response);
+        if (stream is null)
+        {
+            ClearFraming();
+            return StatusCode((int)HttpStatusCode.NotFound);
+        }
+
+        return session.Track(stream, Response);
+    }
+
+    /// <summary>
+    ///   Drops the framing set for the rendition's body, for an answer that carries none.
+    /// </summary>
+    [NonAction]
+    private void ClearFraming()
+    {
+        Response.Headers.Remove("Content-Range");
+        Response.Headers.Remove("Accept-Ranges");
+        Response.ContentLength = null;
+        Response.ContentType = null;
     }
 
     /// <summary>First byte of a Range header, or null. Only the start is meaningful against a

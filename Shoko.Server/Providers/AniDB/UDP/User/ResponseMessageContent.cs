@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Providers.AniDB.UDP.User;

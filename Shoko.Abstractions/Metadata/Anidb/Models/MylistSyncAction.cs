@@ -90,7 +90,7 @@ public record MylistSyncAction
                 return string.Equals(entry.ED2K, video.ED2K, StringComparison.OrdinalIgnoreCase) && entry.Size == video.Size;
 
             if (AnidbEpisode is { } episode && entry.EpisodeID is not 0)
-                return entry.EpisodeID == episode.ID;
+                return entry.EpisodeID == episode.AnidbID;
 
             return true;
         }

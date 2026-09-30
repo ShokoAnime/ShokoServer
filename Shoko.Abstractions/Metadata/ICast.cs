@@ -5,23 +5,30 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// A cast role.
 /// </summary>
-public interface ICast : IMetadata<string>
+public interface ICast
 {
     /// <summary>
-    /// Creator ID, if the cast role has a known creator.
+    /// The source the cast role is from. A cast role is no entry of its own;
+    /// it is named by its character, its creator and its language.
     /// </summary>
-    int? CreatorID { get; }
+    MetadataSource Source { get; }
 
     /// <summary>
-    /// Character ID, if the cast role has a character shared with one or more
-    /// other cast roles.
+    ///   The creator who voiced or played the role, if it is known.
     /// </summary>
-    int? CharacterID { get; }
+    MetadataGuid? CreatorID { get; }
 
     /// <summary>
-    /// Parent entity ID.
+    ///   The character, if the cast role has a character shared with one or
+    ///   more other cast roles.
     /// </summary>
-    int ParentID { get; }
+    MetadataGuid? CharacterID { get; }
+
+    /// <summary>
+    ///   The entry the role is credited on: a series, a season, an episode or
+    ///   a film.
+    /// </summary>
+    MetadataGuid ParentID { get; }
 
     /// <summary>
     /// Casted role name.
@@ -35,9 +42,16 @@ public interface ICast : IMetadata<string>
     string? OriginalName { get; }
 
     /// <summary>
-    /// Role description, if available from the provider.
+    ///   A description of the role, or notes on it such as the age or form
+    ///   the character is played in, if available from the provider.
     /// </summary>
     string? Description { get; }
+
+    /// <summary>
+    ///   The group that made the dub the performance is in, if the provider
+    ///   names one.
+    /// </summary>
+    string? DubGroup { get; }
 
     /// <summary>
     /// Role type.
@@ -60,7 +74,7 @@ public interface ICast : IMetadata<string>
     /// <summary>
     /// Parent metadata entity.
     /// </summary>
-    IMetadata<int>? Parent { get; }
+    IMetadata? Parent { get; }
 
     /// <summary>
     /// Character, if the cast role has a character shared with one or more
@@ -79,7 +93,7 @@ public interface ICast : IMetadata<string>
 /// A cast role for a parent entity.
 /// </summary>
 /// <typeparam name="TMetadata">Metadata type.</typeparam>
-public interface ICast<TMetadata> : ICast where TMetadata : IMetadata<int>
+public interface ICast<TMetadata> : ICast where TMetadata : IMetadata
 {
     /// <summary>
     /// Parent metadata entity.

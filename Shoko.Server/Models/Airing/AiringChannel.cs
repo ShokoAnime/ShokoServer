@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Utilities;
 
 #nullable enable
@@ -114,17 +113,11 @@ public class AiringChannel : IAiringChannel
 
     #region IMetadata Implementation
 
-    Guid IMetadata<Guid>.ID => ChannelID;
-
-    DataEntityType IMetadata.EntityType => DataEntityType.Channel;
-
-    DataSource IMetadata.Source => DataSource.Shoko;
+    MetadataGuid IMetadata.ID => new(MetadataSource.Shoko, MetadataEntityType.Channel, ChannelID.ToString());
 
     #endregion
 
     #region IAiringChannel Implementation
-
-    Guid IAiringChannel.ID => ChannelID;
 
     IReadOnlyList<string> IAiringChannel.Aliases => Aliases;
 

@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
@@ -44,30 +46,30 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <summary>
     ///   Get all template URLs for image sources.
     /// </summary>
-    /// <returns>A dictionary mapping data sources to their template URLs.</returns>
+    /// <returns>A dictionary mapping metadata sources to their template URLs.</returns>
     [HttpGet("Source")]
-    public ActionResult<Dictionary<DataSource, string?>> GetTemplateUrls()
+    public ActionResult<Dictionary<MetadataSource, string?>> GetTemplateUrls()
         => imageManager.GetTemplateUrls().ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
     /// <summary>
     ///   Get the template URL for a specific image source.
     /// </summary>
-    /// <param name="source">The data source (e.g., AniDB, TMDB).</param>
+    /// <param name="source">The metadata source, by value or alias, ignoring case (e.g. anidb, tmdb).</param>
     /// <returns>The template URL for the source, or null if not set.</returns>
     [HttpGet("Source/{source}")]
-    public ActionResult<string?> GetTemplateUrlForSource([FromRoute] DataSource source)
+    public ActionResult<string?> GetTemplateUrlForSource([FromRoute] MetadataSource source)
         => imageManager.GetTemplateUrlForSource(source);
 
     /// <summary>
     ///   Set the template URL for a specific image source.
     /// </summary>
-    /// <param name="source">The data source (e.g., AniDB, TMDB).</param>
+    /// <param name="source">The metadata source, by value or alias, ignoring case (e.g. anidb, tmdb).</param>
     /// <param name="body">The template URL to set.</param>
     /// <returns>No content.</returns>
     [Authorize("admin")]
     [HttpPut("Source/{source}")]
     public ActionResult SetTemplateUrlForSource(
-        [FromRoute] DataSource source,
+        [FromRoute] MetadataSource source,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SetTemplateUrlBody body
     )
     {
@@ -78,11 +80,11 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <summary>
     ///   Reset the template URL for a specific image source to its default value.
     /// </summary>
-    /// <param name="source">The data source (e.g., AniDB, TMDB).</param>
+    /// <param name="source">The metadata source, by value or alias, ignoring case (e.g. anidb, tmdb).</param>
     /// <returns>No content.</returns>
     [Authorize("admin")]
     [HttpDelete("Source/{source}")]
-    public ActionResult ResetTemplateUrlForSource([FromRoute] DataSource source)
+    public ActionResult ResetTemplateUrlForSource([FromRoute] MetadataSource source)
     {
         imageManager.SetTemplateUrlForSource(source, null);
         return NoContent();
@@ -111,9 +113,9 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <returns>A paginated list of images.</returns>
     [HttpGet]
     public ActionResult<ListResult<ImageSlim>> GetAllImages(
-        [FromQuery] DataSource? imageSource = null,
+        [FromQuery] MetadataSource? imageSource = null,
         [FromQuery] ImageEntityType? imageType = null,
-        [FromQuery] DataSource? xrefSource = null,
+        [FromQuery] MetadataSource? xrefSource = null,
         [FromQuery] bool? isEnabled = null,
         [FromQuery] bool? isDesired = null,
         [FromQuery] bool? isPreferred = null,
@@ -158,13 +160,13 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <summary>
     ///   Get an image by its source and remote resource identifier.
     /// </summary>
-    /// <param name="source">The data source (e.g., AniDB, TMDB).</param>
+    /// <param name="source">The metadata source, by value or alias, ignoring case (e.g. anidb, tmdb).</param>
     /// <param name="resourceID">The remote resource identifier.</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The image if found, otherwise 404.</returns>
     [HttpGet("Remote/{source}/{*resourceID}")]
     public ActionResult<ImageSlim> GetImageBySourceAndRemoteResourceID(
-        [FromRoute] DataSource source,
+        [FromRoute] MetadataSource source,
         [FromRoute] string resourceID,
         [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
@@ -191,7 +193,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         var series = imageManager.GetFirstSeriesForImage(image);
         if (series is null)
             return NotFound("No series found for the image.");
-        return new Image.ImageSeriesInfo(series.ID, series.Title);
+        return new Image.ImageSeriesInfo(series.LocalID, series.Title);
     }
 
     /// <summary>
@@ -206,7 +208,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     [HttpGet("Orphaned")]
     public ActionResult<ListResult<ImageSlim>> GetOrphanedImages(
         [FromQuery, Range(0, int.MaxValue)] int daysOld = 7,
-        [FromQuery] DataSource? imageSource = null,
+        [FromQuery] MetadataSource? imageSource = null,
         [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable,
         [FromQuery, Range(0, 100)] int pageSize = 50,
         [FromQuery, Range(1, int.MaxValue)] int page = 1
@@ -520,7 +522,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     [HttpDelete("Orphaned")]
     public async Task<ActionResult<int>> PurgeOrphanedImages(
         [FromQuery, Range(0, int.MaxValue)] int daysOld = 7,
-        [FromQuery] DataSource? imageSource = null
+        [FromQuery] MetadataSource? imageSource = null
     )
     {
         var count = await imageManager.PurgeOrphanedImages(daysOld, imageSource);
@@ -563,11 +565,11 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <returns>A paginated list of cross-references.</returns>
     [HttpGet("CrossReference")]
     public ActionResult<ListResult<ImageCrossReference>> GetAllImageCrossReferences(
-        [FromQuery] DataSource? imageSource = null,
+        [FromQuery] MetadataSource? imageSource = null,
         [FromQuery] ImageEntityType? imageType = null,
-        [FromQuery] DataSource? xrefSource = null,
-        [FromQuery] DataSource? entitySource = null,
-        [FromQuery] DataEntityType? entityType = null,
+        [FromQuery] MetadataSource? xrefSource = null,
+        [FromQuery] MetadataSource? entitySource = null,
+        [FromQuery] MetadataEntityType? entityType = null,
         [FromQuery] bool? isEnabled = null,
         [FromQuery] bool? isDesired = null,
         [FromQuery] bool? isPreferred = null,
@@ -630,11 +632,11 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <returns>A random cross-reference if found, otherwise 404.</returns>
     [HttpGet("CrossReference/Random")]
     public ActionResult<ImageCrossReference> GetRandomImageCrossReference(
-        [FromQuery, Required] DataSource imageSource,
+        [FromQuery, Required] MetadataSource imageSource,
         [FromQuery, Required] ImageEntityType imageType,
-        [FromQuery] DataSource? xrefSource = null,
-        [FromQuery] DataSource? entitySource = null,
-        [FromQuery] DataEntityType? entityType = null,
+        [FromQuery] MetadataSource? xrefSource = null,
+        [FromQuery] MetadataSource? entitySource = null,
+        [FromQuery] MetadataEntityType? entityType = null,
         [FromQuery] bool? isEnabled = null,
         [FromQuery] bool? isDesired = null,
         [FromQuery] bool? isPreferred = null,
@@ -683,12 +685,12 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <returns>A paginated list of cross-references for the entity.</returns>
     [HttpGet("CrossReference/Entity/{entitySource}/{entityType}/{*entityID}")]
     public ActionResult<ListResult<ImageCrossReference>> GetImageCrossReferencesForEntity(
-        [FromRoute] DataSource entitySource,
-        [FromRoute] DataEntityType entityType,
+        [FromRoute] MetadataSource entitySource,
+        [FromRoute] MetadataEntityType entityType,
         [FromRoute] string entityID,
-        [FromQuery] DataSource? imageSource = null,
+        [FromQuery] MetadataSource? imageSource = null,
         [FromQuery] ImageEntityType? imageType = null,
-        [FromQuery] DataSource? xrefSource = null,
+        [FromQuery] MetadataSource? xrefSource = null,
         [FromQuery] bool? isEnabled = null,
         [FromQuery] bool? isDesired = null,
         [FromQuery] bool? isPreferred = null,
@@ -701,7 +703,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var entity = imageManager.GetEntityForImage(entitySource, entityType, entityID);
+        var entity = GetEntity(entitySource, entityType, entityID);
         if (entity is null)
             return NotFound(EntityNotFound);
         return imageManager.GetImageCrossReferencesForEntity(entity, new()
@@ -736,14 +738,14 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     [Authorize("admin")]
     [HttpPost("CrossReference/Entity/{entitySource}/{entityType}/{*entityID}")]
     public ActionResult<ImageCrossReference> AddImageCrossReference(
-        [FromRoute] DataSource entitySource,
-        [FromRoute] DataEntityType entityType,
+        [FromRoute] MetadataSource entitySource,
+        [FromRoute] MetadataEntityType entityType,
         [FromRoute] string entityID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] AddImageCrossReferenceBody body,
         [FromQuery] bool includeImage = false
     )
     {
-        var entity = imageManager.GetEntityForImage(entitySource, entityType, entityID);
+        var entity = GetEntity(entitySource, entityType, entityID);
         if (entity is null)
             return NotFound(EntityNotFound);
         var image = imageManager.GetImageByID(body.ImageID);
@@ -755,6 +757,10 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
             return Created($"/api/v3/Image/Management/CrossReference/{xref.ID}", new ImageCrossReference(xref, includeImage));
         }
         catch (ImageCrossReferenceExistsException ex)
+        {
+            return ValidationProblem(ex.Message);
+        }
+        catch (ArgumentException ex)
         {
             return ValidationProblem(ex.Message);
         }
@@ -807,12 +813,12 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     [Authorize("admin")]
     [HttpDelete("CrossReference/Preferred/Entity/{entitySource}/{entityType}/{*entityID}")]
     public ActionResult UnsetAllPreferredImagesForEntity(
-        [FromRoute] DataSource entitySource,
-        [FromRoute] DataEntityType entityType,
+        [FromRoute] MetadataSource entitySource,
+        [FromRoute] MetadataEntityType entityType,
         [FromRoute] string entityID
     )
     {
-        var entity = imageManager.GetEntityForImage(entitySource, entityType, entityID);
+        var entity = GetEntity(entitySource, entityType, entityID);
         if (entity is null)
             return NotFound(EntityNotFound);
         if (!imageManager.UnsetAllPreferredImagesForEntity(entity))
@@ -890,6 +896,20 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
             return ValidationProblem(string.Join(" ", errors));
         return results.ToListResult();
     }
+
+    #endregion
+
+    #region Helpers
+
+    /// <summary>
+    ///   The entity a route names by its source, kind and ID.
+    /// </summary>
+    /// <param name="entitySource">The source of the entity.</param>
+    /// <param name="entityType">The kind of the entity.</param>
+    /// <param name="entityID">The source's own ID for the entity.</param>
+    /// <returns>The entity, or <c>null</c> when the ID is not valid or names nothing.</returns>
+    private IWithImages? GetEntity(MetadataSource entitySource, MetadataEntityType entityType, string entityID)
+        => MetadataGuid.TryParse($"{entitySource.Value}://{entityType.Value}/{entityID}", out var id) ? imageManager.GetEntityForImage(id) : null;
 
     #endregion
 }

@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Utilities;
@@ -9,7 +6,7 @@ namespace Shoko.Server.Repositories.Cached.AniDB;
 
 public class AniDB_AnimeRepository(DatabaseFactory databaseFactory) : BaseCachedRepository<AniDB_Anime, int>(databaseFactory)
 {
-    private static PocoIndex<int, AniDB_Anime, int>? _animeIDs;
+    private PocoIndex<int, AniDB_Anime, int>? _animeIDs;
 
     protected override int SelectKey(AniDB_Anime entity)
         => entity.AniDB_AnimeID;
@@ -17,12 +14,6 @@ public class AniDB_AnimeRepository(DatabaseFactory databaseFactory) : BaseCached
     public override void PopulateIndexes()
     {
         _animeIDs = Cache.CreateIndex(a => a.AnimeID);
-    }
-
-    public override void RegenerateDb()
-    {
-        foreach (var anime in Cache.GetAll())
-            anime.ResetPreferredTitle();
     }
 
     public AniDB_Anime? GetByAnimeID(int animeID)

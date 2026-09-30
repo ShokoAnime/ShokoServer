@@ -9,7 +9,10 @@ using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
@@ -19,14 +22,12 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
 
-using AnilistAnime = Shoko.Server.API.v3.Models.Anilist.AnilistAnime;
-using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
+using MetadataSource = Shoko.Abstractions.Metadata.MetadataSource;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -115,27 +116,27 @@ public class Series : BaseModel
     public DateTime Updated { get; set; }
 
     /// <summary>
-    /// The <see cref="Series.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
-    /// included in the data to add.
+    /// The <see cref="Series.AniDB"/>, if AniDB is included in the data to
+    /// add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public AnidbAnime? AniDB { get; set; }
 
     /// <summary>
-    /// The <see cref="TmdbData"/> entries, if <see cref="DataSourceType.TMDB"/>
-    /// is included in the data to add.
+    /// The <see cref="TmdbData"/> entries, if TMDB is included in the data to
+    /// add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public TmdbData? TMDB { get; set; }
 
     /// <summary>
-    /// The <see cref="AnilistData"/> entries, if
-    /// <see cref="DataSourceType.AniList"/> is included in the data to add.
+    /// The series and movies the series is linked to on each plugin source
+    /// asked for in <c>includeDataFrom</c>, keyed by the source, if any were.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public AnilistData? AniList { get; set; }
+    public Dictionary<MetadataSource, LinkedSeriesMetadata>? Sources { get; set; }
 
-    public Series(AnimeSeries ser, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
+    public Series(AnimeSeries ser, int userId = 0, bool randomizeImages = false, IReadOnlySet<MetadataSource>? includeDataFrom = null)
     {
         var anime = ser.AniDB_Anime ??
             throw new NullReferenceException($"Unable to get AniDB Anime {ser.AniDB_ID} for AnimeSeries {ser.AnimeSeriesID}");
@@ -144,7 +145,6 @@ public class Series : BaseModel
         var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(userId, ser.AnimeSeriesID);
         var tmdbMovieXRefs = ser.TmdbMovieCrossReferences;
         var tmdbShowXRefs = ser.TmdbShowCrossReferences;
-        var anilistAnimeXRefs = ser.AnilistAnimeCrossReferences;
         var groupStatusesByAnime = new Dictionary<int, List<AniDB_GroupStatus>> { [ser.AniDB_ID] = RepoFactory.AniDB_GroupStatus.GetByAnimeID(ser.AniDB_ID) };
         var sizes = ModelHelper.GenerateSeriesSizes(allEpisodes, userId, groupStatusesByAnime);
         IDs = new()
@@ -165,13 +165,13 @@ public class Series : BaseModel
                 Show = tmdbShowXRefs.Select(a => a.TmdbShowID).Distinct().ToList(),
             },
             MAL = ser.MalCrossReferences.Select(a => a.MALID).Distinct().ToList(),
-            AniList = anilistAnimeXRefs.Select(a => a.AnilistAnimeID).Distinct().ToList(),
+            Linked = LinkedIDs([.. ((IShokoSeries)ser).MetadataSeriesCrossReferences, .. ((IShokoSeries)ser).MetadataMovieCrossReferences]),
         };
         Links = anime.Resources
             .Select(resource => new Resource(resource))
             .ToList();
         Name = ser.Title;
-        HasCustomName = !string.IsNullOrEmpty(ser.SeriesNameOverride);
+        HasCustomName = ser.CustomTitle is not null;
         Description = ser.PreferredOverview?.Value ?? string.Empty;
         IsFavorite = userData?.IsFavorite ?? false;
         Images = ((IWithImages)ser).GetBestImages().ToDto(preferredImages: true, randomizeImages: randomizeImages);
@@ -191,9 +191,11 @@ public class Series : BaseModel
                 Type = userData.UserRatingVoteType.Value.ToString(),
                 Source = "User",
             };
-        if (includeDataFrom?.Contains(DataSourceType.AniDB) ?? false)
+        if (includeDataFrom?.Contains(MetadataSource.AniDB) ?? false)
             AniDB = new(anime, ser);
-        if (includeDataFrom?.Contains(DataSourceType.TMDB) ?? false)
+        if (LinkedMetadataHelper.GenericSources(includeDataFrom) is { Count: > 0 } sources)
+            Sources = LinkedMetadataHelper.ForSeries(ISystemService.StaticServices.GetRequiredService<IMetadataService>(), ser.AniDB_ID, sources);
+        if (includeDataFrom?.Contains(MetadataSource.TMDB) ?? false)
             TMDB = new()
             {
                 Movies = tmdbMovieXRefs
@@ -219,22 +221,19 @@ public class Series : BaseModel
                     .Select(show => new TmdbShow(show, show.PreferredAlternateOrdering))
                     .ToList(),
             };
-        if (includeDataFrom?.Contains(DataSourceType.AniList) ?? false)
-            AniList = new()
-            {
-                Anime = anilistAnimeXRefs
-                    .Select(xref =>
-                    {
-                        var anilistAnime = xref.AnilistAnime;
-                        if (anilistAnime is not null && (AnilistMetadataService.Instance?.WaitForAnimeUpdate(anilistAnime.AnilistAnimeID) ?? false))
-                            anilistAnime = RepoFactory.Anilist_Anime.GetByAnilistAnimeID(anilistAnime.AnilistAnimeID);
-                        return anilistAnime;
-                    })
-                    .WhereNotNull()
-                    .Select(anilistAnime => new AnilistAnime(anilistAnime))
-                    .ToList(),
-            };
     }
+
+    /// <summary>
+    /// The provider IDs a set of links points at, by source, leaving out the
+    /// links that say an entry is on no such source.
+    /// </summary>
+    /// <param name="links">The links.</param>
+    /// <returns>The IDs, by source.</returns>
+    internal static Dictionary<MetadataSource, List<string>> LinkedIDs(IEnumerable<IMetadataCrossReference> links)
+        => links
+            .Where(link => link.ProviderID is not null)
+            .GroupBy(link => link.Source)
+            .ToDictionary(group => group.Key, group => group.Select(link => link.ProviderID!.ID).Distinct().ToList());
 
     /// <summary>
     /// Get the most recent days in the week the show airs on.
@@ -377,66 +376,40 @@ public class Series : BaseModel
     /// </summary>
     public class AutoMatchSettings
     {
-        public AutoMatchSettings()
-        {
-            TMDB = false;
-            // MAL = false;
-            AniList = false;
-            // Animeshon = false;
-            // Kitsu = false;
-        }
-
-        public AutoMatchSettings(AnimeSeries series)
-        {
-            TMDB = !series.IsTmdbAutoMatchingDisabled;
-            // MAL = !series.IsMALAutoMatchingDisabled;
-            AniList = !series.IsAnilistAutoMatchingDisabled;
-            // Animeshon = !series.IsAnimeshonAutoMatchingDisabled;
-            // Kitsu = !series.IsKitsuAutoMatchingDisabled;
-        }
-
-        public AutoMatchSettings MergeWithExisting(AnimeSeries series)
-        {
-            series.IsTmdbAutoMatchingDisabled = !TMDB;
-            // series.IsMALAutoMatchingDisabled = !MAL;
-            series.IsAnilistAutoMatchingDisabled = !AniList;
-            // series.IsAnimeshonAutoMatchingDisabled = !Animeshon;
-            // series.IsKitsuAutoMatchingDisabled = !Kitsu;
-
-            RepoFactory.AnimeSeries.Save(series, false);
-
-            return new AutoMatchSettings(series);
-        }
+        /// <summary>
+        ///   The sources that may match this series on their own, every source
+        ///   worth asking about rather than the handful somebody remembered to
+        ///   add.
+        /// </summary>
+        /// <remarks>
+        ///   Leaving one out on a write is the same as leaving it alone.
+        /// </remarks>
+        [Required]
+        public Dictionary<MetadataSource, bool> Sources { get; set; } = [];
 
         /// <summary>
-        /// Auto-match against The Movie Database (TMDB).
+        ///   The sources a series could be matched against, the ones that
+        ///   describe where data came from rather than where it can come from
+        ///   being left out.
         /// </summary>
-        [Required]
-        public bool TMDB { get; set; }
+        private static IEnumerable<MetadataSource> MatchableSources
+            => MetadataSource.All.Where(source => source.IsRemote && source != MetadataSource.AniDB);
 
-        // /// <summary>
-        // /// Auto-match against My Anime List (MAL).
-        // /// </summary>
-        // [Required]
-        // public bool MAL { get; set; }
+        public AutoMatchSettings() { }
 
-        /// <summary>
-        /// Auto-match against AniList.
-        /// </summary>
-        [Required]
-        public bool AniList { get; set; }
+        public AutoMatchSettings(AnimeSeries series, IMetadataLinkingService linkingService)
+        {
+            Sources = MatchableSources.ToDictionary(source => source, source => !linkingService.IsAutoLinkingDisabled(series, source));
+        }
 
-        // /// <summary>
-        // /// Auto-match against Animeshon.
-        // /// </summary>
-        // [Required]
-        // public bool Animeshon { get; set; }
+        public AutoMatchSettings MergeWithExisting(AnimeSeries series, IMetadataLinkingService linkingService)
+        {
+            foreach (var (source, allowed) in Sources)
+                if (MatchableSources.Contains(source))
+                    linkingService.SetAutoLinkingDisabled(series, source, !allowed);
 
-        // /// <summary>
-        // /// Auto-match against Kitsu.
-        // /// </summary>
-        // [Required]
-        // public bool Kitsu { get; set; }
+            return new AutoMatchSettings(series, linkingService);
+        }
     }
 
     public class SeriesIDs : IDs
@@ -492,10 +465,10 @@ public class Series : BaseModel
         public List<int> MAL { get; set; } = [];
 
         /// <summary>
-        /// The AniList anime IDs.
+        /// The IDs of what the series is linked to on every source, by source.
         /// </summary>
         [Required]
-        public List<int> AniList { get; set; } = [];
+        public Dictionary<MetadataSource, List<string>> Linked { get; set; } = [];
 
         #endregion
 
@@ -518,12 +491,6 @@ public class Series : BaseModel
         public IEnumerable<TmdbShow> Shows { get; init; } = [];
     }
 
-    public class AnilistData
-    {
-        [Required]
-        public IEnumerable<AnilistAnime> Anime { get; init; } = [];
-    }
-
     #region User Data
 
     /// <summary>
@@ -543,6 +510,8 @@ public class Series : BaseModel
         [Required]
         public IReadOnlyList<string> UserTags { get; set; }
 
+        // The two rating members set each other, so they opt out of DefaultValueHandling.Populate,
+        // or an omitted one would clear the one sent.
         private double? _userRating;
 
         /// <summary>
@@ -550,6 +519,7 @@ public class Series : BaseModel
         ///   places, or <c>null</c> if unrated.
         /// </summary>
         [Range(1, 10)]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
         public double? UserRating
         {
             get => _userRating;
@@ -576,6 +546,7 @@ public class Series : BaseModel
         ///   Override the user rating vote type.
         /// </summary>
         [JsonConverter(typeof(StringEnumConverter))]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
         public SeriesVoteType? UserRatingVoteType
         {
             get => _userRatingVoteType;
@@ -729,71 +700,6 @@ public class Series : BaseModel
             public IReadOnlyList<OverrideTmdbEpisodeLinkBody> Mapping { get; set; } = [];
         }
 
-        public class AutoMatchAnilistEpisodesBody
-        {
-            /// <summary>
-            /// The specified Anilist Anime ID to search for links. This parameter is used to select a specific anime.
-            /// </summary>
-            [Range(1, int.MaxValue)]
-            public int? AnilistAnimeID { get; set; }
-
-            /// <summary>
-            /// Determines whether to retain existing links for the current series.
-            /// </summary>
-            [DefaultValue(true)]
-            public bool KeepExisting { get; set; } = true;
-
-            /// <summary>
-            /// Determines whether to consider existing links for other series when picking episodes.
-            /// </summary>
-            public bool? ConsiderExistingOtherLinks { get; set; }
-        }
-
-        public class OverrideAnilistEpisodeMappingBody
-        {
-            /// <summary>
-            /// Unset all existing links before applying the overrides.
-            /// </summary>
-            /// <remarks>
-            /// This will ensure the auto-links won't override the new unset
-            /// links, unlink if you had reset them through the DELETE endpoint.
-            /// </remarks>
-            public bool UnsetAll { get; set; } = false;
-
-            /// <summary>
-            /// Replacing existing links or add new additional links.
-            /// </summary>
-            [Required]
-            public IReadOnlyList<OverrideAnilistEpisodeLinkBody> Mapping { get; set; } = [];
-        }
-
-        public class OverrideAnilistEpisodeLinkBody
-        {
-            /// <summary>
-            /// AniDB Episode ID.
-            /// </summary>
-            [Required, Range(1, int.MaxValue)]
-            public int AniDBID { get; set; }
-
-            /// <summary>
-            /// Anilist Episode ID. Set to <c>0</c> to not link to any episode.
-            /// </summary>
-            [Required, Range(0, int.MaxValue)]
-            public int AnilistID { get; set; }
-
-            /// <summary>
-            /// Replace existing episode links.
-            /// </summary>
-            public bool Replace { get; set; } = false;
-
-            /// <summary>
-            /// Episode index. Set to <c>null</c> to automatically calculate the
-            /// index.
-            /// </summary>
-            [Range(0, int.MaxValue)]
-            public int? Index { get; set; } = null;
-        }
-
         public class OverrideTmdbEpisodeLinkBody
         {
             /// <summary>
@@ -883,7 +789,7 @@ public class Series : BaseModel
         [Required]
         public string Match { get; set; } = string.Empty;
 
-        public SearchResult(SeriesSearch.SearchResult<AnimeSeries> result, int userId = 0, bool randomizeImages = false, HashSet<DataSourceType>? includeDataFrom = null)
+        public SearchResult(SeriesSearch.SearchResult<AnimeSeries> result, int userId = 0, bool randomizeImages = false, IReadOnlySet<MetadataSource>? includeDataFrom = null)
             : base(result.Result, userId, randomizeImages, includeDataFrom)
         {
             ExactMatch = result.ExactMatch;
@@ -905,7 +811,7 @@ public class Series : BaseModel
         [Required]
         public int EpisodeCount { get; set; }
 
-        public WithEpisodeCount(int episodeCount, AnimeSeries ser, int userId = 0, HashSet<DataSourceType>? includeDataFrom = null)
+        public WithEpisodeCount(int episodeCount, AnimeSeries ser, int userId = 0, IReadOnlySet<MetadataSource>? includeDataFrom = null)
             : base(ser, userId, false, includeDataFrom)
         {
             EpisodeCount = episodeCount;

@@ -6,12 +6,12 @@ using Microsoft.Extensions.Logging;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.Airing;
 using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Repositories.Cached.Anilist;
+using Shoko.Server.Repositories.Cached.Metadata;
+using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Repositories.Direct.TMDB;
 using Shoko.Server.Repositories.Direct.TMDB.Optional;
-using Shoko.Server.Repositories.Direct.TMDB.Text;
 using Shoko.Server.Services;
 
 // ReSharper disable InconsistentNaming
@@ -31,16 +31,15 @@ public class RepoFactory
     public static AniDB_Anime_SimilarRepository AniDB_Anime_Similar = null!;
     public static AniDB_Anime_StaffRepository AniDB_Anime_Staff = null!;
     public static AniDB_Anime_TagRepository AniDB_Anime_Tag = null!;
-    public static AniDB_Anime_TitleRepository AniDB_Anime_Title = null!;
     public static AniDB_AnimeRepository AniDB_Anime = null!;
     public static AniDB_AnimeUpdateRepository AniDB_AnimeUpdate = null!;
     public static AniDB_CharacterRepository AniDB_Character = null!;
     public static AniDB_CreatorRepository AniDB_Creator = null!;
-    public static AniDB_Episode_TitleRepository AniDB_Episode_Title = null!;
     public static AniDB_EpisodeRepository AniDB_Episode = null!;
     public static AniDB_GroupStatusRepository AniDB_GroupStatus = null!;
     public static AniDB_MessageRepository AniDB_Message = null!;
     public static AniDB_NotifyQueueRepository AniDB_NotifyQueue = null!;
+    public static AniDB_ResourceRepository AniDB_Resource = null!;
     public static AniDB_TagRepository AniDB_Tag = null!;
     public static AiringChannelRepository AiringChannel = null!;
     public static AiringScheduleRepository AiringSchedule = null!;
@@ -54,33 +53,38 @@ public class RepoFactory
     public static AnimeSeriesRepository AnimeSeries = null!;
     public static AuthTokensRepository AuthTokens = null!;
     public static CrossRef_AniDB_MALRepository CrossRef_AniDB_MAL = null!;
+    public static CrossRef_AniDB_Metadata_SeriesRepository CrossRef_AniDB_Metadata_Series = null!;
+    public static CrossRef_AniDB_Metadata_MovieRepository CrossRef_AniDB_Metadata_Movie = null!;
+    public static CrossRef_AniDB_Metadata_EpisodeRepository CrossRef_AniDB_Metadata_Episode = null!;
     public static CrossRef_AniDB_TMDB_EpisodeRepository CrossRef_AniDB_TMDB_Episode = null!;
     public static CrossRef_AniDB_TMDB_MovieRepository CrossRef_AniDB_TMDB_Movie = null!;
     public static CrossRef_AniDB_TMDB_ShowRepository CrossRef_AniDB_TMDB_Show = null!;
-    public static CrossRef_AniDB_Anilist_AnimeRepository CrossRef_AniDB_Anilist_Anime = null!;
-    public static CrossRef_AniDB_Anilist_EpisodeRepository CrossRef_AniDB_Anilist_Episode = null!;
-    public static Anilist_AnimeRepository Anilist_Anime = null!;
-    public static Anilist_Anime_StudioRepository Anilist_Anime_Studio = null!;
-
-    public static Anilist_Anime_ExternalLinkRepository Anilist_Anime_ExternalLink = null!;
-    public static Anilist_Anime_TagRepository Anilist_Anime_Tag = null!;
-    public static Anilist_EpisodeRepository Anilist_Episode = null!;
-    public static Anilist_StudioRepository Anilist_Studio = null!;
-    public static Anilist_TagRepository Anilist_Tag = null!;
-    public static Anilist_CharacterRepository Anilist_Character = null!;
-    public static Anilist_CreatorRepository Anilist_Creator = null!;
-    public static Anilist_Anime_CharacterRepository Anilist_Anime_Character = null!;
-    public static Anilist_Anime_Character_CreatorRepository Anilist_Anime_Character_Creator = null!;
-    public static Anilist_Anime_StaffRepository Anilist_Anime_Staff = null!;
-    public static Anilist_Anime_RelationRepository Anilist_Anime_Relation = null!;
-
-    public static Anilist_Anime_SuggestionRepository Anilist_Anime_Suggestion = null!;
     public static CrossRef_CustomTagRepository CrossRef_CustomTag = null!;
     public static CrossRef_File_EpisodeRepository CrossRef_File_Episode = null!;
     public static CustomTagRepository CustomTag = null!;
     public static FileNameHashRepository FileNameHash = null!;
     public static FilterPresetRepository FilterPreset = null!;
     public static JMMUserRepository JMMUser = null!;
+    public static Metadata_CreatorRepository Metadata_Creator = null!;
+    public static Metadata_CharacterRepository Metadata_Character = null!;
+    public static Metadata_CastRepository Metadata_Cast = null!;
+    public static Metadata_CrewRepository Metadata_Crew = null!;
+    public static Metadata_TagRepository Metadata_Tag = null!;
+    public static Metadata_Tag_EntryRepository Metadata_Tag_Entry = null!;
+    public static Metadata_StudioRepository Metadata_Studio = null!;
+    public static Metadata_Studio_EntryRepository Metadata_Studio_Entry = null!;
+    public static Metadata_NetworkRepository Metadata_Network = null!;
+    public static Metadata_Network_EntryRepository Metadata_Network_Entry = null!;
+    public static Metadata_RelationRepository Metadata_Relation = null!;
+    public static Metadata_SuggestionRepository Metadata_Suggestion = null!;
+    public static TextCache TextCache = null!;
+    public static Metadata_SeriesRepository Metadata_Series = null!;
+    public static Metadata_SeasonRepository Metadata_Season = null!;
+    public static Metadata_EpisodeRepository Metadata_Episode = null!;
+    public static Metadata_MovieRepository Metadata_Movie = null!;
+    public static Metadata_CollectionRepository Metadata_Collection = null!;
+    public static Metadata_Collection_MemberRepository Metadata_Collection_Member = null!;
+    public static Metadata_ContentRatingRepository Metadata_ContentRating = null!;
     public static ScheduledUpdateRepository ScheduledUpdate = null!;
     public static ShokoImage_EntityRepository ShokoImage_Entity = null!;
     public static ShokoImageRepository ShokoImage = null!;
@@ -102,14 +106,11 @@ public class RepoFactory
     public static TMDB_Movie_CrewRepository TMDB_Movie_Crew = null!;
     public static TMDB_MovieRepository TMDB_Movie = null!;
     public static TMDB_NetworkRepository TMDB_Network = null!;
-    public static TMDB_OverviewRepository TMDB_Overview = null!;
     public static TMDB_PersonRepository TMDB_Person = null!;
     public static TMDB_SeasonRepository TMDB_Season = null!;
     public static TMDB_Show_NetworkRepository TMDB_Show_Network = null!;
-
     public static TMDB_SuggestionRepository TMDB_Suggestion = null!;
     public static TMDB_ShowRepository TMDB_Show = null!;
-    public static TMDB_TitleRepository TMDB_Title = null!;
     public static VersionsRepository Versions = null!;
     public static VideoLocalRepository VideoLocal = null!;
     public static VideoLocal_HashDigestRepository VideoLocalHashDigest = null!;
@@ -126,16 +127,15 @@ public class RepoFactory
         AniDB_Anime_SimilarRepository anidbAnimeSimilar,
         AniDB_Anime_StaffRepository anidbAnimeStaff,
         AniDB_Anime_TagRepository anidbAnimeTag,
-        AniDB_Anime_TitleRepository anidbAnimeTitle,
         AniDB_AnimeRepository anidbAnime,
         AniDB_AnimeUpdateRepository anidbAnimeUpdate,
         AniDB_CharacterRepository anidbCharacter,
         AniDB_CreatorRepository anidbCreator,
-        AniDB_Episode_TitleRepository anidbEpisodeTitle,
         AniDB_EpisodeRepository anidbEpisode,
         AniDB_GroupStatusRepository anidbGroupStatus,
         AniDB_MessageRepository anidbMessage,
         AniDB_NotifyQueueRepository anidbNotifyQueue,
+        AniDB_ResourceRepository anidbResource,
         AniDB_TagRepository anidbTag,
         AiringChannelRepository airingChannel,
         AiringScheduleRepository airingSchedule,
@@ -149,31 +149,38 @@ public class RepoFactory
         AnimeSeriesRepository animeSeries,
         AuthTokensRepository authTokens,
         CrossRef_AniDB_MALRepository crossRefAniDBMal,
+        CrossRef_AniDB_Metadata_SeriesRepository crossRefAniDBMetadataSeries,
+        CrossRef_AniDB_Metadata_MovieRepository crossRefAniDBMetadataMovie,
+        CrossRef_AniDB_Metadata_EpisodeRepository crossRefAniDBMetadataEpisode,
         CrossRef_AniDB_TMDB_EpisodeRepository crossRefAniDBTmdbEpisode,
         CrossRef_AniDB_TMDB_MovieRepository crossRefAniDBTmdbMovie,
         CrossRef_AniDB_TMDB_ShowRepository crossRefAniDBTmdbShow,
-        CrossRef_AniDB_Anilist_AnimeRepository crossRefAniDBAnilistAnime,
-        CrossRef_AniDB_Anilist_EpisodeRepository crossRefAniDBAnilistEpisode,
-        Anilist_AnimeRepository anilistAnime,
-        Anilist_Anime_StudioRepository anilistAnimeStudio,
-        Anilist_Anime_ExternalLinkRepository anilistAnimeExternalLink,
-        Anilist_Anime_TagRepository anilistAnimeTag,
-        Anilist_EpisodeRepository anilistEpisode,
-        Anilist_StudioRepository anilistStudio,
-        Anilist_TagRepository anilistTag,
-        Anilist_CharacterRepository anilistCharacter,
-        Anilist_CreatorRepository anilistCreator,
-        Anilist_Anime_CharacterRepository anilistAnimeCharacter,
-        Anilist_Anime_Character_CreatorRepository anilistAnimeCharacterCreator,
-        Anilist_Anime_StaffRepository anilistAnimeStaff,
-        Anilist_Anime_RelationRepository anilistAnimeRelation,
-        Anilist_Anime_SuggestionRepository anilistAnimeSuggestion,
         CrossRef_CustomTagRepository crossRefCustomTag,
         CrossRef_File_EpisodeRepository crossRefFileEpisode,
         CustomTagRepository customTag,
         FileNameHashRepository fileNameHash,
         FilterPresetRepository filterPreset,
         JMMUserRepository jmmUser,
+        Metadata_CreatorRepository metadataCreator,
+        Metadata_CharacterRepository metadataCharacter,
+        Metadata_CastRepository metadataCast,
+        Metadata_CrewRepository metadataCrew,
+        Metadata_TagRepository metadataTag,
+        Metadata_Tag_EntryRepository metadataTagEntry,
+        Metadata_StudioRepository metadataStudio,
+        Metadata_Studio_EntryRepository metadataStudioEntry,
+        Metadata_NetworkRepository metadataNetwork,
+        Metadata_Network_EntryRepository metadataNetworkEntry,
+        Metadata_RelationRepository metadataRelation,
+        Metadata_SuggestionRepository metadataSuggestion,
+        TextCache textCache,
+        Metadata_SeriesRepository metadataSeries,
+        Metadata_SeasonRepository metadataSeason,
+        Metadata_EpisodeRepository metadataEpisode,
+        Metadata_MovieRepository metadataMovie,
+        Metadata_CollectionRepository metadataCollection,
+        Metadata_Collection_MemberRepository metadataCollectionMember,
+        Metadata_ContentRatingRepository metadataContentRating,
         ScheduledUpdateRepository scheduledUpdate,
         ShokoImage_EntityRepository shokoImageEntity,
         ShokoImageRepository shokoImage,
@@ -195,13 +202,11 @@ public class RepoFactory
         TMDB_Movie_CrewRepository tmdbMovieCrew,
         TMDB_MovieRepository tmdbMovie,
         TMDB_NetworkRepository tmdbNetwork,
-        TMDB_OverviewRepository tmdbOverview,
         TMDB_PersonRepository tmdbPerson,
         TMDB_SeasonRepository tmdbSeason,
         TMDB_Show_NetworkRepository tmdbShowNetwork,
         TMDB_SuggestionRepository tmdbSuggestion,
         TMDB_ShowRepository tmdbShow,
-        TMDB_TitleRepository tmdbTitle,
         VersionsRepository versions,
         VideoLocal_HashDigestRepository videoLocalHashDigest,
         VideoLocal_PlaceRepository videoLocalPlace,
@@ -219,15 +224,14 @@ public class RepoFactory
         AniDB_Anime_Similar = anidbAnimeSimilar;
         AniDB_Anime_Staff = anidbAnimeStaff;
         AniDB_Anime_Tag = anidbAnimeTag;
-        AniDB_Anime_Title = anidbAnimeTitle;
         AniDB_AnimeUpdate = anidbAnimeUpdate;
         AniDB_Character = anidbCharacter;
         AniDB_Creator = anidbCreator;
         AniDB_Episode = anidbEpisode;
-        AniDB_Episode_Title = anidbEpisodeTitle;
         AniDB_GroupStatus = anidbGroupStatus;
         AniDB_Message = anidbMessage;
         AniDB_NotifyQueue = anidbNotifyQueue;
+        AniDB_Resource = anidbResource;
         AniDB_Tag = anidbTag;
         AnimeEpisode = animeEpisode;
         AiringChannel = airingChannel;
@@ -241,31 +245,38 @@ public class RepoFactory
         AnimeSeries_User = animeSeriesUser;
         AuthTokens = authTokens;
         CrossRef_AniDB_MAL = crossRefAniDBMal;
+        CrossRef_AniDB_Metadata_Series = crossRefAniDBMetadataSeries;
+        CrossRef_AniDB_Metadata_Movie = crossRefAniDBMetadataMovie;
+        CrossRef_AniDB_Metadata_Episode = crossRefAniDBMetadataEpisode;
         CrossRef_AniDB_TMDB_Episode = crossRefAniDBTmdbEpisode;
         CrossRef_AniDB_TMDB_Movie = crossRefAniDBTmdbMovie;
         CrossRef_AniDB_TMDB_Show = crossRefAniDBTmdbShow;
-        CrossRef_AniDB_Anilist_Anime = crossRefAniDBAnilistAnime;
-        CrossRef_AniDB_Anilist_Episode = crossRefAniDBAnilistEpisode;
-        Anilist_Anime = anilistAnime;
-        Anilist_Anime_Studio = anilistAnimeStudio;
-        Anilist_Anime_ExternalLink = anilistAnimeExternalLink;
-        Anilist_Anime_Tag = anilistAnimeTag;
-        Anilist_Episode = anilistEpisode;
-        Anilist_Studio = anilistStudio;
-        Anilist_Tag = anilistTag;
-        Anilist_Character = anilistCharacter;
-        Anilist_Creator = anilistCreator;
-        Anilist_Anime_Character = anilistAnimeCharacter;
-        Anilist_Anime_Character_Creator = anilistAnimeCharacterCreator;
-        Anilist_Anime_Staff = anilistAnimeStaff;
-        Anilist_Anime_Relation = anilistAnimeRelation;
-        Anilist_Anime_Suggestion = anilistAnimeSuggestion;
         CrossRef_CustomTag = crossRefCustomTag;
         CrossRef_File_Episode = crossRefFileEpisode;
         CustomTag = customTag;
         FileNameHash = fileNameHash;
         FilterPreset = filterPreset;
         JMMUser = jmmUser;
+        Metadata_Creator = metadataCreator;
+        Metadata_Character = metadataCharacter;
+        Metadata_Cast = metadataCast;
+        Metadata_Crew = metadataCrew;
+        Metadata_Tag = metadataTag;
+        Metadata_Tag_Entry = metadataTagEntry;
+        Metadata_Studio = metadataStudio;
+        Metadata_Studio_Entry = metadataStudioEntry;
+        Metadata_Network = metadataNetwork;
+        Metadata_Network_Entry = metadataNetworkEntry;
+        Metadata_Relation = metadataRelation;
+        Metadata_Suggestion = metadataSuggestion;
+        TextCache = textCache;
+        Metadata_Series = metadataSeries;
+        Metadata_Season = metadataSeason;
+        Metadata_Episode = metadataEpisode;
+        Metadata_Movie = metadataMovie;
+        Metadata_Collection = metadataCollection;
+        Metadata_Collection_Member = metadataCollectionMember;
+        Metadata_ContentRating = metadataContentRating;
         ScheduledUpdate = scheduledUpdate;
         ShokoImage = shokoImage;
         ShokoImage_Entity = shokoImageEntity;
@@ -287,13 +298,11 @@ public class RepoFactory
         TMDB_Movie_Cast = tmdbMovieCast;
         TMDB_Movie_Crew = tmdbMovieCrew;
         TMDB_Network = tmdbNetwork;
-        TMDB_Overview = tmdbOverview;
         TMDB_Person = tmdbPerson;
         TMDB_Season = tmdbSeason;
         TMDB_Show = tmdbShow;
         TMDB_Show_Network = tmdbShowNetwork;
         TMDB_Suggestion = tmdbSuggestion;
-        TMDB_Title = tmdbTitle;
         Versions = versions;
         VideoLocal = videoLocal;
         VideoLocalHashDigest = videoLocalHashDigest;

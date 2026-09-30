@@ -22,5 +22,5 @@ public sealed class SyncGroupMylistAction(IMylistService mylistService) : GroupA
     public override ActionPermission Permission => ActionPermission.Admin;
 
     public override Task Execute(CancellationToken token = default)
-        => mylistService.ScheduleSync(Group.AllSeries.SelectMany(series => series.Videos).DistinctBy(video => video.ID));
+        => mylistService.ScheduleSync(Group.AllSeries.SelectMany(series => series.Videos).DistinctBy(video => video.LocalID));
 }

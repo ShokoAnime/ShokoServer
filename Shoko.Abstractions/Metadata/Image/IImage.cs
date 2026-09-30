@@ -10,7 +10,7 @@ namespace Shoko.Abstractions.Metadata.Image;
 
 /// <summary>
 ///   Image metadata. This interface represents a unified image entity that can
-///   be associated with multiple entities across different data sources. The
+///   be associated with multiple entities across different metadata sources. The
 ///   image can come from various providers and supports different image types.
 /// </summary>
 public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
@@ -60,7 +60,7 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     ///   originated from and is used for routing, display, and management
     ///   purposes.
     /// </summary>
-    DataSource Source { get; }
+    MetadataSource Source { get; }
 
     /// <summary>
     ///   If this image is a wrapped image, then this will be the
@@ -101,12 +101,14 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     bool IsDesired { get; }
 
     /// <summary>
-    ///   Indicates the image is the preferred image for the linked entity.
+    ///   Indicates the image is the preferred image of its type for the entity
+    ///   it was read for, through the entity's own cross-reference.
     /// </summary>
     /// <remarks>
     ///   Only one image per entity and image type combination can be preferred.
     ///   Preferred status is stored on the cross-reference, not the image
-    ///   itself.
+    ///   itself. An image preferred only on a linked entry is not marked (see
+    ///   <see cref="Containers.IWithImages.GetPreferredImageForType"/>).
     /// </remarks>
     bool IsPreferred { get; }
 
@@ -138,7 +140,7 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     ///   Indicates that we know the dimensions and aspect ratio of the image.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Width), nameof(Height), nameof(AspectRatio))]
-    bool HasSize => Width.HasValue && Height.HasValue;
+    bool HasSize { get => Width.HasValue && Height.HasValue; }
 
     /// <summary>
     ///   Image aspect ratio. This is calculated as the width divided by the
@@ -162,7 +164,7 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     ///   <see cref="Rating"/> and <see cref="RatingVotes"/> properties.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Rating), nameof(RatingVotes))]
-    bool HasRating => Rating.HasValue && RatingVotes.HasValue;
+    bool HasRating { get => Rating.HasValue && RatingVotes.HasValue; }
 
     /// <summary>
     ///   Overall user rating for the image, normalized on a scale of 1-10, if
@@ -278,9 +280,9 @@ public interface IImage : IEquatable<IImage>, IWithCreationDate, IWithUpdateDate
     /// </returns>
     IReadOnlyList<IImageCrossReference> GetCrossReferences(
         ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        DataSource? entitySource = null,
-        DataEntityType? entityType = null,
+        MetadataSource? xrefSource = null,
+        MetadataSource? entitySource = null,
+        MetadataEntityType? entityType = null,
         bool? isEnabled = null,
         bool? isDesired = null,
         bool? isAvailable = null,

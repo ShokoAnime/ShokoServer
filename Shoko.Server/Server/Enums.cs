@@ -1,42 +1,11 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Server;
 
-/// <summary>
-/// Available data sources to chose from.
-/// </summary>
-[Flags]
-public enum DisabledAutoMatchFlag
-{
-    /// <summary>
-    /// The Movie Database (TMDB).
-    /// </summary>
-    TMDB = 4,
-
-    /// <summary>
-    /// My Anime List (MAL).
-    /// </summary>
-    MAL = 16,
-
-    /// <summary>
-    /// AniList (AL).
-    /// </summary>
-    AniList = 32,
-
-    /// <summary>
-    /// Animeshon.
-    /// </summary>
-    Animeshon = 64,
-
-    /// <summary>
-    /// Kitsu.
-    /// </summary>
-    Kitsu = 128,
-}
 
 public enum ScheduledUpdateFrequency
 {
@@ -152,32 +121,32 @@ public static class ForeignEntityTypeExtensions
 {
     extension(ForeignEntityType type)
     {
-        public DataEntityType DataType => type switch
+        public MetadataEntityType? DataType => type switch
         {
-            ForeignEntityType.Collection => DataEntityType.Collection,
-            ForeignEntityType.Movie => DataEntityType.Movie,
-            ForeignEntityType.Show => DataEntityType.Show,
-            ForeignEntityType.Season => DataEntityType.Season,
-            ForeignEntityType.Episode => DataEntityType.Episode,
-            ForeignEntityType.Company => DataEntityType.Company,
-            ForeignEntityType.Network => DataEntityType.Network,
-            ForeignEntityType.Person => DataEntityType.Person,
-            _ => DataEntityType.Unknown,
+            ForeignEntityType.Collection => MetadataEntityType.Collection,
+            ForeignEntityType.Movie => MetadataEntityType.Movie,
+            ForeignEntityType.Show => MetadataEntityType.Series,
+            ForeignEntityType.Season => MetadataEntityType.Season,
+            ForeignEntityType.Episode => MetadataEntityType.Episode,
+            ForeignEntityType.Company => MetadataEntityType.Studio,
+            ForeignEntityType.Network => MetadataEntityType.Network,
+            ForeignEntityType.Person => MetadataEntityType.Creator,
+            _ => null,
         };
     }
 
-    extension(DataEntityType type)
+    extension(MetadataEntityType? type)
     {
         public ForeignEntityType ForeignType => type switch
         {
-            DataEntityType.Collection => ForeignEntityType.Collection,
-            DataEntityType.Movie => ForeignEntityType.Movie,
-            DataEntityType.Show => ForeignEntityType.Show,
-            DataEntityType.Season => ForeignEntityType.Season,
-            DataEntityType.Episode => ForeignEntityType.Episode,
-            DataEntityType.Company => ForeignEntityType.Company,
-            DataEntityType.Network => ForeignEntityType.Network,
-            DataEntityType.Person => ForeignEntityType.Person,
+            _ when type == MetadataEntityType.Collection => ForeignEntityType.Collection,
+            _ when type == MetadataEntityType.Movie => ForeignEntityType.Movie,
+            _ when type == MetadataEntityType.Series => ForeignEntityType.Show,
+            _ when type == MetadataEntityType.Season => ForeignEntityType.Season,
+            _ when type == MetadataEntityType.Episode => ForeignEntityType.Episode,
+            _ when type == MetadataEntityType.Studio => ForeignEntityType.Company,
+            _ when type == MetadataEntityType.Network => ForeignEntityType.Network,
+            _ when type == MetadataEntityType.Creator => ForeignEntityType.Person,
             _ => ForeignEntityType.None,
         };
     }

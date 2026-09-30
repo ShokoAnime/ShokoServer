@@ -50,4 +50,18 @@ public class TMDB_Episode_CastRepository(DatabaseFactory databaseFactory) : Base
             .OrderBy(e => e.Ordering)
             .ToList();
     }
+
+    /// <summary>
+    ///   Every show ID the episode cast rows name.
+    /// </summary>
+    /// <returns>The IDs, each once.</returns>
+    public IReadOnlyList<int> GetAllTmdbShowIDs()
+    {
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        return session
+            .Query<TMDB_Episode_Cast>()
+            .Select(a => a.TmdbShowID)
+            .Distinct()
+            .ToList();
+    }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Core.Services;
+using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.Server.Utilities;
@@ -13,14 +14,16 @@ public class DatabaseRequiredAcquisitionFilter : IAcquisitionFilter
     private readonly ISystemService _systemService;
     private readonly Type[] _types;
 
-    public DatabaseRequiredAcquisitionFilter(ISystemService systemService)
+    public DatabaseRequiredAcquisitionFilter(ISystemService systemService, QueueJobTypeRegistry jobTypeRegistry)
     {
         _systemService = systemService;
         _systemService.DatabaseBlockedChanged += ServerOnDBSetupCompleted;
         _types = ReflectionUtils.ScannableAssemblies()
             .SelectMany(a => a.GetTypes())
-            .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
+            .Concat(jobTypeRegistry.JobTypes.Where(type => type.IsConstructedGenericType))
+            .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract && !a.ContainsGenericParameters &&
                         a.IsDefined(typeof(DatabaseRequiredAttribute), true))
+            .Distinct()
             .ToArray();
     }
 

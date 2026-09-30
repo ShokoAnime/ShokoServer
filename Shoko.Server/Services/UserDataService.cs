@@ -50,28 +50,28 @@ public class UserDataService(
     public IVideoUserData? GetVideoUserData(IVideo video, IUser user)
     {
         ArgumentNullException.ThrowIfNull(video);
-        if (video.ID is <= 0)
-            throw new ArgumentException("video.ID must be greater than 0.", nameof(video));
+        if (video.LocalID is <= 0)
+            throw new ArgumentException("video.LocalID must be greater than 0.", nameof(video));
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
-        return videoUserDataRepository.GetByUserAndVideoLocalID(user.ID, video.ID);
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
+        return videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, video.LocalID);
     }
 
     public IEnumerable<IVideoUserData> GetVideoUserDataForUser(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
-        return videoUserDataRepository.GetByUserID(user.ID);
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
+        return videoUserDataRepository.GetByUserID(user.LocalID);
     }
 
     public IReadOnlyList<IVideoUserData> GetVideoUserDataForVideo(IVideo video)
     {
         ArgumentNullException.ThrowIfNull(video);
-        if (video.ID is <= 0)
-            throw new ArgumentException("video.ID must be greater than 0.", nameof(video));
-        return videoUserDataRepository.GetByVideoLocalID(video.ID);
+        if (video.LocalID is <= 0)
+            throw new ArgumentException("video.LocalID must be greater than 0.", nameof(video));
+        return videoUserDataRepository.GetByVideoLocalID(video.LocalID);
     }
 
     public Task<IVideoUserData> SetVideoWatchedStatus(IVideo video, IUser user, bool watched = true, DateTime? watchedAt = null, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool noEpisodePropagation = false, bool updateStatsNow = true)
@@ -129,8 +129,8 @@ public class UserDataService(
             userDataUpdate.ProgressPosition = null;
         }
 
-        var userData = videoUserDataRepository.GetByUserAndVideoLocalID(user.ID, video.ID)
-            ?? new() { JMMUserID = user.ID, VideoLocalID = video.ID };
+        var userData = videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, video.LocalID)
+            ?? new() { JMMUserID = user.LocalID, VideoLocalID = video.LocalID };
         // WatchedDate stores local time, but a caller can hand us UTC — the MyList
         // sync reads AniDB, which is UTC throughout. Read as local for both the
         // compare and the store, or an equal date in the other kind reads as a
@@ -250,7 +250,7 @@ public class UserDataService(
             userData.LastUpdated = userDataUpdate.LastUpdatedAt ?? DateTime.Now;
             videoUserDataRepository.Save(userData);
 
-            logger.LogDebug("Got update for {VideoID} with reason {Reason}. (WatchedStatusChanged={WatchedStatusChanged}, User={User})", video.ID, reason, watchedStatusChanged, user.ID);
+            logger.LogDebug("Got update for {VideoID} with reason {Reason}. (WatchedStatusChanged={WatchedStatusChanged}, User={User})", video.LocalID, reason, watchedStatusChanged, user.LocalID);
 
             try
             {
@@ -284,12 +284,12 @@ public class UserDataService(
                         // e.g. one file can have a % = 100
                         // or if 2 files make up one episode they will each have a % = 50
                         var epPercentWatched = 0;
-                        foreach (var videoXref in episode.CrossReferences)
+                        foreach (var videoXref in episode.VideoCrossReferences)
                         {
                             if (videoXref.Video is not { } otherVideo)
                                 continue;
 
-                            var videoUser = videoUserDataRepository.GetByUserAndVideoLocalID(user.ID, otherVideo.ID);
+                            var videoUser = videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, otherVideo.LocalID);
                             if (videoUser?.WatchedDate != null)
                                 epPercentWatched += videoXref.Percentage <= 0 ? 100 : videoXref.Percentage;
 
@@ -315,12 +315,12 @@ public class UserDataService(
                             continue;
 
                         var epPercentWatched = 0;
-                        foreach (var videoXref in episode.CrossReferences)
+                        foreach (var videoXref in episode.VideoCrossReferences)
                         {
                             if (videoXref.Video is not { } otherVideo)
                                 continue;
 
-                            var videoUser = videoUserDataRepository.GetByUserAndVideoLocalID(user.ID, otherVideo.ID);
+                            var videoUser = videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, otherVideo.LocalID);
                             if (videoUser?.WatchedDate != null)
                                 epPercentWatched += videoXref.Percentage <= 0 ? 100 : videoXref.Percentage;
 
@@ -381,23 +381,23 @@ public class UserDataService(
     public IEpisodeUserData GetEpisodeUserData(IShokoEpisode episode, IUser user)
     {
         ArgumentNullException.ThrowIfNull(episode);
-        if (episode.ID is <= 0)
-            throw new ArgumentException("episode.ID must be greater than 0.", nameof(episode));
+        if (episode.LocalID is <= 0)
+            throw new ArgumentException("episode.LocalID must be greater than 0.", nameof(episode));
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
 
-        if (episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID) is { } userData)
+        if (episodeUserDataRepository.GetByUserAndEpisodeID(user.LocalID, episode.LocalID) is { } userData)
             return userData;
 
         // Only allow creating one user data at a time through the service method.
         lock (_episodeUserDataLock)
         {
-            userData = episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID);
+            userData = episodeUserDataRepository.GetByUserAndEpisodeID(user.LocalID, episode.LocalID);
             if (userData is not null)
                 return userData;
 
-            userData = new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID, AnimeSeriesID = episode.SeriesID };
+            userData = new() { JMMUserID = user.LocalID, AnimeEpisodeID = episode.LocalID, AnimeSeriesID = episode.ShokoSeriesID };
             episodeUserDataRepository.Save(userData);
         }
 
@@ -407,27 +407,27 @@ public class UserDataService(
     public IEnumerable<IEpisodeUserData> GetEpisodeUserDataForUser(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
-        return episodeUserDataRepository.GetByUserID(user.ID);
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
+        return episodeUserDataRepository.GetByUserID(user.LocalID);
     }
 
     public IReadOnlyList<IEpisodeUserData> GetEpisodeUserDataForEpisode(IShokoEpisode episode)
     {
         ArgumentNullException.ThrowIfNull(episode);
-        if (episode.ID is <= 0)
-            throw new ArgumentException("episode.ID must be greater than 0.", nameof(episode));
-        return episodeUserDataRepository.GetByEpisodeID(episode.ID);
+        if (episode.LocalID is <= 0)
+            throw new ArgumentException("episode.LocalID must be greater than 0.", nameof(episode));
+        return episodeUserDataRepository.GetByEpisodeID(episode.LocalID);
     }
 
     public Task<IEpisodeUserData> RateEpisode(IShokoEpisode episode, IUser user, double? userRating)
     {
         ArgumentNullException.ThrowIfNull(episode);
-        if (episode.ID is <= 0)
-            throw new ArgumentException("episode.ID must be greater than 0.", nameof(episode));
+        if (episode.LocalID is <= 0)
+            throw new ArgumentException("episode.LocalID must be greater than 0.", nameof(episode));
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
         if (userRating is -1)
             userRating = null;
         if (userRating.HasValue)
@@ -443,22 +443,22 @@ public class UserDataService(
         => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserRating = null });
 
     public Task<IEpisodeUserData> ToggleEpisodeAsFavorite(IShokoEpisode episode, IUser user)
-        => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { IsFavorite = !(episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)?.IsFavorite ?? false) });
+        => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { IsFavorite = !(episodeUserDataRepository.GetByUserAndEpisodeID(user.LocalID, episode.LocalID)?.IsFavorite ?? false) });
 
     public Task<IEpisodeUserData> SetEpisodeAsFavorite(IShokoEpisode episode, IUser user, bool value)
         => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { IsFavorite = value });
 
     public Task<IEpisodeUserData> AddUserTagsForEpisode(IShokoEpisode episode, IUser user, params string[] tags)
-        => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = (episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)?.UserTags ?? []).Union(tags) });
+        => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = (episodeUserDataRepository.GetByUserAndEpisodeID(user.LocalID, episode.LocalID)?.UserTags ?? []).Union(tags) });
 
     public Task<IEpisodeUserData> AddUserTagsForEpisode(IShokoEpisode episode, IUser user, IEnumerable<string>? tags)
-        => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = (episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)?.UserTags ?? []).Union(tags ?? []) });
+        => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = (episodeUserDataRepository.GetByUserAndEpisodeID(user.LocalID, episode.LocalID)?.UserTags ?? []).Union(tags ?? []) });
 
     public Task<IEpisodeUserData> RemoveUserTagsForEpisode(IShokoEpisode episode, IUser user, params string[] tags)
-        => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = (episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)?.UserTags ?? []).Except(tags) });
+        => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = (episodeUserDataRepository.GetByUserAndEpisodeID(user.LocalID, episode.LocalID)?.UserTags ?? []).Except(tags) });
 
     public Task<IEpisodeUserData> RemoveUserTagsForEpisode(IShokoEpisode episode, IUser user, IEnumerable<string>? tags)
-        => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = (episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)?.UserTags ?? []).Except(tags ?? []) });
+        => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = (episodeUserDataRepository.GetByUserAndEpisodeID(user.LocalID, episode.LocalID)?.UserTags ?? []).Except(tags ?? []) });
 
     public Task<IEpisodeUserData> SetUserTagsForEpisode(IShokoEpisode episode, IUser user, IEnumerable<string>? tags)
         => SaveEpisodeUserDataInternal(episode, user, new EpisodeUserDataUpdate { UserTags = tags });
@@ -480,8 +480,8 @@ public class UserDataService(
         var reason = string.IsNullOrEmpty(importSource)
             ? EpisodeUserDataSaveReason.None
             : EpisodeUserDataSaveReason.Import;
-        var userData = episodeUserDataRepository.GetByUserAndEpisodeID(user.ID, episode.ID)
-            ?? new() { JMMUserID = user.ID, AnimeEpisodeID = episode.ID, AnimeSeriesID = episode.SeriesID };
+        var userData = episodeUserDataRepository.GetByUserAndEpisodeID(user.LocalID, episode.LocalID)
+            ?? new() { JMMUserID = user.LocalID, AnimeEpisodeID = episode.LocalID, AnimeSeriesID = episode.ShokoSeriesID };
         // WatchedDate stores local time, but a caller can hand us UTC — the MyList
         // sync reads AniDB, which is UTC throughout. Read as local for both the
         // compare and the store, or an equal date in the other kind reads as a
@@ -639,13 +639,13 @@ public class UserDataService(
     {
         var videoUserDataList = episode
             .Videos
-            .SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.ID))
+            .SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.LocalID))
             .ToList();
         if (videoUserDataList.Count <= 0)
             return;
         foreach (var groupBy in videoUserDataList.GroupBy(a => a.JMMUserID))
         {
-            var episodeUserData = episodeUserDataRepository.GetByUserAndEpisodeID(groupBy.Key, episode.ID);
+            var episodeUserData = episodeUserDataRepository.GetByUserAndEpisodeID(groupBy.Key, episode.LocalID);
             if (episodeUserData is not null)
                 continue;
 
@@ -664,8 +664,8 @@ public class UserDataService(
             episodeUserData = new()
             {
                 JMMUserID = groupBy.Key,
-                AnimeEpisodeID = episode.ID,
-                AnimeSeriesID = episode.SeriesID,
+                AnimeEpisodeID = episode.LocalID,
+                AnimeSeriesID = episode.ShokoSeriesID,
                 WatchedDate = watchedAt,
                 WatchedCount = watchedCount,
                 LastUpdated = DateTime.Now,
@@ -685,23 +685,23 @@ public class UserDataService(
     public ISeriesUserData GetSeriesUserData(IShokoSeries series, IUser user)
     {
         ArgumentNullException.ThrowIfNull(series);
-        if (series.ID is <= 0)
-            throw new ArgumentException("series.ID must be greater than 0.", nameof(series));
+        if (series.LocalID is <= 0)
+            throw new ArgumentException("series.LocalID must be greater than 0.", nameof(series));
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
 
-        if (seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID) is { } userData)
+        if (seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID) is { } userData)
             return userData;
 
         // Only allow creating one user data at a time through the service method.
         lock (_seriesUserDataLock)
         {
-            userData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID);
+            userData = seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID);
             if (userData is not null)
                 return userData;
 
-            userData = new() { JMMUserID = user.ID, AnimeSeriesID = series.ID };
+            userData = new() { JMMUserID = user.LocalID, AnimeSeriesID = series.LocalID };
             seriesUserDataRepository.Save(userData);
         }
 
@@ -711,27 +711,27 @@ public class UserDataService(
     public IEnumerable<ISeriesUserData> GetSeriesUserDataForUser(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
-        return seriesUserDataRepository.GetByUserID(user.ID);
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
+        return seriesUserDataRepository.GetByUserID(user.LocalID);
     }
 
     public IReadOnlyList<ISeriesUserData> GetSeriesUserDataForSeries(IShokoSeries series)
     {
         ArgumentNullException.ThrowIfNull(series);
-        if (series.ID is <= 0)
-            throw new ArgumentException("series.ID must be greater than 0.", nameof(series));
-        return seriesUserDataRepository.GetBySeriesID(series.ID);
+        if (series.LocalID is <= 0)
+            throw new ArgumentException("series.LocalID must be greater than 0.", nameof(series));
+        return seriesUserDataRepository.GetBySeriesID(series.LocalID);
     }
 
     public Task<ISeriesUserData> RateSeries(IShokoSeries series, IUser user, double? userRating, SeriesVoteType? voteType = null)
     {
         ArgumentNullException.ThrowIfNull(series);
-        if (series.ID is <= 0)
-            throw new ArgumentException("series.ID must be greater than 0.", nameof(series));
+        if (series.LocalID is <= 0)
+            throw new ArgumentException("series.LocalID must be greater than 0.", nameof(series));
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
         if (userRating is -1)
             userRating = null;
         if (userRating.HasValue)
@@ -754,22 +754,22 @@ public class UserDataService(
         => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserRating = null });
 
     public Task<ISeriesUserData> ToggleSeriesAsFavorite(IShokoSeries series, IUser user)
-        => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { IsFavorite = !(seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)?.IsFavorite ?? false) });
+        => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { IsFavorite = !(seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID)?.IsFavorite ?? false) });
 
     public Task<ISeriesUserData> SetSeriesAsFavorite(IShokoSeries series, IUser user, bool value)
         => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { IsFavorite = value });
 
     public Task<ISeriesUserData> AddUserTagsForSeries(IShokoSeries series, IUser user, params string[] tags)
-        => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserTags = (seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)?.UserTags ?? []).Union(tags) });
+        => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserTags = (seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID)?.UserTags ?? []).Union(tags) });
 
     public Task<ISeriesUserData> AddUserTagsForSeries(IShokoSeries series, IUser user, IEnumerable<string>? tags)
-        => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserTags = (seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)?.UserTags ?? []).Union(tags ?? []) });
+        => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserTags = (seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID)?.UserTags ?? []).Union(tags ?? []) });
 
     public Task<ISeriesUserData> RemoveUserTagsForSeries(IShokoSeries series, IUser user, params string[] tags)
-        => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserTags = (seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)?.UserTags ?? []).Except(tags) });
+        => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserTags = (seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID)?.UserTags ?? []).Except(tags) });
 
     public Task<ISeriesUserData> RemoveUserTagsForSeries(IShokoSeries series, IUser user, IEnumerable<string>? tags)
-        => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserTags = (seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)?.UserTags ?? []).Except(tags ?? []) });
+        => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserTags = (seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID)?.UserTags ?? []).Except(tags ?? []) });
 
     public Task<ISeriesUserData> SetUserTagsForSeries(IShokoSeries series, IUser user, IEnumerable<string>? tags)
         => SaveSeriesUserDataInternal(series, user, new SeriesUserDataUpdate { UserTags = tags });
@@ -786,14 +786,14 @@ public class UserDataService(
             ? SeriesUserDataSaveReason.None
             : SeriesUserDataSaveReason.Import;
         ArgumentNullException.ThrowIfNull(series);
-        if (series.ID is <= 0)
-            throw new ArgumentException("series.ID must be greater than 0.", nameof(series));
+        if (series.LocalID is <= 0)
+            throw new ArgumentException("series.LocalID must be greater than 0.", nameof(series));
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
 
-        var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)
-            ?? new() { AnimeSeriesID = series.ID, JMMUserID = user.ID };
+        var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID)
+            ?? new() { AnimeSeriesID = series.LocalID, JMMUserID = user.LocalID };
         var shouldSave = userData.AnimeSeries_UserID is 0;
 
         if (userDataUpdate.IsFavorite.HasValue && userData.IsFavorite != userDataUpdate.IsFavorite)
@@ -868,19 +868,19 @@ public class UserDataService(
 
     internal void UpdateWatchedStats(IShokoSeries series, IReadOnlyList<IShokoEpisode> episodes)
     {
-        var videoLookup = series.CrossReferences
+        var videoLookup = series.VideoCrossReferences
             .Where(a => !string.IsNullOrEmpty(a?.ED2K)).Select(xref =>
                 (xref.AnidbEpisodeID, VideoLocal: xref.Video!))
             .Where(a => a.VideoLocal is not null)
             .ToLookup(a => a.AnidbEpisodeID, b => b.VideoLocal);
         var videoUserDataLookup = videoLookup
-            .SelectMany(xref => xref.SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.ID)).Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ?? [])
+            .SelectMany(xref => xref.SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.LocalID)).Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ?? [])
             .Where(a => a.VideoLocalUser is not null)
             .ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
         var episodeUserDataLookup = episodes.SelectMany(
                 ep =>
                 {
-                    var users = episodeUserDataRepository.GetByEpisodeID(ep.ID);
+                    var users = episodeUserDataRepository.GetByEpisodeID(ep.LocalID);
                     return users.Select(a => (EpisodeID: ep.AnidbEpisodeID, AnimeEpisode_User: a));
                 }
             )
@@ -894,19 +894,19 @@ public class UserDataService(
     private void UpdateWatchedStats(IShokoSeries series, IUser user, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None)
     {
         var episodes = series.Episodes;
-        var videoLookup = series.CrossReferences
+        var videoLookup = series.VideoCrossReferences
             .Where(a => !string.IsNullOrEmpty(a?.ED2K)).Select(xref =>
                 (xref.AnidbEpisodeID, VideoLocal: xref.Video!))
             .Where(a => a.VideoLocal is not null)
             .ToLookup(a => a.AnidbEpisodeID, b => b.VideoLocal);
         var videoUserDataLookup = videoLookup
-            .SelectMany(xref => xref.SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.ID)).Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ?? [])
+            .SelectMany(xref => xref.SelectMany(a => videoUserDataRepository.GetByVideoLocalID(a.LocalID)).Select(a => (EpisodeID: xref.Key, VideoLocalUser: a)) ?? [])
             .Where(a => a.VideoLocalUser is not null)
             .ToLookup(a => (a.EpisodeID, UserID: a.VideoLocalUser.JMMUserID), b => b.VideoLocalUser);
         var episodeUserDataLookup = episodes.SelectMany(
                 ep =>
                 {
-                    var users = episodeUserDataRepository.GetByEpisodeID(ep.ID);
+                    var users = episodeUserDataRepository.GetByEpisodeID(ep.LocalID);
                     return users.Select(a => (EpisodeID: ep.AnidbEpisodeID, AnimeEpisode_User: a));
                 }
             )
@@ -934,26 +934,26 @@ public class UserDataService(
         DateTime? lastVideoUpdate = null;
         DateTime? lastEpisodeUpdate = null;
         DateTime? watchedDate = null;
-        var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.ID, series.ID)
-            ?? new() { JMMUserID = user.ID, AnimeSeriesID = series.ID, LastUpdated = DateTime.Now };
+        var userData = seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, series.LocalID)
+            ?? new() { JMMUserID = user.LocalID, AnimeSeriesID = series.LocalID, LastUpdated = DateTime.Now };
         Parallel.ForEach(episodes, new() { MaxDegreeOfParallelism = 4 }, ep =>
             {
                 if (ep.Type is not (EpisodeType.Episode or EpisodeType.Special))
                     return;
                 VideoLocal_User? videoUserData = null;
                 DateTime? videoUpdated = null;
-                if (videoLookup.Contains(ep.AnidbEpisodeID) && videoUserDataLookup.Contains((ep.AnidbEpisodeID, user.ID)))
+                if (videoLookup.Contains(ep.AnidbEpisodeID) && videoUserDataLookup.Contains((ep.AnidbEpisodeID, user.LocalID)))
                 {
-                    videoUserData = videoUserDataLookup[(ep.AnidbEpisodeID, user.ID)]
+                    videoUserData = videoUserDataLookup[(ep.AnidbEpisodeID, user.LocalID)]
                         .OrderByDescending(a => a.WatchedDate.HasValue)
                         .ThenByDescending(a => a.LastUpdated)
                         .FirstOrDefault();
-                    videoUpdated = videoUserDataLookup[(ep.AnidbEpisodeID, user.ID)]
+                    videoUpdated = videoUserDataLookup[(ep.AnidbEpisodeID, user.LocalID)]
                         .OrderByDescending(a => a.LastUpdated)
                         .FirstOrDefault()?.LastUpdated;
                 }
-                var episodeUserData = episodeUserDataLookup.Contains((ep.AnidbEpisodeID, user.ID))
-                    ? episodeUserDataLookup[(ep.AnidbEpisodeID, user.ID)].First()
+                var episodeUserData = episodeUserDataLookup.Contains((ep.AnidbEpisodeID, user.LocalID))
+                    ? episodeUserDataLookup[(ep.AnidbEpisodeID, user.LocalID)].First()
                     : null;
                 lock (lockObj)
                 {
@@ -1040,23 +1040,23 @@ public class UserDataService(
     public IGroupUserData GetGroupUserData(IShokoGroup group, IUser user)
     {
         ArgumentNullException.ThrowIfNull(group);
-        if (group.ID is <= 0)
-            throw new ArgumentException("group.ID must be greater than 0.", nameof(group));
+        if (group.LocalID is <= 0)
+            throw new ArgumentException("group.LocalID must be greater than 0.", nameof(group));
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
 
-        if (groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID) is { } userData)
+        if (groupUserDataRepository.GetByUserAndGroupID(user.LocalID, group.LocalID) is { } userData)
             return userData;
 
         // Only allow creating one user data at a time through the service method.
         lock (_groupUserDataLock)
         {
-            userData = groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID);
+            userData = groupUserDataRepository.GetByUserAndGroupID(user.LocalID, group.LocalID);
             if (userData is not null)
                 return userData;
 
-            userData = new() { JMMUserID = user.ID, AnimeGroupID = group.ID };
+            userData = new() { JMMUserID = user.LocalID, AnimeGroupID = group.LocalID };
             groupUserDataRepository.Save(userData);
         }
 
@@ -1066,30 +1066,30 @@ public class UserDataService(
     public IEnumerable<IGroupUserData> GetGroupUserDataForUser(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
-        return groupUserDataRepository.GetByUserID(user.ID);
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
+        return groupUserDataRepository.GetByUserID(user.LocalID);
     }
 
     public IReadOnlyList<IGroupUserData> GetGroupUserDataForGroup(IShokoGroup group)
     {
         ArgumentNullException.ThrowIfNull(group);
-        if (group.ID is <= 0)
-            throw new ArgumentException("group.ID must be greater than 0.", nameof(group));
-        return groupUserDataRepository.GetByGroupID(group.ID);
+        if (group.LocalID is <= 0)
+            throw new ArgumentException("group.LocalID must be greater than 0.", nameof(group));
+        return groupUserDataRepository.GetByGroupID(group.LocalID);
     }
 
     public Task<IGroupUserData> AddUserTagsForGroup(IShokoGroup group, IUser user, params string[] tags)
-        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)?.UserTags ?? []).Union(tags) });
+        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.LocalID, group.LocalID)?.UserTags ?? []).Union(tags) });
 
     public Task<IGroupUserData> AddUserTagsForGroup(IShokoGroup group, IUser user, IEnumerable<string>? tags)
-        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)?.UserTags ?? []).Union(tags ?? []) });
+        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.LocalID, group.LocalID)?.UserTags ?? []).Union(tags ?? []) });
 
     public Task<IGroupUserData> RemoveUserTagsForGroup(IShokoGroup group, IUser user, params string[] tags)
-        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)?.UserTags ?? []).Except(tags) });
+        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.LocalID, group.LocalID)?.UserTags ?? []).Except(tags) });
 
     public Task<IGroupUserData> RemoveUserTagsForGroup(IShokoGroup group, IUser user, IEnumerable<string>? tags)
-        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)?.UserTags ?? []).Except(tags ?? []) });
+        => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = (groupUserDataRepository.GetByUserAndGroupID(user.LocalID, group.LocalID)?.UserTags ?? []).Except(tags ?? []) });
 
     public Task<IGroupUserData> SetUserTagsForGroup(IShokoGroup group, IUser user, IEnumerable<string>? tags)
         => SaveGroupUserDataInternal(group, user, new GroupUserDataUpdate { UserTags = tags });
@@ -1106,34 +1106,40 @@ public class UserDataService(
             ? GroupUserDataSaveReason.None
             : GroupUserDataSaveReason.Import;
         ArgumentNullException.ThrowIfNull(group);
-        if (group.ID is <= 0)
-            throw new ArgumentException("group.ID must be greater than 0.", nameof(group));
+        if (group.LocalID is <= 0)
+            throw new ArgumentException("group.LocalID must be greater than 0.", nameof(group));
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0)
-            throw new ArgumentException("user.ID must be greater than 0.", nameof(user));
+        if (user.LocalID is <= 0)
+            throw new ArgumentException("user.LocalID must be greater than 0.", nameof(user));
 
-        var userData = groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)
-            ?? new() { AnimeGroupID = group.ID, JMMUserID = user.ID };
-        var shouldSave = userData.AnimeGroup_UserID is 0;
-
-        if (userDataUpdate.UserTags is not null)
+        AnimeGroup_User userData;
+        bool shouldSave;
+        lock (groupUserDataRepository.GetWriteLock(user.LocalID, group.LocalID))
         {
-            var list = userDataUpdate.UserTags.Distinct().Order().ToList();
-            if (!list.SequenceEqual(userData.UserTags))
+            userData = groupUserDataRepository.GetByUserAndGroupID(user.LocalID, group.LocalID)
+                ?? new() { AnimeGroupID = group.LocalID, JMMUserID = user.LocalID };
+            shouldSave = userData.AnimeGroup_UserID is 0;
+
+            if (userDataUpdate.UserTags is not null)
             {
-                userData.UserTags = list;
-                reason |= GroupUserDataSaveReason.UserTags;
-                shouldSave = true;
+                var list = userDataUpdate.UserTags.Distinct().Order().ToList();
+                if (!list.SequenceEqual(userData.UserTags))
+                {
+                    userData.UserTags = list;
+                    reason |= GroupUserDataSaveReason.UserTags;
+                    shouldSave = true;
+                }
+            }
+
+            if (shouldSave)
+            {
+                userData.LastUpdated = DateTime.Now;
+                groupUserDataRepository.Save(userData);
             }
         }
 
         if (shouldSave)
-        {
-            userData.LastUpdated = DateTime.Now;
-            groupUserDataRepository.Save(userData);
-
             SendEvent(group, user, userData, reason, importSource);
-        }
 
         return userData;
     }
@@ -1145,48 +1151,61 @@ public class UserDataService(
         Action<AnimeGroup_User, bool, bool>? newAnimeGroupUsers = null
     )
     {
-        var userData = groupUserDataRepository.GetByUserAndGroupID(user.ID, group.ID)
-            ?? new() { JMMUserID = user.ID, AnimeGroupID = group.ID };
-        var isNew = userData.AnimeGroup_UserID is 0;
-
-        // Reset stats
-        var watchedCount = 0;
-        var unwatchedEpisodeCount = 0;
-        var watchedEpisodeCount = 0;
-        var watchedDate = (DateTime?)null;
-
-        foreach (var serUserRecord in (allSeries ?? group.AllSeries).Select(ser => seriesUserDataRepository.GetByUserAndSeriesID(user.ID, ser.ID)).WhereNotNull())
+        // Held until the row is saved, so two stats updates of one group that
+        // both find no row never both add one.
+        lock (groupUserDataRepository.GetWriteLock(user.LocalID, group.LocalID))
         {
-            watchedCount += serUserRecord.WatchedCount;
-            unwatchedEpisodeCount += serUserRecord.UnwatchedEpisodeCount;
-            watchedEpisodeCount += serUserRecord.WatchedEpisodeCount;
-            if (serUserRecord.WatchedDate != null
-                && (watchedDate is null || serUserRecord.WatchedDate > watchedDate))
+            var userData = groupUserDataRepository.GetByUserAndGroupID(user.LocalID, group.LocalID)
+                ?? new() { JMMUserID = user.LocalID, AnimeGroupID = group.LocalID };
+            var isNew = userData.AnimeGroup_UserID is 0;
+
+            // Reset stats
+            var watchedCount = 0;
+            var unwatchedEpisodeCount = 0;
+            var watchedEpisodeCount = 0;
+            var watchedDate = (DateTime?)null;
+
+            foreach (var serUserRecord in (allSeries ?? group.AllSeries).Select(ser => seriesUserDataRepository.GetByUserAndSeriesID(user.LocalID, ser.LocalID)).WhereNotNull())
             {
-                watchedDate = serUserRecord.WatchedDate;
+                watchedCount += serUserRecord.WatchedCount;
+                unwatchedEpisodeCount += serUserRecord.UnwatchedEpisodeCount;
+                watchedEpisodeCount += serUserRecord.WatchedEpisodeCount;
+                if (serUserRecord.WatchedDate != null
+                    && (watchedDate is null || serUserRecord.WatchedDate > watchedDate))
+                {
+                    watchedDate = serUserRecord.WatchedDate;
+                }
             }
-        }
 
-        var isUpdated = (
-            isNew ||
-            userData.WatchedCount != watchedCount ||
-            userData.UnwatchedEpisodeCount != unwatchedEpisodeCount ||
-            userData.WatchedEpisodeCount != watchedEpisodeCount ||
-            userData.WatchedDate != watchedDate
-        );
+            var isUpdated = (
+                isNew ||
+                userData.WatchedCount != watchedCount ||
+                userData.UnwatchedEpisodeCount != unwatchedEpisodeCount ||
+                userData.WatchedEpisodeCount != watchedEpisodeCount ||
+                userData.WatchedDate != watchedDate
+            );
 
-        if (newAnimeGroupUsers is null)
-        {
             if (isUpdated)
             {
-                userData.LastUpdated = DateTime.Now;
-                groupUserDataRepository.Save(userData);
-                SendEvent(group, user, userData, GroupUserDataSaveReason.GroupStats);
+                userData.WatchedCount = watchedCount;
+                userData.UnwatchedEpisodeCount = unwatchedEpisodeCount;
+                userData.WatchedEpisodeCount = watchedEpisodeCount;
+                userData.WatchedDate = watchedDate;
             }
-        }
-        else
-        {
-            newAnimeGroupUsers(userData, isNew, isUpdated);
+
+            if (newAnimeGroupUsers is null)
+            {
+                if (isUpdated)
+                {
+                    userData.LastUpdated = DateTime.Now;
+                    groupUserDataRepository.Save(userData);
+                    SendEvent(group, user, userData, GroupUserDataSaveReason.GroupStats);
+                }
+            }
+            else
+            {
+                newAnimeGroupUsers(userData, isNew, isUpdated);
+            }
         }
     }
 

@@ -1,12 +1,8 @@
 # TMDB Services
 
-This folder defines the three services a plugin uses to reach The Movie
-Database: search, metadata, and linking.
-
-**These are services you consume, not contracts you implement.** There is no
-TMDB provider interface and nothing here is discovered by reflection. Core
-registers all three as singletons during startup, so a plugin takes what it
-needs in a constructor and DI hands it the live instance:
+Three services a plugin consumes to reach The Movie Database. Nothing here is
+implemented by a plugin or discovered by reflection; the core registers them
+as singletons, so take them through a constructor:
 
 ```csharp
 public class MyJob(ITmdbSearchService searchService, ITmdbMetadataService metadataService)
@@ -17,63 +13,43 @@ public class MyJob(ITmdbSearchService searchService, ITmdbMetadataService metada
 
 | Interface | What it is for |
 |---|---|
-| `ITmdbSearchService` | Searching TMDB for shows and movies, and the automatic match used when linking a series. |
-| `ITmdbMetadataService` | Fetching and refreshing shows and movies, genres, purging, and the rate limiter's pause state. |
-| `ITmdbLinkingService` | Creating and removing the AniDB ↔ TMDB links, at anime, episode and movie level. |
+| `ITmdbSearchService` | Searching TMDB for shows and movies, and the automatic match used when linking. |
+| `ITmdbMetadataService` | Refreshing, purging and matching shows and movies, genres, and the rate limiter's pause state; passed on to `IMetadataRefreshService` and `IMetadataPurgeService`. |
+| `ITmdbLinkingService` | Creating and removing AniDB ↔ TMDB links; passed on to `IMetadataLinkingService`. |
+
+TMDB is an ordinary metadata provider, so the last two are shims for code that
+names TMDB; new code can call the generic services with `MetadataSource.TMDB`.
+How TMDB behaves as a provider is in
+[`../../Providers/README.md`](../../Providers/README.md#tmdb).
 
 ---
 
-## Read the cache before you call anything
+## Read the cache first
 
-TMDB entities that have been fetched once are read-only local caches, shaped
-like the TMDB response schema, and reading them costs no request:
-
-```csharp
-IReadOnlyList<ITmdbShow> shows = shokoSeries.TmdbShows;
-IReadOnlyList<ITmdbSeason> seasons = shokoSeries.TmdbSeasons;
-IReadOnlyList<ITmdbMovie> movies = shokoSeries.TmdbMovies;
-
-IReadOnlyList<ITmdbEpisode> episodes = shokoEpisode.TmdbEpisodes;
-IReadOnlyList<ITmdbMovie> episodeMovies = shokoEpisode.TmdbMovies;
-
-// And the cross-references themselves, when the mapping matters as much as
-// the entity: TmdbShowCrossReferences, TmdbSeasonCrossReferences,
-// TmdbEpisodeCrossReferences, TmdbMovieCrossReferences.
-```
-
-By ID, through `IMetadataService`:
+TMDB entities fetched once are read-only local caches, and reading them costs
+no request:
 
 ```csharp
-ISeries? show = metadataService.GetSeriesByProviderID(tmdbShowID, IMetadataService.ProviderName.TMDB);
-IMovie? movie = metadataService.GetMovieByProviderID(tmdbMovieID, IMetadataService.ProviderName.TMDB);
+IReadOnlyList<ITmdbShow> shows = shokoSeries.GetLinkedSeries<ITmdbShow>(MetadataSource.TMDB);
+IReadOnlyList<ITmdbMovie> movies = shokoSeries.GetLinkedMovies<ITmdbMovie>(MetadataSource.TMDB);
+IReadOnlyList<ITmdbEpisode> episodes = shokoEpisode.GetLinkedEpisodes<ITmdbEpisode>(MetadataSource.TMDB);
+
+// By ID, through IMetadataService.
+ISeries? show = metadataService.GetSeries(MetadataSource.TMDB, tmdbShowID);
 ```
 
-`ProviderName` is nested inside `IMetadataService`, so it is spelled
-`IMetadataService.ProviderName.TMDB` unless you have a `using static` for the
-interface. It resolves shows on the series methods and movies on the movie
-methods; there is no single call that covers both.
+The cross-references are there too, as the generic links
+(`shokoSeries.GetSeriesCrossReferences<ITmdbShow>(MetadataSource.TMDB)` and
+the rest),
+as are TMDB's suggestions (`ITmdbShow.Suggestions`, `ITmdbMovie.Suggestions`;
+see [relations and suggestions](../../README.md#reading-relations-and-suggestions)).
+Call the services when the cached copy is missing or stale.
 
-Call the services below when the cached copy is missing or stale, or when you
-need TMDB itself to answer something.
-
-TMDB's recommendations and similar titles are part of that cache, read from
-`ITmdbShow.Suggestions` and `ITmdbMovie.Suggestions`. See
-[relations and suggestions](../../README.md).
-
----
-
-## The shape of a TMDB link
-
-One anime can match several TMDB shows (a split-cour series on TMDB), and one
-TMDB show can match several anime. Movies link at the **episode** level rather
-than the series level, because an OVA or a film is usually one episode of an
-AniDB anime. That asymmetry runs through the whole linking service:
-
-| Link | Reached by |
-|---|---|
-| `CrossRef_AniDB_TMDB_Show` | `AddShowLink(anidbAnimeId, tmdbShowId, …)` |
-| `CrossRef_AniDB_TMDB_Movie` | `AddMovieLinkForEpisode(anidbEpisodeId, tmdbMovieId, …)` |
-| `CrossRef_AniDB_TMDB_Episode` | `SetEpisodeLink(…)`, or the auto-matcher |
+One anime can match several TMDB shows (a split-cour series) and one show
+several anime. Movies link at the **episode** level, because an OVA or a film
+is usually one episode of an AniDB anime: `AddShowLink` takes an anime,
+`AddMovieLinkForEpisode` an AniDB episode, and `SetEpisodeLink` pairs
+episodes.
 
 ---
 
@@ -84,165 +60,96 @@ var (shows, totalShows) = await searchService.SearchShows("cowboy bebop", includ
 var (movies, totalMovies) = await searchService.SearchMovies("cowboy bebop");
 ```
 
-Both go to TMDB and return one page plus the total count. `page` is 1-based,
-`pageSize` defaults to 6, and `year` filters on the release date for movies and
-the first air date for shows. `includeRestricted` opts adult titles in; it is
-off by default.
-
-`SearchForAutoMatch(IAnidbAnime)` returns the ranked `ITmdbAutoSearchResult`
-candidates Shoko's own auto-linker would consider. Each result carries a
-`MatchRating`, and `IsMovie` says which half of the result to read: `TmdbMovie`
-plus `AnidbEpisode` for a movie, `TmdbShow` for a show. Both TMDB properties
-are nullable, so branch on `IsMovie` rather than null-checking one of them.
+Both ask TMDB and return one page (1-based, six by default) and the total.
+`SearchForAutoMatch(IAnidbAnime)` returns the matches Shoko's auto-linker
+would take (the ones it turns down only show in
+`IMetadataLinkingService.PreviewAutoLink`). Branch on `IsMovie`: a movie
+result fills `TmdbMovie` and `AnidbEpisode`, a show result `TmdbShow`.
 
 ---
 
 ## `ITmdbMetadataService`
 
-### Fetching and refreshing
-
 | Member | Behaviour |
 |---|---|
-| `UpdateShow(options)` / `UpdateMovie(options)` | Does the fetch inline and awaits it. Returns whether anything was updated. |
-| `ScheduleUpdateOfShow(options)` / `ScheduleUpdateOfMovie(options)` | Queues the update job and returns. Called from inside a job, the new job runs straight after that one, ahead of everything already waiting; called from anywhere else, it goes to the front of the queue. |
-| `UpdateAllShows(force, downloadImages)` / `UpdateAllMovies(force, saveImages)` | Despite the names, these **queue** one job per existing cross-reference. They return once the jobs are queued, not once they have run. |
-| `ScheduleDownloadAllShowImages(id, force)` / `ScheduleDownloadAllMovieImages(id, force)` | Queues just the images for one entity. |
+| `UpdateShow(options)` / `UpdateMovie(options)` | Runs the refresh job now and awaits it; returns `false` while TMDB is paused. |
+| `ScheduleUpdateOfShow(options)` / `ScheduleUpdateOfMovie(options)` | Queues the refresh job; a forced one goes first. |
+| `UpdateAllShows` / `UpdateAllMovies` | Despite the names, **queue** one refresh per linked show or movie and return. |
+| `ScheduleDownloadAllShowImages` / `ScheduleDownloadAllMovieImages` | Queues the image job for one entity. |
+| `PurgeShow`, `PurgeMovie`, `SchedulePurgeOf…` | Queue a forced purge, which removes every link to the entity first; a purged show takes its orderings along. |
+| `PurgeAllUnusedShows`, `PurgeAllUnusedMovies`, `PurgeAllMovieCollections` | Queue the purges and return. |
+| `ScheduleSearchForMatch(anidbId, force)` / `ScanForMatches()` | Queue the core's search for one anime, or for every series still missing a match. `ScanForMatches` does nothing while TMDB does not auto-link. |
+| `GetShowGenres()` / `GetMovieGenres()` | TMDB's genre IDs and names, fetched once per process. |
+| `GetPauseStatus()` | The 5XX circuit breaker's state (`IsPaused`, `RemainingPauseTime`). |
 
-`TmdbShowUpdateOptions`:
-
-| Field | Notes |
-|---|---|
-| `ShowId` | Required. A `0` is a no-op. |
-| `ForceRefresh` | Refresh even though the record was updated recently. |
-| `DownloadImages` | Download images after the update. |
-| `DownloadCrewAndCast`, `DownloadAlternateOrdering`, `DownloadNetworks` | `null` follows the server setting. |
-| `QuickRefresh` | Skip some of the work. |
-
-`TmdbMovieUpdateOptions` is the same idea with `MovieId`, `ForceRefresh`,
-`DownloadImages`, `DownloadCrewAndCast` and `DownloadCollections`.
-
-### Genres
-
-```csharp
-IReadOnlyDictionary<int, string> showGenres = await metadataService.GetShowGenres();
-IReadOnlyDictionary<int, string> movieGenres = await metadataService.GetMovieGenres();
-```
-
-Both map TMDB's genre IDs to their names. Each is fetched from TMDB once and
-memoised for the life of the process, so calling them in a loop is free after
-the first hit. They are not persisted, so the first call after a restart does
-make a request.
-
-### Purging
-
-`PurgeShow(id)` and `PurgeMovie(id)` drop one entity locally, with
-`SchedulePurgeOfShow` / `SchedulePurgeOfMovie` queueing the same.
-`PurgeAllUnusedShows(olderThan)` and `PurgeAllUnusedMovies(olderThan)` find
-everything no longer referenced by a cross-reference and queue a purge for
-each, optionally limited to entities whose `LastUpdatedAt` predates
-`olderThan`. `PurgeAllMovieCollections()` clears the cached collections.
-
-### Matching
-
-`ScheduleSearchForMatch(anidbId, force)` queues an auto-match search for one
-AniDB anime. `ScanForMatches()` sweeps every series and queues a search for
-each one still missing a match. `ScanForMatches` returns immediately and does
-nothing at all when `TMDB.AutoLink` is off in the server settings, and it skips
-any series whose auto-matching the user has disabled.
-
-### Rate limit state
-
-```csharp
-var status = metadataService.GetPauseStatus();
-if (status.IsPaused)
-    _logger.LogInformation("TMDB paused for another {Time}", status.RemainingPauseTime);
-```
-
-`TmdbRateLimitPauseStatus` is a consistent snapshot of the 5XX circuit
-breaker: `IsPaused`, and `RemainingPauseTime`, which is `null` when not paused.
+A refresh asked for here counts as requested, so it fetches a show or movie
+whether or not anything links to it yet. One that is not forced skips what
+was updated in the last hour and otherwise fetches only what TMDB reports as
+changed; a forced one fetches everything again, people included.
+`TmdbShowUpdateOptions` and `TmdbMovieUpdateOptions` carry the ID, the force
+and image flags, and the cast, ordering, network and collection switches
+(`null` follows the server setting).
 
 ---
 
 ## `ITmdbLinkingService`
 
-### Show links
+Every member is passed on to `IMetadataLinkingService` for the `tmdb` source.
+Neither queues a refresh; the caller decides.
 
-| Member | Notes |
+| Member | Passed on as |
 |---|---|
-| `AddShowLink(anidbAnimeId, tmdbShowId, additiveLink, matchRating)` | Creates or updates the link, then runs the episode auto-matcher and saves what it finds. |
-| `RemoveShowLink(anidbAnimeId, tmdbShowId, purge)` | Removes one link. `purge` **unconditionally** queues a purge of the TMDB show itself. |
-| `RemoveAllShowLinksForAnime(animeId, purge)` | Every show link for one AniDB anime. |
-| `RemoveAllShowLinksForShow(showId)` | Every AniDB link to one TMDB show. |
+| `AddShowLink(anidbAnimeId, tmdbShowId, additiveLink, matchRating)` | `AddSeriesLink`, which also matches and saves the show's episodes. `additiveLink: false` replaces the anime's other show links and their episode links. |
+| `RemoveShowLink`, `RemoveAllShowLinksForAnime` | `RemoveSeriesLink` / `RemoveLinksForAnime`, setting the anime's veto. |
+| `RemoveAllShowLinksForShow(showId)` | `RemoveLinksTo` the show, without veto or purge. |
+| `AddMovieLinkForEpisode(anidbEpisodeId, tmdbMovieId, additiveLink, matchRating)` | `AddMovieLink`, for the episode's anime. Nothing happens for an unknown episode. |
+| `RemoveMovieLinkForEpisode`, `RemoveAllMovieLinksForEpisode`, `RemoveAllMovieLinksForAnime` | `RemoveMovieLink` / `RemoveLinksForEpisode` / `RemoveLinksForAnime`, with the veto. |
+| `RemoveAllMovieLinksForMovie(tmdbMovieId)` | `RemoveLinksTo` the movie, without veto or purge. |
+| `SetEpisodeLink(anidbEpisodeId, tmdbEpisodeId, additiveLink, index)` | `SetEpisodeLink`. `0` records a deliberately empty link; an unstored TMDB episode is refused with `false`. |
+| `ResetAllEpisodeLinks(anidbAnimeId, allowAuto)` | `ResetEpisodeLinks`. |
+| `MatchAnidbToTmdbEpisodes(…)` | `MatchEpisodes`; a **dry run** unless `saveToDatabase` is set. `useExistingOtherShows` is `considerOtherLinks`. |
+| `RemoveAllLinks`, `ResetAutoLinkingState` | The library-wide forms, for every series at once. |
 
-**`purge: true` does not check whether anything else still links to the show.**
-It is a bare "also purge" flag: the link is deleted, and then
-`PurgeTmdbShowJob` is queued for that show ID regardless of how many other
-AniDB anime still point at it. Because one TMDB show can legitimately be
-linked from several anime (the split-cour case described above),
-`RemoveShowLink(animeA, show, purge: true)` destroys the cached show out from
-under animeB, whose own cross-reference row survives while the data it refers
-to does not. Pass `purge: true` only when you already know you are removing the
-last link, and prefer `purge: false` whenever you are unlinking one anime among
-several. The same applies to `RemoveAllShowLinksForAnime(animeId, purge)`,
-which forwards the flag to each link it removes.
+`purge: true` queues the purge job for the entity once unlinked, which leaves
+it alone while another anime still links to it.
 
-### Movie links
+### Search and link
 
-| Member | Notes |
-|---|---|
-| `AddMovieLinkForEpisode(anidbEpisodeId, tmdbMovieId, additiveLink, matchRating)` | Links an AniDB **episode** to a TMDB movie. |
-| `RemoveMovieLinkForEpisode(anidbEpisodeId, tmdbMovieId, purge)` | Removes one link. |
-| `RemoveAllMovieLinksForEpisode(anidbEpisodeId, purge)` / `RemoveAllMovieLinksForAnime(anidbAnimeId, purge)` | Everything for one episode, or for a whole anime. |
-| `RemoveAllMovieLinksForMovie(tmdbMovieId)` | Every AniDB link to one TMDB movie. |
-
-### Episode links
-
-| Member | Notes |
-|---|---|
-| `SetEpisodeLink(anidbEpisodeId, tmdbEpisodeId, additiveLink, index)` | Links one episode to another. Pass `0` as the TMDB episode ID to record an explicitly empty link. `index` orders multiple links. Returns whether the link was set. |
-| `ResetAllEpisodeLinks(anidbAnimeId, allowAuto)` | Clears the episode links for an anime. `allowAuto` decides whether auto-matching may re-link them afterwards. |
-| `MatchAnidbToTmdbEpisodes(anidbAnimeId, tmdbShowId, tmdbSeasonId, useExisting, saveToDatabase, useExistingOtherShows)` | Runs the episode auto-matcher and returns the cross-references it worked out. |
-
-`MatchAnidbToTmdbEpisodes` is worth calling out: with `saveToDatabase: false`
-(the default) it is a **dry run**, handing back what it would link without
-writing anything, which is how a plugin previews a match before committing it.
-`useExisting: true` preserves existing user-verified links, and `tmdbSeasonId`
-narrows the match to one season.
-
-### Library-wide switches
-
-`RemoveAllLinks(removeShowLinks, removeMovieLinks)` removes every AniDB ↔ TMDB
-link of the selected kinds, across the whole database. `ResetAutoLinkingState(disabled)`
-re-enables (or disables) automatic linking for *all* series at once. Neither
-takes a series, and both are exactly as broad as they sound.
-
----
-
-## Worked example: search, link, then fetch
-
-Linking and fetching are separate steps, and in that order. `AddShowLink`
-creates the cross-reference and runs the episode matcher against whatever is
-already cached; it does **not** go to TMDB for the show. A freshly linked show
-Shoko has never seen therefore has nothing behind it until an update runs.
-Core's own `SearchTmdbJob` does exactly this pairing:
+What the core's search job does with TMDB's matches, the refresh written out:
 
 ```csharp
-public async Task LinkAndFetch(IAnidbAnime anime)
+public async Task Link(IAnidbAnime anime)
 {
     foreach (var result in await searchService.SearchForAutoMatch(anime))
     {
         if (result.IsMovie)
         {
             // Movies link at the episode level.
-            await linkingService.AddMovieLinkForEpisode(result.AnidbEpisode!.ID, result.TmdbMovie!.ID,
-                additiveLink: true, matchRating: result.MatchRating);
-            await metadataService.ScheduleUpdateOfMovie(new() { MovieId = result.TmdbMovie.ID, DownloadImages = true });
+            var movieID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Movie, result.TmdbMovie!.ID.ToString());
+            await linkingService.AddMovieLink(new()
+            {
+                Source = MetadataSource.TMDB,
+                EntityType = MetadataEntityType.Movie,
+                ProviderID = movieID,
+                AnidbAnimeID = anime.AnidbID,
+                AnidbEpisodeID = result.AnidbEpisode!.AnidbID,
+                MatchRating = result.MatchRating,
+            });
+            await refreshService.RefreshEntry(movieID);
         }
         else
         {
-            await linkingService.AddShowLink(anime.ID, result.TmdbShow!.ID,
-                additiveLink: true, matchRating: result.MatchRating);
-            await metadataService.ScheduleUpdateOfShow(new() { ShowId = result.TmdbShow.ID, DownloadImages = true });
+            var showID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Series, result.TmdbShow!.ID.ToString());
+            await linkingService.AddSeriesLink(new()
+            {
+                Source = MetadataSource.TMDB,
+                EntityType = MetadataEntityType.Series,
+                ProviderID = showID,
+                AnidbAnimeID = anime.AnidbID,
+                MatchRating = result.MatchRating,
+            });
+            // Linking the show matched its episodes already.
+            await refreshService.RefreshEntry(showID);
         }
     }
 }
@@ -250,53 +157,28 @@ public async Task LinkAndFetch(IAnidbAnime anime)
 
 ---
 
-## Rate limits and etiquette
+## Rate limits
 
-TMDB is protected by `TmdbRateLimiter`, which core owns, so a plugin does not
-implement its own. Three mechanisms stack:
+`TmdbRateLimiter` belongs to the core: a local sliding window under TMDB's
+roughly 40 requests a second, a backoff on 429 responses, and a 5XX circuit
+breaker that pauses TMDB work after three server errors within ten seconds.
+Each TMDB job type runs up to four at once.
 
-- **A local sliding window** smooths Shoko's own request rate under the roughly
-  40 requests per second TMDB enforces.
-- **A server-driven backoff** honours 429 responses.
-- **A 5XX circuit breaker** pauses TMDB work when three server errors land
-  within ten seconds, and escalates if they keep coming.
-
-TMDB is far more forgiving than AniDB: there are no bans to speak of, and the
-concurrency table in `CLAUDE.md` reflects that, with `SearchTmdbJob` allowed 8
-concurrent workers against `AnidbProcessFileJob`'s 4. That is not a licence to
-hammer it.
-
-- **Prefer the `Schedule…` forms** for bulk work. A queued job resumes on its
-  own once a pause lifts; a direct `await UpdateShow(…)` sits there. Each one
-  jumps ahead of what is already waiting, though, so a long loop of them
-  pushes everything else back.
-- **Never loop `UpdateShow` over a library.** `UpdateAllShows` exists, and it
-  queues rather than blocks, for exactly this reason.
-- **Check `GetPauseStatus()` before starting a sweep of your own.** If the
-  breaker is open, the upstream is already unhappy.
-- **Cache the genre dictionaries** in your own code if you use them across a
-  process boundary; in-process they are already memoised.
-
----
+- Prefer the `Schedule…` forms for bulk work: a queued job resumes once a
+  pause lifts, while `UpdateShow` refuses to run during one.
+- Never loop `UpdateShow` over a library; `UpdateAllShows` queues instead.
+- Check `GetPauseStatus()` before starting a sweep of your own.
 
 ## Gotchas
 
-- **`UpdateAllShows`, `UpdateAllMovies` and the `PurgeAllUnused…` methods
-  schedule; they do not do.** The returned task completes when the jobs are
-  queued.
-- **Linking does not fetch.** Pair `AddShowLink` or `AddMovieLinkForEpisode`
-  with the matching `ScheduleUpdateOf…` unless you know the entity is cached.
-- **`AddShowLink` writes more than the link.** It also runs the episode
-  auto-matcher and saves its results, and resets the series titles and
-  overview. It is not a bare insert.
-- **Removing a link disables auto-matching for that series.** `RemoveShowLink`,
-  `RemoveAllShowLinksForAnime` and their movie counterparts set the series'
-  auto-matching to disabled, on the assumption that a user removing a match
-  does not want it found again. Use `ResetAutoLinkingState(disabled: false)` to
-  undo that, remembering it applies to every series.
-- **`additiveLink` defaults differ between the show and movie methods.** Pass
-  it explicitly: an anime can legitimately carry several show links, and the
-  wrong default silently replaces the user's work.
-- **Movies hang off episodes, shows hang off anime.** Reaching for an
-  anime-level movie link, or an episode-level show link, means you are on the
-  wrong method.
+- **Linking fetches nothing.** Queue a refresh of what you linked.
+- **`AddShowLink` also matches and saves episodes**; it is not a bare insert.
+- **Removing a link sets the anime's TMDB veto** when something was removed;
+  `ResetAutoLinkingState(disabled: false)` lifts it for every series.
+- **Adding and matching need TMDB enabled** for the kind, or throw
+  `NotSupportedException` (400 from APIv3). Removing works either way.
+- **`additiveLink` defaults differ** between the show and movie methods; pass
+  it explicitly.
+- **The chosen episode group and hidden episodes** are kept by
+  `IMetadataOrderingService` for every source. `ITmdbShow.TmdbOrderings` lists
+  only TMDB's own; `ISeries.Orderings` has them all.

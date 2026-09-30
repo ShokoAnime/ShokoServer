@@ -49,6 +49,15 @@ public interface IJobRepository
     Task ActivateChainChildrenAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct = default);
 
     /// <summary>
+    /// Sets <see cref="QueuedJob.ParentJobId"/> of chain-deferred jobs to a new parent, when the
+    /// job they waited on was removed. Called by <see cref="Orchestration.PersistenceBuffer"/> on flush.
+    /// </summary>
+    /// <param name="updates">The jobs and their new parents.</param>
+    /// <param name="ct">Cancels the update.</param>
+    /// <returns>A task that completes once the rows are updated.</returns>
+    Task ReparentChainChildrenAsync(IReadOnlyCollection<(Guid Id, Guid ParentJobId)> updates, CancellationToken ct = default);
+
+    /// <summary>
     /// Updates <see cref="QueuedJob.JobDataJson"/> for each (Id, NewJson) pair.
     /// Called by <see cref="Orchestration.PersistenceBuffer"/> on upgrade flush.
     /// </summary>

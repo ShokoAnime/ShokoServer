@@ -8,7 +8,6 @@ using Shoko.Abstractions.Filtering.Expressions.Logic.DateTimes;
 using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.Selectors.DateSelectors;
 using Shoko.Abstractions.Filtering.Expressions.User;
-using Shoko.TestData;
 using Xunit;
 
 namespace Shoko.Tests;
@@ -28,10 +27,10 @@ public class FilterTests
 
     #endregion
 
-    public static readonly IEnumerable<object[]> GroupFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestFilterable>(GroupFilterableString, new IReadOnlySetConverter(), new PartialDateOnlyConverter())! } };
-    public static readonly IEnumerable<object[]> GroupUserFilterable = new[] { new object[] { JsonConvert.DeserializeObject<TestFilterable>(GroupFilterableString, new IReadOnlySetConverter(), new PartialDateOnlyConverter())!, JsonConvert.DeserializeObject<TestFilterableUserInfo>(GroupUserFilterableString, new IReadOnlySetConverter(), new PartialDateOnlyConverter())! } };
-    public static readonly IEnumerable<object[]> SeriesFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestFilterable>(SeriesFilterableString, new IReadOnlySetConverter(), new PartialDateOnlyConverter())! } };
-    public static readonly IEnumerable<object[]> SeriesUserFilterable = new[] { new object[] { JsonConvert.DeserializeObject<TestFilterable>(SeriesFilterableString, new IReadOnlySetConverter(), new PartialDateOnlyConverter())!, JsonConvert.DeserializeObject<TestFilterableUserInfo>(SeriesUserFilterableString, new IReadOnlySetConverter(), new PartialDateOnlyConverter())! } };
+    public static readonly IEnumerable<object[]> GroupFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestFilterable>(GroupFilterableString, new IReadOnlySetConverter())! } };
+    public static readonly IEnumerable<object[]> GroupUserFilterable = new[] { new object[] { JsonConvert.DeserializeObject<TestFilterable>(GroupFilterableString, new IReadOnlySetConverter())!, JsonConvert.DeserializeObject<TestFilterableUserInfo>(GroupUserFilterableString, new IReadOnlySetConverter())! } };
+    public static readonly IEnumerable<object[]> SeriesFilterable = new[] { new[] { JsonConvert.DeserializeObject<TestFilterable>(SeriesFilterableString, new IReadOnlySetConverter())! } };
+    public static readonly IEnumerable<object[]> SeriesUserFilterable = new[] { new object[] { JsonConvert.DeserializeObject<TestFilterable>(SeriesFilterableString, new IReadOnlySetConverter())!, JsonConvert.DeserializeObject<TestFilterableUserInfo>(SeriesUserFilterableString, new IReadOnlySetConverter())! } };
 
     [Theory, MemberData(nameof(GroupFilterable))]
     public void GroupFilterable_WithUserFilter_ExpectsException(TestFilterable group)

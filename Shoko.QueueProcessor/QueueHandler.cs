@@ -56,6 +56,24 @@ public class QueueHandler
 
     public Task Clear() => _scheduler.Clear();
 
+    /// <summary>
+    /// Removes a waiting job by key, freeing the key. A running job is left alone.
+    /// </summary>
+    /// <param name="jobKey">The key of the job to remove.</param>
+    /// <returns>
+    /// <see cref="JobCancellationResult.Removed"/>, <see cref="JobCancellationResult.Running"/> or
+    /// <see cref="JobCancellationResult.NotFound"/>.
+    /// </returns>
+    public Task<JobCancellationResult> Remove(string jobKey) => _orchestrator.RemoveAsync(jobKey);
+
+    /// <summary>
+    /// Cancels a job by key: a waiting job is removed, and a running job that observes
+    /// cancellation is asked to stop. See <see cref="IQueueScheduler.Cancel"/>.
+    /// </summary>
+    /// <param name="jobKey">The key of the job to cancel.</param>
+    /// <returns>What was done.</returns>
+    public Task<JobCancellationResult> Cancel(string jobKey) => _scheduler.Cancel(jobKey);
+
     public bool Paused => _scheduler.IsPaused;
 
     // ── State counters ─────────────────────────────────────────────────────
@@ -89,21 +107,7 @@ public class QueueHandler
         var entries = _orchestrator.GetExecuting();
         var result = new QueueItem[entries.Count];
         for (var i = 0; i < entries.Count; i++)
-        {
-            var e = entries[i];
-            result[i] = new QueueItem
-            {
-                Key = e.JobKey,
-                JobType = e.JobType.Name,
-                TypeName = string.IsNullOrEmpty(e.TypeName) ? e.JobType.Name : e.TypeName,
-                Title = e.Title,
-                Details = e.Details,
-                Running = true,
-                StartTime = e.StartedAt,
-                PoolName = e.PoolName,
-                RetryCount = e.RetryCount
-            };
-        }
+            result[i] = QueueItem.FromExecuting(entries[i]);
         return result;
     }
 
@@ -219,7 +223,9 @@ public class QueueHandler
             Blocked = blocked,
             Scheduled = scheduled,
             ScheduledAt = j.ScheduledAt,
-            ParentKey = j.ParentJobId.HasValue ? _orchestrator.TryGetJobKey(j.ParentJobId.Value) : null
+            ParentKey = j.ParentJobId.HasValue ? _orchestrator.TryGetJobKey(j.ParentJobId.Value) : null,
+            // Cancelling a waiting job removes it, which always works.
+            Cancellable = true,
         };
     }
 

@@ -1,11 +1,17 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Selectors.StringSetSelectors;
 
 /// <summary>
 /// This returns a set of all the TMDB movie keywords in a filterable.
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="SourceTagsSelector"/>, narrowed to the
+/// linked movies through <see cref="IFilterableInfo.GetTags"/>. Kept under
+/// its own name so saved filters read the same.
+/// </remarks>
 public class TmdbMovieKeywordsSelector : FilterExpression<IReadOnlySet<string>>
 {
 
@@ -17,7 +23,7 @@ public class TmdbMovieKeywordsSelector : FilterExpression<IReadOnlySet<string>>
     /// <inheritdoc/>
     public override IReadOnlySet<string> Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.TmdbMovieKeywords;
+        return filterable.GetTags(MetadataSource.TMDB, MetadataEntityType.Movie);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

@@ -1,6 +1,8 @@
 using System;
 using System.Data;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -44,6 +46,11 @@ public sealed class DatabaseMigrationFixture : IDisposable
         return connection;
     }
 
+    /// <summary>
+    /// The started server's services, to write through the real repositories.
+    /// </summary>
+    public IServiceProvider Services => _host?.Services ?? throw new InvalidOperationException(FailureMessage ?? "The server did not start.");
+
     private readonly string _tempDir;
 
     private readonly IHost? _host;
@@ -58,18 +65,24 @@ public sealed class DatabaseMigrationFixture : IDisposable
         // Forward slashes avoid bad JSON escape sequences when the config service parses env vars.
         Environment.SetEnvironmentVariable("SHOKO_HOME", _tempDir.Replace('\\', '/'));
 
+        // Registration of metadata sources closes once the server has set up its plugins, so the
+        // tests' own sources are registered before it starts, as a plugin's would be.
+        TestSources.EnsureRegistered();
+
+        // Plugins are only scanned while the server starts, so the test plugins go in first.
+        TestPlugins.Install(Path.Combine(_tempDir, "plugins"));
+
         // SystemService() bootstraps ISettingsProvider.Instance with default settings (FirstRun=true).
         // No settings file yet — defaults are valid and pass schema validation.
         var systemService = new SystemService();
 
-        // Mutate the live settings: disable first-run, inject fake AniDB credentials so the
-        // settings custom-validator is satisfied, and move the web port away from 8111 so this
-        // doesn't conflict with a real Shoko instance.
+        // Fake AniDB credentials satisfy the settings validator; a free port keeps clear of a real
+        // Shoko instance and of other test runs.
         var settings = ISettingsProvider.Instance.GetSettings();
         settings.FirstRun = false;
         settings.AniDb.Username = "integration-test";
         settings.AniDb.Password = "integration-test";
-        settings.Web.Port = 28111;
+        settings.Web.Port = FindFreePort();
         ISettingsProvider.Instance.SaveSettings(settings);
 
         var started = new ManualResetEventSlim(false);
@@ -100,6 +113,24 @@ public sealed class DatabaseMigrationFixture : IDisposable
         {
             Success = false;
             FailureMessage = "Database initialization timed out after 10 minutes";
+        }
+    }
+
+    /// <summary>
+    /// Finds a TCP port nothing is listening on, by letting the system pick one.
+    /// </summary>
+    /// <returns>The free port.</returns>
+    private static ushort FindFreePort()
+    {
+        var listener = new TcpListener(IPAddress.Any, 0);
+        listener.Start();
+        try
+        {
+            return (ushort)((IPEndPoint)listener.LocalEndpoint).Port;
+        }
+        finally
+        {
+            listener.Stop();
         }
     }
 

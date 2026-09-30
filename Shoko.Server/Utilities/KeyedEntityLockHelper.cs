@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AsyncKeyedLock;
 using Microsoft.Extensions.Logging;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Utilities;
 
@@ -24,10 +24,10 @@ public sealed class KeyedEntityLockHelper
         _logger = logger;
     }
 
-    public static string BuildKey(DataEntityType entityType, int id, string metadataKey)
+    public static string BuildKey(MetadataEntityType entityType, int id, string metadataKey)
         => $"{entityType.ToString().ToLowerInvariant()}-{metadataKey}:{id}";
 
-    public async Task<IDisposable> GetLockForEntityAsync(DataEntityType entityType, int id, string metadataKey, string reason, CancellationToken cancellationToken = default)
+    public async Task<IDisposable> GetLockForEntityAsync(MetadataEntityType entityType, int id, string metadataKey, string reason, CancellationToken cancellationToken = default)
     {
         var key = BuildKey(entityType, id, metadataKey);
         var startedAt = DateTime.Now;
@@ -52,7 +52,7 @@ public sealed class KeyedEntityLockHelper
         });
     }
 
-    public bool WaitIfEntityLocked(DataEntityType entityType, int id, string metadataKey)
+    public bool WaitIfEntityLocked(MetadataEntityType entityType, int id, string metadataKey)
     {
         var key = BuildKey(entityType, id, metadataKey);
         if (!_locker.IsInUse(key))
@@ -62,7 +62,7 @@ public sealed class KeyedEntityLockHelper
             return true;
     }
 
-    public async Task<bool> WaitIfEntityLockedAsync(DataEntityType entityType, int id, string metadataKey)
+    public async Task<bool> WaitIfEntityLockedAsync(MetadataEntityType entityType, int id, string metadataKey)
     {
         var key = BuildKey(entityType, id, metadataKey);
         if (!_locker.IsInUse(key))
@@ -72,7 +72,7 @@ public sealed class KeyedEntityLockHelper
             return true;
     }
 
-    public bool IsEntityLocked(DataEntityType entityType, int id, string metadataKey)
+    public bool IsEntityLocked(MetadataEntityType entityType, int id, string metadataKey)
     {
         var key = BuildKey(entityType, id, metadataKey);
         return _locker.IsInUse(key);

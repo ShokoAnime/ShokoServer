@@ -24,6 +24,13 @@ public interface IWithImages : IMetadata
     ///   Get the preferred image for the given <paramref name="imageType"/> for
     ///   the entity, or <c>null</c> if no preferred image is set.
     /// </summary>
+    /// <remarks>
+    ///   When the entity's images include its linked entries' (a Shoko group,
+    ///   series, season or episode), its own preferred image wins, else it
+    ///   inherits a linked entry's.
+    ///   <see cref="IImageManager.SetPreferredImageForEntity(IWithImages, ImageEntityType, IImage)"/>
+    ///   always writes the entity's own cross-reference, never a shared one.
+    /// </remarks>
     /// <param name="imageType">
     ///   The image type to check.
     /// </param>
@@ -37,6 +44,10 @@ public interface IWithImages : IMetadata
     /// <summary>
     ///   Get all preferred images for the entity.
     /// </summary>
+    /// <remarks>
+    ///   Its own first, then the ones it inherits from linked entries, when its
+    ///   images include theirs; see <see cref="GetPreferredImageForType"/>.
+    /// </remarks>
     /// <returns>
     ///   All preferred images for the entity.
     /// </returns>
@@ -50,6 +61,11 @@ public interface IWithImages : IMetadata
     ///   metadata about the image-entity relationship including; ordering,
     ///   enabled state, and auto-download, etc..
     /// </summary>
+    /// <remarks>
+    ///   The entity's own cross-reference when it has a preferred one, and
+    ///   otherwise a linked entry's, when its images include theirs; see
+    ///   <see cref="GetPreferredImageForType"/>.
+    /// </remarks>
     /// <param name="imageType">
     ///   The image type to check.
     /// </param>
@@ -63,6 +79,10 @@ public interface IWithImages : IMetadata
     /// <summary>
     ///   Get all cross-references for all preferred images for the entity.
     /// </summary>
+    /// <remarks>
+    ///   Its own first, then the ones it inherits from linked entries, when its
+    ///   images include theirs; see <see cref="GetPreferredImageForType"/>.
+    /// </remarks>
     /// <returns>
     ///   All cross-references for all preferred images for the entity.
     /// </returns>
@@ -121,7 +141,7 @@ public interface IWithImages : IMetadata
     /// </returns>
     IImage? GetDefaultImageForType(ImageEntityType imageType, bool primaryImage = true)
         => GetDefaultImageCrossReferenceForType(imageType) is { } xref && (primaryImage ? xref.GetPrimaryImage() : xref.GetImage()) is { } image
-            ? ImageStub.Wrap(image, xref, ISystemService.StaticServices.GetRequiredService<IImageManager>().IsLinkedCrossReference(this, xref))
+            ? ImageStub.Wrap(image, xref, !ISystemService.StaticServices.GetRequiredService<IImageManager>().IsLinkedCrossReference(this, xref))
             : null;
 
     /// <summary>
@@ -181,6 +201,9 @@ public interface IWithImages : IMetadata
     ///   Get the best image for the given <paramref name="imageType"/> for the
     ///   entity, or <c>null</c> if no best image is set.
     /// </summary>
+    /// <remarks>
+    ///   The image of <see cref="GetBestImageCrossReferenceForType"/>.
+    /// </remarks>
     /// <param name="imageType">
     ///   The image type to check.
     /// </param>
@@ -195,12 +218,15 @@ public interface IWithImages : IMetadata
     /// </returns>
     IImage? GetBestImageForType(ImageEntityType imageType, bool primaryImage = true)
         => GetBestImageCrossReferenceForType(imageType) is { } xref && (primaryImage ? xref.GetPrimaryImage() : xref.GetImage()) is { } image
-            ? ImageStub.Wrap(image, xref, ISystemService.StaticServices.GetRequiredService<IImageManager>().IsLinkedCrossReference(this, xref))
+            ? ImageStub.Wrap(image, xref, !ISystemService.StaticServices.GetRequiredService<IImageManager>().IsLinkedCrossReference(this, xref))
             : null;
 
     /// <summary>
-    ///   Get all best images for the entity.
+    ///   Get all best images for the entity, one per image type.
     /// </summary>
+    /// <remarks>
+    ///   Each picked as <see cref="GetBestImageCrossReferenceForType"/> picks.
+    /// </remarks>
     /// <param name="primaryImage">
     ///   Optional. If <c>true</c>, will return the primary image for the
     ///   best image cross-reference. If <c>false</c>, will return the
@@ -221,6 +247,13 @@ public interface IWithImages : IMetadata
     ///   <paramref name="imageType"/> for the entity, or <c>null</c> if no
     ///   best image is set.
     /// </summary>
+    /// <remarks>
+    ///   The preferred one, the entity's own or inherited from a linked entry
+    ///   (see <see cref="GetPreferredImageForType"/>), then the default, the
+    ///   source's own pick, then the first enabled one, favouring available
+    ///   and desired ones. The preferred and default ones only count while
+    ///   enabled and available.
+    /// </remarks>
     /// <param name="imageType">
     ///   The image type to check.
     /// </param>
@@ -277,8 +310,12 @@ public interface IWithImages : IMetadata
     }
 
     /// <summary>
-    ///   Get all best image cross-references for the entity.
+    ///   Get all best image cross-references for the entity, one per image
+    ///   type.
     /// </summary>
+    /// <remarks>
+    ///   Each picked as <see cref="GetBestImageCrossReferenceForType"/> picks.
+    /// </remarks>
     /// <param name="primaryImage">
     ///   Optional. If <c>true</c>, will check the primary image for the
     ///   best image cross-reference. If <c>false</c>, will check the

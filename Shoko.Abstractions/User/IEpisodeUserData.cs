@@ -72,13 +72,13 @@ public interface IEpisodeUserData : IUserData
     ///   Indicates that the episode has been watched to completion at least
     ///   once by the user, be it locally or otherwise.
     /// </summary>
-    bool IsWatched => LastPlayedAt.HasValue || PlaybackCount > 0;
+    bool IsWatched { get => LastPlayedAt.HasValue || PlaybackCount > 0; }
 
     /// <summary>
     ///   Indicates that the user has rated the episode.
     /// </summary>
     [MemberNotNullWhen(true, nameof(UserRating))]
-    bool HasUserRating => UserRating.HasValue;
+    bool HasUserRating { get => UserRating.HasValue; }
 
     /// <summary>
     ///   Gets the Shoko Series associated with this user data.

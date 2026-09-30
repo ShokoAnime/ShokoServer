@@ -1,5 +1,6 @@
 using System;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Metadata.Events;
 
@@ -28,4 +29,10 @@ public class MovieInfoUpdatedEventArgs : EventArgs
         Reason = reason;
         MovieInfo = movieInfo;
     }
+
+    /// <summary>
+    ///   The API token of whoever caused the update, or <see langword="null"/>
+    ///   when the system did it. Stamped when the event is raised.
+    /// </summary>
+    public ApiToken? Actor { get; init; }
 }

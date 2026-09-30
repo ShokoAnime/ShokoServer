@@ -59,4 +59,44 @@ public record struct QueueItem
     /// no longer in the queue.
     /// </summary>
     public string? ParentKey { get; init; }
+
+    /// <summary>
+    /// True when the job can be cancelled: a waiting job always can, as cancelling it removes
+    /// it, and a running job can when it observes cancellation.
+    /// </summary>
+    public bool Cancellable { get; init; }
+
+    /// <summary>
+    /// True when a user asked for this running job to be cancelled and it has not stopped yet.
+    /// The request cannot be undone.
+    /// </summary>
+    public bool CancellationRequested { get; init; }
+
+    /// <summary>
+    /// How far the running job is, as a percentage from 0 to 100, or <c>null</c> when it does not
+    /// report progress (or has not yet). Always <c>null</c> for a waiting job.
+    /// </summary>
+    public decimal? Progress { get; init; }
+
+    /// <summary>
+    /// Builds the item for a running job from its executing entry.
+    /// </summary>
+    /// <param name="entry">The executing entry, as <see cref="Orchestration.QueueOrchestrator.GetExecuting"/> returns it.</param>
+    /// <param name="running">Whether the job is still running; false for a job that just ended.</param>
+    /// <returns>The item.</returns>
+    internal static QueueItem FromExecuting(Orchestration.ExecutingEntry entry, bool running = true) => new()
+    {
+        Key = entry.JobKey,
+        JobType = Builder.JobTypeNames.Short(entry.JobType),
+        TypeName = string.IsNullOrEmpty(entry.TypeName) ? Builder.JobTypeNames.Short(entry.JobType) : entry.TypeName,
+        Title = entry.Title,
+        Details = entry.Details,
+        Running = running,
+        StartTime = entry.StartedAt,
+        PoolName = entry.PoolName,
+        RetryCount = entry.RetryCount,
+        Cancellable = entry.IsCancellable,
+        CancellationRequested = entry.CancellationRequested,
+        Progress = entry.Progress,
+    };
 }

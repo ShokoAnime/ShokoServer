@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Metadata.Airing;
 
 namespace Shoko.Server.Utilities.Airing;
 
@@ -52,4 +53,10 @@ public sealed record AiringProfileSample
     /// UTC. An estimated Original airing is never passed here.
     /// </summary>
     public DateTime? FirstOriginalAiringAt { get; init; }
+
+    /// <summary>
+    /// What kind of showing the airing is. Only a normal airing is a sample for
+    /// the profile or the cadence.
+    /// </summary>
+    public EpisodeAiringKind Kind { get; init; }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
@@ -144,7 +145,9 @@ public class ManagedFolder : BaseModel
             ///   Optional. Set to <c>false</c> to not add or remove the release
             ///   to the user's MyList if any releases are found and saved for
             ///   any video files or if any video files have been deleted.
+            ///   Defaults to <c>true</c>.
             /// </summary>
+            [DefaultValue(true)]
             public bool UpdateMylist { get; set; } = true;
         }
 
@@ -163,7 +166,9 @@ public class ManagedFolder : BaseModel
             ///   Optional. Set to <c>false</c> to not add or remove the release
             ///   to the user's MyList if any releases are found and saved for
             ///   any video files or if any video files have been deleted.
+            ///   Defaults to <c>true</c>.
             /// </summary>
+            [DefaultValue(true)]
             public bool UpdateMylist { get; set; } = true;
         }
     }

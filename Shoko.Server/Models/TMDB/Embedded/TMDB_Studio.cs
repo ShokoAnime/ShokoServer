@@ -11,9 +11,9 @@ using Shoko.Server.Repositories;
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.TMDB;
 
-public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<int>, IEntityMetadata
+public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata, IEntityMetadata
 {
-    public int ID { get; private set; }
+    public int TmdbID { get; private set; }
 
     public int ParentID { get; private set; }
 
@@ -25,8 +25,8 @@ public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<i
 
     public TMDB_Studio(TMDB_Company company, TEntity parent)
     {
-        ID = company.TmdbCompanyID;
-        ParentID = parent.ID;
+        TmdbID = company.TmdbCompanyID;
+        ParentID = parent.Id;
         Name = company.Name;
         Parent = parent;
     }
@@ -36,33 +36,31 @@ public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<i
     #region Methods
 
     IEnumerable<TMDB_Movie> GetMovies() =>
-        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndCompanyID(DataEntityType.Movie, ID)
+        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndCompanyID(MetadataEntityType.Movie, TmdbID)
         .Select(xref => xref.GetTmdbMovie())
         .WhereNotNull();
 
     IEnumerable<TMDB_Show> GetShows() =>
-        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndCompanyID(DataEntityType.Show, ID)
+        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndCompanyID(MetadataEntityType.Series, TmdbID)
         .Select(xref => xref.GetTmdbShow())
         .WhereNotNull();
 
     IEnumerable<IMetadata> GetWorks() =>
-        RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(ID)
-        .Select(xref => xref.GetTmdbEntity() as IMetadata<int>)
+        RepoFactory.TMDB_Company_Entity.GetByTmdbCompanyID(TmdbID)
+        .Select(xref => xref.GetTmdbEntity() as IMetadata)
         .WhereNotNull();
 
     #endregion
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Studio;
-
-    DataSource IMetadata.Source => DataSource.TMDB;
+    MetadataGuid IMetadata.ID => new(MetadataSource.TMDB, MetadataEntityType.Studio, TmdbID.ToString());
 
     #endregion
 
     #region IWithImages Implementation
 
-    public IImageCrossReference? DefaultPrimaryImageCrossReference => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = DataSource.TMDB, ImageType = ImageEntityType.Primary }).FirstOrDefault();
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = MetadataSource.TMDB, ImageType = ImageEntityType.Primary }).FirstOrDefault();
 
     #endregion
 
@@ -77,6 +75,8 @@ public class TMDB_Studio<TEntity> : IStudio<TEntity> where TEntity : IMetadata<i
     IEnumerable<ISeries> IStudio.SeriesWorks => GetShows();
 
     IEnumerable<IMetadata> IStudio.Works => GetWorks();
+
+    MetadataGuid IStudio<TEntity>.ParentID => Parent.ID;
 
     TEntity? IStudio<TEntity>.Parent => Parent;
 

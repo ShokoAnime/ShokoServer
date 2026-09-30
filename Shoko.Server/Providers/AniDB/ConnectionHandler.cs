@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Timers;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Events;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -112,7 +113,8 @@ public abstract class ConnectionHandler
         // This Handles the Waiting Period For When AniDB is under heavy load. Not likely to be used
         BackoffSecs = secsToPause;
         _backoffTimer.Interval = secsToPause * 1000;
-        _backoffTimer.Start();
+        using (DetachedFlow.Suppress())
+            _backoffTimer.Start();
         UpdateState(new()
         {
             UpdateType = UpdateType.OverloadBackoff,

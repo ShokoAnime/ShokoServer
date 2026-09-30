@@ -9,9 +9,11 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.MediaInfo;
+using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Filters;
@@ -53,20 +55,17 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
     public string OriginalName => group.GroupName;
 
     public IReadOnlySet<string> Names
-    {
-        get
+        => Remembered(TextMemoSlot.FilterNames, () =>
         {
             var result = new HashSet<string> { group.GroupName };
             foreach (var grp in group.AllGroupsAbove)
                 result.Add(grp.GroupName);
             result.UnionWith(AllSeries.SelectMany(a => a.Titles.Select(t => t.Value)));
             return result;
-        }
-    }
+        });
 
     public IReadOnlySet<string> PreferredNames
-    {
-        get
+        => Remembered(TextMemoSlot.FilterPreferredNames, () =>
         {
             var langs = BuildPreferredLanguageSet();
             var result = new HashSet<string> { group.GroupName };
@@ -74,10 +73,32 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
                 result.Add(grp.GroupName);
             result.UnionWith(AllSeries.SelectMany(a =>
                 a.Titles
-                    .Where(t => langs.Contains(t.Language) && (t.Source != DataSource.TMDB || t.Language != TitleLanguage.Unknown))
+                    .Where(t => langs.Contains(t.Language) && (t.Source != MetadataSource.TMDB || t.Language != TitleLanguage.Unknown))
                     .Select(t => t.Value)));
             return result;
-        }
+        });
+
+    /// <summary>
+    ///   A set of names worked out once per group, so the same set is handed
+    ///   to every filter until the texts or the series of the group change.
+    /// </summary>
+    /// <param name="slot">Which set.</param>
+    /// <param name="build">Works the set out.</param>
+    /// <returns>The set.</returns>
+    private IReadOnlySet<string> Remembered(TextMemoSlot slot, Func<HashSet<string>> build)
+    {
+        if (TextAccess.Current is not { } manager)
+            return build();
+
+        var id = ((IMetadata)group).ID;
+        if (manager.TryRemembered<IReadOnlySet<string>>(id, slot, out var names))
+            return names;
+
+        return manager.Remember<IReadOnlySet<string>>(id, slot, () =>
+        {
+            manager.RecordShapeOf(group);
+            return build();
+        }, () => build());
     }
 
     public string Description => group.Description;
@@ -87,7 +108,7 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
         get
         {
             var result = new HashSet<string> { group.Description };
-            result.UnionWith(AllSeries.SelectMany(s => ((ISeries)s).Descriptions.Select(a => a.Value)));
+            result.UnionWith(AllSeries.SelectMany(s => ((ISeries)s).Overviews.Select(a => a.Value)));
             return result;
         }
     }
@@ -191,98 +212,34 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
             .GroupBy(a => a.CrewRoleType)
             .ToDictionary(a => a.Key, a => (IReadOnlySet<string>)a.Select(b => b.CreatorID.ToString()).ToHashSet());
 
-    public bool HasTmdbLink =>
-        AllSeries.Any(a => a.TmdbShowCrossReferences.Count is > 0 || a.TmdbMovieCrossReferences.Count is > 0);
+    public IReadOnlySet<MetadataSource> LinkedSources => AllSeries.SelectMany(FilterableSources.LinkedSources).ToHashSet();
 
-    public bool HasTmdbAutoLinkingDisabled =>
-        AllSeries.Any(a => a.IsTmdbAutoMatchingDisabled);
+    public IReadOnlySet<MetadataSource> UnlinkedSources => AllSeries.SelectMany(FilterableSources.UnlinkedSources).ToHashSet();
 
-    public int AutomaticTmdbEpisodeLinks =>
-        AllSeries.Sum(a =>
-            a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified) +
-            a.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is not MatchRating.UserVerified));
+    public IReadOnlySet<MetadataSource> AutoLinkingDisabledSources => AllSeries.SelectMany(FilterableSources.AutoLinkingDisabledSources).ToHashSet();
 
-    public int UserVerifiedTmdbEpisodeLinks =>
-        AllSeries.Sum(a =>
-            a.TmdbEpisodeCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified) +
-            a.TmdbMovieCrossReferences.Count(xref => xref.MatchRating is MatchRating.UserVerified));
+    public int GetAutomaticEpisodeLinks(MetadataSource source) => AllSeries.Sum(series => FilterableSources.EpisodeLinks(series, source, userVerified: false));
 
-    public int MissingTmdbEpisodeLinks => AllSeries.Aggregate(0, (acc, ser) =>
+    public int GetUserVerifiedEpisodeLinks(MetadataSource source) => AllSeries.Sum(series => FilterableSources.EpisodeLinks(series, source, userVerified: true));
+
+    public int GetMissingEpisodeLinks(MetadataSource source) => AllSeries.Sum(series => FilterableSources.MissingEpisodeLinks(series, source));
+
+    public int GetAutomaticLinks(MetadataSource source) => AllSeries.Sum(series => FilterableSources.Links(series, source, userVerified: false));
+
+    public int GetUserVerifiedLinks(MetadataSource source) => AllSeries.Sum(series => FilterableSources.Links(series, source, userVerified: true));
+
+    public IReadOnlySet<string> GetGenres(MetadataSource source, MetadataEntityType? entityType = null)
+        => AllSeries.SelectMany(series => FilterableSources.Genres(series, source, entityType)).ToNameSet();
+
+    public IReadOnlySet<string> GetTags(MetadataSource source, MetadataEntityType? entityType = null)
+        => AllSeries.SelectMany(series => FilterableSources.Tags(series, source, entityType)).ToNameSet();
+
+    public int GetSuggestions(MetadataSource source) => source switch
     {
-        var allTmdbLinkedEpisodes = ser.TmdbEpisodeCrossReferences
-            .Where(xref => xref.TmdbEpisodeID is not 0)
-            .Select(a => a.AnidbEpisodeID)
-            .Concat(ser.TmdbMovieCrossReferences.Select(a => a.AnidbEpisodeID))
-            .ToHashSet();
-        return acc + ser.AnimeEpisodes.Count(a => !allTmdbLinkedEpisodes.Contains(a.AniDB_EpisodeID));
-    });
-
-    public IReadOnlySet<string> TmdbMovieKeywords =>
-        AllSeries.SelectMany(s => s.TmdbMovies)
-            .DistinctBy(m => m.TmdbMovieID)
-            .SelectMany(m => m.Keywords)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-    public IReadOnlySet<string> TmdbMovieGenres =>
-        AllSeries.SelectMany(s => s.TmdbMovies)
-            .DistinctBy(m => m.TmdbMovieID)
-            .SelectMany(m => m.Genres)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-    public IReadOnlySet<string> TmdbShowKeywords =>
-        AllSeries.SelectMany(s => s.TmdbShows)
-            .DistinctBy(s => s.TmdbShowID)
-            .SelectMany(s => s.Keywords)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-    public IReadOnlySet<string> TmdbShowGenres =>
-        AllSeries.SelectMany(s => s.TmdbShows)
-            .DistinctBy(s => s.TmdbShowID)
-            .SelectMany(s => s.Genres)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-    public IReadOnlySet<string> TmdbKeywords =>
-        TmdbMovieKeywords.Union(TmdbShowKeywords)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-    public IReadOnlySet<string> TmdbGenres =>
-        TmdbMovieGenres.Union(TmdbShowGenres)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-    public IReadOnlySet<string> AnilistGenres =>
-        AllSeries.SelectMany(a => a.AnilistAnime)
-            .DistinctBy(a => a.AnilistAnimeID)
-            .SelectMany(a => a.Genres)
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-    public IReadOnlySet<string> AnilistTags =>
-        AllSeries.SelectMany(a => a.AnilistAnime)
-            .DistinctBy(a => a.AnilistAnimeID)
-            .SelectMany(a => a.Tags)
-            .Select(tag => tag.Tag?.Name)
-            .WhereNotNull()
-            .ToHashSet(StringComparer.InvariantCultureIgnoreCase);
-
-    public bool HasAnilistLink =>
-        AllSeries.Any(a => a.AnilistAnimeCrossReferences.Count is > 0);
-
-    public bool HasAnilistAutoLinkingDisabled =>
-        AllSeries.Any(a => a.IsAnilistAutoMatchingDisabled);
-
-    public int AutomaticAnilistEpisodeLinks =>
-        AllSeries.Sum(a => a.AnilistEpisodeCrossReferences.Count(xref => xref.AnilistEpisodeID is not 0 && xref.MatchRating is not MatchRating.UserVerified));
-
-    public int UserVerifiedAnilistEpisodeLinks =>
-        AllSeries.Sum(a => a.AnilistEpisodeCrossReferences.Count(xref => xref.AnilistEpisodeID is not 0 && xref.MatchRating is MatchRating.UserVerified));
-
-    public int MissingAnilistEpisodeLinks => AllSeries.Aggregate(0, (acc, ser) =>
-    {
-        var allAnilistLinkedEpisodes = ser.AnilistEpisodeCrossReferences
-            .Where(xref => xref.AnilistEpisodeID is not 0)
-            .Select(xref => xref.AnidbEpisodeID)
-            .ToHashSet();
-        return acc + ser.AnimeEpisodes.Count(episode => !allAnilistLinkedEpisodes.Contains(episode.AniDB_EpisodeID));
-    });
+        _ when source == MetadataSource.AniDB => AnidbSuggestions,
+        _ when source == MetadataSource.TMDB => TmdbSuggestions,
+        _ => FilterableSuggestions.CountOther(SuggestionSources, source),
+    };
 
     // Deduplicated across the series, since two series in one group can be linked to the same
     // provider entry and its suggestions would otherwise be counted twice.
@@ -291,7 +248,7 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
         [.. AllSeries.Select(a => a.AniDB_ID).Distinct()],
         [.. AllSeries.SelectMany(a => a.TmdbShowCrossReferences).Select(xref => xref.TmdbShowID).Distinct()],
         [.. AllSeries.SelectMany(a => a.TmdbMovieCrossReferences).Select(xref => xref.TmdbMovieID).Distinct()],
-        [.. AllSeries.SelectMany(a => a.AnilistAnimeCrossReferences).Select(xref => xref.AnilistAnimeID).Distinct()]
+        [.. AllSeries.SelectMany(FilterableSources.OtherLinkedSeries).DistinctBy(entry => entry.ID)]
     );
 
     private int? _anidbSuggestions;
@@ -300,10 +257,8 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
     private int? _tmdbSuggestions;
     public int TmdbSuggestions => _tmdbSuggestions ??= FilterableSuggestions.CountTmdb(SuggestionSources);
 
-    private int? _anilistSuggestions;
-    public int AnilistSuggestions => _anilistSuggestions ??= FilterableSuggestions.CountAnilist(SuggestionSources);
-
-    public int TotalSuggestions => AnidbSuggestions + TmdbSuggestions + AnilistSuggestions;
+    private int? _otherSuggestions;
+    public int TotalSuggestions => AnidbSuggestions + TmdbSuggestions + (_otherSuggestions ??= FilterableSuggestions.CountOthers(SuggestionSources));
 
     private int? _localSuggestions;
     public int LocalSuggestions => _localSuggestions ??= FilterableSuggestions.CountLocal(SuggestionSources);

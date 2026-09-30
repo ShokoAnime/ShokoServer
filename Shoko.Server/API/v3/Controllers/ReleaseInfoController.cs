@@ -172,8 +172,9 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
     /// </summary>
     /// <param name="providerID">The ID of the release provider to preview the release for.</param>
     /// <param name="id">The ID of the release to preview.</param>
-    /// <returns></returns>
+    /// <returns>The previewed release, or a bad request if the provider cannot look up releases by ID.</returns>
     [Authorize("admin")]
+    [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ReleaseInfo), 200)]
@@ -183,10 +184,18 @@ public class ReleaseInfoController(ISettingsProvider settingsProvider, IPluginMa
         if (videoReleaseService.GetProviderInfo(providerID) is not { } providerInfo)
             return NotFound($"Release Provider '{providerID}' not found!");
 
-        if (await providerInfo.Provider.GetReleaseInfoById(id, HttpContext.RequestAborted) is not { } releaseInfo)
-            return NoContent();
+        try
+        {
+            if (await providerInfo.Provider.GetReleaseInfoById(id, HttpContext.RequestAborted) is not { } releaseInfo)
+                return NoContent();
 
-        return new ReleaseInfo(new ReleaseInfoWithProvider(releaseInfo, providerInfo.Provider.Name));
+            return new ReleaseInfo(new ReleaseInfoWithProvider(releaseInfo, providerInfo.Provider.Name));
+        }
+        catch (NotSupportedException)
+        {
+            ModelState.AddModelError(nameof(id), $"Release Provider '{providerInfo.Provider.Name}' cannot look up a release by its ID.");
+            return ValidationProblem(ModelState);
+        }
     }
 
     /// <summary>

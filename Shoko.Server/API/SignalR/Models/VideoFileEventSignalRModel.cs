@@ -21,11 +21,11 @@ public class VideoFileEventSignalRModel
             .DistinctBy(e => e.SeriesID)
             .Select(e => e.Series)
             .WhereNotNull()
-            .ToDictionary(s => s.AnidbAnimeID, s => (s.ID, s.ParentGroupID));
+            .ToDictionary(s => s.AnidbAnimeID, s => (ID: s.LocalID, s.ParentGroupID));
         CrossReferences = xrefs
             .Select(xref => new FileCrossReferenceSignalRModel
             {
-                EpisodeID = episodeDict.TryGetValue(xref.AnidbEpisodeID, out var shokoEpisode) ? shokoEpisode.ID : null,
+                EpisodeID = episodeDict.TryGetValue(xref.AnidbEpisodeID, out var shokoEpisode) ? shokoEpisode.LocalID : null,
                 AnidbEpisodeID = xref.AnidbEpisodeID,
                 SeriesID = animeToGroupDict.TryGetValue(xref.AnidbAnimeID, out var tuple) ? tuple.ID : null,
                 AnidbAnimeID = xref.AnidbAnimeID,

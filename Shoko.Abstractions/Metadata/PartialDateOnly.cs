@@ -1,5 +1,7 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using Shoko.Abstractions.Metadata.Converters;
 
 namespace Shoko.Abstractions.Metadata;
 
@@ -8,6 +10,9 @@ namespace Shoko.Abstractions.Metadata;
 /// in addition to full dates. Values range from January 1, 0001 Anno Domini (Common Era)
 /// through December 31, 9999 A.D. (C.E.) in the Gregorian calendar.
 /// </summary>
+[TypeConverter(typeof(PartialDateOnlyTypeConverter))]
+[System.Text.Json.Serialization.JsonConverter(typeof(PartialDateOnlyJsonConverter))]
+[Newtonsoft.Json.JsonConverter(typeof(PartialDateOnlyNewtonsoftJsonConverter))]
 public readonly partial struct PartialDateOnly : IComparable<PartialDateOnly>, IEquatable<PartialDateOnly>, IFormattable, IParsable<PartialDateOnly>, ISpanFormattable, ISpanParsable<PartialDateOnly>, IUtf8SpanFormattable, IConvertible
 {
     /// <summary>
@@ -123,16 +128,17 @@ public readonly partial struct PartialDateOnly : IComparable<PartialDateOnly>, I
         Year = date.Year;
         Month = date.Month;
         Day = date.Day;
+        DayOfWeek = date.DayOfWeek;
+        DayOfYear = date.DayOfYear;
+        DayNumber = date.DayNumber;
     }
 
     /// <summary>
     /// Creates a new instance from a DateTime value.
     /// </summary>
     public PartialDateOnly(DateTime date)
+        : this(DateOnly.FromDateTime(date))
     {
-        Year = date.Year;
-        Month = date.Month;
-        Day = date.Day;
     }
 
     /// <summary>

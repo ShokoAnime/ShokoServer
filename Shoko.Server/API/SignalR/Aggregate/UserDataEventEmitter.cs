@@ -13,7 +13,7 @@ public class UserDataEventEmitter : BaseEventEmitter, IDisposable
 
     private readonly ILogger<UserDataEventEmitter> _logger;
 
-    public override string Group { get; } = "userData";
+    public override string Name => "userData";
 
     public UserDataEventEmitter(IHubContext<AggregateHub> hub, IUserDataService userDataService, ILogger<UserDataEventEmitter> logger) : base(hub)
     {

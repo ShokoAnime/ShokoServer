@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Info;
@@ -7,8 +7,15 @@ namespace Shoko.Abstractions.Filtering.Expressions.Info;
 /// <summary>
 ///     Missing Links include logic for whether a link should exist
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="MissingSourceLinkExpression"/>, which it
+/// evaluates with the tmdb source. Kept under its own name so saved filters
+/// read the same.
+/// </remarks>
 public class MissingTmdbLinkExpression : FilterExpression<bool>
 {
+    private static readonly MissingSourceLinkExpression _tmdb = new(MetadataSource.TMDB.Value);
+
     /// <inheritdoc/>
     public override string Name => "Missing TMDB Link";
 
@@ -16,25 +23,16 @@ public class MissingTmdbLinkExpression : FilterExpression<bool>
     public override string HelpDescription => "This condition passes if any of the anime should have a TMDB link but does not have one";
 
     /// <summary>
-    /// Anime types excluded from automatic TMDB linking.
+    /// Anime types excluded from automatic TMDB linking, the same list
+    /// <see cref="MissingSourceLinkExpression.AnimeTypes"/> holds for every
+    /// source.
     /// </summary>
-    public static readonly AnimeType[] AnimeTypes =
-    [
-        AnimeType.Unknown,
-        AnimeType.MusicVideo,
-        AnimeType.Other,
-    ];
+    public static readonly AnimeType[] AnimeTypes = MissingSourceLinkExpression.AnimeTypes;
 
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        if (!filterable.AnimeTypes.Except(AnimeTypes).Any())
-            return false;
-
-        if (filterable.HasTmdbAutoLinkingDisabled)
-            return false;
-
-        return !filterable.HasTmdbLink;
+        return _tmdb.Evaluate(filterable, userInfo, time);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

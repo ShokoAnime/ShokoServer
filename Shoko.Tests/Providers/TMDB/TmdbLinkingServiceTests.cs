@@ -1,293 +1,229 @@
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Moq;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Providers;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Tests.Infrastructure;
 using Xunit;
 
 namespace Shoko.Tests.Providers.TMDB;
 
+/// <summary>
+/// Covers <see cref="TmdbLinkingService"/> as a shim: each call reaches the
+/// generic linking service for the <c>tmdb</c> source, with TMDB's own flags.
+/// </summary>
 public class TmdbLinkingServiceTests
 {
-    // Reproduces "Heroine? Saint? No, I'm an All-Works Maid (And Proud of It)!": AniDB tracks an
-    // early exclusive-stream premiere for episode 1 (2026-06-24) that TMDB never listed. TMDB's S1E1
-    // is dated 2026-07-01, which happens to be AniDB episode 2's air date, so a date-only match grabs
-    // TMDB S1E1 for AniDB episode 2 before episode 1 gets a turn, leaving episode 1 to fall back to
-    // "first available" (TMDB S1E2). Reconciliation should swap them back into AniDB order.
+    #region Fixtures
+
+    private const int AnimeID = 100;
+
+    private const int EpisodeID = 11;
+
+    private static readonly MetadataGuid Show = new(MetadataSource.TMDB, MetadataEntityType.Series, "5");
+
+    private static readonly MetadataGuid Movie = new(MetadataSource.TMDB, MetadataEntityType.Movie, "7");
+
+    private sealed record Fixture(
+        TmdbLinkingService Service,
+        Mock<IMetadataLinkingService> Linking,
+        Mock<IMetadataService> Metadata
+    );
+
+    private static Fixture Build()
+    {
+        var linking = new Mock<IMetadataLinkingService>();
+        linking.Setup(l => l.MatchEpisodes(
+                It.IsAny<int>(),
+                It.IsAny<MetadataGuid>(),
+                It.IsAny<MetadataGuid?>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool?>(),
+                It.IsAny<CancellationToken>()
+            ))
+            .ReturnsAsync([]);
+        linking.Setup(l => l.SetEpisodeLink(
+                It.IsAny<MetadataSource>(),
+                It.IsAny<int>(),
+                It.IsAny<MetadataGuid?>(),
+                It.IsAny<bool>(),
+                It.IsAny<int?>(),
+                It.IsAny<MetadataGuid?>(),
+                It.IsAny<CancellationToken>()
+            ))
+            .ReturnsAsync(true);
+        var metadata = new Mock<IMetadataService>();
+        var episodes = CachedRepo.Build<AniDB_EpisodeRepository, int, AniDB_Episode>(
+            row => row.AniDB_EpisodeID,
+            new AniDB_Episode { AniDB_EpisodeID = 1, EpisodeID = EpisodeID, AnimeID = AnimeID, EpisodeType = EpisodeType.Episode }
+        );
+        return new(new TmdbLinkingService(linking.Object, metadata.Object, episodes), linking, metadata);
+    }
+
+    #endregion
+
+    #region Shows
+
     [Fact]
-    public void ReconcileEpisodeOrderInversions_SwapsBackToAnidbOrder_WhenBothMatchesAreWeak()
+    public async Task LinkingAShowLeavesItsEpisodesToTheLinkingService()
     {
-        var anidbEp1 = new AniDB_Episode { EpisodeID = 1, EpisodeNumber = 1, EpisodeType = EpisodeType.Episode };
-        var anidbEp2 = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 2, EpisodeType = EpisodeType.Episode };
-        var anidbEpisodes = new Dictionary<int, AniDB_Episode> { [1] = anidbEp1, [2] = anidbEp2 };
+        var (service, linking, _) = Build();
 
-        var tmdbEp1 = new TMDB_Episode { TmdbEpisodeID = 101, SeasonNumber = 1, EpisodeNumber = 1 };
-        var tmdbEp2 = new TMDB_Episode { TmdbEpisodeID = 102, SeasonNumber = 1, EpisodeNumber = 2 };
-        var tmdbEpisodeDict = new Dictionary<int, TMDB_Episode> { [101] = tmdbEp1, [102] = tmdbEp2 };
+        await service.AddShowLink(AnimeID, 5, additiveLink: false, MatchRating.TitleMatches);
 
-        // Bug reproduction: episode 1 fell back to "first available" TMDB S1E2, episode 2 grabbed
-        // TMDB S1E1 via a coincidental exact air-date match.
-        var xrefEp1 = new CrossRef_AniDB_TMDB_Episode(anidbEp1.EpisodeID, 0, tmdbEp2.TmdbEpisodeID, 0, MatchRating.FirstAvailable);
-        var xrefEp2 = new CrossRef_AniDB_TMDB_Episode(anidbEp2.EpisodeID, 0, tmdbEp1.TmdbEpisodeID, 0, MatchRating.DateMatches);
-        var toAdd = new List<CrossRef_AniDB_TMDB_Episode> { xrefEp1, xrefEp2 };
+        linking.Verify(l => l.AddSeriesLink(
+            It.Is<MetadataSeriesLinkRequest>(request =>
+                request.Source == MetadataSource.TMDB &&
+                request.ProviderID == Show &&
+                request.AnidbAnimeID == AnimeID &&
+                !request.Additive &&
+                request.MatchRating == MatchRating.TitleMatches),
+            It.IsAny<CancellationToken>()
+        ), Times.Once);
 
-        TmdbLinkingService.ReconcileEpisodeOrderInversions(anidbEpisodes, tmdbEpisodeDict, toAdd);
-
-        Assert.Equal(tmdbEp1.TmdbEpisodeID, xrefEp1.TmdbEpisodeID);
-        Assert.Equal(tmdbEp2.TmdbEpisodeID, xrefEp2.TmdbEpisodeID);
-        // MatchRating describes the evidence for the pairing, so it must travel with the swap too.
-        Assert.Equal(MatchRating.DateMatches, xrefEp1.MatchRating);
-        Assert.Equal(MatchRating.FirstAvailable, xrefEp2.MatchRating);
-    }
-
-    [Fact]
-    public void ReconcileEpisodeOrderInversions_LeavesOrderAlone_WhenAlreadyCorrect()
-    {
-        var anidbEp1 = new AniDB_Episode { EpisodeID = 1, EpisodeNumber = 1, EpisodeType = EpisodeType.Episode };
-        var anidbEp2 = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 2, EpisodeType = EpisodeType.Episode };
-        var anidbEpisodes = new Dictionary<int, AniDB_Episode> { [1] = anidbEp1, [2] = anidbEp2 };
-
-        var tmdbEp1 = new TMDB_Episode { TmdbEpisodeID = 101, SeasonNumber = 1, EpisodeNumber = 1 };
-        var tmdbEp2 = new TMDB_Episode { TmdbEpisodeID = 102, SeasonNumber = 1, EpisodeNumber = 2 };
-        var tmdbEpisodeDict = new Dictionary<int, TMDB_Episode> { [101] = tmdbEp1, [102] = tmdbEp2 };
-
-        var xrefEp1 = new CrossRef_AniDB_TMDB_Episode(anidbEp1.EpisodeID, 0, tmdbEp1.TmdbEpisodeID, 0, MatchRating.FirstAvailable);
-        var xrefEp2 = new CrossRef_AniDB_TMDB_Episode(anidbEp2.EpisodeID, 0, tmdbEp2.TmdbEpisodeID, 0, MatchRating.DateMatches);
-        var toAdd = new List<CrossRef_AniDB_TMDB_Episode> { xrefEp1, xrefEp2 };
-
-        TmdbLinkingService.ReconcileEpisodeOrderInversions(anidbEpisodes, tmdbEpisodeDict, toAdd);
-
-        Assert.Equal(tmdbEp1.TmdbEpisodeID, xrefEp1.TmdbEpisodeID);
-        Assert.Equal(tmdbEp2.TmdbEpisodeID, xrefEp2.TmdbEpisodeID);
-    }
-
-    // A strong (title-corroborated) match should never be reshuffled just because its weak neighbor
-    // looks out of order — the title evidence is trusted over positional guessing.
-    [Fact]
-    public void ReconcileEpisodeOrderInversions_DoesNotTouchStrongMatches()
-    {
-        var anidbEp1 = new AniDB_Episode { EpisodeID = 1, EpisodeNumber = 1, EpisodeType = EpisodeType.Episode };
-        var anidbEp2 = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 2, EpisodeType = EpisodeType.Episode };
-        var anidbEpisodes = new Dictionary<int, AniDB_Episode> { [1] = anidbEp1, [2] = anidbEp2 };
-
-        var tmdbEp1 = new TMDB_Episode { TmdbEpisodeID = 101, SeasonNumber = 1, EpisodeNumber = 1 };
-        var tmdbEp2 = new TMDB_Episode { TmdbEpisodeID = 102, SeasonNumber = 1, EpisodeNumber = 2 };
-        var tmdbEpisodeDict = new Dictionary<int, TMDB_Episode> { [101] = tmdbEp1, [102] = tmdbEp2 };
-
-        // Episode 1 has a confirmed title match pointing at S1E2 (e.g. a legitimately reordered
-        // episode); episode 2 only has a weak positional guess at S1E1. This should not be swapped.
-        var xrefEp1 = new CrossRef_AniDB_TMDB_Episode(anidbEp1.EpisodeID, 0, tmdbEp2.TmdbEpisodeID, 0, MatchRating.TitleMatches);
-        var xrefEp2 = new CrossRef_AniDB_TMDB_Episode(anidbEp2.EpisodeID, 0, tmdbEp1.TmdbEpisodeID, 0, MatchRating.FirstAvailable);
-        var toAdd = new List<CrossRef_AniDB_TMDB_Episode> { xrefEp1, xrefEp2 };
-
-        TmdbLinkingService.ReconcileEpisodeOrderInversions(anidbEpisodes, tmdbEpisodeDict, toAdd);
-
-        Assert.Equal(tmdbEp2.TmdbEpisodeID, xrefEp1.TmdbEpisodeID);
-        Assert.Equal(tmdbEp1.TmdbEpisodeID, xrefEp2.TmdbEpisodeID);
-    }
-
-    // A single left-to-right adjacent-swap pass only bubbles one inversion per pass — a full
-    // 3-episode reversal (AniDB 1,2,3 -> TMDB 3,2,1) needs two passes to fully sort. Confirms the
-    // reconciliation loops until stable rather than stopping after one pass.
-    [Fact]
-    public void ReconcileEpisodeOrderInversions_FullyUntangles_ThreeEpisodeReversal()
-    {
-        var anidbEpisodes = new Dictionary<int, AniDB_Episode>
-        {
-            [1] = new() { EpisodeID = 1, EpisodeNumber = 1, EpisodeType = EpisodeType.Episode },
-            [2] = new() { EpisodeID = 2, EpisodeNumber = 2, EpisodeType = EpisodeType.Episode },
-            [3] = new() { EpisodeID = 3, EpisodeNumber = 3, EpisodeType = EpisodeType.Episode },
-        };
-
-        var tmdbEpisodeDict = new Dictionary<int, TMDB_Episode>
-        {
-            [101] = new() { TmdbEpisodeID = 101, SeasonNumber = 1, EpisodeNumber = 1 },
-            [102] = new() { TmdbEpisodeID = 102, SeasonNumber = 1, EpisodeNumber = 2 },
-            [103] = new() { TmdbEpisodeID = 103, SeasonNumber = 1, EpisodeNumber = 3 },
-        };
-
-        var xrefEp1 = new CrossRef_AniDB_TMDB_Episode(1, 0, 103, 0, MatchRating.FirstAvailable);
-        var xrefEp2 = new CrossRef_AniDB_TMDB_Episode(2, 0, 102, 0, MatchRating.DateMatches);
-        var xrefEp3 = new CrossRef_AniDB_TMDB_Episode(3, 0, 101, 0, MatchRating.FirstAvailable);
-        var toAdd = new List<CrossRef_AniDB_TMDB_Episode> { xrefEp1, xrefEp2, xrefEp3 };
-
-        TmdbLinkingService.ReconcileEpisodeOrderInversions(anidbEpisodes, tmdbEpisodeDict, toAdd);
-
-        Assert.Equal(101, xrefEp1.TmdbEpisodeID);
-        Assert.Equal(102, xrefEp2.TmdbEpisodeID);
-        Assert.Equal(103, xrefEp3.TmdbEpisodeID);
-    }
-
-    // Specials and normal episodes are matched independently and should never be reconciled
-    // against each other even if their AniDB episode numbers happen to collide (e.g. Special 1
-    // and Episode 1).
-    [Fact]
-    public void ReconcileEpisodeOrderInversions_DoesNotCrossEpisodeTypeBoundary()
-    {
-        var anidbEpisodes = new Dictionary<int, AniDB_Episode>
-        {
-            [1] = new() { EpisodeID = 1, EpisodeNumber = 1, EpisodeType = EpisodeType.Episode },
-            [2] = new() { EpisodeID = 2, EpisodeNumber = 1, EpisodeType = EpisodeType.Special },
-        };
-
-        var tmdbEpisodeDict = new Dictionary<int, TMDB_Episode>
-        {
-            [101] = new() { TmdbEpisodeID = 101, SeasonNumber = 1, EpisodeNumber = 2 },
-            [102] = new() { TmdbEpisodeID = 102, SeasonNumber = 0, EpisodeNumber = 1 },
-        };
-
-        var xrefEpisode = new CrossRef_AniDB_TMDB_Episode(1, 0, 101, 0, MatchRating.FirstAvailable);
-        var xrefSpecial = new CrossRef_AniDB_TMDB_Episode(2, 0, 102, 0, MatchRating.FirstAvailable);
-        var toAdd = new List<CrossRef_AniDB_TMDB_Episode> { xrefEpisode, xrefSpecial };
-
-        TmdbLinkingService.ReconcileEpisodeOrderInversions(anidbEpisodes, tmdbEpisodeDict, toAdd);
-
-        Assert.Equal(101, xrefEpisode.TmdbEpisodeID);
-        Assert.Equal(102, xrefSpecial.TmdbEpisodeID);
-    }
-
-    // GetAllTitles() normally hits RepoFactory; seeding the private cache field directly keeps this
-    // a pure unit test instead of requiring a repository/DB fixture.
-    private static void SeedTitles(TMDB_Episode episode, params TMDB_Title[] titles)
-    {
-        var field = typeof(TMDB_Episode).GetField("_allTitles", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
-        field.SetValue(episode, titles);
-    }
-
-    private static IReadOnlyList<string> GetEpisodeTitleCandidates(TMDB_Episode episode, string originalLanguageCode)
-    {
-        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
-        var method = typeof(TmdbLinkingService).GetMethod("GetEpisodeTitleCandidates", flags)!;
-        return (IReadOnlyList<string>)method.Invoke(null, [episode, originalLanguageCode])!;
-    }
-
-    // Reproduces the non-English matching feature: a Japanese-original show's episode should be
-    // searchable by its en-US or ja title, but not by unrelated-language titles TMDB also stores.
-    [Fact]
-    public void GetEpisodeTitleCandidates_IncludesEnglishAndOriginalLanguage_ExcludesOthers()
-    {
-        var episode = new TMDB_Episode { TmdbEpisodeID = 1, EpisodeNumber = 3 };
-        SeedTitles(episode,
-            new(DataEntityType.Episode, 1, "The Lost Village", "en", "US"),
-            new(DataEntityType.Episode, 1, "失われた村", "ja", ""),
-            new(DataEntityType.Episode, 1, "失去的村子", "zh", "CN"));
-
-        var candidates = GetEpisodeTitleCandidates(episode, "ja");
-
-        Assert.Contains("The Lost Village", candidates);
-        Assert.Contains("失われた村", candidates);
-        Assert.DoesNotContain("失去的村子", candidates);
-    }
-
-    // TMDB stores the "Episode N" placeholder per-language (not just in English), so it must be
-    // excluded from every language's candidates, not just en-US.
-    [Fact]
-    public void GetEpisodeTitleCandidates_ExcludesPlaceholderInEveryLanguage()
-    {
-        var episode = new TMDB_Episode { TmdbEpisodeID = 2, EpisodeNumber = 3 };
-        SeedTitles(episode,
-            new(DataEntityType.Episode, 2, "Episode 3", "en", "US"),
-            new(DataEntityType.Episode, 2, "Episode 3", "ja", ""));
-
-        var candidates = GetEpisodeTitleCandidates(episode, "ja");
-
-        Assert.Empty(candidates);
-    }
-
-    private static bool TryNearestAirDateMatch(AniDB_Episode anidbEpisode, List<(TMDB_Episode episode, int distance)> nearestAirdate, out CrossRef_AniDB_TMDB_Episode crossRef, out double confidence)
-    {
-        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
-        var method = typeof(TmdbLinkingService).GetMethod("TryNearestAirDateMatch", flags)!;
-        var args = new object?[] { anidbEpisode, nearestAirdate, null, 0d };
-        var result = (bool)method.Invoke(null, args)!;
-        crossRef = (CrossRef_AniDB_TMDB_Episode)args[2]!;
-        confidence = (double)args[3]!;
-        return result;
-    }
-
-    // Reproduces "The Elusive Samurai" S2: AniDB episode 2 has no TMDB entry within ±2 days (TMDB
-    // simply hasn't listed it yet), so the strict air-date pass finds nothing. Previously this fell
-    // straight to a blind positional "first available" guess (grabbing whatever TMDB episode was next
-    // in the list, e.g. episode 5's slot); the nearest-date fallback should instead pick the episode
-    // whose air date is actually closest, even though it's outside the strict window.
-    [Fact]
-    public void TryNearestAirDateMatch_PicksClosestCandidate_OutsideStrictWindow()
-    {
-        var anidbEpisode = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 2, EpisodeType = EpisodeType.Episode };
-        var farEpisode = new TMDB_Episode { TmdbEpisodeID = 201, TmdbShowID = 1, SeasonNumber = 2, EpisodeNumber = 2 };
-        var nearEpisode = new TMDB_Episode { TmdbEpisodeID = 202, TmdbShowID = 1, SeasonNumber = 2, EpisodeNumber = 3 };
-        var nearestAirdate = new List<(TMDB_Episode episode, int distance)> { (nearEpisode, 5), (farEpisode, 20) };
-
-        var found = TryNearestAirDateMatch(anidbEpisode, nearestAirdate, out var crossRef, out var confidence);
-
-        Assert.True(found);
-        Assert.Equal(nearEpisode.TmdbEpisodeID, crossRef.TmdbEpisodeID);
-        Assert.Equal(MatchRating.DateKindaMatches, crossRef.MatchRating);
-        Assert.True(confidence > 0);
+        // Linking a series matches its episodes by itself, so they are not
+        // matched a second time.
+        linking.Verify(l => l.MatchEpisodes(
+            It.IsAny<int>(),
+            It.IsAny<MetadataGuid>(),
+            It.IsAny<MetadataGuid?>(),
+            It.IsAny<bool>(),
+            It.IsAny<bool>(),
+            It.IsAny<bool?>(),
+            It.IsAny<CancellationToken>()
+        ), Times.Never);
     }
 
     [Fact]
-    public void TryNearestAirDateMatch_ReturnsFalse_WhenNoCandidates()
+    public async Task RemovingAShowByHandTellsTmdbToLeaveTheAnimeAlone()
     {
-        var anidbEpisode = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 2, EpisodeType = EpisodeType.Episode };
+        var (service, linking, _) = Build();
 
-        var found = TryNearestAirDateMatch(anidbEpisode, [], out _, out var confidence);
+        await service.RemoveShowLink(AnimeID, 5, purge: true);
+        await service.RemoveAllShowLinksForAnime(AnimeID, purge: true);
 
-        Assert.False(found);
-        Assert.Equal(0, confidence);
+        linking.Verify(l => l.RemoveSeriesLink(
+            It.Is<MetadataSeriesLinkRequest>(request => request.ProviderID == Show && request.Purge && request.DisableAutoLinking),
+            It.IsAny<CancellationToken>()
+        ), Times.Once);
+        linking.Verify(
+            l => l.RemoveLinksForAnime(MetadataSource.TMDB, AnimeID, MetadataEntityType.Series, true, true, It.IsAny<CancellationToken>()),
+            Times.Once
+        );
     }
 
-    private static CrossRef_AniDB_TMDB_Episode SelectBestEpisodeMatch(
-        AniDB_Episode anidbEpisode,
-        IReadOnlyList<TMDB_Episode> tmdbEpisodes,
-        bool isSpecial,
-        List<(TMDB_Episode episode, int distance)> nearestAirdate,
-        out double confidence)
-    {
-        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static;
-        var method = typeof(TmdbLinkingService).GetMethod("SelectBestEpisodeMatch", flags)!;
-        var args = new object?[]
-        {
-            anidbEpisode, tmdbEpisodes, isSpecial, new List<Shoko.Server.Utilities.SeriesSearch.SearchResult<TMDB_Episode>>(),
-            new List<(TMDB_Episode episode, double probability)>(), nearestAirdate, 0d,
-        };
-        var result = (CrossRef_AniDB_TMDB_Episode)method.Invoke(null, args)!;
-        confidence = (double)args[6]!;
-        return result;
-    }
+    #endregion
 
-    // Guards the fix for specials being auto-linked purely on loose (up to 120-day) air-date
-    // proximity with zero title corroboration — unlike a normal episode, a special with no strict
-    // date/title match should fall all the way through to an empty (unmatched) link rather than
-    // grabbing whatever TMDB episode happens to be nearest in air date.
+    #region Movies
+
     [Fact]
-    public void SelectBestEpisodeMatch_DoesNotUseLooseAirDateFallback_ForSpecials()
+    public async Task AMovieLinkNamesTheEpisodesAnime()
     {
-        var anidbEpisode = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 1, EpisodeType = EpisodeType.Special };
-        var nearEpisode = new TMDB_Episode { TmdbEpisodeID = 202, TmdbShowID = 1, SeasonNumber = 0, EpisodeNumber = 1 };
-        var nearestAirdate = new List<(TMDB_Episode episode, int distance)> { (nearEpisode, 5) };
+        var (service, linking, _) = Build();
 
-        var crossRef = SelectBestEpisodeMatch(anidbEpisode, [nearEpisode], isSpecial: true, nearestAirdate, out var confidence);
+        await service.AddMovieLinkForEpisode(EpisodeID, 7, additiveLink: true);
 
-        Assert.Equal(0, crossRef.TmdbEpisodeID);
-        Assert.Equal(MatchRating.None, crossRef.MatchRating);
-        Assert.Equal(0, confidence);
+        linking.Verify(l => l.AddMovieLink(
+            It.Is<MetadataEpisodeLinkRequest>(request =>
+                request.ProviderID == Movie &&
+                request.AnidbEpisodeID == EpisodeID &&
+                request.AnidbAnimeID == AnimeID &&
+                request.Additive),
+            It.IsAny<CancellationToken>()
+        ), Times.Once);
     }
 
-    // Same setup as above but for a normal episode, where the loose air-date fallback should still
-    // apply — confirms the isSpecial gate doesn't accidentally suppress it for non-specials too.
     [Fact]
-    public void SelectBestEpisodeMatch_UsesLooseAirDateFallback_ForNonSpecials()
+    public async Task AMovieLinkForAnUnknownEpisodeIsNotMade()
     {
-        var anidbEpisode = new AniDB_Episode { EpisodeID = 2, EpisodeNumber = 2, EpisodeType = EpisodeType.Episode };
-        var nearEpisode = new TMDB_Episode { TmdbEpisodeID = 202, TmdbShowID = 1, SeasonNumber = 2, EpisodeNumber = 3 };
-        var nearestAirdate = new List<(TMDB_Episode episode, int distance)> { (nearEpisode, 5) };
+        var (service, linking, _) = Build();
 
-        var crossRef = SelectBestEpisodeMatch(anidbEpisode, [nearEpisode], isSpecial: false, nearestAirdate, out var confidence);
+        await service.AddMovieLinkForEpisode(999, 7);
 
-        Assert.Equal(nearEpisode.TmdbEpisodeID, crossRef.TmdbEpisodeID);
-        Assert.Equal(MatchRating.DateKindaMatches, crossRef.MatchRating);
-        Assert.True(confidence > 0);
+        linking.Verify(l => l.AddMovieLink(It.IsAny<MetadataEpisodeLinkRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    #endregion
+
+    #region Episodes
+
+    [Fact]
+    public void AnEmptyEpisodeLinkReplacesTheRest()
+    {
+        var (service, linking, _) = Build();
+
+        Assert.True(service.SetEpisodeLink(EpisodeID, 0, additiveLink: true));
+
+        linking.Verify(l => l.SetEpisodeLink(MetadataSource.TMDB, EpisodeID, null, false, null, null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void AnEpisodeTmdbDoesNotHoldIsNotLinked()
+    {
+        var (service, linking, _) = Build();
+
+        Assert.False(service.SetEpisodeLink(EpisodeID, 42));
+
+        linking.Verify(l => l.SetEpisodeLink(
+            It.IsAny<MetadataSource>(),
+            It.IsAny<int>(),
+            It.IsAny<MetadataGuid?>(),
+            It.IsAny<bool>(),
+            It.IsAny<int?>(),
+            It.IsAny<MetadataGuid?>(),
+            It.IsAny<CancellationToken>()
+        ), Times.Never);
+    }
+
+    [Fact]
+    public void AStoredEpisodeIsLinkedAtItsPlace()
+    {
+        var (service, linking, metadata) = Build();
+        var episodeID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Episode, "42");
+        metadata.Setup(m => m.GetEpisode(episodeID)).Returns(Mock.Of<IEpisode>());
+
+        Assert.True(service.SetEpisodeLink(EpisodeID, 42, additiveLink: true, index: 2));
+
+        linking.Verify(l => l.SetEpisodeLink(MetadataSource.TMDB, EpisodeID, episodeID, true, 2, null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void MatchesComeBackAsTmdbLinks()
+    {
+        var (service, linking, _) = Build();
+        var season = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Season, "9");
+        IReadOnlyList<IMetadataEpisodeCrossReference> rows =
+        [
+            new CrossRef_AniDB_Metadata_Episode
+            {
+                Source = MetadataSource.TMDB,
+                AnidbAnimeID = AnimeID,
+                AnidbEpisodeID = EpisodeID,
+                ProviderID = "42",
+                ProviderParentID = "5",
+                Ordering = 1,
+                MatchRating = MatchRating.DateMatches,
+            },
+        ];
+        linking.Setup(l => l.MatchEpisodes(AnimeID, Show, season, true, false, false, It.IsAny<CancellationToken>())).ReturnsAsync(rows);
+
+        var links = service.MatchAnidbToTmdbEpisodes(AnimeID, 5, 9, useExisting: true, saveToDatabase: false, useExistingOtherShows: false);
+
+        var link = Assert.Single(links);
+        Assert.Equal("42", link.ProviderID?.ID);
+        Assert.Equal("5", link.ProviderParentID?.ID);
+        Assert.Equal(1, link.Ordering);
+        Assert.Equal(MatchRating.DateMatches, link.MatchRating);
+    }
+
+    #endregion
 }

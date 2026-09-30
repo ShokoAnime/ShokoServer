@@ -18,6 +18,9 @@ public class TMDB_Show_Cast : TMDB_Cast, ICast<ISeries>
     /// <inheritdoc/>
     public override int TmdbParentID => TmdbShowID;
 
+    /// <inheritdoc/>
+    public override MetadataEntityType ParentType => MetadataEntityType.Series;
+
     /// <summary>
     /// Number of episodes within this show the cast member have worked on.
     /// </summary>
@@ -35,7 +38,7 @@ public class TMDB_Show_Cast : TMDB_Cast, ICast<ISeries>
     public TMDB_Show? GetTmdbShow() =>
         RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
-    public override IMetadata<int>? GetTmdbParent() =>
+    public override IMetadata? GetTmdbParent() =>
         GetTmdbShow();
 
     #endregion

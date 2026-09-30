@@ -1,5 +1,4 @@
 using System;
-using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata.Image.Exceptions;
 
@@ -12,5 +11,5 @@ public class MissingImageSourceTemplateUrlException : Exception
     /// <summary>
     ///    The image source missing an url template to use.
     /// </summary>
-    public required DataSource ImageSource { get; init; }
+    public required MetadataSource ImageSource { get; init; }
 }

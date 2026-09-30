@@ -31,12 +31,16 @@ public interface IStreamRenditionResources
     Task<StreamDescription> DescribeAsync(VideoStreamTransformContext context, CancellationToken cancellationToken);
 
     /// <summary>
-    ///   Opens a resource of the rendition. Implementations should wait for a
-    ///   resource that is still being produced rather than failing; the core
-    ///   cancels the request after its configured segment timeout.
+    ///   Opens a resource of the rendition. For a resource that is still being
+    ///   produced, throw <see cref="StreamResourceNotReadyException"/> so the
+    ///   player retries, or wait for it; the core cancels a wait after its
+    ///   configured segment timeout and answers <c>504</c>.
     /// </summary>
     /// <param name="request">The requested resource.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
-    /// <returns>The resource, or <c>null</c> if the rendition has no resource at that path.</returns>
+    /// <returns>The resource, or <c>null</c> if the rendition has no resource at that path (<c>404</c>).</returns>
+    /// <exception cref="StreamResourceNotFoundException">The resource does not exist; the core answers <c>404</c> with the reason.</exception>
+    /// <exception cref="StreamResourceUnsupportedException">The request cannot be served; the core answers <c>400</c> with the reason.</exception>
+    /// <exception cref="StreamResourceNotReadyException">The resource is not ready yet; the core answers <c>503</c> with the reason and any <c>Retry-After</c>.</exception>
     Task<StreamResource?> OpenResourceAsync(StreamResourceRequest request, CancellationToken cancellationToken);
 }

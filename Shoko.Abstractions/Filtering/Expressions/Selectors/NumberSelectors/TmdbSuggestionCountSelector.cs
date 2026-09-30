@@ -1,12 +1,20 @@
 using System;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Selectors.NumberSelectors;
 
 /// <summary>
 /// This returns the number of suggestions TMDB makes for a filterable. Counts what the filterable suggests, not what suggests it.
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="SourceSuggestionCountSelector"/>, which it
+/// evaluates with the tmdb source. Kept under its own name so saved filters
+/// read the same.
+/// </remarks>
 public class TmdbSuggestionCountSelector : FilterExpression<double>
 {
+    private static readonly SourceSuggestionCountSelector _tmdb = new(MetadataSource.TMDB.Value);
+
     /// <inheritdoc/>
     public override string HelpDescription => "This returns the number of suggestions TMDB makes for a filterable";
 
@@ -16,7 +24,7 @@ public class TmdbSuggestionCountSelector : FilterExpression<double>
     /// <inheritdoc/>
     public override double Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.TmdbSuggestions;
+        return _tmdb.Evaluate(filterable, userInfo, time);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

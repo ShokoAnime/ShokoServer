@@ -18,7 +18,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -35,7 +34,7 @@ public class ReleaseManagementController(
     AnimeSeriesRepository animeSeries,
     VideoLocalRepository videoLocals,
     VideoLocal_PlaceRepository videoLocalPlaces,
-    AniDB_Anime_TitleRepository anidbTitles,
+    AnidbTitleSearch anidbTitles,
     VideoReleaseGroupingService grouper,
     ReleaseComparisonService comparer,
     ReleaseAutoManagementService autoManagement,
@@ -72,7 +71,7 @@ public class ReleaseManagementController(
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : AniDB_Anime_TitleRepository.NormalizeForSearch(search);
+        var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : AnidbTitleSearch.NormalizeForSearch(search);
 
         // A series can only have more than one release candidate if some episode has more
         // than one distinct, currently-existing video file — computed once via a single pass
@@ -508,7 +507,7 @@ public class ReleaseManagementController(
         // variation that covers an episode a real candidate also covers should still be visible —
         // see ReleaseCandidate.DisplayOnlyFile. Only worth computing when the caller didn't already
         // fold variations into the main pipeline via includeVariations=true.
-        IReadOnlyList<ReleaseCandidate.DisplayOnlyFile> variationDisplayFiles = includeVariations
+        var variationDisplayFiles = includeVariations
             ? []
             : GetVariationDisplayFiles(series);
 

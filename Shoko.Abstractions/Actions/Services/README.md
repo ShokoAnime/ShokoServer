@@ -1,17 +1,20 @@
 # Executable Actions
 
 An action is a discrete, invokable unit of work with a name, a category and a
-permission level: "Run Import", "Sync MyList", "Refresh this series from TMDB".
+permission level: "Auto-Search Metadata Links" on a series, "Sync Votes (Export)".
 Core registers a few dozen of them, and a plugin can register its own. They are
 listed through the API, rendered as buttons in the WebUI, and always executed
 through the job queue.
 
-This folder is unusual among the service folders in being **both** sides at once:
+Work that runs on its own, on triggers the admin sets, is not an action but a
+[scheduled action](../../ScheduledActions/Services/README.md): global, with no
+caller, no parameters and no permission level, run and scheduled by admins
+only. "Run Import" and "Sync AniDB MyList" are scheduled actions.
 
-- `IExecutableAction` and the four scoped base classes are an **extension
-  point**. You implement them.
-- `IActionService` is a **consumption surface**. You inject it to list and invoke
-  actions, your own or anyone else's.
+This folder is both sides at once: `IExecutableAction` and the four scoped base
+classes are an **extension point** you implement, and `IActionService` is the
+**consumption surface** you inject to list and invoke actions, yours or anyone
+else's.
 
 ---
 
@@ -44,61 +47,47 @@ public class PurgeMyCacheAction(MyCache cache, ILogger<PurgeMyCacheAction> logge
 }
 ```
 
-That is all. **There is nothing to register in DI.** `PluginManager` collects
-every public, non-abstract class in your plugin's main assembly assignable to
-`IExecutableAction`, registers each one as a **transient** service, and hands
-the list to the action service during startup. An `internal` action, or one in
-a second assembly your plugin ships, is never found, and nothing says so.
+**There is nothing to register in DI.** Every public, non-abstract class in
+your plugin's main assembly that implements `IExecutableAction` is registered
+as a **transient** service and handed to the action service at startup. An
+`internal` action, or one in a second assembly, is never found, and nothing
+says so.
 
-Note that this uses `GetTypes<IExecutableAction>()`, not `GetExports<T>()`, so the
-three-branch singleton rule in [the main README](../../README.md) does not apply
-here. If anything the guidance inverts: an action is resolved fresh for each
-validation and each execution, and registering one as a singleton yourself would
-break that. Dependencies your action takes in its constructor still resolve
-normally, so put the long-lived state in a singleton service and let the action
-be a thin shell over it.
+This is `GetTypes<T>()`, not `GetExports<T>()`, so the singleton rule in
+[the main README](../../README.md#the-three-branch-registration-rule) does not
+apply. An action is resolved fresh for each validation and each execution; keep
+long-lived state in a singleton service and let the action be a thin shell over
+it.
 
-Only the execution resolves from a job's container. The probe the action
-service takes at startup, and the instance each `Validate` runs on, come from
-the root container. That has two consequences. An action that implements
-`IDisposable` is held by the root until shutdown, once for startup and once
-more per validation, so don't give an action anything to dispose; keep it on
-the singleton. And a scoped service in the constructor is resolved from the
-root as well, where it either throws or lives for the rest of the process.
+Only the execution resolves from a job's container. The startup probe and each
+`Validate` instance come from the root container, so an `IDisposable` action is
+held by the root until shutdown, and a scoped constructor dependency either
+throws or lives for the rest of the process. Give an action nothing to dispose
+and no scoped dependencies.
 
 ### Two mistakes that fail at startup
 
 Both throw `InvalidOperationException` while the action service takes the
-discovered actions during startup. That happens inside plugin initialisation,
-so the exception takes the whole server's startup down with it, not just your
-plugin: loud rather than subtle.
+discovered actions, which fails the whole server's startup, not just your
+plugin.
 
-**Declare `Permission` on the action class itself.** There is deliberately no
-default, and the registry checks that the getter's declaring type is the action
-type. Inheriting it from your own intermediate base class, or leaning on an
-interface default, is rejected. Every action states its permission in its own
-source file, where a reviewer will see it.
+**Declare `Permission` on the action class itself.** There is no default: a
+getter inherited from a base class or an interface default is rejected, so
+every action states its permission in its own source file.
 
 **Derive scoped actions directly from the four base classes.** The check is on
-the action's immediate base type, so `MyAction : MyBaseAction : SeriesAction` is
-rejected the same way an unrelated type would be. Share code between scoped
-actions through a helper service, not an intermediate base class. (`IScopedAction`
-itself is internal to `Shoko.Abstractions`, so a plugin can't implement it
-directly anyway.)
+the immediate base type, so `MyAction : MyBaseAction : SeriesAction` is
+rejected. Share code through a helper service instead. (`IScopedAction` is
+internal to `Shoko.Abstractions`, so a plugin cannot implement it directly.)
 
 ### Action IDs change when you rename the class
 
-An action's ID is a UUIDv5 derived from the action class's **fully-qualified
-name**, with the owning plugin's ID as the namespace. That makes collisions
-between unrelated plugins effectively impossible without asking anyone to manage
-an explicit key.
+An action's ID is a UUIDv5 of the action class's **fully-qualified name**,
+namespaced by the owning plugin's ID. It is **not stable across a class rename
+or a namespace move**: a saved shortcut, a script or another plugin holding the
+old ID stops resolving. Treat the class's full name as public surface.
 
-The cost is that the ID is **not stable across a class rename or a namespace
-move**. Anything holding the old ID, a saved shortcut, a script hitting
-`/api/v3`, another plugin, stops resolving. Treat the class's full name as part
-of your public surface and rename with the same care.
-
-To get the ID of one of your own actions, ask for it by type with
+Get the ID of one of your own actions with
 `IActionService.GetActionInfo<TAction>()` rather than deriving it yourself.
 
 ---
@@ -127,13 +116,11 @@ public class RefreshFromMySourceAction(MyClient client) : SeriesAction
 }
 ```
 
-The entity is populated by the framework before `Validate` and `Execute` run, so
-it is non-null by the time your code sees it.
+The entity is set before `Validate` and `Execute` run.
 
-Scope is a property of the action type, not of the particular entity. Which
-actions exist for a series does not vary from one series to the next, so listings
-are filtered by scope and never by entity. If your action only applies to *some*
-series, say so from `Validate` rather than trying to hide it from the list.
+Scope is a property of the action type, not of the entity: listings are
+filtered by scope, never by entity. If your action only applies to *some*
+series, say so from `Validate`.
 
 ---
 
@@ -153,10 +140,40 @@ public class ExportMyListAction : IExecutableAction, IActionCaller
 }
 ```
 
-The catch: an action implementing `IActionCaller` **requires** a caller.
-A trusted programmatic invocation that passes `caller: null` is rejected with
-"The action 'X' requires a calling user." rather than running without one. If
-your action can work either way, do not implement the interface.
+An action implementing `IActionCaller` **requires** a caller: an invocation
+with `caller: null` is rejected ("The action 'X' requires a calling user.")
+rather than run without one. If your action can work either way, do not
+implement the interface.
+
+---
+
+## Reporting progress
+
+Implement `IProgressReportingAction` to show how far a long action is on its
+queue job:
+
+```csharp
+public class RefreshEverythingAction(MyClient client) : IExecutableAction, IProgressReportingAction
+{
+    private IProgress<decimal> _progress = null!;
+
+    public void SetProgress(IProgress<decimal> progress) => _progress = progress;
+
+    public async Task Execute(CancellationToken token = default)
+    {
+        var items = await client.ListAsync(token);
+        _progress.Report(0);
+        for (var i = 0; i < items.Count; i++)
+        {
+            await client.RefreshAsync(items[i], token);
+            _progress.Report(100m * (i + 1) / items.Count);
+        }
+    }
+}
+```
+
+The value is a percentage from 0 to 100, kept in memory only. The job shows no
+progress until the action first reports.
 
 ---
 
@@ -180,47 +197,35 @@ Every invocation, from the API or from a plugin, follows the same sequence:
    it, and awaits `Validate` a second time. A rejection here is not a failure:
    the job logs the reason and completes without running, and without spending
    its retry budget rediscovering a condition that is not going to change back.
-6. **Execute.** Only then is `Execute` awaited, on that same second instance.
+6. **Execute.** Only then is `Execute` awaited, on that same second instance,
+   after an `IProgressReportingAction` is handed its progress reporter.
 
-Consequences worth internalising:
+What follows from that:
 
-- **`Validate` runs twice, on two different instances, and the second answer is
-  the one that decides.** The first runs on the request thread so a caller gets
-  a 400 instead of a job that was never going to work; the second runs in the
-  queue, where the state has moved on. A queue can be hours deep, and what
-  actions check — a provider still being enabled, a file still having a
-  location, a user still being linked — is exactly what changes in that time.
-  Write `Validate` so it can be asked twice: cheap, side-effect free, and
-  truthful about the present rather than about when it was queued.
-- **The instance that validated is not the instance that executes.** Anything
-  the first `Validate` computes is thrown away. Do the work again in `Execute`,
-  or keep it in an injected singleton.
-- **`Validate` runs on the request thread and `Execute` does not.** `Validate`
-  should be a cheap precondition check, not the work, and its token is the API
-  request's.
-- **`Execute`'s token is the worker pool's, so it only fires on shutdown.**
-  `ActionExecutionJob` passes the token of the pool running it, taken from
-  `IJobCancellationAccessor`. It is cancelled when that pool stops, which means
-  server shutdown or an explicit queue stop, and at no other time. There is no
-  way to cancel one running action, so an action that polls the token expecting
-  a user to be able to stop it will wait forever. Honour it anyway, so a long
-  action does not hold up shutdown, and keep `Execute` short enough that the
-  difference does not matter. Note nothing kills a running action either: the
-  pool waits for in-flight work to finish, and the token only lets a polite
-  action cut its own work short.
-- **There is no result hook.** An action reports what it did by logging, the same
-  as every other queue job. Exceptions out of `Execute` are caught by the worker
-  and recorded as a job failure.
-- **Nothing constrains how many actions run at once, and you cannot change
-  that.** The queue's `[LimitConcurrency]`, `[DisallowConcurrentExecution]` and
-  `[DisallowConcurrencyGroup]` attributes are read only off registered
-  `IQueueJob` types. An action is not one: every action runs inside the single
-  wrapper job `ActionExecutionJob`, which carries no concurrency attributes at
-  all, so an attribute you put on your own action class is never looked at.
-  Every action in the server shares that one job's unconstrained pool, which
-  also means two invocations of *your* action can overlap, as can your action
-  and someone else's. If your action is long-running or not reentrant, guard it
-  yourself, with a lock or a semaphore on an injected singleton.
+- **`Validate` runs twice, on two instances, and the second answer decides.**
+  The first gives the caller a 400 instead of a doomed job; the second runs when
+  the job reaches the front of the queue, possibly hours later, when what
+  actions check (a provider still enabled, a file still having a location) may
+  have changed. Keep `Validate` cheap, side-effect free and truthful about the
+  present. Its first run gets the API request's token.
+- **The instance that validated is not the one that executes.** Anything the
+  first `Validate` computes is thrown away.
+- **`Execute`'s token is the queue job's.** It is cancelled when a user cancels
+  the running action, and when its pool stops (shutdown or a queue stop). Throw
+  `OperationCanceledException` (`token.ThrowIfCancellationRequested()`) to stop:
+  after a user cancel the action ends as cancelled and is not retried, after a
+  shutdown it goes back in the queue. Nothing kills a running action; until it
+  notices, the queue shows it as cancellation requested.
+- **`Execute` runs for whoever invoked it.** The job carries the invoking API
+  token as its actor, so events the action raises name that caller (see
+  [`IActorContext`](../../User/Services/README.md#iactorcontext-who-did-it)).
+- **There is no result hook.** An action reports by logging. An exception out of
+  `Execute` is recorded as a job failure.
+- **Nothing limits how many actions run at once.** Every action runs inside the
+  one wrapper job `ActionExecutionJob`, which has no concurrency attributes, and
+  attributes on your own action class are never read. Two invocations of your
+  action can overlap; if it is not reentrant, guard it with a lock or semaphore
+  on an injected singleton.
 
 ---
 
@@ -229,21 +234,24 @@ Consequences worth internalising:
 Inject it as a DI singleton.
 
 ```csharp
-public class MyService(IActionService actionService)
+public class MyService(IActionService actionService, ILogger<MyService> logger)
 {
-    public async Task RunIt()
+    public async Task RunIt(IShokoSeries series)
     {
-        var info = actionService.GetActions(ActionScope.Global)
-            .FirstOrDefault(a => a.Name == "Run Import");
+        var info = actionService.GetActions(ActionScope.Series)
+            .FirstOrDefault(a => a.Name == "Auto-Search Metadata Links");
         if (info is null)
             return;
 
         // null caller: a trusted in-process call, permission check skipped.
-        if (await actionService.InvokeAsync(info.Id) is { } rejected)
+        if (await actionService.InvokeAsync(info.ID, series) is { } rejected)
             logger.LogWarning("Refused: {Reason}", rejected.Reason);
     }
 }
 ```
+
+A scheduled action, as "Run Import", is not listed here; run it through
+`IScheduledActionService.InvokeAsync` instead.
 
 | Member | Notes |
 |---|---|
@@ -252,17 +260,15 @@ public class MyService(IActionService actionService)
 | `GetActionInfo<TAction>()` / `GetActionInfo(Type)` | The same, by action type. `null` when the type is not a registered action. |
 | `InvokeAsync(...)` | One overload per scope, each with a `parameters` variant. |
 
-**The return value reads backwards from the usual convention.** `null` means
-accepted and queued. A non-null `ActionValidationResult` means refused, and
-`Reason` says why. An **unregistered action ID throws `KeyNotFoundException`**
-rather than returning a rejection, so check with `GetActionInfo` first if the ID
-came from somewhere you do not control.
+**`null` means accepted and queued.** A non-null `ActionValidationResult`
+means refused, with `Reason` saying why. An **unregistered action ID throws
+`KeyNotFoundException`**, so check with `GetActionInfo` first when the ID came
+from somewhere you do not control.
 
-`ExecutableActionInfo` is the whole of what a plugin sees: `Id`, `Name`,
-`Description`, `Category`, `CategoryName`, `IsPrimaryAction`, `Scope`,
-`Permission`, `RequiresConfirmation`, `ConfirmationMessage` and `PluginId`. The
-concrete action
-type stays inside the server on purpose, so you invoke by ID rather than by type.
+`ExecutableActionInfo` carries `ID`, `Name`, `Description`, `Category`,
+`CategoryName`, `IsPrimaryAction`, `Scope`, `Permission`,
+`RequiresConfirmation`, `ConfirmationMessage` and `PluginId`. The concrete
+action type stays inside the server, so you invoke by ID.
 
 ### Invocation parameters
 
@@ -285,34 +291,26 @@ await actionService.InvokeAsync(id, new Dictionary<string, object?>
 });
 ```
 
-Booleans, numbers and string lists are supported; nested objects are not. Names
-with no matching property are ignored silently, so a typo in a key looks exactly
-like everything working. Both the validation probe and the executing instance are
-populated, so `Validate` sees what `Execute` will see rather than the compiled-in
-defaults.
+Booleans, numbers and string lists are supported; nested objects are not. A
+name with no matching property is ignored silently, typos included. Both the
+validation probe and the executing instance are populated, so `Validate` sees
+what `Execute` will.
 
 ### Asking without running
 
-`ValidateAsync` runs everything `InvokeAsync` does before it queues — scope,
-permission, and the action's own `Validate` — and queues nothing:
+`ValidateAsync` runs everything `InvokeAsync` does before it queues (scope,
+permission and the action's own `Validate`) and queues nothing. Pass the
+parameters the invocation would carry, since `Validate` sees them:
 
 ```csharp
 var refusal = await actionService.ValidateAsync(actionId, series, caller: user);
 ```
 
-`null` means it would be accepted. This is how a client greys out an action it
-would otherwise only learn about by invoking it and reading the rejection.
-For a list, loop it — validation is advisory, so asking once per entity loses
-nothing that asking in one call would have kept.
+`null` means it would be accepted, which is how a client greys out an action.
+For a list, call it once per entity.
 
-⚠️ **The answer is advisory.** Nothing holds still between asking and invoking,
-so an invocation can still be refused for a reason that was not true a moment
-earlier. Invoke and handle the rejection; do not treat a clean validation as
-permission to skip that.
-
-Validating a *parameter payload* is a separate question and a separate method,
-`ValidateParameters`, which checks a document against the action's parameter
-schema. `ValidateAsync` takes parameters that are already a typed dictionary.
+**The answer is advisory.** An invocation can still be refused for a reason that
+was not true a moment earlier, so handle the rejection anyway.
 
 ### Applying one action to many entities
 
@@ -323,69 +321,50 @@ and queues the action **for all of them or for none**:
 await actionService.InvokeBulkAsync(actionId, selectedSeries, caller: user);
 ```
 
-Every entry is validated first, and the action is queued for all of them only if
-all of them passed. A set containing one entry the action refuses therefore
-changes nothing, which is the point: a caller applying an action to a selection
-wants to fix the selection and retry, not discover afterwards which half of it
-ran.
+Every entry is validated first, and nothing is queued unless all of them
+passed, so a caller can fix the selection and retry.
 
-A rejection throws `GenericValidationException` rather than returning a reason,
-because a single reason cannot say which of twenty entries objected. Each entry's
-failure is keyed `IDs[i]`, by its position in the list you passed, so a caller can
-map every failure back to what it sent. Whether the action exists, applies to the
-scope, and may be invoked by this caller are properties of the *action* rather
-than of any entry, so they fail the call as a whole — keyed by the empty string —
-instead of repeating the same complaint once per entry.
+A rejection throws `GenericValidationException`. Each entry's failure is keyed
+`IDs[i]`, by its position in the list you passed. Failures of the action itself
+(unknown, wrong scope, not permitted for this caller) are keyed by the empty
+string and fail the call as a whole.
 
-Queuing is still all it does, so all-or-none is a promise about the queue rather
-than about the work. Each entry is validated again when its own job runs, and one
-whose conditions have changed by then skips while the rest go through. An entry
-that fails outright once it reaches the front of the queue is a failed job and is
-reported as one; neither reaches back into the call that enqueued it.
+All-or-none is a promise about the queue, not the work: each entry's job
+validates again when it runs, and one whose conditions changed skips while the
+rest go through.
 
 Over HTTP this is `POST /api/v3/Action/{actionID}/{Group,Series,Episode,File}/Bulk`,
 taking `{ "IDs": [1, 2, 3], "Parameters": { … } }`. An ID naming nothing is
-reported the same way, against the same key, before the action is consulted.
+reported against its `IDs[i]` key before the action is consulted.
 
 ### Repeated invocations collapse
 
-The queue deduplicates, and an action's dedup key is the action ID, the scope
-entity ID, the caller's user ID and the parameters. Invoking the same action, on
-the same entity, as the same user, with the same parameters, while an identical
-job is still waiting is a no-op rather than a second run. A bulk invocation is
-one job per entity and dedups per entity, so an entity already queued for the
-same action is skipped while the rest go through. Differing parameters
-enqueue separately. This is usually what you want from a button, and something to
-remember if you were expecting a per-call fan-out.
+An action's dedup key is the action ID, the scope entity ID, the caller's user
+ID and the parameters. Invoking the same action on the same entity, as the same
+user, with the same parameters, while an identical job is still waiting is a
+no-op. A bulk invocation dedups per entity. Differing parameters enqueue
+separately.
 
 ---
 
 ## Categories
 
 `ActionCategory` is a closed, core-owned enum: `Import`, `AniDB`, `TMDB`,
-`AniList`, `Sync`, `Images`, `Maintenance`, `Miscellaneous`, `Destructive`,
-`PluginInferred`. A plugin cannot invent a category at runtime; adding a
-core-owned one takes a PR against core.
+`Sync`, `Images`, `Maintenance`, `Miscellaneous`, `Destructive`,
+`PluginInferred`. A source gets a named category only while the core itself
+serves it. A plugin's real choices are two:
 
-Two of them are the plugin author's real choices:
+- **`Miscellaneous`**, the shared fallback and the default. Fine for a one-off.
+- **`PluginInferred`**, a group of your own labelled with your plugin's name.
+  Use it when your plugin contributes several actions that belong together.
 
-- **`Miscellaneous`** is the shared fallback, and the default when an action
-  declares no category. Fine for a one-off.
-- **`PluginInferred`** asks for a group of your own. Its display label is always
-  your plugin's own name, which is collision-free because plugin names are
-  unique. This is what you want when your plugin contributes several actions that
-  belong together.
+A core category such as `TMDB` fits only when your action genuinely belongs
+alongside core's.
 
-Picking a core category such as `TMDB` is reasonable when your action genuinely
-belongs alongside core's, and misleading otherwise.
+`IsPrimaryAction` (default `false`) is a separate axis: it says the action is
+prominent enough to be offered on its own, outside its category, which it keeps
+either way. Promote sparingly.
 
-`IsPrimaryAction` is a separate axis and defaults to `false`. A category says
-what an action is about and groups it with its peers; this says whether the
-action is prominent enough to be offered on its own, outside that group. The two
-do not trade off, so an action keeps the category it belongs to whether or not
-it is promoted, and a client with no room for the distinction is free to ignore
-the flag. Promote sparingly: a list where everything is primary has no primary.
-
-`RequiresConfirmation` and `ConfirmationMessage` are UI hints. The WebUI prompts
-before invoking, falling back to a generic prompt when the message is null. They
-are not a security boundary; `Permission` is.
+`RequiresConfirmation` and `ConfirmationMessage` are UI hints: the WebUI prompts
+before invoking, with a generic prompt when the message is null. They are not a
+security boundary; `Permission` is.

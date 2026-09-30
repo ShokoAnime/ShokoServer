@@ -107,9 +107,6 @@ public interface ILogService
     /// <exception cref="InvalidOperationException">
     ///   Thrown when attempting to delete the current log file.
     /// </exception>
-    /// <returns>
-    ///   <c>true</c> if the file was deleted; otherwise, <c>false</c>.
-    /// </returns>
     void DeleteLogFile(LogFileInfo fileInfo);
 
     #endregion

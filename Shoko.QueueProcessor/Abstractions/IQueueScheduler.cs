@@ -26,9 +26,10 @@ public interface IQueueScheduler
     /// </summary>
     /// <param name="configure">Configures the job's data properties.</param>
     /// <param name="onComplete">
-    /// Optional async callback invoked on completion. Receives <see langword="null"/> on success
-    /// or the faulting exception on failure. The returned <see cref="Task"/> also reflects the
-    /// outcome, so callers can choose to await it or use the callback (or both).
+    /// Optional async callback invoked on completion. Receives <see langword="null"/> on success,
+    /// the faulting exception on failure, or an <see cref="OperationCanceledException"/> when the
+    /// job was cancelled or removed. The returned <see cref="Task"/> also reflects the outcome, so
+    /// callers can choose to await it or use the callback (or both).
     /// </param>
     /// <param name="ct">Cancellation token for the await; does not cancel the job itself.</param>
     /// <exception cref="JobBlockedException">
@@ -54,8 +55,23 @@ public interface IQueueScheduler
     /// <summary>Enqueue multiple jobs in a single batch operation.</summary>
     Task EnqueueRange(IEnumerable<(Type JobType, string JobKey, string DataJson, int Priority, DateTimeOffset? ScheduledAt)> jobs, CancellationToken ct = default);
 
-    /// <summary>Remove a waiting job by key. No-op if the key is not found or the job is already executing.</summary>
+    /// <summary>
+    /// Remove a waiting job by key, freeing the key. No-op if the key is not found or the job is
+    /// already executing. Removing a job of a chain aborts the rest of the chain, with
+    /// <c>[ChainFinally]</c> jobs still running.
+    /// </summary>
     Task Remove(string jobKey, CancellationToken ct = default);
+
+    /// <summary>
+    /// Cancel a job by key. A waiting job is removed, as by <see cref="Remove(string, CancellationToken)"/>.
+    /// A running job that injects <see cref="Workers.IJobCancellationAccessor"/> is asked to stop,
+    /// which cannot be undone: once it stops it ends as cancelled, is not retried, frees its key and
+    /// aborts the rest of its chain. One that completes or fails first ends that way, without a retry.
+    /// </summary>
+    /// <param name="jobKey">The key of the job to cancel.</param>
+    /// <param name="ct">Cancels the bookkeeping of a removal; never the job.</param>
+    /// <returns>What was done: removed, cancellation requested, not cancellable or not found.</returns>
+    Task<JobCancellationResult> Cancel(string jobKey, CancellationToken ct = default);
 
     /// <summary>Remove a waiting job by type and configuration. Derives the key the same way <see cref="Enqueue{T}"/> does.</summary>
     Task Remove<T>(Action<T>? configure = null, CancellationToken ct = default)

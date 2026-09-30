@@ -1,13 +1,13 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,26 +27,14 @@ using Shoko.Abstractions.Metadata.Image.Options;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Plugin;
-using Shoko.Abstractions.User;
-using Shoko.Abstractions.Video;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Providers.AniDB.UDP;
-using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.Airing;
-using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Repositories.Cached.TMDB;
-using Shoko.Server.Repositories.Direct.TMDB;
-using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -54,72 +42,92 @@ using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services;
 
-public partial class ImageManager(
+public class ImageManager(
     ILogger<ImageManager> logger,
     IApplicationPaths applicationPaths,
     ISettingsProvider settingsProvider,
     IQueueScheduler schedulerFactory,
-    IServiceProvider services,
+    Lazy<IMetadataService> metadataService,
+    Lazy<AniDBUDPConnectionHandler> udpConnectionHandler,
     IHttpClientFactory httpClientFactory,
     ConfigurationProvider<ServerSettings> configurationProvider,
     ShokoImageRepository imageRepository,
-    ShokoImage_EntityRepository xrefRepository,
-    AnimeGroupRepository _animeGroups,
-    AnimeSeriesRepository _animeSeries,
-    AnimeEpisodeRepository _animeEpisodes,
-    VideoLocalRepository _videoLocals,
-    JMMUserRepository _jmmUsers,
-    AiringChannelRepository _airingChannels,
-    AniDB_AnimeRepository _anidbAnimes,
-    AniDB_EpisodeRepository _anidbEpisodes,
-    AniDB_CreatorRepository _anidbCreators,
-    AniDB_CharacterRepository _anidbCharacters,
-    TMDB_CollectionRepository _tmdbCollections,
-    TMDB_MovieRepository _tmdbMovies,
-    TMDB_ShowRepository _tmdbShows,
-    TMDB_AlternateOrdering_SeasonRepository _tmdbAlternateOrderingSeasons,
-    TMDB_SeasonRepository _tmdbSeasons,
-    TMDB_EpisodeRepository _tmdbEpisodes,
-    TMDB_PersonRepository _tmdbPersons,
-    TMDB_CompanyRepository _tmdbCompanies,
-    TMDB_NetworkRepository _tmdbNetworks
-) : IImageManager
+    ShokoImage_EntityRepository xrefRepository
+) : IImageManager, IImageFileStore
 {
-    private static AniDBUDPConnectionHandler? _udpConnectionHandler = null;
-
     #region Image Sources
 
-    private Dictionary<DataSource, string?>? _cachedUrls = null;
+    private Dictionary<MetadataSource, string?>? _cachedUrls = null;
+
+    /// <summary>
+    /// When templates that could not be worked out are asked for again. Until
+    /// then the incomplete list is served, so a source that is down is not
+    /// asked on every image.
+    /// </summary>
+    private DateTime? _cachedUrlsRetryAt = null;
+
+    private static readonly TimeSpan _templateRetryDelay = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// The default templates plugins registered for their sources, used when
+    /// the user has not set one.
+    /// </summary>
+    private readonly ConcurrentDictionary<MetadataSource, string> _registeredTemplates = new();
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<DataSource, string?> GetTemplateUrls()
+    public IReadOnlyDictionary<MetadataSource, string?> GetTemplateUrls()
     {
-        if (_cachedUrls is not null)
+        if (_cachedUrls is not null && (_cachedUrlsRetryAt is null || _cachedUrlsRetryAt > DateTime.UtcNow))
             return _cachedUrls;
         lock (applicationPaths)
         {
-            if (_cachedUrls is not null)
+            if (_cachedUrls is not null && (_cachedUrlsRetryAt is null || _cachedUrlsRetryAt > DateTime.UtcNow))
                 return _cachedUrls;
             var userRegisteredTemplates = configurationProvider.Load().Image.ImageTemplateUrls
                 .DistinctBy(template => template.ImageSource)
                 .ToDictionary(template => template.ImageSource, template => template.TemplateUrl);
-            var dict = new Dictionary<DataSource, string?>();
-            foreach (var dataSource in Enum.GetValues<DataSource>())
+            var dict = new Dictionary<MetadataSource, string?>();
+            var complete = true;
+            foreach (var dataSource in MetadataSource.All)
             {
                 if (dataSource.IsLocal)
                     continue;
                 if (userRegisteredTemplates.TryGetValue(dataSource, out var templateUrl) && templateUrl is { Length: > 0 })
                     dict.Add(dataSource, templateUrl);
-                else if (dataSource is DataSource.AniDB)
+                else if (dataSource == MetadataSource.AniDB)
                     dict.Add(dataSource, DefaultAnidbUrlTemplate());
-                else if (dataSource is DataSource.TMDB)
-                    dict.Add(dataSource, DefaultTmdbUrlTemplate());
-                else if (dataSource is DataSource.AniList)
-                    dict.Add(dataSource, DefaultAnilistUrlTemplate());
+                else if (dataSource == MetadataSource.TMDB)
+                    dict.Add(dataSource, DefaultOrNull(dataSource, DefaultTmdbUrlTemplate, ref complete));
                 else
-                    dict.Add(dataSource, null);
+                    dict.Add(dataSource, _registeredTemplates.TryGetValue(dataSource, out var registered) ? registered : null);
             }
+
+            // A source whose default could not be worked out is asked again
+            // after a while, rather than staying without a template until restart.
+            _cachedUrlsRetryAt = complete ? null : DateTime.UtcNow + _templateRetryDelay;
             return _cachedUrls = dict;
+        }
+    }
+
+    /// <summary>
+    /// A source's default template, or <see langword="null"/> when it cannot be
+    /// worked out right now, so one source failing leaves the others usable.
+    /// </summary>
+    /// <param name="dataSource">The source, for the log.</param>
+    /// <param name="template">Works out the default template.</param>
+    /// <param name="complete">Cleared when the template could not be worked out.</param>
+    /// <returns>The template, or <see langword="null"/>.</returns>
+    private string? DefaultOrNull(MetadataSource dataSource, Func<string> template, ref bool complete)
+    {
+        try
+        {
+            return template();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not work out the default image template for {Source}; its images are left unresolved for now.", dataSource);
+            complete = false;
+            return null;
         }
     }
 
@@ -140,9 +148,8 @@ public partial class ImageManager(
         }
 
         // UDP API provided override.
-        _udpConnectionHandler ??= services?.GetRequiredService<AniDBUDPConnectionHandler>();
-        if (_udpConnectionHandler is not null)
-            return _udpConnectionHandler.ImageServerUrl;
+        if (udpConnectionHandler.Value is { } handler)
+            return handler.ImageServerUrl;
 
         // Static fallback.
         return string.Format(Constants.URLS.AniDB_Images, Constants.AnidbCdnUrl);
@@ -152,7 +159,7 @@ public partial class ImageManager(
     {
         // Setting override.
         var setting = settingsProvider.GetSettings().TMDB.ImageCdnUrl;
-        if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, TmdbMetadataService.ImageServerUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
+        if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, TmdbApiClient.ImageServerUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
         {
             // Setting as a URL template.
             if (setting.Contains("{0}"))
@@ -165,48 +172,55 @@ public partial class ImageManager(
         }
 
         // Static fallback.
-        return $"{TmdbMetadataService.ImageServerUrl}original/{{0}}";
-    }
-
-    private string DefaultAnilistUrlTemplate()
-    {
-        // Setting override.
-        var setting = settingsProvider.GetSettings().Anilist.ImageCdnUrl;
-        if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, AnilistImageService.ImageServerUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
-        {
-            // Setting as a URL template.
-            if (setting.Contains("{0}"))
-                return setting;
-
-            // Setting as a base URL.
-            if (!setting.EndsWith("/", StringComparison.Ordinal))
-                setting += "/";
-            return $"{setting}{{0}}";
-        }
-
-        // The CDN base observed on the last image URL AniList handed us, with the static default behind it.
-        return $"{AnilistImageService.ImageServerUrl}{{0}}";
+        return $"{TmdbApiClient.ImageServerUrl}original/{{0}}";
     }
 
     /// <inheritdoc/>
-    public string? GetTemplateUrlForSource(DataSource imageSource)
+    public void RegisterTemplateUrl(MetadataSource imageSource, string templateUrl)
+    {
+        ArgumentNullException.ThrowIfNull(imageSource);
+        ArgumentNullException.ThrowIfNull(templateUrl);
+        if (imageSource.IsCore)
+            throw new InvalidOperationException($"The core keeps the template URL for {imageSource.Value} itself; {nameof(imageSource)} cannot be a core source.");
+
+        ValidateTemplateUrl(templateUrl);
+        lock (applicationPaths)
+        {
+            _registeredTemplates[imageSource] = templateUrl;
+            _cachedUrls = null;
+        }
+    }
+
+    /// <summary>
+    ///   Checks that a template URL is an absolute http or https URL with a
+    ///   <c>{0}</c> in it.
+    /// </summary>
+    /// <param name="templateUrl">The template URL.</param>
+    /// <exception cref="ArgumentException">The URL is not valid.</exception>
+    private static void ValidateTemplateUrl(string templateUrl)
+    {
+        if (!Uri.TryCreate(templateUrl, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            throw new ArgumentException($"{nameof(templateUrl)} must be a valid http:// or https:// URL.", nameof(templateUrl));
+        if (!templateUrl.Contains("{0}"))
+            throw new ArgumentException($"{nameof(templateUrl)} must contain {{0}}.", nameof(templateUrl));
+    }
+
+    /// <inheritdoc/>
+    public string? GetTemplateUrlForSource(MetadataSource imageSource)
     {
         var urls = GetTemplateUrls();
         return urls.TryGetValue(imageSource, out var url) ? url : null;
     }
 
     /// <inheritdoc/>
-    public void SetTemplateUrlForSource(DataSource imageSource, string? templateUrl)
+    public void SetTemplateUrlForSource(MetadataSource imageSource, string? templateUrl)
     {
         if (imageSource.IsLocal)
-            throw new InvalidOperationException($"{nameof(imageSource)} cannot be User, None or Shoko.");
+            throw new InvalidOperationException($"{nameof(imageSource)} cannot be a local source (Shoko, User or Locally Generated).");
 
         if (templateUrl is not null)
         {
-            if (!Uri.TryCreate(templateUrl, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-                throw new ArgumentException($"{nameof(templateUrl)} must be a valid http:// or https:// URL.", nameof(templateUrl));
-            if (!templateUrl.Contains("{0}"))
-                throw new ArgumentException($"{nameof(templateUrl)} must contain {{0}}.", nameof(templateUrl));
+            ValidateTemplateUrl(templateUrl);
 
             lock (applicationPaths)
             {
@@ -229,39 +243,11 @@ public partial class ImageManager(
                 var config = configurationProvider.Load();
                 config.Image.ImageTemplateUrls.RemoveAll(template => template.ImageSource == imageSource);
                 configurationProvider.Save(config);
-                if (_cachedUrls is not null)
-                    _cachedUrls.Remove(imageSource);
+
+                // Worked out again, so the source falls back to its default.
+                _cachedUrls = null;
             }
         }
-    }
-
-    #endregion
-
-    #region Image Cross Reference Resolvers
-
-    private List<IImageCrossReferenceResolver> _resolvers = [];
-
-    private bool _resolversLoaded;
-
-    /// <inheritdoc/>
-    public IReadOnlyList<IImageCrossReferenceResolver> ImageCrossReferenceResolvers => _resolvers;
-
-    /// <summary>
-    /// Takes the image cross-reference resolvers the plugins provide. Called once during
-    /// start-up; later calls have no effect.
-    /// </summary>
-    /// <remarks>
-    /// The guard matches the other services'. Without it a second call replaced the list outright,
-    /// so any caller after start-up would have dropped every resolver the plugins contributed.
-    /// </remarks>
-    /// <param name="resolvers">The image cross-reference resolvers.</param>
-    public void AddParts(IEnumerable<IImageCrossReferenceResolver> resolvers)
-    {
-        if (_resolversLoaded)
-            return;
-
-        _resolvers = resolvers.ToList();
-        _resolversLoaded = true;
     }
 
     #endregion
@@ -339,8 +325,7 @@ public partial class ImageManager(
         ImageFilteringOptions? options = null
     )
     {
-        if (!TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
-            throw new ArgumentException(nameof(entity), "Invalid entity given to GetImagesForEntity");
+        var entityID = entity.ID;
 
         var imageSource = options?.ImageSource;
         var imageType = options?.ImageType;
@@ -381,28 +366,28 @@ public partial class ImageManager(
         if (linkedEntityImages.Value)
         {
             var xrefs = new List<IEnumerable<IImageCrossReference>>();
-            var visitedEntities = new HashSet<(DataSource, DataEntityType, string)>();
-            void AddEntityXrefs(DataSource source, DataEntityType type, string id)
+            var visitedEntities = new HashSet<MetadataGuid>();
+            void AddEntryXrefs(IMetadata entry)
             {
                 // The same entity can be reachable through more than one link, and we only want its images once.
-                if (!visitedEntities.Add((source, type, id)))
+                if (!visitedEntities.Add(entry.ID))
                     return;
 
-                xrefs.Add(filter(xrefRepository.GetByEntity(source, type, id)).ToList());
+                xrefs.Add(filter(xrefRepository.GetByEntity(entry.ID)).ToList());
             }
 
             void AddSeriesXrefs(IShokoSeries series)
             {
-                AddEntityXrefs(series.Source, series.EntityType, series.ID.ToString());
+                AddEntryXrefs(series);
                 foreach (var s in series.LinkedSeries)
-                    AddEntityXrefs(s.Source, s.EntityType, s.ID.ToString());
-                foreach (var s in series.TmdbSeasons)
-                    AddEntityXrefs(s.Source, s.EntityType, s.ID);
+                    AddEntryXrefs(s);
+                foreach (var s in series.LinkedSeasons)
+                    AddEntryXrefs(s);
                 foreach (var m in series.LinkedMovies)
-                    AddEntityXrefs(m.Source, m.EntityType, m.ID.ToString());
+                    AddEntryXrefs(m);
             }
 
-            AddEntityXrefs(entitySource, entityType, entityID);
+            AddEntryXrefs(entity);
 
             switch (entity)
             {
@@ -425,29 +410,30 @@ public partial class ImageManager(
                 case IShokoSeason season:
                 {
                     foreach (var s in season.LinkedSeasons)
-                        AddEntityXrefs(s.Source, s.EntityType, s.ID);
+                        AddEntryXrefs(s);
                     break;
                 }
                 case IShokoEpisode episode:
                 {
                     foreach (var s in episode.LinkedEpisodes)
-                        AddEntityXrefs(s.Source, s.EntityType, s.ID.ToString());
+                        AddEntryXrefs(s);
                     foreach (var m in episode.LinkedMovies)
-                        AddEntityXrefs(m.Source, m.EntityType, m.ID.ToString());
+                        AddEntryXrefs(m);
                     break;
                 }
             }
 
             return xrefs
                 .SelectMany(list => list)
-                .Select(xref => (xref, image: GetImageByID(xref.ImageID, primaryImage)!, linkedXref: (xref.EntitySource, xref.EntityType, xref.EntityID) != (entitySource, entityType, entityID)))
+                .Select(xref => (xref, image: GetImageByID(xref.ImageID, primaryImage)!, linkedXref: xref.EntityID != entityID))
                 .Where(tuple => tuple.image is not null)
                 .OrderBy(tuple => tuple.xref.ImageType)
                 .ThenBy(tuple => tuple.linkedXref)
-                .ThenByDescending(tuple => tuple.xref.EntitySource is DataSource.User or DataSource.LocallyGenerated)
-                .ThenBy(tuple => tuple.xref.EntitySource)
-                .ThenBy(tuple => tuple.xref.EntityType)
-                .ThenBy(tuple => tuple.xref.EntityID)
+                .ThenByDescending(tuple => IsLocallyMadeEntry(tuple.xref.EntityID.Source))
+                // By source, kind and then the ID as text, as before the IDs became guids.
+                .ThenBy(tuple => tuple.xref.EntityID.Source)
+                .ThenBy(tuple => tuple.xref.EntityID.EntityType)
+                .ThenBy(tuple => tuple.xref.EntityID.ID)
                 .ThenBy(tuple => tuple.xref.Ordering)
                 .ThenBy(tuple => tuple.xref.Source)
                 .DistinctBy(tuple => (tuple.image.ID, tuple.xref.ImageType))
@@ -455,7 +441,7 @@ public partial class ImageManager(
                 .ToList();
         }
 
-        return filter(xrefRepository.GetByEntity(entitySource, entityType, entityID))
+        return filter(xrefRepository.GetByEntity(entityID))
             .Select(xref => (xref, image: GetImageByID(xref.ImageID, primaryImage)!))
             .Where(tuple => tuple.image is not null)
             .OrderBy(tuple => tuple.xref.ImageType)
@@ -486,17 +472,14 @@ public partial class ImageManager(
     }
 
     /// <inheritdoc/>
-    public IImage? GetImageBySourceAndRemoteResourceID(DataSource source, string resourceID, bool primaryImage = false)
+    public IImage? GetImageBySourceAndRemoteResourceID(MetadataSource source, string resourceID, bool primaryImage = false)
         => GetImageByID(IImageManager.GetIDForImageSourceAndResourceID(source, resourceID), primaryImage);
 
     /// <inheritdoc/>
     public IShokoSeries? GetFirstSeriesForImage(IImage image)
         => xrefRepository.GetByImageID(image.ID)
-            .Where(xref => xref is
-            {
-                IsEnabled: true,
-                EntityType: DataEntityType.Movie or DataEntityType.Series or DataEntityType.Season or DataEntityType.Episode,
-            })
+            .Where(xref => xref.IsEnabled && (xref.EntityType == MetadataEntityType.Movie || xref.EntityType == MetadataEntityType.Series
+                || xref.EntityType == MetadataEntityType.Season || xref.EntityType == MetadataEntityType.Episode))
             .DistinctBy(xref => (xref.EntitySource, xref.EntityType, xref.EntityID))
             .SelectMany(xref => xref.GetEntity() switch
             {
@@ -557,19 +540,28 @@ public partial class ImageManager(
 
     /// <inheritdoc/>
     public IImage UploadImage(Stream imageStream, string? contentType = null, bool userSubmitted = true)
-    {
-        ArgumentNullException.ThrowIfNull(imageStream);
-        return UploadImage(imageStream.ToByteArray(), contentType, userSubmitted);
-    }
+        => UploadImage(imageStream, contentType, userSubmitted ? MetadataSource.User : MetadataSource.Generated);
 
     /// <inheritdoc/>
     public IImage UploadImage(byte[] imageByteArray, string? contentType = null, bool userSubmitted = true)
+        => UploadImage(imageByteArray, contentType, userSubmitted ? MetadataSource.User : MetadataSource.Generated);
+
+    /// <inheritdoc/>
+    public IImage UploadImage(Stream imageStream, string? contentType, MetadataSource source)
+    {
+        ArgumentNullException.ThrowIfNull(imageStream);
+        EnsureUploadSource(source);
+        return UploadImage(imageStream.ToByteArray(), contentType, source);
+    }
+
+    /// <inheritdoc/>
+    public IImage UploadImage(byte[] imageByteArray, string? contentType, MetadataSource source)
     {
         ArgumentNullException.ThrowIfNull(imageByteArray);
+        EnsureUploadSource(source);
 
         TryConvertFromDataURL(ref imageByteArray, ref contentType);
 
-        var source = userSubmitted ? DataSource.User : DataSource.LocallyGenerated;
         if (contentType is not null)
         {
             contentType = contentType?.ToLower().Replace("jpg", "jpeg") ?? string.Empty;
@@ -635,7 +627,8 @@ public partial class ImageManager(
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(image.LocalPath)!);
-            File.OpenWrite(image.LocalPath).Write(imageByteArray);
+            using var stream = File.Create(image.LocalPath);
+            stream.Write(imageByteArray);
         }
         catch (Exception ex)
         {
@@ -665,6 +658,22 @@ public partial class ImageManager(
     }
 
     /// <summary>
+    ///   Checks that images can be uploaded under a source: it must be a
+    ///   registered local source, as a remote one's images are fetched.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <exception cref="ArgumentNullException">The source is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">The source is not registered, or not local.</exception>
+    private static void EnsureUploadSource(MetadataSource source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!source.IsRegistered)
+            throw new ArgumentException($"Images cannot be uploaded under \"{source.Value}\": no plugin registered it.", nameof(source));
+        if (!source.IsLocal)
+            throw new ArgumentException($"Images cannot be uploaded under \"{source.Value}\": it is a remote source, whose images are fetched.", nameof(source));
+    }
+
+    /// <summary>
     ///   Eagerly detect content type from a resource ID by treating it as a URL
     ///   path, stripping query parameters, and looking up the file extension
     ///   against the allowed MIME types.
@@ -677,7 +686,7 @@ public partial class ImageManager(
     ///   Thrown if the resource ID contains a file extension that maps to a MIME
     ///   type not in <see cref="AllowedMimeTypes"/>.
     /// </exception>
-    public string? GetContentTypeFromResourceID(DataSource source, string resourceID)
+    public string? GetContentTypeFromResourceID(MetadataSource source, string resourceID)
     {
         if (string.IsNullOrEmpty(resourceID))
             return null;
@@ -967,11 +976,65 @@ public partial class ImageManager(
     }
 
     /// <inheritdoc/>
+    public IImage StoreFile(IImage image, byte[] file)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(file);
+        if (imageRepository.GetByID(image.ID) is not { } shokoImage)
+            throw new ArgumentException("The image is not stored.", nameof(image));
+
+        if (GetImageFormat(file) is not { } imageFormat || !AllowedMimeTypes.Contains($"image/{imageFormat}"))
+            throw new UnsupportedImageTypeException()
+            {
+                ImageSource = image.Source,
+                ImageResourceID = image.ResourceID,
+                FileExtension = Path.GetExtension(image.ResourceID) ?? string.Empty,
+                DetectedMimeType = "unknown",
+            };
+
+        MagickImageInfo info;
+        try
+        {
+            info = new(file);
+        }
+        catch (MagickException ex)
+        {
+            throw new ArgumentException("The provided image data is not valid.", nameof(file), ex);
+        }
+
+        // Set the content type _before_ reading the local path, so the path gets the right extension.
+        var previouslyHeld = shokoImage.RefreshAvailability();
+        var originalContentType = shokoImage.ContentType;
+        shokoImage.ContentType = $"image/{imageFormat}";
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(shokoImage.LocalPath)!);
+            File.WriteAllBytes(shokoImage.LocalPath, file);
+        }
+        catch
+        {
+            shokoImage.ContentType = originalContentType;
+            throw;
+        }
+
+        shokoImage.Width = (int)info.Width;
+        shokoImage.Height = (int)info.Height;
+        shokoImage.IsAvailable = true;
+        shokoImage.LastUpdatedAt = DateTime.UtcNow;
+        imageRepository.Save(shokoImage);
+        logger.LogInformation("Image file stored from a file in hand. (Image={ImageID})", image.ID);
+
+        _ = Task.Run(() => ImageDownloaded?.Invoke(this, new() { Image = shokoImage }));
+        EmitEventForRelatedEntities(shokoImage, previouslyHeld ? UpdateReason.ImageUpdated : UpdateReason.ImageAdded);
+        return shokoImage;
+    }
+
+    /// <inheritdoc/>
     public async Task ScheduleAutoDownloadsForEntity(
         IWithImages entity,
-        DataSource? imageSource = null,
+        MetadataSource? imageSource = null,
         ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
+        MetadataSource? xrefSource = null,
         bool force = false
     )
     {
@@ -987,9 +1050,9 @@ public partial class ImageManager(
 
     /// <inheritdoc/>
     public async Task ScheduleAllAutoDownloads(
-        DataSource? imageSource = null,
+        MetadataSource? imageSource = null,
         ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
+        MetadataSource? xrefSource = null,
         bool force = false
     )
     {
@@ -1008,12 +1071,12 @@ public partial class ImageManager(
     #region Image | Purge
 
     /// <inheritdoc/>
-    public IEnumerable<IImage> GetOrphanedImages(int daysOld = 7, DataSource? imageSource = null)
+    public IEnumerable<IImage> GetOrphanedImages(int daysOld = 7, MetadataSource? imageSource = null)
     {
         var threshold = DateTime.UtcNow.AddDays(-daysOld);
         var images = imageRepository.GetOrphanedImages(threshold);
-        if (imageSource.HasValue)
-            images = images.Where(image => image.Source == imageSource.Value).ToList();
+        if (imageSource is not null)
+            images = images.Where(image => image.Source == imageSource).ToList();
         return images;
     }
 
@@ -1067,9 +1130,63 @@ public partial class ImageManager(
             imageRepository.Delete(localImage);
         }
 
+        // The row goes first, so a file that cannot be deleted is left as a
+        // stray file at worst, never as a row pointing at a missing file.
+        var imagesPath = applicationPaths.ImagesPath;
+        if (DeleteHeldFiles(imagesPath, ShokoImage.GetFolder(imagesPath, image.Source, image.ID), image.ID, logger) > 0)
+            updated = true;
+
         _ = Task.Run(() => ImageRemoved?.Invoke(this, new() { Image = image }));
 
         return updated;
+    }
+
+    /// <summary>
+    ///   Deletes the files held for an image: every file in its folder named
+    ///   by its ID, whatever the extension, as a new download can change the
+    ///   format. A missing file or folder is fine, a file that cannot be
+    ///   deleted is logged and left, and a folder outside the images folder
+    ///   is never touched.
+    /// </summary>
+    /// <param name="imagesPath">The images folder.</param>
+    /// <param name="folder">The image's folder, from <see cref="ShokoImage.GetFolder"/>.</param>
+    /// <param name="imageID">The image's ID.</param>
+    /// <param name="logger">The logger for files left behind.</param>
+    /// <returns>The number of files deleted.</returns>
+    internal static int DeleteHeldFiles(string imagesPath, string folder, Guid imageID, ILogger logger)
+    {
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(imagesPath)) + Path.DirectorySeparatorChar;
+        var fullFolder = Path.GetFullPath(folder);
+        if (!fullFolder.StartsWith(root, comparison))
+        {
+            logger.LogWarning("Refusing to delete the files of image {ImageID} in {Folder}, outside the images folder.", imageID, fullFolder);
+            return 0;
+        }
+
+        if (!Directory.Exists(fullFolder))
+            return 0;
+
+        var id = imageID.ToString("N");
+        var deleted = 0;
+        foreach (var file in Directory.EnumerateFiles(fullFolder, id + "*"))
+        {
+            var name = Path.GetFileName(file);
+            if (!string.Equals(name, id, comparison) && !name.StartsWith(id + ".", comparison))
+                continue;
+
+            try
+            {
+                File.Delete(file);
+                deleted++;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                logger.LogWarning(ex, "Could not delete file {Path} of purged image {ImageID}.", file, imageID);
+            }
+        }
+
+        return deleted;
     }
 
     /// <inheritdoc/>
@@ -1079,12 +1196,10 @@ public partial class ImageManager(
     }
 
     /// <inheritdoc/>
-    public async Task<int> PurgeOrphanedImages(int daysOld = 7, DataSource? imageSource = null)
+    public async Task<int> PurgeOrphanedImages(int daysOld = 7, MetadataSource? imageSource = null)
     {
         var count = 0;
-        var threshold = DateTime.UtcNow.AddDays(-daysOld);
-        var imagesToPurge = imageRepository.GetOrphanedImages(threshold);
-        foreach (var image in imagesToPurge)
+        foreach (var image in GetOrphanedImages(daysOld, imageSource).ToList())
         {
             if (await PurgeImage(image).ConfigureAwait(false))
                 count++;
@@ -1093,21 +1208,44 @@ public partial class ImageManager(
     }
 
     /// <inheritdoc/>
-    public async Task SchedulePurgeOfOrphanedImages(int daysOld = 7, DataSource? imageSource = null)
+    public async Task SchedulePurgeOfOrphanedImages(int daysOld = 7, MetadataSource? imageSource = null)
     {
         await schedulerFactory.StartJob<PurgeOrphanedImagesJob>(c => (c.DaysOld, c.ImageSource) = (daysOld, imageSource)).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<int> ValidateAllImages()
+    public Task<int> ValidateAllImages()
+        => ValidateAllImages(null, CancellationToken.None);
+
+    /// <summary>
+    ///   Validate local image cache integrity, as <see cref="ValidateAllImages()"/> does, reporting
+    ///   progress and stopping when cancelled.
+    /// </summary>
+    /// <param name="progress">
+    ///   Optional. Told how far the validation is, as a percentage from 0 to 100.
+    /// </param>
+    /// <param name="token">
+    ///   Stops the validation between two images.
+    /// </param>
+    /// <returns>
+    ///   The number of images queued for forced re-download.
+    /// </returns>
+    /// <exception cref="OperationCanceledException">
+    ///   <paramref name="token"/> was cancelled.
+    /// </exception>
+    public async Task<int> ValidateAllImages(IProgress<decimal>? progress, CancellationToken token)
     {
         var scanned = 0;
         var invalid = 0;
         var queuedForRedownload = 0;
 
         logger.LogInformation("Validating local image cache integrity.");
-        foreach (var image in GetAllImages())
+        var images = GetAllImages().ToList();
+        progress?.Report(0);
+        foreach (var image in images)
         {
+            token.ThrowIfCancellationRequested();
+            progress?.Report(100m * scanned / images.Count);
             if (scanned++ % 1000 == 0)
                 logger.LogInformation("Image validation in progress. Scanned={Scanned}, Invalid={Invalid}, QueuedForRedownload={QueuedForRedownload}", scanned, invalid, queuedForRedownload);
 
@@ -1150,6 +1288,7 @@ public partial class ImageManager(
             }
         }
 
+        progress?.Report(100);
         logger.LogInformation(
             "Image validation complete. Scanned={Scanned}, Invalid={Invalid}, QueuedForRedownload={QueuedForRedownload}",
             scanned,
@@ -1214,8 +1353,8 @@ public partial class ImageManager(
                     (imageSource is null || xref.ImageSource == imageSource) &&
                     (imageType is null || xref.ImageType == imageType) &&
                     (xrefSource is null || xref.Source == xrefSource) &&
-                    (entitySource is null || xref.EntitySource == entitySource) &&
-                    (entityType is null || xref.EntityType == entityType) &&
+                    (entitySource is null || xref.EntityID.Source == entitySource) &&
+                    (entityType is null || xref.EntityID.EntityType == entityType) &&
                     (isEnabled is null || xref.IsEnabled == isEnabled) &&
                     (isDesired is null || xref.IsDesired == isDesired) &&
                     (isPreferred is null || xref.IsPreferred == isPreferred) &&
@@ -1235,7 +1374,7 @@ public partial class ImageManager(
 
     /// <inheritdoc/>
     public IImageCrossReference? GetRandomImageCrossReference(
-        DataSource imageSource,
+        MetadataSource imageSource,
         ImageEntityType imageType,
         RandomImageCrossReferenceFilteringOptions? options = null
     )
@@ -1262,8 +1401,7 @@ public partial class ImageManager(
         ImageCrossReferenceFilteringOptions? options = null
     )
     {
-        if (!TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
-            throw new ArgumentException("Invalid entity given to GetImagesForEntity", nameof(entity));
+        var entityID = entity.ID;
 
         var imageSource = options?.ImageSource;
         var imageType = options?.ImageType;
@@ -1303,28 +1441,28 @@ public partial class ImageManager(
         if (linkedEntityImages.Value)
         {
             var xrefs = new List<IEnumerable<IImageCrossReference>>();
-            var visitedEntities = new HashSet<(DataSource, DataEntityType, string)>();
-            void AddEntityXrefs(DataSource source, DataEntityType type, string id)
+            var visitedEntities = new HashSet<MetadataGuid>();
+            void AddEntryXrefs(IMetadata entry)
             {
                 // The same entity can be reachable through more than one link, and we only want its images once.
-                if (!visitedEntities.Add((source, type, id)))
+                if (!visitedEntities.Add(entry.ID))
                     return;
 
-                xrefs.Add(filter(xrefRepository.GetByEntity(source, type, id)).ToList());
+                xrefs.Add(filter(xrefRepository.GetByEntity(entry.ID)).ToList());
             }
 
             void AddSeriesXrefs(IShokoSeries series)
             {
-                AddEntityXrefs(series.Source, series.EntityType, series.ID.ToString());
+                AddEntryXrefs(series);
                 foreach (var s in series.LinkedSeries)
-                    AddEntityXrefs(s.Source, s.EntityType, s.ID.ToString());
-                foreach (var s in series.TmdbSeasons)
-                    AddEntityXrefs(s.Source, s.EntityType, s.ID);
+                    AddEntryXrefs(s);
+                foreach (var s in series.LinkedSeasons)
+                    AddEntryXrefs(s);
                 foreach (var m in series.LinkedMovies)
-                    AddEntityXrefs(m.Source, m.EntityType, m.ID.ToString());
+                    AddEntryXrefs(m);
             }
 
-            AddEntityXrefs(entitySource, entityType, entityID);
+            AddEntryXrefs(entity);
 
             switch (entity)
             {
@@ -1347,15 +1485,15 @@ public partial class ImageManager(
                 case IShokoSeason season:
                 {
                     foreach (var s in season.LinkedSeasons)
-                        AddEntityXrefs(s.Source, s.EntityType, s.ID);
+                        AddEntryXrefs(s);
                     break;
                 }
                 case IShokoEpisode episode:
                 {
                     foreach (var s in episode.LinkedEpisodes)
-                        AddEntityXrefs(s.Source, s.EntityType, s.ID.ToString());
+                        AddEntryXrefs(s);
                     foreach (var m in episode.LinkedMovies)
-                        AddEntityXrefs(m.Source, m.EntityType, m.ID.ToString());
+                        AddEntryXrefs(m);
                     break;
                 }
             }
@@ -1363,17 +1501,18 @@ public partial class ImageManager(
             return xrefs
                 .SelectMany(list => list)
                 .OrderBy(xref => xref.ImageType)
-                .ThenBy(xref => (xref.EntitySource, xref.EntityType, xref.EntityID) != (entitySource, entityType, entityID))
-                .ThenByDescending(xref => xref.EntitySource is DataSource.User or DataSource.LocallyGenerated)
-                .ThenBy(xref => xref.EntitySource)
-                .ThenBy(xref => xref.EntityType)
-                .ThenBy(xref => xref.EntityID)
+                .ThenBy(xref => xref.EntityID != entityID)
+                .ThenByDescending(xref => IsLocallyMadeEntry(xref.EntityID.Source))
+                // By source, kind and then the ID as text, as before the IDs became guids.
+                .ThenBy(xref => xref.EntityID.Source)
+                .ThenBy(xref => xref.EntityID.EntityType)
+                .ThenBy(xref => xref.EntityID.ID)
                 .ThenBy(xref => xref.Ordering)
                 .ThenBy(xref => xref.Source)
                 .ToList();
         }
 
-        return filter(xrefRepository.GetByEntity(entitySource, entityType, entityID))
+        return filter(xrefRepository.GetByEntity(entityID))
             .OrderBy(xref => xref.ImageType)
             .ThenBy(xref => xref.Ordering)
             .ToList();
@@ -1384,13 +1523,10 @@ public partial class ImageManager(
     /// <inheritdoc/>
     public IImageCrossReference AddImageCrossReference(IWithImages entity, IImage image, ImageCrossReferenceData imageCrossReferenceData)
     {
-        if (!TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
-            throw new ArgumentException("Invalid entity given to AddImageCrossReference", nameof(entity));
-
         if (imageRepository.GetByID(image.ID) is not { } localImage)
             throw new ArgumentException("Invalid image given to AddImageCrossReference", nameof(image));
 
-        var xrefs = xrefRepository.GetByEntity(entitySource, entityType, entityID);
+        var xrefs = xrefRepository.GetByEntity(entity.ID);
         var existing = xrefs
             .FirstOrDefault(xref => xref.ImageID == image.ID && xref.ImageType == imageCrossReferenceData.ImageType && xref.Source == imageCrossReferenceData.Source);
         if (existing is not null)
@@ -1550,222 +1686,35 @@ public partial class ImageManager(
 
     #region Helpers
 
-    public bool TryGetMetadataForEntity(
-        IWithImages entity,
-        out DataSource entitySource,
-        out DataEntityType entityType,
-        [NotNullWhen(true)] out string? entityID,
-        out int? entitySeasonNumber,
-        out int? entityEpisodeNumber,
-        out DateOnly? releasedAt
-    )
-    {
-        entitySource = entity.Source;
-        entityType = entity.EntityType;
-        entityID = null;
-        entitySeasonNumber = null;
-        entityEpisodeNumber = null;
-        releasedAt = null;
-        switch (entity)
-        {
-            case ICollection collection:
-                entityID = collection.ID.ToString();
-                return true;
-
-            case IMovie movie:
-                entityID = movie.ID.ToString();
-                releasedAt = movie.ReleaseDate?.ToDateOnly();
-                return true;
-
-            case ISeries series:
-                entityID = series.ID.ToString();
-                releasedAt = series.AirDate?.IsComplete ?? false ? series.AirDate.Value.ToDateOnly() : null;
-                return true;
-
-            case ISeason season:
-                entityID = season.ID;
-                entitySeasonNumber = season.SeasonNumber;
-                releasedAt = season.Episodes
-                    .Select(o => o.AirDate)
-                    .WhereNotNull()
-                    .Order()
-                    .FirstOrDefault();
-                return true;
-
-            case IEpisode episode:
-                entityID = episode.ID.ToString();
-                entitySeasonNumber = episode.SeasonNumber;
-                entityEpisodeNumber = episode.EpisodeNumber;
-                releasedAt = episode.AirDate;
-                return true;
-
-            case IVideo video:
-                entityID = video.ID.ToString();
-                releasedAt = video.ReleaseInfo is { ReleasedAt: { } videoReleasedAt } ? videoReleasedAt : null;
-                return true;
-
-            case ICreator creator:
-                entityID = creator.ID.ToString();
-                releasedAt = creator.BirthDay;
-                return true;
-
-            case ICharacter character:
-                entityID = character.ID.ToString();
-                return true;
-
-            case IStudio studio:
-                entityID = studio.ID.ToString();
-                return true;
-
-            // Both a TMDB network and an airing channel are networks, keyed
-            // by an int and a guid respectively.
-            case INetwork network:
-                entityID = network switch
-                {
-                    IMetadata<int> intKeyed => intKeyed.ID.ToString(),
-                    IMetadata<Guid> guidKeyed => guidKeyed.ID.ToString(),
-                    _ => null,
-                };
-                return entityID is not null;
-
-            case ITmdbShowCrossReference xref:
-                entitySource = DataSource.TMDB;
-                entityType = DataEntityType.Show;
-                entityID = xref.TmdbShowID.ToString();
-                return true;
-
-            case ITmdbSeasonCrossReference xref:
-                entitySource = DataSource.TMDB;
-                entityType = DataEntityType.Season;
-                entityID = xref.TmdbSeasonID.ToString();
-                return true;
-
-            case ITmdbEpisodeCrossReference xref:
-                entitySource = DataSource.TMDB;
-                entityType = DataEntityType.Episode;
-                entityID = xref.TmdbEpisodeID.ToString();
-                return true;
-
-            case ITmdbMovieCrossReference xref:
-                entitySource = DataSource.TMDB;
-                entityType = DataEntityType.Movie;
-                entityID = xref.TmdbMovieID.ToString();
-                return true;
-
-            case IUser user:
-                entityID = user.ID.ToString();
-                return true;
-        }
-
-        foreach (var resolver in _resolvers)
-            if (resolver.TryGetMetadataForEntity(entity, out entitySource, out entityType, out entityID, out entitySeasonNumber, out entityEpisodeNumber, out releasedAt))
-                return true;
-
-        return false;
-    }
+    /// <summary>
+    ///   Whether an entry of a source is made on this server by a user or a
+    ///   plugin, like a user's ordering, so its images rank before those of
+    ///   the linked remote entries. The server's own entries, of
+    ///   <see cref="MetadataSource.Shoko"/>, keep their place after them.
+    /// </summary>
+    /// <param name="source">The entry's source.</param>
+    /// <returns><c>true</c> if the entry is made locally.</returns>
+    private static bool IsLocallyMadeEntry(MetadataSource source)
+        => source.IsLocal && source != MetadataSource.Shoko;
 
     /// <inheritdoc/>
     public bool IsLinkedCrossReference(IWithImages entity, IImageCrossReference xref)
-    {
-        if (!TryGetMetadataForEntity(entity, out var entitySource, out var entityType, out var entityID, out _, out _, out _))
-            return false;
-
-        return xref.EntitySource == entitySource && xref.EntityType == entityType && xref.EntityID == entityID;
-    }
-
-    internal const int SeasonIdHexLength = 24;
-
-    [GeneratedRegex(@"^(?:[0-9]{1,23}|[a-f0-9]{24})$")]
-    internal static partial Regex SeasonIdRegex();
+        => xref.EntityID == entity.ID;
 
     /// <inheritdoc/>
-    public IWithImages? GetEntityForImage(DataSource entitySource, DataEntityType entityType, string entityID) => (entitySource, entityType) switch
+    public IWithImages? GetEntityForImage(MetadataGuid entityID)
     {
-        // Shoko
-        (DataSource.Shoko, DataEntityType.Group) => !int.TryParse(entityID, out var shokoGroupID)
-            ? null : _animeGroups.GetByID(shokoGroupID),
+        ArgumentNullException.ThrowIfNull(entityID);
 
-        (DataSource.Shoko, DataEntityType.Series) => !int.TryParse(entityID, out var shokoSeriesID)
-            ? null : _animeSeries.GetByID(shokoSeriesID),
+        // The orderings of the core's sources other than the users' keep what
+        // their source gives them, so images are never linked to them.
+        if (entityID.EntityType == MetadataEntityType.Ordering && entityID.Source.IsCore && entityID.Source != MetadataSource.User)
+            return null;
 
-        (DataSource.Shoko, DataEntityType.Season) =>
-            entityID.Split(':') is not { Length: 3 } parts ||
-            !int.TryParse(parts[0], out var shokoSeriesID) ||
-            _animeSeries.GetByID(shokoSeriesID) is not { } shokoSeries ||
-            !Enum.TryParse<EpisodeType>(parts[1], true, out var episodeType) ||
-            !int.TryParse(parts[2], out var seasonNumber)
-                ? null : new AnimeSeason(shokoSeries, episodeType, seasonNumber),
-
-        (DataSource.Shoko, DataEntityType.Episode) => !int.TryParse(entityID, out var shokoEpisodeID)
-            ? null : _animeEpisodes.GetByID(shokoEpisodeID),
-
-        (DataSource.Shoko, DataEntityType.Video) => !int.TryParse(entityID, out var videoID)
-            ? null : _videoLocals.GetByID(videoID),
-
-        (DataSource.Shoko, DataEntityType.User) => !int.TryParse(entityID, out var userID)
-            ? null : _jmmUsers.GetByID(userID),
-
-        (DataSource.Shoko, DataEntityType.Channel) => !Guid.TryParse(entityID, out var channelID)
-            ? null : _airingChannels.GetByChannelID(channelID),
-
-        // AniDB
-        (DataSource.AniDB, DataEntityType.Anime) => !int.TryParse(entityID, out var anidbAnimeID)
-            ? null : _anidbAnimes.GetByAnimeID(anidbAnimeID),
-
-        (DataSource.AniDB, DataEntityType.Season) =>
-            entityID.Split(':') is not { Length: 3 } parts ||
-            !int.TryParse(parts[0], out var anidbAnimeID) ||
-            _anidbAnimes.GetByAnimeID(anidbAnimeID) is not { } anidbAnime ||
-            !Enum.TryParse<EpisodeType>(parts[1], true, out var episodeType) ||
-            !int.TryParse(parts[2], out var seasonNumber)
-                ? null : new AniDB_Season(anidbAnime, episodeType, seasonNumber),
-
-        (DataSource.AniDB, DataEntityType.Episode) => !int.TryParse(entityID, out var anidbEpisodeID)
-            ? null : _anidbEpisodes.GetByEpisodeID(anidbEpisodeID),
-
-        (DataSource.AniDB, DataEntityType.Studio) =>
-            !int.TryParse(entityID, out var anidbStudioID) ||
-            _anidbCreators.GetByCreatorID(anidbStudioID) is not { } creator
-                ? null : new AniDB_Studio(creator),
-
-        (DataSource.AniDB, DataEntityType.Creator) => !int.TryParse(entityID, out var anidbCreatorID)
-            ? null : _anidbCreators.GetByCreatorID(anidbCreatorID),
-
-        (DataSource.AniDB, DataEntityType.Character) => !int.TryParse(entityID, out var anidbCharacterID)
-            ? null : _anidbCharacters.GetByCharacterID(anidbCharacterID),
-
-        // TMDB
-        (DataSource.TMDB, DataEntityType.Collection) => !int.TryParse(entityID, out var tmdbCollectionID)
-            ? null : _tmdbCollections.GetByTmdbCollectionID(tmdbCollectionID),
-
-        (DataSource.TMDB, DataEntityType.Movie) => !int.TryParse(entityID, out var tmdbMovieID)
-            ? null : _tmdbMovies.GetByTmdbMovieID(tmdbMovieID),
-
-        (DataSource.TMDB, DataEntityType.Show) => !int.TryParse(entityID, out var tmdbShowID)
-            ? null : _tmdbShows.GetByTmdbShowID(tmdbShowID),
-
-        (DataSource.TMDB, DataEntityType.Season) => !SeasonIdRegex().IsMatch(entityID)
-            ? null : entityID is { Length: SeasonIdHexLength }
-                ? _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(entityID)
-                : _tmdbSeasons.GetByTmdbSeasonID(int.Parse(entityID)),
-
-        (DataSource.TMDB, DataEntityType.Episode) => !int.TryParse(entityID, out var tmdbEpisodeID)
-            ? null : _tmdbEpisodes.GetByTmdbEpisodeID(tmdbEpisodeID),
-
-        (DataSource.TMDB, DataEntityType.Person) => !int.TryParse(entityID, out var tmdbPersonID)
-            ? null : _tmdbPersons.GetByTmdbPersonID(tmdbPersonID),
-
-        (DataSource.TMDB, DataEntityType.Studio) => !int.TryParse(entityID, out var tmdbCompanyID)
-            ? null : _tmdbCompanies.GetByTmdbCompanyID(tmdbCompanyID),
-
-        (DataSource.TMDB, DataEntityType.Network) => !int.TryParse(entityID, out var tmdbNetworkID)
-            ? null : _tmdbNetworks.GetByTmdbNetworkID(tmdbNetworkID),
-
-        // Plugins
-        _ => _resolvers
-            .Select(r => r.GetEntity(entitySource, entityType, entityID))
-            .FirstOrDefault(result => result is not null),
-    };
+        // A default ordering is never stored, so nothing would remove an image link
+        // to it once its series is gone.
+        return metadataService.Value.GetEntry(entityID) is IWithImages withImages and not IOrdering { IsDefault: true } ? withImages : null;
+    }
 
     public static bool IsImageValid(string path)
     {

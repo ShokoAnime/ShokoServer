@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
@@ -9,11 +10,11 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Series metadata.
 /// </summary>
-public interface ISeries : IWithTitles, IWithDescriptions, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IWithResources, IMetadata<int>
+public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IWithResources, IWithCrossSources, IWithTags, IMetadata
 {
     /// <summary>
     /// The shoko series ID, if we have any.
-    /// /// </summary>
+    /// </summary>
     IReadOnlyList<int> ShokoSeriesIDs { get; }
 
     /// <summary>
@@ -47,9 +48,43 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithPrimaryImage, IW
     bool Restricted { get; }
 
     /// <summary>
+    /// Where the series is in its release.
+    /// </summary>
+    ReleaseStatus ReleaseStatus { get => ReleaseStatus.Unknown; }
+
+    /// <summary>
+    /// What the series was adapted from.
+    /// </summary>
+    SourceMaterial SourceMaterial { get => SourceMaterial.Unknown; }
+
+    /// <summary>
+    /// The language the series was first made in, as a language code, when
+    /// the source says.
+    /// </summary>
+    string? OriginalLanguageCode { get => null; }
+
+    /// <summary>
+    /// How popular the series is on its source, on the source's own scale,
+    /// when the source measures it. Only comparable within one source.
+    /// </summary>
+    double? Popularity { get => null; }
+
+    /// <summary>
+    /// How many of the source's users marked the series a favorite, when the
+    /// source counts them.
+    /// </summary>
+    int? FavoriteCount { get => null; }
+
+    /// <summary>
     /// All shoko series linked to this entity.
     /// </summary>
     IReadOnlyList<IShokoSeries> ShokoSeries { get; }
+
+    /// <summary>
+    ///   The networks the series aired or streamed on, when the source lists
+    ///   them.
+    /// </summary>
+    IReadOnlyList<INetwork> Networks { get => []; }
 
     /// <summary>
     /// Related series.
@@ -76,14 +111,55 @@ public interface ISeries : IWithTitles, IWithDescriptions, IWithPrimaryImage, IW
     IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> SuggestedBy { get; }
 
     /// <summary>
-    /// All cross-references linked to the series.
+    /// All file-to-episode cross-references linked to the series.
     /// </summary>
-    IReadOnlyList<IVideoCrossReference> CrossReferences { get; }
+    IReadOnlyList<IVideoCrossReference> VideoCrossReferences { get; }
+
+    /// <summary>
+    /// The series-level cross-references Shoko made that involve this entry:
+    /// what it is linked to on the AniDB side, or which AniDB anime claim it
+    /// on a provider's side. Not the file links in
+    /// <see cref="VideoCrossReferences"/>.
+    /// </summary>
+    IReadOnlyList<IMetadataSeriesCrossReference> MetadataSeriesCrossReferences { get; }
+
+    /// <summary>
+    /// The episode-level cross-references Shoko made for every episode of
+    /// this entry, flattened across the series.
+    /// </summary>
+    IReadOnlyList<IMetadataEpisodeCrossReference> MetadataEpisodeCrossReferences { get; }
+
+    /// <summary>
+    /// The cross-references Shoko made at the season level for this entry.
+    /// </summary>
+    /// <remarks>
+    /// For the core sources, built from <see cref="MetadataEpisodeCrossReferences"/>
+    /// rather than stored, so it only holds seasons some episode points into.
+    /// </remarks>
+    IReadOnlyList<IMetadataSeasonCrossReference> MetadataSeasonCrossReferences { get; }
+
+    /// <summary>
+    /// The film cross-references Shoko made for every episode of this entry:
+    /// the anime is the film, kept against the episode standing for it. Empty
+    /// on a provider's side, where a film sits in no series.
+    /// </summary>
+    IReadOnlyList<IMetadataMovieCrossReference> MetadataMovieCrossReferences { get; }
 
     /// <summary>
     /// All known seasons for the series.
     /// </summary>
     IReadOnlyList<ISeason> Seasons { get; }
+
+    /// <summary>
+    ///   Every ordering of the series: the default one, made from its
+    ///   <see cref="Seasons"/>, first, then the ones sources and users made.
+    /// </summary>
+    IReadOnlyList<IOrdering> Orderings { get; }
+
+    /// <summary>
+    ///   The ordering chosen for the series, or the default one when none is.
+    /// </summary>
+    IOrdering PreferredOrdering { get; }
 
     /// <summary>
     /// All known episodes for the series.

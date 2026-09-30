@@ -1,3 +1,5 @@
+using System;
+
 namespace Shoko.Abstractions.Metadata.Shoko;
 
 /// <summary>
@@ -13,8 +15,14 @@ public sealed class CustomTagUpdateData
     public string? Name { get; set; }
 
     /// <summary>
-    ///   The new description of the custom tag. Set to <c>null</c> to
+    ///   The new overview of the custom tag. Set to <c>null</c> to
     ///   leave unchanged.
     /// </summary>
-    public string? Description { get; set; }
+    public string? Overview { get; set; }
+
+    /// <summary>
+    ///   The new description of the custom tag.
+    /// </summary>
+    [Obsolete("Use Overview instead.")]
+    public string? Description { get => Overview; set => Overview = value; }
 }

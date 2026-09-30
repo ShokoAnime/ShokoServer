@@ -20,4 +20,9 @@ public enum StudioType : byte
     /// Animation studio.
     /// </summary>
     Animation = 1,
+
+    /// <summary>
+    /// A studio that produced or financed the work without animating it.
+    /// </summary>
+    Production = 2,
 }

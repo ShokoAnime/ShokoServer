@@ -64,6 +64,12 @@ public partial class ConfigurationService : IConfigurationService
 
     private readonly ConcurrentDictionary<Guid, string> _savedMemoryConfigurations = [];
 
+    /// <summary>
+    ///   Each configuration type's ID, once its plugin is known, as looking
+    ///   the plugin up walks every type in the assembly.
+    /// </summary>
+    private readonly ConcurrentDictionary<Type, Guid> _ids = [];
+
     private readonly Lazy<byte[]> _secretFingerprintKey;
 
     private bool _loaded = false;
@@ -72,7 +78,15 @@ public partial class ConfigurationService : IConfigurationService
 
     internal readonly Dictionary<Guid, Dictionary<string, (string Override, string? Original)>> InternalLoadedEnvironmentVariables = [];
 
-    public IReadOnlyDictionary<Guid, IReadOnlySet<string>> RestartPendingFor => InternalRestartPendingFor.ToDictionary(a => a.Key, a => a.Value.Keys.ToHashSet() as IReadOnlySet<string>);
+    public IReadOnlyDictionary<Guid, IReadOnlySet<string>> RestartPendingFor
+    {
+        get
+        {
+            // Saves on other threads replace entries while this is read.
+            lock (InternalRestartPendingFor)
+                return InternalRestartPendingFor.ToDictionary(a => a.Key, a => a.Value.Keys.ToHashSet() as IReadOnlySet<string>);
+        }
+    }
 
     public IReadOnlyDictionary<Guid, IReadOnlySet<string>> LoadedEnvironmentVariables => InternalLoadedEnvironmentVariables.ToDictionary(a => a.Key, a => a.Value.Keys.ToHashSet() as IReadOnlySet<string>);
 
@@ -173,6 +187,11 @@ public partial class ConfigurationService : IConfigurationService
             InternalLoadedEnvironmentVariables.Remove(Guid.Empty, out _);
         }
 
+        // Server settings saved before now were saved before the web host and the plugins read
+        // them, so they already apply and are not waiting on a restart.
+        lock (InternalRestartPendingFor)
+            InternalRestartPendingFor.Remove(Guid.Empty);
+
         foreach (var configurationType in configurationTypes)
         {
             if (configurationType == typeof(ServerSettings))
@@ -207,7 +226,7 @@ public partial class ConfigurationService : IConfigurationService
                         var fileName = storageLocationAttribute.FileName;
                         if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                             fileName += ".json";
-                        path = Path.Join(_applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString(), fileName);
+                        path = Path.Join(PluginPathRules.GetConfigurationsPath(_applicationPaths, pluginInfo.ID), fileName);
                     }
                     else
                     {
@@ -215,7 +234,7 @@ public partial class ConfigurationService : IConfigurationService
                             .RemoveInvalidPathCharacters()
                             .Replace(' ', '-')
                             .ToLower();
-                        path = Path.Join(_applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
+                        path = Path.Join(PluginPathRules.GetConfigurationsPath(_applicationPaths, pluginInfo.ID), fileName + ".json");
                     }
                 }
                 else
@@ -224,7 +243,7 @@ public partial class ConfigurationService : IConfigurationService
                         .RemoveInvalidPathCharacters()
                         .Replace(' ', '-')
                         .ToLower();
-                    path = Path.Join(_applicationPaths.ConfigurationsPath, pluginInfo.ID.ToString(), fileName + ".json");
+                    path = Path.Join(PluginPathRules.GetConfigurationsPath(_applicationPaths, pluginInfo.ID), fileName + ".json");
                 }
             }
 
@@ -371,9 +390,17 @@ public partial class ConfigurationService : IConfigurationService
             errorList.Add(GetErrorMessage(error));
         }
 
+        // The schema only checks the shape of the document, so a value it lets
+        // through, such as an unknown metadata source, may still fail to read.
+        if (errorDict.Count is 0 && config is null)
+        {
+            config = TryDeserializeInternal<TConfig>(json, out var errorPath, out var errorMessage);
+            if (config is null)
+                errorDict[errorPath] = [errorMessage];
+        }
+
         if (errorDict.Count is 0 && typeof(TConfig).IsAssignableTo(typeof(IConfigurationWithCustomValidation<TConfig>)))
         {
-            config ??= DeserializeInternal<TConfig>(json);
             errorDict = ((IReadOnlyDictionary<string, IReadOnlyList<string>>)typeof(TConfig)
                 .GetMethod(nameof(IConfigurationWithCustomValidation<TConfig>.Validate), BindingFlags.Public | BindingFlags.Static)!
                 .Invoke(null, [config, this, _pluginManager])!).ToDictionary(a => a.Key, a => a.Value.ToList());
@@ -944,6 +971,7 @@ public partial class ConfigurationService : IConfigurationService
             throw new ConfigurationValidationException("save", info, errors);
 
         storedJson = token.ToJson();
+        string? previousJson = null;
         lock (info)
         {
             if (info.Path is null)
@@ -953,6 +981,8 @@ public partial class ConfigurationService : IConfigurationService
                     _logger.LogTrace("In-memory configuration for {Name} is unchanged. Skipping save.", info.Name);
                     return false;
                 }
+
+                previousJson = oldJson;
 
                 _logger.LogTrace("Saving in-memory configuration for {Name}.", info.Name);
                 _savedMemoryConfigurations[info.ID] = storedJson;
@@ -979,6 +1009,8 @@ public partial class ConfigurationService : IConfigurationService
                         _logger.LogTrace("Configuration for {Name} is unchanged. Skipping save.", info.Name);
                         return false;
                     }
+
+                    previousJson = oldJson;
                 }
 
                 _logger.LogTrace("Saving configuration for {Name}.", info.Name);
@@ -992,13 +1024,20 @@ public partial class ConfigurationService : IConfigurationService
             _loadedConfigurations[info.ID] = config ?? DeserializeInternal<TConfig>(originalJson);
         }
 
-        Task.Run(() => Saved?.Invoke(this, new ConfigurationSavedEventArgs() { ConfigurationInfo = info }));
+        // Built here rather than in the task, so it carries the actor of this save.
+        var savedEventArgs = new ConfigurationSavedEventArgs
+        {
+            ConfigurationInfo = info,
+            ChangedPaths = JsonPathDiff.GetChangedPaths(previousJson, storedJson),
+            Actor = ActorContext.CurrentActor,
+        };
+        Task.Run(() => Saved?.Invoke(this, savedEventArgs));
 
         var needsRestart = InternalRestartPendingFor.Count > 0;
         if (needsRestart != pendingRestart)
         {
             if (needsRestart)
-                _logger.LogInformation("A restart is required for some some configuration to take effect.");
+                _logger.LogInformation("A restart is required for some configuration to take effect.");
             else
                 _logger.LogInformation("A restart is no longer required for some configuration to take effect.");
             Task.Run(() => RequiresRestart?.Invoke(this, new() { RequiresRestart = needsRestart }));
@@ -1141,6 +1180,46 @@ public partial class ConfigurationService : IConfigurationService
         => typeof(TConfig).IsAssignableTo(typeof(INewtonsoftJsonConfiguration))
             ? JsonConvert.DeserializeObject<TConfig>(json, _newtonsoftJsonSerializerSettings)!
             : JsonSerializer.Deserialize<TConfig>(json, _systemTextJsonSerializerOptions)!;
+
+    /// <summary>
+    ///   Reads a configuration the way <see cref="DeserializeInternal{TConfig}"/>
+    ///   does, but reports a value that can not be read instead of throwing.
+    /// </summary>
+    /// <param name="json">The configuration document.</param>
+    /// <param name="errorPath">The path of the value that could not be read, or an empty string for the whole document.</param>
+    /// <param name="errorMessage">Why the document could not be read. Only meaningful when <c>null</c> is returned.</param>
+    /// <returns>The configuration, or <c>null</c> if the document could not be read.</returns>
+    private TConfig? TryDeserializeInternal<TConfig>(string json, out string errorPath, out string errorMessage) where TConfig : class, IConfiguration, new()
+    {
+        errorPath = string.Empty;
+        errorMessage = "The document holds no configuration.";
+        if (typeof(TConfig).IsAssignableTo(typeof(INewtonsoftJsonConfiguration)))
+        {
+            // A converter's own exception carries no path, so it is taken from the reader.
+            using var reader = new JsonTextReader(new StringReader(json));
+            try
+            {
+                return Newtonsoft.Json.JsonSerializer.CreateDefault(_newtonsoftJsonSerializerSettings).Deserialize<TConfig>(reader);
+            }
+            catch (Newtonsoft.Json.JsonException ex)
+            {
+                errorPath = ex is JsonSerializationException { Path.Length: > 0 } serializationException ? serializationException.Path : reader.Path;
+                errorMessage = ex.Message;
+                return null;
+            }
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<TConfig>(json, _systemTextJsonSerializerOptions);
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            errorPath = ex.Path is { } path ? path.TrimStart('$').TrimStart('.') : string.Empty;
+            errorMessage = ex.Message;
+            return null;
+        }
+    }
 
     public string Serialize(IConfiguration config)
     {
@@ -1321,9 +1400,15 @@ public partial class ConfigurationService : IConfigurationService
     #region ID Helpers
 
     private Guid GetID(Type type)
-        => _loaded && _pluginManager.GetPluginInfo(type.Assembly) is { } pluginInfo
-            ? GetID(type, pluginInfo)
-            : Guid.Empty;
+    {
+        if (_ids.TryGetValue(type, out var id))
+            return id;
+
+        if (!_loaded || _pluginManager.GetPluginInfo(type.Assembly) is not { } pluginInfo)
+            return Guid.Empty;
+
+        return _ids[type] = GetID(type, pluginInfo);
+    }
 
     private static Guid GetID(Type type, LocalPluginInfo pluginInfo)
         => UuidUtility.GetV5($"Configuration={type.FullName!}", pluginInfo.ID);

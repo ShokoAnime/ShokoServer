@@ -85,6 +85,41 @@ public class FuzzySearchIndexTests
     public void NormalizeForIndex_ProducesExpectedString(string input, string expected)
         => Assert.Equal(expected, SeriesSearch.NormalizeForIndex(input));
 
+    // The ideographic comma and full stop, the CJK brackets and the dashes
+    // separate words like their ASCII counterparts.
+    [Theory]
+    [InlineData("悶えてよ、アダムくん", "悶えてよ, アダムくん")]
+    [InlineData("悶えてよ、アダムくん", "悶えてよ アダムくん")]
+    [InlineData("ふしぎ遊戯。", "ふしぎ遊戯")]
+    [InlineData("ちはやふる。結び", "ちはやふる. 結び")]
+    [InlineData("【推しの子】", "[推しの子]")]
+    [InlineData("『サクラ大戦』", "(サクラ大戦)")]
+    [InlineData("伊藤润二《狂热集》", "伊藤润二 狂热集")]
+    [InlineData("黒の栖 ―クロノス―", "黒の栖 -クロノス-")]
+    [InlineData("世界一初恋〰", "世界一初恋~")]
+    public void NormalizeForIndex_FoldsIdeographicPunctuation(string input, string same)
+        => Assert.Equal(SeriesSearch.NormalizeForIndex(same), SeriesSearch.NormalizeForIndex(input));
+
+    // The Latin dashes other than '-' are left as they were, so the index of
+    // the titles using them does not change.
+    [Theory]
+    [InlineData("Hanawa Hekonai – The Kappa Festival", "hanawa hekonai – the kappa festival")]
+    [InlineData("Re—Start", "re—start")]
+    public void NormalizeForIndex_KeepsTheLatinDashes(string input, string expected)
+        => Assert.Equal(expected, SeriesSearch.NormalizeForIndex(input));
+
+    // ── JoinUnspacedScripts ──────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("くま クマ 熊 ベアー", "くまクマ熊ベアー")]
+    [InlineData("ベアー クマ", "ベアークマ")]
+    [InlineData("聖奴隷学園2 剥奪された権力", "聖奴隷学園2 剥奪された権力")]
+    [InlineData("ポケットモンスター the origin", "ポケットモンスター the origin")]
+    [InlineData("sword art online", "sword art online")]
+    [InlineData("", "")]
+    public void JoinUnspacedScripts_DropsOnlyTheSpacesBetweenUnspacedLetters(string input, string expected)
+        => Assert.Equal(expected, SeriesSearch.JoinUnspacedScripts(input));
+
     // ── IsLatinScript ────────────────────────────────────────────────────────
 
     [Theory]
@@ -369,5 +404,43 @@ public class FuzzySearchIndexTests
         // "GK" is short enough that free query slop would otherwise match nearly anything.
         var results = Search("GK Gekijouban Blue Lock Episode Nagi").ToList();
         Assert.DoesNotContain(results, r => r.Result.AnimeId == 91);
+    }
+
+    // ── Upsert ───────────────────────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("Hunter x Hunter")]
+    [InlineData("Hunter Hunter")]
+    [InlineData("ハンター×ハンター")]
+    public void Upsert_KnownItem_KeepsTheOrderOfTiedResults(string query)
+    {
+        // Two remakes sharing their titles rank the same, so the index order breaks the tie.
+        Anime first = new(26, ["Hunter x Hunter", "ハンター×ハンター"]);
+        Anime second = new(6443, ["Hunter x Hunter", "ハンター×ハンター"]);
+        var index = new FuzzySearchIndex<Anime>();
+        index.Build([first, second], a => a.Titles, a => a.AnimeId);
+        var before = index.Search(query).Select(r => r.Result.AnimeId).ToList();
+        Assert.Equal([26, 6443], before);
+
+        index.Upsert(first, first.Titles);
+        index.Upsert(second, second.Titles);
+        index.Upsert(first, first.Titles);
+
+        Assert.Equal(before, index.Search(query).Select(r => r.Result.AnimeId).ToList());
+        Assert.Equal(0, index.Waste);
+    }
+
+    [Fact]
+    public void Upsert_KnownItem_ReplacesItsTitles()
+    {
+        Anime item = new(1, ["Old Title"]);
+        var index = new FuzzySearchIndex<Anime>();
+        index.Build([item, new Anime(2, ["Other Title"])], a => a.Titles, a => a.AnimeId);
+
+        index.Upsert(item, ["New Name"]);
+
+        Assert.DoesNotContain(index.Search("Old Title", fuzzy: false), r => r.Result.AnimeId == 1);
+        Assert.Equal(1, Assert.Single(index.Search("New Name", fuzzy: false)).Result.AnimeId);
+        Assert.Equal(2, index.Count);
     }
 }

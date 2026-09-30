@@ -3,7 +3,6 @@ using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.Models.Shoko;
@@ -44,9 +43,7 @@ public class FilterPreset : IFilterPreset
 
     #region IMetadata Implementation
 
-    int IMetadata<int>.ID => FilterPresetID;
-
-    DataSource IMetadata.Source => DataSource.Shoko;
+    MetadataGuid IMetadata.ID => new(MetadataSource.Shoko, MetadataEntityType.Filter, FilterPresetID.ToString());
 
     #endregion
 
@@ -59,6 +56,8 @@ public class FilterPreset : IFilterPreset
     #endregion
 
     #region IFilterPreset Implementation
+
+    int IFilterPreset.LocalID => FilterPresetID;
 
     int? IFilterPreset.ParentFilterID => ParentFilterPresetID;
     bool IFilterPreset.IsDirectory => IsDirectory;

@@ -6,20 +6,20 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Metadata;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 using TMDbLib.Objects.Movies;
 
 #pragma warning disable CS0618
@@ -28,7 +28,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Movie Database Model.
 /// </summary>
-public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
+public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie, IInlineTextSource
 {
     #region Properties
 
@@ -84,6 +84,18 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     /// available in the preferred language.
     /// </summary>
     public string EnglishOverview { get; set; } = string.Empty;
+
+    /// <summary>
+    ///   Whether TMDB lists <see cref="EnglishTitle"/> among the movie's
+    ///   translations, where it is not stored a second time.
+    /// </summary>
+    public bool EnglishTitleListed { get; set; }
+
+    /// <summary>
+    ///   Whether TMDB lists <see cref="EnglishOverview"/> among the movie's
+    ///   translations, where it is not stored a second time.
+    /// </summary>
+    public bool EnglishOverviewListed { get; set; }
 
     /// <summary>
     /// Original title in the original language.
@@ -272,96 +284,34 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     }
 
     /// <summary>
-    /// Get the preferred title using the preferred series title preference
-    /// from the application settings.
+    ///   The title the user's picks and language settings choose for the
+    ///   movie.
     /// </summary>
-    /// <param name="useFallback">Use a fallback title if no title was found in
-    /// any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all movie titles if they're
-    /// already cached from a previous call to <seealso cref="GetAllTitles"/>.
-    /// </param>
-    /// <returns>The preferred movie title, or null if no preferred title was
-    /// found.</returns>
-    public TMDB_Title? GetPreferredTitle(bool useFallback = true, bool force = false)
-    {
-        var titles = GetAllTitles(force);
-
-        foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
-        {
-            if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(DataEntityType.Movie, TmdbMovieID, EnglishTitle, "en", "US");
-
-            var title = titles.GetByLanguage(preferredLanguage.Language);
-            if (title != null)
-                return title;
-        }
-
-        return useFallback ? new(DataEntityType.Movie, TmdbMovieID, EnglishTitle, "en", "US") : null;
-    }
+    /// <returns>The title, or the English one when none is in a preferred language.</returns>
+    public ITitle GetPreferredTitle()
+        => TextAccess.Manager.PreferredTitleFor(this) ?? TmdbInlineText.TitleOrEmpty(EnglishTitle);
 
     /// <summary>
-    /// Cached reference to all titles for the movie, so we won't have to hit
-    /// the database twice to get all titles _and_ the preferred title.
+    ///   The movie's titles: the ones TMDB lists, then any other source's.
     /// </summary>
-    private IReadOnlyList<TMDB_Title>? _allTitles;
+    /// <returns>The titles.</returns>
+    public IReadOnlyList<ITitle> GetAllTitles()
+        => TextAccess.Manager.ListTitles(this);
 
     /// <summary>
-    /// Get all titles for the movie.
+    ///   The overview the user's picks and language settings choose for the
+    ///   movie.
     /// </summary>
-    /// <param name="force">Forcefully re-fetch all movie titles if they're
-    /// already cached from a previous call. </param>
-    /// <returns>All titles for the movie.</returns>
-    public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Movie, TmdbMovieID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Movie, TmdbMovieID);
-
-    /// <inheritdoc/>
-    public void ResetAllTitles() => _allTitles = null;
+    /// <returns>The overview, or the English one when none is in a preferred language.</returns>
+    public IText GetPreferredOverview()
+        => TextAccess.Manager.PreferredOverviewFor(this) ?? TmdbInlineText.OverviewOrEmpty(EnglishOverview);
 
     /// <summary>
-    /// Get the preferred overview using the preferred episode title preference
-    /// from the application settings.
+    ///   The movie's overviews: the ones TMDB lists, then any other source's.
     /// </summary>
-    /// <param name="useFallback">Use a fallback overview if no overview was
-    /// found in any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all movie overviews if they're
-    /// already cached from a previous call to
-    /// <seealso cref="GetAllOverviews"/>.
-    /// </param>
-    /// <returns>The preferred movie overview, or null if no preferred overview
-    /// was found.</returns>
-    public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
-    {
-        var overviews = GetAllOverviews(force);
-
-        foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
-        {
-            var overview = overviews.GetByLanguage(preferredLanguage.Language);
-            if (overview != null)
-                return overview;
-        }
-
-        return useFallback ? new(DataEntityType.Movie, TmdbMovieID, EnglishOverview, "en", "US") : null;
-    }
-
-    /// <summary>
-    /// Cached reference to all overviews for the movie, so we won't have to hit
-    /// the database twice to get all overviews _and_ the preferred overview.
-    /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allOverviews;
-
-    /// <summary>
-    /// Get all overviews for the movie.
-    /// </summary>
-    /// <param name="force">Forcefully re-fetch all movie overviews if they're
-    /// already cached from a previous call.</param>
-    /// <returns>All overviews for the movie.</returns>
-    public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Movie, TmdbMovieID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Movie, TmdbMovieID);
-
-    /// <inheritdoc/>
-    public void ResetAllOverviews() => _allOverviews = null;
+    /// <returns>The overviews.</returns>
+    public IReadOnlyList<IText> GetAllOverviews()
+        => TextAccess.Manager.ListOverviews(this);
 
     /// <summary>
     /// Get all TMDB company cross-references linked to the movie.
@@ -369,7 +319,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     /// <returns>All TMDB company cross-references linked to the movie.
     /// </returns>
     public IReadOnlyList<TMDB_Company_Entity> TmdbCompanyCrossReferences =>
-        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndID(DataEntityType.Movie, TmdbMovieID);
+        RepoFactory.TMDB_Company_Entity.GetByTmdbEntityTypeAndID(MetadataEntityType.Movie, TmdbMovieID);
 
     /// <summary>
     /// Get all TMDB companies linked to the movie.
@@ -398,7 +348,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     /// <c>null</c>.
     /// </summary>
     public IReadOnlyList<TMDB_Movie_Suggestion> TmdbSuggestions =>
-        RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(DataEntityType.Movie, TmdbMovieID)
+        RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(MetadataEntityType.Movie, TmdbMovieID)
             .Select(suggestion => new TMDB_Movie_Suggestion(suggestion))
             .ToList();
 
@@ -406,7 +356,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     /// The movies in the collection that TMDB suggests this one from.
     /// </summary>
     public IReadOnlyList<TMDB_Movie_Suggestion> TmdbSuggestedBy =>
-        RepoFactory.TMDB_Suggestion.GetBySuggestedTmdbEntityID(DataEntityType.Movie, TmdbMovieID)
+        RepoFactory.TMDB_Suggestion.GetBySuggestedTmdbEntityID(MetadataEntityType.Movie, TmdbMovieID)
             .Select(suggestion => new TMDB_Movie_Suggestion(suggestion))
             .ToList();
 
@@ -419,7 +369,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
         {
             var list = new List<Resource>();
             if (!string.IsNullOrEmpty(ImdbMovieID) && ImdbMovieID != "0")
-                list.Add(new() { Type = ResourceType.CrossReference, Name = "IMDb", Url = $"https://www.imdb.com/title/{ImdbMovieID}/" });
+                list.Add(new() { Type = ResourceType.CrossReference, Name = "IMDb", Url = $"https://www.imdb.com/title/{ImdbMovieID}/", ID = ImdbMovieID });
             list.AddRange(ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this));
             return list;
         }
@@ -478,9 +428,9 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     #region IEntityMetadata
 
-    DataEntityType IEntityMetadata.Type => DataEntityType.Movie;
+    MetadataEntityType IEntityMetadata.Type => MetadataEntityType.Movie;
 
-    DataSource IEntityMetadata.DataSource => DataSource.TMDB;
+    MetadataSource IEntityMetadata.DataSource => MetadataSource.TMDB;
 
     TitleLanguage? IEntityMetadata.OriginalLanguage => OriginalLanguage;
 
@@ -488,26 +438,29 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     #region IMetadata
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Movie;
+    MetadataGuid IMetadata.ID => new(MetadataSource.TMDB, MetadataEntityType.Movie, TmdbMovieID.ToString());
 
-    DataSource IMetadata.Source => DataSource.TMDB;
+    int ITmdbMovie.TmdbID => TmdbMovieID;
 
-    int IMetadata<int>.ID => Id;
+    #endregion
+
+    #region IInlineTextSource Implementation
+
+    ITitle? IInlineTextSource.InlineTitle => TmdbInlineText.Title(EnglishTitle);
+
+    IText? IInlineTextSource.InlineOverview => TmdbInlineText.Overview(EnglishOverview);
+
+    InlineTextPlacement IInlineTextSource.InlineTitlePlacement => TmdbInlineText.Placement(EnglishTitleListed);
+
+    InlineTextPlacement IInlineTextSource.InlineOverviewPlacement => TmdbInlineText.Placement(EnglishOverviewListed);
 
     #endregion
 
     #region IWithTitles
 
-    string IWithTitles.Title => GetPreferredTitle()?.Value ?? EnglishTitle;
+    string IWithTitles.Title => GetPreferredTitle().Value;
 
-    ITitle IWithTitles.DefaultTitle => new TitleStub
-    {
-        Language = TitleLanguage.EnglishAmerican,
-        CountryCode = "US",
-        LanguageCode = "en",
-        Value = EnglishTitle,
-        Source = DataSource.TMDB,
-    };
+    ITitle IWithTitles.DefaultTitle => TmdbInlineText.TitleOrEmpty(EnglishTitle);
 
     ITitle? IWithTitles.PreferredTitle => GetPreferredTitle();
 
@@ -515,20 +468,13 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     #endregion
 
-    #region IWithDescriptions
+    #region IWithOverviews
 
-    IText? IWithDescriptions.DefaultDescription => new TextStub
-    {
-        Language = TitleLanguage.EnglishAmerican,
-        CountryCode = "US",
-        LanguageCode = "en",
-        Value = EnglishOverview,
-        Source = DataSource.TMDB,
-    };
+    IText? IWithOverviews.DefaultOverview => TmdbInlineText.OverviewOrEmpty(EnglishOverview);
 
-    IText? IWithDescriptions.PreferredDescription => GetPreferredOverview();
+    IText? IWithOverviews.PreferredOverview => GetPreferredOverview();
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => GetAllOverviews();
+    IReadOnlyList<IText> IWithOverviews.Overviews => GetAllOverviews();
 
     #endregion
 
@@ -546,12 +492,12 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     #region IWithImages
 
-    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(PosterPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, PosterPath) is { } imageID
-        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = DataSource.TMDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == imageID)
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(PosterPath) && IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.TMDB, PosterPath) is { } imageID
+        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = MetadataSource.TMDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == imageID)
         : null;
 
-    public IImageCrossReference? DefaultBackdropImageCrossReference => !string.IsNullOrEmpty(BackdropPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, BackdropPath) is { } imageID
-        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = DataSource.TMDB, ImageType = ImageEntityType.Backdrop }).FirstOrDefault(xref => xref.ImageID == imageID)
+    public IImageCrossReference? DefaultBackdropImageCrossReference => !string.IsNullOrEmpty(BackdropPath) && IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.TMDB, BackdropPath) is { } imageID
+        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = MetadataSource.TMDB, ImageType = ImageEntityType.Backdrop }).FirstOrDefault(xref => xref.ImageID == imageID)
         : null;
 
     #endregion
@@ -576,7 +522,25 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     #endregion
 
+    #region IWithTags Implementation
+
+    /// <summary>
+    ///   TMDB's genres, then its keywords, as tags.
+    /// </summary>
+    IReadOnlyList<ITag> IWithTags.Tags => TMDB_Tag.For(Genres, Keywords);
+
+    #endregion
+
+    #region IWithCrossSources Implementation
+
+    IReadOnlyList<MetadataGuid> IWithCrossSources.CrossSourceIDs => CrossSourceID.For("imdb", MetadataEntityType.Movie, ImdbMovieID) is { } imdbID ? [imdbID] : [];
+
+    #endregion
+
     #region IMovie Implementation
+
+    IReadOnlyList<IMetadataMovieCrossReference> IMovie.MetadataMovieCrossReferences =>
+        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(TmdbMovieID);
 
     bool IMovie.Restricted => IsRestricted;
 
@@ -616,7 +580,7 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> IMovie.SuggestedBy => TmdbSuggestedBy;
 
-    IReadOnlyList<IVideoCrossReference> IMovie.CrossReferences => CrossReferences
+    IReadOnlyList<IVideoCrossReference> IMovie.VideoCrossReferences => CrossReferences
         .SelectMany(xref => RepoFactory.CrossRef_File_Episode.GetByEpisodeID(xref.AnidbEpisodeID))
         .ToList();
 
@@ -630,7 +594,8 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
 
     #region ITmdbMovie Implementation
 
-    string? ITmdbMovie.CollectionID => TmdbCollectionID.ToString();
+    MetadataGuid? ITmdbMovie.CollectionID
+        => TmdbCollectionID is { } collectionID ? new(MetadataSource.TMDB, MetadataEntityType.Collection, collectionID.ToString()) : null;
 
     IReadOnlyList<string> ITmdbMovie.ProductionCountries => ProductionCountries
         .Select(country => country.CountryCode)
@@ -642,8 +607,6 @@ public class TMDB_Movie : TMDB_Base<int>, IEntityMetadata, IMovie, ITmdbMovie
     IReadOnlyList<string> ITmdbMovie.Genres => Genres;
 
     ITmdbCollection? ITmdbMovie.Collection => TmdbCollection;
-
-    IReadOnlyList<ITmdbMovieCrossReference> ITmdbMovie.TmdbMovieCrossReferences => CrossReferences;
 
     IReadOnlyList<ITmdbMovieSuggestion> ITmdbMovie.Suggestions => TmdbSuggestions;
 

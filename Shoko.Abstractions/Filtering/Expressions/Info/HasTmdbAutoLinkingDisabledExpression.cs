@@ -1,12 +1,20 @@
 using System;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Info;
 
 /// <summary>
 /// This condition passes if any of the anime has TMDB auto-linking disabled
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="HasSourceAutoLinkingDisabledExpression"/>,
+/// which it evaluates with the tmdb source. Kept under its own name so
+/// saved filters read the same.
+/// </remarks>
 public class HasTmdbAutoLinkingDisabledExpression : FilterExpression<bool>
 {
+    private static readonly HasSourceAutoLinkingDisabledExpression _tmdb = new(MetadataSource.TMDB.Value);
+
     /// <inheritdoc/>
     public override string Name => "Has TMDB Auto Linking Disabled";
 
@@ -16,7 +24,7 @@ public class HasTmdbAutoLinkingDisabledExpression : FilterExpression<bool>
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.HasTmdbAutoLinkingDisabled;
+        return _tmdb.Evaluate(filterable, userInfo, time);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

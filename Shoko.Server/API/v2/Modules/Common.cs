@@ -1631,7 +1631,7 @@ public class Common : BaseController
     {
         try
         {
-            await _scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = true);
+            await _scheduler.StartJob<GetAniDBCalendarJob>();
             return Ok();
         }
         catch (Exception ex)
@@ -2870,7 +2870,10 @@ public class Common : BaseController
     [HttpGet("cast/search")]
     public ActionResult<Filter> SearchByStaff([FromQuery] API_Call_Parameters para)
     {
-        return new Filter { name = "Search By Staff", groups = [],
+        return new Filter
+        {
+            name = "Search By Staff",
+            groups = [],
             size = 0
         };
     }

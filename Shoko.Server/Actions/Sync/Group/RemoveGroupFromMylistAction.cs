@@ -27,7 +27,7 @@ public sealed class RemoveGroupFromMylistAction(IMylistService mylistService) : 
 
     public override async Task Execute(CancellationToken token = default)
     {
-        foreach (var video in Group.AllSeries.SelectMany(series => series.Videos).DistinctBy(video => video.ID))
+        foreach (var video in Group.AllSeries.SelectMany(series => series.Videos).DistinctBy(video => video.LocalID))
             await mylistService.ScheduleDisposeVideo(video);
     }
 }

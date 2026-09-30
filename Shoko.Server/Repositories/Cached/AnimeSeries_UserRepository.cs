@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Utilities;

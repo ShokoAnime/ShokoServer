@@ -13,6 +13,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 /// </summary>
 public class PluginEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "plugin";
+
     private readonly IPluginManager _pluginManager;
 
     private readonly ILogger<PluginEventEmitter> _logger;

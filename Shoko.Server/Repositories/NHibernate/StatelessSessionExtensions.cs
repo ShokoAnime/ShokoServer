@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using NHibernate;
 
 namespace Shoko.Server.Repositories.NHibernate;

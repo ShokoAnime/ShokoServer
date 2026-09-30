@@ -126,7 +126,13 @@ public class RunAfterCurrentTests
     // Simulate acquiring and registering a job as executing in the orchestrator
     private static Guid AcquireAsExecuting(QueueOrchestrator orchestrator, WorkerPool pool, QueuedJob job)
     {
-        pool.AddToQueue(job);
+        // Through the orchestrator, so the job owns its key as a real enqueue would.
+        orchestrator.EnqueueAsync(new EnqueueContext
+        {
+            Job = job,
+            Type = pool.HandledTypes[0],
+            DisplayItem = new QueueItem { Key = job.JobKey, JobType = pool.HandledTypes[0].Name, TypeName = pool.HandledTypes[0].Name, Title = "", Details = [] },
+        }).GetAwaiter().GetResult();
         var acquired = pool.TryAcquire();
         Assert.NotNull(acquired);
         return acquired!.Id;

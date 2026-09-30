@@ -136,6 +136,63 @@ public class Queue
         /// longer in the queue.
         /// </summary>
         public string? ParentKey { get; init; }
+
+        /// <summary>
+        /// Indicates the item can be cancelled. A waiting item always can, as cancelling it removes
+        /// it; a running item can when its job observes cancellation.
+        /// </summary>
+        [Required]
+        public bool IsCancellable { get; init; }
+
+        /// <summary>
+        /// Indicates a user asked for this running item to be cancelled and it has not stopped yet.
+        /// It keeps running until the job notices, and the request cannot be undone.
+        /// </summary>
+        [Required]
+        public bool IsCancellationRequested { get; init; }
+
+        /// <summary>
+        /// How far the running item is, as a percentage from 0 to 100. Null when its job does not
+        /// report progress, or has not yet, and always null for a waiting item.
+        /// </summary>
+        public decimal? Progress { get; init; }
+    }
+
+    /// <summary>
+    /// What cancelling or removing a queue item did.
+    /// </summary>
+    public class CancelResult
+    {
+        /// <summary>
+        /// The key of the item.
+        /// </summary>
+        [Required]
+        public string Key { get; init; } = string.Empty;
+
+        /// <summary>
+        /// <c>Removed</c> when the item was waiting and is gone, or <c>CancellationRequested</c>
+        /// when it is running and was asked to stop; it then stays in the queue, marked with
+        /// <see cref="QueueItem.IsCancellationRequested"/>, until it does.
+        /// </summary>
+        [Required]
+        [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
+        public CancelResultType Result { get; init; }
+    }
+
+    /// <summary>
+    /// What cancelling or removing a queue item did.
+    /// </summary>
+    public enum CancelResultType
+    {
+        /// <summary>
+        /// The item was waiting and is gone from the queue.
+        /// </summary>
+        Removed = 1,
+
+        /// <summary>
+        /// The item is running and was asked to stop.
+        /// </summary>
+        CancellationRequested = 2,
     }
 
     public class PoolState

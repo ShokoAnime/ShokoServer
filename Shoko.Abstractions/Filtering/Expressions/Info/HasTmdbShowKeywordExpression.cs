@@ -1,11 +1,17 @@
 using System;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Info;
 
 /// <summary>
 /// This condition passes if any of the anime have the specified TMDB show keyword
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="HasSourceTagExpression"/>, narrowed to the
+/// linked shows through <see cref="IFilterableInfo.GetTags"/>. Kept under
+/// its own name so saved filters read the same.
+/// </remarks>
 public class HasTmdbShowKeywordExpression : FilterExpression<bool>, IWithStringParameter
 {
     /// <inheritdoc/>
@@ -27,7 +33,7 @@ public class HasTmdbShowKeywordExpression : FilterExpression<bool>, IWithStringP
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return Parameter is not null && filterable.TmdbShowKeywords.Contains(Parameter);
+        return Parameter is not null && filterable.GetTags(MetadataSource.TMDB, MetadataEntityType.Series).Contains(Parameter);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

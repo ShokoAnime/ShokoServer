@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Extensions;
@@ -87,7 +86,7 @@ public class Episode : BaseDirectory
         {
             var airDate = anidb.GetAirDateAsDate();
             var watchedDate = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(uid, aep.AnimeEpisodeID)?.WatchedDate;
-            ep.name = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(anidb.EpisodeID, TitleLanguage.English).FirstOrDefault()?.Title!;
+            ep.name = anidb.EnglishTitle;
             ep.summary = anidb.Description;
 
             ep.year = airDate?.Year.ToString(CultureInfo.InvariantCulture)!;

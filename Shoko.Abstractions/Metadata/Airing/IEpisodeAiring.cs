@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Anidb;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 
 namespace Shoko.Abstractions.Metadata.Airing;
@@ -49,15 +48,9 @@ public interface IEpisodeAiring
     string ProviderName { get; }
 
     /// <summary>
-    ///   The source of the episode the airing is for.
+    ///   The episode the airing is for.
     /// </summary>
-    DataSource EpisodeSource { get; }
-
-    /// <summary>
-    ///   The ID of the episode the airing is for, relative to
-    ///   <see cref="EpisodeSource"/>.
-    /// </summary>
-    string EpisodeID { get; }
+    MetadataGuid EpisodeID { get; }
 
     /// <summary>
     ///   The episode the airing is attached to, or <c>null</c> when it could
@@ -119,6 +112,12 @@ public interface IEpisodeAiring
     ///   rather than reported by the provider. Estimates are never stored.
     /// </summary>
     bool IsEstimated { get; }
+
+    /// <summary>
+    ///   What kind of showing the airing is. Estimates are always
+    ///   <see cref="EpisodeAiringKind.Normal"/>.
+    /// </summary>
+    EpisodeAiringKind Kind { get; }
 
     /// <summary>
     ///   This airing's time minus the episode's earliest known real

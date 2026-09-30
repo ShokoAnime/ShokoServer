@@ -14,7 +14,6 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
 using ApiReleaseCandidate = Shoko.Server.API.v3.Models.Release.ReleaseCandidate;
@@ -31,7 +30,7 @@ public class ReleaseManagementService(
     AnimeSeriesRepository animeSeries,
     VideoLocalRepository videoLocals,
     VideoLocal_PlaceRepository videoLocalPlaces,
-    AniDB_Anime_TitleRepository anidbTitles,
+    AnidbTitleSearch anidbTitles,
     VideoReleaseGroupingService grouper,
     ReleaseComparisonService comparer,
     ReleaseAutoManagementService autoManagement,
@@ -43,7 +42,7 @@ public class ReleaseManagementService(
         bool onlyFinishedSeries = false, bool onlyWithRedundant = false, bool includeVariations = false,
         string? search = null, int pageSize = 100, int page = 1)
     {
-        var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : AniDB_Anime_TitleRepository.NormalizeForSearch(search);
+        var normalizedSearch = string.IsNullOrWhiteSpace(search) ? null : AnidbTitleSearch.NormalizeForSearch(search);
 
         // Safe (never under-inclusive) pre-filter over CrossRef_File_Episode, cutting
         // the library down before any per-series grouping work runs — same as the

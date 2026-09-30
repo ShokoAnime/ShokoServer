@@ -112,7 +112,7 @@ public partial class AnidbReleaseProvider(
         }
         catch (NotLoggedInException ex)
         {
-            logger.LogError(ex, "Unable to lookup release for Hash={Hash} & Size={Size} due to being AniDB UDP banned.", hash, size);
+            logger.LogError(ex, "Unable to lookup release for Hash={Hash} & Size={Size} due to not being logged in to AniDB UDP.", hash, size);
             return null;
         }
         catch (AniDBBannedException ex)
@@ -241,8 +241,10 @@ public partial class AnidbReleaseProvider(
         if (existingInfo.Source != ReleaseSource.Unknown && existingInfo.MediaInfo is not null)
             return null;
         var settings = configurationProvider.Load();
-        if (lastAttempt.AttemptCount > settings.RescanDelayHours.Length) return null;
-        return TimeSpan.FromHours(settings.RescanDelayHours[lastAttempt.AttemptCount - 1]);
+        // Attempts stored by older versions can have a count of 0; they count as the first.
+        var attempt = Math.Max(lastAttempt.AttemptCount, 1);
+        if (attempt > settings.RescanDelayHours.Length) return null;
+        return TimeSpan.FromHours(settings.RescanDelayHours[attempt - 1]);
     }
 
     [GeneratedRegex(@"(?:(?<![a-z0-9])(?:nc|creditless)[\s_.]*(?:ed|op)(?![a-z]))(?:[\s_.]*(?:\d+(?!\d*p)))?", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.ECMAScript)]

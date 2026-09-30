@@ -1,9 +1,8 @@
 using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Reflection.Emit;
 using Moq;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Server.Utilities;
@@ -12,14 +11,10 @@ using Xunit;
 namespace Shoko.Tests.Utilities;
 
 /// <summary>
-/// <see cref="ReflectionUtils.ScannableAssemblies"/>, which every type scan in the server runs over.
+/// Covers <see cref="ReflectionUtils.ScannableAssemblies"/>, which every type scan in the server runs
+/// over. <see cref="Assembly.GetTypes"/> throws <see cref="ReflectionTypeLoadException"/> on an
+/// assembly still being written to, so the scan has to skip those.
 /// </summary>
-/// <remarks>
-/// Thirteen of them look up job types, subtitle providers, filter expressions and mapped entities this
-/// way. <see cref="Assembly.GetTypes"/> throws <see cref="ReflectionTypeLoadException"/> on an
-/// assembly still being written to, which surfaced as two unrelated CI failures before the scan
-/// learned to skip them.
-/// </remarks>
 public class ReflectionUtilsTests
 {
     [Fact]
@@ -35,58 +30,34 @@ public class ReflectionUtilsTests
     }
 
     [Fact]
-    public async Task TheScanSurvivesAssembliesBeingEmittedAlongsideIt()
+    public void TheScanSurvivesAssembliesBeingEmittedAlongsideIt()
     {
-        // Mocking distinct interfaces makes Castle emit a new proxy type for each rather than serve a
-        // cache, which is what a full test run does across its classes.
-        var interfaces = typeof(FilterExpression).Assembly.GetTypes()
-            .Where(type => type.IsInterface && type.IsPublic && !type.ContainsGenericParameters)
-            .Take(200)
-            .ToArray();
-        Assert.NotEmpty(interfaces);
+        // An assembly caught halfway through being written, held in that state for the whole scan
+        // rather than raced for: one type baked, one still being built.
+        var pending = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName($"Pending{Guid.NewGuid():N}"), AssemblyBuilderAccess.RunAndCollect);
+        var module = pending.DefineDynamicModule("Pending");
+        module.DefineType("Pending.Baked", TypeAttributes.Public | TypeAttributes.Class).CreateType();
+        var building = module.DefineType("Pending.Building", TypeAttributes.Public | TypeAttributes.Class, typeof(FilterExpression));
+        var loaded = Assert.Single(AppDomain.CurrentDomain.GetAssemblies(), assembly => assembly.FullName == pending.FullName);
 
-        // Ends the loops; deliberately not passed to Task.Run, where a task not yet scheduled when
-        // it fires would come back cancelled rather than having run at all.
-        using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        var failures = new ConcurrentBag<string>();
+        // Read the way the server's scans read their types, it throws.
+        Assert.ThrowsAny<Exception>(() => Scan([loaded]));
 
-        var emitting = Enumerable.Range(0, 4).Select(worker => Task.Run(() =>
-        {
-            foreach (var type in interfaces.Skip(worker))
-            {
-                if (stop.IsCancellationRequested)
-                    return;
+        Assert.DoesNotContain(ReflectionUtils.ScannableAssemblies(), assembly => assembly.FullName == pending.FullName);
+        Assert.NotEmpty(Scan(ReflectionUtils.ScannableAssemblies()));
 
-                try
-                {
-                    GC.KeepAlive(((Mock)Activator.CreateInstance(typeof(Mock<>).MakeGenericType(type))!).Object);
-                }
-                catch
-                {
-                    // Not every interface can be proxied, and only the emitting matters here.
-                }
-            }
-        })).ToArray();
-
-        var scanning = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
-        {
-            while (!stop.IsCancellationRequested)
-            {
-                try
-                {
-                    _ = ReflectionUtils.ScannableAssemblies().SelectMany(assembly => assembly.GetTypes()).Count();
-                }
-                catch (Exception exception)
-                {
-                    failures.Add(exception.GetType().Name);
-                }
-            }
-        })).ToArray();
-
-        await Task.WhenAll(emitting);
-        await stop.CancelAsync();
-        await Task.WhenAll(scanning);
-
-        Assert.Equal(string.Empty, string.Join(", ", failures.GroupBy(f => f).Select(g => $"{g.Count()}x {g.Key}")));
+        GC.KeepAlive(building);
     }
+
+    /// <summary>
+    /// Reads every type of the assemblies the way the server's scans do: its kind, what it derives
+    /// from, and its attributes.
+    /// </summary>
+    /// <param name="assemblies">The assemblies to scan.</param>
+    /// <returns>The filter expressions found.</returns>
+    private static IReadOnlyList<Type> Scan(IEnumerable<Assembly> assemblies)
+        => assemblies
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => !type.IsAbstract && typeof(FilterExpression).IsAssignableFrom(type) && !type.IsDefined(typeof(ObsoleteAttribute), true))
+            .ToList();
 }

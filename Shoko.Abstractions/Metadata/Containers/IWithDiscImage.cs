@@ -13,8 +13,7 @@ public interface IWithDiscImage : IWithImages
     ///   The disc image of the entity. The preferred or first available
     ///   image of type <see cref="ImageEntityType.Disc"/> for the entity.
     /// </summary>
-    IImage? DiscImage
-        => GetBestImageForType(ImageEntityType.Disc);
+    IImage? DiscImage { get => GetBestImageForType(ImageEntityType.Disc); }
 
     /// <summary>
     ///   The cross-reference for the disc image for the entity. Same as the
@@ -22,6 +21,5 @@ public interface IWithDiscImage : IWithImages
     ///   first available image of type <see cref="ImageEntityType.Disc"/>
     ///   for the entity.
     /// </summary>
-    IImageCrossReference? DiscImageCrossReference
-        => GetBestImageCrossReferenceForType(ImageEntityType.Disc);
+    IImageCrossReference? DiscImageCrossReference { get => GetBestImageCrossReferenceForType(ImageEntityType.Disc); }
 }

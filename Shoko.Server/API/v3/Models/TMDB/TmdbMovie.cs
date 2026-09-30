@@ -8,7 +8,7 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.TMDB;
 
 using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Repositories;
 
@@ -18,9 +17,7 @@ public class CustomTag : IShokoTag
 
     #region IMetadata Implementation
 
-    DataSource IMetadata.Source => DataSource.User;
-
-    int IMetadata<int>.ID => CustomTagID;
+    MetadataGuid IMetadata.ID => new(MetadataSource.User, MetadataEntityType.Tag, CustomTagID.ToString());
 
     #endregion
 
@@ -28,11 +25,13 @@ public class CustomTag : IShokoTag
 
     string ITag.Name => TagName;
 
-    string ITag.Description => TagDescription;
+    string ITag.Overview => TagDescription;
 
     #endregion
 
     #region IShokoTag Implementation
+
+    int IShokoTag.LocalID => CustomTagID;
 
     IReadOnlyList<IShokoSeries> IShokoTag.AllShokoSeries => RepoFactory.CrossRef_CustomTag.GetByCustomTagID(CustomTagID)
         .Select(xref => RepoFactory.AnimeSeries.GetByAnimeID(xref.CrossRefID))

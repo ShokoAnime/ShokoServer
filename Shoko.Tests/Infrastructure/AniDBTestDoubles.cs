@@ -107,15 +107,40 @@ public static class AniDBTestDoubles
 
         public List<byte[]> Sent { get; } = [];
 
+        /// <summary>
+        /// Set once a call is waiting on a reply that never comes (see <see cref="NeverRespond"/>).
+        /// </summary>
+        public TaskCompletionSource Waiting { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        private bool? _neverRespond;
+
         public StubSocketHandler Respond(byte[] payload)
         {
             _responses.Enqueue(payload);
             return this;
         }
 
+        /// <summary>
+        /// Makes every later call wait forever, as against a server that stays silent.
+        /// </summary>
+        /// <param name="observeCancellation">Whether the wait ends when the call's token is cancelled.</param>
+        /// <returns>The stub.</returns>
+        public StubSocketHandler NeverRespond(bool observeCancellation)
+        {
+            _neverRespond = observeCancellation;
+            return this;
+        }
+
         public Task<byte[]> SendAsync(byte[] payload, CancellationToken cancellationToken = default)
         {
             Sent.Add(payload);
+            if (_neverRespond is { } observeCancellation)
+            {
+                Waiting.TrySetResult();
+                return Task.Delay(Timeout.Infinite, observeCancellation ? cancellationToken : CancellationToken.None)
+                    .ContinueWith<byte[]>(task => throw new OperationCanceledException(cancellationToken), TaskScheduler.Default);
+            }
+
             if (_responses.Count == 0)
                 throw new InvalidOperationException("No canned response for this UDP call.");
 

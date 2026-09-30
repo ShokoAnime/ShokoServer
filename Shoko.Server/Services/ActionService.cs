@@ -12,6 +12,7 @@ using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Services;
@@ -57,7 +58,9 @@ public class ActionService : IActionService
 
     private readonly IImageManager _imageManager;
 
-    private readonly TmdbMetadataService _tmdbService;
+    private readonly TmdbMetadataUpdater _tmdbUpdater;
+
+    private readonly IMetadataRefreshService _refreshService;
 
     private readonly DatabaseFactory _databaseFactory;
 
@@ -82,7 +85,12 @@ public class ActionService : IActionService
     ///   <see cref="ExecutableActionInfo"/> so the abstraction surface never
     ///   leaks server internals.
     /// </summary>
-    private sealed record RegisteredAction(ExecutableActionInfo Info, Type ActionType);
+    /// <param name="Info">The metadata exposed to plugins.</param>
+    /// <param name="ActionType">The concrete action type.</param>
+    private sealed record RegisteredAction(
+        ExecutableActionInfo Info,
+        Type ActionType
+    );
 
     /// <summary>
     ///   The same registrations keyed by their concrete action type.
@@ -124,7 +132,8 @@ public class ActionService : IActionService
         IAnidbService anidbService,
         IVideoService videoService,
         IImageManager imageManager,
-        TmdbMetadataService tmdbService,
+        TmdbMetadataUpdater tmdbUpdater,
+        IMetadataRefreshService refreshService,
         DatabaseFactory databaseFactory,
         HttpXmlUtils xmlUtils,
         IPluginPackageManager pluginPackageManager,
@@ -153,7 +162,8 @@ public class ActionService : IActionService
         _anidbService = anidbService;
         _imageManager = imageManager;
         _videoService = videoService;
-        _tmdbService = tmdbService;
+        _tmdbUpdater = tmdbUpdater;
+        _refreshService = refreshService;
         _databaseFactory = databaseFactory;
         _xmlUtils = xmlUtils;
         _pluginPackageManager = pluginPackageManager;
@@ -239,7 +249,7 @@ public class ActionService : IActionService
                 ? _pluginManager.GetPluginInfo(pluginId)?.Name ?? actionType.Assembly.GetName().Name!
                 : probe.Category.ToString();
 
-            _actions[id] = _actionsByType[actionType] = new RegisteredAction(new ExecutableActionInfo(
+            var info = new ExecutableActionInfo(
                 id,
                 probe.Name,
                 probe.Description,
@@ -251,7 +261,8 @@ public class ActionService : IActionService
                 probe.RequiresConfirmation,
                 probe.ConfirmationMessage,
                 pluginId
-            ), actionType);
+            );
+            _actions[id] = _actionsByType[actionType] = new RegisteredAction(info, actionType);
         }
     }
 
@@ -390,7 +401,7 @@ public class ActionService : IActionService
         if (await ValidateEntryAsync(registered, scopeEntity, parameters, caller, token) is { } validation)
             return validation;
 
-        await EnqueueAsync(registered, scopeEntity, parameters, caller, token);
+        await EnqueueCoreAsync(registered, scopeEntity, parameters, caller, token);
 
         // Bare ack — no tracking ID.
         return null;
@@ -425,7 +436,7 @@ public class ActionService : IActionService
 
         var registered = ResolveAction(actionId);
         foreach (var scopeEntity in scopeEntities)
-            await EnqueueAsync(registered, scopeEntity, parameters, caller, token);
+            await EnqueueCoreAsync(registered, scopeEntity, parameters, caller, token);
     }
 
     /// <summary>
@@ -546,10 +557,21 @@ public class ActionService : IActionService
     ///   direct-execution path. The job re-resolves a fresh transient instance
     ///   later; the probe instance validation used is discarded.
     /// </summary>
-    private async Task EnqueueAsync(RegisteredAction registered, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
-        => await _scheduler.Enqueue<ActionExecutionJob>(j =>
+    private Task EnqueueCoreAsync(RegisteredAction registered, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
+        => _scheduler.Enqueue(ConfigureJob(registered.Info, scopeEntity, parameters, caller), ct: token);
+
+    /// <summary>
+    ///   Sets up the job running an action, which its dedup key is taken from.
+    /// </summary>
+    /// <param name="info">The action.</param>
+    /// <param name="scopeEntity">The entity the action is scoped to, or <see langword="null"/>.</param>
+    /// <param name="parameters">The invocation parameters, or <see langword="null"/>.</param>
+    /// <param name="caller">The invoking user, or <see langword="null"/>.</param>
+    /// <returns>The job configurator.</returns>
+    private static Action<ActionExecutionJob> ConfigureJob(ExecutableActionInfo info, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller)
+        => j =>
         {
-            j.ActionId = registered.Info.ID;
+            j.ActionId = info.ID;
             j.ScopeEntityId = scopeEntity switch
             {
                 AnimeSeries series => series.AnimeSeriesID,
@@ -558,10 +580,10 @@ public class ActionService : IActionService
                 VideoLocal video => video.VideoLocalID,
                 _ => null,
             };
-            j.Scope = registered.Info.Scope;
-            j.CallerUserId = caller?.ID ?? 0;
+            j.Scope = info.Scope;
+            j.CallerUserId = caller?.LocalID ?? 0;
             j.Parameters = parameters?.ToDictionary(pair => pair.Key, pair => pair.Value);
-        }, ct: token);
+        };
 
     #endregion
 
@@ -621,13 +643,13 @@ public class ActionService : IActionService
         => _imageManager.ScheduleAllAutoDownloads();
 
     public Task RunImport_ScanTMDB()
-        => _tmdbService.ScanForMatches();
+        => _refreshService.AutoSearchAll(MetadataSource.TMDB);
 
     public Task RunImport_PurgeUnlinkedTmdbPeople()
-        => _tmdbService.PurgeUnlinkedPeople();
+        => _tmdbUpdater.PurgeUnlinkedPeople();
 
     public Task RunImport_PurgeUnlinkedTmdbShowNetworks()
-        => _tmdbService.PurgeUnlinkedShowNetworks();
+        => _tmdbUpdater.PurgeUnlinkedShowNetworks();
 
     public async Task RunImport_UpdateAllAniDB()
     {
@@ -857,7 +879,7 @@ public class ActionService : IActionService
         try
         {
             var filesAll = _videoLocals.GetAll();
-            IReadOnlyList<VideoLocal> filesIgnored = _videoLocals.GetIgnoredVideos();
+            var filesIgnored = _videoLocals.GetIgnoredVideos();
 
             foreach (var vl in filesAll)
             {

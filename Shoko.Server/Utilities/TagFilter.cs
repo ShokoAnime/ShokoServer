@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Metadata.Enums;
 
 // ReSharper disable StringLiteralTypo
 // ReSharper disable StaticMemberInGenericType
@@ -319,9 +320,11 @@ public static class TagFilter
         "fan-made",
         "game",
         "korean drama",
+        "live-action film",
         "manga",
         "manhua",
         "manhwa",
+        // AniDB's old name for "live-action film".
         "movie",
         "novel",
         "original work",
@@ -337,6 +340,152 @@ public static class TagFilter
         "western animated cartoon",
         "western comics"
     };
+
+    /// <summary>
+    ///   The AniDB tag every source material tag sits under: "source material"
+    ///   in Shoko (AniDB: "original work").
+    /// </summary>
+    public const int SourceMaterialParentTagID = 2609;
+
+    /// <summary>
+    ///   "erotic game" in both Shoko and AniDB. It marks every game branch tag
+    ///   on the same anime as an adult game.
+    /// </summary>
+    public const int EroticGameTagID = 2803;
+
+    /// <summary>
+    ///   AniDB's source material tags by tag ID, with the value each maps to,
+    ///   in order of precedence. The same tags <see cref="TagBlackListSource"/>
+    ///   lists by name; they are keyed by ID here because AniDB renames tags.
+    ///   Comments give Shoko's name, then AniDB's when it differs.
+    /// </summary>
+    private static readonly (int TagID, SourceMaterial Value)[] _sourceMaterialTags =
+    [
+        // "original work" (AniDB: "new")
+        (2797, SourceMaterial.Original),
+        // "manga", "4-koma manga", "Weekly Shounen Jump", "Weekly Shounen Sunday", "Ultra Jump"
+        (2798, SourceMaterial.Manga),
+        (2805, SourceMaterial.Manga),
+        (5863, SourceMaterial.Manga),
+        (6442, SourceMaterial.Manga),
+        (4250, SourceMaterial.Manga),
+        // "novel"
+        (2799, SourceMaterial.Novel),
+        // "visual novel", "erotic game", "RPG", "action game", "game"
+        (2804, SourceMaterial.VisualNovel),
+        (EroticGameTagID, SourceMaterial.Eroge),
+        (2801, SourceMaterial.VideoGame),
+        (2802, SourceMaterial.VideoGame),
+        (2800, SourceMaterial.VideoGame),
+        // "manhua", "4-koma manhua"
+        (6493, SourceMaterial.Manhua),
+        (7261, SourceMaterial.Manhua),
+        // "manhwa", "4-koma manhwa"
+        (5010, SourceMaterial.Manhwa),
+        (7260, SourceMaterial.Manhwa),
+        // "Western comics"
+        (3430, SourceMaterial.Comic),
+        // "live-action film", "television programme", "Korean drama"
+        (2796, SourceMaterial.LiveAction),
+        (6446, SourceMaterial.LiveAction),
+        (6640, SourceMaterial.LiveAction),
+        // "picture book"
+        (7469, SourceMaterial.PictureBook),
+        // "radio programme", "CG collection", "American derived", "Western animated cartoon"
+        (6453, SourceMaterial.Other),
+        (7252, SourceMaterial.Other),
+        (4424, SourceMaterial.Other),
+        (3714, SourceMaterial.Other),
+    ];
+
+    private static readonly Dictionary<int, int> _sourceMaterialPrecedence = _sourceMaterialTags
+        .Select((tag, index) => (tag.TagID, index))
+        .ToDictionary(tuple => tuple.TagID, tuple => tuple.index);
+
+    /// <summary>
+    ///   The source material tag IDs this filter maps, in order of precedence.
+    /// </summary>
+    public static IReadOnlyList<int> SourceMaterialTagIDs { get; } = _sourceMaterialTags.Select(tag => tag.TagID).ToList();
+
+    /// <summary>
+    ///   Picks what an anime was adapted from out of its AniDB tags.
+    ///   <see cref="SourceMaterial.Unknown"/> when it has no source material
+    ///   tag, since AniDB does not tag every anime.
+    /// </summary>
+    /// <param name="tags">
+    ///   The anime's tags, with the weight each carries on the anime. The
+    ///   highest weight wins, then the order of precedence. Spoiler flags do
+    ///   not matter.
+    /// </param>
+    /// <param name="getParentTagID">
+    ///   Looks up a tag's parent, so a tag AniDB added under a mapped one maps
+    ///   like its parent, and a new tag directly under the source material
+    ///   tag maps to <see cref="SourceMaterial.Other"/>. Without it only the
+    ///   mapped tags count.
+    /// </param>
+    /// <returns>
+    ///   The source material, or <see cref="SourceMaterial.Eroge"/> in place
+    ///   of any game when the anime is also tagged "erotic game".
+    /// </returns>
+    public static SourceMaterial GetSourceMaterial(IEnumerable<(int TagID, int Weight)> tags, Func<int, int?>? getParentTagID = null)
+    {
+        var found = false;
+        var bestWeight = 0;
+        var bestPrecedence = 0;
+        var bestValue = SourceMaterial.Unknown;
+        var isEroticGame = false;
+        foreach (var (tagID, weight) in tags)
+        {
+            if (!TryGetSourceMaterial(tagID, getParentTagID, out var precedence, out var value))
+                continue;
+
+            if (tagID is EroticGameTagID)
+                isEroticGame = true;
+
+            if (found && (weight < bestWeight || (weight == bestWeight && precedence >= bestPrecedence)))
+                continue;
+
+            found = true;
+            bestWeight = weight;
+            bestPrecedence = precedence;
+            bestValue = value;
+        }
+
+        if (isEroticGame && bestValue is SourceMaterial.VisualNovel or SourceMaterial.VideoGame)
+            return SourceMaterial.Eroge;
+
+        return bestValue;
+    }
+
+    private static bool TryGetSourceMaterial(int tagID, Func<int, int?>? getParentTagID, out int precedence, out SourceMaterial value)
+    {
+        // Walk up a few levels at most, which also guards against a cycle in
+        // bad tag data.
+        for (var depth = 0; depth < 5; depth++)
+        {
+            if (_sourceMaterialPrecedence.TryGetValue(tagID, out precedence))
+            {
+                value = _sourceMaterialTags[precedence].Value;
+                return true;
+            }
+
+            if (getParentTagID?.Invoke(tagID) is not { } parentTagID)
+                break;
+
+            if (parentTagID is SourceMaterialParentTagID)
+            {
+                precedence = _sourceMaterialTags.Length;
+                value = SourceMaterial.Other;
+                return true;
+            }
+
+            tagID = parentTagID;
+        }
+
+        precedence = 0;
+        value = SourceMaterial.Unknown;
+        return false;
+    }
 
     public static readonly HashSet<string> TagBlackListArtStyle = new()
     {

@@ -1,12 +1,19 @@
 using System;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Selectors.NumberSelectors;
 
 /// <summary>
 /// This returns the number of user verified TMDB episode links for a series
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="UserVerifiedSourceEpisodeLinksSelector"/>,
+/// which it evaluates with the tmdb source. Kept under its own name so
+/// saved filters read the same.
+/// </remarks>
 public class UserVerifiedTmdbEpisodeLinksSelector : FilterExpression<double>
 {
+    private static readonly UserVerifiedSourceEpisodeLinksSelector _tmdb = new(MetadataSource.TMDB.Value);
 
     /// <inheritdoc/>
     public override string HelpDescription => "This returns the number of user verified TMDB episode links for a series";
@@ -16,7 +23,7 @@ public class UserVerifiedTmdbEpisodeLinksSelector : FilterExpression<double>
     /// <inheritdoc/>
     public override double Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.UserVerifiedTmdbEpisodeLinks;
+        return _tmdb.Evaluate(filterable, userInfo, time);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

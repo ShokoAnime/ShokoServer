@@ -1,11 +1,16 @@
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
 using Shoko.Abstractions.Filtering.Expressions.Info;
+using Shoko.Abstractions.Filtering.Expressions.Selectors.NumberSelectors;
+using Shoko.Abstractions.Filtering.Expressions.Selectors.StringSetSelectors;
 using Shoko.Abstractions.Filtering.Sorting;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -13,6 +18,60 @@ namespace Shoko.Server.Filters;
 
 internal static class ExpressionDiscovery
 {
+    /// <summary>
+    /// The sources an entry can be linked to, offered by their values as the
+    /// parameter of the expressions that ask about one source.
+    /// </summary>
+    private static string[] LinkableSources
+        => [.. MetadataSource.All.Where(source => source.IsRemote && source != MetadataSource.AniDB).Select(source => source.Value)];
+
+    /// <summary>
+    /// The expressions whose first parameter names a source, offered as
+    /// <see cref="LinkableSources"/>.
+    /// </summary>
+    private static readonly FrozenSet<Type> _sourceParameterExpressions = FrozenSet.ToFrozenSet(
+    [
+        typeof(HasSourceGenreExpression),
+        typeof(HasSourceTagExpression),
+        typeof(HasSourceLinkExpression),
+        typeof(HasAutomaticSourceLinkExpression),
+        typeof(MissingSourceLinkExpression),
+        typeof(HasSourceAutoLinkingDisabledExpression),
+        typeof(HasSourceSuggestionExpression),
+        typeof(AutomaticSourceEpisodeLinksSelector),
+        typeof(UserVerifiedSourceEpisodeLinksSelector),
+        typeof(MissingSourceEpisodeLinksSelector),
+        typeof(AutomaticSourceLinksSelector),
+        typeof(UserVerifiedSourceLinksSelector),
+        typeof(SourceSuggestionCountSelector),
+        typeof(SourceGenresSelector),
+        typeof(SourceTagsSelector),
+    ]);
+
+    /// <summary>
+    /// Checks whether an expression's first parameter names a source.
+    /// </summary>
+    /// <param name="filterType">The expression type.</param>
+    /// <returns><c>true</c> when its possible parameters are sources.</returns>
+    public static bool TakesSourceParameter(Type filterType)
+        => _sourceParameterExpressions.Contains(filterType);
+
+    /// <summary>
+    /// Every tag, genre or keyword name any source has stored, TMDB's
+    /// included, offered as the second parameter of the expressions that ask
+    /// about one.
+    /// </summary>
+    /// <param name="kinds">The kinds of tag to offer.</param>
+    /// <param name="tmdbNames">TMDB's own names of that kind, kept on its models.</param>
+    /// <returns>The names, once each.</returns>
+    private static string[] StoredTagNames(IReadOnlyCollection<TagKind> kinds, IEnumerable<string> tmdbNames)
+        => [.. RepoFactory.Metadata_Tag.GetAll()
+            .Where(tag => kinds.Contains(tag.Kind))
+            .Select(tag => tag.Name)
+            .Concat(tmdbNames)
+            .ToHashSet(StringComparer.InvariantCultureIgnoreCase)
+            .Order(StringComparer.InvariantCultureIgnoreCase)];
+
     public static IReadOnlyList<IFilterExpressionHelp> GetExpressionHelp(FilterExpressionGroup? group = null)
         => ReflectionUtils.ScannableAssemblies()
             .SelectMany(a => a.GetTypes())
@@ -203,21 +262,28 @@ internal static class ExpressionDiscovery
                 null
             ),
 
-            nameof(HasAnilistGenreExpression) =>
+            _ when !TakesSourceParameter(filterType) => (null, null, null),
+
+            nameof(HasSourceGenreExpression) =>
             (
-                RepoFactory.Anilist_Anime.GetAllGenres().ToArray(),
-                null,
+                LinkableSources,
+                StoredTagNames([TagKind.Genre], RepoFactory.TMDB_Movie.GetAllGenres().Concat(RepoFactory.TMDB_Show.GetAllGenres())),
                 null
             ),
 
-            nameof(HasAnilistTagExpression) =>
+            nameof(HasSourceTagExpression) =>
             (
-                RepoFactory.Anilist_Anime.GetAllTags().ToArray(),
-                null,
+                LinkableSources,
+                StoredTagNames([TagKind.Tag, TagKind.Keyword], RepoFactory.TMDB_Movie.GetAllKeywords().Concat(RepoFactory.TMDB_Show.GetAllKeywords())),
                 null
             ),
 
-            _ => (null, null, null),
+            _ =>
+            (
+                LinkableSources,
+                null,
+                null
+            ),
         };
 
     public static IReadOnlyList<ISortingExpressionHelp> GetSortingExpressionHelp()

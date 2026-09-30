@@ -1,5 +1,4 @@
-using System.Threading;
-using System.Threading.Tasks;
+using System;
 using Shoko.Abstractions.Actions;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -9,16 +8,16 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Fetch unread notifications and messages from AniDB.
 /// </summary>
-public sealed class GetAnidbNotificationsAction(IQueueScheduler scheduler) : IExecutableAction
+/// <param name="scheduler">The queue.</param>
+public sealed class GetAnidbNotificationsAction(IQueueScheduler scheduler) : QueueJobScheduledAction<CheckAniDBNotificationsJob>(scheduler)
 {
-    public string Name => "Get AniDB Notifications";
+    public override string Name => "Get AniDB Notifications";
 
-    public string? Description => "Fetch unread notifications and messages from AniDB.";
+    public override string? Description => "Fetch unread notifications and messages from AniDB.";
 
-    public ActionCategory Category => ActionCategory.AniDB;
+    public override ActionCategory Category => ActionCategory.AniDB;
 
-    public ActionPermission Permission => ActionPermission.Admin;
+    public override TimeSpan? MinimumInterval => TimeSpan.FromHours(6);
 
-    public Task Execute(CancellationToken token = default)
-        => scheduler.Enqueue<CheckAniDBNotificationsJob>(c => c.ForceRefresh = true, ct: token);
+    public override bool ScheduleCountsManualRuns => true;
 }

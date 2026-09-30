@@ -9,6 +9,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class NetworkEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "network";
+
     private IConnectivityService EventHandler { get; set; }
 
     private readonly ILogger<NetworkEventEmitter> _logger;

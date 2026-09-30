@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -11,7 +12,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 #pragma warning disable CA1822
@@ -24,13 +25,13 @@ namespace Shoko.Server.API.v3.Controllers;
 public class DuplicateFilesController(ISettingsProvider settingsProvider,
     AnimeEpisodeRepository _animeEpisodes,
     AnimeSeriesRepository _animeSeries,
-    AniDB_Anime_TitleRepository _anidbTitles
+    AnidbTitleSearch _anidbTitles
 ) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Get episodes with duplicate files, with only the files with duplicates for each episode.
     /// </summary>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeReleaseInfo">Include release info data.</param>
@@ -39,7 +40,7 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
     /// <returns></returns>
     [HttpGet("Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodes(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
@@ -87,7 +88,7 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
     /// <summary>
     /// Get series with duplicate files.
     /// </summary>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <param name="onlyFinishedSeries">Only show finished series.</param>
     /// <param name="search">Filter by series title. Matched case-insensitively against all main and official titles across all languages.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
@@ -95,7 +96,7 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
     /// <returns></returns>
     [HttpGet("Series")]
     public ActionResult<ListResult<Series.WithEpisodeCount>> GetSeriesWithDuplicateFiles(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
         [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery] string? search = null,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
@@ -106,7 +107,7 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
             enumerable = enumerable.Where(a => a.AniDB_Anime!.GetFinishedAiring());
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var normalizedSearch = AniDB_Anime_TitleRepository.NormalizeForSearch(search);
+            var normalizedSearch = AnidbTitleSearch.NormalizeForSearch(search);
             enumerable = enumerable.Where(s => _anidbTitles.AnimeMatchesSearch(s.AniDB_ID, normalizedSearch));
         }
 
@@ -120,7 +121,7 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
     /// Get episodes with duplicate files for a series, with only the files with duplicates for each episode.
     /// </summary>
     /// <param name="seriesID">Shoko Series ID</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeReleaseInfo">Include release info data.</param>
@@ -130,7 +131,7 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
     [HttpGet("Series/{seriesID}/Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodesForSeries(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,

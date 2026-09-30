@@ -4,17 +4,15 @@ using System.Linq;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Interfaces;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 using TMDbLib.Objects.TvShows;
 
 #pragma warning disable CS0618
@@ -23,7 +21,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Season Database Model.
 /// </summary>
-public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmdbSeason
+public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, ITmdbSeason, IInlineTextSource
 {
     #region Properties
 
@@ -63,6 +61,18 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
     /// available in the preferred language.
     /// </summary>
     public string EnglishOverview { get; set; } = string.Empty;
+
+    /// <summary>
+    ///   Whether TMDB lists <see cref="EnglishTitle"/> among the season's
+    ///   translations, where it is not stored a second time.
+    /// </summary>
+    public bool EnglishTitleListed { get; set; }
+
+    /// <summary>
+    ///   Whether TMDB lists <see cref="EnglishOverview"/> among the season's
+    ///   translations, where it is not stored a second time.
+    /// </summary>
+    public bool EnglishOverviewListed { get; set; }
 
     /// <summary>
     /// Number of episodes within the season.
@@ -138,85 +148,34 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
     }
 
     /// <summary>
-    /// Get the preferred title using the preferred series title preference
-    /// from the application settings.
+    ///   The title the user's picks and language settings choose for the
+    ///   season.
     /// </summary>
-    /// <param name="useFallback">Use a fallback title if no title was found in
-    /// any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all season titles if they're
-    /// already cached from a previous call to <seealso cref="GetAllTitles"/>.
-    /// </param>
-    /// <returns>The preferred season title, or null if no preferred title was
-    /// found.</returns>
-    public TMDB_Title? GetPreferredTitle(bool useFallback = true, bool force = false)
-    {
-        var titles = GetAllTitles(force);
-
-        foreach (var preferredLanguage in Languages.PreferredNamingLanguages)
-        {
-            if (preferredLanguage.Language == TitleLanguage.Main)
-                return new(DataEntityType.Season, TmdbSeasonID, EnglishTitle, "en", "US");
-
-            var title = titles.GetByLanguage(preferredLanguage.Language);
-            if (title != null)
-                return title;
-        }
-
-        return useFallback ? new(DataEntityType.Season, TmdbSeasonID, EnglishTitle, "en", "US") : null;
-    }
+    /// <returns>The title, or the English one when none is in a preferred language.</returns>
+    public ITitle GetPreferredTitle()
+        => TextAccess.Manager.PreferredTitleFor(this) ?? TmdbInlineText.TitleOrEmpty(EnglishTitle);
 
     /// <summary>
-    /// Cached reference to all titles for the season, so we won't have to hit
-    /// the database twice to get all titles _and_ the preferred title.
+    ///   The season's titles: the ones TMDB lists, then any other source's.
     /// </summary>
-    private IReadOnlyList<TMDB_Title>? _allTitles;
+    /// <returns>The titles.</returns>
+    public IReadOnlyList<ITitle> GetAllTitles()
+        => TextAccess.Manager.ListTitles(this);
 
     /// <summary>
-    /// Get all titles for the season.
+    ///   The overview the user's picks and language settings choose for the
+    ///   season.
     /// </summary>
-    /// <param name="force">Forcefully re-fetch all season titles if they're
-    /// already cached from a previous call. </param>
-    /// <returns>All titles for the season.</returns>
-    public IReadOnlyList<TMDB_Title> GetAllTitles(bool force = false) => force
-        ? _allTitles = RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID)
-        : _allTitles ??= RepoFactory.TMDB_Title.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID);
-
-    /// <inheritdoc/>
-    public void ResetAllTitles() => _allTitles = null;
-
-    public TMDB_Overview? GetPreferredOverview(bool useFallback = true, bool force = false)
-    {
-        var overviews = GetAllOverviews(force);
-
-        foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
-        {
-            var overview = overviews.GetByLanguage(preferredLanguage.Language);
-            if (overview != null)
-                return overview;
-        }
-
-        return useFallback ? new(DataEntityType.Season, TmdbSeasonID, EnglishOverview, "en", "US") : null;
-    }
+    /// <returns>The overview, or the English one when none is in a preferred language.</returns>
+    public IText GetPreferredOverview()
+        => TextAccess.Manager.PreferredOverviewFor(this) ?? TmdbInlineText.OverviewOrEmpty(EnglishOverview);
 
     /// <summary>
-    /// Cached reference to all overviews for the season, so we won't have to
-    /// hit the database twice to get all overviews _and_ the preferred
-    /// overview.
+    ///   The season's overviews: the ones TMDB lists, then any other source's.
     /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allOverviews;
-
-    /// <summary>
-    /// Get all overviews for the season.
-    /// </summary>
-    /// <param name="force">Forcefully re-fetch all season overviews if they're
-    /// already cached from a previous call.</param>
-    /// <returns>All overviews for the season.</returns>
-    public IReadOnlyList<TMDB_Overview> GetAllOverviews(bool force = false) => force
-        ? _allOverviews = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID)
-        : _allOverviews ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Season, TmdbSeasonID);
-
-    /// <inheritdoc/>
-    public void ResetAllOverviews() => _allOverviews = null;
+    /// <returns>The overviews.</returns>
+    public IReadOnlyList<IText> GetAllOverviews()
+        => TextAccess.Manager.ListOverviews(this);
 
     /// <summary>
     /// Get all cast members that have worked on this season.
@@ -299,9 +258,9 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
 
     #region IEntityMetadata Implementation
 
-    DataEntityType IEntityMetadata.Type => DataEntityType.Season;
+    MetadataEntityType IEntityMetadata.Type => MetadataEntityType.Season;
 
-    DataSource IEntityMetadata.DataSource => DataSource.TMDB;
+    MetadataSource IEntityMetadata.DataSource => MetadataSource.TMDB;
 
     string? IEntityMetadata.OriginalTitle => null;
 
@@ -315,28 +274,27 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Season;
+    MetadataGuid IMetadata.ID => new(MetadataSource.TMDB, MetadataEntityType.Season, TmdbSeasonID.ToString());
 
-    int IMetadata<int>.ID => TmdbSeasonID;
+    #endregion
 
-    string IMetadata<string>.ID => TmdbSeasonID.ToString();
+    #region IInlineTextSource Implementation
 
-    DataSource IMetadata.Source => DataSource.TMDB;
+    ITitle? IInlineTextSource.InlineTitle => TmdbInlineText.Title(EnglishTitle);
+
+    IText? IInlineTextSource.InlineOverview => TmdbInlineText.Overview(EnglishOverview);
+
+    InlineTextPlacement IInlineTextSource.InlineTitlePlacement => TmdbInlineText.Placement(EnglishTitleListed);
+
+    InlineTextPlacement IInlineTextSource.InlineOverviewPlacement => TmdbInlineText.Placement(EnglishOverviewListed);
 
     #endregion
 
     #region IWithTitles Implementation
 
-    string IWithTitles.Title => GetPreferredTitle()?.Value ?? EnglishTitle;
+    string IWithTitles.Title => GetPreferredTitle().Value;
 
-    ITitle IWithTitles.DefaultTitle => new TitleStub
-    {
-        Language = TitleLanguage.EnglishAmerican,
-        CountryCode = "US",
-        LanguageCode = "en",
-        Value = EnglishTitle,
-        Source = DataSource.TMDB,
-    };
+    ITitle IWithTitles.DefaultTitle => TmdbInlineText.TitleOrEmpty(EnglishTitle);
 
     ITitle? IWithTitles.PreferredTitle => GetPreferredTitle();
 
@@ -344,20 +302,13 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
 
     #endregion
 
-    #region IWithDescriptions Implementation
+    #region IWithOverviews Implementation
 
-    IText? IWithDescriptions.DefaultDescription => new TextStub
-    {
-        Language = TitleLanguage.EnglishAmerican,
-        CountryCode = "US",
-        LanguageCode = "en",
-        Value = EnglishOverview,
-        Source = DataSource.TMDB,
-    };
+    IText? IWithOverviews.DefaultOverview => TmdbInlineText.OverviewOrEmpty(EnglishOverview);
 
-    IText? IWithDescriptions.PreferredDescription => GetPreferredOverview();
+    IText? IWithOverviews.PreferredOverview => GetPreferredOverview();
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => GetAllOverviews();
+    IReadOnlyList<IText> IWithOverviews.Overviews => GetAllOverviews();
 
     #endregion
 
@@ -383,7 +334,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
 
     #region IWithImages Implementation
 
-    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(PosterPath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, PosterPath) is { } imageID
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(PosterPath) && IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.TMDB, PosterPath) is { } imageID
         ? ((IWithImages)this).GetImageCrossReferences(new() { ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == imageID)
         : null;
 
@@ -391,25 +342,11 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
 
     #region ISeason Implementation
 
-    int ISeason.SeriesID => TmdbShowID;
-
     ISeries? ISeason.Series => TmdbShow;
 
     IReadOnlyList<IEpisode> ISeason.Episodes => TmdbEpisodes;
 
-    #endregion
-
-    #region ITmdbSeason Implementation
-
-    string ITmdbSeason.OrderingID => TmdbShowID.ToString();
-
-    ITmdbShow? ITmdbSeason.Series => TmdbShow;
-
-    ITmdbShowOrderingInformation? ITmdbSeason.CurrentShowOrdering => TmdbShow;
-
-    IReadOnlyList<ITmdbEpisode> ITmdbSeason.Episodes => TmdbEpisodes;
-
-    IReadOnlyList<ITmdbSeasonCrossReference> ITmdbSeason.TmdbSeasonCrossReferences =>
+    IReadOnlyList<IMetadataSeasonCrossReference> ISeason.MetadataSeasonCrossReferences =>
         TmdbEpisodes
             .SelectMany(e => e.CrossReferences)
             .Select(xref => xref.TmdbSeasonCrossReference)
@@ -417,10 +354,24 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, IMetadata<int>, ITmd
             .DistinctBy(xref => xref.TmdbSeasonID)
             .ToList();
 
-    IReadOnlyList<ITmdbEpisodeCrossReference> ITmdbSeason.TmdbEpisodeCrossReferences =>
+    IReadOnlyList<IMetadataEpisodeCrossReference> ISeason.MetadataEpisodeCrossReferences =>
         TmdbEpisodes
             .SelectMany(e => e.CrossReferences)
             .ToList();
 
+    // A film sits in no season, so nothing links one to a TMDB season.
+    IReadOnlyList<IMetadataMovieCrossReference> ISeason.MetadataMovieCrossReferences => [];
+
+    #endregion
+
+    #region ITmdbSeason Implementation
+
+    string ITmdbSeason.TmdbOrderingID => TmdbShowID.ToString();
+
+    ITmdbShow? ITmdbSeason.Series => TmdbShow;
+
+    ITmdbShowOrderingInformation? ITmdbSeason.CurrentShowOrdering => TmdbShow is { } show ? new TMDB_Show_DefaultOrdering(show, OrderingLookup.Service) : null;
+
+    IReadOnlyList<ITmdbEpisode> ITmdbSeason.Episodes => TmdbEpisodes;
     #endregion
 }

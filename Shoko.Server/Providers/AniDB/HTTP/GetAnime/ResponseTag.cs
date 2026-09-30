@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 

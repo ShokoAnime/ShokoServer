@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Video;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models.TMDB;
@@ -66,6 +67,7 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
     public DateTime LastUpdatedAt { get; set; }
 
     #endregion
+
     #region Constructors
 
     public TMDB_AlternateOrdering_Episode() { }
@@ -79,6 +81,7 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
     }
 
     #endregion
+
     #region Methods
 
     public bool Populate(string collectionId, int showId, int seasonNumber, int episodeNumber)
@@ -115,11 +118,9 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Episode;
+    MetadataGuid IMetadata.ID => new(MetadataSource.TMDB, MetadataEntityType.Episode, TmdbEpisodeID.ToString());
 
-    DataSource IMetadata.Source => DataSource.TMDB;
-
-    int IMetadata<int>.ID => TmdbEpisodeID;
+    int ITmdbEpisode.TmdbID => TmdbEpisodeID;
 
     #endregion
 
@@ -135,13 +136,13 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     #endregion
 
-    #region IWithDescriptions Implementation
+    #region IWithOverviews Implementation
 
-    IText? IWithDescriptions.DefaultDescription => GetTmdbEpisode().DefaultDescription;
+    IText? IWithOverviews.DefaultOverview => GetTmdbEpisode().DefaultOverview;
 
-    IText? IWithDescriptions.PreferredDescription => GetTmdbEpisode().PreferredDescription;
+    IText? IWithOverviews.PreferredOverview => GetTmdbEpisode().PreferredOverview;
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => GetTmdbEpisode().Descriptions;
+    IReadOnlyList<IText> IWithOverviews.Overviews => GetTmdbEpisode().Overviews;
 
     #endregion
 
@@ -172,9 +173,32 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     #endregion
 
+    #region IWithResources Implementation
+
+    IReadOnlyList<Resource> IWithResources.Resources => GetTmdbEpisode().Resources;
+
+    #endregion
+
+    #region IWithCrossSources Implementation
+
+    IReadOnlyList<MetadataGuid> IWithCrossSources.CrossSourceIDs => ((IEpisode)GetTmdbEpisode()).CrossSourceIDs;
+
+    #endregion
+
     #region IEpisode Implementation
 
-    int IEpisode.SeriesID => TmdbShowID;
+    IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings => GetTmdbEpisode().Orderings;
+
+    IEpisodeOrderingInformation? IEpisode.PreferredOrdering => GetTmdbEpisode().PreferredOrdering;
+
+    IReadOnlyList<IMetadataEpisodeCrossReference> IEpisode.MetadataEpisodeCrossReferences =>
+        RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
+
+    IReadOnlyList<IMetadataSeriesCrossReference> IEpisode.MetadataSeriesCrossReferences =>
+        RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(TmdbShowID);
+
+    // A film claims no TMDB episode, only the AniDB one standing for it.
+    IReadOnlyList<IMetadataMovieCrossReference> IEpisode.MetadataMovieCrossReferences => [];
 
     IReadOnlyList<int> IEpisode.ShokoEpisodeIDs => GetTmdbEpisode().ShokoEpisodeIDs;
 
@@ -183,6 +207,9 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
     int IEpisode.EpisodeNumber => EpisodeNumber;
 
     int? IEpisode.SeasonNumber => SeasonNumber;
+
+    MetadataGuid? IEpisode.SeasonID
+        => string.IsNullOrEmpty(TmdbEpisodeGroupID) ? null : new(MetadataSource.TMDB, MetadataEntityType.Season, TmdbEpisodeGroupID);
 
     double IEpisode.Rating => GetTmdbEpisode().Rating;
 
@@ -198,7 +225,7 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => GetTmdbEpisode().ShokoEpisodes;
 
-    IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences => GetTmdbEpisode().CrossReferences;
+    IReadOnlyList<IVideoCrossReference> IEpisode.VideoCrossReferences => GetTmdbEpisode().VideoCrossReferences;
 
     IReadOnlyList<IVideo> IEpisode.Videos => GetTmdbEpisode().Videos;
 
@@ -206,15 +233,13 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     #region ITmdbEpisode Implementation
 
-    string ITmdbEpisode.SeasonID => TmdbEpisodeGroupID;
-
-    string ITmdbEpisode.OrderingID => TmdbEpisodeGroupCollectionID;
+    string ITmdbEpisode.TmdbOrderingID => TmdbEpisodeGroupCollectionID;
 
     int? ITmdbEpisode.TvdbEpisodeID => GetTmdbEpisode().TvdbEpisodeID;
 
     ITmdbShow? ITmdbEpisode.Series => TmdbShow;
 
-    bool ITmdbEpisode.IsHidden => GetTmdbEpisode().IsHidden;
+    bool IEpisode.IsHidden => GetTmdbEpisode().IsHidden;
 
     ITmdbSeason? ITmdbEpisode.Season => TmdbAlternateOrderingSeason;
 
@@ -222,45 +247,33 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     ITmdbShowOrderingInformation? ITmdbEpisode.SeriesOrdering => TmdbAlternateOrdering;
 
-    ITmdbEpisodeOrderingInformation? ITmdbEpisode.PreferredOrdering =>
-        (
-            TmdbShow is not { } tmdbShow ||
-            tmdbShow.PreferredAlternateOrderingID is not { Length: > 0 } ||
-            tmdbShow.PreferredAlternateOrderingID == TmdbShowID.ToString()
-        )
-            ? GetTmdbEpisode() as TMDB_Episode
-            : TmdbShow is { } tmdbShow0 && string.Equals(tmdbShow0.PreferredAlternateOrderingID, TmdbEpisodeGroupCollectionID)
-                ? this
-                : RepoFactory.TMDB_AlternateOrdering_Episode.GetByEpisodeGroupCollectionAndEpisodeIDs(tmdbShow.PreferredAlternateOrderingID, TmdbEpisodeID);
+    IReadOnlyList<ITmdbEpisodeOrderingInformation> ITmdbEpisode.TmdbOrderings => GetTmdbEpisode().TmdbOrderings;
+    #endregion
 
-    IReadOnlyList<ITmdbEpisodeOrderingInformation> ITmdbEpisode.AllOrderings => [this, .. RepoFactory.TMDB_AlternateOrdering_Episode.GetByTmdbEpisodeID(TmdbEpisodeID)];
+    #region IEpisodeOrderingInformation Implementation
+
+    MetadataGuid IEpisodeOrderingInformation.OrderingID => new(MetadataSource.TMDB, MetadataEntityType.Ordering, TmdbEpisodeGroupCollectionID);
+
+    MetadataGuid? IEpisodeOrderingInformation.SeasonID => new(MetadataSource.TMDB, MetadataEntityType.Season, TmdbEpisodeGroupID);
+
+    int? IEpisodeOrderingInformation.SeasonNumber => SeasonNumber;
+
+    EpisodeType IEpisodeOrderingInformation.EpisodeType => SeasonNumber == 0 ? EpisodeType.Special : EpisodeType.Episode;
+
+    bool IEpisodeOrderingInformation.IsDefault => false;
+
+    bool IEpisodeOrderingInformation.IsPreferred =>
+        OrderingLookup.IsChosen(((IEpisodeOrderingInformation)this).SeriesID, ((IEpisodeOrderingInformation)this).OrderingID);
 
     #endregion
 
     #region ITmdbEpisodeOrderingInformation Implementation
-
-    int ITmdbEpisodeOrderingInformation.SeriesID => TmdbShowID;
-
-    string ITmdbEpisodeOrderingInformation.OrderingID => TmdbEpisodeGroupCollectionID;
-
-    string ITmdbEpisodeOrderingInformation.SeasonID => TmdbEpisodeGroupID;
-
-    int ITmdbEpisodeOrderingInformation.EpisodeID => TmdbEpisodeID;
-
-    bool ITmdbEpisodeOrderingInformation.IsDefault => true;
-
-    bool ITmdbEpisodeOrderingInformation.IsPreferred =>
-        TmdbShow is not { } tmdbShow ||
-        tmdbShow.PreferredAlternateOrderingID is not { Length: > 0 } ||
-        tmdbShow.PreferredAlternateOrderingID == TmdbShowID.ToString();
 
     ITmdbShow? ITmdbEpisodeOrderingInformation.Series => TmdbShow;
 
     ITmdbSeason? ITmdbEpisodeOrderingInformation.Season => TmdbAlternateOrderingSeason;
 
     ITmdbEpisode ITmdbEpisodeOrderingInformation.Episode => this;
-
-    IReadOnlyList<ITmdbEpisodeCrossReference> ITmdbEpisode.TmdbEpisodeCrossReferences => GetTmdbEpisode().TmdbEpisodeCrossReferences;
 
     #endregion
 }

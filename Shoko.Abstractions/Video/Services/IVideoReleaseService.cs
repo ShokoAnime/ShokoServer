@@ -12,11 +12,9 @@ namespace Shoko.Abstractions.Video.Services;
 ///   Service responsible for managing release info for videos.
 /// </summary>
 /// <remarks>
-///   The service can operate in sequential mode or parallel model. Parallel
-///   mode affects <see cref="FindReleaseForVideo(IVideo, bool, bool, bool, CancellationToken)"/>
-///   and makes it run all providers in parallel and pick the highest priority
-///   valid result, as opposed to running each provider serially in the priority
-///   order and picking the first valid result when running in sequential mode.
+///   <see cref="FindReleaseForVideo(IVideo, bool, bool, bool, CancellationToken)"/>
+///   runs the enabled providers one after the other in priority order and
+///   takes the first valid result.
 /// </remarks>
 public interface IVideoReleaseService
 {
@@ -36,8 +34,8 @@ public interface IVideoReleaseService
     event EventHandler<VideoReleaseSearchCompletedEventArgs>? SearchCompleted;
 
     /// <summary>
-    ///   Event raised when the enabled release info providers are updated or
-    ///   parallel mode is changed.
+    ///   Event raised when the enabled release info providers or their
+    ///   priority are updated.
     /// </summary>
     event EventHandler? ProvidersUpdated;
 
@@ -193,12 +191,8 @@ public interface IVideoReleaseService
     Task ScheduleFindReleaseForVideo(IVideo video, bool force = false, bool skipEvents = false, bool relocateFiles = true, bool prioritize = false);
 
     /// <summary>
-    ///   If parallel mode is disabled, then it will run all enabled
-    ///   <see cref="IReleaseInfoProvider"/>s, in priority order, until a
-    ///   release is found or all providers are exhausted. If parallel mode is
-    ///   enabled, then it will run all enabled
-    ///   <see cref="IReleaseInfoProvider"/>s in parallel and pick the highest
-    ///   priority valid result.
+    ///   Runs the enabled <see cref="IReleaseInfoProvider"/>s in priority
+    ///   order until one finds a release or all of them are exhausted.
     /// </summary>
     /// <remarks>
     ///   This method does not save the found release to the database unless

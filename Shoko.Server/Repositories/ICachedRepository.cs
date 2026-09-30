@@ -1,4 +1,4 @@
-﻿using System.Threading;
+using System.Threading;
 using Shoko.Server.Repositories.NHibernate;
 
 namespace Shoko.Server.Repositories;

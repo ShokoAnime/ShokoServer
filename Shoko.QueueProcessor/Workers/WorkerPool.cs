@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Analytics;
+using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
 using Shoko.QueueProcessor.Events;
 using Shoko.QueueProcessor.Orchestration;
@@ -21,6 +23,8 @@ public sealed class WorkerPool : IWorkerPool
 {
     // Sub-queue: sorted by (Priority DESC, QueuedAt ASC) via the custom comparer
     private readonly SortedSet<QueuedJob> _subQueue = new(QueuedJobComparer.Instance);
+    // Lock order: taken before QueueOrchestrator._gate, which TryAcquire enters through
+    // TryRegisterExecuting. Nothing may take this lock while holding _gate or another pool's lock.
     private readonly object _subQueueLock = new();
 
     // O(1) type resolution — avoids Type.GetType() (assembly scan) on every TryAcquire call
@@ -39,6 +43,10 @@ public sealed class WorkerPool : IWorkerPool
 
     // Cached exclusion set from acquisition filters; rebuilt on filter StateChanged
     private volatile HashSet<Type> _filterExclusions = [];
+
+    // Taken in Start; while it cannot restore stored actors, jobs stored with one are held.
+    private IJobActorAccessor? _actorAccessor;
+    private volatile bool _holdActorJobs;
 
     // Interlocked counters for IdleWorkers / ActiveWorkers
     private int _idleWorkers;
@@ -92,6 +100,14 @@ public sealed class WorkerPool : IWorkerPool
     /// </summary>
     public Func<QueuedJob, bool>? TryRegisterExecuting { get; set; }
 
+    /// <summary>
+    /// Set by <see cref="Orchestration.QueueOrchestrator.Initialize"/>. Asked about a job that
+    /// <see cref="TryRegisterExecuting"/> refused: <see langword="true"/> when the job has left
+    /// the queue for good, such as one removed while its enqueue was still adding it here, so the
+    /// pool drops it instead of keeping it forever.
+    /// </summary>
+    public Func<QueuedJob, bool>? IsDetached { get; set; }
+
     public WorkerPool(
         string name,
         int maxWorkers,
@@ -110,7 +126,7 @@ public sealed class WorkerPool : IWorkerPool
 
         _typeByName = new Dictionary<string, Type>(handledTypes.Count, StringComparer.Ordinal);
         foreach (var t in handledTypes)
-            _typeByName[t.FullName + ", " + t.Assembly.GetName().Name] = t;
+            _typeByName[JobTypeNames.Stored(t)] = t;
 
         foreach (var filter in acquisitionFilters)
             filter.StateChanged += OnFilterStateChanged;
@@ -156,15 +172,22 @@ public sealed class WorkerPool : IWorkerPool
     }
 
     /// <summary>Removes <paramref name="id"/> from the sub-queue (called on forced discard).</summary>
-    public bool RemoveFromQueue(Guid id)
+    public bool RemoveFromQueue(Guid id) => RemoveFromQueue(id, out _);
+
+    /// <summary>
+    /// Removes <paramref name="id"/> from the sub-queue.
+    /// </summary>
+    /// <param name="id">The ID of the job to remove.</param>
+    /// <param name="job">The removed job, or <see langword="null"/> if it was not waiting in this pool.</param>
+    /// <returns><see langword="true"/> when the job was removed.</returns>
+    public bool RemoveFromQueue(Guid id, out QueuedJob? job)
     {
         bool removed;
         lock (_subQueueLock)
         {
-            if (_subQueueById.TryGetValue(id, out var job))
+            if (_subQueueById.Remove(id, out job))
             {
                 _subQueue.Remove(job);
-                _subQueueById.Remove(id);
                 _subQueueByKey.Remove(job.JobKey);
                 _waitingCount--;
                 removed = true;
@@ -182,10 +205,40 @@ public sealed class WorkerPool : IWorkerPool
         return removed;
     }
 
+    /// <summary>
+    /// Removes every job in <paramref name="ids"/> from the sub-queue under a single lock
+    /// acquisition. Used when the queue is cleared.
+    /// </summary>
+    /// <param name="ids">The IDs to remove; those not waiting in this pool are skipped.</param>
+    /// <returns>The number of jobs removed.</returns>
+    public int RemoveFromQueue(IReadOnlyCollection<Guid> ids)
+    {
+        var removed = 0;
+        lock (_subQueueLock)
+        {
+            foreach (var id in ids)
+            {
+                if (!_subQueueById.Remove(id, out var job))
+                    continue;
+
+                _subQueue.Remove(job);
+                _subQueueByKey.Remove(job.JobKey);
+                removed++;
+            }
+            _waitingCount -= removed;
+        }
+        if (removed > 0)
+        {
+            _cachedRunnableCount = -1;
+            _cachedBlockedCount = -1;
+        }
+        return removed;
+    }
+
     /// <summary>Returns a snapshot of the current sub-queue contents (for GetWaiting API calls).</summary>
     public IReadOnlyList<QueuedJob> GetWaitingSnapshot()
     {
-        lock (_subQueueLock) return [.._subQueue];
+        lock (_subQueueLock) return [.. _subQueue];
     }
 
     /// <summary>
@@ -228,6 +281,10 @@ public sealed class WorkerPool : IWorkerPool
                 QueuedAt = DateTimeOffset.UtcNow,
                 ScheduledAt = null,
                 RetryCount = job.RetryCount,
+                ChainId = job.ChainId,
+                IsChainFinally = job.IsChainFinally,
+                ParentJobId = job.ParentJobId,
+                Actor = job.Actor,
             };
             _subQueue.Add(promoted);
             _subQueueById[promoted.Id] = promoted;
@@ -266,6 +323,7 @@ public sealed class WorkerPool : IWorkerPool
                     ChainId = existing.ChainId,
                     IsChainFinally = existing.IsChainFinally,
                     ParentJobId = existing.ParentJobId,
+                    Actor = existing.Actor,
                 };
                 _subQueue.Add(updated);
                 _subQueueById[id] = updated;
@@ -275,7 +333,9 @@ public sealed class WorkerPool : IWorkerPool
         }
     }
 
-    /// <summary>Clears all waiting jobs from the sub-queue (called on queue clear).</summary>
+    /// <summary>
+    /// Clears all waiting jobs from the sub-queue.
+    /// </summary>
     public void ClearQueue()
     {
         lock (_subQueueLock)
@@ -296,10 +356,11 @@ public sealed class WorkerPool : IWorkerPool
     }
 
     /// <summary>
-    /// Number of waiting jobs whose type is currently excluded by an acquisition filter and that
-    /// are <em>not</em> deferred to a future <see cref="QueuedJob.ScheduledAt"/> — a job waiting on
-    /// its scheduled time is counted as <see cref="ScheduledCount"/>, not blocked, so the two
-    /// categories are disjoint. Cached and invalidated on any queue or filter mutation.
+    /// Number of waiting jobs held back (their type excluded by an acquisition filter, or their
+    /// actor not restorable yet) that are <em>not</em> deferred to a future
+    /// <see cref="QueuedJob.ScheduledAt"/> — a job waiting on its scheduled time is counted as
+    /// <see cref="ScheduledCount"/>, not blocked, so the two categories are disjoint. Cached and
+    /// invalidated on any queue or filter mutation.
     /// </summary>
     public int BlockedCount
     {
@@ -308,12 +369,13 @@ public sealed class WorkerPool : IWorkerPool
             var cached = _cachedBlockedCount;
             if (cached >= 0) return cached;
             var exclusions = _filterExclusions;
+            var holdActorJobs = _holdActorJobs;
             var now = DateTimeOffset.UtcNow;
             int count;
             lock (_subQueueLock)
                 count = _subQueue.Count(j =>
                     !(j.ScheduledAt.HasValue && j.ScheduledAt.Value > now)
-                    && _typeByName.TryGetValue(j.JobType, out var t) && exclusions.Contains(t));
+                    && IsHeld(j, exclusions, holdActorJobs));
             _cachedBlockedCount = count;
             return count;
         }
@@ -338,6 +400,25 @@ public sealed class WorkerPool : IWorkerPool
     public bool IsTypeBlocked(Type type) => _filterExclusions.Contains(type);
 
     /// <summary>
+    /// Whether <paramref name="job"/> is held back from dispatch: its type is excluded by an
+    /// acquisition filter, or it was queued with an actor the host cannot restore yet.
+    /// </summary>
+    /// <param name="job">A job waiting in this pool.</param>
+    /// <returns><see langword="true"/> when the job may not be acquired right now.</returns>
+    public bool IsJobBlocked(QueuedJob job) => IsHeld(job, _filterExclusions, _holdActorJobs);
+
+    /// <summary>
+    /// Whether <paramref name="job"/> is held back by <paramref name="exclusions"/> or by its actor.
+    /// </summary>
+    /// <param name="job">The job.</param>
+    /// <param name="exclusions">The job types excluded by the acquisition filters.</param>
+    /// <param name="holdActorJobs">Whether jobs stored with an actor are held.</param>
+    /// <returns><see langword="true"/> when the job may not be acquired right now.</returns>
+    private bool IsHeld(QueuedJob job, HashSet<Type> exclusions, bool holdActorJobs)
+        => (holdActorJobs && job.ActorUserId.HasValue)
+            || (_typeByName.TryGetValue(job.JobType, out var type) && exclusions.Contains(type));
+
+    /// <summary>
     /// Returns the number of waiting jobs that are not blocked and not scheduled in the future,
     /// stopping early once <paramref name="limit"/> is reached. Pass <see cref="MaxWorkers"/> as the
     /// limit to cap the scan at the pool's own concurrency ceiling — that is all the orchestrator
@@ -360,6 +441,7 @@ public sealed class WorkerPool : IWorkerPool
     private int ComputeRunnableCount(int limit)
     {
         var exclusions = _filterExclusions;
+        var holdActorJobs = _holdActorJobs;
         var now = DateTimeOffset.UtcNow;
         var count = 0;
         lock (_subQueueLock)
@@ -367,7 +449,7 @@ public sealed class WorkerPool : IWorkerPool
             foreach (var job in _subQueue)
             {
                 if (job.ScheduledAt.HasValue && job.ScheduledAt.Value > now) continue;
-                if (_typeByName.TryGetValue(job.JobType, out var type) && exclusions.Contains(type)) continue;
+                if (IsHeld(job, exclusions, holdActorJobs)) continue;
                 if (++count >= limit) break;
             }
         }
@@ -381,28 +463,53 @@ public sealed class WorkerPool : IWorkerPool
     public QueuedJob? TryAcquire()
     {
         var exclusions = _filterExclusions;
+        var holdActorJobs = _holdActorJobs;
         var now = DateTimeOffset.UtcNow;
 
         lock (_subQueueLock)
         {
+            QueuedJob? acquired = null;
+            List<QueuedJob>? detached = null;
             foreach (var job in _subQueue)
             {
                 if (job.ScheduledAt.HasValue && job.ScheduledAt.Value > now) continue;
 
-                if (_typeByName.TryGetValue(job.JobType, out var type) && exclusions.Contains(type)) continue;
+                if (IsHeld(job, exclusions, holdActorJobs)) continue;
 
-                if (TryRegisterExecuting == null || !TryRegisterExecuting(job)) continue;
+                if (TryRegisterExecuting == null || !TryRegisterExecuting(job))
+                {
+                    if (IsDetached?.Invoke(job) is true)
+                        (detached ??= []).Add(job);
+                    continue;
+                }
 
-                _subQueue.Remove(job);
-                _subQueueById.Remove(job.Id);
-                _subQueueByKey.Remove(job.JobKey);
-                _waitingCount--;
-                _cachedRunnableCount = -1;
-                _cachedBlockedCount = -1;
-                return job;
+                acquired = job;
+                break;
             }
+
+            if (detached != null)
+                foreach (var job in detached)
+                    RemoveUnderLock(job);
+            if (acquired != null)
+                RemoveUnderLock(acquired);
+            return acquired;
         }
-        return null;
+    }
+
+    /// <summary>
+    /// Takes a job out of the sub-queue and its indexes. MUST be called under <see cref="_subQueueLock"/>.
+    /// </summary>
+    /// <param name="job">The job, which is in the sub-queue.</param>
+    private void RemoveUnderLock(QueuedJob job)
+    {
+        _subQueue.Remove(job);
+        _subQueueById.Remove(job.Id);
+        // A detached job can share its key with the live job that took the key over.
+        if (_subQueueByKey.TryGetValue(job.JobKey, out var byKey) && ReferenceEquals(byKey, job))
+            _subQueueByKey.Remove(job.JobKey);
+        _waitingCount--;
+        _cachedRunnableCount = -1;
+        _cachedBlockedCount = -1;
     }
 
     /// <summary>
@@ -420,22 +527,36 @@ public sealed class WorkerPool : IWorkerPool
         }
     }
 
-    /// <summary>Starts <see cref="MaxWorkers"/> worker tasks.</summary>
+    /// <summary>
+    /// Starts <see cref="MaxWorkers"/> worker tasks. The pool holds every job stored with an
+    /// actor for as long as the <see cref="IJobActorAccessor"/> cannot restore it.
+    /// </summary>
     public void Start(IServiceProvider serviceProvider, QueueOrchestrator orchestrator, QueueMetrics metrics, QueueStateEventHandler events,
         IChainScopeRegistry chainScopeRegistry)
     {
+        _actorAccessor = serviceProvider.GetService<IJobActorAccessor>();
+        if (_actorAccessor is not null)
+            _actorAccessor.CanRestoreChanged += OnActorRestoreChanged;
+        OnActorRestoreChanged(null, EventArgs.Empty);
+
         _cts = new CancellationTokenSource();
         _workers.Clear();
         for (var i = 0; i < MaxWorkers; i++)
         {
-            var w = new Worker(this, i, serviceProvider, orchestrator, chainScopeRegistry, metrics, events, _wakeChannel.Reader);
+            var w = new Worker(this, i, serviceProvider, orchestrator, chainScopeRegistry, metrics, events, _wakeChannel.Reader, _actorAccessor);
             _workers.Add(w);
             w.Start(_cts.Token);
         }
     }
 
     /// <summary>Cancels all worker tasks. In-flight jobs run to completion.</summary>
-    public void Stop() => _cts?.Cancel();
+    public void Stop()
+    {
+        if (_actorAccessor is not null)
+            _actorAccessor.CanRestoreChanged -= OnActorRestoreChanged;
+        _actorAccessor = null;
+        _cts?.Cancel();
+    }
 
     /// <summary>
     /// Awaits exit of every worker started by <see cref="Start"/>. Combined with <see cref="Stop"/>,
@@ -489,6 +610,14 @@ public sealed class WorkerPool : IWorkerPool
         _typeByName.TryGetValue(jobTypeName, out var t) ? t : null;
 
     private void OnFilterStateChanged(object? sender, EventArgs e) => RebuildExclusions();
+
+    private void OnActorRestoreChanged(object? sender, EventArgs e)
+    {
+        _holdActorJobs = _actorAccessor?.CanRestore is false;
+        _cachedRunnableCount = -1;
+        _cachedBlockedCount = -1;
+        Signal();
+    }
 
     private void RebuildExclusions()
     {

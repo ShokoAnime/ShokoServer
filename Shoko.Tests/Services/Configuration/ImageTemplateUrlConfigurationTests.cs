@@ -1,4 +1,4 @@
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Settings;
 using Xunit;
 
@@ -12,7 +12,7 @@ namespace Shoko.Tests.Services.Configuration;
 public class ImageTemplateUrlConfigurationTests
 {
     private static ImageTemplateUrlConfiguration Create(string? templateUrl)
-        => new() { ImageSource = DataSource.TMDB, TemplateUrl = templateUrl };
+        => new() { ImageSource = MetadataSource.TMDB, TemplateUrl = templateUrl };
 
     [Theory]
     [InlineData("http://example.com/images/{0}")]
@@ -58,7 +58,7 @@ public class ImageTemplateUrlConfigurationTests
     [Fact]
     public void Validate_RejectsALocalImageSource()
     {
-        var config = new ImageTemplateUrlConfiguration { ImageSource = DataSource.Shoko, TemplateUrl = "https://example.com/images/{0}" };
+        var config = new ImageTemplateUrlConfiguration { ImageSource = MetadataSource.Shoko, TemplateUrl = "https://example.com/images/{0}" };
 
         var errors = ImageTemplateUrlConfiguration.Validate(config);
 

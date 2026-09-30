@@ -1133,7 +1133,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
             {
                 if (anime.Titles.Any(ti =>
                         ti.Language == TitleLanguage.English &&
-                        (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official)))
+                        (ti.Type == TitleType.Main || ti.Type == TitleType.Official)))
                 {
                     return !notCondition;
                 }
@@ -1150,7 +1150,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
             {
                 if (anime.Titles.Any(ti =>
                         ti.Language == TitleLanguage.Japanese &&
-                        (ti.TitleType == TitleType.Main || ti.TitleType == TitleType.Official)))
+                        (ti.Type == TitleType.Main || ti.Type == TitleType.Official)))
                 {
                     return !notCondition;
                 }
@@ -1166,8 +1166,8 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
             if (test.Trim().Equals(tagAnimeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
             {
                 if (anime.Titles.Any(ti =>
-                        ti.TitleType == TitleType.Main ||
-                        (ti.Language == TitleLanguage.Romaji && ti.TitleType == TitleType.Official)))
+                        ti.Type == TitleType.Main ||
+                        (ti.Language == TitleLanguage.Romaji && ti.Type == TitleType.Official)))
                 {
                     return !notCondition;
                 }
@@ -1182,9 +1182,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
             var tagEpisodeNameEnglish = Constants.FileRenameTag.EpisodeNameEnglish[1..]; // remove % at the front
             if (test.Trim().Equals(tagEpisodeNameEnglish, StringComparison.InvariantCultureIgnoreCase))
             {
-                var title = RepoFactory.AniDB_Episode_Title
-                    .GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.English)
-                    .FirstOrDefault()?.Title;
+                var title = episodes[0].EnglishTitle;
                 if (string.IsNullOrEmpty(title))
                 {
                     return notCondition;
@@ -1200,9 +1198,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
             var tagEpisodeNameRomaji = Constants.FileRenameTag.EpisodeNameRomaji[1..]; // remove % at the front
             if (test.Trim().Equals(tagEpisodeNameRomaji, StringComparison.InvariantCultureIgnoreCase))
             {
-                var title = RepoFactory.AniDB_Episode_Title
-                    .GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.Romaji)
-                    .FirstOrDefault()?.Title;
+                var title = episodes[0].GetTitles(TitleLanguage.Romaji).FirstOrDefault()?.Value;
                 if (string.IsNullOrEmpty(title))
                 {
                     return notCondition;
@@ -1567,7 +1563,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameEnglish.ToLower()))
         {
-            var title = anime.Titles.FirstOrDefault(ti => ti.Language == TitleLanguage.English && ti.TitleType is TitleType.Main or TitleType.Official)?.Title;
+            var title = anime.Titles.FirstOrDefault(ti => ti.Language == TitleLanguage.English && ti.Type is TitleType.Main or TitleType.Official)?.Value;
             if (string.IsNullOrEmpty(title))
                 return (false, "Unable to get the English title");
             newFileName = newFileName.Replace(Constants.FileRenameTag.AnimeNameEnglish, title);
@@ -1580,8 +1576,8 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameMain.ToLower()))
         {
             var title = anime.Titles
-                            .FirstOrDefault(ti => ti.TitleType == TitleType.Main || (ti.Language == TitleLanguage.Romaji && ti.TitleType == TitleType.Official))
-                            ?.Title ??
+                            .FirstOrDefault(ti => ti.Type == TitleType.Main || (ti.Language == TitleLanguage.Romaji && ti.Type == TitleType.Official))
+                            ?.Value ??
                         anime.MainTitle;
             if (string.IsNullOrEmpty(title))
                 return (false, "Unable to get the main title");
@@ -1595,7 +1591,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.AnimeNameKanji.ToLower()))
         {
-            var title = anime.Titles.FirstOrDefault(ti => ti.Language == TitleLanguage.Japanese && ti.TitleType is TitleType.Main or TitleType.Official)?.Title;
+            var title = anime.Titles.FirstOrDefault(ti => ti.Language == TitleLanguage.Japanese && ti.Type is TitleType.Main or TitleType.Official)?.Value;
             if (string.IsNullOrEmpty(title))
                 return (false, "Unable to get the kanji title");
 
@@ -1708,9 +1704,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameEnglish.ToLower()))
         {
-            var epname = RepoFactory.AniDB_Episode_Title
-                .GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.English)
-                .FirstOrDefault()?.Title;
+            var epname = episodes[0].EnglishTitle;
             if (string.IsNullOrEmpty(epname)) return (false, "Unable to get the english episode name");
             if (epname.Length > settings.MaxEpisodeLength) epname = epname[..(settings.MaxEpisodeLength - 1)] + "…";
 
@@ -1723,9 +1717,7 @@ public class WebAOMRenamer(ILogger<WebAOMRenamer> _logger, IVideoRelocationServi
 
         if (action.Trim().ToLower().Contains(Constants.FileRenameTag.EpisodeNameRomaji.ToLower()))
         {
-            var epname = RepoFactory.AniDB_Episode_Title
-                .GetByEpisodeIDAndLanguage(episodes[0].EpisodeID, TitleLanguage.Romaji)
-                .FirstOrDefault()?.Title;
+            var epname = episodes[0].GetTitles(TitleLanguage.Romaji).FirstOrDefault()?.Value;
             if (string.IsNullOrEmpty(epname)) return (false, "Unable to get the romaji episode name");
             if (epname.Length > settings.MaxEpisodeLength) epname = epname[..(settings.MaxEpisodeLength - 1)] + "…";
 

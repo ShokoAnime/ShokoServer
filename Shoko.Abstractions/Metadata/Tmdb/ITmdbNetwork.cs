@@ -5,8 +5,14 @@ namespace Shoko.Abstractions.Metadata.Tmdb;
 /// <summary>
 /// A TMDB network.
 /// </summary>
-public interface ITmdbNetwork : INetwork, IMetadata<int>
+public interface ITmdbNetwork : INetwork
 {
+    /// <summary>
+    ///   The TMDB network ID, the same ID <see cref="IMetadata.ID"/> holds as
+    ///   text.
+    /// </summary>
+    int TmdbID { get; }
+
     /// <summary>
     /// Main name of the network on TMDB.
     /// </summary>

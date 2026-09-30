@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Shoko.Abstractions.Core.Events;
 using Shoko.Abstractions.Core.Exceptions;
+using Shoko.Abstractions.Plugin;
 
 namespace Shoko.Abstractions.Core.Services;
 
@@ -23,12 +25,12 @@ public interface ISystemService
     /// <summary>
     ///   The uptime of the server.
     /// </summary>
-    TimeSpan Uptime => DateTime.UtcNow - BootstrappedAt;
+    TimeSpan Uptime { get => DateTime.UtcNow - BootstrappedAt; }
 
     /// <summary>
     ///   The time it took to start the server.
     /// </summary>
-    TimeSpan? StartupTime => StartedAt.HasValue ? StartedAt.Value - BootstrappedAt : null;
+    TimeSpan? StartupTime { get => StartedAt.HasValue ? StartedAt.Value - BootstrappedAt : null; }
 
     /// <summary>
     ///   The version of the currently running server.
@@ -192,7 +194,8 @@ public interface ISystemService
     bool CanRestart { get; }
 
     /// <summary>
-    ///   Indicates that a restart is pending.
+    ///   Indicates that a restart has been requested and is under way. Whether
+    ///   a change is waiting on a restart is <see cref="RestartRequired"/>.
     /// </summary>
     bool RestartPending { get; }
 
@@ -204,6 +207,58 @@ public interface ISystemService
     ///   <see langword="false" />.
     /// </returns>
     bool RequestRestart();
+
+    #endregion
+
+    #region Shutdown | Restart Required
+
+    /// <summary>
+    ///   Dispatched whenever a restart reason is added or cleared,
+    ///   with every reason that stands afterwards. Raised synchronously, so
+    ///   keep handlers short. A handler that throws is logged and does not
+    ///   stop the others, and a change a handler makes is sent after them.
+    /// </summary>
+    event EventHandler<RestartReasonsChangedEventArgs>? RestartReasonsChanged;
+
+    /// <summary>
+    ///   Every reason the server needs a restart for a change to take effect:
+    ///   one while any configuration has changed restart-only members, one
+    ///   while any plugin's state changes on restart, and the reasons plugins
+    ///   raised themselves. Empty after a restart, since the reasons live in
+    ///   memory.
+    /// </summary>
+    IReadOnlyList<RestartReason> RestartReasons { get; }
+
+    /// <summary>
+    ///   Indicates that at least one of the <see cref="RestartReasons"/>
+    ///   stands, so a change is waiting on a restart. Unlike
+    ///   <see cref="RestartPending"/>, it does not mean a restart was asked for.
+    /// </summary>
+    bool RestartRequired { get => RestartReasons.Count > 0; }
+
+    /// <summary>
+    ///   Raise a restart reason owned by a plugin, for a change of its own
+    ///   that only applies after a restart. Dispose the returned handle once
+    ///   the reason is gone.
+    /// </summary>
+    /// <typeparam name="TPlugin">
+    ///   The plugin's <see cref="IPlugin"/> type, which must be an active
+    ///   plugin.
+    /// </typeparam>
+    /// <param name="description">
+    ///   A short, human-readable description of the change.
+    /// </param>
+    /// <returns>
+    ///   The hold on the reason. The reason stands until the handle is
+    ///   disposed or the server restarts. Each call raises a reason of its own.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="description"/> is empty.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   <typeparamref name="TPlugin"/> is not an active plugin.
+    /// </exception>
+    IRestartRequirement RequireRestart<TPlugin>(string description) where TPlugin : class, IPlugin;
 
     #endregion
 
@@ -236,7 +291,7 @@ public interface ISystemService
     /// <summary>
     ///   Determines if the static services are available yet.
     /// </summary>
-    public static bool HasStaticServices => _services is not null;
+    public static bool HasStaticServices { get => _services is not null; }
 
     /// <summary>
     ///   Get or set the static service provider. DO NOT USE UNLESS ABSOLUTELY

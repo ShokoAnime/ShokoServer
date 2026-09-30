@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Server.Models.Interfaces;
@@ -13,12 +14,12 @@ public interface IEntityMetadata
     /// <summary>
     /// Entity type.
     /// </summary>
-    public DataEntityType Type { get; }
+    public MetadataEntityType Type { get; }
 
     /// <summary>
-    /// Entity data source.
+    /// The metadata source of the entity.
     /// </summary>
-    public DataSource DataSource { get; }
+    public MetadataSource DataSource { get; }
 
     /// <summary>
     /// The english title of the movie, used as a fallback for when no title
@@ -64,13 +65,18 @@ public interface IEntityMetadata
     public DateTime LastUpdatedAt { get; set; }
 
     /// <summary>
-    /// Drops the memoised titles, so the next read goes back to the database.
+    ///   Whether TMDB lists <see cref="EnglishTitle"/> among the entity's
+    ///   translations, where it is not stored a second time.
     /// </summary>
-    void ResetAllTitles() { }
+    /// <value>
+    ///   <c>false</c> for an entity whose titles do not come from its
+    ///   translations, where setting it does nothing.
+    /// </value>
+    public bool EnglishTitleListed { get => false; set { } }
 
     /// <summary>
-    /// Drops the memoised overviews, so the next read goes back to the
-    /// database.
+    ///   Whether TMDB lists <see cref="EnglishOverview"/> among the entity's
+    ///   translations, where it is not stored a second time.
     /// </summary>
-    void ResetAllOverviews() { }
+    public bool EnglishOverviewListed { get; set; }
 }

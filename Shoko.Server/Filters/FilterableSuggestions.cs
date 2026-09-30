@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Filters;
@@ -12,12 +12,15 @@ namespace Shoko.Server.Filters;
 /// <param name="AnidbAnimeIDs">The AniDB anime linked to the filterable.</param>
 /// <param name="TmdbShowIDs">The TMDB shows linked to the filterable.</param>
 /// <param name="TmdbMovieIDs">The TMDB movies linked to the filterable.</param>
-/// <param name="AnilistAnimeIDs">The AniList anime linked to the filterable.</param>
+/// <param name="OtherSeries">
+/// The series linked on every other source, whose suggestions are read off
+/// the entries themselves.
+/// </param>
 internal sealed record SuggestionSources(
     IReadOnlyList<int> AnidbAnimeIDs,
     IReadOnlyList<int> TmdbShowIDs,
     IReadOnlyList<int> TmdbMovieIDs,
-    IReadOnlyList<int> AnilistAnimeIDs
+    IReadOnlyList<ISeries> OtherSeries
 );
 
 /// <summary>
@@ -26,9 +29,9 @@ internal sealed record SuggestionSources(
 /// </summary>
 /// <remarks>
 /// Every count is of the suggestions the filterable <em>makes</em>, never of
-/// the ones pointing at it. All four sources are read from cached
-/// repositories, because a filter evaluates these once per entry in the
-/// collection and anything hitting the database here would crawl.
+/// the ones pointing at it. AniDB and TMDB are read from cached repositories
+/// and every other source off its linked entries, since a filter evaluates
+/// these once per entry in the collection and a database read would crawl.
 /// </remarks>
 internal static class FilterableSuggestions
 {
@@ -49,22 +52,27 @@ internal static class FilterableSuggestions
     /// <param name="sources">The linked provider entities.</param>
     /// <returns>The count.</returns>
     public static int CountTmdb(SuggestionSources sources)
-        => sources.TmdbShowIDs.Sum(showID => RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(DataEntityType.Show, showID).Count) +
-            sources.TmdbMovieIDs.Sum(movieID => RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(DataEntityType.Movie, movieID).Count);
+        => sources.TmdbShowIDs.Sum(showID => RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(MetadataEntityType.Series, showID).Count) +
+            sources.TmdbMovieIDs.Sum(movieID => RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(MetadataEntityType.Movie, movieID).Count);
 
     /// <summary>
-    /// The number of recommendations AniList lists for the linked anime.
+    /// The number of suggestions a source other than AniDB and TMDB makes
+    /// through the linked entries.
+    /// </summary>
+    /// <param name="sources">The linked provider entities.</param>
+    /// <param name="source">The source.</param>
+    /// <returns>The count.</returns>
+    public static int CountOther(SuggestionSources sources, MetadataSource source)
+        => sources.OtherSeries.Where(entry => entry.Source == source).Sum(entry => entry.Suggestions.Count);
+
+    /// <summary>
+    /// The number of suggestions every source other than AniDB and TMDB makes
+    /// through the linked entries.
     /// </summary>
     /// <param name="sources">The linked provider entities.</param>
     /// <returns>The count.</returns>
-    /// <remarks>
-    /// Counted through <c>GetMergedByAnilistAnimeID</c>, because AniList's
-    /// edges are stored in whichever direction they were fetched and belong to
-    /// both ends. Counting one direction's rows would disagree with what
-    /// <c>/api/v3/Series/{id}/Suggested</c> returns.
-    /// </remarks>
-    public static int CountAnilist(SuggestionSources sources)
-        => sources.AnilistAnimeIDs.Sum(animeID => RepoFactory.Anilist_Anime_Suggestion.GetMergedByAnilistAnimeID(animeID).Count);
+    public static int CountOthers(SuggestionSources sources)
+        => sources.OtherSeries.Sum(entry => entry.Suggestions.Count);
 
     /// <summary>
     /// The number of suggestions, from any source, whose other end traces back
@@ -80,16 +88,15 @@ internal static class FilterableSuggestions
                 .Count(suggestion => IsInCollection(suggestion.SimilarAnimeID));
 
         foreach (var showID in sources.TmdbShowIDs)
-            count += RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(DataEntityType.Show, showID)
+            count += RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(MetadataEntityType.Series, showID)
                 .Count(suggestion => IsTmdbShowInCollection(suggestion.SuggestedTmdbEntityID));
 
         foreach (var movieID in sources.TmdbMovieIDs)
-            count += RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(DataEntityType.Movie, movieID)
+            count += RepoFactory.TMDB_Suggestion.GetByTmdbEntityID(MetadataEntityType.Movie, movieID)
                 .Count(suggestion => IsTmdbMovieInCollection(suggestion.SuggestedTmdbEntityID));
 
-        foreach (var animeID in sources.AnilistAnimeIDs)
-            count += RepoFactory.Anilist_Anime_Suggestion.GetMergedByAnilistAnimeID(animeID)
-                .Count(suggestion => IsAnilistInCollection(suggestion.SuggestedAnilistAnimeID));
+        foreach (var entry in sources.OtherSeries)
+            count += entry.Suggestions.Count(suggestion => IsLinkedInCollection(suggestion.SuggestedID));
 
         return count;
     }
@@ -125,12 +132,12 @@ internal static class FilterableSuggestions
             .Any(xref => IsInCollection(xref.AnidbAnimeID));
 
     /// <summary>
-    /// Whether an AniList anime is linked to a series in the collection.
+    /// Whether an entry on any source is linked to a series in the collection.
     /// </summary>
-    /// <param name="anilistAnimeID">The AniList anime ID.</param>
+    /// <param name="entry">The entry.</param>
     /// <returns>Whether it is in the collection.</returns>
-    private static bool IsAnilistInCollection(int anilistAnimeID)
-        => RepoFactory.CrossRef_AniDB_Anilist_Anime.GetByAnilistAnimeID(anilistAnimeID)
+    private static bool IsLinkedInCollection(MetadataGuid entry)
+        => RepoFactory.CrossRef_AniDB_Metadata_Series.GetByProviderID(entry.Source, entry.ID)
             .Any(xref => IsInCollection(xref.AnidbAnimeID));
 
     #endregion

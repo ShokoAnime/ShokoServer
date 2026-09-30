@@ -63,9 +63,9 @@ public class MylistService(
 {
     /// <summary>
     /// How long the locally cached MyList is considered fresh enough to serve
-    /// without going back to AniDB over HTTP. Deliberately independent of
-    /// <c>AniDb.MyList.UpdateFrequency</c>, which schedules the sync rather than
-    /// bounding the cache; callers that need a guaranteed-current entry pass
+    /// without going back to AniDB over HTTP. Deliberately independent of the
+    /// triggers of the scheduled MyList sync, which schedule the sync rather
+    /// than bounding the cache; callers that need a guaranteed-current entry pass
     /// <see cref="MylistFetchMode.IgnoreTimeCheck"/> instead.
     /// </summary>
     private static readonly TimeSpan CacheLifetime = TimeSpan.FromHours(12);
@@ -202,7 +202,7 @@ public class MylistService(
 
     public async Task<IReadOnlyList<MylistEntry>> GetEntriesForVideoAsync(IVideo video, MylistFetchMode fetchMode = MylistFetchMode.Auto, CancellationToken cancellationToken = default)
     {
-        var vid = videoLocals.GetByID(video.ID);
+        var vid = videoLocals.GetByID(video.LocalID);
         if (vid is null)
             return [];
 
@@ -715,7 +715,7 @@ public class MylistService(
     public Task ScheduleAddVideo(IVideo video, MylistAddData? data = null, MylistReadStates readStates = MylistReadStates.Auto, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
         => scheduler.Enqueue<AddAniDBMylistEntryJob>(a =>
         {
-            a.VideoID = video.ID;
+            a.VideoID = video.LocalID;
             a.Data = data;
             a.ReadStates = readStates;
             a.FetchMode = fetchMode;
@@ -1030,9 +1030,9 @@ public class MylistService(
 
     public async Task<MylistEntry?> UpdateVideoAsync(IVideo video, MylistUpdateData data, bool updateSeriesStats = false, MylistFetchMode fetchMode = MylistFetchMode.Auto, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Updating the MyList entries for a video. (VideoID={VideoID})", video.ID);
+        _logger.LogInformation("Updating the MyList entries for a video. (VideoID={VideoID})", video.LocalID);
 
-        var vid = videoLocals.GetByID(video.ID);
+        var vid = videoLocals.GetByID(video.LocalID);
         if (vid == null)
             return null;
 
@@ -1043,7 +1043,7 @@ public class MylistService(
         // an update data with no fields set is a no-op
         if (data.IsEmpty)
         {
-            _logger.LogInformation("Skipping the video MyList update; no fields were set. (VideoID={VideoID})", video.ID);
+            _logger.LogInformation("Skipping the video MyList update; no fields were set. (VideoID={VideoID})", video.LocalID);
             return mylistCache.GetByEd2k(vid.Hash, vid.FileSize);
         }
 
@@ -1079,7 +1079,7 @@ public class MylistService(
     public Task ScheduleUpdateVideo(IVideo video, MylistUpdateData? data = null, bool updateSeriesStats = false, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
         => scheduler.Enqueue<UpdateAniDBMylistEntryJob>(a =>
         {
-            a.VideoID = video.ID;
+            a.VideoID = video.LocalID;
             a.Data = data;
             a.UpdateSeriesStats = updateSeriesStats;
             a.FetchMode = fetchMode;
@@ -1360,7 +1360,7 @@ public class MylistService(
 
     public async Task ScheduleDisposeVideo(IVideo video, MylistDeleteType? deleteType = null, MylistFetchMode fetchMode = MylistFetchMode.Auto, bool prioritize = false)
     {
-        if (videoLocals.GetByID(video.ID) is not { } videoLocal)
+        if (videoLocals.GetByID(video.LocalID) is not { } videoLocal)
             return;
 
         if (videoLocal.ReleaseInfo is { } releaseInfo && (releaseInfo.ReleaseURI?.StartsWith(AnidbReleaseProvider.ReleasePrefix) ?? false))
@@ -1474,7 +1474,7 @@ public class MylistService(
         ArgumentNullException.ThrowIfNull(episodes);
         RejectPlanOnly(options);
 
-        var episodeIDs = episodes.Select(episode => episode.ID).Distinct().ToArray();
+        var episodeIDs = episodes.Select(episode => episode.LocalID).Distinct().ToArray();
         if (episodeIDs.Length is 0)
             return Task.CompletedTask;
 
@@ -1599,13 +1599,13 @@ public class MylistService(
                 if (anidbUser is null)
                     return;
 
-                if (action.Video is { } importVideo && videoLocals.GetByID(importVideo.ID) is { } video)
+                if (action.Video is { } importVideo && videoLocals.GetByID(importVideo.LocalID) is { } video)
                     await userDataService.ImportVideoUserData(video, anidbUser, new()
                     {
                         ProgressPosition = TimeSpan.Zero,
                         LastPlayedAt = action.WatchedAt,
                     }, "AniDB", false).ConfigureAwait(false);
-                else if (action.ShokoEpisode is { } importEpisode && animeEpisodes.GetByID(importEpisode.ID) is { } episode)
+                else if (action.ShokoEpisode is { } importEpisode && animeEpisodes.GetByID(importEpisode.LocalID) is { } episode)
                     await userDataService.ImportEpisodeUserData(episode, anidbUser, new()
                     {
                         LastPlayedAt = action.WatchedAt,
@@ -1621,7 +1621,7 @@ public class MylistService(
                 else if (action.Video is { } updateVideo)
                     await ScheduleUpdateEntry(updateVideo.ED2K, updateVideo.Size, data);
                 else if (anidbEpisode is not null)
-                    await ScheduleUpdateEntry(anidbEpisode.SeriesID, anidbEpisode.Type, anidbEpisode.EpisodeNumber, data);
+                    await ScheduleUpdateEntry(anidbEpisode.AnidbAnimeID, anidbEpisode.Type, anidbEpisode.EpisodeNumber, data);
                 return;
 
             case MylistSyncActionKind.ExportEntryAddition:
@@ -1629,7 +1629,7 @@ public class MylistService(
                 if (action.Video is { } addVideo)
                     await ScheduleAddEntry(addVideo.ED2K, addVideo.Size, addData);
                 else if (anidbEpisode is not null)
-                    await ScheduleAddEntry(anidbEpisode.SeriesID, anidbEpisode.Type, anidbEpisode.EpisodeNumber, addData);
+                    await ScheduleAddEntry(anidbEpisode.AnidbAnimeID, anidbEpisode.Type, anidbEpisode.EpisodeNumber, addData);
                 return;
 
             // planned only so the caller can see it; carrying it out would
@@ -1645,7 +1645,7 @@ public class MylistService(
                 else if (action.Video is { } removeVideo)
                     await ScheduleDisposeEntry(removeVideo.ED2K, removeVideo.Size, action.DeleteType);
                 else if (anidbEpisode is not null)
-                    await ScheduleDisposeEntry(anidbEpisode.SeriesID, anidbEpisode.Type, anidbEpisode.EpisodeNumber, action.DeleteType);
+                    await ScheduleDisposeEntry(anidbEpisode.AnidbAnimeID, anidbEpisode.Type, anidbEpisode.EpisodeNumber, action.DeleteType);
                 return;
         }
     }
@@ -1970,7 +1970,7 @@ public class MylistService(
         ArgumentNullException.ThrowIfNull(videos);
         RejectPlanOnly(options);
 
-        var videoIDs = videos.Select(video => video.ID).Distinct().ToArray();
+        var videoIDs = videos.Select(video => video.LocalID).Distinct().ToArray();
         if (videoIDs.Length is 0)
             return Task.CompletedTask;
 
@@ -2311,7 +2311,7 @@ public class MylistService(
     /// </summary>
     private SyncScope BuildSyncScope(IEnumerable<IShokoEpisode> episodes)
     {
-        var resolved = episodes.Select(episode => animeEpisodes.GetByID(episode.ID)).WhereNotNull()?.DistinctBy(episode => episode.AnimeEpisodeID).ToList() ?? [];
+        var resolved = episodes.Select(episode => animeEpisodes.GetByID(episode.LocalID)).WhereNotNull()?.DistinctBy(episode => episode.AnimeEpisodeID).ToList() ?? [];
         return new SyncScope
         {
             AnidbEpisodeIDs = resolved.Select(episode => episode.AniDB_EpisodeID).Where(id => id > 0).ToHashSet(),
@@ -2324,7 +2324,7 @@ public class MylistService(
     /// </summary>
     private SyncScope BuildSyncScope(IEnumerable<IVideo> videos)
     {
-        var resolved = videos.Select(video => videoLocals.GetByID(video.ID)).WhereNotNull().DistinctBy(video => video.VideoLocalID).ToList();
+        var resolved = videos.Select(video => videoLocals.GetByID(video.LocalID)).WhereNotNull().DistinctBy(video => video.VideoLocalID).ToList();
         return new SyncScope
         {
             VideoIDs = resolved.Select(video => video.VideoLocalID).ToHashSet(),

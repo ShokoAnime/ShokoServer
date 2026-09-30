@@ -1,4 +1,4 @@
-﻿using FluentNHibernate.Mapping;
+using FluentNHibernate.Mapping;
 using Shoko.Server.Models.Internal;
 
 namespace Shoko.Server.Mappings;

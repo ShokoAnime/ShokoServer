@@ -1,30 +1,12 @@
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using JetBrains.Annotations;
-using Newtonsoft.Json;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
-using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Server.Settings;
 
 public class TMDBSettings
 {
-    /// <summary>
-    /// Automagically link AniDB anime to TMDB shows and movies.
-    /// </summary>
-    public bool AutoLink { get; set; } = true;
-
-    /// <summary>
-    /// Automagically link restricted AniDB anime to TMDB shows and movies.
-    /// <see cref="AutoLink"/> also needs to be set for this setting to take
-    /// effect.
-    /// </summary>
-    public bool AutoLinkRestricted { get; set; } = true;
-
     /// <summary>
     /// Determines whether to consider existing cross-reference links to other
     /// AniDB anime when linking an AniDB anime to a TMDB show.
@@ -63,36 +45,6 @@ public class TMDBSettings
     public bool DownloadAllContentRatings { get; set; } = false;
 
     /// <summary>
-    /// Image language preference order, in text form for storage.
-    /// </summary>
-    [Display(Name = "Image Language Order")]
-    [JsonProperty(nameof(ImageLanguageOrder))]
-    [UsedImplicitly]
-    public List<string> InternalImageLanguageOrder
-    {
-        get;
-        set => field = value
-            .Select(x => x.GetTitleLanguage())
-            .Where(x => x is not TitleLanguage.Unknown)
-            .Distinct()
-            .Select(x => x.GetString())
-            .ToList();
-    } =
-    [
-        TitleLanguage.None.GetString(), TitleLanguage.Main.GetString(), TitleLanguage.English.GetString()
-    ];
-
-    /// <summary>
-    /// Image language preference order, as enum values for consumption.
-    /// </summary>
-    [JsonIgnore]
-    public List<TitleLanguage> ImageLanguageOrder => InternalImageLanguageOrder
-        .Select(x => x.GetTitleLanguage())
-        .Where(x => x is not TitleLanguage.Unknown)
-        .Distinct()
-        .ToList();
-
-    /// <summary>
     /// Automagically download crew and cast for movies and tv shows in the
     /// local collection.
     /// </summary>
@@ -114,115 +66,6 @@ public class TMDBSettings
     /// Automagically download networks for tv shows in the local collection.
     /// </summary>
     public bool AutoDownloadNetworks { get; set; } = false;
-
-    /// <summary>
-    /// Automagically download backdrops for TMDB entities that supports
-    /// backdrops up to <seealso cref="MaxAutoBackdrops"/> images per entity.
-    /// </summary>
-    public bool AutoDownloadBackdrops { get; set; } = true;
-
-    /// <summary>
-    /// The maximum number of backdrops to download for each TMDB entity that
-    /// supports backdrops.
-    /// </summary>
-    /// <remarks>
-    /// Set to <code>0</code> to disable the limit.
-    /// </remarks>
-    [Range(0, 30)]
-    [Visibility(
-        Size = DisplayElementSize.Small,
-        DisableWhenMemberIsSet = nameof(AutoDownloadBackdrops),
-        DisableWhenSetTo = false
-    )]
-    public int MaxAutoBackdrops { get; set; } = 10;
-
-    /// <summary>
-    /// Automagically download posters for TMDB entities that supports
-    /// posters up to <seealso cref="MaxAutoPosters"/> images per entity.
-    /// </summary>
-    public bool AutoDownloadPosters { get; set; } = true;
-
-    /// <summary>
-    /// The maximum number of posters to download for each TMDB entity that
-    /// supports posters.
-    /// </summary>
-    /// <remarks>
-    /// Set to <code>0</code> to disable the limit.
-    /// </remarks>
-    [Range(0, 30)]
-    [Visibility(
-        Size = DisplayElementSize.Small,
-        DisableWhenMemberIsSet = nameof(AutoDownloadPosters),
-        DisableWhenSetTo = false
-    )]
-    public int MaxAutoPosters { get; set; } = 10;
-
-    /// <summary>
-    /// Automagically download logos for TMDB entities that supports
-    /// logos up to <seealso cref="MaxAutoLogos"/> images per entity.
-    /// </summary>
-    public bool AutoDownloadLogos { get; set; } = true;
-
-    /// <summary>
-    /// The maximum number of logos to download for each TMDB entity that
-    /// supports logos.
-    /// </summary>
-    /// <remarks>
-    /// Set to <code>0</code> to disable the limit.
-    /// </remarks>
-    [Range(0, 30)]
-    [Visibility(
-        Size = DisplayElementSize.Small,
-        DisableWhenMemberIsSet = nameof(AutoDownloadLogos),
-        DisableWhenSetTo = false
-    )]
-    public int MaxAutoLogos { get; set; } = 10;
-
-    /// <summary>
-    /// Automagically download thumbnail images for TMDB entities that supports
-    /// thumbnails.
-    /// </summary>
-    public bool AutoDownloadThumbnails { get; set; } = true;
-
-    /// <summary>
-    /// The maximum number of thumbnail images to download for each TMDB entity
-    /// that supports thumbnail images.
-    /// </summary>
-    /// <remarks>
-    /// Set to <code>0</code> to disable the limit.
-    /// </remarks>
-    [Range(0, 30)]
-    [Visibility(
-        Size = DisplayElementSize.Small,
-        DisableWhenMemberIsSet = nameof(AutoDownloadThumbnails),
-        DisableWhenSetTo = false
-    )]
-    public int MaxAutoThumbnails { get; set; } = 1;
-
-    /// <summary>
-    /// Automagically download staff member and voice-actor images.
-    /// </summary>
-    public bool AutoDownloadStaffImages { get; set; } = true;
-
-    /// <summary>
-    /// The maximum number of staff member and voice-actor images to download
-    /// for each TMDB entity that supports staff member and voice-actor images.
-    /// </summary>
-    /// <remarks>
-    /// Set to <code>0</code> to disable the limit.
-    /// </remarks>
-    [Range(0, 30)]
-    [Visibility(
-        Size = DisplayElementSize.Small,
-        DisableWhenMemberIsSet = nameof(AutoDownloadStaffImages),
-        DisableWhenSetTo = false
-    )]
-    public int MaxAutoStaffImages { get; set; } = 10;
-
-    /// <summary>
-    /// Automagically download studio and company images.
-    /// </summary>
-    public bool AutoDownloadStudioImages { get; set; } = true;
 
     /// <summary>
     /// Optional. User provided TMDB API key to use.
@@ -295,15 +138,4 @@ public class TMDBSettings
     /// Rate limit settings for the TMDB API.
     /// </summary>
     public TmdbRateLimitSettings RateLimit { get; set; } = new();
-
-    /// <summary>
-    /// Number of days a TMDB show or movie can remain in the local database
-    /// without any AniDB cross-reference before it is automatically purged.
-    /// Set to <c>0</c> to disable automatic purging.
-    /// </summary>
-    [Visibility(Size = DisplayElementSize.Large)]
-    [EnvironmentVariable("TMDB_AUTO_PURGE_UNLINKED_AFTER_DAYS")]
-    [Range(0, 365)]
-    [DefaultValue(14)]
-    public int AutoPurgeUnlinkedAfterDays { get; set; } = 14;
 }

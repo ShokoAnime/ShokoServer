@@ -40,6 +40,8 @@ public class VideoStreamPipelineSettings : INewtonsoftJsonConfiguration, IHidden
     /// <summary>
     /// How long a stream session may sit idle (no request arriving and no
     /// response still streaming) before it's evicted and its rendition disposed.
+    /// Idle sessions are swept once a minute, so one can outlive this by up to
+    /// a minute.
     /// </summary>
     public int SessionIdleTimeoutMinutes { get; set; } = 10;
 

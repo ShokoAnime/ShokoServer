@@ -66,17 +66,6 @@ public class AnimeGroupService
         _logger.LogInformation(
             $"Starting Updating STATS for GROUP {group.GroupName} - Watched Stats: {watchedStats}, Missing Episodes: {missingEpsStats}");
         var seriesList = group.AllSeries;
-
-        // Reset the name/description for the group if needed.
-        var mainSeries = group.IsManuallyNamed == 0 || group.OverrideDescription == 0 ? group.MainSeries : null;
-        if (mainSeries is not null)
-        {
-            if (group.IsManuallyNamed == 0)
-                group.GroupName = mainSeries.Title;
-            if (group.OverrideDescription == 0)
-                group.Description = mainSeries.PreferredOverview?.Value ?? string.Empty;
-        }
-
         if (missingEpsStats)
         {
             UpdateMissingEpisodeStats(group, seriesList);

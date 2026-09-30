@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 
 namespace Shoko.QueueProcessor.Workers;
@@ -55,7 +56,7 @@ internal sealed class JobWatchdogThresholds
                 _logger.LogWarning(
                     "Ignored the watchdog threshold {Threshold} for job {JobType}, which already has {ExistingThreshold}.",
                     threshold.GetType().Name,
-                    jobType.Name,
+                    JobTypeNames.Short(jobType),
                     _declaredThresholds[jobType].GetType().Name
                 );
                 continue;
@@ -64,7 +65,7 @@ internal sealed class JobWatchdogThresholds
             if (_exemptTypes.Contains(jobType))
                 _logger.LogWarning(
                     "Job {JobType} is marked long-running and declares the watchdog threshold {Threshold}. The threshold is used and the job stays watched.",
-                    jobType.Name,
+                    JobTypeNames.Short(jobType),
                     threshold.GetType().Name
                 );
         }
@@ -103,7 +104,7 @@ internal sealed class JobWatchdogThresholds
         catch (Exception ex)
         {
             if (_faultedTypes.Add(jobType))
-                _logger.LogError(ex, "Watchdog threshold {Threshold} for job {JobType} threw. Falling back to the global threshold.", declared.GetType().Name, jobType.Name);
+                _logger.LogError(ex, "Watchdog threshold {Threshold} for job {JobType} threw. Falling back to the global threshold.", declared.GetType().Name, JobTypeNames.Short(jobType));
         }
 
         return _defaultThreshold;

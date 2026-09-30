@@ -59,7 +59,7 @@ When a commit qualifies for more than one type, pick the most structural one. Do
 
 ### Scopes
 
-Scopes are optional and free-form, but reuse the established ones where they apply (non-exhaustive): `abstractions`, `api`, `db`, `plugin`, `images`, `relocation`, `anidb`, `tmdb`, `anilist`, `search`, `scrobble`, `core`, `deps`, `workflows`, `scripts`, `docker`.
+Scopes are optional and free-form, but reuse the established ones where they apply (non-exhaustive): `abstractions`, `api`, `db`, `plugin`, `images`, `relocation`, `anidb`, `tmdb`, `search`, `scrobble`, `core`, `deps`, `workflows`, `scripts`, `docker`.
 
 ### Example
 
@@ -94,7 +94,7 @@ throughput gain on real libraries.
 
 Entry points: `Shoko.CLI/Program.cs` (headless) or `Shoko.TrayService/Program.cs` (tray app). Both instantiate `new SystemService()` directly, which internally builds and starts the `IHost`.
 
-`Program.cs` → `SystemService` constructor (NLog, `PluginManager`, `ConfigurationService`, `SettingsProvider`) → `SystemService.StartAsync()` (builds and starts `IHost` / ASP.NET Core on port 8111) → `SystemService.LateStart()` (database schema patches and `DatabaseFixes` data fixups, init queue scheduler via `IQueueScheduler`, UDP connection handler, file watchers).
+`Program.cs` → `SystemService` constructor (NLog, `PluginManager`, `ConfigurationService`, `SettingsProvider`) → `SystemService.StartAsync()` (builds and starts `IHost` / ASP.NET Core on port 8111) → `SystemService.LateStart()` (database schema patches and `DatabaseFixes` data fixups, plugin database migrations, init queue scheduler via `IQueueScheduler`, UDP connection handler, file watchers).
 
 **Note:** `LateStart()` is skipped during first-run setup mode (`InSetupMode == true`). It runs either on normal startup or when `CompleteSetup()` transitions out of setup mode.
 
@@ -112,15 +112,16 @@ and should not be used for new code unless DI is not an option and only as a las
 5. `UseRouting`
 6. `ServerNotRunningMiddleware` — returns 503 until the server is started, exempted via `[InitFriendly]`
 7. `UseAuthentication` — custom "ShokoServer" scheme
-8. `UseAuthorization` — policies: `"admin"` (IsAdmin == 1), `"init"` (setup user only)
-9. `UseEndpoints` — `MapControllers`, plus the SignalR hubs when `EnableSignalR` is on: `/signalr/logging`, `/signalr/aggregate`
-10. Plugin middleware registration
-11. `UseCors` (any origin/method/header)
-12. `UseMvc` (legacy, `EnableEndpointRouting = false`)
+8. `ActorContextMiddleware` — makes the request's API token the current actor (`IActorContext`) until the request ends
+9. `UseAuthorization` — policies: `"admin"` (IsAdmin == 1), `"init"` (setup user only)
+10. `UseEndpoints` — `MapControllers`, plus the SignalR hubs when `EnableSignalR` is on: `/signalr/logging`, `/signalr/aggregate`
+11. Plugin middleware registration
+12. `UseCors` (any origin/method/header)
+13. `UseMvc` (legacy, `EnableEndpointRouting = false`)
 
 **Global action filters** (registered on all MVC controllers):
 - `DatabaseBlockedFilter` — returns 400 if DB is blocked, exempted via `[DatabaseBlockedExempt]`
-- `AnilistUpstreamExceptionFilter` — maps a transient AniList failure during a direct upstream call to a 502 with `Retry-After`
+- `MetadataProviderUnavailableAttribute` (exception filter) — a `MetadataProviderUnavailableException` answers 502 with `Retry-After`; a `MetadataProviderNotConfiguredException` (TMDB without an API key among them) answers 503
 
 **Action constraints**:
 - `RedirectConstraint` — redirects root `/` to WebUI public path if configured
@@ -133,7 +134,7 @@ and should not be used for new code unless DI is not an option and only as a las
 
 **API versioning**: `v0` (version-less: auth + legacy Plex webhooks + index redirect), `v2` (legacy REST, including the `/Stream` routes, can be kill-switched), `v3` (current, all new endpoints). APIv1 has been removed. Version can be resolved from query string, `api-version` header, or custom `ShokoApiReader`. `ApiVersionControllerFeatureProvider` excludes disabled controllers at startup via individual flags (`EnableAPIv2`, `EnableAPIv3`, `EnableIndexRedirect`, `EnableLegacyPlexAPI`). The default API version (`1.0`) applies to every unversioned controller, in plugins and in the core alike, so do not change it.
 
-**Serialization**: MVC uses `AddNewtonsoftJson()` (not `System.Text.Json`) with: `MaxDepth = 10`, `DefaultContractResolver`, `NullValueHandling.Include`, `DefaultValueHandling.Populate`. SignalR also uses `AddNewtonsoftJsonProtocol()`.
+**Serialization**: MVC uses `AddNewtonsoftJson()` (not `System.Text.Json`) with: `MaxDepth = 10`, `ApiContractResolver` (`Shoko.Server/API/Resolvers`), `NullValueHandling.Include`, `DefaultValueHandling.Populate`. SignalR also uses `AddNewtonsoftJsonProtocol()`, with the same resolver.
 
 Plugin controllers are registered via `AddPluginControllers` during API setup.
 
@@ -142,9 +143,13 @@ Plugin controllers are registered via `AddPluginControllers` during API setup.
 Two hubs, only mapped when `EnableSignalR` is on:
 
 - **`LoggingHub`** (`/signalr/logging`, admins only) — streams buffered server logs to connecting clients, separate from the aggregate hub because it can become noisy, fast.
-- **`AggregateHub`** (`/signalr/aggregate`, any authenticated user) — subscription model; clients call `feed.join_single` / `feed.join_many` etc. to subscribe to event categories.
+- **`AggregateHub`** (`/signalr/aggregate`, any authenticated user) — subscription only; clients call `feed.join_single` / `feed.join_many` etc. to subscribe to event categories, and cannot call into a feed.
 
-Event emitters (`Shoko.Server/API/SignalR/Aggregate/`) bridge internal domain events to SignalR: `AiringEventEmitter`, `AnidbEventEmitter`, `AvdumpEventEmitter`, `ConfigurationEventEmitter`, `FileEventEmitter`, `GroupEventEmitter`, `ManagedFolderEventEmitter`, `MetadataEventEmitter`, `NetworkEventEmitter`, `PluginEventEmitter`, `QueueEventEmitter`, `ReleaseEventEmitter`, `UserDataEventEmitter`, `UserEventEmitter`.
+Event emitters (`Shoko.Server/API/SignalR/Aggregate/`) bridge internal domain events to SignalR: `AiringEventEmitter`, `AnidbEventEmitter`, `AvdumpEventEmitter`, `ConfigurationEventEmitter`, `FileEventEmitter`, `GroupEventEmitter`, `ManagedFolderEventEmitter`, `MetadataEventEmitter`, `NetworkEventEmitter`, `PluginEventEmitter`, `QueueEventEmitter`, `ReleaseEventEmitter`, `RestartEventEmitter`, `UserDataEventEmitter`, `UserEventEmitter`. An emitter can refuse a user by overriding `CanConnect`; `RestartEventEmitter` (the `restart` feed, carrying `ISystemService.RestartReasons`) takes admins only.
+
+The feed contract lives in `Shoko.Abstractions/Web/SignalR/` (`IEventEmitter`, base class `EventEmitter`), so plugins add feeds of their own to the aggregate hub. Every emitter declares its feed's `Name`, matched ignoring case; `EventEmitterRegistry` keeps the first of two emitters sharing a name and logs a warning. By convention a plugin names its feeds after itself.
+
+`ActorHubFilter`, registered globally, sets the current actor for every hub method call, connect and disconnect, plugin hubs included.
 
 ### Model Layers and Separation
 
@@ -155,11 +160,11 @@ NHibernate-mapped entities. Organized by source:
 - `Shoko.Server.Models.Shoko` — core domain: `AnimeSeries`, `AnimeGroup`, `AnimeEpisode`, the `*_User` data, `VideoLocal` and its places/hashes, `JMMUser`, `FilterPreset`, `CustomTag`, and the image store (`ShokoImage`, `ShokoImage_Entity`)
 - `Shoko.Server.Models.AniDB` — AniDB metadata cache: `AniDB_Anime`, `AniDB_Episode`, `AniDB_Character`, `AniDB_Creator`, `AniDB_Tag`, etc.
 - `Shoko.Server.Models.TMDB` — TMDB metadata cache: `TMDB_Show`, `TMDB_Movie`, `TMDB_Season`, `TMDB_Episode`, `TMDB_Person`, etc.; `Optional/` holds alternate orderings, collections, networks and suggestions, `Text/` the localized titles and overviews
-- `Shoko.Server.Models.Anilist` — AniList metadata cache: `Anilist_Anime`, `Anilist_Episode`, `Anilist_Character`, `Anilist_Creator`, `Anilist_Tag`, `Anilist_Studio`, etc.
 - `Shoko.Server.Models.Airing` — airing schedules: `AiringChannel`, `AiringSchedule`, `EpisodeAiring`, `AiringScheduleSweepState`
-- `Shoko.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔TMDB, AniDB↔AniList, AniDB↔MAL) and files/tags (`CrossRef_File_Episode`, `CrossRef_CustomTag`)
+- `Shoko.Server.Models.CrossReference` — cross-reference tables linking providers (AniDB↔TMDB, AniDB↔MAL, and AniDB↔any plugin source through the shared `CrossRef_AniDB_Metadata_*` tables) and files/tags (`CrossRef_File_Episode`, `CrossRef_CustomTag`)
 - `Shoko.Server.Models.Release` — release info for video files (`StoredReleaseInfo`, match attempts, release candidates and overrides)
 - `Shoko.Server.Models.Internal` — internal tracking entities (`AuthTokens`, `ScheduledUpdate`, `Versions`)
+- `Shoko.Server.Models.Metadata` — the rows behind the plugin metadata stores: series, seasons, episodes, movies, collections, people, credits, tags, studios, networks, relations, suggestions, the titles and overviews of every entry of any source (`Metadata_Title`, `Metadata_Overview`, held in memory by `TextCache`), orderings and last-refresh times
 
 The `Embedded` sub-namespaces hold unmapped types: values stored inside a column (content ratings, release cross-references) or views built from other rows at runtime (seasons, cast and crew, studios).
 
@@ -169,9 +174,9 @@ NHibernate mappings live in `Shoko.Server/Mappings/` as `*Map.cs` files. Schemas
 Never persisted; built from persistence models in controllers/services.
 - `v2/Models/` — legacy APIv2 response shapes; `v2/Models/legacy/` holds the few `CL_*` contract classes APIv2 still accepts or returns
 - `v3/Models/Shoko/` — modern response models (`Series`, `Episode`, `Group`, `File`, `User`, …) extending `BaseModel`
-- `v3/Models/AniDB/`, `v3/Models/TMDB/` and `v3/Models/Anilist/` — provider-specific response shapes
+- `v3/Models/AniDB/` and `v3/Models/TMDB/` — provider-specific response shapes
 - `v3/Models/Common/` — shared types (`Images`, `Rating`, `Tag`, `Title`, etc.)
-- Feature folders for the rest of v3: `Action`, `Airing`, `Auth`, `Configuration`, `Hashing`, `ImageManagement`, `Logging`, `Mylist`, `Plugin`, `Release`, `Relocation`, `Streaming`
+- Feature folders for the rest of v3: `Action`, `Airing`, `Auth`, `Configuration`, `Hashing`, `ImageManagement`, `Logging`, `Mylist`, `Ordering`, `Plugin`, `Release`, `Relocation`, `Streaming`, `TextManagement`
 
 **3. Abstractions interfaces** (`Shoko.Abstractions/`)
 `IShokoSeries`, `IShokoEpisode`, `IVideo`, `IUser`, etc. — implemented by persistence models, consumed by plugins and services. Plugin code should depend only on these, never on concrete `Shoko.Server` types.
@@ -188,6 +193,14 @@ Repositories use primary constructors. Side effects around saves and deletes (ca
 
 **Access pattern**: Repositories are accessed via the `RepoFactory` static class (e.g., `RepoFactory.AnimeSeries.GetByID(id)`). `RepoFactory` is DI-registered but exposes static fields for convenience — this is a legacy pattern similar to `ISystemService.StaticServices`. This exists for compatibility where DI is unavailable, but DI should be used if possible.
 
+**Plugin storage**: plugins do not get repositories in the core's database. What only a plugin has goes in a database of its own: `services.AddPluginDbContext<TPlugin, TContext>(name)` (abstractions, no EF Core reference) registers an EF Core context that `PluginDatabaseRegistrar` puts on SQLite in WAL mode at `data/<plugin-id>/<name>.db3`. The overload taking `PluginDbContextOptions<TContext>` names derived contexts with MySQL and SQL Server migrations; while the core runs on that server, `PluginDbContextFactory` puts the database in the core's own database through the core's connection settings, every table and constraint prefixed `p<plugin hash>_<name hash>_` (`PluginTableNaming`, applied to the model and to each migration's operations), and a plugin without that server's migrations keeps its SQLite file. `PluginDatabaseMigrator` applies the migrations in `SystemService.LateStart()`, right after the core database's schema steps and data fixes (so after the first-run setup picked the backend, which is read from the settings only then), copying first (the SQLite file, or a SQL dump of the plugin's MySQL tables; SQL Server relies on per-migration transactions), and a failed migration is a start-up failure. Until then `PluginDatabaseGate` keeps every plugin context closed: the factory throws `InvalidOperationException` rather than wait, so `Setup`, `Ready` and hosted services' `StartAsync` cannot use one. Uninstalling with `purgeData` drops the plugin's prefixed tables on the next start. `PluginPaths<TPlugin>` (open generic singleton) gives a plugin its own `configuration`, `data` and `cache` folders, by the rules in `PluginPathRules`. The data every source shares goes through the stores in `Shoko.Abstractions/Metadata/Storage/` (next to the `Metadata*Data` records they take, the link store among them; the link contracts and data stay in `Shoko.Abstractions/Metadata/CrossReferences/`), and a few services in `Shoko.Abstractions/Metadata/Services/`:
+- `IMetadataCrossReferenceStore` — links between AniDB entries and any source's entries, in the shared `CrossRef_AniDB_Metadata_*` tables.
+- `IMetadataSeriesStore` (series with their seasons and episodes), `IMetadataMovieStore` and `IMetadataCollectionStore` — a plugin source's own entities, written by its provider during a refresh and read back whole through `IMetadataService` by `MetadataGuid`. A plugin's `IMetadataResolver` (declaring a `MetadataEntityScope` of source and kind pairs, never a core or reserved source) is asked before the stores for the pairs it took; the first in plugin load order wins each pair.
+- `IMetadataImageContributor` — adds images from a plugin's own source to entries of any source, core ones included, declared as a `MetadataEntityScope`. One `DownloadContributedImagesJob<TContributor>` per contributor is queued whenever the core refreshes an entry's images; admins turn pairs off through `IMetadataImageContributorManager` (kept in `MetadataServiceSettings`).
+- `IMetadataPeopleStore`, `IMetadataTagStore`, `IMetadataStudioStore`, `IMetadataRelationStore`, `IMetadataSuggestionStore` — typed stores for data every source shares, keyed by `MetadataGuid` (source, entity type, source ID).
+- `IMetadataOrderingService` (in `Services/`) — alternate orderings of any series: global ones under a plugin's own source, users' local ones under `user`, plus the preferred ordering and hidden episodes.
+- `IMetadataTextManager` (in `Services/`) — keeps, chooses and gathers the titles and overviews of any entry (`ChoosePreferredTitle`, `ChoosePreferredOverview`): providers write their own entries' texts, plugins may add theirs to any entry, and users pick, add, disable and remove texts.
+
 ### Scheduling
 
 The scheduling system lives in `Shoko.QueueProcessor` — a database-backed job queue (SQLite/MySQL/SQL Server via EF Core `QueueDbContext`) with an O(1) in-memory deduplication index. Job definitions remain in `Shoko.Server/Scheduling/Jobs/`.
@@ -201,8 +214,13 @@ The scheduling system lives in `Shoko.QueueProcessor` — a database-backed job 
 **Job chains — `IJobChainBuilder`** (`Shoko.QueueProcessor/Abstractions/IJobChainBuilder.cs`):
 Build with `.Then<T>().Then<T>()...` and submit with `.Enqueue()` (queue entry[0] normally) or `.EnqueueAfterCurrent()` (entry[0] after the current job, rest as a chain).
 
+**Scheduled actions — `ScheduledActionService`** (`Shoko.Server/Services/ScheduledActionService.cs`, plugin surface `IScheduledActionService`; contract `IScheduledAction` in `Shoko.Abstractions/ScheduledActions/`):
+Every recurring job of the core runs as a scheduled action (`IScheduledAction`, apart from `IExecutableAction`: global, no caller, admins only) with `DefaultTriggers` (interval, daily, weekly or monthly at a time in the server's time zone, or at start-up), found in plugin assemblies by `ScheduledActionRegistry`; the admin lists, invokes (`POST …/{id}`, `IScheduledActionService.InvokeAsync`), cancels and re-triggers them under `/api/v3/Action/Scheduled` (`…/{id}/Triggers`, `…/{id}/Cancel`). A scheduled action takes no parameters; a run with options is an executable action's job. The triggers and last runs live in the `ScheduledAction` table, keyed by the same UUIDv5 an executable action's ID is derived with. A trigger firing queues a `ScheduledActionJob` (one per action, dedup, cancellable, with the job's progress); the next run counts from the last one, and a run missed while the server was down runs once at start-up. Core scheduled actions whose work is one queue job derive from `QueueJobScheduledAction<TJob>`, so a run queues that job directly. Scheduling starts with the server (`ISystemService.Started`).
+
+**The current actor across the queue:** `IJobActorAccessor` stores the queuing caller's user ID and device on `QueuedJob` (`ActorUserId`, `ActorDeviceName`) and restores the token around the job's execution; chains and `RunAfterCurrent` inherit it. Start long-lived timers, loops and threads inside `DetachedFlow.Suppress()` so they never run as the caller who happened to start them; fire-and-forget work started for a user and meant to stay theirs wraps its delegate in `ActorContext.Carry`.
+
 **Recurring jobs — `RecurringJobRegistry`** (`Shoko.QueueProcessor/Scheduling/RecurringJobRegistry.cs`):
-Timer-based `IHostedService`. Call `Register<T>(interval)` from DI (plugin `Load` or `RegisterServices`). Registrations before `StartAsync` are armed on host boot; registrations after are armed immediately. Job types must first be registered via `AddQueueJobsFromAssembly`.
+Timer-based `IHostedService` on a fixed interval the admin cannot change; the core no longer uses it, plugins still may. Call `Register<T>(interval)` from DI (plugin `Load` or `RegisterServices`). Registrations before `StartAsync` are armed on host boot; registrations after are armed immediately. Job types must first be registered via `AddQueueJobsFromAssembly`.
 
 **Concurrency attributes** (`Shoko.QueueProcessor/Concurrency/`):
 - `[LimitConcurrency(default, max?)]` — pool-level slot cap.
@@ -217,7 +235,6 @@ Timer-based `IHostedService`. Call `Register<T>(interval)` from DI (plugin `Load
 - `[AniDBUdpRateLimited]` — respects AniDB UDP rate limits.
 - `[AniDBHttpRateLimited]` — respects AniDB HTTP rate limits.
 - `[TmdbApiRateLimited]` — waits while TMDB is unreachable or in its 5XX circuit-breaker pause (implies `[NetworkRequired]`).
-- `[AnilistApiRateLimited]` — waits while AniList is unreachable or in its 5XX circuit-breaker pause (implies `[NetworkRequired]`).
 
 **`IJobFactory`** (`Shoko.QueueProcessor/JobFactory.cs`): DI-resolved single-shot execution via `Execute<T>()`. Used internally by the worker and by tests or services that need to run a job inline.
 
@@ -227,11 +244,11 @@ The queue system lives in the QueueProcessor project, but the Shoko-specific cod
 
 ### Plugin System
 
-`PluginManager` scans the `/plugins/` directory, loads assemblies, finds `IPlugin` implementations via reflection, and registers their services via `RegisterPlugins(IServiceCollection)`. `InitPlugins()` instantiates the plugins after the service container is available. `CorePlugin` is the built-in plugin that ships with the server.
+`PluginManager` scans the `/plugins/` directory, loads assemblies, finds `IPlugin` implementations via reflection, and registers their services via `RegisterPlugins(IServiceCollection)`. `InitPlugins()` instantiates the plugins after the service container is available. `StartPlugins()` then runs every plugin's `Setup` and, when they all succeeded, every `Ready`. The plugin databases are migrated later, in `LateStart()`, right after the core database. `CorePlugin` is the built-in plugin that ships with the server.
 
 Plugins can also implement `IPluginApplicationRegistration` to register custom middleware via `RegisterServices(IApplicationBuilder, IApplicationPaths)` — invoked during `UseAPI()` after `UseEndpoints` but before CORS.
 
-Plugin controllers are registered via `AddPluginControllers` during API setup.
+Plugin controllers are registered via `AddPluginControllers` during API setup. Plugins add SignalR feeds with `services.AddEventEmitter<TFeed>()`.
 
 ### Configuration System
 
@@ -352,17 +369,15 @@ AnimeGroup (self-referential parent ──< children)
                 └──< CrossRef_File_Episode >── VideoLocal
 ```
 
-### Series/Episode → TMDB and AniList
+### Series/Episode → TMDB and plugin sources
 
-AniDB entities are connected to TMDB and AniList through cross-reference tables, not direct FKs:
+AniDB entities are connected to other sources through cross-reference tables, not direct FKs. Every source, TMDB and the plugin sources (AniList included) alike, shares one set of tables, keyed by `MetadataSource` and the source's own ID as a string, and written through `IMetadataCrossReferenceStore` (TMDB's `CrossRef_AniDB_TMDB_Show`/`_Movie`/`_Episode` classes are views over them):
 
-- `CrossRef_AniDB_TMDB_Show` — `AnimeSeries` ↔ `TMDB_Show`
-- `CrossRef_AniDB_TMDB_Movie` — `AnimeSeries` or `AnimeEpisode` ↔ `TMDB_Movie` (OVAs/movies often link at episode level)
-- `CrossRef_AniDB_TMDB_Episode` — `AnimeEpisode` ↔ `TMDB_Episode`
-- `CrossRef_AniDB_Anilist_Anime` — `AniDB_Anime` ↔ `Anilist_Anime`
-- `CrossRef_AniDB_Anilist_Episode` — `AniDB_Episode` ↔ `Anilist_Episode`
+- `CrossRef_AniDB_Metadata_Series` — `AniDB_Anime` ↔ a provider's series
+- `CrossRef_AniDB_Metadata_Movie` — `AniDB_Anime` ↔ a provider's movie, kept against the AniDB episode standing for it
+- `CrossRef_AniDB_Metadata_Episode` — `AniDB_Episode` ↔ a provider's episode
 
-One anime can match multiple TMDB shows (e.g., split-cour series on TMDB) and one TMDB show can match multiple anime. TMDB models (`TMDB_Show`, `TMDB_Movie`, `TMDB_Season`, `TMDB_Episode`, …) are read-only caches of TMDB API data, structured identically to the TMDB response schema, and the `Anilist_*` models do the same for AniList. Images from every source are stored as `ShokoImage` rows, linked to their entities through `ShokoImage_Entity`.
+One anime can match multiple TMDB shows (e.g., split-cour series on TMDB) and one TMDB show can match multiple anime. TMDB models (`TMDB_Show`, `TMDB_Movie`, `TMDB_Season`, `TMDB_Episode`, …) are read-only caches of TMDB API data, structured identically to the TMDB response schema. A plugin source keeps its own models in its own database (`AddPluginDbContext`). Images from every source are stored as `ShokoImage` rows, linked to their entities through `ShokoImage_Entity`.
 
 ## Import Pipeline
 
@@ -375,12 +390,12 @@ File appears on disk
         │
         ▼
 ScanFolderJob  (Shoko.Server/Scheduling/Jobs/Shoko/ScanFolderJob.cs)
-  Walks managed folder, creates VideoLocal + VideoLocal_Place stubs for new files
+  Walks managed folder, drops the records of files that are gone, and queues hashing for new or changed files
         │
         ▼
 HashFileJob  (Shoko.Server/Scheduling/Jobs/Shoko/HashFileJob.cs)
   Computes ED2K (primary), MD5, SHA1, CRC32 via IVideoHashingService
-  Stores hashes, populates VideoLocal.Hash
+  Only now saves the VideoLocal and its VideoLocal_Place: a VideoLocal never exists without its ED2K
         │
         ▼  [VideoReleaseService builds a chain via IJobChainBuilder]
 AnidbProcessFileJob  (Shoko.Server/Scheduling/Jobs/Shoko/AnidbProcessFileJob.cs)
@@ -402,24 +417,24 @@ GetAniDBAnimeJob  (Shoko.Server/Scheduling/Jobs/AniDB/GetAniDBAnimeJob.cs)
   Creates AnimeSeries + AnimeGroup if they don't exist (CreateSeriesEntry=true)
         │  [unless SkipSupplementaryUpdate]
         ▼
-SupplementaryMetadataService.ScheduleForAnime  (Shoko.Server/Services/SupplementaryMetadataService.cs)
-  Runs every ISupplementaryMetadataProvider for the anime:
-  TmdbSupplementaryProvider and AnilistSupplementaryProvider
+SupplementaryMetadataScheduler.ScheduleForAnime  (Shoko.Server/Services/SupplementaryMetadataScheduler.cs)
+  Asks every registered metadata provider for the anime (also called when a release links a file)
+        │  [per metadata provider, TMDB and plugin sources alike]
+        ▼
+SearchMetadataJob<TProvider>  (Shoko.Server/Scheduling/Jobs/Metadata/SearchMetadataJob.cs)
+  For a source the anime is not linked on: asks the auto-linker's FindAutoLinks for its scored
+  candidates (TMDB searches by title, dates and episode count), then MetadataLinkingService
+  refuses what may not be linked, logs every candidate and links the rest (a person's search
+  of one anime replaces its links on that source once something new is written)
         │
         ▼
-SearchTmdbJob  (Shoko.Server/Scheduling/Jobs/TMDB/SearchTmdbJob.cs)
-  Auto-searches TMDB for matching show/movie by title + episode count
-  Creates CrossRef_AniDB_TMDB_Show / CrossRef_AniDB_TMDB_Movie
+RefreshMetadataJob<TProvider>  (Shoko.Server/Scheduling/Jobs/Metadata/RefreshMetadataJob.cs)
+  Refreshes each linked series, movie or collection through the provider
+  (TMDB writes its own TMDB_Show/Movie/Season/Episode tables, titles and overviews)
         │
         ▼
-UpdateTmdbShowJob / UpdateTmdbMovieJob  (Shoko.Server/Scheduling/Jobs/TMDB/)
-  Fetches TMDB_Show/Movie/Episode/Season records and their images
-  Fetches titles + overviews in all configured languages
-  (AniList follows the same search → link → update path through its own jobs)
-        │
-        ▼
-Image download jobs  (DownloadImageJob)
-  Downloads poster/backdrop/thumbnail files to local image cache
+DownloadMetadataImagesJob<TProvider>  (Shoko.Server/Scheduling/Jobs/Metadata/DownloadMetadataImagesJob.cs)
+  Links the provider's image candidates and queues DownloadImageJob for the wanted ones
 ```
 
 ### Orchestration Pattern
@@ -428,7 +443,7 @@ Jobs do not use a central orchestrator. Each job enqueues its successor via `IQu
 
 **`ImportJob`** (`Shoko.Server/Scheduling/Jobs/Actions/ImportJob.cs`) is a periodic sweep that catches anything the live pipeline missed: it calls `IVideoService.ScheduleScanForManagedFolders()` to rescan all watched folders.
 
-**`ScanForMissingReleaseInfoJob`** (`Shoko.Server/Scheduling/Jobs/Actions/ScanForMissingReleaseInfoJob.cs`) is a recurring job (registered via `RecurringJobRegistry`) that finds `StoredReleaseInfo` records with unknown source or missing audio/subtitle languages and re-queues the appropriate provider job on each provider's backoff schedule (`GetRescanDelay()`).
+**`ScanForMissingReleaseInfoJob`** (`Shoko.Server/Scheduling/Jobs/Actions/ScanForMissingReleaseInfoJob.cs`) runs daily as the `ScanForMissingReleaseInfoAction` scheduled action; it finds `StoredReleaseInfo` records with unknown source or missing audio/subtitle languages and re-queues the appropriate provider job on each provider's backoff schedule (`GetRescanDelay()`).
 
 ### Intermediate Cache Models
 
@@ -465,8 +480,7 @@ If no release provider returns a match, the provider chain completes without cre
 | `AnidbProcessFileJob` | 4, and group-limited (`AniDB_UDP`) | AniDB UDP rate limit |
 | `GetAniDBAnimeJob` | group-limited (`AniDB_HTTP`) | AniDB HTTP bulkhead |
 | `AVDumpFilesJob` | 1 (16) | AVDump resource limits |
-| `SearchTmdbJob` | 8 (24) | TMDB allows higher throughput |
-| `UpdateTmdbShowJob` | 1 (12) | TMDB allows higher throughput |
-| `UpdateTmdbMovieJob` | 1 (12) | TMDB allows higher throughput |
+| `RefreshMetadataJob<T>`, `SearchMetadataJob<T>`, `DownloadMetadataImagesJob<T>` | The provider's `MaxConcurrentJobs` (TMDB: 4) | One pool per provider job type |
+| `DownloadContributedImagesJob<T>` | The contributor's `MaxConcurrentJobs` (default 2) | One pool per image contributor |
 | `DownloadImageJob` | 4 | Image download throughput |
 | `ValidateAllImagesJob` | 1 (1) | Sequential validation |

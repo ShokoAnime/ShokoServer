@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Settings;
 
@@ -26,14 +24,13 @@ public class LanguageSettings
         set => _seriesTitleLanguageOrder = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
     }
 
-    private List<DataSource> _seriesTitleSourceOrder = [DataSource.AniDB, DataSource.TMDB];
+    private List<MetadataSource> _seriesTitleSourceOrder = [MetadataSource.AniDB, MetadataSource.TMDB];
 
     /// <summary>
     /// Series / group title source preference order.
     /// </summary>
     [RequiresRestart]
-    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
-    public List<DataSource> SeriesTitleSourceOrder
+    public List<MetadataSource> SeriesTitleSourceOrder
     {
         get => _seriesTitleSourceOrder;
         set => _seriesTitleSourceOrder = value.Distinct().ToList();
@@ -51,14 +48,13 @@ public class LanguageSettings
         set => _episodeLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
     }
 
-    private List<DataSource> _episodeTitleSourceOrder = [DataSource.TMDB, DataSource.AniDB];
+    private List<MetadataSource> _episodeTitleSourceOrder = [MetadataSource.TMDB, MetadataSource.AniDB];
 
     /// <summary>
     /// Episode / season title source preference order.
     /// </summary>
     [RequiresRestart]
-    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
-    public List<DataSource> EpisodeTitleSourceOrder
+    public List<MetadataSource> EpisodeTitleSourceOrder
     {
         get => _episodeTitleSourceOrder;
         set => _episodeTitleSourceOrder = value.Distinct().ToList();
@@ -76,14 +72,13 @@ public class LanguageSettings
         set => _descriptionLanguagePreference = value.Where(s => !string.IsNullOrEmpty(s)).ToList();
     }
 
-    private List<DataSource> _descriptionSourceOrder = [DataSource.TMDB, DataSource.AniDB];
+    private List<MetadataSource> _descriptionSourceOrder = [MetadataSource.TMDB, MetadataSource.AniDB];
 
     /// <summary>
     /// Description source preference order.
     /// </summary>
     [RequiresRestart]
-    [JsonProperty(ItemConverterType = typeof(StringEnumConverter))]
-    public List<DataSource> DescriptionSourceOrder
+    public List<MetadataSource> DescriptionSourceOrder
     {
         get => _descriptionSourceOrder;
         set => _descriptionSourceOrder = value.Distinct().ToList();

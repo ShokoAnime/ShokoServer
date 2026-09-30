@@ -5,17 +5,24 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// A crew role.
 /// </summary>
-public interface ICrew : IMetadata<string>
+public interface ICrew
 {
     /// <summary>
-    /// Creator ID.
+    /// The source the crew role is from. A crew role is no entry of its own;
+    /// it is named by its creator and its job.
     /// </summary>
-    int CreatorID { get; }
+    MetadataSource Source { get; }
 
     /// <summary>
-    /// Parent entity ID.
+    ///   The creator credited.
     /// </summary>
-    int ParentID { get; }
+    MetadataGuid CreatorID { get; }
+
+    /// <summary>
+    ///   The entry the role is credited on: a series, a season, an episode or
+    ///   a film.
+    /// </summary>
+    MetadataGuid ParentID { get; }
 
     /// <summary>
     /// Name of the crew role, in English.
@@ -42,7 +49,7 @@ public interface ICrew : IMetadata<string>
     /// <summary>
     /// Parent metadata entity.
     /// </summary>
-    IMetadata<int>? Parent { get; }
+    IMetadata? Parent { get; }
 
     /// <summary>
     /// Creator. Can be null if the metadata is
@@ -55,7 +62,7 @@ public interface ICrew : IMetadata<string>
 /// A crew role for a parent entity.
 /// </summary>
 /// <typeparam name="TMetadata">Metadata type.</typeparam>
-public interface ICrew<TMetadata> : ICrew where TMetadata : IMetadata<int>
+public interface ICrew<TMetadata> : ICrew where TMetadata : IMetadata
 {
     /// <summary>
     /// Parent metadata entity.

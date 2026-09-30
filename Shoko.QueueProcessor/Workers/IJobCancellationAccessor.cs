@@ -3,24 +3,22 @@ using System.Threading;
 namespace Shoko.QueueProcessor.Workers;
 
 /// <summary>
-/// Scoped service that gives the currently-executing job access to the cancellation token
-/// its worker is cancelled by, without changing the parameterless
+/// Scoped service that gives the currently-executing job access to its cancellation token,
+/// without changing the parameterless
 /// <see cref="Abstractions.IQueueJob.Process"/> signature. Inject it into a job and pass
 /// <see cref="Token"/> to whatever the job awaits.
 /// </summary>
 /// <remarks>
-/// The token is the worker pool's shutdown token: it is cancelled when the pool that owns the
-/// running worker is stopped — server shutdown, or an explicit queue stop — and at no other
-/// time. There is no per-job cancellation; cancelling a single queued job is not supported.
-/// Outside a worker (for example under <see cref="Abstractions.IJobFactory.Execute{T}"/>, which
-/// resolves the job in a fresh scope) nothing sets the token and <see cref="Token"/> is
-/// <see cref="CancellationToken.None"/> — valid, never cancelled, and
-/// <see cref="CancellationToken.CanBeCanceled"/> is <see langword="false"/>.
+/// Injecting this accessor is what makes a job cancellable; a running job that does not take it
+/// cannot be cancelled. The token fires on a user cancel and when the pool stops. Stop by throwing
+/// <see cref="System.OperationCanceledException"/>: after a user cancel the job ends as cancelled
+/// and is not retried, after a shutdown it is queued again unchanged. Outside a worker (such as
+/// <see cref="Abstractions.IJobFactory.Execute{T}"/>) the token is <see cref="CancellationToken.None"/>.
 /// </remarks>
 public interface IJobCancellationAccessor
 {
     /// <summary>
-    /// The cancellation token for the currently-executing job, or
+    /// The cancellation token of the currently-executing job, or
     /// <see cref="CancellationToken.None"/> when the job is not running under a worker.
     /// </summary>
     CancellationToken Token { get; }

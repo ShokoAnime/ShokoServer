@@ -67,7 +67,7 @@ public class AuthController(
         var token = expiresAt.HasValue
             ? await userService.GenerateApiTokenForUser(user, request.Device.Trim(), expiresAt.Value)
             : await userService.GenerateApiTokenForUser(user, request.Device.Trim());
-        return Ok(new ApiToken(user.ID, user.Username, token.Device, token.ExpiresAt, token.Token));
+        return Ok(new ApiToken(user.LocalID, user.Username, token.Device, token.ExpiresAt, token.Token));
     }
 
     /// <summary>
@@ -104,7 +104,7 @@ public class AuthController(
         var token = expiresAt.HasValue
             ? await userService.GenerateApiTokenForUser(User, request.Device.Trim(), expiresAt.Value)
             : await userService.GenerateApiTokenForUser(User, request.Device.Trim());
-        return Ok(new ApiToken(token.User.ID, token.User.Username, token.Device, token.ExpiresAt, token.Token));
+        return Ok(new ApiToken(token.User.LocalID, token.User.Username, token.Device, token.ExpiresAt, token.Token));
     }
 
     /// <summary>
@@ -121,12 +121,12 @@ public class AuthController(
     {
         if (User.IsAdmin is 0 || !showAll)
             return userService.GetApiTokensForUser(User)
-                .Select(token => new ApiToken(token.User.ID, token.User.Username, token.Device, token.ExpiresAt))
+                .Select(token => new ApiToken(token.User.LocalID, token.User.Username, token.Device, token.ExpiresAt))
                 .ToList();
 
         return userService.GetUsers()
             .SelectMany(userService.GetApiTokensForUser)
-            .Select(token => new ApiToken(token.User.ID, token.User.Username, token.Device, token.ExpiresAt))
+            .Select(token => new ApiToken(token.User.LocalID, token.User.Username, token.Device, token.ExpiresAt))
             .OrderBy(token => token.UserID)
             .ThenBy(token => token.Device)
             .ThenBy(token => token.ExpiresAt ?? DateTime.MaxValue)

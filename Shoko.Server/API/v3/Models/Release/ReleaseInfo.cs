@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
@@ -21,9 +22,9 @@ public class ReleaseInfo : IReleaseInfo
     /// <summary>
     /// The name of the provider which found the release. This field can
     /// intentionally be set to anything to allow importing/exporting/remixing
-    /// data from other providers.
+    /// data from other providers. Defaults to <c>User</c> when left out.
     /// </summary>
-    [Required]
+    [DefaultValue("User")]
     public string ProviderName { get; init; }
 
     /// <summary>

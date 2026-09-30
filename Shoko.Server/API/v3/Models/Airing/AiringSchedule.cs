@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
-using Shoko.Abstractions.Metadata.Enums;
 
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Airing;
@@ -47,20 +47,20 @@ public class AiringSchedule(IAiringSchedule schedule)
     /// The source of the series the schedule is for.
     /// </summary>
     [Required]
-    public DataSource SeriesSource { get; init; } = schedule.SeriesSource;
+    public MetadataSource SeriesSource { get; init; } = schedule.SeriesID.Source;
 
     /// <summary>
     /// The ID of the series the schedule is for, relative to
     /// <see cref="SeriesSource"/>.
     /// </summary>
     [Required]
-    public string SeriesID { get; init; } = schedule.SeriesID;
+    public string SeriesID { get; init; } = schedule.SeriesID.ID;
 
     /// <summary>
     /// The ID of the season the schedule is narrowed to, relative to
     /// <see cref="SeriesSource"/>, or <c>null</c> when it covers the whole run.
     /// </summary>
-    public string? SeasonID { get; init; } = schedule.SeasonID;
+    public string? SeasonID { get; init; } = schedule.SeasonID?.ID;
 
     /// <summary>
     /// The channel the run airs on, or <c>null</c> when the provider names

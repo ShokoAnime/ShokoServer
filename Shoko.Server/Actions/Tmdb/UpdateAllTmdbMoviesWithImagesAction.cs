@@ -1,7 +1,11 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Providers;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.ScheduledActions;
 
 namespace Shoko.Server.Actions;
 
@@ -9,7 +13,7 @@ namespace Shoko.Server.Actions;
 ///   Update all TMDB movies in the local database from the remote API,
 ///   including downloading any missing images.
 /// </summary>
-public sealed class UpdateAllTmdbMoviesWithImagesAction(TmdbMetadataService tmdbService) : IExecutableAction
+public sealed class UpdateAllTmdbMoviesWithImagesAction(IMetadataRefreshService refreshService) : IScheduledAction
 {
     public string Name => "Update All TMDB Movies (with Images)";
 
@@ -17,8 +21,12 @@ public sealed class UpdateAllTmdbMoviesWithImagesAction(TmdbMetadataService tmdb
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    public ActionPermission Permission => ActionPermission.User;
-
-    public Task Execute(CancellationToken token = default)
-        => tmdbService.UpdateAllMovies(true, true);
+    public Task Execute(IProgress<decimal> progress, CancellationToken token)
+        => refreshService.RefreshAllLinked(
+            MetadataSource.TMDB,
+            force: true,
+            new() { DownloadImages = true, Reason = MetadataRefreshReason.Requested },
+            MetadataEntityType.Movie,
+            token
+        );
 }

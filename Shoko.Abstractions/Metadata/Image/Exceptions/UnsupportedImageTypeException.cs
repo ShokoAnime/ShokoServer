@@ -1,5 +1,4 @@
 using System;
-using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata.Image.Exceptions;
 
@@ -12,7 +11,7 @@ public class UnsupportedImageTypeException() : Exception($"The resource identifi
     /// <summary>
     ///   The source of the image.
     /// </summary>
-    public required DataSource ImageSource { get; init; }
+    public required MetadataSource ImageSource { get; init; }
 
     /// <summary>
     ///   Remote identifier relative to the <see cref="ImageSource"/>.

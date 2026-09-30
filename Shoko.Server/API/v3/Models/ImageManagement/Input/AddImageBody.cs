@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Image;
 
 namespace Shoko.Server.API.v3.Models.ImageManagement.Input;
@@ -13,7 +13,7 @@ public class AddImageBody
     ///   Provider source (AniDB, TMDB, AniList, etc.).
     /// </summary>
     [Required]
-    public DataSource Source { get; set; }
+    public MetadataSource Source { get; set; } = null!;
 
     /// <summary>
     ///   Resource identifier for the image source's template URL.

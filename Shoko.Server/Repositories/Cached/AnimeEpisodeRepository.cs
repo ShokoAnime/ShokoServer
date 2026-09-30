@@ -4,8 +4,10 @@ using System.IO;
 using System.Linq;
 using NHibernate;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Utilities;
 
@@ -23,6 +25,12 @@ public class AnimeEpisodeRepository(DatabaseFactory databaseFactory) : BaseCache
     {
         RepoFactory.AnimeEpisode_User.Delete(
             RepoFactory.AnimeEpisode_User.GetByEpisodeID(obj.AnimeEpisodeID));
+    }
+
+    protected override void OnEndDelete(AnimeEpisode obj)
+    {
+        // The name a user gave the episode goes with it.
+        TextAccess.Reachable?.RemoveTexts(((IMetadata)obj).ID);
     }
 
     protected override int SelectKey(AnimeEpisode entity)

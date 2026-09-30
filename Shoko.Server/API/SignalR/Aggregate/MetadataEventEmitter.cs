@@ -1,23 +1,36 @@
 using System;
+using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.API.SignalR.Models;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class MetadataEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "metadata";
+
     private readonly IMetadataService _metadataService;
+
+    private readonly IMetadataLinkingService _linkingService;
 
     private readonly ILogger<MetadataEventEmitter> _logger;
 
-    public MetadataEventEmitter(IHubContext<AggregateHub> hub, IMetadataService metadataService, ILogger<MetadataEventEmitter> logger) : base(hub)
+    public MetadataEventEmitter(
+        IHubContext<AggregateHub> hub,
+        IMetadataService metadataService,
+        IMetadataLinkingService linkingService,
+        ILogger<MetadataEventEmitter> logger
+    ) : base(hub)
     {
         _metadataService = metadataService;
+        _linkingService = linkingService;
         _logger = logger;
+        _linkingService.LinksChanged += OnLinksChanged;
         _metadataService.SeriesAdded += OnSeriesUpdated;
         _metadataService.SeriesUpdated += OnSeriesUpdated;
         _metadataService.SeriesRemoved += OnSeriesUpdated;
@@ -31,6 +44,7 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
 
     public void Dispose()
     {
+        _linkingService.LinksChanged -= OnLinksChanged;
         _metadataService.SeriesAdded -= OnSeriesUpdated;
         _metadataService.SeriesUpdated -= OnSeriesUpdated;
         _metadataService.SeriesRemoved -= OnSeriesUpdated;
@@ -65,6 +79,24 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while sending the 'episode' event.");
+        }
+    }
+
+    private async void OnLinksChanged(object? sender, MetadataLinksChangedEventArgs e)
+    {
+        try
+        {
+            var shokoSeriesIDs = e.AnidbAnimeIDs
+                .Select(_metadataService.GetShokoSeriesByAnidbID)
+                .OfType<IShokoSeries>()
+                .Select(series => series.LocalID)
+                .Order()
+                .ToList();
+            await SendAsync("links.changed", new MetadataLinksChangedSignalRModel(e, shokoSeriesIDs));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while sending the 'links.changed' event.");
         }
     }
 

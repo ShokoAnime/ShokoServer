@@ -11,6 +11,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
+using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.NHibernate;
@@ -35,7 +36,9 @@ public class AnimeSeriesRepository(DatabaseFactory databaseFactory) : BaseCached
 
     protected override void OnEndDelete(AnimeSeries obj)
     {
-        SeriesSearch.MarkDirty();
+        // The name a user gave the series goes with it.
+        TextAccess.Reachable?.RemoveTexts(((IMetadata)obj).ID);
+        SeriesSearch.MarkStale(obj.AnimeSeriesID);
         if (obj.AnimeGroupID <= 0)
         {
             return;
@@ -55,6 +58,44 @@ public class AnimeSeriesRepository(DatabaseFactory databaseFactory) : BaseCached
         return entity.AnimeSeriesID;
     }
 
+    protected override void UpdateCacheUnsafe(AnimeSeries cr)
+    {
+        // The index still holds the group the series was in before this save.
+        int[]? before = null;
+        var isNew = Groups is null || !Groups.TryGetIndexedKeys(cr.AnimeSeriesID, out before);
+        var previousGroupID = before?.FirstOrDefault() ?? 0;
+        base.UpdateCacheUnsafe(cr);
+        if (!isNew && previousGroupID == cr.AnimeGroupID)
+            return;
+
+        // Group names follow their series, filter names follow the series'
+        // groups, and a new series is not in the search yet.
+        if (previousGroupID > 0)
+            TextAccess.Forget(GroupEntry(previousGroupID));
+        if (cr.AnimeGroupID > 0 && cr.AnimeGroupID != previousGroupID)
+            TextAccess.Forget(GroupEntry(cr.AnimeGroupID));
+        TextAccess.ForgetFilters(((IMetadata)cr).ID);
+        if (isNew)
+            SeriesSearch.MarkStale(cr.AnimeSeriesID);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///   A save forgets only the groups the series left and joined, which
+    ///   <see cref="UpdateCacheUnsafe"/> sees, as most saves only count and
+    ///   the group's name reads the series.
+    /// </remarks>
+    protected override IEnumerable<MetadataGuid> TextEntriesOf(AnimeSeries entity, bool removed)
+        => removed ? base.TextEntriesOf(entity, removed) : [];
+
+    /// <summary>
+    ///   The text manager's entry for a Shoko group.
+    /// </summary>
+    /// <param name="groupID">The Shoko group ID.</param>
+    /// <returns>The entry.</returns>
+    private static MetadataGuid GroupEntry(int groupID)
+        => new(MetadataSource.Shoko, MetadataEntityType.Collection, groupID.ToString());
+
     public override void PopulateIndexes()
     {
         AniDBIds = Cache.CreateIndex(a => a.AniDB_ID);
@@ -69,10 +110,6 @@ public class AnimeSeriesRepository(DatabaseFactory databaseFactory) : BaseCached
                 $"Database - Validating - {nameof(AnimeSeries)} Database Regeneration - Caching Titles & Overview...";
             foreach (var series in Cache.GetAll().ToList())
             {
-                series.ResetPreferredTitle();
-                series.ResetPreferredOverview();
-                series.ResetAnimeTitles();
-                // Resetting only drops the memo, so read it back to keep this a warm-up.
                 _ = series.PreferredTitle;
                 _ = series.PreferredOverview;
                 _ = series.Titles;
@@ -151,8 +188,7 @@ public class AnimeSeriesRepository(DatabaseFactory databaseFactory) : BaseCached
                 {
                     logger.Trace($"Saving Series {animeID} | Group ID is different. Moving to new group");
                     oldGroup = RepoFactory.AnimeGroup.GetByID(oldSeries.AnimeGroupID);
-                    var newGroup = RepoFactory.AnimeGroup.GetByID(obj.AnimeGroupID);
-                    if (newGroup is { GroupName: "AAA Migrating Groups AAA" })
+                    if (obj.AnimeGroupID is not 0 && obj.AnimeGroupID == AnimeGroupCreator.TemporaryGroupID)
                     {
                         isMigrating = true;
                     }
@@ -192,8 +228,6 @@ public class AnimeSeriesRepository(DatabaseFactory databaseFactory) : BaseCached
         sw.Restart();
 
         if (updateGroups && !isMigrating) UpdateGroups(obj, animeID, sw, oldGroup!);
-
-        SeriesSearch.MarkDirty();
 
         if (alsoupdateepisodes) UpdateEpisodes(obj, sw, animeID);
 
@@ -273,8 +307,6 @@ public class AnimeSeriesRepository(DatabaseFactory databaseFactory) : BaseCached
             await session.UpdateAsync(series);
             UpdateCache(series);
         }
-
-        SeriesSearch.MarkDirty();
     }
 
     public AnimeSeries? GetByAnimeID(int id)
@@ -332,6 +364,67 @@ INNER JOIN
 GROUP BY
     ani.AnimeID
 ";
+
+    #region Missing Links
+
+    // The veto column is a JSON array of source values; older rows hold the old
+    // names, which only differ in case.
+    private const string MissingLinksWhere = @"
+FROM
+    AnimeSeries s
+INNER JOIN
+    AniDB_Anime a
+    ON a.AnimeID = s.AniDB_ID
+WHERE
+    a.AnimeType NOT IN (:neverLinked)
+    AND (s.DisabledAutoMatchSources IS NULL OR LOWER(s.DisabledAutoMatchSources) NOT LIKE :veto)
+    AND NOT EXISTS (SELECT 1 FROM CrossRef_AniDB_Metadata_Series x WHERE x.AnidbAnimeID = s.AniDB_ID AND x.Source = :source)
+    AND NOT EXISTS (SELECT 1 FROM CrossRef_AniDB_Metadata_Movie m WHERE m.AnidbAnimeID = s.AniDB_ID AND m.Source = :source)
+";
+
+    /// <summary>
+    ///   Counts, in the database, the series missing a link on a source.
+    /// </summary>
+    /// <remarks>
+    ///   Follows <c>MissingSourceLinkExpression</c>: the anime is of a type the
+    ///   source links, the series has not vetoed the source, and there is no
+    ///   series or movie-level row for it, not even an empty link. A series
+    ///   without its AniDB anime is not counted.
+    /// </remarks>
+    /// <param name="source">The source.</param>
+    /// <param name="neverLinked">The anime types the source is never linked for.</param>
+    /// <returns>The number of series.</returns>
+    public int CountMissingLinks(MetadataSource source, IReadOnlyCollection<AnimeType> neverLinked)
+    {
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        return Convert.ToInt32(MissingLinksQuery(session, "SELECT COUNT(*) " + MissingLinksWhere, source, neverLinked).UniqueResult());
+    }
+
+    /// <summary>
+    ///   Gets, from the database, the AniDB anime IDs of the series missing a
+    ///   link on a source, by the rules <see cref="CountMissingLinks"/>
+    ///   follows, for a caller that still has to leave some of them out.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="neverLinked">The anime types the source is never linked for.</param>
+    /// <returns>The AniDB anime IDs.</returns>
+    public IReadOnlyList<int> GetAnimeIDsMissingLinks(MetadataSource source, IReadOnlyCollection<AnimeType> neverLinked)
+    {
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        return [.. MissingLinksQuery(session, "SELECT s.AniDB_ID AS AnimeID " + MissingLinksWhere, source, neverLinked)
+            .AddScalar("AnimeID", NHibernateUtil.Int32)
+            .List<int>()];
+    }
+
+    private static ISQLQuery MissingLinksQuery(ISession session, string sql, MetadataSource source, IReadOnlyCollection<AnimeType> neverLinked)
+        => (ISQLQuery)session.CreateSQLQuery(sql)
+            // An empty list is no valid SQL, and no type is (int)AnimeType.Unknown - 1.
+            .SetParameterList("neverLinked", neverLinked.Count is 0 ? [(int)AnimeType.Unknown - 1] : neverLinked.Select(type => (int)type).ToArray())
+            .SetParameter("veto", $"%\"{source.Value}\"%")
+            // A source without a number has no rows, and no row holds -1, so both NOT EXISTS hold.
+            .SetParameter("source", MetadataNumberRegistry.TryGetNumber(source, out var number) ? (int)number : -1);
+
+    #endregion
 
     public IEnumerable<AnimeSeries> GetWithDuplicateFiles()
     {

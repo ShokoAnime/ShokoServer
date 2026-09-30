@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Utilities;
@@ -18,9 +18,9 @@ public class AiringScheduleRepository(DatabaseFactory databaseFactory) : BaseCac
 {
     private PocoIndex<int, AiringSchedule, Guid>? _scheduleIDs;
 
-    private PocoIndex<int, AiringSchedule, (DataSource SeriesSource, string SeriesID)>? _seriesKeys;
+    private PocoIndex<int, AiringSchedule, (MetadataSource SeriesSource, string SeriesID)>? _seriesKeys;
 
-    private PocoIndex<int, AiringSchedule, (DataSource SeriesSource, string SeriesID, string SeasonID)>? _seriesSeasonKeys;
+    private PocoIndex<int, AiringSchedule, (MetadataSource SeriesSource, string SeriesID, string SeasonID)>? _seriesSeasonKeys;
 
     private PocoIndex<int, AiringSchedule, Guid>? _providerIDs;
 
@@ -56,7 +56,7 @@ public class AiringScheduleRepository(DatabaseFactory databaseFactory) : BaseCac
     /// <param name="seriesSource">The source of the series.</param>
     /// <param name="seriesID">The ID of the series within its source.</param>
     /// <returns>The schedules, ordered by provider and key.</returns>
-    public IReadOnlyList<AiringSchedule> GetBySeriesID(DataSource seriesSource, string seriesID)
+    public IReadOnlyList<AiringSchedule> GetBySeriesID(MetadataSource seriesSource, string seriesID)
         => string.IsNullOrEmpty(seriesID)
             ? []
             : _seriesKeys!.GetMultiple((seriesSource, seriesID))
@@ -73,7 +73,7 @@ public class AiringScheduleRepository(DatabaseFactory databaseFactory) : BaseCac
     /// <param name="seriesID">The ID of the series within its source.</param>
     /// <param name="seasonID">The ID of the season within its source, or <c>null</c> for the whole run.</param>
     /// <returns>The schedules, ordered by provider and key.</returns>
-    public IReadOnlyList<AiringSchedule> GetBySeriesIDAndSeasonID(DataSource seriesSource, string seriesID, string? seasonID)
+    public IReadOnlyList<AiringSchedule> GetBySeriesIDAndSeasonID(MetadataSource seriesSource, string seriesID, string? seasonID)
         => string.IsNullOrEmpty(seriesID)
             ? []
             : _seriesSeasonKeys!.GetMultiple((seriesSource, seriesID, seasonID ?? string.Empty))

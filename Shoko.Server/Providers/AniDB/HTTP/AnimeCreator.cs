@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,19 +8,22 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Server;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 using AbstractAnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
@@ -34,14 +37,22 @@ public class AnimeCreator
     private readonly ISettingsProvider _settingsProvider;
     private readonly IQueueScheduler _scheduler;
     private readonly IVideoReleaseService _videoReleaseService;
+    private readonly MetadataTextStore _textStore;
     private readonly ConcurrentDictionary<int, object> _updatingIDs = [];
 
-    public AnimeCreator(ILogger<AnimeCreator> logger, ISettingsProvider settings, IQueueScheduler scheduler, IVideoReleaseService videoReleaseService)
+    public AnimeCreator(
+        ILogger<AnimeCreator> logger,
+        ISettingsProvider settings,
+        IQueueScheduler scheduler,
+        IVideoReleaseService videoReleaseService,
+        MetadataTextStore textStore
+    )
     {
         _logger = logger;
         _settingsProvider = settings;
         _scheduler = scheduler;
         _videoReleaseService = videoReleaseService;
+        _textStore = textStore;
     }
 
 
@@ -86,21 +97,22 @@ public class AnimeCreator
 
             // alternatively these could be written as an if...then statement spanning two lines.
             // we need ConfigureAwait(true) because of the lock
-            var (episodesAddedOrRemoved, updatedEpisodes) = await CreateEpisodes(response.Episodes, anime).ConfigureAwait(true);
+            var texts = new AnimeTexts();
+            var (episodesAddedOrRemoved, updatedEpisodes) = await CreateEpisodes(response.Episodes, anime, texts).ConfigureAwait(true);
             if (episodesAddedOrRemoved && !updated) updated = true;
 
             taskTimer.Stop();
             _logger.LogTrace("CreateEpisodes in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-            var titlesUpdated = CreateTitles(response.Titles, anime);
+            var titlesUpdated = CreateTitles(response.Titles, anime, texts);
             updated = updated || titlesUpdated;
             shouldUpdateFiles = shouldUpdateFiles || titlesUpdated;
             taskTimer.Stop();
             _logger.LogTrace("CreateTitles in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-            updated = CreateTags(response.Tags, anime) || updated;
+            updated = CreateTags(response.Tags, anime, _textStore) || updated;
             taskTimer.Stop();
             _logger.LogTrace("CreateTags in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
@@ -115,7 +127,7 @@ public class AnimeCreator
             _logger.LogTrace("CreateStaff in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
 
-            CreateResources(response.Resources, anime);
+            CreateResources(response, anime.AnimeID);
             taskTimer.Stop();
             _logger.LogTrace("CreateResources in: {Time}", taskTimer.Elapsed);
             taskTimer.Restart();
@@ -152,6 +164,9 @@ public class AnimeCreator
         }
         finally
         {
+            // The dates, type and episodes may all have changed.
+            anime.ResetReleaseStatus();
+            anime.ResetRegularAirDates();
             Monitor.Exit(lockObj);
             _updatingIDs.TryRemove(response.Anime.AnimeID, out _);
         }
@@ -173,12 +188,6 @@ public class AnimeCreator
             shouldUpdateFiles = true;
         }
 
-        if (anime.AllCinemaID != animeInfo.AllCinemaID)
-        {
-            anime.AllCinemaID = animeInfo.AllCinemaID;
-            isUpdated = true;
-        }
-
         if (anime.AnimeID != animeInfo.AnimeID)
         {
             anime.AnimeID = animeInfo.AnimeID;
@@ -191,12 +200,6 @@ public class AnimeCreator
             anime.AnimeType = (AbstractAnimeType)animeInfo.AnimeType;
             isUpdated = true;
             shouldUpdateFiles = true;
-        }
-
-        if (anime.ANNID != animeInfo.ANNID)
-        {
-            anime.ANNID = animeInfo.ANNID;
-            isUpdated = true;
         }
 
         if (anime.AvgReviewRating != animeInfo.AvgReviewRating)
@@ -312,7 +315,6 @@ public class AnimeCreator
         if (isNew)
         {
             anime.AllTags = string.Empty;
-            anime.AllTitles = string.Empty;
             anime.ImageEnabled = 1;
         }
 
@@ -325,7 +327,7 @@ public class AnimeCreator
         return (isUpdated, descriptionUpdated, shouldUpdateFiles);
     }
 
-    private async Task<(bool, Dictionary<AniDB_Episode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, AniDB_Anime anime)
+    private async Task<(bool, Dictionary<AniDB_Episode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, AniDB_Anime anime, AnimeTexts texts)
     {
         if (rawEpisodeList == null)
             return (false, []);
@@ -345,23 +347,14 @@ public class AnimeCreator
         var currentAniDBEpisodes = epsBelongingToThisAnime.Values
             .Concat(epsBelongingToOtherAnime)
             .ToDictionary(a => a.EpisodeID);
-        var currentAniDBEpisodeTitles = currentAniDBEpisodes.Keys
-            .ToDictionary(id => id, id => RepoFactory.AniDB_Episode_Title.GetByEpisodeID(id).ToHashSet());
         var epsToRemove = currentAniDBEpisodes.Values
             .Where(a => !epIDs.Contains(a.EpisodeID))
             .ToList();
         var epsToSave = new List<AniDB_Episode>();
-        var titlesToRemove = new List<AniDB_Episode_Title>();
-        var titlesToSave = new List<AniDB_Episode_Title>();
         var episodeEventsToEmit = new Dictionary<AniDB_Episode, UpdateReason>();
 
         foreach (var rawEpisode in rawEpisodeList)
         {
-            // Load the titles for the episode now, since we might need to check
-            // them even if we don't update the episode itself.
-            if (!currentAniDBEpisodeTitles.TryGetValue(rawEpisode.EpisodeID, out var currentTitles))
-                currentTitles = new();
-
             // Check if the existing record, if any, needs to be updated.
             var isNew = false;
             var isUpdated = false;
@@ -445,25 +438,19 @@ public class AnimeCreator
                 };
             }
 
-            // Convert the raw titles to their equivalent database model.
-            var newTitles = rawEpisode.Titles
-                .Select(rawtitle => new AniDB_Episode_Title
-                {
-                    AniDB_EpisodeID = rawEpisode.EpisodeID,
-                    Language = rawtitle.Language,
-                    Title = rawtitle.Title,
-                })
-                .ToList();
-
-            var deltaTitles = newTitles.Where(a => !currentTitles.Contains(a)).ToList();
-            // Mark the new titles to-be saved.
-            titlesToSave.AddRange(deltaTitles);
-            if (deltaTitles.Count > 0 && !episodeEventsToEmit.ContainsKey(episode))
+            // Work out the titles to store, leaving out the generic one with
+            // the episode's own number, which is made up when read.
+            var episodeID = new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Episode, rawEpisode.EpisodeID.ToString(CultureInfo.InvariantCulture));
+            var currentTitles = _textStore.GetTitles(episodeID, MetadataSource.AniDB);
+            var newTitles = AnidbTextListing.PlanEpisodeTitles(
+                currentTitles,
+                rawEpisode.Titles.Select(rawtitle => new AnidbTextListing.ListedTitle(rawtitle.Language, TitleType.None, rawtitle.Title)),
+                (AbstractEpisodeType)rawEpisode.EpisodeType,
+                rawEpisode.EpisodeNumber
+            );
+            texts.Episodes.Add((episodeID, newTitles));
+            if (newTitles.Any(title => !currentTitles.Any(current => current.Language == title.Language && current.Value == title.Value)) && !episodeEventsToEmit.ContainsKey(episode))
                 episodeEventsToEmit[episode] = UpdateReason.Updated;
-
-            // Remove outdated titles.
-            if (currentTitles.Count > 0)
-                titlesToRemove.AddRange(currentTitles.Where(a => !newTitles.Any(b => b.Equals(a))));
 
             // Since the HTTP API doesn't return a count of the number of normal
             // episodes and/or specials, then we will calculate it now.
@@ -556,8 +543,7 @@ public class AnimeCreator
         // Remove any existing links to the episodes that will be removed.
         foreach (var episode in epsToRemove)
         {
-            if (currentAniDBEpisodeTitles.TryGetValue(episode.EpisodeID, out var currentTitles))
-                titlesToRemove.AddRange(currentTitles);
+            texts.RemovedEpisodes.Add(((IMetadata)episode).ID);
             var shokoEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
             if (shokoEpisode != null)
                 shokoEpisodesToRemove.Add(shokoEpisode);
@@ -577,15 +563,6 @@ public class AnimeCreator
         RepoFactory.StoredReleaseInfo.Delete(storedReleasesToRemove.DistinctBy(a => a.StoredReleaseInfoID).ToList());
         RepoFactory.AniDB_Episode.Save(epsToSave);
         RepoFactory.AniDB_Episode.Delete(epsToRemove);
-        RepoFactory.AniDB_Episode_Title.Save(titlesToSave);
-        RepoFactory.AniDB_Episode_Title.Delete(titlesToRemove);
-        // The title rows live in their own repository, so the episodes holding a
-        // memoised copy have to be told that theirs is stale.
-        foreach (var episodeID in titlesToSave.Concat(titlesToRemove).Select(title => title.AniDB_EpisodeID).Distinct())
-        {
-            RepoFactory.AniDB_Episode.GetByEpisodeID(episodeID)?.ResetDefaultTitle();
-            RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episodeID)?.ResetDefaultTitle();
-        }
         RepoFactory.AnimeEpisode.Save(shokoEpisodesToSave);
         RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
         RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
@@ -617,62 +594,69 @@ public class AnimeCreator
         );
     }
 
-    private static bool CreateTitles(List<ResponseTitle> titles, AniDB_Anime anime)
+    /// <summary>
+    ///   Stores the titles AniDB lists for an anime, together with the titles
+    ///   of its episodes worked out before, in one transaction.
+    /// </summary>
+    /// <param name="titles">The anime's titles, as AniDB lists them, or <c>null</c> to leave them alone.</param>
+    /// <param name="anime">The anime.</param>
+    /// <param name="texts">The episodes' titles, and the episodes that went.</param>
+    /// <returns>Whether the anime's titles changed.</returns>
+    private bool CreateTitles(List<ResponseTitle>? titles, AniDB_Anime anime, AnimeTexts texts)
+        => StoreTitles(_textStore, titles, anime, texts.Episodes, texts.RemovedEpisodes);
+
+    /// <summary>
+    ///   Stores the titles AniDB lists for an anime and for its episodes, and
+    ///   removes the texts of the episodes that went, in one transaction.
+    /// </summary>
+    /// <param name="textStore">The text store.</param>
+    /// <param name="titles">The anime's titles, as AniDB lists them, or <c>null</c> to leave them alone.</param>
+    /// <param name="anime">The anime.</param>
+    /// <param name="episodes">The episodes AniDB lists, and the titles to store for each.</param>
+    /// <param name="removedEpisodes">The episodes that went.</param>
+    /// <returns>Whether the anime's titles changed.</returns>
+    internal static bool StoreTitles(
+        MetadataTextStore textStore,
+        List<ResponseTitle>? titles,
+        AniDB_Anime anime,
+        IReadOnlyList<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles)> episodes,
+        IReadOnlyCollection<MetadataGuid> removedEpisodes
+    )
     {
-        // after this runs once, it should clean up the dupes from before
-        if (titles == null)
+        var animeID = ((IMetadata)anime).ID;
+        var entries = new List<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles, IReadOnlyList<IText> Overviews)>();
+        if (titles is not null)
+        {
+            var planned = AnidbTextListing.PlanAnimeTitles(
+                textStore.GetTitles(animeID, MetadataSource.AniDB),
+                titles.Where(title => title is not null).Select(title => new AnidbTextListing.ListedTitle(title.Language, title.TitleType, title.Title))
+            );
+            entries.Add((animeID, planned, []));
+        }
+
+        entries.AddRange(episodes.DistinctBy(episode => episode.Entry).Select(episode => (episode.Entry, episode.Titles, (IReadOnlyList<IText>)[])));
+        if (entries.Count is 0 && removedEpisodes.Count is 0)
             return false;
 
-        var allTitles = string.Empty;
-        var existingTitles = RepoFactory.AniDB_Anime_Title.GetByAnimeID(anime.AnimeID);
-        var keySelector = new Func<AniDB_Anime_Title, string>(t => $"{t.TitleType},{t.Language},{t.Title}");
-        var existingTitleDict = existingTitles.DistinctBy(keySelector).ToDictionary(keySelector);
-        var titlesToKeep = new HashSet<int>();
-        var titlesToSave = new Dictionary<string, AniDB_Anime_Title>();
+        var changed = textStore.WriteWithTexts(entries, removedEpisodes, _ => []);
+        return titles is not null && changed.Contains(animeID);
+    }
 
-        foreach (var rawtitle in titles)
-        {
-            if (string.IsNullOrEmpty(rawtitle?.Title)) continue;
+    /// <summary>
+    ///   The titles worked out for an anime's episodes, stored together with
+    ///   the anime's own.
+    /// </summary>
+    private sealed class AnimeTexts
+    {
+        /// <summary>
+        ///   The episodes AniDB lists, and the titles to store for each.
+        /// </summary>
+        public List<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles)> Episodes { get; } = [];
 
-            var key = $"{rawtitle.TitleType},{rawtitle.Language},{rawtitle.Title}";
-            if (existingTitleDict.TryGetValue(key, out var title))
-            {
-                titlesToKeep.Add(title.AniDB_Anime_TitleID);
-                if (allTitles.Length > 0)
-                    allTitles += "|";
-                allTitles += rawtitle.Title;
-                continue;
-            }
-
-            if (titlesToSave.ContainsKey(key)) continue;
-
-            titlesToSave[key] = new()
-            {
-                AnimeID = anime.AnimeID,
-                Language = rawtitle.Language,
-                Title = rawtitle.Title,
-                TitleType = rawtitle.TitleType
-            };
-
-            if (allTitles.Length > 0)
-                allTitles += "|";
-            allTitles += rawtitle.Title;
-        }
-
-        var titlesToDelete = existingTitles.ExceptBy(titlesToKeep, t => t.AniDB_Anime_TitleID).ToList();
-
-        anime.AllTitles = allTitles;
-        RepoFactory.AniDB_Anime_Title.Delete(titlesToDelete);
-        RepoFactory.AniDB_Anime_Title.Save(titlesToSave.Values);
-
-        var changed = titlesToSave.Count > 0 || titlesToDelete.Count > 0;
-        if (changed)
-        {
-            anime.ResetDefaultTitle();
-            anime.ResetPreferredTitle();
-        }
-
-        return changed;
+        /// <summary>
+        ///   The episodes that went, whose texts go with them.
+        /// </summary>
+        public List<MetadataGuid> RemovedEpisodes { get; } = [];
     }
 
     /// <summary>
@@ -688,7 +672,15 @@ public class AnimeCreator
         {"original work", "source material"},
     };
 
-    private static AniDB_Tag FindOrCreateTag(ResponseTag rawTag)
+    /// <summary>
+    ///   Finds the tag AniDB lists, or creates it, and fills it in unless the
+    ///   stored one is newer.
+    /// </summary>
+    /// <param name="rawTag">The tag as AniDB lists it.</param>
+    /// <param name="textStore">Removes the core's names of the tags that go.</param>
+    /// <param name="renames">Collects the core's name for each tag filled in, or <c>null</c> when it keeps its own.</param>
+    /// <returns>The tag, not yet saved.</returns>
+    private static AniDB_Tag FindOrCreateTag(ResponseTag rawTag, MetadataTextStore textStore, Dictionary<int, string?> renames)
     {
         var tag = RepoFactory.AniDB_Tag.GetByTagID(rawTag.TagID);
 
@@ -719,12 +711,15 @@ public class AnimeCreator
                 RepoFactory.AniDB_Anime_Tag.Save(xref);
             }
 
-            // Delete the obsolete tag(s).
-            RepoFactory.AniDB_Tag.Delete(existingTags);
-
-            // While we're at it, clean up other unreferenced tags.
-            RepoFactory.AniDB_Tag.Delete(RepoFactory.AniDB_Tag.GetAll()
-                .Where(a => !RepoFactory.AniDB_Anime_Tag.GetByTagID(a.TagID).Any()).ToList());
+            // Delete the obsolete tag(s), and while we're at it, clean up
+            // other unreferenced tags. The core's names for them go too.
+            var tagsToDelete = existingTags
+                .Concat(RepoFactory.AniDB_Tag.GetAll().Where(a => !RepoFactory.AniDB_Anime_Tag.GetByTagID(a.TagID).Any()))
+                .DistinctBy(a => a.AniDB_TagID)
+                .ToList();
+            RepoFactory.AniDB_Tag.Delete(tagsToDelete);
+            foreach (var deletedTag in tagsToDelete.Where(a => a.TagID != rawTag.TagID))
+                textStore.RemoveEntry(((IMetadata)deletedTag).ID, MetadataSource.Shoko);
 
             // Also clean up dead cross-references. They shouldn't exist,
             // but they sometime does for whatever reason. ¯\_(ツ)_/¯
@@ -741,7 +736,7 @@ public class AnimeCreator
         tag.TagID = rawTag.TagID;
         tag.ParentTagID = rawTag.ParentTagID;
         tag.TagNameSource = rawTag.TagName;
-        tag.TagNameOverride = nameOverride;
+        renames[rawTag.TagID] = nameOverride;
         tag.TagDescription = rawTag.TagDescription ?? string.Empty;
         tag.GlobalSpoiler = rawTag.GlobalSpoiler;
         tag.Verified = rawTag.Verified;
@@ -750,7 +745,15 @@ public class AnimeCreator
         return tag;
     }
 
-    public static bool CreateTags(List<ResponseTag> tags, AniDB_Anime anime)
+    /// <summary>
+    ///   Stores the tags AniDB lists for an anime, with the core's names for
+    ///   the tags it renames, and links them to the anime.
+    /// </summary>
+    /// <param name="tags">The tags, as AniDB lists them, or <c>null</c> to leave them alone.</param>
+    /// <param name="anime">The anime.</param>
+    /// <param name="textStore">Stores the core's names for the tags it renames.</param>
+    /// <returns>Whether the anime's links to its tags changed.</returns>
+    public static bool CreateTags(List<ResponseTag>? tags, AniDB_Anime anime, MetadataTextStore textStore)
     {
         if (tags == null)
             return false;
@@ -761,12 +764,18 @@ public class AnimeCreator
         var xrefsToSave = new List<AniDB_Anime_Tag>();
         var currentTags = RepoFactory.AniDB_Anime_Tag.GetByAnimeID(anime.AnimeID);
         var newTagIDs = new HashSet<int>();
+        var renames = new Dictionary<int, string?>();
         foreach (var rawtag in tags)
         {
             if (rawtag.TagID <= 0 || string.IsNullOrEmpty(rawtag.TagName))
                 continue;
 
-            var tag = FindOrCreateTag(rawtag);
+            // The name the core gives a tag is stored before the tag is used,
+            // as the tag's name is read from it.
+            var tag = FindOrCreateTag(rawtag, textStore, renames);
+            if (renames.Remove(tag.TagID, out var rename))
+                SetTagRename(tag, rename, textStore);
+
             if (!newTagIDs.Add(tag.TagID))
                 continue;
 
@@ -795,9 +804,33 @@ public class AnimeCreator
         RepoFactory.AniDB_Tag.Save(tagsToSave);
         RepoFactory.AniDB_Anime_Tag.Save(xrefsToSave);
         RepoFactory.AniDB_Anime_Tag.Delete(xrefsToDelete);
+        anime.ResetSourceMaterial();
 
         return xrefsToSave.Count > 0 || xrefsToDelete.Count > 0;
     }
+
+    /// <summary>
+    ///   Stores the name the core gives a tag, as the core's overall
+    ///   preferred title of the tag, or removes it.
+    /// </summary>
+    /// <param name="tag">The tag.</param>
+    /// <param name="rename">The name, or <c>null</c> when the tag keeps its own.</param>
+    /// <param name="textStore">The text store.</param>
+    private static void SetTagRename(AniDB_Tag tag, string? rename, MetadataTextStore textStore)
+        => textStore.SetOverallTitle(
+            ((IMetadata)tag).ID,
+            MetadataSource.Shoko,
+            rename is null
+                ? null
+                : new TitleStub
+                {
+                    Source = MetadataSource.Shoko,
+                    Language = TitleLanguage.English,
+                    LanguageCode = "en",
+                    Value = rename,
+                    Type = TitleType.Main,
+                }
+        );
 
     public void CreateCharacters(List<ResponseCharacter> chars, AniDB_Anime anime, bool skipCreatorScheduling = false)
     {
@@ -1224,205 +1257,91 @@ public class AnimeCreator
         }
     }
 
-    private static void CreateResources(List<ResponseResource> resources, AniDB_Anime anime)
+    /// <summary>
+    ///   Stores every resource of an anime and of its episodes, replacing the
+    ///   rows kept from the last update, and links the anime to its
+    ///   MyAnimeList entries.
+    /// </summary>
+    /// <param name="response">The parsed anime.</param>
+    /// <param name="animeID">The AniDB anime ID.</param>
+    /// <returns>How many rows were saved and how many were deleted.</returns>
+    internal static (int Saved, int Deleted) CreateResources(ResponseGetAnime response, int animeID)
     {
-        if (resources == null)
-        {
-            return;
-        }
+        var wanted = (response.Resources ?? [])
+            .Concat((response.Episodes ?? []).SelectMany(episode => episode.Resources))
+            .ToList();
+        var (toSave, toDelete) = DiffResources(RepoFactory.AniDB_Resource.GetAllByAnimeID(animeID), wanted, animeID);
+        if (toDelete.Count > 0)
+            RepoFactory.AniDB_Resource.Delete(toDelete);
+        if (toSave.Count > 0)
+            RepoFactory.AniDB_Resource.Save(toSave);
 
         var malLinks = new List<CrossRef_AniDB_MAL>();
-        foreach (var resource in resources)
+        foreach (var resource in response.Resources ?? [])
         {
-            int id;
-            switch (resource.ResourceType)
-            {
-                case ResourceLinkType.ANN:
-                {
-                    if (!int.TryParse(resource.ResourceID, out id))
-                    {
-                        break;
-                    }
+            if (resource.ResourceType is not ResourceLinkType.MAL || resource.Identifiers.Count is 0)
+                continue;
+            if (!int.TryParse(resource.Identifiers[0], out var malID) || malID <= 0)
+                continue;
+            if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(malID).Any(a => a.AnimeID == animeID) || malLinks.Any(a => a.MALID == malID))
+                continue;
 
-                    if (id == 0)
-                    {
-                        break;
-                    }
-
-                    anime.ANNID = id;
-                    break;
-                }
-                case ResourceLinkType.ALLCinema:
-                {
-                    if (!int.TryParse(resource.ResourceID, out id))
-                    {
-                        break;
-                    }
-
-                    if (id == 0)
-                    {
-                        break;
-                    }
-
-                    anime.AllCinemaID = id;
-                    break;
-                }
-                case ResourceLinkType.VNDB:
-                {
-                    if (!int.TryParse(resource.ResourceID, out id))
-                    {
-                        break;
-                    }
-
-                    if (id == 0)
-                    {
-                        break;
-                    }
-
-                    anime.VNDBID = id;
-                    break;
-                }
-                case ResourceLinkType.Bangumi:
-                {
-                    if (!int.TryParse(resource.ResourceID, out id))
-                    {
-                        break;
-                    }
-
-                    if (id == 0)
-                    {
-                        break;
-                    }
-
-                    anime.BangumiID = id;
-                    break;
-                }
-                case ResourceLinkType.DotLain:
-                {
-                    if (!int.TryParse(resource.ResourceID, out id))
-                    {
-                        break;
-                    }
-
-                    if (id == 0)
-                    {
-                        break;
-                    }
-
-                    anime.LainID = id;
-                    break;
-                }
-                case ResourceLinkType.Site_JP:
-                {
-                    if (string.IsNullOrEmpty(anime.Site_JP))
-                        anime.Site_JP = resource.ResourceID;
-                    else
-                        anime.Site_JP = string.Join("|", anime.Site_JP.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID!).Distinct());
-                    break;
-                }
-                case ResourceLinkType.Site_EN:
-                {
-                    if (string.IsNullOrEmpty(anime.Site_EN))
-                        anime.Site_EN = resource.ResourceID;
-                    else
-                        anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Append(resource.ResourceID!).Distinct());
-                    break;
-                }
-                case ResourceLinkType.Wiki_EN:
-                {
-                    anime.Wikipedia_ID = resource.ResourceID;
-                    break;
-                }
-                case ResourceLinkType.Wiki_JP:
-                {
-                    if (!int.TryParse(resource.ResourceID, out id))
-                    {
-                        break;
-                    }
-
-                    if (id == 0)
-                    {
-                        break;
-                    }
-
-                    anime.WikipediaJP_ID = resource.ResourceID;
-                    break;
-                }
-                case ResourceLinkType.Syoboi:
-                {
-                    if (!int.TryParse(resource.ResourceID, out id))
-                    {
-                        break;
-                    }
-
-                    if (id == 0)
-                    {
-                        break;
-                    }
-
-                    anime.SyoboiID = id;
-                    break;
-                }
-                case ResourceLinkType.Anison:
-                {
-                    if (!int.TryParse(resource.ResourceID, out id))
-                    {
-                        break;
-                    }
-
-                    if (id == 0)
-                    {
-                        break;
-                    }
-
-                    anime.AnisonID = id;
-                    break;
-                }
-                case ResourceLinkType.Crunchyroll:
-                {
-                    anime.CrunchyrollID = resource.ResourceID;
-                    break;
-                }
-                case ResourceLinkType.Funimation:
-                {
-                    anime.FunimationID = resource.ResourceID;
-                    break;
-                }
-                case ResourceLinkType.HiDive:
-                {
-                    anime.HiDiveID = resource.ResourceID;
-                    break;
-                }
-                case ResourceLinkType.MAL:
-                {
-                    if (!int.TryParse(resource.ResourceID, out id))
-                    {
-                        break;
-                    }
-
-                    if (id == 0)
-                    {
-                        break;
-                    }
-
-                    if (RepoFactory.CrossRef_AniDB_MAL.GetByMALID(id).Any(a => a.AnimeID == anime.AnimeID))
-                    {
-                        continue;
-                    }
-
-                    var xref = new CrossRef_AniDB_MAL
-                    {
-                        AnimeID = anime.AnimeID,
-                        MALID = id,
-                    };
-
-                    malLinks.Add(xref);
-                    break;
-                }
-            }
+            malLinks.Add(new() { AnimeID = animeID, MALID = malID });
         }
 
-        RepoFactory.CrossRef_AniDB_MAL.Save(malLinks);
+        if (malLinks.Count > 0)
+            RepoFactory.CrossRef_AniDB_MAL.Save(malLinks);
+
+        return (toSave.Count, toDelete.Count);
+    }
+
+    /// <summary>
+    ///   Works out which resource rows to save and which to delete so the
+    ///   stored rows match the parsed ones, keeping the rows that did not
+    ///   change.
+    /// </summary>
+    /// <param name="existing">The rows stored for the anime and its episodes.</param>
+    /// <param name="wanted">The parsed resources of the anime and its episodes.</param>
+    /// <param name="animeID">The AniDB anime ID.</param>
+    /// <returns>The new or changed rows, and the rows no longer wanted.</returns>
+    internal static (List<AniDB_Resource> ToSave, List<AniDB_Resource> ToDelete) DiffResources(IReadOnlyList<AniDB_Resource> existing, IReadOnlyList<ResponseResource> wanted, int animeID)
+    {
+        var existingByPlace = existing
+            .GroupBy(row => (row.EpisodeID, row.Ordering))
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var toSave = new List<AniDB_Resource>();
+        var toDelete = new List<AniDB_Resource>();
+        foreach (var resource in wanted)
+        {
+            var row = new AniDB_Resource
+            {
+                AnimeID = animeID,
+                EpisodeID = resource.EpisodeID,
+                ResourceType = resource.ResourceType,
+                Ordering = resource.Ordering,
+                Identifiers = [.. resource.Identifiers],
+                Urls = [.. resource.Urls],
+            };
+            if (existingByPlace.Remove((row.EpisodeID, row.Ordering), out var rows))
+            {
+                var kept = rows[0];
+                toDelete.AddRange(rows.Skip(1));
+                if (kept.IsSameAs(row))
+                    continue;
+
+                kept.AnimeID = row.AnimeID;
+                kept.ResourceType = row.ResourceType;
+                kept.Identifiers = row.Identifiers;
+                kept.Urls = row.Urls;
+                toSave.Add(kept);
+                continue;
+            }
+
+            toSave.Add(row);
+        }
+
+        toDelete.AddRange(existingByPlace.Values.SelectMany(rows => rows));
+        return (toSave, toDelete);
     }
 
     private static void CreateRelations(List<ResponseRelation> relations, int animeID)

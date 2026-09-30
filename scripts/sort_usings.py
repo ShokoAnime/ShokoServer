@@ -273,8 +273,8 @@ def _using_key(u):
 
 
 def _find_solution_file():
-    """Find the first .sln file in the current directory."""
-    matches = glob.glob('*.sln')
+    """Find the first .sln file in the current directory, or else the first .slnx file."""
+    matches = sorted(glob.glob('*.sln')) or sorted(glob.glob('*.slnx'))
     return matches[0] if matches else None
 
 
@@ -291,13 +291,13 @@ def remove_unused_usings(file_list):
     """
     sln = _find_solution_file()
     if not sln:
-        print("Warning: No .sln file found, skipping unused using removal", file=sys.stderr)
+        print("Warning: No .sln or .slnx file found, skipping unused using removal", file=sys.stderr)
         return
 
     cmd = ['dotnet', 'format', 'style', sln, '--diagnostics', 'IDE0005',
            '--severity', 'hidden']
     if file_list:
-        cmd.extend(['--include', ';'.join(file_list)])
+        cmd.extend(['--include', *file_list])
     cmd.extend(['--verbosity', 'minimal'])
 
     try:

@@ -5,7 +5,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.Anilist.Embedded;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -58,16 +57,16 @@ public class Role
     {
         Character = character == null ? null : new()
         {
-            ID = character.ID,
+            ID = character.ID.GetNumericID<int>(),
             Name = character.Name,
             AlternateName = character.OriginalName ?? string.Empty,
-            Description = character.DefaultDescription?.Value ?? string.Empty,
+            Description = character.DefaultOverview?.Value ?? string.Empty,
             Image = character.PrimaryImage is { } characterImage ? new Image(characterImage) : null,
         };
         Staff = staff is not null
             ? new()
             {
-                ID = staff.ID,
+                ID = staff.ID.GetNumericID<int>(),
                 Name = staff.Name,
                 AlternateName = staff.OriginalName ?? string.Empty,
                 Description = string.Empty,
@@ -94,7 +93,7 @@ public class Role
     {
         Staff = new()
         {
-            ID = staff.ID,
+            ID = staff.ID.GetNumericID<int>(),
             Name = staff.Name,
             AlternateName = staff.OriginalName ?? string.Empty,
             Description = string.Empty,
@@ -136,88 +135,16 @@ public class Role
         };
     }
 
-    public static Role FromAnilist(Anilist_Cast cast)
-    {
-        var character = cast.Character;
-        var staff = cast.Creator;
-        return new()
-        {
-            Character = new()
-            {
-                ID = character.AnilistCharacterID,
-                Name = character.Name,
-                AlternateName = character.OriginalName ?? string.Empty,
-                Description = character.Description,
-                Image = (character as ICharacter).PrimaryImage is { } characterImage ? new Image(characterImage) : null,
-            },
-            Staff = staff is not null
-                ? CreateStaffFromAnilistCreator(staff)
-                : new()
-                {
-                    ID = 0,
-                    Name = string.Empty,
-                    AlternateName = string.Empty,
-                    Description = string.Empty,
-                    Image = null,
-                    Type = "Unknown",
-                },
-            RoleName = CreatorRoleType.Actor,
-            RoleDetails = staff is not null
-                ? cast.RoleType switch
-                {
-                    Abstractions.Metadata.Enums.CastRoleType.MainCharacter => "Main Character",
-                    Abstractions.Metadata.Enums.CastRoleType.MinorCharacter => "Supporting Character",
-                    Abstractions.Metadata.Enums.CastRoleType.BackgroundCharacter => "Background Character",
-                    _ => CharacterRole,
-                }
-                : "Appears In",
-            Language = staff is not null ? cast.LanguageCode : null,
-        };
-    }
-
-    public static Role? FromAnilist(Anilist_Crew crew)
-    {
-        var staff = crew.Creator;
-        if (staff is null)
-            return null;
-
-        return new()
-        {
-            Staff = CreateStaffFromAnilistCreator(staff),
-            RoleName = crew.RoleType switch
-            {
-                Abstractions.Metadata.Enums.CrewRoleType.Producer => CreatorRoleType.Producer,
-                Abstractions.Metadata.Enums.CrewRoleType.Director => CreatorRoleType.Director,
-                Abstractions.Metadata.Enums.CrewRoleType.SeriesComposer => CreatorRoleType.SeriesComposer,
-                Abstractions.Metadata.Enums.CrewRoleType.CharacterDesign => CreatorRoleType.CharacterDesign,
-                Abstractions.Metadata.Enums.CrewRoleType.Music => CreatorRoleType.Music,
-                Abstractions.Metadata.Enums.CrewRoleType.SourceWork => CreatorRoleType.SourceWork,
-                Abstractions.Metadata.Enums.CrewRoleType.Actor => CreatorRoleType.Actor,
-                _ => CreatorRoleType.Staff,
-            },
-            RoleDetails = crew.Name,
-            Language = crew.LanguageCode,
-        };
-    }
-
-    private static Person CreateStaffFromAnilistCreator(global::Shoko.Server.Models.Anilist.Anilist_Creator creator)
-        => new()
-        {
-            ID = creator.AnilistCreatorID,
-            Name = creator.Name,
-            AlternateName = creator.OriginalName ?? string.Empty,
-            Description = creator.Description,
-            Image = (creator as ICreator).PrimaryImage is { } staffImage ? new Image(staffImage) : null,
-            Type = "Person",
-        };
-
     private static Person CreateStaffFromTmdbPerson(TMDB_Person person)
     {
+        // A person with no other names always had one empty name stored, so
+        // the alternate name stays empty for one.
+        var aliases = ((ICreator)person).AlternativeNames;
         return new()
         {
             ID = person.Id,
             Name = person.EnglishName,
-            AlternateName = person.Aliases.Count == 0 ? person.EnglishName : person.Aliases[0].Split("/").Last().Trim(),
+            AlternateName = aliases.Count == 0 ? string.Empty : aliases[0].Value.Split("/").Last().Trim(),
             Description = person.EnglishBiography,
             Image = (person as ICreator).PrimaryImage is { } staffImage ? new Image(staffImage) : null,
         };

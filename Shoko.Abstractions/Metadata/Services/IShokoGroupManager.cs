@@ -61,7 +61,7 @@ public interface IShokoGroupManager
 
     /// <summary>
     ///   Creates a new group from the specified data. At least one series must be
-    ///   provided — either directly or via child groups. The name and description
+    ///   provided, directly or via child groups. The name and overview
     ///   are optional; if omitted they are inferred from the group's main series.
     /// </summary>
     /// <param name="data">The creation data.</param>
@@ -75,6 +75,8 @@ public interface IShokoGroupManager
     /// </summary>
     /// <param name="group">The group.</param>
     /// <param name="series">The series to set as the main series, or <c>null</c> to clear.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="group"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="group"/> is not an <c>AnimeGroup</c> instance.</exception>
     /// <exception cref="GenericValidationException">Thrown when the series lies outside the group.</exception>
     void SetMainSeries(IShokoGroup group, IShokoSeries? series);
 
@@ -149,7 +151,8 @@ public interface IShokoGroupManager
     #region Management
 
     /// <summary>
-    ///   Renames all groups to match their main series.
+    ///   Works out every series' title and overview again, which the groups
+    ///   without a name or overview of their own read.
     /// </summary>
     void RenameAllGroups();
 

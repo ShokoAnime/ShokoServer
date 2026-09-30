@@ -46,12 +46,6 @@ public class RefreshAnimeStatsJob(
             return Task.CompletedTask;
         }
         var series = seriesRepo.GetByAnimeID(AnimeID);
-        if (series is not null)
-        {
-            series.ResetAnimeTitles();
-            series.ResetPreferredTitle();
-            series.ResetPreferredOverview();
-        }
 
         // Updating stats saves everything and updates groups
         seriesService.UpdateStats(series, true, true);

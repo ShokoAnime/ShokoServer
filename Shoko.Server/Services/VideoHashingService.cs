@@ -554,6 +554,7 @@ public class VideoHashingService(
                 IsNewVideo = isNewVideo,
                 UsedExistingHashes = useExistingHashes,
                 Hashes = hashes,
+                Actor = ActorContext.CurrentActor,
             });
         }
         catch (Exception ex)

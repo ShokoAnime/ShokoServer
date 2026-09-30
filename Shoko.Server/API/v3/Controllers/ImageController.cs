@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.Annotations;
@@ -45,7 +46,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
     [ProducesResponseType(typeof(FileStreamResult), 200)]
     [ProducesResponseType(404)]
     public ActionResult GetRemoteImage(
-        [FromRoute] DataSource source,
+        [FromRoute] MetadataSource source,
         [FromRoute] string resourceID
     )
         => source.IsLocal ? NotFound(ImageNotFound) : GetImage(IImageManager.GetIDForImageSourceAndResourceID(source, resourceID));
@@ -136,7 +137,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
             if (seriesType is not null && !seriesType.Contains(anime.Type))
                 continue;
 
-            image.Series = new(series.ID, series.Title);
+            image.Series = new(series.LocalID, series.Title);
 
             return image;
         } while (tries++ < maxAttempts);

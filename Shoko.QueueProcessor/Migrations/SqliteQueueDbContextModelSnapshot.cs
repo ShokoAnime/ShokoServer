@@ -41,6 +41,10 @@ namespace Shoko.QueueProcessor.Migrations
                 {
                     b.Property<Guid>("Id");
 
+                    b.Property<string>("ActorDeviceName");
+
+                    b.Property<int?>("ActorUserId");
+
                     b.Property<Guid?>("ChainId");
 
                     b.Property<bool>("IsChainFinally")

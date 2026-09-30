@@ -420,7 +420,7 @@ public class VideoReleaseService(
                 logger.LogError(ex, "Got an error in a SearchCompleted event.");
             }
             if (providers.Count is 0)
-                logger.LogTrace("No providers enabled during search for video. (Video={VideoID})", video.ID);
+                logger.LogTrace("No providers enabled during search for video. (Video={VideoID})", video.LocalID);
             return;
         }
 
@@ -440,14 +440,14 @@ public class VideoReleaseService(
             if (_providerJobTypes.TryGetValue(p.Provider.GetType(), out var jobType))
                 chain.Then(jobType, j => SetProviderJobProps(
                     j,
-                    video.ID,
+                    video.LocalID,
                     matchAttempt.StoredReleaseInfo_MatchAttemptID,
                     skipEvents
                 ));
             else
                 chain.Then<ProcessReleaseProviderJob>(c =>
                 {
-                    c.VideoLocalID = video.ID;
+                    c.VideoLocalID = video.LocalID;
                     c.MatchAttemptID = matchAttempt.StoredReleaseInfo_MatchAttemptID;
                     c.SkipEvents = skipEvents;
                     c.ProviderID = p.ID;
@@ -456,7 +456,7 @@ public class VideoReleaseService(
 
         chain.Then<FinalizeReleaseSearchJob>(c =>
         {
-            c.VideoLocalID = video.ID;
+            c.VideoLocalID = video.LocalID;
             c.MatchAttemptID = matchAttempt.StoredReleaseInfo_MatchAttemptID;
             c.ShouldRelocate = relocateFiles;
         });
@@ -608,14 +608,14 @@ public class VideoReleaseService(
             if (_providerJobTypes.TryGetValue(p.Provider.GetType(), out var jobType))
                 chain.Then(jobType, j => SetProviderJobProps(
                     j,
-                    video.ID,
+                    video.LocalID,
                     matchAttempt.StoredReleaseInfo_MatchAttemptID,
                     false
                 ));
             else
                 chain.Then<ProcessReleaseProviderJob>(c =>
                 {
-                    c.VideoLocalID = video.ID;
+                    c.VideoLocalID = video.LocalID;
                     c.MatchAttemptID = matchAttempt.StoredReleaseInfo_MatchAttemptID;
                     c.SkipEvents = false;
                     c.ProviderID = p.ID;
@@ -624,7 +624,7 @@ public class VideoReleaseService(
 
         chain.Then<FinalizeReleaseSearchJob>(c =>
         {
-            c.VideoLocalID = video.ID;
+            c.VideoLocalID = video.LocalID;
             c.MatchAttemptID = matchAttempt.StoredReleaseInfo_MatchAttemptID;
             c.ShouldRelocate = true;
         });
@@ -681,7 +681,7 @@ public class VideoReleaseService(
         {
             if (providerList.Count == 0)
             {
-                logger.LogTrace("No providers enabled during search for video. (Video={VideoID})", video.ID);
+                logger.LogTrace("No providers enabled during search for video. (Video={VideoID})", video.LocalID);
                 return null;
             }
 
@@ -759,14 +759,14 @@ public class VideoReleaseService(
     {
         foreach (var providerInfo in providers)
         {
-            logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", providerInfo.Provider.Name, request.Video.ID, providerInfo.ID);
+            logger.LogTrace("Trying to find release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", providerInfo.Provider.Name, request.Video.LocalID, providerInfo.ID);
             var provider = providerInfo.Provider;
             var release = await provider.GetReleaseInfoForVideo(request, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (release is null || release.CrossReferences.Count < 1)
                 continue;
 
-            logger.LogTrace("Selected release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", providerInfo.Provider.Name, request.Video.ID, providerInfo.ID);
+            logger.LogTrace("Selected release for video using provider {ProviderName}. (Video={VideoID}.Provider={ProviderID})", providerInfo.Provider.Name, request.Video.LocalID, providerInfo.ID);
             return (new ReleaseInfoWithProvider(release, provider.Name), providerInfo);
         }
 
@@ -886,7 +886,7 @@ public class VideoReleaseService(
         try
         {
             // Dispatch the release saved event now.
-            ReleaseSaved?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo });
+            ReleaseSaved?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo, Actor = ActorContext.CurrentActor });
         }
         catch (Exception ex)
         {
@@ -1182,7 +1182,7 @@ public class VideoReleaseService(
             // any episode the incoming file maps to.
             var watchedEpisodeUser = episodes
                 .SelectMany(episode => userDataService.Value.GetEpisodeUserDataForEpisode(episode))
-                .Where(userData => userData.UserID == user.ID && userData.LastPlayedAt is not null)
+                .Where(userData => userData.UserID == user.LocalID && userData.LastPlayedAt is not null)
                 .OrderByDescending(userData => userData.LastPlayedAt)
                 .FirstOrDefault();
             if (watchedEpisodeUser is null)
@@ -1243,7 +1243,7 @@ public class VideoReleaseService(
     {
         // Mark the video as not imported if the video hasn't been deleted from the database,
         // because the clear method can still be called after the video has been deleted.
-        if (video is VideoLocal videoLocal && videoRepository.GetByID(video.ID) is not null)
+        if (video is VideoLocal videoLocal && videoRepository.GetByID(video.LocalID) is not null)
         {
             videoLocal.DateTimeImported = null;
             videoRepository.Save(videoLocal);
@@ -1256,7 +1256,7 @@ public class VideoReleaseService(
 
         try
         {
-            ReleaseDeleted?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo, NewReleaseInfo = newReleaseInfo });
+            ReleaseDeleted?.Invoke(null, new() { Video = video, ReleaseInfo = releaseInfo, NewReleaseInfo = newReleaseInfo, Actor = ActorContext.CurrentActor });
         }
         catch (Exception ex)
         {

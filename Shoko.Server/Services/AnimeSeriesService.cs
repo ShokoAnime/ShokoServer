@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Force.DeepCloner;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
@@ -19,12 +19,10 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Utilities;
 
 using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
@@ -47,11 +45,11 @@ public class AnimeSeriesService
     private readonly StoredReleaseInfoRepository _storedReleaseInfos;
     private readonly AniDB_GroupStatusRepository _anidbGroupStatuses;
     private readonly AniDB_Anime_StaffRepository _anidbAnimeStaff;
-    private readonly CrossRef_AniDB_TMDB_ShowRepository _xrefAnidbTmdbShows;
-    private readonly CrossRef_AniDB_TMDB_MovieRepository _xrefAnidbTmdbMovies;
     private IAnidbService? _anidbService;
     private IShokoGroupManager? _groupManager;
-    private TmdbLinkingService? _tmdbLinkingService;
+    private IMetadataLinkingService? _linkingService;
+    private IMetadataService? _metadataService;
+    private MetadataOrderingService? _orderingService;
 
     public AnimeSeriesService(
         ILogger<AnimeSeriesService> logger,
@@ -65,9 +63,7 @@ public class AnimeSeriesService
         AnimeSeriesRepository animeSeries,
         StoredReleaseInfoRepository storedReleaseInfos,
         AniDB_GroupStatusRepository anidbGroupStatuses,
-        AniDB_Anime_StaffRepository anidbAnimeStaff,
-        CrossRef_AniDB_TMDB_ShowRepository xrefAnidbTmdbShows,
-        CrossRef_AniDB_TMDB_MovieRepository xrefAnidbTmdbMovies)
+        AniDB_Anime_StaffRepository anidbAnimeStaff)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -81,8 +77,6 @@ public class AnimeSeriesService
         _storedReleaseInfos = storedReleaseInfos;
         _anidbGroupStatuses = anidbGroupStatuses;
         _anidbAnimeStaff = anidbAnimeStaff;
-        _xrefAnidbTmdbShows = xrefAnidbTmdbShows;
-        _xrefAnidbTmdbMovies = xrefAnidbTmdbMovies;
     }
 
     public async Task<(bool, Dictionary<AnimeEpisode, UpdateReason>)> CreateAnimeEpisodes(AnimeSeries series)
@@ -166,11 +160,12 @@ public class AnimeSeriesService
         if (existingEp.AnimeEpisodeID is 0)
             existingEp.DateTimeCreated = existingEp.DateTimeUpdated = DateTime.Now;
 
-        var old = existingEp.DeepClone();
+        // Compare the two fields set here instead of deep-cloning the entity,
+        // which would also copy its remembered texts and everything they reach.
+        var updated = existingEp.AnimeSeriesID != animeSeriesID || existingEp.AniDB_EpisodeID != episode.EpisodeID;
         existingEp.AnimeSeriesID = animeSeriesID;
         existingEp.AniDB_EpisodeID = episode.EpisodeID;
 
-        var updated = !old.Equals(existingEp);
         if (isNew || updated)
             _animeEpisodes.Save(existingEp);
 
@@ -482,23 +477,28 @@ public class AnimeSeriesService
 
             _animeEpisodes.Delete(ep.AnimeEpisodeID);
         }
+
+        // Every source's links go (orphaned entries purged) before the series row,
+        // so what is told of the change can still name it.
+        _metadataService ??= _serviceProvider.GetRequiredService<IMetadataService>();
+        _linkingService ??= _serviceProvider.GetRequiredService<IMetadataLinkingService>();
+        var linkedSources = _metadataService.GetSeriesCrossReferences(series.AniDB_ID).Select(xref => xref.Source)
+            .Concat(_metadataService.GetMovieCrossReferencesForSeries(series.AniDB_ID).Select(xref => xref.Source))
+            .Concat(_metadataService.GetEpisodeCrossReferencesForSeries(series.AniDB_ID).Select(xref => xref.Source))
+            .Distinct()
+            .ToList();
+        using (_serviceProvider.GetService<MetadataLinkChangeTracker>()?.Begin(MetadataLinkChangeReason.SeriesDeleted))
+        {
+            foreach (var source in linkedSources)
+                await _linkingService.RemoveLinksForAnime(source, series.AniDB_ID, purge: true);
+        }
+
         _animeSeries.Delete(series);
 
-        // Capture linked TMDB IDs before removing xrefs so we can purge orphans afterward.
-        var linkedShowIds = _xrefAnidbTmdbShows.GetByAnidbAnimeID(series.AniDB_ID).Select(x => x.TmdbShowID).Distinct().ToList();
-        var linkedMovieIds = _xrefAnidbTmdbMovies.GetByAnidbAnimeID(series.AniDB_ID).Select(x => x.TmdbMovieID).Distinct().ToList();
-
-        _tmdbLinkingService ??= _serviceProvider.GetRequiredService<TmdbLinkingService>();
-        await _tmdbLinkingService.RemoveAllShowLinksForAnime(series.AniDB_ID);
-        await _tmdbLinkingService.RemoveAllMovieLinksForAnime(series.AniDB_ID);
-
-        foreach (var showId in linkedShowIds)
-            if (_xrefAnidbTmdbShows.GetByTmdbShowID(showId).Count == 0)
-                await _scheduler.StartJob<PurgeTmdbShowJob>(c => c.TmdbShowID = showId);
-
-        foreach (var movieId in linkedMovieIds)
-            if (_xrefAnidbTmdbMovies.GetByTmdbMovieID(movieId).Count == 0)
-                await _scheduler.StartJob<PurgeTmdbMovieJob>(c => c.TmdbMovieID = movieId);
+        // The orderings of the series go with it, whoever made them. The
+        // choice of one and the hidden flags of its episodes went with the rows.
+        _orderingService ??= _serviceProvider.GetRequiredService<MetadataOrderingService>();
+        _orderingService.RemoveForSeries(((IMetadata)series).ID);
 
         if (!updateGroups)
         {
@@ -766,93 +766,83 @@ public class AnimeSeriesService
 
         private AnimeType AnimeType { get; set; }
 
-        private readonly Regex partmatch = new("part (\\d.*?) of (\\d.*)");
+        private static readonly Regex _partMatch = new(@"\bpart\s+(\d+)\s+of\s+(\d+)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        private readonly Regex remsymbols = new("[^A-Za-z0-9 ]");
+        private static readonly Regex _removeSymbols = new("[^A-Za-z0-9 ]");
 
-        private readonly Regex remmultispace = new("\\s+");
+        private static readonly Regex _collapseSpaces = new("\\s+");
 
+        /// <summary>
+        ///   Adds an episode, grouped by AniDB's English name for it.
+        /// </summary>
+        /// <remarks>
+        ///   The preferred title is not used, since a linked film's title can
+        ///   stand in for some parts of a split film and not others.
+        /// </remarks>
+        /// <param name="ep">The episode.</param>
+        /// <param name="available">Whether the user has a file for it.</param>
         public void Add(AnimeEpisode ep, bool available)
+            => Add(ep, IsGroupedByTitle ? ep.DefaultTitle.Value : string.Empty, available);
+
+        /// <summary>
+        ///   Whether the episodes are grouped by title at all, which only OVAs
+        ///   and movies are; every other type keeps each episode apart.
+        /// </summary>
+        private bool IsGroupedByTitle => AnimeType is AnimeType.OVA or AnimeType.Movie;
+
+        /// <summary>
+        ///   Adds an episode under a title, which a whole-work stand-in such
+        ///   as <c>Complete Movie</c> and the parts of a split, such as
+        ///   <c>Part 1 of 2</c>, group by.
+        /// </summary>
+        /// <param name="ep">The episode.</param>
+        /// <param name="title">The title to group the episode by.</param>
+        /// <param name="available">Whether the user has a file for it.</param>
+        internal void Add(AnimeEpisode ep, string title, bool available)
         {
-            if (AnimeType == AnimeType.OVA || AnimeType == AnimeType.Movie)
+            var s = new StatEpisodes.StatEpisode
             {
-                var ename = ep.Title;
-                var empty = string.IsNullOrEmpty(ename);
-                Match? m = null;
-                if (!empty)
-                {
-                    m = partmatch.Match(ename);
-                }
+                Available = available,
+                Episode = ep,
+                Match = string.Empty,
+                EpisodeType = StatEpisodes.StatEpisode.EpType.Complete,
+                PartCount = 0,
+            };
+            if (!IsGroupedByTitle)
+            {
+                Add(new StatEpisodes { s });
+                return;
+            }
 
-                var s = new StatEpisodes.StatEpisode { Available = available, Episode = ep };
-                if (m?.Success ?? false)
-                {
-                    int.TryParse(m.Groups[1].Value, out var _);
-                    int.TryParse(m.Groups[2].Value, out var part_count);
-                    var rname = partmatch.Replace(ename, string.Empty);
-                    rname = remsymbols.Replace(rname, string.Empty);
-                    rname = remmultispace.Replace(rname, " ");
-
-
-                    s.EpisodeType = StatEpisodes.StatEpisode.EpType.Part;
-                    s.PartCount = part_count;
-                    s.Match = rname.Trim();
-                    if (s.Match == "complete movie" || s.Match == "movie" || s.Match == "ova")
-                    {
-                        s.Match = string.Empty;
-                    }
-                }
-                else
-                {
-                    if (empty || ename == "complete movie" || ename == "movie" || ename == "ova")
-                    {
-                        s.Match = string.Empty;
-                    }
-                    else
-                    {
-                        var rname = partmatch.Replace(ep.Title, string.Empty);
-                        rname = remsymbols.Replace(rname, string.Empty);
-                        rname = remmultispace.Replace(rname, " ");
-                        s.Match = rname.Trim();
-                    }
-
-                    s.EpisodeType = StatEpisodes.StatEpisode.EpType.Complete;
-                    s.PartCount = 0;
-                }
-
-                StatEpisodes? fnd = null;
-                foreach (var k in this)
-                {
-                    if (k.Any(ss => ss.Match == s.Match)) fnd = k;
-                    if (fnd is not null) break;
-                }
-
-                if (fnd == null)
-                {
-                    var eps = new StatEpisodes();
-                    eps.Add(s);
-                    Add(eps);
-                }
-                else
-                {
-                    fnd.Add(s);
-                }
+            // A split into more parts than this is not a split AniDB makes.
+            if (_partMatch.Match(title) is { Success: true } m && int.TryParse(m.Groups[2].Value, out var partCount) && partCount is > 0 and <= 100)
+            {
+                s.EpisodeType = StatEpisodes.StatEpisode.EpType.Part;
+                s.PartCount = partCount;
+                s.Match = MatchKey(_partMatch.Replace(title, string.Empty));
             }
             else
             {
-                var eps = new StatEpisodes();
-                var es = new StatEpisodes.StatEpisode
-                {
-                    Match = string.Empty,
-                    EpisodeType = StatEpisodes.StatEpisode.EpType.Complete,
-                    PartCount = 0,
-                    Available = available,
-                    Episode = ep,
-                };
-                eps.Add(es);
-                Add(eps);
+                s.Match = MatchKey(title);
             }
+
+            var fnd = this.FirstOrDefault(k => k.Any(ss => ss.Match == s.Match));
+            if (fnd is null)
+                Add(new StatEpisodes { s });
+            else
+                fnd.Add(s);
         }
+
+        /// <summary>
+        ///   The key episodes are grouped by: the title without symbols, or
+        ///   empty for a whole-work stand-in.
+        /// </summary>
+        /// <param name="title">The title, without any part label.</param>
+        /// <returns>The key.</returns>
+        private static string MatchKey(string title)
+            => MovieTextRules.ParsePlaceholder(title)?.Kind is MovieTextRules.PlaceholderKind.Whole
+                ? string.Empty
+                : _collapseSpaces.Replace(_removeSymbols.Replace(title, string.Empty), " ").Trim();
 
         public class StatEpisodes : List<StatEpisodes.StatEpisode>
         {

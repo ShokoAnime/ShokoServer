@@ -9,24 +9,25 @@ namespace Shoko.Abstractions.Metadata;
 public interface IRelatedMetadata : IEquatable<IRelatedMetadata>
 {
     /// <summary>
-    /// Base entity id.
+    ///   The entry the relation is read from.
     /// </summary>
-    int BaseID { get; }
+    MetadataGuid BaseID { get; }
 
     /// <summary>
-    /// Related entity id.
+    ///   The entry related to, which need not be the same kind as the base:
+    ///   a series can be related to a film.
     /// </summary>
-    int RelatedID { get; }
+    MetadataGuid RelatedID { get; }
 
     /// <summary>
     /// Base entity, if available.
     /// </summary>
-    IMetadata<int>? Base { get; }
+    IMetadata? Base { get; }
 
     /// <summary>
     /// Related entity, if available.
     /// </summary>
-    IMetadata<int>? Related { get; }
+    IMetadata? Related { get; }
 
     /// <summary>
     /// Relation type.
@@ -42,7 +43,7 @@ public interface IRelatedMetadata : IEquatable<IRelatedMetadata>
     /// <summary>
     ///   The source of the relation.
     /// </summary>
-    DataSource Source { get; }
+    MetadataSource Source { get; }
 
     /// <summary>
     ///   Whether the relation has been verified to be correct. For now, only
@@ -56,7 +57,7 @@ public interface IRelatedMetadata : IEquatable<IRelatedMetadata>
 /// </summary>
 /// <typeparam name="TBaseMetadata">Base entity type.</typeparam>
 /// <typeparam name="TRelatedMetadata">Related entity type.</typeparam>
-public interface IRelatedMetadata<TBaseMetadata, TRelatedMetadata> : IRelatedMetadata, IEquatable<IRelatedMetadata<TBaseMetadata, TRelatedMetadata>> where TBaseMetadata : IMetadata<int> where TRelatedMetadata : IMetadata<int>
+public interface IRelatedMetadata<TBaseMetadata, TRelatedMetadata> : IRelatedMetadata, IEquatable<IRelatedMetadata<TBaseMetadata, TRelatedMetadata>> where TBaseMetadata : IMetadata where TRelatedMetadata : IMetadata
 {
     /// <summary>
     /// Base entity, if available.

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata.Airing;
 
@@ -47,15 +46,9 @@ public interface IAiringSchedule
     AiringScheduleProviderInfo? Provider { get; }
 
     /// <summary>
-    ///   The source of the series the schedule is for.
+    ///   The series the schedule is for.
     /// </summary>
-    DataSource SeriesSource { get; }
-
-    /// <summary>
-    ///   The ID of the series the schedule is for, relative to
-    ///   <see cref="SeriesSource"/>.
-    /// </summary>
-    string SeriesID { get; }
+    MetadataGuid SeriesID { get; }
 
     /// <summary>
     ///   The series the schedule is for, or <c>null</c> when it could not be
@@ -64,11 +57,10 @@ public interface IAiringSchedule
     ISeries? Series { get; }
 
     /// <summary>
-    ///   The ID of the season the schedule is narrowed to, relative to
-    ///   <see cref="SeriesSource"/>, or <c>null</c> when it covers the whole
-    ///   run.
+    ///   The season the schedule is narrowed to, on the series' source, or
+    ///   <c>null</c> when it covers the whole run.
     /// </summary>
-    string? SeasonID { get; }
+    MetadataGuid? SeasonID { get; }
 
     /// <summary>
     ///   The season the schedule is narrowed to, or <c>null</c> when it covers

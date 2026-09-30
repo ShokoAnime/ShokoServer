@@ -20,6 +20,9 @@ public class TMDB_Movie_Cast : TMDB_Cast, ICast<IMovie>
     /// <inheritdoc />
     public override int TmdbParentID => TmdbMovieID;
 
+    /// <inheritdoc/>
+    public override MetadataEntityType ParentType => MetadataEntityType.Movie;
+
     #endregion
 
     #region Methods
@@ -27,7 +30,7 @@ public class TMDB_Movie_Cast : TMDB_Cast, ICast<IMovie>
     public TMDB_Movie? GetTmdbMovie() =>
         RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbMovieID);
 
-    public override IMetadata<int>? GetTmdbParent() =>
+    public override IMetadata? GetTmdbParent() =>
         GetTmdbMovie();
 
     #endregion

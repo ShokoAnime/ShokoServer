@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Shoko;
 
@@ -30,10 +31,16 @@ public sealed class GroupData
     public string? Name { get; set; }
 
     /// <summary>
-    ///   An optional description for the group. If not set, it will be
+    ///   An optional overview for the group. If not set, it will be
     ///   inferred from the group's main series.
     /// </summary>
-    public string? Description { get; set; }
+    public string? Overview { get; set; }
+
+    /// <summary>
+    ///   An optional description for the group.
+    /// </summary>
+    [Obsolete("Use Overview instead.")]
+    public string? Description { get => Overview; set => Overview = value; }
 
     /// <summary>
     ///   An optional parent group to nest the new group under.

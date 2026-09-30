@@ -1,14 +1,15 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Automatically search for a TMDB match for the series.
 /// </summary>
-public sealed class AutoSearchTmdbSeriesAction(TmdbMetadataService tmdbService) : SeriesAction
+public sealed class AutoSearchTmdbSeriesAction(IMetadataRefreshService refreshService) : SeriesAction
 {
     public override string Name => "Auto-Search TMDB Match";
 
@@ -19,5 +20,5 @@ public sealed class AutoSearchTmdbSeriesAction(TmdbMetadataService tmdbService) 
     public override ActionPermission Permission => ActionPermission.User;
 
     public override Task Execute(CancellationToken token = default)
-        => tmdbService.ScheduleSearchForMatch(Series.AnidbAnimeID, false);
+        => refreshService.AutoSearch(MetadataSource.TMDB, Series.AnidbAnimeID, cancellationToken: token);
 }

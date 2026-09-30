@@ -1,15 +1,17 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
-using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Scheduling.Jobs.TMDB;
+using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Force a complete redownload of TMDB images for the series.
 /// </summary>
-public sealed class UpdateTmdbImagesForceSeriesAction(IQueueScheduler scheduler) : SeriesAction
+public sealed class UpdateTmdbImagesForceSeriesAction(IMetadataRefreshService refreshService) : SeriesAction
 {
     public override string Name => "Update TMDB Images - Force";
 
@@ -21,17 +23,9 @@ public sealed class UpdateTmdbImagesForceSeriesAction(IQueueScheduler scheduler)
 
     public override async Task Execute(CancellationToken token = default)
     {
-        foreach (var xref in Series.TmdbShowCrossReferences)
-            await scheduler.Enqueue<DownloadTmdbShowImagesJob>(j =>
-            {
-                j.TmdbShowID = xref.TmdbShowID;
-                j.ForceDownload = true;
-            }, ct: token);
-        foreach (var xref in Series.TmdbMovieCrossReferences)
-            await scheduler.Enqueue<DownloadTmdbMovieImagesJob>(j =>
-            {
-                j.TmdbMovieID = xref.TmdbMovieID;
-                j.ForceDownload = true;
-            }, ct: token);
+        foreach (var showID in Series.GetSeriesCrossReferences(MetadataSource.TMDB).Select(xref => xref.ProviderID).WhereNotNull())
+            await refreshService.DownloadImages(showID, force: true, cancellationToken: token).ConfigureAwait(false);
+        foreach (var movieID in Series.GetMovieCrossReferences(MetadataSource.TMDB).Select(xref => xref.ProviderID).WhereNotNull())
+            await refreshService.DownloadImages(movieID, force: true, cancellationToken: token).ConfigureAwait(false);
     }
 }

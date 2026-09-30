@@ -42,7 +42,9 @@ public interface IReleaseInfoProvider
 
     /// <summary>
     ///   Gets the release information by a specified release id, if the
-    ///   provider supports it.
+    ///   provider supports it. A provider that cannot look up a release by
+    ///   its id throws <see cref="NotSupportedException"/>, which the API
+    ///   reports as a bad request rather than a server error.
     /// </summary>
     /// <param name="releaseId">
     ///   The release id.
@@ -53,6 +55,9 @@ public interface IReleaseInfoProvider
     /// <returns>
     ///   The release information, or <c>null</c> if not available.
     /// </returns>
+    /// <exception cref="NotSupportedException">
+    ///   The provider cannot look up a release by its id.
+    /// </exception>
     Task<ReleaseInfo?> GetReleaseInfoById(string releaseId, CancellationToken cancellationToken);
 
     /// <summary>

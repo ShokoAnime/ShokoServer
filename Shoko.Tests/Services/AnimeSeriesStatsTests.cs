@@ -148,9 +148,7 @@ public class AnimeSeriesStatsTests
                 animeSeries: SeriesRepository.Object,
                 storedReleaseInfos: releaseInfoRepository,
                 anidbGroupStatuses: GroupStatuses(groupStatuses),
-                anidbAnimeStaff: null!,
-                xrefAnidbTmdbShows: null!,
-                xrefAnidbTmdbMovies: null!);
+                anidbAnimeStaff: null!);
         }
 
         /// <summary>

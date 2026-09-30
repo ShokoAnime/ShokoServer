@@ -1,4 +1,4 @@
-﻿using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
@@ -37,13 +37,13 @@ public class AniDB_Anime_Similar : IAnidbSuggestion
 
     #region ISuggestedMetadata Implementation
 
-    int ISuggestedMetadata.BaseID => AnimeID;
+    MetadataGuid ISuggestedMetadata.BaseID => new(MetadataSource.AniDB, MetadataEntityType.Series, AnimeID.ToString());
 
-    int ISuggestedMetadata.SuggestedID => SimilarAnimeID;
+    MetadataGuid ISuggestedMetadata.SuggestedID => new(MetadataSource.AniDB, MetadataEntityType.Series, SimilarAnimeID.ToString());
 
-    IMetadata<int>? ISuggestedMetadata.Base => RepoFactory.AniDB_Anime.GetByID(AnimeID);
+    IMetadata? ISuggestedMetadata.Base => RepoFactory.AniDB_Anime.GetByID(AnimeID);
 
-    IMetadata<int>? ISuggestedMetadata.Suggested => RepoFactory.AniDB_Anime.GetByID(SimilarAnimeID);
+    IMetadata? ISuggestedMetadata.Suggested => RepoFactory.AniDB_Anime.GetByID(SimilarAnimeID);
 
     // AniDB's similar anime are user-voted similarities, not "watch this next"
     // suggestions.
@@ -55,10 +55,13 @@ public class AniDB_Anime_Similar : IAnidbSuggestion
 
     int? ISuggestedMetadata.Votes => Total;
 
-    DataSource ISuggestedMetadata.Source => DataSource.AniDB;
+    MetadataSource ISuggestedMetadata.Source => MetadataSource.AniDB;
 
     public bool Equals(ISuggestedMetadata? other)
-        => other is not null && other.Source is DataSource.AniDB && other.BaseID == AnimeID && other.SuggestedID == SimilarAnimeID;
+        => other is not null &&
+            other.Source == MetadataSource.AniDB &&
+            other.BaseID == ((ISuggestedMetadata)this).BaseID &&
+            other.SuggestedID == ((ISuggestedMetadata)this).SuggestedID;
 
     #endregion
 

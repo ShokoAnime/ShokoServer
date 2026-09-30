@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Airing;
 
 #nullable enable
@@ -96,11 +95,18 @@ internal sealed class AiringScheduleView : IAiringSchedule
         }
     }
 
-    /// <inheritdoc/>
-    public DataSource SeriesSource => _row.SeriesSource;
+    /// <summary>
+    ///   The source of the series the schedule is for.
+    /// </summary>
+    public MetadataSource SeriesSource => _row.SeriesSource;
+
+    /// <summary>
+    ///   The source's own ID for the series the schedule is for.
+    /// </summary>
+    public string SeriesID => _row.SeriesID;
 
     /// <inheritdoc/>
-    public string SeriesID => _row.SeriesID;
+    MetadataGuid IAiringSchedule.SeriesID => new(_row.SeriesSource, MetadataEntityType.Series, _row.SeriesID);
 
     /// <inheritdoc/>
     public ISeries? Series
@@ -115,8 +121,14 @@ internal sealed class AiringScheduleView : IAiringSchedule
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    ///   The source's own ID for the season the schedule is narrowed to, or
+    ///   <c>null</c> when it covers the whole run.
+    /// </summary>
     public string? SeasonID => string.IsNullOrEmpty(_row.SeasonID) ? null : _row.SeasonID;
+
+    /// <inheritdoc/>
+    MetadataGuid? IAiringSchedule.SeasonID => SeasonID is { } seasonID ? new(_row.SeriesSource, MetadataEntityType.Season, seasonID) : null;
 
     /// <inheritdoc/>
     public ISeason? Season

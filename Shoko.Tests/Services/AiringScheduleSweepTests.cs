@@ -11,6 +11,7 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Models.Airing;
@@ -606,9 +607,10 @@ public class AiringScheduleSweepTests
                 configurationService.Object,
                 pluginManager.Object,
                 Scheduler.Object,
-                new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object)
+                new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
+                new(() => new Mock<IMetadataService>().Object)
             );
-            Service.AddParts(providers, []);
+            Service.AddParts(providers);
         }
 
         /// <summary>The ID core registered the provider under.</summary>

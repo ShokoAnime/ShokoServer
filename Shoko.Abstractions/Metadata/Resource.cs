@@ -22,9 +22,20 @@ public sealed class Resource
     public required string Name { get; init; }
 
     /// <summary>
-    ///   The URL to the resource.
+    ///   The URL to the resource. Empty when the source gives only an ID
+    ///   on a site whose pages Shoko cannot build, with the ID in
+    ///   <see cref="ID"/>.
     /// </summary>
     public required string Url { get; init; }
+
+    /// <summary>
+    ///   The ID alone, as the site the resource points at knows the entry,
+    ///   e.g. <c>tt0123456</c> for an IMDb page, when the resource is one
+    ///   entry's page on a site with IDs of its own. <c>null</c> otherwise,
+    ///   so a caller reads an external ID here rather than parsing
+    ///   <see cref="Url"/>.
+    /// </summary>
+    public string? ID { get; init; }
 
     /// <summary>
     ///   The ISO 639-1 alpha-2 language code the resource's content

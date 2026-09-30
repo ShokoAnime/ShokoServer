@@ -29,7 +29,7 @@ public enum ResourceType : byte
 
     /// <summary>
     ///   Link to the same entity in another database Shoko
-    ///   cross-references against (e.g. MyAnimeList, TheTVDB, IMDb,
+    ///   cross-references against (e.g. MyAnimeList, IMDb,
     ///   AllCinema, AnimeNewsNetwork, VNDB).
     /// </summary>
     CrossReference = 3,
@@ -43,4 +43,10 @@ public enum ResourceType : byte
     ///   Trailer or promotional video (e.g. YouTube).
     /// </summary>
     Trailer = 5,
+
+    /// <summary>
+    ///   A link of a kind the source did not say, e.g. a resource type
+    ///   AniDB added that Shoko does not know yet.
+    /// </summary>
+    Other = 6,
 }

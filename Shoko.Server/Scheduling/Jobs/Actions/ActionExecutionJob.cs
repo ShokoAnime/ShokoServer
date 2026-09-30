@@ -32,7 +32,8 @@ public class ActionExecutionJob(
     AnimeGroupRepository groups,
     AnimeEpisodeRepository episodes,
     VideoLocalRepository videos,
-    IJobCancellationAccessor cancellation
+    IJobCancellationAccessor cancellation,
+    IJobProgressAccessor progress
 ) : BaseJob
 {
     [JobKeyMember(index: 0)]
@@ -51,7 +52,8 @@ public class ActionExecutionJob(
     public int? ScopeEntityId { get; set; }
 
     /// <summary>
-    ///   The ID of the user that invoked the action.
+    ///   The ID of the user that invoked the action, or 0 for a trusted call
+    ///   with no caller.
     /// </summary>
     [JobKeyMember(index: 2)]
     public int CallerUserId { get; set; }
@@ -136,9 +138,10 @@ public class ActionExecutionJob(
             return;
         }
 
-        // The worker's shutdown token, not request-bound — there is no live HTTP
-        // request left by the time a queued action runs. It fires when the pool
-        // running this job is stopped, and never for a single job on its own.
+        if (action is IProgressReportingAction reporting)
+            reporting.SetProgress(progress.Progress);
+
+        // The job's own token: no HTTP request is left by the time a queued action runs.
         await action.Execute(cancellation.Token);
 
         _logger.LogInformation("Finished executing action \"{ActionName}\" ({ActionId})", info.Name, ActionId);

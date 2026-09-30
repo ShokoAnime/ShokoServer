@@ -19,7 +19,7 @@ public class AiringChannel(IAiringChannel channel)
     /// normalised <see cref="Name"/>.
     /// </summary>
     [Required]
-    public Guid ID { get; init; } = channel.ID;
+    public Guid ID { get; init; } = channel.ChannelID;
 
     /// <summary>
     /// The display name of the channel, kept as it was first registered.
@@ -62,7 +62,7 @@ public class AiringChannelReference(IAiringChannel channel)
     /// The ID of the channel.
     /// </summary>
     [Required]
-    public Guid ID { get; init; } = channel.ID;
+    public Guid ID { get; init; } = channel.ChannelID;
 
     /// <summary>
     /// The display name of the channel.

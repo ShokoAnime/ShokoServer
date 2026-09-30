@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Plugin;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Services.Mylist;
 
@@ -45,7 +46,8 @@ public sealed class MylistCache : IDisposable
     {
         _logger = logger;
         _applicationPaths = applicationPaths;
-        _flushTimer = new Timer(_ => Flush(), null, FlushInterval, FlushInterval);
+        using (DetachedFlow.Suppress())
+            _flushTimer = new Timer(_ => Flush(), null, FlushInterval, FlushInterval);
     }
 
     /// <summary>

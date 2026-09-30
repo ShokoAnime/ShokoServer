@@ -1,14 +1,15 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Reset all TMDB episode mappings for the series.
 /// </summary>
-public sealed class ResetTmdbEpisodeMappingsSeriesAction(TmdbLinkingService linkingService) : SeriesAction
+public sealed class ResetTmdbEpisodeMappingsSeriesAction(IMetadataLinkingService linkingService) : SeriesAction
 {
     public override string Name => "Reset TMDB Episode Mappings";
 
@@ -22,9 +23,6 @@ public sealed class ResetTmdbEpisodeMappingsSeriesAction(TmdbLinkingService link
 
     public override string? ConfirmationMessage => "Are you sure you want to reset all TMDB episode mappings for this series?";
 
-    public override Task Execute(CancellationToken token = default)
-    {
-        linkingService.ResetAllEpisodeLinks(Series.AnidbAnimeID, true);
-        return Task.CompletedTask;
-    }
+    public override async Task Execute(CancellationToken token = default)
+        => await linkingService.ResetEpisodeLinks(MetadataSource.TMDB, Series.AnidbAnimeID, allowAutoMatch: true, token).ConfigureAwait(false);
 }

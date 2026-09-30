@@ -37,7 +37,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             true when needsUser => seriesRepository.GetAll()
                 .AsParallel()
                 .Where(a => user!.IsAllowedToSee(a))
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, new FilterableAnimeSeries(a, now), new FilterableSeriesUserInfo(a, user!.ID, now))),
+                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, new FilterableAnimeSeries(a, now), new FilterableSeriesUserInfo(a, user!.LocalID, now))),
             true => seriesRepository.GetAll()
                 .AsParallel()
                 .Where(a => user?.IsAllowedToSee(a) ?? true)
@@ -46,7 +46,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                 groupRepository.GetAll()
                     .AsParallel()
                     .Where(a => user!.IsAllowedToSee(a))
-                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now), new FilterableGroupUserInfo(a, user!.ID, now))),
+                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now), new FilterableGroupUserInfo(a, user!.LocalID, now))),
             false => groupRepository.GetAll()
                 .AsParallel()
                 .Where(a => user?.IsAllowedToSee(a) ?? true)
@@ -140,7 +140,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         var series = !hasSeries ? [] : seriesNeedsUser
             ? seriesRepository.GetAll()
                 .Where(a => user!.IsAllowedToSee(a))
-                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, new FilterableAnimeSeries(a, now), new FilterableSeriesUserInfo(a, user!.ID, now)))
+                .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, new FilterableAnimeSeries(a, now), new FilterableSeriesUserInfo(a, user!.LocalID, now)))
                 .ToArray()
             : seriesRepository.GetAll()
                 .Where(a => user?.IsAllowedToSee(a) ?? true)
@@ -149,7 +149,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
         var groups = !hasGroups ? [] : groupsNeedUser
             ? groupRepository.GetAll()
                 .Where(a => user!.IsAllowedToSee(a))
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now), new FilterableGroupUserInfo(a, user!.ID, now)))
+                .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now), new FilterableGroupUserInfo(a, user!.LocalID, now)))
                 .ToArray()
             : groupRepository.GetAll()
                 .Where(a => user?.IsAllowedToSee(a) ?? true)

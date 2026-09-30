@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 
 namespace Shoko.QueueProcessor.Orchestration;
@@ -20,19 +22,49 @@ public class ConcurrencyRegistry
     // Per-group max concurrency (pool size)
     private readonly IReadOnlyDictionary<string, int> _groupLimits;
 
+    // Asked for a type the attributes leave unlimited, every time, since what they answer may
+    // only become known once the plugins are running.
+    private readonly IReadOnlyList<IJobConcurrencyProvider> _limitProviders;
+
+    private readonly int _globalMax;
+
     public ConcurrencyRegistry(
         IReadOnlyDictionary<Type, int> typeLimits,
         IReadOnlyDictionary<Type, string?> typeGroups,
-        IReadOnlyDictionary<string, int> groupLimits)
+        IReadOnlyDictionary<string, int> groupLimits,
+        IReadOnlyList<IJobConcurrencyProvider>? limitProviders = null,
+        int globalMax = int.MaxValue)
     {
         _typeLimits = typeLimits;
         _typeGroups = typeGroups;
         _groupLimits = groupLimits;
+        _limitProviders = limitProviders ?? [];
+        _globalMax = globalMax;
     }
 
     /// <summary>Returns the per-type concurrency limit, or <c>int.MaxValue</c> if unlimited.</summary>
-    public int GetTypeLimit(Type jobType) =>
-        _typeLimits.TryGetValue(jobType, out var limit) ? limit : int.MaxValue;
+    public int GetTypeLimit(Type jobType)
+    {
+        if (_typeLimits.TryGetValue(jobType, out var limit))
+            return limit;
+
+        return GetProvidedLimit(_limitProviders, jobType) is { } provided ? Math.Min(provided, _globalMax) : int.MaxValue;
+    }
+
+    /// <summary>
+    /// The first limit an <see cref="IJobConcurrencyProvider"/> gives for a job type.
+    /// </summary>
+    /// <param name="limitProviders">The providers to ask, in order.</param>
+    /// <param name="jobType">The job type.</param>
+    /// <returns>The limit, at least 1, or <see langword="null"/> when none gives one.</returns>
+    internal static int? GetProvidedLimit(IEnumerable<IJobConcurrencyProvider> limitProviders, Type jobType)
+    {
+        foreach (var provider in limitProviders)
+            if (provider.GetConcurrencyLimit(jobType) is { } limit)
+                return Math.Max(1, limit);
+
+        return null;
+    }
 
     /// <summary>Returns the concurrency group name for <paramref name="jobType"/>, or <c>null</c>.</summary>
     public string? GetGroup(Type jobType) =>
@@ -75,7 +107,8 @@ public class ConcurrencyRegistry
     public static ConcurrencyRegistry Build(
         IEnumerable<Type> jobTypes,
         IDictionary<string, int>? overrides = null,
-        int globalMax = int.MaxValue)
+        int globalMax = int.MaxValue,
+        IReadOnlyList<IJobConcurrencyProvider>? limitProviders = null)
     {
         var typeLimits = new Dictionary<Type, int>();
         var typeGroups = new Dictionary<Type, string?>();
@@ -96,7 +129,7 @@ public class ConcurrencyRegistry
             if (limit > 0)
             {
                 // Apply override (lower only)
-                if (overrides != null && overrides.TryGetValue(type.Name, out var overrideVal) && overrideVal > 0)
+                if (overrides != null && overrides.TryGetValue(JobTypeNames.Key(type), out var overrideVal) && overrideVal > 0)
                 {
                     var maxAllowed = limitAttr?.MaxAllowedConcurrentJobs ?? limit;
                     limit = Math.Min(maxAllowed, Math.Max(1, overrideVal));
@@ -121,6 +154,6 @@ public class ConcurrencyRegistry
                 groupLimits[group] = 1;
         }
 
-        return new ConcurrencyRegistry(typeLimits, typeGroups, groupLimits);
+        return new ConcurrencyRegistry(typeLimits, typeGroups, groupLimits, limitProviders, globalMax);
     }
 }

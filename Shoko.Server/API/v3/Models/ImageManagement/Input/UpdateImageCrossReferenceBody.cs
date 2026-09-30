@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 
 namespace Shoko.Server.API.v3.Models.ImageManagement.Input;
@@ -9,6 +10,8 @@ namespace Shoko.Server.API.v3.Models.ImageManagement.Input;
 /// </summary>
 public class UpdateImageCrossReferenceBody
 {
+    // DefaultValueHandling.Populate calls an omitted member's setter; the tracked
+    // members opt out of it so only the members sent are marked as set.
     private readonly HashSet<string> _setProperties = [];
 
     private int? _ordering;
@@ -33,6 +36,7 @@ public class UpdateImageCrossReferenceBody
     /// <summary>
     ///   Sort order index for images of the same type.
     /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
     public int? Ordering
     {
         get => _ordering;
@@ -46,6 +50,7 @@ public class UpdateImageCrossReferenceBody
     /// <summary>
     ///   Community rating normalized on a scale of 1-10.
     /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
     public double? Rating
     {
         get => _rating;
@@ -59,6 +64,7 @@ public class UpdateImageCrossReferenceBody
     /// <summary>
     ///   Number of community votes for the rating.
     /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
     public int? RatingVotes
     {
         get => _ratingVotes;

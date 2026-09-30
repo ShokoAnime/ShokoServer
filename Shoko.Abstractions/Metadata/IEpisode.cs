@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
@@ -10,12 +11,18 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Episode metadata.
 /// </summary>
-public interface IEpisode : IWithTitles, IWithDescriptions, IWithBackdropImage, IWithCastAndCrew, IMetadata<int>
+public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWithCastAndCrew, IWithResources, IWithCrossSources, IMetadata
 {
     /// <summary>
-    /// The series id.
+    ///   The series the episode belongs to.
     /// </summary>
-    int SeriesID { get; }
+    MetadataGuid SeriesID { get; }
+
+    /// <summary>
+    ///   The season the episode belongs to, or <c>null</c> when the source
+    ///   puts it in none.
+    /// </summary>
+    MetadataGuid? SeasonID { get; }
 
     /// <summary>
     /// The shoko episode ID, if we have any.
@@ -53,6 +60,13 @@ public interface IEpisode : IWithTitles, IWithDescriptions, IWithBackdropImage, 
     TimeSpan Runtime { get; }
 
     /// <summary>
+    ///   Whether a user hid the episode. Set it through
+    ///   <c>IMetadataOrderingService.SetEpisodeHidden</c>. An episode type
+    ///   that cannot be hidden leaves it <see langword="false"/>.
+    /// </summary>
+    bool IsHidden { get => false; }
+
+    /// <summary>
     /// The day the episode aired, if available. When a precise air time is
     /// known this is the UTC calendar day of <see cref="AirDateWithTime"/>, so
     /// the two never disagree. Broadcast schedules are served by
@@ -71,21 +85,51 @@ public interface IEpisode : IWithTitles, IWithDescriptions, IWithBackdropImage, 
     ISeries? Series { get; }
 
     /// <summary>
+    ///   Every place the episode has in its series' orderings: its place in
+    ///   the default ordering first, then one for each group of another
+    ///   ordering it is in.
+    /// </summary>
+    IReadOnlyList<IEpisodeOrderingInformation> Orderings { get; }
+
+    /// <summary>
+    ///   The episode's first place in the ordering chosen for its series, or
+    ///   <c>null</c> when that ordering leaves it out.
+    /// </summary>
+    IEpisodeOrderingInformation? PreferredOrdering { get; }
+
+    /// <summary>
     /// All shoko episodes linked to this episode.
     /// </summary>
     IReadOnlyList<IShokoEpisode> ShokoEpisodes { get; }
 
     /// <summary>
-    /// All cross-references linked to the episode.
+    /// All file-to-episode cross-references linked to the episode.
     /// </summary>
-    IReadOnlyList<IVideoCrossReference> CrossReferences { get; }
+    IReadOnlyList<IVideoCrossReference> VideoCrossReferences { get; }
+
+    /// <summary>
+    /// The episode-level cross-references Shoko made that involve this entry:
+    /// what it is linked to on the AniDB side, or which AniDB episodes claim
+    /// it on a provider's side. Not the file links in
+    /// <see cref="VideoCrossReferences"/>.
+    /// </summary>
+    IReadOnlyList<IMetadataEpisodeCrossReference> MetadataEpisodeCrossReferences { get; }
+
+    /// <summary>
+    /// The series-level cross-references Shoko made for the series this
+    /// episode belongs to, read without loading the series.
+    /// </summary>
+    IReadOnlyList<IMetadataSeriesCrossReference> MetadataSeriesCrossReferences { get; }
+
+    /// <summary>
+    /// The film cross-references Shoko made for this entry: the anime is the
+    /// film, kept against the episode standing for it. Empty on a provider's
+    /// side, where a film claims no episode.
+    /// </summary>
+    IReadOnlyList<IMetadataMovieCrossReference> MetadataMovieCrossReferences { get; }
 
     /// <summary>
     /// Get all videos linked to the episode, if any.
     /// </summary>
     IReadOnlyList<IVideo> Videos { get; }
-
-    /// <inheritdoc cref="Videos"/>
-    [Obsolete("Renamed to Videos, matching ISeries.Videos. Implement and use Videos instead.")]
-    IReadOnlyList<IVideo> VideoList => Videos;
 }

@@ -1,20 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories;
-using Shoko.Server.Settings;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.AniDB;
 
-public class AniDB_Character : ICharacter
+public class AniDB_Character : ICharacter, IInlineTextSource
 {
     #region Server DB columns
 
@@ -40,11 +42,7 @@ public class AniDB_Character : ICharacter
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Character;
-
-    int IMetadata<int>.ID => CharacterID;
-
-    DataSource IMetadata.Source => DataSource.AniDB;
+    MetadataGuid IMetadata.ID => new(MetadataSource.AniDB, MetadataEntityType.Character, CharacterID.ToString());
 
     #endregion
 
@@ -54,35 +52,28 @@ public class AniDB_Character : ICharacter
 
     #endregion
 
-    #region IWithDescriptions Implementation
+    #region IInlineTextSource Implementation
 
-    IText? IWithDescriptions.DefaultDescription => Description is { Length: > 0 }
-        ? new TextStub
+    ITitle? IInlineTextSource.InlineTitle => null;
+
+    IText? IInlineTextSource.InlineOverview => InlineText.Overview(MetadataSource.AniDB, Description, TitleLanguage.English, "en");
+
+    #endregion
+
+    #region IWithOverviews Implementation
+
+    IText? IWithOverviews.DefaultOverview => TextAccess.Manager.DefaultOverviewFor(this);
+
+    IText? IWithOverviews.PreferredOverview => TextAccess.Manager.PreferredOverviewFor(this);
+
+    // A missing description is still listed, empty, as it always was.
+    IReadOnlyList<IText> IWithOverviews.Overviews => [
+        ((IInlineTextSource)this).InlineOverview ?? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
             Value = Description,
-            Source = DataSource.AniDB,
-        }
-        : null;
-
-    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
-        ? new TextStub
-        {
-            Language = TitleLanguage.English,
-            LanguageCode = "en",
-            Value = Description,
-            Source = DataSource.AniDB,
-        }
-        : null;
-
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => [
-        new TextStub
-        {
-            Language = TitleLanguage.English,
-            LanguageCode = "en",
-            Value = Description,
-            Source = DataSource.AniDB,
+            Source = MetadataSource.AniDB,
         },
     ];
 
@@ -90,13 +81,24 @@ public class AniDB_Character : ICharacter
 
     #region IWithImages Implementation
 
-    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(ImagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, ImagePath) is { } imageID
-        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = DataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == imageID)
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(ImagePath) && IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, ImagePath) is { } imageID
+        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = MetadataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == imageID)
         : null;
 
     #endregion
 
+    #region IWithResources Implementation
+
+    IReadOnlyList<Resource> IWithResources.Resources
+        => [.. ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this)];
+
+    #endregion
+
     #region ICharacter Implementation
+
+    IReadOnlyList<ITitle> ICharacter.AlternativeNames => [];
+
+    FuzzyDateOnly? ICharacter.BirthDay => null;
 
     IEnumerable<ICast<IEpisode>> ICharacter.EpisodeCastRoles =>
         RepoFactory.AniDB_Anime_Character.GetByCharacterID(CharacterID)

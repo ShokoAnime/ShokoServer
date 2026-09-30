@@ -9,8 +9,14 @@ namespace Shoko.Abstractions.User;
 /// <summary>
 /// Shoko user.
 /// </summary>
-public interface IUser : IMetadata<int>, IWithPrimaryImage, IWithBackdropImage
+public interface IUser : IMetadata, IWithPrimaryImage, IWithBackdropImage
 {
+    /// <summary>
+    ///   The Shoko user ID, the same ID <see cref="IMetadata.ID"/> holds as
+    ///   text.
+    /// </summary>
+    int LocalID { get; }
+
     /// <summary>
     /// Username.
     /// </summary>

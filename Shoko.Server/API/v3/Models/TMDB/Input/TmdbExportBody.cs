@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Shoko.Abstractions.Metadata.CrossReferences;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Models.CrossReference;
 using static Shoko.Server.API.v3.Controllers.TmdbController;
 
 namespace Shoko.Server.API.v3.Models.TMDB.Input;
@@ -68,23 +69,6 @@ public class TmdbExportBody
     [JsonIgnore]
     public bool MovieFilerEnabled => AnidbAnimeID is not null || AnidbEpisodeID is not null || TmdbMovieID is not null;
 
-    /// <summary>
-    /// Determines whether the given movie cross-reference should be included in the export.
-    /// </summary>
-    /// <param name="xref">The movie cross-reference to check.</param>
-    /// <returns><c>true</c> if the cross-reference should be included, <c>false</c> otherwise.</returns>
-    public bool ShouldKeep(CrossRef_AniDB_TMDB_Movie xref)
-    {
-        if (!MovieFilerEnabled)
-            return true;
-        if (AnidbAnimeID is not null && AnidbAnimeID != xref.AnidbAnimeID)
-            return false;
-        if (AnidbEpisodeID is not null && AnidbEpisodeID != xref.AnidbEpisodeID)
-            return false;
-        if (TmdbMovieID is not null && TmdbMovieID != xref.TmdbMovieID)
-            return false;
-        return true;
-    }
 
     /// <summary>
     /// Determines whether episode filtering is enabled.
@@ -92,25 +76,6 @@ public class TmdbExportBody
     [JsonIgnore]
     public bool EpisodeFilterEnabled => AnidbAnimeID is not null || AnidbEpisodeID is not null || TmdbShowID is not null || TmdbEpisodeID is not null;
 
-    /// <summary>
-    /// Determines whether the given episode cross-reference should be included in the export.
-    /// </summary>
-    /// <param name="xref">The episode cross-reference to check.</param>
-    /// <returns><c>true</c> if the cross-reference should be included, <c>false</c> otherwise.</returns>
-    public bool ShouldKeep(CrossRef_AniDB_TMDB_Episode xref)
-    {
-        if (!EpisodeFilterEnabled)
-            return true;
-        if (AnidbAnimeID is not null && AnidbAnimeID != xref.AnidbAnimeID)
-            return false;
-        if (AnidbEpisodeID is not null && AnidbEpisodeID != xref.AnidbEpisodeID)
-            return false;
-        if (TmdbShowID is not null && TmdbShowID != xref.TmdbShowID)
-            return false;
-        if (TmdbEpisodeID is not null && TmdbEpisodeID != xref.TmdbEpisodeID)
-            return false;
-        return true;
-    }
 
     /// <summary>
     /// Determines whether the show filter is enabled.
@@ -119,18 +84,38 @@ public class TmdbExportBody
     public bool ShowFilterEnabled => AnidbAnimeID is not null || TmdbShowID is not null;
 
     /// <summary>
-    /// Determines whether the given show cross-reference should be included in the export.
+    /// The export options this body asks for.
     /// </summary>
-    /// <param name="xref">The show cross-reference to check.</param>
-    /// <returns><c>true</c> if the cross-reference should be included, <c>false</c> otherwise.</returns>
-    public bool ShouldKeep(CrossRef_AniDB_TMDB_Show xref)
+    /// <returns>The options for the cross-reference transfer service.</returns>
+    public MetadataCrossReferenceExportOptions ToOptions()
     {
-        if (!ShowFilterEnabled)
-            return true;
-        if (AnidbAnimeID is not null && AnidbAnimeID != xref.AnidbAnimeID)
-            return false;
-        if (TmdbShowID is not null && TmdbShowID != xref.TmdbShowID)
-            return false;
-        return true;
+        var sections = SectionSet?.CombineFlags() ?? CrossReferenceExportType.None;
+        return new()
+        {
+            Sections = (sections.HasFlag(CrossReferenceExportType.Movie) ? MetadataCrossReferenceSections.Movie : MetadataCrossReferenceSections.None) |
+                (sections.HasFlag(CrossReferenceExportType.Show) ? MetadataCrossReferenceSections.Series : MetadataCrossReferenceSections.None) |
+                (sections.HasFlag(CrossReferenceExportType.Episode) ? MetadataCrossReferenceSections.Episode : MetadataCrossReferenceSections.None),
+            AnidbAnimeID = AnidbAnimeID,
+            AnidbEpisodeID = AnidbEpisodeID,
+            ProviderSeriesID = TmdbShowID?.ToString(),
+            ProviderEpisodeID = TmdbEpisodeID?.ToString(),
+            ProviderMovieID = TmdbMovieID?.ToString(),
+            Automatic = ToFilter(Automatic),
+            WithEpisodes = ToFilter(WithEpisodes),
+            IncludeComments = IncludeComments,
+        };
     }
+
+    /// <summary>
+    /// A three-way include filter as the transfer service takes it.
+    /// </summary>
+    /// <param name="filter">The filter.</param>
+    /// <returns><see langword="null"/> for both, <see langword="true"/> for only, <see langword="false"/> for none.</returns>
+    private static bool? ToFilter(IncludeOnlyFilter filter)
+        => filter switch
+        {
+            IncludeOnlyFilter.Only => true,
+            IncludeOnlyFilter.False => false,
+            _ => null,
+        };
 }

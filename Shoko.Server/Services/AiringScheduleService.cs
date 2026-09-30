@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
@@ -27,6 +28,8 @@ using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.Airing;
 
 #nullable enable
+using Shoko.Server.Services.MetadataStorage;
+
 namespace Shoko.Server.Services;
 
 /// <summary>
@@ -47,7 +50,8 @@ public partial class AiringScheduleService(
     IConfigurationService configurationService,
     IPluginManager pluginManager,
     IQueueScheduler schedulerFactory,
-    ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider
+    ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider,
+    Lazy<IMetadataService> metadataService
 ) : IAiringScheduleService
 {
     /// <summary>
@@ -67,8 +71,6 @@ public partial class AiringScheduleService(
 
     private Dictionary<Guid, AiringScheduleProviderInfo> _providerInfos = [];
 
-    private List<IAiringScheduleEntityResolver> _resolvers = [];
-
     private readonly ConcurrentDictionary<int, AiringScheduleProfile> _profiles = [];
 
     private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _refreshLimits = [];
@@ -80,9 +82,16 @@ public partial class AiringScheduleService(
     private bool _loaded;
 
     /// <summary>
-    /// The registered entity resolvers, in registration order.
+    /// Resolves an entry through the metadata service's lookup: the core's
+    /// tables for its own sources, and for any other a plugin's own metadata
+    /// resolver, then the metadata stores.
     /// </summary>
-    internal IReadOnlyList<IAiringScheduleEntityResolver> EntityResolvers => _resolvers;
+    /// <param name="source">The source.</param>
+    /// <param name="entityType">The kind of entry.</param>
+    /// <param name="id">The source's ID for it.</param>
+    /// <returns>The entry, or <see langword="null"/> when the core holds none.</returns>
+    internal IMetadata? GetStoredEntity(MetadataSource source, MetadataEntityType entityType, string id)
+        => MetadataEntries.ToGuid(source, entityType, id) is { } guid ? metadataService.Value.GetEntry(guid) : null;
 
     /// <inheritdoc/>
     public event EventHandler? ProvidersUpdated;
@@ -332,16 +341,14 @@ public partial class AiringScheduleService(
     #region Add Parts
 
     /// <summary>
-    /// Takes the airing schedule providers and entity resolvers the plugins provide. Called once
+    /// Takes the airing schedule providers the plugins provide. Called once
     /// during start-up; later calls have no effect.
     /// </summary>
     /// <param name="providers">The airing schedule providers.</param>
-    /// <param name="resolvers">The airing schedule entity resolvers.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="providers"/> or <paramref name="resolvers"/> is <c>null</c>.</exception>
-    public void AddParts(IEnumerable<IAiringScheduleProvider> providers, IEnumerable<IAiringScheduleEntityResolver> resolvers)
+    /// <exception cref="ArgumentNullException"><paramref name="providers"/> is <c>null</c>.</exception>
+    public void AddParts(IEnumerable<IAiringScheduleProvider> providers)
     {
         ArgumentNullException.ThrowIfNull(providers);
-        ArgumentNullException.ThrowIfNull(resolvers);
 
         if (_loaded) return;
         lock (_lock)
@@ -349,7 +356,6 @@ public partial class AiringScheduleService(
             if (_loaded) return;
 
             logger.LogInformation("Initializing service.");
-            _resolvers = resolvers.Where(resolver => resolver is not null).ToList();
 
             var config = configurationProvider.Load();
             var order = config.Priority;
@@ -417,7 +423,7 @@ public partial class AiringScheduleService(
 
         // Parts are added while the plugins initialize, which is before the database is up, so the
         // repositories cannot be counted here.
-        logger.LogInformation("Loaded {ProviderCount} providers and {ResolverCount} entity resolvers.", _providerInfos.Count, _resolvers.Count);
+        logger.LogInformation("Loaded {ProviderCount} providers.", _providerInfos.Count);
     }
 
     #endregion
@@ -699,9 +705,9 @@ public partial class AiringScheduleService(
         // Aliases live on the stored channel, so a channel that was never
         // registered here — or whose row is gone — has nothing to add them to,
         // and the caller is told rather than left thinking the aliases stuck.
-        var row = RepoFactory.AiringChannel.GetByChannelID(channel.ID)
+        var row = RepoFactory.AiringChannel.GetByChannelID(channel.ChannelID)
             ?? throw new ArgumentException(
-                $"Unregistered channel: '{channel.ID}'. Register it with {nameof(FindOrRegisterChannel)} before adding aliases to it.",
+                $"Unregistered channel: '{channel.ChannelID}'. Register it with {nameof(FindOrRegisterChannel)} before adding aliases to it.",
                 nameof(channel)
             );
         var added = new List<string>();
@@ -750,9 +756,9 @@ public partial class AiringScheduleService(
 
         // Same as adding: without a stored channel there are no aliases to take
         // anything off of, which is a caller error and not a no-op.
-        var row = RepoFactory.AiringChannel.GetByChannelID(channel.ID)
+        var row = RepoFactory.AiringChannel.GetByChannelID(channel.ChannelID)
             ?? throw new ArgumentException(
-                $"Unregistered channel: '{channel.ID}'. Register it with {nameof(FindOrRegisterChannel)} before removing aliases from it.",
+                $"Unregistered channel: '{channel.ChannelID}'. Register it with {nameof(FindOrRegisterChannel)} before removing aliases from it.",
                 nameof(channel)
             );
         var unwanted = aliases

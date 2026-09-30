@@ -18,6 +18,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 /// </remarks>
 public class AiringEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "airing";
+
     private readonly ILogger<AiringEventEmitter> _logger;
 
     /// <summary>

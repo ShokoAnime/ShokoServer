@@ -1,13 +1,21 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Abstractions.Metadata.Tmdb.Services;
 
 /// <summary>
 /// TMDB linking service for managing links between AniDB and TMDB entities.
 /// </summary>
+/// <remarks>
+/// A shim over <see cref="IMetadataLinkingService"/> for the <c>tmdb</c>
+/// source. Removing a link here also tells TMDB to leave the anime alone.
+/// Adding or matching throws <see cref="System.NotSupportedException"/> while
+/// the admin has turned that kind of TMDB entry off; removals always work.
+/// Nothing here queues a refresh.
+/// </remarks>
 public interface ITmdbLinkingService
 {
     #region Shared
@@ -32,10 +40,18 @@ public interface ITmdbLinkingService
     /// <summary>
     /// Adds a movie link for an AniDB episode.
     /// </summary>
+    /// <remarks>
+    /// Queues no refresh. Call
+    /// <see cref="ITmdbMetadataService.ScheduleUpdateOfMovie"/> to have the
+    /// movie fetched.
+    /// </remarks>
     /// <param name="anidbEpisodeId">The AniDB episode ID.</param>
-    /// <param name="tmdbMovieId">The TMDB movie ID.</param>
+    /// <param name="tmdbMovieId">The TMDB movie ID, from 1.</param>
     /// <param name="additiveLink">If true, adds to existing links; if false, replaces existing links.</param>
     /// <param name="matchRating">The match rating for the link.</param>
+    /// <returns>A task that completes once the link is written.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException"><paramref name="tmdbMovieId"/> is not positive.</exception>
+    /// <exception cref="System.NotSupportedException">TMDB movies are turned off in the provider settings.</exception>
     Task AddMovieLinkForEpisode(int anidbEpisodeId, int tmdbMovieId, bool additiveLink = false, MatchRating matchRating = MatchRating.UserVerified);
 
     /// <summary>
@@ -71,12 +87,20 @@ public interface ITmdbLinkingService
     #region Show Links
 
     /// <summary>
-    /// Adds a show link for an AniDB anime.
+    /// Adds a show link for an AniDB anime, and matches its episodes.
     /// </summary>
+    /// <remarks>
+    /// Queues no refresh. Call
+    /// <see cref="ITmdbMetadataService.ScheduleUpdateOfShow"/> to have the show
+    /// fetched.
+    /// </remarks>
     /// <param name="anidbAnimeId">The AniDB anime ID.</param>
-    /// <param name="tmdbShowId">The TMDB show ID.</param>
+    /// <param name="tmdbShowId">The TMDB show ID, from 1.</param>
     /// <param name="additiveLink">If true, adds to existing links; if false, replaces existing links.</param>
     /// <param name="matchRating">The match rating for the link.</param>
+    /// <returns>A task that completes once the link is written.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException"><paramref name="tmdbShowId"/> is not positive.</exception>
+    /// <exception cref="System.NotSupportedException">TMDB series are turned off in the provider settings.</exception>
     Task AddShowLink(int anidbAnimeId, int tmdbShowId, bool additiveLink = true, MatchRating matchRating = MatchRating.UserVerified);
 
     /// <summary>
@@ -115,10 +139,11 @@ public interface ITmdbLinkingService
     /// Sets an episode link between an AniDB episode and a TMDB episode.
     /// </summary>
     /// <param name="anidbEpisodeId">The AniDB episode ID.</param>
-    /// <param name="tmdbEpisodeId">The TMDB episode ID. Use 0 to set an empty link.</param>
+    /// <param name="tmdbEpisodeId">The TMDB episode ID. Use 0 to set an empty link, which replaces the episode's other links.</param>
     /// <param name="additiveLink">If true, adds to existing links; if false, replaces existing links.</param>
     /// <param name="index">Optional ordering index for multiple links.</param>
-    /// <returns>True if the link was set successfully, false otherwise.</returns>
+    /// <returns>True if the link was set, false for an unknown AniDB episode or a TMDB episode that is not stored.</returns>
+    /// <exception cref="System.NotSupportedException">TMDB episodes are turned off in the provider settings.</exception>
     bool SetEpisodeLink(int anidbEpisodeId, int tmdbEpisodeId, bool additiveLink = true, int? index = null);
 
     /// <summary>
@@ -128,10 +153,11 @@ public interface ITmdbLinkingService
     /// <param name="tmdbShowId">The TMDB show ID.</param>
     /// <param name="tmdbSeasonId">Optional TMDB season ID to restrict matching to.</param>
     /// <param name="useExisting">If true, preserves existing user-verified links.</param>
-    /// <param name="saveToDatabase">If true, saves the results to the database.</param>
+    /// <param name="saveToDatabase">If true, saves the results, replacing the links of each episode matched.</param>
     /// <param name="useExistingOtherShows">If specified, overrides the setting for considering existing links from other shows.</param>
     /// <returns>A list of episode cross-references.</returns>
-    IReadOnlyList<ITmdbEpisodeCrossReference> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false, bool? useExistingOtherShows = null);
+    /// <exception cref="System.NotSupportedException">TMDB episodes are turned off in the provider settings.</exception>
+    IReadOnlyList<IMetadataEpisodeCrossReference<ITmdbEpisode>> MatchAnidbToTmdbEpisodes(int anidbAnimeId, int tmdbShowId, int? tmdbSeasonId, bool useExisting = false, bool saveToDatabase = false, bool? useExistingOtherShows = null);
 
     #endregion
 }

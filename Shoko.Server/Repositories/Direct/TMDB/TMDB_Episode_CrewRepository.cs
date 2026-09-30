@@ -55,4 +55,18 @@ public class TMDB_Episode_CrewRepository(DatabaseFactory databaseFactory) : Base
             .ThenBy(e => e.TmdbCreditID)
             .ToList();
     }
+
+    /// <summary>
+    ///   Every show ID the episode crew rows name.
+    /// </summary>
+    /// <returns>The IDs, each once.</returns>
+    public IReadOnlyList<int> GetAllTmdbShowIDs()
+    {
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        return session
+            .Query<TMDB_Episode_Crew>()
+            .Select(a => a.TmdbShowID)
+            .Distinct()
+            .ToList();
+    }
 }

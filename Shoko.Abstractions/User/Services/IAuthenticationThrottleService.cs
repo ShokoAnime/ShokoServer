@@ -2,6 +2,7 @@ using System;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Shoko.Abstractions.User.Events;
 
 namespace Shoko.Abstractions.User.Services;
 
@@ -28,6 +29,14 @@ namespace Shoko.Abstractions.User.Services;
 /// </remarks>
 public interface IAuthenticationThrottleService
 {
+    /// <summary>
+    /// Dispatched on the calling thread whenever a <c>RegisterFailure</c> overload charges a failed
+    /// attempt, from the core's endpoints and plugins' alike. The failure
+    /// <see cref="IUserService.AuthenticateUser"/> charges to the username on its own does not raise
+    /// it; the caller's <see cref="RegisterFailure(HttpContext)"/> does.
+    /// </summary>
+    event EventHandler<AuthenticationFailedEventArgs>? AuthenticationFailed;
+
     /// <summary>
     /// The number of failed attempts within <see cref="AttemptWindow"/> that are allowed before the
     /// client or user is locked out. Between 1 and 100, and 10 by default.

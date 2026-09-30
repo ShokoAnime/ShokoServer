@@ -13,8 +13,12 @@ using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Exceptions;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.Resolvers;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Settings;
@@ -32,6 +36,8 @@ namespace Shoko.Server.API.v3.Controllers;
 public class SettingsController(
     ISettingsProvider settingsProvider,
     ConfigurationProvider<ServerSettings> configurationProvider,
+    ConfigurationProvider<MetadataServiceSettings> metadataServiceConfigurationProvider,
+    IMetadataProviderManager metadataProviderManager,
     IConfigurationService configurationService,
     IOptions<MvcNewtonsoftJsonOptions> jsonOptions,
     ILogger<SettingsController> logger,
@@ -39,6 +45,10 @@ public class SettingsController(
 ) : BaseController(settingsProvider)
 {
     private readonly ConfigurationProvider<ServerSettings> _configurationProvider = configurationProvider;
+
+    private readonly ConfigurationProvider<MetadataServiceSettings> _metadataServiceConfigurationProvider = metadataServiceConfigurationProvider;
+
+    private readonly IMetadataProviderManager _metadataProviderManager = metadataProviderManager;
 
     private readonly IConfigurationService _configurationService = configurationService;
 
@@ -60,7 +70,9 @@ public class SettingsController(
     /// The settings are serialized here rather than handed to the formatter as
     /// an object, because every secret is masked on the way out and masking
     /// works on the serialized document. The serializer is the one MVC would
-    /// have used, so the shape of the response is unchanged.
+    /// have used, so the shape of the response is unchanged. The <c>TMDB</c>
+    /// section also holds the auto-link and image keys it had before they
+    /// moved elsewhere, and a patch of them is sent on to where they are now.
     /// </remarks>
     /// <returns></returns>
     [Produces("application/json")]
@@ -68,9 +80,11 @@ public class SettingsController(
     [HttpGet]
     public ActionResult GetSettings()
     {
-        var settings = SettingsProvider.GetSettings();
+        var settings = (ServerSettings)SettingsProvider.GetSettings();
         var serializer = JsonSerializer.Create(_jsonOptions.Value.SerializerSettings);
-        var json = JObject.FromObject(settings, serializer).ToString(Formatting.None);
+        var jsonObject = JObject.FromObject(settings, serializer);
+        LegacyTmdbSettings.AddTo(jsonObject, settings, GetTmdbDecisions(), serializer);
+        var json = jsonObject.ToString(Formatting.None);
         return Content(_configurationService.MaskSecrets(_configurationProvider.ConfigurationInfo, json), "application/json");
     }
 
@@ -85,7 +99,9 @@ public class SettingsController(
         try
         {
             var existingSettings = (ServerSettings)SettingsProvider.GetSettings(copy: true);
-            settings.ApplyTo(existingSettings, ModelState);
+            var autoLinkSwitches = LegacyTmdbSettings.Translate(settings, existingSettings, GetTmdbDecisions(), ModelState);
+            if (ModelState.IsValid)
+                ApplyPatch(settings, existingSettings, ModelState);
             if (!ModelState.IsValid)
             {
                 _logger.LogDebug("Failed to apply settings patch: {ModelState}", JsonConvert.SerializeObject(ModelState));
@@ -93,6 +109,14 @@ public class SettingsController(
             }
 
             SettingsProvider.SaveSettings(existingSettings);
+            foreach (var (key, value) in autoLinkSwitches)
+            {
+                if (key is LegacyTmdbSettings.AutoLink)
+                    _metadataProviderManager.SetProviderAutoLink(MetadataSource.TMDB, value);
+                else
+                    _metadataProviderManager.SetProviderAutoLinkRestricted(MetadataSource.TMDB, value);
+            }
+
             return Ok();
         }
         catch (ConfigurationValidationException ex)
@@ -100,6 +124,28 @@ public class SettingsController(
             return ValidationProblem(ex.ValidationErrors);
         }
     }
+
+    /// <summary>
+    /// Applies a patch to the server settings, reading metadata sources as the
+    /// settings file does, so a source whose plugin isn't loaded can be sent
+    /// back as <see cref="GetSettings"/> sent it.
+    /// </summary>
+    /// <param name="patch">The patch.</param>
+    /// <param name="settings">The settings to patch.</param>
+    /// <param name="modelState">Where to add any error.</param>
+    internal static void ApplyPatch(JsonPatchDocument<ServerSettings> patch, ServerSettings settings, ModelStateDictionary modelState)
+    {
+        patch.ContractResolver = ApiContractResolver.ForSettings;
+        patch.ApplyTo(settings, modelState);
+    }
+
+    /// <summary>
+    /// What the metadata service keeps about TMDB, where its auto-link
+    /// switches live now.
+    /// </summary>
+    /// <returns>The decisions, or <c>null</c> when none are kept yet.</returns>
+    private MetadataSourceSettings? GetTmdbDecisions()
+        => _metadataServiceConfigurationProvider.Load().Sources.GetValueOrDefault(MetadataSource.TMDB);
 
     /// <summary>
     /// Tests a Login with the given Credentials. This does not save the credentials.

@@ -45,6 +45,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
     // Executing state — all fields guarded by _gate
     private readonly Dictionary<Guid, ExecutingEntry> _executingSet = new();
+    // Cancellation and progress of each executing job, keyed like _executingSet and removed with it
+    private readonly Dictionary<Guid, JobExecutionState> _executionStates = new();
     private readonly Dictionary<Type, int> _typeRunningCounts = new();
     private readonly Dictionary<string, int> _groupRunningCounts = new();
     private volatile int _globalRunning;
@@ -56,7 +58,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     // O(1) type resolution — avoids Type.GetType() (assembly scan) on every enqueue/acquire call
     private readonly Dictionary<string, Type> _typeByName = new(StringComparer.Ordinal);
 
-    // Friendly display names per type (type.Name → IQueueJob.TypeName) — built once at Initialize()
+    // Friendly display names per type (short type name to IQueueJob.TypeName), built once at Initialize()
     private IReadOnlyDictionary<string, string> _typeFriendlyNames = new Dictionary<string, string>();
 
     // O(1) dedup index: JobKey → Id (covers waiting + executing + pending-insert + after-parent)
@@ -78,11 +80,9 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     private readonly Dictionary<Guid, Dictionary<string, (EnqueueContext Ctx, WorkerPool Pool)>>
         _afterParentCallbacks = new();
 
-    // IDs of waiting jobs pulled from their pool sub-queues by RegisterAfterParent but not yet
-    // physically removed (the removal happens outside _gate to avoid lock-order inversion with
-    // WorkerPool._subQueueLock). TryRegisterExecuting rejects any ID in this set so a worker
-    // cannot acquire the job during the brief window between the two operations.
-    private readonly HashSet<Guid> _heldForParent = new();
+    // Waiting jobs being pulled from their pools outside _gate (per the lock order below).
+    // TryRegisterExecuting rejects them so no worker acquires one between the two steps.
+    private readonly HashSet<Guid> _heldFromAcquisition = new();
 
     // All job IDs currently "in the system" regardless of state: waiting, executing, held, or
     // registered as an after-parent callback. Allows RegisterChainAfterJob to distinguish a
@@ -90,6 +90,12 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     // Maintained in sync with _jobKeyIndex — every Add/Remove to _jobKeyIndex must mirror here.
     private readonly HashSet<Guid> _allKnownJobIds = new();
 
+    // Waiting jobs TryRegisterExecuting found no longer own their key, such as one removed while
+    // its enqueue was still adding it to its pool. Their pool drops them through IsDetached.
+    private readonly ConcurrentDictionary<Guid, byte> _detachedJobIds = new();
+
+    // Lock order: a pool's _subQueueLock, then _gate. Never call into a pool while holding _gate
+    // or hold two pool locks at once; PersistenceBuffer's lock is a leaf.
     private readonly object _gate = new();
     private volatile bool _paused;
 
@@ -133,9 +139,10 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             foreach (var type in pool.HandledTypes)
             {
                 _poolsByType[type] = pool;
-                _typeByName[type.FullName + ", " + type.Assembly.GetName().Name] = type;
+                _typeByName[JobTypeNames.Stored(type)] = type;
             }
             pool.TryRegisterExecuting = TryRegisterExecuting;
+            pool.IsDetached = job => _detachedJobIds.TryRemove(job.Id, out _);
 
             // Capture pool reference for the closure. Skip the check for highest-priority pools.
             var capturedPool = pool;
@@ -145,11 +152,26 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         var activeCount = 0;
         var deferred = new Dictionary<Guid, QueuedJob>(); // jobId → job, for chain-deferred jobs
 
+        // A type missing from a loaded assembly was removed, so its jobs are dropped; one from an
+        // unloaded assembly (a plugin that failed to load) may come back, so its jobs are kept.
+        var loadedAssemblies = pools.SelectMany(pool => pool.HandledTypes)
+            .SelectMany(type => JobTypeNames.AssemblyNames(JobTypeNames.Stored(type)))
+            .ToHashSet();
+        var removed = new List<Guid>();
+
         foreach (var job in persistedJobs)
         {
             var type = ResolveType(job.JobType);
             if (type == null)
             {
+                // A closed generic also names its type arguments' assemblies, and all must be loaded.
+                if (JobTypeNames.AssemblyNames(job.JobType) is { Count: > 0 } assemblyNames && assemblyNames.All(loadedAssemblies.Contains))
+                {
+                    _logger.LogInformation("Dropping persisted job {JobType}, a type that no longer exists", job.JobType);
+                    removed.Add(job.Id);
+                    continue;
+                }
+
                 _logger.LogWarning("Skipping persisted job {JobType} — type not found", job.JobType);
                 continue;
             }
@@ -236,6 +258,20 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 }
             });
         }
+
+        if (removed.Count > 0)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    await scope.ServiceProvider.GetRequiredService<IJobRepository>().DeleteBatchAsync(removed);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to delete {Count} persisted jobs whose types no longer exist", removed.Count);
+                }
+            });
 
         _typeFriendlyNames = BuildFriendlyNames();
         _logger.LogInformation("QueueOrchestrator initialized with {Count} active jobs and {Deferred} deferred across {Pools} pools",
@@ -377,7 +413,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         }
 
         pool.AddToQueue(job);
-        _metrics.RecordEnqueue(type.Name, pool.Name);
+        _metrics.RecordEnqueue(JobTypeNames.Key(type), pool.Name);
 
         if (!_paused) pool.Signal();
 
@@ -433,7 +469,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             if (!poolBatches.TryGetValue(pool, out var batch))
                 poolBatches[pool] = batch = new List<QueuedJob>();
             batch.Add(ctx.Job);
-            _metrics.RecordEnqueue(ctx.Type.Name, pool.Name);
+            _metrics.RecordEnqueue(JobTypeNames.Key(ctx.Type), pool.Name);
         }
 
         foreach (var (pool, batch) in poolBatches)
@@ -502,7 +538,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             case ImmediateAction.Enqueue:
                 pool.AddToQueue(job);
-                _metrics.RecordEnqueue(type.Name, pool.Name);
+                _metrics.RecordEnqueue(JobTypeNames.Key(type), pool.Name);
                 if (!_paused) pool.Signal();
                 var item = string.IsNullOrEmpty(context.DisplayItem.PoolName)
                     ? context.DisplayItem with { PoolName = pool.Name }
@@ -521,7 +557,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 }
                 break;
 
-            // ImmediateAction.Wait: job is executing — the TCS is registered, nothing else needed
+                // ImmediateAction.Wait: job is executing — the TCS is registered, nothing else needed
         }
 
         return tcs.Task;
@@ -559,9 +595,18 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
         lock (_gate)
         {
+            if (_heldFromAcquisition.Contains(job.Id)) return false;
+            // A job that no longer owns its key was removed, or replaced, after its enqueue claimed
+            // the key but before it reached the pool. It must not run: its row and key are gone.
+            if (!_jobKeyIndex.TryGetValue(job.JobKey, out var owner) || owner != job.Id)
+            {
+                _detachedJobIds[job.Id] = 0;
+                _persistenceBuffer.OnComplete(job.Id);
+                return false;
+            }
+
             if (_globalRunning >= _maxTotalWorkers) return false;
             if (!_concurrency.CanRun(type, _typeRunningCounts, _groupRunningCounts)) return false;
-            if (_heldForParent.Contains(job.Id)) return false;
 
             _globalRunning++;
             _typeRunningCounts[type] = (_typeRunningCounts.GetValueOrDefault(type)) + 1;
@@ -576,8 +621,65 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 job.Priority, job.RetryCount, group,
                 DateTime.UtcNow, pool?.Name ?? string.Empty,
                 ChainId: job.ChainId,
-                IsChainFinally: job.IsChainFinally);
+                IsChainFinally: job.IsChainFinally,
+                IsCancellable: JobCapabilities.IsCancellable(type),
+                Actor: job.Actor);
+            _executionStates[job.Id] = new JobExecutionState(job.Id, job.JobKey, OnProgressReported);
         }
+        return true;
+    }
+
+    /// <summary>
+    /// Attaches the worker's cancellation source to an executing job, and cancels it right away
+    /// when a user asked for the job to be cancelled before the worker got this far.
+    /// </summary>
+    /// <param name="id">The ID of the executing job.</param>
+    /// <param name="cancellation">The job's cancellation source, linked to the pool's and disposed by the worker.</param>
+    /// <returns>The job's execution state, or <see langword="null"/> if the job is not executing.</returns>
+    internal async Task<JobExecutionState?> BeginExecutionAsync(Guid id, CancellationTokenSource cancellation)
+    {
+        JobExecutionState? state;
+        bool alreadyRequested;
+        lock (_gate)
+        {
+            if (!_executionStates.TryGetValue(id, out state))
+                return null;
+            alreadyRequested = state.Attach(cancellation);
+        }
+
+        if (alreadyRequested)
+            await state.CancelAsync().ConfigureAwait(false);
+        return state;
+    }
+
+    private void OnProgressReported(JobExecutionState state, decimal progress)
+        => _events.OnJobProgressChanged(state.JobKey, progress);
+
+    /// <summary>
+    /// Frees <paramref name="jobKey"/> when it still maps to <paramref name="id"/>, so a job that
+    /// ends never frees the key of another job queued under it since.
+    /// <para>MUST be called under <see cref="_gate"/>.</para>
+    /// </summary>
+    /// <param name="jobKey">The key of the job that ends.</param>
+    /// <param name="id">The ID of the job that ends.</param>
+    private void RemoveKeyIfOwned_UnderLock(string jobKey, Guid id)
+    {
+        if (_jobKeyIndex.TryGetValue(jobKey, out var owner) && owner == id)
+            _jobKeyIndex.Remove(jobKey);
+    }
+
+    /// <summary>
+    /// Removes an executing job's entry and state and releases its concurrency slot.
+    /// <para>MUST be called under <see cref="_gate"/>.</para>
+    /// </summary>
+    private bool TryRemoveExecuting_UnderLock(Guid id, out ExecutingEntry entry)
+    {
+        if (!_executingSet.Remove(id, out entry))
+            return false;
+
+        if (_executionStates.Remove(id, out var state))
+            state.End();
+        DecrementCounts(entry.JobType, entry.ConcurrencyGroup);
         return true;
     }
 
@@ -594,9 +696,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             return;
 
         List<(EnqueueContext Ctx, WorkerPool Pool)>? immediateEnqueue = null;
-        // ID of a waiting job that must be pulled from its pool sub-queue. The removal happens
-        // outside _gate (see below) to avoid lock-order inversion with WorkerPool._subQueueLock;
-        // _heldForParent blocks acquisition in the interim.
+        // A waiting job to pull from its pool outside _gate, per the lock order;
+        // _heldFromAcquisition blocks acquisition in the interim.
         var heldId = Guid.Empty;
 
         lock (_gate)
@@ -609,7 +710,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
                 // Waiting — mark as held so TryRegisterExecuting rejects it while we pull it
                 // out of the pool sub-queue below (outside the lock).
-                _heldForParent.Add(existingId);
+                _heldFromAcquisition.Add(existingId);
                 heldId = existingId;
 
                 // Swap tracking from old ID to new ID
@@ -655,7 +756,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 pool.RemoveFromQueue(heldId);
             // Remove the old DB record so it doesn't re-appear as a duplicate on restart.
             _persistenceBuffer.OnComplete(heldId);
-            lock (_gate) _heldForParent.Remove(heldId);
+            lock (_gate) _heldFromAcquisition.Remove(heldId);
         }
 
         if (immediateEnqueue != null)
@@ -664,7 +765,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             {
                 pool.AddToQueue(c.Job);
                 _persistenceBuffer.OnEnqueue(c.Job);
-                _metrics.RecordEnqueue(c.Type.Name, pool.Name);
+                _metrics.RecordEnqueue(JobTypeNames.Key(c.Type), pool.Name);
             }
             SignalAllPools();
         }
@@ -694,7 +795,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                     return;
 
                 // Waiting — hold it while we remove it from the pool sub-queue
-                _heldForParent.Add(existingId);
+                _heldFromAcquisition.Add(existingId);
                 _allKnownJobIds.Remove(existingId);
                 _allKnownJobIds.Add(ctx.Job.Id);
                 heldId = existingId;
@@ -730,7 +831,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 pool.RemoveFromQueue(heldId);
             // Remove the old DB record so it doesn't re-appear as an orphan on restart.
             _persistenceBuffer.OnComplete(heldId);
-            lock (_gate) _heldForParent.Remove(heldId);
+            lock (_gate) _heldFromAcquisition.Remove(heldId);
         }
 
         if (registerAsDeferred)
@@ -738,7 +839,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             // Persist with ParentJobId so the child survives a restart while waiting
             ctx.Job.ParentJobId = parentId;
             _persistenceBuffer.OnEnqueue(ctx.Job);
-            _metrics.RecordEnqueue(ctx.Type.Name, targetPool.Name);
+            _metrics.RecordEnqueue(JobTypeNames.Key(ctx.Type), targetPool.Name);
         }
 
         if (immediateEnqueue != null)
@@ -747,7 +848,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             {
                 pool.AddToQueue(c.Job);
                 _persistenceBuffer.OnEnqueue(c.Job);
-                _metrics.RecordEnqueue(c.Type.Name, pool.Name);
+                _metrics.RecordEnqueue(JobTypeNames.Key(c.Type), pool.Name);
             }
             SignalAllPools();
         }
@@ -763,15 +864,14 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         Guid? chainId = null;
         lock (_gate)
         {
-            if (!_executingSet.Remove(id, out var entry)) return;
-            DecrementCounts(entry.JobType, entry.ConcurrencyGroup);
-            _jobKeyIndex.Remove(entry.JobKey);
+            if (!TryRemoveExecuting_UnderLock(id, out var entry)) return;
+            RemoveKeyIfOwned_UnderLock(entry.JobKey, id);
             _allKnownJobIds.Remove(id);
             _immediateCallbacks.Remove(entry.JobKey, out completions);
             chainId = entry.ChainId;
 
             if (_afterParentCallbacks.Remove(id, out var deferredMap))
-                deferred = [..deferredMap.Values];
+                deferred = [.. deferredMap.Values];
         }
 
         completions?.ForEach(tcs => tcs.TrySetResult(true));
@@ -787,7 +887,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 else
                     // After-parent child (registered via RunAfterCurrent): never in DB — INSERT now.
                     _persistenceBuffer.OnEnqueue(ctx.Job);
-                _metrics.RecordEnqueue(ctx.Type.Name, pool.Name);
+                _metrics.RecordEnqueue(JobTypeNames.Key(ctx.Type), pool.Name);
             }
         }
         else if (chainId.HasValue)
@@ -802,15 +902,25 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
     /// <summary>
     /// Called by workers on failure. Applies the retry policy: reschedules or discards.
-    /// When <paramref name="incrementRetry"/> is false the job is re-queued immediately at its
-    /// original priority without touching <see cref="QueuedJob.RetryCount"/> or the DB — used
-    /// by <c>RequeueJobException</c> for filter-managed transient conditions.
     /// </summary>
+    /// <remarks>
+    /// A retried job keeps the rest of its own chain waiting for it, while what its failed attempt
+    /// queued after itself is dropped. A discarded job ends its chain as a
+    /// <see cref="ChainAbortException"/> would, so the chain's <see cref="ChainFinallyAttribute"/>
+    /// jobs still run.
+    /// </remarks>
+    /// <param name="id">The ID of the failed job.</param>
+    /// <param name="ex">The exception the job failed with.</param>
+    /// <param name="incrementRetry">
+    /// False re-queues the job at once at its original priority without touching
+    /// <see cref="QueuedJob.RetryCount"/> or the DB, as <c>RequeueJobException</c> does for
+    /// filter-managed transient conditions.
+    /// </param>
+    /// <param name="ct">Cancels persisting the retry state.</param>
+    /// <returns>A task that completes once the failure is handled.</returns>
     public async Task OnFailureAsync(Guid id, Exception ex, bool incrementRetry = true, CancellationToken ct = default)
     {
         ExecutingEntry entry;
-        List<TaskCompletionSource<bool>>? completions = null;
-        Dictionary<string, (EnqueueContext Ctx, WorkerPool Pool)>? discardedChildren = null;
         lock (_gate)
         {
             if (!_executingSet.TryGetValue(id, out entry)) return;
@@ -819,126 +929,112 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         // Chain abort: short-circuit remaining chain jobs (except [ChainFinally] ones)
         if (ex is ChainAbortException)
         {
-            await HandleChainAbortAsync(id, entry, ex, ct);
+            await HandleChainAbortAsync(id, entry, ex, cancelled: false, ct);
             return;
         }
 
-        lock (_gate)
-        {
-            _executingSet.Remove(id, out _);
-            DecrementCounts(entry.JobType, entry.ConcurrencyGroup);
-
-            // For real failures, capture and clear callbacks so they can be faulted.
-            // RequeueJobException (incrementRetry=false) leaves callbacks intact: the job
-            // re-queues with the same key and the TCS resolves on eventual completion.
-            // After-parent registrations follow the same rule: preserved on requeue, discarded
-            // on real failure so _jobKeyIndex entries don't permanently block future enqueues.
-            if (incrementRetry)
-            {
-                _immediateCallbacks.Remove(entry.JobKey, out completions);
-                _afterParentCallbacks.Remove(id, out discardedChildren);
-                _allKnownJobIds.Remove(id);
-            }
-        }
-
-        if (discardedChildren != null)
+        // RequeueJobException: same key and ID, so callbacks and after-parent registrations
+        // stay and fire on its eventual completion.
+        if (!incrementRetry)
         {
             lock (_gate)
             {
-                foreach (var (jobKey, (ctx, _)) in discardedChildren)
-                {
-                    _jobKeyIndex.Remove(jobKey);
-                    _allKnownJobIds.Remove(ctx.Job.Id);
-                }
+                TryRemoveExecuting_UnderLock(id, out _);
+                _jobKeyIndex[entry.JobKey] = id;
+                _allKnownJobIds.Add(id);
             }
-            // Delete persisted chain children from DB (they were inserted with ParentJobId set)
-            foreach (var (_, (ctx, _)) in discardedChildren)
-                _persistenceBuffer.OnComplete(ctx.Job.Id);
-        }
-
-        // Re-queue without retry increment (RequeueJobException path)
-        if (!incrementRetry)
-        {
-            var requeueJob = new QueuedJob
-            {
-                Id = id,
-                JobType = entry.JobType.FullName + ", " + entry.JobType.Assembly.GetName().Name,
-                JobKey = entry.JobKey,
-                JobDataJson = entry.JobDataJson,
-                Priority = entry.Priority,
-                QueuedAt = DateTimeOffset.UtcNow,
-                ScheduledAt = null,
-                RetryCount = entry.RetryCount  // unchanged
-            };
-            lock (_gate) { _jobKeyIndex[entry.JobKey] = id; _allKnownJobIds.Add(id); }
             if (_poolsByType.TryGetValue(entry.JobType, out var requeuePool))
-                requeuePool.AddToQueue(requeueJob);
+                requeuePool.AddToQueue(BuildRequeuedJob(entry, scheduledAt: null, entry.RetryCount));
             SignalAllPools();
             return;
         }
 
-        // Fault any immediate callers waiting on this job
-        completions?.ForEach(tcs => tcs.TrySetException(ex));
-
         var policy = _retryPolicies.For(entry.JobType);
-        _metrics.RecordFailure(entry.JobType.Name, entry.PoolName);
+        _metrics.RecordFailure(JobTypeNames.Key(entry.JobType), entry.PoolName);
 
         if (policy.ShouldDiscard(entry.RetryCount))
         {
             _logger.LogError(ex,
                 "Job {JobKey} ({JobType}) discarded after {Retries} retries",
-                entry.JobKey, entry.JobType.Name, policy.MaxRetries);
+                entry.JobKey, JobTypeNames.Short(entry.JobType), policy.MaxRetries);
 
-            lock (_gate) { _jobKeyIndex.Remove(entry.JobKey); _allKnownJobIds.Remove(id); }
-            _persistenceBuffer.OnComplete(id);  // buffer the DELETE
+            // Frees the key, faults immediate callers, drops the job's row and after-parent
+            // children, and ends its chain with the chain's finally jobs still to run.
+            await HandleChainAbortAsync(id, entry, ex, cancelled: false, ct);
+            return;
         }
-        else
+
+        // The job's own chain successors wait for the retry; anything else registered after it
+        // came from the failed attempt and is dropped, so the retry can claim those keys again.
+        List<TaskCompletionSource<bool>>? completions;
+        List<(EnqueueContext Ctx, WorkerPool Pool)> finallyJobs;
+        List<EnqueueContext> skippedJobs;
+        lock (_gate)
         {
-            var delay = policy.GetDelay(entry.RetryCount);
-            var nextRun = DateTimeOffset.UtcNow.Add(delay);
-            var newRetryCount = entry.RetryCount + 1;
-
-            _logger.LogWarning(ex,
-                "Job {JobKey} ({JobType}) failed — retry {N}/{Max} in {Delay:g}",
-                entry.JobKey, entry.JobType.Name, newRetryCount, policy.MaxRetries, delay);
-
-            // Write immediately so crash-restart preserves the backoff position. A transient
-            // persistence failure here (e.g. a contended SQLite write) must never escape: the
-            // in-memory re-queue below is what actually keeps the job alive, and an unhandled
-            // exception on the worker thread would abort the whole process. Worst case we lose the
-            // persisted backoff position for one job across a crash-restart.
-            try
-            {
-                using var scope = _scopeFactory.CreateScope();
-                await scope.ServiceProvider.GetRequiredService<IJobRepository>()
-                    .UpdateRetryAsync(id, newRetryCount, nextRun, ct);
-            }
-            catch (Exception persistEx)
-            {
-                _logger.LogWarning(persistEx,
-                    "Failed to persist retry backoff for job {JobKey} ({JobType}); continuing with in-memory re-queue",
-                    entry.JobKey, entry.JobType.Name);
-            }
-
-            // Re-queue in-memory with updated ScheduledAt and incremented RetryCount
-            var retryJob = new QueuedJob
-            {
-                Id = id,
-                JobType = entry.JobType.FullName + ", " + entry.JobType.Assembly.GetName().Name,
-                JobKey = entry.JobKey,
-                JobDataJson = entry.JobDataJson,
-                Priority = entry.Priority,
-                QueuedAt = DateTimeOffset.UtcNow,
-                ScheduledAt = nextRun,
-                RetryCount = newRetryCount
-            };
-
-            if (_poolsByType.TryGetValue(entry.JobType, out var pool))
-                pool.AddToQueue(retryJob);
+            TryRemoveExecuting_UnderLock(id, out _);
+            _immediateCallbacks.Remove(entry.JobKey, out completions);
+            (finallyJobs, skippedJobs) = CollectChainDescendants_UnderLock(id, keepChainId: entry.ChainId);
         }
+
+        completions?.ForEach(tcs => tcs.TrySetException(ex));
+
+        // Delete dropped children from DB (chain children were inserted with ParentJobId set)
+        foreach (var skipped in skippedJobs)
+            _persistenceBuffer.OnComplete(skipped.Job.Id);
+        ActivateChainFinallyJobs(finallyJobs);
+
+        var delay = policy.GetDelay(entry.RetryCount);
+        var nextRun = DateTimeOffset.UtcNow.Add(delay);
+        var newRetryCount = entry.RetryCount + 1;
+
+        _logger.LogWarning(ex,
+            "Job {JobKey} ({JobType}) failed — retry {N}/{Max} in {Delay:g}",
+            entry.JobKey, JobTypeNames.Short(entry.JobType), newRetryCount, policy.MaxRetries, delay);
+
+        // Persisted now so a restart keeps the backoff. A failure must not escape the worker thread
+        // (it would abort the process); the in-memory re-queue below keeps the job alive.
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IJobRepository>()
+                .UpdateRetryAsync(id, newRetryCount, nextRun, ct);
+        }
+        catch (Exception persistEx)
+        {
+            _logger.LogWarning(persistEx,
+                "Failed to persist retry backoff for job {JobKey} ({JobType}); continuing with in-memory re-queue",
+                entry.JobKey, JobTypeNames.Short(entry.JobType));
+        }
+
+        if (_poolsByType.TryGetValue(entry.JobType, out var pool))
+            pool.AddToQueue(BuildRequeuedJob(entry, nextRun, newRetryCount));
 
         SignalAllPools();
     }
+
+    /// <summary>
+    /// Builds the waiting copy of an executing job that runs it again, in its chain and for its
+    /// actor. It has no <see cref="QueuedJob.ParentJobId"/>: a job only runs once its parent let
+    /// it go.
+    /// </summary>
+    /// <param name="entry">The executing job.</param>
+    /// <param name="scheduledAt">When it may run again, or <see langword="null"/> for right away.</param>
+    /// <param name="retryCount">The retries it has used.</param>
+    /// <returns>The job to put back in its pool.</returns>
+    private static QueuedJob BuildRequeuedJob(ExecutingEntry entry, DateTimeOffset? scheduledAt, int retryCount) => new()
+    {
+        Id = entry.Id,
+        JobType = JobTypeNames.Stored(entry.JobType),
+        JobKey = entry.JobKey,
+        JobDataJson = entry.JobDataJson,
+        Priority = entry.Priority,
+        QueuedAt = DateTimeOffset.UtcNow,
+        ScheduledAt = scheduledAt,
+        RetryCount = retryCount,
+        ChainId = entry.ChainId,
+        IsChainFinally = entry.IsChainFinally,
+        Actor = entry.Actor,
+    };
 
     public void Pause()
     {
@@ -971,35 +1067,211 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         _logger.LogWarning("Queue halted until the server is restarted: {Reason}", reason);
     }
 
-    public async Task RemoveAsync(string jobKey, CancellationToken ct = default)
+    /// <summary>
+    /// Removes the waiting job with <paramref name="jobKey"/> from the queue and the database,
+    /// freeing its key. An executing job is left alone. A job waiting on its turn in a chain is
+    /// removed too, and the chain is aborted from there on, as a <see cref="ChainAbortException"/>
+    /// would, with <see cref="ChainFinallyAttribute"/> jobs still running.
+    /// </summary>
+    /// <param name="jobKey">The key of the job to remove.</param>
+    /// <param name="ct">Cancels reading the chain context of an aborted chain.</param>
+    /// <returns>
+    /// <see cref="JobCancellationResult.Removed"/>, <see cref="JobCancellationResult.Running"/> when
+    /// the job is executing, or <see cref="JobCancellationResult.NotFound"/>.
+    /// </returns>
+    public async Task<JobCancellationResult> RemoveAsync(string jobKey, CancellationToken ct = default)
     {
         Guid id;
+        Guid? deferredParentId = null;
+        QueuedJob? removedJob = null;
+        List<TaskCompletionSource<bool>>? completions;
+        List<(EnqueueContext Ctx, WorkerPool Pool)> finallyJobs;
+        List<EnqueueContext> skippedJobs;
+        List<Guid> reparented = [];
         lock (_gate)
         {
             if (!_jobKeyIndex.TryGetValue(jobKey, out id))
-                return;
+                return JobCancellationResult.NotFound;
 
             // Don't remove executing jobs — they're already past the point of no return.
             if (_executingSet.ContainsKey(id))
-                return;
+                return JobCancellationResult.Running;
 
-            foreach (var pool in _allPools)
-                pool.RemoveFromQueue(id);
+            // A job waiting on its parent lives in the after-parent map, not in a pool.
+            foreach (var (parentId, children) in _afterParentCallbacks)
+            {
+                if (!children.TryGetValue(jobKey, out var child) || child.Ctx.Job.Id != id)
+                    continue;
 
+                children.Remove(jobKey);
+                if (children.Count == 0)
+                    _afterParentCallbacks.Remove(parentId);
+                deferredParentId = parentId;
+                removedJob = child.Ctx.Job;
+                break;
+            }
+
+            // Held so no worker acquires it before it leaves its pool below.
+            if (deferredParentId is null)
+                _heldFromAcquisition.Add(id);
             _jobKeyIndex.Remove(jobKey);
             _allKnownJobIds.Remove(id);
+            _immediateCallbacks.Remove(jobKey, out completions);
+            (finallyJobs, skippedJobs) = CollectChainDescendants_UnderLock(id);
+
+            // The chain's finally jobs still have to wait for the job before the removed one.
+            if (deferredParentId is { } newParentId && finallyJobs.Count > 0)
+            {
+                if (!_afterParentCallbacks.TryGetValue(newParentId, out var siblings))
+                    _afterParentCallbacks[newParentId] = siblings = new Dictionary<string, (EnqueueContext, WorkerPool)>(StringComparer.Ordinal);
+                foreach (var (ctx, pool) in finallyJobs)
+                {
+                    if (ctx.Job.ParentJobId.HasValue)
+                    {
+                        ctx.Job.ParentJobId = newParentId;
+                        reparented.Add(ctx.Job.Id);
+                    }
+                    siblings[ctx.Job.JobKey] = (ctx, pool);
+                }
+                finallyJobs = [];
+            }
         }
 
-        using var scope = _scopeFactory.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<IJobRepository>().DeleteAsync(id, ct);
-    }
+        // Persisted too, or a restart before the parent runs would start them as orphans.
+        foreach (var reparentedId in reparented)
+            _persistenceBuffer.OnReparentChainChild(reparentedId, deferredParentId!.Value);
 
-    public async Task ClearAsync(CancellationToken ct = default)
-    {
-        lock (_gate)
+        // Pools are only touched outside _gate, per the lock order.
+        if (deferredParentId is null)
         {
             foreach (var pool in _allPools)
-                pool.ClearQueue();
+            {
+                if (pool.RemoveFromQueue(id, out var job))
+                {
+                    removedJob = job;
+                    break;
+                }
+            }
+            lock (_gate) _heldFromAcquisition.Remove(id);
+        }
+
+        completions?.ForEach(tcs => tcs.TrySetCanceled());
+
+        // Buffered like every other delete, so a job whose insert is still buffered is never written.
+        _persistenceBuffer.OnComplete(id);
+        foreach (var skipped in skippedJobs)
+            _persistenceBuffer.OnComplete(skipped.Job.Id);
+
+        ActivateChainFinallyJobs(finallyJobs);
+
+        if (removedJob?.ChainId is { } chainId)
+        {
+            var removedOutcome = new JobOutcome
+            {
+                JobId = id,
+                JobType = removedJob.JobType,
+                JobKey = jobKey,
+                Status = JobOutcomeStatus.Cancelled,
+                CompletedAt = DateTimeOffset.UtcNow,
+            };
+            // A job still waiting on its parent leaves the parent's part of the chain to run.
+            await RecordChainAbortAsync(
+                chainId,
+                SkippedOutcomes(skippedJobs).Prepend(removedOutcome),
+                completeScope: deferredParentId is null && finallyJobs.Count == 0,
+                ct
+            );
+        }
+
+        if (finallyJobs.Count > 0)
+            SignalAllPools();
+
+        _logger.LogInformation("Removed waiting job {JobKey} from the queue", jobKey);
+        _events.OnJobsRemoved([jobKey, .. skippedJobs.Select(skipped => skipped.Job.JobKey)]);
+        return JobCancellationResult.Removed;
+    }
+
+    /// <summary>
+    /// Cancels the job with <paramref name="jobKey"/>. A waiting job is removed, as by
+    /// <see cref="RemoveAsync"/>. A running job that observes cancellation is asked to stop: it is
+    /// marked as cancellation requested at once, its token is cancelled, and once it stops it ends
+    /// as cancelled, is not retried, frees its key and aborts what was to run after it. A job
+    /// that completes before noticing ends as completed; one that fails is not retried either.
+    /// </summary>
+    /// <param name="jobKey">The key of the job to cancel.</param>
+    /// <param name="ct">Cancels reading the chain context when a waiting chain job is removed.</param>
+    /// <returns>What was done.</returns>
+    public async Task<JobCancellationResult> CancelAsync(string jobKey, CancellationToken ct = default)
+    {
+        // A waiting job can start between the two steps below, so look again when it did.
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            JobExecutionState? state = null;
+            ExecutingEntry entry = default;
+            var newlyRequested = false;
+            lock (_gate)
+            {
+                if (!_jobKeyIndex.TryGetValue(jobKey, out var id))
+                    return JobCancellationResult.NotFound;
+
+                if (_executingSet.TryGetValue(id, out entry))
+                {
+                    if (!entry.IsCancellable)
+                        return JobCancellationResult.NotCancellable;
+
+                    state = _executionStates[id];
+                    newlyRequested = state.MarkCancellationRequested();
+                    if (newlyRequested)
+                        _executingSet[id] = entry = entry with { CancellationRequested = true };
+                }
+            }
+
+            if (state is null)
+            {
+                var removed = await RemoveAsync(jobKey, ct);
+                if (removed is JobCancellationResult.Running)
+                    continue;
+                return removed;
+            }
+
+            if (newlyRequested)
+            {
+                _logger.LogInformation("Cancellation requested for running job {JobKey} ({JobType})", jobKey, JobTypeNames.Short(entry.JobType));
+                try
+                {
+                    await state.CancelAsync();
+                }
+                catch (AggregateException ex)
+                {
+                    _logger.LogWarning(ex, "A cancellation callback of job {JobKey} threw", jobKey);
+                }
+                _events.OnJobCancellationRequested(QueueItem.FromExecuting(entry with { Progress = state.Progress }));
+            }
+
+            return JobCancellationResult.CancellationRequested;
+        }
+
+        return JobCancellationResult.NotFound;
+    }
+
+    /// <summary>
+    /// Removes every waiting and deferred job from the queue and the database. Executing jobs
+    /// run to completion and keep their keys.
+    /// </summary>
+    /// <param name="ct">Cancels the database clear.</param>
+    /// <returns>A task that completes once the database is cleared.</returns>
+    public async Task ClearAsync(CancellationToken ct = default)
+    {
+        // Pools are only touched outside _gate, per the lock order: the waiting jobs are read
+        // first, held from acquisition under _gate with every other known job, then removed.
+        var waiting = _allPools.SelectMany(pool => pool.GetWaitingSnapshot()).Select(job => job.Id).ToList();
+        HashSet<Guid> cleared;
+        lock (_gate)
+        {
+            cleared = [.. waiting, .. _jobKeyIndex.Values, .. _allKnownJobIds];
+            cleared.ExceptWith(_executingSet.Keys);
+            _heldFromAcquisition.UnionWith(cleared);
+
             _afterParentCallbacks.Clear();
             _jobKeyIndex.Clear();
             _allKnownJobIds.Clear();
@@ -1010,8 +1282,14 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 _allKnownJobIds.Add(entry.Id);
             }
         }
+
+        foreach (var pool in _allPools)
+            pool.RemoveFromQueue(cleared);
+        lock (_gate) _heldFromAcquisition.ExceptWith(cleared);
+
         using var scope = _scopeFactory.CreateScope();
         await scope.ServiceProvider.GetRequiredService<IJobRepository>().ClearAllAsync(ct);
+        _events.OnJobsRemoved([]);
     }
 
     // ── State queries ──────────────────────────────────────────────────────────
@@ -1033,9 +1311,11 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
     /// <summary>
     /// Number of waiting jobs that are ready to run right now: not blocked by an acquisition filter
-    /// and not deferred to a future scheduled time. This is the true "waiting" figure.
+    /// and not deferred to a future scheduled time. This is the true "waiting" figure. The counts
+    /// are read one after the other while jobs come and go, so each pool's share is kept from
+    /// going below zero.
     /// </summary>
-    public int ReadyWaitingCount => _allPools.Sum(p => p.WaitingCount - p.BlockedCount - p.ScheduledCount);
+    public int ReadyWaitingCount => _allPools.Sum(p => Math.Max(0, p.WaitingCount - p.BlockedCount - p.ScheduledCount));
 
     /// <summary>Total worker slots across all pools (sum of every pool's <see cref="WorkerPool.MaxWorkers"/>).</summary>
     public int TotalWorkerCount => _allPools.Sum(p => p.MaxWorkers);
@@ -1053,14 +1333,15 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     public Type? TryResolveType(string typeName) => ResolveType(typeName);
 
     /// <summary>
-    /// Returns true if the job's type is currently excluded by an acquisition filter on its pool.
+    /// Returns true if the job is currently held back by its pool: its type excluded by an
+    /// acquisition filter, or its actor not restorable yet.
     /// Used to populate <see cref="Abstractions.QueueItem.Blocked"/> for waiting jobs.
     /// </summary>
     public bool IsJobBlocked(QueuedJob job)
     {
         var type = ResolveType(job.JobType);
         if (type == null) return false;
-        return _poolsByType.TryGetValue(type, out var pool) && pool.IsTypeBlocked(type);
+        return _poolsByType.TryGetValue(type, out var pool) && pool.IsJobBlocked(job);
     }
 
     /// <summary>Returns waiting jobs across all pools in priority order, optionally paginated.</summary>
@@ -1079,9 +1360,20 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
     public int ExecutingCount => _globalRunning;
 
+    /// <summary>
+    /// Returns a snapshot of the executing jobs, each with the progress it last reported.
+    /// </summary>
+    /// <returns>The executing jobs.</returns>
     public IReadOnlyList<ExecutingEntry> GetExecuting()
     {
-        lock (_gate) return [.._executingSet.Values];
+        lock (_gate)
+        {
+            return [
+                .. _executingSet.Values.Select(entry => _executionStates.TryGetValue(entry.Id, out var state) && state.Progress is { } progress
+                    ? entry with { Progress = progress }
+                    : entry),
+            ];
+        }
     }
 
     /// <summary>
@@ -1177,7 +1469,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         lock (_gate)
         {
             typeCounts = _typeRunningCounts.ToDictionary(
-                kv => kv.Key.Name,
+                kv => JobTypeNames.Key(kv.Key),
                 kv => (0, kv.Value));
         }
 
@@ -1190,8 +1482,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 if (job.RetryCount > 0) totalRetrying++;
                 var type = ResolveType(job.JobType);
                 if (type == null) continue;
-                typeCounts.TryGetValue(type.Name, out var existing);
-                typeCounts[type.Name] = (existing.Waiting + 1, existing.Executing);
+                typeCounts.TryGetValue(JobTypeNames.Key(type), out var existing);
+                typeCounts[JobTypeNames.Key(type)] = (existing.Waiting + 1, existing.Executing);
             }
         }
 
@@ -1221,7 +1513,41 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
     // ── Chain abort ────────────────────────────────────────────────────────────
 
-    private async Task HandleChainAbortAsync(Guid id, ExecutingEntry entry, Exception ex, CancellationToken ct)
+    /// <summary>
+    /// Ends an executing job that stopped after a user cancelled it: frees its key, deletes it,
+    /// and aborts what was to run after it, as a <see cref="ChainAbortException"/> would, with
+    /// <see cref="ChainFinallyAttribute"/> jobs still running. It is not retried, even when it
+    /// failed for another reason.
+    /// </summary>
+    /// <param name="id">The ID of the executing job.</param>
+    /// <param name="ex">The exception the job stopped with.</param>
+    /// <param name="failed">
+    /// Whether the job failed rather than stopped, in which case whoever awaits it gets
+    /// <paramref name="ex"/> instead of a cancellation.
+    /// </param>
+    /// <returns>A task that completes once the chain outcome is recorded.</returns>
+    internal async Task OnCancelledAsync(Guid id, Exception ex, bool failed = false)
+    {
+        ExecutingEntry entry;
+        lock (_gate)
+        {
+            if (!_executingSet.TryGetValue(id, out entry)) return;
+        }
+
+        if (failed)
+        {
+            _metrics.RecordFailure(JobTypeNames.Key(entry.JobType), entry.PoolName);
+            _logger.LogInformation("Job {JobKey} ({JobType}) failed after it was cancelled and is not retried", entry.JobKey, JobTypeNames.Short(entry.JobType));
+        }
+        else
+        {
+            _logger.LogInformation("Job {JobKey} ({JobType}) was cancelled", entry.JobKey, JobTypeNames.Short(entry.JobType));
+        }
+
+        await HandleChainAbortAsync(id, entry, ex, cancelled: !failed, CancellationToken.None);
+    }
+
+    private async Task HandleChainAbortAsync(Guid id, ExecutingEntry entry, Exception ex, bool cancelled, CancellationToken ct)
     {
         List<TaskCompletionSource<bool>>? completions = null;
         List<(EnqueueContext Ctx, WorkerPool Pool)> finallyJobs;
@@ -1229,76 +1555,102 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
         lock (_gate)
         {
-            _executingSet.Remove(id, out _);
-            DecrementCounts(entry.JobType, entry.ConcurrencyGroup);
-            _jobKeyIndex.Remove(entry.JobKey);
+            TryRemoveExecuting_UnderLock(id, out _);
+            RemoveKeyIfOwned_UnderLock(entry.JobKey, id);
             _allKnownJobIds.Remove(id);
             _immediateCallbacks.Remove(entry.JobKey, out completions);
             (finallyJobs, skippedJobs) = CollectChainDescendants_UnderLock(id);
         }
 
-        completions?.ForEach(tcs => tcs.TrySetException(ex));
+        if (cancelled)
+            completions?.ForEach(tcs => tcs.TrySetCanceled());
+        else
+            completions?.ForEach(tcs => tcs.TrySetException(ex));
 
         // Delete skipped children from DB and clear their keys
         foreach (var skipped in skippedJobs)
             _persistenceBuffer.OnComplete(skipped.Job.Id);
 
-        // Activate finally jobs (promote from deferred to active)
-        foreach (var (ctx, pool) in finallyJobs)
-        {
-            pool.AddToQueue(ctx.Job);
-            _persistenceBuffer.OnActivateChainChild(ctx.Job.Id);
-            _metrics.RecordEnqueue(ctx.Type.Name, pool.Name);
-        }
+        ActivateChainFinallyJobs(finallyJobs);
 
-        // Record skipped outcomes + mark chain aborted in persisted chain context
         if (entry.ChainId.HasValue)
-        {
-            var skippedOutcomes = skippedJobs.Select(j => new JobOutcome
-            {
-                JobId = j.Job.Id,
-                JobType = j.Job.JobType,
-                Status = JobOutcomeStatus.Skipped,
-                CompletedAt = DateTimeOffset.UtcNow,
-            }).ToList();
-
-            try
-            {
-                if (_chainScopeRegistry.TryGetChainScope(entry.ChainId.Value, out var chainScope))
-                {
-                    var repo = chainScope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
-                    var ctx = await repo.GetAsync(entry.ChainId.Value, ct) ?? new JobChainContext(entry.ChainId.Value);
-                    ctx.SetStatus(ChainStatus.Aborted);
-                    foreach (var outcome in skippedOutcomes) ctx.AddOutcome(outcome);
-                    await repo.SaveAsync(ctx, CancellationToken.None);
-                }
-                else
-                {
-                    using var scope = _scopeFactory.CreateScope();
-                    var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
-                    await repo.AddOutcomesAsync(entry.ChainId.Value, skippedOutcomes, CancellationToken.None);
-                }
-            }
-            catch (Exception chainEx)
-            {
-                _logger.LogError(chainEx, "Failed to record chain abort outcomes for chain {ChainId}", entry.ChainId);
-            }
-
-            if (finallyJobs.Count == 0)
-                _chainScopeRegistry.CompleteChainScope(entry.ChainId.Value);
-        }
+            await RecordChainAbortAsync(entry.ChainId.Value, SkippedOutcomes(skippedJobs), completeScope: finallyJobs.Count == 0, ct);
 
         _persistenceBuffer.OnComplete(id);
         SignalAllPools();
     }
 
     /// <summary>
+    /// Moves <see cref="ChainFinallyAttribute"/> jobs of an aborted chain from deferred to waiting.
+    /// </summary>
+    private void ActivateChainFinallyJobs(List<(EnqueueContext Ctx, WorkerPool Pool)> finallyJobs)
+    {
+        foreach (var (ctx, pool) in finallyJobs)
+        {
+            pool.AddToQueue(ctx.Job);
+            _persistenceBuffer.OnActivateChainChild(ctx.Job.Id);
+            _metrics.RecordEnqueue(JobTypeNames.Key(ctx.Type), pool.Name);
+        }
+    }
+
+    private static IEnumerable<JobOutcome> SkippedOutcomes(IEnumerable<EnqueueContext> skippedJobs)
+        => skippedJobs.Select(j => new JobOutcome
+        {
+            JobId = j.Job.Id,
+            JobType = j.Job.JobType,
+            JobKey = j.Job.JobKey,
+            Status = JobOutcomeStatus.Skipped,
+            CompletedAt = DateTimeOffset.UtcNow,
+        });
+
+    /// <summary>
+    /// Marks a chain as aborted in its persisted context and records the outcomes of the jobs
+    /// that will not run. Failures are logged, never thrown.
+    /// </summary>
+    /// <param name="chainId">The chain's ID.</param>
+    /// <param name="outcomes">The outcomes to record.</param>
+    /// <param name="completeScope">Whether nothing of the chain is left to run, so its scope can go.</param>
+    /// <param name="ct">Cancels reading the chain context.</param>
+    private async Task RecordChainAbortAsync(Guid chainId, IEnumerable<JobOutcome> outcomes, bool completeScope, CancellationToken ct)
+    {
+        var outcomeList = outcomes.ToList();
+        try
+        {
+            if (_chainScopeRegistry.TryGetChainScope(chainId, out var chainScope))
+            {
+                var repo = chainScope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
+                var ctx = await repo.GetAsync(chainId, ct) ?? new JobChainContext(chainId);
+                ctx.SetStatus(ChainStatus.Aborted);
+                foreach (var outcome in outcomeList) ctx.AddOutcome(outcome);
+                await repo.SaveAsync(ctx, CancellationToken.None);
+            }
+            else
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var repo = scope.ServiceProvider.GetRequiredService<IJobChainContextRepository>();
+                await repo.AddOutcomesAsync(chainId, outcomeList, CancellationToken.None);
+            }
+        }
+        catch (Exception chainEx)
+        {
+            _logger.LogError(chainEx, "Failed to record chain abort outcomes for chain {ChainId}", chainId);
+        }
+
+        if (completeScope)
+            _chainScopeRegistry.CompleteChainScope(chainId);
+    }
+
+    /// <summary>
     /// Recursively collects descendants of <paramref name="parentId"/> from <see cref="_afterParentCallbacks"/>.
     /// Jobs marked <see cref="ChainFinallyAttribute"/> are returned as <c>finallyJobs</c> (to be activated);
-    /// all others are returned as <c>skippedJobs</c> (to be discarded). Must be called under <see cref="_gate"/>.
+    /// all others are returned as <c>skippedJobs</c> (to be discarded). Children of the parent in
+    /// <paramref name="keepChainId"/> stay registered, descendants and all. Must be called under <see cref="_gate"/>.
     /// </summary>
+    /// <param name="parentId">The job whose descendants to collect.</param>
+    /// <param name="keepChainId">The chain whose direct children of the parent stay, or <see langword="null"/> for none.</param>
+    /// <returns>The finally jobs to activate and the jobs to drop.</returns>
     private (List<(EnqueueContext Ctx, WorkerPool Pool)> FinallyJobs, List<EnqueueContext> SkippedJobs)
-        CollectChainDescendants_UnderLock(Guid parentId)
+        CollectChainDescendants_UnderLock(Guid parentId, Guid? keepChainId = null)
     {
         var finallyJobs = new List<(EnqueueContext, WorkerPool)>();
         var skippedJobs = new List<EnqueueContext>();
@@ -1306,8 +1658,16 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         if (!_afterParentCallbacks.Remove(parentId, out var children))
             return (finallyJobs, skippedJobs);
 
-        foreach (var (_, (ctx, pool)) in children)
+        Dictionary<string, (EnqueueContext Ctx, WorkerPool Pool)>? kept = null;
+        foreach (var (jobKey, (ctx, pool)) in children)
         {
+            if (keepChainId.HasValue && ctx.Job.ChainId == keepChainId)
+            {
+                kept ??= new Dictionary<string, (EnqueueContext, WorkerPool)>(StringComparer.Ordinal);
+                kept[jobKey] = (ctx, pool);
+                continue;
+            }
+
             _jobKeyIndex.Remove(ctx.Job.JobKey);
             _allKnownJobIds.Remove(ctx.Job.Id);
 
@@ -1327,6 +1687,9 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 skippedJobs.AddRange(subSkipped);
             }
         }
+
+        if (kept != null)
+            _afterParentCallbacks[parentId] = kept;
 
         return (finallyJobs, skippedJobs);
     }
@@ -1365,7 +1728,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     // ── Private helpers ────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Builds a type.Name → IQueueJob.TypeName map for all registered job types using
+    /// Builds a short type name → IQueueJob.TypeName map for all registered job types using
     /// uninitialized instances. TypeName is always a string-literal override so no injected
     /// services are needed — best-effort; failures are silently skipped.
     /// </summary>
@@ -1379,7 +1742,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 var inst = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
                 var friendly = inst.TypeName;
                 if (!string.IsNullOrEmpty(friendly))
-                    map[type.Name] = friendly;
+                    map[JobTypeNames.Key(type)] = friendly;
             }
             catch { /* best-effort */ }
         }
@@ -1416,8 +1779,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             DisplayItem = new QueueItem
             {
                 Key = job.JobKey,
-                JobType = type.Name,
-                TypeName = type.Name,
+                JobType = JobTypeNames.Short(type),
+                TypeName = JobTypeNames.Short(type),
                 Title = string.Empty,
                 Details = [],
                 Running = false,

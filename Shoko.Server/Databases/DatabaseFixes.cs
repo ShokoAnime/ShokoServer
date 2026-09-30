@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -19,10 +18,9 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
-using Shoko.Abstractions.Metadata.Anilist.Enums;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Services;
@@ -36,20 +34,19 @@ using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models.Airing;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Release;
-using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Actions;
+using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Tasks;
@@ -59,7 +56,7 @@ using Shoko.Server.Utilities;
 #pragma warning disable CA2012
 namespace Shoko.Server.Databases;
 
-public class DatabaseFixes
+public partial class DatabaseFixes
 {
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
@@ -279,6 +276,7 @@ public class DatabaseFixes
     {
         var xmlUtils = ISystemService.StaticServices.GetRequiredService<HttpXmlUtils>();
         var animeParser = ISystemService.StaticServices.GetRequiredService<HttpAnimeParser>();
+        var textStore = ISystemService.StaticServices.GetRequiredService<MetadataTextStore>();
         var animeList = RepoFactory.AniDB_Anime.GetAll();
         _logger.Info($"Updating anidb tags for {animeList.Count} local anidb anime entries...");
 
@@ -307,7 +305,7 @@ public class DatabaseFixes
                 continue;
             }
 
-            AnimeCreator.CreateTags(response.Tags, anime);
+            AnimeCreator.CreateTags(response.Tags, anime, textStore);
             RepoFactory.AniDB_Anime.Save(anime);
         }
 
@@ -319,30 +317,6 @@ public class DatabaseFixes
         RepoFactory.AniDB_Tag.Delete(tagsToDelete);
 
         _logger.Info($"Done updating anidb tags for {animeList.Count} anidb anime entries.");
-    }
-
-    public static void FixAnimeSourceLinks()
-    {
-        var animeToSave = new HashSet<AniDB_Anime>();
-        foreach (var anime in RepoFactory.AniDB_Anime.GetAll())
-        {
-            if (!string.IsNullOrEmpty(anime.Site_JP))
-            {
-                animeToSave.Add(anime);
-                anime.Site_JP = string.Join("|", anime.Site_JP.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct());
-            }
-            if (!string.IsNullOrEmpty(anime.Site_EN))
-            {
-                animeToSave.Add(anime);
-                anime.Site_EN = string.Join("|", anime.Site_EN.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct());
-            }
-        }
-
-        _logger.Trace($"Found {animeToSave.Count} anime with faulty source links. Updating…");
-
-        RepoFactory.AniDB_Anime.Save(animeToSave);
-
-        _logger.Trace($"Updated {animeToSave.Count} anime with faulty source links.");
     }
 
     public static void FixEpisodeDateTimeUpdated()
@@ -566,22 +540,6 @@ public class DatabaseFixes
         RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
     }
 
-    public static void CleanupAfterAddingTMDB()
-    {
-        var service = ISystemService.StaticServices.GetRequiredService<TmdbMetadataService>();
-
-        // Remove the "MovieDB" directory in the image directory, since it's no longer used,
-        var dir = new DirectoryInfo(Path.Join(ApplicationPaths.Instance.ImagesPath, "MovieDB"));
-        if (dir.Exists)
-            dir.Delete(true);
-
-        // Schedule commands to get the new movie info for existing cross-reference
-        service.UpdateAllMovies(true, true).ConfigureAwait(false).GetAwaiter().GetResult();
-
-        // Schedule tmdb searches if we have auto linking enabled.
-        service.ScanForMatches().ConfigureAwait(false).GetAwaiter().GetResult();
-    }
-
     public static void CleanupAfterRemovingTvDB()
     {
         var dir = new DirectoryInfo(Path.Join(ApplicationPaths.Instance.ImagesPath, "TvDB"));
@@ -598,7 +556,7 @@ public class DatabaseFixes
     public static void RepairMissingTMDBPersons()
     {
         var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
-        var service = ISystemService.StaticServices.GetRequiredService<TmdbMetadataService>();
+        var service = ISystemService.StaticServices.GetRequiredService<TmdbMetadataUpdater>();
         var missingIds = new HashSet<int>();
         var updateCount = 0;
         var skippedCount = 0;
@@ -754,7 +712,7 @@ public class DatabaseFixes
     public static void ScheduleTmdbImageUpdates()
     {
         var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
-        var tmdbMetadataService = ISystemService.StaticServices.GetRequiredService<TmdbMetadataService>();
+        var refreshService = ISystemService.StaticServices.GetRequiredService<IMetadataRefreshService>();
         var tmdbMovies = RepoFactory.TMDB_Movie.GetAll();
         var tmdbShows = RepoFactory.TMDB_Show.GetAll();
         var movies = tmdbMovies.Count;
@@ -772,7 +730,7 @@ public class DatabaseFixes
                 systemService.StartupMessage = $"{str} - {count} / {movies} movies - 0 / {shows} shows";
             }
 
-            tmdbMetadataService.ScheduleDownloadAllMovieImages(tmdbMovie.Id)
+            refreshService.DownloadImages(new(MetadataSource.TMDB, MetadataEntityType.Movie, tmdbMovie.Id.ToString()))
                 .GetAwaiter()
                 .GetResult();
         }
@@ -786,7 +744,7 @@ public class DatabaseFixes
                 systemService.StartupMessage = $"{str} - {movies} / {movies} movies - {count} / {shows} shows";
             }
 
-            tmdbMetadataService.ScheduleDownloadAllShowImages(tmdbShow.Id)
+            refreshService.DownloadImages(new(MetadataSource.TMDB, MetadataEntityType.Series, tmdbShow.Id.ToString()))
                 .GetAwaiter()
                 .GetResult();
         }
@@ -1843,7 +1801,7 @@ public class DatabaseFixes
         foreach (var old in oldTmdbImages)
         {
             var resourceID = TmdbImageService.SafeTransformResourceID(old.RemoteFileName);
-            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, resourceID);
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.TMDB, resourceID);
             if (RepoFactory.ShokoImage.GetByID(guid) != null)
             {
                 oldTMDBImageIDToNewGuid[old.TMDB_ImageID] = guid;
@@ -1854,7 +1812,7 @@ public class DatabaseFixes
             var contentType = ContentTypeHelper.UnknownMimeType;
             try
             {
-                if (imageManager.GetContentTypeFromResourceID(DataSource.TMDB, resourceID) is { Length: > 0 } eager)
+                if (imageManager.GetContentTypeFromResourceID(MetadataSource.TMDB, resourceID) is { Length: > 0 } eager)
                     contentType = eager;
             }
             catch (UnsupportedImageTypeException ex)
@@ -1874,7 +1832,7 @@ public class DatabaseFixes
                 : Path.GetExtension(resourceID);
             var oldHashedName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(oldFileName))).ToLower();
             var oldPath = Path.Join(imagesPath, "TMDB_old", oldHashedName[..2], oldHashedName + oldFileExt);
-            var newPath = Path.Join(imagesPath, "TMDB", guidStr[..2], guidStr + ext);
+            var newPath = Path.Join(imagesPath, MetadataSource.TMDB.Value, guidStr[..2], guidStr + ext);
             var oldPathExists = File.Exists(oldPath);
             var newPathExists = File.Exists(newPath);
 
@@ -1915,7 +1873,7 @@ public class DatabaseFixes
             {
                 ID = guid,
                 PrimaryID = guid,
-                Source = DataSource.TMDB,
+                Source = MetadataSource.TMDB,
                 ResourceID = resourceID,
                 LanguageCode = languageCode,
                 Width = width,
@@ -1950,7 +1908,7 @@ public class DatabaseFixes
         foreach (var old in oldTmdbImageEntities)
         {
             var resourceID = TmdbImageService.SafeTransformResourceID(old.RemoteFileName);
-            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.TMDB, resourceID);
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.TMDB, resourceID);
             if (RepoFactory.ShokoImage.GetByID(guid) is null)
             {
                 var guidStr = guid.ToString("N");
@@ -1960,28 +1918,28 @@ public class DatabaseFixes
                     : Path.GetExtension(resourceID);
                 var oldHashedName = Convert.ToHexString(MD5.HashData(Encoding.UTF8.GetBytes(oldFileName))).ToLower();
                 var oldPath = Path.Join(imagesPath, "TMDB_old", oldHashedName[..2], oldHashedName + oldFileExt);
-                var newPath = Path.Join(imagesPath, "TMDB", guidStr[..2], guidStr);
-                MigrateImage(resourceID, DataSource.TMDB, oldPath, newPath, imageManager);
+                var newPath = Path.Join(imagesPath, MetadataSource.TMDB.Value, guidStr[..2], guidStr);
+                MigrateImage(resourceID, MetadataSource.TMDB, oldPath, newPath, imageManager);
             }
 
             var mappedEntityType = old.TmdbEntityType switch
             {
-                1 => DataEntityType.Collection,
-                2 => DataEntityType.Movie,
-                4 => DataEntityType.Show,
-                8 => DataEntityType.Season,
-                16 => DataEntityType.Episode,
-                32 => DataEntityType.Company,
-                128 => DataEntityType.Network,
-                256 => DataEntityType.Person,
-                _ => DataEntityType.Unknown,
+                1 => MetadataEntityType.Collection,
+                2 => MetadataEntityType.Movie,
+                4 => MetadataEntityType.Series,
+                8 => MetadataEntityType.Season,
+                16 => MetadataEntityType.Episode,
+                32 => MetadataEntityType.Studio,
+                128 => MetadataEntityType.Network,
+                256 => MetadataEntityType.Creator,
+                _ => null,
             };
-            if (mappedEntityType == DataEntityType.Unknown)
+            if (mappedEntityType is null)
                 continue;
 
             var entityID = old.TmdbEntityID.ToString();
             var hasXref = RepoFactory.ShokoImage_Entity.GetByImageID(guid)
-                .Any(x => x.EntitySource is DataSource.TMDB && x.EntityType == mappedEntityType && x.EntityID == entityID && x.ImageType == old.ImageType);
+                .Any(x => x.EntitySource == MetadataSource.TMDB && x.EntityType == mappedEntityType && x.EntityID == entityID && x.ImageType == old.ImageType);
             if (!hasXref)
             {
                 var xref = new ShokoImage_Entity
@@ -1989,15 +1947,15 @@ public class DatabaseFixes
                     ImageID = guid,
                     PrimaryImageID = guid,
                     ImageType = old.ImageType,
-                    ImageSource = DataSource.TMDB,
-                    EntitySource = DataSource.TMDB,
+                    ImageSource = MetadataSource.TMDB,
+                    EntitySource = MetadataSource.TMDB,
                     EntityType = mappedEntityType,
                     EntityID = entityID,
                     Ordering = Math.Max(0, old.Ordering),
                     EntityReleasedAt = old.ReleasedAt,
                     IsEnabled = tmdbResourceIDToEnabled.TryGetValue(resourceID, out var isEnabled) && isEnabled,
                     IsDesired = true,
-                    Source = DataSource.TMDB,
+                    Source = MetadataSource.TMDB,
                     CreatedAt = DateTime.UtcNow,
                     LastUpdatedAt = DateTime.UtcNow,
                 };
@@ -2026,7 +1984,7 @@ public class DatabaseFixes
                 if (anime is null || string.IsNullOrEmpty(anime.Picname))
                     continue;
 
-                guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, anime.Picname);
+                guid = IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, anime.Picname);
             }
             else if (old is { ImageSource: 1 /* abstractions tmdb */ or 4 /* old internal tmdb */})
             {
@@ -2039,26 +1997,26 @@ public class DatabaseFixes
                 continue;
             }
 
-            DataEntityType entityType;
-            DataSource entitySource;
+            MetadataEntityType entityType;
+            MetadataSource entitySource;
             int entityID;
             if (old.AnidbEpisodeID == 0 || old.AnidbEpisodeID is null)
             {
                 if (RepoFactory.AnimeSeries.GetByAnimeID(old.AnidbAnimeID) is not { } shokoSeries)
                     continue;
 
-                entityType = DataEntityType.Series;
+                entityType = MetadataEntityType.Series;
                 entityID = shokoSeries.AnimeSeriesID;
-                entitySource = DataSource.Shoko;
+                entitySource = MetadataSource.Shoko;
             }
             else
             {
                 if (RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(old.AnidbEpisodeID.Value) is not { } shokoEpisode)
                     continue;
 
-                entityType = DataEntityType.Episode;
+                entityType = MetadataEntityType.Episode;
                 entityID = shokoEpisode.AnimeEpisodeID;
-                entitySource = DataSource.Shoko;
+                entitySource = MetadataSource.Shoko;
             }
 
             var xref = new ShokoImage_Entity
@@ -2066,14 +2024,15 @@ public class DatabaseFixes
                 ImageID = guid,
                 PrimaryImageID = guid,
                 ImageType = old.ImageType,
-                ImageSource = (DataSource)old.ImageSource,
+                // Only 0 (AniDB) and 1 or 4 (TMDB) get this far.
+                ImageSource = old.ImageSource is 0 ? MetadataSource.AniDB : MetadataSource.TMDB,
                 EntitySource = entitySource,
                 EntityType = entityType,
                 EntityID = entityID.ToString(),
                 IsPreferred = true,
                 IsEnabled = true,
                 IsDesired = true,
-                Source = DataSource.User,
+                Source = MetadataSource.User,
                 CreatedAt = DateTime.UtcNow,
                 LastUpdatedAt = DateTime.UtcNow,
             };
@@ -2111,14 +2070,14 @@ public class DatabaseFixes
             }
 
             var md5Hex = Convert.ToHexString(MD5.HashData(old.AvatarImageBlob)).ToLower();
-            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.User, md5Hex);
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.User, md5Hex);
             if (RepoFactory.ShokoImage.GetByID(guid) is null)
             {
                 var image = new ShokoImage
                 {
                     ID = guid,
                     PrimaryID = guid,
-                    Source = DataSource.User,
+                    Source = MetadataSource.User,
                     ResourceID = md5Hex,
                     ContentType = metadata.ContentType ?? "image/png",
                     Width = metadata.Width > 0 ? metadata.Width : null,
@@ -2133,7 +2092,7 @@ public class DatabaseFixes
             var guidStr = guid.ToString("N");
             var contentType = metadata.ContentType ?? "image/png";
             var ext = ShokoImage.GetExtensionForMimeType(contentType);
-            var newPath = Path.Join(imagesPath, "User", guidStr[..2], guidStr + ext);
+            var newPath = Path.Join(imagesPath, MetadataSource.User.Value, guidStr[..2], guidStr + ext);
             Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
             File.WriteAllBytes(newPath, old.AvatarImageBlob);
 
@@ -2143,14 +2102,14 @@ public class DatabaseFixes
                 ImageID = guid,
                 PrimaryImageID = guid,
                 ImageType = ImageEntityType.Primary,
-                ImageSource = DataSource.User,
-                EntitySource = DataSource.Shoko,
-                EntityType = DataEntityType.User,
+                ImageSource = MetadataSource.User,
+                EntitySource = MetadataSource.Shoko,
+                EntityType = MetadataEntityType.User,
                 EntityID = old.JMMUserID.ToString(),
                 IsPreferred = true,
                 IsEnabled = true,
                 IsDesired = true,
-                Source = DataSource.Shoko,
+                Source = MetadataSource.Shoko,
                 CreatedAt = DateTime.UtcNow,
                 LastUpdatedAt = DateTime.UtcNow,
             };
@@ -2174,7 +2133,7 @@ public class DatabaseFixes
                 continue;
 
             var resourceID = anime.Picname;
-            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, resourceID);
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, resourceID);
             if (RepoFactory.ShokoImage.GetByID(guid) is null)
             {
                 var guidStr = guid.ToString("N");
@@ -2185,13 +2144,13 @@ public class DatabaseFixes
                         ? sid[..2] : anime.AnimeID.ToString(),
                     resourceID
                 );
-                var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
-                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath, imageManager);
+                var newPath = Path.Join(imagesPath, MetadataSource.AniDB.Value, guidStr[..2], guidStr);
+                MigrateImage(resourceID, MetadataSource.AniDB, oldPath, newPath, imageManager);
             }
 
             var entityID = anime.AnimeID.ToString();
             var hasXref = RepoFactory.ShokoImage_Entity.GetByImageID(guid)
-                .Any(x => x is { EntitySource: DataSource.AniDB, EntityType: DataEntityType.Anime } && x.EntityID == entityID);
+                .Any(x => x.EntitySource == MetadataSource.AniDB && x.EntityType == MetadataEntityType.Series && x.EntityID == entityID);
             if (!hasXref)
             {
                 var xref = new ShokoImage_Entity
@@ -2199,13 +2158,13 @@ public class DatabaseFixes
                     ImageID = guid,
                     PrimaryImageID = guid,
                     ImageType = ImageEntityType.Primary,
-                    ImageSource = DataSource.AniDB,
-                    EntitySource = DataSource.AniDB,
-                    EntityType = DataEntityType.Anime,
+                    ImageSource = MetadataSource.AniDB,
+                    EntitySource = MetadataSource.AniDB,
+                    EntityType = MetadataEntityType.Series,
                     EntityID = anime.AnimeID.ToString(),
                     IsEnabled = true,
                     IsDesired = true,
-                    Source = DataSource.AniDB,
+                    Source = MetadataSource.AniDB,
                     CreatedAt = DateTime.UtcNow,
                     LastUpdatedAt = DateTime.UtcNow,
                 };
@@ -2230,7 +2189,7 @@ public class DatabaseFixes
                 continue;
 
             var resourceID = creator.ImagePath;
-            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, resourceID);
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, resourceID);
             if (RepoFactory.ShokoImage.GetByID(guid) is null)
             {
                 var guidStr = guid.ToString("N");
@@ -2241,13 +2200,13 @@ public class DatabaseFixes
                         ? sid[..2] : creator.CreatorID.ToString(),
                     resourceID
                 );
-                var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
-                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath, imageManager);
+                var newPath = Path.Join(imagesPath, MetadataSource.AniDB.Value, guidStr[..2], guidStr);
+                MigrateImage(resourceID, MetadataSource.AniDB, oldPath, newPath, imageManager);
             }
 
             var entityID = creator.CreatorID.ToString();
             var hasXref = RepoFactory.ShokoImage_Entity.GetByImageID(guid)
-                .Any(x => x is { EntitySource: DataSource.AniDB, EntityType: DataEntityType.Creator } && x.EntityID == entityID);
+                .Any(x => x.EntitySource == MetadataSource.AniDB && x.EntityType == MetadataEntityType.Creator && x.EntityID == entityID);
             if (!hasXref)
             {
                 var xref = new ShokoImage_Entity
@@ -2255,13 +2214,13 @@ public class DatabaseFixes
                     ImageID = guid,
                     PrimaryImageID = guid,
                     ImageType = ImageEntityType.Primary,
-                    ImageSource = DataSource.AniDB,
-                    EntitySource = DataSource.AniDB,
-                    EntityType = DataEntityType.Creator,
+                    ImageSource = MetadataSource.AniDB,
+                    EntitySource = MetadataSource.AniDB,
+                    EntityType = MetadataEntityType.Creator,
                     EntityID = creator.CreatorID.ToString(),
                     IsEnabled = true,
                     IsDesired = settings.AniDb.DownloadCreators,
-                    Source = DataSource.AniDB,
+                    Source = MetadataSource.AniDB,
                     CreatedAt = DateTime.UtcNow,
                     LastUpdatedAt = DateTime.UtcNow,
                 };
@@ -2286,7 +2245,7 @@ public class DatabaseFixes
                 continue;
 
             var resourceID = character.ImagePath;
-            var guid = IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, resourceID);
+            var guid = IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, resourceID);
             if (RepoFactory.ShokoImage.GetByID(guid) is null)
             {
                 var guidStr = guid.ToString("N");
@@ -2296,13 +2255,13 @@ public class DatabaseFixes
                     character.CharacterID.ToString() is { Length: > 1 } sid
                         ? sid[..2] : character.CharacterID.ToString(),
                     resourceID);
-                var newPath = Path.Join(imagesPath, "AniDB", guidStr[..2], guidStr);
-                MigrateImage(resourceID, DataSource.AniDB, oldPath, newPath, imageManager);
+                var newPath = Path.Join(imagesPath, MetadataSource.AniDB.Value, guidStr[..2], guidStr);
+                MigrateImage(resourceID, MetadataSource.AniDB, oldPath, newPath, imageManager);
             }
 
             var entityID = character.CharacterID.ToString();
             var hasXref = RepoFactory.ShokoImage_Entity.GetByImageID(guid)
-                .Any(x => x is { EntitySource: DataSource.AniDB, EntityType: DataEntityType.Character } && x.EntityID == entityID);
+                .Any(x => x.EntitySource == MetadataSource.AniDB && x.EntityType == MetadataEntityType.Character && x.EntityID == entityID);
             if (!hasXref)
             {
                 var xref = new ShokoImage_Entity
@@ -2310,13 +2269,13 @@ public class DatabaseFixes
                     ImageID = guid,
                     PrimaryImageID = guid,
                     ImageType = ImageEntityType.Primary,
-                    ImageSource = DataSource.AniDB,
-                    EntitySource = DataSource.AniDB,
-                    EntityType = DataEntityType.Character,
+                    ImageSource = MetadataSource.AniDB,
+                    EntitySource = MetadataSource.AniDB,
+                    EntityType = MetadataEntityType.Character,
                     EntityID = character.CharacterID.ToString(),
                     IsEnabled = true,
                     IsDesired = settings.AniDb.DownloadCharacters,
-                    Source = DataSource.AniDB,
+                    Source = MetadataSource.AniDB,
                     CreatedAt = DateTime.UtcNow,
                     LastUpdatedAt = DateTime.UtcNow,
                 };
@@ -2366,7 +2325,7 @@ public class DatabaseFixes
         _logger.Info("Completed migration to unified images.");
     }
 
-    private static void MigrateImage(string resourceID, DataSource source, string oldPath, string newPath, ImageManager imageManager)
+    private static void MigrateImage(string resourceID, MetadataSource source, string oldPath, string newPath, ImageManager imageManager)
     {
         var guid = IImageManager.GetIDForImageSourceAndResourceID(source, resourceID);
         var oldPathExists = File.Exists(oldPath);
@@ -2376,7 +2335,7 @@ public class DatabaseFixes
         var contentType = ContentTypeHelper.UnknownMimeType;
         try
         {
-            if (imageManager.GetContentTypeFromResourceID(DataSource.TMDB, resourceID) is { Length: > 0 } eager)
+            if (imageManager.GetContentTypeFromResourceID(MetadataSource.TMDB, resourceID) is { Length: > 0 } eager)
                 contentType = eager;
         }
         catch (UnsupportedImageTypeException ex)
@@ -2459,299 +2418,375 @@ public class DatabaseFixes
         _ => ImageEntityType.None,
     };
 
-    public static void MoveImagesToExtensionPaths()
+    /// <summary>
+    /// Gives every image the ID hashed from its source's value, and moves its
+    /// file to <c>&lt;images&gt;/&lt;value&gt;/&lt;id[..2]&gt;/&lt;id&gt;&lt;ext&gt;</c>
+    /// from the old enum-named or value folder, with or without its extension.
+    /// Unknown content types are corrected first, since they pick the extension.
+    /// Every part can run again, so a run cut short is finished by the next.
+    /// </summary>
+    /// <exception cref="IOException">
+    /// Thrown before any ID is rewritten when a found file could not be moved
+    /// to its target, so the step runs again on the next start instead of
+    /// leaving the file under a name nothing points at.
+    /// </exception>
+    public static void MoveImagesToSourceValueFolders()
     {
         var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
         var imageManager = (ImageManager)ISystemService.StaticServices.GetRequiredService<IImageManager>();
-        var imagesPath = ApplicationPaths.Instance.ImagesPath;
+        var migrator = new ImageCacheMigrator(ApplicationPaths.Instance.ImagesPath);
         var images = RepoFactory.ShokoImage.GetAll();
         var str = systemService.StartupMessage ?? string.Empty;
 
-        // Correct default ContentType from ResourceIDs
-        var correctedCount = 0;
-        foreach (var image in images)
+        var sources = images.Select(image => image.Source).Concat(MetadataSource.All).Distinct().ToList();
+        var oldNames = sources.ToDictionary(source => source, ImageCacheMigrator.GetOldFolderNames);
+        var renamedCount = 0;
+        foreach (var source in sources)
         {
-            if (image.ContentType is not ContentTypeHelper.UnknownMimeType)
-                continue;
-
             try
             {
-                var contentType = imageManager.GetContentTypeFromResourceID(image.Source, image.ResourceID);
-                if (contentType is not null)
+                if (migrator.RenameOldFolder(source.Value, oldNames[source]))
+                    renamedCount++;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                _logger.Warn(ex, "Could not rename the image folder {OldName} to {Value}; moving its images one by one.", oldNames[source].FirstOrDefault(), source.Value);
+            }
+        }
+
+        _logger.Info("Renamed {Count} image folders to their source values.", renamedCount);
+
+        // The files move first, to the names of the new IDs, while the stored
+        // IDs still name the files an older version wrote.
+        var correctedCount = 0;
+        var movedCount = 0;
+        var missingCount = 0;
+        var failedCount = 0;
+        var strandedIDs = new List<string>();
+        var progress = new StartupProgress(ReportTo(systemService, str), "Moving images to their source folders", images.Count);
+        foreach (var image in images)
+        {
+            var identity = ToImageIdentity(image);
+            var id = identity.NewID.ToString("N");
+            var targetPath = (string?)null;
+            try
+            {
+                var files = migrator.FindFiles(image.Source.Value, oldNames[image.Source], ImageIdentityMigrator.GetFileIDs(identity));
+                if (image.ContentType is ContentTypeHelper.UnknownMimeType && CorrectContentType(image, files, imageManager))
                 {
-                    image.ContentType = contentType;
                     RepoFactory.ShokoImage.Save(image);
                     correctedCount++;
                 }
-            }
-            catch (UnsupportedImageTypeException ex)
-            {
-                _logger.Warn(ex, "Unsupported image type for {ResourceID}, keeping default.", image.ResourceID);
-            }
 
-            if (correctedCount % 1000 == 0 && correctedCount > 0)
-                systemService.StartupMessage = $"{str} - Correcting image content types... {correctedCount}";
-        }
-        _logger.Info("Corrected {Count} image content types from resource IDs.", correctedCount);
-        systemService.StartupMessage = $"{str} - Corrected {correctedCount} image content types.";
-
-        // Move files to extension paths
-        var migratedCount = 0;
-        foreach (var image in images)
-        {
-            var id = image.ID.ToString("N");
-            var ext = ShokoImage.GetExtensionForMimeType(image.ContentType);
-            var source = image.Source.ToString();
-            var oldPath = Path.Join(imagesPath, source, id[..2], id);
-            var newPath = Path.Join(imagesPath, source, id[..2], id + ext);
-            if (File.Exists(oldPath))
-            {
-                if (!File.Exists(newPath))
+                targetPath = migrator.GetTargetPath(image.Source.Value, id, ShokoImage.GetExtensionForMimeType(image.ContentType));
+                switch (migrator.MoveToTarget(targetPath, files))
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
-                    File.Move(oldPath, newPath, overwrite: false);
+                    case ImageMoveResult.Moved:
+                        movedCount++;
+                        break;
+                    case ImageMoveResult.Missing:
+                        missingCount++;
+                        break;
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // A file already at its target only left a duplicate behind.
+                // Anything else may be a file still under its old name.
+                if (targetPath is not null && File.Exists(targetPath))
+                {
+                    _logger.Warn(ex, "Could not remove a duplicate file of image {ImageID} ({Source}); left it where it was.", id, image.Source.Value);
                 }
                 else
                 {
-                    File.Delete(oldPath);
+                    _logger.Error(ex, "Could not move the file of image {ImageID} ({Source}) to its new name.", id, image.Source.Value);
+                    strandedIDs.Add(id);
                 }
+
+                failedCount++;
             }
 
-            migratedCount++;
-            if (migratedCount % 1000 == 0)
-                systemService.StartupMessage = $"{str} - Moving images to extension paths... {migratedCount}/{images.Count}";
+            progress.Advance();
         }
 
-        _logger.Info("Completed moving {Count} images to extension paths.", migratedCount);
-        systemService.StartupMessage = $"{str} - Completed moving {migratedCount} images to extension paths.";
+        var removedCount = 0;
+        try
+        {
+            removedCount = migrator.RemoveEmptyOldFolders(oldNames.Values.SelectMany(names => names), sources.Select(source => source.Value).ToHashSet());
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _logger.Warn(ex, "Could not remove the empty old image folders.");
+        }
+
+        _logger.Info(
+            "Moved {Moved} of {Total} images to their source folders; corrected {Corrected} content types, {Missing} images have no file, "
+            + "{Failed} could not be moved, removed {Removed} empty old folders.",
+            movedCount,
+            images.Count,
+            correctedCount,
+            missingCount,
+            failedCount,
+            removedCount
+        );
+
+        // Rewriting the IDs now would leave those files under names nothing
+        // points at, and the step would never run again to fix them.
+        if (strandedIDs.Count > 0)
+            throw new IOException(
+                $"Could not move the files of {strandedIDs.Count} images to their new names, so no image ID was rewritten. "
+                + $"Fix the permissions or locks on the image folder and restart to try again. The first images: {string.Join(", ", strandedIDs.Take(10))}"
+            );
+
+        systemService.StartupMessage = $"{str} - Rewriting image IDs from source values...";
+        RewriteImageIDs(ReportTo(systemService, str));
+        systemService.StartupMessage = $"{str} - Moved {movedCount} images to their source folders.";
     }
 
+    /// <summary>
+    /// Rewrites every stored image ID to the one hashed from its source's
+    /// value: primary IDs first, then cross-references, then the image rows,
+    /// so every reference holds a new ID before any row loses its old one.
+    /// Each part runs in one transaction, so a run cut short is finished by
+    /// the next.
+    /// </summary>
+    /// <remarks>
+    /// Later steps read images from the repository caches, so each committed
+    /// part is applied to the cached rows too.
+    /// </remarks>
+    /// <param name="report">Called with each progress message.</param>
+    private static void RewriteImageIDs(Action<string> report)
+    {
+        var images = RepoFactory.ShokoImage.GetAll();
+        var identities = images.Select(ToImageIdentity).ToList();
+        var map = ImageIdentityMigrator.BuildIDMap(identities);
+        var primaryIDs = ImageIdentityMigrator.PlanPrimaryIDs(identities, map);
+        var crossReferences = RepoFactory.ShokoImage_Entity.GetAll()
+            .Select(xref => (
+                Entity: xref,
+                ImageID: ImageIdentityMigrator.MapID(map, xref.ImageID),
+                PrimaryImageID: ImageIdentityMigrator.MapID(map, xref.PrimaryImageID)
+            ))
+            .Where(change => change.ImageID != change.Entity.ImageID || change.PrimaryImageID != change.Entity.PrimaryImageID)
+            .ToList();
+        var rowChanges = ImageIdentityMigrator.PlanRowChanges(identities);
+        if (primaryIDs.Count is 0 && crossReferences.Count is 0 && rowChanges.Count is 0)
+        {
+            _logger.Info("Rewrote image IDs from source values: every image already has its new ID.");
+            return;
+        }
+
+        var imagesByID = images.ToDictionary(image => image.ID);
+        var (renames, deletedIDs) = PlanImageRenames(identities, map, rowChanges);
+        var progress = new StartupProgress(report, "Rewriting image IDs from source values", primaryIDs.Count + crossReferences.Count + rowChanges.Count);
+        var databaseFactory = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>();
+        using var session = databaseFactory.SessionFactory.OpenStatelessSession();
+        WriteInTransaction(
+            session,
+            () => UpdateRowsByKey(
+                session,
+                "ShokoImage",
+                "ID",
+                NHibernateUtil.Guid,
+                primaryIDs,
+                change => change.ID,
+                [("PrimaryID", NHibernateUtil.Guid, change => change.PrimaryID)],
+                progress.Advance
+            )
+        );
+
+        foreach (var (id, primaryID) in primaryIDs)
+        {
+            var image = imagesByID[id];
+            image.PrimaryID = primaryID;
+            RepoFactory.ShokoImage.Cache.Update(image);
+        }
+
+        WriteInTransaction(
+            session,
+            () => UpdateRowsByKey(
+                session,
+                "ShokoImage_Entity",
+                "ID",
+                NHibernateUtil.Int32,
+                crossReferences,
+                change => change.Entity.ID,
+                [("ImageID", NHibernateUtil.Guid, change => change.ImageID), ("PrimaryImageID", NHibernateUtil.Guid, change => change.PrimaryImageID)],
+                progress.Advance
+            )
+        );
+
+        foreach (var (xref, imageID, primaryImageID) in crossReferences)
+        {
+            xref.ImageID = imageID;
+            xref.PrimaryImageID = primaryImageID;
+            RepoFactory.ShokoImage_Entity.Cache.Update(xref);
+        }
+
+        // The primary ID is set before the ID: MySQL assigns the columns in
+        // order, and the cases must still see the old ID.
+        WriteInTransaction(session, () =>
+        {
+            DeleteRowsByKey(session, "ShokoImage", "ID", NHibernateUtil.Guid, deletedIDs);
+            progress.Advance(rowChanges.Count - renames.Count);
+            UpdateRowsByKey(
+                session,
+                "ShokoImage",
+                "ID",
+                NHibernateUtil.Guid,
+                renames,
+                rename => rename.ID,
+                [("PrimaryID", NHibernateUtil.Guid, rename => rename.PrimaryID), ("ID", NHibernateUtil.Guid, rename => rename.NewID)],
+                progress.Advance
+            );
+        });
+
+        foreach (var id in deletedIDs)
+            RepoFactory.ShokoImage.Cache.Remove(imagesByID[id]);
+        foreach (var (id, newID, primaryID) in renames)
+        {
+            var image = imagesByID[id];
+            RepoFactory.ShokoImage.Cache.Remove(image);
+            image.ID = newID;
+            image.PrimaryID = primaryID;
+            RepoFactory.ShokoImage.Cache.Update(image);
+        }
+
+        _logger.Info(
+            "Rewrote image IDs from source values: {Primary} primary IDs, {CrossReferences} cross-references, {Renamed} images renamed.",
+            primaryIDs.Count,
+            crossReferences.Count,
+            rowChanges.Count
+        );
+    }
+
+    // Ends as inserting each row under its new ID would: a row already under a
+    // new ID is replaced, and of rows given the same new ID the last one wins.
+    private static (IReadOnlyList<(Guid ID, Guid NewID, Guid PrimaryID)> Renames, IReadOnlyList<Guid> DeletedIDs) PlanImageRenames(
+        IReadOnlyList<ImageIdentity> identities,
+        IReadOnlyDictionary<Guid, Guid> map,
+        IReadOnlyList<ImageIDChange> rowChanges
+    )
+    {
+        var primaryIDs = identities.ToDictionary(identity => identity.ID, identity => identity.PrimaryID);
+        var winners = rowChanges.GroupBy(change => change.NewID).Select(group => group.Last()).ToList();
+        var renamedIDs = rowChanges.Select(change => change.ID).ToHashSet();
+        var deletedIDs = rowChanges.Except(winners).Select(change => change.ID)
+            .Concat(winners.Select(change => change.NewID).Where(id => primaryIDs.ContainsKey(id) && !renamedIDs.Contains(id)))
+            .ToList();
+        var renames = winners
+            .Select(change => (
+                change.ID,
+                change.NewID,
+                PrimaryID: ImageIdentityMigrator.GetPrimaryIDAfterRename(change.ID, ImageIdentityMigrator.MapID(map, primaryIDs[change.ID]), change.NewID)
+            ))
+            .ToList();
+        return (renames, deletedIDs);
+    }
+
+    private static Action<string> ReportTo(SystemService systemService, string prefix)
+        => message => systemService.StartupMessage = $"{prefix} - {message}";
+
+    private static ImageIdentity ToImageIdentity(ShokoImage image)
+        => new(image.ID, image.PrimaryID, image.Source, image.ResourceID);
+
+    // Works out an unknown content type from the resource ID, or else from
+    // the extension of a file found for the image.
+    private static bool CorrectContentType(ShokoImage image, IReadOnlyList<string> files, ImageManager imageManager)
+    {
+        string? contentType = null;
+        try
+        {
+            contentType = imageManager.GetContentTypeFromResourceID(image.Source, image.ResourceID);
+        }
+        catch (UnsupportedImageTypeException ex)
+        {
+            _logger.Warn(ex, "Unsupported image type for {ResourceID}, keeping default.", image.ResourceID);
+        }
+
+        contentType ??= files
+            .Select(file => ContentTypeHelper.TryGetContentType(file, out var fileContentType) ? fileContentType : null)
+            .FirstOrDefault(fileContentType => fileContentType is not null && fileContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase));
+        if (contentType is null or ContentTypeHelper.UnknownMimeType)
+            return false;
+
+        image.ContentType = contentType;
+        return true;
+    }
+
+    /// <summary>
+    ///   Rewrites the image cross-references that named a video by its local
+    ///   row number to its <c>&lt;ED2K&gt;+&lt;file size&gt;</c>. A row left
+    ///   without a hash by a much older version keeps its number.
+    /// </summary>
+    public static void MoveImageCrossReferencesToEntityIDs()
+    {
+        var changed = new List<ShokoImage_Entity>();
+        foreach (var xref in RepoFactory.ShokoImage_Entity.GetByEntity(MetadataSource.Shoko, MetadataEntityType.Video))
+        {
+            if (!int.TryParse(xref.EntityID, out var videoID) || RepoFactory.VideoLocal.GetByID(videoID) is not { Hash.Length: > 0 } video)
+                continue;
+
+            xref.EntityID = $"{video.Hash}+{video.FileSize}";
+            changed.Add(xref);
+        }
+
+        if (changed.Count > 0)
+            RepoFactory.ShokoImage_Entity.Save(changed);
+        _logger.Info("Moved {Count} image cross-references to their entity's own ID.", changed.Count);
+    }
+
+    /// <summary>
+    /// Sets whether each image is available: its file exists and starts like
+    /// an image. The files are found from one listing per folder, only the
+    /// files found are opened, and the changed flags are saved in batches.
+    /// </summary>
     public static void PopulateImageAvailability()
     {
         var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
         var str = systemService.StartupMessage ?? string.Empty;
         var images = RepoFactory.ShokoImage.GetAll();
-        var scannedCount = 0;
-        var updatedCount = 0;
-        foreach (var batch in images.Chunk(20))
+        var migrator = new ImageCacheMigrator(ApplicationPaths.Instance.ImagesPath);
+        var progress = new StartupProgress(ReportTo(systemService, str), "Populating image availability flags", images.Count);
+        var paths = images.Select(image => image.LocalPath).ToList();
+        var found = Enumerable.Range(0, images.Count).Where(index => migrator.FileExists(paths[index])).ToList();
+        progress.Advance(images.Count - found.Count);
+
+        // Reading the file headers is I/O bound, so it runs in parallel.
+        var available = new bool[images.Count];
+        Parallel.ForEach(found, index =>
         {
-            // The disk check is I/O bound, so recompute the batch in parallel.
-            var changed = new ConcurrentBag<ShokoImage>();
-            Parallel.ForEach(batch, image =>
-            {
-                var wasAvailable = image.IsAvailable;
-                if (image.RefreshAvailability() != wasAvailable)
-                    changed.Add(image);
-            });
-            if (!changed.IsEmpty)
-            {
-                RepoFactory.ShokoImage.Save(changed.ToArray());
-                updatedCount += changed.Count;
-            }
+            available[index] = ImageManager.IsImageValid(paths[index]);
+            progress.Advance();
+        });
 
-            scannedCount += batch.Length;
-            if (scannedCount % 1000 == 0)
-            {
-                _logger.Info("Populating image availability flags... {Scanned}/{Total} scanned, {Updated} updated.", scannedCount, images.Count, updatedCount);
-                systemService.StartupMessage = $"{str} - Populating image availability flags... {scannedCount}/{images.Count}";
-            }
-        }
-        _logger.Info("Populated availability flag for {Updated} of {Total} images.", updatedCount, images.Count);
-        systemService.StartupMessage = $"{str} - Populated availability flag for {updatedCount} images.";
-    }
-
-    #region AniList Airing Schedules
-
-    /// <summary>
-    /// How many AniList anime are turned into schedules and airings between each write, so a large
-    /// library neither writes a row at a time nor holds every row it will ever write in memory.
-    /// </summary>
-    private const int AnilistAiringSeedBatchSize = 250;
-
-    /// <summary>
-    /// Seeds the AniList provider's airing schedules from the broadcast times already stored on the
-    /// AniList episodes, so the calendar keeps every time it had before the airing schedules existed
-    /// instead of losing them until each anime is refreshed online.
-    /// </summary>
-    /// <remarks>
-    /// The rows are built exactly as <see cref="AnilistMetadataService"/> would submit them, but are
-    /// written straight to the repositories, so no inference, events or invalidation run during
-    /// startup. Re-running is safe: a schedule or an airing whose key already exists is left as it
-    /// is. Airings the retention sweep would only remove again are skipped, and an anime left with
-    /// none of them gets no schedule at all, since an empty schedule is swept an hour later.
-    /// </remarks>
-    public static void SeedAnilistAiringSchedules()
-    {
-        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
-        var str = systemService.StartupMessage ?? string.Empty;
-        if (GetAnilistAiringScheduleProvider() is not { } info)
-            return;
-
-        var cutoff = GetAnilistAiringRetentionCutoff();
-        var animeList = RepoFactory.Anilist_Anime.GetAll();
-        var scannedCount = 0;
-        var loggedCount = 0;
-        var scheduleCount = 0;
-        var airingCount = 0;
-        systemService.StartupMessage = $"{str} - Seeding AniList airing schedules... 0/{animeList.Count}";
-        foreach (var batch in animeList.Chunk(AnilistAiringSeedBatchSize))
+        var changed = Enumerable.Range(0, images.Count)
+            .Where(index => images[index].IsAvailable != available[index])
+            .Select(index => images[index])
+            .ToList();
+        if (changed.Count > 0)
         {
-            // An airing needs its schedule's local ID, so the schedules of the
-            // whole batch are written before any airing is built.
-            var pending = new List<(AiringSchedule Schedule, IReadOnlyList<Anilist_Episode> Airings)>();
-            var newSchedules = new List<AiringSchedule>();
-            foreach (var anime in batch)
-            {
-                var episodes = RepoFactory.Anilist_Episode.GetByAnilistAnimeID(anime.AnilistAnimeID);
-                var aired = episodes
-                    .Where(episode => episode.AiredAt is { } airedAt && (cutoff is not { } window || airedAt >= window))
-                    .OrderBy(episode => episode.EpisodeNumber)
-                    .ToList();
-                if (aired.Count is 0)
-                    continue;
-
-                var (schedule, isNew) = GetOrBuildAnilistAiringSchedule(info, anime, episodes);
-                if (isNew)
-                    newSchedules.Add(schedule);
-                pending.Add((schedule, aired));
-            }
-
-            if (newSchedules.Count > 0)
-            {
-                RepoFactory.AiringSchedule.Save(newSchedules);
-                scheduleCount += newSchedules.Count;
-            }
-
-            var newAirings = new List<EpisodeAiring>();
-            foreach (var (schedule, aired) in pending)
-            {
-                var existingKeys = RepoFactory.EpisodeAiring.GetByScheduleID(schedule.AiringScheduleID)
-                    .Select(airing => airing.Key)
-                    .ToHashSet(StringComparer.Ordinal);
-                foreach (var episode in aired)
-                {
-                    var episodeID = episode.AnilistEpisodeID.ToString();
-                    var key = AiringScheduleUtility.GetDerivedAiringKey(DataSource.AniList, episodeID);
-                    if (!existingKeys.Add(key))
-                        continue;
-
-                    newAirings.Add(new EpisodeAiring()
-                    {
-                        AiringScheduleID = schedule.AiringScheduleID,
-                        Key = key,
-                        EpisodeSource = DataSource.AniList,
-                        EpisodeID = episodeID,
-                        AiredAt = episode.AiredAt,
-                        CreatedAt = AsUtc(episode.CreatedAt),
-                        LastUpdatedAt = AsUtc(episode.LastUpdatedAt),
-                    });
-                }
-            }
-
-            if (newAirings.Count > 0)
-            {
-                RepoFactory.EpisodeAiring.Save(newAirings);
-                airingCount += newAirings.Count;
-            }
-
-            scannedCount += batch.Length;
-            systemService.StartupMessage = $"{str} - Seeding AniList airing schedules... {scannedCount}/{animeList.Count}";
-            if (scannedCount - loggedCount >= 1000)
-            {
-                loggedCount = scannedCount;
-                _logger.Info("Seeding AniList airing schedules... {Scanned}/{Total} anime, {Schedules} schedules, {Airings} airings.", scannedCount, animeList.Count, scheduleCount, airingCount);
-            }
+            var databaseFactory = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>();
+            using var session = databaseFactory.SessionFactory.OpenStatelessSession();
+            WriteInTransaction(
+                session,
+                () => UpdateRowsByKey(
+                    session,
+                    "ShokoImage",
+                    "ID",
+                    NHibernateUtil.Guid,
+                    changed,
+                    image => image.ID,
+                    [("IsAvailable", NHibernateUtil.Boolean, image => !image.IsAvailable)]
+                )
+            );
+            foreach (var image in changed)
+                image.IsAvailable = !image.IsAvailable;
         }
 
-        _logger.Info("Seeded {Schedules} AniList airing schedules with {Airings} airings.", scheduleCount, airingCount);
-        systemService.StartupMessage = $"{str} - Seeded {scheduleCount} AniList airing schedules with {airingCount} airings.";
+        _logger.Info("Populated availability flag for {Updated} of {Total} images.", changed.Count, images.Count);
+        systemService.StartupMessage = $"{str} - Populated availability flag for {changed.Count} images.";
     }
-
-    /// <summary>
-    /// The registered entry for the AniList airing schedule provider, which the seeded schedules are
-    /// owned by.
-    /// </summary>
-    /// <returns>
-    /// The provider entry, or <c>null</c> when it isn't registered, in which case there is nothing to
-    /// seed for.
-    /// </returns>
-    private static AiringScheduleProviderInfo? GetAnilistAiringScheduleProvider()
-    {
-        try
-        {
-            return ISystemService.StaticServices.GetRequiredService<IAiringScheduleService>().GetProviderInfo<AnilistAiringScheduleProvider>();
-        }
-        catch (Exception ex)
-        {
-            _logger.Warn(ex, "The AniList airing schedule provider isn't registered. Skipping the airing schedule seed.");
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// The oldest slot worth seeding while automatic cleanup is on, since anything older is only
-    /// removed again by the next retention sweep.
-    /// </summary>
-    /// <returns>The cutoff in UTC, or <c>null</c> when every slot is kept.</returns>
-    private static DateTime? GetAnilistAiringRetentionCutoff()
-    {
-        var settings = ISystemService.StaticServices.GetRequiredService<ConfigurationProvider<AiringScheduleServiceSettings>>().Load();
-        if (!settings.AutoCleanup)
-            return null;
-
-        return DateTime.UtcNow.AddMonths(-Math.Max(settings.RetentionMonths, AiringScheduleServiceSettings.MinimumRetentionMonths));
-    }
-
-    /// <summary>
-    /// The AniList provider's schedule for the anime: the one already stored under its key, or a new
-    /// one shaped the way the provider would submit it.
-    /// </summary>
-    /// <param name="info">The registered entry for the AniList airing schedule provider.</param>
-    /// <param name="anime">The anime the schedule is for.</param>
-    /// <param name="episodes">Every episode stored for the anime.</param>
-    /// <returns>The schedule, and whether it still has to be written.</returns>
-    private static (AiringSchedule Schedule, bool IsNew) GetOrBuildAnilistAiringSchedule(AiringScheduleProviderInfo info, Anilist_Anime anime, IReadOnlyList<Anilist_Episode> episodes)
-    {
-        var seriesID = anime.AnilistAnimeID.ToString();
-        var scheduleID = AiringScheduleUtility.GetScheduleID(info.ID, DataSource.AniList, seriesID, string.Empty, AnilistMetadataService.AiringScheduleKey);
-        if (RepoFactory.AiringSchedule.GetByScheduleID(scheduleID) is { } existing)
-            return (existing, false);
-
-        // The coverage the provider would report: the synthesized episode count, which is the larger
-        // of what AniList reports and the highest episode it knows a slot for.
-        var episodeCount = Math.Min(
-            Math.Max(anime.EpisodeCount, episodes.Where(episode => episode.AnilistScheduleEpisodeID.HasValue).Select(episode => episode.EpisodeNumber).DefaultIfEmpty(0).Max()),
-            AnilistUtility.MaxEpisodeNumber
-        );
-        var languageCode = string.IsNullOrWhiteSpace(anime.OriginalLanguageCode) ? "unk" : anime.OriginalLanguageCode.Trim().ToLowerInvariant();
-        return (new AiringSchedule()
-        {
-            ProviderID = info.ID,
-            ProviderName = info.Name,
-            SeriesSource = DataSource.AniList,
-            SeriesID = seriesID,
-            SeasonID = string.Empty,
-            Key = AnilistMetadataService.AiringScheduleKey,
-            ChannelID = null,
-            Tracks = [new AiringTrackData(AiringKind.Original, languageCode)],
-            FirstEpisodeNumber = 1,
-            LastEpisodeNumber = anime.EpisodeCount > 0 ? episodeCount : null,
-            IsFinished = anime.ReleasingStatus is AnilistMediaStatus.Finished,
-            CreatedAt = AsUtc(anime.CreatedAt),
-            LastUpdatedAt = AsUtc(anime.LastUpdatedAt),
-        }, true);
-    }
-
-    /// <summary>
-    /// A timestamp as UTC. The AniList rows stamp themselves in local time, while every airing
-    /// timestamp is UTC, so the seeded rows are converted rather than copied.
-    /// </summary>
-    /// <param name="value">The timestamp to convert.</param>
-    /// <returns>The timestamp in UTC.</returns>
-    private static DateTime AsUtc(DateTime value)
-        => value.Kind is DateTimeKind.Utc ? value : value.ToUniversalTime();
-
-    #endregion
 
     private class DNF_UserAvatarMetadata
     {

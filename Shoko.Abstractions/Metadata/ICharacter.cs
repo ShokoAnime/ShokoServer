@@ -7,7 +7,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Character.
 /// </summary>
-public interface ICharacter : IMetadata<int>, IWithDescriptions, IWithPrimaryImage, IWithUpdateDate
+public interface ICharacter : IMetadata, IWithOverviews, IWithPrimaryImage, IWithUpdateDate, IWithResources
 {
     /// <summary>
     /// Casted role name.
@@ -24,6 +24,23 @@ public interface ICharacter : IMetadata<int>, IWithDescriptions, IWithPrimaryIma
     /// The type of character.
     /// </summary>
     CharacterType Type { get; }
+
+    /// <summary>
+    ///   Other names the character is known by, each with its language when
+    ///   known.
+    /// </summary>
+    IReadOnlyList<ITitle> AlternativeNames { get; }
+
+    /// <summary>
+    ///   The character's gender, when the source gives one.
+    /// </summary>
+    PersonGender Gender { get; }
+
+    /// <summary>
+    ///   The character's birthday. Any part of it may be unknown, so it may be
+    ///   only a year, or only a month and a day.
+    /// </summary>
+    FuzzyDateOnly? BirthDay { get; }
 
     /// <summary>
     /// All episode cast roles with the character.

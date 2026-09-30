@@ -47,6 +47,13 @@ public class Title
     [Required]
     public string Source { get; init; }
 
+    /// <summary>
+    /// Set when the title was made up for an episode with no title of its
+    /// own, rather than given by a source. Left out otherwise.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public bool? Synthesized { get; init; }
+
     public Title(ITitle title, string? mainTitle = null, string? preferredTitle = null)
     {
         Name = title.Value;

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 
 namespace Shoko.Abstractions.Metadata.Tmdb;
 
@@ -10,9 +9,22 @@ namespace Shoko.Abstractions.Metadata.Tmdb;
 public interface ITmdbMovie : IMovie, IWithCreationDate, IWithUpdateDate
 {
     /// <summary>
-    /// Gets the TMDB collection ID.
+    ///   The TMDB movie ID, the same ID <see cref="IMetadata.ID"/> holds as
+    ///   text.
     /// </summary>
-    string? CollectionID { get; }
+    int TmdbID { get; }
+
+    /// <summary>
+    ///   The TMDB collection the movie is part of, or <c>null</c> when it is
+    ///   part of none.
+    /// </summary>
+    MetadataGuid? CollectionID { get; }
+
+    /// <summary>
+    ///   The TMDB collection ID, the same ID <see cref="CollectionID"/> holds
+    ///   as text, or <c>null</c> when the movie is part of no collection.
+    /// </summary>
+    int? TmdbCollectionID { get; }
 
     /// <summary>
     /// Linked Imdb movie ID.
@@ -26,7 +38,9 @@ public interface ITmdbMovie : IMovie, IWithCreationDate, IWithUpdateDate
     /// <summary>
     /// The original language the TMDB movie was shot in.
     /// </summary>
-    string OriginalLanguageCode { get; }
+    new string OriginalLanguageCode { get; }
+
+    string? IMovie.OriginalLanguageCode { get => OriginalLanguageCode; }
 
     /// <summary>
     /// ISO-3166 alpha-2 country codes.
@@ -47,11 +61,6 @@ public interface ITmdbMovie : IMovie, IWithCreationDate, IWithUpdateDate
     /// Gets the TMDB collection.
     /// </summary>
     ITmdbCollection? Collection { get; }
-
-    /// <summary>
-    /// All Shoko episode ↔ TMDB movie cross references linked to the TMDB movie.
-    /// </summary>
-    IReadOnlyList<ITmdbMovieCrossReference> TmdbMovieCrossReferences { get; }
 
     /// <summary>
     /// The movies TMDB suggests to someone looking at this one, its

@@ -225,8 +225,8 @@ public class YearlySeasonsTests
         // 2011 and 2012 are fully spanned, so all 4 seasons of each must be present.
         // (YearlySeason.Autumn is excluded here as it's just an alias for Fall with the same underlying value.)
         foreach (var year in new[] { 2011, 2012 })
-        foreach (var season in new[] { YearlySeason.Winter, YearlySeason.Spring, YearlySeason.Summer, YearlySeason.Fall })
-            Assert.Contains((year, season), seasons);
+            foreach (var season in new[] { YearlySeason.Winter, YearlySeason.Spring, YearlySeason.Summer, YearlySeason.Fall })
+                Assert.Contains((year, season), seasons);
     }
 
     private static AniDB_Anime MakeAnime(PartialDateOnly? airDate, PartialDateOnly? endDate, AnimeType animeType = AnimeType.TV)

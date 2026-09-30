@@ -17,7 +17,7 @@ public class AniDB_Cast : ICast
 
     private readonly AniDB_Character _character;
 
-    private readonly Func<IMetadata<int>?> _getParent;
+    private readonly Func<IMetadata?> _getParent;
 
     public string ID => $"{_xref.AnimeID}-{_xref.CharacterID}-{CreatorID}";
 
@@ -26,6 +26,8 @@ public class AniDB_Cast : ICast
     public int CharacterID => _character.CharacterID;
 
     public int ParentID => _xref.AnimeID;
+
+    MetadataGuid ICast.ParentID => new(MetadataSource.AniDB, MetadataEntityType.Series, ParentID.ToString());
 
     public string Name => _character.Name;
 
@@ -41,7 +43,7 @@ public class AniDB_Cast : ICast
 
     public string LanguageCode => Language.GetString();
 
-    public IMetadata<int>? Parent => _getParent();
+    public IMetadata? Parent => _getParent();
 
     public AniDB_Character Character => _character;
 
@@ -53,7 +55,7 @@ public class AniDB_Cast : ICast
 
     #region Constructors
 
-    public AniDB_Cast(AniDB_Anime_Character xref, AniDB_Character character, int? creatorID, Func<IMetadata<int>?> getParent)
+    public AniDB_Cast(AniDB_Anime_Character xref, AniDB_Character character, int? creatorID, Func<IMetadata?> getParent)
     {
         _xref = xref;
         _character = character;
@@ -63,26 +65,26 @@ public class AniDB_Cast : ICast
 
     #endregion
 
-    #region IMetadata Implementation
-
-    DataSource IMetadata.Source => DataSource.AniDB;
-
-    #endregion
-
     #region ICast Implementation
 
-    int? ICast.CharacterID => CharacterID;
+    MetadataSource ICast.Source => MetadataSource.AniDB;
+
+    MetadataGuid? ICast.CreatorID => CreatorID is { } creatorID ? new(MetadataSource.AniDB, MetadataEntityType.Creator, creatorID.ToString()) : null;
+
+    MetadataGuid? ICast.CharacterID => new(MetadataSource.AniDB, MetadataEntityType.Character, CharacterID.ToString());
 
     ICharacter? ICast.Character => _character;
 
     ICreator? ICast.Creator => Creator;
 
+    string? ICast.DubGroup => null;
+
     #endregion
 }
 
-public class AniDB_Cast<TMetadata> : AniDB_Cast, ICast<TMetadata> where TMetadata : IMetadata<int>
+public class AniDB_Cast<TMetadata> : AniDB_Cast, ICast<TMetadata> where TMetadata : IMetadata
 {
-    public AniDB_Cast(AniDB_Anime_Character xref, AniDB_Character character, int? creatorID, Func<IMetadata<int>?> getParent) : base(xref, character, creatorID, getParent) { }
+    public AniDB_Cast(AniDB_Anime_Character xref, AniDB_Character character, int? creatorID, Func<IMetadata?> getParent) : base(xref, character, creatorID, getParent) { }
 
     public TMetadata? ParentOfType => (TMetadata?)Parent;
 }

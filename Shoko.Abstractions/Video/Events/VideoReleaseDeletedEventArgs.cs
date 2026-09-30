@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video.Release;
 
 namespace Shoko.Abstractions.Video.Events;
@@ -24,4 +25,11 @@ public class VideoReleaseDeletedEventArgs : EventArgs
     /// The new release information replacing the deleted one, if any.
     /// </summary>
     public required IReleaseInfo? NewReleaseInfo { get; init; }
+
+    /// <summary>
+    ///   The API token of whoever caused the release to be deleted, or
+    ///   <see langword="null"/> when the system did it. Stamped when the event is
+    ///   raised.
+    /// </summary>
+    public ApiToken? Actor { get; init; }
 }

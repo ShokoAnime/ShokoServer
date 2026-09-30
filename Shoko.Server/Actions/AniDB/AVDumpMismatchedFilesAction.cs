@@ -1,8 +1,10 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.ScheduledActions;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -19,7 +21,7 @@ public sealed class AVDumpMismatchedFilesAction(
     ISettingsProvider settingsProvider,
     VideoLocalRepository videoLocals,
     ILogger<AVDumpMismatchedFilesAction> logger
-) : IExecutableAction
+) : IScheduledAction
 {
     public string Name => "AVDump Mismatched Files";
 
@@ -27,14 +29,12 @@ public sealed class AVDumpMismatchedFilesAction(
 
     public ActionCategory Category => ActionCategory.AniDB;
 
-    public ActionPermission Permission => ActionPermission.Admin;
-
-    public Task<ActionValidationResult?> Validate(CancellationToken token = default)
+    public Task<ActionValidationResult?> Validate(CancellationToken token)
         => Task.FromResult(string.IsNullOrWhiteSpace(settingsProvider.GetSettings().AniDb.AVDumpKey)
             ? new ActionValidationResult("Missing AVDump API key. Set it in the settings first.")
             : null);
 
-    public async Task Execute(CancellationToken token = default)
+    public async Task Execute(IProgress<decimal> progress, CancellationToken token)
     {
         var mismatchedFiles = videoLocals.GetAll()
             .Where(file => !file.IsEmpty() && file.MediaInfo != null)

@@ -25,13 +25,16 @@ public class ImageStub(IImage image, IImageCrossReference? xref = null, bool lin
     ///   The cross-reference to wrap.
     /// </param>
     /// <param name="linkedXref">
-    ///   Whether the cross-reference is linked.
+    ///   Whether the cross-reference belongs to a linked entry rather than to
+    ///   the entity the image is read for. Such an image is never preferred
+    ///   for the entity, its preferred status being the linked entry's.
     /// </param>
     /// <param name="type">
     ///   The image type.
     /// </param>
     /// <param name="isPreferred">
-    ///   Whether the image is preferred.
+    ///   Whether the image is preferred, overriding what the cross-reference
+    ///   says, or <see langword="null"/> to read it from there.
     /// </param>
     /// <returns>
     ///   A new instance of the <see cref="ImageStub"/> class.
@@ -62,7 +65,7 @@ public class ImageStub(IImage image, IImageCrossReference? xref = null, bool lin
     public string ResourceID => image.ResourceID;
 
     /// <inheritdoc />
-    public DataSource Source => image.Source;
+    public MetadataSource Source => image.Source;
 
     /// <summary>
     ///   The wrapped image.
@@ -88,7 +91,7 @@ public class ImageStub(IImage image, IImageCrossReference? xref = null, bool lin
     public bool IsPreferred => isPreferred ?? (!linkedXref && (xref?.IsPreferred ?? image.IsPreferred));
 
     /// <inheritdoc />
-    public bool IsLocked => image.Source is not DataSource.User;
+    public bool IsLocked => image.Source != MetadataSource.User;
 
     /// <inheritdoc />
     public bool IsAvailable => image.IsAvailable;
@@ -136,9 +139,9 @@ public class ImageStub(IImage image, IImageCrossReference? xref = null, bool lin
     /// <inheritdoc />
     public IReadOnlyList<IImageCrossReference> GetCrossReferences(
         ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
-        DataSource? entitySource = null,
-        DataEntityType? entityType = null,
+        MetadataSource? xrefSource = null,
+        MetadataSource? entitySource = null,
+        MetadataEntityType? entityType = null,
         bool? isEnabled = null,
         bool? isDesired = null,
         bool? isAvailable = null,

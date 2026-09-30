@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Media;
+using Shoko.Server.API.Converters;
+using Shoko.Server.API.v3.Models.Common;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
 
@@ -491,15 +494,21 @@ public class MediaInfo
     public class ChapterInfo
     {
         /// <summary>
-        /// Chapter title.
+        /// Chapter title, in the preferred language when the file has one.
         /// </summary>
         public string Title { get; }
 
         /// <summary>
-        /// Chapter title language, if specified.
+        /// Language of <see cref="Title"/>, or <see cref="TitleLanguage.None"/>
+        /// when the file does not say.
         /// </summary>
         [JsonConverter(typeof(StringEnumConverter))]
         public TitleLanguage Language { get; }
+
+        /// <summary>
+        /// Every title of the chapter, one per language the file names it in.
+        /// </summary>
+        public IReadOnlyList<Title> Titles { get; }
 
         /// <summary>
         /// Chapter timestamp.
@@ -508,8 +517,23 @@ public class MediaInfo
 
         public ChapterInfo(IChapterInfo info)
         {
-            Title = info.Title;
-            Language = info.Language;
+            var preferred = info.PreferredTitle;
+            var shown = preferred ?? info.DefaultTitle;
+            Title = shown.Value;
+            // A title the file gave no language is "unk", and was reported as none.
+            Language = shown.LanguageCode is "unk" ? TitleLanguage.None : shown.Language;
+            Titles = info.Titles
+                .Select(title => new Title(title, null, (ITitle?)null)
+                {
+                    Type = title.Type,
+                    Default = ITitle.Equals(title, info.DefaultTitle),
+                    Preferred = ITitle.Equals(title, preferred),
+                    Source = LegacyMetadataSpellings.Of(title.Source),
+                })
+                .OrderByDescending(title => title.Preferred)
+                .ThenByDescending(title => title.Default)
+                .ThenBy(title => title.Language)
+                .ToList();
             Timestamp = info.Timestamp;
         }
     }

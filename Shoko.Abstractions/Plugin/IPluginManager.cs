@@ -153,6 +153,20 @@ public interface IPluginManager
     event EventHandler<PluginInstallationEventArgs>? PluginUninstalled;
 
     /// <summary>
+    ///   Dispatched when <see cref="EnablePlugin"/> enabled a plugin that was
+    ///   not enabled before. Only raised when the state changed.
+    /// </summary>
+    event EventHandler<PluginToggledEventArgs>? PluginEnabled;
+
+    /// <summary>
+    ///   Dispatched when <see cref="DisablePlugin"/> disabled a plugin that was
+    ///   enabled before, and for every other version of a plugin that
+    ///   <see cref="EnablePlugin"/> disabled to enable the one asked for, ahead
+    ///   of its <see cref="PluginEnabled"/>. Only raised when the state changed.
+    /// </summary>
+    event EventHandler<PluginToggledEventArgs>? PluginDisabled;
+
+    /// <summary>
     ///   Loads a new plugin info from the given path.
     /// </summary>
     /// <remarks>
@@ -228,6 +242,13 @@ public interface IPluginManager
     /// <param name="purgeConfiguration">
     ///   Whether to purge the plugin's configuration.
     /// </param>
+    /// <param name="purgeData">
+    ///   Whether to also remove the plugin's databases and cache, the folders
+    ///   <see cref="PluginPaths{TPlugin}.DatabasePath"/> and
+    ///   <see cref="PluginPaths{TPlugin}.CachePath"/>, along with its
+    ///   configuration. They are removed on the next start, and only when no
+    ///   other installed version of the plugin is left to use them.
+    /// </param>
     /// <exception cref="IOException">
     ///   Thrown if the plugin failed to remove the plugin's files from the
     ///   filesystem.
@@ -235,7 +256,7 @@ public interface IPluginManager
     /// <returns>
     ///   The updated <see cref="LocalPluginInfo"/> for the plugin.
     /// </returns>
-    LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = false);
+    LocalPluginInfo UninstallPlugin(LocalPluginInfo pluginInfo, bool purgeConfiguration = false, bool purgeData = false);
 
     #endregion
 
@@ -243,6 +264,7 @@ public interface IPluginManager
 
     /// <summary>
     ///   Gets all types assignable to <typeparamref name="T"/> from across all plugins.
+    ///   Only closed, non-abstract classes are included.
     /// </summary>
     /// <typeparam name="T">
     ///   The type to check for.
@@ -254,6 +276,7 @@ public interface IPluginManager
 
     /// <summary>
     ///   Gets all types assignable to <typeparamref name="T"/> from a specific plugin.
+    ///   Only closed, non-abstract classes are included.
     /// </summary>
     /// <typeparam name="T">
     ///   The type to check for.
@@ -284,6 +307,7 @@ public interface IPluginManager
     /// <summary>
     ///   Gets all registered services or newly created instances of types which
     ///   is assignable to <typeparamref name="T"/> from across all plugins.
+    ///   Abstract classes and open generic types are skipped.
     /// </summary>
     /// <typeparam name="T">
     ///   The type to check for.
@@ -296,6 +320,7 @@ public interface IPluginManager
     /// <summary>
     ///   Gets all registered services or newly created instances of types which
     ///   is assignable to <typeparamref name="T"/> from the specified plugin.
+    ///   Abstract classes and open generic types are skipped.
     /// </summary>
     /// <typeparam name="T">
     ///   The type to check for.

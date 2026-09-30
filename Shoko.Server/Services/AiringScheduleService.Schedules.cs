@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
@@ -28,11 +27,11 @@ public partial class AiringScheduleService
         var tracks = NormalizeTracks(info, data.Tracks, nameof(data));
         var channelID = ResolveChannelID(data.ChannelID, nameof(data));
         ValidateCoverage(data.FirstEpisodeNumber, data.LastEpisodeNumber, nameof(data));
-        if (data.Season is { } season && (season.Source != data.Series.Source || season.SeriesID != data.Series.ID))
+        if (data.Season is { } season && season.SeriesID != data.Series.ID)
             throw new ArgumentException("The season does not belong to the series.", nameof(data));
 
         var seriesKey = GetEntityKey(data.Series);
-        var seasonID = data.Season?.ID ?? string.Empty;
+        var seasonID = data.Season?.ID.ID ?? string.Empty;
         var key = string.IsNullOrWhiteSpace(data.Key) ? AiringScheduleUtility.GetDerivedScheduleKey(channelID, tracks) : data.Key.Trim();
         var timeZoneID = NormalizeTimeZone(data.TimeZone);
         var scheduleID = AiringScheduleUtility.GetScheduleID(info.ID, seriesKey.Source, seriesKey.ID, seasonID, key);
@@ -201,7 +200,7 @@ public partial class AiringScheduleService
         var context = new AiringReadContext(this, options.IncludeDisabled);
         var anchor = ResolveAnchor(options.EntityAnchor, season, season is IShokoSeason || season.Series is IShokoSeries or { ShokoSeries.Count: > 0 });
         var rows = RepoFactory.AiringSchedule
-            .GetBySeriesIDAndSeasonID(season.Source, season.SeriesID.ToString(), season.ID)
+            .GetBySeriesIDAndSeasonID(season.Source, season.SeriesID.ID, season.ID.ID)
             .ToList();
         if (options.LinkedEntitySchedules ?? season is IShokoSeason)
             foreach (var shokoSeason in season is IShokoSeason own ? [own] : season.Series?.ShokoSeries.SelectMany(s => s.Seasons).OfType<IShokoSeason>() ?? [])
@@ -243,10 +242,10 @@ public partial class AiringScheduleService
     /// <param name="shokoSeries">The shoko series the read is for.</param>
     /// <param name="ownKey">The key of the entity the read started from, which is never walked twice.</param>
     /// <returns>The schedules that belong through a link.</returns>
-    private IEnumerable<AiringSchedule> GetLinkedSeriesSchedules(IShokoSeries shokoSeries, (DataSource Source, string ID) ownKey)
+    private IEnumerable<AiringSchedule> GetLinkedSeriesSchedules(IShokoSeries shokoSeries, (MetadataSource Source, string ID) ownKey)
     {
-        var seen = new HashSet<(DataSource, string)> { ownKey };
-        var linkedSeries = new List<(DataSource Source, string ID)>();
+        var seen = new HashSet<(MetadataSource, string)> { ownKey };
+        var linkedSeries = new List<(MetadataSource Source, string ID)>();
         void AddSeries(ISeries series)
         {
             var key = GetEntityKey(series);
@@ -256,8 +255,6 @@ public partial class AiringScheduleService
 
         AddSeries(shokoSeries);
         foreach (var series in shokoSeries.LinkedSeries)
-            AddSeries(series);
-        foreach (var series in GetResolverLinks<ISeries>(shokoSeries))
             AddSeries(series);
 
         var episodeKeys = shokoSeries.Episodes
@@ -297,19 +294,19 @@ public partial class AiringScheduleService
         var episodeKeys = shokoSeason.Episodes
             .SelectMany(episode => episode.LinkedEpisodes.Select(GetEntityKey).Prepend(GetEntityKey(episode)))
             .ToHashSet();
-        var seen = new HashSet<(DataSource, string)> { ownKey };
-        foreach (var season in shokoSeason.LinkedSeasons.Prepend(shokoSeason).Concat(GetResolverLinks<ISeason>(shokoSeason)))
+        var seen = new HashSet<(MetadataSource, string)> { ownKey };
+        foreach (var season in shokoSeason.LinkedSeasons.Prepend(shokoSeason))
         {
             var key = GetEntityKey(season);
             if (!seen.Add(key))
                 continue;
 
-            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesIDAndSeasonID(season.Source, season.SeriesID.ToString(), season.ID))
+            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesIDAndSeasonID(season.Source, season.SeriesID.ID, season.ID.ID))
                 yield return row;
 
             // A series-level schedule of the linked entity still belongs to this
             // season when its airings land on the season's own episodes.
-            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesIDAndSeasonID(season.Source, season.SeriesID.ToString(), null))
+            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesIDAndSeasonID(season.Source, season.SeriesID.ID, null))
                 if (RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID)
                     .Any(airing => episodeKeys.Contains((airing.EpisodeSource, airing.EpisodeID))))
                     yield return row;
@@ -456,49 +453,24 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="series">The series.</param>
     /// <returns>The source and ID it is stored under.</returns>
-    internal static (DataSource Source, string ID) GetEntityKey(ISeries series)
-        => (series.Source, series.ID.ToString());
+    internal static (MetadataSource Source, string ID) GetEntityKey(ISeries series)
+        => (series.Source, series.ID.ID);
 
     /// <summary>
     /// The stored key of a season.
     /// </summary>
     /// <param name="season">The season.</param>
     /// <returns>The source and ID it is stored under.</returns>
-    internal static (DataSource Source, string ID) GetEntityKey(ISeason season)
-        => (season.Source, season.ID);
+    internal static (MetadataSource Source, string ID) GetEntityKey(ISeason season)
+        => (season.Source, season.ID.ID);
 
     /// <summary>
     /// The stored key of an episode.
     /// </summary>
     /// <param name="episode">The episode.</param>
     /// <returns>The source and ID it is stored under.</returns>
-    internal static (DataSource Source, string ID) GetEntityKey(IEpisode episode)
-        => (episode.Source, episode.ID.ToString());
-
-    /// <summary>
-    /// The entities a plugin resolver links to a shoko entity, without letting
-    /// a resolver that throws take the read with it.
-    /// </summary>
-    /// <typeparam name="TEntity">The kind of entity wanted.</typeparam>
-    /// <param name="shokoEntity">The shoko entity to follow links from.</param>
-    /// <returns>The linked entities of that kind.</returns>
-    private List<TEntity> GetResolverLinks<TEntity>(IMetadata shokoEntity) where TEntity : class, IMetadata
-    {
-        var entities = new List<TEntity>();
-        foreach (var resolver in _resolvers)
-        {
-            try
-            {
-                entities.AddRange(resolver.GetLinkedEntities(shokoEntity).OfType<TEntity>());
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Entity resolver {Resolver} threw while following links.", resolver.Name);
-            }
-        }
-
-        return entities;
-    }
+    internal static (MetadataSource Source, string ID) GetEntityKey(IEpisode episode)
+        => (episode.Source, episode.ID.ID);
 
     #endregion
 }

@@ -65,7 +65,7 @@ public class ReleaseAutoManagementService(
         }
 
         // If the VideoLocal record is gone, auto-management deleted the incoming file.
-        return videoLocals.GetByID(video.ID) is null;
+        return videoLocals.GetByID(video.LocalID) is null;
     }
 
     /// <summary>

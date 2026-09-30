@@ -13,7 +13,16 @@ public static class TestData
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
         using var reader = new StreamReader(stream!);
         var jsonString = reader.ReadToEnd();
-        return JsonConvert.DeserializeObject<AniDB_Anime[]>(jsonString, new PartialDateOnlyConverter())!;
+        return JsonConvert.DeserializeObject<AniDB_Anime[]>(jsonString)!;
+    });
+
+    public static Lazy<IReadOnlyList<RegularAirDateCase>> AnidbRegularAirDates { get; } = new(() =>
+    {
+        const string ResourceName = "Shoko.TestData.AnidbRegularAirDates.json";
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
+        using var reader = new StreamReader(stream!);
+        var jsonString = reader.ReadToEnd();
+        return JsonConvert.DeserializeObject<RegularAirDateCase[]>(jsonString)!;
     });
 
     public static Lazy<IEnumerable<CrossRef_File_Episode>> CrossRef_File_Episode { get; } = new(() =>
@@ -22,6 +31,6 @@ public static class TestData
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
         using var reader = new StreamReader(stream!);
         var jsonString = reader.ReadToEnd();
-        return JsonConvert.DeserializeObject<CrossRef_File_Episode[]>(jsonString, new PartialDateOnlyConverter())!;
+        return JsonConvert.DeserializeObject<CrossRef_File_Episode[]>(jsonString)!;
     });
 }

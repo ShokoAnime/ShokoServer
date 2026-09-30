@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
 
@@ -13,7 +14,7 @@ public class SeriesInfoUpdatedEventSignalRModel
     {
         Source = eventArgs.SeriesInfo.Source;
         Reason = eventArgs.Reason;
-        SeriesID = eventArgs.SeriesInfo.ID;
+        SeriesID = eventArgs.SeriesInfo.ID.ID;
         ShokoSeriesIDs = eventArgs.SeriesInfo.ShokoSeriesIDs;
         Episodes = eventArgs.Episodes.Select(e => new SeriesInfoUpdatedEventEpisodeDetailsSignalRModel(e)).ToList();
     }
@@ -21,8 +22,7 @@ public class SeriesInfoUpdatedEventSignalRModel
     /// <summary>
     /// The provider metadata source.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
-    public DataSource Source { get; }
+    public MetadataSource Source { get; }
 
     /// <summary>
     /// The update reason.
@@ -33,7 +33,7 @@ public class SeriesInfoUpdatedEventSignalRModel
     /// <summary>
     /// The provided metadata series id.
     /// </summary>
-    public int SeriesID { get; }
+    public string SeriesID { get; }
 
     /// <summary>
     /// Shoko series ids affected by this update.
@@ -56,7 +56,7 @@ public class SeriesInfoUpdatedEventSignalRModel
         /// <summary>
         /// The provided metadata episode id.
         /// </summary>
-        public int EpisodeID { get; }
+        public string EpisodeID { get; }
 
         /// <summary>
         /// Shoko episode ids affected by this update.
@@ -66,7 +66,7 @@ public class SeriesInfoUpdatedEventSignalRModel
         public SeriesInfoUpdatedEventEpisodeDetailsSignalRModel(EpisodeInfoUpdatedEventArgs eventArgs)
         {
             Reason = eventArgs.Reason;
-            EpisodeID = eventArgs.EpisodeInfo.ID;
+            EpisodeID = eventArgs.EpisodeInfo.ID.ID;
             ShokoEpisodeIDs = eventArgs.EpisodeInfo.ShokoEpisodeIDs;
         }
     }

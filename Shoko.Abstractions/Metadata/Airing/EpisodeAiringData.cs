@@ -41,4 +41,11 @@ public sealed record EpisodeAiringData
     ///   lets the service infer it.
     /// </summary>
     public bool? IsDelayed { get; init; }
+
+    /// <summary>
+    ///   Optional. What kind of showing the airing is. An advance screening or
+    ///   a rerun of an episode that also has its regular showing on the same
+    ///   schedule needs a <see cref="Key"/> of its own.
+    /// </summary>
+    public EpisodeAiringKind Kind { get; init; } = EpisodeAiringKind.Normal;
 }

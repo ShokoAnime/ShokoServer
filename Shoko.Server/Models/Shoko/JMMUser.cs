@@ -8,7 +8,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Server.Extensions;
@@ -193,13 +192,10 @@ public class JMMUser : IIdentity, IUser
     #region IMetadata Implementation
 
     [NotMapped]
-    DataEntityType IMetadata.EntityType => DataEntityType.User;
+    MetadataGuid IMetadata.ID => new(MetadataSource.Shoko, MetadataEntityType.User, JMMUserID.ToString());
 
     [NotMapped]
-    DataSource IMetadata.Source => DataSource.Shoko;
-
-    [NotMapped]
-    int IMetadata<int>.ID => JMMUserID;
+    int IUser.LocalID => JMMUserID;
 
     #endregion
 

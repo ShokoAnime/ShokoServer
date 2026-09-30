@@ -1175,21 +1175,8 @@ public partial class PluginPackageManager(
         if (!settings.Plugins.Updates.IsAutoSyncEnabled && !shouldForceSync)
             return;
 
-        // Check frequency setting (skip schedule check if forcing)
-        if (!shouldForceSync)
-        {
-            if (settings.Plugins.Updates.AutoUpdateFrequency is ScheduledUpdateFrequency.Never)
-                return;
-
-            var schedule = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.PluginUpdates);
-            if (schedule != null)
-            {
-                var freqHours = settings.Plugins.Updates.AutoUpdateFrequency.Hours;
-                var tsLastRun = DateTime.Now - schedule.LastUpdate;
-                if (tsLastRun.TotalHours < freqHours)
-                    return;
-            }
-        }
+        // How often this runs on its own is up to the triggers of the action
+        // that queues it, and each repository is only synced once it is stale.
 
         // Update schedule tracking
         var scheduleRecord = RepoFactory.ScheduledUpdate.GetByUpdateType((int)ScheduledUpdateType.PluginUpdates)

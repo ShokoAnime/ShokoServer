@@ -1,6 +1,6 @@
-﻿using FluentNHibernate.Mapping;
+using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Server;
 
 namespace Shoko.Server.Mappings;
 
@@ -25,9 +25,9 @@ public class AnimeSeriesMap : ClassMap<AnimeSeries>
         Map(x => x.MissingEpisodeCountGroups).Not.Nullable();
         Map(x => x.HiddenMissingEpisodeCount).Not.Nullable();
         Map(x => x.HiddenMissingEpisodeCountGroups).Not.Nullable();
-        Map(x => x.SeriesNameOverride);
         Map(x => x.AirsOn);
         Map(x => x.UpdatedAt).Not.Nullable();
-        Map(x => x.DisableAutoMatchFlags).Not.Nullable().CustomType<DisabledAutoMatchFlag>();
+        Map(x => x.DisabledAutoMatchSources);
+        Map(x => x.PreferredOrderingID).CustomType<MetadataGuidType>().Nullable();
     }
 }

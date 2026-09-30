@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
@@ -1003,7 +1004,7 @@ public class AiringScheduleController(
     {
         var anidbAnimeID = series is IShokoSeries shokoSeries
             ? shokoSeries.AnidbAnimeID
-            : series.Source is DataSource.AniDB ? series.ID : (int?)null;
+            : series is IAnidbAnime anidbSeries ? anidbSeries.AnidbID : (int?)null;
         var anidbAnime = anidbAnimeID is { } animeID ? anidbAnimes.GetByAnimeID(animeID) : null;
         var localSeries = anidbAnimeID is { } seriesAnimeID ? animeSeries.GetByAnimeID(seriesAnimeID) : null;
         return new AiringSeriesInfo
@@ -1053,11 +1054,11 @@ public class AiringScheduleController(
     /// <param name="controller">The controller running the read.</param>
     private sealed class AiringReadCache(AiringScheduleController controller)
     {
-        private readonly Dictionary<(DataSource Source, int ID), AiringSeriesInfo> _series = [];
+        private readonly Dictionary<MetadataGuid, AiringSeriesInfo> _series = [];
 
-        private readonly Dictionary<(DataSource Source, int ID), AiringSeries> _seriesDtos = [];
+        private readonly Dictionary<MetadataGuid, AiringSeries> _seriesDtos = [];
 
-        private readonly Dictionary<(DataSource Source, int ID), Image?> _posters = [];
+        private readonly Dictionary<MetadataGuid, Image?> _posters = [];
 
         private static readonly AiringSeriesInfo _unknownSeries = new();
 
@@ -1071,7 +1072,7 @@ public class AiringScheduleController(
             if (GetSeriesFor(airing) is not { } series)
                 return _unknownSeries;
 
-            var key = (series.Source, series.ID);
+            var key = series.ID;
             if (_series.TryGetValue(key, out var info))
                 return info;
 
@@ -1122,7 +1123,7 @@ public class AiringScheduleController(
             if (series.Series is not { } entity)
                 return null;
 
-            var key = (entity.Source, entity.ID);
+            var key = entity.ID;
             if (_seriesDtos.TryGetValue(key, out var dto))
                 return dto;
 
@@ -1141,7 +1142,7 @@ public class AiringScheduleController(
             if (series.Series is not { } entity)
                 return null;
 
-            var key = (entity.Source, entity.ID);
+            var key = entity.ID;
             if (_posters.TryGetValue(key, out var poster))
                 return poster;
 

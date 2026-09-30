@@ -81,7 +81,6 @@ public class SortingSelectorTests
         { "AddedDateSortingSelector", "filterable", "AddedDate", "" },
         { "AirDateSortingSelector", "filterable", "AirDate", "ToDateTime" },
         { "AnidbSuggestionCountSortingSelector", "filterable", "AnidbSuggestions", "" },
-        { "AnilistSuggestionCountSortingSelector", "filterable", "AnilistSuggestions", "" },
         { "AudioLanguageCountSortingSelector", "filterable", "AudioLanguages.Count", "" },
         { "AverageAniDBRatingSortingSelector", "filterable", "AverageAniDBRating", "" },
         { "BluRaySourceCountSortingSelector", "filterable", "FileSourceCounts.BluRay", "" },
@@ -166,8 +165,8 @@ public class SortingSelectorTests
         // comparable", which any non-null return satisfies.
         var tabled = SelectorProperties().Select(row => row.Data.Item1).ToHashSet(StringComparer.Ordinal);
         var missing = s_selectorTypes.Select(t => t.Name)
-            // Not a plain property read; its scoring is exercised separately.
-            .Except(["FuzzyNameRelevanceSortingSelector"], StringComparer.Ordinal)
+            // Neither is a plain property read: one scores, the other needs a source to ask about.
+            .Except(["FuzzyNameRelevanceSortingSelector", "SourceSuggestionCountSortingSelector"], StringComparer.Ordinal)
             .Except(tabled, StringComparer.Ordinal)
             .Order(StringComparer.Ordinal);
 

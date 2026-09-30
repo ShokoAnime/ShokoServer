@@ -5,7 +5,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.TMDB;
 
 namespace Shoko.Server.API.v3.Models.Common;
@@ -64,13 +63,4 @@ public class Studio
         Source = DataSourceType.TMDB;
     }
 
-    public Studio(Anilist_Studio studio)
-    {
-        ID = studio.AnilistStudioID;
-        Name = studio.Name;
-        CountryOfOrigin = string.Empty;
-        Size = studio.AnimeStudios.Count;
-        Logos = [];
-        Source = DataSourceType.AniList;
-    }
 }

@@ -1,4 +1,4 @@
-﻿using FluentNHibernate.Mapping;
+using FluentNHibernate.Mapping;
 using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
@@ -17,6 +17,5 @@ public class AnimeEpisodeMap : ClassMap<AnimeEpisode>
         Map(x => x.DateTimeCreated).Not.Nullable();
         Map(x => x.DateTimeUpdated).Not.Nullable();
         Map(x => x.IsHidden).Not.Nullable();
-        Map(x => x.EpisodeNameOverride);
     }
 }

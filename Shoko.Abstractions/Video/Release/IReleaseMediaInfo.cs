@@ -5,7 +5,7 @@ namespace Shoko.Abstractions.Video.Release;
 
 /// <summary>
 /// Represents the audio and subtitle languages associated with an <see cref="IReleaseInfo"/>.
-/// /// </summary>
+/// </summary>
 public interface IReleaseMediaInfo
 {
     /// <summary>

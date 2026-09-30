@@ -136,7 +136,56 @@ public class QueueController : BaseController
         return new ListResult<Queue.QueueItem>(total, items);
     }
 
-    private static Queue.QueueItem ToQueueItem(QueueItem a)
+    /// <summary>
+    /// Cancel a queue item. A waiting item is removed from the queue. A running item whose job
+    /// observes cancellation stays queued, marked as cancellation requested (not undoable), until
+    /// the job notices; it then ends as cancelled, or as completed if it finished first, and is
+    /// never retried. Cancelling an item of a chain aborts the rest of the chain.
+    /// </summary>
+    /// <remarks>
+    /// The key goes in the query string, as queue item keys may contain slashes.
+    /// </remarks>
+    /// <param name="key">The key of the queue item.</param>
+    /// <returns>Whether the item was removed or asked to stop.</returns>
+    /// <response code="404">No waiting or running item has the key.</response>
+    /// <response code="409">The item is running and its job does not observe cancellation.</response>
+    [Authorize("admin")]
+    [HttpPost("Items/Cancel")]
+    public async Task<ActionResult<Queue.CancelResult>> CancelItem([FromQuery, Required] string key)
+    {
+        return await _queueHandler.Cancel(key) switch
+        {
+            JobCancellationResult.Removed => new Queue.CancelResult { Key = key, Result = Queue.CancelResultType.Removed },
+            JobCancellationResult.CancellationRequested => new Queue.CancelResult { Key = key, Result = Queue.CancelResultType.CancellationRequested },
+            JobCancellationResult.NotCancellable => Conflict("The queue item is running and cannot be cancelled."),
+            _ => NotFound("No queue item has the key."),
+        };
+    }
+
+    /// <summary>
+    /// Remove a waiting queue item. A running item is left alone; cancel it instead. Removing an
+    /// item of a chain aborts the rest of the chain.
+    /// </summary>
+    /// <remarks>
+    /// The key goes in the query string, as queue item keys may contain slashes.
+    /// </remarks>
+    /// <param name="key">The key of the queue item.</param>
+    /// <returns>No content.</returns>
+    /// <response code="404">No waiting or running item has the key.</response>
+    /// <response code="409">The item is running.</response>
+    [Authorize("admin")]
+    [HttpDelete("Items")]
+    public async Task<ActionResult> RemoveItem([FromQuery, Required] string key)
+    {
+        return await _queueHandler.Remove(key) switch
+        {
+            JobCancellationResult.Removed => NoContent(),
+            JobCancellationResult.Running => Conflict("The queue item is running; cancel it instead."),
+            _ => NotFound("No queue item has the key."),
+        };
+    }
+
+    internal static Queue.QueueItem ToQueueItem(QueueItem a)
     {
         return new Queue.QueueItem
         {
@@ -151,7 +200,10 @@ public class QueueController : BaseController
             PoolName = a.PoolName,
             RetryCount = a.RetryCount,
             ScheduledAt = a.ScheduledAt?.UtcDateTime,
-            ParentKey = a.ParentKey
+            ParentKey = a.ParentKey,
+            IsCancellable = a.Cancellable,
+            IsCancellationRequested = a.CancellationRequested,
+            Progress = a.Progress,
         };
     }
 

@@ -7,7 +7,7 @@ using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
@@ -223,17 +223,6 @@ public static class ModelHelper
             xref => xref.Ordering,
             xref => xref.TmdbEpisodeID,
             xref => xref.TmdbEpisode is { } tmdbEpisode ? (tmdbEpisode.SeasonNumber, tmdbEpisode.EpisodeNumber) : null
-        );
-
-    /// <inheritdoc cref="GroupByCrossReferenceType{T}"/>
-    public static List<List<CrossRef_AniDB_Anilist_Episode>> GroupByCrossReferenceType(this IEnumerable<CrossRef_AniDB_Anilist_Episode> episodes)
-        => episodes.GroupByCrossReferenceType(
-            xref => xref.AnidbEpisodeID,
-            xref => xref.Ordering,
-            xref => xref.AnilistEpisodeID,
-            // AniList has no seasons, and the episode number sits on the cross-reference
-            // itself rather than on the episode row, so it is always available.
-            xref => (1, xref.EpisodeNumber)
         );
 
     public static (int, EpisodeType?, string?) GetEpisodeNumberAndTypeFromInput(string input)

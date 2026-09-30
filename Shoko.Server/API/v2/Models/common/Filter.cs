@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Shoko;
@@ -114,13 +115,13 @@ public class Filter : Filters
     {
         // Use direct indexed xref lookups instead of the full GetImagesForEntity pipeline,
         // since this is called for every series in the filter to pre-filter candidates.
-        if (RepoFactory.ShokoImage_Entity.GetByEntityForType(DataSource.Shoko, DataEntityType.Anime, series.AnimeSeriesID.ToString(), ImageEntityType.Backdrop).Count > 0)
+        if (RepoFactory.ShokoImage_Entity.GetByEntityForType(MetadataSource.Shoko, MetadataEntityType.Series, series.AnimeSeriesID.ToString(), ImageEntityType.Backdrop).Count > 0)
             return true;
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
-            if (RepoFactory.ShokoImage_Entity.GetByEntityForType(DataSource.TMDB, DataEntityType.Show, xref.TmdbShowID.ToString(), ImageEntityType.Backdrop).Count > 0)
+            if (RepoFactory.ShokoImage_Entity.GetByEntityForType(MetadataSource.TMDB, MetadataEntityType.Series, xref.TmdbShowID.ToString(), ImageEntityType.Backdrop).Count > 0)
                 return true;
         foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
-            if (RepoFactory.ShokoImage_Entity.GetByEntityForType(DataSource.TMDB, DataEntityType.Movie, xref.TmdbMovieID.ToString(), ImageEntityType.Backdrop).Count > 0)
+            if (RepoFactory.ShokoImage_Entity.GetByEntityForType(MetadataSource.TMDB, MetadataEntityType.Movie, xref.TmdbMovieID.ToString(), ImageEntityType.Backdrop).Count > 0)
                 return true;
         return false;
     }

@@ -21,6 +21,7 @@ using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Components;
 using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Plugin;
 
 using JsonIgnoreAttribute = Newtonsoft.Json.JsonIgnoreAttribute;
@@ -39,8 +40,6 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     private readonly JsonSerializerOptions _systemTextJsonSerializerOptions = systemTextJsonSerializerOptions;
 
-    private readonly object _lock = new();
-
     private Type? _currentType = null;
 
     private readonly Dictionary<string, (Dictionary<string, object?> ClassUIDefinition, Dictionary<string, Dictionary<string, object?>> PropertyUIDefinitions)> _schemaCache = [];
@@ -51,7 +50,9 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     public WrappedJsonSchema GetSchemaForType(Type type)
     {
-        lock (_lock)
+        // Process-wide, not per generator: the schema generation reads the XML
+        // docs through Namotion.Reflection, see TypeReflectionExtensions.XmlDocsLock.
+        lock (TypeReflectionExtensions.XmlDocsLock)
         {
             var isNewtonsoftJson = type.IsAssignableTo(typeof(INewtonsoftJsonConfiguration));
             var generator = isNewtonsoftJson
@@ -65,6 +66,8 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 s.Type = JsonObjectType.String;
                 s.Format = "version";
             }));
+            generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(MetadataSource), s => s.Type = JsonObjectType.String));
+            generator.Settings.TypeMappers.Add(new PrimitiveTypeMapper(typeof(MetadataEntityType), s => s.Type = JsonObjectType.String));
 
             _schemaCache.Clear();
             _schemaKeys.Clear();
@@ -839,7 +842,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
 
     private void AssertKeyUsable(Type keyType)
     {
-        if (keyType == typeof(string) || keyType.GetTypeInfo().IsEnum)
+        if (keyType == typeof(string) || keyType == typeof(MetadataSource) || keyType == typeof(MetadataEntityType) || keyType.GetTypeInfo().IsEnum)
             return;
 
         if (keyType.GetCustomAttribute<SerializableAttribute>() is not null)

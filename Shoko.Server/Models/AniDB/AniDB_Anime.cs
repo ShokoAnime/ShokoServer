@@ -9,6 +9,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
@@ -18,21 +19,27 @@ using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.CrossReference.Embedded;
+using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
-using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
+using AnidbRegularAirDates = Shoko.Server.Providers.AniDB.AnidbRegularAirDates;
+using AnidbReleaseStatus = Shoko.Server.Providers.AniDB.AnidbReleaseStatus;
+using AnidbResourceLinks = Shoko.Server.Providers.AniDB.AnidbResourceLinks;
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
+using ResourceLinkType = Shoko.Server.Providers.AniDB.ResourceLinkType;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.AniDB;
 
-public class AniDB_Anime : IAnidbAnime
+public class AniDB_Anime : IAnidbAnime, IInlineTextSource
 {
     #region Server DB columns
 
@@ -58,8 +65,6 @@ public class AniDB_Anime : IAnidbAnime
 
     public string MainTitle { get; set; } = string.Empty;
 
-    public string AllTitles { get; set; } = string.Empty;
-
     private static int _tagGeneration;
 
     internal static int TagGeneration => Volatile.Read(ref _tagGeneration);
@@ -69,7 +74,7 @@ public class AniDB_Anime : IAnidbAnime
     public string AllTags
     {
         get => _allTags;
-        set { _allTags = value; _allTagsCache = null; Interlocked.Increment(ref _tagGeneration); }
+        set { _allTags = value; _allTagsCache = null; ResetSourceMaterial(); Interlocked.Increment(ref _tagGeneration); }
     }
 
     public string Description { get; set; } = string.Empty;
@@ -105,35 +110,14 @@ public class AniDB_Anime : IAnidbAnime
 
     public int Restricted { get; set; }
 
-    public int? ANNID { get; set; }
-
-    public int? AllCinemaID { get; set; }
-
-    public int? AnisonID { get; set; }
-
-    public int? SyoboiID { get; set; }
-
-    public int? VNDBID { get; set; }
-
-    public int? BangumiID { get; set; }
-
-    public int? LainID { get; set; }
-
-    public string? Site_JP { get; set; }
-
-    public string? Site_EN { get; set; }
-
-    public string? Wikipedia_ID { get; set; }
-
-    public string? WikipediaJP_ID { get; set; }
-
-    public string? CrunchyrollID { get; set; }
-
-    public string? FunimationID { get; set; }
-
-    public string? HiDiveID { get; set; }
-
     public int? LatestEpisodeNumber { get; set; }
+
+    /// <summary>
+    ///   The ordering chosen for the anime, of any source, or <c>null</c>
+    ///   for its default one. Set through
+    ///   <see cref="IMetadataOrderingService.SetPreferredOrdering"/>.
+    /// </summary>
+    public MetadataGuid? PreferredOrderingID { get; set; }
 
     #endregion
 
@@ -159,61 +143,44 @@ public class AniDB_Anime : IAnidbAnime
         _ => null,
     };
 
+    /// <summary>
+    ///   Every resource AniDB lists for the anime, then the links the
+    ///   resource resolvers add.
+    /// </summary>
     public IReadOnlyList<Resource> Resources
     {
         get
         {
-            var result = new List<Resource>();
-            if (!string.IsNullOrEmpty(Site_EN))
-                foreach (var site in Site_EN.Split('|'))
-                    result.Add(new() { Type = ResourceType.Website, Name = "Official Site (EN)", Url = site, LanguageCode = "en" });
-
-            if (!string.IsNullOrEmpty(Site_JP))
-                foreach (var site in Site_JP.Split('|'))
-                    result.Add(new() { Type = ResourceType.Website, Name = "Official Site (JP)", Url = site, LanguageCode = "ja" });
-
-            if (!string.IsNullOrEmpty(Wikipedia_ID))
-                result.Add(new() { Type = ResourceType.Metadata, Name = "Wikipedia (EN)", Url = $"https://en.wikipedia.org/{Wikipedia_ID}", LanguageCode = "en" });
-
-            if (!string.IsNullOrEmpty(WikipediaJP_ID))
-                result.Add(new() { Type = ResourceType.Metadata, Name = "Wikipedia (JP)", Url = $"https://en.wikipedia.org/{WikipediaJP_ID}", LanguageCode = "ja" });
-
-            if (!string.IsNullOrEmpty(CrunchyrollID))
-                result.Add(new() { Type = ResourceType.Streaming, Name = "Crunchyroll", Url = $"https://crunchyroll.com/series/{CrunchyrollID}" });
-
-            if (!string.IsNullOrEmpty(FunimationID))
-                result.Add(new() { Type = ResourceType.Streaming, Name = "Funimation", Url = FunimationID });
-
-            if (!string.IsNullOrEmpty(HiDiveID))
-                result.Add(new() { Type = ResourceType.Streaming, Name = "HiDive", Url = $"https://www.hidive.com/{HiDiveID}" });
-
-            if (AllCinemaID.HasValue && AllCinemaID.Value > 0)
-                result.Add(new() { Type = ResourceType.CrossReference, Name = "allcinema", Url = $"https://allcinema.net/cinema/{AllCinemaID.Value}" });
-
-            if (AnisonID.HasValue && AnisonID.Value > 0)
-                result.Add(new() { Type = ResourceType.CrossReference, Name = "Anison", Url = $"https://anison.info/data/program/{AnisonID.Value}.html" });
-
-            if (SyoboiID.HasValue && SyoboiID.Value > 0)
-                result.Add(new() { Type = ResourceType.CrossReference, Name = "syoboi", Url = $"https://cal.syoboi.jp/tid/{SyoboiID.Value}/time" });
-
-            if (BangumiID.HasValue && BangumiID.Value > 0)
-                result.Add(new() { Type = ResourceType.CrossReference, Name = "bangumi", Url = $"https://bgm.tv/subject/{BangumiID.Value}" });
-
-            if (LainID.HasValue && LainID.Value > 0)
-                result.Add(new() { Type = ResourceType.CrossReference, Name = ".lain", Url = $"https://lain.gr.jp/mediadb/media/{LainID.Value}" });
-
-            if (ANNID.HasValue && ANNID.Value > 0)
-                result.Add(new() { Type = ResourceType.CrossReference, Name = "AnimeNewsNetwork", Url = $"https://www.animenewsnetwork.com/encyclopedia/php?id={ANNID.Value}" });
-
-            if (VNDBID.HasValue && VNDBID.Value > 0)
-                result.Add(new() { Type = ResourceType.CrossReference, Name = "VNDB", Url = $"https://vndb.org/v{VNDBID.Value}" });
-
-            foreach (var malId in MalCrossReferences.Select(xref => xref.MALID).Distinct().Where(x => x >= 0))
-                result.Add(new() { Type = ResourceType.CrossReference, Name = "MyAnimeList", Url = $"https://myanimelist.net/anime/{malId}" });
-
+            var result = GetAnidbResources();
             result.AddRange(ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this));
             return result;
         }
+    }
+
+    /// <summary>
+    ///   Every resource AniDB lists for the anime, in AniDB's order, then
+    ///   the MyAnimeList links AniDB no longer lists.
+    /// </summary>
+    /// <returns>The anime's own links.</returns>
+    public List<Resource> GetAnidbResources()
+    {
+        var rows = RepoFactory.AniDB_Resource.GetByAnimeID(AnimeID);
+        var result = AnidbResourceLinks.ToResources(rows);
+        var listedMalIDs = rows
+            .Where(row => row.ResourceType is ResourceLinkType.MAL && row.Identifiers.Count > 0)
+            .Select(row => row.Identifiers[0])
+            .ToHashSet();
+        foreach (var malID in MalCrossReferences.Select(xref => xref.MALID).Distinct().Where(x => x >= 0))
+            if (!listedMalIDs.Contains(malID.ToString()))
+                result.Add(new()
+                {
+                    Type = ResourceType.CrossReference,
+                    Name = "MyAnimeList",
+                    Url = $"https://myanimelist.net/anime/{malID}",
+                    ID = malID.ToString(),
+                });
+
+        return result;
     }
 
     public IReadOnlyList<(int Year, YearlySeason Season)> YearlySeasons
@@ -251,6 +218,147 @@ public class AniDB_Anime : IAnidbAnime
                 .WhereNotNull()
                 .ToList();
 
+    private int _sourceMaterial = -1;
+
+    /// <summary>
+    ///   What the anime was adapted from, picked from its source material
+    ///   tags. Cached until the tags are imported again.
+    /// </summary>
+    public SourceMaterial SourceMaterial
+    {
+        get
+        {
+            var cached = Volatile.Read(ref _sourceMaterial);
+            if (cached >= 0)
+                return (SourceMaterial)cached;
+
+            var value = TagFilter.GetSourceMaterial(
+                AnimeTags.Select(xref => (xref.TagID, xref.Weight)),
+                tagID => RepoFactory.AniDB_Tag.GetByTagID(tagID)?.ParentTagID
+            );
+            Volatile.Write(ref _sourceMaterial, (int)value);
+            return value;
+        }
+    }
+
+    /// <summary>
+    ///   Clears the cached <see cref="SourceMaterial"/>, for after the tags
+    ///   were imported again.
+    /// </summary>
+    public void ResetSourceMaterial()
+        => Volatile.Write(ref _sourceMaterial, -1);
+
+    private sealed record ReleaseStatusEntry(DateOnly Today, ReleaseStatus Value);
+
+    private ReleaseStatusEntry? _releaseStatus;
+
+    /// <summary>
+    ///   Where the anime is in its release, inferred from its dates, type and
+    ///   episodes. Cached for the day, or until the anime is imported again.
+    /// </summary>
+    public ReleaseStatus ReleaseStatus
+    {
+        get
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            if (Volatile.Read(ref _releaseStatus) is { } cached && cached.Today == today)
+                return cached.Value;
+
+            var value = AnidbReleaseStatus.Infer(
+                AirDate,
+                EndDate,
+                AnimeType,
+                EpisodeCountNormal,
+                AniDBEpisodes.Where(episode => episode.EpisodeType is EpisodeType.Episode).Select(episode => episode.GetAirDateAsDateOnly()),
+                today
+            );
+            Volatile.Write(ref _releaseStatus, new(today, value));
+            return value;
+        }
+    }
+
+    /// <summary>
+    ///   Clears the cached <see cref="ReleaseStatus"/>, for after the anime or
+    ///   its episodes were imported again.
+    /// </summary>
+    public void ResetReleaseStatus()
+        => Volatile.Write(ref _releaseStatus, null);
+
+    private sealed record RegularAirDatesEntry(PartialDateOnly? ReadWith, IReadOnlyDictionary<int, (DateOnly Stored, DateOnly Regular)> Episodes, PartialDateOnly? AnimeDate);
+
+    private RegularAirDatesEntry? _regularAirDates;
+
+    /// <summary>
+    ///   The normal episodes the note in the description moves from an early
+    ///   showing onto the regular run, by episode ID, and the anime's own
+    ///   regular date. Cached until the anime is imported again or its
+    ///   <see cref="AirDate"/> changes, as the calendar changes it.
+    /// </summary>
+    private RegularAirDatesEntry RegularAirDates
+    {
+        get
+        {
+            var airDate = AirDate;
+            if (Volatile.Read(ref _regularAirDates) is { } cached && cached.ReadWith == airDate)
+                return cached;
+
+            var episodes = AniDBEpisodes
+                .Where(episode => episode.EpisodeType is EpisodeType.Episode)
+                .Select(episode => (Episode: episode, AirDate: episode.GetAirDateAsDateOnly()))
+                .Where(tuple => tuple.AirDate.HasValue)
+                .ToList();
+            var reading = AnidbRegularAirDates.Read(
+                Description,
+                AnimeType,
+                episodes.Select(tuple => (tuple.Episode.EpisodeNumber, tuple.AirDate!.Value)),
+                airDate is { IsComplete: true } complete ? complete.ToDateOnly() : null
+            );
+            var byNumber = episodes
+                .GroupBy(tuple => tuple.Episode.EpisodeNumber)
+                .ToDictionary(group => group.Key, group => group.First().Episode.EpisodeID);
+            var moved = reading.Episodes.ToDictionary(episode => byNumber[episode.EpisodeNumber], episode => (episode.Stored, episode.Regular));
+
+            // The first moved episode's regular date starts the regular run;
+            // an anime dated before it is dated by the early showing too.
+            var animeDate = airDate;
+            if (reading.Episodes is [var first, ..] && airDate is { IsComplete: true } date && date.ToDateOnly() < first.Regular)
+                animeDate = new PartialDateOnly(first.Regular);
+
+            var value = new RegularAirDatesEntry(airDate, moved, animeDate);
+            Volatile.Write(ref _regularAirDates, value);
+            return value;
+        }
+    }
+
+    /// <summary>
+    ///   When the anime's regular broadcast started, for matching it against
+    ///   other sources: <see cref="AirDate"/>, unless the first episode was
+    ///   shown early and its regular date falls after it.
+    /// </summary>
+    public PartialDateOnly? RegularAirDate
+        => RegularAirDates.AnimeDate;
+
+    /// <summary>
+    ///   The regular broadcast date the note in the description moves one of
+    ///   the anime's episodes to.
+    /// </summary>
+    /// <param name="episode">The episode.</param>
+    /// <returns>
+    ///   The regular date, or <see langword="null"/> when the episode was not
+    ///   moved or its stored date changed since.
+    /// </returns>
+    public DateOnly? GetRegularAirDate(AniDB_Episode episode)
+        => RegularAirDates.Episodes.TryGetValue(episode.EpisodeID, out var moved) && episode.GetAirDateAsDateOnly() == moved.Stored
+            ? moved.Regular
+            : null;
+
+    /// <summary>
+    ///   Clears the cached regular air dates, for after the anime or its
+    ///   episodes were imported again.
+    /// </summary>
+    public void ResetRegularAirDates()
+        => Volatile.Write(ref _regularAirDates, null);
+
     public List<AniDB_Anime_Relation> RelatedAnime
         => RepoFactory.AniDB_Anime_Relation.GetByAnimeID(AnimeID);
 
@@ -267,47 +375,48 @@ public class AniDB_Anime : IAnidbAnime
 
     #region Titles
 
-    public List<AniDB_Anime_Title> Titles
-        => RepoFactory.AniDB_Anime_Title.GetByAnimeID(AnimeID);
+    /// <summary>
+    ///   The titles AniDB gave the anime, in AniDB's own order.
+    /// </summary>
+    public IReadOnlyList<ITitle> Titles
+        => AnidbText.Present(TextAccess.Manager.OwnTitlesOf(this));
+
+    /// <summary>
+    ///   Every title AniDB gave the anime, joined with <c>|</c>, worked out
+    ///   from the stored titles.
+    /// </summary>
+    public string AllTitles
+        => string.Join('|', Titles.Select(title => title.Value));
 
     public string Title => (PreferredTitle ?? DefaultTitle).Value;
 
     public string OriginalTitle => GetOriginalTitle(Titles) ?? MainTitle;
 
-    private ITitle? _defaultTitle;
-
+    /// <summary>
+    ///   The anime's main title: AniDB's stored one, else the one in the
+    ///   catalog of every anime AniDB has, else the main title on the row.
+    /// </summary>
     public ITitle DefaultTitle
     {
         get
         {
-            if (_defaultTitle is not null)
-                return _defaultTitle;
+            if (Titles.FirstOrDefault(title => title.Type == TitleType.Main) is { } title)
+                return title;
 
-            lock (this)
+            var titleHelper = ISystemService.StaticServices.GetRequiredService<AniDBTitleHelper>();
+            if (titleHelper.SearchAnimeID(AnimeID) is { } titleResponse)
+                return titleResponse.Titles.First(title => title.TitleType == TitleType.Main);
+
+            return new TitleStub
             {
-                if (_defaultTitle is not null)
-                    return _defaultTitle;
-
-                if (Titles.FirstOrDefault(title => title.TitleType == TitleType.Main) is { } title)
-                    return _defaultTitle = title;
-
-                var titleHelper = ISystemService.StaticServices.GetRequiredService<AniDBTitleHelper>();
-                if (titleHelper.SearchAnimeID(AnimeID) is { } titleResponse)
-                    return _defaultTitle = titleResponse.Titles.First(title => title.TitleType == TitleType.Main);
-
-                return _defaultTitle = new TitleStub
-                {
-                    Language = TitleLanguage.Romaji,
-                    LanguageCode = "x-jat",
-                    Source = DataSource.AniDB,
-                    Type = TitleType.Main,
-                    Value = MainTitle,
-                };
-            }
+                Language = TitleLanguage.Romaji,
+                LanguageCode = "x-jat",
+                Source = MetadataSource.AniDB,
+                Type = TitleType.Main,
+                Value = MainTitle,
+            };
         }
     }
-
-    public void ResetDefaultTitle() => _defaultTitle = null;
 
     /// <summary>
     /// The original language of the anime, derived from the language of the
@@ -316,62 +425,12 @@ public class AniDB_Anime : IAnidbAnime
     /// </summary>
     public TitleLanguage OriginalLanguage => DefaultTitle.Language.GetSpokenLanguage();
 
-    private bool _preferredTitleLoaded;
-
-    private ITitle? _preferredTitle;
-
-    public ITitle? PreferredTitle => LoadPreferredTitle();
-
-    public void ResetPreferredTitle()
-    {
-        _preferredTitleLoaded = false;
-        _preferredTitle = null;
-        LoadPreferredTitle();
-    }
-
-    private ITitle? LoadPreferredTitle()
-    {
-        // Check if we have already loaded the preferred title.
-        if (_preferredTitleLoaded)
-            return _preferredTitle;
-
-        lock (this)
-        {
-            if (_preferredTitleLoaded)
-                return _preferredTitle;
-            _preferredTitleLoaded = true;
-
-            // Check each preferred language in order.
-            var titles = Titles;
-            foreach (var namingLanguage in Languages.PreferredNamingLanguages)
-            {
-                var thisLanguage = namingLanguage.Language;
-                if (thisLanguage is TitleLanguage.Main)
-                    return _preferredTitle = DefaultTitle;
-
-                // First check the main title.
-                var title = titles.FirstOrDefault(t => t.TitleType is TitleType.Main && t.Language == thisLanguage);
-                if (title != null)
-                    return _preferredTitle = title;
-
-                // Then check for an official title.
-                title = titles.FirstOrDefault(t => t.TitleType is TitleType.Official && t.Language == thisLanguage);
-                if (title != null)
-                    return _preferredTitle = title;
-
-                // Then check for _any_ title at all, if there is no main or official title in the language.
-                if (ISettingsProvider.Instance.GetSettings().Language.UseSynonyms)
-                {
-                    title = titles.FirstOrDefault(t => t.Language == thisLanguage);
-                    if (title != null)
-                        return _preferredTitle = title;
-                }
-            }
-
-            // Otherwise just use the cached main title.
-            return _preferredTitle = null;
-        }
-    }
+    /// <summary>
+    ///   The title the user's picks and language settings choose for the
+    ///   anime, or <c>null</c> when none is picked or in a preferred language.
+    /// </summary>
+    public ITitle? PreferredTitle
+        => AnidbText.Present(TextAccess.Manager.PreferredTitleFor(this));
 
     private static string? GetOriginalTitle(IReadOnlyList<ITitle> titles)
         => GetTitleForLanguage(titles, GuessOriginLanguage(titles));
@@ -417,8 +476,8 @@ public class AniDB_Anime : IAnidbAnime
                 return string.Empty;
             }
 
-            var id = IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, Picname).ToString("N");
-            return Path.Join(ApplicationPaths.Instance.ImagesPath, DataSource.AniDB.ToString(), id[..2], id);
+            var id = IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, Picname).ToString("N");
+            return Path.Join(ApplicationPaths.Instance.ImagesPath, MetadataSource.AniDB.ToString(), id[..2], id);
         }
     }
 
@@ -492,11 +551,9 @@ public class AniDB_Anime : IAnidbAnime
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Anime;
+    MetadataGuid IMetadata.ID => new(MetadataSource.AniDB, MetadataEntityType.Series, AnimeID.ToString());
 
-    DataSource IMetadata.Source => DataSource.AniDB;
-
-    int IMetadata<int>.ID => AnimeID;
+    int IAnidbAnime.AnidbID => AnimeID;
 
     #endregion
 
@@ -506,39 +563,32 @@ public class AniDB_Anime : IAnidbAnime
 
     ITitle? IWithTitles.PreferredTitle => PreferredTitle;
 
-    IReadOnlyList<ITitle> IWithTitles.Titles => Titles;
+    IReadOnlyList<ITitle> IWithTitles.Titles => AnidbText.Present(TextAccess.Manager.ListTitles(this));
+
+    #endregion
+
+    #region IInlineTextSource Implementation
+
+    ITitle? IInlineTextSource.InlineTitle => null;
+
+    IText? IInlineTextSource.InlineOverview => InlineText.Overview(MetadataSource.AniDB, Description, TitleLanguage.English, "en");
 
     #endregion
 
     #region IWithDescription Implementation
 
-    IText? IWithDescriptions.DefaultDescription => Description is { Length: > 0 }
-        ? new TextStub
-        {
-            Language = TitleLanguage.English,
-            LanguageCode = "en",
-            Value = Description,
-            Source = DataSource.AniDB,
-        }
-        : null;
+    IText? IWithOverviews.DefaultOverview => TextAccess.Manager.DefaultOverviewFor(this);
 
-    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
-        ? new TextStub
-        {
-            Language = TitleLanguage.English,
-            LanguageCode = "en",
-            Value = Description,
-            Source = DataSource.AniDB,
-        }
-        : null;
+    IText? IWithOverviews.PreferredOverview => TextAccess.Manager.PreferredOverviewFor(this);
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => [
-        new TextStub
+    // A missing description is still listed, empty, as it always was.
+    IReadOnlyList<IText> IWithOverviews.Overviews => [
+        ((IInlineTextSource)this).InlineOverview ?? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
             Value = Description,
-            Source = DataSource.AniDB,
+            Source = MetadataSource.AniDB,
         },
     ];
 
@@ -546,8 +596,8 @@ public class AniDB_Anime : IAnidbAnime
 
     #region IWithImages Implementation
 
-    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(Picname) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, Picname) is { } imageID
-        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = DataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == imageID)
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(Picname) && IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, Picname) is { } imageID
+        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = MetadataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == imageID)
         : null;
 
     #endregion
@@ -617,7 +667,30 @@ public class AniDB_Anime : IAnidbAnime
 
     #endregion
 
+    #region IWithCrossSources Implementation
+
+    IReadOnlyList<MetadataGuid> IWithCrossSources.CrossSourceIDs
+        => [.. ((IAnidbAnime)this).MalIDs.Select(malID => CrossSourceID.For("mal", MetadataEntityType.Series, malID)).WhereNotNull()];
+
+    #endregion
+
     #region ISeries Implementation
+
+    IReadOnlyList<IOrdering> ISeries.Orderings => OrderingLookup.For(this);
+
+    IOrdering ISeries.PreferredOrdering => OrderingLookup.PreferredFor(this);
+
+    IReadOnlyList<IMetadataSeriesCrossReference> ISeries.MetadataSeriesCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeriesCrossReferences(AnimeID) ?? [];
+
+    IReadOnlyList<IMetadataSeasonCrossReference> ISeries.MetadataSeasonCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeasonCrossReferences(AnimeID) ?? [];
+
+    IReadOnlyList<IMetadataEpisodeCrossReference> ISeries.MetadataEpisodeCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetEpisodeCrossReferencesForSeries(AnimeID) ?? [];
+
+    IReadOnlyList<IMetadataMovieCrossReference> ISeries.MetadataMovieCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetMovieCrossReferencesForSeries(AnimeID) ?? [];
 
     AnimeType ISeries.Type => AnimeType;
 
@@ -628,6 +701,10 @@ public class AniDB_Anime : IAnidbAnime
     int ISeries.RatingVotes => VoteCount;
 
     bool ISeries.Restricted => IsRestricted;
+
+    ReleaseStatus ISeries.ReleaseStatus => ReleaseStatus;
+
+    SourceMaterial ISeries.SourceMaterial => SourceMaterial;
 
     IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series] : [];
 
@@ -642,7 +719,7 @@ public class AniDB_Anime : IAnidbAnime
 
     IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies => [];
 
-    IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
+    IReadOnlyList<IVideoCrossReference> ISeries.VideoCrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID);
 
     IReadOnlyList<ISeason> ISeries.Seasons => AniDBSeasons;

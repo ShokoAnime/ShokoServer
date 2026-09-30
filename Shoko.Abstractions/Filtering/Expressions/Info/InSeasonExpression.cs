@@ -1,5 +1,7 @@
 using System;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Filtering.Expressions.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Info;
@@ -16,11 +18,16 @@ public class InSeasonExpression : FilterExpression<bool>, IWithNumberParameter, 
     /// <inheritdoc/>
     public InSeasonExpression() { }
 
-    /// <inheritdoc/>
-    protected int Year { get; set; }
+    /// <summary>
+    /// The year of the season, kept as the parameter.
+    /// </summary>
+    public int Year { get; set; }
 
-    /// <inheritdoc/>
-    protected YearlySeason Season { get; set; }
+    /// <summary>
+    /// The season within the year, kept as the second parameter.
+    /// </summary>
+    [JsonConverter(typeof(LenientEnumNewtonsoftJsonConverter))]
+    public YearlySeason Season { get; set; }
 
     /// <inheritdoc/>
     public override bool TimeDependent => true;

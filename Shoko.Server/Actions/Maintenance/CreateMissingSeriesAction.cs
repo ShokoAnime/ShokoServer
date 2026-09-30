@@ -1,6 +1,8 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.ScheduledActions;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
@@ -9,7 +11,7 @@ namespace Shoko.Server.Actions;
 ///   Create anime series entries for files that have release info but no
 ///   corresponding series.
 /// </summary>
-public sealed class CreateMissingSeriesAction(ActionService actionService) : IExecutableAction
+public sealed class CreateMissingSeriesAction(ActionService actionService) : IScheduledAction
 {
     public string Name => "Create Missing Series";
 
@@ -17,8 +19,10 @@ public sealed class CreateMissingSeriesAction(ActionService actionService) : IEx
 
     public ActionCategory Category => ActionCategory.Maintenance;
 
-    public ActionPermission Permission => ActionPermission.Admin;
+    public TimeSpan? MinimumInterval => TimeSpan.FromHours(6);
 
-    public Task Execute(CancellationToken token = default)
+    public bool ScheduleCountsManualRuns => true;
+
+    public Task Execute(IProgress<decimal> progress, CancellationToken token)
         => actionService.CreateMissingSeries();
 }

@@ -22,13 +22,15 @@ public sealed class QueueScheduler : IQueueScheduler
     private readonly QueueOrchestrator _orchestrator;
     private readonly IChainScopeRegistry _chainScopeRegistry;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IJobActorAccessor? _actorAccessor;
 
     public QueueScheduler(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory, IJobActorAccessor? actorAccessor = null)
     {
         _orchestrator = orchestrator;
         _chainScopeRegistry = chainScopeRegistry;
         _scopeFactory = scopeFactory;
+        _actorAccessor = actorAccessor;
     }
 
     public bool IsPaused => _orchestrator.IsPaused;
@@ -51,7 +53,7 @@ public sealed class QueueScheduler : IQueueScheduler
         configure?.Invoke(instance);
 
         return _orchestrator.EnqueueAsync(
-            BuildContext(typeof(T), key, instance, prioritize ? 10 : 0, scheduledAt),
+            BuildContext(typeof(T), key, instance, prioritize ? 10 : 0, scheduledAt, _actorAccessor?.Capture()),
             ct);
     }
 
@@ -73,11 +75,11 @@ public sealed class QueueScheduler : IQueueScheduler
         configure?.Invoke(instance);
 
         var completionTask = _orchestrator.PrepareAndEnqueueImmediate(
-            BuildContext(typeof(T), key, instance, int.MaxValue, null));
+            BuildContext(typeof(T), key, instance, int.MaxValue, null, _actorAccessor?.Capture()));
 
         if (onComplete != null)
             completionTask = completionTask.ContinueWith(
-                t => onComplete(t.IsFaulted ? t.Exception!.InnerException ?? t.Exception : null),
+                t => onComplete(t.IsFaulted ? t.Exception!.InnerException ?? t.Exception : t.IsCanceled ? new OperationCanceledException("The job was cancelled.") : null),
                 ct, TaskContinuationOptions.None, TaskScheduler.Default).Unwrap();
 
         await completionTask.WaitAsync(ct);
@@ -97,9 +99,9 @@ public sealed class QueueScheduler : IQueueScheduler
         configure?.Invoke(instance);
 
         if (parentId == Guid.Empty)
-            return _orchestrator.EnqueueAsync(BuildContext(typeof(T), key, instance, 10, null), ct);
+            return _orchestrator.EnqueueAsync(BuildContext(typeof(T), key, instance, 10, null, _actorAccessor?.Capture()), ct);
 
-        _orchestrator.RegisterAfterParent(parentId, BuildContext(typeof(T), key, instance, int.MaxValue, null));
+        _orchestrator.RegisterAfterParent(parentId, BuildContext(typeof(T), key, instance, int.MaxValue, null, _actorAccessor?.Capture()));
         return Task.CompletedTask;
     }
 
@@ -119,7 +121,7 @@ public sealed class QueueScheduler : IQueueScheduler
             var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
             JobDataSerializer.Apply(instance, dataJson);
 
-            contexts.Add(BuildContext(jobType, jobKey, instance, priority, scheduledAt));
+            contexts.Add(BuildContext(jobType, jobKey, instance, priority, scheduledAt, _actorAccessor?.Capture()));
         }
         return _orchestrator.EnqueueRangeAsync(contexts, ct);
     }
@@ -128,12 +130,13 @@ public sealed class QueueScheduler : IQueueScheduler
     /// Single place that assembles a full <see cref="EnqueueContext"/> from a live
     /// <see cref="IQueueJob"/> instance: persisted <see cref="QueuedJob"/> + display
     /// <see cref="QueueItem"/> + pre-resolved <see cref="Type"/>. PoolName is left blank — the
-    /// orchestrator stamps it from pool routing.
+    /// orchestrator stamps it from pool routing. The actor is captured by the caller, in the
+    /// flow that queued the job.
     /// </summary>
-    internal static EnqueueContext BuildContext(Type type, string jobKey, IQueueJob instance, int priority, DateTimeOffset? scheduledAt)
+    internal static EnqueueContext BuildContext(Type type, string jobKey, IQueueJob instance, int priority, DateTimeOffset? scheduledAt, JobActor? actor = null)
     {
-        var asmQualified = type.FullName + ", " + type.Assembly.GetName().Name;
-        var shortTypeName = type.Name;
+        var asmQualified = JobTypeNames.Stored(type);
+        var shortTypeName = JobTypeNames.Short(type);
         return new EnqueueContext
         {
             Type = type,
@@ -145,7 +148,8 @@ public sealed class QueueScheduler : IQueueScheduler
                 JobDataJson = JobDataSerializer.Serialize(instance),
                 Priority = priority,
                 QueuedAt = DateTimeOffset.UtcNow,
-                ScheduledAt = scheduledAt
+                ScheduledAt = scheduledAt,
+                Actor = actor,
             },
             DisplayItem = new QueueItem
             {
@@ -159,7 +163,7 @@ public sealed class QueueScheduler : IQueueScheduler
         };
     }
 
-    public IJobChainBuilder CreateJobChain() => new JobChainBuilder(_orchestrator, _chainScopeRegistry, _scopeFactory);
+    public IJobChainBuilder CreateJobChain() => new JobChainBuilder(_orchestrator, _chainScopeRegistry, _scopeFactory, _actorAccessor);
 
     public bool IsJobTypeBlocked(Type jobType) => _orchestrator.IsJobTypeBlocked(jobType);
 
@@ -173,7 +177,7 @@ public sealed class QueueScheduler : IQueueScheduler
         configure?.Invoke(instance);
 
         return _orchestrator.EnqueueAsync(
-            BuildContext(jobType, key, instance, prioritize ? 10 : 0, null));
+            BuildContext(jobType, key, instance, prioritize ? 10 : 0, null, _actorAccessor?.Capture()));
     }
 
     public Task RunAfterCurrent(Type jobType, Action<IQueueJob>? configure = null)
@@ -188,14 +192,17 @@ public sealed class QueueScheduler : IQueueScheduler
         configure?.Invoke(instance);
 
         if (parentId == Guid.Empty)
-            return _orchestrator.EnqueueAsync(BuildContext(jobType, key, instance, 10, null));
+            return _orchestrator.EnqueueAsync(BuildContext(jobType, key, instance, 10, null, _actorAccessor?.Capture()));
 
-        _orchestrator.RegisterAfterParent(parentId, BuildContext(jobType, key, instance, int.MaxValue, null));
+        _orchestrator.RegisterAfterParent(parentId, BuildContext(jobType, key, instance, int.MaxValue, null, _actorAccessor?.Capture()));
         return Task.CompletedTask;
     }
 
     public Task Remove(string jobKey, CancellationToken ct = default)
         => _orchestrator.RemoveAsync(jobKey, ct);
+
+    public Task<JobCancellationResult> Cancel(string jobKey, CancellationToken ct = default)
+        => _orchestrator.CancelAsync(jobKey, ct);
 
     public Task Remove<T>(Action<T>? configure = null, CancellationToken ct = default)
         where T : class, IQueueJob
@@ -249,13 +256,16 @@ internal sealed class JobChainBuilder : IJobChainBuilder
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly List<EnqueueContext> _entries = [];
     private readonly Guid _chainId = Guid.CreateVersion7();
+    private readonly JobActor? _actor;
 
     internal JobChainBuilder(QueueOrchestrator orchestrator, IChainScopeRegistry chainScopeRegistry,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory, IJobActorAccessor? actorAccessor = null)
     {
         _orchestrator = orchestrator;
         _chainScopeRegistry = chainScopeRegistry;
         _scopeFactory = scopeFactory;
+        // Captured once, when the chain is created: every job of the chain runs for the same actor.
+        _actor = actorAccessor?.Capture();
     }
 
     public IJobChainBuilder Then<T>(Action<T>? configure = null) where T : class, IQueueJob
@@ -268,7 +278,7 @@ internal sealed class JobChainBuilder : IJobChainBuilder
         var instance = (T)scope.ServiceProvider.GetRequiredService(typeof(T));
         configure?.Invoke(instance);
 
-        var ctx = QueueScheduler.BuildContext(typeof(T), key, instance, int.MaxValue, null);
+        var ctx = QueueScheduler.BuildContext(typeof(T), key, instance, int.MaxValue, null, _actor);
         ctx.Job.ChainId = _chainId;
         ctx.Job.IsChainFinally = typeof(T).GetCustomAttribute<ChainFinallyAttribute>() != null;
         _entries.Add(ctx);
@@ -284,7 +294,7 @@ internal sealed class JobChainBuilder : IJobChainBuilder
         var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
         configure?.Invoke(instance);
 
-        var ctx = QueueScheduler.BuildContext(jobType, key, instance, int.MaxValue, null);
+        var ctx = QueueScheduler.BuildContext(jobType, key, instance, int.MaxValue, null, _actor);
         ctx.Job.ChainId = _chainId;
         ctx.Job.IsChainFinally = jobType.GetCustomAttribute<ChainFinallyAttribute>() != null;
         _entries.Add(ctx);

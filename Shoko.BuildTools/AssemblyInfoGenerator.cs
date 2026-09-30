@@ -193,8 +193,8 @@ internal static class AssemblyInfoGenerator
                 return null;
         }
 
-        static string Qualify(string @namespace, string name)
-            => string.IsNullOrEmpty(@namespace) ? name : $"{@namespace}.{name}";
+        static string Qualify(string namespaceName, string name)
+            => string.IsNullOrEmpty(namespaceName) ? name : $"{namespaceName}.{name}";
     }
 
     private static string EscapeAttrValue(string value)
@@ -221,17 +221,17 @@ internal static class AssemblyInfoGenerator
         public string GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind)
         {
             var definition = reader.GetTypeDefinition(handle);
-            var @namespace = reader.GetString(definition.Namespace);
+            var namespaceName = reader.GetString(definition.Namespace);
             var name = reader.GetString(definition.Name);
-            return string.IsNullOrEmpty(@namespace) ? name : $"{@namespace}.{name}";
+            return string.IsNullOrEmpty(namespaceName) ? name : $"{namespaceName}.{name}";
         }
 
         public string GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind)
         {
             var reference = reader.GetTypeReference(handle);
-            var @namespace = reader.GetString(reference.Namespace);
+            var namespaceName = reader.GetString(reference.Namespace);
             var name = reader.GetString(reference.Name);
-            return string.IsNullOrEmpty(@namespace) ? name : $"{@namespace}.{name}";
+            return string.IsNullOrEmpty(namespaceName) ? name : $"{namespaceName}.{name}";
         }
 
         public string GetTypeFromSerializedName(string name) => name;

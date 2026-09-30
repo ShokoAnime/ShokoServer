@@ -13,8 +13,7 @@ public interface IWithLogoImage : IWithImages
     ///   The logo image of the entity. The preferred or first available
     ///   image of type <see cref="ImageEntityType.Logo"/> for the entity.
     /// </summary>
-    IImage? LogoImage
-        => GetBestImageForType(ImageEntityType.Logo);
+    IImage? LogoImage { get => GetBestImageForType(ImageEntityType.Logo); }
 
     /// <summary>
     ///   The cross-reference for the logo image for the entity. Same as the
@@ -22,6 +21,5 @@ public interface IWithLogoImage : IWithImages
     ///   first available image of type <see cref="ImageEntityType.Logo"/>
     ///   for the entity.
     /// </summary>
-    IImageCrossReference? LogoImageCrossReference
-        => GetBestImageCrossReferenceForType(ImageEntityType.Logo);
+    IImageCrossReference? LogoImageCrossReference { get => GetBestImageCrossReferenceForType(ImageEntityType.Logo); }
 }

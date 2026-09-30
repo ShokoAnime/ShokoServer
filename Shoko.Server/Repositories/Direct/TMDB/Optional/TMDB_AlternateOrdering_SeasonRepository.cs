@@ -21,7 +21,7 @@ public class TMDB_AlternateOrdering_SeasonRepository(
             .ToList();
     }
 
-    public IReadOnlyList<TMDB_AlternateOrdering_Season> GetByTmdbEpisodeGroupCollectionID(string collectionId)
+    public virtual IReadOnlyList<TMDB_AlternateOrdering_Season> GetByTmdbEpisodeGroupCollectionID(string collectionId)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         return session
@@ -32,7 +32,7 @@ public class TMDB_AlternateOrdering_SeasonRepository(
             .ToList();
     }
 
-    public TMDB_AlternateOrdering_Season? GetByTmdbEpisodeGroupID(string groupId)
+    public virtual TMDB_AlternateOrdering_Season? GetByTmdbEpisodeGroupID(string groupId)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         return session
@@ -40,5 +40,19 @@ public class TMDB_AlternateOrdering_SeasonRepository(
             .Where(a => a.TmdbEpisodeGroupID == groupId)
             .Take(1)
             .SingleOrDefault();
+    }
+
+    /// <summary>
+    ///   Every show ID the alternate ordering seasons name.
+    /// </summary>
+    /// <returns>The IDs, each once.</returns>
+    public IReadOnlyList<int> GetAllTmdbShowIDs()
+    {
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        return session
+            .Query<TMDB_AlternateOrdering_Season>()
+            .Select(a => a.TmdbShowID)
+            .Distinct()
+            .ToList();
     }
 }

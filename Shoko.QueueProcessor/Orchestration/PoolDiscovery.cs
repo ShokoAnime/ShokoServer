@@ -5,6 +5,7 @@ using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Workers;
 
@@ -59,10 +60,18 @@ public class PoolDiscovery
     /// <summary>
     /// Discovers pools from <paramref name="jobTypes"/> and wires up acquisition filters.
     /// </summary>
+    /// <param name="jobTypes">The registered job types.</param>
+    /// <param name="acquisitionFilters">The acquisition filters to attach.</param>
+    /// <param name="limitProviders">
+    /// Asked for the limit of a type with no concurrency attribute; a type one of them limits gets
+    /// a pool of its own, as <see cref="LimitConcurrencyAttribute"/> would give it.
+    /// </param>
     public IReadOnlyList<WorkerPool> Discover(
         IEnumerable<Type> jobTypes,
-        IEnumerable<IAcquisitionFilter> acquisitionFilters)
+        IEnumerable<IAcquisitionFilter> acquisitionFilters,
+        IEnumerable<IJobConcurrencyProvider>? limitProviders = null)
     {
+        var providers = limitProviders?.ToList() ?? [];
         var filters = acquisitionFilters.ToList();
 
         // Group jobs by their pool name
@@ -75,9 +84,11 @@ public class PoolDiscovery
             var disallowAttr = type.GetCustomAttribute<DisallowConcurrentExecutionAttribute>();
 
             var limit = disallowAttr != null ? 1 : limitAttr?.MaxConcurrentJobs ?? 0;
+            if (limit is 0 && groupAttr is null && ConcurrencyRegistry.GetProvidedLimit(providers, type) is { } provided)
+                limit = provided;
 
             // Apply override
-            if (_overrides.TryGetValue(type.Name, out var ov) && ov > 0)
+            if (_overrides.TryGetValue(JobTypeNames.Key(type), out var ov) && ov > 0)
             {
                 var maxAllowed = limitAttr?.MaxAllowedConcurrentJobs ?? limit;
                 limit = maxAllowed > 0 ? Math.Min(maxAllowed, ov) : ov;
@@ -95,7 +106,7 @@ public class PoolDiscovery
             }
             else if (limit > 0)
             {
-                poolName = type.Name;
+                poolName = JobTypeNames.Key(type);
                 poolWorkers = limit;
             }
             else

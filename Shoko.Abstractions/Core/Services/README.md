@@ -4,10 +4,7 @@ This folder holds the two services that describe the server itself rather than
 anything in your library: `ISystemService` (what state the server is in, and
 when it changes) and `ISystemUpdateService` (what versions exist).
 
-Neither is an extension point. Nothing here is discovered by
-`PluginManager.GetExports<T>()`; there is no interface in this folder for a
-plugin to implement. Both are registered as singletons in DI, so anything the
-container builds gets them the ordinary way:
+Neither is an extension point. Both are DI singletons, so inject them:
 
 ```csharp
 public class MyServerWatcher(ISystemService systemService, ISystemUpdateService updateService)
@@ -16,14 +13,9 @@ public class MyServerWatcher(ISystemService systemService, ISystemUpdateService 
 }
 ```
 
-Note the class taking them is *not* the one implementing `IPlugin`. The plugin
-class is built with `Activator.CreateInstance` during the plugin scan, before
-any container exists, so it must have a public parameterless constructor and can
-take no dependencies at all; see
-[the plugin overview](../../README.md#iplugin-needs-a-public-parameterless-constructor).
-Register a class like the one above from your `RegisterServices` and inject the
-services there instead, or take them in `IPlugin.Setup(IServiceProvider)`, which
-exists for the plugin class.
+The class implementing `IPlugin` cannot take them in its constructor (see
+[the plugin overview](../../README.md#iplugin-needs-a-public-parameterless-constructor));
+it takes them in `IPlugin.Setup(IServiceProvider)`.
 
 ---
 
@@ -31,29 +23,23 @@ exists for the plugin class.
 
 ### The startup timeline, and where a plugin fits into it
 
-Your plugin class is constructed twice, then `IPlugin.Setup` and `IPlugin.Ready`
-run, and only after the web host has started is the database opened. The full
+`IPlugin.Setup` and `IPlugin.Ready` run before the web host starts, and the
+database, then the plugins' own databases, open only after it has (the full
 order is in
-[the plugin overview](../../README.md#the-order-a-plugin-is-started-in). None of
-those points is the right place to touch anything that needs the database. The
-events below mark the points where it becomes safe:
+[the plugin overview](../../README.md#the-order-a-plugin-is-started-in)). These
+events mark when the database is safe to use:
 
 | Event | Fired | What is ready |
 |---|---|---|
 | `StartupMessageChanged` | Throughout startup | Nothing in particular. It carries the user-facing progress string. |
 | `SetupRequired` | When the server boots into first-run setup instead of starting | Nothing. The server is waiting for the user. |
-| `AboutToStart` | After the database, relocation presets, the AniDB UDP handler and the file watchers are all up, and before `Started` | Everything. This is the hook to initialise against. |
+| `AboutToStart` | After the database, the plugin databases, relocation presets, the AniDB UDP handler and the file watchers are all up, and before `Started` | Everything. This is the hook to initialise against. |
 | `SetupCompleted` | After `AboutToStart`, on the first run only | Same as `AboutToStart`. |
 | `Started` | Immediately after, once `StartedAt` is stamped | Same. It is raised before the startup scan and import jobs are queued, so do not expect them to be waiting yet. |
 
 `AboutToStart` is the one to use. Its `ServerAboutToStartEventArgs` carries the
-`IServiceProvider`, so a handler can resolve anything it needs without reaching
-for `StaticServices`.
-
-Subscribe from a hosted service, or from `IPlugin.Setup`; the class implementing
-`IPlugin` cannot take `ISystemService` in its constructor at all. Hosted
-services are started with the host, and `AboutToStart` is fired later, from
-`LateStart()`, so the subscription is always in place before the event fires.
+`IServiceProvider`. Subscribe from a hosted service or from `IPlugin.Setup`;
+both run before the event fires.
 
 ```csharp
 // Registered from your plugin's RegisterServices with
@@ -81,20 +67,18 @@ public sealed class MyStartupWork(ISystemService systemService) : IHostedService
 }
 ```
 
-**`AboutToStart` is invoked synchronously, on the startup thread.** Two things
-follow from that, and both bite:
-
-- A slow handler delays the server for everyone. Do the minimum, and hand
-  anything expensive to the queue.
-- **A handler that throws fails the whole startup.** The exception is caught by
-  the startup routine, stored as `StartupFailedException`, and surfaced through
-  `StartupFailed` with the message "Failed to start. Check your logs for more
-  information." Wrap your handler body in a `try`/`catch` unless you genuinely
-  want a bad plugin to stop the server.
+**`AboutToStart` is invoked synchronously, on the startup thread.** A slow
+handler delays the server, so hand anything expensive to the queue. **A handler
+that throws fails the whole startup**, surfaced through `StartupFailed` and
+`StartupFailedException`; wrap the body in a `try`/`catch` unless a failure
+should stop the server.
 
 `Started`, `SetupRequired` and `SetupCompleted` are dispatched on a background
-task instead, so a throwing handler there does not take startup with it. That is
-a difference in blast radius, not a reason to throw.
+task, so a throwing handler there does not fail startup.
+
+A failed plugin database migration is a start-up failure too, before
+`AboutToStart`; see
+[the plugin namespace](../../Plugin/README.md#when-they-run-and-when-one-fails).
 
 If you would rather await than subscribe, `WaitForStartupAsync()` completes when
 the server is up and throws `StartupFailedException` if it is not. `IsStarted`
@@ -102,11 +86,9 @@ and `StartedAt` answer the same question after the fact.
 
 ### Setup mode
 
-`InSetupMode` is `true` while the server is waiting for a user to complete
-first-run setup, and `CompleteSetup()` is what moves it out. That call belongs to
-the setup UI, not to a plugin: calling it from plugin code starts the server on
-behalf of a user who has not finished configuring it. Read `InSetupMode` if you
-need to know; leave `CompleteSetup()` alone.
+`InSetupMode` is `true` while the server waits for first-run setup.
+`CompleteSetup()` belongs to the setup UI: called from a plugin it starts the
+server before the user has finished configuring it.
 
 ### Shutdown
 
@@ -115,9 +97,52 @@ need to know; leave `CompleteSetup()` alone.
 | `ShutdownOrRestartRequested` | `CancelEventArgs`. Set `Cancel = true` to refuse a shutdown, for instance while your plugin is mid-transaction. Use this sparingly: a user who asked to stop the server expects it to stop. |
 | `Shutdown` | The server is going down now. There is a tight time budget before the parent process kills it, so flush and return. |
 | `CanShutdown` / `CanRestart` | Whether a controlled stop or restart is possible at all. |
-| `ShutdownPending` / `RestartPending` | Whether one has already been requested. |
+| `ShutdownPending` / `RestartPending` | Whether one has already been requested and is under way. |
 | `RequestShutdown()` / `RequestRestart()` | Returns `false` when the request was refused. |
 | `WaitForShutdownAsync()` | Awaits the stop. |
+
+### Restart reasons
+
+`RestartPending` says a restart was asked for. Whether a change is *waiting* on
+one is answered by `RestartReasons`, oldest first, held in memory so a restart
+empties it. `RestartRequired` is `true` while any stands, and
+`RestartReasonsChanged` carries the full list after each change. The reasons
+come from three sources, named by `RestartReason.Source`:
+
+| `Source` | Raised when | `Key` |
+|---|---|---|
+| `Configuration` | Any saved configuration changed members marked `[RequiresRestart]`. One reason for all of them, cleared once every value is back; `IConfigurationService.RestartPendingFor` lists the members per configuration. The server's enabled plugins are left to `PluginState`. | `configuration` |
+| `PluginState` | Any plugin was enabled, disabled, installed, uninstalled or switched to another version, so the next start would load something else. An enabled plugin that cannot load never raises it. One reason for all of them; each `LocalPluginInfo` tells its own state. | `plugins` |
+| `Plugin` | A plugin raised a reason of its own. One reason per handle. | A generated ID |
+
+Each reason also names its `PluginID`, a human-readable `Description` and
+`RaisedAt`, the UTC time it was first raised, which it keeps while it stands.
+The `Configuration` and `PluginState` reasons belong to the core plugin and
+carry fixed descriptions; a `Plugin` reason belongs to the plugin that raised
+it.
+
+A plugin raises its own reasons, naming itself by its `IPlugin` type, and
+gets back a handle, and disposing the handle clears the reason:
+
+```csharp
+IRestartRequirement? restart = null;
+// When a setting changes something that only applies on the next start:
+restart ??= systemService.RequireRestart<MyPlugin>("The enabled sources changed and are registered on the next start.");
+// ...and when the setting goes back to what was loaded:
+restart?.Dispose();
+restart = null;
+```
+
+Each call raises a reason of its own, so keep the handle rather than raising
+again. Disposing twice is harmless, and `IsHeld` tells whether it still stands.
+A type that is not an active plugin throws `InvalidOperationException`, so call
+it from `Setup` onwards. The typical use is a setting that changes what the
+plugin sets up once, such as the metadata sources it registers.
+
+`RestartReasonsChanged` is raised synchronously, on the thread that made the
+change, so keep handlers short; one that throws does not stop the others.
+Admins follow the same list through the `restart` feed of the SignalR aggregate
+hub and `GET /api/v3/Init/RestartReasons`.
 
 ### The database gate
 
@@ -128,8 +153,9 @@ members cover it:
 - `DatabaseBlockedChanged`, carrying `IsBlocked`.
 - `WaitForDatabaseUnblockedAsync()`, to await the gate opening.
 
-A queue job does not need any of this. `[DatabaseRequired]`, from the `Shoko.QueueProcessor`
-package, already holds the job back until the database is up. These members are for code that runs outside the queue.
+A queue job marked `[DatabaseRequired]` (from `Shoko.QueueProcessor`) is
+already held back until the database is up; these members are for code outside
+the queue.
 
 ### Version and identity
 
@@ -149,12 +175,9 @@ the clock.
 public static IServiceProvider StaticServices { get; set; }
 ```
 
-This is a static, process-wide service provider that core sets during startup. It
-exists for code that predates DI and cannot be reached through the container.
-It carries the `[Obsolete]` attribute deliberately, so every use of it shows up
-as a warning.
-
-Prefer, in order:
+A process-wide service provider core sets during startup, for code that
+predates DI. It is `[Obsolete]` so every use shows up as a warning. Prefer, in
+order:
 
 1. **Constructor injection.** A provider, an action and a queue job are all
    constructed through the container, so they can just ask. The class
@@ -163,22 +186,17 @@ Prefer, in order:
    resolve something late.
 3. `StaticServices`, only when neither is available.
 
-Two properties of it to know:
-
-- **It is write-once per process.** The setter throws `InvalidOperationException`
-  on a second assignment. Never set it; core does.
-- **It throws when read too early.** The getter throws if core has not set it yet.
-  `HasStaticServices` tests that without throwing, which matters in unit tests,
-  where nothing sets it at all.
+It is **write-once per process** (a second assignment throws; never set it),
+and reading it before core has set it throws. `HasStaticServices` tests that
+without throwing, which matters in unit tests, where nothing sets it.
 
 ---
 
 ## `ISystemUpdateService`
 
 This checks release manifests for the server and the WebUI, and installs WebUI
-versions. In practice it is driven by the settings UI and the `/api/v3` update
-endpoints, and there is very little reason for a plugin to call it. The read side
-is harmless if you want it:
+versions. It is driven by the settings UI and the `/api/v3` update endpoints;
+a plugin has little reason to call it. The read side:
 
 - `GetLatestServerVersion(channel, force)` and `GetServerHistory(channel, force)`
   return `ReleaseVersionInformation` off the server manifest.
@@ -191,11 +209,10 @@ is harmless if you want it:
 Both manifest URLs are settable (`ServerManifestUrl`, `WebComponentManifestUrl`),
 and both `GetLatest*`/`Get*History` calls are cached unless you pass `force: true`.
 
-The write side, `InstallWebComponentVersion`, `UpdateWebComponent` and
-`ReactToManualWebComponentUpdate`, replaces the user's WebUI installation. A
-plugin should not be doing that behind the user's back. `WebComponentUpdated`
-fires after an install, if you need to react to one.
+The write side (`InstallWebComponentVersion`, `UpdateWebComponent`,
+`ReactToManualWebComponentUpdate`) replaces the user's WebUI installation, which
+a plugin should not do behind the user's back. `WebComponentUpdated` fires after
+an install.
 
-`ReleaseChannel.Auto` means "match the running server's own channel", which is
-what you want almost every time. The explicit members are `Debug`, `Stable` and
-`Dev`.
+`ReleaseChannel.Auto` matches the running server's own channel, and is almost
+always what you want; the explicit members are `Debug`, `Stable` and `Dev`.

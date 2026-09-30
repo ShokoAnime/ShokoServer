@@ -29,6 +29,12 @@ public class Resource
     public string URL { get; init; } = string.Empty;
 
     /// <summary>
+    ///   The ID the site knows the entry by, if known. The only value of a
+    ///   resource with an empty <see cref="URL"/>.
+    /// </summary>
+    public string? ID { get; init; }
+
+    /// <summary>
     ///   The ISO 639-1 alpha-2 language code the resource's content is
     ///   in, if known and applicable.
     /// </summary>
@@ -46,6 +52,7 @@ public class Resource
     public Resource(AbstractResource resource)
         : this(resource.Type.ToString(), resource.Name, resource.Url)
     {
+        ID = resource.ID;
         LanguageCode = resource.LanguageCode;
     }
 }

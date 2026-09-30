@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Server.API.v3.Models.Common;
 
@@ -39,7 +39,7 @@ public class ImageSlim
     /// The image source.
     /// </summary>
     [Required]
-    public DataSource Source { get; set; }
+    public MetadataSource Source { get; set; }
 
     /// <summary>
     /// The image's resource identifier.

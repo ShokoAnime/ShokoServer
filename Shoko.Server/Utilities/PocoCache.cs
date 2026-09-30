@@ -294,6 +294,27 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
         }
     }
 
+    /// <summary>
+    ///   The keys an entity is indexed under, as the cache last saw it, so a
+    ///   caller can compare them with the entity before updating the cache.
+    /// </summary>
+    /// <param name="key">The entity's key.</param>
+    /// <param name="indexed">The keys, when the entity is in the cache.</param>
+    /// <returns><c>true</c> when the entity is in the cache.</returns>
+    public bool TryGetIndexedKeys(TKey key, [NotNullWhen(true)] out TInverseKey[]? indexed)
+    {
+        _lock.EnterReadLock();
+        try
+        {
+            indexed = _dict.TryGetValue(key, out var keys) ? [.. keys] : null;
+            return indexed is not null;
+        }
+        finally
+        {
+            _lock.ExitReadLock();
+        }
+    }
+
     #region IPocoCacheObserver implementation
 
     void IPocoCacheObserver<TKey, TEntity>.Update(TKey key, TEntity obj)

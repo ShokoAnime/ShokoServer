@@ -1,6 +1,5 @@
 using FluentNHibernate.Mapping;
 using Shoko.Abstractions.Metadata.Airing;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Airing;
 
@@ -17,7 +16,7 @@ public class AiringScheduleMap : ClassMap<AiringSchedule>
 
         Map(x => x.ProviderID).Not.Nullable();
         Map(x => x.ProviderName).Not.Nullable();
-        Map(x => x.SeriesSource).CustomType<DataSource>().Not.Nullable();
+        Map(x => x.SeriesSource).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.SeriesID).Not.Nullable();
         Map(x => x.SeasonID).Not.Nullable();
         // Quoted, since "Key" is a reserved word on some backends.

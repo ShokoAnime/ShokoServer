@@ -789,7 +789,7 @@ public class VideoReleaseGroupingService(
         // BestAvailable: for each colliding episode, keep only the highest-version file(s).
         // No-SRI files are appended to every candidate since their version is unknown.
         var bestAvailableFiles = SelectFilesForStrategy(episodeToVersionedFiles, collidingEpisodes, bestAvailable: true);
-        yield return new CandidateSpec([..bestAvailableFiles, ..noSriSigs], ReleaseVersionStrategy.BestAvailable, maxVersion, false, []);
+        yield return new CandidateSpec([.. bestAvailableFiles, .. noSriSigs], ReleaseVersionStrategy.BestAvailable, maxVersion, false, []);
 
         // Consistent(v) for each distinct version below maxVersion
         var distinctVersionsBeforeMax = sriSigs
@@ -804,7 +804,7 @@ public class VideoReleaseGroupingService(
             var consistentFiles = SelectFilesForStrategy(episodeToVersionedFiles, collidingEpisodes,
                 bestAvailable: false, targetVersion: version);
             if (consistentFiles.Count == 0) continue;
-            yield return new CandidateSpec([..consistentFiles, ..noSriSigs], ReleaseVersionStrategy.Consistent, version, false, []);
+            yield return new CandidateSpec([.. consistentFiles, .. noSriSigs], ReleaseVersionStrategy.Consistent, version, false, []);
         }
     }
 
@@ -1029,15 +1029,15 @@ public class VideoReleaseGroupingService(
             }))
             .ToList();
 
-        var resolution          = MajorityRef(signatures.Select(s => s.Resolution));
-        var videoCodec          = MajorityRef(signatures.Select(s => s.VideoCodec));
-        var bitDepth            = Majority(signatures.Select(s => s.BitDepth > 0 ? (int?)s.BitDepth : null)) ?? 0;
-        var audioCodec          = MajorityRef(signatures.Select(s => s.AudioCodec));
-        var audioStreamCount    = Majority(signatures.Select(s => s.AudioStreamCount > 0 ? (int?)s.AudioStreamCount : null)) ?? 0;
+        var resolution = MajorityRef(signatures.Select(s => s.Resolution));
+        var videoCodec = MajorityRef(signatures.Select(s => s.VideoCodec));
+        var bitDepth = Majority(signatures.Select(s => s.BitDepth > 0 ? (int?)s.BitDepth : null)) ?? 0;
+        var audioCodec = MajorityRef(signatures.Select(s => s.AudioCodec));
+        var audioStreamCount = Majority(signatures.Select(s => s.AudioStreamCount > 0 ? (int?)s.AudioStreamCount : null)) ?? 0;
         var subtitleStreamCount = Majority(signatures.Select(s => s.SubtitleStreamCount > 0 ? (int?)s.SubtitleStreamCount : null)) ?? 0;
-        var audioLanguages      = MajorityLanguageSet(signatures.Select(s => s.AudioLanguages));
-        var subtitleLanguages   = MajorityLanguageSet(signatures.Select(s => s.SubtitleLanguages));
-        var hasPartialCoverage  = allEpisodes.Count > 0 && !bucketEps.IsSupersetOf(allEpisodes);
+        var audioLanguages = MajorityLanguageSet(signatures.Select(s => s.AudioLanguages));
+        var subtitleLanguages = MajorityLanguageSet(signatures.Select(s => s.SubtitleLanguages));
+        var hasPartialCoverage = allEpisodes.Count > 0 && !bucketEps.IsSupersetOf(allEpisodes);
 
         // Unlike VideoReleaseCandidate.Key, overrides are always single merged-group buckets
         // (GetOverrides skips the version-strategy/gap-fill passes) rather than composites, so
@@ -1086,21 +1086,21 @@ public class VideoReleaseGroupingService(
         var rep = signatures.FirstOrDefault(s => s.ReleaseInfo is not null) ?? signatures[0];
         var sri = rep.ReleaseInfo;
 
-        var videoCodec          = MajorityRef(signatures.Select(s => s.VideoCodec));
-        var resolution          = MajorityRef(signatures.Select(s => s.Resolution));
-        var bitDepth            = Majority(signatures.Select(s => s.BitDepth > 0 ? (int?)s.BitDepth : null)) ?? 0;
-        var audioCodec          = MajorityRef(signatures.Select(s => s.AudioCodec));
-        var container           = MajorityRef(signatures.Select(s => s.Container));
-        var audioStreamCount    = Majority(signatures.Select(s => s.AudioStreamCount > 0 ? (int?)s.AudioStreamCount : null)) ?? 0;
+        var videoCodec = MajorityRef(signatures.Select(s => s.VideoCodec));
+        var resolution = MajorityRef(signatures.Select(s => s.Resolution));
+        var bitDepth = Majority(signatures.Select(s => s.BitDepth > 0 ? (int?)s.BitDepth : null)) ?? 0;
+        var audioCodec = MajorityRef(signatures.Select(s => s.AudioCodec));
+        var container = MajorityRef(signatures.Select(s => s.Container));
+        var audioStreamCount = Majority(signatures.Select(s => s.AudioStreamCount > 0 ? (int?)s.AudioStreamCount : null)) ?? 0;
         var subtitleStreamCount = Majority(signatures.Select(s => s.SubtitleStreamCount > 0 ? (int?)s.SubtitleStreamCount : null)) ?? 0;
-        var source              = Majority(signatures.Select(s => s.ReleaseInfo?.Source is { } src and not ReleaseSource.Unknown ? (ReleaseSource?)src : null))
+        var source = Majority(signatures.Select(s => s.ReleaseInfo?.Source is { } src and not ReleaseSource.Unknown ? (ReleaseSource?)src : null))
                                   ?? ReleaseSource.Unknown;
-        var audioLanguages      = MajorityLanguageSet(signatures.Select(s => s.AudioLanguages));
-        var subtitleLanguages   = MajorityLanguageSet(signatures.Select(s => s.SubtitleLanguages));
+        var audioLanguages = MajorityLanguageSet(signatures.Select(s => s.AudioLanguages));
+        var subtitleLanguages = MajorityLanguageSet(signatures.Select(s => s.SubtitleLanguages));
 
         // Majority+mixed for quality flags
-        var (isChaptered, isChapteredMixed)   = MajorityWithMix(signatures.Select(s => s.IsChaptered));
-        var (isCensored, isCensoredMixed)     = MajorityWithMix(signatures.Select(s => s.ReleaseInfo?.IsCensored));
+        var (isChaptered, isChapteredMixed) = MajorityWithMix(signatures.Select(s => s.IsChaptered));
+        var (isCensored, isCensoredMixed) = MajorityWithMix(signatures.Select(s => s.ReleaseInfo?.IsCensored));
         var (isCreditless, isCreditlessMixed) = MajorityWithMix(signatures.Select(s => s.ReleaseInfo?.IsCreditless));
 
         // Any-true for corruption — one corrupt file contaminates the whole candidate
@@ -1142,7 +1142,7 @@ public class VideoReleaseGroupingService(
         foreach (var (type, typeSigs) in typeToSigs)
         {
             var (typeIsChaptered, _) = MajorityWithMix(typeSigs.Select(s => s.IsChaptered));
-            var (typeIsCensored, _)  = MajorityWithMix(typeSigs.Select(s => s.ReleaseInfo?.IsCensored));
+            var (typeIsCensored, _) = MajorityWithMix(typeSigs.Select(s => s.ReleaseInfo?.IsCensored));
             var (typeIsCreditless, _) = MajorityWithMix(typeSigs.Select(s => s.ReleaseInfo?.IsCreditless));
             typeSignals[type] = new EpisodeTypeQualitySignals(
                 Source: Majority(typeSigs.Select(s =>
@@ -1164,8 +1164,8 @@ public class VideoReleaseGroupingService(
                 SubtitleLanguages: MajorityLanguageSet(typeSigs.Select(s => s.SubtitleLanguages)));
         }
 
-        var sortedAudio          = string.Join(",", audioLanguages.Select(l => l.GetString()).Order());
-        var sortedSubs           = string.Join(",", subtitleLanguages.Select(l => l.GetString()).Order());
+        var sortedAudio = string.Join(",", audioLanguages.Select(l => l.GetString()).Order());
+        var sortedSubs = string.Join(",", subtitleLanguages.Select(l => l.GetString()).Order());
         var sortedSecondaryGroups = string.Join(",", spec.SecondaryGroupShortNames.Order());
 
         // For non-mixed (single, homogeneous) candidates, the aggregate quality profile
@@ -1364,13 +1364,6 @@ public class VideoReleaseGroupingService(
 
     private static bool NullOrCompatible(string? a, string? b) =>
         string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b) || a == b;
-
-    private static bool LanguageSetsMatch(IReadOnlyList<TitleLanguage> a, IReadOnlyList<TitleLanguage> b)
-    {
-        if (a.Count != b.Count) return false;
-        var setA = a.ToHashSet();
-        return b.All(l => setA.Contains(l));
-    }
 
     private static string GetParentDirectory(string relativePath)
     {

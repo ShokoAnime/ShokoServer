@@ -29,7 +29,7 @@ public class ResponseAniDBTitles
                 Language = TitleLanguage.Unknown,
                 LanguageCode = "unk",
                 Value = $"<AniDB Anime {AnimeID}>",
-                Source = DataSource.None,
+                Source = MetadataSource.Shoko,
             };
 
         [XmlIgnore]
@@ -96,7 +96,7 @@ public class ResponseAniDBTitles
 
             string IText.Value => Title;
 
-            DataSource IText.Source => DataSource.AniDB;
+            MetadataSource IText.Source => MetadataSource.AniDB;
         }
     }
 }

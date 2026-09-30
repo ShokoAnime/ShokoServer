@@ -25,8 +25,6 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyGroup(JobKeyGroup.AniDB)]
 public class GetAniDBCalendarJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDB_AnimeRepository anidbAnime, AniDB_AnimeUpdateRepository anidbAnimeUpdates, AnimeSeriesRepository animeSeries, ScheduledUpdateRepository scheduledUpdates) : BaseJob
 {
-    public bool ForceRefresh { get; set; }
-
     public override string TypeName => "Get AniDB Calendar";
 
     public override string Title => "Getting AniDB Calendar";
@@ -38,27 +36,12 @@ public class GetAniDBCalendarJob(IRequestFactory requestFactory, IAnidbService a
         var settings = settingsProvider.GetSettings();
         // we will always assume that an anime was downloaded via http first
 
-        var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar);
-        if (schedule is null)
+        // How often this runs is up to the triggers of the action that queues it.
+        var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBCalendar) ?? new()
         {
-            schedule = new()
-            {
-                UpdateType = (int)ScheduledUpdateType.AniDBCalendar,
-                UpdateDetails = string.Empty,
-            };
-        }
-        else
-        {
-            var freqHours = settings.AniDb.Calendar_UpdateFrequency.Hours;
-
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours)
-            {
-                if (!ForceRefresh) return;
-            }
-        }
-
+            UpdateType = (int)ScheduledUpdateType.AniDBCalendar,
+            UpdateDetails = string.Empty,
+        };
         schedule.LastUpdate = DateTime.Now;
 
         var request = requestFactory.Create<RequestCalendar>();
@@ -107,6 +90,8 @@ public class GetAniDBCalendarJob(IRequestFactory requestFactory, IAnidbService a
                 if (anime.AirDate == releaseDate) return;
 
                 anime.AirDate = releaseDate;
+                anime.ResetReleaseStatus();
+                anime.ResetRegularAirDates();
                 anidbAnime.Save(anime);
                 var ser = animeSeries.GetByAnimeID(anime.AnimeID);
                 if (ser is not null) animeSeries.Save(ser, true);

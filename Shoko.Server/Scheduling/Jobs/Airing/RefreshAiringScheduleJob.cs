@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
@@ -47,13 +47,13 @@ public class RefreshAiringScheduleJob(IAiringScheduleService airingScheduleServi
     /// The source of the entity to refresh.
     /// </summary>
     [JobKeyMember]
-    public DataSource EntitySource { get; set; }
+    public MetadataSource EntitySource { get; set; } = null!;
 
     /// <summary>
     /// The kind of entity to refresh.
     /// </summary>
     [JobKeyMember]
-    public DataEntityType EntityType { get; set; }
+    public MetadataEntityType EntityType { get; set; } = null!;
 
     /// <summary>
     /// The ID of the entity within its source.

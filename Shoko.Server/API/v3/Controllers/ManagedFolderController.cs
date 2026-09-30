@@ -19,6 +19,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Shoko;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 using AbstractDropFolderType = Shoko.Abstractions.Video.Enums.DropFolderType;
@@ -131,7 +132,7 @@ public class ManagedFolderController(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] ManagedFolder.Input.NotifyChangeDetectedAbsoluteBody body
     )
     {
-        Task.Run(() => videoService.NotifyVideoFileChangeDetected(body.Path, body.UpdateMylist));
+        Task.Run(ActorContext.Carry(() => videoService.NotifyVideoFileChangeDetected(body.Path, body.UpdateMylist)));
         return NoContent();
     }
 
@@ -283,7 +284,7 @@ public class ManagedFolderController(
     {
         if (managedFolderRepository.GetByID(folderID) is not { } folder)
             return NotFound("Folder not found.");
-        Task.Run(() => videoService.NotifyVideoFileChangeDetected(folder, body.RelativePath, body.UpdateMylist));
+        Task.Run(ActorContext.Carry(() => videoService.NotifyVideoFileChangeDetected(folder, body.RelativePath, body.UpdateMylist)));
         return NoContent();
     }
 

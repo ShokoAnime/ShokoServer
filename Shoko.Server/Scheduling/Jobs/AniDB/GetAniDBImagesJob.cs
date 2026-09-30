@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Models.AniDB;
@@ -12,7 +13,12 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBImagesJob(AniDBTitleHelper titleHelper, AnidbService anidbService, AniDB_AnimeRepository anidbAnimes) : BaseJob
+public class GetAniDBImagesJob(
+    AniDBTitleHelper titleHelper,
+    AnidbService anidbService,
+    AniDB_AnimeRepository anidbAnimes,
+    MetadataImageContributorScheduler contributorScheduler
+) : BaseJob
 {
     private AniDB_Anime? _anime;
     private string? _title;
@@ -54,5 +60,8 @@ public class GetAniDBImagesJob(AniDBTitleHelper titleHelper, AnidbService anidbS
         }
 
         await anidbService.ProcessImagesForAnimeByID(AnimeID, OnlyPosters, ForceDownload).ConfigureAwait(false);
+
+        // The contributors add theirs once AniDB's are linked.
+        await contributorScheduler.ScheduleForEntry(new(MetadataSource.AniDB, MetadataEntityType.Series, AnimeID.ToString()), ForceDownload).ConfigureAwait(false);
     }
 }

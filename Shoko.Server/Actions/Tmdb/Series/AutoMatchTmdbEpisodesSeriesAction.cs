@@ -1,14 +1,16 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Automatically match TMDB episodes for the series.
 /// </summary>
-public sealed class AutoMatchTmdbEpisodesSeriesAction(TmdbLinkingService linkingService) : SeriesAction
+public sealed class AutoMatchTmdbEpisodesSeriesAction(IMetadataLinkingService linkingService) : SeriesAction
 {
     public override string Name => "Auto-Match TMDB Episodes";
 
@@ -18,15 +20,14 @@ public sealed class AutoMatchTmdbEpisodesSeriesAction(TmdbLinkingService linking
 
     public override ActionPermission Permission => ActionPermission.Admin;
 
-    public override Task Execute(CancellationToken token = default)
+    public override async Task Execute(CancellationToken token = default)
     {
-        var tmdbShowId = Series.TmdbShowCrossReferences is [{ } first, ..]
-            ? first.TmdbShowID
-            : 0;
-        if (tmdbShowId is 0)
-            return Task.CompletedTask;
+        var showID = Series.GetSeriesCrossReferences(MetadataSource.TMDB)
+            .Select(xref => xref.ProviderID)
+            .FirstOrDefault(providerID => providerID?.EntityType == MetadataEntityType.Series);
+        if (showID is null)
+            return;
 
-        linkingService.MatchAnidbToTmdbEpisodes(Series.AnidbAnimeID, tmdbShowId, null, useExisting: true, useExistingOtherShows: null, saveToDatabase: true);
-        return Task.CompletedTask;
+        await linkingService.MatchEpisodes(Series.AnidbAnimeID, showID, useExisting: true, save: true, cancellationToken: token).ConfigureAwait(false);
     }
 }

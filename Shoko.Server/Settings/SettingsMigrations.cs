@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Plugin;
+using Shoko.Server.Databases;
+using Shoko.Server.Server;
 
 namespace Shoko.Server.Settings;
 
@@ -35,9 +39,13 @@ public static partial class SettingsMigrations
         var dataPath = applicationPaths.DataPath;
         var migrationsToApply = _migrations
             .Where(a => a.Key > version)
-            .Select(a => (a.Key, Fn: a.Key == 15
-                ? (s => MigrateQuartzToQueue(s, dataPath))
-                : a.Value))
+            .Select(a => (a.Key, Fn: a.Key switch
+            {
+                15 => s => MigrateQuartzToQueue(s, dataPath),
+                20 => s => MigrateAutoLinkToMetadataService(s, dataPath),
+                25 => s => MigrateUpdateFrequenciesToScheduledActions(s, dataPath),
+                _ => a.Value,
+            }))
             .Where(a => a.Fn is not null)
             .OrderBy(a => a.Key)
             .Select(a => a.Fn!)
@@ -88,6 +96,13 @@ public static partial class SettingsMigrations
         { 17, MigrateReleaseSignalTypeNames },
         { 18, MigrateTmdbIncrementalChangesWindow },
         { 19, MigrateAniDbMyListToOwnObject },
+        // Note: path-dependent migration, injected in MigrateSettings like 15.
+        { 20, null },
+        { 21, MigrateSourceNamesToValues },
+        { 22, MigrateDropPluginImageTemplateUrls },
+        { 23, MigrateTmdbImageSettingsToMetadataSource },
+        { 24, MigrateTmdbAutoPurgeToMetadata },
+        { 25, null },
     };
 
     /// <summary>
@@ -96,6 +111,379 @@ public static partial class SettingsMigrations
     /// to preserve which preset was configured as the default.
     /// </summary>
     internal static string? MigratedDefaultRenamer { get; set; }
+
+    /// <summary>
+    ///   An auto-link decision carried over from before migration 20, for the
+    ///   metadata provider manager to apply when it seeds.
+    /// </summary>
+    /// <param name="AutoLink">The old <c>AutoLink</c> value, if it was set.</param>
+    /// <param name="AutoLinkRestricted">The old <c>AutoLinkRestricted</c> value, if it was set.</param>
+    internal sealed record AutoLinkCarryOver(bool? AutoLink, bool? AutoLinkRestricted);
+
+    /// <summary>
+    ///   Where migration 20 leaves the values it takes out of the settings
+    ///   file, so a first boot that fails before seeding does not lose them.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>The carry-over file's path.</returns>
+    internal static string AutoLinkCarryOverPath(string dataPath)
+        => Path.Combine(dataPath, "SettingsBackup", "auto-link.v19.json");
+
+    /// <summary>
+    ///   Reads what migration 20 carried over, keyed by source.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>
+    ///   The carried-over decisions, or an empty map when there is no file,
+    ///   either because nothing was migrated or because it was already applied.
+    /// </returns>
+    internal static IReadOnlyDictionary<MetadataSource, AutoLinkCarryOver> ReadAutoLinkCarryOver(string dataPath)
+    {
+        var path = AutoLinkCarryOverPath(dataPath);
+        return File.Exists(path)
+            ? JsonConvert.DeserializeObject<Dictionary<MetadataSource, AutoLinkCarryOver>>(File.ReadAllText(path)) ?? []
+            : new Dictionary<MetadataSource, AutoLinkCarryOver>();
+    }
+
+    /// <summary>
+    ///   Removes the carry-over once it has been applied and saved.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    internal static void ClearAutoLinkCarryOver(string dataPath)
+    {
+        var path = AutoLinkCarryOverPath(dataPath);
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
+    /// <summary>
+    ///   Takes TMDB's auto-link settings out of its section and writes them to
+    ///   the carry-over file, since the metadata service's own settings cannot
+    ///   be written before it exists.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <param name="dataPath">
+    ///   The server's data path. The carry-over sits beside the settings
+    ///   backup and stays until the provider manager has applied and saved it,
+    ///   so a first boot that fails before then keeps the values for the next.
+    /// </param>
+    /// <returns>The settings JSON without the two keys.</returns>
+    private static string MigrateAutoLinkToMetadataService(string settings, string dataPath)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var tmdb = currentSettings["TMDB"] as JObject;
+        var carry = new AutoLinkCarryOver(Take(tmdb, "AutoLink"), Take(tmdb, "AutoLinkRestricted"));
+        if (carry.AutoLink is not null || carry.AutoLinkRestricted is not null)
+        {
+            var path = AutoLinkCarryOverPath(dataPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var carried = new Dictionary<MetadataSource, AutoLinkCarryOver> { [MetadataSource.TMDB] = carry };
+            File.WriteAllText(path, JsonConvert.SerializeObject(carried, Formatting.Indented));
+        }
+
+        return currentSettings.ToString();
+
+        static bool? Take(JObject? parent, string name)
+        {
+            if (parent?.Property(name) is not { } property)
+                return null;
+
+            var value = property.Value.Type is JTokenType.Boolean ? property.Value.Value<bool>() : (bool?)null;
+            property.Remove();
+            return value;
+        }
+    }
+
+    #region Update Frequencies
+
+    /// <summary>
+    ///   The carry-over key of <c>AniDb.Calendar_UpdateFrequency</c>.
+    /// </summary>
+    internal const string AnidbCalendarFrequency = "AniDb.Calendar";
+
+    /// <summary>
+    ///   The carry-over key of <c>AniDb.Anime_UpdateFrequency</c>.
+    /// </summary>
+    internal const string AnidbAnimeFrequency = "AniDb.Anime";
+
+    /// <summary>
+    ///   The carry-over key of <c>AniDb.File_UpdateFrequency</c>.
+    /// </summary>
+    internal const string AnidbFileFrequency = "AniDb.File";
+
+    /// <summary>
+    ///   The carry-over key of <c>AniDb.Notification_UpdateFrequency</c>.
+    /// </summary>
+    internal const string AnidbNotificationFrequency = "AniDb.Notification";
+
+    /// <summary>
+    ///   The carry-over key of <c>AniDb.MyList.UpdateFrequency</c>.
+    /// </summary>
+    internal const string AnidbMylistFrequency = "AniDb.MyList";
+
+    /// <summary>
+    ///   The carry-over key of <c>Plugins.Updates.AutoUpdateFrequency</c>.
+    /// </summary>
+    internal const string PluginUpdatesFrequency = "Plugins.Updates";
+
+    /// <summary>
+    ///   Where migration 25 leaves the update frequencies it takes out of the
+    ///   settings file, until the action scheduler has made them triggers.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>The carry-over file's path.</returns>
+    internal static string UpdateFrequencyCarryOverPath(string dataPath)
+        => Path.Combine(dataPath, "SettingsBackup", "update-frequencies.v24.json");
+
+    /// <summary>
+    ///   Reads the update frequencies migration 25 carried over. A file that
+    ///   cannot be read is renamed aside, so it is not read on every start.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <param name="logger">Told when the file cannot be read, or <c>null</c>.</param>
+    /// <returns>
+    ///   The frequencies in hours by carry-over key, 0 for never, or an empty
+    ///   map when there is no file, either because nothing was migrated or
+    ///   because it was already applied, or when it cannot be read.
+    /// </returns>
+    internal static IReadOnlyDictionary<string, int> ReadUpdateFrequencyCarryOver(string dataPath, ILogger? logger = null)
+    {
+        var path = UpdateFrequencyCarryOverPath(dataPath);
+        if (!File.Exists(path))
+            return new Dictionary<string, int>();
+
+        try
+        {
+            return JsonConvert.DeserializeObject<Dictionary<string, int>>(File.ReadAllText(path)) ?? [];
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            logger?.LogWarning(ex, "Could not read the carried-over update frequencies in {Path}; the scheduled actions keep their default triggers", path);
+            try
+            {
+                File.Move(path, path + ".unreadable", true);
+            }
+            catch (Exception moveEx) when (moveEx is IOException or UnauthorizedAccessException)
+            {
+                logger?.LogWarning(moveEx, "Could not move the unreadable carry-over {Path} aside", path);
+            }
+
+            return new Dictionary<string, int>();
+        }
+    }
+
+    /// <summary>
+    ///   Removes the update frequency carry-over once it has been applied and
+    ///   saved.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    internal static void ClearUpdateFrequencyCarryOver(string dataPath)
+    {
+        var path = UpdateFrequencyCarryOverPath(dataPath);
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
+    /// <summary>
+    ///   Takes the update frequencies of the AniDB and plugin update jobs out of
+    ///   the settings and writes them to the carry-over file, in hours, for the
+    ///   action scheduler to make them the triggers of the actions that run
+    ///   those jobs, since the schedule lives in the database, which cannot be
+    ///   written yet.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <param name="dataPath">
+    ///   The server's data path. The carry-over sits beside the settings
+    ///   backup and stays until the scheduler has applied and saved it, so a
+    ///   first boot that fails before then keeps the values for the next.
+    /// </param>
+    /// <returns>The settings JSON without the frequencies.</returns>
+    private static string MigrateUpdateFrequenciesToScheduledActions(string settings, string dataPath)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var anidb = currentSettings["AniDb"] as JObject;
+        var taken = new Dictionary<string, int>();
+        Take(anidb, "Calendar_UpdateFrequency", AnidbCalendarFrequency);
+        Take(anidb, "Anime_UpdateFrequency", AnidbAnimeFrequency);
+        Take(anidb, "File_UpdateFrequency", AnidbFileFrequency);
+        Take(anidb, "Notification_UpdateFrequency", AnidbNotificationFrequency);
+        Take(anidb?["MyList"] as JObject, "UpdateFrequency", AnidbMylistFrequency);
+        Take(currentSettings["Plugins"]?["Updates"] as JObject, "AutoUpdateFrequency", PluginUpdatesFrequency);
+        if (taken.Count > 0)
+        {
+            var path = UpdateFrequencyCarryOverPath(dataPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonConvert.SerializeObject(taken, Formatting.Indented));
+        }
+
+        return currentSettings.ToString();
+
+        void Take(JObject? parent, string name, string key)
+        {
+            if (parent?.Property(name) is not { } property)
+                return;
+
+            property.Remove();
+            if (ToHours(property.Value) is { } hours)
+                taken[key] = hours;
+        }
+
+        static int? ToHours(JToken value)
+        {
+            ScheduledUpdateFrequency? frequency = value.Type switch
+            {
+                JTokenType.String when Enum.TryParse<ScheduledUpdateFrequency>(value.Value<string>(), true, out var named) && Enum.IsDefined(named) => named,
+                JTokenType.Integer when Enum.IsDefined((ScheduledUpdateFrequency)value.Value<int>()) => (ScheduledUpdateFrequency)value.Value<int>(),
+                _ => null,
+            };
+            return frequency switch
+            {
+                null => null,
+                ScheduledUpdateFrequency.Never => 0,
+                { } known => known.Hours,
+            };
+        }
+    }
+
+    #endregion
+
+    /// <summary>
+    ///   The image switches, counts and language order TMDB kept in its own
+    ///   settings, which moved to its entry in the per-source image settings.
+    /// </summary>
+    private static readonly string[] _tmdbImageSettingNames =
+    [
+        "ImageLanguageOrder",
+        "AutoDownloadBackdrops",
+        "MaxAutoBackdrops",
+        "AutoDownloadPosters",
+        "MaxAutoPosters",
+        "AutoDownloadLogos",
+        "MaxAutoLogos",
+        "AutoDownloadThumbnails",
+        "MaxAutoThumbnails",
+        "AutoDownloadStaffImages",
+        "MaxAutoStaffImages",
+        "AutoDownloadStudioImages",
+    ];
+
+    /// <summary>
+    ///   Moves TMDB's image switches, counts and language order out of its
+    ///   own settings into a TMDB entry of the per-source image settings,
+    ///   keeping the user's values. Banners are turned off in the entry, since
+    ///   TMDB offers none and the switch defaulting to on would otherwise keep
+    ///   asking TMDB for images the user turned off.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <returns>The settings JSON with TMDB's image settings moved.</returns>
+    private static string MigrateTmdbImageSettingsToMetadataSource(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings["TMDB"] is not JObject tmdb)
+            return settings;
+
+        var entry = new JObject { ["Source"] = MetadataSource.TMDB.Value };
+        foreach (var name in _tmdbImageSettingNames)
+        {
+            if (tmdb.Property(name) is not { } property)
+                continue;
+
+            entry[name] = property.Value.DeepClone();
+            property.Remove();
+        }
+
+        if (entry.Count is 1)
+            return currentSettings.ToString();
+
+        entry["AutoDownloadBanners"] = false;
+        if (currentSettings["Image"] is not JObject image)
+            currentSettings["Image"] = image = new JObject();
+        image["MetadataSources"] = new JArray(entry);
+
+        return currentSettings.ToString();
+    }
+
+    /// <summary>
+    ///   Moves TMDB's <c>AutoPurgeUnlinkedAfterDays</c> to the metadata
+    ///   settings, where it now covers every source the core purges.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <returns>The settings JSON with the value under <c>Metadata</c>.</returns>
+    private static string MigrateTmdbAutoPurgeToMetadata(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings["TMDB"] is not JObject tmdb || tmdb.Property("AutoPurgeUnlinkedAfterDays") is not { } property)
+            return settings;
+
+        property.Remove();
+        currentSettings["Metadata"] = new JObject { ["AutoPurgeUnlinkedAfterDays"] = property.Value };
+
+        return currentSettings.ToString();
+    }
+
+    /// <summary>
+    ///   Drops the image template URLs of every source but AniDB and TMDB.
+    ///   Plugins used to write their source's template into these settings,
+    ///   where it would now read as the user's own and hide the default the
+    ///   plugin registers.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <returns>The settings JSON with only the core sources' templates left.</returns>
+    private static string MigrateDropPluginImageTemplateUrls(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings["Image"]?["ImageTemplateUrls"] is not JArray templates)
+            return settings;
+
+        foreach (var template in templates.OfType<JObject>().ToList())
+        {
+            var source = template["ImageSource"]?.Type is JTokenType.String ? template["ImageSource"]!.Value<string>() : null;
+            if (!string.Equals(source, MetadataSource.AniDB.Value, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(source, MetadataSource.TMDB.Value, StringComparison.OrdinalIgnoreCase))
+                template.Remove();
+        }
+
+        return currentSettings.ToString();
+    }
+
+    /// <summary>
+    ///   Rewrites the sources the settings name from the old enum names to
+    ///   source values: the language source orders and the image template
+    ///   URLs' sources. <c>None</c> and unreadable entries are dropped.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <returns>The settings JSON with source values.</returns>
+    private static string MigrateSourceNamesToValues(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings["Language"] is JObject languageSettings)
+        {
+            foreach (var name in new[] { "SeriesTitleSourceOrder", "EpisodeTitleSourceOrder", "DescriptionSourceOrder" })
+            {
+                if (languageSettings[name] is JArray order)
+                    languageSettings[name] = new JArray(order.Select(ConvertSourceToken).OfType<string>().Distinct(StringComparer.Ordinal));
+            }
+        }
+
+        if (currentSettings["Image"]?["ImageTemplateUrls"] is JArray templates)
+        {
+            foreach (var template in templates.OfType<JObject>().ToList())
+            {
+                if (template.Property("ImageSource") is not { } property)
+                    continue;
+
+                if (ConvertSourceToken(property.Value) is { } value)
+                    property.Value = value;
+                else
+                    template.Remove();
+            }
+        }
+
+        return currentSettings.ToString();
+    }
+
+    private static string? ConvertSourceToken(JToken token)
+        => token.Type is JTokenType.String ? DatabaseFixes.ConvertOldSourceName(token.Value<string>()) : null;
 
     private static string MigrateTvDBLanguageEnum(string settings)
     {
@@ -251,19 +639,21 @@ public static partial class SettingsMigrations
 
         var languageSettings = currentSettings["Language"] ?? (currentSettings["Language"] = new JObject());
 
+        // The old enum names, as this migration always wrote them; migration 21
+        // turns them into source values.
         languageSettings["SeriesTitleSourceOrder"] = new JArray
         {
-            DataSource.AniDB, DataSource.TMDB
+            "AniDB", "TMDB"
         };
 
         languageSettings["EpisodeTitleSourceOrder"] = new JArray
         {
-            DataSource.AniDB, DataSource.TMDB
+            "AniDB", "TMDB"
         };
 
         languageSettings["DescriptionSourceOrder"] = new JArray
         {
-            DataSource.AniDB, DataSource.TMDB
+            "AniDB", "TMDB"
         };
 
         return currentSettings.ToString(Formatting.Indented, new StringEnumConverter());

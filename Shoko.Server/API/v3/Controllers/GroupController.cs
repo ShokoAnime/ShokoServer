@@ -7,10 +7,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Image.Exceptions;
+using Shoko.Abstractions.Metadata.Image.Options;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.User.Services;
@@ -261,12 +262,12 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         return _anidbAnimeRelations.GetByAnimeID(animeIds).OfType<IRelatedMetadata>()
             .Concat(_anidbAnimeRelations.GetByRelatedAnimeID(animeIds).OfType<IRelatedMetadata>().Select(a => a.Reversed))
             .Distinct()
-            .Select(relation => (relation, relatedSeries: _animeSeries.GetByAnimeID(relation.RelatedID)))
+            .Select(relation => (relation, relatedSeries: _animeSeries.GetByAnimeID(relation.RelatedID.GetNumericID<int>())))
             .Where(tuple => tuple.relatedSeries != null && animeIds.Contains(tuple.relatedSeries.AniDB_ID))
             .OrderBy(tuple => tuple.relation.BaseID)
             .ThenBy(tuple => tuple.relation.RelatedID)
             .ThenBy(tuple => tuple.relation.RelationType)
-            .Select(tuple => new SeriesRelation(tuple.relation, seriesDict[tuple.relation.BaseID], tuple.relatedSeries))
+            .Select(tuple => new SeriesRelation(tuple.relation, seriesDict[tuple.relation.BaseID.GetNumericID<int>()], tuple.relatedSeries))
             .ToList();
     }
 
@@ -307,14 +308,16 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (!user.AllowedGroup(group))
             return Forbid(GroupForbiddenForUser);
 
-        return ((IWithImages)group).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true })
+        var options = new ImageFilteringOptions { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true };
+        return ((IWithImages)group).GetImages(options)
             .OrderBy(a => a.Type)
             .ThenBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToDto(showLinkedIDs: showLinkedIDs, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
+            .ToDto(showLinkedIDs: showLinkedIDs, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource)
+            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, options));
     }
 
     /// <summary>
@@ -348,14 +351,16 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (!user.AllowedGroup(group))
             return Forbid(GroupForbiddenForUser);
 
+        var options = new ImageFilteringOptions { ImageType = imageType, IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true };
         return ((IWithImages)group)
-            .GetImages(new() { ImageType = imageType, IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true })
+            .GetImages(options)
             .OrderBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToListResult(image => new Image(image, showLinkedIDs, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize);
+            .ToListResult(image => new Image(image, showLinkedIDs, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize)
+            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, options));
     }
 
     #endregion
@@ -368,6 +373,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     /// <param name="groupID">Shoko Group ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="file">The image file to upload.</param>
+    /// <param name="preferred">Whether to make the image the preferred one of its type for the group.</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
     [Authorize("admin")]
@@ -378,6 +384,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromRoute] ImageEntityType imageType,
         IFormFile file,
+        [FromQuery] bool preferred = false,
         [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
@@ -393,19 +400,11 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         try
         {
             using var stream = file.OpenReadStream();
-            var image = _imageManager.UploadImage(stream, file.ContentType, userSubmitted: true);
-            var xref = _imageManager.AddImageCrossReference(group, image, new()
-            {
-                ImageType = imageType,
-                IsEnabled = true,
-                IsDesired = true,
-                Source = DataSource.User,
-            });
-            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)));
-        }
-        catch (ImageCrossReferenceExistsException ex)
-        {
-            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(ex.Image.Source)));
+            var uploaded = _imageManager.UploadImage(stream, file.ContentType, userSubmitted: true);
+            var (image, xref, created) = _imageManager.LinkUploadedImage(group, uploaded, imageType, preferred);
+            var dto = new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source))
+                .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, new() { ImageType = imageType }));
+            return created ? Created($"/api/v3/Image/Management/{image.ID}", dto) : Ok(dto);
         }
         catch (ArgumentException ex)
         {
@@ -434,7 +433,8 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
 
         var preferredImage = ((IWithImages)group).GetPreferredImageForType(imageType);
         if (preferredImage is not null)
-            return new Image(preferredImage, false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(preferredImage.Source));
+            return new Image(preferredImage, false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(preferredImage.Source))
+                .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, new() { ImageType = imageType }));
 
         var images = ((IWithImages)group).GetImages(new() { ImageType = imageType }).ToDto();
         var image = imageType switch
@@ -450,7 +450,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (image is null)
             return NotFound(NoDefaultImageForType);
 
-        return image;
+        return image.WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, new() { ImageType = imageType }));
     }
 
     /// <summary>
@@ -479,7 +479,8 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             return NotFound(ImageNotFound);
 
         var xref = _imageManager.SetPreferredImageForEntity(group, imageType, image);
-        return new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source));
+        return new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source))
+            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, new() { ImageType = imageType }));
     }
 
     /// <summary>
@@ -507,9 +508,8 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
 
         switch (xref)
         {
-            // Unset the preferred if it's not a user xref, or if it's a user xref and a user uploaded image.
-            case { Source: not DataSource.User }:
-            case { Source: DataSource.User, ImageSource: DataSource.User }:
+            // Unset the preferred if it's not a user xref, or if it's a user xref to a local image, which could not be fetched again.
+            case var _ when xref.Source != MetadataSource.User || xref.ImageSource.IsLocal:
                 _imageManager.UnsetPreferredImageForEntity(xref);
                 break;
             // Otherwise remove the user created xref.
@@ -520,6 +520,52 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
 
         // Don't return any content.
         return NoContent();
+    }
+
+    #endregion
+
+    #region Enabled image
+
+    /// <summary>
+    /// Enable or disable an image of the given <paramref name="imageType"/> for the <see cref="Group"/>.
+    /// </summary>
+    /// <remarks>
+    /// Every link the group sees the image through is changed, so an image it shows through a linked entry is enabled or disabled on that
+    /// entry's link too. A link is shared by everything that shows the image through it, so this also changes the image for every other
+    /// entry that sees it through that link. Unlike the preferred image, the enabled state is per link and not overridden per entry.
+    /// </remarks>
+    /// <param name="groupID">Shoko Group ID</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="imageID">The image's ID, as <see cref="Image.UID"/> gives it.</param>
+    /// <param name="body">The enabled state to set.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
+    /// <returns>The image, with the links the group sees it through.</returns>
+    [Authorize("admin")]
+    [HttpPost("{groupID}/Images/{imageType}/{imageID:guid}/Enabled")]
+    public ActionResult<Image> EnableGroupImageForType(
+        [FromRoute, Range(1, int.MaxValue)] int groupID,
+        [FromRoute] ImageEntityType imageType,
+        [FromRoute] Guid imageID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
+    )
+    {
+        if (_animeGroups.GetByID(groupID) is not { } group)
+            return NotFound(GroupNotFound);
+
+        if (!User.AllowedGroup(group))
+            return Forbid(GroupForbiddenForUser);
+
+        var image = _imageManager.GetImageByID(imageID);
+        if (image is null)
+            return NotFound(ImageNotFound);
+
+        var xrefs = _imageManager.SetImageEnabledForEntity(group, imageType, image, body.Enabled);
+        if (xrefs.Count is 0)
+            return NotFound("The image is not shown for the group as that type.");
+
+        return new Image(ImageStub.Wrap(image, xrefs[0]), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source))
+            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, new() { ImageType = imageType }));
     }
 
     #endregion

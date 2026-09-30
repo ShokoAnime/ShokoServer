@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -40,7 +40,7 @@ public class AiringSchedule
     /// <summary>
     /// The source of the series the schedule is for.
     /// </summary>
-    public DataSource SeriesSource { get; set; }
+    public MetadataSource SeriesSource { get; set; } = null!;
 
     /// <summary>
     /// The ID of the series the schedule is for, relative to

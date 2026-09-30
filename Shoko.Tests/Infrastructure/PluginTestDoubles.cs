@@ -24,35 +24,85 @@ public static class PluginTestDoubles
         => LocalPlugin(pluginType, id, "Shoko.Server.dll", canUninstall: false, name: "Shoko Core");
 
     /// <summary>
-    ///   A plugin entry for an ordinary, uninstallable plugin.
+    ///   A plugin entry for an ordinary plugin that can be uninstalled, holding
+    ///   <paramref name="plugin"/> as its instance if given.
     /// </summary>
-    public static LocalPluginInfo InstalledPluginInfo(Type pluginType, Guid id, string dllName = "SomePlugin.dll")
-        => LocalPlugin(pluginType, id, dllName, canUninstall: true, name: "Some Plugin");
+    public static LocalPluginInfo InstalledPluginInfo(Type pluginType, Guid id, string dllName = "SomePlugin.dll", IPlugin? plugin = null)
+        => LocalPlugin(pluginType, id, dllName, canUninstall: true, name: "Some Plugin", plugin);
 
-    private static LocalPluginInfo LocalPlugin(Type pluginType, Guid id, string dllName, bool canUninstall, string name)
+    /// <summary>
+    ///   A plugin entry for an ordinary plugin installed in a folder of its own.
+    /// </summary>
+    public static LocalPluginInfo InstalledPluginInfoInFolder(Type pluginType, Guid id, string containingDirectory, string dllPath)
+        => LocalPlugin(pluginType, id, dllPath, canUninstall: true, name: "Some Plugin", containingDirectory: containingDirectory);
+
+    /// <summary>
+    ///   A plugin entry for an ordinary plugin with the given text to search.
+    /// </summary>
+    /// <param name="id">The plugin ID.</param>
+    /// <param name="name">The plugin name.</param>
+    /// <param name="description">The plugin description.</param>
+    /// <param name="tags">The plugin tags.</param>
+    /// <param name="authors">The plugin authors, if any.</param>
+    /// <returns>The plugin entry.</returns>
+    public static LocalPluginInfo DescribedPluginInfo(Guid id, string name, string description, IReadOnlyList<string> tags, string? authors)
+        => LocalPlugin(typeof(TestPlugin), id, "SomePlugin.dll", canUninstall: true, name, description: description, tags: tags, authors: authors);
+
+    /// <summary>
+    ///   A loaded plugin entry with the given text to search, whose plugin
+    ///   shows one page.
+    /// </summary>
+    /// <param name="id">The plugin ID.</param>
+    /// <param name="name">The plugin name.</param>
+    /// <param name="description">The plugin description.</param>
+    /// <param name="pageName">The name of the page it shows.</param>
+    /// <returns>The plugin entry.</returns>
+    public static LocalPluginInfo PagedPluginInfo(Guid id, string name, string description, string pageName)
+        => LocalPlugin(typeof(PagedPlugin), id, "SomePlugin.dll", canUninstall: true, name, plugin: new PagedPlugin(pageName), description: description);
+
+    /// <summary>
+    ///   A copy of a plugin entry that is installed but not loaded, so it has
+    ///   no instance.
+    /// </summary>
+    public static LocalPluginInfo InactivePluginInfo(LocalPluginInfo pluginInfo)
+        => LocalPlugin(pluginInfo.PluginType!, pluginInfo.ID, pluginInfo.DLLs[0], pluginInfo.CanUninstall, pluginInfo.Name, active: false);
+
+    private static LocalPluginInfo LocalPlugin(
+        Type pluginType,
+        Guid id,
+        string dllName,
+        bool canUninstall,
+        string name,
+        IPlugin? plugin = null,
+        bool active = true,
+        string? containingDirectory = null,
+        string description = "",
+        IReadOnlyList<string>? tags = null,
+        string? authors = null
+    )
         => new()
         {
             ID = id,
             Name = name,
-            Description = string.Empty,
+            Description = description,
             Version = Version(),
-            Authors = null,
+            Authors = authors,
             RepositoryUrl = null,
             HomepageUrl = null,
-            Tags = [],
+            Tags = tags ?? [],
             Thumbnail = null,
             Icon = null,
             InstalledAt = DateTime.UnixEpoch,
             // An entry that is loaded is enabled; the tests asking about a toggle need to see
             // the toggle actually refused rather than a default they never set.
-            IsEnabled = true,
-            IsActive = true,
+            IsEnabled = active,
+            IsActive = active,
             CanUninstall = canUninstall,
-            Plugin = null,
+            Plugin = active ? plugin : null,
             PluginType = pluginType,
             ServiceRegistrationType = null,
             ApplicationRegistrationType = null,
-            ContainingDirectory = null,
+            ContainingDirectory = containingDirectory,
             DLLs = new List<string> { dllName },
             Types = [],
             Dependencies = []
@@ -78,5 +128,19 @@ public static class PluginTestDoubles
         public Guid ID { get; } = Guid.NewGuid();
 
         public string Name => "Some Plugin";
+    }
+
+    /// <summary>
+    ///   A plugin showing one page.
+    /// </summary>
+    /// <param name="pageName">The name of the page.</param>
+    public sealed class PagedPlugin(string pageName) : IPlugin
+    {
+        public Guid ID { get; } = Guid.NewGuid();
+
+        public string Name => "Paged Plugin";
+
+        public IReadOnlyList<PluginPage> GetPages()
+            => [new() { Name = pageName, Url = $"/{pageName}" }];
     }
 }

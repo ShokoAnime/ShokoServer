@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -11,7 +12,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 #pragma warning disable CA1822
@@ -24,13 +25,13 @@ namespace Shoko.Server.API.v3.Controllers;
 public class MissingEpisodesController(ISettingsProvider settingsProvider,
     AnimeEpisodeRepository _animeEpisodes,
     AnimeSeriesRepository _animeSeries,
-    AniDB_Anime_TitleRepository _anidbTitles
+    AnidbTitleSearch _anidbTitles
 ) : BaseController(settingsProvider)
 {
     /// <summary>
     /// Get missing episodes, be it collecting or otherwise.
     /// </summary>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
@@ -41,7 +42,7 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
     /// <returns></returns>
     [HttpGet("Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodes(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeAbsolutePaths = false,
@@ -59,7 +60,7 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
     /// <summary>
     /// Get series with missing episodes, collecting or otherwise.
     /// </summary>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <param name="collecting">Only show series with missing episodes from release groups we're collecting.</param>
     /// <param name="onlyFinishedSeries">Only show finished series.</param>
     /// <param name="search">Filter by series title. Matched case-insensitively against all main and official titles across all languages.</param>
@@ -68,7 +69,7 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
     /// <returns></returns>
     [HttpGet("Series")]
     public ActionResult<ListResult<Series.WithEpisodeCount>> GetSeriesWithMultipleReleases(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
         [FromQuery] bool collecting = false,
         [FromQuery] bool onlyFinishedSeries = false,
         [FromQuery] string? search = null,
@@ -86,7 +87,7 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var normalizedSearch = AniDB_Anime_TitleRepository.NormalizeForSearch(search);
+            var normalizedSearch = AnidbTitleSearch.NormalizeForSearch(search);
             missingBySeries = missingBySeries.Where(t => _anidbTitles.AnimeMatchesSearch(t.Series.AniDB_ID, normalizedSearch));
         }
 
@@ -100,7 +101,7 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
     /// Get missing episodes, be it collecting or otherwise, for a specific series.
     /// </summary>
     /// <param name="seriesID">Shoko Series ID</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <param name="includeFiles">Include files with the episodes.</param>
     /// <param name="includeMediaInfo">Include media info data.</param>
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
@@ -112,7 +113,7 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
     [HttpGet("Series/{seriesID}/Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodesForSeries(
         [FromRoute, Range(1, int.MaxValue)] int seriesID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
         [FromQuery] bool includeFiles = true,
         [FromQuery] bool includeMediaInfo = true,
         [FromQuery] bool includeAbsolutePaths = false,

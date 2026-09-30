@@ -97,7 +97,8 @@ public class PluginPackageController(
     ///   Gets all available package manifests across all synced repositories.
     /// </summary>
     /// <param name="query">
-    ///   An optional query to filter packages by name.
+    ///   An optional query to filter packages by name, tags, authors or
+    ///   overview, a name hit ranked first.
     /// </param>
     /// <param name="onlyCompatible">
     ///   Whether to return only ABI- and runtime-compatible packages.
@@ -148,7 +149,7 @@ public class PluginPackageController(
 
         if (!string.IsNullOrEmpty(query))
             packages = packages
-                .Search(query, p => [p.Manifest.Name, p.Manifest.Overview, .. p.Manifest.Tags])
+                .Search(query, [p => [p.Manifest.Name], p => [.. p.Manifest.Tags, p.Manifest.Authors], p => [p.Manifest.Overview]])
                 .Select(p => p.Result);
 
         return packages.ToListResult(p => new PackageInfo(p, pluginManager.GetPluginInfos(p.Manifest.PackageID), pluginManager), page, pageSize);
@@ -158,7 +159,8 @@ public class PluginPackageController(
     ///   Gets all locally installed packages as <see cref="PackageInfo"/>.
     /// </summary>
     /// <param name="query">
-    ///   An optional query to filter packages by name.
+    ///   An optional query to filter packages by name, tags, authors or
+    ///   overview, a name hit ranked first.
     /// </param>
     /// <param name="pageSize">
     ///     The page size. Set to <code>0</code> to disable pagination.
@@ -180,7 +182,7 @@ public class PluginPackageController(
 
         if (!string.IsNullOrEmpty(query))
             packages = packages
-                .Search(query, p => [p.Manifest.Name, p.Manifest.Overview, .. p.Manifest.Tags])
+                .Search(query, [p => [p.Manifest.Name], p => [.. p.Manifest.Tags, p.Manifest.Authors], p => [p.Manifest.Overview]])
                 .Select(p => p.Result);
 
         return packages.ToListResult(p => new PackageInfo(p, pluginManager.GetPluginInfos(p.Manifest.PackageID), pluginManager), page, pageSize);
@@ -202,7 +204,8 @@ public class PluginPackageController(
     ///   Gets all available package manifests across all synced repositories.
     /// </summary>
     /// <param name="query">
-    ///   An optional query to filter packages by name.
+    ///   An optional query to filter packages by name, tags, authors or
+    ///   overview, a name hit ranked first.
     /// </param>
     /// <param name="allowSync">
     ///   Whether to sync repositories before retrieving packages.
@@ -237,7 +240,7 @@ public class PluginPackageController(
 
         if (!string.IsNullOrEmpty(query))
             return manifests
-                .Search(query, p => [p.Name, p.Overview, .. p.Tags])
+                .Search(query, [p => [p.Name], p => [.. p.Tags, p.Authors], p => [p.Overview]])
                 .Select(p => p.Result)
                 .ToListResult(p => new PackageManifestInfo(p, pluginManager.GetPluginInfos(p.PackageID), pluginManager), page, pageSize);
 
@@ -627,7 +630,8 @@ public class PluginPackageController(
     ///   release available to update to.
     /// </summary>
     /// <param name="query">
-    ///   An optional query to filter packages by name.
+    ///   An optional query to filter packages by name, tags, authors or
+    ///   overview, a name hit ranked first.
     /// </param>
     /// <param name="allowSync">
     ///   Whether to sync repositories before checking for updates.
@@ -674,7 +678,7 @@ public class PluginPackageController(
 
         if (!string.IsNullOrEmpty(query))
             updates = updates
-                .Search(query, u => [u.Name, u.Latest.Manifest.Overview, .. u.Latest.Manifest.Tags])
+                .Search(query, [u => [u.Name], u => [.. u.Latest.Manifest.Tags, u.Latest.Manifest.Authors], u => [u.Latest.Manifest.Overview]])
                 .Select(u => u.Result);
 
         return updates.ToListResult(u => new PackageUpdateInfo(u, pluginManager.GetPluginInfos(u.PackageID), pluginManager), page, pageSize);

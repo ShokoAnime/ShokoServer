@@ -1,11 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Anidb;
-using Shoko.Abstractions.Metadata.Anilist;
-using Shoko.Abstractions.Metadata.Anilist.CrossReferences;
 using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Metadata.Shoko;
@@ -15,6 +12,12 @@ namespace Shoko.Abstractions.Metadata.Shoko;
 /// </summary>
 public interface IShokoSeries : ISeries, IWithCreationDate, IWithUpdateDate
 {
+    /// <summary>
+    ///   The Shoko series ID, the same ID <see cref="IMetadata.ID"/> holds as
+    ///   text.
+    /// </summary>
+    int LocalID { get; }
+
     /// <summary>
     /// AniDB anime id linked to the Shoko series.
     /// </summary>
@@ -33,7 +36,7 @@ public interface IShokoSeries : ISeries, IWithCreationDate, IWithUpdateDate
     /// <summary>
     /// All custom tags for the Shoko series set by the user.
     /// </summary>
-    IReadOnlyList<IShokoTagForSeries> Tags { get; }
+    new IReadOnlyList<IShokoTagForSeries> Tags { get; }
 
     /// <summary>
     ///   The number of missing normal episodes and specials for the Shoko
@@ -66,64 +69,16 @@ public interface IShokoSeries : ISeries, IWithCreationDate, IWithUpdateDate
     IAnidbAnime AnidbAnime { get; }
 
     /// <summary>
-    ///   Wether or not AniList auto matching is disabled for the Shoko series.
-    /// </summary>
-    bool AnilistAutoMatchingDisabled { get; set; }
-
-    /// <summary>
-    /// A direct link to all AniList anime linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<IAnilistAnime> AnilistAnime { get; }
-
-    /// <summary>
-    /// All Shoko series ↔ AniList anime cross references linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<IAnilistAnimeCrossReference> AnilistAnimeCrossReferences { get; }
-
-    /// <summary>
-    ///   Wether or not TMDB auto matching is disabled for the Shoko series.
-    /// </summary>
-    bool TmdbAutoMatchingDisabled { get; set; }
-
-    /// <summary>
-    /// A direct link to all TMDB shows linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbShow> TmdbShows { get; }
-
-    /// <summary>
-    /// A direct link to all TMDB seasons linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbSeason> TmdbSeasons { get; }
-
-    /// <summary>
-    /// A direct link to all TMDB movies linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbMovie> TmdbMovies { get; }
-
-    /// <summary>
-    /// All Shoko series ↔ TMDB show cross references linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbShowCrossReference> TmdbShowCrossReferences { get; }
-
-    /// <summary>
-    /// All Shoko series ↔ TMDB season cross references linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbSeasonCrossReference> TmdbSeasonCrossReferences { get; }
-
-    /// <summary>
-    /// All Shoko episode ↔ TMDB episode cross references linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbEpisodeCrossReference> TmdbEpisodeCrossReferences { get; }
-
-    /// <summary>
-    /// All Shoko episode ↔ TMDB movie cross references linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbMovieCrossReference> TmdbMovieCrossReferences { get; }
-
-    /// <summary>
-    /// All series linked to the Shoko series.
+    /// All series linked to the Shoko series: its AniDB anime first, then
+    /// every series another source links to it.
     /// </summary>
     IReadOnlyList<ISeries> LinkedSeries { get; }
+
+    /// <summary>
+    /// All seasons of other sources the Shoko series' episodes are linked
+    /// into, worked out from their episode links.
+    /// </summary>
+    IReadOnlyList<ISeason> LinkedSeasons { get; }
 
     /// <summary>
     /// All movies linked to the Shoko series.
@@ -200,4 +155,18 @@ public interface IShokoSeries : ISeries, IWithCreationDate, IWithUpdateDate
     ///   The user-specific data for the Shoko series and user.
     /// </returns>
     ISeriesUserData GetUserData(IUser user);
+
+    /// <summary>
+    ///   Whether a source has been told to leave this series alone when it
+    ///   links on its own.
+    /// </summary>
+    /// <remarks>
+    ///   Set through <see cref="Services.IMetadataLinkingService.SetAutoLinkingDisabled"/>.
+    /// </remarks>
+    /// <param name="source">The source being asked about.</param>
+    /// <returns>
+    ///   <see langword="true"/> when that source must not link this series on
+    ///   its own.
+    /// </returns>
+    bool IsAutoLinkingDisabled(MetadataSource source);
 }

@@ -1,9 +1,11 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Metadata.Tmdb;
 using Shoko.Server.API.v3.Models.Common;
 
 namespace Shoko.Server.API.v3.Models.Shoko;
@@ -23,16 +25,16 @@ public class PlaylistEpisode
     /// <param name="anidbAnime">AniDB anime metadata.</param>
     public PlaylistEpisode(IShokoEpisode shokoEpisode, IShokoSeries shokoSeries, IAnidbEpisode anidbEpisode, IAnidbAnime anidbAnime)
     {
-        var tmdbShow = shokoSeries.TmdbShowCrossReferences.FirstOrDefault()?.TmdbShow;
-        var tmdbMovie = shokoEpisode.TmdbMovieCrossReferences.FirstOrDefault()?.TmdbMovie;
+        var tmdbShow = shokoSeries.GetSeriesCrossReferences<ITmdbShow>(MetadataSource.TMDB).FirstOrDefault()?.Provider;
+        var tmdbMovie = shokoEpisode.GetMovieCrossReferences<ITmdbMovie>(MetadataSource.TMDB).FirstOrDefault()?.Provider;
         IDs = new PlaylistEpisodeIDs
         {
-            AnidbEpisode = anidbEpisode.ID,
-            AnidbAnime = anidbAnime.ID,
-            ShokoSeries = shokoSeries.ID,
-            ShokoEpisode = shokoEpisode.ID,
-            TmdbShow = tmdbShow?.ID,
-            TmdbMovie = tmdbMovie?.ID,
+            AnidbEpisode = anidbEpisode.AnidbID,
+            AnidbAnime = anidbAnime.AnidbID,
+            ShokoSeries = shokoSeries.LocalID,
+            ShokoEpisode = shokoEpisode.LocalID,
+            TmdbShow = tmdbShow?.TmdbID,
+            TmdbMovie = tmdbMovie?.TmdbID,
             TvdbShow = tmdbShow?.TvdbShowID,
             ImdbMovie = tmdbMovie?.ImdbMovieID
         };

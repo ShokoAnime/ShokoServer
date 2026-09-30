@@ -13,7 +13,7 @@ using Shoko.Server.Repositories;
 
 using AbstractCreatorType = Shoko.Abstractions.Metadata.Enums.CreatorType;
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
-using DataSource = Shoko.Abstractions.Metadata.Enums.DataSource;
+using MetadataSource = Shoko.Abstractions.Metadata.MetadataSource;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.AniDB;
@@ -117,28 +117,24 @@ public class AniDB_Creator : ICreator
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Creator;
-
-    int IMetadata<int>.ID => CreatorID;
-
-    DataSource IMetadata.Source => DataSource.AniDB;
+    MetadataGuid IMetadata.ID => new(MetadataSource.AniDB, MetadataEntityType.Creator, CreatorID.ToString());
 
     #endregion
 
-    #region IWithDescriptions Implementation
+    #region IWithOverviews Implementation
 
-    IText? IWithDescriptions.DefaultDescription => null;
+    IText? IWithOverviews.DefaultOverview => null;
 
-    IText? IWithDescriptions.PreferredDescription => null;
+    IText? IWithOverviews.PreferredOverview => null;
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => [];
+    IReadOnlyList<IText> IWithOverviews.Overviews => [];
 
     #endregion
 
     #region IWithImages Implementation
 
-    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(ImagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, ImagePath) is { } imageID
-        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = DataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == imageID)
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(ImagePath) && IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, ImagePath) is { } imageID
+        ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = MetadataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == imageID)
         : null;
 
     #endregion
@@ -147,7 +143,13 @@ public class AniDB_Creator : ICreator
 
     AbstractCreatorType ICreator.Type => AbstractType;
 
-    DateOnly? ICreator.BirthDay => null;
+    IReadOnlyList<ITitle> ICreator.AlternativeNames => [];
+
+    PersonGender ICreator.Gender => PersonGender.Unknown;
+
+    FuzzyDateOnly? ICreator.BirthDay => null;
+
+    FuzzyDateOnly? ICreator.DeathDay => null;
 
     IEnumerable<ICast<IEpisode>> ICreator.EpisodeCastRoles =>
         RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(CreatorID)

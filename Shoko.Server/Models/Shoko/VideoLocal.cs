@@ -184,9 +184,7 @@ public class VideoLocal : IVideo
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Video;
-
-    DataSource IMetadata.Source => DataSource.Shoko;
+    MetadataGuid IMetadata.ID => new(MetadataSource.Shoko, MetadataEntityType.Video, $"{Hash}+{FileSize}");
 
     #endregion
 
@@ -204,7 +202,7 @@ public class VideoLocal : IVideo
 
     #region IVideo Implementation
 
-    int IVideo.ID => VideoLocalID;
+    int IVideo.LocalID => VideoLocalID;
 
     string? IVideo.EarliestKnownName => RepoFactory.FileNameHash.GetByHash(Hash).MinBy(a => a.FileNameHashID)?.FileName;
 
@@ -267,9 +265,9 @@ public class VideoLocal : IVideo
     IVideoUserData? IVideo.GetUserData(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is 0 || RepoFactory.JMMUser.GetByID(user.ID) is null)
+        if (user.LocalID is 0 || RepoFactory.JMMUser.GetByID(user.LocalID) is null)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
-        return RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(user.ID, VideoLocalID);
+        return RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(user.LocalID, VideoLocalID);
     }
 
     #endregion

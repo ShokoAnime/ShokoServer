@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Video.Release;
 
 namespace Shoko.Abstractions.Video;
@@ -76,22 +76,30 @@ public interface IVideoCrossReference : IReleaseVideoCrossReference
     IShokoSeries? ShokoSeries { get; }
 
     /// <summary>
-    /// All Shoko series/AniDB anime ↔ TMDB show cross references linked to the Shoko series/AniDB anime.
+    /// The series-level cross-references Shoko made for the AniDB anime the
+    /// video is linked to, from every source.
     /// </summary>
-    IReadOnlyList<ITmdbShowCrossReference> TmdbShowCrossReferences { get; }
+    IReadOnlyList<IMetadataSeriesCrossReference> MetadataSeriesCrossReferences { get; }
 
     /// <summary>
-    /// All Shoko series/AniDB anime ↔ TMDB season cross references linked to the Shoko series/AniDB anime.
+    /// The season-level cross-references Shoko made for the AniDB anime the
+    /// video is linked to, from every source.
     /// </summary>
-    IReadOnlyList<ITmdbSeasonCrossReference> TmdbSeasonCrossReferences { get; }
+    /// <remarks>
+    /// Built from the anime's episode links rather than stored, so it only
+    /// holds seasons some episode points into.
+    /// </remarks>
+    IReadOnlyList<IMetadataSeasonCrossReference> MetadataSeasonCrossReferences { get; }
 
     /// <summary>
-    /// All Shoko/AniDB episode ↔ TMDB episode cross references linked to the Shoko/AniDB episode.
+    /// The episode-level cross-references Shoko made for the AniDB episode the
+    /// video is linked to, from every source.
     /// </summary>
-    IReadOnlyList<ITmdbEpisodeCrossReference> TmdbEpisodeCrossReferences { get; }
+    IReadOnlyList<IMetadataEpisodeCrossReference> MetadataEpisodeCrossReferences { get; }
 
     /// <summary>
-    /// All Shoko/AniDB episode ↔ TMDB movie cross references linked to the Shoko episode.
+    /// The film cross-references Shoko made for the AniDB episode the video is
+    /// linked to, from every source.
     /// </summary>
-    IReadOnlyList<ITmdbMovieCrossReference> TmdbMovieCrossReferences { get; }
+    IReadOnlyList<IMetadataMovieCrossReference> MetadataMovieCrossReferences { get; }
 }

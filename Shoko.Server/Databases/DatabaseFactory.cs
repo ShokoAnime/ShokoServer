@@ -1,4 +1,4 @@
-﻿using NHibernate;
+using NHibernate;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;

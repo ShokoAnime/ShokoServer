@@ -13,8 +13,7 @@ public interface IWithBackdropImage : IWithImages
     ///   The backdrop image of the entity. The preferred or first available
     ///   image of type <see cref="ImageEntityType.Backdrop"/> for the entity.
     /// </summary>
-    IImage? BackdropImage
-        => GetBestImageForType(ImageEntityType.Backdrop);
+    IImage? BackdropImage { get => GetBestImageForType(ImageEntityType.Backdrop); }
 
     /// <summary>
     ///   The cross-reference for the backdrop image for the entity. Same as the
@@ -22,6 +21,5 @@ public interface IWithBackdropImage : IWithImages
     ///   first available image of type <see cref="ImageEntityType.Backdrop"/>
     ///   for the entity.
     /// </summary>
-    IImageCrossReference? BackdropImageCrossReference
-        => GetBestImageCrossReferenceForType(ImageEntityType.Backdrop);
+    IImageCrossReference? BackdropImageCrossReference { get => GetBestImageCrossReferenceForType(ImageEntityType.Backdrop); }
 }

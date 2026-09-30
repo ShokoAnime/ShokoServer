@@ -27,7 +27,7 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
 
     private readonly Dictionary<string, (string Override, string? Original)> _loadedEnvironmentVariables = !loadValidation && configurationService.InternalLoadedEnvironmentVariables.TryGetValue(info.ID, out var lev0) ? lev0.ToDictionary() : [];
 
-    private readonly Dictionary<string, string?> _restartPending = saveValidation && configurationService.InternalRestartPendingFor.TryGetValue(info.ID, out var rr0) ? rr0.ToDictionary() : [];
+    private readonly Dictionary<string, string?> _restartPending = saveValidation ? CopyRestartPending(configurationService, info) : [];
 
     private JToken? _existingData;
 
@@ -45,14 +45,23 @@ public partial class ShokoJsonSchemaValidator<TConfig>(ILogger logger, Configura
             }
             if (_saveValidation)
             {
-                if (_restartPending.Count > 0)
-                    _configurationService.InternalRestartPendingFor[_info.ID] = _restartPending;
-                else
-                    _configurationService.InternalRestartPendingFor.Remove(_info.ID);
+                lock (_configurationService.InternalRestartPendingFor)
+                {
+                    if (_restartPending.Count > 0)
+                        _configurationService.InternalRestartPendingFor[_info.ID] = _restartPending;
+                    else
+                        _configurationService.InternalRestartPendingFor.Remove(_info.ID);
+                }
             }
         }
 
         return (token, errors);
+    }
+
+    private static Dictionary<string, string?> CopyRestartPending(ConfigurationService configurationService, ConfigurationInfo info)
+    {
+        lock (configurationService.InternalRestartPendingFor)
+            return configurationService.InternalRestartPendingFor.TryGetValue(info.ID, out var restartPending) ? restartPending.ToDictionary() : [];
     }
 
     [GeneratedRegex(@"(?<!\\)""")]

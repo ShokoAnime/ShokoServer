@@ -11,7 +11,7 @@ public class VideoReleaseSavedSignalRModel(VideoReleaseSavedEventArgs args)
     /// <summary>
     /// The video ID.
     /// </summary>
-    public int FileID { get; } = args.Video.ID;
+    public int FileID { get; } = args.Video.LocalID;
 
     /// <summary>
     /// The release info.

@@ -4,7 +4,7 @@ using Shoko.Abstractions.Metadata.Enums;
 namespace Shoko.Abstractions.Metadata;
 
 /// <summary>
-///   Represents a title from a data source.
+///   Represents a title from a metadata source.
 /// </summary>
 public interface ITitle : IText, IEquatable<ITitle>
 {
@@ -12,6 +12,16 @@ public interface ITitle : IText, IEquatable<ITitle>
     ///   The title type.
     /// </summary>
     TitleType Type { get; }
+
+    /// <summary>
+    ///   Whether the title was made up on the spot, such as <c>Episode 5</c>
+    ///   for an episode no source named. A made-up title is never stored and
+    ///   is only chosen when nothing else is left.
+    /// </summary>
+    /// <value>
+    ///   <c>true</c> for a made-up title; otherwise <c>false</c>.
+    /// </value>
+    bool IsSynthesized { get => false; }
 
     /// <summary>
     ///   Checks if two title objects are equal.

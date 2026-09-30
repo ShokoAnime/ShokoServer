@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -97,9 +97,9 @@ public class Group : BaseDirectory
         g.summary = anime.Description ?? string.Empty;
         g.titles = anime.Titles.Select(s => new AnimeTitle
         {
-            Type = s.TitleType.ToString().ToLower(),
+            Type = s.Type.ToString().ToLower(),
             Language = s.LanguageCode,
-            Title = s.Title
+            Title = s.Value
         }).ToList();
         g.year = anime.BeginYear.ToString();
 

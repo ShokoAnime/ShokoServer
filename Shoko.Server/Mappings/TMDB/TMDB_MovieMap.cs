@@ -20,6 +20,8 @@ public class TMDB_MovieMap : ClassMap<TMDB_Movie>
         Map(x => x.BackdropPath).Nullable();
         Map(x => x.EnglishTitle).Not.Nullable();
         Map(x => x.EnglishOverview).Not.Nullable();
+        Map(x => x.EnglishTitleListed).Not.Nullable();
+        Map(x => x.EnglishOverviewListed).Not.Nullable();
         Map(x => x.OriginalTitle).Not.Nullable();
         Map(x => x.OriginalLanguageCode).Not.Nullable();
         Map(x => x.IsRestricted).Not.Nullable();

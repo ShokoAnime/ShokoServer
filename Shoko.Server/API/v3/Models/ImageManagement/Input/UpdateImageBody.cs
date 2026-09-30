@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Metadata.Image;
 
 namespace Shoko.Server.API.v3.Models.ImageManagement.Input;
@@ -9,6 +10,8 @@ namespace Shoko.Server.API.v3.Models.ImageManagement.Input;
 /// </summary>
 public class UpdateImageBody
 {
+    // DefaultValueHandling.Populate calls an omitted member's setter; the tracked
+    // members opt out of it so only the members sent are marked as set.
     private readonly HashSet<string> _setProperties = [];
 
     private int? _width;
@@ -19,6 +22,7 @@ public class UpdateImageBody
     /// <summary>
     ///   Image width in pixels.
     /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
     public int? Width
     {
         get => _width;
@@ -32,6 +36,7 @@ public class UpdateImageBody
     /// <summary>
     ///   Image height in pixels.
     /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
     public int? Height
     {
         get => _height;
@@ -46,6 +51,7 @@ public class UpdateImageBody
     ///   ISO 639-1 alpha-2 language code for the main language used
     ///   for the text in the image.
     /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
     public string? LanguageCode
     {
         get => _languageCode;
@@ -59,6 +65,7 @@ public class UpdateImageBody
     /// <summary>
     ///   ISO 3166-1 alpha-2 country code for region-specific images.
     /// </summary>
+    [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
     public string? CountryCode
     {
         get => _countryCode;

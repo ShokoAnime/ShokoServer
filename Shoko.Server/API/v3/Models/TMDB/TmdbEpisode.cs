@@ -7,11 +7,10 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 
@@ -328,7 +327,7 @@ public class TmdbEpisode
             var season = episode.TmdbAlternateOrderingSeason;
             OrderingID = episode.TmdbEpisodeGroupCollectionID;
             OrderingName = ordering?.EnglishTitle ?? "<unknown name>";
-            OrderingType = ordering?.Type ?? AlternateOrderingType.Unknown;
+            OrderingType = ordering is null ? AlternateOrderingType.Unknown : (AlternateOrderingType)ordering.Type;
             SeasonID = episode.TmdbEpisodeGroupID;
             SeasonName = season?.EnglishTitle ?? "<unknown name>";
             SeasonNumber = episode.SeasonNumber;
@@ -384,16 +383,6 @@ public class TmdbEpisode
         public string Rating { get; init; }
 
         public CrossReference(CrossRef_AniDB_TMDB_Episode xref, int? index = null)
-        {
-            AnidbAnimeID = xref.AnidbAnimeID;
-            AnidbEpisodeID = xref.AnidbEpisodeID;
-            TmdbShowID = xref.TmdbShowID;
-            TmdbEpisodeID = xref.TmdbEpisodeID;
-            Index = index ?? xref.Ordering;
-            Rating = xref.MatchRating.ToString();
-        }
-
-        public CrossReference(ITmdbEpisodeCrossReference xref, int? index = null)
         {
             AnidbAnimeID = xref.AnidbAnimeID;
             AnidbEpisodeID = xref.AnidbEpisodeID;

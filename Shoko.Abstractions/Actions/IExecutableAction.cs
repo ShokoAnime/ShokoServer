@@ -26,6 +26,10 @@ namespace Shoko.Abstractions.Actions;
 ///     status are visible. Concurrency is handled by the queue system itself;
 ///     there is no per-action opt-in flag.
 ///   </para>
+///   <para>
+///     Work that runs on its own triggers is a
+///     <see cref="ScheduledActions.IScheduledAction"/> instead, never both.
+///   </para>
 /// </remarks>
 public interface IExecutableAction
 {
@@ -44,7 +48,7 @@ public interface IExecutableAction
     ///   <see cref="ActionCategory.Miscellaneous"/>, the shared fallback
     ///   category for any action that declares none.
     /// </summary>
-    ActionCategory Category => ActionCategory.Miscellaneous;
+    ActionCategory Category { get => ActionCategory.Miscellaneous; }
 
     /// <summary>
     ///   Whether the action is prominent enough to offer on its own, rather
@@ -58,7 +62,7 @@ public interface IExecutableAction
     ///   client is free to ignore the flag, and one with no room for the
     ///   distinction should.
     /// </remarks>
-    bool IsPrimaryAction => false;
+    bool IsPrimaryAction { get => false; }
 
     /// <summary>
     ///   The permission required to invoke the action.
@@ -126,12 +130,11 @@ public interface IExecutableAction
     ///   report something log it, same as the rest of the queue already does.
     /// </remarks>
     /// <param name="token">
-    ///   The cancellation token of the queue worker running the action, not of
-    ///   the invoking request — there is no live HTTP request left by the time a
-    ///   queued action runs. It is cancelled when the worker pool is stopped
-    ///   (server shutdown, or an explicit queue stop) and at no other time:
-    ///   there is no way to cancel a single running action. Long-running actions
-    ///   should still honour it so shutdown is not held up.
+    ///   The queue job's token, not the invoking request's. It is cancelled
+    ///   when a user cancels the running action and when the worker pool stops.
+    ///   Stop by throwing an <see cref="System.OperationCanceledException"/>:
+    ///   the action then ends as cancelled after a user cancel, and is queued
+    ///   again after a shutdown. An action that returns anyway completed.
     /// </param>
     Task Execute(CancellationToken token = default);
 }

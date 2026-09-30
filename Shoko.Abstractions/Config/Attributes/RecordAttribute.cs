@@ -5,7 +5,7 @@ namespace Shoko.Abstractions.Config.Attributes;
 
 /// <summary>
 /// Define extra details for a record in the UI.
-/// /// </summary>
+/// </summary>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
 public class RecordAttribute : Attribute
 {

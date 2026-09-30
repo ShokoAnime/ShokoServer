@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
 
@@ -12,7 +13,7 @@ public class MovieInfoUpdatedEventSignalRModel
     {
         Source = eventArgs.MovieInfo.Source;
         Reason = eventArgs.Reason;
-        MovieID = eventArgs.MovieInfo.ID;
+        MovieID = eventArgs.MovieInfo.ID.ID;
         ShokoEpisodeIDs = eventArgs.MovieInfo.ShokoEpisodeIDs;
         ShokoSeriesIDs = eventArgs.MovieInfo.ShokoSeriesIDs;
     }
@@ -20,8 +21,7 @@ public class MovieInfoUpdatedEventSignalRModel
     /// <summary>
     /// The provider metadata source.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
-    public DataSource Source { get; }
+    public MetadataSource Source { get; }
 
     /// <summary>
     /// The update reason.
@@ -32,7 +32,7 @@ public class MovieInfoUpdatedEventSignalRModel
     /// <summary>
     /// The provided metadata movie id.
     /// </summary>
-    public int MovieID { get; }
+    public string MovieID { get; }
 
     /// <summary>
     /// Shoko episode ids affected by this update.

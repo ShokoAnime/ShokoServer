@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Utilities;
@@ -19,7 +19,7 @@ public class EpisodeAiringRepository(DatabaseFactory databaseFactory) : BaseCach
 {
     private PocoIndex<int, EpisodeAiring, int>? _scheduleIDs;
 
-    private PocoIndex<int, EpisodeAiring, (DataSource EpisodeSource, string EpisodeID)>? _episodeKeys;
+    private PocoIndex<int, EpisodeAiring, (MetadataSource EpisodeSource, string EpisodeID)>? _episodeKeys;
 
     private PocoIndex<int, EpisodeAiring, int?>? _linkHeads;
 
@@ -59,7 +59,7 @@ public class EpisodeAiringRepository(DatabaseFactory databaseFactory) : BaseCach
     /// <param name="episodeSource">The source of the episode.</param>
     /// <param name="episodeID">The ID of the episode within its source.</param>
     /// <returns>The airings, ordered by their current slot.</returns>
-    public IReadOnlyList<EpisodeAiring> GetByEpisodeID(DataSource episodeSource, string episodeID)
+    public IReadOnlyList<EpisodeAiring> GetByEpisodeID(MetadataSource episodeSource, string episodeID)
         => string.IsNullOrEmpty(episodeID)
             ? []
             : _episodeKeys!.GetMultiple((episodeSource, episodeID))

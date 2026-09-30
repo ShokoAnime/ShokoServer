@@ -10,6 +10,14 @@ namespace Shoko.Server.Plugin;
 public static partial class TypeReflectionExtensions
 {
     /// <summary>
+    /// Held around every read of the XML docs through Namotion.Reflection. It
+    /// caches each assembly's docs once per process and rewrites the cached
+    /// elements in place while it resolves <c>inheritdoc</c>, so two readers at
+    /// once can corrupt them and leave a later read looping forever.
+    /// </summary>
+    internal static readonly object XmlDocsLock = new();
+
+    /// <summary>
     /// Gets the display name for a type.
     /// </summary>
     /// <param name="type">The type.</param>
@@ -84,7 +92,10 @@ public static partial class TypeReflectionExtensions
     {
         var description = memberInfo.GetAttribute<DisplayAttribute>(false)?.Description;
         if (string.IsNullOrEmpty(description))
-            description = memberInfo.GetXmlDocsSummary() ?? string.Empty;
+        {
+            lock (XmlDocsLock)
+                description = memberInfo.GetXmlDocsSummary() ?? string.Empty;
+        }
 
         return CleanDescription(description);
     }
@@ -97,7 +108,10 @@ public static partial class TypeReflectionExtensions
     {
         var description = type.GetAttribute<DisplayAttribute>(false)?.Description;
         if (string.IsNullOrEmpty(description))
-            description = type.GetXmlDocsSummary() ?? string.Empty;
+        {
+            lock (XmlDocsLock)
+                description = type.GetXmlDocsSummary() ?? string.Empty;
+        }
 
         return CleanDescription(description);
     }

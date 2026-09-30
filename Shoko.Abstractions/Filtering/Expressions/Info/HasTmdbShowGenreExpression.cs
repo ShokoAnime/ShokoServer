@@ -1,11 +1,17 @@
 using System;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Info;
 
 /// <summary>
 /// This condition passes if any of the anime have the specified TMDB show genre
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="HasSourceGenreExpression"/>, narrowed to the
+/// linked shows through <see cref="IFilterableInfo.GetGenres"/>. Kept under
+/// its own name so saved filters read the same.
+/// </remarks>
 public class HasTmdbShowGenreExpression : FilterExpression<bool>, IWithStringParameter
 {
     /// <inheritdoc/>
@@ -27,7 +33,7 @@ public class HasTmdbShowGenreExpression : FilterExpression<bool>, IWithStringPar
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return Parameter is not null && filterable.TmdbShowGenres.Contains(Parameter);
+        return Parameter is not null && filterable.GetGenres(MetadataSource.TMDB, MetadataEntityType.Series).Contains(Parameter);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

@@ -1,30 +1,18 @@
 using System;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Containers;
 
 namespace Shoko.Abstractions.Video.Media;
 
 /// <summary>
-/// Chapter information.
+///   A chapter of a media container, with its names in every language the
+///   file gives. <see cref="IWithTitles.DefaultTitle"/> is the first name the
+///   file lists, and <see cref="IWithTitles.PreferredTitle"/> follows the
+///   episode title language order.
 /// </summary>
-public interface IChapterInfo
+public interface IChapterInfo : IWithTitles
 {
     /// <summary>
-    /// Chapter title.
-    /// </summary>
-    string Title { get; }
-
-    /// <summary>
-    /// <see cref="TitleLanguage"/> name of the language the chapter information.
-    /// </summary>
-    TitleLanguage Language { get; }
-
-    /// <summary>
-    /// 3 character language code of the language the chapter information.
-    /// </summary>
-    string? LanguageCode { get; }
-
-    /// <summary>
-    /// Chapter timestamp.
+    ///   Where the chapter starts, from the start of the file.
     /// </summary>
     TimeSpan Timestamp { get; }
 }

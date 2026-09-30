@@ -31,14 +31,26 @@ public class AutoAnimeGroupCalculatorTests
     {
         yield return new AnimeRelation
         {
-            FromId = from.Id, FromType = from.Type, FromMainTitle = from.Title, FromAirDate = from.AirDate,
-            ToId = to.Id, ToType = to.Type, ToMainTitle = to.Title, ToAirDate = to.AirDate,
+            FromId = from.Id,
+            FromType = from.Type,
+            FromMainTitle = from.Title,
+            FromAirDate = from.AirDate,
+            ToId = to.Id,
+            ToType = to.Type,
+            ToMainTitle = to.Title,
+            ToAirDate = to.AirDate,
             RelationType = forward,
         };
         yield return new AnimeRelation
         {
-            FromId = to.Id, FromType = to.Type, FromMainTitle = to.Title, FromAirDate = to.AirDate,
-            ToId = from.Id, ToType = from.Type, ToMainTitle = from.Title, ToAirDate = from.AirDate,
+            FromId = to.Id,
+            FromType = to.Type,
+            FromMainTitle = to.Title,
+            FromAirDate = to.AirDate,
+            ToId = from.Id,
+            ToType = from.Type,
+            ToMainTitle = from.Title,
+            ToAirDate = from.AirDate,
             RelationType = reverse,
         };
     }

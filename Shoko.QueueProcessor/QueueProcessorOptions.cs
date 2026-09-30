@@ -80,7 +80,8 @@ public class QueueProcessorOptions
     // ── Per-type overrides ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Map of job type name → desired concurrency limit.
+    /// Map of job type name → desired concurrency limit, keyed as
+    /// <see cref="Builder.JobTypeNames.Key"/> names the type.
     /// Can lower but never raise above the type's <c>MaxAllowedConcurrentJobs</c>.
     /// </summary>
     public Dictionary<string, int> LimitedConcurrencyOverrides { get; set; } = [];

@@ -8,15 +8,13 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
-using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Interfaces;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories;
-using Shoko.Server.Utilities;
 using TMDbLib.Objects.People;
 
-using PersonGender = Shoko.Server.Providers.TMDB.PersonGender;
+using PersonGender = Shoko.Abstractions.Metadata.Enums.PersonGender;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.TMDB;
@@ -24,7 +22,7 @@ namespace Shoko.Server.Models.TMDB;
 /// <summary>
 /// The Movie DataBase (TMDB) Person Database Model.
 /// </summary>
-public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
+public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator, IInlineTextSource
 {
     #region Properties
 
@@ -55,9 +53,10 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     public string EnglishBiography { get; set; } = string.Empty;
 
     /// <summary>
-    /// All known aliases for the person.
+    ///   Whether TMDB lists <see cref="EnglishBiography"/> among the person's
+    ///   translations, where it is not stored a second time.
     /// </summary>
-    public List<string> Aliases { get; set; } = [];
+    public bool EnglishOverviewListed { get; set; }
 
     /// <summary>
     /// The person's gender, if known.
@@ -148,7 +147,6 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
         {
             UpdateProperty(EnglishName, person.Name!, v => EnglishName = v),
             UpdateProperty(EnglishBiography, !string.IsNullOrEmpty(translation?.Data?.Overview) ? translation.Data.Overview : person.Biography!, v => EnglishBiography = v),
-            UpdateProperty(Aliases, person.AlsoKnownAs!, v => Aliases = v, (a, b) => string.Equals(string.Join("|", a),string.Join("|", b))),
             UpdateProperty(IsRestricted, person.Adult, v => IsRestricted = v),
             UpdateProperty(BirthDay, person.Birthday?.ToDateOnly(), v => BirthDay = v),
             UpdateProperty(DeathDay, person.Deathday?.ToDateOnly(), v => DeathDay = v),
@@ -158,51 +156,6 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 
         return updates.Any(updated => updated);
     }
-
-    /// <summary>
-    /// Get the preferred biography using the preferred episode title
-    /// preference from the application settings.
-    /// </summary>
-    /// <param name="useFallback">Use a fallback biography if no biography was
-    /// found in any of the preferred languages.</param>
-    /// <param name="force">Forcefully re-fetch all person biographies if
-    /// they're already cached from a previous call to
-    /// <seealso cref="GetAllBiographies"/>.
-    /// </param>
-    /// <returns>The preferred person biography, or null if no preferred biography
-    /// was found.</returns>
-    public TMDB_Overview? GetPreferredBiography(bool useFallback = false, bool force = false)
-    {
-        var biographies = GetAllBiographies(force);
-
-        foreach (var preferredLanguage in Languages.PreferredDescriptionNamingLanguages)
-        {
-            var biography = biographies.GetByLanguage(preferredLanguage.Language);
-            if (biography != null)
-                return biography;
-        }
-
-        return useFallback ? new(DataEntityType.Person, TmdbPersonID, EnglishBiography, "en", "US") : null;
-    }
-
-    /// <summary>
-    /// Cached reference to all biographies for the person, so we won't have to hit
-    /// the database twice to get all biographies _and_ the preferred biography.
-    /// </summary>
-    private IReadOnlyList<TMDB_Overview>? _allBiographies;
-
-    /// <summary>
-    /// Get all biographies for the person.
-    /// </summary>
-    /// <param name="force">Forcefully re-fetch all person biographies if they're
-    /// already cached from a previous call.</param>
-    /// <returns>All biographies for the person.</returns>
-    public IReadOnlyList<TMDB_Overview> GetAllBiographies(bool force = false) => force
-        ? _allBiographies = RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Person, TmdbPersonID)
-        : _allBiographies ??= RepoFactory.TMDB_Overview.GetByParentTypeAndID(DataEntityType.Person, TmdbPersonID);
-
-    /// <inheritdoc/>
-    public void ResetAllOverviews() => _allBiographies = null;
 
     /// <summary>
     ///   External resources/links associated with the person.
@@ -223,9 +176,9 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 
     #region IEntityMetadata Implementation
 
-    DataEntityType IEntityMetadata.Type => DataEntityType.Person;
+    MetadataEntityType IEntityMetadata.Type => MetadataEntityType.Creator;
 
-    DataSource IEntityMetadata.DataSource => DataSource.TMDB;
+    MetadataSource IEntityMetadata.DataSource => MetadataSource.TMDB;
 
     string IEntityMetadata.EnglishTitle => EnglishName;
 
@@ -244,34 +197,33 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Person;
-
-    int IMetadata<int>.ID => TmdbPersonID;
-
-    DataSource IMetadata.Source => DataSource.TMDB;
+    MetadataGuid IMetadata.ID => new(MetadataSource.TMDB, MetadataEntityType.Creator, TmdbPersonID.ToString());
 
     #endregion
 
-    #region IWithDescriptions Implementation
+    #region IInlineTextSource Implementation
 
-    IText? IWithDescriptions.DefaultDescription => new TextStub
-    {
-        Language = TitleLanguage.EnglishAmerican,
-        CountryCode = "US",
-        LanguageCode = "en",
-        Value = EnglishBiography,
-        Source = DataSource.TMDB,
-    };
+    ITitle? IInlineTextSource.InlineTitle => InlineText.Title(MetadataSource.TMDB, EnglishName, TitleLanguage.Unknown, "unk");
 
-    IText? IWithDescriptions.PreferredDescription => GetPreferredBiography();
+    IText? IInlineTextSource.InlineOverview => TmdbInlineText.Overview(EnglishBiography);
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => GetAllBiographies();
+    InlineTextPlacement IInlineTextSource.InlineOverviewPlacement => TmdbInlineText.Placement(EnglishOverviewListed);
+
+    #endregion
+
+    #region IWithOverviews Implementation
+
+    IText? IWithOverviews.DefaultOverview => TmdbInlineText.OverviewOrEmpty(EnglishBiography);
+
+    IText? IWithOverviews.PreferredOverview => TextAccess.Manager.PreferredOverviewFor(this);
+
+    IReadOnlyList<IText> IWithOverviews.Overviews => TextAccess.Manager.ListOverviews(this);
 
     #endregion
 
     #region IWithImages Implementation
 
-    public IImageCrossReference? DefaultPrimaryImageCrossReference => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = DataSource.TMDB, ImageType = ImageEntityType.Primary }).FirstOrDefault();
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = MetadataSource.TMDB, ImageType = ImageEntityType.Primary }).FirstOrDefault();
 
     #endregion
 
@@ -282,6 +234,12 @@ public class TMDB_Person : TMDB_Base<int>, IEntityMetadata, ICreator
     string? ICreator.OriginalName => null;
 
     CreatorType ICreator.Type => CreatorType.Person;
+
+    IReadOnlyList<ITitle> ICreator.AlternativeNames => TextAccess.Manager.AlternativeNamesOf(this);
+
+    FuzzyDateOnly? ICreator.BirthDay => BirthDay is { } birthDay ? new(birthDay) : null;
+
+    FuzzyDateOnly? ICreator.DeathDay => DeathDay is { } deathDay ? new(deathDay) : null;
 
     IEnumerable<ICast<IEpisode>> ICreator.EpisodeCastRoles =>
         RepoFactory.TMDB_Episode_Cast.GetByTmdbPersonID(TmdbPersonID);

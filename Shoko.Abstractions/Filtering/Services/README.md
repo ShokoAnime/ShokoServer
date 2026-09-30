@@ -1,16 +1,13 @@
 # Filtering Services
 
-This folder defines the services that evaluate a filter against a collection:
+The services that evaluate a filter against a collection:
 `IFilteringEngine`, `IMetadataFilteringService`, `IFilterPresetManager` and
-`IFuzzySearchService`. All four are implemented by the core and registered as
-singletons, so a plugin **consumes** them through constructor injection. None of
-them is an extension point, and nothing in `Shoko.Abstractions.Filtering` is
-discovered through `IPluginManager.GetExports<T>()`.
+`IFuzzySearchService`. The core implements them as singletons, and a plugin
+**consumes** them through constructor injection.
 
-What a plugin *does* build here are filters: an `IFilter` carrying an expression
+What a plugin *does* build are filters: an `IFilter` carrying an expression
 tree, handed to the engine per call. `GenericFilter`, `GenericFilterExpression`
-and `GenericSortingExpression` in `Filtering/Generic/` exist for exactly that,
-and take a plain lambda.
+and `GenericSortingExpression` in `Filtering/Generic/` take a plain lambda.
 
 ---
 
@@ -139,6 +136,36 @@ The Web UI's seasonal view is built on exactly this: it posts an ad-hoc filter
 containing an `InSeason` condition to `POST /api/v3/Filter/Preview/Series` and
 renders the answer, without ever storing a preset. That path is available to any
 consumer, and `IMetadataFilteringService` is the in-process equivalent.
+
+---
+
+## Asking about one metadata source
+
+The expressions named `…Source…` take the source as their first parameter (its
+value, an alias or an old spelling, such as `tmdb`) and ask `IFilterableInfo`
+the matching question: `LinkedSources`, `UnlinkedSources`,
+`AutoLinkingDisabledSources`, the link counts, `GetGenres`, `GetTags` and
+`GetSuggestions`. Every source, TMDB included, is read the same way, from the
+shared cross-reference tables and the linked entries' `ITag`s.
+
+| Question | Answer |
+|---|---|
+| `HasSourceLink` | A series or movie-level link on the source, a deliberate link to nothing included. |
+| `MissingSourceLink` | No link, no deliberate link to nothing, no veto, and an anime type the source is linked for. |
+| `AutomaticSourceLinks`, `UserVerifiedSourceLinks` | Series and movie-level links (the ones `HasSourceLink` reads) by whether a user verified them, links to nothing included. |
+| `HasAutomaticSourceLink` | A series or movie-level link no user verified, which is how to find the links left to verify. |
+| `AutomaticSourceEpisodeLinks`, `UserVerifiedSourceEpisodeLinks` | Episode and film links by how they were made, links to nothing included. |
+| `MissingSourceEpisodeLinks` | Episodes with no link to an entry. |
+| `HasSourceGenre`, `SourceGenres` | Tags of kind `Genre`. |
+| `HasSourceTag`, `SourceTags` | Tags of kind `Tag` or `Keyword`. |
+
+`GetGenres` and `GetTags` take an optional `MetadataEntityType`, `series` or
+`movie`, to read only the linked series or only the linked movies.
+
+The older `…Tmdb…` expressions (`HasTmdbLink`, `HasTmdbShowGenre`,
+`TmdbKeywords` and the rest) ask the same questions of the TMDB source, and keep
+their names so saved filters still read. Prefer the source expressions in new
+filters.
 
 ---
 

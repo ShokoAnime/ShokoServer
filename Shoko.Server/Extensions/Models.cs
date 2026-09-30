@@ -6,19 +6,24 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 
+using AnidbReleaseStatus = Shoko.Server.Providers.AniDB.AnidbReleaseStatus;
+
 namespace Shoko.Server.Extensions;
 
 public static class Models
 {
+    /// <summary>
+    ///   Checks whether the anime's end date has passed, by the same rule
+    ///   <see cref="AniDB_Anime.ReleaseStatus"/> uses for it. Unlike that, an
+    ///   anime without an end date never counts as finished here.
+    /// </summary>
+    /// <param name="anime">The anime.</param>
+    /// <returns>
+    ///   <see langword="true"/> when the end date is known and falls on or
+    ///   before today, taking a partial date as the last day it could mean.
+    /// </returns>
     public static bool GetFinishedAiring(this AniDB_Anime anime)
-    {
-        if (!anime.EndDate.HasValue) return false; // ongoing
-
-        // all series have finished airing 
-        if (anime.EndDate.Value < DateTime.Now) return true;
-
-        return false;
-    }
+        => AnidbReleaseStatus.HasEnded(anime.EndDate, DateTime.Today.ToDateOnly());
 
     public static bool IsInYear(this AniDB_Anime anime, int year)
     {

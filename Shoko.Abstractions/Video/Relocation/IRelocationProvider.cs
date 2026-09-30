@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Shoko.Abstractions.Config;
 
 namespace Shoko.Abstractions.Video.Relocation;

@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
+using Shoko.Server.API.Converters;
+using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.Extensions;
 
 namespace Shoko.Server.API.v3.Models.Common;
@@ -44,7 +47,7 @@ public class Image
     /// The image source.
     /// </summary>
     [Required]
-    public DataSource Source { get; set; }
+    public MetadataSource Source { get; set; }
 
     /// <summary>
     /// The image's resource identifier.
@@ -82,8 +85,15 @@ public class Image
 
     /// <summary>
     /// Indicates this is the preferred image for the <see cref="Type"/> for the
-    /// selected entity.
+    /// selected entity, through the entity's own link.
     /// </summary>
+    /// <remarks>
+    /// An image preferred only on a linked entry is not marked; the entity's
+    /// <c>Images/{type}/Default</c> route writes the entity's own link. Series
+    /// and group <c>Images</c> show the preferred image (own or inherited), then
+    /// the source's default, then the first; episode and linked entry
+    /// <c>Images</c> show the one marked here, else the first desired one.
+    /// </remarks>
     [Required]
     public bool Preferred { get; set; }
 
@@ -92,6 +102,16 @@ public class Image
     /// </summary>
     [Required]
     public bool Desired { get; set; }
+
+    /// <summary>
+    /// The links the selected entity sees the image through for the
+    /// <see cref="Type"/>, its own link first, so a client can manage each one
+    /// through the image cross-reference routes. <see cref="Disabled"/> and
+    /// <see cref="Desired"/> are image-wide, while each link tells its own
+    /// state. Only set by the image lists of an entity.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public IReadOnlyList<ImageCrossReferenceSlim>? CrossReferences { get; set; }
 
     /// <summary>
     /// Language code for the language used for the text in the image, if any.
@@ -153,27 +173,27 @@ public class Image
                 Votes = imageMetadata.RatingVotes.Value,
                 MaxValue = 10,
                 Type = "User",
-                Source = imageMetadata.Source.ToString(),
+                Source = LegacyMetadataSpellings.Of(imageMetadata.Source),
             };
     }
 
-    private static readonly List<DataSource> _bannerImageSources =
+    private static readonly List<MetadataSource> _bannerImageSources =
     [
-        DataSource.TMDB,
+        MetadataSource.TMDB,
     ];
 
-    private static readonly List<DataSource> _posterImageSources =
+    private static readonly List<MetadataSource> _posterImageSources =
     [
-        DataSource.AniDB,
-        DataSource.TMDB,
+        MetadataSource.AniDB,
+        MetadataSource.TMDB,
     ];
 
-    private static readonly List<DataSource> _backdropImageSources =
+    private static readonly List<MetadataSource> _backdropImageSources =
     [
-        DataSource.TMDB,
+        MetadataSource.TMDB,
     ];
 
-    internal static DataSource GetRandomImageSource(ImageEntityType imageType)
+    internal static MetadataSource GetRandomImageSource(ImageEntityType imageType)
     {
         var sourceList = imageType switch
         {
@@ -183,7 +203,8 @@ public class Image
             _ => [],
         };
 
-        return sourceList.GetRandomElement();
+        // Types without a list of their own fall back to AniDB, as the old enum default did.
+        return sourceList is [] ? MetadataSource.AniDB : sourceList.GetRandomElement()!;
     }
 
     public class ImageSeriesInfo

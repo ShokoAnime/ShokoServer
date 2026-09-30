@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
 namespace Shoko.Server.Providers.AniDB.HTTP;

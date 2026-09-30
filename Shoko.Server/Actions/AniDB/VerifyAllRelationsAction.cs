@@ -1,6 +1,8 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.ScheduledActions;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
@@ -8,7 +10,7 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Verify all unverified AniDB relations by fetching current data via the UDP API.
 /// </summary>
-public sealed class VerifyAllRelationsAction(ActionService actionService) : IExecutableAction
+public sealed class VerifyAllRelationsAction(ActionService actionService) : IScheduledAction
 {
     public string Name => "Verify All Relations";
 
@@ -16,8 +18,10 @@ public sealed class VerifyAllRelationsAction(ActionService actionService) : IExe
 
     public ActionCategory Category => ActionCategory.AniDB;
 
-    public ActionPermission Permission => ActionPermission.Admin;
+    public TimeSpan? MinimumInterval => TimeSpan.FromHours(6);
 
-    public Task Execute(CancellationToken token = default)
+    public bool ScheduleCountsManualRuns => true;
+
+    public Task Execute(IProgress<decimal> progress, CancellationToken token)
         => actionService.VerifyAllUnverifiedRelations();
 }

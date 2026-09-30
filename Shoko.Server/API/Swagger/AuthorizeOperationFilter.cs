@@ -1,5 +1,6 @@
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.OpenApi;
 using Shoko.Server.API.Annotations;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -36,6 +37,9 @@ public sealed class AuthorizeOperationFilter : IOperationFilter
     }
 
     private static bool HasAttribute<TAttribute>(OperationFilterContext context)
-        => context.MethodInfo.GetCustomAttributes(true).OfType<TAttribute>().Any() ||
-            (context.MethodInfo.DeclaringType?.GetCustomAttributes(true).OfType<TAttribute>().Any() ?? false);
+        => (context.MethodInfo?.GetCustomAttributes(true).OfType<TAttribute>().Any() ?? false) ||
+            (context.MethodInfo?.DeclaringType?.GetCustomAttributes(true).OfType<TAttribute>().Any() ?? false) ||
+            // A mapped endpoint carries its authorization as endpoint metadata, and may have no method at all.
+            (context.ApiDescription.ActionDescriptor is { } action and not ControllerActionDescriptor &&
+                (action.EndpointMetadata?.OfType<TAttribute>().Any() ?? false));
 }

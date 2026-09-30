@@ -82,7 +82,10 @@ public static class Program
         {
             foreach (var removedItem in e.RemovedItems)
             {
-                _logger.LogTrace("Job Completed: {Type} | {Details}", removedItem.Title, GetDetails(removedItem.Details));
+                if (removedItem.CancellationRequested)
+                    _logger.LogTrace("Job Cancelled: {Type} | {Details}", removedItem.Title, GetDetails(removedItem.Details));
+                else
+                    _logger.LogTrace("Job Completed: {Type} | {Details}", removedItem.Title, GetDetails(removedItem.Details));
             }
         }
 

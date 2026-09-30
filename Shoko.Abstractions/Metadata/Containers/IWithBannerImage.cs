@@ -13,8 +13,7 @@ public interface IWithBannerImage : IWithImages
     ///   The banner image of the entity. The preferred or first available
     ///   image of type <see cref="ImageEntityType.Banner"/> for the entity.
     /// </summary>
-    IImage? BannerImage
-        => GetBestImageForType(ImageEntityType.Banner);
+    IImage? BannerImage { get => GetBestImageForType(ImageEntityType.Banner); }
 
     /// <summary>
     ///   The cross-reference for the banner image for the entity. Same as the
@@ -22,6 +21,5 @@ public interface IWithBannerImage : IWithImages
     ///   first available image of type <see cref="ImageEntityType.Banner"/>
     ///   for the entity.
     /// </summary>
-    IImageCrossReference? BannerImageCrossReference
-        => GetBestImageCrossReferenceForType(ImageEntityType.Banner);
+    IImageCrossReference? BannerImageCrossReference { get => GetBestImageCrossReferenceForType(ImageEntityType.Banner); }
 }

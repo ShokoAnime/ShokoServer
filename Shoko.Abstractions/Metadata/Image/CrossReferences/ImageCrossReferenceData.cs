@@ -29,9 +29,9 @@ public sealed class ImageCrossReferenceData
     }
 
     /// <summary>
-    /// Source of the cross-reference. Defaults to <see cref="DataSource.User"/>.
+    /// Source of the cross-reference. Defaults to <see cref="MetadataSource.User"/>.
     /// </summary>
-    public DataSource Source { get; set; } = DataSource.User;
+    public MetadataSource Source { get; set; } = MetadataSource.User;
 
     /// <summary>
     ///   Whether the image is enabled for the entity. Defaults to <c>true</c>.

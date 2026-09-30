@@ -43,7 +43,7 @@ public class Vote
     /// </summary>
     [Required, Range(0, int.MaxValue, ErrorMessage = "Max value must be an integer above 0.")]
     [DefaultValue(10)]
-    public int MaxValue { get; set; }
+    public int MaxValue { get; set; } = 10;
 
     /// <summary>
     /// for temporary vs permanent, or any other situations that may arise later.

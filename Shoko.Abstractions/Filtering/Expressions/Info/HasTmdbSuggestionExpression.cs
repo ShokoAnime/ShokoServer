@@ -1,12 +1,20 @@
 using System;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Info;
 
 /// <summary>
 /// This condition passes if TMDB suggests anything for the filterable. Looks at what the filterable suggests, not at what suggests it.
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="HasSourceSuggestionExpression"/>, which it
+/// evaluates with the tmdb source. Kept under its own name so saved filters
+/// read the same.
+/// </remarks>
 public class HasTmdbSuggestionExpression : FilterExpression<bool>
 {
+    private static readonly HasSourceSuggestionExpression _tmdb = new(MetadataSource.TMDB.Value);
+
     /// <inheritdoc/>
     public override string Name => "Has TMDB Suggestion";
 
@@ -16,7 +24,7 @@ public class HasTmdbSuggestionExpression : FilterExpression<bool>
     /// <inheritdoc/>
     public override bool Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.TmdbSuggestions is > 0;
+        return _tmdb.Evaluate(filterable, userInfo, time);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

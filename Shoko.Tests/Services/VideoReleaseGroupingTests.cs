@@ -150,9 +150,9 @@ public class VideoReleaseGroupingTests
             EpisodeType.Special => 1000,
             EpisodeType.Credits => 2000,
             EpisodeType.Trailer => 3000,
-            EpisodeType.Parody  => 4000,
-            EpisodeType.Other   => 5000,
-            _                   => 0,
+            EpisodeType.Parody => 4000,
+            EpisodeType.Other => 5000,
+            _ => 0,
         };
         var ecr = new EmbeddedCrossReference
         {
@@ -1137,15 +1137,15 @@ public class VideoReleaseGroupingTests
     public void GapFill_MultipleFillerOptions_ProducesOneGapFillPerFiller()
     {
         var media = MakeMedia();
-        var th  = (string hash, long size, string ep) =>
-            MakeSri(hash, size, "999",  "AniDB", "ToonsHub",   "TH",  ReleaseSource.Web, episodes: [ep]);
-        var sp  = (string hash, long size, string ep) =>
-            MakeSri(hash, size, "1337", "AniDB", "SubsPlease", "SP",  ReleaseSource.Web, episodes: [ep]);
+        var th = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "999", "AniDB", "ToonsHub", "TH", ReleaseSource.Web, episodes: [ep]);
+        var sp = (string hash, long size, string ep) =>
+            MakeSri(hash, size, "1337", "AniDB", "SubsPlease", "SP", ReleaseSource.Web, episodes: [ep]);
         var unk = (string hash, long size, string ep) =>
-            MakeSri(hash, size, "0001", "AniDB", "Unknown",    "Unk", ReleaseSource.Web, episodes: [ep]);
+            MakeSri(hash, size, "0001", "AniDB", "Unknown", "Unk", ReleaseSource.Web, episodes: [ep]);
 
         var resolved = new List<ResolvedVideoPlace>();
-        for (var i = 1; i <= 8;  i++)
+        for (var i = 1; i <= 8; i++)
             resolved.Add(new ResolvedVideoPlace(MakePlace(i, i, 1, $"A/TH - {i:D2}.mkv"),
                 MakeVideo(i, $"TH{i}", 500_000_000, media), th($"TH{i}", 500_000_000, i.ToString())));
         for (var i = 1; i <= 12; i++)
@@ -1164,7 +1164,7 @@ public class VideoReleaseGroupingTests
         Assert.Equal(4, candidates.Count);
 
         var singleFamily = candidates.Where(c => !c.IsMixed).ToList();
-        var gapFills     = candidates.Where(c => c.IsMixed).ToList();
+        var gapFills = candidates.Where(c => c.IsMixed).ToList();
 
         Assert.Single(singleFamily);
         Assert.Equal(3, gapFills.Count);
@@ -1214,7 +1214,8 @@ public class VideoReleaseGroupingTests
                 MakeVideo(100 + i, $"M{i}", 1_000_000_000, media),
                 new StoredReleaseInfo  // no GroupID or GroupSource
                 {
-                    ED2K = $"M{i}", FileSize = 1_000_000_000,
+                    ED2K = $"M{i}",
+                    FileSize = 1_000_000_000,
                     Source = ReleaseSource.Web,
                     CrossReferences = [ParseEpisode(i.ToString())],
                 }));
@@ -1225,7 +1226,8 @@ public class VideoReleaseGroupingTests
             MakeVideo(200, "U10", 900_000_000, media),
             new StoredReleaseInfo
             {
-                ED2K = "U10", FileSize = 900_000_000,
+                ED2K = "U10",
+                FileSize = 900_000_000,
                 Source = ReleaseSource.Web,
                 CrossReferences = [ParseEpisode("10")],
             }));
@@ -1323,7 +1325,7 @@ public class VideoReleaseGroupingTests
         // PRT pure (1-8) is partial and is removed — selecting it would leave eps 9-12 with no file.
         Assert.Equal(2, candidates.Count);
 
-        var pure    = candidates.Single(c => c.GroupShortName == "FUL" && !c.IsMixed);
+        var pure = candidates.Single(c => c.GroupShortName == "FUL" && !c.IsMixed);
         var gapFill = candidates.Single(c => c.IsMixed);
 
         Assert.Equal(12, pure.Places.Count);
@@ -1377,8 +1379,8 @@ public class VideoReleaseGroupingTests
     public void DisjointGroupsOneFilePerEpisode_ProducesNoCandidates()
     {
         var media = MakeMedia();
-        var eraiRaws  = (int ep) => (string hash, long size) =>
-            MakeSri(hash, size, "14642", "AniDB", "Erai-raws",  "Erai-raws",  ReleaseSource.Web, episodes: [ep.ToString()]);
+        var eraiRaws = (int ep) => (string hash, long size) =>
+            MakeSri(hash, size, "14642", "AniDB", "Erai-raws", "Erai-raws", ReleaseSource.Web, episodes: [ep.ToString()]);
         var driftkiNG = (int ep) => (string hash, long size) =>
             MakeSri(hash, size, "18264", "AniDB", "DRiFTKiNG", "DRiFTKiNG", ReleaseSource.Web, episodes: [ep.ToString()]);
 
@@ -1441,7 +1443,7 @@ public class VideoReleaseGroupingTests
         // Exiled alone (1-2) is partial and is removed — ep 3 would have no file.
         Assert.Equal(2, candidates.Count);
 
-        var pure    = candidates.Single(c => c.GroupShortName == "Baka" && !c.IsMixed);
+        var pure = candidates.Single(c => c.GroupShortName == "Baka" && !c.IsMixed);
         var gapFill = candidates.Single(c => c.IsMixed);
 
         Assert.Single(pure.Places);
@@ -1696,7 +1698,9 @@ public class VideoReleaseGroupingTests
             MakeVideo(1, "ANCH", 500_000_000, media),
             new StoredReleaseInfo
             {
-                ED2K = "ANCH", FileSize = 500_000_000, Source = ReleaseSource.Web,
+                ED2K = "ANCH",
+                FileSize = 500_000_000,
+                Source = ReleaseSource.Web,
                 CrossReferences = [ParseEpisode("1")],
             });
 
@@ -1706,7 +1710,9 @@ public class VideoReleaseGroupingTests
             MakeVideo(2, "FIL1", 500_000_000, media),
             new StoredReleaseInfo
             {
-                ED2K = "FIL1", FileSize = 500_000_000, Source = ReleaseSource.Web,
+                ED2K = "FIL1",
+                FileSize = 500_000_000,
+                Source = ReleaseSource.Web,
                 CrossReferences = [ParseEpisode("2")],
             });
 
@@ -1717,7 +1723,9 @@ public class VideoReleaseGroupingTests
             MakeVideo(3, "FIL2", 500_000_000, media),
             new StoredReleaseInfo
             {
-                ED2K = "FIL2", FileSize = 500_000_000, Source = ReleaseSource.Web,
+                ED2K = "FIL2",
+                FileSize = 500_000_000,
+                Source = ReleaseSource.Web,
                 CrossReferences = [ParseEpisode("2")],
             });
 
@@ -1955,7 +1963,9 @@ public class VideoReleaseGroupingTests
         var releaseInfoRepo = new Mock<StoredReleaseInfoRepository>((DatabaseFactory)null!, (IServiceProvider)null!);
         var crossoverSri = new StoredReleaseInfo
         {
-            ED2K = "XOVER", FileSize = 500_000_000, Source = ReleaseSource.Web,
+            ED2K = "XOVER",
+            FileSize = 500_000_000,
+            Source = ReleaseSource.Web,
             CrossReferences = [ParseEpisode(foreignEpisodeId.ToString()), ParseEpisode(targetEpisodeId.ToString())],
         };
         releaseInfoRepo.Setup(r => r.GetByEd2kAndFileSize("XOVER", 500_000_000)).Returns(crossoverSri);

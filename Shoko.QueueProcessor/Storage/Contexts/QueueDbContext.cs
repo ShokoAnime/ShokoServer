@@ -37,12 +37,13 @@ public abstract class QueueDbContext : DbContext
             entity.HasKey(j => j.Id);
             entity.Property(j => j.Id).ValueGeneratedNever();
 
-            entity.Property(j => j.JobType).IsRequired().HasMaxLength(256);
+            entity.Property(j => j.JobType).IsRequired().HasMaxLength(QueuedJob.JobTypeMaxLength);
             entity.Property(j => j.JobKey).IsRequired().HasMaxLength(512);
             entity.Property(j => j.JobDataJson).HasMaxLength(4096);
             entity.Property(j => j.Priority).HasDefaultValue(0);
             entity.Property(j => j.RetryCount).HasDefaultValue(0);
             entity.Property(j => j.IsChainFinally).HasDefaultValue(false);
+            entity.Ignore(j => j.Actor);
 
             entity.Property(j => j.QueuedAt).HasConversion(_dateTimeOffsetConverter);
             entity.Property(j => j.ScheduledAt).HasConversion(_nullableDateTimeOffsetConverter);

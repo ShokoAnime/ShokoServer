@@ -9,18 +9,18 @@ public class NullToDefaultValueResolver : DefaultContractResolver
 {
     protected override IValueProvider CreateMemberValueProvider(MemberInfo member)
     {
-        IValueProvider provider = base.CreateMemberValueProvider(member);
+        var provider = base.CreateMemberValueProvider(member);
 
         switch (member.MemberType)
         {
             case MemberTypes.Field:
             {
-                Type propType = ((FieldInfo)member).FieldType;
+                var propType = ((FieldInfo)member).FieldType;
                 return new ExistingOrDefaultValueProvider(provider, propType, member.Name);
             }
             case MemberTypes.Property:
             {
-                Type propType = ((PropertyInfo)member).PropertyType;
+                var propType = ((PropertyInfo)member).PropertyType;
                 return new ExistingOrDefaultValueProvider(provider, propType, member.Name);
             }
             default:

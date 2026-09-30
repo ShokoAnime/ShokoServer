@@ -1,30 +1,24 @@
-using Shoko.Abstractions.Metadata.Enums;
-
 namespace Shoko.Abstractions.Metadata;
 
 /// <summary>
-///   Base metadata interface.
+///   An entry of one source, named by its <see cref="ID"/>. The source and
+///   the kind of entry are read off the ID.
 /// </summary>
 public interface IMetadata
 {
     /// <summary>
-    ///   The type of the metadata.
+    ///   The identity of the entry: its source, its kind and the ID the
+    ///   source gave it, e.g. <c>anidb://series/1</c>.
     /// </summary>
-    DataEntityType EntityType { get => DataEntityType.Unknown; }
+    MetadataGuid ID { get; }
 
     /// <summary>
-    ///   The source of the metadata.
+    ///   The source of the entry.
     /// </summary>
-    DataSource Source { get; }
-}
+    MetadataSource Source { get => ID.Source; }
 
-/// <summary>
-///   Base metadata interface with an ID.
-/// </summary>
-public interface IMetadata<TId> : IMetadata
-{
     /// <summary>
-    ///   The ID of the metadata.
+    ///   The kind of entity the entry is.
     /// </summary>
-    TId ID { get; }
+    MetadataEntityType EntityType { get => ID.EntityType; }
 }

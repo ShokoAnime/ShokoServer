@@ -1,13 +1,9 @@
 # Web Services
 
 One interface lives here: `IWebThemeService`, the service behind the Web UI's
-theme picker. It is a service a plugin **consumes**, not a contract a plugin
-implements. There is no theme provider to write and nothing in this folder is
-discovered by `GetExports<T>()`; you resolve the service from DI and call it.
-
-The models it deals in are next door in `Shoko.Abstractions/Web`:
-`IWebThemeDefinition` (a theme as the server sees it) and
-`WebThemeDefinitionData` (the JSON shape authors write).
+theme picker, which a plugin **consumes** from DI. Its models are next door in
+`Shoko.Abstractions/Web`: `IWebThemeDefinition` (a theme as the server sees it)
+and `WebThemeDefinitionData` (the JSON shape authors write).
 
 This page also covers where a plugin's own web surface goes, in
 [Routes a plugin serves](#routes-a-plugin-serves).
@@ -42,6 +38,11 @@ under `/plugin/Template/`.
 
 ### Mapping a SignalR hub
 
+To send events to clients, you rarely need a hub of your own: add a feed to
+the server's aggregate hub instead, which clients already connect to (see
+[Feeds on the aggregate hub](../SignalR/README.md)). A hub of your own is for
+when clients call into your plugin over SignalR.
+
 Map a hub from `IPluginApplicationRegistration.RegisterServices`, the hook that
 runs while the request pipeline is built:
 
@@ -55,13 +56,11 @@ public static void RegisterServices(IApplicationBuilder application, IApplicatio
 }
 ```
 
-- **You don't have to call `AddSignalR`.** Core already registers it, with a
-  60-second client timeout, so a mapped hub works with no registration of your
-  own and is on exactly the same footing as core's own hubs.
+- **You don't have to call `AddSignalR`.** Core already registers it, so a
+  mapped hub works with no registration of your own.
 - **Call it when you need per-hub options**, since `AddHubOptions<THub>` is only
-  reachable from the builder `AddSignalR()` returns. Raising
-  `MaximumReceiveMessageSize` past the 32 KB default and adding a hub filter
-  both require it:
+  reachable from the builder `AddSignalR()` returns (a larger
+  `MaximumReceiveMessageSize`, a hub filter):
 
   ```csharp
   serviceCollection.AddSignalR()
@@ -72,15 +71,9 @@ public static void RegisterServices(IApplicationBuilder application, IApplicatio
       });
   ```
 
-  Calling it a second time is safe and changes nothing about the protocols on
-  offer. Core's own `AddSignalR()` already registered System.Text.Json's
-  `JsonHubProtocol`, and its `AddNewtonsoftJsonProtocol()` appended Newtonsoft
-  rather than replacing it, so both are registered with or without your call.
-
-  ⚠️ Both being registered means a client negotiates whichever it asks for, so
-  write hubs and their payloads to tolerate either serializer rather than
-  assuming Newtonsoft's settings. Both ignore unknown members by default, so a
-  retired field still on the wire is skipped rather than refused.
+  Calling it a second time is safe. Core's `AddNewtonsoftJsonProtocol()` takes
+  the `json` protocol name over from System.Text.Json, so every hub, yours
+  included, serializes with Newtonsoft.Json and the API's contract resolver.
 - **Always require authorization.** `RequireAuthorization()` admits any
   signed-in user, and `RequireAuthorization("admin")` admits administrators only.
 - **Clients sign in with their API key** as a bearer token, which a browser
@@ -93,6 +86,51 @@ public static void RegisterServices(IApplicationBuilder application, IApplicatio
 Core keeps `/plugin` clear, and the WebUI never answers for it, even when it is
 served from the root. Two plugins choosing the same namespace is a conflict
 nothing detects for you, so pick something unmistakably yours.
+
+### Listing mapped endpoints in Swagger
+
+Your controllers are listed in your plugin's own Swagger documents, one per
+API version, named `<DllName>-<version>` after your main DLL (`Template-v1`).
+Endpoints you map yourself from `IPluginApplicationRegistration.RegisterServices`
+go in `<DllName>-v1`, with the unversioned controllers. None go in the core's
+documents.
+
+- **A route handler is listed as it is**, described from its signature, and is
+  yours because its handler is in your assembly. `ExcludeFromDescription()`
+  keeps one out.
+- **A plain `RequestDelegate` needs your group name.** It has no signature and
+  nothing tying it to your plugin, like the endpoints a library maps for you.
+  Add `WithGroupName("<DllName>")` (on a route group, it covers the group). Its
+  body and responses come from `AcceptsMetadata` and
+  `ProducesResponseTypeMetadata` added through `WithMetadata`; its query
+  parameters and headers cannot be described.
+- **The rest is standard endpoint metadata**: `WithTags`, `WithSummary`,
+  `WithDescription`, `WithName` for the operation ID, and `RequireAuthorization`
+  for the API key requirement.
+- **Middleware is never listed.** A handler added with `application.Use` has no
+  endpoint to describe.
+
+```csharp
+public static void RegisterServices(IApplicationBuilder application, IApplicationPaths applicationPaths)
+{
+    application.UseEndpoints(endpoints =>
+    {
+        // Listed as is.
+        endpoints.MapGet("/api/plugin/Template/status", (bool? verbose) => GetStatus(verbose))
+            .WithTags("Template")
+            .WithSummary("Gets the plugin's status.")
+            .RequireAuthorization();
+
+        // A plain request delegate, listed through the group name.
+        endpoints.MapPost("/api/plugin/Template/raw", HandleRawAsync)
+            .WithGroupName("Template")
+            .WithMetadata(new AcceptsMetadata(["application/json"], typeof(RawRequest)))
+            .WithMetadata(new ProducesResponseTypeMetadata(StatusCodes.Status200OK, typeof(RawResponse), ["application/json"]))
+            .WithTags("Template")
+            .RequireAuthorization();
+    });
+}
+```
 
 ---
 
@@ -128,11 +166,8 @@ back as `application/json`, `text/json` or `text/plain`, and the CSS as
 
 ## Getting hold of it
 
-The service is registered as a singleton in the core container, so constructor
-injection works as usual in anything the container builds. It does not work on
-the class implementing `IPlugin`, which is built without DI during the plugin
-scan and must have a public parameterless constructor; see
-[the plugin overview](../../README.md#iplugin-needs-a-public-parameterless-constructor).
+The service is a singleton in the core container, so constructor injection
+works in anything the container builds.
 
 ```csharp
 // Registered from your plugin's RegisterServices.
@@ -171,9 +206,8 @@ Four entry points, in descending order of how much the service does for you:
 | `InstallOrUpdateThemeFromData(data, fileName, preview)` | A `WebThemeDefinitionData` you built | The path to use when your plugin ships a theme in code |
 | `CreateOrUpdateThemeFromCss(content, fileName, preview)` | Raw CSS plus a file name | Writes a minimal definition wrapping that CSS |
 
-All four validate first and write only if `preview` is `false`. A preview comes
-back as a definition with `IsPreview` set and nothing touched on disk, which is
-what you want for "show me what this would look like" before committing.
+All four validate first and write only if `preview` is `false`; a preview comes
+back with `IsPreview` set and nothing touched on disk.
 
 `UpdateThemeOnline(theme, preview)` re-fetches an installed theme from its
 `UpdateUrl` and refuses a version that is not higher than the installed one.
@@ -195,14 +229,10 @@ await themeService.InstallOrUpdateThemeFromData(new WebThemeDefinitionData
 }, fileName: "my-theme");
 ```
 
-Call it once per start from `IPlugin.Setup`, the plugin class's own start-up
-hook (the theme service only touches files, so it is usable that early), from
-the `StartAsync` of a hosted service you register, or from an
-`ISystemService.AboutToStart` handler, if you want the theme to reappear after
-a user deletes it; guard it on your own stored flag if
-you would rather let them keep it deleted. Either way you are writing into the
-user's `themes/` directory, so use an ID unlikely to collide: an existing theme
-with the same ID is overwritten without warning.
+Call it once per start (from `IPlugin.Setup`, since the service only touches
+files, or a hosted service's `StartAsync`) if the theme should reappear after a
+user deletes it, or guard it on a stored flag of your own. Use an ID unlikely to
+collide: an existing theme with the same ID is overwritten without warning.
 
 ---
 
@@ -217,9 +247,9 @@ found" signal you get.
 ## Watch out for
 
 - **`UpdateThemeOnline` on a theme with no `UpdateUrl` returns that theme
-  unchanged.** The doc comment says it throws; the implementation does not.
-  Check `UpdateUrl` yourself if "this theme cannot be updated" needs to be
-  distinguishable from "this theme was already current".
+  unchanged**, without throwing. Check `UpdateUrl` yourself if "this theme
+  cannot be updated" needs to be distinguishable from "this theme was already
+  current".
 - **`CreateOrUpdateThemeFromCss` refuses a theme that has an `UpdateUrl`**, with
   a `ValidationException`. An online theme is owned by its author, and hand-
   editing it would be silently undone by the next update.

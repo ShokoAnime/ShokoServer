@@ -9,6 +9,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class GroupEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "group";
+
     private readonly ILogger<GroupEventEmitter> _logger;
 
     public GroupEventEmitter(IHubContext<AggregateHub> hub, ILogger<GroupEventEmitter> logger) : base(hub)

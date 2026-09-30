@@ -9,6 +9,7 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Repositories.Cached;
 
@@ -26,7 +27,9 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 public class ScanForMissingReleaseInfoJob(
         IVideoReleaseService videoReleaseService,
         StoredReleaseInfoRepository releaseInfoRepository,
-        VideoLocalRepository videoLocals
+        VideoLocalRepository videoLocals,
+        IJobCancellationAccessor cancellation,
+        IJobProgressAccessor progress
 ) : BaseJob
 {
 
@@ -44,8 +47,13 @@ public class ScanForMissingReleaseInfoJob(
 
         var incompleteReleases = new List<StoredReleaseInfo>();
 
+        // Evaluating the releases is the first half of the progress, queueing the rescans the second.
+        progress.Progress.Report(0);
+        var evaluated = 0;
         foreach (var release in allReleases)
         {
+            cancellation.Token.ThrowIfCancellationRequested();
+            progress.Progress.Report(50m * evaluated++ / allReleases.Count);
             var audioLangs = release.AudioLanguages;
             var subLangs = release.SubtitleLanguages;
 
@@ -79,8 +87,11 @@ public class ScanForMissingReleaseInfoJob(
         _logger.LogInformation("Found {Count} releases with missing info to evaluate for rescan.", incompleteReleases.Count);
 
         var queued = 0;
+        var considered = 0;
         foreach (var release in incompleteReleases)
         {
+            cancellation.Token.ThrowIfCancellationRequested();
+            progress.Progress.Report(50m + 50m * considered++ / incompleteReleases.Count);
             if (videoLocals.GetByEd2kAndSize(release.ED2K, release.FileSize) is not { } video)
                 continue;
 
@@ -88,6 +99,7 @@ public class ScanForMissingReleaseInfoJob(
                 queued++;
         }
 
+        progress.Progress.Report(100);
         _logger.LogInformation("Queued {Queued} provider rescan jobs for files with missing release info.", queued);
     }
 }

@@ -8,6 +8,12 @@ namespace Shoko.QueueProcessor.Storage;
 /// </summary>
 public class QueuedJob
 {
+    /// <summary>
+    /// The most characters <see cref="JobType"/> holds. A job type whose stored name
+    /// (<see cref="Builder.JobTypeNames.Stored"/>) is longer cannot be queued.
+    /// </summary>
+    public const int JobTypeMaxLength = 256;
+
     /// <summary>Unique job instance identifier. Never changes after creation.</summary>
     public Guid Id { get; set; }
 
@@ -70,4 +76,29 @@ public class QueuedJob
     /// Used on startup to reconstruct <c>_afterParentCallbacks</c> from persisted state.
     /// </summary>
     public Guid? ParentJobId { get; set; }
+
+    /// <summary>
+    /// The ID of the user the job was queued for, captured through
+    /// <see cref="Abstractions.IJobActorAccessor"/> at enqueue. Null when it was queued for no one.
+    /// </summary>
+    public int? ActorUserId { get; set; }
+
+    /// <summary>
+    /// The device name of the credentials the job was queued with, next to
+    /// <see cref="ActorUserId"/>. Never the credentials themselves.
+    /// </summary>
+    public string? ActorDeviceName { get; set; }
+
+    /// <summary>
+    /// The actor the job was queued for, or <see langword="null"/> for none.
+    /// </summary>
+    internal Abstractions.JobActor? Actor
+    {
+        get => ActorUserId is { } userId ? new(userId, ActorDeviceName ?? string.Empty) : null;
+        set
+        {
+            ActorUserId = value?.UserID;
+            ActorDeviceName = value?.DeviceName;
+        }
+    }
 }

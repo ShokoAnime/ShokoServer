@@ -15,8 +15,10 @@ public class HasCreatorExpression : FilterExpression<bool>, IWithStringParameter
     /// <inheritdoc/>
     public HasCreatorExpression() { }
 
-    /// <inheritdoc/>
-    protected string? CreatorID { get; set; }
+    /// <summary>
+    /// The AniDB ID of the creator to look for, kept as the parameter.
+    /// </summary>
+    public string? CreatorID { get; set; }
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the filterable has a creator.";

@@ -15,6 +15,8 @@ public class TMDB_CollectionMap : ClassMap<TMDB_Collection>
         Map(x => x.TmdbCollectionID).Not.Nullable();
         Map(x => x.EnglishTitle).Not.Nullable();
         Map(x => x.EnglishOverview).Not.Nullable();
+        Map(x => x.EnglishTitleListed).Not.Nullable();
+        Map(x => x.EnglishOverviewListed).Not.Nullable();
         Map(x => x.MovieCount).Not.Nullable();
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();

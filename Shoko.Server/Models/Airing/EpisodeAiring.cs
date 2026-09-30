@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Server.Repositories;
 using Shoko.Server.Utilities;
 
@@ -39,7 +40,7 @@ public class EpisodeAiring
     /// <summary>
     /// The source of the episode the airing is for.
     /// </summary>
-    public DataSource EpisodeSource { get; set; }
+    public MetadataSource EpisodeSource { get; set; } = null!;
 
     /// <summary>
     /// The ID of the episode the airing is for, relative to
@@ -71,6 +72,11 @@ public class EpisodeAiring
     /// behind it are not.
     /// </summary>
     public bool IsDelayed { get; set; }
+
+    /// <summary>
+    /// What kind of showing the airing is.
+    /// </summary>
+    public EpisodeAiringKind Kind { get; set; }
 
     /// <summary>
     /// The <see cref="EpisodeAiringID"/> of the link head, which is the member

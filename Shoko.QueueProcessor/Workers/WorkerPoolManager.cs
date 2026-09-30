@@ -43,6 +43,7 @@ public sealed class WorkerPoolManager : IHostedService
     private readonly QueueStateEventHandler _events;
     private readonly IEnumerable<IAcquisitionFilter> _acquisitionFilters;
     private readonly IEnumerable<IJobWatchdogThreshold> _watchdogThresholds;
+    private readonly IEnumerable<IJobConcurrencyProvider> _concurrencyProviders;
     private readonly IChainScopeRegistry _chainScopeRegistry;
     private readonly IServiceProvider _serviceProvider;
     private readonly QueueJobTypeRegistry _jobTypeRegistry;
@@ -67,8 +68,10 @@ public sealed class WorkerPoolManager : IHostedService
         IChainScopeRegistry chainScopeRegistry,
         IServiceProvider serviceProvider,
         QueueJobTypeRegistry jobTypeRegistry,
-        QueueProcessorOptions options)
+        QueueProcessorOptions options,
+        IEnumerable<IJobConcurrencyProvider>? concurrencyProviders = null)
     {
+        _concurrencyProviders = concurrencyProviders ?? [];
         _logger = logger;
         _repo = repo;
         _orchestrator = orchestrator;
@@ -99,7 +102,7 @@ public sealed class WorkerPoolManager : IHostedService
         var jobTypes = DiscoverJobTypes();
 
         // Build pools
-        _pools = _poolDiscovery.Discover(jobTypes, _acquisitionFilters);
+        _pools = _poolDiscovery.Discover(jobTypes, _acquisitionFilters, _concurrencyProviders);
 
         await UpgradeLegacyJobKeys(persistedJobs, _pools, ct);
 
@@ -195,7 +198,7 @@ public sealed class WorkerPoolManager : IHostedService
     {
         var typeByName = new Dictionary<string, Type>(StringComparer.Ordinal);
         foreach (var type in pools.SelectMany(pool => pool.HandledTypes))
-            typeByName[type.FullName + ", " + type.Assembly.GetName().Name] = type;
+            typeByName[JobTypeNames.Stored(type)] = type;
 
         var updates = new List<(Guid Id, string NewKey)>();
         foreach (var job in persistedJobs)

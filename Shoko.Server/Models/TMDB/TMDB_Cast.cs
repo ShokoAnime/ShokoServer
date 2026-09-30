@@ -23,6 +23,11 @@ public abstract class TMDB_Cast : ICast
     public abstract int TmdbParentID { get; }
 
     /// <summary>
+    /// The kind of TMDB entry the parent is.
+    /// </summary>
+    public abstract MetadataEntityType ParentType { get; }
+
+    /// <summary>
     /// TMDB Credit ID for the acting job.
     /// </summary>
     public string TmdbCreditID { get; set; } = string.Empty;
@@ -44,7 +49,7 @@ public abstract class TMDB_Cast : ICast
     public TMDB_Person? GetTmdbPerson() =>
         RepoFactory.TMDB_Person.GetByTmdbPersonID(TmdbPersonID);
 
-    public abstract IMetadata<int>? GetTmdbParent();
+    public abstract IMetadata? GetTmdbParent();
 
     /// <summary>
     /// TMDB only lists the original-language cast, so every role is in the
@@ -62,21 +67,15 @@ public abstract class TMDB_Cast : ICast
 
     #endregion
 
-    #region IMetadata Implementation
-
-    string IMetadata<string>.ID => TmdbCreditID;
-
-    DataSource IMetadata.Source => DataSource.TMDB;
-
-    #endregion
-
     #region ICast Implementation
 
-    int? ICast.CreatorID => TmdbPersonID;
+    MetadataSource ICast.Source => MetadataSource.TMDB;
 
-    int? ICast.CharacterID => null;
+    MetadataGuid? ICast.CreatorID => new(MetadataSource.TMDB, MetadataEntityType.Creator, TmdbPersonID.ToString());
 
-    int ICast.ParentID => TmdbParentID;
+    MetadataGuid? ICast.CharacterID => null;
+
+    MetadataGuid ICast.ParentID => new(MetadataSource.TMDB, ParentType, TmdbParentID.ToString());
 
     string ICast.Name => CharacterName;
 
@@ -84,9 +83,11 @@ public abstract class TMDB_Cast : ICast
 
     string? ICast.Description => null;
 
+    string? ICast.DubGroup => null;
+
     CastRoleType ICast.RoleType => CastRoleType.None;
 
-    IMetadata<int>? ICast.Parent => GetTmdbParent();
+    IMetadata? ICast.Parent => GetTmdbParent();
 
     ICharacter? ICast.Character => null;
 

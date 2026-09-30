@@ -33,6 +33,9 @@ public class TMDB_Episode_Cast : TMDB_Cast, ICast<IEpisode>
     /// <inheritdoc />
     public override int TmdbParentID => TmdbEpisodeID;
 
+    /// <inheritdoc/>
+    public override MetadataEntityType ParentType => MetadataEntityType.Episode;
+
     /// <summary>
     /// Indicates the role is not a recurring role within the season.
     /// </summary>
@@ -45,7 +48,7 @@ public class TMDB_Episode_Cast : TMDB_Cast, ICast<IEpisode>
     public TMDB_Episode? GetTmdbEpisode() =>
         RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
 
-    public override IMetadata<int>? GetTmdbParent() =>
+    public override IMetadata? GetTmdbParent() =>
         GetTmdbEpisode();
 
     #endregion

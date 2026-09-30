@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Settings;
 
@@ -18,9 +18,8 @@ public class ImageTemplateUrlConfiguration
     /// </summary>
     [Display(Name = "Image Source")]
     [Required]
-    [DefaultValue(DataSource.AniDB)]
-    [DeniedValues(DataSource.LocallyGenerated, DataSource.User, DataSource.None, DataSource.Shoko)]
-    public DataSource ImageSource { get; set; } = DataSource.AniDB;
+    [DefaultValue("anidb")]
+    public MetadataSource ImageSource { get; set; } = MetadataSource.AniDB;
 
     [Key, Display(Name = "Image Template URL")]
     public string? TemplateUrl { get; set; }
@@ -30,7 +29,7 @@ public class ImageTemplateUrlConfiguration
     {
         var errors = new Dictionary<string, IReadOnlyList<string>>();
         if (config.ImageSource.IsLocal)
-            errors.Add(nameof(config.ImageSource), [$"{nameof(config.ImageSource)} cannot be LocallyGenerated, User, None or Shoko."]);
+            errors.Add(nameof(config.ImageSource), [$"{nameof(config.ImageSource)} cannot be a local source, such as Shoko or User."]);
 
         if (config.TemplateUrl is not null)
         {

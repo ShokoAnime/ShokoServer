@@ -8,7 +8,7 @@ namespace Shoko.Abstractions.Metadata.Stub;
 public class TextStub : IText
 {
     /// <inheritdoc />
-    public required DataSource Source { get; init; }
+    public required MetadataSource Source { get; init; }
 
     /// <inheritdoc />
     public required TitleLanguage Language { get; init; }

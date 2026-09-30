@@ -10,7 +10,7 @@ public class GroupInfoUpdatedEventSignalRModel
     public GroupInfoUpdatedEventSignalRModel(GroupInfoUpdatedEventArgs eventArgs)
     {
         Reason = eventArgs.Reason;
-        GroupID = eventArgs.GroupInfo.ID;
+        GroupID = eventArgs.GroupInfo.LocalID;
     }
 
     [JsonConverter(typeof(StringEnumConverter))]

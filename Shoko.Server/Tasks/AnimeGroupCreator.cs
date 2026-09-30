@@ -1,15 +1,17 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.QueueProcessor;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
@@ -24,8 +26,12 @@ public class AnimeGroupCreator
 {
     private readonly ILogger<AnimeGroupCreator> _logger;
     private const int DefaultBatchSize = 50;
-    public const string TempGroupName = "AAA Migrating Groups AAA";
-    private static readonly Regex _truncateYearRegex = new(@"\s*\(\d{4}\)$");
+
+    /// <summary>
+    ///   The group every series is put in while the groups are made again,
+    ///   or <c>0</c> when they are not.
+    /// </summary>
+    internal static int TemporaryGroupID { get; private set; }
     private readonly SystemService _systemService;
     private readonly QueueHandler _queueHandler;
     private readonly AnimeGroupService _groupService;
@@ -78,14 +84,13 @@ public class AnimeGroupCreator
 
         var tempGroup = new AnimeGroup
         {
-            GroupName = TempGroupName,
-            Description = TempGroupName,
             DateTimeUpdated = now,
             DateTimeCreated = now
         };
 
         // We won't use AnimeGroupRepository.Save because we don't need to perform all the extra stuff since this is for temporary use only
         await session.InsertAsync(tempGroup);
+        TemporaryGroupID = tempGroup.AnimeGroupID;
         lock (_animeGroupRepo.Cache)
         {
             _animeGroupRepo.Cache.Update(tempGroup);
@@ -246,24 +251,16 @@ public class AnimeGroupCreator
         DateTime now)
     {
         var animeGroup = new AnimeGroup();
-        string groupName;
-
         if (mainSeries != null)
         {
             animeGroup.Populate(mainSeries, now);
-            groupName = animeGroup.GroupName;
         }
         else // The anime chosen as the group's main anime doesn't actually have a series
         {
             var mainAnime = _aniDbAnimeRepo.GetByAnimeID(mainAnimeId);
 
             animeGroup.Populate(mainAnime!, now);
-            groupName = animeGroup.GroupName;
         }
-
-        // If the title appears to end with a year suffix, then remove it
-        groupName = _truncateYearRegex.Replace(groupName, string.Empty);
-        animeGroup.GroupName = groupName;
 
         return animeGroup;
     }
@@ -310,21 +307,9 @@ public class AnimeGroupCreator
             // Update the group details if we have the main series for the group.
             else if (mainAnimeId == series.AniDB_ID)
             {
-                // Always update the automatic main id.
+                // Always update the automatic main id. The group's name and
+                // overview follow its main series by themselves.
                 animeGroup.MainAniDBAnimeID = mainAnimeId;
-                // Update the auto-refreshed details if the main series changed
-                // and no default series is set.
-                if (!animeGroup.DefaultAnimeSeriesID.HasValue)
-                {
-                    // Override the group name if the group is not manually named.
-                    if (animeGroup.IsManuallyNamed == 0)
-                    {
-                        animeGroup.GroupName = series.Title;
-                    }
-                    // Override the group desc. if the group doesn't have an override.
-                    if (animeGroup.OverrideDescription == 0)
-                        animeGroup.Description = series.PreferredOverview?.Value ?? string.Empty;
-                }
                 animeGroup.DateTimeUpdated = DateTime.Now;
                 _animeGroupRepo.Save(animeGroup, true);
                 ShokoEventHandler.Instance.OnGroupUpdated(animeGroup, UpdateReason.Updated);
@@ -380,21 +365,9 @@ public class AnimeGroupCreator
             // Update the group details if we have the main series for the group.
             else if (mainAnimeId == anime.AnimeID)
             {
-                // Always update the automatic main id.
+                // Always update the automatic main id. The group's name and
+                // overview follow its main series by themselves.
                 animeGroup.MainAniDBAnimeID = mainAnimeId;
-                // Update the auto-refreshed details if the main series changed
-                // and no default series is set.
-                if (!animeGroup.DefaultAnimeSeriesID.HasValue)
-                {
-                    // Override the group name if the group is not manually named.
-                    if (animeGroup.IsManuallyNamed == 0)
-                    {
-                        animeGroup.GroupName = anime.Title;
-                    }
-                    // Override the group desc. if the group doesn't have an override.
-                    if (animeGroup.OverrideDescription == 0)
-                        animeGroup.Description = anime.Description;
-                }
                 animeGroup.DateTimeUpdated = DateTime.Now;
                 _animeGroupRepo.Save(animeGroup, true);
                 ShokoEventHandler.Instance.OnGroupUpdated(animeGroup, UpdateReason.Updated);
@@ -442,6 +415,11 @@ public class AnimeGroupCreator
                 await ClearGroupsAndDependencies(session, tempGroup.AnimeGroupID);
                 await trans.CommitAsync();
             }
+
+            // The users' texts of the old groups go with them: after the groups are gone (the text
+            // store has its own connection) and before a new group can take an old group's ID.
+            var tempGroupID = tempGroup.AnimeGroupID.ToString(CultureInfo.InvariantCulture);
+            TextAccess.Reachable?.RemoveTexts(entry => entry.Source == MetadataSource.Shoko && entry.EntityType == MetadataEntityType.Collection && entry.ID != tempGroupID);
 
             var createdGroups = _autoGroupSeries
                 ? (await AutoCreateGroupsWithRelatedSeries(session, animeSeries)).AsReadOnlyCollection()
@@ -491,6 +469,8 @@ public class AnimeGroupCreator
         }
         finally
         {
+            TemporaryGroupID = 0;
+
             // Un-pause queues (if they were previously running)
             if (!paused) await _queueHandler.Resume();
         }

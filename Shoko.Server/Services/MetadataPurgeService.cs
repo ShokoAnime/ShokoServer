@@ -1,0 +1,186 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Server.Models.Metadata;
+using Shoko.Server.Repositories.Cached.Metadata;
+using Shoko.Server.Settings;
+
+namespace Shoko.Server.Services;
+
+/// <summary>
+///   Purges a source's unused entries through the core's purge job, and its
+///   orphaned people, studios and networks at once.
+/// </summary>
+/// <param name="providerManager">The registered providers, among them those that purge their own orphans.</param>
+/// <param name="crossReferences">The links, which decide what is unused.</param>
+/// <param name="metadataService">Every source's stored series, films and collections.</param>
+/// <param name="collectionStore">The stored collections' members.</param>
+/// <param name="peopleStore">The stored creators and characters.</param>
+/// <param name="studioStore">The stored studios and networks.</param>
+/// <param name="creators">The creators' table, to find the sources that have people.</param>
+/// <param name="characters">The characters' table, to find the sources that have people.</param>
+/// <param name="studios">The studios' table, to find the sources that have studios.</param>
+/// <param name="networks">The networks' table, to find the sources that have networks.</param>
+/// <param name="cleanup">Unlinks the images of the people, studios and networks removed.</param>
+/// <param name="refreshState">When each entry was last refreshed.</param>
+/// <param name="providerScheduler">Queues the purges.</param>
+/// <param name="settingsProvider">Holds how long a person, studio or network may stay orphaned.</param>
+/// <param name="logger">Where the purges are reported.</param>
+public class MetadataPurgeService(
+    IMetadataProviderManager providerManager,
+    IMetadataCrossReferenceStore crossReferences,
+    IMetadataService metadataService,
+    IMetadataCollectionStore collectionStore,
+    IMetadataPeopleStore peopleStore,
+    IMetadataStudioStore studioStore,
+    Metadata_CreatorRepository creators,
+    Metadata_CharacterRepository characters,
+    Metadata_StudioRepository studios,
+    Metadata_NetworkRepository networks,
+    MetadataEntityCleanup cleanup,
+    IMetadataRefreshState refreshState,
+    MetadataProviderScheduler providerScheduler,
+    ISettingsProvider settingsProvider,
+    ILogger<MetadataPurgeService> logger
+) : IMetadataPurgeService
+{
+    #region Entries
+
+    /// <inheritdoc />
+    public Task<bool> PurgeEntry(MetadataGuid entryID, bool force = false, CancellationToken cancellationToken = default)
+        => providerScheduler.SchedulePurge(entryID, force, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<int> PurgeUnused(
+        MetadataSource source,
+        DateTime? olderThan = null,
+        MetadataEntityType? entityType = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!providerScheduler.IsPurgeable(source))
+            return 0;
+
+        // A collection of a source the core keeps in its own tables goes with
+        // the last film it holds, and its members are not in the store.
+        bool Wanted(MetadataEntityType kind) => entityType is null || entityType == kind;
+        var unused = (Wanted(MetadataEntityType.Series) ? metadataService.GetAllSeriesForSource(source).Cast<IMetadata>() : [])
+            .Concat(Wanted(MetadataEntityType.Movie) ? metadataService.GetAllMoviesForSource(source) : [])
+            .Where(entry => !crossReferences.IsLinked(entry.ID))
+            .Concat(Wanted(MetadataEntityType.Collection) && !source.IsCore
+                ? collectionStore.GetAllCollections(source).Where(collection => !crossReferences.IsCollectionInUse(collectionStore, metadataService, collection.ID))
+                : [])
+            .Where(entry => olderThan is not { } cutoff || GetLastTouchedAt(entry) is not { } touchedAt || touchedAt < cutoff)
+            .Select(entry => entry.ID)
+            .ToList();
+        foreach (var id in unused)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await providerScheduler.SchedulePurge(id, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        logger.LogInformation("Queued the purge of {Count} unused entries of {Source}.", unused.Count, source);
+        return unused.Count;
+    }
+
+    /// <summary>
+    ///   When an entry was last refreshed, or for one that never was, such as
+    ///   one only quick-refreshed for a preview, when it was last stored,
+    ///   which is what TMDB's own sweep always went by.
+    /// </summary>
+    /// <param name="entry">The series, film or collection.</param>
+    /// <returns>The time, in local time, or <see langword="null"/> when there is none.</returns>
+    private DateTime? GetLastTouchedAt(IMetadata entry)
+        => refreshState.GetLastRefreshedAt(entry.ID) ?? entry switch
+        {
+            Metadata_Series series => series.LastUpdatedAt,
+            Metadata_Movie movie => movie.LastUpdatedAt,
+            Metadata_Collection collection => collection.LastUpdatedAt,
+            IWithUpdateDate updated when entry.ID.Source.IsCore => updated.LastUpdatedAt.ToLocalTime(),
+            _ => null,
+        };
+
+    /// <inheritdoc />
+    public async Task<int> PurgeCollections(MetadataSource source, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!providerScheduler.IsPurgeable(source))
+            return 0;
+
+        var collections = metadataService.GetAllCollectionsForSource(source).Select(collection => collection.ID).ToList();
+        foreach (var id in collections)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await providerScheduler.SchedulePurge(id, force: true, cancellationToken).ConfigureAwait(false);
+        }
+
+        logger.LogInformation("Queued the purge of {Count} collections of {Source}.", collections.Count, source);
+        return collections.Count;
+    }
+
+    #endregion
+
+    #region Orphans
+
+    /// <inheritdoc />
+    public async Task<int> PurgeOrphaned(MetadataSource? source = null, DateTime? orphanedBefore = null, CancellationToken cancellationToken = default)
+    {
+        var cutoff = orphanedBefore ?? DateTime.Now.AddDays(-settingsProvider.GetSettings().Metadata.PurgeOrphanedAfterDays);
+        IReadOnlyList<MetadataSource> sources = source is not null
+            ? source.IsCore ? [] : [source]
+            : creators.GetAll().Select(creator => creator.Source)
+                .Concat(characters.GetAll().Select(character => character.Source))
+                .Concat(studios.GetAll().Select(studio => studio.Source))
+                .Concat(networks.GetAll().Select(network => network.Source))
+                .Where(each => !each.IsCore)
+                .Distinct()
+                .ToList();
+
+        var total = 0;
+        foreach (var each in sources)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var people = peopleStore.RemoveOrphaned(each, cutoff);
+            var organisations = studioStore.RemoveOrphaned(each, cutoff);
+            cleanup.RemoveImageLinks([.. people, .. organisations]);
+            if (people.Count + organisations.Count > 0)
+                logger.LogInformation(
+                    "Purged {PeopleCount} people and {StudioCount} studios and networks of {Source} orphaned before {Cutoff}.",
+                    people.Count,
+                    organisations.Count,
+                    each,
+                    cutoff
+                );
+            total += people.Count + organisations.Count;
+        }
+
+        // A source the core keeps in tables of its own, which is TMDB, has
+        // its provider purge its orphans from them.
+        var purgers = providerManager.MetadataProviders
+            .Where(info => info.Source.IsCore && (source is null || info.Source == source))
+            .Select(info => (info.Source, Purger: info.Provider as ICoreMetadataOrphanPurger))
+            .Where(pair => pair.Purger is not null)
+            .DistinctBy(pair => pair.Source)
+            .ToList();
+        foreach (var (each, purger) in purgers)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var removed = await purger!.PurgeOrphaned(cutoff, cancellationToken).ConfigureAwait(false);
+            if (removed > 0)
+                logger.LogInformation("Purged {Count} orphans of {Source} orphaned before {Cutoff}.", removed, each, cutoff);
+            total += removed;
+        }
+
+        return total;
+    }
+
+    #endregion
+}

@@ -15,61 +15,61 @@ namespace Shoko.Tests.Settings;
 public class SettingsJsonPatchTests
 {
     [Fact]
-    public void PerItemReplace_OnTmdbImageLanguageOrder_MutatesStoredList()
+    public void PerItemReplace_OnMetadataSourceImageLanguageOrder_MutatesStoredList()
     {
         var settings = new ServerSettings();
 
-        Assert.Equal(new[] { "none", "x-main", "en" }, settings.TMDB.InternalImageLanguageOrder);
+        Assert.Equal(new[] { "none", "x-main", "en" }, settings.Image.MetadataSourceDefaults.InternalImageLanguageOrder);
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("replace", "/TMDB/ImageLanguageOrder/0", null, "fr"));
+        patch.Operations.Add(new Operation<ServerSettings>("replace", "/Image/MetadataSourceDefaults/ImageLanguageOrder/0", null, "fr"));
         patch.ApplyTo(settings);
 
-        Assert.Equal(new[] { "fr", "x-main", "en" }, settings.TMDB.InternalImageLanguageOrder);
+        Assert.Equal(new[] { "fr", "x-main", "en" }, settings.Image.MetadataSourceDefaults.InternalImageLanguageOrder);
         Assert.Equal(
             new[] { TitleLanguage.French, TitleLanguage.Main, TitleLanguage.English },
-            settings.TMDB.ImageLanguageOrder);
+            settings.Image.MetadataSourceDefaults.ImageLanguageOrder);
     }
 
     [Fact]
-    public void PerItemRemove_OnTmdbImageLanguageOrder_MutatesStoredList()
+    public void PerItemRemove_OnMetadataSourceImageLanguageOrder_MutatesStoredList()
     {
         var settings = new ServerSettings();
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("remove", "/TMDB/ImageLanguageOrder/0", null, null));
+        patch.Operations.Add(new Operation<ServerSettings>("remove", "/Image/MetadataSourceDefaults/ImageLanguageOrder/0", null, null));
         patch.ApplyTo(settings);
 
-        Assert.Equal(new[] { "x-main", "en" }, settings.TMDB.InternalImageLanguageOrder);
-        Assert.Equal(new[] { TitleLanguage.Main, TitleLanguage.English }, settings.TMDB.ImageLanguageOrder);
+        Assert.Equal(new[] { "x-main", "en" }, settings.Image.MetadataSourceDefaults.InternalImageLanguageOrder);
+        Assert.Equal(new[] { TitleLanguage.Main, TitleLanguage.English }, settings.Image.MetadataSourceDefaults.ImageLanguageOrder);
     }
 
     [Fact]
-    public void PerItemAdd_OnTmdbImageLanguageOrder_MutatesStoredList()
+    public void PerItemAdd_OnMetadataSourceImageLanguageOrder_MutatesStoredList()
     {
         var settings = new ServerSettings();
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("add", "/TMDB/ImageLanguageOrder/-", null, "de"));
+        patch.Operations.Add(new Operation<ServerSettings>("add", "/Image/MetadataSourceDefaults/ImageLanguageOrder/-", null, "de"));
         patch.ApplyTo(settings);
 
-        Assert.Equal(new[] { "none", "x-main", "en", "de" }, settings.TMDB.InternalImageLanguageOrder);
+        Assert.Equal(new[] { "none", "x-main", "en", "de" }, settings.Image.MetadataSourceDefaults.InternalImageLanguageOrder);
         Assert.Equal(
             new[] { TitleLanguage.None, TitleLanguage.Main, TitleLanguage.English, TitleLanguage.German },
-            settings.TMDB.ImageLanguageOrder);
+            settings.Image.MetadataSourceDefaults.ImageLanguageOrder);
     }
 
     [Fact]
-    public void WholeArrayReplace_OnTmdbImageLanguageOrder_NormalizesList()
+    public void WholeArrayReplace_OnMetadataSourceImageLanguageOrder_NormalizesList()
     {
         var settings = new ServerSettings();
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Replace(s => s.TMDB.InternalImageLanguageOrder, new List<string> { "en", "de", "en", "nonsense" });
+        patch.Replace(s => s.Image.MetadataSourceDefaults.InternalImageLanguageOrder, new List<string> { "en", "de", "en", "nonsense" });
         patch.ApplyTo(settings);
 
-        Assert.Equal(new[] { "en", "de" }, settings.TMDB.InternalImageLanguageOrder);
-        Assert.Equal(new[] { TitleLanguage.English, TitleLanguage.German }, settings.TMDB.ImageLanguageOrder);
+        Assert.Equal(new[] { "en", "de" }, settings.Image.MetadataSourceDefaults.InternalImageLanguageOrder);
+        Assert.Equal(new[] { TitleLanguage.English, TitleLanguage.German }, settings.Image.MetadataSourceDefaults.ImageLanguageOrder);
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class SettingsJsonPatchTests
         var modelState = new ModelStateDictionary();
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("replace", "/TMDB/ImageLanguageOrder/99", null, "fr"));
+        patch.Operations.Add(new Operation<ServerSettings>("replace", "/Image/MetadataSourceDefaults/ImageLanguageOrder/99", null, "fr"));
         patch.ApplyTo(settings, modelState);
 
         Assert.False(modelState.IsValid);

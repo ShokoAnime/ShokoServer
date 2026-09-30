@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Repositories;
@@ -92,6 +91,7 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
         AiredAt = row.AiredAt;
         OriginalAiredAt = row.OriginalAiredAt;
         IsDelayed = row.IsDelayed;
+        Kind = row.Kind;
     }
 
     /// <summary>
@@ -111,7 +111,7 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     public EpisodeAiringView(
         AiringReadContext context,
         AiringScheduleView schedule,
-        DataSource episodeSource,
+        MetadataSource episodeSource,
         string episodeID,
         string key,
         DateTime? airedAt,
@@ -133,6 +133,7 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
         OriginalAiredAt = originalAiredAt;
         IsDelayed = false;
         IsEstimated = true;
+        Kind = EpisodeAiringKind.Normal;
     }
 
     /// <inheritdoc/>
@@ -150,11 +151,18 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     /// <inheritdoc/>
     public string ProviderName => _schedule.ProviderName;
 
-    /// <inheritdoc/>
-    public DataSource EpisodeSource { get; }
+    /// <summary>
+    ///   The source of the episode the airing is for.
+    /// </summary>
+    public MetadataSource EpisodeSource { get; }
+
+    /// <summary>
+    ///   The source's own ID for the episode the airing is for.
+    /// </summary>
+    public string EpisodeID { get; }
 
     /// <inheritdoc/>
-    public string EpisodeID { get; }
+    MetadataGuid IEpisodeAiring.EpisodeID => new(EpisodeSource, MetadataEntityType.Episode, EpisodeID);
 
     /// <inheritdoc/>
     public IEpisode? Episode
@@ -209,6 +217,9 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
 
     /// <inheritdoc/>
     public bool IsEstimated { get; }
+
+    /// <inheritdoc/>
+    public EpisodeAiringKind Kind { get; }
 
     /// <inheritdoc/>
     public TimeSpan? OffsetFromOriginal

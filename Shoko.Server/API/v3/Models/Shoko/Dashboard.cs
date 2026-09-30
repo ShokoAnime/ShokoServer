@@ -172,11 +172,11 @@ public static class Dashboard
                 : null;
             IDs = new EpisodeDetailsIDs
             {
-                ID = anidbEpisode.ID,
-                Series = anidbAnime.ID,
-                ShokoFile = video?.ID,
-                ShokoSeries = shokoSeries?.ID,
-                ShokoEpisode = shokoEpisode?.ID
+                ID = anidbEpisode.AnidbID,
+                Series = anidbAnime.AnidbID,
+                ShokoFile = video?.LocalID,
+                ShokoSeries = shokoSeries?.LocalID,
+                ShokoEpisode = shokoEpisode?.LocalID
             };
             Title = shokoEpisode?.Title ?? anidbEpisode.Title;
             Number = anidbEpisode.EpisodeNumber;

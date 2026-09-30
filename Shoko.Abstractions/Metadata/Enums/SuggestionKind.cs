@@ -6,8 +6,8 @@ namespace Shoko.Abstractions.Metadata.Enums;
 public enum SuggestionKind
 {
     /// <summary>
-    /// Watch this next if you liked the base entity. AniList's and TMDB's
-    /// recommendations.
+    /// Watch this next if you liked the base entity. TMDB's recommendations,
+    /// and those of a plugin source such as AniList.
     /// </summary>
     Recommended = 0,
 

@@ -14,7 +14,7 @@ public class VideoReleaseSearchCompletedSignalRModel(VideoReleaseSearchCompleted
     /// <summary>
     /// The video ID.
     /// </summary>
-    public int FileID { get; } = args.Video.ID;
+    public int FileID { get; } = args.Video.LocalID;
 
     /// <summary>
     /// Indicates if the found releases should be saved.

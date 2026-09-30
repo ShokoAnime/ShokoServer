@@ -83,19 +83,23 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     // Lazy init. to prevent circular dependency.
     private AnimeSeriesService? _seriesService;
 
+    // Lazy init. to prevent circular dependency.
+    private MetadataOrderingService? _orderingService;
+
     private readonly AniDB_AnimeRepository _anidbAnimeRepository;
 
     private readonly AniDB_AnimeUpdateRepository _anidbAnimeUpdateRepository;
 
     private readonly AniDB_TagRepository _anidbTagRepository;
 
-    private readonly AniDB_Anime_TitleRepository _anidbAnimeTitleRepository;
+    private readonly MetadataTextStore _textStore;
 
     private readonly AniDB_Anime_TagRepository _anidbAnimeTagRepository;
 
+    private readonly AniDB_ResourceRepository _anidbResourceRepository;
+
     private readonly AniDB_EpisodeRepository _anidbEpisodeRepository;
 
-    private readonly AniDB_Episode_TitleRepository _anidbEpisodeTitleRepository;
 
     private readonly AniDB_Anime_CharacterRepository _anidbAnimeCharacterRepository;
 
@@ -123,7 +127,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private readonly KeyedEntityLockHelper _entityLock;
 
-    private readonly ISupplementaryMetadataService _supplementaryMetadataService;
+    private readonly SupplementaryMetadataScheduler _supplementaryMetadataScheduler;
 
     public AnidbService(
         ILogger<AnidbService> logger,
@@ -142,10 +146,10 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         AniDB_AnimeRepository anidbAnimeRepository,
         AniDB_AnimeUpdateRepository anidbAnimeUpdateRepository,
         AniDB_TagRepository anidbTagRepository,
-        AniDB_Anime_TitleRepository anidbAnimeTitleRepository,
+        MetadataTextStore textStore,
         AniDB_Anime_TagRepository anidbAnimeTagRepository,
+        AniDB_ResourceRepository anidbResourceRepository,
         AniDB_EpisodeRepository anidbEpisodeRepository,
-        AniDB_Episode_TitleRepository anidbEpisodeTitleRepository,
         AniDB_Anime_CharacterRepository anidbAnimeCharacterRepository,
         AniDB_CharacterRepository anidbCharacterRepository,
         AniDB_Anime_Character_CreatorRepository anidbAnimeCharacterCreatorRepository,
@@ -157,7 +161,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         ShokoImage_EntityRepository shokoImageXrefRepository,
         AniDB_Anime_RelationRepository anidbAnimeRelationRepository,
         IImageManager imageManager,
-        ISupplementaryMetadataService supplementaryMetadataService
+        SupplementaryMetadataScheduler supplementaryMetadataScheduler
     )
     {
         _logger = logger;
@@ -177,10 +181,10 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _anidbAnimeRepository = anidbAnimeRepository;
         _anidbAnimeUpdateRepository = anidbAnimeUpdateRepository;
         _anidbTagRepository = anidbTagRepository;
-        _anidbAnimeTitleRepository = anidbAnimeTitleRepository;
+        _textStore = textStore;
         _anidbAnimeTagRepository = anidbAnimeTagRepository;
+        _anidbResourceRepository = anidbResourceRepository;
         _anidbEpisodeRepository = anidbEpisodeRepository;
-        _anidbEpisodeTitleRepository = anidbEpisodeTitleRepository;
         _anidbAnimeCharacterRepository = anidbAnimeCharacterRepository;
         _anidbCharacterRepository = anidbCharacterRepository;
         _anidbAnimeCharacterCreatorRepository = anidbAnimeCharacterCreatorRepository;
@@ -192,7 +196,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         _shokoImageXrefRepository = shokoImageXrefRepository;
         _anidbAnimeRelationRepository = anidbAnimeRelationRepository;
         _imageManager = imageManager;
-        _supplementaryMetadataService = supplementaryMetadataService;
+        _supplementaryMetadataScheduler = supplementaryMetadataScheduler;
         _entityLock = new(logger);
         _bulkheadPolicy = Policy.BulkheadAsync<AniDB_Anime?>(1, int.MaxValue);
 
@@ -381,7 +385,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     {
         ArgumentNullException.ThrowIfNull(anidbAnime);
 
-        return await RefreshInternal(anidbAnime.ID, anidbAnime, refreshMethod, cancellationToken).ConfigureAwait(false) ?? anidbAnime;
+        return await RefreshInternal(anidbAnime.AnidbID, anidbAnime, refreshMethod, cancellationToken).ConfigureAwait(false) ?? anidbAnime;
     }
 
     /// <inheritdoc/>
@@ -389,7 +393,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     {
         ArgumentNullException.ThrowIfNull(anidbAnime);
 
-        await ScheduleRefreshInternal(anidbAnime.ID, refreshMethod, prioritize).ConfigureAwait(false);
+        await ScheduleRefreshInternal(anidbAnime.AnidbID, refreshMethod, prioritize).ConfigureAwait(false);
     }
 
     #endregion
@@ -467,7 +471,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     private async Task<AniDB_Anime?> ProcessInternal(AnidbJobDetails job, CancellationToken cancellationToken)
     {
-        using (await _entityLock.GetLockForEntityAsync(DataEntityType.Anime, job.AnimeID, "metadata", "Update", cancellationToken).ConfigureAwait(false))
+        using (await _entityLock.GetLockForEntityAsync(MetadataEntityType.Series, job.AnimeID, "metadata", "Update", cancellationToken).ConfigureAwait(false))
         {
             var anime = _anidbAnimeRepository.GetByAnimeID(job.AnimeID);
             var update = _anidbAnimeUpdateRepository.GetByAnimeID(job.AnimeID);
@@ -593,7 +597,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             anime ??= new AniDB_Anime();
             var isNew = anime.AniDB_AnimeID == 0;
             _animeCreator ??= _serviceProvider.GetRequiredService<AnimeCreator>();
-            var (isUpdated, titlesUpdated, descriptionUpdated, shouldUpdateFiles, animeEpisodeChanges) = await _animeCreator.CreateAnime(response, anime, job.RelDepth).ConfigureAwait(false);
+            var (isUpdated, _, _, shouldUpdateFiles, animeEpisodeChanges) = await _animeCreator.CreateAnime(response, anime, job.RelDepth).ConfigureAwait(false);
 
             {
                 var relations = _anidbAnimeRelationRepository.GetByAnimeID(job.AnimeID);
@@ -655,24 +659,6 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             if (isNew || isUpdated || animeEpisodeChanges.Count > 0)
                 ShokoEventHandler.Instance.OnSeriesUpdated(anime, isNew ? UpdateReason.Added : UpdateReason.Updated, animeEpisodeChanges);
 
-            // Reset the cached preferred title if anime titles were updated.
-            if (titlesUpdated)
-                anime.ResetPreferredTitle();
-
-            // Reset the cached titles if anime titles were updated or if series is new.
-            if ((titlesUpdated || seriesIsNew) && series is not null)
-            {
-                series.ResetDefaultTitle();
-                series.ResetPreferredTitle();
-                series.ResetAnimeTitles();
-            }
-
-            // Reset the cached description if anime description was updated or if series is new.
-            if ((descriptionUpdated || seriesIsNew) && series is not null)
-            {
-                series.ResetPreferredOverview();
-            }
-
             // Emit shoko series updated event.
             if (series is not null && (seriesIsNew || seriesUpdated || seriesEpisodeChanges.Count > 0))
                 ShokoEventHandler.Instance.OnSeriesUpdated(series, seriesIsNew ? UpdateReason.Added : UpdateReason.Updated, seriesEpisodeChanges);
@@ -720,7 +706,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             }
 
             if (!job.SkipSupplementaryUpdate)
-                await _supplementaryMetadataService.ScheduleForAnime(anime.AnimeID, isNew: false).ConfigureAwait(false);
+                await _supplementaryMetadataScheduler.ScheduleForAnime(anime.AnimeID).ConfigureAwait(false);
 
             await ProcessRelations(response, job, settings).ConfigureAwait(false);
 
@@ -765,7 +751,6 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             DateTimeUpdated = DateTime.Now,
             DateTimeCreated = DateTime.Now,
             UpdatedAt = DateTime.Now,
-            SeriesNameOverride = string.Empty
         };
 
         var grp = _animeGroupCreator.GetOrCreateSingleGroupForAnime(anime);
@@ -773,7 +758,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         // Populate before making a group to ensure IDs and stats are set for group filters.
         _seriesRepository.Save(series, false);
         if (!job.SkipSupplementaryUpdate)
-            await _supplementaryMetadataService.ScheduleForAnime(anime.AnimeID, isNew: true).ConfigureAwait(false);
+            await _supplementaryMetadataScheduler.ScheduleForAnime(anime.AnimeID).ConfigureAwait(false);
 
         return series;
     }
@@ -865,7 +850,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         if (_anidbAnimeRepository.GetByAnimeID(anidbAnimeID) is null)
             return;
 
-        using (await _entityLock.GetLockForEntityAsync(DataEntityType.Anime, anidbAnimeID, "images", "Update").ConfigureAwait(false))
+        using (await _entityLock.GetLockForEntityAsync(MetadataEntityType.Series, anidbAnimeID, "images", "Update").ConfigureAwait(false))
         {
             if (_anidbAnimeRepository.GetByAnimeID(anidbAnimeID) is not { } anime)
                 return;
@@ -910,7 +895,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         if (_anidbCreatorRepository.GetByCreatorID(creatorID) is not { } creator || string.IsNullOrEmpty(creator.ImagePath))
             return;
 
-        using (await _entityLock.GetLockForEntityAsync(DataEntityType.Creator, creatorID, "images", "Update").ConfigureAwait(false))
+        using (await _entityLock.GetLockForEntityAsync(MetadataEntityType.Creator, creatorID, "images", "Update").ConfigureAwait(false))
         {
             var desired = _settingsProvider.GetSettings().AniDb.DownloadCreators;
             await UpsertAndScheduleImageForEntity(creator, creator.ImagePath, desired, forceDownload).ConfigureAwait(false);
@@ -924,18 +909,18 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         if (string.IsNullOrWhiteSpace(resourceID))
             return;
 
-        var image = _imageManager.GetImageBySourceAndRemoteResourceID(DataSource.AniDB, resourceID)
+        var image = _imageManager.GetImageBySourceAndRemoteResourceID(MetadataSource.AniDB, resourceID)
             ?? _imageManager.AddImage(new ImageData
             {
-                Source = DataSource.AniDB,
+                Source = MetadataSource.AniDB,
                 ResourceID = resourceID,
             });
 
-        var imageXref = _imageManager.GetImageCrossReferencesForEntity(entity, new() { ImageSource = DataSource.AniDB, ImageType = ImageEntityType.Primary, XrefSource = DataSource.AniDB })
+        var imageXref = _imageManager.GetImageCrossReferencesForEntity(entity, new() { ImageSource = MetadataSource.AniDB, ImageType = ImageEntityType.Primary, XrefSource = MetadataSource.AniDB })
             .FirstOrDefault(xref => xref.ImageID == image.ID)
             ?? _imageManager.AddImageCrossReference(entity, image, new ImageCrossReferenceData
             {
-                Source = DataSource.AniDB,
+                Source = MetadataSource.AniDB,
                 ImageType = ImageEntityType.Primary,
                 IsDesired = isDesired,
             });
@@ -957,13 +942,16 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     {
         var allAnimeIds = _anidbAnimeRepository.GetAll()
             .Select(anime => anime.AnimeID)
-            .Concat(_shokoImageXrefRepository.GetByEntity(DataSource.AniDB, DataEntityType.Anime).Select(xref => int.TryParse(xref.EntityID, out var id) ? id : 0))
+            .Concat(_shokoImageXrefRepository.GetByEntity(MetadataSource.AniDB, MetadataEntityType.Series).Select(xref => int.TryParse(xref.EntityID, out var id) ? id : 0))
             .Concat(_anidbEpisodeRepository.GetAll().Select(episode => episode.AnimeID))
             .Concat(_anidbAnimeCharacterRepository.GetAll().Select(xref => xref.AnimeID))
             .Concat(_anidbAnimeCharacterCreatorRepository.GetAll().Select(xref => xref.AnimeID))
             .Concat(_anidbAnimeStaffRepository.GetAll().Select(xref => xref.AnimeID))
             .Concat(_anidbAnimeTagRepository.GetAll().Select(xref => xref.AnimeID))
-            .Concat(_anidbAnimeTitleRepository.GetAll().Select(title => title.AnimeID))
+            .Concat(_anidbResourceRepository.GetAll().Select(resource => resource.AnimeID))
+            .Concat(_textStore.Cache.Enumerate()
+                .Where(entry => entry.Entity.Source == MetadataSource.AniDB && entry.Entity.EntityType == MetadataEntityType.Series)
+                .Select(entry => int.TryParse(entry.Entity.ID, out var id) ? id : 0))
             .Concat(_anidbAnimeUpdateRepository.GetAll().Select(update => update.AnimeID))
             .Concat(_storedReleaseInfoRepository.GetAll().SelectMany(release => release.CrossReferences.Select(xref => xref.AnidbAnimeID).WhereNotNull()))
             .Where(id => id > 0)
@@ -987,7 +975,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
 
     public async Task PurgeAnimeByID(int anidbAnimeID, bool removeFromMylist = true)
     {
-        using (await _entityLock.GetLockForEntityAsync(DataEntityType.Anime, anidbAnimeID, "metadata", "Purge").ConfigureAwait(false))
+        using (await _entityLock.GetLockForEntityAsync(MetadataEntityType.Series, anidbAnimeID, "metadata", "Purge").ConfigureAwait(false))
         {
             // Ensure shoko entities are removed first when they still exist.
             if (_seriesRepository.GetByAnimeID(anidbAnimeID) is { } series)
@@ -1014,9 +1002,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
                 )
                 .ToList();
             var tagXrefs = _anidbAnimeTagRepository.GetByAnimeID(anidbAnimeID);
-            var titles = _anidbAnimeTitleRepository.GetByAnimeID(anidbAnimeID);
+            var resources = _anidbResourceRepository.GetAllByAnimeID(anidbAnimeID);
             var anidbEpisodes = _anidbEpisodeRepository.GetByAnimeID(anidbAnimeID);
-            var episodeTitles = anidbEpisodes.SelectMany(a => _anidbEpisodeTitleRepository.GetByEpisodeID(a.EpisodeID)).ToList();
             var update = _anidbAnimeUpdateRepository.GetByAnimeID(anidbAnimeID);
 
             _anidbAnimeCharacterRepository.Delete(characterXrefs);
@@ -1025,23 +1012,26 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             _anidbAnimeStaffRepository.Delete(staffXrefs);
             _anidbCreatorRepository.Delete(creators);
             _anidbAnimeTagRepository.Delete(tagXrefs);
-            _anidbAnimeTitleRepository.Delete(titles);
-            _anidbEpisodeTitleRepository.Delete(episodeTitles);
+            _anidbResourceRepository.Delete(resources);
+            _textStore.WriteWithoutEntries([
+                new(MetadataSource.AniDB, MetadataEntityType.Series, anidbAnimeID.ToString()),
+                .. anidbEpisodes.Select(episode => ((IMetadata)episode).ID),
+            ]);
             _anidbEpisodeRepository.Delete(anidbEpisodes);
             _anidbAnimeUpdateRepository.Delete(update!);
 
             // Explicitly remove image cross references through the image manager.
-            PurgeImageXrefsForEntity(DataEntityType.Anime, anidbAnimeID);
-            PurgeImageXrefsForEntity(DataEntityType.Season, AniDB_Season.GetID(anidbAnimeID, EpisodeType.Episode, 1));
-            PurgeImageXrefsForEntity(DataEntityType.Season, AniDB_Season.GetID(anidbAnimeID, EpisodeType.Special, 0));
+            PurgeImageXrefsForEntity(MetadataEntityType.Series, anidbAnimeID);
+            PurgeImageXrefsForEntity(MetadataEntityType.Season, AniDB_Season.GetID(anidbAnimeID, EpisodeType.Episode, 1));
+            PurgeImageXrefsForEntity(MetadataEntityType.Season, AniDB_Season.GetID(anidbAnimeID, EpisodeType.Special, 0));
             foreach (var episode in anidbEpisodes)
-                PurgeImageXrefsForEntity(DataEntityType.Episode, episode.EpisodeID);
+                PurgeImageXrefsForEntity(MetadataEntityType.Episode, episode.EpisodeID);
             foreach (var character in characters)
-                PurgeImageXrefsForEntity(DataEntityType.Character, character.CharacterID);
+                PurgeImageXrefsForEntity(MetadataEntityType.Character, character.CharacterID);
             foreach (var creator in creators)
             {
-                PurgeImageXrefsForEntity(DataEntityType.Creator, creator.CreatorID);
-                PurgeImageXrefsForEntity(DataEntityType.Studio, creator.CreatorID);
+                PurgeImageXrefsForEntity(MetadataEntityType.Creator, creator.CreatorID);
+                PurgeImageXrefsForEntity(MetadataEntityType.Studio, creator.CreatorID);
             }
 
             // remove all releases linked to this anime.
@@ -1049,6 +1039,11 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             var releaseService = _serviceProvider.GetRequiredService<IVideoReleaseService>();
             foreach (var release in releases)
                 await releaseService.RemoveRelease(release, removeFromMylist).ConfigureAwait(false);
+
+            // Every ordering of the anime goes with it, whoever made it. The
+            // choice of one and the hidden flags of its episodes go with the rows.
+            _orderingService ??= _serviceProvider.GetRequiredService<MetadataOrderingService>();
+            _orderingService.RemoveForSeries(new(MetadataSource.AniDB, MetadataEntityType.Series, anidbAnimeID.ToString()));
 
             if (anime is not null)
             {
@@ -1060,12 +1055,12 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         }
     }
 
-    private void PurgeImageXrefsForEntity(DataEntityType entityType, int entityID)
+    private void PurgeImageXrefsForEntity(MetadataEntityType entityType, int entityID)
         => PurgeImageXrefsForEntity(entityType, entityID.ToString());
 
-    private void PurgeImageXrefsForEntity(DataEntityType entityType, string entityID)
+    private void PurgeImageXrefsForEntity(MetadataEntityType entityType, string entityID)
     {
-        var xrefs = _shokoImageXrefRepository.GetByEntity(DataSource.AniDB, entityType, entityID.ToString());
+        var xrefs = _shokoImageXrefRepository.GetByEntity(MetadataSource.AniDB, entityType, entityID.ToString());
         foreach (var xref in xrefs)
             _imageManager.RemoveImageCrossReference(xref);
     }
@@ -1112,13 +1107,13 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         var videoDictionary = new Dictionary<int, string>();
         foreach (var video in videos)
         {
-            if (!videoSet.Add(video.ID))
+            if (!videoSet.Add(video.LocalID))
                 continue;
 
             if (video.Files.FirstOrDefault(x => x.IsAvailable) is not { } location)
                 continue;
 
-            videoDictionary.Add(video.ID, location.Path);
+            videoDictionary.Add(video.LocalID, location.Path);
         }
 
         await Task.Run(() => AVDumpHelper.DumpFiles(videoDictionary)).ConfigureAwait(false);
@@ -1131,13 +1126,13 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         var videoDictionary = new Dictionary<int, string>();
         foreach (var video in videos)
         {
-            if (!videoSet.Add(video.ID))
+            if (!videoSet.Add(video.LocalID))
                 continue;
 
             if (video.Files.FirstOrDefault(x => x.IsAvailable) is not { } location)
                 continue;
 
-            videoDictionary.Add(video.ID, location.Path);
+            videoDictionary.Add(video.LocalID, location.Path);
         }
         await _scheduler.StartJob<AVDumpFilesJob>(a => a.Videos = videoDictionary, prioritize: true).ConfigureAwait(false);
     }
@@ -1196,10 +1191,10 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         private IShokoSeries? _shokoSeries = null;
 
         /// <inheritdoc/>
-        public int ID { get; init; } = searchResult.Result.AnimeID;
+        public int AnidbID { get; init; } = searchResult.Result.AnimeID;
 
         /// <inheritdoc/>
-        public DataSource Source => DataSource.AniDB;
+        public MetadataGuid ID => new(MetadataSource.AniDB, MetadataEntityType.Series, AnidbID.ToString());
 
         public string Title { get; init; } = searchResult.Result.Title;
 
@@ -1228,10 +1223,10 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         public int LengthDifference { get; init; } = searchResult.LengthDifference;
 
         /// <inheritdoc/>
-        public IAnidbAnime? AnidbAnime => ID > 0 ? _anidbAnime ??= _anidbAnimeRepository.GetByAnimeID(ID) : null;
+        public IAnidbAnime? AnidbAnime => AnidbID > 0 ? _anidbAnime ??= _anidbAnimeRepository.GetByAnimeID(AnidbID) : null;
 
         /// <inheritdoc/>
-        public IShokoSeries? ShokoSeries => ID > 0 ? _shokoSeries ??= _seriesRepository.GetByAnimeID(ID) : null;
+        public IShokoSeries? ShokoSeries => AnidbID > 0 ? _shokoSeries ??= _seriesRepository.GetByAnimeID(AnidbID) : null;
     }
 
     private class AnidbJobDetails

@@ -64,6 +64,13 @@ public class EpisodeAiring
     public bool IsEstimated { get; init; }
 
     /// <summary>
+    /// What kind of showing the airing is: the regular one, an advance
+    /// screening or a rerun. Estimates are always <see cref="EpisodeAiringKind.Normal"/>.
+    /// </summary>
+    [Required]
+    public EpisodeAiringKind Kind { get; init; }
+
+    /// <summary>
     /// This airing's time minus the episode's earliest known real
     /// <see cref="AiringKind.Original"/> airing, which a client can label as a
     /// simulcast or a lag. <c>null</c> when this is that airing, or when there
@@ -179,6 +186,7 @@ public class EpisodeAiring
         AiredAt = airing.AiredAt.ToUtc();
         OriginalAiredAt = airing.OriginalAiredAt.ToUtc();
         IsDelayed = airing.IsDelayed;
+        Kind = airing.Kind;
         IsEstimated = airing.IsEstimated;
         OffsetFromOriginal = airing.OffsetFromOriginal;
         LinkID = airing.LinkID;
@@ -189,10 +197,10 @@ public class EpisodeAiring
         Tracks = [.. airing.Tracks.Select(track => new AiringTrack(track))];
         IDs = new()
         {
-            ShokoEpisode = airing.ShokoEpisode?.ID,
-            AnidbEpisode = airing.AnidbEpisode?.ID,
-            ShokoSeries = airing.ShokoEpisode?.Series?.ID,
-            AnidbAnime = airing.AnidbEpisode?.SeriesID,
+            ShokoEpisode = airing.ShokoEpisode?.LocalID,
+            AnidbEpisode = airing.AnidbEpisode?.AnidbID,
+            ShokoSeries = airing.ShokoEpisode?.Series?.LocalID,
+            AnidbAnime = airing.AnidbEpisode?.AnidbAnimeID,
         };
         VideoCount = episode?.Videos.Count ?? 0;
         Type = episode?.Type;

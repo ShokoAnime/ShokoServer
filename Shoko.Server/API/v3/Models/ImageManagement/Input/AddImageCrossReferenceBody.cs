@@ -1,5 +1,7 @@
 using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 
@@ -23,24 +25,34 @@ public class AddImageCrossReferenceBody
     [Required]
     public ImageEntityType ImageType { get; set; }
 
+    // DefaultValueHandling.Populate sets an omitted member to its [DefaultValue]
+    // (or the type's default) over the initializer, so each default is also an attribute.
+
     /// <summary>
     ///   Source of the cross-reference. Defaults to User.
     /// </summary>
-    public DataSource Source { get; set; } = DataSource.User;
+    [DefaultValue(typeof(MetadataSource), "user")]
+    public MetadataSource Source { get; set; } = MetadataSource.User;
 
     /// <summary>
-    ///   Whether the image is enabled for the entity.
+    ///   Whether the image is enabled for the entity. Defaults to
+    ///   <c>true</c>.
     /// </summary>
+    [DefaultValue(true)]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
-    ///   Whether the image should be auto-downloaded.
+    ///   Whether the image should be auto-downloaded. Defaults to
+    ///   <c>false</c>.
     /// </summary>
+    [DefaultValue(false)]
     public bool IsDesired { get; set; } = false;
 
     /// <summary>
-    ///   Whether this is the preferred image for the entity+type.
+    ///   Whether this is the preferred image for the entity+type. Defaults
+    ///   to <c>false</c>.
     /// </summary>
+    [DefaultValue(false)]
     public bool IsPreferred { get; set; } = false;
 
     /// <summary>

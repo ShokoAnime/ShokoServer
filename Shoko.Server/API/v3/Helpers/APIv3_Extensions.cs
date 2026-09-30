@@ -4,9 +4,15 @@ using System.Linq;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
+using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Metadata.Image.Exceptions;
+using Shoko.Abstractions.Metadata.Image.Options;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
@@ -69,7 +75,7 @@ public static class APIv3_Extensions
         bool randomizeImages = false,
         bool showLinkedIDs = false,
         RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.False,
-        Func<DataSource, string?>? remoteUrlTemplate = null)
+        Func<MetadataSource, string?>? remoteUrlTemplate = null)
     {
         var images = new Images();
         foreach (var image in imageList)
@@ -113,6 +119,140 @@ public static class APIv3_Extensions
         }
 
         return images;
+    }
+
+    /// <summary>
+    /// The links an image list of an entity, made with the same options, sees
+    /// its images through.
+    /// </summary>
+    /// <param name="imageManager">The image manager.</param>
+    /// <param name="entity">The entity the images are listed for.</param>
+    /// <param name="options">The options the images were listed with, or <c>null</c> for all.</param>
+    /// <returns>The links, the entity's own first for each image and type.</returns>
+    public static IReadOnlyList<IImageCrossReference> GetCrossReferencesForImageList(this IImageManager imageManager, IWithImages entity, ImageFilteringOptions? options = null)
+        => imageManager.GetImageCrossReferencesForEntity(entity, new()
+        {
+            ImageSource = options?.ImageSource,
+            ImageType = options?.ImageType,
+            XrefSource = options?.XrefSource,
+            IsEnabled = options?.IsEnabled,
+            IsDesired = options?.IsDesired,
+            IsPreferred = options?.IsPreferred,
+            IsAvailable = options?.IsAvailable,
+            IsPrimaryImage = options?.IsPrimaryImage,
+            IsPrimaryAvailable = options?.IsPrimaryAvailable,
+            LinkedEntityImages = options?.LinkedEntityImages,
+        });
+
+    /// <summary>
+    /// Links an uploaded image to the entity it was uploaded for, as a user's
+    /// own enabled image, and makes it the preferred one of its type when asked.
+    /// </summary>
+    /// <param name="imageManager">The image manager.</param>
+    /// <param name="entity">The entity the image was uploaded for.</param>
+    /// <param name="image">The uploaded image.</param>
+    /// <param name="imageType">The type the image was uploaded as.</param>
+    /// <param name="preferred">Whether to make it the preferred image of its type for the entity.</param>
+    /// <returns>The stored image, its link to the entity, and whether the link was made now rather than found.</returns>
+    /// <exception cref="ArgumentException">The image is not stored.</exception>
+    public static (IImage Image, IImageCrossReference CrossReference, bool Created) LinkUploadedImage(
+        this IImageManager imageManager,
+        IWithImages entity,
+        IImage image,
+        ImageEntityType imageType,
+        bool preferred
+    )
+    {
+        IImageCrossReference xref;
+        var created = true;
+        try
+        {
+            xref = imageManager.AddImageCrossReference(entity, image, new()
+            {
+                ImageType = imageType,
+                IsEnabled = true,
+                IsDesired = true,
+                Source = MetadataSource.User,
+            });
+        }
+        catch (ImageCrossReferenceExistsException ex)
+        {
+            image = ex.Image;
+            xref = ex.CrossReference;
+            created = false;
+        }
+
+        if (preferred)
+            xref = imageManager.SetPreferredImageForEntity(xref);
+
+        return (image, xref, created);
+    }
+
+    /// <summary>
+    /// Enables or disables an image for an entity, on every link the entity
+    /// sees the image through for the type, its own and its linked entries'.
+    /// </summary>
+    /// <param name="imageManager">The image manager.</param>
+    /// <param name="entity">The entity the image is shown for.</param>
+    /// <param name="imageType">The type the image is shown as.</param>
+    /// <param name="image">The image.</param>
+    /// <param name="enabled">Whether the image should be enabled.</param>
+    /// <returns>The links, updated, the entity's own first; empty when the entity does not see the image as that type.</returns>
+    public static IReadOnlyList<IImageCrossReference> SetImageEnabledForEntity(
+        this IImageManager imageManager,
+        IWithImages entity,
+        ImageEntityType imageType,
+        IImage image,
+        bool enabled
+    )
+        => [
+            .. imageManager.GetImageCrossReferencesForEntity(entity, new() { ImageType = imageType })
+                .Where(xref => xref.ImageID == image.ID)
+                .ToList()
+                .Select(xref => xref.IsEnabled == enabled ? xref : imageManager.UpdateImageCrossReference(xref, new() { IsEnabled = enabled })),
+        ];
+
+    /// <summary>
+    /// Adds to each image the links it is seen through, matched by image and type.
+    /// </summary>
+    /// <param name="images">The images.</param>
+    /// <param name="crossReferences">The links of the entity the images are listed for.</param>
+    /// <returns>The same images.</returns>
+    public static Images WithCrossReferences(this Images images, IEnumerable<IImageCrossReference> crossReferences)
+    {
+        AttachCrossReferences([.. images.Posters, .. images.Backdrops, .. images.Banners, .. images.Logos, .. images.Discs], crossReferences);
+        return images;
+    }
+
+    /// <summary>
+    /// Adds to each image on the page the links it is seen through, matched by image and type.
+    /// </summary>
+    /// <param name="images">The page of images.</param>
+    /// <param name="crossReferences">The links of the entity the images are listed for.</param>
+    /// <returns>The same page.</returns>
+    public static ListResult<Image> WithCrossReferences(this ListResult<Image> images, IEnumerable<IImageCrossReference> crossReferences)
+    {
+        AttachCrossReferences(images.List, crossReferences);
+        return images;
+    }
+
+    /// <summary>
+    /// Adds to the image the links it is seen through, matched by image and type.
+    /// </summary>
+    /// <param name="image">The image.</param>
+    /// <param name="crossReferences">The links of the entity the image is shown for.</param>
+    /// <returns>The same image.</returns>
+    public static Image WithCrossReferences(this Image image, IEnumerable<IImageCrossReference> crossReferences)
+    {
+        AttachCrossReferences([image], crossReferences);
+        return image;
+    }
+
+    private static void AttachCrossReferences(IEnumerable<Image> images, IEnumerable<IImageCrossReference> crossReferences)
+    {
+        var lookup = crossReferences.ToLookup(xref => (xref.ImageID, xref.ImageType));
+        foreach (var image in images)
+            image.CrossReferences = [.. lookup[(image.UID, image.Type)].Select(xref => new ImageCrossReferenceSlim(xref))];
     }
 
     private static void SetPreferredOrDefaultImage(List<Image> images, bool randomizeImages = false)

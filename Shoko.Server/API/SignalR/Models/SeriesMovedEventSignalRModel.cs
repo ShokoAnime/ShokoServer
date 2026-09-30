@@ -6,7 +6,7 @@ public class SeriesMovedEventSignalRModel
 {
     public SeriesMovedEventSignalRModel(SeriesMovedEventArgs eventArgs)
     {
-        SeriesID = eventArgs.SeriesInfo.ID;
+        SeriesID = eventArgs.SeriesInfo.LocalID;
         OldGroupID = eventArgs.OldGroupID;
         NewGroupID = eventArgs.NewGroupID;
     }

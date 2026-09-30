@@ -13,14 +13,17 @@ using Shoko.Abstractions.Video.Release;
 namespace Shoko.Abstractions.Video;
 
 /// <summary>
-/// Video.
+///   Video. Its <see cref="IMetadata.ID"/> is
+///   <c>shoko://video/&lt;ED2K&gt;+&lt;file size&gt;</c>. A video is only
+///   stored once it is hashed, so it always has one.
 /// </summary>
 public interface IVideo : IMetadata, IWithBackdropImage, IWithCreationDate, IWithUpdateDate
 {
     /// <summary>
-    /// Video ID.
+    ///   The Shoko video ID. <see cref="IMetadata.ID"/> names the video by its
+    ///   ED2K hash and file size instead, which outlive this number.
     /// </summary>
-    int ID { get; }
+    int LocalID { get; }
 
     /// <summary>
     /// The earliest known local file name of the video.

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -33,23 +34,23 @@ internal sealed class AiringReadContext
 
     private readonly Dictionary<int, AiringScheduleView> _scheduleViews = [];
 
-    private readonly Dictionary<(DataSource Source, string ID), ISeries?> _series = [];
+    private readonly Dictionary<(MetadataSource Source, string ID), ISeries?> _series = [];
 
-    private readonly Dictionary<(DataSource Source, string ID), ISeason?> _seasons = [];
+    private readonly Dictionary<(MetadataSource Source, string ID), ISeason?> _seasons = [];
 
-    private readonly Dictionary<(DataSource Source, string ID), IReadOnlySet<(DataSource Source, string ID)>> _seasonEpisodeKeys = [];
+    private readonly Dictionary<(MetadataSource Source, string ID), IReadOnlySet<(MetadataSource Source, string ID)>> _seasonEpisodeKeys = [];
 
-    private readonly Dictionary<(DataSource Source, string ID), IEpisode?> _episodes = [];
+    private readonly Dictionary<(MetadataSource Source, string ID), IEpisode?> _episodes = [];
 
     private readonly Dictionary<Guid, AiringScheduleProviderInfo?> _providers = [];
 
     private readonly Dictionary<Guid, IAiringChannel?> _channels = [];
 
-    private readonly Dictionary<(DataSource Source, string ID), IReadOnlyList<(DataSource Source, string ID)>> _linkedEpisodeKeys = [];
+    private readonly Dictionary<(MetadataSource Source, string ID), IReadOnlyList<(MetadataSource Source, string ID)>> _linkedEpisodeKeys = [];
 
-    private readonly Dictionary<(DataSource Source, string ID), DateTime?> _firstOriginalAirings = [];
+    private readonly Dictionary<(MetadataSource Source, string ID), DateTime?> _firstOriginalAirings = [];
 
-    private readonly Dictionary<(DataSource Source, string ID), DateTime?> _anidbAirDates = [];
+    private readonly Dictionary<(MetadataSource Source, string ID), DateTime?> _anidbAirDates = [];
 
     private AiringScheduleServiceSettings? _settings;
 
@@ -183,7 +184,7 @@ internal sealed class AiringReadContext
     /// <param name="source">The source of the series.</param>
     /// <param name="id">The ID of the series within its source.</param>
     /// <returns>The series, or <see langword="null"/> when it can't be resolved.</returns>
-    public ISeries? GetSeries(DataSource source, string id)
+    public ISeries? GetSeries(MetadataSource source, string id)
     {
         if (_series.TryGetValue((source, id), out var series))
             return series;
@@ -197,7 +198,7 @@ internal sealed class AiringReadContext
     /// <param name="source">The source of the season.</param>
     /// <param name="id">The ID of the season within its source.</param>
     /// <returns>The season, or <see langword="null"/> when it can't be resolved.</returns>
-    public ISeason? GetSeason(DataSource source, string id)
+    public ISeason? GetSeason(MetadataSource source, string id)
     {
         if (_seasons.TryGetValue((source, id), out var season))
             return season;
@@ -214,14 +215,14 @@ internal sealed class AiringReadContext
     /// <param name="source">The source of the season.</param>
     /// <param name="id">The ID of the season within its source.</param>
     /// <returns>The keys, or an empty set when the season can't be resolved.</returns>
-    public IReadOnlySet<(DataSource Source, string ID)> GetSeasonEpisodeKeys(DataSource source, string id)
+    public IReadOnlySet<(MetadataSource Source, string ID)> GetSeasonEpisodeKeys(MetadataSource source, string id)
     {
         if (_seasonEpisodeKeys.TryGetValue((source, id), out var keys))
             return keys;
 
         return _seasonEpisodeKeys[(source, id)] = GetSeason(source, id) is { } season
             ? season.Episodes.Select(episode => AiringScheduleService.GetEntityKey(episode)).ToHashSet()
-            : new HashSet<(DataSource Source, string ID)>();
+            : new HashSet<(MetadataSource Source, string ID)>();
     }
 
     /// <summary>
@@ -230,7 +231,7 @@ internal sealed class AiringReadContext
     /// <param name="source">The source of the episode.</param>
     /// <param name="id">The ID of the episode within its source.</param>
     /// <returns>The episode, or <see langword="null"/> when it can't be resolved.</returns>
-    public IEpisode? GetEpisode(DataSource source, string id)
+    public IEpisode? GetEpisode(MetadataSource source, string id)
     {
         if (_episodes.TryGetValue((source, id), out var episode))
             return episode;
@@ -248,58 +249,50 @@ internal sealed class AiringReadContext
     {
         ArgumentNullException.ThrowIfNull(episode);
 
-        _episodes[(episode.Source, episode.ID.ToString())] = episode;
+        _episodes[(episode.Source, episode.ID.ID)] = episode;
     }
 
-    private ISeries? ResolveSeries(DataSource source, string id)
+    private ISeries? ResolveSeries(MetadataSource source, string id)
         => source switch
         {
-            DataSource.Shoko => int.TryParse(id, out var shokoSeriesID) ? RepoFactory.AnimeSeries.GetByID(shokoSeriesID) : null,
-            DataSource.AniDB => int.TryParse(id, out var anidbAnimeID) ? RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeID) : null,
-            DataSource.TMDB => int.TryParse(id, out var tmdbShowID) ? RepoFactory.TMDB_Show.GetByTmdbShowID(tmdbShowID) : null,
-            DataSource.AniList => int.TryParse(id, out var anilistAnimeID) ? RepoFactory.Anilist_Anime.GetByAnilistAnimeID(anilistAnimeID) : null,
-            _ => ResolveThroughResolvers(source, DataEntityType.Series, id) as ISeries,
+            _ when source == MetadataSource.Shoko => int.TryParse(id, out var shokoSeriesID) ? RepoFactory.AnimeSeries.GetByID(shokoSeriesID) : null,
+            _ when source == MetadataSource.AniDB => int.TryParse(id, out var anidbAnimeID) ? RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeID) : null,
+            _ when source == MetadataSource.TMDB => int.TryParse(id, out var tmdbShowID) ? RepoFactory.TMDB_Show.GetByTmdbShowID(tmdbShowID) : null,
+            _ => ResolveThroughResolvers(source, MetadataEntityType.Series, id) as ISeries,
         };
 
-    private ISeason? ResolveSeason(DataSource source, string id)
+    private ISeason? ResolveSeason(MetadataSource source, string id)
         => source switch
         {
-            DataSource.Shoko => ParseEmbeddedSeasonID(id) is not { } shoko || RepoFactory.AnimeSeries.GetByID(shoko.ID) is not { } shokoSeries
+            _ when source == MetadataSource.Shoko => ParseEmbeddedSeasonID(id) is not { } shoko || RepoFactory.AnimeSeries.GetByID(shoko.ID) is not { } shokoSeries
                 ? null : new AnimeSeason(shokoSeries, shoko.Type, shoko.Number),
-            DataSource.AniDB => ParseEmbeddedSeasonID(id) is not { } anidb || RepoFactory.AniDB_Anime.GetByAnimeID(anidb.ID) is not { } anidbAnime
+            _ when source == MetadataSource.AniDB => ParseEmbeddedSeasonID(id) is not { } anidb || RepoFactory.AniDB_Anime.GetByAnimeID(anidb.ID) is not { } anidbAnime
                 ? null : new AniDB_Season(anidbAnime, anidb.Type, anidb.Number),
-            DataSource.TMDB => int.TryParse(id, out var tmdbSeasonID) ? RepoFactory.TMDB_Season.GetByTmdbSeasonID(tmdbSeasonID) : null,
-            _ => ResolveThroughResolvers(source, DataEntityType.Season, id) as ISeason,
+            _ when source == MetadataSource.TMDB => int.TryParse(id, out var tmdbSeasonID) ? RepoFactory.TMDB_Season.GetByTmdbSeasonID(tmdbSeasonID) : null,
+            _ => ResolveThroughResolvers(source, MetadataEntityType.Season, id) as ISeason,
         };
 
-    private IEpisode? ResolveEpisode(DataSource source, string id)
+    private IEpisode? ResolveEpisode(MetadataSource source, string id)
         => source switch
         {
-            DataSource.Shoko => int.TryParse(id, out var shokoEpisodeID) ? RepoFactory.AnimeEpisode.GetByID(shokoEpisodeID) : null,
-            DataSource.AniDB => int.TryParse(id, out var anidbEpisodeID) ? RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID) : null,
-            DataSource.TMDB => int.TryParse(id, out var tmdbEpisodeID) ? RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(tmdbEpisodeID) : null,
-            DataSource.AniList => int.TryParse(id, out var anilistEpisodeID) ? RepoFactory.Anilist_Episode.GetByAnilistEpisodeID(anilistEpisodeID) : null,
-            _ => ResolveThroughResolvers(source, DataEntityType.Episode, id) as IEpisode,
+            _ when source == MetadataSource.Shoko => int.TryParse(id, out var shokoEpisodeID) ? RepoFactory.AnimeEpisode.GetByID(shokoEpisodeID) : null,
+            _ when source == MetadataSource.AniDB => int.TryParse(id, out var anidbEpisodeID) ? RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID) : null,
+            _ when source == MetadataSource.TMDB => int.TryParse(id, out var tmdbEpisodeID) ? RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(tmdbEpisodeID) : null,
+            _ => ResolveThroughResolvers(source, MetadataEntityType.Episode, id) as IEpisode,
         };
 
-    private IMetadata? ResolveThroughResolvers(DataSource source, DataEntityType type, string id)
-    {
-        foreach (var resolver in _service.EntityResolvers)
-        {
-            try
-            {
-                if (resolver.GetEntity(source, type, id) is { } entity)
-                    return entity;
-            }
-            catch
-            {
-                // A resolver that throws is a plugin bug, and an unresolved entity is not fatal:
-                // the schedule or airing still comes back with what the provider sent.
-            }
-        }
-
-        return null;
-    }
+    /// <summary>
+    /// Resolve an entry of any other source through the metadata service's
+    /// lookup: the plugin's own
+    /// <see cref="Shoko.Abstractions.Metadata.Providers.IMetadataResolver"/> for the source and kind,
+    /// then the core's metadata stores.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="type">The kind of entry.</param>
+    /// <param name="id">The source's ID for it.</param>
+    /// <returns>The entry, or <see langword="null"/> when nothing holds it.</returns>
+    private IMetadata? ResolveThroughResolvers(MetadataSource source, MetadataEntityType type, string id)
+        => _service.GetStoredEntity(source, type, id);
 
     /// <summary>
     /// Parse the composite ID the shoko and AniDB seasons are keyed by, which
@@ -321,26 +314,26 @@ internal sealed class AiringReadContext
 
     /// <summary>
     /// Every entity key an episode's airings can live under: the episode
-    /// itself, the shoko episodes it belongs to, their linked episodes, and
-    /// whatever the registered resolvers link to it. Each is visited once.
+    /// itself, the shoko episodes it belongs to, and their linked episodes.
+    /// Each is visited once.
     /// </summary>
     /// <param name="episode">The episode to collect keys for.</param>
     /// <returns>The keys, with the episode's own first.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="episode"/> is <see langword="null"/>.</exception>
-    public IReadOnlyList<(DataSource Source, string ID)> GetLinkedEpisodeKeys(IEpisode episode)
+    public IReadOnlyList<(MetadataSource Source, string ID)> GetLinkedEpisodeKeys(IEpisode episode)
     {
         ArgumentNullException.ThrowIfNull(episode);
 
-        var key = (episode.Source, episode.ID.ToString());
+        var key = (episode.Source, episode.ID.ID);
         if (_linkedEpisodeKeys.TryGetValue(key, out var keys))
             return keys;
 
-        var visited = new List<(DataSource Source, string ID)>();
-        var seen = new HashSet<(DataSource, string)>();
+        var visited = new List<(MetadataSource Source, string ID)>();
+        var seen = new HashSet<(MetadataSource, string)>();
         void Add(IEpisode entry)
         {
-            if (seen.Add((entry.Source, entry.ID.ToString())))
-                visited.Add((entry.Source, entry.ID.ToString()));
+            if (seen.Add((entry.Source, entry.ID.ID)))
+                visited.Add((entry.Source, entry.ID.ID));
         }
 
         Add(episode);
@@ -350,19 +343,6 @@ internal sealed class AiringReadContext
             Add(entry);
             foreach (var linked in entry.LinkedEpisodes)
                 Add(linked);
-
-            foreach (var resolver in _service.EntityResolvers)
-            {
-                try
-                {
-                    foreach (var linked in resolver.GetLinkedEntities(entry).OfType<IEpisode>())
-                        Add(linked);
-                }
-                catch
-                {
-                    // As above: a resolver that throws costs its own links, nothing else.
-                }
-            }
         }
 
         return _linkedEpisodeKeys[key] = visited;
@@ -374,14 +354,14 @@ internal sealed class AiringReadContext
 
     /// <summary>
     /// The earliest known real Original airing of an episode, across every
-    /// visible schedule of every entity linked to it. It is what a simulpub's
-    /// estimates anchor on and what <see cref="IEpisodeAiring.OffsetFromOriginal"/>
-    /// is measured from.
+    /// visible schedule of every entity linked to it, leaving out advance
+    /// screenings and reruns. It is what a simulpub's estimates anchor on and
+    /// what <see cref="IEpisodeAiring.OffsetFromOriginal"/> is measured from.
     /// </summary>
     /// <param name="source">The source of the episode.</param>
     /// <param name="id">The ID of the episode within its source.</param>
     /// <returns>The earliest Original airing, or <see langword="null"/> when none is known.</returns>
-    public DateTime? GetFirstOriginalAiringAt(DataSource source, string id)
+    public DateTime? GetFirstOriginalAiringAt(MetadataSource source, string id)
     {
         if (_firstOriginalAirings.TryGetValue((source, id), out var firstAiring))
             return firstAiring;
@@ -396,7 +376,7 @@ internal sealed class AiringReadContext
         {
             foreach (var row in RepoFactory.EpisodeAiring.GetByEpisodeID(keySource, keyID))
             {
-                if (row.AiredAt is not { } airedAt || earliest is { } current && airedAt >= current)
+                if (row.Kind is not EpisodeAiringKind.Normal || row.AiredAt is not { } airedAt || earliest is { } current && airedAt >= current)
                     continue;
                 if (RepoFactory.AiringSchedule.GetByID(row.AiringScheduleID) is not { } schedule)
                     continue;
@@ -424,7 +404,7 @@ internal sealed class AiringReadContext
         if (episode is null)
             return null;
 
-        var key = (episode.Source, episode.ID.ToString());
+        var key = (episode.Source, episode.ID.ID);
         if (_anidbAirDates.TryGetValue(key, out var airDate))
             return airDate;
 

@@ -57,6 +57,30 @@ public class VideoStreamSessionManagerTests
     }
 
     [Fact]
+    public void Sweeper_EvictsSessionsIdleForLongerThanTheSettingsAllow()
+    {
+        var manager = CreateManager(new VideoStreamPipelineSettings { SessionIdleTimeoutMinutes = 0 });
+        var sessionId = manager.CreateSession(CreateVideo(TimeSpan.FromMinutes(24)), CreateRendition(TimeSpan.FromSeconds(6)));
+        var sweeper = new VideoStreamSessionSweeper(NullLogger<VideoStreamSessionSweeper>.Instance, manager, CreateConfigurationProvider(new VideoStreamPipelineSettings { SessionIdleTimeoutMinutes = 0 }));
+
+        sweeper.Sweep();
+
+        Assert.Null(manager.TryGetSession(sessionId));
+    }
+
+    [Fact]
+    public void Sweeper_KeepsSessionsWithinTheIdleTimeout()
+    {
+        var manager = CreateManager();
+        var sessionId = manager.CreateSession(CreateVideo(TimeSpan.FromMinutes(24)), CreateRendition(TimeSpan.FromSeconds(6)));
+        var sweeper = new VideoStreamSessionSweeper(NullLogger<VideoStreamSessionSweeper>.Instance, manager, CreateConfigurationProvider(new VideoStreamPipelineSettings()));
+
+        sweeper.Sweep();
+
+        Assert.NotNull(manager.TryGetSession(sessionId));
+    }
+
+    [Fact]
     public void Track_ReleasesOnlyOnceWhenDisposedTwice()
     {
         var manager = CreateManager();
@@ -132,7 +156,14 @@ public class VideoStreamSessionManagerTests
     private static StreamSessionSource CreateSource()
         => new(1, "Plugin:Transform", new QueryCollection());
 
-    private static VideoStreamSessionManager CreateManager()
+    private static VideoStreamSessionManager CreateManager(VideoStreamPipelineSettings? settings = null)
+        => new(
+            NullLogger<VideoStreamSessionManager>.Instance,
+            Mock.Of<IApplicationPaths>(paths => paths.StreamCachePath == Path.Combine(Path.GetTempPath(), "shoko-stream-session-tests")),
+            CreateConfigurationProvider(settings ?? new VideoStreamPipelineSettings())
+        );
+
+    private static ConfigurationProvider<VideoStreamPipelineSettings> CreateConfigurationProvider(VideoStreamPipelineSettings settings)
     {
         var configurationService = new Mock<IConfigurationService>();
         configurationService
@@ -140,13 +171,8 @@ public class VideoStreamSessionManagerTests
             .Returns((ConfigurationInfo)null!);
         configurationService
             .Setup(s => s.Load(It.IsAny<ConfigurationInfo>(), It.IsAny<bool>()))
-            .Returns(new VideoStreamPipelineSettings());
-
-        return new VideoStreamSessionManager(
-            NullLogger<VideoStreamSessionManager>.Instance,
-            Mock.Of<IApplicationPaths>(paths => paths.StreamCachePath == Path.Combine(Path.GetTempPath(), "shoko-stream-session-tests")),
-            new ConfigurationProvider<VideoStreamPipelineSettings>(configurationService.Object)
-        );
+            .Returns(settings);
+        return new ConfigurationProvider<VideoStreamPipelineSettings>(configurationService.Object);
     }
 
     private static IVideo CreateVideo(TimeSpan duration)

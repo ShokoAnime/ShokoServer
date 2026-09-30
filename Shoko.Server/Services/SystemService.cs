@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -29,8 +30,11 @@ using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Logging.Services;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
+using Shoko.Abstractions.ScheduledActions.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Services;
@@ -38,28 +42,25 @@ using Shoko.Abstractions.Web.Services;
 using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Filters;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Hashing;
 using Shoko.Server.MediaInfo;
+using Shoko.Server.Models;
 using Shoko.Server.Plugin;
+using Shoko.Server.Plugin.Databases;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.UDP;
-using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Acquisition.Filters;
+using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Actions;
-using Shoko.Server.Scheduling.Jobs.Airing;
-using Shoko.Server.Scheduling.Jobs.AniDB;
-using Shoko.Server.Scheduling.Jobs.Image;
-using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Server;
-using Shoko.Server.Services.Abstraction;
 using Shoko.Server.Services.Airing;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Services.Connectivity;
@@ -86,6 +87,8 @@ public class SystemService : ISystemService
 
     private readonly SettingsProvider _settingsProvider;
 
+    private readonly RestartReasonTracker _restartReasons;
+
     private IHost? _webHost;
 
     public SystemService()
@@ -98,9 +101,12 @@ public class SystemService : ISystemService
         LogService.InitLogger(ApplicationPaths.Instance);
         var loggerFactory = LoggerFactory.Create(o => o.AddNLog());
 
+        // Source numbers must be known before any plugin registers a source.
+        MetadataNumberRegistry.Load(ApplicationPaths.Instance.DataPath);
+
         var unknownLangLogger = loggerFactory.CreateLogger("LanguageExtensions");
         LanguageExtensions.OnUnknownLanguage += lang =>
-            unknownLangLogger.LogError("Unrecognized language string '{Language}' — add a mapping to LanguageExtensions.GetTitleLanguage().", lang);
+            unknownLangLogger.LogError("Unrecognized language string '{Language}' from {Caller}; add a mapping to LanguageExtensions.GetTitleLanguage().", lang, DescribeLanguageCaller());
 
         Version = PluginManager.GetVersionInformation();
 
@@ -108,6 +114,8 @@ public class SystemService : ISystemService
         _pluginManager = new(loggerFactory.CreateLogger<PluginManager>(), this, ApplicationPaths.Instance);
         _configurationService = new(loggerFactory, ApplicationPaths.Instance, _pluginManager);
         _settingsProvider = new(loggerFactory.CreateLogger<SettingsProvider>(), this, _configurationService.CreateProvider<ServerSettings>());
+        _restartReasons = new(loggerFactory.CreateLogger<RestartReasonTracker>(), _configurationService, _pluginManager) { Sender = this };
+        _pluginManager.StateChanged += (_, _) => _restartReasons.RefreshPluginState();
         _logService = new(loggerFactory.CreateLogger<LogService>(), ApplicationPaths.Instance, _settingsProvider);
         _databaseBlockingTasks.Add(_startupTaskSource!.Task);
 
@@ -300,52 +308,39 @@ public class SystemService : ISystemService
             // Init. plugins before starting the IHostedService services.
             _pluginManager.InitPlugins();
 
+            // Only now is a plugin active, so only now can a plugin's state differ from what loads next.
+            _restartReasons.StartTrackingPluginState();
+
             StartupMessage = "Plugins initialized.";
 
-            // Before the database, so a plugin takes its services while the rest of the server is
-            // still ahead of it. A failure here is fatal, but it is recorded rather than thrown:
-            // throwing would skip the web host below and leave the process to die, which in a
-            // container is a restart loop that never explains itself. The web host comes up, the
-            // boot stops, and the Web UI is there to say which plugin stopped it.
-            StartupMessage = "Setting up plugins.";
+            // Before the database, so plugins set up first. A failure is recorded, not thrown: throwing would skip
+            // the web host and restart-loop a container silently, where the Web UI can say which plugin failed.
             try
             {
-                _pluginManager.SetupPlugins();
+                _pluginManager.StartPlugins(_webHost.Services, message => StartupMessage = message);
             }
             catch (Exception ex)
             {
-                StartupMessage = "Failed to start. Check your logs for more information.";
-                StartupFailedException = new(innerException: ex);
-                _logger.LogError(ex, "A plugin failed to set itself up; the server will not continue starting");
+                (StartupMessage, StartupFailedException) = DescribePluginStartupFailure(ex);
+                _logger.LogError(ex, "The plugins failed to start; the server will not continue starting");
             }
 
+            // A failed start keeps its message, so the Web UI can show what stopped it.
             if (StartupFailedException is null)
-            {
-                StartupMessage = "Getting plugins ready.";
-                try
-                {
-                    _pluginManager.ReadyPlugins();
-                }
-                catch (Exception ex)
-                {
-                    StartupMessage = "Failed to start. Check your logs for more information.";
-                    StartupFailedException = new(innerException: ex);
-                    _logger.LogError(ex, "A plugin failed to get ready; the server will not continue starting");
-                }
-            }
-
-            StartupMessage = "Starting Web Hosts.";
+                StartupMessage = "Starting Web Hosts.";
 
             // Start the web server and all IHostedService services.
             await _webHost.StartAsync();
 
-            StartupMessage = "Web Host started.";
+            if (StartupFailedException is null)
+                StartupMessage = "Web Host started.";
 
             if (settings.DumpSettingsOnStart)
                 _settingsProvider.DebugSettingsToLog();
 
-            // Start the database unblock loop.
-            _ = Task.Factory.StartNew(DatabaseUnblockLoop, TaskCreationOptions.LongRunning);
+            // From an empty context, as the loop runs for the life of the server.
+            using (DetachedFlow.Suppress())
+                _ = Task.Factory.StartNew(DatabaseUnblockLoop, TaskCreationOptions.LongRunning);
 
             if (StartupFailedException is not null)
             {
@@ -353,21 +348,20 @@ public class SystemService : ISystemService
                 return _webHost;
             }
 
+            // Checked once now, as the scheduled check only starts with the server and until
+            // then network jobs wait and the first-run AniDB login test fails.
+            _ = Task.Run(_webHost.Services.GetRequiredService<IConnectivityService>().CheckAvailability);
+
             if (InSetupMode)
             {
-                // In case the server is not fully started we need to check the
-                // connectivity manually once, since Quartz is not up and
-                // running yet, and the AniDB login test requires us to have
-                // internet access.
-                _ = Task.Run(_webHost.Services.GetRequiredService<IConnectivityService>().CheckAvailability);
-
                 _logger.LogWarning("The server is in Setup Mode and is NOT STARTED. It needs to be configured via the Web UI or the server-settings.json before use!");
 
                 _ = Task.Run(() => SetupRequired?.Invoke(this, EventArgs.Empty));
             }
             else
             {
-                _ = Task.Factory.StartNew(LateStart, TaskCreationOptions.LongRunning);
+                using (DetachedFlow.Suppress())
+                    _ = Task.Factory.StartNew(LateStart, TaskCreationOptions.LongRunning);
             }
 
             return _webHost;
@@ -377,6 +371,11 @@ public class SystemService : ISystemService
             StartupMessage = "Failed to start. Check your logs for more information.";
             StartupFailedException = new(innerException: ex);
             return null;
+        }
+        finally
+        {
+            // Every way out closes registration, including those that never reach the plugin setup.
+            PluginManager.CloseMetadataRegistration(_logger);
         }
     }
 
@@ -414,6 +413,18 @@ public class SystemService : ISystemService
         return result;
     }
 
+    /// <summary>
+    /// What to tell the user when the plugins fail to start or their databases fail to migrate: a
+    /// failed plugin database migration says which plugin, context and migration failed and how to
+    /// recover, anything else points at the logs.
+    /// </summary>
+    /// <param name="exception">What the plugins threw.</param>
+    /// <returns>The start-up message and the exception to record.</returns>
+    internal static (string Message, StartupFailedException Exception) DescribePluginStartupFailure(Exception exception)
+        => exception is PluginDatabaseMigrationException migrationException
+            ? ($"Failed to start. {migrationException.Message}", new(migrationException.Message, migrationException))
+            : ("Failed to start. Check your logs for more information.", new(innerException: exception));
+
     #region Startup | Services
 
     private IHost InitWebHost(IServerSettings settings)
@@ -450,6 +461,10 @@ public class SystemService : ISystemService
             services.AddSingleton(settingsProvider);
             services.AddSingleton(pluginManager);
             services.AddSingleton(ApplicationPaths.Instance);
+            services.AddSingleton(typeof(PluginPaths<>));
+            services.AddSingleton<PluginDatabaseServer>();
+            services.AddSingleton<PluginDatabaseGate>();
+            services.AddSingleton<PluginDatabaseMigrator>();
 
             services.AddSingleton<IPluginPackageManager, PluginPackageManager>();
             services.AddSingleton<IPluginDependencyResolver, PluginDependencyResolver>();
@@ -457,32 +472,85 @@ public class SystemService : ISystemService
             services.AddSingleton<IFileSystemHelpers>(sp => sp.GetRequiredService<FileSystemHelpers>());
             services.AddSingleton<FileWatcherService>();
             services.AddSingleton<TmdbRateLimiter>();
+            services.AddSingleton<TmdbApiClient>();
             services.AddSingleton<TmdbImageService>();
+            services.AddSingleton<TmdbMetadataUpdater>();
+            services.AddSingleton<ICoreOrderingSource, TmdbOrderingSource>();
+            services.AddSingleton<IMetadataLinkIDRule, TmdbLinkIDRule>();
             services.AddSingleton<TmdbLinkingService>();
             services.AddSingleton<ITmdbLinkingService>(sp => sp.GetRequiredService<TmdbLinkingService>());
             services.AddSingleton<TmdbMetadataService>();
             services.AddSingleton<ITmdbMetadataService>(sp => sp.GetRequiredService<TmdbMetadataService>());
             services.AddSingleton<TmdbSearchService>();
             services.AddSingleton<ITmdbSearchService>(sp => sp.GetRequiredService<TmdbSearchService>());
-            services.AddAnilist();
-            services.AddSingleton<AnilistSupplementaryProvider>();
             services.AddSingleton<IFilteringEngine, FilteringEngine>();
             services.AddSingleton<IMetadataFilteringService, MetadataFilteringService>();
             services.AddSingleton<IFilterPresetManager, FilterPresetManager>();
             services.AddSingleton<IFuzzySearchService, FuzzySearchService>();
             services.AddSingleton<ActionService>();
             services.AddSingleton<IActionService>(sp => sp.GetRequiredService<ActionService>());
+            // Every recurring job of the core runs as a scheduled action, whose
+            // triggers the admin sets.
+            services.AddSingleton<ScheduledActionRegistry>();
+            services.AddSingleton<IScheduledActionSource>(sp => sp.GetRequiredService<ScheduledActionRegistry>());
+            services.AddSingleton<ScheduledActionService>();
+            services.AddSingleton<IScheduledActionService>(sp => sp.GetRequiredService<ScheduledActionService>());
+            services.AddHostedService(sp => sp.GetRequiredService<ScheduledActionService>());
             services.AddSingleton<AnimeSeriesService>();
             services.AddSingleton<AnimeGroupService>();
             services.AddSingleton<ShokoGroupManager>();
             services.AddSingleton<IShokoGroupManager>(sp => sp.GetRequiredService<ShokoGroupManager>());
             services.AddSingleton<IWebThemeService, WebThemeService>();
             services.AddSingleton<ISystemUpdateService, SystemUpdateService>();
-            services.AddSingleton<IMetadataService, AbstractMetadataService>();
+            services.AddSingleton<MetadataProviderManager>();
+            services.AddSingleton<IMetadataProviderManager>(sp => sp.GetRequiredService<MetadataProviderManager>());
+            services.AddSingleton<MetadataProviderScheduler>();
+            services.AddSingleton<MetadataImageContributorManager>();
+            services.AddSingleton<IMetadataImageContributorManager>(sp => sp.GetRequiredService<MetadataImageContributorManager>());
+            services.AddSingleton<MetadataImageContributorScheduler>();
+            services.AddSingleton<IMetadataRefreshService, MetadataRefreshService>();
+            services.AddSingleton<IMetadataPurgeService, MetadataPurgeService>();
+            services.AddSingleton<IMetadataCrossReferenceTransferService, MetadataCrossReferenceTransferService>();
+            services.AddSingleton<MetadataImageReconciler>();
+            services.AddSingleton<IMetadataRefreshState, MetadataRefreshState>();
+            services.AddSingleton<MetadataEntryLocks>();
+            services.AddSingleton<IMetadataService, MetadataService>();
+            services.AddSingleton<MetadataLinkChangeTracker>();
+            services.AddSingleton<MetadataCrossReferenceStore>();
+            services.AddSingleton<IMetadataCrossReferenceStore>(provider => provider.GetRequiredService<MetadataCrossReferenceStore>());
+            services.AddSingleton<MetadataTextStore>();
+            services.AddSingleton<AnidbTitleSearch>();
+            services.AddSingleton<IMetadataTextManager>(provider =>
+            {
+                // The models and repositories reach the manager through
+                // TextAccess, so it is put there as soon as it is built.
+                var manager = ActivatorUtilities.CreateInstance<MetadataTextManager>(provider);
+                TextAccess.Use(manager);
+                return manager;
+            });
+            services.AddSingleton<IMetadataPeopleStore, MetadataPeopleStore>();
+            services.AddSingleton<IMetadataTagStore, MetadataTagStore>();
+            services.AddSingleton<IMetadataStudioStore, MetadataStudioStore>();
+            services.AddSingleton<IMetadataRelationStore, MetadataRelationStore>();
+            services.AddSingleton<IMetadataSuggestionStore, MetadataSuggestionStore>();
+            services.AddSingleton<MetadataEntityCleanup>();
+            services.AddSingleton<MetadataSeriesStore>();
+            services.AddSingleton<IMetadataSeriesStore>(provider => provider.GetRequiredService<MetadataSeriesStore>());
+            services.AddSingleton<IMetadataMovieStore, MetadataMovieStore>();
+            services.AddSingleton<IMetadataCollectionStore, MetadataCollectionStore>();
+            services.AddSingleton<MetadataLinkingService>();
+            services.AddSingleton<IMetadataLinkingService>(provider => provider.GetRequiredService<MetadataLinkingService>());
+            services.AddSingleton<IOrderingRowState, OrderingRowState>();
+            services.AddSingleton<MetadataOrderingService>();
+            services.AddSingleton<IMetadataOrderingService>(provider => provider.GetRequiredService<MetadataOrderingService>());
+            services.AddSingleton<IMetadataOrderingTransferService, MetadataOrderingTransferService>();
+            services.AddSingleton<IMetadataMatchingEngine, MetadataMatchingEngine>();
             services.AddSingleton<IVideoService, VideoService>();
             services.AddSingleton<IVideoReleaseService, VideoReleaseService>();
             services.AddSingleton<IVideoStreamPipelineService, VideoStreamPipelineService>();
             services.AddSingleton<VideoStreamSessionManager>();
+            // Sweeps idle sessions on its own clock, so a paused or busy queue never leaves them open.
+            services.AddHostedService<VideoStreamSessionSweeper>();
             services.AddSingleton<VideoReleaseGroupingService>();
             services.AddSingleton<ReleaseComparisonService>();
             services.AddSingleton<ReleaseAutoManagementService>();
@@ -496,11 +564,18 @@ public class SystemService : ISystemService
             services.AddSingleton<AuthenticationThrottleService>();
             services.AddSingleton<IAuthenticationThrottleService>(sp => sp.GetRequiredService<AuthenticationThrottleService>());
             services.AddSingleton<IUserService, UserService>();
+            // Who the current request, hub call or queued job runs for.
+            services.AddSingleton<ActorContext>();
+            services.AddSingleton<IActorContext>(sp => sp.GetRequiredService<ActorContext>());
             // lets a service in a dependency cycle take a Lazy<T> rather than
             // injecting IServiceProvider and resolving by hand on first use
             services.AddTransient(typeof(Lazy<>), typeof(LazyResolver<>));
             services.AddSingleton<IUserDataService, UserDataService>();
-            services.AddSingleton<IImageManager, ImageManager>();
+            // Registered concretely and forwarded, so the image manager and its
+            // file store resolve to one instance.
+            services.AddSingleton<ImageManager>();
+            services.AddSingleton<IImageManager>(provider => provider.GetRequiredService<ImageManager>());
+            services.AddSingleton<IImageFileStore>(provider => provider.GetRequiredService<ImageManager>());
             // Registered concretely as well, and forwarded, so the two resolve to one
             // instance. The sweep watchdog threshold needs the concrete type for the
             // internal GetSweepBudget(), and a cast off the interface would only fail
@@ -529,13 +604,20 @@ public class SystemService : ISystemService
                 opts.LimitedConcurrencyOverrides = queueSettings.LimitedConcurrencyOverrides;
             }, typeof(SystemService).Assembly);
 
+            // Carries the actor across the queue, by user and device.
+            services.AddSingleton<IJobActorAccessor, JobActorAccessor>();
+
             // Register acquisition filters
             services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, TmdbApiRateLimitedAcquisitionFilter>();
-            services.AddSingleton<IAcquisitionFilter, AnilistApiRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
+            services.AddSingleton<IAcquisitionFilter, MetadataProviderPausedAcquisitionFilter>();
+
+            // Each metadata provider's job types follow the limit it declared.
+            services.AddSingleton<IJobConcurrencyProvider, MetadataProviderJobConcurrency>();
+            services.AddSingleton<IJobConcurrencyProvider, MetadataImageContributorJobConcurrency>();
 
             // Register per-job watchdog thresholds
             services.AddSingleton<IJobWatchdogThreshold, AiringScheduleSweepWatchdogThreshold>();
@@ -562,10 +644,8 @@ public class SystemService : ISystemService
             services.AddSingleton<MylistCache>();
             services.AddSingleton<MylistGenericsCache>();
             services.AddSingleton<IMylistService, MylistService>();
-            services.AddSingleton<SupplementaryMetadataService>();
-            services.AddSingleton<ISupplementaryMetadataService>(sp => sp.GetRequiredService<SupplementaryMetadataService>());
+            services.AddSingleton<SupplementaryMetadataScheduler>();
             services.AddSingleton<AnimeMetadataOrchestrator>();
-            services.AddSingleton<TmdbSupplementaryProvider>();
 
             // Registering the plugins' services is a host step and not on the interface, so it is
             // reached through the implementation that does it.
@@ -580,69 +660,6 @@ public class SystemService : ISystemService
             app.UseAPI(pluginManager);
             var lifetime = app.ApplicationServices.GetRequiredService<IHostApplicationLifetime>();
             lifetime.ApplicationStopping.Register(systemService.OnShutdown);
-
-            // Register core recurring jobs that don't need the main DB so they start running
-            // with the queue (the network check probes connectivity — no DB touch). Registering
-            // here, before the IHostedServices boot, ensures RecurringJobRegistry.StartAsync
-            // picks them up. DB-dependent recurring jobs should carry [DatabaseRequired] and the
-            // acquisition filter will hold them out of the pool until startup signals DB ready.
-            var registry = app.ApplicationServices.GetRequiredService<RecurringJobRegistry>();
-            registry.Register<CheckNetworkAvailabilityJob>(TimeSpan.FromMinutes(30), runImmediately: true);
-            registry.Register<ScanForMissingReleaseInfoJob>(TimeSpan.FromHours(24), runImmediately: false);
-            registry.Register<PeriodicImageMaintenanceJob>(TimeSpan.FromHours(24), runImmediately: false);
-            registry.Register<CleanupExpiredTokensJob>(TimeSpan.FromHours(24), runImmediately: false);
-            registry.Register<PurgeOrphanedTmdbDataJob>(TimeSpan.FromHours(24), runImmediately: false);
-            registry.Register<PurgeOrphanedAnilistDataJob>(TimeSpan.FromHours(24), runImmediately: false);
-            registry.Register<StreamSessionCleanupJob>(TimeSpan.FromMinutes(1), runImmediately: true);
-            registry.Register<AiringScheduleRetentionJob>(TimeSpan.FromHours(24), runImmediately: false);
-            registry.Register<SweepAiringSchedulesJob>(TimeSpan.FromMinutes(15), runImmediately: false);
-
-            // Register settings-driven recurring jobs. Jobs whose frequency is Never are skipped
-            // entirely at startup; they are registered on-demand when settings change.
-            var settingsProvider = app.ApplicationServices.GetRequiredService<ISettingsProvider>();
-            var settings = settingsProvider.GetSettings();
-            var anidb = settings.AniDb;
-            var pluginUpdates = settings.Plugins.Updates;
-
-            if (anidb.Notification_UpdateFrequency != ScheduledUpdateFrequency.Never)
-                registry.Register<CheckAniDBNotificationsJob>(TimeSpan.FromHours(anidb.Notification_UpdateFrequency.Hours), runImmediately: false);
-            if (anidb.Calendar_UpdateFrequency != ScheduledUpdateFrequency.Never)
-                registry.Register<GetAniDBCalendarJob>(TimeSpan.FromHours(anidb.Calendar_UpdateFrequency.Hours), runImmediately: false);
-            if (anidb.Anime_UpdateFrequency != ScheduledUpdateFrequency.Never)
-                registry.Register<GetUpdatedAniDBAnimeJob>(TimeSpan.FromHours(anidb.Anime_UpdateFrequency.Hours), runImmediately: false);
-            if (anidb.MyList.UpdateFrequency != ScheduledUpdateFrequency.Never)
-                registry.Register<SyncAniDBMylistRecurringJob>(TimeSpan.FromHours(anidb.MyList.UpdateFrequency.Hours), runImmediately: false);
-            if (anidb.File_UpdateFrequency != ScheduledUpdateFrequency.Never)
-                registry.Register<CheckAniDBFileUpdatesJob>(TimeSpan.FromHours(anidb.File_UpdateFrequency.Hours), runImmediately: false);
-            if (pluginUpdates.IsAutoSyncEnabled && pluginUpdates.AutoUpdateFrequency != ScheduledUpdateFrequency.Never)
-                registry.Register<CheckPluginUpdatesJob>(TimeSpan.FromHours(pluginUpdates.AutoUpdateFrequency.Hours), runImmediately: false);
-
-            // Reschedule recurring jobs when frequency settings change.
-            var configProvider = app.ApplicationServices.GetRequiredService<ConfigurationProvider<ServerSettings>>();
-            configProvider.Saved += (_, args) =>
-            {
-                var s = args.Configuration;
-                RescheduleByFrequency<CheckAniDBNotificationsJob>(registry, s.AniDb.Notification_UpdateFrequency);
-                RescheduleByFrequency<GetAniDBCalendarJob>(registry, s.AniDb.Calendar_UpdateFrequency);
-                RescheduleByFrequency<GetUpdatedAniDBAnimeJob>(registry, s.AniDb.Anime_UpdateFrequency);
-                RescheduleByFrequency<SyncAniDBMylistRecurringJob>(registry, s.AniDb.MyList.UpdateFrequency);
-                RescheduleByFrequency<CheckAniDBFileUpdatesJob>(registry, s.AniDb.File_UpdateFrequency);
-
-                var pu = s.Plugins.Updates;
-                if (pu.IsAutoSyncEnabled && pu.AutoUpdateFrequency != ScheduledUpdateFrequency.Never)
-                    registry.Reschedule<CheckPluginUpdatesJob>(TimeSpan.FromHours(pu.AutoUpdateFrequency.Hours));
-                else
-                    registry.Unschedule<CheckPluginUpdatesJob>();
-            };
-        }
-
-        private static void RescheduleByFrequency<T>(RecurringJobRegistry registry, ScheduledUpdateFrequency freq)
-            where T : class, IQueueJob
-        {
-            if (freq == ScheduledUpdateFrequency.Never)
-                registry.Unschedule<T>();
-            else
-                registry.Reschedule<T>(TimeSpan.FromHours(freq.Hours));
         }
 
         private static string GetQueueConnectionString(QueueProcessorSettings q)
@@ -695,7 +712,10 @@ public class SystemService : ISystemService
             InSetupMode = false;
         }
 
-        Task.Factory.StartNew(LateStart, TaskCreationOptions.LongRunning);
+        // Started from the setup request, but it starts the server's loops, timers and watchers,
+        // so it must not take the request's context along.
+        using (DetachedFlow.Suppress())
+            Task.Factory.StartNew(LateStart, TaskCreationOptions.LongRunning);
         return true;
     }
 
@@ -730,6 +750,16 @@ public class SystemService : ISystemService
             StartupMessage = "Initializing Session Factory...";
             databaseFactory.CloseSessionFactory();
             _ = databaseFactory.SessionFactory;
+
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
+            // Right after the core's database, before anything that may reach a plugin's.
+            if (MigratePluginDatabases(_webHost.Services.GetRequiredService<PluginDatabaseMigrator>(), message => StartupMessage = message) is { } failure)
+            {
+                (StartupMessage, StartupFailedException) = failure;
+                return;
+            }
 
             if (cancellationToken.IsCancellationRequested)
                 return;
@@ -771,6 +801,12 @@ public class SystemService : ISystemService
                 Task.Run(() => SetupCompleted?.Invoke(this, EventArgs.Empty));
             }
 
+            // The caches and an upgrade's data fixes fragment the heap by gigabytes on a large library;
+            // compacting once and returning the C allocator's free memory keeps that off the resident size.
+            StartupMessage = "Compacting memory...";
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+            NativeAllocator.Trim();
+
             StartedAt = DateTime.UtcNow;
 
             Task.Run(() => Started?.Invoke(this, EventArgs.Empty));
@@ -793,6 +829,29 @@ public class SystemService : ISystemService
         {
             StartupMessage = "Failed to start. Check your logs for more information.";
             StartupFailedException = new(innerException: ex);
+        }
+    }
+
+    /// <summary>
+    /// Brings the plugin databases up to date and opens them, after the core's own database is,
+    /// so the first-run setup has picked it and a plugin migration never runs before the core's.
+    /// </summary>
+    /// <param name="migrator">The plugin database migrator.</param>
+    /// <param name="reportProgress">Told of each copy and each migration, one line apiece.</param>
+    /// <returns>
+    /// The start-up message and failure to record when a migration failed, which stops the start-up;
+    /// otherwise <see langword="null"/>.
+    /// </returns>
+    internal static (string Message, StartupFailedException Exception)? MigratePluginDatabases(PluginDatabaseMigrator migrator, Action<string> reportProgress)
+    {
+        try
+        {
+            migrator.MigrateAll(reportProgress);
+            return null;
+        }
+        catch (PluginDatabaseMigrationException ex)
+        {
+            return DescribePluginStartupFailure(ex);
         }
     }
 
@@ -949,10 +1008,16 @@ public class SystemService : ISystemService
                 return false;
             }
 
-            if (version is not 0 && version < instance.RequiredVersion)
+            // A release may only add revisions to a version it already
+            // opened, so any step still to run warrants a backup.
+            var upgrading = version is not 0 && (version < instance.RequiredVersion || instance.HasPendingSchemaSteps());
+            if (upgrading)
             {
-                StartupMessage = "New database version detected. Database backup in progress...";
-                instance.BackupDatabase(instance.GetDatabaseBackupName(version));
+                StartupMessage = "Database changes detected. Database backup in progress...";
+                var backupName = instance.GetDatabaseBackupName(version);
+                instance.BackupDatabase(backupName);
+                MetadataNumberRegistry.CopyWithBackup(backupName);
+                PluginDatabaseBackups.CopyWithBackup(ApplicationPaths.Instance, backupName, _logger);
             }
 
             try
@@ -968,6 +1033,13 @@ public class SystemService : ISystemService
                 instance.ExecuteDatabaseFixes();
                 instance.PopulateInitialData();
                 repositoryFactory.PostInit();
+
+                StartupMessage = "Database - Checking stored metadata sources and entity types...";
+                DatabaseFixes.CheckStoredMetadataNumbers(databaseFactory);
+
+                // Nothing else writes yet, so the file is rebuilt without
+                // blocking the API or draining the queue.
+                StartupCompaction.Run(instance, upgrading, _logger, message => StartupMessage = message);
             }
             catch (DatabaseCommandException ex)
             {
@@ -1001,6 +1073,8 @@ public class SystemService : ISystemService
     #region Shutdown
 
     private readonly CancellationTokenSource _shutdownTokenSource = new();
+
+    private static readonly TimeSpan _anidbShutdownTimeout = TimeSpan.FromSeconds(10);
 
     /// <inheritdoc/>
     public event EventHandler<CancelEventArgs>? ShutdownOrRestartRequested;
@@ -1069,9 +1143,20 @@ public class SystemService : ISystemService
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
             fileWatcherService.StopWatchingFiles();
 
-            var udpConnectionHandler = _webHost.Services.GetRequiredService<AniDBUDPConnectionHandler>();
-            udpConnectionHandler.ForceLogoutAsync().GetAwaiter().GetResult();
-            udpConnectionHandler.CloseConnectionsAsync().GetAwaiter().GetResult();
+            // Bounded: this runs inside the host's stopping callbacks, and the host cannot stop the
+            // queue or anything else until they return. The queue is paused first so it starts
+            // nothing new meanwhile; its own stop pauses it too, so this changes nothing after.
+            try
+            {
+                _webHost.Services.GetRequiredService<QueueHandler>().Pause().GetAwaiter().GetResult();
+
+                var udpConnectionHandler = _webHost.Services.GetRequiredService<AniDBUDPConnectionHandler>();
+                udpConnectionHandler.ShutdownAsync(_anidbShutdownTimeout).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while ending the AniDB UDP session");
+            }
         }
 
         try
@@ -1128,6 +1213,71 @@ public class SystemService : ISystemService
 
     #endregion
 
+    #region Shutdown | Restart Required
+
+    /// <inheritdoc/>
+    /// <remarks>
+    ///   Handlers are added straight to the tracker, which calls each on its
+    ///   own, so one that throws does not keep the others from being told.
+    /// </remarks>
+    public event EventHandler<RestartReasonsChangedEventArgs>? RestartReasonsChanged
+    {
+        add => _restartReasons.Changed += value;
+        remove => _restartReasons.Changed -= value;
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<RestartReason> RestartReasons => _restartReasons.Reasons;
+
+    /// <inheritdoc/>
+    public bool RestartRequired => RestartReasons.Count > 0;
+
+    /// <inheritdoc/>
+    public IRestartRequirement RequireRestart<TPlugin>(string description) where TPlugin : class, IPlugin
+        => RequireRestart(
+            _pluginManager.GetPluginInfo<TPlugin>() is { IsActive: true } plugin
+                ? plugin
+                : throw new InvalidOperationException($"Could not raise a restart reason for {typeof(TPlugin).FullName}: it is not an active plugin."),
+            description
+        );
+
+    /// <summary>
+    ///   Raises a restart reason for a known plugin.
+    /// </summary>
+    /// <param name="plugin">The plugin raising the reason.</param>
+    /// <param name="description">A short, human-readable description of the change.</param>
+    /// <returns>The hold on the reason.</returns>
+    /// <exception cref="ArgumentException"><paramref name="plugin"/> is not active, or <paramref name="description"/> is empty.</exception>
+    internal IRestartRequirement RequireRestart(LocalPluginInfo plugin, string description)
+        => _restartReasons.Require(plugin, description);
+
+    #endregion
+
+    #endregion
+
+    #region Unknown Languages
+
+    /// <summary>
+    ///   Names the first few methods outside the language lookup and the
+    ///   framework on the current call stack, so a report of an unknown
+    ///   language string says where the string came from. Each string is
+    ///   reported once, so walking the stack costs little.
+    /// </summary>
+    /// <returns>The calling methods, innermost first.</returns>
+    private static string DescribeLanguageCaller()
+    {
+        var callers = new System.Diagnostics.StackTrace(false).GetFrames()
+            .Select(frame => frame.GetMethod())
+            .Where(method => method?.DeclaringType is { } type
+                && type.Namespace?.StartsWith("Shoko.", StringComparison.Ordinal) is true
+                && type != typeof(LanguageExtensions)
+                && type != typeof(SystemService))
+            .Take(3)
+            .Select(method => $"{method!.DeclaringType!.Name}.{method.Name}")
+            .ToList();
+        return callers.Count > 0 ? string.Join(" < ", callers) : "an unknown caller";
+    }
+
     #endregion
 
     #region Database
@@ -1161,7 +1311,8 @@ public class SystemService : ISystemService
             if (_databaseTaskSource is null)
             {
                 _databaseTaskSource = new TaskCompletionSource();
-                Task.Factory.StartNew(DatabaseUnblockLoop, TaskCreationOptions.LongRunning);
+                using (DetachedFlow.Suppress())
+                    Task.Factory.StartNew(DatabaseUnblockLoop, TaskCreationOptions.LongRunning);
             }
         }
     }

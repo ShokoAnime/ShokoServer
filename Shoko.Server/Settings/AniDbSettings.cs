@@ -118,38 +118,6 @@ public class AniDbSettings
     public bool AutomaticallyImportSeries { get; set; } = false;
 
     /// <summary>
-    /// Check which AniDB anime is currently airing in the next/previous week,
-    /// and schedule an update for all of them, adding them to the local
-    /// collection if they're not already part of it.
-    /// </summary>
-    [SectionName("Update")]
-    [Display(Name = "Calendar")]
-    public ScheduledUpdateFrequency Calendar_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
-
-    /// <summary>
-    /// Check which AniDB anime has been updated since the last time we asked,
-    /// and schedule an update for any in the local collection.
-    /// </summary>
-    [SectionName("Update")]
-    [Display(Name = "Anime Updates")]
-    public ScheduledUpdateFrequency Anime_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
-
-    /// <summary>
-    /// Check for any files with missing info and schedule them for a re-check.
-    /// </summary>
-    [SectionName("Update")]
-    [Display(Name = "Files with missing info")]
-    public ScheduledUpdateFrequency File_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Daily;
-
-    /// <summary>
-    /// Check for any unread notifications and messages and download them if
-    /// there are any.
-    /// </summary>
-    [SectionName("Update")]
-    [Display(Name = "Notifications & Messages")]
-    public ScheduledUpdateFrequency Notification_UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
-
-    /// <summary>
     /// Handle 'File has been moved' messages from AniDB.
     /// </summary>
     [SectionName("Update")]
@@ -360,17 +328,6 @@ public class AniDbSettings
         [Display(Name = "Retained Backup Count")]
         [Range(0, 99, ErrorMessage = "AniDb.MyList.RetainedBackupCount may only be between 0 and 99")]
         public int RetainedBackupCount { get; set; } = 30;
-
-        /// <summary>
-        /// Sync the MyList with the local collection.
-        /// </summary>
-        [SectionName("Update")]
-        [Display(Name = "MyList")]
-        [Visibility(
-            DisableWhenMemberIsSet = nameof(UpdateFrequency),
-            DisableWhenSetTo = ScheduledUpdateFrequency.Never
-        )]
-        public ScheduledUpdateFrequency UpdateFrequency { get; set; } = ScheduledUpdateFrequency.Never;
 
         /// <summary>
         /// How to fetch MyList entries from AniDB.

@@ -1,12 +1,8 @@
 # AniDB Services
 
-This folder defines the three services a plugin uses to talk to AniDB: the
-metadata service, the MyList service, and the AVDump service.
-
-**These are services you consume, not contracts you implement.** There is no
-AniDB provider interface, nothing here is discovered by reflection, and core
-registers all three itself. A plugin takes what it needs in a constructor and
-lets DI hand it the one live instance:
+Three services a plugin consumes to talk to AniDB. Nothing here is
+implemented by a plugin or discovered by reflection; the core registers them,
+so take them through a constructor:
 
 ```csharp
 public class MyJob(IAnidbService anidbService, IMylistService mylistService)
@@ -19,30 +15,28 @@ public class MyJob(IAnidbService anidbService, IMylistService mylistService)
 |---|---|
 | `IAnidbService` | Ban state, the local title search, refreshing an anime, tags, images, purging. |
 | `IMylistService` | Everything to do with the user's AniDB MyList: read, add, update, remove, sync. |
-| `IAnidbAvdumpService` | Driving AVDump over local files. Core resolves this to the same object as `IAnidbService`, so the two are interchangeable as far as lifetime goes. |
+| `IAnidbAvdumpService` | Driving AVDump over local files. The same object as `IAnidbService`. |
 
 ---
 
-## Read the cache before you call anything
+## Read the cache first
 
 Almost everything AniDB knows about an anime is already in the local database,
-and reading it costs nothing. None of the following touches the network:
+and none of this touches the network:
 
 ```csharp
 // From a shoko series, straight to the AniDB record behind it.
 IAnidbAnime anime = shokoSeries.AnidbAnime;
 
 // Or by AniDB anime ID, through IMetadataService.
-var series = metadataService.GetSeriesByProviderID(anidbAnimeID, IMetadataService.ProviderName.AniDB);
+var series = metadataService.GetSeries(new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Series, anidbAnimeID.ToString()));
 
 // Episodes come along the same way.
 IAnidbEpisode anidbEpisode = shokoEpisode.AnidbEpisode;
 ```
 
-`IAnidbAnime.Resources` is worth knowing about: it carries the external IDs
-AniDB tracks for an anime, already turned into `Resource` entries with a name
-and a URL. That is how a plugin keyed on some *other* site's ID finds its own
-id without asking anybody:
+`IAnidbAnime.Resources` carries the external IDs AniDB tracks for an anime as
+`Resource` entries, which is how a plugin keyed on another site's ID finds it:
 
 ```csharp
 // AniDB exposes a Syoboi title id as a CrossReference resource named "syoboi",
@@ -51,28 +45,26 @@ var syoboi = anime.Resources
     .FirstOrDefault(r => r.Type == ResourceType.CrossReference && r.Name == "syoboi");
 ```
 
-Alongside `"syoboi"` the same list carries `"allcinema"`, `"Anison"`,
-`"bangumi"`, `".lain"`, `"AnimeNewsNetwork"`, `"VNDB"` and `"MyAnimeList"` as
-cross-references, the official sites as `Website` resources, Wikipedia as
-`Metadata`, and Crunchyroll, Funimation and HiDive as `Streaming`. Parse the
-URL for the id; the shipping Syoboi plugin does exactly this rather than
-carrying a mapping list of its own.
+The list holds every resource AniDB lists, in AniDB's order: other databases
+(`"allcinema"`, `"Anison"`, `"bangumi"`, `".lain"`, `"AnimeNewsNetwork"`,
+`"VNDB"`, `"MyAnimeList"`, `"IMDb"`, `"TMDB"`, `"Douban"`) as
+`CrossReference`, official sites as `Website`, Wikipedia and Baidu Baike as
+`Metadata`, and streaming services as `Streaming`. A type Shoko does not know
+comes as `Other`. `IAnidbEpisode.Resources` does the same for an episode. Read
+the bare ID from `ID` rather than parsing the URL.
 
-Call the services below when the cached copy is missing or stale, or when you
-need something the cache cannot answer.
-
-The similar anime AniDB's users vote on are part of that cache, read from
-`IAnidbAnime.Suggestions`. See
-[relations and suggestions](../../README.md).
+AniDB's similar anime are in the cache too, as `IAnidbAnime.Suggestions` (see
+[relations and suggestions](../../README.md#reading-relations-and-suggestions)).
+Call the services below when the cache is missing, stale or cannot answer.
 
 ---
 
 ## `IAnidbService`
 
-### Ban state, first
+### Ban state
 
-AniDB bans clients that misbehave, and a ban is measured in hours, not seconds.
-The service publishes the current state so a plugin can get out of the way:
+AniDB bans misbehaving clients for hours. The service publishes the state so
+a plugin can get out of the way:
 
 | Member | Meaning |
 |---|---|
@@ -94,27 +86,22 @@ IReadOnlyList<IAnidbAnimeSearchResult> results = anidbService.SearchAnime("cowbo
 IAnidbAnimeSearchResult? exact = anidbService.SearchAnimeByID(23);
 ```
 
-Both search the locally cached AniDB title dump, not AniDB itself, despite the
-"remote search" framing in the older parts of the API. They are synchronous,
-they make no request, and they cannot get you banned. Use them freely.
+Both search the locally cached AniDB title dump, not AniDB, so they make no
+request and cannot get you banned.
 
 ### Refreshing an anime
-
-Two shapes, and the difference matters:
 
 | Member | Behaviour |
 |---|---|
 | `RefreshAnimeByID(id, method, ct)` / `RefreshAnime(anime, method, ct)` | Does the work inline and awaits it. Returns the refreshed `IAnidbAnime` (`RefreshAnimeByID` returns `null` when the anime does not exist on AniDB). Throws `AnidbHttpBannedException`, carrying `ExpiresAt`, when a ban is in the way. |
 | `ScheduleRefreshOfAnimeByID(id, method, prioritize)` / `ScheduleRefreshOfAnime(anime, method, prioritize)` | Queues the refresh job and returns. The queue's own AniDB acquisition filters and concurrency group then apply. Called from inside a job, the new job runs straight after that one, ahead of everything already waiting; called from anywhere else, it goes to the front of the queue. |
 
-**Prefer the scheduled form for anything that is not a direct response to a
-user action.** A queued job waits for a ban to lift and respects the HTTP
-bulkhead; an inline call throws in your face and has to be handled.
+**Prefer the scheduled form** for anything that is not a direct response to
+a user: a queued job waits for a ban to lift, while an inline call throws.
 
-`AnidbRefreshMethod` is a `[Flags]` enum, and `Auto` (the default) is not a
-flag combination at all: it means "work it out from the server settings",
-which is usually what you want. Setting anything explicitly opts out of that
-entirely, so spell out every flag you need:
+`AnidbRefreshMethod` is a `[Flags]` enum whose `Auto` default means "work it
+out from the server settings". Setting anything explicitly opts out of that,
+so spell out every flag you need:
 
 | Flag | Effect |
 |---|---|
@@ -126,7 +113,7 @@ entirely, so spell out every flag you need:
 | `IgnoreHttpBans` | Ask anyway during a ban. Do not reach for this. |
 | `DownloadRelations` | Follow related anime, to the configured depth. |
 | `CreateShokoSeries` | Create the `IShokoSeries` if there isn't one. |
-| `SkipSupplementaryUpdate` | Skip the TMDB and AniList follow-up. |
+| `SkipSupplementaryUpdate` | Skip asking the metadata providers afterwards, TMDB and plugins' alike. |
 | `Default` | `Cache` plus `Remote` plus `DeferToRemoteIfUnsuccessful`. |
 | `None` | Do nothing. Both refresh shapes return without work when neither `Cache` nor `Remote` is set. |
 
@@ -136,35 +123,28 @@ entirely, so spell out every flag you need:
 |---|---|
 | `GetAllTags(topLevelOnly)` | Every AniDB tag in the local database. Local read, no network. |
 | `ScheduleImagesForAnimeByID(id, onlyPosters, forceDownload, prioritize)` | Queues the image records, cross-references and downloads for an anime. |
-| `PurgeAllUnusedAnime()` | Queues one `PurgeAniDBAnimeJob` per AniDB anime no longer linked to a shoko series. It schedules the work and returns; nothing is dropped by the time the call completes. |
+| `PurgeAllUnusedAnime()` | Queues one `PurgeAniDBAnimeJob` per AniDB anime no longer linked to a Shoko series, and returns. |
 | `PurgeAnimeByID(id, removeFromMylist)` / `SchedulePurgeOfAnimeByID(...)` | Inline and queued purge of one anime. `removeFromMylist` defaults to `true`, so a careless call removes the user's MyList entries too. |
-| `AnidbHttpApiBaseUrlOverride`, `AnidbCdnBaseUrlOverride`, `AnidbTitleCacheUrlOverride` | Settable overrides, written straight to the server settings and saved. Setting one to `null`, an empty string, or the default value clears it. These exist for mirrors and for testing; a plugin changing them changes them for the whole server. |
+| `AnidbHttpApiBaseUrlOverride`, `AnidbCdnBaseUrlOverride`, `AnidbTitleCacheUrlOverride` | Overrides for mirrors and testing, saved straight to the server settings for the whole server. `null`, empty or the default clears one. |
 
 ---
 
 ## Rate limits and etiquette
 
-AniDB is the one source in Shoko where getting this wrong has a lasting cost.
-Its own wiki sets the UDP budget: **no more than one packet every two seconds**
-short-term, and **no more than one every four seconds** sustained. HTTP has its
-own, separate budget. Shoko enforces both centrally through `AniDbRateLimiter`
-(one instance per transport, both configurable under `AniDb.UDPRateLimit` and
-`AniDb.HTTPRateLimit`), so a plugin does not implement its own limiter, but it
-can still queue up far more work than the budget can drain.
+Getting this wrong with AniDB has a lasting cost. Its UDP budget is **one
+packet every two seconds** short-term and **one every four seconds**
+sustained, and HTTP has a separate one. `AniDbRateLimiter` enforces both
+(`AniDb.UDPRateLimit`, `AniDb.HTTPRateLimit`), but a plugin can still queue
+far more work than the budget drains.
 
-- **Go through the queue.** Jobs carry `[AniDBUdpRateLimited]` and
-  `[AniDBHttpRateLimited]`, which hold a job back entirely while that transport
-  is banned or the network is down, and `GetAniDBAnimeJob` sits in the
-  `AniDB_HTTP` concurrency group so only one HTTP fetch runs at a time. A
-  `Schedule…` call inherits all of that. A direct `await RefreshAnimeByID(…)`
-  is still paced by the rate limiter, but it will block your own code for as
-  long as that takes, and it throws rather than waiting when a ban is in
-  effect.
-- **Never loop a refresh over a library.** A thousand anime at the sustained
-  UDP rate is over an hour of solid traffic, and the same loop against HTTP is
-  how bans happen. Schedule the work and let the queue pace it, and bear in
-  mind that every scheduled refresh jumps ahead of what is already waiting, so
-  a thousand of them push the user's own imports to the back.
+- **Go through the queue.** `[AniDBUdpRateLimited]` and
+  `[AniDBHttpRateLimited]` hold a job back while its transport is banned or the
+  network is down, and `GetAniDBAnimeJob` runs one HTTP fetch at a time. A
+  direct `await RefreshAnimeByID(…)` blocks your code for as long as pacing
+  takes and throws during a ban.
+- **Never loop a refresh over a library.** A thousand anime is over an hour of
+  UDP traffic, and every scheduled refresh jumps ahead of what is waiting, so
+  the user's own imports go to the back.
 - **Check `IsAnidbHttpBanned` / `IsAnidbUdpBanned` before starting a sweep**,
   and subscribe to `BanOccurred` / `BanExpired` to stop and resume one already
   running.
@@ -175,9 +155,8 @@ can still queue up far more work than the budget can drain.
 
 ## `IMylistService`
 
-The AniDB MyList is the user's own list of files and episodes, and it is the
-one part of AniDB a plugin can *write* to. Every MyList operation, immediate or
-queued, goes through this service.
+The MyList is the user's list of files and episodes, and the one part of
+AniDB a plugin can *write* to.
 
 ### Two tiers of entry
 
@@ -205,25 +184,18 @@ Every method takes one, and it is a `[Flags]` enum:
 | `IgnoreTimeCheck` | Bypass the freshness gate on the remote fetch, and the schedule gate during a sync. |
 | `Default` | `Http` plus `Cache` plus `Udp`. |
 
-Only HTTP is time-gated by cache freshness; UDP never is. Dropping `Cache` from
-a write's fetch mode is the way to force the command to AniDB even when the
-cached entry already looks right, which is occasionally what you want after an
-out-of-band change and usually just wasted requests.
-
-`FetchMode` (the property) is the server-wide default the `Auto` value resolves
-to. It is settable, and setting it to `Auto` throws `ArgumentOutOfRangeException`.
-A plugin should pass the mode it wants per call rather than change the default
-for everyone.
+Only HTTP is gated by cache freshness. Dropping `Cache` from a write's mode
+forces the command to AniDB even when the cached entry looks right. The
+`FetchMode` property is the server-wide default `Auto` resolves to (setting it
+to `Auto` throws); pass a mode per call rather than change it for everyone.
 
 ### `…Async` versus `Schedule…`
 
-Every operation exists twice. `AddEntryAsync`, `UpdateEntryAsync`,
-`RemoveEntryAsync`, `SyncAsync` and friends do the work now and return the
-result. `ScheduleAddEntry`, `ScheduleUpdateEntry`, `ScheduleRemoveEntry`,
-`ScheduleDisposeEntry` and `ScheduleSync` queue a job and return as soon as it
-is queued, taking a `prioritize` flag instead of a cancellation token. Since
-MyList traffic is UDP traffic, the queued form is the right default for bulk
-work.
+Every operation exists twice: `AddEntryAsync`, `UpdateEntryAsync`,
+`RemoveEntryAsync`, `SyncAsync` and friends do the work now;
+`ScheduleAddEntry`, `ScheduleUpdateEntry`, `ScheduleRemoveEntry`,
+`ScheduleDisposeEntry` and `ScheduleSync` queue it (with `prioritize` instead
+of a cancellation token). MyList traffic is UDP, so queue bulk work.
 
 `ScheduleDisposeEntry` / `ScheduleDisposeVideo` are the "the local file is
 gone" path, and take a `MylistDeleteType` deciding what that means on AniDB:
@@ -233,28 +205,17 @@ storage state instead.
 
 ### Syncing, and planning a sync first
 
-`SyncAsync` reconciles the whole local library against the MyList: adding
-missing files, importing or exporting watched states, and removing entries for
-files that are gone. Two narrower overloads confine it to a set of `IVideo` or
-a set of `IShokoEpisode`. Nothing is ever removed by the video-scoped overload,
-since an entry is only removed when its local file is gone and a video passed
-in plainly is not.
+`SyncAsync` reconciles the library against the MyList: adding missing files,
+importing or exporting watched states, and removing entries whose files are
+gone. Overloads narrow it to a set of `IVideo` (which never removes anything)
+or `IShokoEpisode`. **Only one sync runs at a time**; a second call returns
+`null`.
 
-**Only one sync runs at a time.** A second call returns `null` as soon as it
-notices, rather than queueing behind the first.
-
-`MylistSyncOptions` overrides the server settings for one run, and every field
-is nullable, with `null` falling back to the setting. Two fields describe the
-*call* rather than the server and have no setting behind them:
-
-- **`PlanOnly`** works out everything the sync would do and returns it as
-  `MylistSyncResult.Plan` without doing any of it. The MyList is still fetched,
-  because the plan is derived from it, but nothing local is written and nothing
-  is sent to AniDB.
-- **`IncludeNoOperations`** adds what the sync looked at and found nothing to do
-  for, as `NoOperation` steps. Off by default. Turning it on makes the plan as
-  long as the MyList and the library put together, which is the point when
-  auditing and dead weight otherwise.
+`MylistSyncOptions` overrides the server settings for one run (`null` falls
+back to the setting), plus two fields about the call itself: **`PlanOnly`**
+returns what the sync would do as `MylistSyncResult.Plan`, doing none of it
+(the MyList is still fetched), and **`IncludeNoOperations`** adds the
+`NoOperation` steps, useful when auditing.
 
 ```csharp
 // 1. Work out what a sync would do, without doing any of it.
@@ -275,33 +236,24 @@ var result = await mylistService.ApplySyncPlanAsync(narrowed, cancellationToken)
 `ScheduleSync` refuses a `PlanOnly` run with `ArgumentException`, because a
 queued job has nowhere to return a plan to.
 
-`ApplySyncPlanAsync` checks the *whole* plan before running any of it, since a
-plan need not have come from a sync at all. A step naming a MyList entry that
-does not belong to the file or episode it names, or naming nothing its kind can
-act on, fails the lot with a `GenericValidationException` reporting every bad
-step keyed by its index in `Actions`. Past that check the steps are independent:
-one that fails unexpectedly is logged and skipped rather than abandoning the
-rest.
+`ApplySyncPlanAsync` validates the whole plan first, since it need not come
+from a sync: a bad step fails the lot with a `GenericValidationException` keyed
+by its index in `Actions`. After that, a step that fails is logged and skipped.
 
-**A plan is a snapshot, not a set of instructions to re-derive.** Each
-`MylistSyncAction` carries the values it was built with (`WatchedAt`, `State`
-and `DeleteType`), and applying it writes those values rather than re-reading
-current state. Replaying a stale plan therefore pushes stale data: a watched
-date the user has since changed, or a state that no longer matches. Build a
-plan and apply it in the same pass. `MylistSyncPlan.CreatedAt` is there so you
-can check its age before deciding to apply it.
+**A plan is a snapshot.** Each `MylistSyncAction` writes the values it was
+built with (`WatchedAt`, `State`, `DeleteType`), so a stale plan pushes stale
+data. Apply a plan in the same pass, or check `MylistSyncPlan.CreatedAt`.
 
-`MylistSyncTargets` picks which tiers to reconcile (`Videos`, `Episodes`, or
-`All`), and `MylistWatchedEpisodeMode` decides how a locally watched episode is
-recorded when the MyList only covers it by file entries.
+`MylistSyncTargets` picks the tiers to reconcile, and
+`MylistWatchedEpisodeMode` how a watched episode is recorded when the MyList
+covers it only by file entries.
 
 ---
 
 ## `IAnidbAvdumpService`
 
-AVDump submits a file's hashes and media info to AniDB for manual entry. It is
-an on-demand utility, unrelated to how unrecognised files are handled, and it
-only runs when a user or a plugin asks for it.
+AVDump submits a file's hashes and media info to AniDB for manual entry, on
+request only.
 
 ```csharp
 if (!avdumpService.IsAvdumpInstalled)
@@ -320,8 +272,8 @@ await avdumpService.ScheduleAvdumpVideos(video);
 | `ScheduleAvdumpVideos(…)` / `ScheduleAvdumpVideoFiles(…)` | Queue the session instead. The returned task completes when the *job is queued*, not when the dump finishes. |
 | `AvdumpEvent` | The only way to get results out. All four dump methods report through it. |
 
-Note the returned tasks: none of them carry the dump's outcome. Subscribe to
-`AvdumpEvent` before starting a session, or you will not see what happened.
+No returned task carries the dump's outcome: subscribe to `AvdumpEvent`
+before starting a session.
 
 ---
 
@@ -335,8 +287,5 @@ Note the returned tasks: none of them carry the dump's outcome. Subscribe to
   refresh yields nothing. Neither `null` means "failed".
 - **`AnidbRefreshMethod.Auto` is not a flag.** Combining it with real flags
   does not do what it looks like; pick `Auto` or spell the flags out.
-- **The URL overrides write to server settings and save immediately.** They are
-  global, not scoped to your plugin.
 - **Watch the transports separately.** HTTP and UDP have independent budgets,
-  independent bans, and independent state on the service. Being clear on UDP
-  says nothing about HTTP.
+  bans and state; being clear on UDP says nothing about HTTP.

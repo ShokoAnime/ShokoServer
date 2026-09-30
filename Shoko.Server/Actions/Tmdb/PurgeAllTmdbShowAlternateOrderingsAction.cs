@@ -1,6 +1,8 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.ScheduledActions;
 using Shoko.Server.Providers.TMDB;
 
 namespace Shoko.Server.Actions;
@@ -8,7 +10,7 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Purge all TMDB show alternate orderings from the local database.
 /// </summary>
-public sealed class PurgeAllTmdbShowAlternateOrderingsAction(TmdbMetadataService tmdbService) : IExecutableAction
+public sealed class PurgeAllTmdbShowAlternateOrderingsAction(TmdbMetadataUpdater tmdbUpdater) : IScheduledAction
 {
     public string Name => "Purge TMDB Show Alternate Orderings";
 
@@ -16,15 +18,13 @@ public sealed class PurgeAllTmdbShowAlternateOrderingsAction(TmdbMetadataService
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    public ActionPermission Permission => ActionPermission.Admin;
-
     public bool RequiresConfirmation => true;
 
     public string? ConfirmationMessage => "Are you sure you want to remove all TMDB show alternate orderings from the database?";
 
-    public Task Execute(CancellationToken token = default)
+    public Task Execute(IProgress<decimal> progress, CancellationToken token)
     {
-        tmdbService.PurgeAllShowEpisodeGroups();
+        tmdbUpdater.PurgeAllShowEpisodeGroups();
         return Task.CompletedTask;
     }
 }

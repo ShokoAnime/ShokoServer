@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -44,7 +44,7 @@ public class HttpAnimeParser
         var staff = ParseStaffs(animeId, xml);
         var characters = ParseCharacters(animeId, xml);
         var relations = ParseRelations(animeId, xml);
-        var resources = ParseResources(animeId, xml);
+        var resources = ParseResources(animeId, null, xml["anime"]?["resources"]);
         var similar = ParseSimilar(animeId, xml);
 
         var response = new ResponseGetAnime
@@ -403,7 +403,8 @@ public class HttpAnimeParser
             AnimeID = animeID,
             AirDate = airDate,
             LastUpdated = lastUpdated,
-            Titles = titles
+            Titles = titles,
+            Resources = ParseResources(animeID, id, node["resources"]),
         };
     }
 
@@ -659,35 +660,47 @@ public class HttpAnimeParser
 
     #region Parse Resources
 
-    private List<ResponseResource> ParseResources(int animeID, XmlNode docAnime)
+    /// <summary>
+    ///   Reads every external entity of a <c>resources</c> element, of known
+    ///   and unknown types alike, in document order.
+    /// </summary>
+    /// <param name="animeID">The anime the resources belong to.</param>
+    /// <param name="episodeID">The episode they belong to, or <c>null</c> for the anime itself.</param>
+    /// <param name="resourcesNode">The <c>resources</c> element, if there is one.</param>
+    /// <returns>One resource per external entity, numbered in order.</returns>
+    private List<ResponseResource> ParseResources(int animeID, int? episodeID, XmlNode? resourcesNode)
     {
         var result = new List<ResponseResource>();
-        var items = docAnime?["anime"]?["resources"]?.GetElementsByTagName("resource");
-        if (items == null)
-        {
+        if (resourcesNode is null)
             return result;
-        }
 
-        foreach (XmlNode node in items)
+        foreach (var node in resourcesNode.ChildNodes.OfType<XmlElement>().Where(node => node.Name is "resource"))
         {
             try
             {
-                foreach (XmlNode child in node.ChildNodes)
+                if (!int.TryParse(TryGetAttribute(node, "type"), out var typeInt))
                 {
-                    var resourceID = UnescapeXml(child["identifier"]?.InnerText) ??
-                                     UnescapeXml(child["url"]?.InnerText);
-                    if (!int.TryParse(TryGetAttribute(node, "type"), out var typeInt))
-                    {
-                        continue;
-                    }
+                    _logger.LogWarning("Skipped an AniDB resource without a numeric type for anime {AnimeID}: {Type}", animeID, TryGetAttribute(node, "type"));
+                    continue;
+                }
 
-                    var resource = new ResponseResource
+                foreach (var entity in node.ChildNodes.OfType<XmlElement>().Where(entity => entity.Name is "externalentity"))
+                {
+                    var values = entity.ChildNodes.OfType<XmlElement>().ToList();
+                    var identifiers = values.Where(value => value.Name is "identifier").Select(value => value.InnerText).ToList();
+                    var urls = values.Where(value => value.Name is "url").Select(value => value.InnerText).ToList();
+                    if (identifiers.Count is 0 && urls.Count is 0)
+                        continue;
+
+                    result.Add(new()
                     {
                         AnimeID = animeID,
-                        ResourceID = resourceID,
-                        ResourceType = (ResourceLinkType)typeInt
-                    };
-                    result.Add(resource);
+                        EpisodeID = episodeID,
+                        ResourceType = (ResourceLinkType)typeInt,
+                        Ordering = result.Count,
+                        Identifiers = identifiers,
+                        Urls = urls,
+                    });
                 }
             }
             catch (Exception ex)

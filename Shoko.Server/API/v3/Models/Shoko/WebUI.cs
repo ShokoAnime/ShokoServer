@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
@@ -1029,9 +1030,10 @@ public class WebUI
             public TagFilter.Filter TagFilter { get; set; } = 0;
 
             /// <summary>
-            /// Limits the number of returned tags.
+            /// Limits the number of returned tags. Defaults to 30.
             /// </summary>
             /// <value></value>
+            [DefaultValue(30)]
             public int TagLimit { get; set; } = 30;
 
             /// <summary>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.Extensions.DependencyInjection;
 using Mono.Unix;
 using Shoko.Abstractions.Core.Services;

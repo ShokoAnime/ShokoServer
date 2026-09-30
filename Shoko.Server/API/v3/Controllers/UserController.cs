@@ -230,7 +230,7 @@ public class UserController(IUserService userService, ISettingsProvider settings
         if (user == null)
             return NotFound(UserByIdNotFound);
 
-        if (user.ID != User.JMMUserID && !User.IsAdminUser())
+        if (user.LocalID != User.JMMUserID && !User.IsAdminUser())
             return Forbid("User must be admin to change other's password.");
 
         await userService.ChangeUserPassword(user, body.Password);

@@ -6,7 +6,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Expressions.Info;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Providers;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
@@ -41,7 +44,8 @@ public class DashboardController(
     CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows,
     CrossRef_File_EpisodeRepository _crossRefFileEpisodes,
     VideoLocalRepository _videoLocals,
-    VideoLocal_PlaceRepository _videoLocalPlaces
+    VideoLocal_PlaceRepository _videoLocalPlaces,
+    IMetadataProviderManager _providerManager
 ) : BaseController(settingsProvider)
 {
     /// <summary>
@@ -173,7 +177,7 @@ public class DashboardController(
         var duplicateFiles = places.GroupBy(p => p.VideoID).Count(g => g.Count() > 1);
         var seriesWithMissingLinks = allSeries.Count(series =>
         {
-            if (series.IsTmdbAutoMatchingDisabled)
+            if (series.IsAutoLinkingDisabled(MetadataSource.TMDB))
                 return false;
             var animeType = anidbAnimeById.TryGetValue(series.AniDB_ID, out var a) ? a.AnimeType : AnimeType.Unknown;
             if (MissingTmdbLinkExpression.AnimeTypes.Contains(animeType))
@@ -199,6 +203,49 @@ public class DashboardController(
             FilesWithDuplicateLocations = duplicateFiles
         };
     }
+
+    /// <summary>
+    /// Gets how many series are missing a link on each metadata source an
+    /// enabled provider auto-links, by the rules <see cref="GetStats"/> uses
+    /// for TMDB's <c>SeriesWithMissingLinks</c>: the anime is of a type the
+    /// source links, the series has not vetoed the source, and nothing links
+    /// it there, not even a link made to nothing. Counted in the database.
+    /// </summary>
+    /// <returns>
+    /// The number of series visible to the user, by source, keyed by the old
+    /// spelling of a core source or the value of a plugin's.
+    /// </returns>
+    [HttpGet("MissingLinks")]
+    public Dictionary<MetadataSource, int> GetMissingLinks()
+    {
+        var restricted = User.GetHideCategories().Count > 0;
+        var neverLinked = MissingSourceLinkExpression.AnimeTypes;
+        var counts = new Dictionary<MetadataSource, int>();
+        foreach (var source in MissingLinkSources(_providerManager.MetadataProviders))
+        {
+            // A user's restrictions are tag-based and computed in memory, so
+            // only the series already found missing are checked against them.
+            counts[source] = restricted
+                ? _animeSeries.GetAnimeIDsMissingLinks(source, neverLinked)
+                    .Count(animeID => _animeSeries.GetByAnimeID(animeID) is { } series && User.AllowedSeries(series))
+                : _animeSeries.CountMissingLinks(source, neverLinked);
+        }
+
+        return counts;
+    }
+
+    /// <summary>
+    /// The sources <see cref="GetMissingLinks"/> counts: those with an
+    /// enabled provider set as the source's auto-linker.
+    /// </summary>
+    /// <param name="providers">The registered providers.</param>
+    /// <returns>The sources, once each, ordered by value.</returns>
+    internal static IReadOnlyList<MetadataSource> MissingLinkSources(IEnumerable<MetadataProviderInfo> providers)
+        => [.. providers
+            .Where(info => info.Enabled && info.IsAutoLinker)
+            .Select(info => info.Source)
+            .Distinct()
+            .OrderBy(source => source.Value, StringComparer.Ordinal)];
 
     /// <summary>
     /// Gets the top number of the most common tags visible to the current user.

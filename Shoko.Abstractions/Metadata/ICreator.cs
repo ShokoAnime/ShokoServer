@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
@@ -8,7 +7,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Creator.
 /// </summary>
-public interface ICreator : IMetadata<int>, IWithDescriptions, IWithPrimaryImage, IWithUpdateDate, IWithResources
+public interface ICreator : IMetadata, IWithOverviews, IWithPrimaryImage, IWithUpdateDate, IWithResources
 {
     /// <summary>
     /// Casted role name.
@@ -27,9 +26,27 @@ public interface ICreator : IMetadata<int>, IWithDescriptions, IWithPrimaryImage
     CreatorType Type { get; }
 
     /// <summary>
-    /// The creator's date of birth.
+    ///   Other names the creator is known by, such as a pen name or a
+    ///   spelling in another script, each with its language when known.
     /// </summary>
-    DateOnly? BirthDay { get; }
+    IReadOnlyList<ITitle> AlternativeNames { get; }
+
+    /// <summary>
+    ///   The creator's gender, when the source gives one.
+    /// </summary>
+    PersonGender Gender { get; }
+
+    /// <summary>
+    ///   The creator's date of birth. Any part of it may be unknown, so it may
+    ///   be only a year, or only a month and a day.
+    /// </summary>
+    FuzzyDateOnly? BirthDay { get; }
+
+    /// <summary>
+    ///   The creator's date of death, when known. Any part of it may be
+    ///   unknown, as with <see cref="BirthDay"/>.
+    /// </summary>
+    FuzzyDateOnly? DeathDay { get; }
 
     /// <summary>
     /// All episode cast roles the creator have participated in.

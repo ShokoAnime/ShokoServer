@@ -19,9 +19,10 @@ using Xunit;
 namespace Shoko.QueueProcessor.Tests;
 
 /// <summary>
-/// Tests for <see cref="JobCancellationAccessor"/>: the accessor itself, its DI registration,
-/// and the end-to-end path where <see cref="Worker"/> stamps its pool's shutdown token onto the
-/// job scope before <see cref="IQueueJob.Process"/> runs.
+/// Tests for <see cref="JobCancellationAccessor"/>: the accessor itself, its DI registration (and
+/// the progress accessor's), and the end-to-end path where <see cref="Worker"/> stamps the job's
+/// token, linked to its pool's shutdown token, onto the job scope before
+/// <see cref="IQueueJob.Process"/> runs.
 /// </summary>
 public class JobCancellationAccessorTests
 {
@@ -98,6 +99,28 @@ public class JobCancellationAccessorTests
 
         using var otherScope = provider.CreateScope();
         Assert.NotSame(asConcrete, otherScope.ServiceProvider.GetRequiredService<JobCancellationAccessor>());
+    }
+
+    [Fact]
+    public void AddQueueProcessor_ResolvesProgressAccessorAsScoped()
+    {
+        var services = new ServiceCollection();
+        services.AddQueueProcessor(opts =>
+        {
+            opts.Provider = DatabaseProvider.SQLite;
+            opts.ConnectionString = "Data Source=:memory:";
+        });
+        using var provider = services.BuildServiceProvider();
+
+        using var scope = provider.CreateScope();
+        var asInterface = scope.ServiceProvider.GetRequiredService<IJobProgressAccessor>();
+        var asConcrete = scope.ServiceProvider.GetRequiredService<JobProgressAccessor>();
+
+        Assert.Same(asConcrete, asInterface);
+        Assert.NotNull(asInterface.Progress);
+
+        using var otherScope = provider.CreateScope();
+        Assert.NotSame(asConcrete, otherScope.ServiceProvider.GetRequiredService<JobProgressAccessor>());
     }
 
     // ── End-to-end through a real worker ──────────────────────────────────────
@@ -224,6 +247,8 @@ public class JobCancellationAccessorTests
             services.AddSingleton(repo.Object);
             services.AddScoped<JobCancellationAccessor>();
             services.AddScoped<IJobCancellationAccessor>(sp => sp.GetRequiredService<JobCancellationAccessor>());
+            services.AddScoped<JobProgressAccessor>();
+            services.AddScoped<IJobProgressAccessor>(sp => sp.GetRequiredService<JobProgressAccessor>());
             services.AddScoped<JobChainContextAccessor>();
             foreach (var jobType in jobTypes)
                 services.AddTransient(jobType);
@@ -248,14 +273,19 @@ public class JobCancellationAccessorTests
 
         public void Enqueue(Type jobType)
         {
-            Pool.AddToQueue(new QueuedJob
+            var key = $"{jobType.Name}_{Guid.NewGuid()}";
+            Orchestrator.EnqueueAsync(new EnqueueContext
             {
-                Id = Guid.NewGuid(),
-                JobType = jobType.FullName + ", " + jobType.Assembly.GetName().Name,
-                JobKey = $"{jobType.Name}_{Guid.NewGuid()}",
-                QueuedAt = DateTimeOffset.UtcNow,
-            });
-            Pool.Signal();
+                Job = new QueuedJob
+                {
+                    Id = Guid.NewGuid(),
+                    JobType = jobType.FullName + ", " + jobType.Assembly.GetName().Name,
+                    JobKey = key,
+                    QueuedAt = DateTimeOffset.UtcNow,
+                },
+                Type = jobType,
+                DisplayItem = new QueueItem { Key = key, JobType = jobType.Name, TypeName = jobType.Name, Title = "", Details = [] },
+            }).GetAwaiter().GetResult();
         }
 
         public void Dispose()

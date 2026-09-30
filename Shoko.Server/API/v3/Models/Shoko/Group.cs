@@ -126,8 +126,8 @@ public class Group : BaseModel
         TotalSize = allSeries.Count;
         Created = group.DateTimeCreated.ToUniversalTime();
         Updated = group.DateTimeUpdated.ToUniversalTime();
-        HasCustomName = group.IsManuallyNamed == 1;
-        HasCustomDescription = group.OverrideDescription == 1;
+        HasCustomName = group.CustomTitle is not null;
+        HasCustomDescription = group.CustomOverview is not null;
         Images = ((IWithImages)group).GetBestImages().ToDto(
             preferredImages: true,
             randomizeImages: randomizeImages
@@ -186,9 +186,10 @@ public class Group : BaseModel
         public IReadOnlyList<string> UserTags { get; set; }
 
         /// <summary>
-        /// When the entry was last updated.
+        /// When the entry was last updated. Defaults to now when omitted.
         /// </summary>
         [Newtonsoft.Json.JsonConverter(typeof(IsoDateTimeConverter))]
+        [Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Include)]
         [Required]
         public DateTime LastUpdatedAt { get; set; }
 
@@ -330,8 +331,13 @@ public class Group : BaseModel
                         {
                             Groups = groupList,
                             Series = seriesList,
-                            Name = !string.IsNullOrWhiteSpace(Name) ? Name : (preferredSeries?.Title ?? "New Group"),
-                            Description = Description,
+                            // No name given leaves the group on its automatic
+                            // name, which is never empty.
+                            Name = HasCustomName is false ? null
+                                : !string.IsNullOrWhiteSpace(Name) ? Name
+                                : HasCustomName is true ? preferredSeries?.Title
+                                : null,
+                            Overview = Description,
                             ParentGroup = parent,
                             MainSeries = preferredSeries,
                         });
@@ -352,11 +358,11 @@ public class Group : BaseModel
                             update.Name = Name;
 
                         if (HasCustomDescription is true && string.IsNullOrWhiteSpace(Description))
-                            update.Description = group.Description;
+                            update.Overview = group.Description;
                         else if (HasCustomDescription is false)
-                            update.Description = null;
+                            update.Overview = null;
                         else if (Description is not null)
-                            update.Description = Description;
+                            update.Overview = Description;
 
                         if (ParentGroupID.HasValue)
                             update.ParentGroup = ParentGroupID.Value is 0 ? null : parent;

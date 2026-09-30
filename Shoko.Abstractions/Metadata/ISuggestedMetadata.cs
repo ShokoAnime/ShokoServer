@@ -12,25 +12,25 @@ namespace Shoko.Abstractions.Metadata;
 public interface ISuggestedMetadata : IEquatable<ISuggestedMetadata>
 {
     /// <summary>
-    /// Base entity id.
+    ///   The entry making the suggestion.
     /// </summary>
-    int BaseID { get; }
+    MetadataGuid BaseID { get; }
 
     /// <summary>
-    /// Suggested entity id, in the source's own numbering.
+    ///   The entry suggested.
     /// </summary>
-    int SuggestedID { get; }
+    MetadataGuid SuggestedID { get; }
 
     /// <summary>
     /// Base entity, if available.
     /// </summary>
-    IMetadata<int>? Base { get; }
+    IMetadata? Base { get; }
 
     /// <summary>
     /// Suggested entity, if available. Usually <see langword="null"/>, since
     /// most suggestions point at entities that are not in the collection.
     /// </summary>
-    IMetadata<int>? Suggested { get; }
+    IMetadata? Suggested { get; }
 
     /// <summary>
     /// What the suggestion claims.
@@ -57,9 +57,15 @@ public interface ISuggestedMetadata : IEquatable<ISuggestedMetadata>
     int? Votes { get; }
 
     /// <summary>
+    /// The source's net score for the suggestion, where it keeps one instead
+    /// of, or beside, an approval rating. May be negative.
+    /// </summary>
+    int? Score { get => null; }
+
+    /// <summary>
     /// The source of the suggestion.
     /// </summary>
-    DataSource Source { get; }
+    MetadataSource Source { get; }
 }
 
 /// <summary>
@@ -68,7 +74,7 @@ public interface ISuggestedMetadata : IEquatable<ISuggestedMetadata>
 /// <typeparam name="TBaseMetadata">Base entity type.</typeparam>
 /// <typeparam name="TSuggestedMetadata">Suggested entity type.</typeparam>
 public interface ISuggestedMetadata<out TBaseMetadata, out TSuggestedMetadata> : ISuggestedMetadata
-    where TBaseMetadata : IMetadata<int> where TSuggestedMetadata : IMetadata<int>
+    where TBaseMetadata : IMetadata where TSuggestedMetadata : IMetadata
 {
     /// <summary>
     /// Base entity, if available.

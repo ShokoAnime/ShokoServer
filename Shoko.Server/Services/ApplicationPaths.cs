@@ -103,6 +103,14 @@ public class ApplicationPaths : IApplicationPaths
         => Path.Combine(DataPath, "plugins");
 
     /// <inheritdoc/>
+    public string DatabasePath
+        => Path.Combine(DataPath, "data");
+
+    /// <inheritdoc/>
+    public string CachePath
+        => Path.Combine(DataPath, "cache");
+
+    /// <inheritdoc/>
     public string StreamCachePath
         => Path.Combine(DataPath, "transcodes");
 

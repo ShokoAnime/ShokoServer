@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.CrossReferences;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Server.Models.AniDB;
@@ -192,21 +195,19 @@ public class CrossRef_File_Episode : IVideoCrossReference
 
     IShokoSeries? IVideoCrossReference.ShokoSeries => AnimeSeries;
 
-    IReadOnlyList<ITmdbShowCrossReference> IVideoCrossReference.TmdbShowCrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(AnimeID);
+#pragma warning disable CS0618
+    IReadOnlyList<IMetadataSeriesCrossReference> IVideoCrossReference.MetadataSeriesCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeriesCrossReferences(AnimeID) ?? [];
 
-    IReadOnlyList<ITmdbSeasonCrossReference> IVideoCrossReference.TmdbSeasonCrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AnimeID)
-            .Select(xref => xref.TmdbSeasonCrossReference)
-            .WhereNotNull()
-            .DistinctBy(xref => xref.TmdbSeasonID)
-            .ToList();
+    IReadOnlyList<IMetadataSeasonCrossReference> IVideoCrossReference.MetadataSeasonCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeasonCrossReferences(AnimeID) ?? [];
 
-    IReadOnlyList<ITmdbEpisodeCrossReference> IVideoCrossReference.TmdbEpisodeCrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(EpisodeID);
+    IReadOnlyList<IMetadataEpisodeCrossReference> IVideoCrossReference.MetadataEpisodeCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetEpisodeCrossReferences(EpisodeID) ?? [];
 
-    IReadOnlyList<ITmdbMovieCrossReference> IVideoCrossReference.TmdbMovieCrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbEpisodeID(EpisodeID);
+    IReadOnlyList<IMetadataMovieCrossReference> IVideoCrossReference.MetadataMovieCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetMovieCrossReferences(EpisodeID) ?? [];
+#pragma warning restore CS0618
 
     #endregion
 }

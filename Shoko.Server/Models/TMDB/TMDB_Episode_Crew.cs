@@ -33,6 +33,9 @@ public class TMDB_Episode_Crew : TMDB_Crew, ICrew<IEpisode>
     /// <inheritdoc />
     public override int TmdbParentID => TmdbEpisodeID;
 
+    /// <inheritdoc/>
+    public override MetadataEntityType ParentType => MetadataEntityType.Episode;
+
     #endregion
 
     #region Methods
@@ -40,7 +43,7 @@ public class TMDB_Episode_Crew : TMDB_Crew, ICrew<IEpisode>
     public TMDB_Episode? GetTmdbEpisode() =>
         RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(TmdbEpisodeID);
 
-    public override IMetadata<int>? GetTmdbParent() =>
+    public override IMetadata? GetTmdbParent() =>
         GetTmdbEpisode();
 
     #endregion

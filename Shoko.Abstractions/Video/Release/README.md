@@ -1,8 +1,7 @@
 # Release Provider Pipeline
 
-This folder defines the public API surface for identifying what anime episode(s)
-a video file contains. Providers are pluggable: any plugin can register one or
-more `IReleaseInfoProvider` implementations to participate in the pipeline.
+The API for identifying which anime episodes a video file contains. Any plugin
+can add `IReleaseInfoProvider` implementations to the pipeline.
 
 ---
 
@@ -28,6 +27,11 @@ keep exceptions for genuine failures.
 
 After the chain finishes, `FinalizeReleaseSearchJob` marks the match attempt
 `IsCompleted = true` and fires `IVideoReleaseService.SearchCompleted`.
+
+Saving a match does the follow-up work too. `SaveReleaseForVideo` queues the
+fetch of every AniDB anime the release links, and the supplementary metadata
+after it, so a provider must not refresh the AniDB anime itself, nor queue
+anything for it: return the cross-references and let the save do the rest.
 
 ---
 
@@ -55,13 +59,18 @@ public class MyReleaseProvider : IReleaseInfoProvider
         };
     }
 
-    // Part of the interface, so it has to be implemented, but returning null is
-    // fine if your provider cannot look a release up by its own ID.
+    // Part of the interface, so it has to be implemented. A provider that
+    // cannot look a release up by its own ID says so with NotSupportedException.
     public Task<ReleaseInfo?> GetReleaseInfoById(
         string releaseId, CancellationToken cancellationToken)
-        => Task.FromResult<ReleaseInfo?>(null);
+        => throw new NotSupportedException();
 }
 ```
+
+`GetReleaseInfoById` returns `null` for an ID it does not know. Throw
+`NotSupportedException` when the provider cannot look releases up by ID at all:
+the API's preview answers that with a `400` naming the provider, where any
+other exception, `NotImplementedException` included, is a `500`.
 
 `Name` and the two `GetReleaseInfo*` methods are the only members you have to
 supply. `Description`, `Version` and `GetRescanDelay` all have default
@@ -73,20 +82,15 @@ attaches the provider name to the result on the way in, so leaving
 
 Most providers need no DI registration at all. The core discovers the type,
 constructs it with constructor injection, and `IVideoReleaseService` holds that
-instance for the life of the process, which covers a provider keeping its own
-caches or running its own internal timer. Register the **concrete** type as a
-singleton only when your own code has to reach the same object, such as a sweep
-job or a controller of yours, and never register it under
-`IReleaseInfoProvider`. The reasons behind each of those three branches are in
-[Contracts the server discovers for you](../../README.md#contracts-the-server-discovers-for-you),
-in the plugin overview.
+instance for the life of the process. Register the **concrete** type as a
+singleton only when your own code has to reach the same object, and never
+register it under `IReleaseInfoProvider`; see
+[Contracts the server discovers for you](../../README.md#contracts-the-server-discovers-for-you).
 
-A newly discovered provider starts **disabled**. The one exception is by name:
-a provider whose `Name` is `AniDB` starts enabled, which is how core's own
-provider is switched on. It is found and listed, but it is not asked about any file until a
-user enables it on the release provider settings. A provider that never seems
-to run is almost always this, and not a registration problem, so resist
-registering it under its interface to "make it load".
+A newly discovered provider starts **disabled** (only one named `AniDB`, the
+core's, starts enabled). It is listed, but not asked about any file until a user
+enables it in the release provider settings. A provider that never seems to run
+is almost always this, not a registration problem.
 
 A provider that needs user-editable settings implements
 `IReleaseInfoProvider<TConfiguration>` where
@@ -125,14 +129,10 @@ ReleaseVideoCrossReference.ForAniDB(episodeID: 123, animeID: 456,
     percentStart: 0, percentEnd: 50)
 ```
 
-`ForAniDB` is called **on the type, not on an instance**. Core declares its
-extensions with C# 14 `extension(...)` blocks, and a member declared `static`
-inside one becomes a static member of the extended type rather than an instance
-method on it. `ForAniDB` is such a member: it is a factory that builds and
-returns a new cross-reference, so there is nothing to call it on.
-`new ReleaseVideoCrossReference().ForAniDB(…)` does not compile. The
-`this`-style extension in the next section is the older form, which *is* called
-on an instance; both forms are in use, so check which one you are looking at.
+`ForAniDB` is called **on the type, not on an instance**: it is a static member
+of a C# 14 `extension(...)` block, a factory returning a new cross-reference.
+The `this`-style extension in the next section is the older form, called on an
+instance.
 
 ### Adding your own provider IDs
 
@@ -174,10 +174,7 @@ multiple files together make up one episode:
 A provider's job is matching, and nothing else. Saving the result, keeping
 `CrossRef_File_Episode` in sync, resolving a missing anime ID from an episode
 ID, running auto-management and scheduling relocation all live in
-`IVideoReleaseService` and apply uniformly to every provider. Earlier revisions
-of this interface exposed `PrepareForSave`, `OnReleaseSaved`, `OnReleaseCleared`
-and `OnSearchCompleted`; those were removed, and there is no per-provider
-replacement.
+`IVideoReleaseService` and apply uniformly to every provider.
 
 `GetRescanDelay` is the one optional hook that remains:
 
@@ -194,9 +191,8 @@ over `"ReleaseProvider={type.FullName}"` in the plugin's own ID namespace, so
 changing the class name or its namespace produces a different ID. The user's
 enabled flags and priority order are both keyed on that ID, so the renamed
 provider comes back disabled and last in priority, while the old ID lingers in
-the settings pointing at nothing. Hash providers and relocation providers derive
-their IDs the same way and carry the same hazard. Pick the type's name and
-namespace before you ship, and treat both as part of your public contract.
+the settings pointing at nothing. Hash and relocation providers derive their IDs
+the same way. Treat the type's name and namespace as part of your contract.
 
 ---
 
@@ -212,7 +208,7 @@ not), it replaces yours.
 return new ReleaseInfo
 {
     // ...
-    DeferToNext = true,  // provisional, let higher-priority providers try
+    DeferToNext = true,  // provisional, let the later providers try
 };
 ```
 
@@ -230,8 +226,8 @@ return new ReleaseInfo
 - `AttemptedProviderNames`, the ordered list of providers making up the chain
 - `ProviderName`/`ProviderID`, the provider behind the winning match, if any
 
-The recurring `ScanForMissingReleaseInfoJob` picks up files whose info is
-incomplete and calls `GetRescanDelay` on each provider that took part in the
+The `ScanForMissingReleaseInfoAction` scheduled action picks up files whose info
+is incomplete and calls `GetRescanDelay` on each provider that took part in the
 previous attempt, re-queuing only those whose delay has already elapsed. Return
 `null` from `GetRescanDelay` to opt out of automatic rescanning for a given
 file. A stored release with `PreventRescan` set is never rescanned at all,

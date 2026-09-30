@@ -1,5 +1,6 @@
 using System;
 using Shoko.Abstractions.Plugin.Models;
+using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Plugin.Events;
 
@@ -17,4 +18,11 @@ public class PluginInstallationEventArgs : EventArgs
     ///   When the event occurred.
     /// </summary>
     public required DateTime OccurredAt { get; init; }
+
+    /// <summary>
+    ///   The API token of whoever installed or uninstalled the plugin, or
+    ///   <see langword="null"/> when the system did it. Stamped when the event is
+    ///   raised.
+    /// </summary>
+    public ApiToken? Actor { get; init; }
 }

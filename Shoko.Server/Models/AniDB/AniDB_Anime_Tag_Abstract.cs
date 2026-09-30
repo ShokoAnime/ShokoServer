@@ -5,7 +5,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models.AniDB;
@@ -14,9 +13,7 @@ public class AniDB_Anime_Tag_Abstract(AniDB_Tag tag, AniDB_Anime_Tag xref) : IAn
 {
     #region IMetadata Implementation
 
-    DataSource IMetadata.Source => DataSource.AniDB;
-
-    int IMetadata<int>.ID => tag.TagID;
+    MetadataGuid IMetadata.ID => new(MetadataSource.AniDB, MetadataEntityType.Tag, tag.TagID.ToString());
 
     #endregion
 
@@ -30,13 +27,15 @@ public class AniDB_Anime_Tag_Abstract(AniDB_Tag tag, AniDB_Anime_Tag xref) : IAn
 
     string ITag.Name => tag.TagName;
 
-    string ITag.Description => tag.TagDescription;
+    string ITag.Overview => tag.TagDescription;
 
     #endregion
 
     #region IAnidbTag Implementation
 
-    int? IAnidbTag.ParentTagID => tag.ParentTagID;
+    int IAnidbTag.AnidbID => tag.TagID;
+
+    MetadataGuid? IAnidbTag.ParentTagID => ((IAnidbTag)tag).ParentTagID;
 
     bool IAnidbTag.IsSpoiler => tag.GlobalSpoiler;
 

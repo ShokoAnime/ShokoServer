@@ -17,7 +17,7 @@ namespace Shoko.Server.Scheduling.Jobs.TMDB;
 [JobKeyGroup(JobKeyGroup.TMDB)]
 public class UpdateTmdbPersonJob : BaseJob
 {
-    private readonly TmdbMetadataService _tmdbService;
+    private readonly TmdbMetadataUpdater _tmdbService;
 
     public virtual int TmdbPersonID { get; set; }
 
@@ -26,14 +26,14 @@ public class UpdateTmdbPersonJob : BaseJob
     public virtual bool DownloadImages { get; set; }
 
     /// <summary>
-    /// Loop-prevention hint: the show that triggered this job. When set, <see cref="TmdbMetadataService.PurgePersonInternal"/>
+    /// Loop-prevention hint: the show that triggered this job. When set, <see cref="TmdbMetadataUpdater.PurgePersonInternal"/>
     /// skips re-scheduling an update for this show, preventing a cascade when the person 404s.
     /// Not a true parent-context ID — the person update is independent of any specific show.
     /// </summary>
     public virtual int? TmdbShowID { get; set; }
 
     /// <summary>
-    /// Loop-prevention hint: the movie that triggered this job. When set, <see cref="TmdbMetadataService.PurgePersonInternal"/>
+    /// Loop-prevention hint: the movie that triggered this job. When set, <see cref="TmdbMetadataUpdater.PurgePersonInternal"/>
     /// skips re-scheduling an update for this movie, preventing a cascade when the person 404s.
     /// Not a true parent-context ID — the person update is independent of any specific movie.
     /// </summary>
@@ -62,7 +62,7 @@ public class UpdateTmdbPersonJob : BaseJob
 
     private readonly TMDB_PersonRepository _tmdbPeople;
 
-    public UpdateTmdbPersonJob(TmdbMetadataService tmdbService, TMDB_PersonRepository tmdbPeople)
+    public UpdateTmdbPersonJob(TmdbMetadataUpdater tmdbService, TMDB_PersonRepository tmdbPeople)
     {
         _tmdbService = tmdbService;
         _tmdbPeople = tmdbPeople;

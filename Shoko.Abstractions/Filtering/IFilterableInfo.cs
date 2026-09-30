@@ -154,113 +154,105 @@ public interface IFilterableInfo
     IReadOnlySet<ImageEntityType> PreferredImageTypes { get; }
 
     /// <summary>
-    /// Has at least one TMDB Link
+    /// The sources the filterable is linked to at the series or movie level.
     /// </summary>
-    bool HasTmdbLink { get; }
+    IReadOnlySet<MetadataSource> LinkedSources { get; }
 
     /// <summary>
-    /// Has automatic TMDB linking disabled.
+    /// The sources the filterable is deliberately linked to nothing on at the
+    /// series or movie level, which settles that it has no entry there.
     /// </summary>
-    bool HasTmdbAutoLinkingDisabled { get; }
+    IReadOnlySet<MetadataSource> UnlinkedSources { get; }
 
     /// <summary>
-    /// Number of automatic TMDB episode links.
+    /// The sources automatic linking is turned off for.
     /// </summary>
-    int AutomaticTmdbEpisodeLinks { get; }
+    IReadOnlySet<MetadataSource> AutoLinkingDisabledSources { get; }
 
     /// <summary>
-    /// Number of user verified TMDB episode links.
+    /// Number of episode links to a source, films included, that no user
+    /// verified. A link made to nothing counts, since it still records a
+    /// decision about the episode.
     /// </summary>
-    int UserVerifiedTmdbEpisodeLinks { get; }
+    /// <param name="source">The source.</param>
+    /// <returns>The count.</returns>
+    int GetAutomaticEpisodeLinks(MetadataSource source);
 
     /// <summary>
-    /// Number of missing TMDB episode links.
+    /// Number of episode links to a source, films included, that a user
+    /// verified. A link made to nothing counts, since it still records a
+    /// decision about the episode.
     /// </summary>
-    int MissingTmdbEpisodeLinks { get; }
+    /// <param name="source">The source.</param>
+    /// <returns>The count.</returns>
+    int GetUserVerifiedEpisodeLinks(MetadataSource source);
 
     /// <summary>
-    /// All TMDB movie keywords for the filterable.
+    /// Number of episodes with no link to an entry on a source.
     /// </summary>
-    IReadOnlySet<string> TmdbMovieKeywords { get; }
+    /// <param name="source">The source.</param>
+    /// <returns>The count.</returns>
+    int GetMissingEpisodeLinks(MetadataSource source);
 
     /// <summary>
-    /// All TMDB movie genres for the filterable.
+    /// Number of series and movie-level links to a source that no user
+    /// verified, from the links behind <see cref="LinkedSources"/> and
+    /// <see cref="UnlinkedSources"/>. A link made to nothing counts, since it
+    /// still records a decision.
     /// </summary>
-    IReadOnlySet<string> TmdbMovieGenres { get; }
+    /// <param name="source">The source.</param>
+    /// <returns>The count.</returns>
+    int GetAutomaticLinks(MetadataSource source);
 
     /// <summary>
-    /// All TMDB show keywords for the filterable.
+    /// Number of series and movie-level links to a source that a user
+    /// verified, from the links behind <see cref="LinkedSources"/> and
+    /// <see cref="UnlinkedSources"/>. A link made to nothing counts, since it
+    /// still records a decision.
     /// </summary>
-    IReadOnlySet<string> TmdbShowKeywords { get; }
+    /// <param name="source">The source.</param>
+    /// <returns>The count.</returns>
+    int GetUserVerifiedLinks(MetadataSource source);
 
     /// <summary>
-    /// All TMDB show genres for the filterable.
+    /// The genres a source gives the filterable, from the entries it is
+    /// linked to there.
     /// </summary>
-    IReadOnlySet<string> TmdbShowGenres { get; }
+    /// <param name="source">The source.</param>
+    /// <param name="entityType">
+    /// <see cref="MetadataEntityType.Series"/> or
+    /// <see cref="MetadataEntityType.Movie"/> to read only the linked series
+    /// or only the linked movies, or <c>null</c> for both.
+    /// </param>
+    /// <returns>The genre names, compared without regard to case.</returns>
+    IReadOnlySet<string> GetGenres(MetadataSource source, MetadataEntityType? entityType = null);
 
     /// <summary>
-    /// All TMDB keywords (movie + show combined) for the filterable.
+    /// The descriptive tags and keywords a source gives the filterable, from
+    /// the entries it is linked to there.
     /// </summary>
-    IReadOnlySet<string> TmdbKeywords { get; }
+    /// <param name="source">The source.</param>
+    /// <param name="entityType">
+    /// <see cref="MetadataEntityType.Series"/> or
+    /// <see cref="MetadataEntityType.Movie"/> to read only the linked series
+    /// or only the linked movies, or <c>null</c> for both.
+    /// </param>
+    /// <returns>The tag names, compared without regard to case.</returns>
+    IReadOnlySet<string> GetTags(MetadataSource source, MetadataEntityType? entityType = null);
 
     /// <summary>
-    /// All TMDB genres (movie + show combined) for the filterable.
+    /// Number of suggestions the filterable makes through its links to a
+    /// source. Counts what it suggests, not what suggests it.
     /// </summary>
-    IReadOnlySet<string> TmdbGenres { get; }
-
-    /// <summary>
-    /// Has at least one AniList Link
-    /// </summary>
-    bool HasAnilistLink { get; }
-
-    /// <summary>
-    /// Has automatic AniList linking disabled.
-    /// </summary>
-    bool HasAnilistAutoLinkingDisabled { get; }
-
-    /// <summary>
-    /// Number of automatic AniList episode links.
-    /// </summary>
-    int AutomaticAnilistEpisodeLinks { get; }
-
-    /// <summary>
-    /// Number of user verified AniList episode links.
-    /// </summary>
-    int UserVerifiedAnilistEpisodeLinks { get; }
-
-    /// <summary>
-    /// Number of missing AniList episode links.
-    /// </summary>
-    int MissingAnilistEpisodeLinks { get; }
-
-    /// <summary>
-    /// All AniList genres for the filterable.
-    /// </summary>
-    IReadOnlySet<string> AnilistGenres { get; }
-
-    /// <summary>
-    /// All AniList tags for the filterable.
-    /// </summary>
-    IReadOnlySet<string> AnilistTags { get; }
+    /// <param name="source">The source.</param>
+    /// <returns>The count.</returns>
+    int GetSuggestions(MetadataSource source);
 
     /// <summary>
     /// Number of suggestions the filterable makes through its AniDB links.
     /// Counts what it suggests, not what suggests it.
     /// </summary>
     int AnidbSuggestions { get; }
-
-    /// <summary>
-    /// Number of suggestions the filterable makes through its TMDB links,
-    /// across both the shows and the movies it is linked to. Counts what it
-    /// suggests, not what suggests it.
-    /// </summary>
-    int TmdbSuggestions { get; }
-
-    /// <summary>
-    /// Number of suggestions the filterable makes through its AniList links.
-    /// Counts what it suggests, not what suggests it.
-    /// </summary>
-    int AnilistSuggestions { get; }
 
     /// <summary>
     /// Number of suggestions the filterable makes across every source.

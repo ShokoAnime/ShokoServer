@@ -18,6 +18,9 @@ public class TMDB_Show_Crew : TMDB_Crew, ICrew<ISeries>
     /// <inheritdoc/>
     public override int TmdbParentID => TmdbShowID;
 
+    /// <inheritdoc/>
+    public override MetadataEntityType ParentType => MetadataEntityType.Series;
+
     /// <summary>
     /// Number of episodes within this season the crew member have worked on.
     /// </summary>
@@ -35,7 +38,7 @@ public class TMDB_Show_Crew : TMDB_Crew, ICrew<ISeries>
     public TMDB_Show? GetTmdbShow() =>
         RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbShowID);
 
-    public override IMetadata<int>? GetTmdbParent() =>
+    public override IMetadata? GetTmdbParent() =>
         GetTmdbShow();
 
     #endregion

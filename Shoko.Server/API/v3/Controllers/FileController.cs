@@ -941,23 +941,17 @@ public class FileController(
         AddStreamSessionLink(fileID, sessionID);
         var estimatedTotalBytes = rendition.EstimatedTotalBytes;
         var rangeStart = estimatedTotalBytes is null ? null : ParseRangeStart(Request);
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_streamSessionManager.SegmentRequestTimeoutSeconds));
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted, timeoutCts.Token);
+        var opened = await StreamRenditionResponses.OpenAsync(
+            cancellationToken => rendition.OpenAsync(rangeStart, cancellationToken),
+            Response,
+            TimeSpan.FromSeconds(_streamSessionManager.SegmentRequestTimeoutSeconds),
+            "Timed out waiting for the requested byte range to become available.",
+            HttpContext.RequestAborted
+        );
+        if (!opened.IsOpen)
+            return opened.Failure;
 
-        Stream? stream;
-        try
-        {
-            stream = await rendition.OpenAsync(rangeStart, linkedCts.Token);
-        }
-        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
-        {
-            return StatusCode(StatusCodes.Status504GatewayTimeout, "Timed out waiting for the requested byte range to become available.");
-        }
-
-        if (stream is null)
-            return NotFound();
-
-        return new ProgressiveTransformStreamResult(session.Video, User, session.Track(stream, Response), rendition.ContainerMimeType, rangeStart, estimatedTotalBytes);
+        return new ProgressiveTransformStreamResult(session.Video, User, session.Track(opened.Value, Response), rendition.ContainerMimeType, rangeStart, estimatedTotalBytes);
     }
 
     /// <summary>
@@ -1181,22 +1175,18 @@ public class FileController(
 
     private async Task<ActionResult> GetStreamResource(StreamSession session, IStreamRenditionResources rendition, string path, PlaybackKind kind)
     {
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(_streamSessionManager.SegmentRequestTimeoutSeconds));
-        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted, timeoutCts.Token);
+        var request = new StreamResourceRequest { Path = path, User = User, QueryParameters = Request.Query };
+        var opened = await StreamRenditionResponses.OpenAsync(
+            cancellationToken => rendition.OpenResourceAsync(request, cancellationToken),
+            Response,
+            TimeSpan.FromSeconds(_streamSessionManager.SegmentRequestTimeoutSeconds),
+            "Timed out waiting for the requested resource to become available.",
+            HttpContext.RequestAborted
+        );
+        if (!opened.IsOpen)
+            return opened.Failure;
 
-        StreamResource? resource;
-        try
-        {
-            resource = await rendition.OpenResourceAsync(new StreamResourceRequest { Path = path, User = User, QueryParameters = Request.Query }, linkedCts.Token);
-        }
-        catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
-        {
-            return StatusCode(StatusCodes.Status504GatewayTimeout, "Timed out waiting for the requested resource to become available.");
-        }
-
-        if (resource is null)
-            return NotFound();
-
+        var resource = opened.Value;
         if (resource.Position is { } position)
             await _streamPipelineService.NotifyPlaybackProgress(new PlaybackProgressContext
             {

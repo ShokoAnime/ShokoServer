@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -10,6 +10,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class AnidbEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "anidb";
+
     private IUDPConnectionHandler UDPHandler { get; set; }
     private IHttpConnectionHandler HttpHandler { get; set; }
 

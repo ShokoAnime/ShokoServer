@@ -182,11 +182,6 @@ public class VideoStreamPipelineService(
         Priority = priority ?? info.Priority,
     };
 
-    private string GetTransformID(Type transformType)
-        => _transformsLoaded && pluginManager.GetPluginInfo(transformType.Assembly) is not null
-            ? GetPartID(transformType)
-            : string.Empty;
-
     /// <summary>
     ///   The identifier a transform or observer is known by, e.g.
     ///   <c>ShokoPlugin.RifeInterpolation:RifeDrbaTransform</c>.
@@ -339,11 +334,6 @@ public class VideoStreamPipelineService(
         PluginInfo = info.PluginInfo,
         Enabled = info.Enabled,
     };
-
-    private string GetObserverID(Type observerType)
-        => _observersLoaded && pluginManager.GetPluginInfo(observerType.Assembly) is not null
-            ? GetPartID(observerType)
-            : string.Empty;
 
     #endregion Observers
 }

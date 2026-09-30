@@ -7,7 +7,7 @@ namespace Shoko.Abstractions.Metadata.Image.CrossReferences;
 
 /// <summary>
 /// Represents a link between an image and an entity. This interface provides a unified
-/// way to associate images with various entity types across different data sources,
+/// way to associate images with various entity types across different metadata sources,
 /// supporting different image types (primary, backdrop, banner, etc.) and their metadata.
 /// </summary>
 public interface IImageCrossReference : IWithCreationDate, IWithUpdateDate
@@ -37,23 +37,13 @@ public interface IImageCrossReference : IWithCreationDate, IWithUpdateDate
     /// <summary>
     ///   Gets the image source.
     /// </summary>
-    DataSource ImageSource { get; }
+    MetadataSource ImageSource { get; }
 
     /// <summary>
-    ///   Gets the entity ID. This is the stringified identifier of the linked entity.
+    ///   The ID of the linked entity, which names its source and kind as well,
+    ///   e.g. <c>tmdb://series/1</c>.
     /// </summary>
-    string EntityID { get; }
-
-    /// <summary>
-    /// Gets the metadata entity type.
-    /// </summary>
-    DataEntityType EntityType { get; }
-
-    /// <summary>
-    /// Gets the metadata entity source. This indicates where the entity originates from
-    /// (e.g., AniDB, TMDB, AniList, Shoko).
-    /// </summary>
-    DataSource EntitySource { get; }
+    MetadataGuid EntityID { get; }
 
     /// <summary>
     /// Gets the season number if the linked entity is a season. If the linked entity
@@ -116,7 +106,7 @@ public interface IImageCrossReference : IWithCreationDate, IWithUpdateDate
     ///   votes.
     /// </summary>
     [MemberNotNullWhen(true, nameof(Rating), nameof(RatingVotes))]
-    bool HasRating => Rating.HasValue && RatingVotes.HasValue;
+    bool HasRating { get => Rating.HasValue && RatingVotes.HasValue; }
 
     /// <summary>
     /// Overall user rating for the image, normalized on a scale of 1-10, if
@@ -134,7 +124,7 @@ public interface IImageCrossReference : IWithCreationDate, IWithUpdateDate
     /// <summary>
     ///   The source of the cross-reference.
     /// </summary>
-    DataSource Source { get; }
+    MetadataSource Source { get; }
 
     /// <summary>
     ///   Gets the image associated with this cross-reference, if available.

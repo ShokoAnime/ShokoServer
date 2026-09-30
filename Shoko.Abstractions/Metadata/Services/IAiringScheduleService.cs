@@ -522,6 +522,30 @@ public interface IAiringScheduleService
     event EventHandler<EpisodeAiringsUpdatedEventArgs>? AiringsUpdated;
 
     /// <summary>
+    ///   How far back airings are kept, as configured, whether or not
+    ///   automatic cleanup is on.
+    /// </summary>
+    /// <remarks>
+    ///   Set in months, so the span shifts slightly with the length of the
+    ///   months it covers. <see cref="RetentionCutoff"/> is when it applies.
+    /// </remarks>
+    TimeSpan Retention { get; }
+
+    /// <summary>
+    ///   The oldest a schedule's latest airing may be and still be kept, in
+    ///   UTC, or <see langword="null"/> while automatic cleanup is off.
+    /// </summary>
+    /// <remarks>
+    ///   A schedule whose every airing slots before this (by
+    ///   <see cref="IEpisodeAiring.AiredAt"/>, else
+    ///   <see cref="IEpisodeAiring.OriginalAiredAt"/>) is removed by the next
+    ///   cleanup, and a write leaving one so is refused with an
+    ///   <see cref="AiringScheduleValidationException"/> under <c>#schedule</c>.
+    ///   It moves with the clock, so read it when needed.
+    /// </remarks>
+    DateTime? RetentionCutoff { get; }
+
+    /// <summary>
     ///   Replaces a schedule's airings, running delay inference over the whole
     ///   line unless it is turned off. This is how providers normally write.
     /// </summary>

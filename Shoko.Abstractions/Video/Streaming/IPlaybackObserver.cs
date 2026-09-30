@@ -20,7 +20,7 @@ public interface IPlaybackObserver
     /// <summary>
     ///   Optional. Description of the observer.
     /// </summary>
-    string? Description => null;
+    string? Description { get => null; }
 
     /// <summary>
     ///   Called after a byte-range (progressive) or segment (HLS) has been

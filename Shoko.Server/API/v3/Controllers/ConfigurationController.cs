@@ -52,7 +52,9 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
     ///   Get a list with information about all registered configurations.
     /// </summary>
     /// <param name="query">
-    ///   An optional query to filter configurations by name.
+    ///   An optional query to filter configurations by name or description.
+    ///   The results stay grouped by plugin, the core first, and within a
+    ///   plugin a name hit comes before a description hit.
     /// </param>
     /// <param name="pluginID">
     ///   Whether to include only configurations for a specific plugin, or all
@@ -121,12 +123,15 @@ public class ConfigurationController(ISettingsProvider settingsProvider, IPlugin
             : configurationService.GetAllConfigurationInfos();
         if (!string.IsNullOrEmpty(query))
             enumerable = enumerable
-                .Search(query, c => [c.Name])
-                .Select(c => c.Result)
-                .OrderByDescending(p => typeof(CorePlugin) == p.PluginInfo.PluginType)
-                .ThenBy(p => p.PluginInfo.Name)
-                .ThenBy(p => p.Name)
-                .ThenBy(p => p.ID);
+                .Search(query, [c => [c.Name], c => [c.Description]])
+                .OrderByDescending(c => typeof(CorePlugin) == c.Result.PluginInfo.PluginType)
+                .ThenBy(c => c.Result.PluginInfo.Name)
+                // Within a plugin, a name hit comes before a word found only in a description.
+                .ThenBy(c => c.Tier)
+                .ThenBy(c => c)
+                .ThenBy(c => c.Result.Name)
+                .ThenBy(c => c.Result.ID)
+                .Select(c => c.Result);
         return enumerable
             .Where(configurationInfo =>
             {

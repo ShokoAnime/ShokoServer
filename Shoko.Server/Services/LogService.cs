@@ -28,6 +28,7 @@ using Shoko.Server.API.SignalR.NLog;
 using Shoko.Server.Extensions;
 using Shoko.Server.Logging;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 using ELogLevel = Microsoft.Extensions.Logging.LogLevel;
 using NLogLevel = NLog.LogLevel;
@@ -55,7 +56,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
         _timer.Elapsed -= HandleTimerElapsed;
         _timer.Elapsed += HandleTimerElapsed;
         RunRotationMaintenance();
-        _timer.Start();
+        using (DetachedFlow.Suppress())
+            _timer.Start();
     }
 
     public void RunRotationMaintenance()
@@ -1128,6 +1130,8 @@ public class LogService(ILogger<LogService> logger, IApplicationPaths applicatio
     private static IReadOnlyList<LogLevelRuleConfiguration> GetDefaultLogLevelRules()
         => [
             new() { LoggerNamePattern = "Microsoft.AspNetCore.*", MaxLevel = ELogLevel.Information, Final = true },
+            // Plugin databases log through the host, and EF Core logs every command it runs at Information.
+            new() { LoggerNamePattern = "Microsoft.EntityFrameworkCore.*", MaxLevel = ELogLevel.Information, Final = true },
             new() { LoggerNamePattern = "Shoko.QueueProcessor*", MaxLevel = ELogLevel.Information, Final = true },
             new() { LoggerNamePattern = "Shoko.Server.Scheduling.Delegates.*", MaxLevel = ELogLevel.Information, Final = true },
             new() { LoggerNamePattern = "Shoko.Server.API.Authentication.CustomAuthHandler", MaxLevel = ELogLevel.Information, Final = true },

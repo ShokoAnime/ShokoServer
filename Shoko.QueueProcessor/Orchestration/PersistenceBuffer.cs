@@ -38,6 +38,8 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     private readonly HashSet<Guid> _pendingDeletes = new();
     // Pending activations: chain-deferred jobs already in DB whose ParentJobId must be cleared
     private readonly HashSet<Guid> _pendingActivations = new();
+    // Pending re-parents: chain-deferred jobs already in DB whose parent was removed, by new parent
+    private readonly Dictionary<Guid, Guid> _pendingReparents = new();
     // Pending data updates: last-write-wins per Id, for upgraded waiting jobs
     private readonly Dictionary<Guid, string?> _pendingUpdates = new();
     private readonly object _bufferLock = new();
@@ -131,8 +133,9 @@ public sealed class PersistenceBuffer : IAsyncDisposable
                 return;
             }
 
-            // If the job was pending an activation UPDATE, drop it — DELETE supersedes.
+            // DELETE supersedes a pending activation or re-parent UPDATE.
             _pendingActivations.Remove(id);
+            _pendingReparents.Remove(id);
             // If the job was pending a data UPDATE, drop it — DELETE supersedes.
             _pendingUpdates.Remove(id);
 
@@ -159,8 +162,35 @@ public sealed class PersistenceBuffer : IAsyncDisposable
                 pendingJob.ParentJobId = null;
                 return;
             }
+            _pendingReparents.Remove(id);
             _pendingActivations.Add(id);
             shouldFlush = _pendingInserts.Count + _pendingDeletes.Count + _pendingActivations.Count >= _maxFlushBatch;
+            if (!shouldFlush) ArmTimerLocked();
+        }
+        if (shouldFlush) _ = FlushNowAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    /// Moves a chain-deferred job under a new parent, when the job it waited on was removed. A job
+    /// still in the insert buffer is changed in place; otherwise an UPDATE is batched.
+    /// </summary>
+    /// <param name="id">The ID of the deferred job.</param>
+    /// <param name="parentJobId">The ID of the job it now waits on.</param>
+    public void OnReparentChainChild(Guid id, Guid parentJobId)
+    {
+        bool shouldFlush;
+        lock (_bufferLock)
+        {
+            if (_pendingInserts.TryGetValue(id, out var pendingJob))
+            {
+                pendingJob.ParentJobId = parentJobId;
+                return;
+            }
+            if (_pendingDeletes.Contains(id)) return;
+
+            _pendingReparents[id] = parentJobId;
+            shouldFlush = _pendingInserts.Count + _pendingDeletes.Count + _pendingActivations.Count +
+                          _pendingReparents.Count + _pendingUpdates.Count >= _maxFlushBatch;
             if (!shouldFlush) ArmTimerLocked();
         }
         if (shouldFlush) _ = FlushNowAsync(CancellationToken.None);
@@ -184,6 +214,7 @@ public sealed class PersistenceBuffer : IAsyncDisposable
         QueuedJob[] inserts;
         Guid[] deletes;
         Guid[] activations;
+        (Guid Id, Guid ParentJobId)[] reparents;
         (Guid Id, string? NewJson)[] updates;
 
         lock (_bufferLock)
@@ -194,14 +225,16 @@ public sealed class PersistenceBuffer : IAsyncDisposable
             inserts = [.. _pendingInserts.Values];
             deletes = [.. _pendingDeletes];
             activations = [.. _pendingActivations];
+            reparents = [.. _pendingReparents.Select(kv => (kv.Key, kv.Value))];
             updates = [.. _pendingUpdates.Select(kv => (kv.Key, kv.Value))];
             _pendingInserts.Clear();
             _pendingDeletes.Clear();
             _pendingActivations.Clear();
+            _pendingReparents.Clear();
             _pendingUpdates.Clear();
         }
 
-        if (inserts.Length == 0 && deletes.Length == 0 && activations.Length == 0 && updates.Length == 0) return;
+        if (inserts.Length == 0 && deletes.Length == 0 && activations.Length == 0 && reparents.Length == 0 && updates.Length == 0) return;
 
         await _flushGate.WaitAsync(ct);
         try
@@ -217,6 +250,11 @@ public sealed class PersistenceBuffer : IAsyncDisposable
             {
                 _logger.LogDebug("PersistenceBuffer: flushing {ActivationCount} chain activations", activations.Length);
                 await repo.ActivateChainChildrenAsync(activations, ct);
+            }
+            if (reparents.Length > 0)
+            {
+                _logger.LogDebug("PersistenceBuffer: flushing {ReparentCount} chain re-parents", reparents.Length);
+                await repo.ReparentChainChildrenAsync(reparents, ct);
             }
             if (updates.Length > 0)
             {
@@ -252,6 +290,9 @@ public sealed class PersistenceBuffer : IAsyncDisposable
         if (_timer != null) return;
         _timer = new Timer(_flushIntervalMs) { AutoReset = false };
         _timer.Elapsed += (_, _) => _ = FlushNowAsync(CancellationToken.None);
-        _timer.Start();
+        // The timer is created on its first start and kept, so whichever enqueue arms it first
+        // must not hand it its context.
+        using (DetachedFlow.Suppress())
+            _timer.Start();
     }
 }

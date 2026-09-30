@@ -1,6 +1,5 @@
 using System;
 using System.ComponentModel.DataAnnotations;
-using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata.Image;
 
@@ -10,14 +9,14 @@ namespace Shoko.Abstractions.Metadata.Image;
 /// </summary>
 public sealed class ImageData
 {
-    private DataSource _source;
+    private MetadataSource _source = null!;
 
     /// <summary>
     ///   Provider source (AniDB, TMDB, AniList). This indicates where the image
     ///   originated from and is used for routing, display, and management
     ///   purposes.
     /// </summary>
-    public required DataSource Source
+    public required MetadataSource Source
     {
         get => _source;
         set => _source = value.IsLocal

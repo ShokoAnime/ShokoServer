@@ -3,15 +3,11 @@ using Shoko.Abstractions.Metadata.Containers;
 namespace Shoko.Abstractions.Metadata;
 
 /// <summary>
-///   A network something airs on, in any registry. A broadcast station, a
-///   streaming service or a TMDB network are all the same kind of thing, and
-///   the source keeps their keys apart.
+///   A source's network, such as a TMDB network: a broadcaster or a
+///   streaming service as the source lists it, read through
+///   <see cref="ISeries.Networks"/>. The airing schedule's own channels are
+///   <see cref="Airing.IAiringChannel"/> instead.
 /// </summary>
-/// <remarks>
-///   This is <see cref="IMetadata"/> rather than <see cref="IMetadata{TId}"/>,
-///   because TMDB networks are keyed by an integer and airing channels by a
-///   <see cref="System.Guid"/>.
-/// </remarks>
 public interface INetwork : IMetadata, IWithImages, IWithPrimaryImage
 {
     /// <summary>

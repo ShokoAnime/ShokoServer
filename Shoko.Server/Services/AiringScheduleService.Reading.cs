@@ -154,7 +154,7 @@ public partial class AiringScheduleService
             foreach (var key in GetEstimableEpisodeKeys(context, fromUtc, toUtc, options))
                 candidates.Add(key);
 
-        var targets = new Dictionary<(DataSource, string), IEpisode>();
+        var targets = new Dictionary<(MetadataSource, string), IEpisode>();
         foreach (var (source, id) in candidates)
         {
             if (context.GetEpisode(source, id) is not { } episode)
@@ -254,7 +254,7 @@ public partial class AiringScheduleService
     private IEnumerable<EpisodeAiringView> GetEstimates(
         AiringReadContext context,
         IEpisode episode,
-        IReadOnlyList<(DataSource Source, string ID)> keys,
+        IReadOnlyList<(MetadataSource Source, string ID)> keys,
         HashSet<int> covered,
         EpisodeAiringFilteringOptions options
     )
@@ -264,7 +264,7 @@ public partial class AiringScheduleService
             if (context.GetEpisode(key.Source, key.ID) is not { Type: EpisodeType.Episode } target)
                 continue;
 
-            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(key.Source, target.SeriesID.ToString()))
+            foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(key.Source, target.SeriesID.ID))
             {
                 if (covered.Contains(row.AiringScheduleID))
                     continue;
@@ -295,7 +295,7 @@ public partial class AiringScheduleService
         AiringSchedule row,
         AiringScheduleView scheduleView,
         IEpisode target,
-        (DataSource Source, string ID) key,
+        (MetadataSource Source, string ID) key,
         IEpisode? resolvedFor = null
     )
     {
@@ -373,7 +373,7 @@ public partial class AiringScheduleService
 
         // One per episode rather than one overall, so a read that spans several
         // episodes keeps the best of each.
-        var seen = new HashSet<(DataSource Source, string ID)>();
+        var seen = new HashSet<(MetadataSource Source, string ID)>();
         return ordered.Where(view => seen.Add(GetDeduplicationKey(view))).Cast<IEpisodeAiring>();
     }
 
@@ -386,7 +386,7 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="view">The airing.</param>
     /// <returns>The episode's key.</returns>
-    private static (DataSource Source, string ID) GetDeduplicationKey(EpisodeAiringView view)
+    private static (MetadataSource Source, string ID) GetDeduplicationKey(EpisodeAiringView view)
         => view.ResolvedFor is { } episode ? GetEntityKey(episode) : (view.EpisodeSource, view.EpisodeID);
 
     /// <summary>
@@ -529,7 +529,7 @@ public partial class AiringScheduleService
     /// <param name="row">The schedule.</param>
     /// <param name="key">The stored key of the episode.</param>
     /// <returns><see langword="true"/> when the episode is in the season, or the season can't be resolved.</returns>
-    private static bool IsInSeason(AiringReadContext context, AiringSchedule row, (DataSource Source, string ID) key)
+    private static bool IsInSeason(AiringReadContext context, AiringSchedule row, (MetadataSource Source, string ID) key)
     {
         // An unresolvable season is not fatal, so an episode isn't dropped over it.
         if (context.GetSeason(row.SeriesSource, row.SeasonID) is null)
@@ -610,7 +610,7 @@ public partial class AiringScheduleService
     /// <param name="toUtc">The end of the range.</param>
     /// <param name="options">The filters to apply.</param>
     /// <returns>The candidate episode keys.</returns>
-    private IEnumerable<(DataSource Source, string ID)> GetEstimableEpisodeKeys(
+    private IEnumerable<(MetadataSource Source, string ID)> GetEstimableEpisodeKeys(
         AiringReadContext context,
         DateTime fromUtc,
         DateTime toUtc,
@@ -790,6 +790,7 @@ public partial class AiringScheduleService
                     AiredAt = entry.AiredAt,
                     OriginalAiredAt = entry.OriginalAiredAt,
                     IsDelayed = entry.IsDelayed,
+                    Kind = entry.Kind,
                     LinkKey = linkKeys.GetValueOrDefault(entry.EpisodeAiringID),
                     FirstOriginalAiringAt = anchored ? context.GetFirstOriginalAiringAt(entry.EpisodeSource, entry.EpisodeID) : null,
                 };
@@ -828,11 +829,11 @@ public partial class AiringScheduleService
         if (season.Series is { } series)
             InvalidateForSeries(series);
         else
-            InvalidateProfilesForSeries(season.Source, season.SeriesID.ToString());
+            InvalidateProfilesForSeries(season.Source, season.SeriesID.ID);
 
         if (season is IShokoSeason shokoSeason)
             foreach (var linked in shokoSeason.LinkedSeasons)
-                InvalidateProfilesForSeries(linked.Source, linked.SeriesID.ToString());
+                InvalidateProfilesForSeries(linked.Source, linked.SeriesID.ID);
     }
 
     /// <inheritdoc/>
@@ -843,7 +844,7 @@ public partial class AiringScheduleService
         var context = new AiringReadContext(this, includeDisabled: true);
         foreach (var (source, id) in context.GetLinkedEpisodeKeys(episode))
             if (context.GetEpisode(source, id) is { } entry)
-                InvalidateProfilesForSeries(source, entry.SeriesID.ToString());
+                InvalidateProfilesForSeries(source, entry.SeriesID.ID);
     }
 
     /// <summary>
@@ -852,15 +853,13 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="series">The series being invalidated.</param>
     /// <returns>The keys to clear.</returns>
-    private IEnumerable<(DataSource Source, string ID)> GetInvalidationKeys(ISeries series)
+    private IEnumerable<(MetadataSource Source, string ID)> GetInvalidationKeys(ISeries series)
     {
-        var keys = new HashSet<(DataSource, string)> { GetEntityKey(series) };
+        var keys = new HashSet<(MetadataSource, string)> { GetEntityKey(series) };
         foreach (var shokoSeries in series is IShokoSeries own ? [own] : series.ShokoSeries)
         {
             keys.Add(GetEntityKey(shokoSeries));
             foreach (var linked in shokoSeries.LinkedSeries)
-                keys.Add(GetEntityKey(linked));
-            foreach (var linked in GetResolverLinks<ISeries>(shokoSeries))
                 keys.Add(GetEntityKey(linked));
         }
 
@@ -873,7 +872,7 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="source">The source of the series.</param>
     /// <param name="id">The ID of the series within its source.</param>
-    private void InvalidateProfilesForSeries(DataSource source, string id)
+    private void InvalidateProfilesForSeries(MetadataSource source, string id)
     {
         foreach (var row in RepoFactory.AiringSchedule.GetBySeriesID(source, id))
             _profiles.TryRemove(row.AiringScheduleID, out _);
@@ -882,6 +881,26 @@ public partial class AiringScheduleService
     #endregion
 
     #region Retention
+
+    /// <inheritdoc/>
+    public TimeSpan Retention
+    {
+        get
+        {
+            var now = DateTime.UtcNow;
+            return now - GetRetentionCutoff(LoadSettings(), now);
+        }
+    }
+
+    /// <inheritdoc/>
+    public DateTime? RetentionCutoff
+    {
+        get
+        {
+            var settings = LoadSettings();
+            return settings.AutoCleanup ? GetRetentionCutoff(settings, DateTime.UtcNow) : null;
+        }
+    }
 
     /// <summary>
     /// Remove the schedules whose run ended longer ago than the retention
@@ -897,7 +916,7 @@ public partial class AiringScheduleService
             return 0;
 
         var now = DateTime.UtcNow;
-        var cutoff = now.AddMonths(-settings.RetentionMonths);
+        var cutoff = GetRetentionCutoff(settings, now);
         var removed = 0;
         foreach (var row in RepoFactory.AiringSchedule.GetAll().ToList())
         {

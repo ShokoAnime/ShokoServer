@@ -1,0 +1,145 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Providers;
+
+namespace Shoko.Server.API.v3.Helpers;
+
+/// <summary>
+/// The answers the generic metadata routes give while a source is paused,
+/// while its provider cannot be reached, or while it is not configured.
+/// </summary>
+public static class MetadataPauseResponses
+{
+    /// <summary>
+    /// How many seconds to wait when nothing tells how long a provider stays
+    /// out of reach.
+    /// </summary>
+    public const int DefaultRetryAfterSeconds = 60;
+
+    /// <summary>
+    /// How many whole seconds are left of a pause, rounded up.
+    /// </summary>
+    /// <param name="status">The source's pause status.</param>
+    /// <returns>
+    /// The seconds left, or <see cref="DefaultRetryAfterSeconds"/> when the
+    /// pause names no end, so a caller never retries at once.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="status"/> is <see langword="null"/>.</exception>
+    public static int RetryAfterSeconds(MetadataProviderPauseStatus status)
+    {
+        ArgumentNullException.ThrowIfNull(status);
+
+        return status.GetRemainingPauseTime() is { } remaining ? (int)Math.Ceiling(remaining.TotalSeconds) : DefaultRetryAfterSeconds;
+    }
+
+    /// <summary>
+    /// Sets the <c>Retry-After</c> header of an answer.
+    /// </summary>
+    /// <param name="response">The answer.</param>
+    /// <param name="seconds">The seconds to wait.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="response"/> is <see langword="null"/>.</exception>
+    public static void SetRetryAfter(HttpResponse response, int seconds)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        response.Headers.RetryAfter = Math.Max(0, seconds).ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// A <c>503 Service Unavailable</c> problem with a <c>Retry-After</c>
+    /// header, for a request refused while its source is paused.
+    /// </summary>
+    /// <param name="response">The answer the header is set on.</param>
+    /// <param name="source">The paused source.</param>
+    /// <param name="status">The source's pause status.</param>
+    /// <returns>The answer, saying why the source is paused when it says.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="response"/>, <paramref name="source"/> or <paramref name="status"/> is <see langword="null"/>.</exception>
+    public static ObjectResult Paused(HttpResponse response, MetadataSource source, MetadataProviderPauseStatus status)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        SetRetryAfter(response, RetryAfterSeconds(status));
+        var title = $"{source.Name} is paused.";
+        return Problem(title, status.Reason ?? title, source, null);
+    }
+
+    /// <summary>
+    /// A <c>503 Service Unavailable</c> problem without a <c>Retry-After</c>
+    /// header, for a request refused while the provider that would answer it
+    /// is not configured, as waiting does not configure it.
+    /// </summary>
+    /// <param name="provider">The provider.</param>
+    /// <returns>The answer, naming the provider and what it is missing when it says.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="provider"/> is <see langword="null"/>.</exception>
+    public static ObjectResult NotConfigured(MetadataProviderInfo provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+
+        var title = $"{provider.Name} is not configured.";
+        return Problem(title, provider.Provider.NotConfiguredReason is { Length: > 0 } reason ? reason : title, provider.Source, provider.ID);
+    }
+
+    /// <summary>
+    /// Refuses a request the provider that would answer it cannot take now:
+    /// while it is not configured, then while its source is paused.
+    /// </summary>
+    /// <param name="response">The answer a <c>Retry-After</c> header is set on while paused.</param>
+    /// <param name="source">The source.</param>
+    /// <param name="provider">The provider that would answer, or <see langword="null"/> when none would.</param>
+    /// <param name="status">The source's pause status.</param>
+    /// <returns>The refusal, or <see langword="null"/> to go ahead.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="response"/>, <paramref name="source"/> or <paramref name="status"/> is <see langword="null"/>.</exception>
+    public static ObjectResult? Refuse(HttpResponse response, MetadataSource source, MetadataProviderInfo? provider, MetadataProviderPauseStatus status)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        ArgumentNullException.ThrowIfNull(status);
+
+        if (provider is { Provider.IsConfigured: false })
+            return NotConfigured(provider);
+
+        return status.IsPaused ? Paused(response, source, status) : null;
+    }
+
+    /// <summary>
+    /// Whether every enabled provider of a source is configured, and what the
+    /// first one that is not is missing.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="providers">Every registered provider.</param>
+    /// <returns>
+    /// Whether the source is configured, and the reason the first provider
+    /// that is not gives, if any.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="providers"/> is <see langword="null"/>.</exception>
+    public static (bool IsConfigured, string? Reason) GetConfiguration(MetadataSource source, IEnumerable<MetadataProviderInfo> providers)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(providers);
+
+        return providers.FirstOrDefault(info => info.Enabled && info.Source == source && !info.Provider.IsConfigured) is { } unconfigured
+            ? (false, unconfigured.Provider.NotConfiguredReason is { Length: > 0 } reason ? reason : null)
+            : (true, null);
+    }
+
+    /// <summary>
+    /// A <c>503 Service Unavailable</c> problem.
+    /// </summary>
+    /// <param name="title">The short summary.</param>
+    /// <param name="detail">What went wrong.</param>
+    /// <param name="source">The source, sent as the <c>source</c> extension.</param>
+    /// <param name="providerID">The provider, sent as the <c>providerID</c> extension, if one is named.</param>
+    /// <returns>The answer.</returns>
+    internal static ObjectResult Problem(string title, string detail, MetadataSource source, Guid? providerID)
+    {
+        var problem = new ProblemDetails { Status = StatusCodes.Status503ServiceUnavailable, Title = title, Detail = detail };
+        problem.Extensions["source"] = source.Value;
+        if (providerID is { } id)
+            problem.Extensions["providerID"] = id;
+        return new(problem) { StatusCode = StatusCodes.Status503ServiceUnavailable };
+    }
+}

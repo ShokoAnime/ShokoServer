@@ -1,4 +1,4 @@
-﻿using System.Data.Common;
+using System.Data.Common;
 using NHibernate.Dialect;
 using NHibernate.Dialect.Schema;
 

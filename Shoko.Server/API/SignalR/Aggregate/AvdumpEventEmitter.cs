@@ -10,6 +10,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class AvdumpEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "avdump";
+
     private readonly ILogger<AvdumpEventEmitter> _logger;
 
     public AvdumpEventEmitter(IHubContext<AggregateHub> hub, ILogger<AvdumpEventEmitter> logger) : base(hub)

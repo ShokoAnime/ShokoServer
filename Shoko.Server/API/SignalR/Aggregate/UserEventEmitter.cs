@@ -9,6 +9,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class UserEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "user";
+
     private readonly IUserService _userService;
 
     private readonly ILogger<UserEventEmitter> _logger;

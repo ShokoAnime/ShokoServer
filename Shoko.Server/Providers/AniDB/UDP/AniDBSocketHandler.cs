@@ -125,8 +125,17 @@ public class AniDBSocketHandler : IAniDBSocketHandler
 
         try
         {
-            var remoteHostEntry = await Dns.GetHostEntryAsync(_serverHost, cancellationToken);
-            _remoteIpEndPoint = new IPEndPoint(remoteHostEntry.AddressList[0], _serverPort);
+            // The socket is IPv4 only, so take an IPv4 address: a literal as is, a name's first IPv4
+            // address (resolving a literal or a name may list ::1 or other IPv6 addresses first).
+            if (!IPAddress.TryParse(_serverHost, out var remoteAddress) || remoteAddress.AddressFamily is not AddressFamily.InterNetwork)
+            {
+                var remoteAddresses = await Dns.GetHostAddressesAsync(_serverHost, AddressFamily.InterNetwork, cancellationToken);
+                remoteAddress = remoteAddresses.Length > 0
+                    ? remoteAddresses[0]
+                    : throw new SocketException((int)SocketError.HostNotFound);
+            }
+
+            _remoteIpEndPoint = new IPEndPoint(remoteAddress, _serverPort);
 
             _logger.LogInformation("Bound to remote address: {Address} : {Port}", _remoteIpEndPoint.Address,
                 _remoteIpEndPoint.Port);

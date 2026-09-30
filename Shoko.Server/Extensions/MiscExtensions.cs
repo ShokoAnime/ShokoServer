@@ -197,7 +197,7 @@ public static class MiscExtensions
     {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(query)) return false;
         int k = Math.Max(Math.Min((int)(text.Length / 6D), (int)(query.Length / 6D)), 1);
-        SearchInfo<string> result = DiceFuzzySearch(text, query, k, text);
+        var result = DiceFuzzySearch(text, query, k, text);
         if (result.ExactMatch) return true;
         if (text.Length <= 5 && result.Distance > 0.5D) return false;
         return result.Distance < 0.8D;

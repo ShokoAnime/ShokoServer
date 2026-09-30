@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -11,12 +10,9 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Filtering.Services;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Repositories;
-using Shoko.Server.Repositories.Cached;
-using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
@@ -36,6 +32,8 @@ public class SettingsProvider : ISettingsProvider, IDisposable
     private string[]? _episodeTitleLanguageOrder = null;
 
     private string[]? _descriptionLanguageOrder = null;
+
+    private string? _languageSettings = null;
 
     private bool? _downloadCharacters = null;
 
@@ -76,7 +74,6 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         eventArgs.Configuration.Import.ResetExcludeRegexes();
 
         // Init language settings and react to changes.
-        var shouldRenameAllGroups = false;
         if (_seriesTitleLanguageOrder is null)
         {
             _seriesTitleLanguageOrder = eventArgs.Configuration.Language.SeriesTitleLanguageOrder.ToArray();
@@ -86,13 +83,6 @@ public class SettingsProvider : ISettingsProvider, IDisposable
             _seriesTitleLanguageOrder = eventArgs.Configuration.Language.SeriesTitleLanguageOrder.ToArray();
             Languages.PreferredNamingLanguages = [];
             ISystemService.StaticServices.GetRequiredService<IFuzzySearchService>().InvalidateCache();
-
-            // Reset all preferred titles when the language setting has been updated.
-            var animeSeriesRepository = ISystemService.StaticServices.GetRequiredService<AnimeSeriesRepository>();
-            var anidbAnimeRepository = ISystemService.StaticServices.GetRequiredService<AniDB_AnimeRepository>();
-            Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => { series.ResetPreferredTitle(); _ = series.PreferredTitle; });
-            Parallel.ForEach(anidbAnimeRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, anime => anime.ResetPreferredTitle());
-            shouldRenameAllGroups = true;
         }
 
         if (_episodeTitleLanguageOrder is null)
@@ -113,12 +103,14 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         {
             _descriptionLanguageOrder = eventArgs.Configuration.Language.DescriptionLanguageOrder.ToArray();
             Languages.PreferredDescriptionNamingLanguages = [];
-
-            // Reset all preferred overviews when the language setting has been updated.
-            var animeSeriesRepository = ISystemService.StaticServices.GetRequiredService<AnimeSeriesRepository>();
-            Parallel.ForEach(animeSeriesRepository.GetAll(), new() { MaxDegreeOfParallelism = 10 }, series => { series.ResetPreferredOverview(); _ = series.PreferredOverview; });
-            shouldRenameAllGroups = true;
         }
+
+        // The text manager's remembered choices were made with the old language settings. This runs
+        // after the language lists above are reset, so none is worked out again with the old lists.
+        var languageSettings = JsonConvert.SerializeObject(eventArgs.Configuration.Language);
+        if (_languageSettings is not null && _languageSettings != languageSettings)
+            MetadataTextManager.OnLanguageSettingsChanged();
+        _languageSettings = languageSettings;
 
         // Track AniDB character image download setting and react to changes.
         if (_downloadCharacters is null)
@@ -128,7 +120,7 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         else if (_ready && _downloadCharacters != eventArgs.Configuration.AniDb.DownloadCharacters)
         {
             _downloadCharacters = eventArgs.Configuration.AniDb.DownloadCharacters;
-            var characterXrefs = RepoFactory.ShokoImage_Entity.GetByEntity(DataSource.AniDB, DataEntityType.Character);
+            var characterXrefs = RepoFactory.ShokoImage_Entity.GetByEntity(MetadataSource.AniDB, MetadataEntityType.Character);
             foreach (var xref in characterXrefs)
             {
                 if (xref.Update(new ImageCrossReferenceUpdateData { IsDesired = _downloadCharacters.Value }, entity: null))
@@ -144,18 +136,12 @@ public class SettingsProvider : ISettingsProvider, IDisposable
         else if (_ready && _downloadCreators != eventArgs.Configuration.AniDb.DownloadCreators)
         {
             _downloadCreators = eventArgs.Configuration.AniDb.DownloadCreators;
-            var creatorXrefs = RepoFactory.ShokoImage_Entity.GetByEntity(DataSource.AniDB, DataEntityType.Creator);
+            var creatorXrefs = RepoFactory.ShokoImage_Entity.GetByEntity(MetadataSource.AniDB, MetadataEntityType.Creator);
             foreach (var xref in creatorXrefs)
             {
                 if (xref.Update(new ImageCrossReferenceUpdateData { IsDesired = _downloadCreators.Value }, entity: null))
                     RepoFactory.ShokoImage_Entity.Save(xref);
             }
-        }
-
-        if (shouldRenameAllGroups)
-        {
-            var groupManager = ISystemService.StaticServices.GetRequiredService<IShokoGroupManager>();
-            Task.Factory.StartNew(groupManager.RenameAllGroups, TaskCreationOptions.LongRunning);
         }
     }
 

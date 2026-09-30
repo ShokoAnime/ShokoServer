@@ -1,5 +1,7 @@
 using System;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Filtering.Expressions.Containers;
+using Shoko.Abstractions.Filtering.Expressions.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Info;
@@ -16,11 +18,16 @@ public class HasCharacterWithAppearanceExpression : FilterExpression<bool>, IWit
     /// <inheritdoc/>
     public HasCharacterWithAppearanceExpression() { }
 
-    /// <inheritdoc/>
-    protected string? CharacterID { get; set; }
+    /// <summary>
+    /// The AniDB ID of the character to look for, kept as the parameter.
+    /// </summary>
+    public string? CharacterID { get; set; }
 
-    /// <inheritdoc/>
-    protected CastRoleType Appearance { get; set; }
+    /// <summary>
+    /// How the character has to appear, kept as the second parameter.
+    /// </summary>
+    [JsonConverter(typeof(LenientEnumNewtonsoftJsonConverter))]
+    public CastRoleType Appearance { get; set; }
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the filterable has a character with the specified appearance.";

@@ -67,12 +67,12 @@ public class TreeController(ISettingsProvider settingsProvider,
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/></param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
     /// <param name="randomImages">Randomize images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/Series"), Tags("Group")]
     public ActionResult<List<Series>> GetSeriesInGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool recursive = false,
         [FromQuery] bool includeMissing = true, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupController.GroupNotFound);
@@ -98,11 +98,11 @@ public class TreeController(ISettingsProvider settingsProvider,
     /// </remarks>
     /// <param name="groupID"><see cref="Group"/> ID</param>
     /// <param name="randomImages">Randomize images shown for the <see cref="Series"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <returns></returns>
     [HttpGet("Group/{groupID}/MainSeries"), Tags("Group")]
     public ActionResult<Series> GetMainSeriesInGroup([FromRoute, Range(1, int.MaxValue)] int groupID, [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null)
     {
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupController.GroupNotFound);

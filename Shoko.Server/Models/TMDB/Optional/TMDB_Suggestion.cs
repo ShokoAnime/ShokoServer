@@ -24,7 +24,7 @@ public class TMDB_Suggestion : ISuggestedMetadata
     /// <summary>
     /// Whether both ends are shows or movies.
     /// </summary>
-    public DataEntityType TmdbEntityType { get; set; }
+    public MetadataEntityType TmdbEntityType { get; set; } = null!;
 
     /// <summary>
     /// TMDB ID of the entry being looked at.
@@ -54,21 +54,21 @@ public class TMDB_Suggestion : ISuggestedMetadata
     /// The entry being looked at, if it is in the collection.
     /// </summary>
     /// <returns>The show or movie, or <c>null</c>.</returns>
-    public IMetadata<int>? GetTmdbEntity()
+    public IMetadata? GetTmdbEntity()
         => GetEntity(TmdbEntityID);
 
     /// <summary>
     /// The suggested entry, if it is in the collection.
     /// </summary>
     /// <returns>The show or movie, or <c>null</c>.</returns>
-    public IMetadata<int>? GetSuggestedTmdbEntity()
+    public IMetadata? GetSuggestedTmdbEntity()
         => GetEntity(SuggestedTmdbEntityID);
 
-    private IMetadata<int>? GetEntity(int entityID)
+    private IMetadata? GetEntity(int entityID)
         => TmdbEntityType switch
         {
-            DataEntityType.Show => RepoFactory.TMDB_Show.GetByTmdbShowID(entityID),
-            DataEntityType.Movie => RepoFactory.TMDB_Movie.GetByTmdbMovieID(entityID),
+            _ when TmdbEntityType == MetadataEntityType.Series => RepoFactory.TMDB_Show.GetByTmdbShowID(entityID),
+            _ when TmdbEntityType == MetadataEntityType.Movie => RepoFactory.TMDB_Movie.GetByTmdbMovieID(entityID),
             _ => null,
         };
 
@@ -76,13 +76,13 @@ public class TMDB_Suggestion : ISuggestedMetadata
 
     #region ISuggestedMetadata Implementation
 
-    int ISuggestedMetadata.BaseID => TmdbEntityID;
+    MetadataGuid ISuggestedMetadata.BaseID => new(MetadataSource.TMDB, TmdbEntityType, TmdbEntityID.ToString());
 
-    int ISuggestedMetadata.SuggestedID => SuggestedTmdbEntityID;
+    MetadataGuid ISuggestedMetadata.SuggestedID => new(MetadataSource.TMDB, TmdbEntityType, SuggestedTmdbEntityID.ToString());
 
-    IMetadata<int>? ISuggestedMetadata.Base => GetTmdbEntity();
+    IMetadata? ISuggestedMetadata.Base => GetTmdbEntity();
 
-    IMetadata<int>? ISuggestedMetadata.Suggested => GetSuggestedTmdbEntity();
+    IMetadata? ISuggestedMetadata.Suggested => GetSuggestedTmdbEntity();
 
     SuggestionKind ISuggestedMetadata.Kind => Kind;
 
@@ -93,11 +93,11 @@ public class TMDB_Suggestion : ISuggestedMetadata
 
     int? ISuggestedMetadata.Votes => null;
 
-    DataSource ISuggestedMetadata.Source => DataSource.TMDB;
+    MetadataSource ISuggestedMetadata.Source => MetadataSource.TMDB;
 
     public bool Equals(ISuggestedMetadata? other)
-        => other is not null && other.Source is DataSource.TMDB && other.Kind == Kind &&
-            other.BaseID == TmdbEntityID && other.SuggestedID == SuggestedTmdbEntityID;
+        => other is not null && other.Source == MetadataSource.TMDB && other.Kind == Kind &&
+            other.BaseID == ((ISuggestedMetadata)this).BaseID && other.SuggestedID == ((ISuggestedMetadata)this).SuggestedID;
 
     #endregion
 }

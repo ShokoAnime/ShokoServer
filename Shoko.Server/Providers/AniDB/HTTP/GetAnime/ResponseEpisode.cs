@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Enums;
 
@@ -27,4 +27,9 @@ public class ResponseEpisode
     public DateTime LastUpdated { get; set; }
 
     public List<ResponseTitle> Titles = new();
+
+    /// <summary>
+    ///   The episode's own resources, in AniDB's order.
+    /// </summary>
+    public List<ResponseResource> Resources { get; set; } = [];
 }

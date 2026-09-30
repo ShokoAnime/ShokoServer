@@ -1,4 +1,4 @@
-﻿using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 
@@ -22,9 +22,6 @@ public class ResponseAnime
     public int AvgReviewRating { get; set; }
     public int ReviewCount { get; set; }
     public bool IsRestricted { get; set; }
-    public int AnimePlanetID { get; set; }
-    public int ANNID { get; set; }
-    public int AllCinemaID { get; set; }
 
     public AnimeType AnimeType { get; set; }
 }

@@ -1,29 +1,36 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.AniDB.Embedded;
+using Shoko.Server.Models.CrossReference.Embedded;
+using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
 
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
+#pragma warning disable CS0618
 namespace Shoko.Server.Models.AniDB;
 
-public class AniDB_Episode : IEpisode, IAnidbEpisode
+public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 {
     #region DB columns
 
@@ -53,68 +60,59 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
 
     public DateTime DateTimeUpdated { get; set; }
 
+    /// <summary>
+    ///   Whether a user hid the episode. Set through
+    ///   <see cref="IMetadataOrderingService.SetEpisodeHidden"/>.
+    /// </summary>
+    public bool IsHidden { get; set; }
+
     #endregion
 
     public TimeSpan Runtime => TimeSpan.FromSeconds(LengthSeconds);
 
     public string Title => (PreferredTitle ?? DefaultTitle).Value;
 
-    private ITitle? _defaultTitle;
-
+    /// <summary>
+    ///   The episode's default title: its first English title, else AniDB's
+    ///   generic one, <c>Episode {prefix}{number}</c>, which is not stored.
+    /// </summary>
     public ITitle DefaultTitle
-    {
-        get
-        {
-            if (_defaultTitle is not null)
-                return _defaultTitle;
+        => GetTitles(TitleLanguage.English).FirstOrDefault() ?? AnidbText.GenericEnglishTitle(EpisodeType, EpisodeNumber);
 
-            lock (this)
-            {
-                if (_defaultTitle is not null)
-                    return _defaultTitle;
+    /// <summary>
+    ///   The episode's English title, as AniDB names it: its first English
+    ///   title, else AniDB's generic one.
+    /// </summary>
+    public string EnglishTitle => DefaultTitle.Value;
 
-                // Fallback to English if available.
-                if (RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(AniDB_EpisodeID, TitleLanguage.English) is { Count: > 0 } titles)
-                    return _defaultTitle = titles[0];
-
-                return _defaultTitle = new TitleStub
-                {
-                    Language = TitleLanguage.Unknown,
-                    LanguageCode = "unk",
-                    Value = $"<AniDB Episode {AniDB_EpisodeID}>",
-                    Source = DataSource.None,
-                };
-            }
-        }
-    }
-
-    public void ResetDefaultTitle() => _defaultTitle = null;
-
+    /// <summary>
+    ///   The title the user's picks and language settings choose for the
+    ///   episode, or <c>null</c> when none is picked or in a preferred language.
+    /// </summary>
     public ITitle? PreferredTitle => GetPreferredTitle(false);
 
+    /// <summary>
+    ///   The title the user's picks and language settings choose for the
+    ///   episode.
+    /// </summary>
+    /// <param name="useFallback">Whether to fall back to the default title.</param>
+    /// <returns>The title, or <c>null</c> when none is chosen and there is no fallback.</returns>
     public ITitle? GetPreferredTitle(bool useFallback)
-    {
-        // Try finding one of the preferred languages.
-        foreach (var language in Languages.PreferredEpisodeNamingLanguages)
-        {
-            if (language.Language == TitleLanguage.Main)
-                return DefaultTitle;
-
-            var title = RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(EpisodeID, language.Language)
-                .FirstOrDefault();
-            if (title is not null)
-                return title;
-        }
-
-        // Fallback to English if available.
-        return useFallback ? DefaultTitle : null;
-    }
+        => AnidbText.Present(TextAccess.Manager.PreferredTitleFor(this)) ?? (useFallback ? DefaultTitle : null);
 
     public DateTime? GetAirDateAsDate() => AniDBExtensions.GetAniDBDateAsDate(AirDate);
 
     public DateOnly? GetAirDateAsDateOnly() => AniDBExtensions.GetAniDBDateAsDateOnly(AirDate);
 
     public PartialDateOnly? GetAirDateAsPartialDateOnly() => AniDBExtensions.GetAniDBDateAsPartialDateOnly(AirDate);
+
+    /// <summary>
+    ///   The date of the episode's regular broadcast, for matching it against
+    ///   other sources: the stored date, unless the note in the anime's
+    ///   description moves the episode from an early showing onto the regular
+    ///   run.
+    /// </summary>
+    public DateOnly? RegularAirDate => AniDB_Anime?.GetRegularAirDate(this) ?? GetAirDateAsDateOnly();
 
     public bool HasAired
     {
@@ -128,9 +126,17 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
         }
     }
 
-    public IReadOnlyList<AniDB_Episode_Title> GetTitles(TitleLanguage? language = null) => language.HasValue
-        ? RepoFactory.AniDB_Episode_Title.GetByEpisodeIDAndLanguage(EpisodeID, language.Value)
-        : RepoFactory.AniDB_Episode_Title.GetByEpisodeID(EpisodeID);
+    /// <summary>
+    ///   The titles AniDB gave the episode, in AniDB's own order,
+    ///   without its generic title with its own number.
+    /// </summary>
+    /// <param name="language">Optional. Only the titles in this language.</param>
+    /// <returns>The titles.</returns>
+    public IReadOnlyList<ITitle> GetTitles(TitleLanguage? language = null)
+    {
+        var titles = AnidbText.Present(TextAccess.Manager.OwnTitlesOf(this));
+        return language is { } wanted ? [.. titles.Where(title => title.Language == wanted)] : titles;
+    }
 
     #region Shoko
 
@@ -170,49 +176,40 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Episode;
+    MetadataGuid IMetadata.ID => new(MetadataSource.AniDB, MetadataEntityType.Episode, EpisodeID.ToString());
 
-    DataSource IMetadata.Source => DataSource.AniDB;
-
-    int IMetadata<int>.ID => EpisodeID;
+    int IAnidbEpisode.AnidbID => EpisodeID;
 
     #endregion
 
     #region IWithTitles Implementation
 
-    IReadOnlyList<ITitle> IWithTitles.Titles => GetTitles();
+    IReadOnlyList<ITitle> IWithTitles.Titles => AnidbText.Present(TextAccess.Manager.ListTitles(this));
+
+    #endregion
+
+    #region IInlineTextSource Implementation
+
+    ITitle? IInlineTextSource.InlineTitle => null;
+
+    IText? IInlineTextSource.InlineOverview => InlineText.Overview(MetadataSource.AniDB, Description, TitleLanguage.English, "en");
 
     #endregion
 
     #region IWithDescription Implementation
 
-    IText? IWithDescriptions.DefaultDescription => Description is { Length: > 0 }
-        ? new TextStub
-        {
-            Language = TitleLanguage.English,
-            LanguageCode = "en",
-            Value = Description,
-            Source = DataSource.AniDB,
-        }
-        : null;
+    IText? IWithOverviews.DefaultOverview => TextAccess.Manager.DefaultOverviewFor(this);
 
-    IText? IWithDescriptions.PreferredDescription => Description is { Length: > 0 } && ISettingsProvider.Instance.GetSettings().Language.DescriptionLanguageOrder.Contains("en")
-        ? new TextStub
-        {
-            Language = TitleLanguage.English,
-            LanguageCode = "en",
-            Value = Description,
-            Source = DataSource.AniDB,
-        }
-        : null;
+    IText? IWithOverviews.PreferredOverview => TextAccess.Manager.PreferredOverviewFor(this);
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => [
-        new TextStub
+    // A missing description is still listed, empty, as it always was.
+    IReadOnlyList<IText> IWithOverviews.Overviews => [
+        ((IInlineTextSource)this).InlineOverview ?? new TextStub
         {
             Language = TitleLanguage.English,
             LanguageCode = "en",
             Value = Description,
-            Source = DataSource.AniDB,
+            Source = MetadataSource.AniDB,
         },
     ];
 
@@ -257,13 +254,50 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
 
     #endregion
 
+    #region IWithResources Implementation
+
+    IReadOnlyList<Resource> IWithResources.Resources
+        => [.. GetAnidbResources(), .. ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this)];
+
+    /// <summary>
+    ///   Every resource AniDB lists for the episode, in AniDB's order.
+    /// </summary>
+    /// <returns>The episode's own links.</returns>
+    public List<Resource> GetAnidbResources()
+        => AnidbResourceLinks.ToResources(RepoFactory.AniDB_Resource.GetByEpisodeID(EpisodeID));
+
+    #endregion
+
+    #region IWithCrossSources Implementation
+
+    IReadOnlyList<MetadataGuid> IWithCrossSources.CrossSourceIDs => [];
+
+    #endregion
+
     #region IEpisode Implementation
 
-    int IEpisode.SeriesID => AnimeID;
+    IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings => OrderingLookup.For(this);
+
+    IEpisodeOrderingInformation? IEpisode.PreferredOrdering => OrderingLookup.PreferredFor(this);
+
+    IReadOnlyList<IMetadataEpisodeCrossReference> IEpisode.MetadataEpisodeCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetEpisodeCrossReferences(EpisodeID) ?? [];
+
+    IReadOnlyList<IMetadataSeriesCrossReference> IEpisode.MetadataSeriesCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeriesCrossReferences(AnimeID) ?? [];
+
+    IReadOnlyList<IMetadataMovieCrossReference> IEpisode.MetadataMovieCrossReferences =>
+        ISystemService.StaticServices.GetService<IMetadataService>()?.GetMovieCrossReferences(EpisodeID) ?? [];
+
+    int IAnidbEpisode.AnidbAnimeID => AnimeID;
 
     EpisodeType IEpisode.Type => EpisodeType;
 
     int? IEpisode.SeasonNumber => EpisodeType switch { EpisodeType.Episode => 1, EpisodeType.Special => 0, _ => null };
+
+    MetadataGuid? IEpisode.SeasonID => ((IEpisode)this).SeasonNumber is { } seasonNumber
+        ? new(MetadataSource.AniDB, MetadataEntityType.Season, AniDB_Season.GetID(AnimeID, EpisodeType, seasonNumber))
+        : null;
 
     double IEpisode.Rating => RatingDouble;
 
@@ -277,7 +311,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => AnimeEpisode is IShokoEpisode shokoEpisode ? [shokoEpisode] : [];
 
-    IReadOnlyList<IVideoCrossReference> IEpisode.CrossReferences =>
+    IReadOnlyList<IVideoCrossReference> IEpisode.VideoCrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByEpisodeID(EpisodeID);
 
     IReadOnlyList<IVideo> IEpisode.Videos =>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Metadata.Events;
 
@@ -44,4 +45,10 @@ public class SeriesInfoUpdatedEventArgs : EventArgs
         Seasons = seasons?.ToList() ?? [];
         Episodes = episodes?.ToList() ?? [];
     }
+
+    /// <summary>
+    ///   The API token of whoever caused the update, or <see langword="null"/>
+    ///   when the system did it. Stamped when the event is raised.
+    /// </summary>
+    public ApiToken? Actor { get; init; }
 }

@@ -48,11 +48,14 @@ public class SeriesRelation
     public SeriesRelation(IRelatedMetadata relation, IShokoSeries? series = null,
         IShokoSeries? relatedSeries = null)
     {
-        series ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.BaseID);
-        relatedSeries ??= RepoFactory.AnimeSeries.GetByAnimeID(relation.RelatedID);
+        // AniDB relations only, so both ends are AniDB anime IDs.
+        var baseID = relation.BaseID.GetNumericID<int>();
+        var relatedID = relation.RelatedID.GetNumericID<int>();
+        series ??= RepoFactory.AnimeSeries.GetByAnimeID(baseID);
+        relatedSeries ??= RepoFactory.AnimeSeries.GetByAnimeID(relatedID);
 
-        IDs = new RelationIDs { AniDB = relation.BaseID, Shoko = series?.ID };
-        RelatedIDs = new RelationIDs { AniDB = relation.RelatedID, Shoko = relatedSeries?.ID };
+        IDs = new RelationIDs { AniDB = baseID, Shoko = series?.LocalID };
+        RelatedIDs = new RelationIDs { AniDB = relatedID, Shoko = relatedSeries?.LocalID };
         Type = relation.RelationType;
         Source = "AniDB";
         Verified = relation.Verified;

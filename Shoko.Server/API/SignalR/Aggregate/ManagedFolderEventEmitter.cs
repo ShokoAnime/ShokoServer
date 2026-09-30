@@ -9,6 +9,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class ManagedFolderEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "managedfolder";
+
     private readonly IVideoService _userService;
 
     private readonly ILogger<ManagedFolderEventEmitter> _logger;

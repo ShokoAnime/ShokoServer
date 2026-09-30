@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Globalization;
 using Shoko.Abstractions.Metadata.Enums;
@@ -287,7 +287,8 @@ public static class LanguageExtensions
 
     private static TitleLanguage ReportAndReturnUnknown(string lang)
     {
-        if (!string.IsNullOrWhiteSpace(lang) && !lang.Equals("unk", StringComparison.OrdinalIgnoreCase) && _reportedUnknowns.TryAdd(lang, 0))
+        // "unk", "x-unk" and "x-other" are known to mean an unknown language, so they are not reported.
+        if (!string.IsNullOrWhiteSpace(lang) && lang.ToUpperInvariant() is not ("UNK" or "X-UNK" or "X-OTHER") && _reportedUnknowns.TryAdd(lang, 0))
             OnUnknownLanguage?.Invoke(lang);
         return TitleLanguage.Unknown;
     }

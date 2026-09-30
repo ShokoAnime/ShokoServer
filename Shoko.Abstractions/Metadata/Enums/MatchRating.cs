@@ -5,8 +5,14 @@ using Newtonsoft.Json.Converters;
 namespace Shoko.Abstractions.Metadata.Enums;
 
 /// <summary>
-///   Match rating.
+///   How a match was arrived at.
 /// </summary>
+/// <remarks>
+///   The values are storage ids, assigned as members were added and once
+///   remapped, so they do not rank anything: a higher number is not a worse
+///   match. To sort or group by how much to trust a match, use
+///   <c>Score</c> or <c>Confidence</c>.
+/// </remarks>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 [Newtonsoft.Json.JsonConverter(typeof(StringEnumConverter))]
 public enum MatchRating : byte
@@ -50,7 +56,10 @@ public enum MatchRating : byte
     TitleKindaMatches = 7,
 
     /// <summary>
-    ///   Date and Title are close, but not exact.
+    ///   The date matched and a title search agreed with it, the title being
+    ///   close rather than exact. An upgrade of both
+    ///   <see cref="DateMatches"/> and <see cref="TitleKindaMatches"/>, not a
+    ///   weaker form of <see cref="DateAndTitleMatches"/>.
     /// </summary>
     DateAndTitleKindaMatches = 8,
 

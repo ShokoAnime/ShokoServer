@@ -20,7 +20,7 @@ public interface IGroupUserData : IUserData
     ///   Indicates that the group has been watched to completion at least once
     ///   by the user.
     /// </summary>
-    bool IsWatched => UnwatchedEpisodeCount is 0;
+    bool IsWatched { get => UnwatchedEpisodeCount is 0; }
 
     /// <summary>
     ///   The number of episodes that have not been watched to completion.

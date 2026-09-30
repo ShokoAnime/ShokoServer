@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -26,18 +25,19 @@ public interface IImageManager
     #region Image Sources
 
     /// <summary>
-    ///   Gets the currently registered template URLs across all the available
-    ///   image sources.
+    ///   Gets the template URL in effect for every image source that is not
+    ///   local: the user's own where one is set, else the default the core or
+    ///   a plugin registered, else <c>null</c>.
     /// </summary>
     /// <returns>
     ///   A dictionary mapping image source to template URL.
     /// </returns>
-    IReadOnlyDictionary<DataSource, string?> GetTemplateUrls();
+    IReadOnlyDictionary<MetadataSource, string?> GetTemplateUrls();
 
     /// <summary>
-    ///   Gets the template URL for the image source, if set and available.
-    ///   Replace <c>{0}</c> with the <see cref="IImage.ResourceID"/> before
-    ///   use.
+    ///   Gets the template URL in effect for the image source: the user's own
+    ///   where one is set, else the registered default. Replace <c>{0}</c>
+    ///   with the <see cref="IImage.ResourceID"/> before use.
     /// </summary>
     /// <param name="imageSource">
     ///   The image source.
@@ -45,54 +45,68 @@ public interface IImageManager
     /// <returns>
     ///   The template url if set and available, otherwise <c>null</c>.
     /// </returns>
-    string? GetTemplateUrlForSource(DataSource imageSource);
+    string? GetTemplateUrlForSource(MetadataSource imageSource);
 
     /// <summary>
-    ///   Sets the template URL for an image source. The template must be a
-    ///   valid <c>http://</c> or <c>https://</c> URL by itself and contain
-    ///   <c>{0}</c>.
+    ///   Registers the default template URL for a plugin's image source, which
+    ///   is used whenever the user has not set one of their own.
     /// </summary>
     /// <remarks>
-    ///   Template URLs are seeded for <see cref="DataSource.AniDB"/>,
-    ///   <see cref="DataSource.TMDB"/> and <see cref="DataSource.AniList"/>.
-    ///   Every other source has none until this is called, and
-    ///   <see cref="AddImage"/> throws
-    ///   <see cref="MissingImageSourceTemplateUrlException"/> for each of its
-    ///   images meanwhile, so a plugin contributing images under a source of
-    ///   its own registers one before adding the first image. The value is
-    ///   persisted in the server's configuration and is the user's to change
-    ///   afterwards, so check <see cref="GetTemplateUrlForSource"/> first and
-    ///   set it only when there is none.
+    ///   Kept in memory only, so register it on every start, before the first
+    ///   <see cref="AddImage"/> for the source. Registering again replaces the
+    ///   default. It never touches the user's setting, which
+    ///   <see cref="SetTemplateUrlForSource"/> manages.
+    /// </remarks>
+    /// <param name="imageSource">
+    ///   The image source. Must not be a core source, such as
+    ///   <see cref="MetadataSource.AniDB"/> or <see cref="MetadataSource.TMDB"/>,
+    ///   whose defaults the core keeps itself.
+    /// </param>
+    /// <param name="templateUrl">
+    ///   The default template URL. Must be a valid URL starting with
+    ///   <c>http://</c> or <c>https://</c> and contain <c>{0}</c>.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when either argument is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   Thrown when the URL does not use the <c>http://</c> or <c>https://</c>
+    ///   protocol, or it does not include the <c>{0}</c> template
+    ///   substitution target.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when <paramref name="imageSource"/> is a core source.
+    /// </exception>
+    void RegisterTemplateUrl(MetadataSource imageSource, string templateUrl);
+
+    /// <summary>
+    ///   Sets or clears the user's own template URL for an image source, which
+    ///   overrides the registered default.
+    /// </summary>
+    /// <remarks>
+    ///   The user's setting, saved in the server's configuration. A plugin
+    ///   registers its default with <see cref="RegisterTemplateUrl"/> instead.
     /// </remarks>
     /// <param name="imageSource">
     ///   The image source.
     /// </param>
     /// <param name="templateUrl">
-    ///   The template URL to set. If this is <c>null</c>, the template URL will
-    ///   be removed. Must be a valid URL starting with <c>http://</c> or
-    ///   <c>https://</c> and contain <c>{0}</c> to be replaced.
+    ///   The template URL to set. If this is <c>null</c>, the user's template
+    ///   is removed and the source goes back to its default. Must be a valid
+    ///   URL starting with <c>http://</c> or <c>https://</c> and contain
+    ///   <c>{0}</c> to be replaced.
     /// </param>
     /// <exception cref="ArgumentException">
     ///   Thrown when the URL does not use the <c>http://</c> or <c>https://</c>
     ///   protocol, or it does not include the <c>{0}</c> template
     ///   substitution target.
-    /// </exception> 
-    /// <exception cref="InvalidOperationException">
-    ///   Thrown when attempting to set or unset a URL for a data source which
-    ///   is unsupported, such as <see cref="DataSource.User"/>,
-    ///   <see cref="DataSource.None"/> or <see cref="DataSource.Shoko"/>.
     /// </exception>
-    void SetTemplateUrlForSource(DataSource imageSource, string? templateUrl);
-
-    #endregion
-
-    #region Image Cross Reference Resolvers
-
-    /// <summary>
-    ///   Gets a read-only list of the image cross-reference resolvers
-    ///   registered with the service.
-    /// </summary>
-    IReadOnlyList<IImageCrossReferenceResolver> ImageCrossReferenceResolvers { get; }
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when attempting to set or unset a URL for a metadata source which
+    ///   is local, such as <see cref="MetadataSource.User"/> or
+    ///   <see cref="MetadataSource.Shoko"/>.
+    /// </exception>
+    void SetTemplateUrlForSource(MetadataSource imageSource, string? templateUrl);
 
     #endregion
 
@@ -137,6 +151,12 @@ public interface IImageManager
     ///   Get all images associated with the specified entity, optionally
     ///   filtered using the specified <paramref name="options"/> options.
     /// </summary>
+    /// <remarks>
+    ///   With the linked entries' images included, the entity's own
+    ///   cross-references come first, and <see cref="IImage.IsPreferred"/> is
+    ///   only set through them; an image preferred on a linked entry is what
+    ///   the entity inherits while it has no preferred image of its own.
+    /// </remarks>
     /// <param name="entity">
     ///   The entity to get images for.
     /// </param>
@@ -203,7 +223,7 @@ public interface IImageManager
     /// <returns>
     ///   The image if found, otherwise <c>null</c>.
     /// </returns>
-    IImage? GetImageBySourceAndRemoteResourceID(DataSource source, string resourceID, bool primaryImage = false);
+    IImage? GetImageBySourceAndRemoteResourceID(MetadataSource source, string resourceID, bool primaryImage = false);
 
     /// <summary>
     ///   Get the first available shoko series for an image, if any. This is
@@ -231,13 +251,11 @@ public interface IImageManager
     ///   Add a new image from provider data.
     /// </summary>
     /// <remarks>
-    ///   The image's source needs a template URL, which is seeded for
-    ///   <see cref="DataSource.AniDB"/>, <see cref="DataSource.TMDB"/> and
-    ///   <see cref="DataSource.AniList"/> and registered with
-    ///   <see cref="SetTemplateUrlForSource"/> for any other source. The
-    ///   image's <see cref="IImage.ResourceID"/> is what completes that
-    ///   template, so it is the remainder of the remote URL and fits in 128
-    ///   characters.
+    ///   The image's source needs a template URL: the core keeps AniDB's and
+    ///   TMDB's, and a plugin registers its own with
+    ///   <see cref="RegisterTemplateUrl"/>. The image's
+    ///   <see cref="IImage.ResourceID"/> completes that template, so it is the
+    ///   rest of the remote URL and fits in 128 characters.
     /// </remarks>
     /// <param name="imageData">
     ///   The image data containing metadata from the provider.
@@ -260,7 +278,10 @@ public interface IImageManager
     IImage AddImage(ImageData imageData);
 
     /// <summary>
-    ///   Upload a new user submitted image from a stream.
+    ///   Upload a new user submitted image from a stream. The same as
+    ///   <see cref="UploadImage(Stream, string?, MetadataSource)"/> with
+    ///   <see cref="MetadataSource.User"/>, or with
+    ///   <see cref="MetadataSource.Generated"/> when not user submitted.
     /// </summary>
     /// <param name="imageStream">
     ///   A stream containing the image data. May be data URL encoded w/content
@@ -293,7 +314,10 @@ public interface IImageManager
     IImage UploadImage(Stream imageStream, string? contentType = null, bool userSubmitted = true);
 
     /// <summary>
-    ///   Upload a new user submitted image from a byte array.
+    ///   Upload a new user submitted image from a byte array. The same as
+    ///   <see cref="UploadImage(byte[], string?, MetadataSource)"/> with
+    ///   <see cref="MetadataSource.User"/>, or with
+    ///   <see cref="MetadataSource.Generated"/> when not user submitted.
     /// </summary>
     /// <param name="imageByteArray">
     ///   The image data as a byte array. May be data URL encoded w/content type
@@ -324,6 +348,78 @@ public interface IImageManager
     ///   The newly created image.
     /// </returns>
     IImage UploadImage(byte[] imageByteArray, string? contentType = null, bool userSubmitted = true);
+
+    /// <summary>
+    ///   Upload a new image from a stream under a local source, such as a
+    ///   plugin's own source registered as local. Uploading the same image
+    ///   under the same source again gives back the image already stored.
+    /// </summary>
+    /// <param name="imageStream">
+    ///   A stream containing the image data. May be data URL encoded w/content
+    ///   type embedded.
+    /// </param>
+    /// <param name="contentType">
+    ///   The MIME type of the image (e.g., <c>"image/jpeg"</c>), checked
+    ///   against the detected type, or <c>null</c> to go by the detected
+    ///   type alone.
+    /// </param>
+    /// <param name="source">
+    ///   The registered local source to keep the image under, e.g.
+    ///   <see cref="MetadataSource.User"/>,
+    ///   <see cref="MetadataSource.Generated"/> or a plugin's own.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    ///   Thrown when the source is not a registered local source, the image
+    ///   stream is empty, the content type is invalid, or the image data is
+    ///   not a valid image.
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the image stream or the source is <c>null</c>.
+    /// </exception>
+    /// <exception cref="UnsupportedImageTypeException">
+    ///   Thrown when the content type or detected image format is not in the
+    ///   allowed image types list.
+    /// </exception>
+    /// <returns>
+    ///   The newly created image, or the one already stored.
+    /// </returns>
+    IImage UploadImage(Stream imageStream, string? contentType, MetadataSource source);
+
+    /// <summary>
+    ///   Upload a new image from a byte array under a local source, such as a
+    ///   plugin's own source registered as local. Uploading the same image
+    ///   under the same source again gives back the image already stored.
+    /// </summary>
+    /// <param name="imageByteArray">
+    ///   The image data as a byte array. May be data URL encoded w/content type
+    ///   embedded.
+    /// </param>
+    /// <param name="contentType">
+    ///   The MIME type of the image (e.g., <c>"image/jpeg"</c>), checked
+    ///   against the detected type, or <c>null</c> to go by the detected
+    ///   type alone.
+    /// </param>
+    /// <param name="source">
+    ///   The registered local source to keep the image under, e.g.
+    ///   <see cref="MetadataSource.User"/>,
+    ///   <see cref="MetadataSource.Generated"/> or a plugin's own.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    ///   Thrown when the source is not a registered local source, the image
+    ///   byte array is empty, the content type is invalid, or the image data
+    ///   is not a valid image.
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when the image byte array or the source is <c>null</c>.
+    /// </exception>
+    /// <exception cref="UnsupportedImageTypeException">
+    ///   Thrown when the content type or detected image format is not in the
+    ///   allowed image types list.
+    /// </exception>
+    /// <returns>
+    ///   The newly created image, or the one already stored.
+    /// </returns>
+    IImage UploadImage(byte[] imageByteArray, string? contentType, MetadataSource source);
 
     #endregion
 
@@ -462,9 +558,9 @@ public interface IImageManager
     /// </param>
     Task ScheduleAutoDownloadsForEntity(
         IWithImages entity,
-        DataSource? imageSource = null,
+        MetadataSource? imageSource = null,
         ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
+        MetadataSource? xrefSource = null,
         bool force = false
     );
 
@@ -491,9 +587,9 @@ public interface IImageManager
     ///   already exists locally.
     /// </param>
     Task ScheduleAllAutoDownloads(
-        DataSource? imageSource = null,
+        MetadataSource? imageSource = null,
         ImageEntityType? imageType = null,
-        DataSource? xrefSource = null,
+        MetadataSource? xrefSource = null,
         bool force = false
     );
 
@@ -517,27 +613,27 @@ public interface IImageManager
     /// <returns>
     ///   An enumerable of orphaned images matching the filter criteria.
     /// </returns>
-    IEnumerable<IImage> GetOrphanedImages(int daysOld = 7, DataSource? imageSource = null);
+    IEnumerable<IImage> GetOrphanedImages(int daysOld = 7, MetadataSource? imageSource = null);
 
     /// <summary>
-    ///   Attempts to purge an image from disk if it is no longer linked to any
-    ///   cross-references.
+    ///   Purges an image: removes its cross-references, the image itself and
+    ///   the file held for it on disk, so adding it again fetches a new copy.
     /// </summary>
     /// <param name="image">
-    ///   The image to attempt to purge.
+    ///   The image to purge.
     /// </param>
     /// <returns>
-    ///   <c>true</c> if the image was purged, <c>false</c> if it could not be
-    ///   purged.
+    ///   <c>true</c> if anything was removed, <c>false</c> if nothing was
+    ///   left to remove.
     /// </returns>
     Task<bool> PurgeImage(IImage image);
 
     /// <summary>
-    ///   Schedule a background job to attempt to purge an image from disk if it
-    ///   is no longer linked to any cross-references.
+    ///   Schedule a background job to purge an image, as
+    ///   <see cref="PurgeImage(IImage)"/> does.
     /// </summary>
     /// <param name="image">
-    ///   The image to attempt to purge.
+    ///   The image to purge.
     /// </param>
     Task SchedulePurgeOfImage(IImage image);
 
@@ -558,7 +654,7 @@ public interface IImageManager
     /// <returns>
     ///   The number of images that were purged.
     /// </returns>
-    Task<int> PurgeOrphanedImages(int daysOld = 7, DataSource? imageSource = null);
+    Task<int> PurgeOrphanedImages(int daysOld = 7, MetadataSource? imageSource = null);
 
     /// <summary>
     ///   Schedule a background job to check for broken cross-references and
@@ -573,7 +669,7 @@ public interface IImageManager
     ///   Optional. Filter to a specific image source. If set to <c>null</c>,
     ///   purges all available images regardless of image source.
     /// </param>
-    Task SchedulePurgeOfOrphanedImages(int daysOld = 7, DataSource? imageSource = null);
+    Task SchedulePurgeOfOrphanedImages(int daysOld = 7, MetadataSource? imageSource = null);
 
     /// <summary>
     ///   Validate local image cache integrity. Invalid images that are both
@@ -660,7 +756,7 @@ public interface IImageManager
     ///   A random matching cross-reference, or <c>null</c> if none found.
     /// </returns>
     IImageCrossReference? GetRandomImageCrossReference(
-        DataSource imageSource,
+        MetadataSource imageSource,
         ImageEntityType imageType,
         RandomImageCrossReferenceFilteringOptions? options = null
     );
@@ -700,6 +796,9 @@ public interface IImageManager
     /// <param name="imageCrossReferenceData">
     ///   The cross-reference data defining the relationship between the two.
     /// </param>
+    /// <exception cref="ArgumentException">
+    ///   Thrown when the <paramref name="image"/> is not stored.
+    /// </exception>
     /// <exception cref="ImageCrossReferenceExistsException">
     ///   Thrown when attempting to add a cross-reference for an image and
     ///   entity when one already exists.
@@ -719,6 +818,11 @@ public interface IImageManager
     ///   of the same type for the entity. Will add the cross-reference if it
     ///   doesn't already exist.
     /// </summary>
+    /// <remarks>
+    ///   Always writes the entity's own cross-reference, adding one when the
+    ///   image only comes through a linked entry, so a linked entry shared
+    ///   with others is never changed.
+    /// </remarks>
     /// <param name="entity">
     ///   The entity to set the preferred image for.
     /// </param>
@@ -815,7 +919,8 @@ public interface IImageManager
     public static Guid ImageIdentifierNamespace { get; private set; } = UuidUtility.GetV5("ImageIdentifierNamespace", UuidUtility.PublicUuidNamespaces.OID);
 
     /// <summary>
-    ///   Get the ID for the given source and resource identifier.
+    ///   Get the ID for the given source and resource identifier, hashed from
+    ///   the source's value and the resource identifier.
     /// </summary>
     /// <param name="imageSource">
     ///   The image source (e.g. AniDB, TMDB, AniList, User, etc.).
@@ -823,47 +928,9 @@ public interface IImageManager
     /// <param name="resourceID">
     ///   The remote resource identifier relative to the source.
     /// </param>
-    /// <returns></returns>
-    public static Guid GetIDForImageSourceAndResourceID(DataSource imageSource, string resourceID)
-        => UuidUtility.GetV5($"ImageSource={imageSource},ResourceID={resourceID}", ImageIdentifierNamespace);
-
-    /// <summary>
-    ///   Try to get the ID and other metadata for the given entity.
-    /// </summary>
-    /// <param name="entity">
-    ///   The entity to get the ID and other metadata for.
-    /// </param>
-    /// <param name="entitySource">
-    ///   The source of the entity.
-    /// </param>
-    /// <param name="entityType">
-    ///   The type of the entity.
-    /// </param>
-    /// <param name="entityID">
-    ///   The ID of the entity.
-    /// </param>
-    /// <param name="entitySeasonNumber">
-    ///   The season number of the entity, if applicable.
-    /// </param>
-    /// <param name="entityEpisodeNumber">
-    ///   The episode number of the entity, if applicable.
-    /// </param>
-    /// <param name="releasedAt">
-    ///   The release date of the entity, if applicable.
-    /// </param>
-    /// <returns>
-    ///   <c>true</c> if the ID and other metadata was found, otherwise
-    ///   <c>false</c>.
-    /// </returns>
-    bool TryGetMetadataForEntity(
-        IWithImages entity,
-        out DataSource entitySource,
-        out DataEntityType entityType,
-        [NotNullWhen(true)] out string? entityID,
-        out int? entitySeasonNumber,
-        out int? entityEpisodeNumber,
-        out DateOnly? releasedAt
-    );
+    /// <returns>The image ID.</returns>
+    public static Guid GetIDForImageSourceAndResourceID(MetadataSource imageSource, string resourceID)
+        => UuidUtility.GetV5($"ImageSource={imageSource.Value},ResourceID={resourceID}", ImageIdentifierNamespace);
 
     /// <summary>
     ///   Check if the given cross-reference is linked to the given entity.
@@ -881,24 +948,19 @@ public interface IImageManager
     bool IsLinkedCrossReference(IWithImages entity, IImageCrossReference xref);
 
     /// <summary>
-    ///   Resolve an entity from its source, type, and stringified identifier.
-    ///   This is the inverse of <see cref="TryGetMetadataForEntity"/> and is
-    ///   useful for looking up entities when only their metadata triplet is
-    ///   available (e.g. from API route parameters or cross-reference data).
+    ///   Resolve an entity from its ID, e.g. the
+    ///   <see cref="IImageCrossReference.EntityID"/> of a cross-reference,
+    ///   through <see cref="IMetadataService.GetEntry(MetadataGuid)"/> when the
+    ///   entry it finds has images. A default ordering, and an ordering of a
+    ///   core source other than <c>user</c>, is never resolved.
     /// </summary>
-    /// <param name="entitySource">
-    ///   The source of the entity (e.g. Shoko, AniDB, TMDB).
-    /// </param>
-    /// <param name="entityType">
-    ///   The type of the entity (e.g. Series, Episode, Group).
-    /// </param>
     /// <param name="entityID">
-    ///   The stringified identifier of the entity, source- and type-specific.
+    ///   The ID of the entity.
     /// </param>
     /// <returns>
     ///   The resolved entity, or <c>null</c> if not found.
     /// </returns>
-    IWithImages? GetEntityForImage(DataSource entitySource, DataEntityType entityType, string entityID);
+    IWithImages? GetEntityForImage(MetadataGuid entityID);
 
     #endregion
 }

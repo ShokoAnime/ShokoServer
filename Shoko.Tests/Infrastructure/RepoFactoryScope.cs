@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
 using Xunit;
 
 namespace Shoko.Tests.Infrastructure;
@@ -26,6 +28,8 @@ public sealed class RepoFactoryScope : IDisposable
 
     private readonly List<(FieldInfo Field, object? Previous)> _saved = [];
 
+    private readonly List<Action> _restores = [];
+
     /// <summary>
     /// Installs an already-built repository into the matching <see cref="RepoFactory"/> field.
     /// </summary>
@@ -34,6 +38,17 @@ public sealed class RepoFactoryScope : IDisposable
         var field = s_fields.Single(f => f.FieldType == typeof(TRepo));
         _saved.Add((field, field.GetValue(null)));
         field.SetValue(null, repository);
+        return this;
+    }
+
+    /// <summary>
+    /// Puts a text manager in place for the models to read their titles and overviews through.
+    /// </summary>
+    public RepoFactoryScope Set(MetadataTextManager manager)
+    {
+        var previous = TextAccess.Current;
+        _restores.Add(() => TextAccess.Use(previous));
+        TextAccess.Use(manager);
         return this;
     }
 
@@ -53,6 +68,10 @@ public sealed class RepoFactoryScope : IDisposable
             _saved[i].Field.SetValue(null, _saved[i].Previous);
 
         _saved.Clear();
+        for (var i = _restores.Count - 1; i >= 0; i--)
+            _restores[i]();
+
+        _restores.Clear();
     }
 }
 

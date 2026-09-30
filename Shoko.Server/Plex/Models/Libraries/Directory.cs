@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.Serialization;
 
 namespace Shoko.Server.Plex.Models.Libraries;

@@ -22,7 +22,7 @@ public class TMDB_AlternateOrdering_EpisodeRepository(
             .ToList();
     }
 
-    public IReadOnlyList<TMDB_AlternateOrdering_Episode> GetByTmdbEpisodeGroupCollectionID(string collectionId)
+    public virtual IReadOnlyList<TMDB_AlternateOrdering_Episode> GetByTmdbEpisodeGroupCollectionID(string collectionId)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         return session
@@ -34,7 +34,7 @@ public class TMDB_AlternateOrdering_EpisodeRepository(
             .ToList();
     }
 
-    public IReadOnlyList<TMDB_AlternateOrdering_Episode> GetByTmdbEpisodeGroupID(string groupId)
+    public virtual IReadOnlyList<TMDB_AlternateOrdering_Episode> GetByTmdbEpisodeGroupID(string groupId)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         return session
@@ -44,7 +44,7 @@ public class TMDB_AlternateOrdering_EpisodeRepository(
             .ToList();
     }
 
-    public IReadOnlyList<TMDB_AlternateOrdering_Episode> GetByTmdbEpisodeID(int episodeId)
+    public virtual IReadOnlyList<TMDB_AlternateOrdering_Episode> GetByTmdbEpisodeID(int episodeId)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         return session
@@ -63,5 +63,19 @@ public class TMDB_AlternateOrdering_EpisodeRepository(
             .OrderBy(a => a.SeasonNumber)
             .Take(1)
             .SingleOrDefault();
+    }
+
+    /// <summary>
+    ///   Every show ID the alternate ordering episodes name.
+    /// </summary>
+    /// <returns>The IDs, each once.</returns>
+    public IReadOnlyList<int> GetAllTmdbShowIDs()
+    {
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        return session
+            .Query<TMDB_AlternateOrdering_Episode>()
+            .Select(a => a.TmdbShowID)
+            .Distinct()
+            .ToList();
     }
 }

@@ -76,6 +76,7 @@ public class UserTypeConverterTests
         { typeof(TitleLanguageConverter).FullName!, TitleLanguage.English, TitleLanguage.English },
         { typeof(MessagePackConverter<MediaContainer>).FullName!, new MediaContainer(), new MediaContainer() },
         { typeof(PartialDateOnlyConverter).FullName!, new PartialDateOnly(2024, 5, 1), new PartialDateOnly(2024, 5, 1) },
+        { typeof(FuzzyDateOnlyConverter).FullName!, new FuzzyDateOnly(null, 5, 1), new FuzzyDateOnly(null, 5, 1) },
         { typeof(DateOnlyConverter).FullName!, new DateOnly(2024, 5, 1), new DateOnly(2024, 5, 1) },
         {
             typeof(JTokenDictionaryConverter).FullName!,
@@ -94,6 +95,7 @@ public class UserTypeConverterTests
         { typeof(StringListConverter).FullName!, new List<string> { "a" }, new List<string> { "a", "b" } },
         { typeof(TmdbContentRatingConverter).FullName!, ContentRatings(), new List<TMDB_ContentRating> { new("GB", "12A") } },
         { typeof(PartialDateOnlyConverter).FullName!, new PartialDateOnly(2024, 5, 1), new PartialDateOnly(2024, 5, 2) },
+        { typeof(FuzzyDateOnlyConverter).FullName!, new FuzzyDateOnly(null, 5, 1), new FuzzyDateOnly(2024, 5, 1) },
         { typeof(DateOnlyConverter).FullName!, new DateOnly(2024, 5, 1), new DateOnly(2024, 5, 2) },
         {
             typeof(JTokenDictionaryConverter).FullName!,
@@ -251,6 +253,32 @@ public class UserTypeConverterTests
     [Fact]
     public void ANullPartialDateStaysNull()
         => Assert.Null(new PartialDateOnlyConverter().ConvertFrom(null, CultureInfo.InvariantCulture, null));
+
+    [Fact]
+    public void AFuzzyDateSurvivesARoundTrip()
+    {
+        var converter = new FuzzyDateOnlyConverter();
+        var original = new FuzzyDateOnly(null, 2, 29);
+
+        var stored = converter.ConvertTo(null, CultureInfo.InvariantCulture, original, typeof(string));
+        var restored = converter.ConvertFrom(null, CultureInfo.InvariantCulture, stored);
+
+        Assert.Equal(original, Assert.IsType<FuzzyDateOnly>(restored));
+    }
+
+    [Fact]
+    public void AFuzzyDateConverterReadsUnreadableTextAsNoDate()
+        => Assert.Null(new FuzzyDateOnlyConverter().ConvertFrom(null, CultureInfo.InvariantCulture, "someday"));
+
+    [Fact]
+    public void AFuzzyDateConverterStoresNullAndTheEmptyDateAsNull()
+    {
+        var converter = new FuzzyDateOnlyConverter();
+
+        Assert.Null(converter.ConvertTo(null, CultureInfo.InvariantCulture, null, typeof(string)));
+        Assert.Null(converter.ConvertTo(null, CultureInfo.InvariantCulture, default(FuzzyDateOnly), typeof(string)));
+        Assert.Null(converter.ConvertFrom(null, CultureInfo.InvariantCulture, null));
+    }
 
     [Fact]
     public void ADateOnlySurvivesARoundTripThroughADateTime()

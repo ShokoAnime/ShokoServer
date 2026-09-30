@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
+using Shoko.Abstractions.Metadata.CrossReferences;
 
 namespace Shoko.Abstractions.Metadata.Shoko;
 
@@ -10,6 +9,14 @@ namespace Shoko.Abstractions.Metadata.Shoko;
 /// </summary>
 public interface IShokoSeason : ISeason, IWithCreationDate, IWithUpdateDate
 {
+    /// <summary>
+    ///   The ID of the Shoko series this belongs to, the same ID
+    ///   <see cref="ISeason.SeriesID"/> holds as text.
+    /// </summary>
+    int ShokoSeriesID { get; }
+
+    MetadataGuid ISeason.SeriesID { get => new(MetadataSource.Shoko, MetadataEntityType.Series, ShokoSeriesID.ToString()); }
+
     /// <summary>
     /// Get the Shoko series info for the "season," if available.
     /// </summary>
@@ -21,32 +28,44 @@ public interface IShokoSeason : ISeason, IWithCreationDate, IWithUpdateDate
     new IReadOnlyList<IShokoEpisode> Episodes { get; }
 
     /// <summary>
-    /// A direct link to all TMDB seasons linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbSeason> TmdbSeasons { get; }
-
-    /// <summary>
-    /// A direct link to all TMDB movies linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbMovie> TmdbMovies { get; }
-
-    /// <summary>
-    /// All Shoko series ↔ TMDB season cross references linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbSeasonCrossReference> TmdbSeasonCrossReferences { get; }
-
-    /// <summary>
-    /// All Shoko episode ↔ TMDB episode cross references linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbEpisodeCrossReference> TmdbEpisodeCrossReferences { get; }
-
-    /// <summary>
-    /// All Shoko episode ↔ TMDB movie cross references linked to the Shoko series.
-    /// </summary>
-    IReadOnlyList<ITmdbMovieCrossReference> TmdbMovieCrossReferences { get; }
-
-    /// <summary>
     /// All seasons linked to the fake Shoko "season."
     /// </summary>
     IReadOnlyList<ISeason> LinkedSeasons { get; }
+
+    /// <summary>
+    /// All movies linked to the episodes of the fake Shoko "season."
+    /// </summary>
+    IReadOnlyList<IMovie> LinkedMovies { get; }
+
+    /// <summary>
+    ///   Looks up the seasons of other sources the season's episodes are
+    ///   linked into, worked out from their episode links.
+    /// </summary>
+    /// <param name="source">
+    ///   The source to look up, TMDB or a plugin's, or <c>null</c> for every
+    ///   source.
+    /// </param>
+    /// <returns>One link per season reached, or an empty list when there are none.</returns>
+    IReadOnlyList<IMetadataSeasonCrossReference> GetMetadataSeasonCrossReferences(MetadataSource? source = null);
+
+    /// <summary>
+    ///   Looks up the episode-level links of the season's episodes.
+    /// </summary>
+    /// <param name="source">
+    ///   The source to look up, TMDB or a plugin's, or <c>null</c> for every
+    ///   source.
+    /// </param>
+    /// <returns>The links, by episode, or an empty list when there are none.</returns>
+    IReadOnlyList<IMetadataEpisodeCrossReference> GetMetadataEpisodeCrossReferences(MetadataSource? source = null);
+
+    /// <summary>
+    ///   Looks up the film links held for the season's episodes: the anime is
+    ///   the film, kept against the episode standing for it.
+    /// </summary>
+    /// <param name="source">
+    ///   The source to look up, TMDB or a plugin's, or <c>null</c> for every
+    ///   source.
+    /// </param>
+    /// <returns>The links, by episode, or an empty list when there are none.</returns>
+    IReadOnlyList<IMetadataMovieCrossReference> GetMetadataMovieCrossReferences(MetadataSource? source = null);
 }

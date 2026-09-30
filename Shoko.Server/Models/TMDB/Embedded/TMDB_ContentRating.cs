@@ -57,7 +57,7 @@ public class TMDB_ContentRating : IContentRating
 
     #region IContentRating Implementation
 
-    DataSource IContentRating.Source => DataSource.TMDB;
+    MetadataSource IContentRating.Source => MetadataSource.TMDB;
 
     string IContentRating.Value => Rating;
 

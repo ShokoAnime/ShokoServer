@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
@@ -14,11 +14,11 @@ public class ShokoImage_EntityRepository(DatabaseFactory databaseFactory) : Base
 
     private PocoIndex<int, ShokoImage_Entity, Guid>? _primaryImageID;
 
-    private PocoIndex<int, ShokoImage_Entity, (DataSource, DataEntityType)>? _entities;
+    private PocoIndex<int, ShokoImage_Entity, (MetadataSource, MetadataEntityType)>? _entities;
 
-    private PocoIndex<int, ShokoImage_Entity, (DataSource, DataEntityType, string)>? _entitiesByID;
+    private PocoIndex<int, ShokoImage_Entity, (MetadataSource, MetadataEntityType, string)>? _entitiesByID;
 
-    private PocoIndex<int, ShokoImage_Entity, (DataSource, DataEntityType, string, ImageEntityType)>? _entitiesByIDWithType;
+    private PocoIndex<int, ShokoImage_Entity, (MetadataSource, MetadataEntityType, string, ImageEntityType)>? _entitiesByIDWithType;
 
     protected override int SelectKey(ShokoImage_Entity entity)
         => entity.ID;
@@ -38,12 +38,15 @@ public class ShokoImage_EntityRepository(DatabaseFactory databaseFactory) : Base
     public IReadOnlyList<ShokoImage_Entity> GetByPrimaryImageID(Guid imageId)
         => _primaryImageID!.GetMultiple(imageId);
 
-    public IReadOnlyList<ShokoImage_Entity> GetByEntity(DataSource entitySource, DataEntityType entityType)
+    public IReadOnlyList<ShokoImage_Entity> GetByEntity(MetadataSource entitySource, MetadataEntityType entityType)
         => _entities!.GetMultiple((entitySource, entityType));
 
-    public IReadOnlyList<ShokoImage_Entity> GetByEntity(DataSource entitySource, DataEntityType entityType, string entityID)
+    public IReadOnlyList<ShokoImage_Entity> GetByEntity(MetadataSource entitySource, MetadataEntityType entityType, string entityID)
         => _entitiesByID!.GetMultiple((entitySource, entityType, entityID));
 
-    public IReadOnlyList<ShokoImage_Entity> GetByEntityForType(DataSource entitySource, DataEntityType entityType, string entityId, ImageEntityType imageType)
+    public IReadOnlyList<ShokoImage_Entity> GetByEntity(MetadataGuid entityID)
+        => _entitiesByID!.GetMultiple((entityID.Source, entityID.EntityType, entityID.ID));
+
+    public IReadOnlyList<ShokoImage_Entity> GetByEntityForType(MetadataSource entitySource, MetadataEntityType entityType, string entityId, ImageEntityType imageType)
         => _entitiesByIDWithType!.GetMultiple((entitySource, entityType, entityId, imageType));
 }

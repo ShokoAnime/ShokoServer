@@ -9,6 +9,8 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class ConfigurationEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "configuration";
+
     private IConfigurationService EventHandler { get; set; }
 
     private readonly ILogger<ConfigurationEventEmitter> _logger;

@@ -1,8 +1,11 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Abstractions.Video;
+using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 
 namespace Shoko.Server.API.v3.Models.ImageManagement;
@@ -42,11 +45,11 @@ public class ImageCrossReference
     ///   The image source.
     /// </summary>
     [Required]
-    public DataSource ImageSource { get; set; }
+    public MetadataSource ImageSource { get; set; }
 
     /// <summary>
     ///   The entity ID. This is the stringified identifier of the linked
-    ///   entity.
+    ///   entity, and the file ID for a video.
     /// </summary>
     [Required]
     public string EntityID { get; set; }
@@ -55,13 +58,13 @@ public class ImageCrossReference
     ///   The metadata entity type.
     /// </summary>
     [Required]
-    public DataEntityType EntityType { get; set; }
+    public MetadataEntityType EntityType { get; set; } = null!;
 
     /// <summary>
     ///   The metadata entity source.
     /// </summary>
     [Required]
-    public DataSource EntitySource { get; set; }
+    public MetadataSource EntitySource { get; set; }
 
     /// <summary>
     ///   The season number if the linked entity is a season. If the linked
@@ -115,7 +118,7 @@ public class ImageCrossReference
     ///   The source of the cross-reference.
     /// </summary>
     [Required]
-    public DataSource Source { get; set; }
+    public MetadataSource Source { get; set; }
 
     /// <summary>
     ///   When the cross-reference was created.
@@ -142,9 +145,9 @@ public class ImageCrossReference
         PrimaryImageID = xref.PrimaryImageID;
         ImageType = xref.ImageType;
         ImageSource = xref.ImageSource;
-        EntityID = xref.EntityID;
-        EntityType = xref.EntityType;
-        EntitySource = xref.EntitySource;
+        EntityID = GetApiEntityID(xref);
+        EntityType = xref.EntityID.EntityType;
+        EntitySource = xref.EntityID.Source;
         EntitySeasonNumber = xref.EntitySeasonNumber;
         EntityEpisodeNumber = xref.EntityEpisodeNumber;
         EntityReleasedAt = xref.EntityReleasedAt;
@@ -159,7 +162,7 @@ public class ImageCrossReference
                 Votes = xref.RatingVotes.Value,
                 MaxValue = 10,
                 Type = "User",
-                Source = xref.Source.ToString(),
+                Source = LegacyMetadataSpellings.Of(xref.Source),
             };
         Source = xref.Source;
         CreatedAt = xref.CreatedAt;
@@ -167,4 +170,18 @@ public class ImageCrossReference
         if (includeImage)
             Image = new ImageSlim(xref.GetImage()!);
     }
+
+    /// <summary>
+    ///   The ID APIv3 hands out for the entity owning a cross-reference.
+    /// </summary>
+    /// <remarks>
+    ///   A video is named by its hash and size in the abstractions, but the
+    ///   API has always handed out the file ID.
+    /// </remarks>
+    /// <param name="xref">The cross-reference.</param>
+    /// <returns>The file ID for a video that still exists, or the ID part of the entity's name.</returns>
+    internal static string GetApiEntityID(IImageCrossReference xref)
+        => xref.EntityID.Source == MetadataSource.Shoko && xref.EntityID.EntityType == MetadataEntityType.Video && xref.GetEntity() is IVideo video
+            ? video.LocalID.ToString()
+            : xref.EntityID.ID;
 }

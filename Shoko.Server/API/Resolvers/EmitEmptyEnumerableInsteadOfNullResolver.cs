@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Shoko.Server.API.Resolvers;
 
 namespace Shoko.Server;
 
@@ -16,8 +17,7 @@ public class EmitEmptyEnumerableInsteadOfNullAttribute : ActionFilterAttribute
 {
     private static readonly JsonSerializerSettings SerializerSettings = new()
     {
-        ContractResolver =
-            new EmitEmptyEnumerableInsteadOfNullResolver { NamingStrategy = new DefaultNamingStrategy() },
+        ContractResolver = new EmitEmptyEnumerableInsteadOfNullResolver(),
         ObjectCreationHandling = ObjectCreationHandling.Replace
     };
 
@@ -40,7 +40,7 @@ public class EmitEmptyEnumerableInsteadOfNullAttribute : ActionFilterAttribute
     }
 }
 
-public class EmitEmptyEnumerableInsteadOfNullResolver : DefaultContractResolver
+public class EmitEmptyEnumerableInsteadOfNullResolver : ApiContractResolver
 {
     protected override IValueProvider CreateMemberValueProvider(MemberInfo member)
     {

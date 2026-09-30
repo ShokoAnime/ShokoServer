@@ -15,6 +15,8 @@
     <ItemGroup>
       <None Remove="AniDB_Anime.json" />
       <EmbeddedResource Include="AniDB_Anime.json"/>
+      <None Remove="AnidbRegularAirDates.json" />
+      <EmbeddedResource Include="AnidbRegularAirDates.json" />
       <None Remove="AniDB_File.json" />
       <EmbeddedResource Include="AniDB_File.json" />
       <None Remove="CrossRef_File_Episode.json" />

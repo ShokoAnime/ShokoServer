@@ -1,6 +1,8 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.ScheduledActions;
 using Shoko.Server.Providers.TMDB;
 
 namespace Shoko.Server.Actions;
@@ -8,7 +10,7 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Download any missing TMDB person (cast/crew) data.
 /// </summary>
-public sealed class DownloadMissingTmdbPeopleAction(TmdbMetadataService tmdbService) : IExecutableAction
+public sealed class DownloadMissingTmdbPeopleAction(TmdbMetadataUpdater tmdbUpdater) : IScheduledAction
 {
     public string Name => "Download Missing TMDB People";
 
@@ -16,8 +18,6 @@ public sealed class DownloadMissingTmdbPeopleAction(TmdbMetadataService tmdbServ
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    public ActionPermission Permission => ActionPermission.User;
-
-    public Task Execute(CancellationToken token = default)
-        => tmdbService.RepairMissingPeople();
+    public Task Execute(IProgress<decimal> progress, CancellationToken token)
+        => tmdbUpdater.RepairMissingPeople();
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
@@ -201,8 +200,9 @@ public class DebugController : BaseController
         public bool Unsafe { get; set; } = false;
 
         /// <summary>
-        /// Extra payload to use with the action.
+        /// Extra payload to use with the action. Defaults to none.
         /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
         public Dictionary<string, object?> Payload { get; set; } = [];
 
         /// <summary>
@@ -262,9 +262,10 @@ public class DebugController : BaseController
 
         /// <summary>
         /// Indicates that we would want the whole response, and not just the
-        /// decoded response.
+        /// decoded response. Defaults to <c>true</c> for <c>LOGIN</c> and
+        /// <c>false</c> otherwise.
         /// </summary>
-        [DefaultValue(false)]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
         public bool FullResponse
         {
             get

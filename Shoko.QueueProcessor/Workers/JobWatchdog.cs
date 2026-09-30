@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Orchestration;
 
@@ -45,7 +46,9 @@ internal sealed class JobWatchdog
 
     internal void Start(CancellationToken ct)
     {
-        _watchTask = Task.Run(() => RunAsync(ct), ct);
+        // A loop for the life of the pools, so it starts from an empty context.
+        using (DetachedFlow.Suppress())
+            _watchTask = Task.Run(() => RunAsync(ct), ct);
     }
 
     internal async Task StopAsync()
@@ -91,7 +94,7 @@ internal sealed class JobWatchdog
                 // First detection — log error once with full context for analytics/aggregation
                 _logger.LogError(
                     "Possible deadlock detected in job {JobType} — running for {Elapsed:g}, past its threshold of {Threshold:g}.\n{Stack}",
-                    entry.JobType.Name,
+                    JobTypeNames.Short(entry.JobType),
                     elapsed,
                     threshold,
                     SubExecutionTracker.GetStack(entry.Id) ?? "(no sub-execution context captured)");
@@ -101,7 +104,7 @@ internal sealed class JobWatchdog
                 // Heartbeat — job is still stuck on every subsequent poll
                 _logger.LogWarning(
                     "Job {JobType} [{JobKey}] still running after {Elapsed:g}, past its threshold of {Threshold:g}",
-                    entry.JobType.Name, entry.JobKey, elapsed, threshold);
+                    JobTypeNames.Short(entry.JobType), entry.JobKey, elapsed, threshold);
             }
         }
     }

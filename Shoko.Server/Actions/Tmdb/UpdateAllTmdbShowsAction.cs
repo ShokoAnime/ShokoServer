@@ -1,7 +1,11 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Providers;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.ScheduledActions;
 
 namespace Shoko.Server.Actions;
 
@@ -9,7 +13,7 @@ namespace Shoko.Server.Actions;
 ///   Update all TMDB shows in the local database from the remote API.
 ///   Only refreshes metadata; does not download images.
 /// </summary>
-public sealed class UpdateAllTmdbShowsAction(TmdbMetadataService tmdbService) : IExecutableAction
+public sealed class UpdateAllTmdbShowsAction(IMetadataRefreshService refreshService) : IScheduledAction
 {
     public string Name => "Update All TMDB Shows";
 
@@ -17,8 +21,12 @@ public sealed class UpdateAllTmdbShowsAction(TmdbMetadataService tmdbService) : 
 
     public ActionCategory Category => ActionCategory.TMDB;
 
-    public ActionPermission Permission => ActionPermission.User;
-
-    public Task Execute(CancellationToken token = default)
-        => tmdbService.UpdateAllShows(true, false);
+    public Task Execute(IProgress<decimal> progress, CancellationToken token)
+        => refreshService.RefreshAllLinked(
+            MetadataSource.TMDB,
+            force: true,
+            new() { DownloadImages = false, Reason = MetadataRefreshReason.Requested },
+            MetadataEntityType.Series,
+            token
+        );
 }

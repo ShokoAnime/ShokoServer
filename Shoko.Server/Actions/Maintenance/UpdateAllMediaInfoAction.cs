@@ -1,6 +1,8 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.ScheduledActions;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -9,7 +11,7 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Update media info for all files in the collection.
 /// </summary>
-public sealed class UpdateAllMediaInfoAction(IQueueScheduler scheduler) : IExecutableAction
+public sealed class UpdateAllMediaInfoAction(IQueueScheduler scheduler) : IScheduledAction
 {
     public string Name => "Update All Media Info";
 
@@ -17,8 +19,6 @@ public sealed class UpdateAllMediaInfoAction(IQueueScheduler scheduler) : IExecu
 
     public ActionCategory Category => ActionCategory.Maintenance;
 
-    public ActionPermission Permission => ActionPermission.Admin;
-
-    public Task Execute(CancellationToken token = default)
+    public Task Execute(IProgress<decimal> progress, CancellationToken token)
         => scheduler.Enqueue<MediaInfoAllFilesJob>(ct: token);
 }

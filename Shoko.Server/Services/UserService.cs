@@ -10,6 +10,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User;
+using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Events;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
@@ -17,6 +18,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.Internal;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Actions;
@@ -42,6 +44,10 @@ public class UserService(
     public event EventHandler<UserChangedEventArgs>? UserUpdated;
 
     public event EventHandler<UserChangedEventArgs>? UserRemoved;
+
+    public event EventHandler<ApiTokenChangedEventArgs>? ApiTokenGenerated;
+
+    public event EventHandler<ApiTokenChangedEventArgs>? ApiTokenInvalidated;
 
     /// <inheritdoc/>
     public IEnumerable<IUser> GetUsers()
@@ -121,6 +127,7 @@ public class UserService(
         var isNew = user.JMMUserID is 0;
         var shouldSave = isNew;
         var updateStats = isNew;
+        var reason = UserSaveReason.None;
 
         // Try to update the avatar for the user. It will add model errors if it fails.
         if (updateData.HasSetAvatarImage)
@@ -170,12 +177,14 @@ public class UserService(
         if (!string.IsNullOrEmpty(updateData.Username) && user.Username != updateData.Username)
         {
             shouldSave = true;
+            reason |= UserSaveReason.Username;
             user.Username = updateData.Username;
         }
 
         if (updateData.IsAdmin.HasValue && (user.IsAdminUser() != updateData.IsAdmin.Value || user.CanEditServerSettings == 1 != updateData.IsAdmin.Value))
         {
             shouldSave = true;
+            reason |= UserSaveReason.IsAdmin;
             user.IsAdmin = updateData.IsAdmin.Value ? 1 : 0;
             user.CanEditServerSettings = updateData.IsAdmin.Value ? 1 : 0;
         }
@@ -190,7 +199,7 @@ public class UserService(
                     _userRepository.Save(anidbUser);
                     try
                     {
-                        UserUpdated?.Invoke(this, new() { User = anidbUser });
+                        UserUpdated?.Invoke(this, new() { User = anidbUser, Reason = UserSaveReason.IsAnidbUser, Actor = ActorContext.CurrentActor });
                     }
                     catch (Exception ex)
                     {
@@ -200,11 +209,13 @@ public class UserService(
 
                 shouldSave = true;
                 updateStats = true;
+                reason |= UserSaveReason.IsAnidbUser;
                 user.IsAniDBUser = 1;
             }
             else if (!updateData.IsAnidbUser.Value && user.IsAniDBUser == 1)
             {
                 shouldSave = true;
+                reason |= UserSaveReason.IsAnidbUser;
                 user.IsAniDBUser = 0;
             }
         }
@@ -212,7 +223,7 @@ public class UserService(
         if (updateData.RestrictedTags is not null)
         {
             var tags = updateData.RestrictedTags
-                .OrderBy(a => a.ID)
+                .OrderBy(a => a.AnidbID)
                 .Select(tag => tag.Name)
                 .WhereNotNull()
                 .Distinct(StringComparer.InvariantCultureIgnoreCase)
@@ -220,6 +231,7 @@ public class UserService(
             if (!string.Equals(user.HideCategories, tags, StringComparison.InvariantCultureIgnoreCase))
             {
                 shouldSave = true;
+                reason |= UserSaveReason.RestrictedTags;
                 user.HideCategories = tags;
             }
         }
@@ -230,6 +242,7 @@ public class UserService(
             if (!string.Equals(user.Password, hash, StringComparison.Ordinal))
             {
                 shouldSave = true;
+                reason |= UserSaveReason.Password;
                 user.Password = hash;
             }
         }
@@ -241,9 +254,9 @@ public class UserService(
             try
             {
                 if (isNew)
-                    UserAdded?.Invoke(this, new() { User = user });
+                    UserAdded?.Invoke(this, new() { User = user, Reason = reason, Actor = ActorContext.CurrentActor });
                 else
-                    UserUpdated?.Invoke(this, new() { User = user });
+                    UserUpdated?.Invoke(this, new() { User = user, Reason = reason, Actor = ActorContext.CurrentActor });
             }
             catch (Exception ex)
             {
@@ -263,7 +276,7 @@ public class UserService(
     {
         ArgumentNullException.ThrowIfNull(user);
 
-        if (_userRepository.GetByID(user.ID) is { } nativeUser)
+        if (_userRepository.GetByID(user.LocalID) is { } nativeUser)
         {
             var allAdmins = _userRepository.GetAll().Where(a => a.IsAdmin == 1).ToList();
             allAdmins.Remove(nativeUser);
@@ -276,7 +289,7 @@ public class UserService(
 
             try
             {
-                UserRemoved?.Invoke(this, new() { User = nativeUser });
+                UserRemoved?.Invoke(this, new() { User = nativeUser, Reason = UserSaveReason.None, Actor = ActorContext.CurrentActor });
             }
             catch (Exception ex)
             {
@@ -284,11 +297,13 @@ public class UserService(
             }
         }
 
-        _authTokensRepository.DeleteAllWithUserID(user.ID);
-        _groupUserRepository.Delete(_groupUserRepository.GetByUserID(user.ID));
-        _seriesUserRepository.Delete(_seriesUserRepository.GetByUserID(user.ID));
-        _episodeUserRepository.Delete(_episodeUserRepository.GetByUserID(user.ID));
-        _videoUserRepository.Delete(_videoUserRepository.GetByUserID(user.ID));
+        var tokens = _authTokensRepository.GetByUserID(user.LocalID).ToList();
+        _authTokensRepository.DeleteAllWithUserID(user.LocalID);
+        OnApiTokensInvalidated(user, tokens);
+        _groupUserRepository.Delete(_groupUserRepository.GetByUserID(user.LocalID));
+        _seriesUserRepository.Delete(_seriesUserRepository.GetByUserID(user.LocalID));
+        _episodeUserRepository.Delete(_episodeUserRepository.GetByUserID(user.LocalID));
+        _videoUserRepository.Delete(_videoUserRepository.GetByUserID(user.LocalID));
 
         return Task.CompletedTask;
     }
@@ -336,18 +351,21 @@ public class UserService(
     public Task<ApiToken> GenerateApiTokenForUser(IUser user, string deviceName)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is <= 0 || _userRepository.GetByID(user.ID) is not { } otherUser)
+        if (user.LocalID is <= 0 || _userRepository.GetByID(user.LocalID) is not { } otherUser)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
 
-        var token = _authTokensRepository.CreateNewApiKey(otherUser, deviceName);
-        return Task.FromResult(new ApiToken(otherUser, deviceName, token.Token, token.ExpiresAt));
+        var token = _authTokensRepository.CreateNewApiKey(otherUser, deviceName, out var created);
+        var apiToken = new ApiToken(otherUser, deviceName, token.Token, token.ExpiresAt);
+        if (created)
+            OnApiTokenGenerated(apiToken);
+        return Task.FromResult(apiToken);
     }
 
     public Task<ApiToken> GenerateApiTokenForUser(IUser user, string deviceName, DateTime expiresAt)
     {
         ArgumentNullException.ThrowIfNull(user);
         ArgumentException.ThrowIfNullOrEmpty(deviceName);
-        if (user.ID is <= 0 || _userRepository.GetByID(user.ID) is not { } otherUser)
+        if (user.LocalID is <= 0 || _userRepository.GetByID(user.LocalID) is not { } otherUser)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
 
         if (expiresAt.Kind == DateTimeKind.Utc)
@@ -357,30 +375,94 @@ public class UserService(
             throw new ArgumentException("Expiration must be at least 1 minute from now", nameof(expiresAt));
 
         var token = _authTokensRepository.CreateExpiringApiKey(otherUser, deviceName, expiresAt);
-        return Task.FromResult(new ApiToken(otherUser, deviceName, token.Token, token.ExpiresAt));
+        var apiToken = new ApiToken(otherUser, deviceName, token.Token, token.ExpiresAt);
+        OnApiTokenGenerated(apiToken);
+        return Task.FromResult(apiToken);
     }
 
     public IReadOnlyList<ApiToken> GetApiTokensForUser(IUser user)
-        => _authTokensRepository.GetByUserID(user.ID)
+        => _authTokensRepository.GetByUserID(user.LocalID)
             .Select(t => new ApiToken(user, t.DeviceName, t.Token, t.ExpiresAt))
             .ToList();
 
     public Task<bool> InvalidateApiDeviceForUser(IUser user, string deviceName)
     {
-        var tokens = _authTokensRepository.GetByUserID(user.ID)
+        var tokens = _authTokensRepository.GetByUserID(user.LocalID)
             .Where(a => a.DeviceName.Equals(deviceName, StringComparison.InvariantCultureIgnoreCase))
             .ToList();
         foreach (var token in tokens)
             _authTokensRepository.Delete(token);
+        OnApiTokensInvalidated(user, tokens);
         return Task.FromResult(tokens.Count > 0);
     }
 
     public Task<bool> InvalidateApiTokensForUser(IUser user)
-        => Task.FromResult(_authTokensRepository.DeleteAllWithUserID(user.ID));
+    {
+        var tokens = _authTokensRepository.GetByUserID(user.LocalID).ToList();
+        var removed = _authTokensRepository.DeleteAllWithUserID(user.LocalID);
+        OnApiTokensInvalidated(user, tokens);
+        return Task.FromResult(removed);
+    }
 
     public Task<bool> InvalidateApiToken(ApiToken token)
-        => Task.FromResult(_authTokensRepository.DeleteWithToken(token.Token));
+        => InvalidateApiToken(token.Token);
 
     public Task<bool> InvalidateApiToken(string token)
-        => Task.FromResult(_authTokensRepository.DeleteWithToken(token));
+    {
+        var tokens = string.IsNullOrEmpty(token) ? [] : _authTokensRepository.GetAllByToken(token);
+        var removed = _authTokensRepository.DeleteWithToken(token);
+        foreach (var group in tokens.GroupBy(t => t.UserID))
+        {
+            if (_userRepository.GetByID(group.Key) is { } user)
+                OnApiTokensInvalidated(user, group.ToList());
+        }
+
+        return Task.FromResult(removed);
+    }
+
+    #region Events
+
+    /// <summary>
+    ///   Raises <see cref="ApiTokenGenerated"/> for a token that was just created.
+    /// </summary>
+    /// <param name="apiToken">The new token.</param>
+    private void OnApiTokenGenerated(ApiToken apiToken)
+    {
+        try
+        {
+            ApiTokenGenerated?.Invoke(this, new() { ApiToken = apiToken, OccurredAt = DateTime.UtcNow, Actor = ActorContext.CurrentActor });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occurred while trying to send the ApiTokenGenerated event; {Message}", ex.Message);
+        }
+    }
+
+    /// <summary>
+    ///   Raises <see cref="ApiTokenInvalidated"/> once for each token that was
+    ///   just removed.
+    /// </summary>
+    /// <param name="user">The user the tokens belonged to.</param>
+    /// <param name="tokens">The removed tokens.</param>
+    private void OnApiTokensInvalidated(IUser user, IReadOnlyList<AuthTokens> tokens)
+    {
+        if (tokens.Count is 0 || ApiTokenInvalidated is not { } handlers)
+            return;
+
+        var occurredAt = DateTime.UtcNow;
+        var actor = ActorContext.CurrentActor;
+        foreach (var token in tokens)
+        {
+            try
+            {
+                handlers.Invoke(this, new() { ApiToken = new(user, token.DeviceName, token.Token, token.ExpiresAt), OccurredAt = occurredAt, Actor = actor });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while trying to send the ApiTokenInvalidated event; {Message}", ex.Message);
+            }
+        }
+    }
+
+    #endregion
 }

@@ -124,7 +124,7 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
             var tag = metadataService.CreateCustomTag(new()
             {
                 Name = body.Name,
-                Description = body.Description,
+                Overview = body.Description,
             });
             return new Tag((CustomTag)tag);
         }
@@ -170,7 +170,7 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
             var result = metadataService.UpdateCustomTag(tag, new()
             {
                 Name = body.Name,
-                Description = body.Description,
+                Overview = body.Description,
             });
             return new Tag((CustomTag)result, excludeDescription: false, includeCount ? _crossRefCustomTags.GetByCustomTagID(tag.CustomTagID).Count : null);
         }
@@ -206,7 +206,7 @@ public class TagController(ISettingsProvider settingsProvider, IMetadataService 
             var result = metadataService.UpdateCustomTag(tag, new()
             {
                 Name = body.Name,
-                Description = body.Description,
+                Overview = body.Description,
             });
             return new Tag((CustomTag)result, excludeDescription: false, includeCount ? _crossRefCustomTags.GetByCustomTagID(tag.CustomTagID).Count : null);
         }

@@ -1,6 +1,8 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.ScheduledActions;
 using Shoko.Abstractions.Video.Services;
 
 namespace Shoko.Server.Actions;
@@ -9,7 +11,7 @@ namespace Shoko.Server.Actions;
 ///   Purge all used (linked) releases from the database, optionally filtered
 ///   by provider.
 /// </summary>
-public sealed class PurgeAllUsedReleasesAction(IVideoReleaseService videoReleaseService) : IExecutableAction
+public sealed class PurgeAllUsedReleasesAction(IVideoReleaseService videoReleaseService) : IScheduledAction
 {
     public string Name => "Purge All Used Releases";
 
@@ -17,12 +19,10 @@ public sealed class PurgeAllUsedReleasesAction(IVideoReleaseService videoRelease
 
     public ActionCategory Category => ActionCategory.Maintenance;
 
-    public ActionPermission Permission => ActionPermission.Admin;
-
     public bool RequiresConfirmation => true;
 
     public string? ConfirmationMessage => "Are you sure you want to remove all used releases from the database?";
 
-    public Task Execute(CancellationToken token = default)
+    public Task Execute(IProgress<decimal> progress, CancellationToken token)
         => videoReleaseService.PurgeUsedReleases(providerNames: null, skipEvents: false);
 }

@@ -1,64 +1,47 @@
-using Shoko.Abstractions.Metadata.Containers;
-
 namespace Shoko.Abstractions.Metadata.Tmdb;
 
 /// <summary>
-/// TMDB episode ordering information.
+///   Where a TMDB episode sits in one of TMDB's own orderings of its show.
+///   The generic <see cref="IEpisodeOrderingInformation"/> with TMDB's typed
+///   navigation.
 /// </summary>
-public interface ITmdbEpisodeOrderingInformation : IWithCreationDate, IWithUpdateDate
+public interface ITmdbEpisodeOrderingInformation : IEpisodeOrderingInformation
 {
     /// <summary>
-    /// The TMDB show ID.
+    ///   The TMDB show ID, the same ID
+    ///   <see cref="IEpisodeOrderingInformation.SeriesID"/> holds as text.
     /// </summary>
-    int SeriesID { get; }
+    int TmdbShowID { get; }
+
+    MetadataGuid IEpisodeOrderingInformation.SeriesID { get => new(MetadataSource.TMDB, MetadataEntityType.Series, TmdbShowID.ToString()); }
 
     /// <summary>
-    /// The TMDB ordering ID.
+    ///   The TMDB episode ID, the same ID
+    ///   <see cref="IEpisodeOrderingInformation.EpisodeID"/> holds as text.
     /// </summary>
-    string OrderingID { get; }
+    int TmdbEpisodeID { get; }
+
+    MetadataGuid IEpisodeOrderingInformation.EpisodeID { get => new(MetadataSource.TMDB, MetadataEntityType.Episode, TmdbEpisodeID.ToString()); }
 
     /// <summary>
-    /// The TMDB season ID within the ordering schema.
+    ///   The TMDB show, if it is available.
     /// </summary>
-    string SeasonID { get; }
+    new ITmdbShow? Series { get; }
+
+    ISeries? IEpisodeOrderingInformation.Series { get => Series; }
 
     /// <summary>
-    /// The TMDB episode ID.
+    ///   The TMDB season the episode is in: its own season for the default
+    ///   ordering, or a group of an episode group, if it is available.
     /// </summary>
-    int EpisodeID { get; }
+    new ITmdbSeason? Season { get; }
+
+    ISeason? IEpisodeOrderingInformation.Season { get => Season; }
 
     /// <summary>
-    /// The season number within the ordering schema.
+    ///   The TMDB episode.
     /// </summary>
-    int SeasonNumber { get; }
+    new ITmdbEpisode Episode { get; }
 
-    /// <summary>
-    /// The episode number within the ordering schema.
-    /// </summary>
-    int EpisodeNumber { get; }
-
-    /// <summary>
-    /// Indicates the current ordering is the default ordering for the show.
-    /// </summary>
-    bool IsDefault { get; }
-
-    /// <summary>
-    /// Indicates the current ordering is the preferred ordering for the show.
-    /// </summary>
-    bool IsPreferred { get; }
-
-    /// <summary>
-    /// The TMDB show, if available.
-    /// </summary>
-    ITmdbShow? Series { get; }
-
-    /// <summary>
-    /// The TMDB season within the ordering schema, if available.
-    /// </summary>
-    ITmdbSeason? Season { get; }
-
-    /// <summary>
-    /// The TMDB episode this information is for.
-    /// </summary>
-    ITmdbEpisode Episode { get; }
+    IEpisode IEpisodeOrderingInformation.Episode { get => Episode; }
 }

@@ -95,6 +95,23 @@ public class JobRepository : IJobRepository
         }
     }
 
+    public async Task ReparentChainChildrenAsync(IReadOnlyCollection<(Guid Id, Guid ParentJobId)> updates, CancellationToken ct = default)
+    {
+        if (updates.Count == 0) return;
+        await using var db = await _factory.CreateDbContextAsync(ct);
+        foreach (var group in updates.GroupBy(update => update.ParentJobId))
+        {
+            foreach (var chunk in group.Select(update => update.Id).Chunk(ChunkSize))
+            {
+                var idSet = chunk.ToHashSet();
+                var parentJobId = group.Key;
+                await db.Jobs
+                    .Where(j => idSet.Contains(j.Id))
+                    .ExecuteUpdateAsync(s => s.SetProperty(j => j.ParentJobId, (Guid?)parentJobId), ct);
+            }
+        }
+    }
+
     public async Task UpdateDataBatchAsync(IReadOnlyCollection<(Guid Id, string? NewJson)> updates, CancellationToken ct = default)
     {
         if (updates.Count == 0) return;

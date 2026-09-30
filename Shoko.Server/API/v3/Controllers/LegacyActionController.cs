@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Anidb.Services;
@@ -15,6 +16,7 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
@@ -31,18 +33,19 @@ namespace Shoko.Server.API.v3.Controllers;
 [Route("/api/v{version:apiVersion}/Action")]
 [ApiV3]
 [Authorize("admin")]
-[Obsolete("Use the new action system instead: GET /api/v3/Action and POST /api/v3/Action/{actionId}.")]
+[Obsolete("Use the scheduled actions instead, at /api/v3/Action/Scheduled, or the actions at /api/v3/Action.")]
 public class LegacyActionController : BaseController
 {
     private readonly ILogger<ActionController> _logger;
     private readonly AnimeGroupCreator _groupCreator;
     private readonly ActionService _actionService;
     private readonly IShokoGroupManager _groupService;
-    private readonly TmdbMetadataService _tmdbMetadataService;
-    private readonly TmdbLinkingService _tmdbLinkingService;
+    private readonly TmdbMetadataUpdater _tmdbUpdater;
     private readonly IVideoService _videoService;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly IQueueScheduler _scheduler;
+    private readonly MetadataSourceActions _sourceActions;
+    private readonly IMetadataProviderManager _providerManager;
 
     private readonly IMylistService _mylistService;
     private readonly IImageManager _imageManager;
@@ -51,8 +54,7 @@ public class LegacyActionController : BaseController
 
     public LegacyActionController(
         ILogger<ActionController> logger,
-        TmdbMetadataService tmdbMetadataService,
-        TmdbLinkingService tmdbLinkingService,
+        TmdbMetadataUpdater tmdbUpdater,
         IQueueScheduler scheduler,
         IMylistService mylistService,
         IVideoService videoService,
@@ -63,12 +65,13 @@ public class LegacyActionController : BaseController
         IShokoGroupManager groupService,
         IImageManager imageManager,
         VideoLocalRepository videoLocals,
-        JMMUserRepository jmmUsers
+        JMMUserRepository jmmUsers,
+        MetadataSourceActions sourceActions,
+        IMetadataProviderManager providerManager
     ) : base(settingsProvider)
     {
         _logger = logger;
-        _tmdbMetadataService = tmdbMetadataService;
-        _tmdbLinkingService = tmdbLinkingService;
+        _tmdbUpdater = tmdbUpdater;
         _videoService = videoService;
         _videoReleaseService = videoReleaseService;
         _scheduler = scheduler;
@@ -79,6 +82,8 @@ public class LegacyActionController : BaseController
         _imageManager = imageManager;
         _videoLocals = videoLocals;
         _jmmUsers = jmmUsers;
+        _sourceActions = sourceActions;
+        _providerManager = providerManager;
     }
 
     /// <summary>
@@ -147,7 +152,7 @@ public class LegacyActionController : BaseController
     [HttpGet("UpdateAllImages")]
     public ActionResult UpdateAllImages()
     {
-        Task.Factory.StartNew(() => _imageManager.ScheduleAllAutoDownloads());
+        Task.Factory.StartNew(ActorContext.Carry(() => _imageManager.ScheduleAllAutoDownloads()));
         return Ok();
     }
 
@@ -162,24 +167,29 @@ public class LegacyActionController : BaseController
     /// <returns></returns>
     [HttpGet("DownloadAllImages")]
     public ActionResult DownloadAllImages(
-        [FromQuery] DataSource? imageSource = null,
+        [FromQuery] MetadataSource? imageSource = null,
         [FromQuery] ImageEntityType? imageType = null,
-        [FromQuery] DataSource? xrefSource = null,
+        [FromQuery] MetadataSource? xrefSource = null,
         [FromQuery] bool force = false
     )
     {
-        Task.Factory.StartNew(() => _imageManager.ScheduleAllAutoDownloads(imageSource, imageType, xrefSource, force));
+        Task.Factory.StartNew(ActorContext.Carry(() => _imageManager.ScheduleAllAutoDownloads(imageSource, imageType, xrefSource, force)));
         return Ok();
     }
 
     /// <summary>
     /// Scan for TMDB matches for all unlinked AniDB anime.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>
+    /// Ok, or <c>503 Service Unavailable</c> while TMDB is not configured.
+    /// </returns>
     [HttpGet("SearchForTmdbMatches")]
     public ActionResult SearchForTmdbMatches()
     {
-        Task.Factory.StartNew(() => _tmdbMetadataService.ScanForMatches());
+        if (_providerManager.MetadataProviders.FirstOrDefault(info => info.Source == MetadataSource.TMDB && info.IsAutoLinker) is { Provider.IsConfigured: false } unconfigured)
+            return MetadataPauseResponses.NotConfigured(unconfigured);
+
+        _sourceActions.Start("Searching TMDB for every anime", () => _sourceActions.AutoSearchAll(MetadataSource.TMDB, false));
         return Ok();
     }
 
@@ -190,7 +200,7 @@ public class LegacyActionController : BaseController
     [HttpGet("UpdateAllTmdbMovies")]
     public ActionResult UpdateAllTmdbMovies()
     {
-        Task.Factory.StartNew(() => _tmdbMetadataService.UpdateAllMovies(true, true));
+        _sourceActions.Start("Refreshing every linked TMDB movie", () => _sourceActions.RefreshAllLinked(MetadataSource.TMDB, MetadataEntityType.Movie, true, true));
         return Ok();
     }
 
@@ -201,7 +211,7 @@ public class LegacyActionController : BaseController
     [HttpGet("PurgeAllUnusedTmdbMovies")]
     public ActionResult PurgeAllUnusedTmdbMovies()
     {
-        Task.Factory.StartNew(() => _tmdbMetadataService.PurgeAllUnusedMovies());
+        _sourceActions.Start("Purging the unused TMDB movies", () => _sourceActions.PurgeUnused(MetadataSource.TMDB, MetadataEntityType.Movie, null));
         return Ok();
     }
 
@@ -212,7 +222,7 @@ public class LegacyActionController : BaseController
     [HttpGet("PurgeAllTmdbMovieCollections")]
     public ActionResult PurgeAllTmdbMovieCollections()
     {
-        Task.Factory.StartNew(() => _tmdbMetadataService.PurgeAllMovieCollections());
+        _sourceActions.Start("Purging the TMDB collections", () => _sourceActions.PurgeCollections(MetadataSource.TMDB));
         return Ok();
     }
 
@@ -223,7 +233,7 @@ public class LegacyActionController : BaseController
     [HttpGet("UpdateAllTmdbShows")]
     public ActionResult UpdateAllTmdbShows()
     {
-        Task.Factory.StartNew(() => _tmdbMetadataService.UpdateAllShows(true, true));
+        _sourceActions.Start("Refreshing every linked TMDB show", () => _sourceActions.RefreshAllLinked(MetadataSource.TMDB, MetadataEntityType.Series, true, true));
         return Ok();
     }
 
@@ -233,7 +243,7 @@ public class LegacyActionController : BaseController
     [HttpGet("DownloadMissingTmdbPeople")]
     public ActionResult DownloadMissingTmdbPeople()
     {
-        Task.Factory.StartNew(() => _tmdbMetadataService.RepairMissingPeople());
+        Task.Factory.StartNew(ActorContext.Carry(() => _tmdbUpdater.RepairMissingPeople()));
         return Ok();
     }
 
@@ -244,7 +254,7 @@ public class LegacyActionController : BaseController
     [HttpGet("PurgeAllUnusedTmdbImages")]
     public ActionResult PurgeAllUnusedTmdbImages()
     {
-        Task.Factory.StartNew(() => _imageManager.SchedulePurgeOfOrphanedImages(0, DataSource.TMDB));
+        _sourceActions.Start("Purging the unused TMDB images", () => _sourceActions.PurgeUnusedImages(MetadataSource.TMDB));
         return Ok();
     }
 
@@ -255,7 +265,7 @@ public class LegacyActionController : BaseController
     [HttpGet("PurgeAllUnusedTmdbShows")]
     public ActionResult PurgeAllUnusedTmdbShows()
     {
-        Task.Factory.StartNew(() => _tmdbMetadataService.PurgeAllUnusedShows());
+        _sourceActions.Start("Purging the unused TMDB shows", () => _sourceActions.PurgeUnused(MetadataSource.TMDB, MetadataEntityType.Series, null));
         return Ok();
     }
 
@@ -266,7 +276,7 @@ public class LegacyActionController : BaseController
     [HttpGet("PurgeAllTmdbShowAlternateOrderings")]
     public ActionResult PurgeAllTmdbShowAlternateOrderings()
     {
-        Task.Factory.StartNew(_tmdbMetadataService.PurgeAllShowEpisodeGroups);
+        Task.Factory.StartNew(ActorContext.Carry(_tmdbUpdater.PurgeAllShowEpisodeGroups));
         return Ok();
     }
 
@@ -280,13 +290,7 @@ public class LegacyActionController : BaseController
     [HttpGet("PurgeAllTmdbLinks")]
     public ActionResult PurgeAllTmdbLinks([FromQuery] bool removeShowLinks = true, [FromQuery] bool removeMovieLinks = true, [FromQuery] bool? resetAutoLinkingState = null)
     {
-        Task.Run(() =>
-        {
-            if (removeShowLinks || removeMovieLinks)
-                _tmdbLinkingService.RemoveAllLinks(removeShowLinks, removeMovieLinks);
-            if (resetAutoLinkingState.HasValue)
-                _tmdbLinkingService.ResetAutoLinkingState(resetAutoLinkingState.Value);
-        });
+        _sourceActions.Start("Removing every TMDB link", () => _sourceActions.RemoveAllLinks(MetadataSource.TMDB, removeShowLinks, removeMovieLinks, false, resetAutoLinkingState));
         return Ok();
     }
 
@@ -306,7 +310,7 @@ public class LegacyActionController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<string>? providerNames = null
     )
     {
-        Task.Run(() => _videoReleaseService.PurgeUsedReleases(providerNames, skipEvents));
+        Task.Run(ActorContext.Carry(() => _videoReleaseService.PurgeUsedReleases(providerNames, skipEvents)));
         return Ok();
     }
 
@@ -326,7 +330,7 @@ public class LegacyActionController : BaseController
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<string>? providerNames = null
     )
     {
-        Task.Run(() => _videoReleaseService.PurgeUnusedReleases(providerNames, skipEvents));
+        Task.Run(ActorContext.Carry(() => _videoReleaseService.PurgeUnusedReleases(providerNames, skipEvents)));
         return Ok();
     }
 
@@ -377,8 +381,8 @@ public class LegacyActionController : BaseController
     [HttpGet("DownloadMissingAniDBAnimeData")]
     public ActionResult UpdateMissingAnidbXml()
     {
-        Task.Run(_actionService.DownloadMissingAnidbAnimeXmls);
-        Task.Run(_actionService.ScheduleMissingAnidbAnimeForFiles);
+        Task.Run(ActorContext.Carry(_actionService.DownloadMissingAnidbAnimeXmls));
+        Task.Run(ActorContext.Carry(_actionService.ScheduleMissingAnidbAnimeForFiles));
 
         return Ok();
     }
@@ -392,7 +396,7 @@ public class LegacyActionController : BaseController
     [HttpGet("DownloadMissingAniDBCreators")]
     public ActionResult ScheduleMissingAniDBCreators()
     {
-        Task.Run(_actionService.ScheduleMissingAnidbCreators);
+        Task.Run(ActorContext.Carry(_actionService.ScheduleMissingAnidbCreators));
         return Ok();
     }
 
@@ -461,7 +465,7 @@ public class LegacyActionController : BaseController
     [HttpGet("UpdateAniDBCalendar")]
     public async Task<ActionResult> UpdateAniDBCalendarData()
     {
-        await _scheduler.StartJob<GetAniDBCalendarJob>(c => c.ForceRefresh = true);
+        await _scheduler.StartJob<GetAniDBCalendarJob>();
         return Ok();
     }
 
@@ -475,7 +479,7 @@ public class LegacyActionController : BaseController
     [HttpGet("RecreateAllGroups")]
     public ActionResult RecreateAllGroups()
     {
-        Task.Factory.StartNew(() => _groupCreator.RecreateAllGroups()).ConfigureAwait(false);
+        Task.Factory.StartNew(ActorContext.Carry(() => _groupCreator.RecreateAllGroups())).ConfigureAwait(false);
         return Ok();
     }
 
@@ -490,7 +494,7 @@ public class LegacyActionController : BaseController
     [HttpGet("RenameAllGroups")]
     public ActionResult RenameAllGroups()
     {
-        Task.Factory.StartNew(_groupService.RenameAllGroups, TaskCreationOptions.LongRunning).ConfigureAwait(false);
+        Task.Factory.StartNew(ActorContext.Carry(_groupService.RenameAllGroups), TaskCreationOptions.LongRunning).ConfigureAwait(false);
         return Ok();
     }
 
@@ -541,7 +545,7 @@ public class LegacyActionController : BaseController
     [HttpGet("GetAniDBNotifications")]
     public async Task<ActionResult> GetAniDBNotifications()
     {
-        await _scheduler.StartJob<CheckAniDBNotificationsJob>(c => c.ForceRefresh = true);
+        await _scheduler.StartJob<CheckAniDBNotificationsJob>();
         return Ok();
     }
 

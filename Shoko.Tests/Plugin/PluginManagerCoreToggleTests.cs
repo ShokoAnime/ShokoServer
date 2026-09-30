@@ -1,9 +1,4 @@
 using System;
-using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
-using Shoko.Abstractions.Core;
-using Shoko.Abstractions.Core.Services;
-using Shoko.Abstractions.Plugin;
 using Shoko.Server.Plugin;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -25,7 +20,7 @@ public class PluginManagerCoreToggleTests
     [Fact]
     public void CorePlugin_IsNotDisabled()
     {
-        var manager = CreateManager();
+        var manager = TestPluginManager.Create();
         var core = PluginTestDoubles.CorePluginInfo(typeof(CorePlugin), CorePlugin.StaticID);
 
         Assert.True(manager.DisablePlugin(core).IsEnabled);
@@ -34,29 +29,9 @@ public class PluginManagerCoreToggleTests
     [Fact]
     public void InstalledPlugin_IsDisabled()
     {
-        var manager = CreateManager();
+        var manager = TestPluginManager.Create();
         var plugin = PluginTestDoubles.InstalledPluginInfo(typeof(PluginTestDoubles.TestPlugin), Guid.NewGuid());
 
         Assert.False(manager.DisablePlugin(plugin).IsEnabled);
-    }
-
-    private static PluginManager CreateManager()
-    {
-        StubSettingsProvider.Install();
-
-        var systemService = new Mock<ISystemService>();
-        systemService.Setup(s => s.Version).Returns(new VersionInformation
-        {
-            Version = new Version(1, 0, 0, 0),
-            RuntimeIdentifier = "win-x64",
-            AbstractionVersion = new Version(6, 0, 0, 0),
-            SourceRevision = null,
-            ReleaseTag = null,
-            Channel = ReleaseChannel.Stable,
-            ReleasedAt = DateTime.UnixEpoch
-        });
-
-        return new PluginManager(NullLogger<PluginManager>.Instance, systemService.Object,
-            Mock.Of<IApplicationPaths>());
     }
 }

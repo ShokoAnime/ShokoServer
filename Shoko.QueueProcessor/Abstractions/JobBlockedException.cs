@@ -1,4 +1,5 @@
 using System;
+using Shoko.QueueProcessor.Builder;
 
 namespace Shoko.QueueProcessor.Abstractions;
 
@@ -11,6 +12,6 @@ public class JobBlockedException : Exception
     public Type JobType { get; }
 
     public JobBlockedException(Type jobType)
-        : base($"Job '{jobType.Name}' is blocked by an acquisition filter and cannot run.")
+        : base($"Job '{JobTypeNames.Short(jobType)}' is blocked by an acquisition filter and cannot run.")
         => JobType = jobType;
 }

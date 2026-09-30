@@ -21,9 +21,13 @@ public class TMDB_Movie_Suggestion(TMDB_Suggestion suggestion) : ITmdbMovieSugge
     /// <inheritdoc/>
     public int SuggestedID => _suggestion.SuggestedTmdbEntityID;
 
-    IMetadata<int>? ISuggestedMetadata.Base => Base;
+    MetadataGuid ISuggestedMetadata.BaseID => new(MetadataSource.TMDB, MetadataEntityType.Movie, BaseID.ToString());
 
-    IMetadata<int>? ISuggestedMetadata.Suggested => Suggested;
+    MetadataGuid ISuggestedMetadata.SuggestedID => new(MetadataSource.TMDB, MetadataEntityType.Movie, SuggestedID.ToString());
+
+    IMetadata? ISuggestedMetadata.Base => Base;
+
+    IMetadata? ISuggestedMetadata.Suggested => Suggested;
 
     /// <inheritdoc/>
     public SuggestionKind Kind => _suggestion.Kind;
@@ -38,7 +42,7 @@ public class TMDB_Movie_Suggestion(TMDB_Suggestion suggestion) : ITmdbMovieSugge
     public int? Votes => null;
 
     /// <inheritdoc/>
-    public DataSource Source => DataSource.TMDB;
+    public MetadataSource Source => MetadataSource.TMDB;
 
     /// <inheritdoc/>
     public bool Equals(ISuggestedMetadata? other)

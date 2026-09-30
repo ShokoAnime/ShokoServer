@@ -17,4 +17,5 @@ namespace Shoko.QueueProcessor.Abstractions;
 /// </summary>
 /// <typeparam name="TProvider">The <see cref="IReleaseInfoProvider"/> type this job handles.</typeparam>
 public interface IVideoReleaseProviderJob<TProvider> : IQueueJob
-    where TProvider : IReleaseInfoProvider { }
+    where TProvider : IReleaseInfoProvider
+{ }

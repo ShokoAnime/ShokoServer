@@ -253,24 +253,24 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
     private static int CompareSignalAggregate(
         ReleaseSignalType signal, VideoReleaseCandidate a, VideoReleaseCandidate b,
         ReleaseComparisonPreferences prefs) => signal switch
-    {
-        ReleaseSignalType.Source          => CompareSource(a, b, prefs),
-        ReleaseSignalType.Resolution      => CompareResolution(a, b, prefs),
-        ReleaseSignalType.VideoCodec      => CompareCodecList(a.VideoCodec, b.VideoCodec, prefs.VideoCodecOrder),
-        ReleaseSignalType.BitDepth        => CompareBitDepth(a, b, prefs),
-        ReleaseSignalType.AudioStreams     => CompareHigherInt(a.AudioStreamCount, b.AudioStreamCount),
-        ReleaseSignalType.SubtitleStreams  => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
-        ReleaseSignalType.AudioCodec      => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
-        ReleaseSignalType.AudioLanguage   => CompareLanguageList(a.AudioLanguages, b.AudioLanguages, prefs.AudioLanguageOrder),
-        ReleaseSignalType.SubtitleLanguage => CompareLanguageList(a.SubtitleLanguages, b.SubtitleLanguages, prefs.SubtitleLanguageOrder),
-        ReleaseSignalType.Chaptered       => CompareChapters(a, b),
-        ReleaseSignalType.SubGroup        => CompareSubGroup(a, b, prefs),
-        ReleaseSignalType.Version         => CompareHigherInt(a.Version, b.Version),
-        ReleaseSignalType.Corrupted       => CompareCorrupted(a, b),
-        ReleaseSignalType.Censored        => CompareCensored(a, b),
-        ReleaseSignalType.Creditless      => CompareCreditless(a, b),
-        _ => 0,
-    };
+        {
+            ReleaseSignalType.Source => CompareSource(a, b, prefs),
+            ReleaseSignalType.Resolution => CompareResolution(a, b, prefs),
+            ReleaseSignalType.VideoCodec => CompareCodecList(a.VideoCodec, b.VideoCodec, prefs.VideoCodecOrder),
+            ReleaseSignalType.BitDepth => CompareBitDepth(a, b, prefs),
+            ReleaseSignalType.AudioStreams => CompareHigherInt(a.AudioStreamCount, b.AudioStreamCount),
+            ReleaseSignalType.SubtitleStreams => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
+            ReleaseSignalType.AudioCodec => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
+            ReleaseSignalType.AudioLanguage => CompareLanguageList(a.AudioLanguages, b.AudioLanguages, prefs.AudioLanguageOrder),
+            ReleaseSignalType.SubtitleLanguage => CompareLanguageList(a.SubtitleLanguages, b.SubtitleLanguages, prefs.SubtitleLanguageOrder),
+            ReleaseSignalType.Chaptered => CompareChapters(a, b),
+            ReleaseSignalType.SubGroup => CompareSubGroup(a, b, prefs),
+            ReleaseSignalType.Version => CompareHigherInt(a.Version, b.Version),
+            ReleaseSignalType.Corrupted => CompareCorrupted(a, b),
+            ReleaseSignalType.Censored => CompareCensored(a, b),
+            ReleaseSignalType.Creditless => CompareCreditless(a, b),
+            _ => 0,
+        };
 
     /// <summary>
     /// Compares a single quality signal between two <see cref="EpisodeTypeQualitySignals"/>
@@ -281,43 +281,43 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
     private static int CompareSignalForType(
         ReleaseSignalType signal, EpisodeTypeQualitySignals a, EpisodeTypeQualitySignals b,
         ReleaseComparisonPreferences prefs) => signal switch
-    {
-        ReleaseSignalType.Source          => CompareCodecList(ReleaseSourceToString(a.Source), ReleaseSourceToString(b.Source), prefs.SourceOrder),
-        ReleaseSignalType.Resolution      => CompareCodecList(a.Resolution, b.Resolution, prefs.ResolutionOrder),
-        ReleaseSignalType.VideoCodec      => CompareCodecList(a.VideoCodec, b.VideoCodec, prefs.VideoCodecOrder),
-        ReleaseSignalType.BitDepth        => CompareTypeBitDepth(a.BitDepth, b.BitDepth, prefs),
-        ReleaseSignalType.AudioStreams     => CompareHigherInt(a.AudioStreamCount, b.AudioStreamCount),
-        ReleaseSignalType.SubtitleStreams  => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
-        ReleaseSignalType.AudioCodec      => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
-        ReleaseSignalType.AudioLanguage   => CompareLanguageList(a.AudioLanguages, b.AudioLanguages, prefs.AudioLanguageOrder),
-        ReleaseSignalType.SubtitleLanguage => CompareLanguageList(a.SubtitleLanguages, b.SubtitleLanguages, prefs.SubtitleLanguageOrder),
-        ReleaseSignalType.Chaptered       => CompareNullableBool(a.IsChaptered, b.IsChaptered),
-        ReleaseSignalType.Corrupted       => CompareCorruptedBool(a.IsCorrupted, b.IsCorrupted),
-        ReleaseSignalType.Censored        => CompareCensoredBool(a.IsCensored, b.IsCensored),
-        ReleaseSignalType.Creditless      => CompareNullableBool(a.IsCreditless, b.IsCreditless),
-        _ => 0,
-    };
+        {
+            ReleaseSignalType.Source => CompareCodecList(ReleaseSourceToString(a.Source), ReleaseSourceToString(b.Source), prefs.SourceOrder),
+            ReleaseSignalType.Resolution => CompareCodecList(a.Resolution, b.Resolution, prefs.ResolutionOrder),
+            ReleaseSignalType.VideoCodec => CompareCodecList(a.VideoCodec, b.VideoCodec, prefs.VideoCodecOrder),
+            ReleaseSignalType.BitDepth => CompareTypeBitDepth(a.BitDepth, b.BitDepth, prefs),
+            ReleaseSignalType.AudioStreams => CompareHigherInt(a.AudioStreamCount, b.AudioStreamCount),
+            ReleaseSignalType.SubtitleStreams => CompareHigherInt(a.SubtitleStreamCount, b.SubtitleStreamCount),
+            ReleaseSignalType.AudioCodec => CompareCodecList(a.AudioCodec, b.AudioCodec, prefs.AudioCodecOrder),
+            ReleaseSignalType.AudioLanguage => CompareLanguageList(a.AudioLanguages, b.AudioLanguages, prefs.AudioLanguageOrder),
+            ReleaseSignalType.SubtitleLanguage => CompareLanguageList(a.SubtitleLanguages, b.SubtitleLanguages, prefs.SubtitleLanguageOrder),
+            ReleaseSignalType.Chaptered => CompareNullableBool(a.IsChaptered, b.IsChaptered),
+            ReleaseSignalType.Corrupted => CompareCorruptedBool(a.IsCorrupted, b.IsCorrupted),
+            ReleaseSignalType.Censored => CompareCensoredBool(a.IsCensored, b.IsCensored),
+            ReleaseSignalType.Creditless => CompareNullableBool(a.IsCreditless, b.IsCreditless),
+            _ => 0,
+        };
 
     private static (string? AValue, string? BValue) GetAggregateSignalDisplayValues(
         ReleaseSignalType signal, VideoReleaseCandidate a, VideoReleaseCandidate b)
         => signal switch
         {
-            ReleaseSignalType.Source          => (ReleaseSourceToString(a.Source), ReleaseSourceToString(b.Source)),
-            ReleaseSignalType.Resolution      => (a.Resolution, b.Resolution),
-            ReleaseSignalType.VideoCodec      => (a.VideoCodec, b.VideoCodec),
-            ReleaseSignalType.BitDepth        => (a.BitDepth > 0 ? a.BitDepth.ToString() : null, b.BitDepth > 0 ? b.BitDepth.ToString() : null),
-            ReleaseSignalType.AudioStreams     => (a.AudioStreamCount > 0 ? a.AudioStreamCount.ToString() : null, b.AudioStreamCount > 0 ? b.AudioStreamCount.ToString() : null),
-            ReleaseSignalType.SubtitleStreams  => (a.SubtitleStreamCount > 0 ? a.SubtitleStreamCount.ToString() : null, b.SubtitleStreamCount > 0 ? b.SubtitleStreamCount.ToString() : null),
-            ReleaseSignalType.AudioCodec      => (a.AudioCodec, b.AudioCodec),
-            ReleaseSignalType.AudioLanguage   => (LanguageListDisplay(a.AudioLanguages), LanguageListDisplay(b.AudioLanguages)),
+            ReleaseSignalType.Source => (ReleaseSourceToString(a.Source), ReleaseSourceToString(b.Source)),
+            ReleaseSignalType.Resolution => (a.Resolution, b.Resolution),
+            ReleaseSignalType.VideoCodec => (a.VideoCodec, b.VideoCodec),
+            ReleaseSignalType.BitDepth => (a.BitDepth > 0 ? a.BitDepth.ToString() : null, b.BitDepth > 0 ? b.BitDepth.ToString() : null),
+            ReleaseSignalType.AudioStreams => (a.AudioStreamCount > 0 ? a.AudioStreamCount.ToString() : null, b.AudioStreamCount > 0 ? b.AudioStreamCount.ToString() : null),
+            ReleaseSignalType.SubtitleStreams => (a.SubtitleStreamCount > 0 ? a.SubtitleStreamCount.ToString() : null, b.SubtitleStreamCount > 0 ? b.SubtitleStreamCount.ToString() : null),
+            ReleaseSignalType.AudioCodec => (a.AudioCodec, b.AudioCodec),
+            ReleaseSignalType.AudioLanguage => (LanguageListDisplay(a.AudioLanguages), LanguageListDisplay(b.AudioLanguages)),
             ReleaseSignalType.SubtitleLanguage => (LanguageListDisplay(a.SubtitleLanguages), LanguageListDisplay(b.SubtitleLanguages)),
-            ReleaseSignalType.Chaptered       => (a.IsChaptered?.ToString(), b.IsChaptered?.ToString()),
+            ReleaseSignalType.Chaptered => (a.IsChaptered?.ToString(), b.IsChaptered?.ToString()),
             ReleaseSignalType.GroupHomogeneity => (a.IsHomogeneous.ToString(), b.IsHomogeneous.ToString()),
-            ReleaseSignalType.SubGroup        => (GroupDisplay(a), GroupDisplay(b)),
-            ReleaseSignalType.Version         => (a.Version > 0 ? a.Version.ToString() : null, b.Version > 0 ? b.Version.ToString() : null),
-            ReleaseSignalType.Corrupted       => ((!a.IsCorrupted).ToString(), (!b.IsCorrupted).ToString()),
-            ReleaseSignalType.Censored        => (a.IsCensored is null ? null : (!a.IsCensored.Value).ToString(), b.IsCensored is null ? null : (!b.IsCensored.Value).ToString()),
-            ReleaseSignalType.Creditless      => (a.IsCreditless?.ToString(), b.IsCreditless?.ToString()),
+            ReleaseSignalType.SubGroup => (GroupDisplay(a), GroupDisplay(b)),
+            ReleaseSignalType.Version => (a.Version > 0 ? a.Version.ToString() : null, b.Version > 0 ? b.Version.ToString() : null),
+            ReleaseSignalType.Corrupted => ((!a.IsCorrupted).ToString(), (!b.IsCorrupted).ToString()),
+            ReleaseSignalType.Censored => (a.IsCensored is null ? null : (!a.IsCensored.Value).ToString(), b.IsCensored is null ? null : (!b.IsCensored.Value).ToString()),
+            ReleaseSignalType.Creditless => (a.IsCreditless?.ToString(), b.IsCreditless?.ToString()),
             _ => (null, null),
         };
 
@@ -325,19 +325,19 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
         ReleaseSignalType signal, EpisodeTypeQualitySignals a, EpisodeTypeQualitySignals b)
         => signal switch
         {
-            ReleaseSignalType.Source          => (ReleaseSourceToString(a.Source), ReleaseSourceToString(b.Source)),
-            ReleaseSignalType.Resolution      => (a.Resolution, b.Resolution),
-            ReleaseSignalType.VideoCodec      => (a.VideoCodec, b.VideoCodec),
-            ReleaseSignalType.BitDepth        => (a.BitDepth > 0 ? a.BitDepth.ToString() : null, b.BitDepth > 0 ? b.BitDepth.ToString() : null),
-            ReleaseSignalType.AudioStreams     => (a.AudioStreamCount > 0 ? a.AudioStreamCount.ToString() : null, b.AudioStreamCount > 0 ? b.AudioStreamCount.ToString() : null),
-            ReleaseSignalType.SubtitleStreams  => (a.SubtitleStreamCount > 0 ? a.SubtitleStreamCount.ToString() : null, b.SubtitleStreamCount > 0 ? b.SubtitleStreamCount.ToString() : null),
-            ReleaseSignalType.AudioCodec      => (a.AudioCodec, b.AudioCodec),
-            ReleaseSignalType.AudioLanguage   => (LanguageListDisplay(a.AudioLanguages), LanguageListDisplay(b.AudioLanguages)),
+            ReleaseSignalType.Source => (ReleaseSourceToString(a.Source), ReleaseSourceToString(b.Source)),
+            ReleaseSignalType.Resolution => (a.Resolution, b.Resolution),
+            ReleaseSignalType.VideoCodec => (a.VideoCodec, b.VideoCodec),
+            ReleaseSignalType.BitDepth => (a.BitDepth > 0 ? a.BitDepth.ToString() : null, b.BitDepth > 0 ? b.BitDepth.ToString() : null),
+            ReleaseSignalType.AudioStreams => (a.AudioStreamCount > 0 ? a.AudioStreamCount.ToString() : null, b.AudioStreamCount > 0 ? b.AudioStreamCount.ToString() : null),
+            ReleaseSignalType.SubtitleStreams => (a.SubtitleStreamCount > 0 ? a.SubtitleStreamCount.ToString() : null, b.SubtitleStreamCount > 0 ? b.SubtitleStreamCount.ToString() : null),
+            ReleaseSignalType.AudioCodec => (a.AudioCodec, b.AudioCodec),
+            ReleaseSignalType.AudioLanguage => (LanguageListDisplay(a.AudioLanguages), LanguageListDisplay(b.AudioLanguages)),
             ReleaseSignalType.SubtitleLanguage => (LanguageListDisplay(a.SubtitleLanguages), LanguageListDisplay(b.SubtitleLanguages)),
-            ReleaseSignalType.Chaptered       => (a.IsChaptered?.ToString(), b.IsChaptered?.ToString()),
-            ReleaseSignalType.Corrupted       => ((!a.IsCorrupted).ToString(), (!b.IsCorrupted).ToString()),
-            ReleaseSignalType.Censored        => (a.IsCensored is null ? null : (!a.IsCensored.Value).ToString(), b.IsCensored is null ? null : (!b.IsCensored.Value).ToString()),
-            ReleaseSignalType.Creditless      => (a.IsCreditless?.ToString(), b.IsCreditless?.ToString()),
+            ReleaseSignalType.Chaptered => (a.IsChaptered?.ToString(), b.IsChaptered?.ToString()),
+            ReleaseSignalType.Corrupted => ((!a.IsCorrupted).ToString(), (!b.IsCorrupted).ToString()),
+            ReleaseSignalType.Censored => (a.IsCensored is null ? null : (!a.IsCensored.Value).ToString(), b.IsCensored is null ? null : (!b.IsCensored.Value).ToString()),
+            ReleaseSignalType.Creditless => (a.IsCreditless?.ToString(), b.IsCreditless?.ToString()),
             _ => (null, null),
         };
 
@@ -365,15 +365,15 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
     private static string? ReleaseSourceToString(ReleaseSource src) =>
         src switch
         {
-            ReleaseSource.BluRay    => "BluRay",
-            ReleaseSource.DVD       => "DVD",
-            ReleaseSource.TV        => "TV",
-            ReleaseSource.Web       => "Web",
-            ReleaseSource.VHS       => "VHS",
-            ReleaseSource.VCD       => "VCD",
+            ReleaseSource.BluRay => "BluRay",
+            ReleaseSource.DVD => "DVD",
+            ReleaseSource.TV => "TV",
+            ReleaseSource.Web => "Web",
+            ReleaseSource.VHS => "VHS",
+            ReleaseSource.VCD => "VCD",
             ReleaseSource.LaserDisc => "LaserDisc",
-            ReleaseSource.Camera    => "Camera",
-            ReleaseSource.Film      => "Film",
+            ReleaseSource.Camera => "Camera",
+            ReleaseSource.Film => "Film",
             _ => null,  // Unknown/Other → treat as unknown, skip
         };
 
@@ -507,10 +507,10 @@ public class ReleaseComparisonService(ISettingsProvider settingsProvider, VideoR
             : order.FindIndex(s => string.Equals(s, c.GroupShortName, StringComparison.OrdinalIgnoreCase));
         return (nameIdx, shortIdx) switch
         {
-            (< 0, < 0) => -1,
-            (< 0, _)   => shortIdx,
-            (_, < 0)   => nameIdx,
-            _          => Math.Min(nameIdx, shortIdx),
+            ( < 0, < 0) => -1,
+            ( < 0, _) => shortIdx,
+            (_, < 0) => nameIdx,
+            _ => Math.Min(nameIdx, shortIdx),
         };
     }
 

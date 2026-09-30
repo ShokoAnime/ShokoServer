@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video.Release;
 
 namespace Shoko.Abstractions.Video.Events;
@@ -17,4 +18,11 @@ public class VideoReleaseSavedEventArgs : EventArgs
     /// The release information for the video.
     /// </summary>
     public required IReleaseInfo ReleaseInfo { get; init; }
+
+    /// <summary>
+    ///   The API token of whoever caused the release to be saved, or
+    ///   <see langword="null"/> when the system did it. Stamped when the event is
+    ///   raised.
+    /// </summary>
+    public ApiToken? Actor { get; init; }
 }

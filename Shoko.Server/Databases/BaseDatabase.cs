@@ -148,6 +148,20 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
     public abstract void CreateAndUpdateSchema();
     public abstract void BackupDatabase(string fullfilename);
 
+    /// <inheritdoc />
+    public abstract void Vacuum();
+
+    /// <summary>
+    /// Every numbered step of the schema: the tables, the patches and the
+    /// data fixes among them.
+    /// </summary>
+    protected abstract IEnumerable<DatabaseCommand> SchemaCommands { get; }
+
+    /// <inheritdoc />
+    public bool HasPendingSchemaSteps()
+        => SchemaCommands.Any(command => command.Version is not 0 && command.Revision is not 0 &&
+            !AllVersions.ContainsKey((command.Version.ToString(), command.Revision.ToString())));
+
     public abstract string Name { get; }
 
     internal void PreFillVersions(IEnumerable<DatabaseCommand> commands)

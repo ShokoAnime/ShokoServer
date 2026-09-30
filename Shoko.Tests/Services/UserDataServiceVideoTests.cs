@@ -64,7 +64,7 @@ public class UserDataServiceVideoTests
             settings.Setup(s => s.GetSettings(It.IsAny<bool>())).Returns(new ServerSettings());
 
             var video = new Mock<IVideo>();
-            video.SetupGet(v => v.ID).Returns(VideoID);
+            video.SetupGet(v => v.LocalID).Returns(VideoID);
             video.SetupGet(v => v.CrossReferences).Returns([]);
             if (duration.HasValue)
             {
@@ -76,7 +76,7 @@ public class UserDataServiceVideoTests
             Video = video.Object;
 
             var user = new Mock<IUser>();
-            user.SetupGet(u => u.ID).Returns(UserID);
+            user.SetupGet(u => u.LocalID).Returns(UserID);
             user.SetupGet(u => u.IsAnidbUser).Returns(isAnidbUser);
             User = user.Object;
 

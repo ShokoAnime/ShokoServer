@@ -23,12 +23,12 @@ public class RetryPolicyTests
     // ── RetryPolicy.GetDelay ──────────────────────────────────────────────────
 
     [Theory]
-    [InlineData(0,   30)]    // first retry: base * 2^0 = 30s
-    [InlineData(1,   60)]    // 30 * 2 = 60s
-    [InlineData(2,  120)]    // 30 * 4 = 120s
-    [InlineData(3,  240)]
-    [InlineData(4,  480)]
-    [InlineData(5,  960)]
+    [InlineData(0, 30)]    // first retry: base * 2^0 = 30s
+    [InlineData(1, 60)]    // 30 * 2 = 60s
+    [InlineData(2, 120)]    // 30 * 4 = 120s
+    [InlineData(3, 240)]
+    [InlineData(4, 480)]
+    [InlineData(5, 960)]
     [InlineData(6, 1920)]
     [InlineData(7, 3600)]    // capped at 1h
     [InlineData(20, 3600)]   // far into retries — still capped

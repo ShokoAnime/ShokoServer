@@ -17,9 +17,9 @@ public class ShokoImage_EntityMap : ClassMap<ShokoImage_Entity>
         Map(x => x.ImageID).Not.Nullable();
         Map(x => x.PrimaryImageID).Not.Nullable();
         Map(x => x.ImageType).CustomType<ImageEntityType>().Not.Nullable();
-        Map(x => x.ImageSource).CustomType<DataSource>().Not.Nullable();
-        Map(x => x.EntityType).CustomType<DataEntityType>().Not.Nullable();
-        Map(x => x.EntitySource).CustomType<DataSource>().Not.Nullable();
+        Map(x => x.ImageSource).CustomType<MetadataSourceType>().Not.Nullable();
+        Map(x => x.EntityType).CustomType<MetadataEntityTypeType>().Not.Nullable();
+        Map(x => x.EntitySource).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.EntityID).Not.Nullable();
         Map(x => x.EntitySeasonNumber).Nullable();
         Map(x => x.EntityEpisodeNumber).Nullable();
@@ -30,7 +30,7 @@ public class ShokoImage_EntityMap : ClassMap<ShokoImage_Entity>
         Map(x => x.Ordering).Not.Nullable();
         Map(x => x.Rating).Nullable();
         Map(x => x.RatingVotes).Nullable();
-        Map(x => x.Source).CustomType<DataSource>().Not.Nullable();
+        Map(x => x.Source).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
     }

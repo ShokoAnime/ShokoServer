@@ -1,36 +1,32 @@
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
-using Shoko.Abstractions.Metadata.Anilist;
-using Shoko.Abstractions.Metadata.Anilist.CrossReferences;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
-using Shoko.Abstractions.Metadata.Stub;
-using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Abstractions.Metadata.Tmdb.CrossReferences;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.CrossReference.Embedded;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.AniDB.Titles;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
-using Shoko.Server.Settings;
-using Shoko.Server.Utilities;
+using Shoko.Server.Services;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.Shoko;
@@ -69,404 +65,100 @@ public class AnimeSeries : IShokoSeries
 
     public int LatestLocalEpisodeNumber { get; set; }
 
-    public string? SeriesNameOverride { get; set; }
-
     public DateTime UpdatedAt { get; set; }
 
-    public DisabledAutoMatchFlag DisableAutoMatchFlags { get; set; } = 0;
+    /// <summary>
+    ///   The sources told to leave this anime alone, as a JSON array.
+    /// </summary>
+    /// <remarks>
+    ///   A source is written as its <see cref="MetadataSource.Value"/>. Older
+    ///   rows hold the source's name, which matches since keys compare
+    ///   ignoring case. Kept as text rather than a bitfield so a source added
+    ///   later, a plugin's included, has somewhere to go.
+    /// </remarks>
+    public string? DisabledAutoMatchSources { get; set; }
+
+    /// <summary>
+    ///   The ordering chosen for the series, of any source, or <c>null</c>
+    ///   for its default one. Set through
+    ///   <see cref="IMetadataOrderingService.SetPreferredOrdering"/>.
+    /// </summary>
+    public MetadataGuid? PreferredOrderingID { get; set; }
 
     #endregion
 
     #region Disabled Auto Matching
 
-    public bool IsTmdbAutoMatchingDisabled
+    /// <summary>
+    ///   The sources told to leave this anime alone, read from
+    ///   <see cref="DisabledAutoMatchSources"/>.
+    /// </summary>
+    public IReadOnlySet<string> DisabledAutoMatchKeys
     {
         get
         {
-            return DisableAutoMatchFlags.HasFlag(DisabledAutoMatchFlag.TMDB);
+            if (string.IsNullOrWhiteSpace(DisabledAutoMatchSources))
+                return FrozenSet<string>.Empty;
+
+            try
+            {
+                return JsonConvert.DeserializeObject<string[]>(DisabledAutoMatchSources) is { } keys
+                    ? keys.Where(key => !string.IsNullOrWhiteSpace(key)).ToFrozenSet(StringComparer.InvariantCultureIgnoreCase)
+                    : FrozenSet<string>.Empty;
+            }
+            catch (JsonException)
+            {
+                // A hand-edited or half-written value should not take the
+                // series down with it; nobody said no is the safe reading.
+                return FrozenSet<string>.Empty;
+            }
         }
-        set
-        {
-            if (value)
-                DisableAutoMatchFlags |= DisabledAutoMatchFlag.TMDB;
-            else
-                DisableAutoMatchFlags &= ~DisabledAutoMatchFlag.TMDB;
-        }
+        set => DisabledAutoMatchSources = value.Count is 0 ? null : JsonConvert.SerializeObject(value.OrderBy(key => key));
     }
 
-    public bool IsMALAutoMatchingDisabled
-    {
-        get
-        {
-            return DisableAutoMatchFlags.HasFlag(DisabledAutoMatchFlag.MAL);
-        }
-        set
-        {
-            if (value)
-                DisableAutoMatchFlags |= DisabledAutoMatchFlag.MAL;
-            else
-                DisableAutoMatchFlags &= ~DisabledAutoMatchFlag.MAL;
-        }
-    }
-
-    public bool IsAnilistAutoMatchingDisabled
-    {
-        get
-        {
-            return DisableAutoMatchFlags.HasFlag(DisabledAutoMatchFlag.AniList);
-        }
-        set
-        {
-            if (value)
-                DisableAutoMatchFlags |= DisabledAutoMatchFlag.AniList;
-            else
-                DisableAutoMatchFlags &= ~DisabledAutoMatchFlag.AniList;
-        }
-    }
-
-    public bool IsAnimeshonAutoMatchingDisabled
-    {
-        get
-        {
-            return DisableAutoMatchFlags.HasFlag(DisabledAutoMatchFlag.Animeshon);
-        }
-        set
-        {
-            if (value)
-                DisableAutoMatchFlags |= DisabledAutoMatchFlag.Animeshon;
-            else
-                DisableAutoMatchFlags &= ~DisabledAutoMatchFlag.Animeshon;
-        }
-    }
-
-    public bool IsKitsuAutoMatchingDisabled
-    {
-        get
-        {
-            return DisableAutoMatchFlags.HasFlag(DisabledAutoMatchFlag.Kitsu);
-        }
-        set
-        {
-            if (value)
-                DisableAutoMatchFlags |= DisabledAutoMatchFlag.Kitsu;
-            else
-                DisableAutoMatchFlags &= ~DisabledAutoMatchFlag.Kitsu;
-        }
-    }
+    /// <summary>
+    ///   Whether a source has been told to leave this anime alone.
+    /// </summary>
+    public bool IsAutoLinkingDisabled(MetadataSource source)
+        => DisabledAutoMatchKeys.Contains(source.ToString());
 
     #endregion
 
     #region Titles & Overviews
 
-    public string Title => !string.IsNullOrEmpty(SeriesNameOverride) ? SeriesNameOverride : (PreferredTitle ?? DefaultTitle).Value;
+    public string Title => (PreferredTitle ?? DefaultTitle).Value;
 
-    private ITitle? _defaultTitle;
+    /// <summary>
+    ///   The name a user gave the series, stored as its <c>user</c> title.
+    /// </summary>
+    public ITitle? CustomTitle => TextManager.CustomTitleOf(((IMetadata)this).ID);
 
-    public ITitle DefaultTitle
-    {
-        get
-        {
-            if (_defaultTitle is not null)
-                return _defaultTitle;
+    /// <summary>
+    ///   The series' default title: the name a user gave it, else its AniDB
+    ///   anime's default title.
+    /// </summary>
+    public ITitle DefaultTitle => TextManager.DefaultTitleOf(this);
 
-            lock (this)
-            {
-                if (_defaultTitle is not null)
-                    return _defaultTitle;
+    /// <summary>
+    ///   The title the user's picks and language settings choose for the
+    ///   series.
+    /// </summary>
+    public ITitle? PreferredTitle => TextManager.PreferredTitleOf(this);
 
-                // Return the override if it's set.
-                if (!string.IsNullOrEmpty(SeriesNameOverride))
-                    return _defaultTitle = new TitleStub
-                    {
-                        Source = DataSource.User,
-                        Language = TitleLanguage.Unknown,
-                        LanguageCode = "unk",
-                        Value = SeriesNameOverride,
-                        Type = TitleType.Main,
-                    };
+    /// <summary>
+    ///   Every title of the series: the user's, AniDB's, the linked entries'
+    ///   and the contributed ones.
+    /// </summary>
+    public IReadOnlyList<ITitle> Titles => TextManager.TitlesOf(this);
 
-                if (AniDB_Anime is { } anime)
-                    return _defaultTitle = anime.DefaultTitle;
+    /// <summary>
+    ///   The overview the user's picks and language settings choose for the
+    ///   series.
+    /// </summary>
+    public IText? PreferredOverview => TextManager.PreferredDescriptionOf(this);
 
-                var titleHelper = ISystemService.StaticServices.GetRequiredService<AniDBTitleHelper>();
-                if (titleHelper.SearchAnimeID(AniDB_ID) is { } titleResponse && titleResponse.Titles.FirstOrDefault(title => title.TitleType == TitleType.Main) is { } defaultTitle)
-                    return _defaultTitle = defaultTitle;
-
-                return _defaultTitle = new TitleStub
-                {
-                    Language = TitleLanguage.Unknown,
-                    LanguageCode = "unk",
-                    Value = $"<AniDB Anime {AniDB_ID}>",
-                    Source = DataSource.None,
-                };
-            }
-        }
-    }
-
-    public void ResetDefaultTitle() => _defaultTitle = null;
-
-    private bool _preferredTitleLoaded;
-
-    private ITitle? _preferredTitle;
-
-    public ITitle? PreferredTitle => LoadPreferredTitle();
-
-    public void ResetPreferredTitle()
-    {
-        lock (this)
-        {
-            _preferredTitleLoaded = false;
-            _preferredTitle = null;
-        }
-    }
-
-    private ITitle? LoadPreferredTitle()
-    {
-        if (_preferredTitleLoaded)
-            return _preferredTitle;
-
-        lock (this)
-        {
-            if (_preferredTitleLoaded)
-                return _preferredTitle;
-            _preferredTitleLoaded = true;
-
-            // Return the override if it's set.
-            if (!string.IsNullOrEmpty(SeriesNameOverride))
-                return _preferredTitle = new TitleStub
-                {
-                    Source = DataSource.User,
-                    Language = TitleLanguage.Unknown,
-                    LanguageCode = "unk",
-                    Value = SeriesNameOverride,
-                    Type = TitleType.Main,
-                };
-
-            var settings = ISettingsProvider.Instance.GetSettings();
-            var sourceOrder = settings.Language.SeriesTitleSourceOrder;
-            var languageOrder = Languages.PreferredNamingLanguages;
-            var anime = AniDB_Anime;
-
-            // Lazy load AniDB titles if needed.
-            List<AniDB_Anime_Title>? anidbTitles = null;
-            List<AniDB_Anime_Title> GetAnidbTitles()
-                => anidbTitles ??= RepoFactory.AniDB_Anime_Title.GetByAnimeID(AniDB_ID);
-
-            // Lazy load TMDB titles if needed.
-            IReadOnlyList<TMDB_Title>? tmdbTitles = null;
-
-            // Loop through all languages and sources, first by language, then by source.
-            foreach (var language in languageOrder)
-                foreach (var source in sourceOrder)
-                {
-                    ITitle? title = source switch
-                    {
-                        DataSource.AniDB =>
-                            language.Language is TitleLanguage.Main
-                                ? anime?.DefaultTitle
-                                : GetAnidbTitles().FirstOrDefault(x => x.TitleType is TitleType.Main or TitleType.Official && x.Language == language.Language)
-                                    ?? (settings.Language.UseSynonyms ? GetAnidbTitles().FirstOrDefault(x => x.Language == language.Language) : null),
-                        DataSource.TMDB =>
-                            (tmdbTitles ??= GetTmdbTitles()).GetByLanguage(language.Language),
-                        _ => null,
-                    };
-                    if (title is not null)
-                        return _preferredTitle = title;
-                }
-
-            // The most "default" title we have, even if AniDB isn't a preferred source.
-            return _preferredTitle = DefaultTitle;
-        }
-    }
-
-    private IReadOnlyList<TMDB_Title> GetTmdbTitles()
-    {
-        // If we're linked to multiple TMDB shows or multiple TMDB movies, then
-        // don't bother attempting to programmatically find the perfect title.
-        if (TmdbShows is { Count: 1 } tmdbShows)
-        {
-            // TODO: Maybe add argumented season name support. Argumented in the sense that we add the season number or title to the show title per language.
-            return tmdbShows[0].GetAllTitles();
-        }
-
-        if (TmdbMovies is { Count: 1 } tmdbMovies)
-        {
-            return tmdbMovies[0].GetAllTitles();
-        }
-
-        return [];
-    }
-
-    private List<ITitle>? _animeTitles;
-
-    public IReadOnlyList<ITitle> Titles => LoadAnimeTitles();
-
-    public void ResetAnimeTitles()
-    {
-        _animeTitles = null;
-    }
-
-    private List<ITitle> LoadAnimeTitles()
-    {
-        if (_animeTitles is not null)
-            return _animeTitles;
-
-        lock (this)
-        {
-            if (_animeTitles is not null)
-                return _animeTitles;
-
-            var titles = new List<ITitle>();
-            var seriesOverrideTitle = false;
-            if (!string.IsNullOrEmpty(SeriesNameOverride))
-            {
-                titles.Add(new TitleStub
-                {
-                    Source = DataSource.User,
-                    Language = TitleLanguage.Unknown,
-                    LanguageCode = "unk",
-                    Value = SeriesNameOverride,
-                    Type = TitleType.Main,
-                });
-                seriesOverrideTitle = true;
-            }
-
-            var animeTitles = (this as IShokoSeries).AnidbAnime.Titles.ToList();
-            if (seriesOverrideTitle)
-            {
-                var mainTitle = animeTitles.Find(title => title.Type == TitleType.Main);
-                if (mainTitle is not null)
-                {
-                    animeTitles.Remove(mainTitle);
-                    animeTitles.Insert(0, new TitleStub
-                    {
-                        Language = mainTitle.Language,
-                        LanguageCode = mainTitle.LanguageCode,
-                        Value = mainTitle.Value,
-                        CountryCode = mainTitle.CountryCode,
-                        Source = mainTitle.Source,
-                        Type = TitleType.Official,
-                    });
-                }
-            }
-            titles.AddRange(animeTitles);
-            titles.AddRange((this as IShokoSeries).LinkedSeries.Where(e => e.Source is not DataSource.AniDB).SelectMany(ep => ep.Titles));
-
-            return _animeTitles = titles;
-        }
-    }
-
-    private bool _preferredOverviewLoaded;
-
-    private IText? _preferredOverview;
-
-    public IText? PreferredOverview => LoadPreferredOverview();
-
-    public void ResetPreferredOverview()
-    {
-        _preferredOverviewLoaded = false;
-        _preferredOverview = null;
-    }
-
-    private IText? LoadPreferredOverview()
-    {
-        // Return the cached value if it's set.
-        if (_preferredOverviewLoaded)
-            return _preferredOverview;
-
-        lock (this)
-        {
-            // Return the cached value if it's set.
-            if (_preferredOverviewLoaded)
-                return _preferredOverview;
-            _preferredOverviewLoaded = true;
-
-            var settings = ISettingsProvider.Instance.GetSettings();
-            var sourceOrder = settings.Language.DescriptionSourceOrder;
-            var languageOrder = Languages.PreferredDescriptionNamingLanguages;
-            var anidbOverview = AniDB_Anime?.Description;
-
-            // Lazy load TMDB overviews if needed.
-            IReadOnlyList<TMDB_Overview>? tmdbOverviews = null;
-
-            // Check each language and source in the most preferred order.
-            foreach (var language in languageOrder)
-                foreach (var source in sourceOrder)
-                {
-                    IText? overview = source switch
-                    {
-                        DataSource.AniDB =>
-                            language.Language is TitleLanguage.English && !string.IsNullOrEmpty(anidbOverview)
-                                ? new TextStub
-                                {
-                                    Language = TitleLanguage.English,
-                                    LanguageCode = "en",
-                                    Value = anidbOverview,
-                                    Source = DataSource.AniDB,
-                                }
-                                : null,
-                        DataSource.TMDB =>
-                            (tmdbOverviews ??= GetTmdbOverviews()).GetByLanguage(language.Language),
-                        _ => null,
-                    };
-                    if (overview is not null)
-                        return _preferredOverview = overview;
-                }
-
-            // Return nothing if no provider had an overview in the preferred language.
-            return _preferredOverview = null;
-        }
-
-    }
-
-    private IReadOnlyList<TMDB_Overview> GetTmdbOverviews()
-    {
-        // Get the overviews from TMDB if we're linked to a single show or
-        // movie.
-        if (TmdbShows is { Count: 1 } tmdbShows)
-        {
-            if (TmdbSeasonCrossReferences is not { Count: > 0 } tmdbSeasonCrossReferences)
-                return [];
-
-            // If we're linked to season zero, and only season zero, then we're
-            // most likely linking an AniDB OVA to one or more specials of the
-            // TMDB show, so do some additional logic on that.
-            if (tmdbSeasonCrossReferences.Count is 1 && tmdbSeasonCrossReferences[0] is { SeasonNumber: 0 })
-            {
-                // If we're linking a single episode to a single episode, return
-                // the overviews from the linked episode.
-                var tmdbEpisodeCrossReferences = TmdbEpisodeCrossReferences
-                    .Where(reference => reference.TmdbEpisodeID is not 0)
-                    .ToList();
-                if (tmdbEpisodeCrossReferences.Count is 1)
-                    return tmdbEpisodeCrossReferences[0].TmdbEpisode?.GetAllOverviews() ?? [];
-
-                // If we're linked to multiple episodes, then it will be hard to
-                // construct an overview for each language without a lot of
-                // additional logic, so just don't bother for now and return an
-                // empty list.
-                return [];
-            }
-
-            // Find the first season that's not season zero. If we found season
-            // one, then return the overviews from the show, otherwise return
-            // the overviews from the first found season.
-            var tmdbSeasonCrossReference = tmdbSeasonCrossReferences
-                .OrderBy(e => e.SeasonNumber)
-                .First(tmdbSeason => tmdbSeason is not { SeasonNumber: 0 });
-            if (tmdbSeasonCrossReference is { SeasonNumber: 1 })
-                return tmdbShows[0].GetAllOverviews();
-
-            return tmdbSeasonCrossReference.TmdbSeason?.GetAllOverviews() ?? [];
-        }
-
-        if (TmdbMovies is { Count: 1 } tmdbMovies)
-        {
-            return tmdbMovies[0].GetAllOverviews();
-        }
-
-        return [];
-    }
+    private static MetadataTextManager TextManager
+        => TextAccess.Manager;
 
     #endregion
 
@@ -528,20 +220,6 @@ public class AnimeSeries : IShokoSeries
         .ToList();
 
     public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
-
-    #endregion
-
-    #region AniList
-
-    public IReadOnlyList<CrossRef_AniDB_Anilist_Anime> AnilistAnimeCrossReferences => RepoFactory.CrossRef_AniDB_Anilist_Anime.GetByAnidbAnimeID(AniDB_ID);
-
-    public IReadOnlyList<Anilist_Anime> AnilistAnime => AnilistAnimeCrossReferences.Select(xref => xref.AnilistAnime).WhereNotNull().ToList();
-
-    public IReadOnlyList<CrossRef_AniDB_Anilist_Episode> AnilistEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_Anilist_Episode.GetByAnidbAnimeID(AniDB_ID);
-
-    public IReadOnlyList<CrossRef_AniDB_Anilist_Episode> GetAnilistEpisodeCrossReferences(int? anilistAnimeId = null) => anilistAnimeId.HasValue
-        ? RepoFactory.CrossRef_AniDB_Anilist_Episode.GetOnlyByAnidbAnimeAndAnilistAnimeIDs(AniDB_ID, anilistAnimeId.Value)
-        : RepoFactory.CrossRef_AniDB_Anilist_Episode.GetByAnidbAnimeID(AniDB_ID);
 
     #endregion
 
@@ -678,29 +356,44 @@ public class AnimeSeries : IShokoSeries
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Anime;
+    /// <summary>
+    ///   The ID last handed out, with the row ID it was made from. Kept since
+    ///   it is asked for on every read of a title, and made again only when
+    ///   the row's ID changes on insert.
+    /// </summary>
+    private Tuple<int, MetadataGuid>? _metadataID;
 
-    DataSource IMetadata.Source => DataSource.Shoko;
+    /// <summary>
+    ///   The texts the text manager worked out for this entry, kept here so
+    ///   reading them back skips looking them up.
+    /// </summary>
+    internal object? TextMemo;
 
-    int IMetadata<int>.ID => AnimeSeriesID;
+    MetadataGuid IMetadata.ID
+    {
+        get
+        {
+            var local = AnimeSeriesID;
+            if (_metadataID is { } cached && cached.Item1 == local)
+                return cached.Item2;
+
+            var id = new MetadataGuid(MetadataSource.Shoko, MetadataEntityType.Series, local.ToString());
+            _metadataID = new(local, id);
+            return id;
+        }
+    }
+
+    int IShokoSeries.LocalID => AnimeSeriesID;
 
     #endregion
 
     #region IWithDescription Implementation
 
-    IText? IWithDescriptions.DefaultDescription => AniDB_Anime is { Description.Length: > 0 } anime
-        ? new TextStub
-        {
-            Language = TitleLanguage.English,
-            LanguageCode = "en",
-            Value = anime.Description,
-            Source = DataSource.AniDB,
-        }
-        : null;
+    IText? IWithOverviews.DefaultOverview => TextManager.DefaultOverviewOf(this);
 
-    IText? IWithDescriptions.PreferredDescription => PreferredOverview;
+    IText? IWithOverviews.PreferredOverview => PreferredOverview;
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions => (this as IShokoSeries).LinkedSeries.SelectMany(ep => ep.Descriptions).ToList();
+    IReadOnlyList<IText> IWithOverviews.Overviews => TextManager.DescriptionsOf(this);
 
     #endregion
 
@@ -725,73 +418,33 @@ public class AnimeSeries : IShokoSeries
 
     #region IWithCastAndCrew Implementation
 
-    IReadOnlyList<ICast> IWithCastAndCrew.Cast
-    {
-        get
-        {
-            var list = new List<ICast>();
-            if (AniDB_Anime is ISeries anidbAnime)
-                list.AddRange(anidbAnime.Cast);
-            foreach (var movie in TmdbMovies)
-                list.AddRange(movie.Cast);
-            foreach (var show in TmdbShows)
-                list.AddRange(show.Cast);
-            return list;
-        }
-    }
+    IReadOnlyList<ICast> IWithCastAndCrew.Cast => [
+        .. LinkedSeries.SelectMany(series => series.Cast),
+        .. LinkedMovies.SelectMany(movie => movie.Cast),
+    ];
 
-    IReadOnlyList<ICrew> IWithCastAndCrew.Crew
-    {
-        get
-        {
-            var list = new List<ICrew>();
-            if (AniDB_Anime is ISeries anidbAnime)
-                list.AddRange(anidbAnime.Crew);
-            foreach (var movie in TmdbMovies)
-                list.AddRange(movie.Crew);
-            foreach (var show in TmdbShows)
-                list.AddRange(show.Crew);
-            return list;
-        }
-    }
+    IReadOnlyList<ICrew> IWithCastAndCrew.Crew => [
+        .. LinkedSeries.SelectMany(series => series.Crew),
+        .. LinkedMovies.SelectMany(movie => movie.Crew),
+    ];
 
     #endregion
 
     #region IWithStudios Implementation
 
-    IReadOnlyList<IStudio> IWithStudios.Studios
-    {
-        get
-        {
-            var list = new List<IStudio>();
-            if (AniDB_Anime is ISeries anidbAnime)
-                list.AddRange(anidbAnime.Studios);
-            foreach (var movie in TmdbMovies)
-                list.AddRange(movie.TmdbStudios);
-            foreach (var show in TmdbShows)
-                list.AddRange(show.TmdbStudios);
-            return list;
-        }
-    }
+    IReadOnlyList<IStudio> IWithStudios.Studios => [
+        .. LinkedSeries.SelectMany(series => series.Studios),
+        .. LinkedMovies.SelectMany(movie => movie.Studios),
+    ];
 
     #endregion
 
     #region IWithContentRatings Implementation
 
-    IReadOnlyList<IContentRating> IWithContentRatings.ContentRatings
-    {
-        get
-        {
-            var list = new List<IContentRating>();
-            if (AniDB_Anime is ISeries anidbAnime)
-                list.AddRange(anidbAnime.ContentRatings);
-            foreach (var movie in TmdbMovies)
-                list.AddRange(movie.ContentRatings);
-            foreach (var show in TmdbShows)
-                list.AddRange(show.ContentRatings);
-            return list;
-        }
-    }
+    IReadOnlyList<IContentRating> IWithContentRatings.ContentRatings => [
+        .. LinkedSeries.SelectMany(series => series.ContentRatings),
+        .. LinkedMovies.SelectMany(movie => movie.ContentRatings),
+    ];
 
     #endregion
 
@@ -804,27 +457,41 @@ public class AnimeSeries : IShokoSeries
 
     #region IWithResources Implementation
 
-    IReadOnlyList<Resource> IWithResources.Resources
-    {
-        get
-        {
-            var list = new List<Resource>();
-            if (AniDB_Anime is ISeries anidbAnime)
-                list.AddRange(anidbAnime.Resources);
-            foreach (var movie in TmdbMovies)
-                list.AddRange(movie.Resources);
-            foreach (var show in TmdbShows)
-                list.AddRange(show.Resources);
-            foreach (var anilistAnime in AnilistAnime)
-                list.AddRange(anilistAnime.Resources);
-            list.AddRange(ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this));
-            return list;
-        }
-    }
+    IReadOnlyList<Resource> IWithResources.Resources => [
+        .. LinkedSeries.SelectMany(series => series.Resources),
+        .. LinkedMovies.SelectMany(movie => movie.Resources),
+        // The resolvers answer about this entry itself, rather than about
+        // anything it is linked to, so they are asked separately.
+        .. ISystemService.StaticServices.GetRequiredService<IMetadataService>().GatherResourcesForEntity(this),
+    ];
+
+    #endregion
+
+    #region IWithCrossSources Implementation
+
+    IReadOnlyList<MetadataGuid> IWithCrossSources.CrossSourceIDs => [new(MetadataSource.AniDB, MetadataEntityType.Series, AniDB_ID.ToString())];
 
     #endregion
 
     #region ISeries Implementation
+
+    IReadOnlyList<INetwork> ISeries.Networks => [.. LinkedSeries.SelectMany(series => series.Networks).DistinctBy(network => network.ID)];
+
+    IReadOnlyList<IOrdering> ISeries.Orderings => OrderingLookup.For(this);
+
+    IOrdering ISeries.PreferredOrdering => OrderingLookup.PreferredFor(this);
+
+    IReadOnlyList<IMetadataSeriesCrossReference> ISeries.MetadataSeriesCrossReferences
+        => ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeriesCrossReferences(AniDB_ID, null) ?? [];
+
+    IReadOnlyList<IMetadataSeasonCrossReference> ISeries.MetadataSeasonCrossReferences
+        => ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeasonCrossReferences(AniDB_ID, null) ?? [];
+
+    IReadOnlyList<IMetadataEpisodeCrossReference> ISeries.MetadataEpisodeCrossReferences
+        => ISystemService.StaticServices.GetService<IMetadataService>()?.GetEpisodeCrossReferences(AniDB_ID, null) ?? [];
+
+    IReadOnlyList<IMetadataMovieCrossReference> ISeries.MetadataMovieCrossReferences
+        => ISystemService.StaticServices.GetService<IMetadataService>()?.GetMovieCrossReferences(AniDB_ID, null) ?? [];
 
     AnimeType ISeries.Type => AniDB_Anime?.AnimeType ?? AnimeType.Unknown;
 
@@ -836,6 +503,10 @@ public class AnimeSeries : IShokoSeries
 
     bool ISeries.Restricted => AniDB_Anime?.IsRestricted ?? false;
 
+    ReleaseStatus ISeries.ReleaseStatus => AniDB_Anime?.ReleaseStatus ?? ReleaseStatus.Unknown;
+
+    SourceMaterial ISeries.SourceMaterial => AniDB_Anime?.SourceMaterial ?? SourceMaterial.Unknown;
+
     IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => [this];
 
     /// <summary>
@@ -844,21 +515,13 @@ public class AnimeSeries : IShokoSeries
     ///   provider's own entity instead.
     /// </summary>
     IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries =>
-    [
-        .. AniDB_Anime is { } anidbAnime ? ((ISeries)anidbAnime).RelatedSeries : [],
-        .. TmdbShows.SelectMany(show => ((ISeries)show).RelatedSeries),
-        .. AnilistAnime.SelectMany(anime => ((ISeries)anime).RelatedSeries),
-    ];
+        [.. LinkedSeries.SelectMany(series => series.RelatedSeries)];
 
     /// <summary>
     ///   The movies every provider linked to this series relates it to.
     /// </summary>
     IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies =>
-    [
-        .. AniDB_Anime is { } anidbAnime ? ((ISeries)anidbAnime).RelatedMovies : [],
-        .. TmdbShows.SelectMany(show => ((ISeries)show).RelatedMovies),
-        .. AnilistAnime.SelectMany(anime => ((ISeries)anime).RelatedMovies),
-    ];
+        [.. LinkedSeries.SelectMany(series => series.RelatedMovies)];
 
     /// <summary>
     ///   Everything every provider linked to this series suggests, in one
@@ -866,23 +529,15 @@ public class AnimeSeries : IShokoSeries
     ///   provider's own entity instead.
     /// </summary>
     IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions =>
-    [
-        .. AniDB_Anime is { } anidbAnime ? ((ISeries)anidbAnime).Suggestions : [],
-        .. TmdbShows.SelectMany(show => ((ISeries)show).Suggestions),
-        .. AnilistAnime.SelectMany(anime => ((ISeries)anime).Suggestions),
-    ];
+        [.. LinkedSeries.SelectMany(series => series.Suggestions)];
 
     /// <summary>
     ///   Everything every provider linked to this series is suggested by.
     /// </summary>
     IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy =>
-    [
-        .. AniDB_Anime is { } anidbAnime ? ((ISeries)anidbAnime).SuggestedBy : [],
-        .. TmdbShows.SelectMany(show => ((ISeries)show).SuggestedBy),
-        .. AnilistAnime.SelectMany(anime => ((ISeries)anime).SuggestedBy),
-    ];
+        [.. LinkedSeries.SelectMany(series => series.SuggestedBy)];
 
-    IReadOnlyList<IVideoCrossReference> ISeries.CrossReferences =>
+    IReadOnlyList<IVideoCrossReference> ISeries.VideoCrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);
 
     IReadOnlyList<ISeason> ISeries.Seasons => AnimeSeasons;
@@ -910,8 +565,18 @@ public class AnimeSeries : IShokoSeries
 
     IReadOnlyList<IShokoTagForSeries> IShokoSeries.Tags => RepoFactory.CustomTag.GetByAnimeID(AniDB_ID)
         .Select(x => new AnimeTag(x, this))
-        .OrderBy(x => x.ID)
+        .OrderBy(x => x.LocalID)
         .ToList();
+
+    /// <summary>
+    ///   The user's custom tags, then every linked series' and movie's tags.
+    /// </summary>
+    IReadOnlyList<ITag> IWithTags.Tags =>
+    [
+        .. ((IShokoSeries)this).Tags,
+        .. LinkedSeries.SelectMany(series => series.Tags),
+        .. LinkedMovies.SelectMany(movie => movie.Tags),
+    ];
 
     int IShokoSeries.MissingEpisodeCount => MissingEpisodeCount;
 
@@ -1046,45 +711,13 @@ public class AnimeSeries : IShokoSeries
     IAnidbAnime IShokoSeries.AnidbAnime => AniDB_Anime ??
         throw new NullReferenceException($"Unable to find AniDB anime with id {AniDB_ID} in IShokoSeries.AnidbAnime");
 
-    bool IShokoSeries.AnilistAutoMatchingDisabled
-    {
-        get => IsAnilistAutoMatchingDisabled;
-        set
-        {
-            IsAnilistAutoMatchingDisabled = value;
-            RepoFactory.AnimeSeries.Save(this, false);
-        }
-    }
-
-    IReadOnlyList<IAnilistAnime> IShokoSeries.AnilistAnime => AnilistAnime;
-
-    IReadOnlyList<IAnilistAnimeCrossReference> IShokoSeries.AnilistAnimeCrossReferences => AnilistAnimeCrossReferences;
-
-    bool IShokoSeries.TmdbAutoMatchingDisabled
-    {
-        get => IsTmdbAutoMatchingDisabled;
-        set
-        {
-            IsTmdbAutoMatchingDisabled = value;
-            RepoFactory.AnimeSeries.Save(this, false);
-        }
-    }
-
-    IReadOnlyList<ITmdbShow> IShokoSeries.TmdbShows => TmdbShows;
-
-    IReadOnlyList<ITmdbSeason> IShokoSeries.TmdbSeasons => TmdbSeasons;
-
-    IReadOnlyList<ITmdbMovie> IShokoSeries.TmdbMovies => TmdbMovies;
-
-    IReadOnlyList<ITmdbShowCrossReference> IShokoSeries.TmdbShowCrossReferences => TmdbShowCrossReferences;
-
-    IReadOnlyList<ITmdbSeasonCrossReference> IShokoSeries.TmdbSeasonCrossReferences => TmdbSeasonCrossReferences;
-
-    IReadOnlyList<ITmdbEpisodeCrossReference> IShokoSeries.TmdbEpisodeCrossReferences => TmdbEpisodeCrossReferences;
-
-    IReadOnlyList<ITmdbMovieCrossReference> IShokoSeries.TmdbMovieCrossReferences => TmdbMovieCrossReferences;
-
-    IReadOnlyList<ISeries> IShokoSeries.LinkedSeries
+    /// <summary>
+    ///   Every series this anime is linked to: AniDB, then whatever the
+    ///   cross-reference store holds, whether or not its source is enabled.
+    ///   What the aggregate getters read from, so a newly linked source reaches
+    ///   all of them at once.
+    /// </summary>
+    public IReadOnlyList<ISeries> LinkedSeries
     {
         get
         {
@@ -1094,28 +727,32 @@ public class AnimeSeries : IShokoSeries
             if (anidbAnime is not null)
                 seriesList.Add(anidbAnime);
 
-            seriesList.AddRange(TmdbShows);
-            seriesList.AddRange(AnilistAnime);
-
-            // Add more series here.
+            if (ISystemService.StaticServices.GetRequiredService<IMetadataService>() is MetadataService metadataService)
+                seriesList.AddRange(metadataService.GetLinkedSeries(AniDB_ID));
 
             return seriesList;
         }
     }
 
-    IReadOnlyList<IMovie> IShokoSeries.LinkedMovies
+    /// <inheritdoc />
+    public IReadOnlyList<IMovie> LinkedMovies
     {
         get
         {
-            var movieList = new List<IMovie>();
-
-            movieList.AddRange(TmdbMovies);
-
-            // Add more movies here.
-
-            return movieList;
+            return ISystemService.StaticServices.GetRequiredService<IMetadataService>() is MetadataService metadataService
+                ? metadataService.GetLinkedMovies(AniDB_ID)
+                : [];
         }
     }
+
+    IReadOnlyList<ISeries> IShokoSeries.LinkedSeries => LinkedSeries;
+
+    IReadOnlyList<ISeason> IShokoSeries.LinkedSeasons
+        => ISystemService.StaticServices.GetRequiredService<IMetadataService>() is MetadataService metadataService
+            ? metadataService.GetLinkedSeasons(AniDB_ID)
+            : [];
+
+    IReadOnlyList<IMovie> IShokoSeries.LinkedMovies => LinkedMovies;
 
     IReadOnlyList<IShokoSeason> IShokoSeries.Seasons => AnimeSeasons;
 
@@ -1124,10 +761,10 @@ public class AnimeSeries : IShokoSeries
     ISeriesUserData IShokoSeries.GetUserData(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is 0 || RepoFactory.JMMUser.GetByID(user.ID) is null)
+        if (user.LocalID is 0 || RepoFactory.JMMUser.GetByID(user.LocalID) is null)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
-        var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(user.ID, AnimeSeriesID)
-            ?? new() { JMMUserID = user.ID, AnimeSeriesID = AnimeSeriesID };
+        var userData = RepoFactory.AnimeSeries_User.GetByUserAndSeriesID(user.LocalID, AnimeSeriesID)
+            ?? new() { JMMUserID = user.LocalID, AnimeSeriesID = AnimeSeriesID };
         if (userData.AnimeSeries_UserID is 0)
             RepoFactory.AnimeSeries_User.Save(userData);
         return userData;

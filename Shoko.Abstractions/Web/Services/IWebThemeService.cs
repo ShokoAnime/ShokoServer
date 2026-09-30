@@ -64,11 +64,12 @@ public interface IWebThemeService
     ///   A token to cancel the operation.
     /// </param>
     /// <returns>
-    ///   The updated theme definition.
+    ///   The updated theme definition, or <paramref name="theme"/> unchanged
+    ///   when it has no update URL.
     /// </returns>
     /// <exception cref="ValidationException">
-    ///   Thrown when the theme has no update URL, the new version is lower
-    ///   than the current one, or the response is invalid.
+    ///   Thrown when the new version is lower than the current one, or the
+    ///   response is invalid.
     /// </exception>
     /// <exception cref="HttpRequestException">
     ///   Thrown when the update URL or CSS URL cannot be reached.

@@ -5,10 +5,9 @@ plain C# class, and the server derives a JSON schema from it, persists it, loads
 it, validates it, and renders a settings page for it in the WebUI. A plugin gets
 a full settings page without writing any UI.
 
-The service in this folder, `IConfigurationService`, is the machinery behind
-that. Most plugins never touch it directly. What you actually use is
-`ConfigurationProvider<TConfig>` (one folder up, in `Config/`), which wraps the
-service for a single configuration type.
+`IConfigurationService`, in this folder, is the machinery behind that. Most
+plugins only use `ConfigurationProvider<TConfig>` (in `Config/`), which wraps
+the service for one configuration type.
 
 ---
 
@@ -47,26 +46,15 @@ public class MyProvider(ConfigurationProvider<MyConfiguration> configurationProv
 }
 ```
 
-That is the whole setup. There is nothing to register.
+There is nothing to register:
 
-### Why there is nothing to register
-
-Two separate mechanisms meet here, and neither needs you:
-
-- **Discovery.** `PluginManager` collects every exported type assignable to
-  `IConfiguration` with `GetTypes<IConfiguration>()` and hands the list to the
-  configuration service. Note that this is `GetTypes`, not
-  `GetExports`: core registers the *type*, and instantiates configurations
-  itself. The three-branch "register the concrete type as a singleton, never the
-  interface" rule in [the main README](../../README.md) applies to
-  `GetExports<T>()` extension points, and **does not apply here**. Registering a
-  configuration class in DI does nothing useful.
-- **The provider.** `ConfigurationProvider<>` is registered as an open generic
-  singleton, so `ConfigurationProvider<MyConfiguration>` resolves for any
-  configuration type without a per-type registration.
-
-`IConfiguration` itself is an empty marker. It does not make your class an
-extension point; it makes it a configuration.
+- **Discovery.** Every exported type implementing `IConfiguration` is handed to
+  the configuration service (`GetTypes<T>()`, not `GetExports<T>()`), which
+  instantiates configurations itself. The singleton rule in
+  [the main README](../../README.md#the-three-branch-registration-rule) does not
+  apply, and registering a configuration class in DI does nothing useful.
+- **The provider.** `ConfigurationProvider<>` is an open generic singleton, so
+  it resolves for any configuration type.
 
 ---
 
@@ -84,10 +72,9 @@ extension point; it makes it a configuration.
 | `Saved` | Fires when *your* configuration is saved, carrying the reloaded instance. The provider already filters out every other configuration's saves. |
 | `PerformCustomAction` / `PerformReactiveAction` | Invokes a `[CustomAction]` or `[ConfigurationAction]` method programmatically. The WebUI is the usual caller. |
 
-**Call `Load()` at the point of use, not in your constructor.** `Load()` reads the
-current values, so caching the result in a field means your plugin keeps running
-on whatever the user had configured at startup. It is cheap after the first call:
-the instance is held in memory and handed back directly.
+**Call `Load()` at the point of use, not in your constructor**, or your plugin
+keeps running on the values it had at startup. After the first call it returns
+the instance held in memory.
 
 To react to a change, subscribe to `Saved` rather than polling:
 
@@ -98,11 +85,16 @@ public MyProvider(ConfigurationProvider<MyConfiguration> configurationProvider)
 }
 ```
 
-`Saved` is raised on a thread-pool task after the save has returned, not on the
-thread that saved. Nothing observes that task, so an exception your handler
-throws is lost without a log line; catch and log inside the handler. The same
-goes for `RequiresRestart`. Don't rely on the new values being applied by the
-time `Save` returns either, since the handler may not have run yet.
+The saved event args also carry `ChangedPaths`, the JSON paths whose stored
+values the save changed, added or removed (`Web.Port`, `Import.Exclude[2]`,
+every path on the first save), and `Actor`, the API token of whoever saved it
+or `null` for the system. `ChangedPaths` never holds a value, secrets
+included, so it is safe to log or store.
+
+`Saved` and `RequiresRestart` are raised on a thread-pool task after the save
+returns. Nothing observes that task, so an exception your handler throws is
+lost without a log line: catch and log inside the handler. Nor can you rely on
+a handler having run by the time `Save` returns.
 
 ---
 
@@ -110,23 +102,11 @@ time `Save` returns either, since the handler may not have run yet.
 
 > **Do not put `[Required]` on a property the user has to fill in themselves.**
 
-This is the one gotcha on this page that has already cost real time.
-
-`[Required]` becomes a `required` entry in the generated JSON schema. Schema
-validation runs inside `Load()`, and a failure throws
-`ConfigurationValidationException`. So a `[Required]` property that the user has
-not filled in yet means **every** `Load()` of that configuration throws, from the
-moment the plugin is installed until the moment the user saves a value. Depending
-on where that first `Load()` happens, the failure can take the plugin down with
-it rather than merely disabling one feature, and the user is left with a plugin
-that will not load and no obvious way to fix it, because the way to fix it is to
-configure the plugin.
-
-This happened to the AnimeSchedule.net plugin: `[Required]` on its `AppToken`
-blocked the plugin from loading whenever the token was unset, which is exactly
-the state every fresh install starts in. The fix (`f7b9aaf` in
-`dotnet-shoko-plugin-animeschedule`) was to drop the attribute and check the
-value at runtime instead:
+`[Required]` becomes `required` in the generated JSON schema, and schema
+validation runs inside `Load()`. An unfilled `[Required]` property therefore
+makes **every** `Load()` throw `ConfigurationValidationException`, from install
+until the user saves a value, which can keep the plugin from loading at all.
+Check the value where it is used instead:
 
 ```csharp
 // The property itself makes no demands.
@@ -139,28 +119,18 @@ public string? AppToken { get; set; }
 // The check lives where the value is used.
 if (string.IsNullOrWhiteSpace(_configurationProvider.Load().AppToken))
 {
-    _logger.LogDebug("Skipping refresh for anime {AnimeID}: no app token configured.", anime.ID);
+    _logger.LogDebug("Skipping refresh for anime {AnimeID}: no app token configured.", anime.AnidbID);
     return false;
 }
 ```
 
-The plugin loads, appears in the UI, shows its settings page, and simply does
-nothing until it is configured. That is the behaviour you want.
+The plugin then loads, shows its settings page, and does nothing until it is
+configured.
 
-`[Required]` is still fine in two places:
-
-- **On a member that is pre-populated**, such as a field with a sensible
-  non-null default. The problem is specifically a property whose correct
-  initial state is empty.
-- **On the item type of a list or record**, the type behind a `[List]` or
-  `[Record]` editor. There it applies to each item the user adds, and a fresh
-  install has no items to fail.
-
-What it can't do by default is require the user to fill in a member at the
-root of the configuration.
-
-Value constraints that a default already satisfies, `[Range]` and `[MinLength]`
-for instance, are safe for the same reason: the default passes them.
+`[Required]` is still fine on a member with a non-null default, and on the item
+type behind a `[List]` or `[Record]` editor, where it applies to each item the
+user adds. Constraints the default already satisfies, such as `[Range]` and
+`[MinLength]`, are safe for the same reason.
 
 ---
 
@@ -178,18 +148,16 @@ configuration is treated:
 | `IConfigurationWithNewFactory<TConfig>` | Add a `static TConfig New(IConfigurationService, IPluginManager)` for defaults that have to be computed rather than declared. |
 | `IConfigurationWithCustomValidation<TConfig>` | Add a `static IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(...)`, run after schema validation passes. Rules the schema cannot express go here. |
 
-A handful of interfaces tie a configuration to a specific extension point, and
-all of them imply `IHiddenConfiguration` (the provider's own settings page is
-rendered next to the provider, not as a standalone entry):
+The interfaces that tie a configuration to an extension point all imply
+`IHiddenConfiguration`, since the page is rendered next to the provider:
 `IHashProviderConfiguration`, `IReleaseInfoProviderConfiguration`,
-`IRelocationProviderConfiguration` (also a base configuration) and
-`IVideoStreamTransformConfiguration`. Providers in other folders follow the same
-pattern; an airing schedule provider, for instance, pairs with an
-`IAiringScheduleProviderConfiguration`.
+`IRelocationProviderConfiguration` (also a base configuration),
+`IVideoStreamTransformConfiguration` and `IAiringScheduleProviderConfiguration`.
+A provider names its configuration type through the generic form of its own
+contract, such as `IReleaseInfoProvider<TConfiguration>`.
 
-The custom-validation and migration hooks are `static abstract` interface
-members, so they are declared as `public static` methods on the configuration
-class itself, not instance methods.
+The static hooks are `static abstract` interface members, declared as
+`public static` methods on the configuration class.
 
 ---
 
@@ -267,7 +235,7 @@ The WebUI renders from the generated schema, so standard
 | `[Visibility]` | Member | Hides a member, marks it advanced, or sets its size. |
 | `[Badge("Advanced", Theme = ...)]` | Member | A coloured label next to the field. |
 | `[EnvironmentVariable("MY_TOKEN")]` | Member | Seeds the value from an environment variable. `AllowOverride` decides whether the user may still change it. |
-| `[RequiresRestart]` | Member | Marks the change as needing a restart. Surfaces through `IConfigurationService.RestartPendingFor` and the `RequiresRestart` event. |
+| `[RequiresRestart]` | Member | Marks the change as needing a restart. Surfaces through `IConfigurationService.RestartPendingFor`, the `RequiresRestart` event, and the one `Configuration` reason in `ISystemService.RestartReasons`, which stands while any configuration has such a change. |
 | `[TextArea]`, `[CodeEditor(CodeEditorLanguage)]` | Member | Multi-line and syntax-highlighted editors. |
 | `[Select]`, `[List]`, `[Record]` | Member | Dropdowns, list editors and record editors. |
 | `[CustomAction]` | Method | A button on the settings page. |
@@ -335,16 +303,15 @@ public ConfigurationActionResult TestToken(ConfigurationActionContext<MyConfigur
 }
 ```
 
-The context carries the `Configuration` instance as the user currently has it
-(unsaved edits included), a `Logger`, the `IConfigurationService`, the
-`IPluginManager`, the `Path` of the member the action is attached to, the `User`
-who pressed the button and the `Uri` they reached the server on.
+The context carries the `Configuration` as the user currently has it (unsaved
+edits included), a `Logger`, the `ConfigurationService`, the `PluginManager`,
+the `Path` of the member the action is attached to, the `User` who pressed the
+button and the `Uri` they reached the server on.
 
-`context.Configuration` is what is on screen, which is the point of a test button
-but is also untrusted for anything else. `AniDbSettings.Test` in core deliberately
-re-loads the saved settings for the server address and ports, and only takes the
-credentials from the context. Do the same when an unsaved value could send a
-request somewhere unexpected.
+`context.Configuration` is what is on screen, so treat it as untrusted beyond
+the test itself. Core's AniDB test takes only the credentials from it and
+re-loads the saved server address and ports; do the same when an unsaved value
+could send a request somewhere unexpected.
 
 A `ConfigurationActionResult` can also carry a redirect or a message; see
 `ConfigurationActionRedirect` and `ConfigurationActionMessage`.
@@ -368,10 +335,12 @@ time: the API layer, a settings browser, a plugin inspecting another plugin.
 - `RestartPendingFor` and `LoadedEnvironmentVariables`, both keyed by
   configuration ID
 - `Saved` and `RequiresRestart`, the unfiltered counterparts of the provider's
-  own `Saved`
+  own `Saved`. `RequiresRestart` only carries whether any configuration waits
+  on a restart; `RestartPendingFor` names which, and which members.
+  `ISystemService.RestartReasons` holds a single `Configuration` reason for
+  all of them, alongside the plugin reasons
 
-The configuration service takes the discovered types once, during startup, and
-there is nothing for a plugin to call.
+The service takes the discovered types once, at startup.
 
 ---
 

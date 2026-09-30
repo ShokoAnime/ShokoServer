@@ -5,7 +5,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models.AniDB;
@@ -39,10 +38,14 @@ public class AniDB_Tag : IAnidbTag
     public string TagNameSource { get; set; } = string.Empty;
 
     /// <summary>
-    /// Name override for those tags where the original name doesn't make
-    /// sense or is otherwise confusing.
+    ///   The name the core gives a tag whose name on AniDB doesn't make sense
+    ///   or is otherwise confusing, or <c>null</c> when it keeps its own.
     /// </summary>
-    public string? TagNameOverride { get; set; }
+    /// <remarks>
+    ///   Stored as the core's overall preferred title of the tag.
+    /// </remarks>
+    public string? TagNameOverride
+        => RepoFactory.TextCache?.OverallTitleValue(((IMetadata)this).ID, MetadataSource.Shoko);
 
     /// <summary>
     /// True if this tag itself is considered as a spoiler, regardless of
@@ -68,9 +71,7 @@ public class AniDB_Tag : IAnidbTag
 
     #region IMetadata Implementation
 
-    DataSource IMetadata.Source => DataSource.AniDB;
-
-    int IMetadata<int>.ID => TagID;
+    MetadataGuid IMetadata.ID => new(MetadataSource.AniDB, MetadataEntityType.Tag, TagID.ToString());
 
     #endregion
 
@@ -84,13 +85,16 @@ public class AniDB_Tag : IAnidbTag
 
     string ITag.Name => TagName;
 
-    string ITag.Description => TagDescription;
+    string ITag.Overview => TagDescription;
 
     #endregion
 
     #region IAnidbTag Implementation
 
-    int? IAnidbTag.ParentTagID => ParentTagID;
+    int IAnidbTag.AnidbID => TagID;
+
+    MetadataGuid? IAnidbTag.ParentTagID
+        => ParentTagID is > 0 ? new(MetadataSource.AniDB, MetadataEntityType.Tag, ParentTagID.Value.ToString()) : null;
 
     bool IAnidbTag.IsSpoiler => GlobalSpoiler;
 

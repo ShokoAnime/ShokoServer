@@ -23,7 +23,7 @@ public static class TmdbExtensions
 
     public static IReadOnlyList<string> GetGenres(this SearchMovie movie)
     {
-        var instance = TmdbMetadataService.Instance;
+        var instance = TmdbApiClient.Instance;
         if (instance is null)
             return [];
 
@@ -44,7 +44,7 @@ public static class TmdbExtensions
 
     public static IReadOnlyList<string> GetGenres(this SearchTv show)
     {
-        var instance = TmdbMetadataService.Instance;
+        var instance = TmdbApiClient.Instance;
         if (instance is null)
             return [];
 

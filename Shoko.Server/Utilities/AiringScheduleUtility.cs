@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Utilities.Airing;
 
@@ -53,14 +53,14 @@ public static class AiringScheduleUtility
     /// </summary>
     /// <param name="episodeSource">The source of the episode.</param>
     /// <param name="episodeID">The ID of the episode within its source.</param>
-    /// <returns>The derived key.</returns>
+    /// <returns>The derived key, <c>&lt;value&gt;:&lt;id&gt;</c>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="episodeID"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="episodeID"/> is blank.</exception>
-    public static string GetDerivedAiringKey(DataSource episodeSource, string episodeID)
+    public static string GetDerivedAiringKey(MetadataSource episodeSource, string episodeID)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(episodeID);
 
-        return $"{episodeSource}:{episodeID}";
+        return $"{episodeSource.Value}:{episodeID}";
     }
 
     /// <summary>
@@ -125,7 +125,7 @@ public static class AiringScheduleUtility
     /// <returns>The schedule's public ID.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="seriesID"/> or <paramref name="key"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="seriesID"/> or <paramref name="key"/> is blank.</exception>
-    public static Guid GetScheduleID(Guid providerID, DataSource seriesSource, string seriesID, string? seasonID, string key)
+    public static Guid GetScheduleID(Guid providerID, MetadataSource seriesSource, string seriesID, string? seasonID, string key)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(seriesID);
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -451,10 +451,9 @@ public static class AiringScheduleUtility
         var withdrawn = new List<ExistingAiring>();
         foreach (var airing in removed)
         {
-            // A removal this write has no hiatus judgement to make on, one on a
-            // finished schedule, and one outside what the schedule covers are all
-            // history rather than a hiatus.
-            if (!keepAsHiatus || options.IsFinished || !IsWithinCoverage(airing.EpisodeNumber, options))
+            // History rather than a hiatus: no hiatus judgement asked, a finished schedule,
+            // an airing outside the coverage, or an advance screening or rerun.
+            if (!keepAsHiatus || options.IsFinished || airing.Kind is not EpisodeAiringKind.Normal || !IsWithinCoverage(airing.EpisodeNumber, options))
             {
                 toDelete.Add(airing);
                 continue;
@@ -539,6 +538,7 @@ public static class AiringScheduleUtility
             AiredAt = airing.AiredAt,
             OriginalAiredAt = airing.OriginalAiredAt,
             IsDelayed = airing.IsDelayed,
+            Kind = airing.Kind,
         };
 
     /// <summary>
@@ -576,8 +576,8 @@ public static class AiringScheduleUtility
 
     /// <summary>
     /// Match every submitted airing to the existing airing it replaces: by key
-    /// first, then, for what is left, by episode, so an entry a source recreated
-    /// under a new key keeps its row instead of leaving a stale one behind.
+    /// first, then, for what is left, by episode and kind, so an entry a source
+    /// recreated under a new key keeps its row instead of leaving a stale one behind.
     /// </summary>
     /// <param name="existing">The schedule's current airings.</param>
     /// <param name="submitted">The airings the provider submitted.</param>
@@ -607,7 +607,8 @@ public static class AiringScheduleUtility
         foreach (var airing in submitted.Where(entry => pairs[entry.Key] is null))
         {
             var match = unpaired
-                .Where(entry => string.Equals(entry.EpisodeKey, airing.EpisodeKey, StringComparison.Ordinal))
+                // Only an airing of the same kind, so a rerun or an advance screening never takes a regular airing's row.
+                .Where(entry => entry.Kind == airing.Kind && string.Equals(entry.EpisodeKey, airing.EpisodeKey, StringComparison.Ordinal))
                 // A slotless airing first, so a recreated entry claims the hiatus row it left behind.
                 .OrderBy(entry => entry.AiredAt.HasValue ? 1 : 0)
                 .ThenBy(entry => entry.AiredAt ?? entry.OriginalAiredAt ?? DateTime.MaxValue)
@@ -690,6 +691,7 @@ public static class AiringScheduleUtility
             ExplicitIsDelayed = submitted.IsDelayed,
             AiredAt = submitted.AiredAt,
             LinkKey = existing?.LinkKey,
+            Kind = submitted.Kind,
         };
         if (existing is null)
         {
@@ -759,7 +761,8 @@ public static class AiringScheduleUtility
     /// releases that moved by the same amount, or that all lost their slot, are
     /// one break: the first of the run is delayed and the rest merely shifted. A
     /// link set counts as one release, so every member of a delayed slot is
-    /// flagged together.
+    /// flagged together. An advance screening or a rerun is not part of the
+    /// line, and keeps the delay flag it had.
     /// </summary>
     /// <param name="pending">Every airing on the line, in any order.</param>
     /// <param name="options">The thresholds to infer with.</param>
@@ -768,7 +771,7 @@ public static class AiringScheduleUtility
         var units = new List<List<PendingAiring>>();
         var unitsByKey = new Dictionary<string, List<PendingAiring>>(StringComparer.Ordinal);
         var line = pending
-            .Where(entry => entry.Existing is not null)
+            .Where(entry => entry.Existing is not null && entry.Kind is EpisodeAiringKind.Normal)
             .OrderBy(entry => entry.PreviousAiredAt ?? DateTime.MaxValue)
             .ThenBy(entry => entry.Key, StringComparer.Ordinal);
         foreach (var entry in line)
@@ -1019,6 +1022,12 @@ public static class AiringScheduleUtility
         public bool? ExplicitIsDelayed { get; init; }
 
         /// <summary>
+        /// What kind of showing the airing is. A kept hiatus is always a normal
+        /// airing.
+        /// </summary>
+        public EpisodeAiringKind Kind { get; init; }
+
+        /// <summary>
         /// Whether the airing is one the write took off the listing and kept
         /// without a slot, rather than one it was handed.
         /// </summary>
@@ -1034,7 +1043,7 @@ public static class AiringScheduleUtility
     /// belongs to the schedule, so two channels carrying the same series each
     /// learn their own, and one station's hiatus leaves the others alone.
     /// </summary>
-    /// <param name="samples">The schedule's own stored airings. Estimates are never samples.</param>
+    /// <param name="samples">The schedule's own stored airings. Estimates are never samples, and an advance screening or a rerun is left out.</param>
     /// <param name="options">Optional. What the schedule's tracks and coverage say. Defaults to an open-ended Original schedule.</param>
     /// <returns>The schedule's profile. Its offset is <see langword="null"/> when too few samples were known to trust one.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
@@ -1043,7 +1052,7 @@ public static class AiringScheduleUtility
         ArgumentNullException.ThrowIfNull(samples);
         options ??= new AiringProfileOptions();
 
-        var all = samples.Where(sample => sample is not null).ToList();
+        var all = samples.Where(sample => sample is not null && sample.Kind is EpisodeAiringKind.Normal).ToList();
         var lastEstimableEpisode = options.IsFinished ? 0 : options.LastEpisodeNumber;
         var hiatusFrom = all
             .Where(sample => sample.AiredAt is null && sample.IsDelayed && sample.OriginalAiredAt.HasValue)
@@ -1210,10 +1219,8 @@ public static class AiringScheduleUtility
     /// <summary>
     /// Find the breaks a line of airings already had the first time it was
     /// fetched, which no write can infer because nothing moved. Gaps are measured
-    /// between releases rather than episodes: a link set, or a set of airings at
-    /// the same time, is one release timed at its earliest member, so a
-    /// double-length premiere shifts nothing and a season released at once has no
-    /// cadence at all.
+    /// between releases: a link set, or airings at the same time, is one release
+    /// timed at its earliest member. Advance screenings and reruns are left out.
     /// </summary>
     /// <param name="airings">One schedule's own airings.</param>
     /// <param name="options">Optional. The limits to measure within. Defaults to the service's own.</param>
@@ -1227,7 +1234,7 @@ public static class AiringScheduleUtility
         var releases = new List<(DateTime AiredAt, List<string> EpisodeKeys)>();
         var units = new Dictionary<string, List<AiringProfileSample>>(StringComparer.Ordinal);
         foreach (var airing in airings
-            .Where(airing => airing is not null && airing.AiredAt.HasValue)
+            .Where(airing => airing is not null && airing.AiredAt.HasValue && airing.Kind is EpisodeAiringKind.Normal)
             .Where(airing => options.LastEpisodeNumber is not { } last || airing.EpisodeNumber is not { } number || number <= last)
             .OrderBy(airing => airing.AiredAt!.Value))
         {

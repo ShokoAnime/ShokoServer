@@ -1,14 +1,9 @@
 # Video Services
 
-This folder holds the services a plugin **calls** to work with video: find
-files, hash them, match them to episodes, move them on disk, review duplicate
-releases, and see what the streaming endpoints are doing.
-
-None of these seven interfaces is an extension point. You never implement one;
-you resolve it from DI and call it. The pluggable parts these services drive
-(hash providers, release providers, relocation providers, ignore rules, stream
-transforms, playback observers) live in sibling folders, each with its own
-README.
+The services a plugin **calls** to work with video: find files, hash them,
+match them to episodes, move them on disk, review duplicate releases, and see
+what the streaming endpoints are doing. None is an extension point; the
+pluggable parts they drive live in sibling folders, each with its own README.
 
 | Interface | Use it to | You |
 |---|---|---|
@@ -24,16 +19,10 @@ README.
 
 ## Getting hold of one
 
-Every service here is registered as a singleton in the core container before
-plugins are constructed, so plain constructor injection works everywhere: in a
-service you register yourself, in a hosted service, in a queue job, in a
-controller. The one place it does *not* work is the class implementing
-`IPlugin`, which is built without DI during the plugin scan and must have a
-public parameterless constructor; see
-[the plugin overview](../../README.md#iplugin-needs-a-public-parameterless-constructor).
-
-Subscribing to an event means holding the subscription for the life of the
-process and dropping it on shutdown, so a hosted service is the natural home:
+Every service here is a singleton in the core container, so constructor
+injection works in anything the container builds. An event subscription lives
+for the process and is dropped on shutdown, so a hosted service is its natural
+home:
 
 ```csharp
 // Registered from your plugin's RegisterServices with
@@ -58,7 +47,7 @@ public sealed class UnmatchedFileLogger(
     private void OnSearchCompleted(object? sender, VideoReleaseSearchCompletedEventArgs e)
     {
         if (e.ReleaseInfo is null && e.Exception is null)
-            logger.LogInformation("Video {VideoID} was not matched by any provider", e.Video.ID);
+            logger.LogInformation("Video {VideoID} was not matched by any provider", e.Video.LocalID);
     }
 }
 ```
@@ -87,11 +76,8 @@ extension point and discovery does the rest.
 | `IVideoRelocationService` | `IRelocationProvider` | [`../Relocation/README.md`](../Relocation/README.md) |
 | `IVideoStreamPipelineService` | `IVideoStreamTransform`, `IPlaybackObserver` | [`../Streaming/README.md`](../Streaming/README.md) |
 
-Implementations of those contracts almost never need a DI registration of their
-own: register the concrete type as a singleton only when your own code has to
-reach the same instance the core holds, and never register it under its
-interface. The reasoning for all three branches is in [Contracts the server
-discovers for you](../../README.md#contracts-the-server-discovers-for-you).
+Implementations almost never need a DI registration of their own; see
+[Contracts the server discovers for you](../../README.md#contracts-the-server-discovers-for-you).
 
 ---
 
@@ -197,7 +183,11 @@ other services entirely.
 | `ManagedFolderAdded` / `ManagedFolderUpdated` / `ManagedFolderRemoved` | A managed folder changed |
 
 Every file event carries both `RelativePath`, from the managed folder's root, and
-`Path`, the absolute path as it was when the event was raised.
+`Path`, the absolute path as it was when the event was raised. The hashed,
+relocated and deleted events also carry `Actor`, the API token of whoever
+caused the change, or `null` for the system; `ReleaseSaved` and
+`ReleaseDeleted` carry one too. See
+[`IActorContext`](../../User/Services/README.md#iactorcontext-who-did-it).
 
 The service is a process-wide singleton, so unsubscribe when your plugin shuts
 down rather than leaving handlers attached to it.

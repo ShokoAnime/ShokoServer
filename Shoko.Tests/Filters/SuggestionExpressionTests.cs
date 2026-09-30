@@ -1,17 +1,20 @@
 using System;
 using Shoko.Abstractions.Filtering.Expressions.Info;
 using Shoko.Abstractions.Filtering.Expressions.Selectors.NumberSelectors;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Filters;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.Anilist;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.TMDB;
+using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Repositories.Cached.Anilist;
+using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.TMDB;
+using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
@@ -34,24 +37,24 @@ public class SuggestionExpressionTests
 
     #region Expressions read the property they are named for
 
-    private static TestFilterable Filterable(int anidb = 0, int tmdb = 0, int anilist = 0, int local = 0)
+    private static TestFilterable Filterable(int anidb = 0, int tmdb = 0, int other = 0, int local = 0)
         => new()
         {
             AnidbSuggestions = anidb,
             TmdbSuggestions = tmdb,
-            AnilistSuggestions = anilist,
-            TotalSuggestions = anidb + tmdb + anilist,
+            OtherSuggestions = other,
+            TotalSuggestions = anidb + tmdb + other,
             LocalSuggestions = local,
         };
 
     [Fact]
     public void EverySelectorReadsItsOwnSource()
     {
-        var filterable = Filterable(anidb: 3, tmdb: 5, anilist: 7, local: 2);
+        var filterable = Filterable(anidb: 3, tmdb: 5, other: 7, local: 2);
 
         Assert.Equal(3d, new AnidbSuggestionCountSelector().Evaluate(filterable, null, s_date));
         Assert.Equal(5d, new TmdbSuggestionCountSelector().Evaluate(filterable, null, s_date));
-        Assert.Equal(7d, new AnilistSuggestionCountSelector().Evaluate(filterable, null, s_date));
+        Assert.Equal(7d, new SourceSuggestionCountSelector(TestSources.Plugin.Value).Evaluate(filterable, null, s_date));
         Assert.Equal(15d, new TotalSuggestionCountSelector().Evaluate(filterable, null, s_date));
         Assert.Equal(2d, new LocalSuggestionCountSelector().Evaluate(filterable, null, s_date));
     }
@@ -63,22 +66,19 @@ public class SuggestionExpressionTests
 
         Assert.False(new HasAnidbSuggestionExpression().Evaluate(filterable, null, s_date));
         Assert.False(new HasTmdbSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.False(new HasAnilistSuggestionExpression().Evaluate(filterable, null, s_date));
         Assert.False(new HasSuggestionExpression().Evaluate(filterable, null, s_date));
         Assert.False(new HasLocalSuggestionExpression().Evaluate(filterable, null, s_date));
     }
 
     [Theory]
-    [InlineData(1, 0, 0, true, false, false)]
-    [InlineData(0, 1, 0, false, true, false)]
-    [InlineData(0, 0, 1, false, false, true)]
-    public void EveryBooleanOnlyLooksAtItsOwnSource(int anidb, int tmdb, int anilist, bool hasAnidb, bool hasTmdb, bool hasAnilist)
+    [InlineData(1, 0, true, false)]
+    [InlineData(0, 1, false, true)]
+    public void EveryBooleanOnlyLooksAtItsOwnSource(int anidb, int tmdb, bool hasAnidb, bool hasTmdb)
     {
-        var filterable = Filterable(anidb, tmdb, anilist);
+        var filterable = Filterable(anidb, tmdb);
 
         Assert.Equal(hasAnidb, new HasAnidbSuggestionExpression().Evaluate(filterable, null, s_date));
         Assert.Equal(hasTmdb, new HasTmdbSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.Equal(hasAnilist, new HasAnilistSuggestionExpression().Evaluate(filterable, null, s_date));
         // Whichever one it was, the total saw it.
         Assert.True(new HasSuggestionExpression().Evaluate(filterable, null, s_date));
     }
@@ -87,7 +87,7 @@ public class SuggestionExpressionTests
     public void TheLocalBooleanIsFalseWhenEverySuggestionPointsOutsideTheCollection()
     {
         // The common case: a series with plenty of suggestions, none of which are held.
-        var filterable = Filterable(anidb: 10, tmdb: 10, anilist: 10);
+        var filterable = Filterable(anidb: 10, tmdb: 10, other: 10);
 
         Assert.True(new HasSuggestionExpression().Evaluate(filterable, null, s_date));
         Assert.False(new HasLocalSuggestionExpression().Evaluate(filterable, null, s_date));
@@ -119,11 +119,20 @@ public class SuggestionExpressionTests
 
     private static readonly AnimeSeries s_heldSeries = new() { AnimeSeriesID = HeldSeriesID, AniDB_ID = HeldAnidbID };
 
+    // Anime 10 suggests six entries across AniDB and TMDB, two resolving back to anime 11, the
+    // collection's only other series; anime 11 suggests nothing, though two suggestions point at it.
+
     /// <summary>
-    /// Anime 10 suggests eight entries across the three sources. Three of them resolve back to
-    /// anime 11, which is the only other series in the collection. Anime 11 suggests nothing of
-    /// its own, so it is the "no suggestions" case even though three suggestions point at it.
+    /// A store the facades can read through.
     /// </summary>
+    private static MetadataCrossReferenceStore ReadOnlyStore()
+        => new(
+            RepoFactory.CrossRef_AniDB_Metadata_Series,
+            RepoFactory.CrossRef_AniDB_Metadata_Movie,
+            RepoFactory.CrossRef_AniDB_Metadata_Episode,
+            CachedRepo.Build<Metadata_EpisodeRepository, int, Metadata_Episode>(row => row.Metadata_EpisodeID)
+        );
+
     private static RepoFactoryScope Scope()
         => new RepoFactoryScope()
             .With<AniDB_AnimeRepository, int, AniDB_Anime>(a => a.AniDB_AnimeID)
@@ -134,30 +143,24 @@ public class SuggestionExpressionTests
                 new() { AniDB_Anime_SimilarID = 2, AnimeID = SuggestingAnidbID, SimilarAnimeID = 12, Approval = 5, Total = 10, Ordering = 1 },
                 new() { AniDB_Anime_SimilarID = 3, AnimeID = SuggestingAnidbID, SimilarAnimeID = 13, Approval = 1, Total = 10, Ordering = 2 },
             ])
-            .With<CrossRef_AniDB_TMDB_ShowRepository, int, CrossRef_AniDB_TMDB_Show>(x => x.CrossRef_AniDB_TMDB_ShowID,
+            // Every source's series links live in one table, each source's own repository a view over it.
+            .With<CrossRef_AniDB_Metadata_SeriesRepository, int, CrossRef_AniDB_Metadata_Series>(x => x.CrossRef_AniDB_Metadata_SeriesID,
             [
-                new() { CrossRef_AniDB_TMDB_ShowID = 1, AnidbAnimeID = SuggestingAnidbID, TmdbShowID = 200 },
-                new() { CrossRef_AniDB_TMDB_ShowID = 2, AnidbAnimeID = HeldAnidbID, TmdbShowID = 201 },
+                new() { CrossRef_AniDB_Metadata_SeriesID = 1, Source = MetadataSource.TMDB, AnidbAnimeID = SuggestingAnidbID, ProviderID = "200" },
+                new() { CrossRef_AniDB_Metadata_SeriesID = 2, Source = MetadataSource.TMDB, AnidbAnimeID = HeldAnidbID, ProviderID = "201" },
             ])
-            .With<CrossRef_AniDB_TMDB_MovieRepository, int, CrossRef_AniDB_TMDB_Movie>(x => x.CrossRef_AniDB_TMDB_MovieID,
+            .With<CrossRef_AniDB_Metadata_MovieRepository, int, CrossRef_AniDB_Metadata_Movie>(x => x.CrossRef_AniDB_Metadata_MovieID,
             [
-                new() { CrossRef_AniDB_TMDB_MovieID = 1, AnidbAnimeID = SuggestingAnidbID, AnidbEpisodeID = 1000, TmdbMovieID = 300 },
+                new() { CrossRef_AniDB_Metadata_MovieID = 1, Source = MetadataSource.TMDB, AnidbAnimeID = SuggestingAnidbID, AnidbEpisodeID = 1000, ProviderID = "300" },
             ])
+            .With<CrossRef_AniDB_Metadata_EpisodeRepository, int, CrossRef_AniDB_Metadata_Episode>(x => x.CrossRef_AniDB_Metadata_EpisodeID, [])
+            .Set(new CrossRef_AniDB_TMDB_ShowRepository(RepoFactory.CrossRef_AniDB_Metadata_Series, ReadOnlyStore()))
+            .Set(new CrossRef_AniDB_TMDB_MovieRepository(RepoFactory.CrossRef_AniDB_Metadata_Movie, ReadOnlyStore()))
             .With<TMDB_SuggestionRepository, int, TMDB_Suggestion>(s => s.TMDB_SuggestionID,
             [
-                new() { TMDB_SuggestionID = 1, TmdbEntityType = DataEntityType.Show, TmdbEntityID = 200, SuggestedTmdbEntityID = 201, Kind = SuggestionKind.Recommended },
-                new() { TMDB_SuggestionID = 2, TmdbEntityType = DataEntityType.Show, TmdbEntityID = 200, SuggestedTmdbEntityID = 202, Kind = SuggestionKind.Similar },
-                new() { TMDB_SuggestionID = 3, TmdbEntityType = DataEntityType.Movie, TmdbEntityID = 300, SuggestedTmdbEntityID = 301, Kind = SuggestionKind.Recommended },
-            ])
-            .With<CrossRef_AniDB_Anilist_AnimeRepository, int, CrossRef_AniDB_Anilist_Anime>(x => x.CrossRef_AniDB_Anilist_AnimeID,
-            [
-                new() { CrossRef_AniDB_Anilist_AnimeID = 1, AnidbAnimeID = SuggestingAnidbID, AnilistAnimeID = 400 },
-                new() { CrossRef_AniDB_Anilist_AnimeID = 2, AnidbAnimeID = HeldAnidbID, AnilistAnimeID = 401 },
-            ])
-            .With<Anilist_Anime_SuggestionRepository, int, Anilist_Anime_Suggestion>(s => s.Anilist_Anime_SuggestionID,
-            [
-                new() { Anilist_Anime_SuggestionID = 1, AnilistAnimeID = 400, SuggestedAnilistAnimeID = 401, Rating = 20 },
-                new() { Anilist_Anime_SuggestionID = 2, AnilistAnimeID = 400, SuggestedAnilistAnimeID = 402, Rating = 10, Ordering = 1 },
+                new() { TMDB_SuggestionID = 1, TmdbEntityType = MetadataEntityType.Series, TmdbEntityID = 200, SuggestedTmdbEntityID = 201, Kind = SuggestionKind.Recommended },
+                new() { TMDB_SuggestionID = 2, TmdbEntityType = MetadataEntityType.Series, TmdbEntityID = 200, SuggestedTmdbEntityID = 202, Kind = SuggestionKind.Similar },
+                new() { TMDB_SuggestionID = 3, TmdbEntityType = MetadataEntityType.Movie, TmdbEntityID = 300, SuggestedTmdbEntityID = 301, Kind = SuggestionKind.Recommended },
             ]);
 
     [Fact]
@@ -169,8 +172,7 @@ public class SuggestionExpressionTests
         Assert.Equal(3, filterable.AnidbSuggestions);
         // Two from the linked show plus one from the linked movie.
         Assert.Equal(3, filterable.TmdbSuggestions);
-        Assert.Equal(2, filterable.AnilistSuggestions);
-        Assert.Equal(8, filterable.TotalSuggestions);
+        Assert.Equal(6, filterable.TotalSuggestions);
     }
 
     [Fact]
@@ -179,9 +181,9 @@ public class SuggestionExpressionTests
         using var scope = Scope();
         var filterable = new FilterableAnimeSeries(s_suggestingSeries, s_date);
 
-        // One per source: AniDB anime 11, TMDB show 201 and AniList anime 401 all trace back to the
-        // one other series in the collection. The other five point outside it.
-        Assert.Equal(3, filterable.LocalSuggestions);
+        // One per source: AniDB anime 11 and TMDB show 201 both trace back to the one other series
+        // in the collection. The other four point outside it.
+        Assert.Equal(2, filterable.LocalSuggestions);
         Assert.True(new HasLocalSuggestionExpression().Evaluate(filterable, null, s_date));
     }
 
@@ -191,24 +193,8 @@ public class SuggestionExpressionTests
         using var scope = Scope();
         var filterable = new FilterableAnimeSeries(s_heldSeries, s_date);
 
-        // Three suggestions point at this series. The AniDB and TMDB ones do not count here,
-        // because the expressions measure what a series suggests and those two providers do not
-        // reverse: their reverse entry is a separate opinion with its own weight.
-        Assert.Equal(0, filterable.AnidbSuggestions);
-        Assert.Equal(0, filterable.TmdbSuggestions);
-        Assert.False(new HasAnidbSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.False(new HasTmdbSuggestionExpression().Evaluate(filterable, null, s_date));
-
-        // AniList does reverse, and this is the difference showing up. It holds one undirected
-        // recommendation and serves it from both sides with the same score, so the entry stored
-        // while fetching the other anime is this one's recommendation too. It resolves back to a
-        // held series, so it is local as well.
-        Assert.Equal(1, filterable.AnilistSuggestions);
-        Assert.Equal(1, filterable.TotalSuggestions);
-        Assert.Equal(1, filterable.LocalSuggestions);
-        Assert.True(new HasAnilistSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.True(new HasSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.True(new HasLocalSuggestionExpression().Evaluate(filterable, null, s_date));
+        // Two suggestions point at this series, but the expressions measure what a series suggests.
+        Assert.False(new HasSuggestionExpression().Evaluate(filterable, null, s_date));
     }
 
     [Fact]
@@ -219,9 +205,8 @@ public class SuggestionExpressionTests
 
         Assert.True(new HasAnidbSuggestionExpression().Evaluate(filterable, null, s_date));
         Assert.True(new HasTmdbSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.True(new HasAnilistSuggestionExpression().Evaluate(filterable, null, s_date));
         Assert.True(new HasSuggestionExpression().Evaluate(filterable, null, s_date));
-        Assert.Equal(8d, new TotalSuggestionCountSelector().Evaluate(filterable, null, s_date));
+        Assert.Equal(6d, new TotalSuggestionCountSelector().Evaluate(filterable, null, s_date));
     }
 
     #endregion

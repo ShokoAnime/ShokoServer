@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -446,12 +447,12 @@ public class FilterController(
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/>. Even the <see cref="Series"/> within the sub-<see cref="Group"/>s.</param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
     /// <param name="randomImages">Randomize images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// /// <returns></returns>
     [HttpGet("{filterID}/Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetSeriesInFilteredGroup([FromRoute, Range(0, int.MaxValue)] int filterID, [FromRoute, Range(1, int.MaxValue)] int groupID,
         [FromQuery] bool recursive = false, [FromQuery] bool includeMissing = true,
-        [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
+        [FromQuery] bool randomImages = false, [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null)
     {
         // Return the groups with no group filter applied.
         if (filterID is 0)
@@ -486,7 +487,7 @@ public class FilterController(
     }
 
     private List<Series> GetSeriesInFilteredGroup(
-        AnimeGroup group, FilterPreset filterPreset, bool recursive, bool includeMissing, bool randomImages, HashSet<DataSourceType>? includeDataFrom
+        AnimeGroup group, FilterPreset filterPreset, bool recursive, bool includeMissing, bool randomImages, HashSet<MetadataSource>? includeDataFrom
     )
     {
         var user = User;
@@ -621,7 +622,7 @@ public class FilterController(
     /// <param name="recursive">Show all the <see cref="Series"/> within the <see cref="Group"/>. Even the <see cref="Series"/> within the sub-<see cref="Group"/>s.</param>
     /// <param name="includeMissing">Include <see cref="Series"/> with missing <see cref="Episode"/>s in the list.</param>
     /// <param name="randomImages">Randomize images shown for each <see cref="Series"/> within the <see cref="Group"/>.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// /// <returns></returns>
     [HttpPost("Preview/Group/{groupID}/Series")]
     public ActionResult<List<Series>> GetPreviewSeriesInFilteredGroup(
@@ -630,7 +631,7 @@ public class FilterController(
         [FromQuery] bool recursive = false,
         [FromQuery] bool includeMissing = true,
         [FromQuery] bool randomImages = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null
     )
     {
         var filterPreset = factory.GetFilterPreset(filter, ModelState);

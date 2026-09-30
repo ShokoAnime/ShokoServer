@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.QueueProcessor.Builder;
 
 namespace Shoko.QueueProcessor.Scheduling;
 
@@ -13,22 +14,11 @@ namespace Shoko.QueueProcessor.Scheduling;
 /// if they are not already waiting or executing.
 /// </summary>
 /// <remarks>
-/// <para>
-/// Plugins resolve this registry from DI (constructor-inject it, or fetch it via
-/// <see cref="IServiceProvider.GetService"/>) and call <see cref="Register{T}"/> to register
-/// their own recurring jobs. The call site can live in a plugin's
-/// <c>IPluginServiceRegistration.RegisterServices</c> body (using a startup hook) or in
-/// <c>IPlugin.Load</c>. The plugin's job type itself must first be registered via
-/// <c>QueueProcessorExtensions.AddQueueJobsFromAssembly</c>.
-/// </para>
-/// <para>
-/// Lifecycle: registrations made before <see cref="StartAsync"/> sit dormant and get armed
-/// when the web host boots the registry. Registrations made after are armed immediately.
-/// Jobs that need the main database should carry <c>[DatabaseRequired]</c> — the acquisition
-/// filter will hold them out of the worker pool until startup signals the DB is ready.
-/// Jobs without that attribute (e.g. a network-availability probe) start running with the
-/// queue.
-/// </para>
+/// Plugins call <see cref="Register{T}"/> from DI (<c>IPlugin.Load</c> or <c>RegisterServices</c>),
+/// after registering the job type with <c>QueueProcessorExtensions.AddQueueJobsFromAssembly</c>.
+/// Registrations before <see cref="StartAsync"/> are armed when the host starts, later ones at once.
+/// Jobs that need the database should carry <c>[DatabaseRequired]</c>. The interval is fixed by
+/// the caller; Shoko's own recurring work runs as scheduled actions.
 /// </remarks>
 public class RecurringJobRegistry : IHostedService, IDisposable
 {
@@ -74,8 +64,13 @@ public class RecurringJobRegistry : IHostedService, IDisposable
             activateNow = _started;
         }
 
+        // Registered after start, perhaps from inside a request: the job is the host's, so it is
+        // armed and queued from an empty context, never for whoever made the call.
         if (activateNow)
-            _ = ActivateEntry(entry, CancellationToken.None);
+        {
+            using (DetachedFlow.Suppress())
+                _ = Task.Run(() => ActivateEntry(entry, CancellationToken.None));
+        }
     }
 
     /// <summary>
@@ -139,14 +134,17 @@ public class RecurringJobRegistry : IHostedService, IDisposable
         if (reg.RunImmediately)
         {
             try { await reg.Enqueue(ct); }
-            catch (Exception ex) { _logger.LogError(ex, "Failed to enqueue recurring job {Type}", reg.JobType.Name); }
+            catch (Exception ex) { _logger.LogError(ex, "Failed to enqueue recurring job {Type}", JobTypeNames.Short(reg.JobType)); }
         }
 
-        var timer = new Timer(
-            _ => _ = EnqueueSafe(reg, CancellationToken.None),
-            null,
-            reg.Interval,
-            reg.Interval);
+        // The timer outlives whatever armed it, so it does not take that flow's context along.
+        Timer timer;
+        using (DetachedFlow.Suppress())
+            timer = new Timer(
+                _ => _ = EnqueueSafe(reg, CancellationToken.None),
+                null,
+                reg.Interval,
+                reg.Interval);
 
         lock (_lock) entry.Timer = timer;
     }
@@ -175,7 +173,7 @@ public class RecurringJobRegistry : IHostedService, IDisposable
     private async Task EnqueueSafe(RecurringRegistration reg, CancellationToken ct)
     {
         try { await reg.Enqueue(ct); }
-        catch (Exception ex) { _logger.LogError(ex, "Failed to enqueue recurring job {Type}", reg.JobType.Name); }
+        catch (Exception ex) { _logger.LogError(ex, "Failed to enqueue recurring job {Type}", JobTypeNames.Short(reg.JobType)); }
     }
 
     private sealed class JobEntry(RecurringRegistration registration)

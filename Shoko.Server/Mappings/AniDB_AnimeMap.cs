@@ -1,4 +1,4 @@
-﻿using FluentNHibernate.Mapping;
+using FluentNHibernate.Mapping;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.AniDB;
@@ -14,24 +14,9 @@ public class AniDB_AnimeMap : ClassMap<AniDB_Anime>
         Id(x => x.AniDB_AnimeID);
 
         Map(x => x.AirDate).CustomType<PartialDateOnlyConverter>();
-        Map(x => x.AllCinemaID);
-        Map(x => x.AllTitles);
         Map(x => x.AllTags);
         Map(x => x.AnimeID).Not.Nullable();
         Map(x => x.AnimeType).Not.Nullable().CustomType<AnimeType>();
-        Map(x => x.ANNID);
-        Map(x => x.AnisonID);
-        Map(x => x.SyoboiID);
-        Map(x => x.VNDBID);
-        Map(x => x.BangumiID);
-        Map(x => x.LainID);
-        Map(x => x.Site_EN);
-        Map(x => x.Site_JP);
-        Map(x => x.Wikipedia_ID);
-        Map(x => x.WikipediaJP_ID);
-        Map(x => x.CrunchyrollID);
-        Map(x => x.FunimationID);
-        Map(x => x.HiDiveID);
         Map(x => x.AvgReviewRating).Not.Nullable();
         Map(x => x.BeginYear).Not.Nullable();
         Map(x => x.DateTimeDescUpdated).Not.Nullable();
@@ -55,5 +40,6 @@ public class AniDB_AnimeMap : ClassMap<AniDB_Anime>
         Map(x => x.TempVoteCount).Not.Nullable();
         Map(x => x.URL);
         Map(x => x.VoteCount).Not.Nullable();
+        Map(x => x.PreferredOrderingID).CustomType<MetadataGuidType>().Nullable();
     }
 }

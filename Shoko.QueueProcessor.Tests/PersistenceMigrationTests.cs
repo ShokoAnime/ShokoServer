@@ -94,6 +94,42 @@ public class PersistenceMigrationTests
             Assert.Contains(col, chainCols);
     }
 
+    [Fact]
+    public async Task AddJobActor_AddsNullableActorColumns()
+    {
+        var cs = NewCs();
+        using var keeper = new SqliteConnection(cs);
+        keeper.Open();
+        await using var ctx = new SqliteQueueDbContext(cs);
+
+        await ctx.GetService<IMigrator>().MigrateAsync("20260603000000_DropQuartzTables", TestContext.Current.CancellationToken);
+        Assert.DoesNotContain("ActorUserId", await GetColumnsAsync(keeper, "Jobs"));
+
+        // A row queued before the upgrade keeps working and has no actor.
+        using (var insert = keeper.CreateCommand())
+        {
+            insert.CommandText = "INSERT INTO Jobs (Id, JobType, JobKey, Priority, QueuedAt, RetryCount, IsChainFinally) VALUES (randomblob(16), 'T', 'old-key', 0, 0, 0, 0)";
+            await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        }
+
+        await ctx.Database.MigrateAsync(TestContext.Current.CancellationToken);
+
+        var cols = await GetColumnsAsync(keeper, "Jobs");
+        Assert.Contains("ActorUserId", cols);
+        Assert.Contains("ActorDeviceName", cols);
+        var job = Assert.Single(await ctx.Jobs.ToListAsync(TestContext.Current.CancellationToken));
+        Assert.Null(job.ActorUserId);
+        Assert.Null(job.ActorDeviceName);
+    }
+
+    [Fact]
+    public void Model_MatchesTheLatestMigration()
+    {
+        using var ctx = new SqliteQueueDbContext("Data Source=:memory:");
+
+        Assert.False(ctx.Database.HasPendingModelChanges());
+    }
+
     // ── Idempotency and history ───────────────────────────────────────────────
 
     [Fact]

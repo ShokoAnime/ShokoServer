@@ -9,9 +9,15 @@ namespace Shoko.Abstractions.Metadata.Anidb;
 public interface IAnidbTag : ITag, IWithUpdateDate
 {
     /// <summary>
-    /// The parent tag ID, if any.
+    ///   The AniDB tag ID, the same ID <see cref="IMetadata.ID"/> holds as
+    ///   text.
     /// </summary>
-    int? ParentTagID { get; }
+    int AnidbID { get; }
+
+    /// <summary>
+    ///   The parent AniDB tag, or <c>null</c> for a tag at the top of the tree.
+    /// </summary>
+    MetadataGuid? ParentTagID { get; }
 
     /// <summary>
     /// Indicates the tag has been verified.
@@ -27,7 +33,9 @@ public interface IAnidbTag : ITag, IWithUpdateDate
     /// Indicates the tag is considered a spoiler for all anime it appears
     /// on.
     /// </summary>
-    bool IsSpoiler { get; }
+    new bool IsSpoiler { get; }
+
+    bool ITag.IsSpoiler { get => IsSpoiler; }
 
     /// <summary>
     /// The parent tag, if any.
@@ -58,13 +66,17 @@ public interface IAnidbTagForAnime : IAnidbTag
     /// <summary>
     /// How relevant is the tag is to the anime, or if it's weightless.
     /// </summary>
-    int Weight { get; }
+    new int Weight { get; }
+
+    int? ITag.Weight { get => Weight; }
 
     /// <summary>
     /// Indicates the tag is considered a spoiler for that particular anime
     /// it is set on.
     /// </summary>
     bool IsLocalSpoiler { get; }
+
+    bool ITag.IsSpoiler { get => IsSpoiler || IsLocalSpoiler; }
 
     /// <summary>
     /// A direct link to the AniDB anime metadata.

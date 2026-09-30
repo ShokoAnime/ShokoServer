@@ -20,7 +20,7 @@ public class FilterPresetManager(FilterPresetRepository filterPresetRepository) 
         => filterPresetRepository.GetByID(filterID);
 
     public IReadOnlyList<IFilterPreset> GetPresetsByParentPreset(IFilterPreset filterPreset)
-        => filterPreset.ID <= 0 || !filterPreset.IsDirectory ? [] : filterPresetRepository.GetByParentID(filterPreset.ID);
+        => filterPreset.LocalID <= 0 || !filterPreset.IsDirectory ? [] : filterPresetRepository.GetByParentID(filterPreset.LocalID);
 
     public IFilterPreset CreatePreset(FilterPresetData input)
     {
@@ -64,8 +64,8 @@ public class FilterPresetManager(FilterPresetRepository filterPresetRepository) 
 
     public IFilterPreset UpdatePreset(IFilterPreset filter, FilterPresetUpdateData input)
     {
-        var fp = filterPresetRepository.GetByID(filter.ID) ??
-            throw new KeyNotFoundException($"Filter preset with ID '{filter.ID}' was not stored in the database.");
+        var fp = filterPresetRepository.GetByID(filter.LocalID) ??
+            throw new KeyNotFoundException($"Filter preset with ID '{filter.LocalID}' was not stored in the database.");
 
         var updated = false;
         if (input.Name is not null && !string.Equals(fp.Name, input.Name))
@@ -122,7 +122,7 @@ public class FilterPresetManager(FilterPresetRepository filterPresetRepository) 
 
     public void DeletePreset(IFilterPreset filter)
     {
-        var fp = filterPresetRepository.GetByID(filter.ID);
+        var fp = filterPresetRepository.GetByID(filter.LocalID);
         if (fp is not null)
             filterPresetRepository.Delete(fp);
     }

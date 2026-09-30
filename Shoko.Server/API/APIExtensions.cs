@@ -9,24 +9,33 @@ using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 using Sentry;
 using Shoko.Abstractions.Core;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;
+using Shoko.Abstractions.Web.SignalR;
+using Shoko.Server.API.ActionConstraints;
 using Shoko.Server.API.ActionFilters;
+using Shoko.Server.API.Annotations;
 using Shoko.Server.API.Authentication;
 using Shoko.Server.API.FileProviders;
+using Shoko.Server.API.ModelBinders;
+using Shoko.Server.API.Resolvers;
 using Shoko.Server.API.SignalR;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.Swagger;
@@ -35,6 +44,7 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using Swashbuckle.AspNetCore.SwaggerUI;
 
 using File = System.IO.File;
 
@@ -56,12 +66,16 @@ public static partial class APIExtensions
         services.AddSingleton<IEventEmitter, NetworkEventEmitter>();
         services.AddSingleton<IEventEmitter, QueueEventEmitter>();
         services.AddSingleton<IEventEmitter, ReleaseEventEmitter>();
+        services.AddSingleton<IEventEmitter, RestartEventEmitter>();
         services.AddSingleton<IEventEmitter, UserDataEventEmitter>();
         services.AddSingleton<IEventEmitter, UserEventEmitter>();
         services.AddSingleton<IEventEmitter, GroupEventEmitter>();
         services.AddSingleton<IEventEmitter, PluginEventEmitter>();
+        services.AddSingleton<EventEmitterRegistry>();
         services.AddScoped<GeneratedPlaylistService>();
         services.AddScoped<FilterFactory>();
+        services.AddSingleton<MetadataModelBuilder>();
+        services.AddSingleton<MetadataSourceActions>();
         services.AddScoped<WebUIFactory>();
 
         services.AddAuthentication(options =>
@@ -77,6 +91,13 @@ public static partial class APIExtensions
             auth.AddPolicy("init",
                 policy => policy.Requirements.Add(new UserHandler(user =>
                     user.JMMUserID == 0 && user.Username == "init")));
+        });
+
+        // Before MVC reads its route templates.
+        services.Configure<RouteOptions>(options =>
+        {
+            options.ConstraintMap[MetadataSourceRouteConstraint.Name] = typeof(MetadataSourceRouteConstraint);
+            options.ConstraintMap[MetadataEntityTypeRouteConstraint.Name] = typeof(MetadataEntityTypeRouteConstraint);
         });
 
         services.AddSwaggerGen(
@@ -99,25 +120,10 @@ public static partial class APIExtensions
                     options.SwaggerDoc(description.GroupName, CreateInfoForApiVersion(description, "Shoko Server"));
                 }
 
-                // Add a swagger document for each plugin's API versions, but only if the plugin
-                // actually has controllers targeting that version.
-                foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
-                {
-                    var assembly = pluginInfo.PluginType!.Assembly;
-                    if (assembly == typeof(APIExtensions).Assembly)
-                        continue; //Skip the current assembly, as these are added above.
-
-                    var pluginVersions = GetPluginApiVersions(assembly);
-                    var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
-
-                    foreach (var description in provider.ApiVersionDescriptions
-                                 .Where(d => pluginVersions.Contains(d.GroupName))
-                                 .OrderByDescending(a => a.ApiVersion))
-                    {
-                        var docName = $"{dllName}-{description.GroupName}";
-                        options.SwaggerDoc(docName, CreateInfoForApiVersion(description, pluginInfo.Name));
-                    }
-                }
+                // Add a swagger document for each plugin's API versions that it has controllers
+                // for, and one for the endpoints it may map itself.
+                foreach (var document in GetPluginDocuments(pluginManager, provider))
+                    options.SwaggerDoc(document.Name, document.Info);
 
                 // Use document inclusion predicate to separate server and plugin controllers.
                 options.DocInclusionPredicate(new PluginDocumentInclusionPredicate(pluginManager).Include);
@@ -141,6 +147,7 @@ public static partial class APIExtensions
                         Scheme = "apikey"
                     });
                 options.OperationFilter<AuthorizeOperationFilter>();
+                options.OperationFilter<MetadataRouteParameterFilter>();
 
                 // integrate xml comments
                 //Locate the XML file being generated by ASP.NET...
@@ -177,15 +184,28 @@ public static partial class APIExtensions
                     });
                 }
 
+                options.SchemaFilter<MetadataBodyFieldSchemaFilter>();
+                options.MapType<MetadataSource>(MetadataSourceSchema.Create);
+                options.MapType<MetadataEntityType>(MetadataEntityTypeSchema.Create);
+                options.MapType<PartialDateOnly>(PartialDateSchemas.CreatePartialDateOnly);
+                options.MapType<FuzzyDateOnly>(PartialDateSchemas.CreateFuzzyDateOnly);
                 options.CustomSchemaIds(GetTypeName);
             });
         services.AddSwaggerGenNewtonsoftSupport();
+
+        // Describe the endpoints plugins map themselves, next to the controllers.
+        services.AddEndpointsApiExplorer();
+        services.TryAddEnumerable(ServiceDescriptor.Transient<IApiDescriptionProvider, RequestDelegateApiDescriptionProvider>());
+
+        services.AddSingleton<ActorHubFilter>();
         services.AddSignalR(options =>
             {
                 options.EnableDetailedErrors = true;
                 options.ClientTimeoutInterval = TimeSpan.FromSeconds(60); // default timeout is 30 seconds
+                // Every hub call runs for the connection's token.
+                options.AddFilter<ActorHubFilter>();
             })
-            .AddNewtonsoftJsonProtocol(o => o.PayloadSerializerSettings.ContractResolver = new DefaultContractResolver());
+            .AddNewtonsoftJsonProtocol(o => o.PayloadSerializerSettings.ContractResolver = new ApiContractResolver());
 
         // allow CORS calls from other both local and non-local hosts
         services.AddCors(options =>
@@ -208,17 +228,21 @@ public static partial class APIExtensions
                 }
 
                 options.Filters.Add(typeof(DatabaseBlockedFilter));
-                options.Filters.Add(typeof(AnilistUpstreamExceptionFilter));
+                options.Filters.Add(typeof(ManualLinkChangeFilter));
+
+                // Any route may reach a provider, so a provider out of reach or not configured is answered the same way everywhere.
+                options.Filters.Add(new MetadataProviderUnavailableAttribute());
+
+                // Before the simple type binder, which would read any valid value through the type converter.
+                options.ModelBinderProviders.Insert(0, new MetadataSourceModelBinderProvider());
+                options.ModelBinderProviders.Insert(0, new MetadataEntityTypeModelBinderProvider());
 
                 EmitEmptyEnumerableInsteadOfNullAttribute.MvcOptions = options;
             })
             .AddNewtonsoftJson(json =>
             {
                 json.SerializerSettings.MaxDepth = 10;
-                json.SerializerSettings.ContractResolver = new DefaultContractResolver
-                {
-                    NamingStrategy = new DefaultNamingStrategy()
-                };
+                json.SerializerSettings.ContractResolver = new ApiContractResolver();
                 json.SerializerSettings.NullValueHandling = NullValueHandling.Include;
                 json.SerializerSettings.DefaultValueHandling = DefaultValueHandling.Populate;
                 // json.SerializerSettings.DateFormatString = "yyyy-MM-dd";
@@ -266,7 +290,7 @@ public static partial class APIExtensions
 
     public static IMvcBuilder AddPluginControllers(this IMvcBuilder mvc, IPluginManager pluginManager)
     {
-        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled && p.CanLoad))
         {
             var assembly = pluginInfo.PluginType!.Assembly;
             if (assembly == typeof(APIExtensions).Assembly)
@@ -280,7 +304,7 @@ public static partial class APIExtensions
 
     public static SwaggerGenOptions AddPlugins(this SwaggerGenOptions options, IPluginManager pluginManager)
     {
-        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled && p.CanLoad))
         {
             var assembly = pluginInfo.PluginType!.Assembly;
             if (assembly == typeof(APIExtensions).Assembly)
@@ -392,21 +416,108 @@ public static partial class APIExtensions
     }
 
     private static OpenApiInfo CreateInfoForApiVersion(ApiVersionDescription description, string title)
+        => CreateInfoForApiVersion(description.ApiVersion, description.IsDeprecated, title);
+
+    private static OpenApiInfo CreateInfoForApiVersion(ApiVersion apiVersion, bool isDeprecated, string title)
     {
         var info = new OpenApiInfo
         {
-            Title = $"{title} API {description.ApiVersion}",
-            Version = description.ApiVersion.ToString(),
+            Title = $"{title} API {apiVersion}",
+            Version = apiVersion.ToString(),
             Description = $"{title} API."
         };
 
-        if (description.IsDeprecated)
+        if (isDeprecated)
         {
             info.Description += " This API version has been deprecated.";
         }
 
         return info;
     }
+
+    /// <summary>
+    /// Lists the Swagger documents of the enabled plugins: one per API version the plugin has
+    /// controllers for, and one for the unversioned endpoints it may map itself when it
+    /// registers into the application pipeline and has no controllers of that version.
+    /// </summary>
+    /// <param name="pluginManager">The plugin manager.</param>
+    /// <param name="provider">The API versions of the application.</param>
+    /// <returns>The plugin documents, grouped by plugin, newest version first.</returns>
+    private static IEnumerable<PluginSwaggerDocument> GetPluginDocuments(IPluginManager pluginManager, IApiVersionDescriptionProvider provider)
+    {
+        foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled && p.CanLoad))
+        {
+            var assembly = pluginInfo.PluginType!.Assembly;
+            if (assembly == typeof(APIExtensions).Assembly)
+                continue; //Skip the current assembly, as these are added separately.
+
+            var pluginVersions = GetPluginApiVersions(assembly);
+            var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
+
+            foreach (var description in provider.ApiVersionDescriptions
+                         .Where(d => pluginVersions.Contains(d.GroupName))
+                         .OrderByDescending(a => a.ApiVersion))
+            {
+                yield return new(
+                    $"{dllName}-{description.GroupName}",
+                    $"{pluginInfo.Name} {description.GroupName.ToUpperInvariant()}",
+                    CreateInfoForApiVersion(description, pluginInfo.Name),
+                    HasControllers: true
+                );
+            }
+
+            // Mapped endpoints are known only once the pipeline is built, so the document is
+            // declared for every plugin that could map them.
+            if (pluginInfo.ApplicationRegistrationType is not null && !pluginVersions.Contains(PluginDocumentInclusionPredicate.DefaultVersionGroup))
+            {
+                var groupName = PluginDocumentInclusionPredicate.DefaultVersionGroup;
+                yield return new(
+                    $"{dllName}-{groupName}",
+                    $"{pluginInfo.Name} {groupName.ToUpperInvariant()}",
+                    CreateInfoForApiVersion(new ApiVersion(1, 0), isDeprecated: false, pluginInfo.Name),
+                    HasControllers: false
+                );
+            }
+        }
+    }
+
+    /// <summary>
+    /// Lists the documents shown in the Swagger UI, each time the UI is loaded.
+    /// </summary>
+    /// <param name="serverUrls">The server's own documents, listed first.</param>
+    /// <param name="pluginDocuments">The plugin documents.</param>
+    /// <param name="predicate">Assigns the endpoints to the documents.</param>
+    /// <param name="apiExplorer">The described endpoints of the application.</param>
+    /// <param name="swaggerPrefix">The path the Swagger documents are served under.</param>
+    /// <returns>The server documents, then every plugin document with controllers or any mapped endpoint.</returns>
+    private static IEnumerable<UrlDescriptor> ListSwaggerDocuments(
+        IReadOnlyList<UrlDescriptor> serverUrls,
+        IReadOnlyList<PluginSwaggerDocument> pluginDocuments,
+        PluginDocumentInclusionPredicate predicate,
+        IApiDescriptionGroupCollectionProvider apiExplorer,
+        string swaggerPrefix
+    )
+    {
+        foreach (var url in serverUrls)
+            yield return url;
+
+        foreach (var document in pluginDocuments)
+        {
+            if (!document.HasControllers && !apiExplorer.ApiDescriptionGroups.Items.SelectMany(group => group.Items).Any(api => predicate.Include(document.Name, api)))
+                continue;
+
+            yield return new() { Url = $"/{swaggerPrefix}/{document.Name}/swagger.json", Name = document.DisplayName };
+        }
+    }
+
+    /// <summary>
+    /// A plugin's Swagger document.
+    /// </summary>
+    /// <param name="Name">The document name, <c>{DllName}-{version group}</c>.</param>
+    /// <param name="DisplayName">The name shown in the Swagger UI.</param>
+    /// <param name="Info">The document's info block.</param>
+    /// <param name="HasControllers">Whether the plugin has controllers for the document's version.</param>
+    private sealed record PluginSwaggerDocument(string Name, string DisplayName, OpenApiInfo Info, bool HasControllers);
 
     public static IApplicationBuilder UseAPI(this IApplicationBuilder app, IPluginManager pluginManager)
     {
@@ -531,27 +642,13 @@ public static partial class APIExtensions
                         );
                     }
 
-                    // Plugin API bundles (grouped by plugin) — only versions with actual controllers
-                    foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsEnabled))
-                    {
-                        var assembly = pluginInfo.PluginType!.Assembly;
-                        if (assembly == typeof(APIExtensions).Assembly)
-                            continue; //Skip the current assembly, as these are added above.
-
-                        var pluginVersions = GetPluginApiVersions(assembly);
-                        var dllName = Path.GetFileNameWithoutExtension(pluginInfo.DLLs[0]);
-
-                        foreach (var description in provider.ApiVersionDescriptions
-                                     .Where(d => pluginVersions.Contains(d.GroupName))
-                                     .OrderByDescending(a => a.ApiVersion))
-                        {
-                            var docName = $"{dllName}-{description.GroupName}";
-                            options.SwaggerEndpoint(
-                                $"/{webSettings.SwaggerUIPrefix}/{docName}/swagger.json",
-                                $"{pluginInfo.Name} {description.GroupName.ToUpperInvariant()}"
-                            );
-                        }
-                    }
+                    // Plugins map their endpoints after this runs, so the list is re-read on every UI load;
+                    // a document only for mapped endpoints is left out while it has none.
+                    var serverUrls = options.ConfigObject.Urls?.ToList() ?? [];
+                    var pluginDocuments = GetPluginDocuments(pluginManager, provider).ToList();
+                    var predicate = new PluginDocumentInclusionPredicate(pluginManager);
+                    var apiExplorer = app.ApplicationServices.GetRequiredService<IApiDescriptionGroupCollectionProvider>();
+                    options.ConfigObject.Urls = ListSwaggerDocuments(serverUrls, pluginDocuments, predicate, apiExplorer, webSettings.SwaggerUIPrefix);
                     options.EnablePersistAuthorization();
                 });
         }
@@ -584,6 +681,8 @@ public static partial class APIExtensions
 
         // Important for first run at least
         app.UseAuthentication();
+        // Everything the request does runs for its token, until the request ends.
+        app.UseMiddleware<ActorContextMiddleware>();
         app.UseAuthorization();
 
         app.UseEndpoints(conf =>
@@ -596,12 +695,19 @@ public static partial class APIExtensions
             }
         });
 
+        var registeredPlugins = false;
         foreach (var pluginInfo in pluginManager.GetPluginInfos().Where(p => p.IsActive && p.ApplicationRegistrationType is not null))
         {
             pluginInfo.ApplicationRegistrationType!
                 .GetMethod(nameof(IPluginApplicationRegistration.RegisterServices), BindingFlags.Public | BindingFlags.Static, [typeof(IApplicationBuilder), typeof(IApplicationPaths)])!
                 .Invoke(null, [app, ApplicationPaths.Instance]);
+            registeredPlugins = true;
         }
+
+        // Plugin endpoints join an existing data source that never signals a change, and the API
+        // explorer cached its endpoints earlier; a new empty source makes it re-read them all.
+        if (registeredPlugins)
+            app.UseEndpoints(endpoints => endpoints.DataSources.Add(new DefaultEndpointDataSource()));
 
         app.UseCors(options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 

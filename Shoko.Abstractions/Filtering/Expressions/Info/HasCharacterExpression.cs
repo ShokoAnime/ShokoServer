@@ -15,8 +15,10 @@ public class HasCharacterExpression : FilterExpression<bool>, IWithStringParamet
     /// <inheritdoc/>
     public HasCharacterExpression() { }
 
-    /// <inheritdoc/>
-    protected string? CharacterID { get; set; }
+    /// <summary>
+    /// The AniDB ID of the character to look for, kept as the parameter.
+    /// </summary>
+    public string? CharacterID { get; set; }
 
     /// <inheritdoc/>
     public override string HelpDescription => "This condition passes if the filterable has a character.";

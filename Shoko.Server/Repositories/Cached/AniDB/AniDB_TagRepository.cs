@@ -36,7 +36,6 @@ public class AniDB_TagRepository(DatabaseFactory databaseFactory) : BaseCachedRe
         foreach (var tag in tags)
         {
             tag.TagDescription = (tag.TagDescription ?? string.Empty).Replace('`', '\'');
-            tag.TagNameOverride = tag.TagNameOverride?.Replace('`', '\'');
             tag.TagNameSource = tag.TagNameSource.Replace('`', '\'');
             Save(tag);
         }

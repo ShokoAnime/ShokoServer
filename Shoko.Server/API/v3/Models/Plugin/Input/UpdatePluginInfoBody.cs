@@ -16,7 +16,8 @@ public class UpdatePluginInfoBody
     /// <summary>
     ///   When <c>true</c>, bypass safety checks for the operation. Used to
     ///   force-disable a plugin that other enabled plugins depend on, or
-    ///   force-uninstall a plugin with dependents.
+    ///   force-uninstall a plugin with dependents. The dependents show at once
+    ///   that they cannot load after a restart, with the reason.
     /// </summary>
     public bool Force { get; set; }
 }

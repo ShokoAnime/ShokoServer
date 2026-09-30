@@ -39,17 +39,9 @@ public class GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbServi
     {
         _logger.LogInformation("Processing {Job}", nameof(GetUpdatedAniDBAnimeJob));
 
-        // check the automated update table to see when the last time we ran this command
+        // How often this runs is up to the triggers of the action that queues
+        // it. The row only says where the last run left off.
         var schedule = scheduledUpdates.GetByUpdateType((int)ScheduledUpdateType.AniDBUpdates);
-        if (schedule is not null)
-        {
-            var settings = settingsProvider.GetSettings();
-            var freqHours = settings.AniDb.Anime_UpdateFrequency.Hours;
-
-            // if we have run this in the last 12 hours and are not forcing it, then exit
-            var tsLastRun = DateTime.Now - schedule.LastUpdate;
-            if (tsLastRun.TotalHours < freqHours && !ForceRefresh) return;
-        }
 
         DateTime webUpdateTime;
         if (schedule is null)

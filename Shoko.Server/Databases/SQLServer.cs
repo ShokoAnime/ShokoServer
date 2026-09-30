@@ -85,6 +85,16 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         action(conn);
     }
 
+    /// <inheritdoc />
+    public override void Vacuum()
+    {
+        // SQL Server reuses the pages deleted rows freed, and shrinking the
+        // files would only fragment the indexes.
+    }
+
+    /// <inheritdoc />
+    protected override IEnumerable<DatabaseCommand> SchemaCommands => _createTables.Concat(_patchCommands);
+
     public override void BackupDatabase(string fileName)
     {
         fileName = Path.GetFileName(fileName) + ".bak";
@@ -134,12 +144,19 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
     }
 
     public override string GetConnectionString()
+        => GetConnectionString(ISettingsProvider.Instance.GetSettings().Database);
+
+    /// <summary>
+    /// The connection string to the core's database, from the database settings.
+    /// </summary>
+    /// <param name="settings">The database settings.</param>
+    /// <returns>The connection string.</returns>
+    internal static string GetConnectionString(DatabaseSettings settings)
     {
-        var settings = ISettingsProvider.Instance.GetSettings();
-        if (!string.IsNullOrWhiteSpace(settings.Database.OverrideConnectionString))
-            return settings.Database.OverrideConnectionString;
+        if (!string.IsNullOrWhiteSpace(settings.OverrideConnectionString))
+            return settings.OverrideConnectionString;
         return
-            $"data source={settings.Database.Hostname},{settings.Database.Port};Initial Catalog={settings.Database.Schema};user id={settings.Database.Username};password={settings.Database.Password};persist security info=True;MultipleActiveResultSets=True;TrustServerCertificate=True";
+            $"data source={settings.Hostname},{settings.Port};Initial Catalog={settings.Schema};user id={settings.Username};password={settings.Password};persist security info=True;MultipleActiveResultSets=True;TrustServerCertificate=True";
     }
 
     public override ISessionFactory CreateSessionFactory()
@@ -643,7 +660,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(109,  2, "ALTER TABLE JMMUser ADD AvatarImageMetadata NVARCHAR(128) NULL;"),
         new(110,  1, "ALTER TABLE VideoLocal ADD LastAVDumped datetime;"),
         new(110,  2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
-        new(111,  1, DatabaseFixes.FixAnimeSourceLinks),
+        new(111,  1),
         new(111,  2, DatabaseFixes.FixOrphanedShokoEpisodes),
         new(112,  1, "CREATE TABLE FilterPreset( FilterPresetID INT IDENTITY(1,1), ParentFilterPresetID int, Name nvarchar(250) NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression nvarchar(max), SortingExpression nvarchar(max) ); "),
         new(112,  2, "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
@@ -693,7 +710,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(122, 30, "DROP TABLE MovieDB_Poster;"),
         new(122, 31, "DROP TABLE AniDB_Anime_DefaultImage;"),
         new(122, 32, "CREATE TABLE AniDB_Episode_PreferredImage ( AniDB_Episode_PreferredImageID INT IDENTITY(1,1) NOT NULL, AnidbAnimeID INT NOT NULL, AnidbEpisodeID INT NOT NULL, ImageID INT NOT NULL, ImageType INT NOT NULL, ImageSource INT NOT NULL );"),
-        new(122, 33, DatabaseFixes.CleanupAfterAddingTMDB),
+        new(122, 33),
         new(122, 34, "UPDATE FilterPreset SET Expression = REPLACE(Expression, 'HasTMDbLinkExpression', 'HasTmdbLinkExpression');"),
         new(122, 35, "exec sp_rename 'TMDB_Movie.EnglishOvervie', 'EnglishOverview', 'COLUMN';"),
         new(122, 36, "UPDATE TMDB_Image SET IsEnabled = 1;"),
@@ -948,7 +965,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(160,  4, "SET IDENTITY_INSERT StoredRelocationPreset ON; INSERT INTO StoredRelocationPreset (StoredRelocationPresetID, ProviderID, Name, Configuration, IsDefault) SELECT StoredRelocationPipeID, ProviderID, Name, Configuration, 0 FROM StoredRelocationPipe; SET IDENTITY_INSERT StoredRelocationPreset OFF;"),
         new(160,  5, "DROP TABLE StoredRelocationPipe;"),
         new(160,  6, DatabaseFixes.SetDefaultRenamer),
-        new(161,  1, DatabaseFixes.MoveImagesToExtensionPaths),
+        new(161,  1),
         new(162,  1, "ALTER TABLE VideoLocal_User ADD LastVideoStreamIndex int NULL;"),
         new(162,  2, "ALTER TABLE VideoLocal_User ADD LastAudioStreamIndex int NULL;"),
         new(162,  3, "ALTER TABLE VideoLocal_User ADD LastSubtitleStreamIndex int NULL;"),
@@ -1024,7 +1041,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(174,  4, "CREATE INDEX IX_StoredReleaseInfo_ED2K ON StoredReleaseInfo(ED2K);"),
         new(174,  5, "CREATE INDEX IX_AniDB_Episode_AnimeID_EpisodeType ON AniDB_Episode(AnimeID, EpisodeType);"),
         new(175,  1, "ALTER TABLE ShokoImage ADD IsAvailable BIT NOT NULL DEFAULT 0;"),
-        new(175,  2, DatabaseFixes.PopulateImageAvailability),
+        new(175,  2),
         new(176,  1, "ALTER TABLE TMDB_Person ADD ImdbPersonID NVARCHAR(12) NULL DEFAULT NULL;"),
         new(177,  1, "ALTER TABLE AniDB_Anime_Relation ADD Verified BIT NOT NULL DEFAULT 1;"),
         new(177,  2, "UPDATE AniDB_Anime_Relation SET Verified = 0 WHERE RelationType IN ('alternative setting', 'alternative version');"),
@@ -1150,47 +1167,47 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(184,  5, "UPDATE ImportFolder SET ImportFolderLocation = LEFT(ImportFolderLocation, 500) WHERE LEN(ImportFolderLocation) > 500; ALTER TABLE ImportFolder ALTER COLUMN ImportFolderLocation nvarchar(500) COLLATE SQL_Latin1_General_CP1_CS_AS NOT NULL;"),
         new(184,  6, "UPDATE ImportFolder SET ImportFolderName = LEFT(ImportFolderName, 500) WHERE LEN(ImportFolderName) > 500; ALTER TABLE ImportFolder ALTER COLUMN ImportFolderName nvarchar(500) NOT NULL;"),
         new(184,  7, "UPDATE TMDB_Person SET PlaceOfBirth = LEFT(PlaceOfBirth, 128) WHERE LEN(PlaceOfBirth) > 128; ALTER TABLE TMDB_Person ALTER COLUMN PlaceOfBirth nvarchar(128) NULL;"),
-        new(185,  1, "CREATE TABLE Anilist_Anime ( Anilist_AnimeID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, MalID INT NULL, EnglishTitle NVARCHAR(512) NOT NULL, MainTitle NVARCHAR(512) NOT NULL, NativeTitle NVARCHAR(512) NOT NULL, Synonyms NVARCHAR(MAX) NOT NULL, EnglishOverview NVARCHAR(MAX) NOT NULL, OriginalLanguageCode NVARCHAR(32) NOT NULL, Type INT NOT NULL, ReleasingStatus INT NOT NULL, MediaSource INT NOT NULL, Season INT NULL, SeasonYear INT NULL, CoverImagePath NVARCHAR(512) NOT NULL, BannerImagePath NVARCHAR(512) NOT NULL, TrailerSite NVARCHAR(32) NULL, TrailerID NVARCHAR(64) NULL, EpisodeCount INT NOT NULL, EpisodeDuration INT NULL, UserRating decimal(6,2) NOT NULL, MeanScore decimal(6,2) NOT NULL, UserVotes INT NOT NULL, Popularity INT NOT NULL, FavoriteCount INT NOT NULL, IsLicensed BIT NOT NULL, IsRestricted BIT NOT NULL, Color NVARCHAR(32) NOT NULL, Genres NVARCHAR(MAX) NOT NULL, FirstAiredAt NVARCHAR(10) NULL, LastAiredAt NVARCHAR(10) NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_Anilist_Anime PRIMARY KEY CLUSTERED (Anilist_AnimeID) );"),
-        new(185,  2, "CREATE TABLE Anilist_Episode ( Anilist_EpisodeID INT IDENTITY(1,1) NOT NULL, AnilistEpisodeID INT NOT NULL, AnilistScheduleEpisodeID INT NULL, AnilistAnimeID INT NOT NULL, EpisodeNumber INT NOT NULL, RuntimeMinutes INT NULL, AiredAt DATETIME NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_Anilist_Episode PRIMARY KEY CLUSTERED (Anilist_EpisodeID) );"),
-        new(185,  3, "CREATE TABLE Anilist_Tag ( Anilist_TagID INT IDENTITY(1,1) NOT NULL, AnilistTagID INT NOT NULL, Name NVARCHAR(512) NOT NULL, Description NVARCHAR(MAX) NOT NULL, Category NVARCHAR(512) NOT NULL, IsRestricted BIT NOT NULL, IsSpoiler BIT NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_Anilist_Tag PRIMARY KEY CLUSTERED (Anilist_TagID) );"),
-        new(185,  4, "CREATE TABLE Anilist_Anime_Tag ( Anilist_Anime_TagID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, AnilistTagID INT NOT NULL, Weight INT NOT NULL, IsLocalSpoiler BIT NOT NULL, CONSTRAINT PK_Anilist_Anime_Tag PRIMARY KEY CLUSTERED (Anilist_Anime_TagID) );"),
-        new(185,  5, "CREATE TABLE Anilist_Studio ( Anilist_StudioID INT IDENTITY(1,1) NOT NULL, AnilistStudioID INT NOT NULL, Name NVARCHAR(512) NOT NULL, IsAnimationStudio BIT NOT NULL, FavoriteCount INT NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_Anilist_Studio PRIMARY KEY CLUSTERED (Anilist_StudioID) );"),
-        new(185,  6, "CREATE TABLE Anilist_Anime_Studio ( Anilist_Anime_StudioID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, AnilistStudioID INT NOT NULL, IsMainStudio BIT NOT NULL, CONSTRAINT PK_Anilist_Anime_Studio PRIMARY KEY CLUSTERED (Anilist_Anime_StudioID) );"),
-        new(185,  7, "CREATE TABLE Anilist_Character ( Anilist_CharacterID INT IDENTITY(1,1) NOT NULL, AnilistCharacterID INT NOT NULL, Name NVARCHAR(512) NOT NULL, OriginalName NVARCHAR(512) NULL, AlternativeNames NVARCHAR(MAX) NOT NULL, Description NVARCHAR(MAX) NOT NULL, ImagePath NVARCHAR(512) NULL, Gender INT NOT NULL, DateOfBirth NVARCHAR(10) NULL, Age NVARCHAR(512) NULL, FavoriteCount INT NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_Anilist_Character PRIMARY KEY CLUSTERED (Anilist_CharacterID) );"),
-        new(185,  8, "CREATE TABLE Anilist_Creator ( Anilist_CreatorID INT IDENTITY(1,1) NOT NULL, AnilistCreatorID INT NOT NULL, Name NVARCHAR(512) NOT NULL, OriginalName NVARCHAR(512) NULL, AlternativeNames NVARCHAR(MAX) NOT NULL, Description NVARCHAR(MAX) NOT NULL, ImagePath NVARCHAR(512) NULL, Language NVARCHAR(512) NULL, PrimaryOccupations NVARCHAR(MAX) NOT NULL, Gender INT NOT NULL, DateOfBirth NVARCHAR(10) NULL, HomeTown NVARCHAR(512) NULL, FavoriteCount INT NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_Anilist_Creator PRIMARY KEY CLUSTERED (Anilist_CreatorID) );"),
-        new(185,  9, "CREATE TABLE Anilist_Anime_Character ( Anilist_Anime_CharacterID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, AnilistCharacterID INT NOT NULL, Role NVARCHAR(512) NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Anilist_Anime_Character PRIMARY KEY CLUSTERED (Anilist_Anime_CharacterID) );"),
-        new(185, 10, "CREATE TABLE Anilist_Anime_Character_Creator ( Anilist_Anime_Character_CreatorID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, AnilistCharacterID INT NOT NULL, AnilistCreatorID INT NOT NULL, RoleNotes NVARCHAR(512) NULL, DubGroup NVARCHAR(512) NULL, Ordering INT NOT NULL, CONSTRAINT PK_Anilist_Anime_Character_Creator PRIMARY KEY CLUSTERED (Anilist_Anime_Character_CreatorID) );"),
-        new(185, 11, "CREATE TABLE Anilist_Anime_Staff ( Anilist_Anime_StaffID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, AnilistCreatorID INT NOT NULL, Role NVARCHAR(512) NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Anilist_Anime_Staff PRIMARY KEY CLUSTERED (Anilist_Anime_StaffID) );"),
-        new(185, 12, "CREATE TABLE Anilist_Anime_Relation ( Anilist_Anime_RelationID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, RelatedAnilistID INT NOT NULL, RelatedIsAnime BIT NOT NULL, RelationType NVARCHAR(32) NOT NULL, CONSTRAINT PK_Anilist_Anime_Relation PRIMARY KEY CLUSTERED (Anilist_Anime_RelationID) );"),
-        new(185, 13, "CREATE TABLE CrossRef_AniDB_Anilist_Anime ( CrossRef_AniDB_Anilist_AnimeID INT IDENTITY(1,1) NOT NULL, AnidbAnimeID INT NOT NULL, AnilistAnimeID INT NOT NULL, MatchRating INT NOT NULL, CONSTRAINT PK_CrossRef_AniDB_Anilist_Anime PRIMARY KEY CLUSTERED (CrossRef_AniDB_Anilist_AnimeID) );"),
-        new(185, 14, "CREATE TABLE CrossRef_AniDB_Anilist_Episode ( CrossRef_AniDB_Anilist_EpisodeID INT IDENTITY(1,1) NOT NULL, AnidbAnimeID INT NOT NULL, AnidbEpisodeID INT NOT NULL, AnilistAnimeID INT NOT NULL, AnilistEpisodeID INT NOT NULL, EpisodeNumber INT NOT NULL, Ordering INT NOT NULL, MatchRating INT NOT NULL, CONSTRAINT PK_CrossRef_AniDB_Anilist_Episode PRIMARY KEY CLUSTERED (CrossRef_AniDB_Anilist_EpisodeID) );"),
-        new(185, 15, "CREATE INDEX IX_Anilist_Anime_AnilistAnimeID ON Anilist_Anime(AnilistAnimeID);"),
-        new(185, 16, "CREATE INDEX IX_Anilist_Episode_AnilistAnimeID ON Anilist_Episode(AnilistAnimeID);"),
-        new(185, 17, "CREATE INDEX IX_Anilist_Episode_AnilistEpisodeID ON Anilist_Episode(AnilistEpisodeID);"),
-        new(185, 18, "CREATE INDEX IX_Anilist_Tag_AnilistTagID ON Anilist_Tag(AnilistTagID);"),
-        new(185, 19, "CREATE INDEX IX_Anilist_Anime_Tag_AnilistAnimeID ON Anilist_Anime_Tag(AnilistAnimeID);"),
-        new(185, 20, "CREATE INDEX IX_Anilist_Anime_Tag_AnilistTagID ON Anilist_Anime_Tag(AnilistTagID);"),
-        new(185, 21, "CREATE INDEX IX_Anilist_Studio_AnilistStudioID ON Anilist_Studio(AnilistStudioID);"),
-        new(185, 22, "CREATE INDEX IX_Anilist_Anime_Studio_AnilistAnimeID ON Anilist_Anime_Studio(AnilistAnimeID);"),
-        new(185, 23, "CREATE INDEX IX_Anilist_Anime_Studio_AnilistStudioID ON Anilist_Anime_Studio(AnilistStudioID);"),
-        new(185, 24, "CREATE INDEX IX_Anilist_Character_AnilistCharacterID ON Anilist_Character(AnilistCharacterID);"),
-        new(185, 25, "CREATE INDEX IX_Anilist_Creator_AnilistCreatorID ON Anilist_Creator(AnilistCreatorID);"),
-        new(185, 26, "CREATE INDEX IX_Anilist_Anime_Character_AnilistAnimeID ON Anilist_Anime_Character(AnilistAnimeID);"),
-        new(185, 27, "CREATE INDEX IX_Anilist_Anime_Character_AnilistCharacterID ON Anilist_Anime_Character(AnilistCharacterID);"),
-        new(185, 28, "CREATE INDEX IX_Anilist_Anime_Character_Creator_AnilistAnimeID ON Anilist_Anime_Character_Creator(AnilistAnimeID);"),
-        new(185, 29, "CREATE INDEX IX_Anilist_Anime_Character_Creator_AnilistCreatorID ON Anilist_Anime_Character_Creator(AnilistCreatorID);"),
-        new(185, 30, "CREATE INDEX IX_Anilist_Anime_Staff_AnilistAnimeID ON Anilist_Anime_Staff(AnilistAnimeID);"),
-        new(185, 31, "CREATE INDEX IX_Anilist_Anime_Staff_AnilistCreatorID ON Anilist_Anime_Staff(AnilistCreatorID);"),
-        new(185, 32, "CREATE INDEX IX_Anilist_Anime_Relation_AnilistAnimeID ON Anilist_Anime_Relation(AnilistAnimeID);"),
-        new(185, 33, "CREATE INDEX IX_Anilist_Anime_Relation_RelatedAnilistID ON Anilist_Anime_Relation(RelatedAnilistID);"),
-        new(185, 34, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Anime_AnidbAnimeID ON CrossRef_AniDB_Anilist_Anime(AnidbAnimeID);"),
-        new(185, 35, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Anime_AnilistAnimeID ON CrossRef_AniDB_Anilist_Anime(AnilistAnimeID);"),
-        new(185, 36, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnidbAnimeID ON CrossRef_AniDB_Anilist_Episode(AnidbAnimeID);"),
-        new(185, 37, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnidbEpisodeID ON CrossRef_AniDB_Anilist_Episode(AnidbEpisodeID);"),
-        new(185, 38, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnilistAnimeID ON CrossRef_AniDB_Anilist_Episode(AnilistAnimeID);"),
-        new(185, 39, "CREATE INDEX IX_CrossRef_AniDB_Anilist_Episode_AnilistEpisodeID ON CrossRef_AniDB_Anilist_Episode(AnilistEpisodeID);"),
-        new(185, 40, "CREATE TABLE Anilist_Anime_ExternalLink ( Anilist_Anime_ExternalLinkID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, AnilistLinkID INT NOT NULL, Url NVARCHAR(512) NOT NULL, Site NVARCHAR(128) NOT NULL, AnilistSiteID INT NULL, LinkType NVARCHAR(32) NOT NULL, LanguageCode NVARCHAR(32) NULL, CONSTRAINT PK_Anilist_Anime_ExternalLink PRIMARY KEY CLUSTERED (Anilist_Anime_ExternalLinkID) );"),
-        new(185, 41, "CREATE INDEX IX_Anilist_Anime_ExternalLink_AnilistAnimeID ON Anilist_Anime_ExternalLink(AnilistAnimeID);"),
+        new(185,  1),
+        new(185,  2),
+        new(185,  3),
+        new(185,  4),
+        new(185,  5),
+        new(185,  6),
+        new(185,  7),
+        new(185,  8),
+        new(185,  9),
+        new(185, 10),
+        new(185, 11),
+        new(185, 12),
+        new(185, 13),
+        new(185, 14),
+        new(185, 15),
+        new(185, 16),
+        new(185, 17),
+        new(185, 18),
+        new(185, 19),
+        new(185, 20),
+        new(185, 21),
+        new(185, 22),
+        new(185, 23),
+        new(185, 24),
+        new(185, 25),
+        new(185, 26),
+        new(185, 27),
+        new(185, 28),
+        new(185, 29),
+        new(185, 30),
+        new(185, 31),
+        new(185, 32),
+        new(185, 33),
+        new(185, 34),
+        new(185, 35),
+        new(185, 36),
+        new(185, 37),
+        new(185, 38),
+        new(185, 39),
+        new(185, 40),
+        new(185, 41),
         new(186,  1, "CREATE TABLE AiringSchedule ( AiringScheduleID INT IDENTITY(1,1) NOT NULL, ProviderID NVARCHAR(40) NOT NULL, ProviderName NVARCHAR(128) NOT NULL, SeriesSource TINYINT NOT NULL, SeriesID NVARCHAR(64) NOT NULL, SeasonID NVARCHAR(64) NOT NULL, [Key] NVARCHAR(128) NOT NULL, ChannelID NVARCHAR(40) NULL, Tracks NVARCHAR(MAX) NOT NULL, FirstEpisodeNumber INT NULL, LastEpisodeNumber INT NULL, IsFinished BIT NOT NULL, TimeZoneID NVARCHAR(64) NULL, Url NVARCHAR(512) NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_AiringSchedule PRIMARY KEY CLUSTERED (AiringScheduleID) );"),
         new(186,  2, "CREATE TABLE EpisodeAiring ( EpisodeAiringID INT IDENTITY(1,1) NOT NULL, AiringScheduleID INT NOT NULL, [Key] NVARCHAR(128) NOT NULL, EpisodeSource TINYINT NOT NULL, EpisodeID NVARCHAR(64) NOT NULL, Url NVARCHAR(512) NULL, AiredAt DATETIME NULL, OriginalAiredAt DATETIME NULL, IsDelayed BIT NOT NULL, LinkedToID INT NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_EpisodeAiring PRIMARY KEY CLUSTERED (EpisodeAiringID) );"),
         new(186,  3, "CREATE TABLE AiringChannel ( AiringChannelID INT IDENTITY(1,1) NOT NULL, ChannelID NVARCHAR(40) NOT NULL, Name NVARCHAR(512) NOT NULL, NormalizedName NVARCHAR(512) NOT NULL, Type TINYINT NOT NULL, Aliases NVARCHAR(MAX) NOT NULL, CreatedAt DATETIME NOT NULL, CONSTRAINT PK_AiringChannel PRIMARY KEY CLUSTERED (AiringChannelID) );"),
@@ -1203,7 +1220,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(186, 10, "CREATE INDEX IX_EpisodeAiring_LinkedToID ON EpisodeAiring(LinkedToID);"),
         new(186, 11, "CREATE UNIQUE INDEX UIX_AiringChannel_ChannelID ON AiringChannel(ChannelID);"),
         new(186, 12, "CREATE INDEX IX_AiringChannel_Type_NormalizedName ON AiringChannel(Type, NormalizedName);"),
-        new(186, 13, DatabaseFixes.SeedAnilistAiringSchedules),
+        new(186, 13),
         new(187,  1, "CREATE TABLE AiringScheduleSweepState ( AiringScheduleSweepStateID INT IDENTITY(1,1) NOT NULL, ProviderID NVARCHAR(40) NOT NULL, [Cursor] NVARCHAR(512) NULL, LastRunAt DATETIME NOT NULL, LastOutcome TINYINT NOT NULL, NoProgressCount INT NOT NULL, CONSTRAINT PK_AiringScheduleSweepState PRIMARY KEY CLUSTERED (AiringScheduleSweepStateID) );"),
         new(187,  2, "CREATE UNIQUE INDEX UIX_AiringScheduleSweepState_ProviderID ON AiringScheduleSweepState(ProviderID);"),
         new(188,  1, "ALTER TABLE AniDB_Anime_Similar ADD Ordering INT NOT NULL CONSTRAINT DF_AniDB_Anime_Similar_Ordering DEFAULT 0;"),
@@ -1211,15 +1228,189 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(189,  1, "CREATE TABLE TMDB_Suggestion ( TMDB_SuggestionID INT IDENTITY(1,1) NOT NULL, TmdbEntityType INT NOT NULL, TmdbEntityID INT NOT NULL, SuggestedTmdbEntityID INT NOT NULL, Kind INT NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_TMDB_Suggestion PRIMARY KEY CLUSTERED (TMDB_SuggestionID) );"),
         new(189,  2, "CREATE UNIQUE INDEX UIX_TMDB_Suggestion_Entity_Suggested_Kind ON TMDB_Suggestion(TmdbEntityType, TmdbEntityID, SuggestedTmdbEntityID, Kind);"),
         new(189,  3, "CREATE INDEX IX_TMDB_Suggestion_SuggestedTmdbEntityID ON TMDB_Suggestion(TmdbEntityType, SuggestedTmdbEntityID);"),
-        new(190,  1, "CREATE TABLE Anilist_Anime_Suggestion ( Anilist_Anime_SuggestionID INT IDENTITY(1,1) NOT NULL, AnilistAnimeID INT NOT NULL, SuggestedAnilistAnimeID INT NOT NULL, Rating INT NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Anilist_Anime_Suggestion PRIMARY KEY CLUSTERED (Anilist_Anime_SuggestionID) );"),
-        new(190,  2, "CREATE UNIQUE INDEX UIX_Anilist_Anime_Suggestion_AnimeID_SuggestedID ON Anilist_Anime_Suggestion(AnilistAnimeID, SuggestedAnilistAnimeID);"),
-        new(190,  3, "CREATE INDEX IX_Anilist_Anime_Suggestion_SuggestedID ON Anilist_Anime_Suggestion(SuggestedAnilistAnimeID);"),
+        new(190,  1),
+        new(190,  2),
+        new(190,  3),
         new(191,  1, DropUserPlayedAndStoppedCounts),
         new(191,  2, "DROP TABLE ScanFile;"),
         new(191,  3, "DROP TABLE Scan;"),
         new(191,  4, "DROP TABLE Playlist;"),
         new(191,  5, "ALTER TABLE StoredReleaseInfo ADD IsDeprecated INT NOT NULL CONSTRAINT DF_StoredReleaseInfo_IsDeprecated DEFAULT 0;"),
         new(191,  6, "UPDATE StoredReleaseInfo SET IsDeprecated = 1, IsCorrupted = 0 WHERE IsCorrupted <> 0 AND (ProviderName = 'AniDB' OR ProviderName LIKE 'AniDB+%' OR ProviderName LIKE '%+AniDB');"),
+        new(192,  1, "DROP TABLE IF EXISTS CrossRef_AniDB_Anilist_Episode;"),
+        new(192,  2, "DROP TABLE IF EXISTS CrossRef_AniDB_Anilist_Anime;"),
+        new(192,  3, "DROP TABLE IF EXISTS Anilist_Anime_Suggestion;"),
+        new(192,  4, "DROP TABLE IF EXISTS Anilist_Anime_ExternalLink;"),
+        new(192,  5, "DROP TABLE IF EXISTS Anilist_Anime_Relation;"),
+        new(192,  6, "DROP TABLE IF EXISTS Anilist_Anime_Staff;"),
+        new(192,  7, "DROP TABLE IF EXISTS Anilist_Anime_Character_Creator;"),
+        new(192,  8, "DROP TABLE IF EXISTS Anilist_Anime_Character;"),
+        new(192,  9, "DROP TABLE IF EXISTS Anilist_Creator;"),
+        new(192, 10, "DROP TABLE IF EXISTS Anilist_Character;"),
+        new(192, 11, "DROP TABLE IF EXISTS Anilist_Anime_Studio;"),
+        new(192, 12, "DROP TABLE IF EXISTS Anilist_Studio;"),
+        new(192, 13, "DROP TABLE IF EXISTS Anilist_Anime_Tag;"),
+        new(192, 14, "DROP TABLE IF EXISTS Anilist_Tag;"),
+        new(192, 15, "DROP TABLE IF EXISTS Anilist_Episode;"),
+        new(192, 16, "DROP TABLE IF EXISTS Anilist_Anime;"),
+        new(192, 17, "ALTER TABLE AnimeSeries ADD DisabledAutoMatchSources nvarchar(max) NULL;"),
+        new(192, 18, "UPDATE AnimeSeries SET DisabledAutoMatchSources = '[' + STUFF((CASE WHEN DisableAutoMatchFlags & 4 <> 0 THEN ',\"tmdb\"' ELSE '' END) + (CASE WHEN DisableAutoMatchFlags & 32 <> 0 THEN ',\"anilist\"' ELSE '' END), 1, 1, '') + ']' WHERE (DisableAutoMatchFlags & 36) <> 0;"),
+        new(192, 19, "CREATE TABLE CrossRef_AniDB_Metadata_Series (CrossRef_AniDB_Metadata_SeriesID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, AnidbAnimeID INT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, MatchRating INT NOT NULL DEFAULT 0, Ordering INT NOT NULL DEFAULT 0, WrittenBy UNIQUEIDENTIFIER NULL, ProviderType TINYINT NOT NULL CONSTRAINT DF_CrossRef_AniDB_Metadata_Series_ProviderType DEFAULT 2, CONSTRAINT PK_CrossRef_AniDB_Metadata_Series PRIMARY KEY CLUSTERED (CrossRef_AniDB_Metadata_SeriesID));"),
+        new(192, 20, "CREATE INDEX IX_CrossRef_AniDB_Metadata_Series_AnidbAnimeID ON CrossRef_AniDB_Metadata_Series(AnidbAnimeID, Source);"),
+        new(192, 21, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Metadata_Series_Link ON CrossRef_AniDB_Metadata_Series(Source, AnidbAnimeID, ProviderID, ProviderType);"),
+        new(192, 22, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Metadata_Series_Ordering ON CrossRef_AniDB_Metadata_Series(Source, AnidbAnimeID, Ordering);"),
+        new(192, 23, "INSERT INTO CrossRef_AniDB_Metadata_Series (Source, AnidbAnimeID, ProviderID, MatchRating, Ordering) SELECT 1, x.AnidbAnimeID, CAST(x.TmdbShowID AS NVARCHAR(128)), x.MatchRating, (SELECT COUNT(*) FROM CrossRef_AniDB_TMDB_Show y WHERE y.AnidbAnimeID = x.AnidbAnimeID AND y.TmdbShowID <> 0 AND y.CrossRef_AniDB_TMDB_ShowID < x.CrossRef_AniDB_TMDB_ShowID AND NOT EXISTS (SELECT 1 FROM CrossRef_AniDB_TMDB_Show w WHERE w.AnidbAnimeID = y.AnidbAnimeID AND w.TmdbShowID = y.TmdbShowID AND w.CrossRef_AniDB_TMDB_ShowID < y.CrossRef_AniDB_TMDB_ShowID)) FROM CrossRef_AniDB_TMDB_Show x WHERE x.TmdbShowID <> 0 AND NOT EXISTS (SELECT 1 FROM CrossRef_AniDB_TMDB_Show z WHERE z.AnidbAnimeID = x.AnidbAnimeID AND z.TmdbShowID = x.TmdbShowID AND z.CrossRef_AniDB_TMDB_ShowID < x.CrossRef_AniDB_TMDB_ShowID);"),
+        new(192, 24, "CREATE TABLE CrossRef_AniDB_Metadata_Movie (CrossRef_AniDB_Metadata_MovieID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, AnidbAnimeID INT NOT NULL, AnidbEpisodeID INT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, MatchRating INT NOT NULL DEFAULT 0, Ordering INT NOT NULL DEFAULT 0, WrittenBy UNIQUEIDENTIFIER NULL, CONSTRAINT PK_CrossRef_AniDB_Metadata_Movie PRIMARY KEY CLUSTERED (CrossRef_AniDB_Metadata_MovieID));"),
+        new(192, 25, "CREATE INDEX IX_CrossRef_AniDB_Metadata_Movie_AnidbAnimeID ON CrossRef_AniDB_Metadata_Movie(AnidbAnimeID, Source);"),
+        new(192, 26, "CREATE INDEX IX_CrossRef_AniDB_Metadata_Movie_AnidbEpisodeID ON CrossRef_AniDB_Metadata_Movie(AnidbEpisodeID, Source);"),
+        new(192, 27, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Metadata_Movie_Link ON CrossRef_AniDB_Metadata_Movie(Source, AnidbAnimeID, AnidbEpisodeID, ProviderID);"),
+        new(192, 28, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Metadata_Movie_Ordering ON CrossRef_AniDB_Metadata_Movie(Source, AnidbAnimeID, AnidbEpisodeID, Ordering);"),
+        new(192, 29, "INSERT INTO CrossRef_AniDB_Metadata_Movie (Source, AnidbAnimeID, AnidbEpisodeID, ProviderID, MatchRating, Ordering) SELECT 1, x.AnidbAnimeID, x.AnidbEpisodeID, CAST(x.TmdbMovieID AS NVARCHAR(128)), x.MatchRating, (SELECT COUNT(*) FROM CrossRef_AniDB_TMDB_Movie y WHERE y.AnidbAnimeID = x.AnidbAnimeID AND y.AnidbEpisodeID = x.AnidbEpisodeID AND y.TmdbMovieID <> 0 AND y.CrossRef_AniDB_TMDB_MovieID < x.CrossRef_AniDB_TMDB_MovieID AND NOT EXISTS (SELECT 1 FROM CrossRef_AniDB_TMDB_Movie w WHERE w.AnidbAnimeID = y.AnidbAnimeID AND w.AnidbEpisodeID = y.AnidbEpisodeID AND w.TmdbMovieID = y.TmdbMovieID AND w.CrossRef_AniDB_TMDB_MovieID < y.CrossRef_AniDB_TMDB_MovieID)) FROM CrossRef_AniDB_TMDB_Movie x WHERE x.TmdbMovieID <> 0 AND NOT EXISTS (SELECT 1 FROM CrossRef_AniDB_TMDB_Movie z WHERE z.AnidbAnimeID = x.AnidbAnimeID AND z.AnidbEpisodeID = x.AnidbEpisodeID AND z.TmdbMovieID = x.TmdbMovieID AND z.CrossRef_AniDB_TMDB_MovieID < x.CrossRef_AniDB_TMDB_MovieID);"),
+        new(192, 30, "CREATE TABLE CrossRef_AniDB_Metadata_Episode (CrossRef_AniDB_Metadata_EpisodeID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, AnidbAnimeID INT NOT NULL, AnidbEpisodeID INT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, ProviderParentID NVARCHAR(128) NOT NULL DEFAULT '', MatchRating INT NOT NULL DEFAULT 0, Ordering INT NOT NULL DEFAULT 0, WrittenBy UNIQUEIDENTIFIER NULL, ProviderSeasonID NVARCHAR(128) NULL, SeasonNumber INT NULL, EpisodeNumber INT NULL, CONSTRAINT PK_CrossRef_AniDB_Metadata_Episode PRIMARY KEY CLUSTERED (CrossRef_AniDB_Metadata_EpisodeID));"),
+        new(192, 31, "CREATE INDEX IX_CrossRef_AniDB_Metadata_Episode_AnidbAnimeID ON CrossRef_AniDB_Metadata_Episode(AnidbAnimeID, Source);"),
+        new(192, 32, "CREATE INDEX IX_CrossRef_AniDB_Metadata_Episode_AnidbEpisodeID ON CrossRef_AniDB_Metadata_Episode(AnidbEpisodeID, Source);"),
+        new(192, 33, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Metadata_Episode_Link ON CrossRef_AniDB_Metadata_Episode(Source, AnidbAnimeID, AnidbEpisodeID, ProviderID);"),
+        new(192, 34, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Metadata_Episode_Ordering ON CrossRef_AniDB_Metadata_Episode(Source, AnidbAnimeID, AnidbEpisodeID, Ordering);"),
+        new(192, 35, "INSERT INTO CrossRef_AniDB_Metadata_Episode (Source, AnidbAnimeID, AnidbEpisodeID, ProviderID, ProviderParentID, MatchRating, Ordering) SELECT 1, x.AnidbAnimeID, x.AnidbEpisodeID, CASE WHEN x.TmdbEpisodeID = 0 THEN '' ELSE CAST(x.TmdbEpisodeID AS NVARCHAR(128)) END, CASE WHEN x.TmdbShowID = 0 THEN '' ELSE CAST(x.TmdbShowID AS NVARCHAR(128)) END, x.MatchRating, (SELECT COUNT(*) FROM CrossRef_AniDB_TMDB_Episode y WHERE y.AnidbAnimeID = x.AnidbAnimeID AND y.AnidbEpisodeID = x.AnidbEpisodeID AND (y.Ordering < x.Ordering OR (y.Ordering = x.Ordering AND y.CrossRef_AniDB_TMDB_EpisodeID < x.CrossRef_AniDB_TMDB_EpisodeID)) AND NOT EXISTS (SELECT 1 FROM CrossRef_AniDB_TMDB_Episode w WHERE w.AnidbAnimeID = y.AnidbAnimeID AND w.AnidbEpisodeID = y.AnidbEpisodeID AND w.TmdbEpisodeID = y.TmdbEpisodeID AND (w.Ordering < y.Ordering OR (w.Ordering = y.Ordering AND w.CrossRef_AniDB_TMDB_EpisodeID < y.CrossRef_AniDB_TMDB_EpisodeID)))) FROM CrossRef_AniDB_TMDB_Episode x WHERE NOT EXISTS (SELECT 1 FROM CrossRef_AniDB_TMDB_Episode z WHERE z.AnidbAnimeID = x.AnidbAnimeID AND z.AnidbEpisodeID = x.AnidbEpisodeID AND z.TmdbEpisodeID = x.TmdbEpisodeID AND (z.Ordering < x.Ordering OR (z.Ordering = x.Ordering AND z.CrossRef_AniDB_TMDB_EpisodeID < x.CrossRef_AniDB_TMDB_EpisodeID)));"),
+        new(192, 36, "CREATE TABLE Metadata_Creator (Metadata_CreatorID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, Name NVARCHAR(MAX) NOT NULL, OriginalName NVARCHAR(MAX) NULL, Description NVARCHAR(MAX) NULL, Type TINYINT NOT NULL, BirthDay NVARCHAR(10) NULL, LastUpdatedAt DATETIME NOT NULL, Gender INT NOT NULL DEFAULT 0, Resources NVARCHAR(MAX) NULL, LastOrphanedAt DATETIME NULL, DeathDay NVARCHAR(10) NULL, CONSTRAINT PK_Metadata_Creator PRIMARY KEY CLUSTERED (Metadata_CreatorID));"),
+        new(192, 37, "CREATE UNIQUE INDEX UIX_Metadata_Creator_ProviderID ON Metadata_Creator(Source, ProviderID);"),
+        new(192, 38, "CREATE TABLE Metadata_Character (Metadata_CharacterID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, Name NVARCHAR(MAX) NOT NULL, OriginalName NVARCHAR(MAX) NULL, Description NVARCHAR(MAX) NULL, Type TINYINT NOT NULL, LastUpdatedAt DATETIME NOT NULL, Gender INT NOT NULL DEFAULT 0, BirthDay NVARCHAR(10) NULL, Resources NVARCHAR(MAX) NULL, LastOrphanedAt DATETIME NULL, CONSTRAINT PK_Metadata_Character PRIMARY KEY CLUSTERED (Metadata_CharacterID));"),
+        new(192, 39, "CREATE UNIQUE INDEX UIX_Metadata_Character_ProviderID ON Metadata_Character(Source, ProviderID);"),
+        new(192, 40, "CREATE TABLE Metadata_Cast (Metadata_CastID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, CreatorID INT NULL, CharacterID INT NULL, Name NVARCHAR(MAX) NOT NULL, RoleType TINYINT NOT NULL, LanguageCode NVARCHAR(32) NULL, Ordering INT NOT NULL, RoleNotes NVARCHAR(MAX) NULL, DubGroup NVARCHAR(MAX) NULL, CONSTRAINT PK_Metadata_Cast PRIMARY KEY CLUSTERED (Metadata_CastID));"),
+        new(192, 41, "CREATE INDEX IX_Metadata_Cast_Entry ON Metadata_Cast(Source, EntityType, EntityID);"),
+        new(192, 42, "CREATE INDEX IX_Metadata_Cast_CreatorID ON Metadata_Cast(CreatorID);"),
+        new(192, 43, "CREATE INDEX IX_Metadata_Cast_CharacterID ON Metadata_Cast(CharacterID);"),
+        new(192, 44, "CREATE TABLE Metadata_Crew (Metadata_CrewID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, CreatorID INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, RoleType TINYINT NOT NULL, LanguageCode NVARCHAR(32) NULL, Ordering INT NOT NULL, CONSTRAINT PK_Metadata_Crew PRIMARY KEY CLUSTERED (Metadata_CrewID));"),
+        new(192, 45, "CREATE INDEX IX_Metadata_Crew_Entry ON Metadata_Crew(Source, EntityType, EntityID);"),
+        new(192, 46, "CREATE INDEX IX_Metadata_Crew_CreatorID ON Metadata_Crew(CreatorID);"),
+        new(192, 47, "CREATE TABLE Metadata_Tag (Metadata_TagID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, Name NVARCHAR(MAX) NOT NULL, Description NVARCHAR(MAX) NOT NULL, Kind TINYINT NOT NULL, Category NVARCHAR(MAX) NULL, IsSpoiler BIT NOT NULL, IsRestricted BIT NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_Metadata_Tag PRIMARY KEY CLUSTERED (Metadata_TagID));"),
+        new(192, 48, "CREATE UNIQUE INDEX UIX_Metadata_Tag_ProviderID ON Metadata_Tag(Source, ProviderID);"),
+        new(192, 49, "CREATE TABLE Metadata_Tag_Entry (Metadata_Tag_EntryID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, TagID INT NOT NULL, Weight INT NULL, IsSpoiler BIT NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Metadata_Tag_Entry PRIMARY KEY CLUSTERED (Metadata_Tag_EntryID));"),
+        new(192, 50, "CREATE UNIQUE INDEX UIX_Metadata_Tag_Entry_Link ON Metadata_Tag_Entry(Source, EntityType, EntityID, TagID);"),
+        new(192, 51, "CREATE INDEX IX_Metadata_Tag_Entry_TagID ON Metadata_Tag_Entry(TagID);"),
+        new(192, 52, "CREATE TABLE Metadata_Studio (Metadata_StudioID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, Name NVARCHAR(MAX) NOT NULL, OriginalName NVARCHAR(MAX) NULL, LastUpdatedAt DATETIME NOT NULL, LastOrphanedAt DATETIME NULL, CONSTRAINT PK_Metadata_Studio PRIMARY KEY CLUSTERED (Metadata_StudioID));"),
+        new(192, 53, "CREATE UNIQUE INDEX UIX_Metadata_Studio_ProviderID ON Metadata_Studio(Source, ProviderID);"),
+        new(192, 54, "CREATE TABLE Metadata_Studio_Entry (Metadata_Studio_EntryID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, StudioID INT NOT NULL, StudioType TINYINT NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Metadata_Studio_Entry PRIMARY KEY CLUSTERED (Metadata_Studio_EntryID));"),
+        new(192, 55, "CREATE UNIQUE INDEX UIX_Metadata_Studio_Entry_Link ON Metadata_Studio_Entry(Source, EntityType, EntityID, StudioID, StudioType);"),
+        new(192, 56, "CREATE INDEX IX_Metadata_Studio_Entry_StudioID ON Metadata_Studio_Entry(StudioID);"),
+        new(192, 57, "CREATE TABLE Metadata_Relation (Metadata_RelationID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, BaseType TINYINT NOT NULL, BaseID NVARCHAR(128) NOT NULL, RelatedType TINYINT NOT NULL, RelatedID NVARCHAR(128) NOT NULL, RelationType TINYINT NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Metadata_Relation PRIMARY KEY CLUSTERED (Metadata_RelationID));"),
+        new(192, 58, "CREATE UNIQUE INDEX UIX_Metadata_Relation_Link ON Metadata_Relation(Source, BaseType, BaseID, RelatedType, RelatedID, RelationType);"),
+        new(192, 59, "CREATE INDEX IX_Metadata_Relation_Related ON Metadata_Relation(Source, RelatedType, RelatedID);"),
+        new(192, 60, "CREATE TABLE Metadata_Suggestion (Metadata_SuggestionID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, BaseType TINYINT NOT NULL, BaseID NVARCHAR(128) NOT NULL, SuggestedType TINYINT NOT NULL, SuggestedID NVARCHAR(128) NOT NULL, Kind INT NOT NULL, Ranking INT NULL, ApprovalRating DECIMAL(6,2) NULL, Votes INT NULL, Score INT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Metadata_Suggestion PRIMARY KEY CLUSTERED (Metadata_SuggestionID));"),
+        new(192, 61, "CREATE UNIQUE INDEX UIX_Metadata_Suggestion_Link ON Metadata_Suggestion(Source, BaseType, BaseID, SuggestedType, SuggestedID, Kind);"),
+        new(192, 62, "CREATE INDEX IX_Metadata_Suggestion_Suggested ON Metadata_Suggestion(Source, SuggestedType, SuggestedID);"),
+        new(192, 63, "DELETE FROM EpisodeAiring WHERE AiringScheduleID IN (SELECT AiringScheduleID FROM AiringSchedule WHERE ProviderID = '281C9311-6A19-5915-90B5-0E59B3D19C45');"),
+        new(192, 64, "DELETE FROM AiringSchedule WHERE ProviderID = '281C9311-6A19-5915-90B5-0E59B3D19C45';"),
+        new(192, 65, "DELETE FROM AiringScheduleSweepState WHERE ProviderID = '281C9311-6A19-5915-90B5-0E59B3D19C45';"),
+        new(192, 66, DatabaseFixes.MoveImagesToSourceValueFolders),
+        new(192, 67, DatabaseFixes.PopulateImageAvailability),
+        new(192, 68, "UPDATE ShokoImage_Entity SET EntityType = 15 WHERE EntitySource = 255 AND EntityType = 8;"),
+        new(192, 69, "UPDATE ShokoImage_Entity SET EntitySource = 255 WHERE EntitySource = 0 AND EntityType = 3 AND EntityID LIKE '%:%:%';"),
+        new(192, 70, "UPDATE ShokoImage_Entity SET EntityType = 3 WHERE EntitySource = 0 AND EntityType = 0 AND EntityID LIKE '%:%:%';"),
+        new(192, 71, DatabaseFixes.MoveImageCrossReferencesToEntityIDs),
+        new(192, 72, "CREATE TABLE Metadata_Series (Metadata_SeriesID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, Type INT NOT NULL, AirDate NVARCHAR(10) NULL, EndDate NVARCHAR(10) NULL, Rating DECIMAL(6,2) NOT NULL, RatingVotes INT NOT NULL, IsRestricted BIT NOT NULL, ReleaseStatus INT NOT NULL, SourceMaterial INT NOT NULL, OriginalLanguageCode NVARCHAR(32) NULL, Popularity FLOAT NULL, FavoriteCount INT NULL, Resources NVARCHAR(MAX) NULL, CrossSourceIDs NVARCHAR(MAX) NULL, LastUpdatedAt DATETIME NOT NULL, PreferredOrderingID NVARCHAR(256) NULL, CONSTRAINT PK_Metadata_Series PRIMARY KEY CLUSTERED (Metadata_SeriesID));"),
+        new(192, 73, "CREATE UNIQUE INDEX UIX_Metadata_Series_ProviderID ON Metadata_Series(Source, ProviderID);"),
+        new(192, 74, "CREATE TABLE Metadata_Season (Metadata_SeasonID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, SeriesID NVARCHAR(128) NOT NULL, SeasonNumber INT NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_Metadata_Season PRIMARY KEY CLUSTERED (Metadata_SeasonID));"),
+        new(192, 75, "CREATE UNIQUE INDEX UIX_Metadata_Season_ProviderID ON Metadata_Season(Source, ProviderID);"),
+        new(192, 76, "CREATE INDEX IX_Metadata_Season_SeriesID ON Metadata_Season(Source, SeriesID);"),
+        new(192, 77, "CREATE TABLE Metadata_Episode (Metadata_EpisodeID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, SeriesID NVARCHAR(128) NOT NULL, SeasonID NVARCHAR(128) NULL, SeasonNumber INT NULL, EpisodeNumber INT NOT NULL, Type INT NOT NULL, Rating DECIMAL(6,2) NOT NULL, RatingVotes INT NOT NULL, Runtime INT NOT NULL, AirDate DATE NULL, AirDateWithTime DATETIME NULL, LastUpdatedAt DATETIME NOT NULL, Resources NVARCHAR(MAX) NULL, CrossSourceIDs NVARCHAR(MAX) NULL, IsHidden BIT NOT NULL CONSTRAINT DF_Metadata_Episode_IsHidden DEFAULT 0, CONSTRAINT PK_Metadata_Episode PRIMARY KEY CLUSTERED (Metadata_EpisodeID));"),
+        new(192, 78, "CREATE UNIQUE INDEX UIX_Metadata_Episode_ProviderID ON Metadata_Episode(Source, ProviderID);"),
+        new(192, 79, "CREATE INDEX IX_Metadata_Episode_SeriesID ON Metadata_Episode(Source, SeriesID);"),
+        new(192, 80, "CREATE INDEX IX_Metadata_Episode_SeasonID ON Metadata_Episode(Source, SeasonID);"),
+        new(192, 81, "CREATE TABLE Metadata_Movie (Metadata_MovieID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, ReleasedAt DATE NULL, IsRestricted BIT NOT NULL, IsVideo BIT NOT NULL, Rating DECIMAL(6,2) NOT NULL, RatingVotes INT NOT NULL, Resources NVARCHAR(MAX) NULL, CrossSourceIDs NVARCHAR(MAX) NULL, LastUpdatedAt DATETIME NOT NULL, OriginalLanguageCode NVARCHAR(32) NULL, CONSTRAINT PK_Metadata_Movie PRIMARY KEY CLUSTERED (Metadata_MovieID));"),
+        new(192, 82, "CREATE UNIQUE INDEX UIX_Metadata_Movie_ProviderID ON Metadata_Movie(Source, ProviderID);"),
+        new(192, 83, "CREATE TABLE Metadata_Collection (Metadata_CollectionID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_Metadata_Collection PRIMARY KEY CLUSTERED (Metadata_CollectionID));"),
+        new(192, 84, "CREATE UNIQUE INDEX UIX_Metadata_Collection_ProviderID ON Metadata_Collection(Source, ProviderID);"),
+        new(192, 85, "CREATE TABLE Metadata_Collection_Member (Metadata_Collection_MemberID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, CollectionID NVARCHAR(128) NOT NULL, MemberType TINYINT NOT NULL, MemberID NVARCHAR(128) NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Metadata_Collection_Member PRIMARY KEY CLUSTERED (Metadata_Collection_MemberID));"),
+        new(192, 86, "CREATE UNIQUE INDEX UIX_Metadata_Collection_Member_Link ON Metadata_Collection_Member(Source, CollectionID, MemberType, MemberID);"),
+        new(192, 87, "CREATE INDEX IX_Metadata_Collection_Member_Member ON Metadata_Collection_Member(Source, MemberType, MemberID);"),
+        new(192, 88, "CREATE TABLE Metadata_Refresh (Metadata_RefreshID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, EntityType TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, LastRefreshedAt DATETIME NOT NULL, CONSTRAINT PK_Metadata_Refresh PRIMARY KEY CLUSTERED (Metadata_RefreshID));"),
+        new(192, 89, "CREATE UNIQUE INDEX UIX_Metadata_Refresh_Entry ON Metadata_Refresh(Source, EntityType, ProviderID);"),
+        new(192, 90, "CREATE TABLE Metadata_Ordering (Metadata_OrderingID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, SeriesSource TINYINT NOT NULL, SeriesID NVARCHAR(128) NOT NULL, Type INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, Description NVARCHAR(MAX) NULL, CreatedAt DATETIME NOT NULL, LastUpdatedAt DATETIME NOT NULL, CONSTRAINT PK_Metadata_Ordering PRIMARY KEY CLUSTERED (Metadata_OrderingID));"),
+        new(192, 91, "CREATE UNIQUE INDEX UIX_Metadata_Ordering_ProviderID ON Metadata_Ordering(Source, ProviderID);"),
+        new(192, 92, "CREATE INDEX IX_Metadata_Ordering_SeriesID ON Metadata_Ordering(SeriesSource, SeriesID);"),
+        new(192, 93, "CREATE TABLE Metadata_Ordering_Group (Metadata_Ordering_GroupID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, OrderingID NVARCHAR(128) NOT NULL, Position INT NOT NULL, Name NVARCHAR(MAX) NOT NULL, Description NVARCHAR(MAX) NULL, IsSpecial BIT NOT NULL CONSTRAINT DF_Metadata_Ordering_Group_IsSpecial DEFAULT 0, CONSTRAINT PK_Metadata_Ordering_Group PRIMARY KEY CLUSTERED (Metadata_Ordering_GroupID));"),
+        new(192, 94, "CREATE UNIQUE INDEX UIX_Metadata_Ordering_Group_ProviderID ON Metadata_Ordering_Group(Source, ProviderID);"),
+        new(192, 95, "CREATE INDEX IX_Metadata_Ordering_Group_OrderingID ON Metadata_Ordering_Group(Source, OrderingID);"),
+        new(192, 96, "CREATE TABLE Metadata_Ordering_Entry (Metadata_Ordering_EntryID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, OrderingID NVARCHAR(128) NOT NULL, GroupID NVARCHAR(128) NOT NULL, Position INT NOT NULL, EpisodeSource TINYINT NOT NULL, EpisodeID NVARCHAR(128) NOT NULL, CONSTRAINT PK_Metadata_Ordering_Entry PRIMARY KEY CLUSTERED (Metadata_Ordering_EntryID));"),
+        new(192, 97, "CREATE INDEX IX_Metadata_Ordering_Entry_OrderingID ON Metadata_Ordering_Entry(Source, OrderingID);"),
+        new(192, 98, "CREATE INDEX IX_Metadata_Ordering_Entry_EpisodeID ON Metadata_Ordering_Entry(EpisodeSource, EpisodeID);"),
+        new(192, 99, "ALTER TABLE AnimeSeries ADD PreferredOrderingID NVARCHAR(256) NULL;"),
+        new(192, 100, "ALTER TABLE AniDB_Anime ADD PreferredOrderingID NVARCHAR(256) NULL;"),
+        new(192, 101, "ALTER TABLE AniDB_Episode ADD IsHidden BIT NOT NULL CONSTRAINT DF_AniDB_Episode_IsHidden DEFAULT 0;"),
+        new(192, 102, "ALTER TABLE TMDB_Show ADD PreferredOrderingID NVARCHAR(256) NULL;"),
+        new(192, 103, "UPDATE TMDB_Show SET PreferredOrderingID = 'tmdb://ordering/' + PreferredAlternateOrderingID WHERE PreferredAlternateOrderingID <> '' AND PreferredAlternateOrderingID <> CAST(TmdbShowID AS NVARCHAR(64));"),
+        new(192, 104, DropTmdbShowPreferredAlternateOrderingID),
+        new(192, 105, "CREATE TABLE Metadata_ContentRating (Metadata_ContentRatingID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, CountryCode NVARCHAR(32) NOT NULL, LanguageCode NVARCHAR(32) NOT NULL, Rating NVARCHAR(128) NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Metadata_ContentRating PRIMARY KEY CLUSTERED (Metadata_ContentRatingID));"),
+        new(192, 106, "CREATE UNIQUE INDEX UIX_Metadata_ContentRating_Country ON Metadata_ContentRating(Source, EntityType, EntityID, CountryCode);"),
+        new(192, 107, "CREATE TABLE Metadata_Network (Metadata_NetworkID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, Name NVARCHAR(MAX) NOT NULL, LastUpdatedAt DATETIME NOT NULL, LastOrphanedAt DATETIME NULL, CONSTRAINT PK_Metadata_Network PRIMARY KEY CLUSTERED (Metadata_NetworkID));"),
+        new(192, 108, "CREATE UNIQUE INDEX UIX_Metadata_Network_ProviderID ON Metadata_Network(Source, ProviderID);"),
+        new(192, 109, "CREATE TABLE Metadata_Network_Entry (Metadata_Network_EntryID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, NetworkID INT NOT NULL, Ordering INT NOT NULL, CONSTRAINT PK_Metadata_Network_Entry PRIMARY KEY CLUSTERED (Metadata_Network_EntryID));"),
+        new(192, 110, "CREATE UNIQUE INDEX UIX_Metadata_Network_Entry_Link ON Metadata_Network_Entry(Source, EntityType, EntityID, NetworkID);"),
+        new(192, 111, "CREATE INDEX IX_Metadata_Network_Entry_NetworkID ON Metadata_Network_Entry(NetworkID);"),
+        new(192, 112, "UPDATE StoredReleaseInfo SET IsDeprecated = 1, IsCorrupted = 0 WHERE IsCorrupted <> 0 AND ProviderName LIKE '%+AniDB+%';"),
+        new(192, 113, "CREATE TABLE Metadata_Title (Metadata_TitleID INT IDENTITY(1,1) NOT NULL, EntitySource TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, Source TINYINT NOT NULL, Language NVARCHAR(32) NOT NULL, LanguageCode NVARCHAR(32) NOT NULL, CountryCode NVARCHAR(32) NULL, ScriptCode NVARCHAR(8) NULL, TitleType TINYINT NOT NULL, Value NVARCHAR(MAX) NOT NULL, IsEnabled BIT NOT NULL, Preference TINYINT NOT NULL, Ordering INT NOT NULL, ReferenceID INT NULL, CONSTRAINT PK_Metadata_Title PRIMARY KEY CLUSTERED (Metadata_TitleID));"),
+        new(192, 114, "CREATE TABLE Metadata_Overview (Metadata_OverviewID INT IDENTITY(1,1) NOT NULL, EntitySource TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, Source TINYINT NOT NULL, Language NVARCHAR(32) NOT NULL, LanguageCode NVARCHAR(32) NOT NULL, CountryCode NVARCHAR(32) NULL, ScriptCode NVARCHAR(8) NULL, Value NVARCHAR(MAX) NOT NULL, IsEnabled BIT NOT NULL, Preference TINYINT NOT NULL, Ordering INT NOT NULL, ReferenceID INT NULL, CONSTRAINT PK_Metadata_Overview PRIMARY KEY CLUSTERED (Metadata_OverviewID));"),
+        new(192, 115, "ALTER TABLE TMDB_Show ADD EnglishTitleListed BIT NOT NULL CONSTRAINT DF_TMDB_Show_EnglishTitleListed DEFAULT 0;"),
+        new(192, 116, "ALTER TABLE TMDB_Show ADD EnglishOverviewListed BIT NOT NULL CONSTRAINT DF_TMDB_Show_EnglishOverviewListed DEFAULT 0;"),
+        new(192, 117, "ALTER TABLE TMDB_Season ADD EnglishTitleListed BIT NOT NULL CONSTRAINT DF_TMDB_Season_EnglishTitleListed DEFAULT 0;"),
+        new(192, 118, "ALTER TABLE TMDB_Season ADD EnglishOverviewListed BIT NOT NULL CONSTRAINT DF_TMDB_Season_EnglishOverviewListed DEFAULT 0;"),
+        new(192, 119, "ALTER TABLE TMDB_Episode ADD EnglishTitleListed BIT NOT NULL CONSTRAINT DF_TMDB_Episode_EnglishTitleListed DEFAULT 0;"),
+        new(192, 120, "ALTER TABLE TMDB_Episode ADD EnglishOverviewListed BIT NOT NULL CONSTRAINT DF_TMDB_Episode_EnglishOverviewListed DEFAULT 0;"),
+        new(192, 121, "ALTER TABLE TMDB_Movie ADD EnglishTitleListed BIT NOT NULL CONSTRAINT DF_TMDB_Movie_EnglishTitleListed DEFAULT 0;"),
+        new(192, 122, "ALTER TABLE TMDB_Movie ADD EnglishOverviewListed BIT NOT NULL CONSTRAINT DF_TMDB_Movie_EnglishOverviewListed DEFAULT 0;"),
+        new(192, 123, "ALTER TABLE TMDB_Collection ADD EnglishTitleListed BIT NOT NULL CONSTRAINT DF_TMDB_Collection_EnglishTitleListed DEFAULT 0;"),
+        new(192, 124, "ALTER TABLE TMDB_Collection ADD EnglishOverviewListed BIT NOT NULL CONSTRAINT DF_TMDB_Collection_EnglishOverviewListed DEFAULT 0;"),
+        new(192, 125, "ALTER TABLE TMDB_Person ADD EnglishOverviewListed BIT NOT NULL CONSTRAINT DF_TMDB_Person_EnglishOverviewListed DEFAULT 0;"),
+        new(192, 126, DatabaseFixes.MigrateTmdbTitles),
+        new(192, 127, DatabaseFixes.MigrateTmdbOverviews),
+        new(192, 128, DatabaseFixes.MigrateTmdbPersonAliases),
+        new(192, 129, DatabaseFixes.MigrateAnidbAnimeTitles),
+        new(192, 130, DatabaseFixes.MigrateAnidbEpisodeTitles),
+        new(192, 131, DatabaseFixes.MigrateAnidbTagOverrides),
+        new(192, 132, DatabaseFixes.MigrateShokoTexts),
+        new(192, 133, "DROP TABLE AniDB_Anime_Title;"),
+        new(192, 134, "DROP TABLE AniDB_Episode_Title;"),
+        new(192, 135, "DROP TABLE TMDB_Title;"),
+        new(192, 136, "DROP TABLE TMDB_Overview;"),
+        new(192, 137, "DROP TABLE CrossRef_AniDB_TMDB_Show;"),
+        new(192, 138, "DROP TABLE CrossRef_AniDB_TMDB_Movie;"),
+        new(192, 139, "DROP TABLE CrossRef_AniDB_TMDB_Episode;"),
+        new(192, 140, DropAniDB_AnimeAllTitles),
+        new(192, 141, DropAniDB_TagTagNameOverride),
+        new(192, 142, DropTMDB_PersonAliases),
+        new(192, 143, DropAnimeSeriesSeriesNameOverride),
+        new(192, 144, DropAnimeEpisodeEpisodeNameOverride),
+        new(192, 145, DropAnimeGroupGroupName),
+        new(192, 146, DropAnimeGroupDescription),
+        new(192, 147, DropAnimeGroupIsManuallyNamed),
+        new(192, 148, DropAnimeGroupOverrideDescription),
+        new(192, 149, "CREATE TABLE AniDB_Resource (AniDB_ResourceID INT IDENTITY(1,1) NOT NULL, AnimeID INT NOT NULL, EpisodeID INT NULL, ResourceType INT NOT NULL, Ordering INT NOT NULL, Identifiers NVARCHAR(MAX) NOT NULL, Urls NVARCHAR(MAX) NOT NULL, CONSTRAINT PK_AniDB_Resource PRIMARY KEY CLUSTERED (AniDB_ResourceID));"),
+        new(192, 150, "CREATE INDEX IX_AniDB_Resource_AnimeID ON AniDB_Resource(AnimeID);"),
+        new(192, 151, "CREATE INDEX IX_AniDB_Resource_EpisodeID ON AniDB_Resource(EpisodeID);"),
+        new(192, 152, DropAniDB_AnimeANNID),
+        new(192, 153, DropAniDB_AnimeAllCinemaID),
+        new(192, 154, DropAniDB_AnimeAnisonID),
+        new(192, 155, DropAniDB_AnimeSyoboiID),
+        new(192, 156, DropAniDB_AnimeVNDBID),
+        new(192, 157, DropAniDB_AnimeBangumiID),
+        new(192, 158, DropAniDB_AnimeLainID),
+        new(192, 159, DropAniDB_AnimeSiteJP),
+        new(192, 160, DropAniDB_AnimeSiteEN),
+        new(192, 161, DropAniDB_AnimeWikipediaID),
+        new(192, 162, DropAniDB_AnimeWikipediaJPID),
+        new(192, 163, DropAniDB_AnimeCrunchyrollID),
+        new(192, 164, DropAniDB_AnimeFunimationID),
+        new(192, 165, DropAniDB_AnimeHiDiveID),
+        new(192, 166, DatabaseFixes.PopulateAnidbResources),
+        new(192, 167, "CREATE TABLE ScheduledAction ( ScheduledActionID INT IDENTITY(1,1) NOT NULL, ActionID NVARCHAR(40) NOT NULL, Triggers NVARCHAR(MAX) NULL, LastRunAt DATETIME NULL, CreatedAt DATETIME NOT NULL, CONSTRAINT PK_ScheduledAction PRIMARY KEY CLUSTERED (ScheduledActionID) );"),
+        new(192, 168, "CREATE UNIQUE INDEX UIX_ScheduledAction_ActionID ON ScheduledAction(ActionID);"),
+        new(192, 169, "ALTER TABLE EpisodeAiring ADD Kind TINYINT NOT NULL DEFAULT 0;"),
+        new(192, 170, "ALTER TABLE ScheduledAction ADD LastScheduledRunAt DATETIME NULL;"),
+        // Whether a stored last run came from a trigger or by hand is not known, so every one
+        // is taken as a trigger's.
+        new(192, 171, "UPDATE ScheduledAction SET LastScheduledRunAt = LastRunAt;"),
+        new(192, 172, "CREATE INDEX IX_FileNameHash_Hash ON FileNameHash(Hash);"),
     ];
 
     #endregion
@@ -1357,6 +1548,265 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         }
 
         return Tuple.Create<bool, string?>(true, null);
+    }
+
+    /// <summary>
+    ///   Drops the episode group a TMDB show had chosen, with the default
+    ///   constraint its column was added with, once it moved to the show's
+    ///   chosen ordering.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Success, with no message.</returns>
+    private static Tuple<bool, string?> DropTmdbShowPreferredAlternateOrderingID(object connection)
+    {
+        DropColumnWithDefaultConstraint("TMDB_Show", "PreferredAlternateOrderingID");
+        return Tuple.Create<bool, string?>(true, null);
+    }
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.AllTitles</c>, the titles of an anime joined in one column, with its default constraint,
+    ///   once the text store holds what it kept.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeAllTitles(object connection)
+        => DropReplacedTextColumn("AniDB_Anime", "AllTitles");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Tag.TagNameOverride</c>, the name the core gave a tag, with its default constraint,
+    ///   once the text store holds what it kept.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_TagTagNameOverride(object connection)
+        => DropReplacedTextColumn("AniDB_Tag", "TagNameOverride");
+
+    /// <summary>
+    ///   Drops <c>TMDB_Person.Aliases</c>, the other names of a TMDB person, with its default constraint,
+    ///   once the text store holds what it kept.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropTMDB_PersonAliases(object connection)
+        => DropReplacedTextColumn("TMDB_Person", "Aliases");
+
+    /// <summary>
+    ///   Drops <c>AnimeSeries.SeriesNameOverride</c>, the name a user gave a series, with its default constraint,
+    ///   once the text store holds what it kept.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAnimeSeriesSeriesNameOverride(object connection)
+        => DropReplacedTextColumn("AnimeSeries", "SeriesNameOverride");
+
+    /// <summary>
+    ///   Drops <c>AnimeEpisode.EpisodeNameOverride</c>, the name a user gave an episode, with its default constraint,
+    ///   once the text store holds what it kept.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAnimeEpisodeEpisodeNameOverride(object connection)
+        => DropReplacedTextColumn("AnimeEpisode", "EpisodeNameOverride");
+
+    /// <summary>
+    ///   Drops <c>AnimeGroup.GroupName</c>, the name of a group, with its default constraint,
+    ///   once the text store holds what it kept.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAnimeGroupGroupName(object connection)
+        => DropReplacedTextColumn("AnimeGroup", "GroupName");
+
+    /// <summary>
+    ///   Drops <c>AnimeGroup.Description</c>, the overview of a group, with its default constraint,
+    ///   once the text store holds what it kept.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAnimeGroupDescription(object connection)
+        => DropReplacedTextColumn("AnimeGroup", "Description");
+
+    /// <summary>
+    ///   Drops <c>AnimeGroup.IsManuallyNamed</c>, whether a user named a group, with its default constraint,
+    ///   once the text store holds what it kept.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAnimeGroupIsManuallyNamed(object connection)
+        => DropReplacedTextColumn("AnimeGroup", "IsManuallyNamed");
+
+    /// <summary>
+    ///   Drops <c>AnimeGroup.OverrideDescription</c>, whether a user gave a group its overview, with its default constraint,
+    ///   once the text store holds what it kept.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAnimeGroupOverrideDescription(object connection)
+        => DropReplacedTextColumn("AnimeGroup", "OverrideDescription");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.ANNID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeANNID(object connection)
+        => DropAnimeResourceColumn("ANNID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.AllCinemaID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeAllCinemaID(object connection)
+        => DropAnimeResourceColumn("AllCinemaID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.AnisonID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeAnisonID(object connection)
+        => DropAnimeResourceColumn("AnisonID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.SyoboiID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeSyoboiID(object connection)
+        => DropAnimeResourceColumn("SyoboiID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.VNDBID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeVNDBID(object connection)
+        => DropAnimeResourceColumn("VNDBID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.BangumiID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeBangumiID(object connection)
+        => DropAnimeResourceColumn("BangumiID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.LainID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeLainID(object connection)
+        => DropAnimeResourceColumn("LainID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.Site_JP</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeSiteJP(object connection)
+        => DropAnimeResourceColumn("Site_JP");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.Site_EN</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeSiteEN(object connection)
+        => DropAnimeResourceColumn("Site_EN");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.Wikipedia_ID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeWikipediaID(object connection)
+        => DropAnimeResourceColumn("Wikipedia_ID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.WikipediaJP_ID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeWikipediaJPID(object connection)
+        => DropAnimeResourceColumn("WikipediaJP_ID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.CrunchyrollID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeCrunchyrollID(object connection)
+        => DropAnimeResourceColumn("CrunchyrollID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.FunimationID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeFunimationID(object connection)
+        => DropAnimeResourceColumn("FunimationID");
+
+    /// <summary>
+    ///   Drops <c>AniDB_Anime.HiDiveID</c>, one resource value per type, with any default constraint,
+    ///   now that <c>AniDB_Resource</c> keeps every resource.
+    /// </summary>
+    /// <param name="connection">The open connection, unused.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAniDB_AnimeHiDiveID(object connection)
+        => DropAnimeResourceColumn("HiDiveID");
+
+    /// <summary>
+    ///   Drops an <c>AniDB_Anime</c> column that <c>AniDB_Resource</c>
+    ///   replaced, with the default constraint older versions may have given it.
+    /// </summary>
+    /// <param name="column">The column to drop.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropAnimeResourceColumn(string column)
+    {
+        try
+        {
+            DropColumnWithDefaultConstraint("AniDB_Anime", column);
+            return Tuple.Create<bool, string?>(true, null);
+        }
+        catch (Exception e)
+        {
+            return Tuple.Create<bool, string?>(false, e.ToString());
+        }
+    }
+
+    /// <summary>
+    ///   Drops a column the text store replaced, with the default constraint
+    ///   older versions may have given it.
+    /// </summary>
+    /// <param name="table">The table holding the column.</param>
+    /// <param name="column">The column to drop.</param>
+    /// <returns>Whether the column was dropped, and the error when it was not.</returns>
+    private static Tuple<bool, string?> DropReplacedTextColumn(string table, string column)
+    {
+        try
+        {
+            DropColumnWithDefaultConstraint(table, column);
+            return Tuple.Create<bool, string?>(true, null);
+        }
+        catch (Exception e)
+        {
+            return Tuple.Create<bool, string?>(false, e.ToString());
+        }
     }
 
     #endregion

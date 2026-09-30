@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
@@ -16,6 +17,11 @@ public class AnimeGroup_UserRepository(DatabaseFactory databaseFactory) : BaseCa
     private PocoIndex<int, AnimeGroup_User, int>? _userIDs;
 
     private PocoIndex<int, AnimeGroup_User, (int, int)>? _userGroupIDs;
+
+    /// <summary>
+    /// Striped locks guarding the creation of a user's row for a group.
+    /// </summary>
+    private readonly Lock[] _writeLocks = [.. Enumerable.Range(0, 64).Select(_ => new Lock())];
 
     protected override int SelectKey(AnimeGroup_User entity)
         => entity.AnimeGroup_UserID;
@@ -44,6 +50,16 @@ public class AnimeGroup_UserRepository(DatabaseFactory databaseFactory) : BaseCa
         // Clear the cache so that it is in sync with the database
         ClearCache();
     }
+
+    /// <summary>
+    /// Gets the lock to hold from reading a user's row for a group until it
+    /// is saved, so two writers that both find no row never both add one.
+    /// </summary>
+    /// <param name="userID">The user ID.</param>
+    /// <param name="groupID">The group ID.</param>
+    /// <returns>The lock, shared by every writer of that row.</returns>
+    public Lock GetWriteLock(int userID, int groupID)
+        => _writeLocks[(int)((uint)HashCode.Combine(userID, groupID) % (uint)_writeLocks.Length)];
 
     public AnimeGroup_User? GetByUserAndGroupID(int userID, int groupID)
         => _userGroupIDs!.GetOne((userID, groupID));

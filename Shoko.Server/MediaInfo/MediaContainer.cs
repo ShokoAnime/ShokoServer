@@ -163,16 +163,8 @@ public class MediaContainer : IMediaInfo
             {
                 foreach (var (key, value) in menu.extra)
                 {
-                    if (string.IsNullOrEmpty(key))
-                        continue;
-                    var list = key[1..].Split('_');
-                    if (list.Length < 4 || !TimeSpan.TryParse($"{list[0]}:{list[1]}:{list[2]}.{list[3]}", out var timestamp))
-                        continue;
-                    var index = value.IndexOf(':');
-                    var title = string.IsNullOrEmpty(value) ? string.Empty : index != -1 ? value[(index + 1)..].Trim() : value.Trim();
-                    var language = index is -1 or 0 ? null : value[..index];
-                    var chapterInfo = new ChapterInfo(title, language, timestamp);
-                    chapters.Add(chapterInfo);
+                    if (ChapterInfo.Parse(key, value) is { } chapter)
+                        chapters.Add(chapter);
                 }
             }
             return _chapters = chapters;
@@ -710,7 +702,9 @@ public class MenuStream : Stream
     public override StreamType type => StreamType.Menu;
 
     /// <summary>
-    /// Chapters are stored in the format "_hh_mm_ss_fff" : "Chapter Name"
+    /// Chapters are stored in the format "_hh_mm_ss_fff" : "Chapter Name", or
+    /// for Matroska "_hh_mm_ss_fff" : "en:Chapter Name - ja:Chapter Name". See
+    /// <see cref="ChapterInfo.Parse"/>.
     /// </summary>
     public Dictionary<string, string>? extra { get; set; }
 
@@ -730,27 +724,6 @@ public class MenuStream : Stream
         {
             return (base.GetHashCode() * 397) ^ (extra != null ? extra.GetHashCode() : 0);
         }
-    }
-}
-
-public class ChapterInfo : IChapterInfo
-{
-    /// <inheritdoc/>
-    public string Title { get; }
-
-    /// <inheritdoc/>
-    public TitleLanguage Language => LanguageCode?.GetTitleLanguage() ?? TitleLanguage.None;
-
-    public string? LanguageCode { get; }
-
-    /// <inheritdoc/>
-    public TimeSpan Timestamp { get; }
-
-    public ChapterInfo(string title, string? languageCode, TimeSpan timestamp)
-    {
-        Title = title;
-        LanguageCode = languageCode;
-        Timestamp = timestamp;
     }
 }
 

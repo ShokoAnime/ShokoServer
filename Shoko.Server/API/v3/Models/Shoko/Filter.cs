@@ -1,9 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Filtering.Expressions;
 using Shoko.Abstractions.Filtering.Sorting;
+using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Filters;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
@@ -182,8 +185,11 @@ public class Filter : BaseModel
 
         /// <summary>
         /// This will list the possible parameters, usually with the most common ones first.
+        /// A source is listed as the old enum spelled it, as everywhere else in the API.
         /// </summary>
-        public string[]? PossibleParameters { get; init; } = help.PossibleParameters;
+        public string[]? PossibleParameters { get; init; } = ExpressionDiscovery.TakesSourceParameter(help.InternalType)
+            ? help.PossibleParameters?.Select(parameter => LegacyMetadataSpellings.OfSourceValue(parameter)).ToArray()
+            : help.PossibleParameters;
 
         /// <summary>
         /// This will list the possible parameters, usually with the most common ones first.

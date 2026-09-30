@@ -61,6 +61,27 @@ public class JobRepositoryTests
     // ── Insert + Load ─────────────────────────────────────────────────────────
 
     [Fact]
+    public async Task InsertBatchAsync_Actor_PersistedAndReloaded()
+    {
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
+        {
+            var withActor = FakeJob(jobKey: "with-actor");
+            withActor.ActorUserId = 7;
+            withActor.ActorDeviceName = "desktop";
+            var withoutActor = FakeJob(jobKey: "without-actor");
+
+            await repo.InsertBatchAsync([withActor, withoutActor], TestContext.Current.CancellationToken);
+
+            var loaded = (await repo.LoadAllAsync(TestContext.Current.CancellationToken)).ToDictionary(j => j.JobKey);
+            Assert.Equal(7, loaded["with-actor"].ActorUserId);
+            Assert.Equal("desktop", loaded["with-actor"].ActorDeviceName);
+            Assert.Null(loaded["without-actor"].ActorUserId);
+            Assert.Null(loaded["without-actor"].ActorDeviceName);
+        }
+    }
+
+    [Fact]
     public async Task InsertBatchAsync_SingleJob_PersistedAndReloaded()
     {
         var (keeper, repo) = await CreateAsync();
@@ -264,6 +285,27 @@ public class JobRepositoryTests
             Assert.Null(loaded.Single(j => j.Id == child1.Id).ParentJobId);
             Assert.Null(loaded.Single(j => j.Id == child2.Id).ParentJobId);
             Assert.Null(loaded.Single(j => j.Id == standalone.Id).ParentJobId);
+        }
+    }
+
+    [Fact]
+    public async Task ReparentChainChildrenAsync_SetsTheNewParentOfEachJob()
+    {
+        var (keeper, repo) = await CreateAsync();
+        await using (keeper)
+        {
+            var (removedParent, newParent, otherParent) = (Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+            var child1 = FakeJob(parentJobId: removedParent);
+            var child2 = FakeJob(parentJobId: removedParent);
+            var untouched = FakeJob(parentJobId: removedParent);
+
+            await repo.InsertBatchAsync([child1, child2, untouched], TestContext.Current.CancellationToken);
+            await repo.ReparentChainChildrenAsync([(child1.Id, newParent), (child2.Id, otherParent)], TestContext.Current.CancellationToken);
+
+            var loaded = await repo.LoadAllAsync(TestContext.Current.CancellationToken);
+            Assert.Equal(newParent, loaded.Single(j => j.Id == child1.Id).ParentJobId);
+            Assert.Equal(otherParent, loaded.Single(j => j.Id == child2.Id).ParentJobId);
+            Assert.Equal(removedParent, loaded.Single(j => j.Id == untouched.Id).ParentJobId);
         }
     }
 

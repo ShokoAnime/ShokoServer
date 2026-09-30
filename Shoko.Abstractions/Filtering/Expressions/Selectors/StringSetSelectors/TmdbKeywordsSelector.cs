@@ -1,13 +1,20 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Selectors.StringSetSelectors;
 
 /// <summary>
 /// This returns a set of all the TMDB keywords (movie and show) in a filterable.
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="SourceTagsSelector"/>, which it evaluates
+/// with the tmdb source. Kept under its own name so saved filters read the
+/// same.
+/// </remarks>
 public class TmdbKeywordsSelector : FilterExpression<IReadOnlySet<string>>
 {
+    private static readonly SourceTagsSelector _tmdb = new(MetadataSource.TMDB.Value);
 
     /// <inheritdoc/>
     public override string HelpDescription => "This returns a set of all the TMDB keywords (movie and show) in a filterable.";
@@ -17,7 +24,7 @@ public class TmdbKeywordsSelector : FilterExpression<IReadOnlySet<string>>
     /// <inheritdoc/>
     public override IReadOnlySet<string> Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.TmdbKeywords;
+        return _tmdb.Evaluate(filterable, userInfo, time);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

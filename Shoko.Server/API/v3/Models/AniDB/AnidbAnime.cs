@@ -63,12 +63,12 @@ public class AnidbAnime
     public string? Description { get; set; }
 
     /// <summary>
-    /// Indicates when the AniDB anime first started airing, if it's known. In the 'yyyy-MM-dd' format, or null.
+    /// Indicates when the AniDB anime first started airing, if it's known. In the 'yyyy', 'yyyy-MM' or 'yyyy-MM-dd' format, or null.
     /// </summary>
     public PartialDateOnly? AirDate { get; set; }
 
     /// <summary>
-    /// Indicates when the AniDB anime stopped airing. It will be null if it's still airing or haven't aired yet. In the 'yyyy-MM-dd' format, or null.
+    /// Indicates when the AniDB anime stopped airing. It will be null if it's still airing or haven't aired yet. In the 'yyyy', 'yyyy-MM' or 'yyyy-MM-dd' format, or null.
     /// </summary>
     public PartialDateOnly? EndDate { get; set; }
 
@@ -177,13 +177,13 @@ public class AnidbAnime
         : this(result.AnimeID, includeTitles, series) { }
 
     public AnidbAnime(IRelatedMetadata relation, AnimeSeries? series = null, bool includeTitles = true)
-        : this(relation.RelatedID, includeTitles, series)
+        : this(relation.RelatedID.GetNumericID<int>(), includeTitles, series)
     {
         Relation = relation.RelationType;
         Verified = relation.Verified;
         // If the other anime is present we assume they're of the same kind. Be it restricted or unrestricted.
-        if (Type == AnimeType.Unknown && TitleHelper.SearchAnimeID(relation.RelatedID) is not null)
-            Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.BaseID) is { IsRestricted: true };
+        if (Type == AnimeType.Unknown && TitleHelper.SearchAnimeID(relation.RelatedID.GetNumericID<int>()) is not null)
+            Restricted = RepoFactory.AniDB_Anime.GetByAnimeID(relation.BaseID.GetNumericID<int>()) is { IsRestricted: true };
     }
 
     public AnidbAnime(AniDB_Anime_Similar similar, AnimeSeries? series = null, bool includeTitles = true)

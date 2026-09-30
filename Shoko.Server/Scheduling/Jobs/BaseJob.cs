@@ -10,7 +10,6 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Chain;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.UDP.Exceptions;
-using Shoko.Server.Providers.Anilist;
 
 #pragma warning disable CS8618
 namespace Shoko.Server.Scheduling.Jobs;
@@ -37,7 +36,7 @@ public abstract class BaseJob : IQueueJob
     public virtual Dictionary<string, object> Details { get; } = [];
 
     /// <summary>
-    /// Called by the worker. Catches AniDB and AniList transient exceptions and converts them to
+    /// Called by the worker. Catches AniDB's transient exceptions and converts them to
     /// <see cref="RequeueJobException"/> so the job re-queues without incrementing its retry count.
     /// </summary>
     public async Task Process()
@@ -57,12 +56,6 @@ public abstract class BaseJob : IQueueJob
         }
         catch (AniDBBannedException)
         {
-            throw new RequeueJobException();
-        }
-        catch (AnilistApiException ex) when (ex.IsTransient)
-        {
-            // The rate limiter has already paused the AniList jobs; the acquisition filter holds
-            // this one back until the pause lifts, so nothing keeps knocking on a struggling server.
             throw new RequeueJobException();
         }
     }

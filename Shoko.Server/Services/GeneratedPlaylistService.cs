@@ -9,9 +9,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video;
 using Shoko.Server.API;
 using Shoko.Server.Models.Shoko;
@@ -31,7 +33,7 @@ public class GeneratedPlaylistService(
     AnimeSeriesRepository seriesRepository,
     AnimeEpisodeRepository episodeRepository,
     VideoLocalRepository videoRepository,
-    AuthTokensRepository authTokensRepository
+    IUserService userService
 )
 {
     /// <summary>
@@ -410,9 +412,9 @@ public class GeneratedPlaylistService(
             {
                 foreach (var episode in episodes)
                 {
-                    if (video.Episodes.Any(x => x.ID == episode.ID))
+                    if (video.Episodes.Any(x => x.LocalID == episode.LocalID))
                         continue;
-                    modelState?.AddModelError($"{fieldName}[{index}]", $"Video ID \"{video.ID}\" does not belong to episode ID \"{episode.AnidbEpisodeID}\".");
+                    modelState?.AddModelError($"{fieldName}[{index}]", $"Video ID \"{video.LocalID}\" does not belong to episode ID \"{episode.AnidbEpisodeID}\".");
                     continue;
                 }
             }
@@ -467,7 +469,7 @@ public class GeneratedPlaylistService(
             var current = playlist[index];
             var previous = playlist[index - 1];
 #pragma warning restore IDE0042
-            if (previous.videos.Count is 1 && current.videos.Count is 1 && previous.videos[0].ID == current.videos[0].ID)
+            if (previous.videos.Count is 1 && current.videos.Count is 1 && previous.videos[0].LocalID == current.videos[0].LocalID)
             {
                 previous.episodes = [.. previous.episodes, .. current.episodes];
                 playlist.RemoveAt(index);
@@ -489,7 +491,7 @@ public class GeneratedPlaylistService(
         var episodes = animeSeriesService.GetNextUpEpisodes((series as AnimeSeries)!, user.JMMUserID, options);
 
         // Make sure the release group is in the list, otherwise pick the most used group.
-        var xrefs = FileCrossReference.From(series.CrossReferences).FirstOrDefault(seriesXRef => seriesXRef.SeriesID.ID == series.ID)?.EpisodeIDs ?? [];
+        var xrefs = FileCrossReference.From(series.VideoCrossReferences).FirstOrDefault(seriesXRef => seriesXRef.SeriesID.ID == series.LocalID)?.EpisodeIDs ?? [];
         var releaseGroups = xrefs.GroupBy(xref => xref.ReleaseGroup ?? -1).ToDictionary(xref => xref.Key, xref => xref.Count());
         if (releaseGroups.Count > 0 && (releaseGroupID is null || !releaseGroups.ContainsKey(releaseGroupID.Value)))
             releaseGroupID = releaseGroups.MaxBy(xref => xref.Value).Key;
@@ -575,22 +577,29 @@ public class GeneratedPlaylistService(
                 if (relation.RelationType is not (RelationType.Prequel or RelationType.Sequel))
                     continue;
 
-                if (!seriesByAnimeId.ContainsKey(relation.RelatedID))
+                // The graph is keyed by AniDB anime ID, and the series' relations
+                // come from every linked source, so only AniDB's belong in it.
+                if (relation.Source != MetadataSource.AniDB ||
+                    !relation.BaseID.TryGetNumericID(out int baseID) ||
+                    !relation.RelatedID.TryGetNumericID(out int relatedID))
                     continue;
 
-                if (!nextMap.TryGetValue(relation.BaseID, out var nextList))
+                if (!seriesByAnimeId.ContainsKey(relatedID))
+                    continue;
+
+                if (!nextMap.TryGetValue(baseID, out var nextList))
                 {
                     nextList = [];
-                    nextMap[relation.BaseID] = nextList;
+                    nextMap[baseID] = nextList;
                 }
-                nextList.Add(relation.RelatedID);
+                nextList.Add(relatedID);
 
-                if (!prevMap.TryGetValue(relation.RelatedID, out var prevList))
+                if (!prevMap.TryGetValue(relatedID, out var prevList))
                 {
                     prevList = [];
-                    prevMap[relation.RelatedID] = prevList;
+                    prevMap[relatedID] = prevList;
                 }
-                prevList.Add(relation.BaseID);
+                prevList.Add(baseID);
             }
         }
 
@@ -658,7 +667,8 @@ public class GeneratedPlaylistService(
     private IEnumerable<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> GetListForEpisode(IShokoEpisode episode, int? releaseGroupID = null)
     {
         // For now we're just re-using the logic used in the API layer. In the future it should be moved to the service layer or somewhere else.
-        var xrefs = FileCrossReference.From(episode.CrossReferences).FirstOrDefault(seriesXRef => seriesXRef.SeriesID.ID == episode.SeriesID)?.EpisodeIDs ?? [];
+        var xrefs = FileCrossReference.From(episode.VideoCrossReferences)
+            .FirstOrDefault(seriesXRef => seriesXRef.SeriesID.ID == episode.ShokoSeriesID)?.EpisodeIDs ?? [];
         if (xrefs.Count is 0)
             yield break;
 
@@ -740,7 +750,8 @@ public class GeneratedPlaylistService(
         if (string.IsNullOrEmpty(apiKey))
         {
             var user = contextAccessor.HttpContext.GetUser();
-            apiKey = authTokensRepository.CreateNewApiKey(user, "playlist").Token;
+            // Through the user service, so a token made here is told like any other.
+            apiKey = userService.GenerateApiTokenForUser(user, "playlist").GetAwaiter().GetResult().Token;
         }
         foreach (var (episodes, videos) in playlist)
         {
@@ -791,7 +802,7 @@ public class GeneratedPlaylistService(
         }
         queryString.Add("restricted", series.Restricted ? "true" : "false");
 
-        uri.Path = $"{(uri.Path.Length > 1 ? uri.Path + "/" : "/")}api/v3/File/{video.ID}/Stream";
+        uri.Path = $"{(uri.Path.Length > 1 ? uri.Path + "/" : "/")}api/v3/File/{video.LocalID}/Stream";
         uri.Query = queryString.ToString();
         return $"#EXTINF:-1,{series.Title} - {episodeNumber}{episodePartNumber} - {episode.Title}{parts}\n{uri.Uri}\n";
     }

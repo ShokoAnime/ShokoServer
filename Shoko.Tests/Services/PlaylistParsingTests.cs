@@ -31,7 +31,7 @@ public class PlaylistParsingTests
         public Harness()
         {
             var groups = CachedRepo.Build<AnimeGroupRepository, int, AnimeGroup>(
-                g => g.AnimeGroupID, [new AnimeGroup { AnimeGroupID = GroupID, GroupName = "Group" }]);
+                g => g.AnimeGroupID, [new AnimeGroup { AnimeGroupID = GroupID }]);
             var series = CachedRepo.Build<AnimeSeriesRepository, int, AnimeSeries>(s => s.AnimeSeriesID, []);
             var episodes = CachedRepo.Build<AnimeEpisodeRepository, int, AnimeEpisode>(e => e.AnimeEpisodeID, []);
             var videos = CachedRepo.Build<VideoLocalRepository, int, VideoLocal>(v => v.VideoLocalID, []);
@@ -41,7 +41,7 @@ public class PlaylistParsingTests
             Service = new GeneratedPlaylistService(
                 systemService: null!, imageManager: null!, contextAccessor: null!,
                 groupRepository: groups, animeSeriesService: null!, seriesRepository: series,
-                episodeRepository: episodes, videoRepository: videos, authTokensRepository: null!);
+                episodeRepository: episodes, videoRepository: videos, userService: null!);
         }
 
         public (bool Valid, string Errors, int Entries, string Keys) Parse(params string[] items)

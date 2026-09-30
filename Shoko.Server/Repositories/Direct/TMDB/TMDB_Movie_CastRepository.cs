@@ -27,4 +27,18 @@ public class TMDB_Movie_CastRepository(DatabaseFactory databaseFactory) : BaseDi
             .OrderBy(e => e.Ordering)
             .ToList();
     }
+
+    /// <summary>
+    ///   Every movie ID the movie cast rows name.
+    /// </summary>
+    /// <returns>The IDs, each once.</returns>
+    public IReadOnlyList<int> GetAllTmdbMovieIDs()
+    {
+        using var session = _databaseFactory.SessionFactory.OpenSession();
+        return session
+            .Query<TMDB_Movie_Cast>()
+            .Select(a => a.TmdbMovieID)
+            .Distinct()
+            .ToList();
+    }
 }

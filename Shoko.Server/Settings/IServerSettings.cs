@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace Shoko.Server.Settings;
 
@@ -88,9 +88,9 @@ public interface IServerSettings
     TMDBSettings TMDB { get; set; }
 
     /// <summary>
-    /// The Anilist settings.
+    /// The settings for the metadata the plugin providers keep.
     /// </summary>
-    AnilistSettings Anilist { get; set; }
+    MetadataSettings Metadata { get; set; }
 
     /// <summary>
     /// The import settings.

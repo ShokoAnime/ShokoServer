@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Extensions;
@@ -56,14 +57,36 @@ public class LanguageExtensionsTests
     [InlineData("", false, TitleLanguage.None)]
     public void TryGetTitleLanguage_ProbesWithoutReporting(string text, bool expected, TitleLanguage expectedLanguage)
     {
-        var reported = new List<string>();
-        void OnUnknown(string lang) => reported.Add(lang);
+        // Other classes parse unknown languages in parallel, into the same static event.
+        var reported = new ConcurrentQueue<string>();
+        void OnUnknown(string lang) => reported.Enqueue(lang);
         LanguageExtensions.OnUnknownLanguage += OnUnknown;
         try
         {
             Assert.Equal(expected, text.TryGetTitleLanguage(out var language));
             Assert.Equal(expectedLanguage, language);
-            Assert.Empty(reported);
+            Assert.DoesNotContain(text, reported);
+        }
+        finally
+        {
+            LanguageExtensions.OnUnknownLanguage -= OnUnknown;
+        }
+    }
+
+    [Theory]
+    [InlineData("x-unk")]
+    [InlineData("X-OTHER")]
+    [InlineData("unk")]
+    public void GetTitleLanguage_KnownUnknownCodes_AreNotReported(string text)
+    {
+        // Other classes parse unknown languages in parallel, into the same static event.
+        var reported = new ConcurrentQueue<string>();
+        void OnUnknown(string lang) => reported.Enqueue(lang);
+        LanguageExtensions.OnUnknownLanguage += OnUnknown;
+        try
+        {
+            Assert.Equal(TitleLanguage.Unknown, text.GetTitleLanguage());
+            Assert.DoesNotContain(text, reported);
         }
         finally
         {

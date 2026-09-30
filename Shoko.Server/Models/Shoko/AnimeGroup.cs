@@ -25,12 +25,6 @@ public class AnimeGroup : IShokoGroup
 
     public int? AnimeGroupParentID { get; set; }
 
-    public string GroupName { get; set; } = string.Empty;
-
-    public string Description { get; set; } = string.Empty;
-
-    public int IsManuallyNamed { get; set; }
-
     public DateTime DateTimeUpdated { get; set; }
 
     public DateTime DateTimeCreated { get; set; }
@@ -43,25 +37,53 @@ public class AnimeGroup : IShokoGroup
 
     public int MissingEpisodeCountGroups { get; set; }
 
-    public int OverrideDescription { get; set; }
-
     public int? DefaultAnimeSeriesID { get; set; }
 
     public int? MainAniDBAnimeID { get; set; }
 
     #endregion
 
+    #region Titles & Overviews
+
+    /// <summary>
+    ///   The group's name: the one a user gave it, else its main series'
+    ///   title.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when no user named the group and it has no series.
+    /// </exception>
+    public string GroupName => TextAccess.Manager.GroupNameOf(this);
+
+    /// <summary>
+    ///   The group's overview: the one a user gave it, else its main series'
+    ///   preferred overview.
+    /// </summary>
+    public string Description => TextAccess.Manager.GroupOverviewOf(this);
+
+    /// <summary>
+    ///   The name a user gave the group, stored as its <c>user</c> title.
+    /// </summary>
+    public ITitle? CustomTitle => TextAccess.Manager.CustomTitleOf(((IMetadata)this).ID);
+
+    /// <summary>
+    ///   The overview a user gave the group, stored as its <c>user</c>
+    ///   overview.
+    /// </summary>
+    public IText? CustomOverview => TextAccess.Manager.CustomOverviewOf(((IMetadata)this).ID);
+
+    #endregion
+
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
-    /// Get a predictable sort name that stuffs everything that's not between
-    /// A-Z under #.
+    ///   A predictable sort name, made from <see cref="GroupName"/>, that
+    ///   stuffs everything that's not between A-Z under #.
     /// </summary>
     public string SortName
     {
         get
         {
-            var sortName = !string.IsNullOrWhiteSpace(GroupName) ? GroupName.ToSortName().ToUpperInvariant() : "";
+            var sortName = GroupName.ToSortName().ToUpperInvariant();
             var initialChar = (short)(sortName.Length > 0 ? sortName[0] : ' ');
             return initialChar is >= 65 and <= 90 ? sortName : "#" + sortName;
         }
@@ -165,6 +187,7 @@ public class AnimeGroup : IShokoGroup
 
     public List<AnimeSeries> Series => RepoFactory.AnimeSeries.GetByGroupID(AnimeGroupID)
         .OrderBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
+        .ThenBy(a => a.AnimeSeriesID)
         .ToList();
 
     public List<AnimeSeries> AllSeries
@@ -182,6 +205,7 @@ public class AnimeGroup : IShokoGroup
             }
             return seriesList
                 .OrderBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
+                .ThenBy(a => a.AnimeSeriesID)
                 .ToList();
         }
     }
@@ -212,9 +236,9 @@ public class AnimeGroup : IShokoGroup
         .SelectMany(ser => ser.PreferredImageTypes)
         .ToHashSet();
 
-    public List<AniDB_Anime_Title> Titles => AllSeries
+    public List<ITitle> Titles => AllSeries
         .SelectMany(ser => ser.AniDB_Anime?.Titles ?? [])
-        .DistinctBy(tit => tit.AniDB_Anime_TitleID)
+        .DistinctBy(title => (title.EntityID, title.ID))
         .ToList();
 
     public override string ToString()
@@ -266,65 +290,68 @@ public class AnimeGroup : IShokoGroup
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Group;
+    /// <summary>
+    ///   The ID last handed out, with the row ID it was made from. Kept since
+    ///   it is asked for on every read of a title, and made again only when
+    ///   the row's ID changes on insert.
+    /// </summary>
+    private Tuple<int, MetadataGuid>? _metadataID;
 
-    DataSource IMetadata.Source => DataSource.Shoko;
+    /// <summary>
+    ///   The texts the text manager worked out for this entry, kept here so
+    ///   reading them back skips looking them up.
+    /// </summary>
+    internal object? TextMemo;
 
-    string IMetadata<string>.ID => AnimeGroupID.ToString();
+    MetadataGuid IMetadata.ID
+    {
+        get
+        {
+            var local = AnimeGroupID;
+            if (_metadataID is { } cached && cached.Item1 == local)
+                return cached.Item2;
 
-    int IMetadata<int>.ID => AnimeGroupID;
+            var id = new MetadataGuid(MetadataSource.Shoko, MetadataEntityType.Collection, local.ToString());
+            _metadataID = new(local, id);
+            return id;
+        }
+    }
 
     #endregion
 
     #region IWithTitles Implementation
 
-    string IWithTitles.Title => IsManuallyNamed == 1
-        ? GroupName
-        : (this as IShokoGroup).MainSeries.Title;
+    /// <summary>
+    ///   The main series, for a title the group cannot go without.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    ///   Thrown when the group has no series.
+    /// </exception>
+    /// <returns>The main series.</returns>
+    private AnimeSeries RequireMainSeries()
+        => MainSeries ?? throw new InvalidOperationException($"Group {AnimeGroupID} has no series to take its name from.");
 
-    ITitle IWithTitles.DefaultTitle => IsManuallyNamed == 1
-        ? new TitleStub
-        {
-            Language = TitleLanguage.Unknown,
-            LanguageCode = "unk",
-            Type = TitleType.Main,
-            Value = GroupName,
-            Source = DataSource.User,
-        }
-        : (this as IShokoGroup).MainSeries.DefaultTitle;
+    string IWithTitles.Title => GroupName;
 
-    ITitle? IWithTitles.PreferredTitle => IsManuallyNamed == 1
-        ? new TitleStub
-        {
-            Language = TitleLanguage.Unknown,
-            LanguageCode = "unk",
-            Type = TitleType.Main,
-            Value = GroupName,
-            Source = DataSource.User,
-        }
-        : (this as IShokoGroup).MainSeries.PreferredTitle;
+    ITitle IWithTitles.DefaultTitle => CustomTitle ?? RequireMainSeries().DefaultTitle;
+
+    ITitle? IWithTitles.PreferredTitle => CustomTitle ?? RequireMainSeries().PreferredTitle;
 
     IReadOnlyList<ITitle> IWithTitles.Titles
     {
         get
         {
             var titles = new List<ITitle>();
-            if (IsManuallyNamed == 1)
-                titles.Add(new TitleStub
-                {
-                    Language = TitleLanguage.Unknown,
-                    LanguageCode = "unk",
-                    Value = GroupName,
-                    Source = DataSource.User,
-                    Type = TitleType.Main,
-                });
+            var custom = CustomTitle;
+            if (custom is not null)
+                titles.Add(custom);
 
-            var mainSeriesId = (this as IShokoGroup).MainSeriesID;
+            var mainSeriesId = MainSeries?.AnimeSeriesID;
             foreach (var series in (this as IShokoGroup).AllSeries)
             {
                 foreach (var title in series.Titles)
                 {
-                    if ((IsManuallyNamed == 1 || series.ID != mainSeriesId) && title.Type == TitleType.Main)
+                    if ((custom is not null || series.LocalID != mainSeriesId) && title.Type == TitleType.Main)
                     {
                         titles.Add(new TitleStub
                         {
@@ -347,48 +374,24 @@ public class AnimeGroup : IShokoGroup
 
     #endregion
 
-    #region IWithDescription Implementation
+    #region IWithOverviews Implementation
 
-    IText? IWithDescriptions.DefaultDescription => OverrideDescription == 1
-        ? new TextStub
-        {
-            Source = DataSource.Shoko,
-            Language = TitleLanguage.Unknown,
-            LanguageCode = "unk",
-            Value = Description,
-        }
-        : (this as IShokoGroup).MainSeries.DefaultDescription;
+    IText? IWithOverviews.DefaultOverview => CustomOverview ?? (MainSeries as IWithOverviews)?.DefaultOverview;
 
-    IText? IWithDescriptions.PreferredDescription => OverrideDescription == 1
-        ? new TextStub
-        {
-            Source = DataSource.Shoko,
-            Language = TitleLanguage.Unknown,
-            LanguageCode = "unk",
-            Value = Description,
-        }
-        : (this as IShokoGroup).MainSeries.PreferredDescription;
+    IText? IWithOverviews.PreferredOverview => CustomOverview ?? MainSeries?.PreferredOverview;
 
-    IReadOnlyList<IText> IWithDescriptions.Descriptions
+    IReadOnlyList<IText> IWithOverviews.Overviews
     {
         get
         {
-            var titles = new List<IText>();
-            if (OverrideDescription == 1)
-            {
-                titles.Add(new TextStub
-                {
-                    Source = DataSource.Shoko,
-                    Language = TitleLanguage.Unknown,
-                    LanguageCode = "unk",
-                    Value = Description,
-                });
-            }
+            var overviews = new List<IText>();
+            if (CustomOverview is { } custom)
+                overviews.Add(custom);
 
             foreach (var series in (this as IShokoGroup).AllSeries)
-                titles.AddRange(series.Descriptions);
+                overviews.AddRange(series.Overviews);
 
-            return titles;
+            return overviews;
         }
     }
 
@@ -467,19 +470,19 @@ public class AnimeGroup : IShokoGroup
 
     #region IShokoGroup Implementation
 
-    int IShokoGroup.ID => AnimeGroupID;
+    int IShokoGroup.LocalID => AnimeGroupID;
 
     int? IShokoGroup.ParentGroupID => AnimeGroupParentID;
 
     int IShokoGroup.TopLevelGroupID => TopLevelAnimeGroup.AnimeGroupID;
 
-    int IShokoGroup.MainSeriesID => (this as IShokoGroup).MainSeries.ID;
+    int IShokoGroup.MainSeriesID => (this as IShokoGroup).MainSeries.LocalID;
 
     bool IShokoGroup.HasConfiguredMainSeries => DefaultAnimeSeriesID.HasValue;
 
-    bool IShokoGroup.HasCustomTitle => IsManuallyNamed == 1;
+    bool IShokoGroup.HasCustomTitle => CustomTitle is not null;
 
-    bool IShokoGroup.HasCustomDescription => OverrideDescription == 1;
+    bool IShokoGroup.HasCustomOverview => CustomOverview is not null;
 
     IShokoGroup? IShokoGroup.ParentGroup => Parent;
 
@@ -622,13 +625,16 @@ public class AnimeGroup : IShokoGroup
     IGroupUserData IShokoGroup.GetUserData(IUser user)
     {
         ArgumentNullException.ThrowIfNull(user);
-        if (user.ID is 0 || RepoFactory.JMMUser.GetByID(user.ID) is null)
+        if (user.LocalID is 0 || RepoFactory.JMMUser.GetByID(user.LocalID) is null)
             throw new ArgumentException("User is not stored in the database!", nameof(user));
-        var userData = RepoFactory.AnimeGroup_User.GetByUserAndGroupID(user.ID, AnimeGroupID)
-            ?? new() { JMMUserID = user.ID, AnimeGroupID = AnimeGroupID };
-        if (userData.AnimeGroup_UserID is 0)
-            RepoFactory.AnimeGroup_User.Save(userData);
-        return userData;
+        lock (RepoFactory.AnimeGroup_User.GetWriteLock(user.LocalID, AnimeGroupID))
+        {
+            var userData = RepoFactory.AnimeGroup_User.GetByUserAndGroupID(user.LocalID, AnimeGroupID)
+                ?? new() { JMMUserID = user.LocalID, AnimeGroupID = AnimeGroupID };
+            if (userData.AnimeGroup_UserID is 0)
+                RepoFactory.AnimeGroup_User.Save(userData);
+            return userData;
+        }
     }
 
     #endregion

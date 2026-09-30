@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
@@ -902,10 +903,29 @@ public class VideoService : IVideoService
     }
 
     public async Task ScanManagedFolder(IManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false)
-        => await ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipEvents, cleanUpStructure, checkFileSize, forceScan);
+        => await ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipEvents, cleanUpStructure, checkFileSize, forceScan, null, CancellationToken.None);
 
-    private async Task ScanManagedFolder(ShokoManagedFolder folder, string? relativePath = null, bool onlyNewFiles = false, bool skipEvents = false, bool? cleanUpStructure = null, bool? checkFileSize = null, bool forceScan = false)
+    /// <summary>
+    /// Scans a managed folder, as <see cref="ScanManagedFolder(IManagedFolder, string?, bool, bool, bool?, bool?, bool)"/>
+    /// does, reporting progress and stopping when cancelled.
+    /// </summary>
+    /// <param name="folder">The managed folder to scan.</param>
+    /// <param name="relativePath">Only scan below this path in the folder, when set.</param>
+    /// <param name="onlyNewFiles">Only look at files that have no record yet.</param>
+    /// <param name="skipEvents">Skip the events and the MyList updates.</param>
+    /// <param name="cleanUpStructure">Remove empty folders afterwards; the import setting when <see langword="null"/>.</param>
+    /// <param name="checkFileSize">Look again at files whose size changed; the import setting when <see langword="null"/>.</param>
+    /// <param name="forceScan">Look at every file again, even known ones.</param>
+    /// <param name="progress">Told how far the scan is, as a percentage from 0 to 100.</param>
+    /// <param name="token">Stops the scan; files already looked at stay looked at.</param>
+    /// <returns>A task that completes once the scan is done.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    internal Task ScanManagedFolder(IManagedFolder folder, string? relativePath, bool onlyNewFiles, bool skipEvents, bool? cleanUpStructure, bool? checkFileSize, bool forceScan, IProgress<decimal>? progress, CancellationToken token)
+        => ScanManagedFolder((ShokoManagedFolder)folder, relativePath, onlyNewFiles, skipEvents, cleanUpStructure, checkFileSize, forceScan, progress, token);
+
+    private async Task ScanManagedFolder(ShokoManagedFolder folder, string? relativePath, bool onlyNewFiles, bool skipEvents, bool? cleanUpStructure, bool? checkFileSize, bool forceScan, IProgress<decimal>? progress, CancellationToken token)
     {
+        progress?.Report(0);
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
         checkFileSize ??= _settingsProvider.GetSettings().Import.CheckFileSize;
 
@@ -934,6 +954,7 @@ public class VideoService : IVideoService
         var existingFiles = new ConcurrentDictionary<string, long>();
         foreach (var location in folder.Places)
         {
+            token.ThrowIfCancellationRequested();
             try
             {
                 if (location.Path is not { Length: > 0 } path)
@@ -988,31 +1009,40 @@ public class VideoService : IVideoService
                 .ToArray();
         }
         var total = files.Length;
+        var processed = 0;
         var parallelism = Math.Min(settings.Queue.MaxTotalWorkers > 0 ? settings.Queue.MaxTotalWorkers : Environment.ProcessorCount, Environment.ProcessorCount);
         var actionBlock = new ActionBlock<int>(
             async index =>
             {
-                var fileName = files[index];
-                var relativePath = PlatformUtility.NormalizePath(fileName[folder.Path.Length..], stripLeadingSlash: true);
-                if (++filesFound % 100 == 0 || filesFound == 1 || filesFound == total)
-                    _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.Name, fileName);
+                try
+                {
+                    var fileName = files[index];
+                    var relativePath = PlatformUtility.NormalizePath(fileName[folder.Path.Length..], stripLeadingSlash: true);
+                    if (++filesFound % 100 == 0 || filesFound == 1 || filesFound == total)
+                        _logger.LogTrace("Processing File {Count}/{Total} in folder {FolderName} --- {Name}", filesFound, total, folder.Name, fileName);
 
-                if (!IsAllowedVideoExtension(fileName))
-                    return;
+                    if (!IsAllowedVideoExtension(fileName))
+                        return;
 
-                videosFound++;
+                    videosFound++;
 
-                await NotifyVideoFileChangeDetected(folder, relativePath, updateMylist: !skipEvents, forceScan: forceScan);
+                    await NotifyVideoFileChangeDetected(folder, relativePath, updateMylist: !skipEvents, forceScan: forceScan);
+                }
+                finally
+                {
+                    progress?.Report(100m * Interlocked.Increment(ref processed) / total);
+                }
             },
             new ExecutionDataflowBlockOptions
             {
                 MaxDegreeOfParallelism = parallelism,
+                CancellationToken = token,
             }
         );
 
         _logger.LogDebug("Processing {Count} files in folder {FolderName} with {Parallelism} threads. (Folder={FolderID})", total, folder.Name, parallelism, folder.ID);
         for (var index = 0; index < total; index++)
-            await actionBlock.SendAsync(index);
+            await actionBlock.SendAsync(index, token);
 
         actionBlock.Complete();
 
@@ -1027,6 +1057,8 @@ public class VideoService : IVideoService
             CleanupManagedFolder(folder);
             _logger.LogInformation("Cleaned up managed folder in {TimeSpan}; {Path} (ManagedFolder={ManagedFolderID})", DateTime.Now - timeStarted, folder.Path, folder.ID);
         }
+
+        progress?.Report(100);
     }
 
     private string[] GetFilesInImportFolder(ShokoManagedFolder folder)

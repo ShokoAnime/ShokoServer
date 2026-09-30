@@ -20,6 +20,6 @@ public class JobCancellationAccessor : IJobCancellationAccessor
     /// <inheritdoc/>
     public CancellationToken Token => _token;
 
-    // Called by Worker before each job executes so the job observes its own worker's token
+    // Called by Worker before each job executes so the job observes its own token
     internal void SetCurrentToken(CancellationToken token) => _token = token;
 }

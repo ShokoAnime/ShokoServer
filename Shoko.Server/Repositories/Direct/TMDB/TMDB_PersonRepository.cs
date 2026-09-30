@@ -7,7 +7,7 @@ namespace Shoko.Server.Repositories.Direct.TMDB;
 
 public class TMDB_PersonRepository(DatabaseFactory databaseFactory) : BaseDirectRepository<TMDB_Person, int>(databaseFactory)
 {
-    public TMDB_Person? GetByTmdbPersonID(int creditId)
+    public virtual TMDB_Person? GetByTmdbPersonID(int creditId)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
         return session

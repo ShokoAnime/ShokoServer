@@ -1,11 +1,17 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Abstractions.Filtering.Expressions.Selectors.StringSetSelectors;
 
 /// <summary>
 /// This returns a set of all the TMDB show genres in a filterable.
 /// </summary>
+/// <remarks>
+/// The TMDB form of <see cref="SourceGenresSelector"/>, narrowed to the
+/// linked shows through <see cref="IFilterableInfo.GetGenres"/>. Kept under
+/// its own name so saved filters read the same.
+/// </remarks>
 public class TmdbShowGenresSelector : FilterExpression<IReadOnlySet<string>>
 {
 
@@ -17,7 +23,7 @@ public class TmdbShowGenresSelector : FilterExpression<IReadOnlySet<string>>
     /// <inheritdoc/>
     public override IReadOnlySet<string> Evaluate(IFilterableInfo filterable, IFilterableUserInfo? userInfo, DateTime? time)
     {
-        return filterable.TmdbShowGenres;
+        return filterable.GetGenres(MetadataSource.TMDB, MetadataEntityType.Series);
     }
 
     /// <inheritdoc cref="Equals(object)"/>

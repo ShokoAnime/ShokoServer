@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
+using Shoko.Abstractions.Web.SignalR;
 using Shoko.QueueProcessor;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
@@ -12,12 +13,12 @@ public class AggregateHub : Hub
 {
     private readonly QueueHandler _queueHandler;
 
-    private static FrozenDictionary<string, IEventEmitter>? _allFeeds;
+    private readonly FrozenDictionary<string, IEventEmitter> _allFeeds;
 
-    public AggregateHub(QueueHandler queueHandler, IEnumerable<IEventEmitter> emitters)
+    public AggregateHub(QueueHandler queueHandler, EventEmitterRegistry registry)
     {
         _queueHandler = queueHandler;
-        _allFeeds ??= emitters.ToFrozenDictionary(a => a.Group);
+        _allFeeds = registry.Feeds;
     }
 
     public override async Task OnConnectedAsync()
@@ -32,7 +33,7 @@ public class AggregateHub : Hub
         var query = context?.Request.Query["feeds"]
             .Where(a => !string.IsNullOrEmpty(a))
             .SelectMany(a => a!.Split(","))
-            .Select(a => a.ToLower().Trim())
+            .Select(a => a.Trim())
             .ToArray();
 
         if (query == null || query.Length == 0)
@@ -43,21 +44,21 @@ public class AggregateHub : Hub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        foreach (var emitter in _allFeeds!.Values)
+        foreach (var emitter in _allFeeds.Values)
             await emitter.DisconnectAsync(Context.ConnectionId);
         await base.OnDisconnectedAsync(exception);
     }
 
     [HubMethodName("feed.list_all")]
     public IReadOnlyList<string> ListFeeds()
-        => [.. _allFeeds!.Keys];
+        => [.. _allFeeds.Keys];
 
     [HubMethodName("feed.list_joined")]
     public IReadOnlyList<string> ListJoinedFeeds()
     {
         var connectionId = Context.ConnectionId;
         var feeds = new List<string>();
-        foreach (var (feed, emitter) in _allFeeds!)
+        foreach (var (feed, emitter) in _allFeeds)
         {
             if (emitter.IsListening(connectionId))
                 feeds.Add(feed);
@@ -68,7 +69,7 @@ public class AggregateHub : Hub
     [HubMethodName("feed.join_single")]
     public async Task<bool> JoinFeed(string feed, DateTime? lastConnectedAt = null)
     {
-        if (!_allFeeds!.TryGetValue(feed, out var emitter))
+        if (!_allFeeds.TryGetValue(feed, out var emitter))
             return false;
 
         return await emitter.ConnectAsync(Context.ConnectionId, Context.User.GetUser(), lastConnectedAt);
@@ -79,11 +80,11 @@ public class AggregateHub : Hub
     {
         var connectionId = Context.ConnectionId;
         var user = Context.User.GetUser();
-        var feedsToAdd = _allFeeds!.Keys.Intersect(feeds).ToList();
+        var feedsToAdd = _allFeeds.Keys.Intersect(feeds).ToList();
         var updated = false;
         foreach (var feed in feedsToAdd)
         {
-            var emitter = _allFeeds![feed];
+            var emitter = _allFeeds[feed];
             updated = await emitter.ConnectAsync(connectionId, user, lastConnectedAt) || updated;
         }
         return updated;
@@ -92,7 +93,7 @@ public class AggregateHub : Hub
     [HubMethodName("feed.leave_single")]
     public async Task<bool> LeaveFeeds(string feed)
     {
-        if (!_allFeeds!.TryGetValue(feed, out var emitter))
+        if (!_allFeeds.TryGetValue(feed, out var emitter))
             return false;
 
         return await emitter.DisconnectAsync(Context.ConnectionId);
@@ -102,11 +103,11 @@ public class AggregateHub : Hub
     public async Task<bool> LeaveFeeds(string[] feeds)
     {
         var connectionId = Context.ConnectionId;
-        var feedsToRemove = _allFeeds!.Keys.Intersect(feeds).ToList();
+        var feedsToRemove = _allFeeds.Keys.Intersect(feeds).ToList();
         var updated = false;
         foreach (var feed in feedsToRemove)
         {
-            var emitter = _allFeeds![feed];
+            var emitter = _allFeeds[feed];
             updated = await emitter.DisconnectAsync(connectionId) || updated;
         }
         return updated;
@@ -117,7 +118,7 @@ public class AggregateHub : Hub
     {
         var connectionId = Context.ConnectionId;
         var user = Context.User.GetUser();
-        var feedsToAdd = _allFeeds!.Keys.Intersect(feeds).ToList();
+        var feedsToAdd = _allFeeds.Keys.Intersect(feeds).ToList();
         var updated = false;
         foreach (var (feed, emitter) in _allFeeds)
         {
@@ -134,7 +135,7 @@ public class AggregateHub : Hub
     {
         var connectionId = Context.ConnectionId;
         var updated = false;
-        foreach (var (feed, emitter) in _allFeeds!)
+        foreach (var (feed, emitter) in _allFeeds)
         {
             updated = await emitter.DisconnectAsync(connectionId) || updated;
         }
@@ -155,7 +156,7 @@ public class AggregateHub : Hub
     [HubMethodName("queue.set_pool_info")]
     public void SetQueuePoolInfo(bool include)
     {
-        if (_allFeeds!.TryGetValue("queue", out var emitter) && emitter is QueueEventEmitter queueEmitter)
+        if (_allFeeds.TryGetValue("queue", out var emitter) && emitter is QueueEventEmitter queueEmitter)
             queueEmitter.SetIncludePools(Context.ConnectionId, include);
     }
 }

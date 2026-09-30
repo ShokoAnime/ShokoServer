@@ -34,7 +34,12 @@ public interface ITmdbSearchService
     /// <summary>
     /// Performs an automatic search for TMDB matches for an AniDB anime.
     /// </summary>
+    /// <remarks>
+    /// Only the matches Shoko's own auto-linker takes come back; the ones it
+    /// turns down are shown by
+    /// <see cref="Metadata.Services.IMetadataLinkingService.PreviewAutoLink"/>.
+    /// </remarks>
     /// <param name="anime">The AniDB anime to search for.</param>
-    /// <returns>A list of auto-match results.</returns>
+    /// <returns>The matches taken, best first.</returns>
     Task<IReadOnlyList<ITmdbAutoSearchResult>> SearchForAutoMatch(IAnidbAnime anime);
 }

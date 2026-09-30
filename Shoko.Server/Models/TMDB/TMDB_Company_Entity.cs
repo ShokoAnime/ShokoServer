@@ -1,5 +1,5 @@
 using System;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -23,7 +23,7 @@ public class TMDB_Company_Entity
     /// <summary>
     /// TMDB Entity Type.
     /// </summary>
-    public DataEntityType TmdbEntityType { get; set; }
+    public MetadataEntityType? TmdbEntityType { get; set; }
 
     /// <summary>
     /// Database compatibility for TMDB Entity Type.
@@ -55,7 +55,7 @@ public class TMDB_Company_Entity
 
     public TMDB_Company_Entity() { }
 
-    public TMDB_Company_Entity(int companyId, DataEntityType entityType, int entityId, int index, DateOnly? releasedAt)
+    public TMDB_Company_Entity(int companyId, MetadataEntityType entityType, int entityId, int index, DateOnly? releasedAt)
     {
         TmdbCompanyID = companyId;
         TmdbEntityType = entityType;
@@ -74,16 +74,16 @@ public class TMDB_Company_Entity
     public IEntityMetadata? GetTmdbEntity() =>
         TmdbEntityType switch
         {
-            DataEntityType.Show => RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbEntityID),
-            DataEntityType.Movie => RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbEntityID),
+            _ when TmdbEntityType == MetadataEntityType.Series => RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbEntityID),
+            _ when TmdbEntityType == MetadataEntityType.Movie => RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbEntityID),
             _ => null,
         };
 
-    public TMDB_Show? GetTmdbShow() => TmdbEntityType is DataEntityType.Show
+    public TMDB_Show? GetTmdbShow() => TmdbEntityType == MetadataEntityType.Series
         ? RepoFactory.TMDB_Show.GetByTmdbShowID(TmdbEntityID)
         : null;
 
-    public TMDB_Movie? GetTmdbMovie() => TmdbEntityType is DataEntityType.Movie
+    public TMDB_Movie? GetTmdbMovie() => TmdbEntityType == MetadataEntityType.Movie
         ? RepoFactory.TMDB_Movie.GetByTmdbMovieID(TmdbEntityID)
         : null;
 

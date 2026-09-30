@@ -8,8 +8,14 @@ namespace Shoko.Abstractions.Filtering;
 ///   A filter preset stored in the database, extending <see cref="IFilter"/>
 ///   with metadata, persistence properties, and the <see cref="IsDirectory"/> flag.
 /// </summary>
-public interface IFilterPreset : IFilter, IMetadata<int>
+public interface IFilterPreset : IFilter, IMetadata
 {
+    /// <summary>
+    ///   The filter preset ID, the same ID <see cref="IMetadata.ID"/> holds as
+    ///   text.
+    /// </summary>
+    int LocalID { get; }
+
     /// <summary>
     ///   The id of the parent filter preset if this is a sub-filter.
     /// </summary>

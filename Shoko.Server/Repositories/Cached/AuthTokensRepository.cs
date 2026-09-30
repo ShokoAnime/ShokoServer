@@ -63,11 +63,18 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         return tokens.Count > 0;
     }
 
+    public IReadOnlyList<AuthTokens> GetAllByToken(string token)
+        => _tokens!.GetMultiple(token);
+
     public IReadOnlyList<AuthTokens> GetByUserID(int userID)
         => _userIDs!.GetMultiple(userID);
 
     public AuthTokens CreateNewApiKey(JMMUser user, string device)
+        => CreateNewApiKey(user, device, out _);
+
+    public AuthTokens CreateNewApiKey(JMMUser user, string device, out bool created)
     {
+        created = false;
         var allTokensForUser = _userIDs!.GetMultiple(user.JMMUserID);
         var existingTokens = allTokensForUser
             .Where(a => !a.ExpiresAt.HasValue && !string.IsNullOrEmpty(a.Token) && a.DeviceName.Trim().Equals(device.Trim(), StringComparison.InvariantCultureIgnoreCase))
@@ -92,6 +99,7 @@ public class AuthTokensRepository(DatabaseFactory databaseFactory) : BaseCachedR
         };
 
         Save(token);
+        created = true;
 
         return token;
     }

@@ -8,19 +8,19 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Providers.Anilist;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 
-using AnilistEpisode = Shoko.Server.API.v3.Models.Anilist.AnilistEpisode;
-using DataSourceType = Shoko.Server.API.v3.Models.Common.DataSourceType;
 using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.TmdbEpisode;
 using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.TmdbMovie;
 
@@ -30,7 +30,7 @@ namespace Shoko.Server.API.v3.Models.Shoko;
 public class Episode : BaseModel
 {
     /// <summary>
-    /// The relevant IDs for the Episode: Shoko, AniDB, TMDB, AniList.
+    /// The relevant IDs for the Episode: Shoko, AniDB, TMDB and every linked source.
     /// </summary>
     [Required]
     public EpisodeIDs IDs { get; set; }
@@ -115,25 +115,25 @@ public class Episode : BaseModel
     public DateTime Updated { get; set; }
 
     /// <summary>
-    /// The <see cref="Episode.AniDB"/>, if <see cref="DataSourceType.AniDB"/> is
-    /// included in the data to add.
+    /// The <see cref="Episode.AniDB"/>, if AniDB is included in the data to
+    /// add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public AnidbEpisode? AniDB { get; set; }
 
     /// <summary>
-    /// The <see cref="TmdbData"/> entries, if <see cref="DataSourceType.TMDB"/>
-    /// is included in the data to add.
+    /// The <see cref="TmdbData"/> entries, if TMDB is included in the data to
+    /// add.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public TmdbData? TMDB { get; set; }
 
     /// <summary>
-    /// The <see cref="AnilistData"/> entries, if
-    /// <see cref="DataSourceType.AniList"/> is included in the data to add.
+    /// The episodes and movies the episode is linked to on each plugin source
+    /// asked for in <c>includeDataFrom</c>, keyed by the source, if any were.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public AnilistData? AniList { get; set; }
+    public Dictionary<MetadataSource, LinkedEpisodeMetadata>? Sources { get; set; }
 
     /// <summary>
     /// Files associated with the episode, if included with the metadata.
@@ -147,16 +147,15 @@ public class Episode : BaseModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IEnumerable<FileCrossReference.EpisodeCrossReferenceIDs>? CrossReferences { get; set; }
 
-    public Episode(HttpContext context, AnimeEpisode episode, HashSet<DataSourceType>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false, bool includeReleaseInfo = false)
+    public Episode(HttpContext context, AnimeEpisode episode, IReadOnlySet<MetadataSource>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false, bool includeReleaseInfo = false)
     {
-        includeDataFrom ??= [];
+        includeDataFrom ??= new HashSet<MetadataSource>();
         var userID = context.GetUser()?.JMMUserID ?? 0;
         var episodeUserRecord = episode.GetUserRecord(userID);
         var anidbEpisode = episode.AniDB_Episode ??
             throw new NullReferenceException($"Unable to get AniDB Episode {episode.AniDB_EpisodeID} for Anime Episode {episode.AnimeEpisodeID}");
         var tmdbMovieXRefs = episode.TmdbMovieCrossReferences;
         var tmdbEpisodeXRefs = episode.TmdbEpisodeCrossReferences;
-        var anilistEpisodeXRefs = episode.AnilistEpisodeCrossReferences;
         var files = episode.VideoLocals;
         var (file, fileUserRecord) = files
             .Select(file => (file, userRecord: RepoFactory.VideoLocalUser.GetByUserAndVideoLocalID(userID, file.VideoLocalID)))
@@ -188,13 +187,12 @@ public class Episode : BaseModel
                     .Distinct()
                     .ToList(),
             },
-            AniList = anilistEpisodeXRefs
-                .Where(xref => xref.AnilistEpisodeID != 0)
-                .Select(xref => xref.AnilistEpisodeID)
-                .Distinct()
-                .ToList(),
+            Linked = Series.LinkedIDs([
+                .. ((IShokoEpisode)episode).GetMetadataEpisodeCrossReferences(),
+                .. ((IShokoEpisode)episode).GetMetadataMovieCrossReferences(),
+            ]),
         };
-        HasCustomName = !string.IsNullOrEmpty(episode.EpisodeNameOverride);
+        HasCustomName = episode.CustomTitle is not null;
         Images = ((IWithImages)episode).GetImages(new() { IsEnabled = true, IsDesired = true }).ToDto(preferredImages: true);
         Duration = file?.DurationTimeSpan ?? new TimeSpan(0, 0, anidbEpisode.LengthSeconds);
         ResumePosition = fileUserRecord?.ProgressPosition;
@@ -203,7 +201,7 @@ public class Episode : BaseModel
         IsFavorite = episodeUserRecord?.IsFavorite ?? false;
         IsHidden = episode.IsHidden;
         Name = episode.Title;
-        Description = episode.PreferredDescription?.Value ?? string.Empty;
+        Description = episode.PreferredOverview?.Value ?? string.Empty;
         Size = files.Count;
         Created = episode.DateTimeCreated.ToUniversalTime();
         Updated = episode.DateTimeUpdated.ToUniversalTime();
@@ -219,9 +217,11 @@ public class Episode : BaseModel
             };
         }
 
-        if (includeDataFrom.Contains(DataSourceType.AniDB))
+        if (includeDataFrom.Contains(MetadataSource.AniDB))
             AniDB = new AnidbEpisode(anidbEpisode);
-        if (includeDataFrom.Contains(DataSourceType.TMDB))
+        if (LinkedMetadataHelper.GenericSources(includeDataFrom) is { Count: > 0 } sources)
+            Sources = LinkedMetadataHelper.ForEpisode(ISystemService.StaticServices.GetRequiredService<IMetadataService>(), episode.AniDB_EpisodeID, sources);
+        if (includeDataFrom.Contains(MetadataSource.TMDB))
             TMDB = new()
             {
                 Episodes = tmdbEpisodeXRefs
@@ -255,21 +255,6 @@ public class Episode : BaseModel
                     })
                     .WhereNotNull()
                     .Select(tmdbMovie => new TmdbMovie(tmdbMovie))
-                    .ToList(),
-            };
-        if (includeDataFrom.Contains(DataSourceType.AniList))
-            AniList = new()
-            {
-                Episodes = anilistEpisodeXRefs
-                    .Select(anilistEpisodeXref =>
-                    {
-                        var anilistEpisode = anilistEpisodeXref.AnilistEpisode;
-                        if (anilistEpisode is not null && (AnilistMetadataService.Instance?.WaitForAnimeUpdate(anilistEpisode.AnilistAnimeID) ?? false))
-                            anilistEpisode = RepoFactory.Anilist_Episode.GetByAnilistEpisodeID(anilistEpisode.AnilistEpisodeID);
-                        return anilistEpisode;
-                    })
-                    .WhereNotNull()
-                    .Select(anilistEpisode => new AnilistEpisode(anilistEpisode))
                     .ToList(),
             };
         if (includeFiles)
@@ -322,10 +307,10 @@ public class Episode : BaseModel
         public TmdbEpisodeIDs TMDB { get; init; } = new();
 
         /// <summary>
-        /// The AniList episode IDs.
+        /// The IDs of what the episode is linked to on every source, by source.
         /// </summary>
         [Required]
-        public List<int> AniList { get; set; } = [];
+        public Dictionary<MetadataSource, List<string>> Linked { get; set; } = [];
 
         public class TmdbEpisodeIDs
         {
@@ -347,12 +332,6 @@ public class Episode : BaseModel
 
         [Required]
         public IEnumerable<TmdbMovie> Movies { get; init; } = [];
-    }
-
-    public class AnilistData
-    {
-        [Required]
-        public IEnumerable<AnilistEpisode> Episodes { get; init; } = [];
     }
 
     /// <summary>
@@ -392,9 +371,10 @@ public class Episode : BaseModel
         public double? UserRating { get; set; }
 
         /// <summary>
-        /// When the entry was last updated.
+        /// When the entry was last updated. Defaults to now when omitted.
         /// </summary>
         [JsonConverter(typeof(IsoDateTimeConverter))]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
         [Required]
         public DateTime LastUpdatedAt { get; set; }
 

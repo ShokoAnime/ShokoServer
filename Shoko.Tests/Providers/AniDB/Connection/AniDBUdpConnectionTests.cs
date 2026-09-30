@@ -10,6 +10,7 @@ using Shoko.Abstractions.Connectivity.Services;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP;
+using Shoko.Server.Providers.AniDB.UDP.Connection;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -55,8 +56,18 @@ public class AniDBUdpConnectionTests
             var connectivity = new Mock<IConnectivityService>();
             connectivity.SetupGet(c => c.NetworkAvailability).Returns(availability);
 
+            // Only the login is ever built here; it talks through this harness's handler.
+            var requestFactory = new Mock<IRequestFactory>();
+            requestFactory.Setup(f => f.Create(It.IsAny<Action<RequestLogin>?>()))
+                .Returns((Action<RequestLogin>? configure) =>
+                {
+                    var request = new RequestLogin(NullLoggerFactory.Instance, Handler!);
+                    configure?.Invoke(request);
+                    return request;
+                });
+
             Handler = new AniDBUDPConnectionHandler(
-                requestFactory: null!,
+                requestFactory.Object,
                 NullLoggerFactory.Instance,
                 settingsProvider.Object,
                 AniDBTestDoubles.UdpRateLimiter(),
@@ -228,6 +239,57 @@ public class AniDBUdpConnectionTests
 
         Assert.Equal("500 LOGIN FAILED", await harness.Handler.SendDirectlyAsync("AUTH", cancellationToken: TestContext.Current.CancellationToken));
         Assert.False(harness.Handler.IsBanned);
+    }
+
+    #endregion
+
+    #region Shutdown
+
+    [Fact]
+    public async Task ShutdownGivesUpWithinItsTimeoutWhileARequestHoldsTheSocket()
+    {
+        var harness = new Harness();
+        await harness.Init(TestContext.Current.CancellationToken);
+        harness.Socket.NeverRespond(observeCancellation: false);
+
+        // A direct send is not tied to the shutdown, and this socket ignores its token too, so the
+        // socket lock stays held for as long as the test runs.
+        _ = harness.Handler.SendDirectlyAsync("PING", cancellationToken: TestContext.Current.CancellationToken);
+        await harness.Socket.Waiting.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+        var shutdown = harness.Handler.ShutdownAsync(TimeSpan.FromMilliseconds(200));
+
+        Assert.False(await shutdown.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        Assert.True(harness.Handler.IsAlive);
+    }
+
+    [Fact]
+    public async Task ShutdownCancelsTheRequestHoldingTheSocketAndCloses()
+    {
+        var harness = new Harness();
+        harness.Settings.AniDb.Username = Username;
+        harness.Settings.AniDb.Password = Password;
+        await harness.Init(TestContext.Current.CancellationToken);
+        harness.Socket.NeverRespond(observeCancellation: true);
+
+        // A request waits on AniDB while holding the socket lock, as a job's does.
+        var request = harness.Handler.LoginAsync(TestContext.Current.CancellationToken);
+        await harness.Socket.Waiting.Task.WaitAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(await harness.Handler.ShutdownAsync(TimeSpan.FromSeconds(10)).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        Assert.False(harness.Handler.IsAlive);
+        Assert.False(await request.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task RequestsAfterShutdownAreRefusedAtOnce()
+    {
+        var harness = new Harness();
+        await harness.Init(TestContext.Current.CancellationToken);
+        await harness.Handler.ShutdownAsync(TimeSpan.FromSeconds(10));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => harness.Handler.SendAsync("FILE", cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Empty(harness.Socket.Sent);
     }
 
     #endregion

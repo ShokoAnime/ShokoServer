@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Airing;
@@ -84,6 +85,7 @@ public partial class AiringScheduleService
                 OriginalAiredAt = entry.OriginalAiredAt,
                 IsDelayed = entry.IsDelayed,
                 LinkKey = linkKeys.GetValueOrDefault(entry.EpisodeAiringID),
+                Kind = entry.Kind,
             })
             .ToList();
         var submitted = submissions
@@ -94,6 +96,7 @@ public partial class AiringScheduleService
                 AiredAt = entry.Data.AiredAt,
                 OriginalAiredAt = entry.Data.OriginalAiredAt,
                 IsDelayed = entry.Data.IsDelayed,
+                Kind = entry.Data.Kind,
             })
             .ToList();
         // Coverage is the schedule's own unless this write stated otherwise; a
@@ -150,6 +153,7 @@ public partial class AiringScheduleService
                 entry.EpisodeSource = submission.Source;
                 entry.EpisodeID = submission.ID;
                 entry.Url = string.IsNullOrWhiteSpace(submission.Data.Url) ? null : submission.Data.Url.Trim();
+                entry.Kind = submission.Data.Kind;
             }
 
             entry.AiredAt = airing.AiredAt;
@@ -465,7 +469,7 @@ public partial class AiringScheduleService
     /// <param name="Source">The source of the episode.</param>
     /// <param name="ID">The ID of the episode within its source.</param>
     /// <param name="Data">The submission itself.</param>
-    private sealed record AiringSubmission(string Key, DataSource Source, string ID, EpisodeAiringData Data);
+    private sealed record AiringSubmission(string Key, MetadataSource Source, string ID, EpisodeAiringData Data);
 
     /// <summary>
     /// What a write did to one airing row, which is what the three lists on
@@ -507,15 +511,17 @@ public partial class AiringScheduleService
     /// <param name="AiredAt">The airing's slot.</param>
     /// <param name="OriginalAiredAt">The first slot the airing was scheduled for.</param>
     /// <param name="IsDelayed">Whether the airing's own slot was postponed.</param>
+    /// <param name="Kind">What kind of showing the airing is.</param>
     /// <param name="LinkedToID">The local ID of the airing's link head.</param>
     private readonly record struct AiringRowState(
         string Key,
-        DataSource EpisodeSource,
+        MetadataSource EpisodeSource,
         string EpisodeID,
         string? Url,
         DateTime? AiredAt,
         DateTime? OriginalAiredAt,
         bool IsDelayed,
+        EpisodeAiringKind Kind,
         int? LinkedToID
     );
 
@@ -526,7 +532,7 @@ public partial class AiringScheduleService
     /// <param name="entry">The stored airing.</param>
     /// <returns>The row's state.</returns>
     private static AiringRowState GetRowState(EpisodeAiring entry)
-        => new(entry.Key, entry.EpisodeSource, entry.EpisodeID, entry.Url, entry.AiredAt, entry.OriginalAiredAt, entry.IsDelayed, entry.LinkedToID);
+        => new(entry.Key, entry.EpisodeSource, entry.EpisodeID, entry.Url, entry.AiredAt, entry.OriginalAiredAt, entry.IsDelayed, entry.Kind, entry.LinkedToID);
 
     /// <summary>
     /// The one coarse reason a write dispatches, for a consumer that doesn't
@@ -595,13 +601,16 @@ public partial class AiringScheduleService
                 continue;
             }
 
+            if (!Enum.IsDefined(airing.Kind))
+                problems.Add($"\"{airing.Kind}\" is not a kind of airing.");
+
             var (source, id) = GetEntityKey(episode);
             var key = string.IsNullOrWhiteSpace(airing.Key) ? AiringScheduleUtility.GetDerivedAiringKey(source, id) : airing.Key.Trim();
             if (!seen.Add(key))
                 problems.Add($"Two airings share the key \"{key}\".");
             if (removalKeys is not null && removalKeys.Contains(key))
                 problems.Add("The airing is both submitted and removed by the same write.");
-            if (source != row.SeriesSource || episode.SeriesID.ToString() != row.SeriesID)
+            if (source != row.SeriesSource || episode.SeriesID.ID != row.SeriesID)
                 problems.Add("The episode does not belong to the schedule's series.");
             else if (seasonEpisodes is not null && !seasonEpisodes.Contains((source, id)))
                 problems.Add("The episode does not belong to the schedule's season.");
@@ -674,7 +683,7 @@ public partial class AiringScheduleService
     /// <exception cref="AiringScheduleValidationException">The schedule would be left without an airing inside the retention window.</exception>
     private static void RejectRetention(DateTime? latest, DateTime now, AiringScheduleServiceSettings settings)
     {
-        if (latest is not { } value || value >= now.AddMonths(-settings.RetentionMonths))
+        if (latest is not { } value || value >= GetRetentionCutoff(settings, now))
             return;
 
         throw new AiringScheduleValidationException("One or more airings were rejected.", new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal)
@@ -702,7 +711,9 @@ public partial class AiringScheduleService
         {
             foreach (var other in RepoFactory.EpisodeAiring.GetByEpisodeID(entry.EpisodeSource, entry.EpisodeID))
             {
-                if (other.EpisodeAiringID == entry.EpisodeAiringID || other.AiredAt is not { } airedAt || airedAt > now)
+                // An advance screening or a rerun is not the showing a hiatus
+                // waits for.
+                if (other.EpisodeAiringID == entry.EpisodeAiringID || other.Kind is not EpisodeAiringKind.Normal || other.AiredAt is not { } airedAt || airedAt > now)
                     continue;
                 if (RepoFactory.AiringSchedule.GetByID(other.AiringScheduleID) is not { } otherSchedule)
                     continue;
@@ -763,7 +774,7 @@ public partial class AiringScheduleService
     /// <param name="source">The source of the episode.</param>
     /// <param name="id">The ID of the episode within its source.</param>
     /// <returns>The episode number, or <see langword="null"/>.</returns>
-    private static int? GetNormalEpisodeNumber(AiringReadContext context, DataSource source, string id)
+    private static int? GetNormalEpisodeNumber(AiringReadContext context, MetadataSource source, string id)
         => context.GetEpisode(source, id) is { Type: EpisodeType.Episode } episode ? episode.EpisodeNumber : null;
 
     /// <summary>
@@ -885,6 +896,15 @@ public partial class AiringScheduleService
         if (RepoFactory.AiringSchedule.GetByID(entry.AiringScheduleID) is { } row)
             ForgetAiringID(row, entry);
     }
+
+    /// <summary>
+    /// The oldest a schedule's latest airing may be and still be kept.
+    /// </summary>
+    /// <param name="settings">The service's settings, with the window already clamped.</param>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <returns>The cutoff, in UTC.</returns>
+    private static DateTime GetRetentionCutoff(AiringScheduleServiceSettings settings, DateTime now)
+        => now.AddMonths(-settings.RetentionMonths);
 
     /// <summary>
     /// The service's settings, with the retention window clamped to what it

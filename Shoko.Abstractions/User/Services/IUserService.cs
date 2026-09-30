@@ -30,6 +30,20 @@ public interface IUserService
     event EventHandler<UserChangedEventArgs>? UserRemoved;
 
     /// <summary>
+    ///   Dispatched when <see cref="GenerateApiTokenForUser(IUser, string)"/>
+    ///   or its expiring overload creates a new token. Not raised when an
+    ///   existing token is handed back.
+    /// </summary>
+    event EventHandler<ApiTokenChangedEventArgs>? ApiTokenGenerated;
+
+    /// <summary>
+    ///   Dispatched once per token removed by the <c>InvalidateApi*</c> methods
+    ///   or by <see cref="DeleteUser"/>. Expired tokens cleaned up on their
+    ///   own, and tokens dropped by a password reset at start-up, do not raise it.
+    /// </summary>
+    event EventHandler<ApiTokenChangedEventArgs>? ApiTokenInvalidated;
+
+    /// <summary>
     /// Get all users as a queryable list.
     /// </summary>
     /// <returns>The users.</returns>

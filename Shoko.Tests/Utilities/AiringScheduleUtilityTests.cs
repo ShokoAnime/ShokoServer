@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Utilities;
 using Shoko.Server.Utilities.Airing;
 using Xunit;
@@ -25,17 +25,19 @@ public class AiringScheduleUtilityTests
         DateTime? originalAiredAt = null,
         bool isDelayed = false,
         string? linkKey = null,
-        string? key = null
+        string? key = null,
+        EpisodeAiringKind kind = EpisodeAiringKind.Normal
     )
         => new()
         {
             Key = key ?? $"ep{episode}",
-            EpisodeKey = $"AniDB:{episode}",
+            EpisodeKey = $"anidb:{episode}",
             EpisodeNumber = episode,
             AiredAt = airedAt,
             OriginalAiredAt = originalAiredAt,
             IsDelayed = isDelayed,
             LinkKey = linkKey,
+            Kind = kind,
         };
 
     private static SubmittedAiring Submitted(
@@ -43,15 +45,17 @@ public class AiringScheduleUtilityTests
         DateTime? airedAt,
         string? key = null,
         DateTime? originalAiredAt = null,
-        bool? isDelayed = null
+        bool? isDelayed = null,
+        EpisodeAiringKind kind = EpisodeAiringKind.Normal
     )
         => new()
         {
             Key = key ?? $"ep{episode}",
-            EpisodeKey = $"AniDB:{episode}",
+            EpisodeKey = $"anidb:{episode}",
             AiredAt = airedAt,
             OriginalAiredAt = originalAiredAt,
             IsDelayed = isDelayed,
+            Kind = kind,
         };
 
     private static InferredAiring Saved(AiringInferenceResult result, string key)
@@ -64,11 +68,12 @@ public class AiringScheduleUtilityTests
         DateTime? originalAiredAt = null,
         bool isDelayed = false,
         string? linkKey = null,
-        DateTime? firstOriginalAiringAt = null
+        DateTime? firstOriginalAiringAt = null,
+        EpisodeAiringKind kind = EpisodeAiringKind.Normal
     )
         => new()
         {
-            EpisodeKey = $"AniDB:{episode}",
+            EpisodeKey = $"anidb:{episode}",
             EpisodeNumber = episode,
             AiredAt = airedAt,
             AnidbAirDate = anidbAirDate,
@@ -76,6 +81,7 @@ public class AiringScheduleUtilityTests
             IsDelayed = isDelayed,
             LinkKey = linkKey,
             FirstOriginalAiringAt = firstOriginalAiringAt,
+            Kind = kind,
         };
 
     /// <summary>
@@ -95,7 +101,7 @@ public class AiringScheduleUtilityTests
     )
         => new()
         {
-            EpisodeKey = $"AniDB:{episode}",
+            EpisodeKey = $"anidb:{episode}",
             EpisodeNumber = episode,
             AnidbAirDate = anidbAirDate,
             FirstOriginalAiringAt = firstOriginalAiringAt,
@@ -137,8 +143,8 @@ public class AiringScheduleUtilityTests
     [Fact]
     public void GetDerivedAiringKey_IsTheEpisodeKey()
     {
-        Assert.Equal("AniDB:4242", AiringScheduleUtility.GetDerivedAiringKey(DataSource.AniDB, "4242"));
-        Assert.Throws<ArgumentException>(() => AiringScheduleUtility.GetDerivedAiringKey(DataSource.AniDB, " "));
+        Assert.Equal("anidb:4242", AiringScheduleUtility.GetDerivedAiringKey(MetadataSource.AniDB, "4242"));
+        Assert.Throws<ArgumentException>(() => AiringScheduleUtility.GetDerivedAiringKey(MetadataSource.AniDB, " "));
     }
 
     [Fact]
@@ -292,6 +298,39 @@ public class AiringScheduleUtilityTests
         Assert.False(episode6.IsDelayed);
     }
 
+    [Theory]
+    [InlineData(EpisodeAiringKind.Advance)]
+    [InlineData(EpisodeAiringKind.Rerun)]
+    public void InferAirings_AnAdvanceScreeningOrRerunIsNotPartOfTheLine(EpisodeAiringKind kind)
+    {
+        // The extra showing slips a week, then the run slips the same week
+        // behind it: the run's own first episode is still the cause.
+        var existing = new[] { Existing(1, Week(0), key: "extra", kind: kind), Existing(5, Week(1)), Existing(6, Week(2)) };
+        var submitted = new[] { Submitted(1, Week(1), key: "extra", kind: kind), Submitted(5, Week(2)), Submitted(6, Week(3)) };
+
+        var result = AiringScheduleUtility.InferAirings(existing, submitted, Week(0).AddHours(1));
+
+        var extra = Saved(result, "extra");
+        Assert.Equal(Week(1), extra.AiredAt);
+        Assert.Equal(Week(0), extra.OriginalAiredAt);
+        Assert.False(extra.IsDelayed);
+        Assert.True(Saved(result, "ep5").IsDelayed);
+        Assert.False(Saved(result, "ep6").IsDelayed);
+    }
+
+    [Theory]
+    [InlineData(EpisodeAiringKind.Advance)]
+    [InlineData(EpisodeAiringKind.Rerun)]
+    public void InferAirings_ARemovedAdvanceScreeningOrRerunIsDeletedRatherThanAHiatus(EpisodeAiringKind kind)
+    {
+        var existing = new[] { Existing(4, Week(0)), Existing(5, Week(1), key: "extra", kind: kind) };
+
+        var result = AiringScheduleUtility.InferAirings(existing, [Submitted(4, Week(0))], Week(0).AddHours(1));
+
+        Assert.Equal("extra", Assert.Single(result.ToDelete).Key);
+        Assert.DoesNotContain(result.ToSave, airing => airing.Key == "extra");
+    }
+
     [Fact]
     public void InferAirings_RemovedPastAiringsAreDeleted()
     {
@@ -379,14 +418,14 @@ public class AiringScheduleUtilityTests
 
         var superseded = AiringScheduleUtility.InferAirings(existing, [], Week(2), new AiringInferenceOptions
         {
-            SupersededEpisodeKeys = new HashSet<string> { "AniDB:5" },
+            SupersededEpisodeKeys = new HashSet<string> { "anidb:5" },
         });
         Assert.Equal("ep5", Assert.Single(superseded.ToDelete).Key);
 
         // Another channel's episode doesn't supersede it.
         var other = AiringScheduleUtility.InferAirings(existing, [], Week(2), new AiringInferenceOptions
         {
-            SupersededEpisodeKeys = new HashSet<string> { "AniDB:6" },
+            SupersededEpisodeKeys = new HashSet<string> { "anidb:6" },
         });
         Assert.Empty(other.ToDelete);
     }
@@ -488,6 +527,35 @@ public class AiringScheduleUtilityTests
         var added = Assert.Single(result.ToSave);
         Assert.Equal("ep7", added.Key);
         Assert.True(added.IsNew);
+    }
+
+    [Fact]
+    public void MergeAirings_ARegularAiringNeverTakesAnAdvanceScreeningsRow()
+    {
+        var existing = new[] { Existing(1, Week(0), key: "adv1", kind: EpisodeAiringKind.Advance) };
+
+        var result = AiringScheduleUtility.MergeAirings(existing, [Submitted(1, Week(1))], [], Week(-1));
+
+        Assert.Empty(result.ToDelete);
+        var added = Assert.Single(result.ToSave);
+        Assert.Equal("ep1", added.Key);
+        Assert.True(added.IsNew);
+        Assert.Null(added.OriginalAiredAt);
+        Assert.False(added.IsDelayed);
+    }
+
+    [Fact]
+    public void MergeAirings_ARerunNeverTakesTheRegularAiringsRow()
+    {
+        var existing = new[] { Existing(1, Week(0)) };
+
+        var result = AiringScheduleUtility.MergeAirings(existing, [Submitted(1, Week(26), key: "rerun1", kind: EpisodeAiringKind.Rerun)], [], Week(1));
+
+        Assert.Empty(result.ToDelete);
+        var added = Assert.Single(result.ToSave);
+        Assert.Equal("rerun1", added.Key);
+        Assert.True(added.IsNew);
+        Assert.Null(added.OriginalAiredAt);
     }
 
     [Fact]
@@ -687,6 +755,27 @@ public class AiringScheduleUtilityTests
         Assert.Equal(new TimeSpan(15, 30, 0), profile.Offset);
     }
 
+    [Theory]
+    [InlineData(EpisodeAiringKind.Advance)]
+    [InlineData(EpisodeAiringKind.Rerun)]
+    public void LearnProfile_SkipsAdvanceScreeningsAndReruns(EpisodeAiringKind kind)
+    {
+        var samples = new[]
+        {
+            Sample(1, Week(0), anidbAirDate: Week(0).Date),
+            Sample(2, Week(1), anidbAirDate: Week(1).Date),
+            // Shown days away from the slot the run keeps.
+            Sample(3, Week(1).AddDays(3).AddHours(-6), anidbAirDate: Week(2).Date, kind: kind),
+            Sample(4, Week(2).AddDays(3).AddHours(-6), anidbAirDate: Week(3).Date, kind: kind),
+            Sample(5, Week(3).AddDays(3).AddHours(-6), anidbAirDate: Week(4).Date, kind: kind),
+        };
+
+        var profile = AiringScheduleUtility.LearnProfile(samples);
+
+        Assert.Equal(new TimeSpan(15, 30, 0), profile.Offset);
+        Assert.Equal(0, profile.TrailingShiftDays);
+    }
+
     [Fact]
     public void LearnProfile_ALinkSetCountsOnce()
     {
@@ -866,7 +955,7 @@ public class AiringScheduleUtilityTests
         Assert.Equal(Week(4), gap.ExpectedAiredAt);
         Assert.Equal(TimeSpan.FromDays(7), gap.Cadence);
         Assert.Equal(1, gap.SkippedSlots);
-        Assert.Equal("AniDB:5", Assert.Single(gap.EpisodeKeys));
+        Assert.Equal("anidb:5", Assert.Single(gap.EpisodeKeys));
     }
 
     [Fact]
@@ -898,6 +987,21 @@ public class AiringScheduleUtilityTests
     public void FindCadenceBreaks_ASeasonReleasedAtOnceHasNoCadence()
     {
         var airings = Enumerable.Range(1, 12).Select(episode => Sample(episode, Week(0))).ToList();
+
+        Assert.Empty(AiringScheduleUtility.FindCadenceBreaks(airings));
+    }
+
+    [Theory]
+    [InlineData(EpisodeAiringKind.Advance)]
+    [InlineData(EpisodeAiringKind.Rerun)]
+    public void FindCadenceBreaks_IgnoresAdvanceScreeningsAndReruns(EpisodeAiringKind kind)
+    {
+        var airings = new List<AiringProfileSample>();
+        for (var index = 0; index < 6; index++)
+            airings.Add(Sample(index + 1, Week(index)));
+        // Shown mid-week, then three weeks after the run's last episode.
+        airings.Add(Sample(7, Week(2).AddDays(3), kind: kind));
+        airings.Add(Sample(1, Week(8), kind: kind));
 
         Assert.Empty(AiringScheduleUtility.FindCadenceBreaks(airings));
     }

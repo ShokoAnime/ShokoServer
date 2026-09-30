@@ -7,7 +7,7 @@ namespace Shoko.Abstractions.Metadata.Image.Exceptions;
 /// <summary>
 ///   Thrown when attempting to add a cross-reference for an image and entity
 ///   when one already exists.
-/// /// </summary>
+/// </summary>
 public class ImageCrossReferenceExistsException : Exception
 {
     /// <summary>

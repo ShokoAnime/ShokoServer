@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Connectivity.Enums;
@@ -14,6 +14,13 @@ public class NetworkRequiredAcquisitionFilter : IAcquisitionFilter
     private readonly IConnectivityService _connectivityService;
 
     public NetworkRequiredAcquisitionFilter(IConnectivityService connectivityService)
+        : this(connectivityService, null) { }
+
+    /// <param name="connectivityService">Tells the filter when the network comes and goes.</param>
+    /// <param name="jobTypeRegistry">
+    /// The registered job types, which add the closed generic job types no assembly scan finds.
+    /// </param>
+    public NetworkRequiredAcquisitionFilter(IConnectivityService connectivityService, QueueJobTypeRegistry? jobTypeRegistry)
     {
         _connectivityService = connectivityService;
         _connectivityService.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
@@ -24,8 +31,10 @@ public class NetworkRequiredAcquisitionFilter : IAcquisitionFilter
         _types = AppDomain.CurrentDomain.GetAssemblies()
             .Where(a => !a.IsDynamic)
             .SelectMany(a => a.GetTypes())
-            .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract &&
+            .Concat(jobTypeRegistry?.JobTypes.Where(type => type.IsConstructedGenericType) ?? [])
+            .Where(a => typeof(IQueueJob).IsAssignableFrom(a) && !a.IsAbstract && !a.ContainsGenericParameters &&
                         a.GetCustomAttributes(inherit: true).OfType<NetworkRequiredAttribute>().Any())
+            .Distinct()
             .ToArray();
     }
 

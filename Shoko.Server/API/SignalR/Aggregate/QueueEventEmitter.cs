@@ -9,11 +9,14 @@ using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Events;
 using Shoko.Server.API.SignalR.Models;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
 public class QueueEventEmitter : BaseEventEmitter, IDisposable
 {
+    public override string Name => "queue";
+
     private static readonly TimeSpan ThrottleWindow = TimeSpan.FromMilliseconds(250);
 
     private readonly QueueStateEventHandler _queueStateEventHandler;
@@ -37,11 +40,15 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
     {
         _queueStateEventHandler = queueStateEventHandler;
         _queueHandler = queueHandler;
-        _trailingTimer = new Timer(OnTrailingTick, null, Timeout.Infinite, Timeout.Infinite);
+        using (DetachedFlow.Suppress())
+            _trailingTimer = new Timer(OnTrailingTick, null, Timeout.Infinite, Timeout.Infinite);
         _queueStateEventHandler.QueueItemsAdded += OnQueueItemsAddedEvent;
         _queueStateEventHandler.ExecutingJobsChanged += OnExecutingJobsStateChangedEvent;
         _queueStateEventHandler.QueueStarted += OnQueueStarted;
         _queueStateEventHandler.QueuePaused += OnQueuePaused;
+        _queueStateEventHandler.QueueItemsRemoved += OnQueueItemsRemovedEvent;
+        _queueStateEventHandler.JobProgressChanged += OnJobProgressChangedEvent;
+        _queueStateEventHandler.JobCancellationRequested += OnJobCancellationRequestedEvent;
     }
 
     public void Dispose()
@@ -50,6 +57,9 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
         _queueStateEventHandler.ExecutingJobsChanged -= OnExecutingJobsStateChangedEvent;
         _queueStateEventHandler.QueueStarted -= OnQueueStarted;
         _queueStateEventHandler.QueuePaused -= OnQueuePaused;
+        _queueStateEventHandler.QueueItemsRemoved -= OnQueueItemsRemovedEvent;
+        _queueStateEventHandler.JobProgressChanged -= OnJobProgressChangedEvent;
+        _queueStateEventHandler.JobCancellationRequested -= OnJobCancellationRequestedEvent;
         lock (_throttleGate) _disposed = true;
         _trailingTimer.Dispose();
         GC.SuppressFinalize(this);
@@ -72,7 +82,10 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
                 Title = a.Title ?? string.Empty,
                 Details = a.Details ?? [],
                 IsRunning = true,
-                StartTime = a.StartTime?.ToUniversalTime()
+                StartTime = a.StartTime?.ToUniversalTime(),
+                IsCancellable = a.Cancellable,
+                IsCancellationRequested = a.CancellationRequested,
+                Progress = a.Progress,
             }).OrderBy(a => a.StartTime).ToList(),
             // Per-pool detail is opt-in (it's the largest part of the payload and most clients
             // only need the aggregate counts). Omitted unless the connection requested it.
@@ -123,6 +136,14 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
     private void OnQueueItemsAddedEvent(object? sender, QueueItemsAddedEventArgs e) => RequestPush();
 
     private void OnExecutingJobsStateChangedEvent(object? sender, QueueChangedEventArgs e) => RequestPush();
+
+    private void OnQueueItemsRemovedEvent(object? sender, QueueItemsRemovedEventArgs e) => RequestPush();
+
+    // Progress is throttled twice: per job at the source, and into one push per window here, so a
+    // chatty job cannot flood clients.
+    private void OnJobProgressChangedEvent(object? sender, QueueJobProgressEventArgs e) => RequestPush();
+
+    private void OnJobCancellationRequestedEvent(object? sender, QueueJobCancellationEventArgs e) => RequestPush();
 
     /// <summary>
     /// Trailing-edge throttle. First call in a quiet period sends immediately; subsequent calls
@@ -181,7 +202,7 @@ public class QueueEventEmitter : BaseEventEmitter, IDisposable
 
         // Pool subscribers get the detailed payload; everyone else gets the lean one.
         var withPools = GetQueueState(includePools: true);
-        await Hub.Clients.GroupExcept(Group, poolIds).SendCoreAsync(GetName("state.changed"), [withoutPools]);
-        await Hub.Clients.Clients(poolIds).SendCoreAsync(GetName("state.changed"), [withPools]);
+        await Hub.Clients.GroupExcept(Name, poolIds).SendCoreAsync(GetMessageName("state.changed"), [withoutPools]);
+        await Hub.Clients.Clients(poolIds).SendCoreAsync(GetMessageName("state.changed"), [withPools]);
     }
 }

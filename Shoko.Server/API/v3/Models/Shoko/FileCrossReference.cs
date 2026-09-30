@@ -207,7 +207,7 @@ public class FileCrossReference
                 // we will attempt to lookup the episode to grab it's id but fallback
                 // to the cross-reference anime id if the episode is not locally available
                 // yet.
-                .GroupBy(tuple => tuple.xref.AnidbEpisode?.SeriesID ?? tuple.xref.AnidbAnimeID)
+                .GroupBy(tuple => tuple.xref.AnidbEpisode?.AnidbAnimeID ?? tuple.xref.AnidbAnimeID)
                 .Select(tuples =>
                 {
                     var shokoSeries = RepoFactory.AnimeSeries.GetByAnimeID(tuples.Key);

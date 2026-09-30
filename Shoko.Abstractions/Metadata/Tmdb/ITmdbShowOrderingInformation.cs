@@ -1,71 +1,42 @@
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.Tmdb.Enums;
 
 namespace Shoko.Abstractions.Metadata.Tmdb;
 
 /// <summary>
-/// TMDB show ordering information.
+///   One of TMDB's own orderings of a show: its default ordering, made from
+///   its seasons, or one of its episode groups. The generic
+///   <see cref="IOrdering"/> with TMDB's typed navigation.
 /// </summary>
-public interface ITmdbShowOrderingInformation : IWithCastAndCrew, IWithCreationDate, IWithUpdateDate
+public interface ITmdbShowOrderingInformation : IOrdering
 {
     /// <summary>
-    /// The TMDB show ID.
+    ///   The TMDB show ID, the same ID <see cref="IOrdering.SeriesID"/> holds
+    ///   as text.
     /// </summary>
-    int SeriesID { get; }
+    int TmdbShowID { get; }
+
+    MetadataGuid IOrdering.SeriesID { get => new(MetadataSource.TMDB, MetadataEntityType.Series, TmdbShowID.ToString()); }
 
     /// <summary>
-    /// The ordering ID.
+    ///   The TMDB show the ordering orders, if it is available.
     /// </summary>
-    string OrderingID { get; }
+    new ITmdbShow? Series { get; }
+
+    ISeries? IOrdering.Series { get => Series; }
 
     /// <summary>
-    /// The alternate ordering type.
+    ///   The ordering's seasons in viewing order: the show's own seasons for
+    ///   the default ordering, or the episode group's groups.
     /// </summary>
-    TmdbAlternateOrderingType OrderingType { get; }
+    new IReadOnlyList<ITmdbSeason> Seasons { get; }
+
+    IReadOnlyList<ISeason> IOrdering.Seasons { get => Seasons; }
 
     /// <summary>
-    /// English name of the ordering scheme.
+    ///   The ordering's episodes in viewing order, each once, where it first
+    ///   comes.
     /// </summary>
-    string OrderingName { get; }
+    new IReadOnlyList<ITmdbEpisode> Episodes { get; }
 
-    /// <summary>
-    /// Description of the ordering scheme.
-    /// </summary>
-    string Description { get; }
-
-    /// <summary>
-    /// The number of episodes in the ordering scheme.
-    /// </summary>
-    int EpisodeCount { get; }
-
-    /// <summary>
-    /// The number of hidden episodes in the ordering scheme.
-    /// </summary>
-    int HiddenEpisodeCount { get; }
-
-    /// <summary>
-    /// The number of seasons in the ordering scheme.
-    /// </summary>
-    int SeasonCount { get; }
-
-    /// <summary>
-    /// Indicates the current ordering is the preferred ordering for the show.
-    /// </summary>
-    bool IsPreferred { get; }
-
-    /// <summary>
-    /// The TMDB show, if available.
-    /// </summary>
-    ITmdbShow? Series { get; }
-
-    /// <summary>
-    /// The seasons in the ordering scheme.
-    /// </summary>
-    IReadOnlyList<ITmdbSeason> Seasons { get; }
-
-    /// <summary>
-    /// The episodes in the ordering scheme.
-    /// </summary>
-    IReadOnlyList<ITmdbEpisode> Episodes { get; }
+    IReadOnlyList<IEpisode> IOrdering.Episodes { get => Episodes; }
 }

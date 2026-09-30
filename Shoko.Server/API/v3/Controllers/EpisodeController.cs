@@ -10,9 +10,11 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Image.Exceptions;
+using Shoko.Abstractions.Metadata.Image.Options;
+using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.User.Services;
@@ -20,11 +22,9 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
-using Shoko.Server.API.v3.Models.Anilist;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.TMDB;
@@ -45,8 +45,9 @@ public class EpisodeController(
     AnimeGroupService _groupService,
     IImageManager _imageManager,
     IUserDataService _userDataService,
-    TmdbLinkingService _tmdbLinkingService,
-    TmdbMetadataService _tmdbMetadataService,
+    IMetadataLinkingService _linkingService,
+    IMetadataRefreshService _metadataRefreshService,
+    IMetadataTextManager _textManager,
     AniDB_AnimeRepository _anidbAnimes,
     AniDB_EpisodeRepository _anidbEpisodes,
     AnimeEpisodeRepository _animeEpisodes,
@@ -60,6 +61,44 @@ public class EpisodeController(
     ReleaseComparisonService _releaseComparer
 ) : BaseController(settingsProvider)
 {
+    /// <summary>
+    ///   The identifier of a TMDB show.
+    /// </summary>
+    /// <param name="showID">The TMDB show ID.</param>
+    /// <returns>The identifier.</returns>
+    private static MetadataGuid TmdbShowEntry(int showID)
+        => new(MetadataSource.TMDB, MetadataEntityType.Series, showID.ToString());
+
+    /// <summary>
+    ///   The identifier of a TMDB movie.
+    /// </summary>
+    /// <param name="movieID">The TMDB movie ID.</param>
+    /// <returns>The identifier.</returns>
+    private static MetadataGuid TmdbMovieEntry(int movieID)
+        => new(MetadataSource.TMDB, MetadataEntityType.Movie, movieID.ToString());
+
+    /// <summary>
+    ///   Wait out a running refresh or purge of a TMDB show.
+    /// </summary>
+    /// <param name="showID">The TMDB show ID.</param>
+    /// <returns><see langword="true"/> when there was one, so a copy read before may be stale.</returns>
+    private bool WaitForTmdbShow(int showID)
+        => _metadataRefreshService.WaitForRefresh(TmdbShowEntry(showID)).GetAwaiter().GetResult();
+
+    /// <summary>
+    ///   Wait out a running refresh or purge of a TMDB movie.
+    /// </summary>
+    /// <param name="movieID">The TMDB movie ID.</param>
+    /// <returns><see langword="true"/> when there was one, so a copy read before may be stale.</returns>
+    private bool WaitForTmdbMovie(int movieID)
+        => _metadataRefreshService.WaitForRefresh(TmdbMovieEntry(movieID)).GetAwaiter().GetResult();
+
+    /// <summary>
+    ///   A refresh of a TMDB entry somebody asked for, with its images.
+    /// </summary>
+    private static MetadataRefreshOptions RequestedWithImages
+        => new() { DownloadImages = true, Reason = MetadataRefreshReason.Requested };
+
     internal const string EpisodeNotFoundWithEpisodeID = "No Episode entry for the given episodeID";
 
     internal const string EpisodeNotFoundForAnidbEpisodeID = "No Episode entry for the given anidbEpisodeID";
@@ -84,7 +123,7 @@ public class EpisodeController(
     /// <param name="includeUnaired">Include unaired episodes in the list.</param>
     /// <param name="includeHidden">Include hidden episodes in the list.</param>
     /// <param name="includeVoted">Include voted episodes in the list.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <param name="includeWatched">Include watched episodes in the list.</param>
     /// <param name="type">Filter episodes by the specified <see cref="EpisodeType"/>s.</param>
     /// <param name="includeFiles">Include files with the episodes.</param>
@@ -103,7 +142,7 @@ public class EpisodeController(
         [FromQuery] IncludeOnlyFilter includeUnaired = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeHidden = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeVoted = IncludeOnlyFilter.True,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
         [FromQuery] IncludeOnlyFilter includeWatched = IncludeOnlyFilter.True,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
         [FromQuery] bool includeFiles = false,
@@ -204,7 +243,7 @@ public class EpisodeController(
                     search,
                     ep => ep.AniDB!.GetTitles()
                         .Where(title => title is not null && languages.Contains(title.Language))
-                        .Select(title => title.Title)
+                        .Select(title => title.Value)
                         .Append(ep.Shoko.Title)
                         .Distinct()
                         .ToList(),
@@ -277,7 +316,7 @@ public class EpisodeController(
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeReleaseInfo">Include release info data.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <returns></returns>
     [HttpGet("{episodeID}")]
     public ActionResult<Episode> GetEpisodeByEpisodeID(
@@ -287,7 +326,7 @@ public class EpisodeController(
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null)
     {
         var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
@@ -325,14 +364,8 @@ public class EpisodeController(
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        if (!string.Equals(episode.EpisodeNameOverride, body.Title))
-        {
-            episode.EpisodeNameOverride = body.Title;
-
-            _animeEpisodes.Save(episode);
-
+        if (((MetadataTextManager)_textManager).SetCustomTitle(((IMetadata)episode).ID, body.Title))
             ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Updated);
-        }
 
         return Ok();
     }
@@ -424,7 +457,7 @@ public class EpisodeController(
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeReleaseInfo">Include release info data.</param>
-    /// <param name="includeDataFrom">Include data from selected <see cref="DataSourceType"/>s.</param>
+    /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbEpisodeID}/Episode")]
     public ActionResult<Episode> GetEpisode(
@@ -434,7 +467,7 @@ public class EpisodeController(
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<DataSourceType>? includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null)
     {
         var anidb = _anidbEpisodes.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
@@ -524,10 +557,10 @@ public class EpisodeController(
             .Select(xref => xref.TmdbMovieID)
             .Distinct()
             .SelectMany(movieID => reverse
-                ? _tmdbSuggestions.GetBySuggestedTmdbEntityID(DataEntityType.Movie, movieID)
-                : _tmdbSuggestions.GetByTmdbEntityID(DataEntityType.Movie, movieID))
+                ? _tmdbSuggestions.GetBySuggestedTmdbEntityID(MetadataEntityType.Movie, movieID)
+                : _tmdbSuggestions.GetByTmdbEntityID(MetadataEntityType.Movie, movieID))
             .Where(suggestion => kind is null || suggestion.Kind == kind)
-            .Select(suggestion => new SeriesSuggestion(suggestion, DataEntityType.Movie))
+            .Select(suggestion => new SeriesSuggestion(suggestion))
             .ToList();
     }
 
@@ -560,7 +593,7 @@ public class EpisodeController(
             .Select(xref =>
             {
                 var movie = xref.TmdbMovie;
-                if (movie is not null && _tmdbMetadataService.WaitForMovieUpdate(movie.TmdbMovieID))
+                if (movie is not null && WaitForTmdbMovie(movie.TmdbMovieID))
                     movie = _tmdbMovies.GetByTmdbMovieID(movie.TmdbMovieID);
                 return movie;
             })
@@ -578,6 +611,7 @@ public class EpisodeController(
     /// <returns>Void.</returns>
     [Authorize("admin")]
     [HttpPost("{episodeID}/TMDB/Movie")]
+    [NotSupportedAsBadRequest]
     public async Task<ActionResult> AddLinkToTMDBMoviesByEpisodeID(
         [FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Series.Input.LinkCommonBody body
@@ -594,11 +628,19 @@ public class EpisodeController(
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        await _tmdbLinkingService.AddMovieLinkForEpisode(episode.AniDB_EpisodeID, body.ID, additiveLink: !body.Replace);
+        await _linkingService.AddMovieLink(new()
+        {
+            Source = MetadataSource.TMDB,
+            EntityType = MetadataEntityType.Movie,
+            ProviderID = TmdbMovieEntry(body.ID),
+            AnidbEpisodeID = episode.AniDB_EpisodeID,
+            AnidbAnimeID = series.AniDB_ID,
+            Additive = !body.Replace,
+        });
 
         var needRefresh = _tmdbMovies.GetByTmdbMovieID(body.ID) is null || body.Refresh;
         if (needRefresh)
-            await _tmdbMetadataService.ScheduleUpdateOfMovie(new() { MovieId = body.ID, ForceRefresh = body.Refresh, DownloadImages = true });
+            await _metadataRefreshService.RefreshEntry(TmdbMovieEntry(body.ID), body.Refresh, RequestedWithImages);
 
         return NoContent();
     }
@@ -628,9 +670,24 @@ public class EpisodeController(
             return Forbid(EpisodeForbiddenForUser);
 
         if (body is not null && body.ID > 0)
-            await _tmdbLinkingService.RemoveMovieLinkForEpisode(episode.AniDB_EpisodeID, body.ID, body.Purge);
+            await _linkingService.RemoveMovieLink(new()
+            {
+                Source = MetadataSource.TMDB,
+                EntityType = MetadataEntityType.Movie,
+                ProviderID = TmdbMovieEntry(body.ID),
+                AnidbEpisodeID = episode.AniDB_EpisodeID,
+                AnidbAnimeID = series.AniDB_ID,
+                Purge = body.Purge,
+                DisableAutoLinking = true,
+            });
         else
-            await _tmdbLinkingService.RemoveAllMovieLinksForEpisode(episode.AniDB_EpisodeID, body?.Purge ?? false);
+            await _linkingService.RemoveLinksForEpisode(
+                MetadataSource.TMDB,
+                episode.AniDB_EpisodeID,
+                MetadataEntityType.Movie,
+                body?.Purge ?? false,
+                disableAutoLinking: true
+            );
 
         return NoContent();
     }
@@ -691,7 +748,7 @@ public class EpisodeController(
             .Select(xref =>
             {
                 var episode = xref.TmdbEpisode;
-                if (episode is not null && _tmdbMetadataService.WaitForShowUpdate(episode.TmdbShowID))
+                if (episode is not null && WaitForTmdbShow(episode.TmdbShowID))
                     episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
                 return episode;
             })
@@ -739,64 +796,6 @@ public class EpisodeController(
 
     #endregion
 
-    #region Anilist
-
-    /// <summary>
-    /// Get all Anilist Episodes linked to the Shoko Episode by ID.
-    /// </summary>
-    /// <param name="episodeID">Shoko Episode ID.</param>
-    /// <param name="include">Extra details to include.</param>
-    /// <returns>All Anilist Episodes linked to the Shoko Episode.</returns>
-    [HttpGet("{episodeID}/Anilist/Episode")]
-    public ActionResult<List<AnilistEpisode>> GetAnilistEpisodesByEpisodeID(
-        [FromRoute, Range(1, int.MaxValue)] int episodeID,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnilistEpisode.IncludeDetails>? include = null
-    )
-    {
-        var episode = _animeEpisodes.GetByID(episodeID);
-        if (episode == null)
-            return NotFound(EpisodeNotFoundWithEpisodeID);
-
-        var series = episode.AnimeSeries;
-        if (series is null)
-            return InternalError(EpisodeNoSeriesForEpisodeID);
-
-        if (!User.AllowedSeries(series))
-            return Forbid(EpisodeForbiddenForUser);
-
-        return episode.AnilistEpisodes
-            .Select(anilistEpisode => new AnilistEpisode(anilistEpisode, include?.CombineFlags()))
-            .ToList();
-    }
-
-    /// <summary>
-    /// Get all Anilist Episode cross-references for the Shoko Episode by ID.
-    /// </summary>
-    /// <param name="episodeID">Shoko Episode ID.</param>
-    /// <returns>All Anilist Episode cross-references for the Shoko Episode.</returns>
-    [HttpGet("{episodeID}/Anilist/Episode/CrossReferences")]
-    public ActionResult<IReadOnlyList<AnilistEpisode.CrossReference>> GetAnilistEpisodeCrossReferenceByEpisodeID(
-        [FromRoute, Range(1, int.MaxValue)] int episodeID
-    )
-    {
-        var episode = _animeEpisodes.GetByID(episodeID);
-        if (episode == null)
-            return NotFound(EpisodeNotFoundWithEpisodeID);
-
-        var series = episode.AnimeSeries;
-        if (series is null)
-            return InternalError(EpisodeNoSeriesForEpisodeID);
-
-        if (!User.AllowedSeries(series))
-            return Forbid(EpisodeForbiddenForUser);
-
-        return episode.AnilistEpisodeCrossReferences
-            .Select(xref => new AnilistEpisode.CrossReference(xref))
-            .ToList();
-    }
-
-    #endregion
-
     #region Images
 
     private const string ImageNotFound = "The requested image does not exist.";
@@ -832,14 +831,16 @@ public class EpisodeController(
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        return ((IWithImages)episode).GetImages(new() { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true })
+        var options = new ImageFilteringOptions { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true };
+        return ((IWithImages)episode).GetImages(options)
             .OrderBy(a => a.Type)
             .ThenBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToDto(showLinkedIDs: showLinkedIDs, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource);
+            .ToDto(showLinkedIDs: showLinkedIDs, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource)
+            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(episode, options));
     }
 
     /// <summary>
@@ -877,14 +878,16 @@ public class EpisodeController(
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
+        var options = new ImageFilteringOptions { ImageType = imageType, IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true };
         return ((IWithImages)episode)
-            .GetImages(new() { ImageType = imageType, IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true })
+            .GetImages(options)
             .OrderBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
-            .ToListResult(image => new Image(image, showLinkedIDs, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize);
+            .ToListResult(image => new Image(image, showLinkedIDs, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize)
+            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(episode, options));
     }
 
     #endregion
@@ -897,6 +900,7 @@ public class EpisodeController(
     /// <param name="episodeID">Shoko Episode ID</param>
     /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
     /// <param name="file">The image file to upload.</param>
+    /// <param name="preferred">Whether to make the image the preferred one of its type for the episode.</param>
     /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
     /// <returns>The created image.</returns>
     [Authorize("admin")]
@@ -907,6 +911,7 @@ public class EpisodeController(
         [FromRoute, Range(1, int.MaxValue)] int episodeID,
         [FromRoute] ImageEntityType imageType,
         IFormFile file,
+        [FromQuery] bool preferred = false,
         [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
     )
     {
@@ -927,19 +932,11 @@ public class EpisodeController(
         try
         {
             using var stream = file.OpenReadStream();
-            var image = _imageManager.UploadImage(stream, file.ContentType, userSubmitted: true);
-            var xref = _imageManager.AddImageCrossReference(episode, image, new()
-            {
-                ImageType = imageType,
-                IsEnabled = true,
-                IsDesired = true,
-                Source = DataSource.User,
-            });
-            return Created($"/api/v3/Image/Management/{image.ID}", new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)));
-        }
-        catch (ImageCrossReferenceExistsException ex)
-        {
-            return Ok(new Image(ImageStub.Wrap(ex.Image, ex.CrossReference), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(ex.Image.Source)));
+            var uploaded = _imageManager.UploadImage(stream, file.ContentType, userSubmitted: true);
+            var (image, xref, created) = _imageManager.LinkUploadedImage(episode, uploaded, imageType, preferred);
+            var dto = new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source))
+                .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(episode, new() { ImageType = imageType }));
+            return created ? Created($"/api/v3/Image/Management/{image.ID}", dto) : Ok(dto);
         }
         catch (ArgumentException ex)
         {
@@ -972,7 +969,8 @@ public class EpisodeController(
 
         var preferredImage = ((IWithImages)episode).GetPreferredImageForType(imageType);
         if (preferredImage is not null)
-            return new Image(preferredImage, false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(preferredImage.Source));
+            return new Image(preferredImage, false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(preferredImage.Source))
+                .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(episode, new() { ImageType = imageType }));
 
         var images = ((IWithImages)episode).GetImages(new() { ImageType = imageType }).ToDto();
         var image = imageType switch
@@ -987,7 +985,7 @@ public class EpisodeController(
         if (image is null)
             return NotFound("Default image for episode not found.");
 
-        return image;
+        return image.WithCrossReferences(_imageManager.GetCrossReferencesForImageList(episode, new() { ImageType = imageType }));
     }
 
     /// <summary>
@@ -1020,7 +1018,8 @@ public class EpisodeController(
             return NotFound(ImageNotFound);
 
         var xref = _imageManager.SetPreferredImageForEntity(episode, imageType, image);
-        return new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source));
+        return new Image(ImageStub.Wrap(image, xref), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source))
+            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(episode, new() { ImageType = imageType }));
     }
 
     /// <summary>
@@ -1052,9 +1051,8 @@ public class EpisodeController(
 
         switch (xref)
         {
-            // Unset the preferred if it's not a user xref, or if it's a user xref and a user uploaded image.
-            case { Source: not DataSource.User }:
-            case { Source: DataSource.User, ImageSource: DataSource.User }:
+            // Unset the preferred if it's not a user xref, or if it's a user xref to a local image, which could not be fetched again.
+            case var _ when xref.Source != MetadataSource.User || xref.ImageSource.IsLocal:
                 _imageManager.UnsetPreferredImageForEntity(xref);
                 break;
             // Otherwise remove the user created xref.
@@ -1065,6 +1063,57 @@ public class EpisodeController(
 
         // Don't return any content.
         return NoContent();
+    }
+
+    #endregion
+
+    #region Enabled image
+
+    /// <summary>
+    /// Enable or disable an image of the given <paramref name="imageType"/> for the <see cref="Episode"/>.
+    /// </summary>
+    /// <remarks>
+    /// Every link the episode sees the image through is changed, so an image it shows through a linked entry is enabled or disabled on that
+    /// entry's link too. A link is shared by everything that shows the image through it, so this also changes the image for every other
+    /// entry that sees it through that link. Unlike the preferred image, the enabled state is per link and not overridden per entry.
+    /// </remarks>
+    /// <param name="episodeID">Shoko Episode ID</param>
+    /// <param name="imageType">Primary, Backdrop, Banner, Logo, Disc</param>
+    /// <param name="imageID">The image's ID, as <see cref="Image.UID"/> gives it.</param>
+    /// <param name="body">The enabled state to set.</param>
+    /// <param name="includeRemoteUrl">Whether to hand out a URL for fetching the image from its source. Defaults to only doing so when the server does not hold it locally.</param>
+    /// <returns>The image, with the links the episode sees it through.</returns>
+    [Authorize("admin")]
+    [HttpPost("{episodeID}/Images/{imageType}/{imageID:guid}/Enabled")]
+    public ActionResult<Image> EnableEpisodeImageForType(
+        [FromRoute, Range(1, int.MaxValue)] int episodeID,
+        [FromRoute] ImageEntityType imageType,
+        [FromRoute] Guid imageID,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Image.Input.EnableImageBody body,
+        [FromQuery] RemoteUrlInclusion includeRemoteUrl = RemoteUrlInclusion.WhenUnavailable
+    )
+    {
+        var episode = _animeEpisodes.GetByID(episodeID);
+        if (episode == null)
+            return NotFound(EpisodeNotFoundWithEpisodeID);
+
+        var series = episode.AnimeSeries;
+        if (series is null)
+            return InternalError(EpisodeNoSeriesForEpisodeID);
+
+        if (!User.AllowedSeries(series))
+            return Forbid(EpisodeForbiddenForUser);
+
+        var image = _imageManager.GetImageByID(imageID);
+        if (image is null)
+            return NotFound(ImageNotFound);
+
+        var xrefs = _imageManager.SetImageEnabledForEntity(episode, imageType, image, body.Enabled);
+        if (xrefs.Count is 0)
+            return NotFound("The image is not shown for the episode as that type.");
+
+        return new Image(ImageStub.Wrap(image, xrefs[0]), false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source))
+            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(episode, new() { ImageType = imageType }));
     }
 
     #endregion

@@ -1,4 +1,5 @@
 using System;
+using Shoko.Abstractions.Metadata.Airing;
 
 namespace Shoko.Server.Utilities.Airing;
 
@@ -37,4 +38,10 @@ public sealed record SubmittedAiring
     /// here always wins over the inferred cause detection.
     /// </summary>
     public bool? IsDelayed { get; init; }
+
+    /// <summary>
+    /// What kind of showing the airing is. Only a normal airing takes part in
+    /// the delay and hiatus inference.
+    /// </summary>
+    public EpisodeAiringKind Kind { get; init; }
 }

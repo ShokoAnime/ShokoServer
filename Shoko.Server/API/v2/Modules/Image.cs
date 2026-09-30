@@ -4,6 +4,7 @@ using System.IO;
 using Asp.Versioning;
 using ImageMagick;
 using Microsoft.AspNetCore.Mvc;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Web.Attributes;
@@ -113,7 +114,9 @@ public class Image(IImageManager imageManager, ISettingsProvider settingsProvide
         var imageType = (CL_ImageEntityType)type;
         while (tries++ < 5)
         {
-            var metadata = imageManager.GetRandomImageCrossReference(imageType.ToServerSource(), imageType.ToServerType(), new() { IsAvailable = true })?.GetImage();
+            var metadata = imageType.ToServerSource() is { } imageSource
+                ? imageManager.GetRandomImageCrossReference(imageSource, imageType.ToServerType(), new() { IsAvailable = true })?.GetImage()
+                : null;
             if (metadata is not null && metadata.GetStream() is { } stream)
                 return File(stream, metadata.ContentType);
         }
@@ -174,15 +177,15 @@ public static class APIv2ImageExtensions
             _ => ImageEntityType.None,
         };
 
-        public DataSource ToServerSource()
+        public MetadataSource? ToServerSource()
         => type switch
         {
-            CL_ImageEntityType.AniDB_Character => DataSource.AniDB,
-            CL_ImageEntityType.AniDB_Cover => DataSource.AniDB,
-            CL_ImageEntityType.AniDB_Creator => DataSource.AniDB,
-            CL_ImageEntityType.MovieDB_FanArt => DataSource.TMDB,
-            CL_ImageEntityType.MovieDB_Poster => DataSource.TMDB,
-            _ => DataSource.None,
+            CL_ImageEntityType.AniDB_Character => MetadataSource.AniDB,
+            CL_ImageEntityType.AniDB_Cover => MetadataSource.AniDB,
+            CL_ImageEntityType.AniDB_Creator => MetadataSource.AniDB,
+            CL_ImageEntityType.MovieDB_FanArt => MetadataSource.TMDB,
+            CL_ImageEntityType.MovieDB_Poster => MetadataSource.TMDB,
+            _ => null,
         };
     }
 }

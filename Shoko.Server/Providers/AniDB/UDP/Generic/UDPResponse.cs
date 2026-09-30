@@ -1,4 +1,4 @@
-﻿using Shoko.Server.Providers.AniDB.Interfaces;
+using Shoko.Server.Providers.AniDB.Interfaces;
 
 namespace Shoko.Server.Providers.AniDB.UDP.Generic;
 

@@ -13,10 +13,3 @@ public enum AlternateOrderingType
     TV = 7
 }
 
-public enum PersonGender
-{
-    Unknown = 0,
-    Female = 1,
-    Male = 2,
-    NonBinary = 3
-}

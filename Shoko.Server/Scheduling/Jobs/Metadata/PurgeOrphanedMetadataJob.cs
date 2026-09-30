@@ -1,0 +1,43 @@
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.QueueProcessor.Acquisition.Attributes;
+using Shoko.QueueProcessor.Builder;
+using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Workers;
+
+namespace Shoko.Server.Scheduling.Jobs.Metadata;
+
+/// <summary>
+///   Removes the creators, characters, studios and networks of the plugin
+///   sources, and the people and networks of TMDB, that nothing has used for
+///   longer than the settings allow. Runs daily.
+/// </summary>
+/// <param name="purgeService">Does the purge.</param>
+/// <param name="cancellationAccessor">Cancels the work.</param>
+[DatabaseRequired]
+[DisallowConcurrentExecution]
+[JobKeyGroup(JobKeyGroup.Metadata)]
+public class PurgeOrphanedMetadataJob(IMetadataPurgeService purgeService, IJobCancellationAccessor cancellationAccessor) : BaseJob
+{
+    #region Properties
+
+    /// <inheritdoc />
+    public override string TypeName => "Purge Orphaned Metadata";
+
+    /// <inheritdoc />
+    public override string Title => "Purging Orphaned Metadata";
+
+    #endregion
+
+    #region Execution
+
+    /// <inheritdoc />
+    public override async Task Execute()
+    {
+        var removed = await purgeService.PurgeOrphaned(cancellationToken: cancellationAccessor.Token).ConfigureAwait(false);
+        _logger.LogDebug("Purged {Count} orphaned people, studios and networks of the plugin sources and TMDB.", removed);
+    }
+
+    #endregion
+}

@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using NHibernate;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases;
+using Shoko.Server.Models;
 using Shoko.Server.Repositories.NHibernate;
 
 // ReSharper disable InconsistentNaming
@@ -55,6 +57,35 @@ public class BaseDirectRepository<T, S>(DatabaseFactory databaseFactory) : BaseR
     {
     }
 
+    /// <summary>
+    ///   The entries whose texts the text manager works out again once an
+    ///   entity is saved or removed, told after every committed change.
+    /// </summary>
+    /// <remarks>
+    ///   What was worked out from an entry, as a Shoko series from a linked
+    ///   show, is worked out again with it.
+    /// </remarks>
+    /// <param name="entity">The entity saved or removed.</param>
+    /// <param name="removed">Whether the entity was removed.</param>
+    /// <returns>The entity's own ID when it is an <see cref="IMetadata"/>, else none.</returns>
+    protected virtual IEnumerable<MetadataGuid> TextEntriesOf(T entity, bool removed)
+        => entity is IMetadata metadata ? [metadata.ID] : [];
+
+    /// <summary>
+    ///   Tells the text manager in use, if any, which entries a save or
+    ///   removal changed.
+    /// </summary>
+    /// <param name="entity">The entity saved or removed.</param>
+    /// <param name="removed">Whether the entity was removed.</param>
+    private void ForgetTexts(T entity, bool removed)
+    {
+        if (TextAccess.Current is null)
+            return;
+
+        foreach (var entry in TextEntriesOf(entity, removed))
+            TextAccess.Forget(entry);
+    }
+
     public virtual T? GetByID(S id)
     {
         using var session = _databaseFactory.SessionFactory.OpenSession();
@@ -104,6 +135,7 @@ public class BaseDirectRepository<T, S>(DatabaseFactory databaseFactory) : BaseR
         OnDeleteWithOpenTransaction(session, cr);
         session.Delete(cr);
         transaction.Commit();
+        ForgetTexts(cr, true);
         OnEndDelete(cr);
     }
 
@@ -128,6 +160,7 @@ public class BaseDirectRepository<T, S>(DatabaseFactory databaseFactory) : BaseR
 
         foreach (var obj in objs)
         {
+            ForgetTexts(obj, true);
             OnEndDelete(obj);
         }
     }
@@ -140,6 +173,7 @@ public class BaseDirectRepository<T, S>(DatabaseFactory databaseFactory) : BaseR
         session.SaveOrUpdate(obj);
         OnSaveWithOpenTransaction(session.Wrap(), obj);
         transaction.Commit();
+        ForgetTexts(obj, false);
         OnEndSave(obj);
     }
 
@@ -158,5 +192,7 @@ public class BaseDirectRepository<T, S>(DatabaseFactory databaseFactory) : BaseR
         }
 
         transaction.Commit();
+        foreach (var obj in objs)
+            ForgetTexts(obj, false);
     }
 }

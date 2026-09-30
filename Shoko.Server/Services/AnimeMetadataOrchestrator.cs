@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Repositories.Cached;
@@ -25,7 +24,7 @@ namespace Shoko.Server.Services;
 public class AnimeMetadataOrchestrator(
     ILogger<AnimeMetadataOrchestrator> logger,
     IAnidbService anidbService,
-    ISupplementaryMetadataService supplementaryMetadataService,
+    SupplementaryMetadataScheduler supplementaryMetadataScheduler,
     AniDB_AnimeRepository anidbAnimeRepository,
     AniDB_AnimeUpdateRepository anidbAnimeUpdateRepository,
     AnimeSeriesRepository shokoSeriesRepository,
@@ -80,6 +79,6 @@ public class AnimeMetadataOrchestrator(
             await scheduler.RunAfterCurrent<RefreshAnimeStatsJob>(b => b.AnimeID = animeID);
         }
 
-        await supplementaryMetadataService.ScheduleForAnimes(animeIDs.Keys, isNew: false);
+        await supplementaryMetadataScheduler.ScheduleForAnimes(animeIDs.Keys);
     }
 }

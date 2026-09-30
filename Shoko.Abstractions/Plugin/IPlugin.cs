@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Plugin.Models;
 
@@ -61,10 +61,11 @@ public interface IPlugin
 
     /// <summary>
     ///   Called once during start-up, after the plugins are initialized and
-    ///   before the database is opened, to acquire the services the plugin
-    ///   needs. The default implementation is a no-op; override only when
-    ///   needed. Throwing stops the server finishing its start-up, so take
-    ///   services here and leave the work that uses them for later.
+    ///   before the database, or any plugin's own, is opened, to acquire the
+    ///   services the plugin needs. The default implementation is a no-op;
+    ///   override only when needed. Throwing stops the server finishing its
+    ///   start-up, so take services here and leave the work that uses them
+    ///   for later.
     /// </summary>
     /// <remarks>
     ///   A plugin is built twice. Discovery builds it with
@@ -74,6 +75,14 @@ public interface IPlugin
     ///   never loads at all. This hook is how a plugin reaches the container
     ///   instead. It mirrors <c>IQueueJob.Setup</c>, which exists for the same
     ///   reason.
+    ///   <para>
+    ///     The last chance to register a <see cref="Metadata.MetadataSource"/> or
+    ///     <see cref="Metadata.MetadataEntityType"/>: registration closes once every
+    ///     plugin's setup has run, even if one threw. Register your own from a
+    ///     static constructor touched in <c>IPluginServiceRegistration.RegisterServices</c>
+    ///     and look another plugin's up on every access. A settings change to what is
+    ///     registered needs <see cref="Core.Services.ISystemService.RequireRestart{TPlugin}(string)"/>.
+    ///   </para>
     /// </remarks>
     /// <param name="serviceProvider">
     ///   The service provider to resolve services from.
@@ -91,6 +100,11 @@ public interface IPlugin
     ///   other plugins contribute to has been set up before any of its
     ///   contributors. Contributions belong in <see cref="Setup"/>; whatever
     ///   has to see all of them, such as freezing a registry, belongs here.
+    ///   <para>
+    ///     Source and entity type registration has closed, so their
+    ///     <c>Register</c> throws here. Plugin database contexts throw until
+    ///     the late start migrates them.
+    ///   </para>
     /// </remarks>
     void Ready() { }
 

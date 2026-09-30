@@ -14,7 +14,7 @@ public class AniDB_Studio : IStudio
 {
     private readonly string? _imagePath;
 
-    public int ID { get; private set; }
+    public int AnidbID { get; private set; }
 
     public string Name { get; private set; }
 
@@ -23,7 +23,7 @@ public class AniDB_Studio : IStudio
     public AniDB_Studio(AniDB_Creator creator)
     {
         _imagePath = creator.ImagePath;
-        ID = creator.CreatorID;
+        AnidbID = creator.CreatorID;
         Name = creator.Name;
     }
 
@@ -32,7 +32,7 @@ public class AniDB_Studio : IStudio
     #region Methods
 
     IEnumerable<AniDB_Anime> GetAnime() =>
-        RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(ID)
+        RepoFactory.AniDB_Anime_Character_Creator.GetByCreatorID(AnidbID)
         .Select(xref => xref.Anime)
         .WhereNotNull();
 
@@ -40,16 +40,14 @@ public class AniDB_Studio : IStudio
 
     #region IMetadata Implementation
 
-    DataEntityType IMetadata.EntityType => DataEntityType.Studio;
-
-    DataSource IMetadata.Source => DataSource.AniDB;
+    MetadataGuid IMetadata.ID => new(MetadataSource.AniDB, MetadataEntityType.Studio, AnidbID.ToString());
 
     #endregion
 
     #region IWithImages Implementation
 
-    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(_imagePath) && IImageManager.GetIDForImageSourceAndResourceID(DataSource.AniDB, _imagePath) is { } posterID
-        ? (this as IWithImages).GetImageCrossReferences(new() { ImageSource = DataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == posterID)
+    public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(_imagePath) && IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, _imagePath) is { } posterID
+        ? (this as IWithImages).GetImageCrossReferences(new() { ImageSource = MetadataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == posterID)
         : null;
 
     #endregion
@@ -91,6 +89,8 @@ public class AniDB_Studio_For_Anime : AniDB_Studio, IStudio<ISeries>
     #region IStudio Implementation
 
     StudioType IStudio.StudioType => _xref.Role is "Animation Work" ? StudioType.Animation : StudioType.None;
+
+    MetadataGuid IStudio<ISeries>.ParentID => new(MetadataSource.AniDB, MetadataEntityType.Series, ParentID.ToString());
 
     ISeries? IStudio<ISeries>.Parent => Parent;
 

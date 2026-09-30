@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Shoko.Abstractions.Metadata;
+using Shoko.Server.API.Converters;
 using Shoko.Server.Models.TMDB;
 
 namespace Shoko.Server.API.v3.Models.Common;
@@ -35,6 +37,18 @@ public class ContentRating
         Country = countryCode;
         Language = languageCode;
         Source = source.ToString();
+    }
+
+    /// <summary>
+    /// A content rating of any source.
+    /// </summary>
+    /// <param name="contentRating">The content rating.</param>
+    public ContentRating(IContentRating contentRating)
+    {
+        Rating = contentRating.Value;
+        Country = contentRating.CountryCode;
+        Language = contentRating.LanguageCode;
+        Source = LegacyMetadataSpellings.Of(contentRating.Source);
     }
 
     public ContentRating(TMDB_ContentRating contentRating) :

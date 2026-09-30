@@ -1,5 +1,5 @@
 using FluentNHibernate.Mapping;
-using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
@@ -15,7 +15,7 @@ public class ShokoImageMap : ClassMap<ShokoImage>
 
         Map(x => x.LocalID).Not.Nullable();
         Map(x => x.PrimaryID).Not.Nullable();
-        Map(x => x.Source).CustomType<DataSource>().Not.Nullable();
+        Map(x => x.Source).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.ResourceID).Not.Nullable();
         Map(x => x.LanguageCode).Nullable();
         Map(x => x.CountryCode).Nullable();

@@ -9,6 +9,8 @@ namespace Shoko.Abstractions.Plugin;
 ///   The method is static and called by reflection, so no instance of the
 ///   implementing type is ever created. Only the first implementation in an
 ///   assembly is used.
+///   Touch the static class registering the plugin's own <see cref="Metadata.MetadataSource"/>
+///   and <see cref="Metadata.MetadataEntityType"/> values here, before registration closes.
 /// </remarks>
 public interface IPluginServiceRegistration
 {

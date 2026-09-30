@@ -28,5 +28,5 @@ public sealed class SyncVotesExportAction(IQueueScheduler scheduler) : IExecutab
         => Task.FromResult(_caller.IsAnidbUser ? null : new ActionValidationResult("User is not an AniDB user. Nothing to do."));
 
     public Task Execute(CancellationToken token = default)
-        => scheduler.Enqueue<SyncAniDBVotesJob>(c => (c.UserID, c.Export) = (_caller.ID, true), ct: token);
+        => scheduler.Enqueue<SyncAniDBVotesJob>(c => (c.UserID, c.Export) = (_caller.LocalID, true), ct: token);
 }

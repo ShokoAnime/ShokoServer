@@ -1,4 +1,3 @@
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Abstractions.Metadata.Image.Options;
@@ -15,17 +14,17 @@ public sealed class RandomImageCrossReferenceFilteringOptions
     ///   Optional. If set, will restrict to cross-references from the given
     ///   source (e.g. AniDB, TMDB, AniList, User, etc.).
     /// </summary>
-    public DataSource? XrefSource { get; set; }
+    public MetadataSource? XrefSource { get; set; }
 
     /// <summary>
     ///   Optional. Filter by entity source (e.g. Shoko, AniDB, TMDB).
     /// </summary>
-    public DataSource? EntitySource { get; set; }
+    public MetadataSource? EntitySource { get; set; }
 
     /// <summary>
     ///   Optional. Filter by entity type (e.g. Series, Episode, Movie).
     /// </summary>
-    public DataEntityType? EntityType { get; set; }
+    public MetadataEntityType? EntityType { get; set; }
 
     /// <summary>
     ///   Optional. Filter by enabled state. Pass <c>true</c> to get only
