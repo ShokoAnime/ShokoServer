@@ -81,8 +81,8 @@ wrong is the usual cause of a `NullReferenceException` inside a handler, since a
 handler that reads `userInfo` without the flag set is called with `null`.
 
 The core expression classes in `Filtering/Expressions/` cannot be combined with
-your own lambdas in one tree. `AndExpression`, `OrExpression`, `XorExpression`
-and `NotExpression` take the abstract **class** `FilterExpression<bool>`, not
+your own lambdas in one tree. `AndExpression`, `OrExpression`, `XorExpression`,
+`NotExpression` and `ScopeExpression` take the abstract **class** `FilterExpression<bool>`, not
 the `IFilterExpression<bool>` interface, and `GenericFilterExpression` is
 `sealed` and implements only the interface, so it cannot be passed to any of
 them. A tree is therefore either all core expressions or a single

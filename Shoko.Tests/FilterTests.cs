@@ -54,6 +54,17 @@ public class FilterTests
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]
+    public void GroupFilterable_WithScope_AnswersAsItsContents(TestFilterable group)
+    {
+        var scoped = new ScopeExpression(new AndExpression(new NotExpression(new HasTagExpression("18 restricted")), new HasWatchedEpisodesExpression()));
+
+        Assert.True(scoped.UserDependent);
+        Assert.True(new ScopeExpression(new HasTagExpression("comedy")).Evaluate(group, null, DateTime.Now));
+        Assert.False(new ScopeExpression(new HasTagExpression("18 restricted")).Evaluate(group, null, DateTime.Now));
+        Assert.False(new ScopeExpression().Evaluate(group, null, DateTime.Now));
+    }
+
+    [Theory, MemberData(nameof(GroupFilterable))]
     public void GroupFilterable_WithDateFunctionFilter_ExpectsFalse(TestFilterable group)
     {
         var top = new AndExpression(new AndExpression(new HasTagExpression("comedy"), new NotExpression(new HasTagExpression("18 restricted"))),
