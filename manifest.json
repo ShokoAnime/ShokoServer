@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.492",
+      "tag": "v6.0.0-dev.492",
+      "commit": "86a47d904dc449cf6a4fc84a298f226bfa2802cc",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.492/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-30T22:25:36Z",
+      "releaseNotes": "\n`feat` (`abstractions`): **Give `ScopeExpression` an optional label**:\n\n- `Parameter` holds the group's label or comment; it does not change what the filter matches\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.97**.\n"
+    },
+    {
       "version": "6.0.0.491",
       "tag": "v6.0.0-dev.491",
       "commit": "bfd4d8a2c436a6a834eb2af0521d646d189d3b6c",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.463/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-15T02:31:40Z",
       "releaseNotes": "\n`misc`: **Bump abstractions**.\n\n`fix` (`anilist`): **Decompress responses from the `Anilist` http client**:\n\nThe `Anilist` client advertised gzip, deflate and brotli via\n`Accept-Encoding` but had no handler with `AutomaticDecompression`, so\nbrotli-encoded GraphQL responses were handed to `JsonNode.Parse` still\ncompressed and failed with \"'0x1B' is an invalid start of a value\".\nGave it the same `SocketsHttpHandler` setup as the `Default` client.\n"
-    },
-    {
-      "version": "6.0.0.462",
-      "tag": "v6.0.0-dev.462",
-      "commit": "1b186c7da80f84e28f663ad755708253802e607a",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.462/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-15T02:25:54Z",
-      "releaseNotes": "\n`fix` (`relocation`): **Resolve the managed folder path before containment checks**:\n\nThe containment check compared a fully-resolved path against the raw\nfolder path, which never matches on Windows where GetFullPath adds a\ndrive letter. Resolve the folder path once and use it for the\ncomparison and downstream relative-path math. The source-location test\nasserts against the folder's platform-normalized path so it holds on\nboth platforms.\n"
     }
   ]
 }
