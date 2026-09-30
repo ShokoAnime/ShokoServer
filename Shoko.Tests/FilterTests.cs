@@ -62,6 +62,7 @@ public class FilterTests
         Assert.True(new ScopeExpression(new HasTagExpression("comedy")).Evaluate(group, null, DateTime.Now));
         Assert.False(new ScopeExpression(new HasTagExpression("18 restricted")).Evaluate(group, null, DateTime.Now));
         Assert.False(new ScopeExpression().Evaluate(group, null, DateTime.Now));
+        Assert.True(new ScopeExpression(new HasTagExpression("comedy"), "Funny ones").Evaluate(group, null, DateTime.Now));
     }
 
     [Theory, MemberData(nameof(GroupFilterable))]

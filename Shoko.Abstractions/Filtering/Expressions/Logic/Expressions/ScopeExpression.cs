@@ -6,9 +6,10 @@ namespace Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 /// <summary>
 /// This condition passes if the left expression passes. It adds nothing but
 /// the parentheses a filter was written with, so a filter language can write
-/// the grouping back as it was typed.
+/// the grouping back as it was typed, and an editor can show it as a group
+/// with an optional label.
 /// </summary>
-public class ScopeExpression : FilterExpression<bool>, IWithExpressionParameter
+public class ScopeExpression : FilterExpression<bool>, IWithExpressionParameter, IWithStringParameter
 {
     /// <summary>
     /// Creates a scope around an expression.
@@ -16,6 +17,17 @@ public class ScopeExpression : FilterExpression<bool>, IWithExpressionParameter
     /// <param name="left">The expression in the parentheses.</param>
     public ScopeExpression(FilterExpression<bool> left)
         => Left = left;
+
+    /// <summary>
+    /// Creates a labelled scope around an expression.
+    /// </summary>
+    /// <param name="left">The expression in the parentheses.</param>
+    /// <param name="label">The group's label or comment, or <see langword="null"/> for none.</param>
+    public ScopeExpression(FilterExpression<bool> left, string? label)
+    {
+        Left = left;
+        Parameter = label;
+    }
 
     /// <summary>
     /// Creates an empty scope, for deserialization.
@@ -26,6 +38,12 @@ public class ScopeExpression : FilterExpression<bool>, IWithExpressionParameter
     /// The expression in the parentheses.
     /// </summary>
     public FilterExpression<bool>? Left { get; set; }
+
+    /// <summary>
+    /// The group's label or comment, or <see langword="null"/> for none. It
+    /// does not change what the filter matches.
+    /// </summary>
+    public string? Parameter { get; set; }
 
     /// <inheritdoc/>
     public override bool TimeDependent => Left?.TimeDependent ?? false;
@@ -46,7 +64,7 @@ public class ScopeExpression : FilterExpression<bool>, IWithExpressionParameter
     /// <inheritdoc cref="Equals(object)"/>
     protected bool Equals(ScopeExpression other)
     {
-        return base.Equals(other) && Equals(Left, other.Left);
+        return base.Equals(other) && Equals(Left, other.Left) && Parameter == other.Parameter;
     }
 
     /// <inheritdoc/>
@@ -66,7 +84,7 @@ public class ScopeExpression : FilterExpression<bool>, IWithExpressionParameter
 
     /// <inheritdoc/>
     public override int GetHashCode()
-        => HashCode.Combine(base.GetHashCode(), Left);
+        => HashCode.Combine(base.GetHashCode(), Left, Parameter);
 
     /// <inheritdoc/>
     public override bool IsType(FilterExpression? expression)
