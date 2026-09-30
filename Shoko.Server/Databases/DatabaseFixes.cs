@@ -2687,6 +2687,16 @@ public partial class DatabaseFixes
     private static Action<string> ReportTo(SystemService systemService, string prefix)
         => message => systemService.StartupMessage = $"{prefix} - {message}";
 
+    /// <summary>
+    /// Reports progress after the current startup message, as <see cref="ReportTo"/>
+    /// does, or nowhere while the server's services are not up.
+    /// </summary>
+    /// <returns>Sets the startup message to each progress message.</returns>
+    private static Action<string> ReportToStartup()
+        => ISystemService.HasStaticServices && ISystemService.StaticServices.GetService<SystemService>() is { } systemService
+            ? ReportTo(systemService, systemService.StartupMessage ?? string.Empty)
+            : _ => { };
+
     private static ImageIdentity ToImageIdentity(ShokoImage image)
         => new(image.ID, image.PrimaryID, image.Source, image.ResourceID);
 
@@ -2766,6 +2776,7 @@ public partial class DatabaseFixes
             .ToList();
         if (changed.Count > 0)
         {
+            var saving = new StartupProgress(ReportTo(systemService, str), "Saving image availability flags", changed.Count);
             var databaseFactory = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>();
             using var session = databaseFactory.SessionFactory.OpenStatelessSession();
             WriteInTransaction(
@@ -2777,7 +2788,8 @@ public partial class DatabaseFixes
                     NHibernateUtil.Guid,
                     changed,
                     image => image.ID,
-                    [("IsAvailable", NHibernateUtil.Boolean, image => !image.IsAvailable)]
+                    [("IsAvailable", NHibernateUtil.Boolean, image => !image.IsAvailable)],
+                    saving.Advance
                 )
             );
             foreach (var image in changed)

@@ -98,7 +98,7 @@ public partial class DatabaseFixes
     /// <param name="connection">The open connection to the database.</param>
     /// <returns>Whether it ran, and the error when it did not.</returns>
     public static Tuple<bool, string?> MigrateTmdbTitles(object connection)
-        => RunTextCopy(connection, "TMDB", "Metadata_Title", transaction =>
+        => RunTextCopy(connection, "TMDB", "Metadata_Title", (transaction, report) =>
         {
             var tmdb = MetadataNumberRegistry.GetNumber(MetadataSource.TMDB);
             var creator = MetadataNumberRegistry.GetNumber(MetadataEntityType.Creator);
@@ -107,7 +107,9 @@ public partial class DatabaseFixes
             foreach (var table in _tmdbTextTables.Where(table => table.TitleColumn is not null))
             {
                 Execute(transaction, $"UPDATE {table.Table} SET EnglishTitleListed = 0 WHERE EnglishTitleListed <> 0");
-                copied += CopyTmdbTexts(transaction, table, "TMDB_Title", "TMDB_TitleID", table.TitleColumn!, "Metadata_Title", "EnglishTitleListed", TitleType.Official);
+                copied += CopyTmdbTexts(
+                    transaction, table, "TMDB_Title", "TMDB_TitleID", table.TitleColumn!, "Metadata_Title", "EnglishTitleListed", TitleType.Official, report
+                );
             }
 
             return copied;
@@ -129,7 +131,7 @@ public partial class DatabaseFixes
     /// <returns>Whether it ran, and the error when it did not.</returns>
     public static Tuple<bool, string?> MigrateTmdbOverviews(object connection)
     {
-        var result = RunTextCopy(connection, "TMDB", "Metadata_Overview", transaction =>
+        var result = RunTextCopy(connection, "TMDB", "Metadata_Overview", (transaction, report) =>
         {
             var tmdb = MetadataNumberRegistry.GetNumber(MetadataSource.TMDB);
             Execute(transaction, $"DELETE FROM Metadata_Overview WHERE EntitySource = {tmdb} AND Source = {tmdb}");
@@ -137,7 +139,10 @@ public partial class DatabaseFixes
             foreach (var table in _tmdbTextTables)
             {
                 Execute(transaction, $"UPDATE {table.Table} SET EnglishOverviewListed = 0 WHERE EnglishOverviewListed <> 0");
-                copied += CopyTmdbTexts(transaction, table, "TMDB_Overview", "TMDB_OverviewID", table.OverviewColumn, "Metadata_Overview", "EnglishOverviewListed", TitleType.None);
+                copied += CopyTmdbTexts(
+                    transaction, table, "TMDB_Overview", "TMDB_OverviewID", table.OverviewColumn,
+                    "Metadata_Overview", "EnglishOverviewListed", TitleType.None, report
+                );
             }
 
             return copied;
@@ -159,7 +164,7 @@ public partial class DatabaseFixes
     /// <param name="connection">The open connection to the database.</param>
     /// <returns>Whether it ran, and the error when it did not.</returns>
     public static Tuple<bool, string?> MigrateTmdbPersonAliases(object connection)
-        => RunTextCopy(connection, "TMDB", "Metadata_Title", transaction =>
+        => RunTextCopy(connection, "TMDB", "Metadata_Title", (transaction, report) =>
         {
             var tmdb = MetadataNumberRegistry.GetNumber(MetadataSource.TMDB);
             var creator = MetadataNumberRegistry.GetNumber(MetadataEntityType.Creator);
@@ -167,6 +172,7 @@ public partial class DatabaseFixes
 
             var total = 0;
             var personIDs = ReadIDs(transaction, "SELECT TmdbPersonID FROM TMDB_Person ORDER BY TmdbPersonID");
+            var progress = new StartupProgress(report, "Copying TMDB person aliases", personIDs.Count);
             foreach (var page in personIDs.Chunk(TextEntriesPerPage))
             {
                 var copied = new List<CopiedText>();
@@ -183,6 +189,7 @@ public partial class DatabaseFixes
 
                 InsertTexts(transaction, "Metadata_Title", copied, MetadataSource.TMDB, MetadataSource.TMDB);
                 total += copied.Count;
+                progress.Advance(page.Length);
             }
 
             return total;
@@ -199,9 +206,9 @@ public partial class DatabaseFixes
     /// <param name="connection">The open connection to the database.</param>
     /// <param name="source">The source whose texts are copied, for the log.</param>
     /// <param name="target">The table copied into, for the log.</param>
-    /// <param name="copy">Copies the texts, and returns how many.</param>
+    /// <param name="copy">Copies the texts, reporting its progress to the action it is given, and returns how many.</param>
     /// <returns>Whether it ran, and the error when it did not.</returns>
-    private static Tuple<bool, string?> RunTextCopy(object connection, string source, string target, Func<DbTransaction, int> copy)
+    private static Tuple<bool, string?> RunTextCopy(object connection, string source, string target, Func<DbTransaction, Action<string>, int> copy)
     {
         try
         {
@@ -210,7 +217,7 @@ public partial class DatabaseFixes
                 dbConnection.Open();
 
             using var transaction = dbConnection.BeginTransaction();
-            var count = copy(transaction);
+            var count = copy(transaction, ReportToStartup());
             transaction.Commit();
             _logger.Info("Copied {Count} {Source} texts into {Table}.", count, source, target);
             return new(true, null);
@@ -255,6 +262,7 @@ public partial class DatabaseFixes
     /// <param name="newTable">The new title or overview table.</param>
     /// <param name="listedColumn">The flag saying an entry listed its English text.</param>
     /// <param name="titleType">The kind of title to copy the texts as, or <see cref="TitleType.None"/> for overviews.</param>
+    /// <param name="report">Called with each progress message.</param>
     /// <returns>How many texts it copied.</returns>
     private static int CopyTmdbTexts(
         DbTransaction transaction,
@@ -264,7 +272,8 @@ public partial class DatabaseFixes
         string englishColumn,
         string newTable,
         string listedColumn,
-        TitleType titleType
+        TitleType titleType,
+        Action<string> report
     )
     {
         var parentType = (int)table.ForeignType;
@@ -272,6 +281,9 @@ public partial class DatabaseFixes
         var numberColumn = withNumbers ? ", EpisodeNumber" : string.Empty;
         var copied = 0;
         var parentIDs = ReadIDs(transaction, $"SELECT DISTINCT ParentID FROM {oldTable} WHERE ParentType = {parentType} ORDER BY ParentID");
+        var label = $"Copying TMDB {table.ForeignType.ToString().ToLowerInvariant()} {(titleType is TitleType.None ? "overviews" : "titles")}";
+        var progress = new StartupProgress(report, label, parentIDs.Count);
+        report($"{label}...");
         foreach (var page in parentIDs.Chunk(TextEntriesPerPage))
         {
             var range = $"BETWEEN {page[0]} AND {page[^1]}";
@@ -294,6 +306,7 @@ public partial class DatabaseFixes
             InsertTexts(transaction, newTable, texts, MetadataSource.TMDB, MetadataSource.TMDB);
             SetListed(transaction, table, listedColumn, listed);
             copied += texts.Count;
+            progress.Advance(page.Length);
         }
 
         return copied;
@@ -503,6 +516,20 @@ public partial class DatabaseFixes
             ids.Add(Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
 
         return ids;
+    }
+
+    /// <summary>
+    ///   Counts the rows of a table, in the transaction.
+    /// </summary>
+    /// <param name="transaction">The open transaction.</param>
+    /// <param name="table">The table.</param>
+    /// <returns>The number of rows.</returns>
+    private static int CountRows(DbTransaction transaction, string table)
+    {
+        using var command = transaction.Connection!.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"SELECT COUNT(*) FROM {table}";
+        return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
     }
 
     /// <summary>

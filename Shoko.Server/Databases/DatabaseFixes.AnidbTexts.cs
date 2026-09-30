@@ -47,7 +47,7 @@ public partial class DatabaseFixes
     /// <param name="connection">The open connection to the database.</param>
     /// <returns>Whether it ran, and the error when it did not.</returns>
     public static Tuple<bool, string?> MigrateAnidbAnimeTitles(object connection)
-        => RunTextCopy(connection, "AniDB", "Metadata_Title", transaction =>
+        => RunTextCopy(connection, "AniDB", "Metadata_Title", (transaction, report) =>
         {
             var anidb = MetadataNumberRegistry.GetNumber(MetadataSource.AniDB);
             var series = MetadataNumberRegistry.GetNumber(MetadataEntityType.Series);
@@ -55,6 +55,7 @@ public partial class DatabaseFixes
 
             var total = 0;
             var animeIDs = ReadIDs(transaction, "SELECT DISTINCT AnimeID FROM AniDB_Anime_Title ORDER BY AnimeID");
+            var progress = new StartupProgress(report, "Copying AniDB anime titles", animeIDs.Count);
             foreach (var page in animeIDs.Chunk(TextEntriesPerPage))
             {
                 var listings = new Dictionary<int, string?>();
@@ -97,6 +98,7 @@ public partial class DatabaseFixes
 
                 InsertTexts(transaction, "Metadata_Title", copied, MetadataSource.AniDB, MetadataSource.AniDB);
                 total += copied.Count;
+                progress.Advance(page.Length);
             }
 
             return total;
@@ -117,7 +119,7 @@ public partial class DatabaseFixes
     /// <param name="connection">The open connection to the database.</param>
     /// <returns>Whether it ran, and the error when it did not.</returns>
     public static Tuple<bool, string?> MigrateAnidbEpisodeTitles(object connection)
-        => RunTextCopy(connection, "AniDB", "Metadata_Title", transaction =>
+        => RunTextCopy(connection, "AniDB", "Metadata_Title", (transaction, report) =>
         {
             var anidb = MetadataNumberRegistry.GetNumber(MetadataSource.AniDB);
             var episode = MetadataNumberRegistry.GetNumber(MetadataEntityType.Episode);
@@ -131,7 +133,8 @@ public partial class DatabaseFixes
                 );
 
             var positions = new Dictionary<int, int>();
-            return CopyAnidbTitles(transaction, "AniDB_Episode_Title", "AniDB_Episode_TitleID", "AniDB_EpisodeID, Language, Title", row =>
+            var progress = new StartupProgress(report, "Copying AniDB episode titles", CountRows(transaction, "AniDB_Episode_Title"));
+            return CopyAnidbTitles(transaction, "AniDB_Episode_Title", "AniDB_Episode_TitleID", "AniDB_EpisodeID, Language, Title", progress, row =>
             {
                 if (row[2] is not string value)
                     return null;
@@ -169,7 +172,7 @@ public partial class DatabaseFixes
     /// <param name="connection">The open connection to the database.</param>
     /// <returns>Whether it ran, and the error when it did not.</returns>
     public static Tuple<bool, string?> MigrateAnidbTagOverrides(object connection)
-        => RunTextCopy(connection, "AniDB", "Metadata_Title", transaction =>
+        => RunTextCopy(connection, "AniDB", "Metadata_Title", (transaction, _) =>
         {
             var anidb = MetadataNumberRegistry.GetNumber(MetadataSource.AniDB);
             var shoko = MetadataNumberRegistry.GetNumber(MetadataSource.Shoko);
@@ -215,9 +218,17 @@ public partial class DatabaseFixes
     /// <param name="table">The old title table.</param>
     /// <param name="idColumn">Its ID column, which gives the stored order.</param>
     /// <param name="columns">The columns to read, in the order <paramref name="plan"/> takes them.</param>
+    /// <param name="progress">Advanced by the rows of each page read.</param>
     /// <param name="plan">Works out the title to copy from a row, or <c>null</c> to leave it out; called in ID order.</param>
     /// <returns>How many titles it copied.</returns>
-    private static int CopyAnidbTitles(DbTransaction transaction, string table, string idColumn, string columns, Func<object?[], CopiedText?> plan)
+    private static int CopyAnidbTitles(
+        DbTransaction transaction,
+        string table,
+        string idColumn,
+        string columns,
+        StartupProgress progress,
+        Func<object?[], CopiedText?> plan
+    )
     {
         var bounds = Read(transaction, $"SELECT MIN({idColumn}), MAX({idColumn}) FROM {table}")[0];
         if (bounds[0] is null || bounds[1] is null)
@@ -230,12 +241,14 @@ public partial class DatabaseFixes
         {
             var end = Math.Min(last, start + AnidbTitleRowsPerPage - 1);
             var texts = new List<CopiedText>();
-            foreach (var row in Read(transaction, $"SELECT {columns} FROM {table} WHERE {idColumn} BETWEEN {start} AND {end} ORDER BY {idColumn}"))
+            var rows = Read(transaction, $"SELECT {columns} FROM {table} WHERE {idColumn} BETWEEN {start} AND {end} ORDER BY {idColumn}");
+            foreach (var row in rows)
                 if (plan(row) is { } text)
                     texts.Add(text);
 
             InsertTexts(transaction, "Metadata_Title", texts, MetadataSource.AniDB, MetadataSource.AniDB);
             copied += texts.Count;
+            progress.Advance(rows.Count);
         }
 
         return copied;

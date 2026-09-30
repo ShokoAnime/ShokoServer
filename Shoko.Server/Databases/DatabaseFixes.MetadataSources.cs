@@ -152,13 +152,19 @@ public partial class DatabaseFixes
     /// never throws.
     /// </summary>
     /// <param name="databaseFactory">The database factory.</param>
-    public static void CheckStoredMetadataNumbers(DatabaseFactory databaseFactory)
+    /// <param name="reportProgress">Called with each progress message, or <c>null</c>.</param>
+    public static void CheckStoredMetadataNumbers(DatabaseFactory databaseFactory, Action<string>? reportProgress = null)
     {
         try
         {
+            var progress = new StartupProgress(
+                reportProgress ?? (_ => { }),
+                "Checking stored metadata sources and entity types",
+                MetadataSourceColumns.Count + MetadataEntityTypeColumns.Count
+            );
             using var session = databaseFactory.SessionFactory.OpenStatelessSession();
-            CheckStoredNumbers(session, MetadataSourceColumns, "source", MetadataNumberRegistry.FindProblem);
-            CheckStoredNumbers(session, MetadataEntityTypeColumns, "entity type", MetadataNumberRegistry.FindEntityTypeProblem);
+            CheckStoredNumbers(session, MetadataSourceColumns, "source", MetadataNumberRegistry.FindProblem, progress);
+            CheckStoredNumbers(session, MetadataEntityTypeColumns, "entity type", MetadataNumberRegistry.FindEntityTypeProblem, progress);
         }
         catch (Exception ex)
         {
@@ -174,7 +180,14 @@ public partial class DatabaseFixes
     /// <param name="columns">The columns to read, by table.</param>
     /// <param name="kind">What the numbers stand for, for the log.</param>
     /// <param name="findProblem">Tells what is wrong with a number, or <c>null</c>.</param>
-    private static void CheckStoredNumbers(IStatelessSession session, IReadOnlyList<(string Table, string Column)> columns, string kind, Func<byte, string?> findProblem)
+    /// <param name="progress">Advanced once per column read.</param>
+    private static void CheckStoredNumbers(
+        IStatelessSession session,
+        IReadOnlyList<(string Table, string Column)> columns,
+        string kind,
+        Func<byte, string?> findProblem,
+        StartupProgress progress
+    )
     {
         foreach (var (table, column) in columns)
         {
@@ -187,6 +200,10 @@ public partial class DatabaseFixes
             {
                 _logger.Warn(ex, "Unable to read the metadata {Kind} numbers stored in {Table}.{Column}.", kind, table, column);
                 continue;
+            }
+            finally
+            {
+                progress.Advance();
             }
 
             foreach (var raw in numbers)

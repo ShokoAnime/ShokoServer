@@ -1035,7 +1035,7 @@ public class SystemService : ISystemService
                 repositoryFactory.PostInit();
 
                 StartupMessage = "Database - Checking stored metadata sources and entity types...";
-                DatabaseFixes.CheckStoredMetadataNumbers(databaseFactory);
+                DatabaseFixes.CheckStoredMetadataNumbers(databaseFactory, message => StartupMessage = $"Database - {message}");
 
                 // Nothing else writes yet, so the file is rebuilt without
                 // blocking the API or draining the queue.

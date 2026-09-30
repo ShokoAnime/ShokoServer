@@ -28,7 +28,7 @@ public partial class DatabaseFixes
     /// <param name="connection">The open connection to the database.</param>
     /// <returns>Whether it ran, and the error when it did not.</returns>
     public static Tuple<bool, string?> MigrateShokoTexts(object connection)
-        => RunTextCopy(connection, "Shoko", "Metadata_Title and Metadata_Overview", transaction =>
+        => RunTextCopy(connection, "Shoko", "Metadata_Title and Metadata_Overview", (transaction, _) =>
         {
             var shoko = MetadataNumberRegistry.GetNumber(MetadataSource.Shoko);
             var user = MetadataNumberRegistry.GetNumber(MetadataSource.User);
