@@ -171,6 +171,24 @@ public class MetadataProviderControllerTests
     }
 
     [Fact]
+    public void LinkSourcesAreOneRowPerSourceAndSayWhichKindsAreOn()
+    {
+        var fixture = new Fixture();
+        fixture.Register(enabled: false);
+        fixture.Register(linksSeries: false);
+
+        var row = Assert.Single(Value(fixture.Controller().GetLinkSources()));
+        Assert.Equal((Source, true, false, false), (row.Source, row.SupportsSeries, row.SupportsMovies, row.IsSeriesEnabled));
+
+        fixture.Register();
+        Assert.True(Assert.Single(Value(fixture.Controller().GetLinkSources())).IsSeriesEnabled);
+
+        // A source whose providers link nothing is not listed.
+        fixture.Registered.RemoveAll(info => info.Provider is IMetadataSeriesLinkingProvider { LinkableEntityTypes.Count: 2 });
+        Assert.Empty(Value(fixture.Controller().GetLinkSources()));
+    }
+
+    [Fact]
     public void AProviderIsSetUpAndRefusesKindsItCannotAnswer()
     {
         var fixture = new Fixture();

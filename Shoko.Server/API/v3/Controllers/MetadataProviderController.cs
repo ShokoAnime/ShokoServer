@@ -102,6 +102,30 @@ public class MetadataProviderController(
         => providerManager.GetProviderInfo(providerID) is { } info ? ToModel(info) : NotFound(ProviderNotFound);
 
     /// <summary>
+    /// Get every source series or movies can be linked to, one row per
+    /// source, with the kinds its providers link and which of them are on.
+    /// </summary>
+    /// <returns>The sources, in source order.</returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Source")]
+    public ActionResult<List<MetadataLinkSource>> GetLinkSources()
+        => providerManager.MetadataProviders
+            .Where(info => MetadataSourceActions.IsLinkTarget(info.Source))
+            .GroupBy(info => info.Source)
+            .Select(group => new MetadataLinkSource(
+                group.Key,
+                group.Any(info => Links(info, MetadataEntityType.Series)),
+                group.Any(info => Links(info, MetadataEntityType.Movie)),
+                LinkingProvider(group.Key, MetadataEntityType.Series) is not null,
+                LinkingProvider(group.Key, MetadataEntityType.Movie) is not null,
+                new(group.Key, refreshService.GetPauseStatus(group.Key), providerManager.MetadataProviders)
+            ))
+            .Where(row => row.SupportsSeries || row.SupportsMovies)
+            .OrderBy(row => row.Source)
+            .ToList();
+
+    /// <summary>
     /// Change how a metadata provider is set up: the kinds of entries it is
     /// on for, and for its source whether it is the auto-linker and whether
     /// the source links new anime on its own.
@@ -398,9 +422,18 @@ public class MetadataProviderController(
     /// <param name="kind">Series or movies.</param>
     /// <returns>The provider, or <see langword="null"/> when none is enabled.</returns>
     private MetadataProviderInfo? LinkingProvider(MetadataSource source, MetadataEntityType kind)
-        => providerManager.GetAvailableProviders(kind, source).FirstOrDefault(info => kind == MetadataEntityType.Movie
+        => providerManager.GetAvailableProviders(kind, source).FirstOrDefault(info => Links(info, kind));
+
+    /// <summary>
+    /// Whether a provider takes links of a kind: movie links, or series links.
+    /// </summary>
+    /// <param name="info">The provider.</param>
+    /// <param name="kind">Series or movies.</param>
+    /// <returns>Whether it takes them.</returns>
+    private static bool Links(MetadataProviderInfo info, MetadataEntityType kind)
+        => kind == MetadataEntityType.Movie
             ? info.Provider is IMetadataMovieLinkingProvider
-            : info.Provider is IMetadataSeriesLinkingProvider series && series.LinkableEntityTypes.Contains(MetadataEntityType.Series));
+            : info.Provider is IMetadataSeriesLinkingProvider series && series.LinkableEntityTypes.Contains(MetadataEntityType.Series);
 
     #endregion
 
