@@ -278,7 +278,7 @@ public class MetadataTextManagerStoreTests
         // The Shoko walks read the contributions through here, and pick from them.
         var episode = Entry(_shokoEpisode);
         Assert.Equal(["Shown"], harness.Manager.GetContributedTitles(episode).Select(title => title.Value));
-        Assert.Null(MetadataTextManager.Pick(harness.Manager.GetContributedTitles(episode), TitleLanguage.Japanese));
+        Assert.Null(MetadataTextManager.Pick(harness.Manager.GetContributedTitles(episode), TitleLanguage.Japanese, useSynonyms: true));
 
         var season = new AnimeSeason(new AnimeSeries { AnimeSeriesID = 12 }, EpisodeType.Special, 0);
         harness.Manager.SetTitles(((IMetadata)season).ID, TestSources.Plugin, [Title("Season"), Title("Off", TitleLanguage.Japanese, "ja")]);

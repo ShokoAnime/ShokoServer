@@ -85,10 +85,7 @@ internal static class TextChoiceExplainer
                 if (!answers)
                     continue;
 
-                // The entry's own titles under FirstInLanguage are not ranked,
-                // so a generic one of them was found by the language order.
-                var generic = episode && kind is TextKind.Title && GenericEpisodeTitles.LooksGeneric(chosen.Value) &&
-                    !(chosen.Source == entityID.Source && MetadataTextManager.OwnTitleRuleOf(entityID) is OwnTitleRule.FirstInLanguage);
+                var generic = episode && kind is TextKind.Title && GenericEpisodeTitles.LooksGeneric(chosen.Value);
                 return (generic ? TextChoiceStep.GenericTitle : TextChoiceStep.LanguageOrder, language);
             }
         }

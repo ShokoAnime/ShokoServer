@@ -757,28 +757,9 @@ public class MetadataTextManager : IMetadataTextManager
                 [.. (episode ? settings.Language.EpisodeTitleSourceOrder : settings.Language.SeriesTitleSourceOrder).Append(MetadataSource.User).Distinct()],
                 settings.Language.UseSynonyms,
                 episode,
-                Main: main,
-                OwnRule: OwnTitleRuleOf(entityID)
+                Main: main
             ));
         });
-
-    /// <summary>
-    ///   How an entry's own source's titles are read: AniDB's anime and
-    ///   episodes as their models have always read them, and every other
-    ///   entry as a plugin's.
-    /// </summary>
-    /// <param name="entityID">The entry.</param>
-    /// <returns>The rule.</returns>
-    internal static OwnTitleRule OwnTitleRuleOf(MetadataGuid entityID)
-    {
-        if (entityID.Source != MetadataSource.AniDB)
-            return OwnTitleRule.AnyInLanguage;
-        if (entityID.EntityType == MetadataEntityType.Series)
-            return OwnTitleRule.Ranked;
-        if (entityID.EntityType == MetadataEntityType.Episode)
-            return OwnTitleRule.FirstInLanguage;
-        return OwnTitleRule.AnyInLanguage;
-    }
 
     /// <summary>
     ///   Chooses the overview of an entry whose texts the store keeps, once
@@ -1502,7 +1483,7 @@ public class MetadataTextManager : IMetadataTextManager
                         _ when source == MetadataSource.AniDB => language.Language is TitleLanguage.Main
                             ? anime?.DefaultTitle
                             : PickAnidb(anidbTitles ??= [.. anime?.Titles ?? []], language.Language, settings.Language.UseSynonyms),
-                        _ => Pick(Cached(perSource, source, () => SeriesTitlesFrom(series, source)), language.Language),
+                        _ => Pick(Cached(perSource, source, () => SeriesTitlesFrom(series, source)), language.Language, settings.Language.UseSynonyms),
                     };
                     if (title is not null)
                         return title;
@@ -1662,7 +1643,7 @@ public class MetadataTextManager : IMetadataTextManager
                     var description = source switch
                     {
                         _ when source == MetadataSource.AniDB => AnidbDescription(anidbDescription, language.Language),
-                        _ => Pick(Cached(perSource, source, () => SeriesDescriptionsFrom(series, source)), language.Language),
+                        _ => Pick(Cached(perSource, source, () => SeriesDescriptionsFrom(series, source)), language.Language, useSynonyms: false),
                     };
                     if (description is not null)
                         return description;
@@ -2036,9 +2017,9 @@ public class MetadataTextManager : IMetadataTextManager
                     {
                         // AniDB has no main episode title, so x-main reads its
                         // English one.
-                        _ when source == MetadataSource.AniDB => (anidbTitles ??= [.. episode.AniDB_Episode?.GetTitles() ?? []])
-                            .FirstOrDefault(title => title.Language == (language.Language is TitleLanguage.Main ? TitleLanguage.English : language.Language)),
-                        _ => Pick(Cached(perSource, source, () => EpisodeTitlesFrom(episode, source)), language.Language),
+                        _ when source == MetadataSource.AniDB => PickAnidb(anidbTitles ??= [.. episode.AniDB_Episode?.GetTitles() ?? []],
+                            language.Language is TitleLanguage.Main ? TitleLanguage.English : language.Language, settings.Language.UseSynonyms),
+                        _ => Pick(Cached(perSource, source, () => EpisodeTitlesFrom(episode, source)), language.Language, settings.Language.UseSynonyms),
                     };
                     if (title is not null)
                         return title;
@@ -2124,7 +2105,7 @@ public class MetadataTextManager : IMetadataTextManager
                     var description = source switch
                     {
                         _ when source == MetadataSource.AniDB => AnidbDescription(anidbDescription, language.Language),
-                        _ => Pick(Cached(perSource, source, () => EpisodeDescriptionsFrom(episode, source)), language.Language),
+                        _ => Pick(Cached(perSource, source, () => EpisodeDescriptionsFrom(episode, source)), language.Language, useSynonyms: false),
                     };
                     if (description is not null)
                         return description;
@@ -2275,18 +2256,22 @@ public class MetadataTextManager : IMetadataTextManager
         => TextChooser.Speaks(text, language);
 
     /// <summary>
-    ///   One source's text in a language, its main or official one first.
+    ///   One source's text in a language, a title by the ranked rule and an
+    ///   overview its first.
     /// </summary>
     /// <param name="texts">The source's text.</param>
     /// <param name="language">The language wanted.</param>
+    /// <param name="useSynonyms">Whether a title other than a main, official or untyped one may answer.</param>
     /// <returns>The text, or <c>null</c> when none is in that language.</returns>
-    internal static T? Pick<T>(IReadOnlyList<T> texts, TitleLanguage language) where T : class, IText
+    internal static T? Pick<T>(IReadOnlyList<T> texts, TitleLanguage language, bool useSynonyms) where T : class, IText
     {
         if (language is TitleLanguage.Main || texts.Count is 0)
             return null;
 
         var matching = texts.Where(text => Speaks(text, language)).ToList();
-        return matching.FirstOrDefault(text => text is ITitle { Type: TitleType.Main or TitleType.Official }) ?? matching.FirstOrDefault();
+        if (matching.Count is 0 || matching[0] is not ITitle)
+            return matching.FirstOrDefault();
+        return TextChooser.Ranked(matching.Cast<ITitle>(), useSynonyms) as T;
     }
 
     /// <summary>
@@ -2299,8 +2284,7 @@ public class MetadataTextManager : IMetadataTextManager
         => titles.Count is 0 ? titles : [.. titles.Where(title => title.Language is not TitleLanguage.Main)];
 
     private static ITitle? PickAnidb(List<ITitle> titles, TitleLanguage language, bool useSynonyms)
-        => titles.FirstOrDefault(title => title.Type is TitleType.Main or TitleType.Official && title.Language == language)
-            ?? (useSynonyms ? titles.FirstOrDefault(title => title.Language == language) : null);
+        => TextChooser.Ranked(titles.Where(title => title.Language == language), useSynonyms);
 
     private static IText? AnidbDescription(string? description, TitleLanguage language)
         => language is TitleLanguage.English && !string.IsNullOrEmpty(description)

@@ -550,7 +550,7 @@ public class TextManagementControllerTests
         var synthesized = new StoredTitle { Source = MetadataSource.Shoko, Value = "Episode 5", Language = TitleLanguage.English, LanguageCode = "en", IsSynthesized = true };
 
         Assert.Equal((TextChoiceStep.GenericTitle, (TitleLanguage?)TitleLanguage.English), StepOf(_episode, TextKind.Title, generic, null));
-        Assert.Equal((TextChoiceStep.LanguageOrder, (TitleLanguage?)TitleLanguage.English), StepOf(_episode, TextKind.Title, anidbGeneric, null));
+        Assert.Equal((TextChoiceStep.GenericTitle, (TitleLanguage?)TitleLanguage.English), StepOf(_episode, TextKind.Title, anidbGeneric, null));
         Assert.Equal(TextChoiceStep.Synthesized, StepOf(_episode, TextKind.Title, synthesized, null).Step);
     }
 

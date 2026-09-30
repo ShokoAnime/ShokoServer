@@ -28,24 +28,22 @@ internal static class TextChooser
     /// <param name="choice">The orders to walk and the fallbacks.</param>
     /// <returns>The title, or <c>null</c> when nothing qualifies and there is no fallback.</returns>
     internal static ITitle? ChooseTitle(IReadOnlyList<ITitle> candidates, TitleChoice choice)
-        => ChooseTitleFor(candidates, choice, null);
+        => ChooseTitleFor(candidates, choice);
 
     /// <summary>
-    ///   Chooses a title out of candidates, reading the entry's own source by
-    ///   the choice's own-source rule.
+    ///   Chooses a title out of candidates, reading every source alike.
     /// </summary>
     /// <param name="candidates">The candidates, in any order. Disabled and made-up ones are skipped.</param>
     /// <param name="choice">The orders to walk and the fallbacks.</param>
-    /// <param name="ownSource">The entry's own source, or <c>null</c> to read every source alike.</param>
     /// <returns>The title, or <c>null</c> when nothing qualifies and there is no fallback.</returns>
-    private static ITitle? ChooseTitleFor(IReadOnlyList<ITitle> candidates, TitleChoice choice, MetadataSource? ownSource)
+    private static ITitle? ChooseTitleFor(IReadOnlyList<ITitle> candidates, TitleChoice choice)
     {
         var enabled = candidates.Where(title => title.IsEnabled && !title.IsSynthesized).ToList();
         if (enabled.FirstOrDefault(title => title.Preference is TextPreference.Overall) is { } overall)
             return overall;
 
         // Real titles in every language come before generic ones in any, so a real second-language
-        // title beats "Episode 5" in the first. A source read by its first title is not ranked.
+        // title beats "Episode 5" in the first.
         foreach (var language in choice.Languages)
         {
             if (language is not TitleLanguage.Main &&
@@ -54,8 +52,7 @@ internal static class TextChooser
 
             foreach (var source in choice.SourceOrder)
             {
-                var anyType = AnyType(choice, source, ownSource);
-                if (Walk(enabled, source, language, choice.UseSynonyms, choice.RankGeneric && !anyType ? false : null, choice.Main, anyType) is { } title)
+                if (Walk(enabled, source, language, choice.UseSynonyms, choice.RankGeneric ? false : null, choice.Main) is { } title)
                     return title;
             }
         }
@@ -64,7 +61,7 @@ internal static class TextChooser
         {
             foreach (var language in choice.Languages)
                 foreach (var source in choice.SourceOrder)
-                    if (!AnyType(choice, source, ownSource) && Walk(enabled, source, language, choice.UseSynonyms, true, choice.Main) is { } title)
+                    if (Walk(enabled, source, language, choice.UseSynonyms, true, choice.Main) is { } title)
                         return title;
         }
 
@@ -72,9 +69,9 @@ internal static class TextChooser
     }
 
     /// <summary>
-    ///   One source's title in a language, as it has always been read: in
-    ///   <c>x-main</c> its main title, else its main or official title in the
-    ///   language, else a synonym when synonyms are allowed.
+    ///   One source's title in a language: in <c>x-main</c> its main title,
+    ///   else its first ranked title in the language, else any other title in
+    ///   it when synonyms are allowed.
     /// </summary>
     /// <remarks>
     ///   In <c>x-main</c>, an entry's default title answers for its source
@@ -89,9 +86,8 @@ internal static class TextChooser
     ///   <c>null</c> for both.
     /// </param>
     /// <param name="main">The entry's default title, or <c>null</c>.</param>
-    /// <param name="anyType">Whether the source's first title in the language answers, whatever its type.</param>
     /// <returns>The title, or <c>null</c> when the source has none for the language.</returns>
-    private static ITitle? Walk(List<ITitle> titles, MetadataSource source, TitleLanguage language, bool useSynonyms, bool? generic, ITitle? main, bool anyType = false)
+    private static ITitle? Walk(List<ITitle> titles, MetadataSource source, TitleLanguage language, bool useSynonyms, bool? generic, ITitle? main)
     {
         var pool = titles.Where(title => title.Source == source && (generic is null || GenericEpisodeTitles.LooksGeneric(title.Value) == generic));
 
@@ -100,39 +96,52 @@ internal static class TextChooser
         if (language is TitleLanguage.Main)
             return pool.FirstOrDefault(title => title.Type is TitleType.Main) ?? MainOf(main, source, generic);
 
-        var matching = pool.Where(title => Speaks(title, language)).ToList();
-        if (matching.Count is 0)
-            return null;
-
-        if (anyType)
-            return matching[0];
-
-        return matching.FirstOrDefault(title => title.Type is TitleType.Main or TitleType.Official)
-            ?? (useSynonyms ? matching[0] : null);
+        return Ranked(pool.Where(title => Speaks(title, language)), useSynonyms);
     }
 
     /// <summary>
-    ///   Whether a source's first title in a language answers whatever its
-    ///   type, as the entry's own source does under
-    ///   <see cref="OwnTitleRule.FirstInLanguage"/>.
+    ///   The title a list answers with, the one rule for every source: its
+    ///   first main, official or untyped title, else, when synonyms are
+    ///   allowed, its first title of any other type.
     /// </summary>
-    /// <param name="choice">The choice.</param>
-    /// <param name="source">The source being read.</param>
-    /// <param name="ownSource">The entry's own source, or <c>null</c>.</param>
-    /// <returns>Whether any type answers.</returns>
-    private static bool AnyType(TitleChoice choice, MetadataSource source, MetadataSource? ownSource)
-        => choice.OwnRule is OwnTitleRule.FirstInLanguage && source == ownSource;
+    /// <remarks>
+    ///   Untyped titles count as a user's own and most of AniDB's episode
+    ///   titles are untyped.
+    /// </remarks>
+    /// <param name="titles">The titles, in list order.</param>
+    /// <param name="useSynonyms">Whether a short title, synonym, title card or kanji reading may answer.</param>
+    /// <returns>The title, or <c>null</c> when none qualifies.</returns>
+    internal static ITitle? Ranked(IEnumerable<ITitle> titles, bool useSynonyms)
+    {
+        ITitle? other = null;
+        foreach (var title in titles)
+        {
+            if (IsRanked(title))
+                return title;
+            other ??= title;
+        }
+
+        return useSynonyms ? other : null;
+    }
+
+    /// <summary>
+    ///   Whether a title's type lets it be preferred without synonyms: main,
+    ///   official or none.
+    /// </summary>
+    /// <param name="title">The title.</param>
+    /// <returns>Whether it is ranked.</returns>
+    internal static bool IsRanked(ITitle title)
+        => title.Type is TitleType.Main or TitleType.Official or TitleType.None;
 
     /// <summary>
     ///   Chooses the title of an entry whose texts the store keeps, such as a
     ///   plugin's series, reading the entry's own source in every language.
     /// </summary>
     /// <remarks>
-    ///   The own source is read by the choice's <see cref="OwnTitleRule"/>: after
-    ///   the usual choice when the source order ranks it, else in each language
-    ///   after the ranked sources and before <c>user</c>. Real episode titles come
-    ///   before generic ones, except the own source's under
-    ///   <see cref="OwnTitleRule.FirstInLanguage"/>, read in the first pass.
+    ///   The own source is read as every source is: after the usual choice
+    ///   when the source order ranks it, else in each language after the
+    ///   ranked sources and before <c>user</c>. Real episode titles come
+    ///   before generic ones.
     /// </remarks>
     /// <param name="candidates">The candidates, in list order. Disabled and made-up ones are skipped.</param>
     /// <param name="ownSource">The entry's own source.</param>
@@ -145,12 +154,12 @@ internal static class TextChooser
         bool?[] passes = choice.RankGeneric ? [false, true] : [null];
         if (choice.SourceOrder.Contains(ownSource))
         {
-            if (ChooseTitleFor(enabled, choice with { Default = null, Synthesize = null }, ownSource) is { } chosen)
+            if (ChooseTitleFor(enabled, choice with { Default = null, Synthesize = null }) is { } chosen)
                 return chosen;
 
             foreach (var generic in passes)
                 foreach (var language in choice.Languages)
-                    if (OwnPass(generic, choice, out var ownGeneric) && OwnTitle(own, language, ownGeneric, choice) is { } title)
+                    if (OwnTitle(own, language, generic, choice) is { } title)
                         return title;
 
             return null;
@@ -172,7 +181,7 @@ internal static class TextChooser
                     if (source == MetadataSource.User && !ownRead)
                     {
                         ownRead = true;
-                        if (OwnPass(generic, choice, out var ownGeneric) && OwnTitle(own, language, ownGeneric, choice) is { } ownTitle)
+                        if (OwnTitle(own, language, generic, choice) is { } ownTitle)
                             return ownTitle;
                     }
 
@@ -180,7 +189,7 @@ internal static class TextChooser
                         return title;
                 }
 
-                if (!ownRead && OwnPass(generic, choice, out var lastGeneric) && OwnTitle(own, language, lastGeneric, choice) is { } lastTitle)
+                if (!ownRead && OwnTitle(own, language, generic, choice) is { } lastTitle)
                     return lastTitle;
             }
 
@@ -188,32 +197,9 @@ internal static class TextChooser
     }
 
     /// <summary>
-    ///   Whether the entry's own titles are read in a pass, and which of them.
-    /// </summary>
-    /// <remarks>
-    ///   Under <see cref="OwnTitleRule.FirstInLanguage"/> the own titles are
-    ///   not ranked: the first pass reads them all and the generic pass none.
-    /// </remarks>
-    /// <param name="generic">The pass: <c>false</c> for real titles, <c>true</c> for generic ones, <c>null</c> for both.</param>
-    /// <param name="choice">The choice, which gives the rule.</param>
-    /// <param name="ownGeneric">Which own titles the pass reads, as <paramref name="generic"/> reads them.</param>
-    /// <returns>Whether the pass reads the own titles at all.</returns>
-    private static bool OwnPass(bool? generic, TitleChoice choice, out bool? ownGeneric)
-    {
-        if (choice.OwnRule is not OwnTitleRule.FirstInLanguage)
-        {
-            ownGeneric = generic;
-            return true;
-        }
-
-        ownGeneric = null;
-        return generic is not true;
-    }
-
-    /// <summary>
     ///   An entry's own title in a language: its main title, else its default
-    ///   title, for <c>x-main</c>, else a title in the language by the
-    ///   choice's <see cref="OwnTitleRule"/>.
+    ///   title, for <c>x-main</c>, else its ranked title in the language, as
+    ///   <see cref="Ranked"/> reads one.
     /// </summary>
     /// <param name="own">The entry's own enabled titles, in list order.</param>
     /// <param name="language">The language wanted.</param>
@@ -221,7 +207,7 @@ internal static class TextChooser
     ///   <c>false</c> for real titles only, <c>true</c> for generic ones only,
     ///   <c>null</c> for both.
     /// </param>
-    /// <param name="choice">The choice, which gives the rule, the default title and whether synonyms may answer.</param>
+    /// <param name="choice">The choice, which gives the default title and whether synonyms may answer.</param>
     /// <returns>The title, or <c>null</c> when the entry has none for the language.</returns>
     private static ITitle? OwnTitle(List<ITitle> own, TitleLanguage language, bool? generic, TitleChoice choice)
     {
@@ -229,14 +215,7 @@ internal static class TextChooser
         if (language is TitleLanguage.Main)
             return pool.FirstOrDefault(title => title.Type is TitleType.Main) ?? (choice.Main is { } main ? MainOf(main, main.Source, generic) : null);
 
-        var matching = pool.Where(title => title.Language == language).ToList();
-        return choice.OwnRule switch
-        {
-            OwnTitleRule.FirstInLanguage => matching.FirstOrDefault(),
-            OwnTitleRule.Ranked => matching.FirstOrDefault(title => title.Type is TitleType.Main or TitleType.Official)
-                ?? (choice.UseSynonyms ? matching.FirstOrDefault() : null),
-            _ => matching.FirstOrDefault(title => title.Type is TitleType.Main or TitleType.Official) ?? matching.FirstOrDefault(),
-        };
+        return Ranked(pool.Where(title => title.Language == language), choice.UseSynonyms);
     }
 
     #endregion
@@ -366,7 +345,7 @@ internal static class TextChooser
 /// </summary>
 /// <param name="Languages">The languages to walk, best first; <c>x-main</c> reads each source's main title.</param>
 /// <param name="SourceOrder">The sources to walk in each language, best first.</param>
-/// <param name="UseSynonyms">Whether a synonym may answer for a language.</param>
+/// <param name="UseSynonyms">Whether a title other than a main, official or untyped one may answer for a language.</param>
 /// <param name="RankGeneric">Whether generic titles such as <c>Episode 5</c> come after every real one, as for episodes.</param>
 /// <param name="Default">The title to use when none qualifies, or <c>null</c>.</param>
 /// <param name="Synthesize">Makes up a title when there is not even a default, or <c>null</c> to go without.</param>
@@ -375,10 +354,6 @@ internal static class TextChooser
 ///   when that source has no title of type main, and no other language; or
 ///   <c>null</c>.
 /// </param>
-/// <param name="OwnRule">
-///   How <see cref="TextChooser.ChooseStoredTitle"/> reads the entry's own
-///   source's titles in a language.
-/// </param>
 internal sealed record TitleChoice(
     IReadOnlyList<TitleLanguage> Languages,
     IReadOnlyList<MetadataSource> SourceOrder,
@@ -386,32 +361,5 @@ internal sealed record TitleChoice(
     bool RankGeneric,
     ITitle? Default = null,
     Func<ITitle?>? Synthesize = null,
-    ITitle? Main = null,
-    OwnTitleRule OwnRule = OwnTitleRule.AnyInLanguage
+    ITitle? Main = null
 );
-
-/// <summary>
-///   How an entry's own source's titles in a language are read, when the
-///   store keeps the entry's texts.
-/// </summary>
-internal enum OwnTitleRule
-{
-    /// <summary>
-    ///   Read as every source is, and after that its main or official title
-    ///   in the language, else any title in it, as for a plugin's entries.
-    /// </summary>
-    AnyInLanguage,
-
-    /// <summary>
-    ///   Its main, else its official title in the language, else a synonym
-    ///   only when synonyms are allowed, and nothing after that, as AniDB's
-    ///   anime have always been read.
-    /// </summary>
-    Ranked,
-
-    /// <summary>
-    ///   Its first title in the language, whatever its type and even when it
-    ///   looks generic, as AniDB's episodes have always been read.
-    /// </summary>
-    FirstInLanguage,
-}

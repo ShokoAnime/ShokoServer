@@ -76,8 +76,8 @@ public partial class TmdbMetadataUpdater
         }
 
         // Abort if we couldn't find the movie by id.
-        var methods = MovieMethods.Translations | MovieMethods.ReleaseDates | MovieMethods.ExternalIds | MovieMethods.Keywords |
-            MovieMethods.Recommendations | MovieMethods.Similar;
+        var methods = MovieMethods.Translations | MovieMethods.AlternativeTitles | MovieMethods.ReleaseDates | MovieMethods.ExternalIds |
+            MovieMethods.Keywords | MovieMethods.Recommendations | MovieMethods.Similar;
         if (downloadCrewAndCast)
             methods |= MovieMethods.Credits;
         var movie = await _client.UseClient(c => c.GetMovieAsync(movieId, "en-US", null, methods), $"Get movie {movieId}").ConfigureAwait(false);
@@ -93,7 +93,8 @@ public partial class TmdbMetadataUpdater
                 .Except([TitleLanguage.Main, TitleLanguage.Unknown, TitleLanguage.None])
                 .ToHashSet();
         var updated = tmdbMovie.Populate(movie, contentRatingLanguages);
-        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages);
+        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages,
+            alternativeTitles: movie.AlternativeTitles?.Titles);
         updated = titlesUpdated || overviewsUpdated || updated;
         updated = UpdateMovieExternalIDs(tmdbMovie, movie.ExternalIds!) || updated;
         updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies!) || updated;

@@ -214,7 +214,7 @@ public class TextChooserTests
     [InlineData(TitleLanguage.Japanese, "日本語")]
     [InlineData(TitleLanguage.Romaji, "Romaji")]
     [InlineData(TitleLanguage.German, "Deutsch")]
-    public void AnAniDBEpisodesFirstTitleInAHigherLanguageBeatsItsEnglishOne(TitleLanguage first, string expected)
+    public void AnAniDBEpisodesUntypedTitleInAHigherLanguageBeatsItsEnglishOne(TitleLanguage first, string expected)
     {
         ITitle[] titles =
         [
@@ -223,43 +223,31 @@ public class TextChooserTests
             Title("Romaji", _anidb, TitleLanguage.Romaji, TitleType.None),
             Title("Deutsch", _anidb, TitleLanguage.German, TitleType.None),
         ];
-        var rule = MetadataTextManager.OwnTitleRuleOf(AnidbID(MetadataEntityType.Episode));
 
         foreach (var order in new MetadataSource[][] { [_tmdb, _anidb, MetadataSource.User], [_anidb, _tmdb, MetadataSource.User], [_tmdb, MetadataSource.User] })
             foreach (var synonyms in new[] { false, true })
-                Assert.Equal(expected, TextChooser.ChooseStoredTitle(titles, _anidb, new([first, TitleLanguage.English], order, synonyms, true, OwnRule: rule))?.Value);
+                Assert.Equal(expected, TextChooser.ChooseStoredTitle(titles, _anidb, new([first, TitleLanguage.English], order, synonyms, true))?.Value);
     }
 
     [Theory]
-    [InlineData("Episode 5", TitleLanguage.Japanese, TitleLanguage.English)]
-    [InlineData("Episode 13", TitleLanguage.English, TitleLanguage.Romaji)]
-    public void AnAniDBEpisodesFirstTitleInAHigherLanguageAnswersEvenWhenItLooksGeneric(string generic, TitleLanguage higher, TitleLanguage lower)
+    [InlineData("anidb")]
+    [InlineData("plugin")]
+    public void AnEpisodesRealTitlesComeBeforeItsGenericOnesInAnyLanguage(string sourceName)
     {
+        var source = sourceName is "anidb" ? _anidb : TestSources.Plugin;
         ITitle[] titles =
         [
-            Title(generic, _anidb, higher, TitleType.Main),
-            Title("Real", _anidb, lower, TitleType.Main),
+            Title("Episode 25", source, TitleLanguage.English, TitleType.Main),
+            Title("Secret of the Head", source, TitleLanguage.English, TitleType.Main),
+            Title("Episode 13", source, TitleLanguage.German, TitleType.Main),
+            Title("Deutsch", source, TitleLanguage.German),
         ];
-        var rule = MetadataTextManager.OwnTitleRuleOf(AnidbID(MetadataEntityType.Episode));
 
-        foreach (var order in new MetadataSource[][] { [_tmdb, _anidb, MetadataSource.User], [_anidb, _tmdb, MetadataSource.User], [_tmdb, MetadataSource.User] })
-            Assert.Equal(generic, TextChooser.ChooseStoredTitle(titles, _anidb, new([higher, lower], order, false, true, OwnRule: rule))?.Value);
-    }
-
-    [Fact]
-    public void AnAniDBEpisodesFirstTitleInALanguageAnswersEvenWhenItLooksGeneric()
-    {
-        ITitle[] titles =
-        [
-            Title("Episode 25", _anidb, TitleLanguage.English, TitleType.Main),
-            Title("Secret of the Head", _anidb, TitleLanguage.English, TitleType.Main),
-        ];
-        var rule = MetadataTextManager.OwnTitleRuleOf(AnidbID(MetadataEntityType.Episode));
-
-        foreach (var order in new MetadataSource[][] { [_tmdb, _anidb, MetadataSource.User], [_anidb, _tmdb, MetadataSource.User], [_tmdb, MetadataSource.User] })
-            foreach (var language in new[] { TitleLanguage.English, TitleLanguage.Main })
-                foreach (var synonyms in new[] { false, true })
-                    Assert.Equal("Episode 25", TextChooser.ChooseStoredTitle(titles, _anidb, new([language], order, synonyms, true, OwnRule: rule))?.Value);
+        foreach (var order in new MetadataSource[][] { [source, _tmdb, MetadataSource.User], [_tmdb, MetadataSource.User] })
+        {
+            Assert.Equal("Secret of the Head", TextChooser.ChooseStoredTitle(titles, source, new([TitleLanguage.English, TitleLanguage.German], order, false, true))?.Value);
+            Assert.Equal("Deutsch", TextChooser.ChooseStoredTitle([titles[0], titles[2], titles[3]], source, new([TitleLanguage.English, TitleLanguage.German], order, false, true))?.Value);
+        }
     }
 
     [Fact]
@@ -270,63 +258,43 @@ public class TextChooserTests
             Title("Episode 7", MetadataSource.User, TitleLanguage.English, TitleType.Main),
             Title("Romaji", _anidb, TitleLanguage.Romaji, TitleType.Main),
         ];
-        var rule = MetadataTextManager.OwnTitleRuleOf(AnidbID(MetadataEntityType.Episode));
 
-        Assert.Equal("Romaji", TextChooser.ChooseStoredTitle(titles, _anidb, new([TitleLanguage.English, TitleLanguage.Romaji], [_tmdb, _anidb, MetadataSource.User], false, true, OwnRule: rule))?.Value);
+        Assert.Equal("Romaji", TextChooser.ChooseStoredTitle(titles, _anidb, new([TitleLanguage.English, TitleLanguage.Romaji], [_tmdb, _anidb, MetadataSource.User], false, true))?.Value);
     }
 
-    [Fact]
-    public void APluginEpisodesRealTitlesStillComeBeforeItsGenericOnes()
+    [Theory]
+    [InlineData("anidb")]
+    [InlineData("tmdb")]
+    [InlineData("plugin")]
+    public void ASynonymAnswersOnlyWithSynonymsAndAnUntypedTitleAlways(string sourceName)
     {
-        var plugin = TestSources.Plugin;
+        var source = sourceName switch { "anidb" => _anidb, "tmdb" => _tmdb, _ => TestSources.Plugin };
         ITitle[] titles =
         [
-            Title("Episode 25", plugin, TitleLanguage.English, TitleType.Main),
-            Title("Secret of the Head", plugin, TitleLanguage.English, TitleType.Main),
-            Title("Episode 13", plugin, TitleLanguage.German, TitleType.Main),
-            Title("Deutsch", plugin, TitleLanguage.German),
+            Title("Romaji", source, TitleLanguage.Romaji, TitleType.Main),
+            Title("English Syn", source, TitleLanguage.English, TitleType.Synonym),
+            Title("English Short", source, TitleLanguage.English, TitleType.Short),
         ];
-        var rule = MetadataTextManager.OwnTitleRuleOf(new(plugin, MetadataEntityType.Episode, "1"));
 
-        Assert.Equal(OwnTitleRule.AnyInLanguage, rule);
-        foreach (var order in new MetadataSource[][] { [plugin, _tmdb, MetadataSource.User], [_tmdb, MetadataSource.User] })
+        foreach (var order in new MetadataSource[][] { [source, MetadataSource.User], [MetadataSource.User] })
         {
-            Assert.Equal("Secret of the Head", TextChooser.ChooseStoredTitle(titles, plugin, new([TitleLanguage.English, TitleLanguage.German], order, false, true, OwnRule: rule))?.Value);
-            Assert.Equal("Deutsch", TextChooser.ChooseStoredTitle([titles[0], titles[2], titles[3]], plugin, new([TitleLanguage.English, TitleLanguage.German], order, false, true, OwnRule: rule))?.Value);
+            Assert.Null(TextChooser.ChooseStoredTitle(titles, source, new([TitleLanguage.English], order, false, false)));
+            Assert.Equal("English Syn", TextChooser.ChooseStoredTitle(titles, source, new([TitleLanguage.English], order, true, false))?.Value);
+            foreach (var type in new[] { TitleType.Official, TitleType.None })
+                Assert.Equal("English", TextChooser.ChooseStoredTitle([.. titles, Title("English", source, TitleLanguage.English, type)], source, new([TitleLanguage.English], order, false, false))?.Value);
         }
     }
 
     [Fact]
-    public void AnAniDBAnimesEnglishSynonymIsNotChosenWithoutSynonymsButAnOfficialTitleIs()
+    public void AUsersUntypedTitleAnswersForItsLanguage()
     {
         ITitle[] titles =
         [
-            Title("Romaji", _anidb, TitleLanguage.Romaji, TitleType.Main),
-            Title("English Syn", _anidb, TitleLanguage.English, TitleType.Synonym),
-            Title("English Short", _anidb, TitleLanguage.English, TitleType.Short),
+            Title("The Show", _tmdb, TitleLanguage.English),
+            Title("Mine", MetadataSource.User, TitleLanguage.Romaji, TitleType.None),
         ];
-        var rule = MetadataTextManager.OwnTitleRuleOf(AnidbID(MetadataEntityType.Series));
 
-        foreach (var order in new MetadataSource[][] { [_anidb, _tmdb, MetadataSource.User], [_tmdb, _anidb, MetadataSource.User], [_tmdb, MetadataSource.User] })
-        {
-            Assert.Null(TextChooser.ChooseStoredTitle(titles, _anidb, new([TitleLanguage.English], order, false, false, OwnRule: rule)));
-            Assert.Equal("English Syn", TextChooser.ChooseStoredTitle(titles, _anidb, new([TitleLanguage.English], order, true, false, OwnRule: rule))?.Value);
-
-            // An official title answers without them.
-            Assert.Equal("English", TextChooser.ChooseStoredTitle([.. titles, Title("English", _anidb, TitleLanguage.English, TitleType.Official)], _anidb,
-                new([TitleLanguage.English], order, false, false, OwnRule: rule))?.Value);
-        }
-    }
-
-    [Fact]
-    public void APluginEntrysOwnSynonymStillAnswersWithoutSynonyms()
-    {
-        var plugin = TestSources.Plugin;
-        ITitle[] titles = [Title("English Syn", plugin, TitleLanguage.English, TitleType.Synonym)];
-        var rule = MetadataTextManager.OwnTitleRuleOf(new(plugin, MetadataEntityType.Series, "1"));
-
-        Assert.Equal(OwnTitleRule.AnyInLanguage, rule);
-        Assert.Equal("English Syn", TextChooser.ChooseStoredTitle(titles, plugin, new([TitleLanguage.English], [plugin, _tmdb, MetadataSource.User], false, false, OwnRule: rule))?.Value);
+        Assert.Equal("Mine", TextChooser.ChooseTitle(titles, new([TitleLanguage.Romaji, TitleLanguage.English], [_tmdb, MetadataSource.User], false, false))?.Value);
     }
 
     #endregion

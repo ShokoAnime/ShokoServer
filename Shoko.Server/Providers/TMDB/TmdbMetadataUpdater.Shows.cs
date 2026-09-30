@@ -60,8 +60,8 @@ public partial class TmdbMetadataUpdater
         var tmdbShow = _tmdbShows.GetByTmdbShowID(showId) ?? new(showId);
         var newlyAdded = tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt;
         var xrefs = _xrefAnidbTmdbShows.GetByTmdbShowID(showId);
-        var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.ExternalIds | TvShowMethods.Keywords |
-            TvShowMethods.Recommendations | TvShowMethods.Similar;
+        var methods = TvShowMethods.ContentRatings | TvShowMethods.Translations | TvShowMethods.AlternativeTitles | TvShowMethods.ExternalIds |
+            TvShowMethods.Keywords | TvShowMethods.Recommendations | TvShowMethods.Similar;
         if (downloadAlternateOrdering && !quickRefresh)
             methods |= TvShowMethods.EpisodeGroups;
         var show = await _client.UseClient(c => c.GetTvShowAsync(showId, methods, "en-US"), $"Get Show {showId}").ConfigureAwait(false);
@@ -93,7 +93,8 @@ public partial class TmdbMetadataUpdater
                 .ToHashSet();
         var shouldFireEvents = !quickRefresh || xrefs.Count > 0;
         var updated = tmdbShow.Populate(show, contentRatingLanguages);
-        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages);
+        var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages,
+            alternativeTitles: show.AlternativeTitles?.Results);
         updated = titlesUpdated || overviewsUpdated || updated;
         updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds!) || updated;
         updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies!) || updated;

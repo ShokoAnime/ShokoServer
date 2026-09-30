@@ -128,7 +128,8 @@ public partial class TmdbMetadataUpdater
     ///   entity's flags say it was listed, and a gap in the stored positions
     ///   says where. A generic episode title with the episode's own number is
     ///   not stored either. Translations already stored keep their place, and
-    ///   new ones follow in TMDB's order.
+    ///   new ones follow in TMDB's order. The alternative titles TMDB marks
+    ///   as transcribed follow, at most one per transcription language.
     /// </remarks>
     /// <param name="tmdbEntity">The local TMDB Entity to update titles and overviews for.</param>
     /// <param name="translations">The translations container returned from the API.</param>
@@ -136,8 +137,9 @@ public partial class TmdbMetadataUpdater
     /// <param name="preferredOverviewLanguages">The preferred overview languages to store. If not set then we will store all languages.</param>
     /// <param name="includeTitles">Whether to reconcile titles too. <c>false</c> for an entity that has none to speak of, such as a person: you would not translate a given name or a family name, so TMDB carries none and nothing would read any we wrote.</param>
     /// <param name="aliases">A person's other names, stored as its titles when <paramref name="includeTitles"/> is <c>false</c>, or <c>null</c> to leave its titles alone.</param>
+    /// <param name="alternativeTitles">The alternative titles returned from the API, for a show or a movie, or <c>null</c>.</param>
     /// <returns>A tuple indicating if any changes were made to the titles and/or overviews.</returns>
-    private (bool titlesUpdated, bool overviewsUpdated) UpdateTitlesAndOverviewsWithTuple(IEntityMetadata tmdbEntity, TranslationsContainer? translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages, bool includeTitles = true, IReadOnlyList<string>? aliases = null)
+    private (bool titlesUpdated, bool overviewsUpdated) UpdateTitlesAndOverviewsWithTuple(IEntityMetadata tmdbEntity, TranslationsContainer? translations, HashSet<TitleLanguage>? preferredTitleLanguages, HashSet<TitleLanguage>? preferredOverviewLanguages, bool includeTitles = true, IReadOnlyList<string>? aliases = null, IReadOnlyList<AlternativeTitle>? alternativeTitles = null)
     {
         var entityID = new MetadataGuid(MetadataSource.TMDB, tmdbEntity.Type, tmdbEntity.Id.ToString());
         var listedTitles = new List<TmdbTextListing.ListedText>();
@@ -181,6 +183,10 @@ public partial class TmdbMetadataUpdater
             if (shouldInclude && !string.IsNullOrEmpty(currentOverview))
                 listedOverviews.Add(new(languageCode, countryCode, currentOverview));
         }
+
+        if (includeTitles)
+            listedTitles.AddRange(TmdbTextListing.TranscribedTitles(alternativeTitles, tmdbEntity.OriginalLanguageCode)
+                .Where(title => preferredTitleLanguages is null || preferredTitleLanguages.Contains(TmdbTextListing.Language(title.LanguageCode, title.CountryCode))));
 
         IReadOnlyList<ITitle>? titles = null;
         int? titleGap = null;

@@ -9,6 +9,7 @@ using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
+using TMDbLib.Objects.General;
 using Xunit;
 
 using ListedText = Shoko.Server.Providers.TMDB.TmdbTextListing.ListedText;
@@ -150,6 +151,78 @@ public class TmdbTextTests
         // Only an episode's titles are checked.
         (texts, _) = TmdbTextListing.Plan(new List<ITitle>(), false, [Listed("ja", "JP", "第5話")], "Episode 5");
         Assert.Equal(["ja-JP:第5話"], Values(texts));
+    }
+
+    #endregion
+
+    #region Transcriptions
+
+    private static AlternativeTitle Alternative(string country, string title, string type)
+        => new() { Iso_3166_1 = country, Title = title, Type = type };
+
+    [Fact]
+    public void AGenericTranscriptionTypeTakesTheOriginalLanguageInItsHomeCountriesOnly()
+    {
+        // Show 107255: "Long Zu" is typed romaji, but the show is Chinese.
+        List<AlternativeTitle> longZu =
+        [
+            Alternative("CN", "Long Zu", "Romaji"),
+            Alternative("CN", "Lóngzú", "pinyin"),
+            Alternative("JP", "Long Zu", "Romaji"),
+        ];
+        var listed = TmdbTextListing.TranscribedTitles(longZu, "zh");
+
+        Assert.Equal(["x-zht-:Long Zu"], Values(listed));
+        var title = TmdbTextListing.ToTitle(listed[0]);
+        Assert.Equal(TitleLanguage.Pinyin, title.Language);
+        Assert.Equal(TitleType.Synonym, title.Type);
+
+        // Show 67063: a Japanese reading of a Chinese show is not its pinyin.
+        Assert.Empty(TmdbTextListing.TranscribedTitles([Alternative("JP", "Hitori no Shita", "transliteration")], "zh"));
+        Assert.Empty(TmdbTextListing.TranscribedTitles([Alternative("US", "Bangumi", "romaji")], "en"));
+    }
+
+    [Fact]
+    public void ATypeNamingItsSystemDecidesTheLanguageByItself()
+    {
+        List<AlternativeTitle> alternativeTitles =
+        [
+            Alternative("CN", "HuoYingRenZhe：JiFengZhuan", "拼音"),
+            Alternative("JP", "Sōsō no Furīren", "Hepburn Romanization"),
+            Alternative("JP", "Sousou no Frieren", "Romaji‌"),
+            Alternative("KR", "Yeon-ae Halujeon", "Romaja"),
+        ];
+
+        Assert.Equal(
+            ["x-zht-:HuoYingRenZhe：JiFengZhuan", "x-jat-:Sousou no Frieren", "x-kot-:Yeon-ae Halujeon"],
+            Values(TmdbTextListing.TranscribedTitles(alternativeTitles, "ja"))
+        );
+    }
+
+    [Fact]
+    public void OnlyWholeTitlesInLatinScriptAreTranscriptions()
+    {
+        List<AlternativeTitle> alternativeTitles =
+        [
+            Alternative("CN", "龙族", "pinyin"),
+            Alternative("JP", "Shingeki no Kyojin The Final Season", "season 2 romaji"),
+            Alternative("JP", "Shingeki no Kyojin: Kuinaki Sentaku", "OAD title romaji"),
+            Alternative("JP", "Bangumi", "alternate romanization"),
+        ];
+
+        Assert.Empty(TmdbTextListing.TranscribedTitles(alternativeTitles, "ja"));
+    }
+
+    [Fact]
+    public void ASynonymNeverTakesATranslationsPlace()
+    {
+        IReadOnlyList<ITitle> stored = [Stored("ja", "JP", "番組", 0)];
+        ListedText synonym = new("ja", "JP", "Bangumi", TitleType.Synonym);
+
+        var (texts, _) = TmdbTextListing.Plan(stored, false, [synonym, Listed("ja", "JP", "番組")], null);
+
+        Assert.Equal(["ja-JP:番組", "ja-JP:Bangumi"], Values(texts));
+        Assert.Equal([TitleType.Official, TitleType.Synonym], texts.Select(text => TmdbTextListing.ToTitle(text).Type));
     }
 
     #endregion

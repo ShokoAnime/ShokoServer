@@ -41,15 +41,17 @@ public class MetadataTextManagerTests
             Title("Official", TitleLanguage.English, "en"),
         ];
 
-        Assert.Equal("Official", MetadataTextManager.Pick(titles, TitleLanguage.English)?.Value);
+        Assert.Equal("Official", MetadataTextManager.Pick(titles, TitleLanguage.English, useSynonyms: true)?.Value);
     }
 
     [Fact]
-    public void ASynonymIsStillPickedWhenItIsAllTheSourceHas()
+    public void ASynonymIsPickedOnlyWhenSynonymsAreAllowedAndAnUntypedTitleAlways()
     {
         IReadOnlyList<ITitle> titles = [Title("Synonym", TitleLanguage.English, "en", TitleType.Synonym)];
 
-        Assert.Equal("Synonym", MetadataTextManager.Pick(titles, TitleLanguage.English)?.Value);
+        Assert.Null(MetadataTextManager.Pick(titles, TitleLanguage.English, useSynonyms: false));
+        Assert.Equal("Synonym", MetadataTextManager.Pick(titles, TitleLanguage.English, useSynonyms: true)?.Value);
+        Assert.Equal("Untyped", MetadataTextManager.Pick([.. titles, Title("Untyped", TitleLanguage.English, "en", TitleType.None)], TitleLanguage.English, useSynonyms: false)?.Value);
     }
 
     [Fact]
@@ -57,7 +59,7 @@ public class MetadataTextManagerTests
     {
         IReadOnlyList<ITitle> titles = [Title("Main", TitleLanguage.Main, "x-main", TitleType.Main)];
 
-        Assert.Null(MetadataTextManager.Pick(titles, TitleLanguage.Main));
+        Assert.Null(MetadataTextManager.Pick(titles, TitleLanguage.Main, useSynonyms: true));
         Assert.Empty(MetadataTextManager.WithoutMain(titles));
     }
 
