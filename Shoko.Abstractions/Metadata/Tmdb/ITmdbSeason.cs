@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
 
@@ -33,9 +34,10 @@ public interface ITmdbSeason : ISeason, IWithCreationDate, IWithUpdateDate
     ITmdbShowOrderingInformation? CurrentShowOrdering { get; }
 
     /// <summary>
-    /// Get the TMDB show info for the season, if available.
+    /// Get the TMDB show info for the season.
     /// </summary>
-    new ITmdbShow? Series { get; }
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    new ITmdbShow Series { get; }
 
     /// <summary>
     /// All episodes for the TMDB season.

@@ -153,7 +153,8 @@ public class Metadata_Season : ISeason, IMetadataStoreRow<Metadata_Season>
 
     MetadataGuid ISeason.SeriesID => new(Source, MetadataEntityType.Series, SeriesID);
 
-    ISeries? ISeason.Series => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID);
+    ISeries ISeason.Series => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID) ??
+        throw new NullReferenceException($"Unable to find {Source.Name} series {SeriesID} for its season {ProviderID}");
 
     IReadOnlyList<IEpisode> ISeason.Episodes => StoredEpisodes;
 

@@ -55,7 +55,7 @@ public class DefaultOrdering(ISeries series, MetadataOrderingService? service) :
     public int SeasonCount => Seasons.Count;
 
     /// <inheritdoc />
-    public ISeries? Series => series;
+    public ISeries Series => series;
 
     /// <inheritdoc />
     public IReadOnlyList<ISeason> Seasons => series.Seasons;

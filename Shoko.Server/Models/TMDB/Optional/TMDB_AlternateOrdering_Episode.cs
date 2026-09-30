@@ -221,7 +221,7 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     DateTime? IEpisode.AirDateWithTime => GetTmdbEpisode().AirDateWithTime;
 
-    ISeries? IEpisode.Series => TmdbShow;
+    ISeries IEpisode.Series => ((ITmdbEpisode)this).Series;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => GetTmdbEpisode().ShokoEpisodes;
 
@@ -237,7 +237,8 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     int? ITmdbEpisode.TvdbEpisodeID => GetTmdbEpisode().TvdbEpisodeID;
 
-    ITmdbShow? ITmdbEpisode.Series => TmdbShow;
+    ITmdbShow ITmdbEpisode.Series => TmdbShow ??
+        throw new NullReferenceException($"Unable to find TMDB Show {TmdbShowID} for TMDB alternate ordering episode {TmdbEpisodeID}");
 
     bool IEpisode.IsHidden => GetTmdbEpisode().IsHidden;
 
@@ -269,7 +270,7 @@ public class TMDB_AlternateOrdering_Episode : TMDB_Base<string>, ITmdbEpisode, I
 
     #region ITmdbEpisodeOrderingInformation Implementation
 
-    ITmdbShow? ITmdbEpisodeOrderingInformation.Series => TmdbShow;
+    ITmdbShow ITmdbEpisodeOrderingInformation.Series => ((ITmdbEpisode)this).Series;
 
     ITmdbSeason? ITmdbEpisodeOrderingInformation.Season => TmdbAlternateOrderingSeason;
 

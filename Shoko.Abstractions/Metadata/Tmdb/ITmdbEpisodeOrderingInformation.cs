@@ -1,3 +1,4 @@
+using System;
 namespace Shoko.Abstractions.Metadata.Tmdb;
 
 /// <summary>
@@ -24,11 +25,12 @@ public interface ITmdbEpisodeOrderingInformation : IEpisodeOrderingInformation
     MetadataGuid IEpisodeOrderingInformation.EpisodeID { get => new(MetadataSource.TMDB, MetadataEntityType.Episode, TmdbEpisodeID.ToString()); }
 
     /// <summary>
-    ///   The TMDB show, if it is available.
+    ///   The TMDB show.
     /// </summary>
-    new ITmdbShow? Series { get; }
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    new ITmdbShow Series { get; }
 
-    ISeries? IEpisodeOrderingInformation.Series { get => Series; }
+    ISeries IEpisodeOrderingInformation.Series { get => Series; }
 
     /// <summary>
     ///   The TMDB season the episode is in: its own season for the default

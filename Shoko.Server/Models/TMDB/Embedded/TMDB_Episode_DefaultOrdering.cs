@@ -26,7 +26,7 @@ public sealed class TMDB_Episode_DefaultOrdering(TMDB_Episode episode, TMDB_Show
     /// <inheritdoc />
     public int TmdbEpisodeID => _episode.TmdbEpisodeID;
 
-    ITmdbShow? ITmdbEpisodeOrderingInformation.Series => _show;
+    ITmdbShow ITmdbEpisodeOrderingInformation.Series => _show ?? ((ITmdbEpisode)_episode).Series;
 
     ITmdbSeason? ITmdbEpisodeOrderingInformation.Season => _episode.TmdbSeason;
 

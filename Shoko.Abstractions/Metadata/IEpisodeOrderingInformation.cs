@@ -1,3 +1,4 @@
+using System;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 
@@ -63,9 +64,10 @@ public interface IEpisodeOrderingInformation : IWithCreationDate, IWithUpdateDat
     bool IsPreferred { get; }
 
     /// <summary>
-    ///   The series, if it is available.
+    ///   The series.
     /// </summary>
-    ISeries? Series { get; }
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    ISeries Series { get; }
 
     /// <summary>
     ///   The group the episode is in, if it is available.

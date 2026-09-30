@@ -37,9 +37,11 @@ public interface IShokoEpisode : IEpisode, IWithPrimaryImage, IWithCreationDate,
     int AnidbEpisodeID { get; }
 
     /// <summary>
-    /// Get the shoko series info for the episode, if available.
+    /// Get the shoko series info for the episode. A Shoko episode always
+    /// belongs to a Shoko series.
     /// </summary>
-    new IShokoSeries? Series { get; }
+    /// <exception cref="NullReferenceException">The series the episode belongs to is missing.</exception>
+    new IShokoSeries Series { get; }
 
     /// <summary>
     /// A direct link to the anidb episode metadata.

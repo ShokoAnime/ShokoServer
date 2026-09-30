@@ -268,7 +268,7 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason, IIn
 
     MetadataGuid? ISeason.OrderingID => new(MetadataSource.TMDB, MetadataEntityType.Ordering, TmdbEpisodeGroupCollectionID);
 
-    ISeries? ISeason.Series => TmdbShow;
+    ISeries ISeason.Series => ((ITmdbSeason)this).Series;
 
     IReadOnlyList<IEpisode> ISeason.Episodes => TmdbAlternateOrderingEpisodes;
 
@@ -293,7 +293,8 @@ public class TMDB_AlternateOrdering_Season : TMDB_Base<string>, ITmdbSeason, IIn
 
     string ITmdbSeason.TmdbOrderingID => TmdbEpisodeGroupCollectionID;
 
-    ITmdbShow? ITmdbSeason.Series => TmdbShow;
+    ITmdbShow ITmdbSeason.Series => TmdbShow ??
+        throw new NullReferenceException($"Unable to find TMDB Show {TmdbShowID} for TMDB alternate ordering season {TmdbEpisodeGroupID}");
 
     ITmdbShowOrderingInformation? ITmdbSeason.CurrentShowOrdering => TmdbAlternateOrdering;
 

@@ -57,7 +57,8 @@ public sealed class StoredOrderingGroup(
     public MetadataGuid? OrderingID => ordering.ID;
 
     /// <inheritdoc />
-    public ISeries? Series => ordering.Series;
+    public ISeries Series => ordering.Series ??
+        throw new NullReferenceException($"Unable to find series {ordering.SeriesID} for ordering {ordering.ID}");
 
     /// <inheritdoc />
     public IReadOnlyList<IEpisode> Episodes => [.. places.Select(place => place.Episode)];

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Shoko.Abstractions.Metadata.Tmdb;
@@ -18,11 +19,12 @@ public interface ITmdbShowOrderingInformation : IOrdering
     MetadataGuid IOrdering.SeriesID { get => new(MetadataSource.TMDB, MetadataEntityType.Series, TmdbShowID.ToString()); }
 
     /// <summary>
-    ///   The TMDB show the ordering orders, if it is available.
+    ///   The TMDB show the ordering orders.
     /// </summary>
-    new ITmdbShow? Series { get; }
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    new ITmdbShow Series { get; }
 
-    ISeries? IOrdering.Series { get => Series; }
+    ISeries IOrdering.Series { get => Series; }
 
     /// <summary>
     ///   The ordering's seasons in viewing order: the show's own seasons for

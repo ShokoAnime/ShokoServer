@@ -339,7 +339,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
         }
     }
 
-    ISeries? IEpisode.Series => AnimeSeries;
+    ISeries IEpisode.Series => ((IShokoEpisode)this).Series;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => [this];
 
@@ -359,7 +359,8 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
 
     int IShokoEpisode.AnidbEpisodeID => AniDB_EpisodeID;
 
-    IShokoSeries? IShokoEpisode.Series => AnimeSeries;
+    IShokoSeries IShokoEpisode.Series => AnimeSeries ??
+        throw new NullReferenceException($"Unable to find Shoko Series {AnimeSeriesID} for AnimeEpisode {AnimeEpisodeID}");
 
     IAnidbEpisode IShokoEpisode.AnidbEpisode => AniDB_Episode ??
         throw new NullReferenceException($"Unable to find AniDB Episode {AniDB_EpisodeID} for AnimeEpisode {AnimeEpisodeID}");

@@ -307,7 +307,7 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 
     DateTime? IEpisode.AirDateWithTime => GetAirDateAsDate();
 
-    ISeries? IEpisode.Series => AniDB_Anime;
+    ISeries IEpisode.Series => Series;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => AnimeEpisode is IShokoEpisode shokoEpisode ? [shokoEpisode] : [];
 
@@ -327,7 +327,8 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 
     #region IAnidbEpisode Implementation
 
-    public IAnidbAnime? Series => AniDB_Anime;
+    public IAnidbAnime Series => AniDB_Anime ??
+        throw new NullReferenceException($"Unable to find AniDB Anime {AnimeID} for AniDB Episode {EpisodeID}");
 
     #endregion
 }

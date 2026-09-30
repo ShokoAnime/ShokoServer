@@ -34,7 +34,8 @@ public interface IAnidbEpisode : IEpisode, IWithUpdateDate
     DateOnly? RegularAirDate { get => AirDate; }
 
     /// <summary>
-    /// Get the anidb anime info for the episode, if available.
+    /// Get the anidb anime info for the episode.
     /// </summary>
-    new IAnidbAnime? Series { get; }
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    new IAnidbAnime Series { get; }
 }

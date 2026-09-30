@@ -21,7 +21,7 @@ public sealed class TMDB_Show_DefaultOrdering(TMDB_Show show, MetadataOrderingSe
     /// <inheritdoc />
     public int TmdbShowID => _show.TmdbShowID;
 
-    ITmdbShow? ITmdbShowOrderingInformation.Series => _show;
+    ITmdbShow ITmdbShowOrderingInformation.Series => _show;
 
     IReadOnlyList<ITmdbSeason> ITmdbShowOrderingInformation.Seasons => _show.TmdbSeasons;
 

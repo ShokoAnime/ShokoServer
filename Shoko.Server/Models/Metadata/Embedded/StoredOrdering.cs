@@ -66,7 +66,8 @@ public sealed class StoredOrdering(Metadata_Ordering row, MetadataOrderingServic
     public int SeasonCount => Groups.Count;
 
     /// <inheritdoc />
-    public ISeries? Series => service.GetSeries(SeriesID);
+    public ISeries Series => service.GetSeries(SeriesID) ??
+        throw new NullReferenceException($"Unable to find series {SeriesID} for ordering {ID}");
 
     /// <inheritdoc />
     public IReadOnlyList<ISeason> Seasons => Groups;

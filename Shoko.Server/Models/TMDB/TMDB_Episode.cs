@@ -480,7 +480,7 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
 
     DateTime? IEpisode.AirDateWithTime => AiredAt?.ToDateTime();
 
-    ISeries? IEpisode.Series => TmdbShow;
+    ISeries IEpisode.Series => ((ITmdbEpisode)this).Series;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => CrossReferences
         .Select(xref => xref.AnimeEpisode)
@@ -504,7 +504,8 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
 
     string ITmdbEpisode.TmdbOrderingID => TmdbShowID.ToString();
 
-    ITmdbShow? ITmdbEpisode.Series => TmdbShow;
+    ITmdbShow ITmdbEpisode.Series => TmdbShow ??
+        throw new NullReferenceException($"Unable to find TMDB Show {TmdbShowID} for TMDB Episode {TmdbEpisodeID}");
 
     ITmdbSeason? ITmdbEpisode.Season => TmdbSeason;
 

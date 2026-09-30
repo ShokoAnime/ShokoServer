@@ -342,7 +342,7 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, ITmdbSeason, IInline
 
     #region ISeason Implementation
 
-    ISeries? ISeason.Series => TmdbShow;
+    ISeries ISeason.Series => ((ITmdbSeason)this).Series;
 
     IReadOnlyList<IEpisode> ISeason.Episodes => TmdbEpisodes;
 
@@ -368,7 +368,8 @@ public class TMDB_Season : TMDB_Base<int>, IEntityMetadata, ITmdbSeason, IInline
 
     string ITmdbSeason.TmdbOrderingID => TmdbShowID.ToString();
 
-    ITmdbShow? ITmdbSeason.Series => TmdbShow;
+    ITmdbShow ITmdbSeason.Series => TmdbShow ??
+        throw new NullReferenceException($"Unable to find TMDB Show {TmdbShowID} for TMDB Season {TmdbSeasonID}");
 
     ITmdbShowOrderingInformation? ITmdbSeason.CurrentShowOrdering => TmdbShow is { } show ? new TMDB_Show_DefaultOrdering(show, OrderingLookup.Service) : null;
 

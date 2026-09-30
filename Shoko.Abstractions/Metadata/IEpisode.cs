@@ -80,9 +80,11 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     DateTime? AirDateWithTime { get; }
 
     /// <summary>
-    /// Get the series info for the episode, if available.
+    /// Get the series info for the episode. An episode always belongs to a
+    /// series.
     /// </summary>
-    ISeries? Series { get; }
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    ISeries Series { get; }
 
     /// <summary>
     ///   Every place the episode has in its series' orderings: its place in

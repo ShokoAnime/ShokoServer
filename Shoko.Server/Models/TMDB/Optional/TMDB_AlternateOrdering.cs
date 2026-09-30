@@ -243,7 +243,8 @@ public class TMDB_AlternateOrdering : TMDB_Base<string>, ITmdbShowOrderingInform
 
     #region ITmdbShowOrderingInformation Implementation
 
-    ITmdbShow? ITmdbShowOrderingInformation.Series => TmdbShow;
+    ITmdbShow ITmdbShowOrderingInformation.Series => TmdbShow ??
+        throw new NullReferenceException($"Unable to find TMDB Show {TmdbShowID} for TMDB alternate ordering {TmdbEpisodeGroupCollectionID}");
 
     IReadOnlyList<ITmdbSeason> ITmdbShowOrderingInformation.Seasons => TmdbAlternateOrderingSeasons;
 

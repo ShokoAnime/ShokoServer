@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
@@ -64,9 +65,10 @@ public interface IOrdering : IMetadata, IWithCreationDate, IWithUpdateDate, IWit
     int SeasonCount { get; }
 
     /// <summary>
-    ///   The series the ordering orders, if it is available.
+    ///   The series the ordering orders.
     /// </summary>
-    ISeries? Series { get; }
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    ISeries Series { get; }
 
     /// <summary>
     ///   The ordering's groups in viewing order, each read as a season. For

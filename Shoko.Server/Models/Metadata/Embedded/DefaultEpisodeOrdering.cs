@@ -46,7 +46,7 @@ public class DefaultEpisodeOrdering(IEpisode episode, ISeries? series, MetadataO
     public bool IsPreferred => series is null || service is null || service.IsPreferred(series, OrderingID);
 
     /// <inheritdoc />
-    public ISeries? Series => series;
+    public ISeries Series => series ?? episode.Series;
 
     /// <inheritdoc />
     public ISeason? Season => SeasonID is { } seasonID ? series?.Seasons.FirstOrDefault(season => season.ID == seasonID) : null;

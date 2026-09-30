@@ -42,7 +42,7 @@ public sealed class StoredEpisodeOrdering(StoredOrderingGroup group, IEpisode ep
     public bool IsPreferred => group.Ordering.IsPreferred;
 
     /// <inheritdoc />
-    public ISeries? Series => group.Series;
+    public ISeries Series => group.Series;
 
     /// <inheritdoc />
     public ISeason? Season => group;

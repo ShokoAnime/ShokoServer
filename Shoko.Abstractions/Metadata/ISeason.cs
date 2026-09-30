@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
@@ -36,9 +37,11 @@ public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     MetadataGuid? OrderingID { get => null; }
 
     /// <summary>
-    /// Get the series info for the season, if available.
+    /// Get the series info for the season. A season always belongs to a
+    /// series.
     /// </summary>
-    ISeries? Series { get; }
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    ISeries Series { get; }
 
     /// <summary>
     /// All episodes for the season.

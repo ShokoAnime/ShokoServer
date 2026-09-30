@@ -1508,7 +1508,8 @@ public class MetadataMatchingEngineTests
         mock.SetupGet(episode => episode.Titles).Returns(titles ?? (title is null ? [] : [Title(title, MetadataSource.AniDB)]));
         mock.SetupGet(episode => episode.ShokoEpisodes).Returns([]);
         mock.SetupGet(episode => episode.MetadataEpisodeCrossReferences).Returns([]);
-        mock.SetupGet(episode => episode.Series).Returns(series);
+        if (series is not null)
+            mock.SetupGet(episode => episode.Series).Returns(series);
         return mock.Object;
     }
 

@@ -245,7 +245,8 @@ public class Metadata_Episode : IEpisode, IMetadataStoreRow<Metadata_Episode>
 
     TimeSpan IEpisode.Runtime => TimeSpan.FromSeconds(RuntimeSeconds);
 
-    ISeries? IEpisode.Series => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID);
+    ISeries IEpisode.Series => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID) ??
+        throw new NullReferenceException($"Unable to find {Source.Name} series {SeriesID} for its episode {ProviderID}");
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => MetadataStoredEntry.ShokoEpisodes(Links.Select(link => link.AnidbEpisodeID));
 
