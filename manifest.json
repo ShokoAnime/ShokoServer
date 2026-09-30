@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.491",
+      "tag": "v6.0.0-dev.491",
+      "commit": "bfd4d8a2c436a6a834eb2af0521d646d189d3b6c",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.491/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-09-30T22:06:11Z",
+      "releaseNotes": "\n`feat` (`abstractions`): **Add `ScopeExpression`, a filter's parentheses**:\n\n- Answered as its left expression, so a filter language can keep the grouping it was written with\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.96**.\n\n`feat` (`api`): **List the sources series and movies can be linked to**:\n\n- Added `GET /api/v3/Metadata/Source`: one row per source, with the kinds its providers link, which are on, and its status\n\n`refactor` (`abstractions`): **Make the series of episodes, seasons and orderings non-nullable**:\n\n- `IEpisode`, `ISeason`, `IOrdering`, `IEpisodeOrderingInformation` and their AniDB, Shoko and TMDB forms answer a series, and throw when it is missing\n"
+    },
+    {
       "version": "6.0.0.490",
       "tag": "v6.0.0-dev.490",
       "commit": "ea050881fcdf783ec4ecda63f1336dfbace8cfa1",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.462/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-15T02:25:54Z",
       "releaseNotes": "\n`fix` (`relocation`): **Resolve the managed folder path before containment checks**:\n\nThe containment check compared a fully-resolved path against the raw\nfolder path, which never matches on Windows where GetFullPath adds a\ndrive letter. Resolve the folder path once and use it for the\ncomparison and downstream relative-path math. The source-location test\nasserts against the folder's platform-normalized path so it holds on\nboth platforms.\n"
-    },
-    {
-      "version": "6.0.0.461",
-      "tag": "v6.0.0-dev.461",
-      "commit": "dcf5e5eea2d955c04c40ec03e62eed725678aee6",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.461/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-15T02:11:52Z",
-      "releaseNotes": "\n`misc`: **Plugin Stream Pipeline**.\n\n`misc`: **Plugin Stream Pipeline**.\n\n`misc`: **Update**.\n\n`merge`: **Merge branch 'plugin-stream-pipeline'**:\n\n# Conflicts:\n#\tShoko.Server/Plugin/PluginManager.cs\n#\tShoko.Server/Services/SystemService.cs\n\n`merge`: **Merge remote-tracking branch 'origin/master'**.\n"
     }
   ]
 }
