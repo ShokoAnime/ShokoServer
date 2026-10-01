@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -90,7 +91,8 @@ public class TmdbRateLimiterTests
         );
 
         // Queueing the callers rather than sharing the pause would push the deadline out per caller.
-        Assert.Equal(deadline, limiter.BackoffUntilTicks);
+        // The expiry timer may have lifted the pause by now, which zeroes it.
+        Assert.Contains(limiter.BackoffUntilTicks, new[] { deadline, 0L });
     }
 
     [Fact]
@@ -201,8 +203,7 @@ public class TmdbRateLimiterTests
         // doesn't throw and that subsequent EnsureRateAsync proceeds immediately.
         limiter.NotifySuccess();
 
-        // The 429 path leaves the elapsed deadline behind rather than zeroing it, so what matters is
-        // that it is in the past and nothing will wait on it.
+        // The expiry timer may or may not have lifted the pause by now; either way nothing waits on it.
         Assert.True(limiter.BackoffUntilTicks <= DateTimeOffset.UtcNow.UtcTicks,
             "Expected the backoff deadline to have elapsed");
         await limiter.EnsureRateAsync(() => Task.FromResult(0));
@@ -227,6 +228,62 @@ public class TmdbRateLimiterTests
         limiter.Notify5xxError(); // only 1 error — ring was cleared, should NOT trip
 
         Assert.Equal(0L, limiter.BackoffUntilTicks); // no backoff set after reset
+    }
+
+    [Fact]
+    public async Task NotifyRateLimitExceeded_PausesJobsUntilRetryAfter()
+    {
+        using var limiter = CreateRateLimiter(maxRequests: 10, windowMs: 1000);
+        var changes = 0;
+        limiter.PauseStateChanged += (_, _) => Interlocked.Increment(ref changes);
+
+        limiter.NotifyRateLimitExceeded(TimeSpan.FromMilliseconds(200));
+
+        Assert.Equal((true, TmdbPauseReason.RateLimited), (limiter.IsPaused, limiter.PauseReason));
+        Assert.Equal(1, changes);
+
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
+        while (limiter.IsPaused && DateTime.UtcNow < deadline)
+            await Task.Delay(50, TestContext.Current.CancellationToken);
+
+        Assert.Equal((false, TmdbPauseReason.None), (limiter.IsPaused, limiter.PauseReason));
+        Assert.Equal(2, changes);
+        Assert.Equal(0L, limiter.BackoffUntilTicks);
+    }
+
+    [Fact]
+    public void ShorterRateLimit_DuringServerErrorPause_KeepsTheLongerPause()
+    {
+        using var limiter = CreateRateLimiter(maxRequests: 10, windowMs: 1000, errorWindowMs: 10_000);
+        limiter.Notify5xxError();
+        limiter.Notify5xxError();
+        limiter.Notify5xxError();
+        var deadline = limiter.BackoffUntilTicks;
+
+        limiter.NotifyRateLimitExceeded(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(TmdbPauseReason.ServerErrors, limiter.PauseReason);
+        Assert.Equal(deadline, limiter.BackoffUntilTicks);
+
+        limiter.NotifyRateLimitExceeded(TimeSpan.FromHours(2));
+
+        Assert.Equal(TmdbPauseReason.RateLimited, limiter.PauseReason);
+        Assert.True(limiter.BackoffUntilTicks > deadline, "Expected the longer rate limit pause to win");
+    }
+
+    [Fact]
+    public void ServerErrorTrip_DuringLongerRateLimitPause_KeepsTheRateLimitPause()
+    {
+        using var limiter = CreateRateLimiter(maxRequests: 10, windowMs: 1000, errorWindowMs: 10_000);
+        limiter.NotifyRateLimitExceeded(TimeSpan.FromHours(2));
+        var deadline = limiter.BackoffUntilTicks;
+
+        limiter.Notify5xxError();
+        limiter.Notify5xxError();
+        limiter.Notify5xxError();
+
+        Assert.Equal(TmdbPauseReason.RateLimited, limiter.PauseReason);
+        Assert.Equal(deadline, limiter.BackoffUntilTicks);
     }
 
     private static ConfigurationProvider<ServerSettings> CreateSettingsProvider()

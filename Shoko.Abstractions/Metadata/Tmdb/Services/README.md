@@ -80,7 +80,7 @@ result fills `TmdbMovie` and `AnidbEpisode`, a show result `TmdbShow`.
 | `PurgeAllUnusedShows`, `PurgeAllUnusedMovies`, `PurgeAllMovieCollections` | Queue the purges and return. |
 | `ScheduleSearchForMatch(anidbId, force)` / `ScanForMatches()` | Queue the core's search for one anime, or for every series still missing a match. `ScanForMatches` does nothing while TMDB does not auto-link. |
 | `GetShowGenres()` / `GetMovieGenres()` | TMDB's genre IDs and names, fetched once per process. |
-| `GetPauseStatus()` | The 5XX circuit breaker's state (`IsPaused`, `RemainingPauseTime`). |
+| `GetPauseStatus()` | The pause state, for a 429 or the 5XX circuit breaker (`IsPaused`, `RemainingPauseTime`). |
 
 A refresh asked for here counts as requested, so it fetches a show or movie
 whether or not anything links to it yet. One that is not forced skips what
@@ -160,8 +160,9 @@ public async Task Link(IAnidbAnime anime)
 ## Rate limits
 
 `TmdbRateLimiter` belongs to the core: a local sliding window under TMDB's
-roughly 40 requests a second, a backoff on 429 responses, and a 5XX circuit
-breaker that pauses TMDB work after three server errors within ten seconds.
+roughly 40 requests a second, a pause of TMDB work on 429 responses for as
+long as `Retry-After` asks, and a 5XX circuit breaker that pauses it after
+three server errors within ten seconds. The longer pause wins.
 Each TMDB job type runs up to four at once.
 
 - Prefer the `Schedule…` forms for bulk work: a queued job resumes once a

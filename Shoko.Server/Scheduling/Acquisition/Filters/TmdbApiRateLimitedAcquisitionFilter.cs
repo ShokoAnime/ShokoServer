@@ -42,9 +42,9 @@ public class TmdbApiRateLimitedAcquisitionFilter : IAcquisitionFilter, IDisposab
     private void OnPauseStateChanged(object? sender, EventArgs e) => StateChanged?.Invoke(this, EventArgs.Empty);
 
     // Network availability is handled by NetworkRequiredAcquisitionFilter.
-    // Only block when the 5XX circuit breaker is tripped — 429 backoff is handled inside EnsureRateAsync.
+    // Block while TMDB is paused, for a 429 or a tripped 5XX circuit breaker.
     public IEnumerable<Type> GetTypesToExclude() =>
-        _rateLimiter.Is5xxPaused ? _types : [];
+        _rateLimiter.IsPaused ? _types : [];
 
     public event EventHandler? StateChanged;
 }

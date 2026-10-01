@@ -234,7 +234,7 @@ Timer-based `IHostedService` on a fixed interval the admin cannot change; the co
 - `[NetworkRequired]` — waits until network connectivity is confirmed.
 - `[AniDBUdpRateLimited]` — respects AniDB UDP rate limits.
 - `[AniDBHttpRateLimited]` — respects AniDB HTTP rate limits.
-- `[TmdbApiRateLimited]` — waits while TMDB is unreachable or in its 5XX circuit-breaker pause (implies `[NetworkRequired]`).
+- `[TmdbApiRateLimited]` — waits while TMDB is unreachable or paused for a 429 or by its 5XX circuit breaker (implies `[NetworkRequired]`).
 
 **`IJobFactory`** (`Shoko.QueueProcessor/JobFactory.cs`): DI-resolved single-shot execution via `Execute<T>()`. Used internally by the worker and by tests or services that need to run a job inline.
 

@@ -191,7 +191,7 @@ public interface ITmdbMetadataService
     #region Rate Limiting
 
     /// <summary>
-    /// Gets a consistent snapshot of the TMDB 5XX circuit-breaker pause state.
+    /// Gets a consistent snapshot of the TMDB pause state, for a 429 or the 5XX circuit breaker.
     /// </summary>
     TmdbRateLimitPauseStatus GetPauseStatus();
 

@@ -263,14 +263,16 @@ public class TmdbMetadataProvider : IMetadataSeriesLinkingProvider, IMetadataMov
     {
         get
         {
-            var (isPaused, remaining) = _rateLimiter.GetPauseSnapshot();
+            var (isPaused, reason, remaining) = _rateLimiter.GetPauseSnapshot();
             if (!isPaused)
                 return MetadataProviderPauseStatus.NotPaused;
 
             return new()
             {
                 IsPaused = true,
-                Reason = "TMDB answered with server errors, so its requests are paused for a while.",
+                Reason = reason is TmdbPauseReason.RateLimited
+                    ? "TMDB is limiting the rate of requests, so its requests are paused for a while."
+                    : "TMDB answered with server errors, so its requests are paused for a while.",
                 ResumesAt = remaining is { } left ? DateTime.UtcNow + left : null,
             };
         }

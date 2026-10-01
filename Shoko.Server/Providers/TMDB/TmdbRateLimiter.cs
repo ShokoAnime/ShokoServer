@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Events;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Providers.TMDB;
 
@@ -16,8 +17,8 @@ namespace Shoko.Server.Providers.TMDB;
 // against the new shape. Revisit if the ring-buffer approach needs further tuning.
 /// <summary>
 /// Rate limiter for the TMDB API (~40 req/sec enforced by TMDB).
-/// Uses a sliding window to smooth request distribution and adapts to server-enforced
-/// 429 backoff via <see cref="NotifyRateLimitExceeded"/>.
+/// Uses a sliding window to smooth request distribution, and pauses TMDB jobs on a
+/// server-enforced 429 backoff via <see cref="NotifyRateLimitExceeded"/>.
 /// </summary>
 public sealed class TmdbRateLimiter : IDisposable
 {
@@ -40,15 +41,20 @@ public sealed class TmdbRateLimiter : IDisposable
 
     private readonly long _errorWindowTicks;
 
-    // Guards _5xxPauseLevel and all writes to _backoffUntilTicks so that the level/deadline
-    // pair is always updated atomically. Reads of _backoffUntilTicks from WaitForBackoffAsync
+    // Guards _5xxPauseLevel, _pauseReason and all writes to _backoffUntilTicks so that they
+    // are always updated atomically. Reads of _backoffUntilTicks from WaitForBackoffAsync
     // and EnsureRateAsync happen outside this lock via Interlocked.Read — that is safe because
     // lock exit provides a release fence and Interlocked.Read provides an acquire fence.
     private readonly Lock _breakerLock = new();
 
     private volatile int _5xxPauseLevel;
 
-    private volatile bool _is5xxPaused;
+    private volatile TmdbPauseReason _pauseReason;
+
+    // Lifts the pause once its deadline passes. Re-armed whenever the deadline moves.
+    private readonly Timer _pauseExpiryTimer;
+
+    private bool _disposed;
 
     private readonly CancellationTokenSource _disposeCts = new();
 
@@ -75,12 +81,19 @@ public sealed class TmdbRateLimiter : IDisposable
         var settings = settingsProvider.Load().TMDB.RateLimit;
         _maxRequestsPerWindow = settings.MaxRequestsPerWindow;
         _limiter = CreateLimiter(settings.MaxRequestsPerWindow, settings.WindowDurationMs);
+        using (DetachedFlow.Suppress())
+            _pauseExpiryTimer = new(_ => OnPauseExpired(), null, Timeout.Infinite, Timeout.Infinite);
         _settingsProvider.Saved += OnSettingsSaved;
     }
 
     public void Dispose()
     {
         _settingsProvider.Saved -= OnSettingsSaved;
+        lock (_breakerLock)
+        {
+            _disposed = true;
+            _pauseExpiryTimer.Dispose();
+        }
         _disposeCts.Cancel();
         _disposeCts.Dispose();
         _limiter.Dispose();
@@ -111,21 +124,34 @@ public sealed class TmdbRateLimiter : IDisposable
 
     /// <summary>
     /// Signal that TMDB returned a 429. All pending <see cref="EnsureRateAsync{T}"/> calls
-    /// will pause until the backoff window elapses.
+    /// and TMDB jobs pause until the backoff window elapses, unless a longer pause is active.
     /// </summary>
     /// <param name="retryAfter">Duration to back off; defaults to 1 second if null.</param>
     public void NotifyRateLimitExceeded(TimeSpan? retryAfter)
     {
         var delay = retryAfter ?? TimeSpan.FromSeconds(1);
         var until = DateTimeOffset.UtcNow + delay;
-        var newTicks = until.UtcTicks;
+        bool started;
         lock (_breakerLock)
         {
-            if (newTicks <= Interlocked.Read(ref _backoffUntilTicks))
+            // The longer pause wins, whichever its reason.
+            if (until.UtcTicks <= Interlocked.Read(ref _backoffUntilTicks))
                 return;
-            Interlocked.Exchange(ref _backoffUntilTicks, newTicks);
+
+            Interlocked.Exchange(ref _backoffUntilTicks, until.UtcTicks);
+            started = _pauseReason is not TmdbPauseReason.RateLimited;
+            _pauseReason = TmdbPauseReason.RateLimited;
+            ArmPauseExpiry(delay);
+            if (started)
+                _logger.LogInformation(
+                    "TMDB is rate limiting requests. All TMDB jobs paused for {Duration} seconds. They will resume automatically.",
+                    (int)Math.Ceiling(delay.TotalSeconds));
+            else
+                _logger.LogTrace("TMDB rate limit exceeded. Backing off until {Until}", until);
         }
-        _logger.LogTrace("TMDB rate limit exceeded. Backing off until {Until}", until);
+
+        if (started)
+            PauseStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
@@ -190,32 +216,36 @@ public sealed class TmdbRateLimiter : IDisposable
     }
 
     /// <summary>
-    /// Returns <see cref="Is5xxPaused"/> and <see cref="RemainingPauseTime"/> as a single
+    /// Returns <see cref="PauseReason"/> and <see cref="RemainingPauseTime"/> as a single
     /// consistent snapshot so callers don't observe a state change between two separate reads.
     /// </summary>
-    public (bool IsPaused, TimeSpan? Remaining) GetPauseSnapshot()
+    /// <returns>Whether TMDB is paused, why, and the time left on the pause.</returns>
+    public (bool IsPaused, TmdbPauseReason Reason, TimeSpan? Remaining) GetPauseSnapshot()
     {
-        // Both fields must be read together under the lock: SchedulePauseExpiry and NotifySuccess
-        // clear _backoffUntilTicks and _is5xxPaused as a pair under this same lock, and reading them
-        // independently outside it can observe the pair mid-flip (paused but no remaining time, or
-        // vice versa).
+        // The pause expiry and NotifySuccess clear _backoffUntilTicks and _pauseReason as a pair
+        // under this lock; reading them outside it can observe the pair mid-flip.
         lock (_breakerLock)
         {
-            var paused = _is5xxPaused;
+            var reason = _pauseReason;
             var ticks = _backoffUntilTicks;
             var remaining = ticks == 0 ? (TimeSpan?)null : new DateTimeOffset(ticks, TimeSpan.Zero) - DateTimeOffset.UtcNow;
-            return (paused, remaining > TimeSpan.Zero ? remaining : null);
+            return (reason is not TmdbPauseReason.None, reason, remaining > TimeSpan.Zero ? remaining : null);
         }
     }
 
     /// <summary>
-    /// True while a 5XX circuit-breaker pause is active. Used by the queue acquisition filter
+    /// True while a 429 or 5XX pause is active. Used by the queue acquisition filter
     /// to block TMDB API jobs from starting until the pause elapses.
     /// </summary>
-    public bool Is5xxPaused => _is5xxPaused;
+    public bool IsPaused => _pauseReason is not TmdbPauseReason.None;
 
     /// <summary>
-    /// Fired when <see cref="Is5xxPaused"/> transitions between true and false.
+    /// Why TMDB jobs are paused, or <see cref="TmdbPauseReason.None"/> when they are not.
+    /// </summary>
+    public TmdbPauseReason PauseReason => _pauseReason;
+
+    /// <summary>
+    /// Fired when the pause starts, ends or changes its reason.
     /// </summary>
     public event EventHandler? PauseStateChanged;
 
@@ -223,11 +253,12 @@ public sealed class TmdbRateLimiter : IDisposable
     /// Signal that TMDB returned a 5XX error.
     /// Records the error timestamp in a 3-slot ring buffer; if all 3 slots fall within
     /// the error window, all pending <see cref="EnsureRateAsync{T}"/> calls pause for
-    /// an escalating duration.
+    /// an escalating duration, unless a longer pause is active.
     /// </summary>
     public void Notify5xxError()
     {
         var now = DateTimeOffset.UtcNow.UtcTicks;
+        var changed = false;
 
         // All ring-buffer state is read and written under _breakerLock so that the
         // slot write, 3-slot snapshot, and breaker trip are never observed in a partial
@@ -253,87 +284,128 @@ public sealed class TmdbRateLimiter : IDisposable
             var duration = Get5xxPauseDuration(nextLevel);
             var newTicks = (DateTimeOffset.UtcNow + duration).UtcTicks;
 
-            // Always advance level and set pause state when the ring buffer trips,
-            // even if a longer 429 backoff is already active — the breaker must engage
-            // so the acquisition filter blocks new job dispatch.
+            // The level always advances; the pause only replaces a shorter one.
             _5xxPauseLevel = nextLevel;
             if (newTicks > Interlocked.Read(ref _backoffUntilTicks))
+            {
                 Interlocked.Exchange(ref _backoffUntilTicks, newTicks);
+                changed = _pauseReason is not TmdbPauseReason.ServerErrors;
+                _pauseReason = TmdbPauseReason.ServerErrors;
 
-            _logger.LogInformation(
-                "TMDB is temporarily unavailable. All TMDB jobs paused for {Duration} minutes. They will resume automatically.",
-                (int)duration.TotalMinutes);
-            var wasAlreadyPaused = _is5xxPaused;
-            _is5xxPaused = true;
-            if (!wasAlreadyPaused)
-                PauseStateChanged?.Invoke(this, EventArgs.Empty);
+                // Time-based recovery, since NotifySuccess never fires while the acquisition filter blocks all TMDB jobs.
+                ArmPauseExpiry(duration);
+                _logger.LogInformation(
+                    "TMDB is temporarily unavailable. All TMDB jobs paused for {Duration} minutes. They will resume automatically.",
+                    (int)duration.TotalMinutes);
+            }
+            else
+            {
+                _logger.LogDebug("TMDB is temporarily unavailable, but a longer pause is already active.");
+            }
 
             // Clear the ring buffer so further errors from this same still-active pause (e.g. requests
             // that were already in flight when the breaker tripped) don't immediately re-trip and escalate
             // the level again — the next escalation should come from a fresh trio of errors after recovery.
             Array.Clear(_errorTimestamps, 0, _errorTimestamps.Length);
             _errorSlot = 0;
-
-            // Schedule time-based recovery so the pause auto-clears even when no
-            // TMDB job runs to call NotifySuccess (which would otherwise never fire
-            // while the acquisition filter is blocking all TMDB jobs).
-            SchedulePauseExpiry(duration);
         }
+
+        if (changed)
+            PauseStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void SchedulePauseExpiry(TimeSpan duration)
+    /// <summary>
+    /// Arms the expiry timer for the pause's new deadline. Called under <see cref="_breakerLock"/>.
+    /// </summary>
+    /// <param name="duration">Time until the deadline.</param>
+    private void ArmPauseExpiry(TimeSpan duration)
     {
-        _ = Task.Delay(duration, _disposeCts.Token)
-            .ContinueWith(_ =>
+        if (_disposed)
+            return;
+
+        // Clamped to what the timer takes; one that fires early re-arms for the rest.
+        var dueTime = duration < TimeSpan.Zero ? TimeSpan.Zero : duration > TimeSpan.FromDays(1) ? TimeSpan.FromDays(1) : duration;
+        _pauseExpiryTimer.Change(dueTime, Timeout.InfiniteTimeSpan);
+    }
+
+    /// <summary>
+    /// Lifts the pause once its deadline has passed, so it ends even when no TMDB request runs.
+    /// </summary>
+    private void OnPauseExpired()
+    {
+        lock (_breakerLock)
+        {
+            if (_disposed || _pauseReason is TmdbPauseReason.None)
+                return;
+
+            // The timer's clock may run ahead of the wall clock; wait out the rest.
+            var remaining = new DateTimeOffset(Interlocked.Read(ref _backoffUntilTicks), TimeSpan.Zero) - DateTimeOffset.UtcNow;
+            if (remaining > TimeSpan.Zero)
             {
-                lock (_breakerLock)
-                {
-                    // A re-trip may have pushed the deadline further out; let that trip's timer handle it.
-                    if (Interlocked.Read(ref _backoffUntilTicks) > DateTimeOffset.UtcNow.UtcTicks)
-                        return;
-                    if (!_is5xxPaused)
-                        return;
-                    Interlocked.Exchange(ref _backoffUntilTicks, 0);
-                    _is5xxPaused = false;
-                }
-                _logger.LogInformation("TMDB pause expired. Queued TMDB jobs will now resume.");
-                PauseStateChanged?.Invoke(this, EventArgs.Empty);
-            }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+                ArmPauseExpiry(remaining);
+                return;
+            }
+
+            Interlocked.Exchange(ref _backoffUntilTicks, 0);
+            LogPauseLifted(_pauseReason, expired: true);
+            _pauseReason = TmdbPauseReason.None;
+        }
+
+        PauseStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Logs the end of a pause.
+    /// </summary>
+    /// <param name="reason">Why TMDB was paused.</param>
+    /// <param name="expired">Whether the pause ran out, rather than ending on a successful request.</param>
+    private void LogPauseLifted(TmdbPauseReason reason, bool expired)
+    {
+        if (reason is TmdbPauseReason.RateLimited)
+            _logger.LogInformation("TMDB rate limit pause expired. Queued TMDB jobs will now resume.");
+        else if (expired)
+            _logger.LogInformation("TMDB pause expired. Queued TMDB jobs will now resume.");
+        else
+            _logger.LogInformation("TMDB is available again. Queued TMDB jobs will now resume.");
     }
 
     /// <summary>
     /// Signal that a TMDB request completed successfully.
-    /// Resets the ramp level to 0 once a 5XX pause has elapsed, so the next error window starts fresh.
+    /// Resets the ramp level to 0 once a 5XX pause has elapsed, so the next error window starts fresh,
+    /// and lifts an elapsed pause the expiry timer has not lifted yet.
     /// </summary>
     public void NotifySuccess()
     {
         // Cheap pre-check to skip the lock entirely in the overwhelmingly common case where the
-        // breaker has never tripped — every successful TMDB call (up to 10 concurrent) would
-        // otherwise funnel through this lock for no reason.
-        if (_5xxPauseLevel == 0) return;
+        // breaker has never tripped and nothing is paused, as every successful TMDB call ends here.
+        if (_5xxPauseLevel == 0 && _pauseReason is TmdbPauseReason.None) return;
 
         lock (_breakerLock)
         {
-            if (_5xxPauseLevel == 0) return;
-
-            // The pause may have been cleared by SchedulePauseExpiry already (backoffTicks == 0)
-            // or may still be active. Only reset the ramp once the deadline has passed.
+            // The pause may have been lifted by the expiry timer already (backoffTicks == 0)
+            // or may still be active. Only reset once the deadline has passed.
             var backoffTicks = Interlocked.Read(ref _backoffUntilTicks);
             if (backoffTicks > 0 && DateTimeOffset.UtcNow.UtcTicks < backoffTicks)
                 return;
 
-            Interlocked.Exchange(ref _backoffUntilTicks, 0);
-            _5xxPauseLevel = 0;
-            // Clear ring buffer so a single 5xx after recovery doesn't immediately re-trip.
-            Array.Clear(_errorTimestamps, 0, _errorTimestamps.Length);
-            _errorSlot = 0;
-            if (_is5xxPaused)
+            if (_5xxPauseLevel != 0)
             {
-                _is5xxPaused = false;
-                _logger.LogInformation("TMDB is available again. Queued TMDB jobs will now resume.");
-                PauseStateChanged?.Invoke(this, EventArgs.Empty);
+                Interlocked.Exchange(ref _backoffUntilTicks, 0);
+                _5xxPauseLevel = 0;
+                // Clear ring buffer so a single 5xx after recovery doesn't immediately re-trip.
+                Array.Clear(_errorTimestamps, 0, _errorTimestamps.Length);
+                _errorSlot = 0;
             }
+
+            if (_pauseReason is TmdbPauseReason.None)
+                return;
+
+            Interlocked.Exchange(ref _backoffUntilTicks, 0);
+            LogPauseLifted(_pauseReason, expired: false);
+            _pauseReason = TmdbPauseReason.None;
         }
+
+        PauseStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
