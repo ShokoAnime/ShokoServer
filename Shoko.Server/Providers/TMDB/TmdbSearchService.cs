@@ -36,6 +36,9 @@ public class TmdbSearchService : ITmdbSearchService
 {
     private const string AnimationGenre = "animation";
 
+    // "cn" is TMDB's code for Cantonese.
+    private static readonly HashSet<string> RestrictedAnimationLanguages = new(StringComparer.OrdinalIgnoreCase) { "ja", "zh", "cn", "ko" };
+
     private readonly ILogger<TmdbSearchService> _logger;
 
     private readonly TmdbApiClient _tmdbService;
@@ -456,14 +459,14 @@ public class TmdbSearchService : ITmdbSearchService
 
         // Attempt #1: full title + year
         (results, _) = await SearchMoviesRaw(query, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
-        CollectMovieCandidates(candidates, results, seen, candidateCount);
+        CollectMovieCandidates(candidates, results, seen, candidateCount, includeRestricted);
 
         // Attempt #2: sequel-suffix stripped + year
         var strippedTitle = TitleVariants.WithoutSequelSuffix(query);
         if (!string.IsNullOrEmpty(strippedTitle) && candidates.Count < candidateCount)
         {
             (results, _) = await SearchMoviesRaw(strippedTitle, includeRestricted: includeRestricted, year: year).ConfigureAwait(false);
-            CollectMovieCandidates(candidates, results, seen, candidateCount);
+            CollectMovieCandidates(candidates, results, seen, candidateCount, includeRestricted);
         }
 
         // Attempts #3–4: year-free fallbacks mirroring #1–2.
@@ -473,12 +476,12 @@ public class TmdbSearchService : ITmdbSearchService
         var yearFreeCap = candidateCount * 2;
 
         (results, _) = await SearchMoviesRaw(query, includeRestricted: includeRestricted).ConfigureAwait(false);
-        CollectMovieCandidates(candidates, results, seen, yearFreeCap);
+        CollectMovieCandidates(candidates, results, seen, yearFreeCap, includeRestricted);
 
         if (!string.IsNullOrEmpty(strippedTitle) && candidates.Count < yearFreeCap)
         {
             (results, _) = await SearchMoviesRaw(strippedTitle, includeRestricted: includeRestricted).ConfigureAwait(false);
-            CollectMovieCandidates(candidates, results, seen, yearFreeCap);
+            CollectMovieCandidates(candidates, results, seen, yearFreeCap, includeRestricted);
         }
 
         if (candidates.Count == 0)
@@ -801,14 +804,14 @@ public class TmdbSearchService : ITmdbSearchService
 
         // Attempt #1: full title + year
         (results, _) = await SearchShowsRaw(originalTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-        CollectCandidates(candidates, results, seen, candidateCount);
+        CollectCandidates(candidates, results, seen, candidateCount, restricted);
 
         // Attempt #2: sequel-suffix stripped + year
         var strippedTitle = TitleVariants.WithoutSequelSuffix(originalTitle);
         if (!string.IsNullOrEmpty(strippedTitle) && candidates.Count < candidateCount)
         {
             (results, _) = await SearchShowsRaw(strippedTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-            CollectCandidates(candidates, results, seen, candidateCount);
+            CollectCandidates(candidates, results, seen, candidateCount, restricted);
         }
 
         // Attempt #3: subtitle stripped + year. The engine rates this form a close match only,
@@ -817,7 +820,7 @@ public class TmdbSearchService : ITmdbSearchService
         if (!string.IsNullOrEmpty(titleWithoutSubTitle) && candidates.Count < candidateCount)
         {
             (results, _) = await SearchShowsRaw(titleWithoutSubTitle, includeRestricted: restricted, year: airDate.Year).ConfigureAwait(false);
-            CollectCandidates(candidates, results, seen, candidateCount);
+            CollectCandidates(candidates, results, seen, candidateCount, restricted);
         }
 
         // Attempts #4–6: year-free fallbacks mirroring #1–3.
@@ -829,18 +832,18 @@ public class TmdbSearchService : ITmdbSearchService
         var yearFreeCap = candidateCount * 2;
 
         (results, _) = await SearchShowsRaw(originalTitle, includeRestricted: restricted).ConfigureAwait(false);
-        CollectCandidates(candidates, results, seen, yearFreeCap);
+        CollectCandidates(candidates, results, seen, yearFreeCap, restricted);
 
         if (!string.IsNullOrEmpty(strippedTitle) && candidates.Count < yearFreeCap)
         {
             (results, _) = await SearchShowsRaw(strippedTitle, includeRestricted: restricted).ConfigureAwait(false);
-            CollectCandidates(candidates, results, seen, yearFreeCap);
+            CollectCandidates(candidates, results, seen, yearFreeCap, restricted);
         }
 
         if (!string.IsNullOrEmpty(titleWithoutSubTitle) && candidates.Count < yearFreeCap)
         {
             (results, _) = await SearchShowsRaw(titleWithoutSubTitle, includeRestricted: restricted).ConfigureAwait(false);
-            CollectCandidates(candidates, results, seen, yearFreeCap);
+            CollectCandidates(candidates, results, seen, yearFreeCap, restricted);
         }
 
         if (candidates.Count == 0)
@@ -1893,24 +1896,30 @@ public class TmdbSearchService : ITmdbSearchService
         _ => 6,
     };
 
-    private static void CollectCandidates(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount)
+    // Restricted titles also accept an East Asian original_language match - TMDB's genre tags are sparse
+    // for adult content, but original_language is TMDB-assigned metadata, not community-tagged.
+    private static void CollectCandidates(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount, bool isRestricted = false)
     {
         foreach (var result in results)
         {
             if (candidates.Count >= candidateCount) break;
             if (!seen.Add(result.Id)) continue;
-            if (!result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase)) continue;
+            var isAnimeLike = result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase) ||
+                (isRestricted && result.OriginalLanguage is { } language && RestrictedAnimationLanguages.Contains(language));
+            if (!isAnimeLike) continue;
             candidates.Add(result);
         }
     }
 
-    private static void CollectMovieCandidates(List<SearchMovie> candidates, List<SearchMovie> results, HashSet<int> seen, int candidateCount)
+    private static void CollectMovieCandidates(List<SearchMovie> candidates, List<SearchMovie> results, HashSet<int> seen, int candidateCount, bool isRestricted = false)
     {
         foreach (var result in results)
         {
             if (candidates.Count >= candidateCount) break;
             if (!seen.Add(result.Id)) continue;
-            if (!result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase)) continue;
+            var isAnimeLike = result.GetGenres().Contains(AnimationGenre, StringComparer.OrdinalIgnoreCase) ||
+                (isRestricted && result.OriginalLanguage is { } language && RestrictedAnimationLanguages.Contains(language));
+            if (!isAnimeLike) continue;
             candidates.Add(result);
         }
     }

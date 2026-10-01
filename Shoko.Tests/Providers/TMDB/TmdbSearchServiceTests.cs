@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Search;
@@ -622,5 +623,89 @@ public class TmdbSearchServiceTests
         var mainMovie = SeriesSearch.NormalizeForIndex("Fairy Tail: Phoenix Priestess");
         var bonusShort = SeriesSearch.NormalizeForIndex("Fairy Tail: Phoenix Priestess!");
         Assert.Equal(mainMovie, bonusShort);
+    }
+    // TmdbMetadataService.Instance is unset in this test host, so GetGenres() always returns empty -
+    // every result below is effectively untagged; only OriginalLanguage varies.
+
+    private static void InvokeCollectCandidates(List<SearchTv> candidates, List<SearchTv> results, HashSet<int> seen, int candidateCount, bool isRestricted)
+    {
+        var method = typeof(TmdbSearchService).GetMethod("CollectCandidates", BindingFlags.NonPublic | BindingFlags.Static)!;
+        method.Invoke(null, [candidates, results, seen, candidateCount, isRestricted]);
+    }
+
+    private static void InvokeCollectMovieCandidates(List<SearchMovie> candidates, List<SearchMovie> results, HashSet<int> seen, int candidateCount, bool isRestricted)
+    {
+        var method = typeof(TmdbSearchService).GetMethod("CollectMovieCandidates", BindingFlags.NonPublic | BindingFlags.Static)!;
+        method.Invoke(null, [candidates, results, seen, candidateCount, isRestricted]);
+    }
+
+    [Fact]
+    public void CollectCandidates_NonRestricted_ExcludesUntaggedResult()
+    {
+        var candidates = new List<SearchTv>();
+        var results = new List<SearchTv> { new() { Id = 1 } };
+        InvokeCollectCandidates(candidates, results, [], 10, false);
+
+        Assert.Empty(candidates);
+    }
+
+    [Fact]
+    public void CollectCandidates_Restricted_ExcludesUntaggedNonEastAsianResult()
+    {
+        var candidates = new List<SearchTv>();
+        var results = new List<SearchTv> { new() { Id = 1, OriginalLanguage = "en" } };
+        InvokeCollectCandidates(candidates, results, [], 10, true);
+
+        Assert.Empty(candidates);
+    }
+
+    [Theory]
+    [InlineData("ja")]
+    [InlineData("zh")]
+    [InlineData("cn")]
+    [InlineData("ko")]
+    [InlineData("KO")]
+    public void CollectCandidates_Restricted_IncludesUntaggedEastAsianResult(string language)
+    {
+        var candidates = new List<SearchTv>();
+        var results = new List<SearchTv> { new() { Id = 1, OriginalLanguage = language } };
+        InvokeCollectCandidates(candidates, results, [], 10, true);
+
+        Assert.Single(candidates);
+    }
+
+    [Fact]
+    public void CollectMovieCandidates_NonRestricted_ExcludesUntaggedResult()
+    {
+        var candidates = new List<SearchMovie>();
+        var results = new List<SearchMovie> { new() { Id = 1 } };
+        InvokeCollectMovieCandidates(candidates, results, [], 10, false);
+
+        Assert.Empty(candidates);
+    }
+
+    [Fact]
+    public void CollectMovieCandidates_Restricted_ExcludesUntaggedNonEastAsianResult()
+    {
+        var candidates = new List<SearchMovie>();
+        var results = new List<SearchMovie> { new() { Id = 1, OriginalLanguage = "en" } };
+        InvokeCollectMovieCandidates(candidates, results, [], 10, true);
+
+        Assert.Empty(candidates);
+    }
+
+    [Theory]
+    [InlineData("ja")]
+    [InlineData("zh")]
+    [InlineData("cn")]
+    [InlineData("ko")]
+    [InlineData("KO")]
+    public void CollectMovieCandidates_Restricted_IncludesUntaggedEastAsianResult(string language)
+    {
+        var candidates = new List<SearchMovie>();
+        var results = new List<SearchMovie> { new() { Id = 1, OriginalLanguage = language } };
+        InvokeCollectMovieCandidates(candidates, results, [], 10, true);
+
+        Assert.Single(candidates);
     }
 }
