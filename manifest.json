@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.493",
+      "tag": "v6.0.0-dev.493",
+      "commit": "1c0b2e859fda971b9aaa6222863fcb6d18bad1ea",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.493/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-01T20:10:55Z",
+      "releaseNotes": "\n`feat` (`core`): **Log the HTTP clients whose expired handlers stay referenced**:\n\n- Added `ExpiredHttpHandlerMonitor`, which reads the client factory's expired handlers every 2 minutes and warns per client name once one survives 10 minutes and a full GC\n- Names the plugin when a typed client's type is found in one; stands down at Debug if the factory's internals are not as expected\n"
+    },
+    {
       "version": "6.0.0.492",
       "tag": "v6.0.0-dev.492",
       "commit": "86a47d904dc449cf6a4fc84a298f226bfa2802cc",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.464/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-15T17:57:09Z",
       "releaseNotes": "\n`fix` (`db`): **Tolerate quoted identifiers when patching stored SQLite DDL**:\n\nA tool that rebuilt a table outside Shoko, such as DB Browser for SQLite,\nstores the CREATE TABLE with every identifier double-quoted in\n`sqlite_master`. Migrations that tighten a column's nullability or retype\nit patch the stored blueprint in place, and the patch regexes could not\nsee past the quoting, so migration `164.1` aborted on such a database\nwith `Could not find a definition for Title` and left it blocked.\n\n- Accept an optional `\"` pair around the column name in\n  `NotNullVariantOf` and `RetypedVariantOf`, keeping the quotes in the\n  rebuilt DDL\n- Pin the affected user's exact table shape in regression tests for both\n  paths\n"
-    },
-    {
-      "version": "6.0.0.463",
-      "tag": "v6.0.0-dev.463",
-      "commit": "78e0390ffebba4e5991bdc003ee2cbb70bf5d1e7",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.463/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-15T02:31:40Z",
-      "releaseNotes": "\n`misc`: **Bump abstractions**.\n\n`fix` (`anilist`): **Decompress responses from the `Anilist` http client**:\n\nThe `Anilist` client advertised gzip, deflate and brotli via\n`Accept-Encoding` but had no handler with `AutomaticDecompression`, so\nbrotli-encoded GraphQL responses were handed to `JsonNode.Parse` still\ncompressed and failed with \"'0x1B' is an invalid start of a value\".\nGave it the same `SocketsHttpHandler` setup as the `Default` client.\n"
     }
   ]
 }
