@@ -2652,9 +2652,14 @@ public class MetadataProviderJobTests
     {
         var series = new Mock<IShokoSeries>();
         series.SetupGet(s => s.AnidbAnimeID).Returns(anidbAnimeID);
+        return InSeries(action, series.Object);
+    }
+
+    private static T InSeries<T>(T action, IShokoSeries series) where T : SeriesAction
+    {
         typeof(SeriesAction).GetInterfaces().Single(type => type.Name == "IScopedAction")
             .GetMethod("SetContext")!
-            .Invoke(action, [series.Object]);
+            .Invoke(action, [series]);
         return action;
     }
 
@@ -2684,19 +2689,45 @@ public class MetadataProviderJobTests
         Assert.Equal(tmdbSeries.ToString(), ((IMetadataRefreshJob)harness.Queued[1].Job).EntryID);
     }
 
-    [Fact]
-    public async Task TheSeriesSearchActionForcesASearchOnEveryPluginSource()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TheSeriesSearchActionSearchesEverySourceWithAnEnabledAutoLinker(bool force)
     {
         var harness = new SchedulerHarness();
-        var infos = new[] { Info(new FakeProvider()), Info(new FakeTmdbProvider()) };
-        var action = InSeries(new AutoLinkMetadataSeriesAction(Manager(infos).Object, harness.Service(Links(), infos)), AnimeID);
+        var infos = new[]
+        {
+            Info(new FakeProvider(), autoLink: false),
+            Info(new FakeTmdbProvider()),
+            Info(new FakeProvider(), enabled: false, source: TestSources.AniList),
+        };
+        var action = InSeries(new AutoLinkMetadataSeriesAction(Manager(infos).Object, harness.Build(Links(), infos)), AnimeID);
+        action.Force = force;
 
         await action.Execute(TestContext.Current.CancellationToken);
 
-        var (type, job, _) = Assert.Single(harness.Queued);
-        Assert.Equal(typeof(SearchMetadataJob<FakeProvider>), type);
-        Assert.True(((IMetadataSearchJob)job).Force);
-        Assert.True(((IMetadataSearchJob)job).Replace);
+        Assert.Equal([typeof(SearchMetadataJob<FakeProvider>), typeof(SearchMetadataJob<FakeTmdbProvider>)], harness.Queued.Select(queued => queued.JobType));
+        Assert.All(harness.Queued, queued => Assert.Equal(force, ((IMetadataSearchJob)queued.Job).Replace));
+    }
+
+    [Fact]
+    public async Task TheSeriesSearchActionSkipsASourceTheSeriesIsLeftAloneOnUnlessForced()
+    {
+        var harness = new SchedulerHarness();
+        var infos = new[] { Info(new FakeProvider()), Info(new FakeTmdbProvider()) };
+        var series = new Mock<IShokoSeries>();
+        series.SetupGet(s => s.AnidbAnimeID).Returns(AnimeID);
+        series.Setup(s => s.IsAutoLinkingDisabled(MetadataSource.TMDB)).Returns(true);
+        var action = InSeries(new AutoLinkMetadataSeriesAction(Manager(infos).Object, harness.Build(Links(), infos)), series.Object);
+
+        await action.Execute(TestContext.Current.CancellationToken);
+        action.Force = true;
+        await action.Execute(TestContext.Current.CancellationToken);
+
+        Assert.Equal(
+            [typeof(SearchMetadataJob<FakeProvider>), typeof(SearchMetadataJob<FakeProvider>), typeof(SearchMetadataJob<FakeTmdbProvider>)],
+            harness.Queued.Select(queued => queued.JobType)
+        );
     }
 
     [Fact]
