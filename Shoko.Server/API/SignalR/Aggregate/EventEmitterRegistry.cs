@@ -57,4 +57,21 @@ public class EventEmitterRegistry
 
         Feeds = feeds.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// Finds the feeds a client named, ignoring case, each once and in the
+    /// order named. Names no feed has are skipped.
+    /// </summary>
+    /// <param name="names">The names the client gave.</param>
+    /// <returns>The feeds found.</returns>
+    public IReadOnlyList<IEventEmitter> Find(IEnumerable<string?> names)
+    {
+        var found = new List<IEventEmitter>();
+        foreach (var name in names)
+        {
+            if (!string.IsNullOrEmpty(name) && Feeds.TryGetValue(name, out var emitter) && !found.Contains(emitter))
+                found.Add(emitter);
+        }
+        return found;
+    }
 }

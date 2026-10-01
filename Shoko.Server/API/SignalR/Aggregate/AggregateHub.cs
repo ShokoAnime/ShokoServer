@@ -13,11 +13,14 @@ public class AggregateHub : Hub
 {
     private readonly QueueHandler _queueHandler;
 
+    private readonly EventEmitterRegistry _registry;
+
     private readonly FrozenDictionary<string, IEventEmitter> _allFeeds;
 
     public AggregateHub(QueueHandler queueHandler, EventEmitterRegistry registry)
     {
         _queueHandler = queueHandler;
+        _registry = registry;
         _allFeeds = registry.Feeds;
     }
 
@@ -80,13 +83,9 @@ public class AggregateHub : Hub
     {
         var connectionId = Context.ConnectionId;
         var user = Context.User.GetUser();
-        var feedsToAdd = _allFeeds.Keys.Intersect(feeds).ToList();
         var updated = false;
-        foreach (var feed in feedsToAdd)
-        {
-            var emitter = _allFeeds[feed];
+        foreach (var emitter in _registry.Find(feeds))
             updated = await emitter.ConnectAsync(connectionId, user, lastConnectedAt) || updated;
-        }
         return updated;
     }
 
@@ -103,13 +102,9 @@ public class AggregateHub : Hub
     public async Task<bool> LeaveFeeds(string[] feeds)
     {
         var connectionId = Context.ConnectionId;
-        var feedsToRemove = _allFeeds.Keys.Intersect(feeds).ToList();
         var updated = false;
-        foreach (var feed in feedsToRemove)
-        {
-            var emitter = _allFeeds[feed];
+        foreach (var emitter in _registry.Find(feeds))
             updated = await emitter.DisconnectAsync(connectionId) || updated;
-        }
         return updated;
     }
 
@@ -118,11 +113,11 @@ public class AggregateHub : Hub
     {
         var connectionId = Context.ConnectionId;
         var user = Context.User.GetUser();
-        var feedsToAdd = _allFeeds.Keys.Intersect(feeds).ToList();
+        var feedsToAdd = _registry.Find(feeds);
         var updated = false;
-        foreach (var (feed, emitter) in _allFeeds)
+        foreach (var emitter in _allFeeds.Values)
         {
-            if (feedsToAdd.Contains(feed))
+            if (feedsToAdd.Contains(emitter))
                 updated = await emitter.ConnectAsync(connectionId, user, lastConnectedAt) || updated;
             else
                 updated = await emitter.DisconnectAsync(connectionId) || updated;
@@ -135,10 +130,8 @@ public class AggregateHub : Hub
     {
         var connectionId = Context.ConnectionId;
         var updated = false;
-        foreach (var (feed, emitter) in _allFeeds)
-        {
+        foreach (var emitter in _allFeeds.Values)
             updated = await emitter.DisconnectAsync(connectionId) || updated;
-        }
         return updated;
     }
 

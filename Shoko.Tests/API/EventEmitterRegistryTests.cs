@@ -160,6 +160,21 @@ public class EventEmitterRegistryTests
     }
 
     [Fact]
+    public async Task Find_MatchesIgnoringCase_AndJoinsTheFeedsOwnGroup()
+    {
+        var harness = new Harness(services =>
+        {
+            services.AddEventEmitter<SampleFeed>();
+            services.AddEventEmitter<AdminFeed>();
+        });
+
+        var feed = Assert.Single(harness.Registry.Find(["SAMPLE", "Sample", "missing", null]));
+        Assert.True(await feed.ConnectAsync("connection", User(2)));
+
+        harness.Groups.Verify(groups => groups.AddToGroupAsync("connection", "sample", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public void PluginFeeds_SharingAName_KeepTheFirstAndWarn()
     {
         var harness = new Harness(services =>
