@@ -622,6 +622,8 @@ public class SystemService : ISystemService
             // Register per-job watchdog thresholds
             services.AddSingleton<IJobWatchdogThreshold, AiringScheduleSweepWatchdogThreshold>();
 
+            // Names the clients whose expired handlers are still referenced and so never disposed.
+            services.AddHostedService<ExpiredHttpHandlerMonitor>();
             services.AddHttpClient("Default", client =>
                 {
                     client.DefaultRequestHeaders.Add("Accept", "application/json, text/plain");
