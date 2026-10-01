@@ -181,11 +181,6 @@ internal static class TestPaths
     /// </summary>
     public static string DataDirectory { get; } = Path.Combine(RepositoryRoot, "Shoko.Tests", "Data");
 
-    /// <summary>
-    ///   Where the proof-of-concept dumps are written.
-    /// </summary>
-    public static string OutputDirectory { get; } = Path.Combine(RepositoryRoot, "poc-output");
-
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

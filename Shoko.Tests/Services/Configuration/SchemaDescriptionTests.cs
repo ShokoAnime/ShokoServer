@@ -19,6 +19,6 @@ public class SchemaDescriptionTests
             .Schema;
 
         // Documented as "<see langword="null"/> is decided as nobody."
-        Assert.Contains("\n`null` is decided as nobody.", schema.Properties[nameof(MetadataSourceSettings.Enabled)].Description);
+        Assert.Contains("Missing is undecided; `null` is decided as nobody.", schema.Properties[nameof(MetadataSourceSettings.Enabled)].Description);
     }
 }

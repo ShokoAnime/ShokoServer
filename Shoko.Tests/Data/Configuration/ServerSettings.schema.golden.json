@@ -106,10 +106,10 @@
       "description": "Configure the information Shoko retrieves from TMDB for the series in your collection.",
       "$ref": "#/definitions/TMDB"
     },
-    "Anilist": {
-      "title": "Anilist",
-      "description": "Configure the information Shoko retrieves from Anilist for the series in your collection.",
-      "$ref": "#/definitions/Anilist"
+    "Metadata": {
+      "title": "Metadata",
+      "description": "The settings for the metadata the plugin providers keep.",
+      "$ref": "#/definitions/Metadata"
     },
     "Database": {
       "title": "Database",
@@ -208,6 +208,19 @@
             "$ref": "#/definitions/ImageTemplateUrl"
           }
         },
+        "MetadataSourceDefaults": {
+          "title": "Metadata Source Image Defaults",
+          "description": "Which images to download for a metadata source that has no settings of its own in MetadataSources.",
+          "$ref": "#/definitions/MetadataImage"
+        },
+        "MetadataSources": {
+          "title": "Metadata Source Images",
+          "type": "array",
+          "description": "Which images to download for TMDB and each plugin metadata source, keyed by source, in place of MetadataSourceDefaults.",
+          "items": {
+            "$ref": "#/definitions/MetadataSourceImage"
+          }
+        },
         "AutoPurge": {
           "title": "Auto Purge Orphaned Images",
           "type": "boolean",
@@ -229,91 +242,10 @@
       "properties": {
         "ImageSource": {
           "title": "Image Source",
+          "type": "string",
           "description": "The image source.",
-          "default": "AniDB",
-          "$ref": "#/definitions/DataSource",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "AniDB",
-                "aliasValues": ""
-              },
-              {
-                "value": "TMDB",
-                "aliasValues": ""
-              },
-              {
-                "value": "TvDB",
-                "aliasValues": ""
-              },
-              {
-                "value": "AniList",
-                "aliasValues": ""
-              },
-              {
-                "value": "Animeshon",
-                "aliasValues": ""
-              },
-              {
-                "value": "Kitsu",
-                "aliasValues": ""
-              },
-              {
-                "value": "MAL",
-                "aliasValues": ""
-              },
-              {
-                "value": "FanartTV",
-                "aliasValues": ""
-              },
-              {
-                "value": "IMDB",
-                "aliasValues": ""
-              },
-              {
-                "value": "OMDB",
-                "aliasValues": ""
-              },
-              {
-                "value": "TraktTv",
-                "aliasValues": ""
-              },
-              {
-                "value": "TPDB",
-                "aliasValues": ""
-              },
-              {
-                "value": "MediUX",
-                "aliasValues": ""
-              },
-              {
-                "value": "SimKL",
-                "aliasValues": ""
-              },
-              {
-                "value": "Plugin",
-                "aliasValues": ""
-              },
-              {
-                "value": "LocallyGenerated",
-                "aliasValues": ""
-              },
-              {
-                "value": "None",
-                "aliasValues": ""
-              },
-              {
-                "value": "User",
-                "aliasValues": ""
-              },
-              {
-                "value": "Shoko",
-                "aliasValues": ""
-              }
-            ]
-          }
+          "default": "anidb",
+          "minLength": 1
         },
         "TemplateUrl": {
           "title": "Image Template URL",
@@ -324,51 +256,208 @@
         }
       }
     },
-    "DataSource": {
-      "type": "string",
-      "description": "The data source.",
-      "x-enumNames": [
-        "AniDB",
-        "TMDB",
-        "TvDB",
-        "AniList",
-        "Animeshon",
-        "Kitsu",
-        "MAL",
-        "FanartTV",
-        "IMDB",
-        "OMDB",
-        "TraktTv",
-        "TPDB",
-        "MediUX",
-        "SimKL",
-        "Plugin",
-        "LocallyGenerated",
-        "None",
-        "User",
-        "Shoko"
+    "MetadataImage": {
+      "type": "object",
+      "description": "Which images to download for a metadata source that has a provider, per image type.",
+      "properties": {
+        "ImageLanguageOrder": {
+          "title": "Image Language Order",
+          "type": "array",
+          "description": "Image language preference order, in text form for storage. \"main\" is the entry's original language, and \"none\" an image without text.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "AutoDownloadBackdrops": {
+          "title": "Auto Download Backdrops",
+          "type": "boolean",
+          "description": "Automatically download backdrops, up to MaxAutoBackdrops per entity."
+        },
+        "MaxAutoBackdrops": {
+          "title": "Max Auto Backdrops",
+          "type": "integer",
+          "description": "The maximum number of backdrops to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadPosters": {
+          "title": "Auto Download Posters",
+          "type": "boolean",
+          "description": "Automatically download posters, up to MaxAutoPosters per entity."
+        },
+        "MaxAutoPosters": {
+          "title": "Max Auto Posters",
+          "type": "integer",
+          "description": "The maximum number of posters to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadLogos": {
+          "title": "Auto Download Logos",
+          "type": "boolean",
+          "description": "Automatically download logos, up to MaxAutoLogos per entity."
+        },
+        "MaxAutoLogos": {
+          "title": "Max Auto Logos",
+          "type": "integer",
+          "description": "The maximum number of logos to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadBanners": {
+          "title": "Auto Download Banners",
+          "type": "boolean",
+          "description": "Automatically download banners, up to MaxAutoBanners per entity."
+        },
+        "MaxAutoBanners": {
+          "title": "Max Auto Banners",
+          "type": "integer",
+          "description": "The maximum number of banners to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadThumbnails": {
+          "title": "Auto Download Thumbnails",
+          "type": "boolean",
+          "description": "Automatically download episode thumbnails, up to MaxAutoThumbnails per episode."
+        },
+        "MaxAutoThumbnails": {
+          "title": "Max Auto Thumbnails",
+          "type": "integer",
+          "description": "The maximum number of thumbnails to download for each episode. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadStaffImages": {
+          "title": "Auto Download Staff Images",
+          "type": "boolean",
+          "description": "Automatically download images of creators and characters, up to MaxAutoStaffImages per person."
+        },
+        "MaxAutoStaffImages": {
+          "title": "Max Auto Staff Images",
+          "type": "integer",
+          "description": "The maximum number of images to download for each creator or character. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadStudioImages": {
+          "title": "Auto Download Studio Images",
+          "type": "boolean",
+          "description": "Automatically download studio images."
+        }
+      }
+    },
+    "MetadataSourceImage": {
+      "type": "object",
+      "description": "Which images to download for one metadata source with a provider, TMDB or a plugin source, in place of the shared defaults.",
+      "required": [
+        "Source"
       ],
-      "enum": [
-        "AniDB",
-        "TMDB",
-        "TvDB",
-        "AniList",
-        "Animeshon",
-        "Kitsu",
-        "MAL",
-        "FanartTV",
-        "IMDB",
-        "OMDB",
-        "TraktTv",
-        "TPDB",
-        "MediUX",
-        "SimKL",
-        "Plugin",
-        "LocallyGenerated",
-        "None",
-        "User",
-        "Shoko"
-      ]
+      "properties": {
+        "ImageLanguageOrder": {
+          "title": "Image Language Order",
+          "type": "array",
+          "description": "Image language preference order, in text form for storage. \"main\" is the entry's original language, and \"none\" an image without text.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "AutoDownloadBackdrops": {
+          "title": "Auto Download Backdrops",
+          "type": "boolean",
+          "description": "Automatically download backdrops, up to MaxAutoBackdrops per entity."
+        },
+        "MaxAutoBackdrops": {
+          "title": "Max Auto Backdrops",
+          "type": "integer",
+          "description": "The maximum number of backdrops to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadPosters": {
+          "title": "Auto Download Posters",
+          "type": "boolean",
+          "description": "Automatically download posters, up to MaxAutoPosters per entity."
+        },
+        "MaxAutoPosters": {
+          "title": "Max Auto Posters",
+          "type": "integer",
+          "description": "The maximum number of posters to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadLogos": {
+          "title": "Auto Download Logos",
+          "type": "boolean",
+          "description": "Automatically download logos, up to MaxAutoLogos per entity."
+        },
+        "MaxAutoLogos": {
+          "title": "Max Auto Logos",
+          "type": "integer",
+          "description": "The maximum number of logos to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadBanners": {
+          "title": "Auto Download Banners",
+          "type": "boolean",
+          "description": "Automatically download banners, up to MaxAutoBanners per entity."
+        },
+        "MaxAutoBanners": {
+          "title": "Max Auto Banners",
+          "type": "integer",
+          "description": "The maximum number of banners to download for each entity. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadThumbnails": {
+          "title": "Auto Download Thumbnails",
+          "type": "boolean",
+          "description": "Automatically download episode thumbnails, up to MaxAutoThumbnails per episode."
+        },
+        "MaxAutoThumbnails": {
+          "title": "Max Auto Thumbnails",
+          "type": "integer",
+          "description": "The maximum number of thumbnails to download for each episode. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadStaffImages": {
+          "title": "Auto Download Staff Images",
+          "type": "boolean",
+          "description": "Automatically download images of creators and characters, up to MaxAutoStaffImages per person."
+        },
+        "MaxAutoStaffImages": {
+          "title": "Max Auto Staff Images",
+          "type": "integer",
+          "description": "The maximum number of images to download for each creator or character. Set to `0` to disable the limit.",
+          "format": "int32",
+          "maximum": 30.0,
+          "minimum": 0.0
+        },
+        "AutoDownloadStudioImages": {
+          "title": "Auto Download Studio Images",
+          "type": "boolean",
+          "description": "Automatically download studio images."
+        },
+        "Source": {
+          "title": "Source",
+          "type": "string",
+          "description": "The source these settings are for.",
+          "minLength": 1
+        }
+      }
     },
     "Import": {
       "type": "object",
@@ -409,7 +498,7 @@
         "RunOnStart": {
           "title": "Run Import on Startup",
           "type": "boolean",
-          "description": "Run the import scheduled task on startup."
+          "description": "Queue the import's scheduled actions on startup, as the legacy Run Import route does."
         },
         "ScanDropFoldersOnStart": {
           "title": "Scan Source Managed Folders on Startup",
@@ -587,162 +676,6 @@
           "type": "boolean",
           "description": "Automatically create a Shoko Series for each AniDB anime."
         },
-        "Calendar_UpdateFrequency": {
-          "title": "Calendar",
-          "description": "Check which AniDB anime is currently airing in the next/previous week, and schedule an update for all of them, adding them to the local collection if they're not already part of it.",
-          "$ref": "#/definitions/ScheduledUpdateFrequency",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Never",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursSix",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursTwelve",
-                "aliasValues": ""
-              },
-              {
-                "value": "Daily",
-                "aliasValues": ""
-              },
-              {
-                "value": "WeekOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "MonthOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "EveryHour",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "Anime_UpdateFrequency": {
-          "title": "Anime Updates",
-          "description": "Check which AniDB anime has been updated since the last time we asked, and schedule an update for any in the local collection.",
-          "$ref": "#/definitions/ScheduledUpdateFrequency",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Never",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursSix",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursTwelve",
-                "aliasValues": ""
-              },
-              {
-                "value": "Daily",
-                "aliasValues": ""
-              },
-              {
-                "value": "WeekOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "MonthOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "EveryHour",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "File_UpdateFrequency": {
-          "title": "Files with missing info",
-          "description": "Check for any files with missing info and schedule them for a re-check.",
-          "$ref": "#/definitions/ScheduledUpdateFrequency",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Never",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursSix",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursTwelve",
-                "aliasValues": ""
-              },
-              {
-                "value": "Daily",
-                "aliasValues": ""
-              },
-              {
-                "value": "WeekOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "MonthOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "EveryHour",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "Notification_UpdateFrequency": {
-          "title": "Notifications & Messages",
-          "description": "Check for any unread notifications and messages and download them if there are any.",
-          "$ref": "#/definitions/ScheduledUpdateFrequency",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Never",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursSix",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursTwelve",
-                "aliasValues": ""
-              },
-              {
-                "value": "Daily",
-                "aliasValues": ""
-              },
-              {
-                "value": "WeekOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "MonthOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "EveryHour",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
         "Notification_HandleMovedFiles": {
           "title": "Handle Moved Files",
           "type": "boolean",
@@ -878,27 +811,6 @@
           "$ref": "#/definitions/MyList"
         }
       }
-    },
-    "ScheduledUpdateFrequency": {
-      "type": "string",
-      "x-enumNames": [
-        "Never",
-        "HoursSix",
-        "HoursTwelve",
-        "Daily",
-        "WeekOne",
-        "MonthOne",
-        "EveryHour"
-      ],
-      "enum": [
-        "Never",
-        "HoursSix",
-        "HoursTwelve",
-        "Daily",
-        "WeekOne",
-        "MonthOne",
-        "EveryHour"
-      ]
     },
     "AnidbRateLimit": {
       "type": "object",
@@ -1146,45 +1058,6 @@
           "maximum": 99.0,
           "minimum": 0.0
         },
-        "UpdateFrequency": {
-          "title": "MyList",
-          "description": "Sync the MyList with the local collection.",
-          "$ref": "#/definitions/ScheduledUpdateFrequency",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Never",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursSix",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursTwelve",
-                "aliasValues": ""
-              },
-              {
-                "value": "Daily",
-                "aliasValues": ""
-              },
-              {
-                "value": "WeekOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "MonthOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "EveryHour",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
         "FetchMode": {
           "title": "Fetch Mode",
           "description": "How to fetch MyList entries from AniDB.",
@@ -1335,16 +1208,6 @@
     "TMDB": {
       "type": "object",
       "properties": {
-        "AutoLink": {
-          "title": "Auto Link",
-          "type": "boolean",
-          "description": "Automagically link AniDB anime to TMDB shows and movies."
-        },
-        "AutoLinkRestricted": {
-          "title": "Auto Link Restricted",
-          "type": "boolean",
-          "description": "Automagically link restricted AniDB anime to TMDB shows and movies. AutoLink also needs to be set for this setting to take effect."
-        },
         "ConsiderExistingOtherLinks": {
           "title": "Consider Existing Other Links",
           "type": "boolean",
@@ -1365,14 +1228,6 @@
           "type": "boolean",
           "description": "Indicates that all content-ratings should be stored locally for the TMDB entity, otherwise it will use or depending on the entity type to determine which content-ratings to store locally."
         },
-        "ImageLanguageOrder": {
-          "title": "Image Language Order",
-          "type": "array",
-          "description": "Image language preference order, in text form for storage.",
-          "items": {
-            "type": "string"
-          }
-        },
         "AutoDownloadCrewAndCast": {
           "title": "Auto Download Crew And Cast",
           "type": "boolean",
@@ -1392,76 +1247,6 @@
           "title": "Auto Download Networks",
           "type": "boolean",
           "description": "Automagically download networks for tv shows in the local collection."
-        },
-        "AutoDownloadBackdrops": {
-          "title": "Auto Download Backdrops",
-          "type": "boolean",
-          "description": "Automagically download backdrops for TMDB entities that supports backdrops up to images per entity."
-        },
-        "MaxAutoBackdrops": {
-          "title": "Max Auto Backdrops",
-          "type": "integer",
-          "description": "The maximum number of backdrops to download for each TMDB entity that supports backdrops.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadPosters": {
-          "title": "Auto Download Posters",
-          "type": "boolean",
-          "description": "Automagically download posters for TMDB entities that supports posters up to images per entity."
-        },
-        "MaxAutoPosters": {
-          "title": "Max Auto Posters",
-          "type": "integer",
-          "description": "The maximum number of posters to download for each TMDB entity that supports posters.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadLogos": {
-          "title": "Auto Download Logos",
-          "type": "boolean",
-          "description": "Automagically download logos for TMDB entities that supports logos up to images per entity."
-        },
-        "MaxAutoLogos": {
-          "title": "Max Auto Logos",
-          "type": "integer",
-          "description": "The maximum number of logos to download for each TMDB entity that supports logos.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadThumbnails": {
-          "title": "Auto Download Thumbnails",
-          "type": "boolean",
-          "description": "Automagically download thumbnail images for TMDB entities that supports thumbnails."
-        },
-        "MaxAutoThumbnails": {
-          "title": "Max Auto Thumbnails",
-          "type": "integer",
-          "description": "The maximum number of thumbnail images to download for each TMDB entity that supports thumbnail images.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadStaffImages": {
-          "title": "Auto Download Staff Images",
-          "type": "boolean",
-          "description": "Automagically download staff member and voice-actor images."
-        },
-        "MaxAutoStaffImages": {
-          "title": "Max Auto Staff Images",
-          "type": "integer",
-          "description": "The maximum number of staff member and voice-actor images to download for each TMDB entity that supports staff member and voice-actor images.",
-          "format": "int32",
-          "maximum": 30.0,
-          "minimum": 0.0
-        },
-        "AutoDownloadStudioImages": {
-          "title": "Auto Download Studio Images",
-          "type": "boolean",
-          "description": "Automagically download studio and company images."
         },
         "UserApiKey": {
           "title": "User Api Key",
@@ -1527,21 +1312,6 @@
           "title": "Rate Limit",
           "description": "Rate limit settings for the TMDB API.",
           "$ref": "#/definitions/TmdbRateLimit"
-        },
-        "AutoPurgeUnlinkedAfterDays": {
-          "title": "Auto Purge Unlinked After Days",
-          "type": "integer",
-          "description": "Number of days a TMDB show or movie can remain in the local database without any AniDB cross-reference before it is automatically purged. Set to `0` to disable automatic purging.",
-          "format": "int32",
-          "default": 14,
-          "maximum": 365.0,
-          "minimum": 0.0,
-          "x-uiDefinition": {
-            "elementType": "auto",
-            "requiresRestart": false,
-            "envVar": "TMDB_AUTO_PURGE_UNLINKED_AFTER_DAYS",
-            "envVarOverridable": false
-          }
         }
       }
     },
@@ -1579,153 +1349,37 @@
         }
       }
     },
-    "Anilist": {
+    "Metadata": {
       "type": "object",
+      "description": "Settings for the metadata the plugin providers keep in the core's stores.",
       "properties": {
-        "AutoLink": {
-          "title": "Auto Link",
-          "type": "boolean",
-          "description": "Automagically link AniDB anime to Anilist anime."
-        },
-        "AutoLinkRestricted": {
-          "title": "Auto Link Restricted",
-          "type": "boolean",
-          "description": "Automagically link restricted AniDB anime to Anilist anime. AutoLink also needs to be set for this setting to take effect."
-        },
-        "ConsiderExistingOtherLinks": {
-          "title": "Consider Existing Other Links",
-          "type": "boolean",
-          "description": "Determines whether to consider existing links for other series when automatically linking episodes."
-        },
-        "AutoDownloadStaff": {
-          "title": "Auto Download Staff",
-          "type": "boolean",
-          "description": "Automagically download staff members for anime in the local collection."
-        },
-        "AutoDownloadCharacters": {
-          "title": "Auto Download Characters",
-          "type": "boolean",
-          "description": "Automagically download characters for anime in the local collection."
-        },
-        "ImageCdnUrl": {
-          "title": "Image CDN URL",
-          "type": [
-            "null",
-            "string"
-          ],
-          "description": "The base URL or URL template for the image CDN to use.",
-          "format": "uri",
-          "x-uiDefinition": {
-            "elementType": "auto",
-            "requiresRestart": false,
-            "envVar": "ANILIST_IMAGE_CDN_URL",
-            "envVarOverridable": false
-          }
-        },
-        "AutoDownloadPosters": {
-          "title": "Auto Download Posters",
-          "type": "boolean",
-          "description": "Automagically download the cover image for Anilist anime."
-        },
-        "AutoDownloadBanners": {
-          "title": "Auto Download Banners",
-          "type": "boolean",
-          "description": "Automagically download the banner image for Anilist anime."
-        },
-        "AutoDownloadStudios": {
-          "title": "Auto Download Studios",
-          "type": "boolean",
-          "description": "Automagically download studio information for anime in the local collection."
-        },
-        "RecommendationDepth": {
-          "title": "Recommendation Depth",
-          "description": "How far down AniList's recommendations to read for an anime. The first page costs nothing extra; the other two spend requests to reach weaker recommendations.",
-          "$ref": "#/definitions/AnilistRecommendationDepth",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "FirstPage",
-                "aliasValues": ""
-              },
-              {
-                "value": "WhileWellRated",
-                "aliasValues": ""
-              },
-              {
-                "value": "Everything",
-                "aliasValues": ""
-              }
-            ]
-          }
-        },
-        "AutoSearchCandidateCount": {
-          "title": "Auto Search Candidate Count",
+        "PurgeOrphanedAfterDays": {
+          "title": "Purge Orphaned Metadata After (days)",
           "type": "integer",
-          "description": "The number of top search results to evaluate when automatically searching for an Anilist anime to link to an AniDB anime. Set to `1` to only consider the first result.",
+          "description": "Number of days a creator, character, studio or network of a plugin source, or a person or network of TMDB, may go unused before it is purged. Purged daily, and when the purge action is run.",
           "format": "int32",
-          "maximum": 20.0,
-          "minimum": 1.0
-        },
-        "AutoPurgeUnlinkedAfterDays": {
-          "title": "Auto Purge Unlinked After Days",
-          "type": "integer",
-          "description": "The number of days an Anilist anime can remain without any links to a Shoko series before it is automatically purged. Set to `0` to disable the automatic purging.",
-          "format": "int32",
+          "default": 7,
           "maximum": 365.0,
-          "minimum": 0.0
-        },
-        "RateLimit": {
-          "title": "Rate Limit",
-          "description": "Rate limit settings for the Anilist API.",
-          "$ref": "#/definitions/AnilistRateLimit"
-        }
-      }
-    },
-    "AnilistRecommendationDepth": {
-      "type": "string",
-      "description": "How far down AniList's recommendations to read for an anime. They come back best first, so the tail is weakly rated entries pointing at anime few would want shown, and each extra page is another request against the rate limit.",
-      "x-enumNames": [
-        "FirstPage",
-        "WhileWellRated",
-        "Everything"
-      ],
-      "enum": [
-        "FirstPage",
-        "WhileWellRated",
-        "Everything"
-      ]
-    },
-    "AnilistRateLimit": {
-      "type": "object",
-      "description": "Settings for rate limiting the AniList provider.",
-      "properties": {
-        "MaxRequestsPerWindow": {
-          "title": "Max Requests Per Window",
-          "type": "integer",
-          "description": "Maximum number of requests allowed within the rate limit window. Together with WindowDurationMs this defaults to one request every four seconds, the same pace as AniDB, which is far below what AniList allows. Raise it if you want faster updates; the limiter never exceeds the limit AniList advertises in its response headers.",
-          "format": "int32",
-          "maximum": 90.0,
           "minimum": 1.0,
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": false,
-            "envVar": "ANILIST_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW",
+            "envVar": "METADATA_PURGE_ORPHANED_AFTER_DAYS",
             "envVarOverridable": false
           }
         },
-        "WindowDurationMs": {
-          "title": "Window Duration (ms)",
+        "AutoPurgeUnlinkedAfterDays": {
+          "title": "Purge Unlinked Metadata After (days)",
           "type": "integer",
-          "description": "Duration of the sliding rate limit window in milliseconds. Defaults to four seconds.",
+          "description": "Number of days a series, movie or collection of TMDB or a plugin source may stay stored with nothing linking to it before it is purged, counted from its last refresh. Purged daily. Set to `0` to never purge them on their own. `TMDB_AUTO_PURGE_UNLINKED_AFTER_DAYS` is still honoured, with a warning, while `METADATA_AUTO_PURGE_UNLINKED_AFTER_DAYS` is unset.",
           "format": "int32",
-          "maximum": 120000.0,
-          "minimum": 1000.0,
+          "default": 14,
+          "maximum": 365.0,
+          "minimum": 0.0,
           "x-uiDefinition": {
             "elementType": "auto",
             "requiresRestart": false,
-            "envVar": "ANILIST_RATE_LIMIT_WINDOW_DURATION_MS",
+            "envVar": "METADATA_AUTO_PURGE_UNLINKED_AFTER_DAYS",
             "envVarOverridable": false
           }
         }
@@ -1976,7 +1630,7 @@
         "LimitedConcurrencyOverrides": {
           "title": "Limited Concurrency Overrides",
           "type": "object",
-          "description": "A map of job type name to the number of allowed concurrent workers of that type.",
+          "description": "A map of job type name to the number of allowed concurrent workers of that type. A metadata provider's job is named with the provider's full type name, e.g. `RefreshMetadataJob<My.Plugin.MyProvider>`.",
           "additionalProperties": {
             "type": "integer",
             "format": "int32"
@@ -2107,7 +1761,7 @@
           "type": "array",
           "description": "Series / group title source preference order.",
           "items": {
-            "$ref": "#/definitions/DataSource"
+            "type": "string"
           },
           "x-uiDefinition": {
             "elementType": "list",
@@ -2131,7 +1785,7 @@
           "type": "array",
           "description": "Episode / season title source preference order.",
           "items": {
-            "$ref": "#/definitions/DataSource"
+            "type": "string"
           },
           "x-uiDefinition": {
             "elementType": "list",
@@ -2155,7 +1809,7 @@
           "type": "array",
           "description": "Description source preference order.",
           "items": {
-            "$ref": "#/definitions/DataSource"
+            "type": "string"
           },
           "x-uiDefinition": {
             "elementType": "list",
@@ -2258,46 +1912,6 @@
           "type": "boolean",
           "description": "Whether automatic plugin upgrades are enabled.",
           "default": false
-        },
-        "AutoUpdateFrequency": {
-          "title": "Auto Update Frequency",
-          "description": "How often to automatically check for and apply plugin updates if enabled. Defaults to every 6 hours.",
-          "default": "HoursSix",
-          "$ref": "#/definitions/ScheduledUpdateFrequency",
-          "x-uiDefinition": {
-            "elementType": "enum",
-            "requiresRestart": false,
-            "enumDefinitions": [
-              {
-                "value": "Never",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursSix",
-                "aliasValues": ""
-              },
-              {
-                "value": "HoursTwelve",
-                "aliasValues": ""
-              },
-              {
-                "value": "Daily",
-                "aliasValues": ""
-              },
-              {
-                "value": "WeekOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "MonthOne",
-                "aliasValues": ""
-              },
-              {
-                "value": "EveryHour",
-                "aliasValues": ""
-              }
-            ]
-          }
         },
         "DefaultRepositoryStaleTime": {
           "title": "Default Repository Stale Time",

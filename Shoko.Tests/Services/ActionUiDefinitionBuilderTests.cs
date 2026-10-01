@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
@@ -232,39 +231,23 @@ public class ActionUiDefinitionBuilderTests
     [Fact]
     public void RealInTreeActions_AreDescribedWithoutTheirMetadata()
     {
-        // `DownloadAllImagesAction` and `PurgeAllTmdbLinksAction` are the only
-        // two in-tree actions that declare parameters, and between them they
-        // cover nullable enums, plain bools and a nullable bool.
-        var images = RootOf(typeof(DownloadAllImagesAction));
-        Assert.Equal(["ImageSource", "ImageType", "XrefSource", "Force"], images.Items.Keys);
-        Assert.All(images.Items.Values.Take(3), x => Assert.True(Assert.IsType<UiEnumElement>(x).IsNullable));
-        Assert.IsType<UiBooleanElement>(images.Items["Force"]);
+        // Between them, the in-tree actions that declare parameters cover plain
+        // bools, bools initialised to `true` and a nullable metadata source.
+        var group = RootOf(typeof(DeleteGroupAction));
+        Assert.Equal(["DeleteSeries", "DeleteFiles"], group.Items.Keys);
+        Assert.All(group.Items.Values, x => Assert.False(Assert.IsType<UiBooleanElement>(x).IsNullable));
 
-        var links = RootOf(typeof(PurgeAllTmdbLinksAction));
-        Assert.Equal(["RemoveShowLinks", "RemoveMovieLinks", "ResetAutoLinkingState"], links.Items.Keys);
-        Assert.All(links.Items.Values, x => Assert.IsType<UiBooleanElement>(x));
+        var video = RootOf(typeof(DeleteVideoFileAction));
+        Assert.Equal(["RemoveFiles", "RemoveFolder"], video.Items.Keys);
         // Exactly as for a configuration, a default comes off `[DefaultValue]`
         // and not off a property initialiser, so these two carry none even
         // though both initialise to `true`.
-        Assert.All(links.Items.Values, x => Assert.Null(x.Default));
-        Assert.True(links.Items["ResetAutoLinkingState"].IsNullable);
-    }
+        Assert.All(video.Items.Values, x => Assert.Null(Assert.IsType<UiBooleanElement>(x).Default));
 
-    [Fact]
-    public void ActionDefinitions_AreDumpedNextToTheConfigurationOnes()
-    {
-        var outputDirectory = TestPaths.OutputDirectory;
-        Directory.CreateDirectory(outputDirectory);
-
-        // The fixture covers one of every decorated element; the in-tree action
-        // shows what an undecorated, real one comes out as.
-        var fixture = _builder.Build(Guid.Empty, "Reindex Library", "Rebuilds the search index.", typeof(ParameterisedGlobalAction));
-        Assert.NotNull(fixture);
-        File.WriteAllText(Path.Combine(outputDirectory, "ExampleAction.ui-definition.json"), Serialize(fixture.Definition));
-
-        var inTree = _builder.Build(Guid.Empty, "Download All Images", null, typeof(DownloadAllImagesAction));
-        Assert.NotNull(inTree);
-        File.WriteAllText(Path.Combine(outputDirectory, "DownloadAllImagesAction.ui-definition.json"), Serialize(inTree.Definition));
+        // A metadata source is written as its string form.
+        var refresh = RootOf(typeof(RefreshLinkedMetadataSeriesAction));
+        Assert.Equal(["Source"], refresh.Items.Keys);
+        Assert.True(Assert.IsType<UiStringElement>(refresh.Items["Source"]).IsNullable);
     }
 
     private static IEnumerable<string> TopLevelKeys(string json)
