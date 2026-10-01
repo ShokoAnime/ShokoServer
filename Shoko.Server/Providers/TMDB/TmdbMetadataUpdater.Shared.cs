@@ -146,8 +146,11 @@ public partial class TmdbMetadataUpdater
         var listedOverviews = new List<TmdbTextListing.ListedText>();
         foreach (var translation in translations?.Translations ?? [new() { EnglishName = string.Empty, Iso_3166_1 = "US", Iso_639_1 = "en", Data = new() { Name = string.Empty, Overview = string.Empty } }])
         {
-            var languageCode = translation.Iso_639_1!.ToLowerInvariant();
-            var countryCode = translation.Iso_3166_1!.ToUpperInvariant();
+            if (translation.Iso_639_1 is null || translation.Iso_3166_1 is null)
+                continue;
+
+            var languageCode = translation.Iso_639_1.ToLowerInvariant();
+            var countryCode = translation.Iso_3166_1.ToUpperInvariant();
 
             var alwaysInclude = false;
             var currentTitle = translation.Data?.Name ?? string.Empty;

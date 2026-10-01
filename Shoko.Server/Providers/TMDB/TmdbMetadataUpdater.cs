@@ -279,9 +279,9 @@ public partial class TmdbMetadataUpdater
     /// <param name="show">TMDB Show.</param>
     /// <param name="externalIds">External IDs.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private bool UpdateShowExternalIDs(TMDB_Show show, ExternalIdsTvShow externalIds)
+    private bool UpdateShowExternalIDs(TMDB_Show show, ExternalIdsTvShow? externalIds)
     {
-        var tvdbId = externalIds.TvdbId is > 0 ? externalIds.TvdbId : null;
+        var tvdbId = externalIds?.TvdbId is > 0 ? externalIds.TvdbId : null;
         if (show.TvdbShowID == tvdbId)
             return false;
 
@@ -295,9 +295,9 @@ public partial class TmdbMetadataUpdater
     /// <param name="episode">TMDB Episode.</param>
     /// <param name="externalIds">External IDs.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private bool UpdateEpisodeExternalIDs(TMDB_Episode episode, ExternalIdsTvEpisode externalIds)
+    private bool UpdateEpisodeExternalIDs(TMDB_Episode episode, ExternalIdsTvEpisode? externalIds)
     {
-        var tvdbId = externalIds.TvdbId is > 0 ? externalIds.TvdbId : null;
+        var tvdbId = externalIds?.TvdbId is > 0 ? externalIds.TvdbId : null;
         if (episode.TvdbEpisodeID == tvdbId)
             return false;
 
@@ -311,12 +311,13 @@ public partial class TmdbMetadataUpdater
     /// <param name="movie">TMDB Movie.</param>
     /// <param name="externalIds">External IDs.</param>
     /// <returns>Indicates that the ID was updated.</returns>
-    private bool UpdateMovieExternalIDs(TMDB_Movie movie, ExternalIdsMovie externalIds)
+    private bool UpdateMovieExternalIDs(TMDB_Movie movie, ExternalIdsMovie? externalIds)
     {
-        if (movie.ImdbMovieID == externalIds.ImdbId)
+        var imdbId = externalIds?.ImdbId;
+        if (movie.ImdbMovieID == imdbId)
             return false;
 
-        movie.ImdbMovieID = externalIds.ImdbId;
+        movie.ImdbMovieID = imdbId;
         return true;
     }
 

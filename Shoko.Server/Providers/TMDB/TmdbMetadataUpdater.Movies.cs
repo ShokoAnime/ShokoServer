@@ -96,7 +96,7 @@ public partial class TmdbMetadataUpdater
         var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbMovie, movie.Translations, preferredTitleLanguages, preferredOverviewLanguages,
             alternativeTitles: movie.AlternativeTitles?.Titles);
         updated = titlesUpdated || overviewsUpdated || updated;
-        updated = UpdateMovieExternalIDs(tmdbMovie, movie.ExternalIds!) || updated;
+        updated = UpdateMovieExternalIDs(tmdbMovie, movie.ExternalIds) || updated;
         updated = await UpdateCompanies(tmdbMovie, movie.ProductionCompanies!) || updated;
         updated = UpdateSuggestions(MetadataEntityType.Movie, tmdbMovie.TmdbMovieID,
         [
@@ -104,7 +104,7 @@ public partial class TmdbMetadataUpdater
             (SuggestionKind.Similar, movie.Similar?.Results?.Select(result => result.Id) ?? []),
         ]) || updated;
         if (downloadCrewAndCast)
-            updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits!, forceRefresh, downloadImages) || updated;
+            updated = await UpdateMovieCastAndCrew(tmdbMovie, movie.Credits, forceRefresh, downloadImages) || updated;
         if (updated)
         {
             tmdbMovie.LastUpdatedAt = DateTime.Now;
@@ -120,8 +120,11 @@ public partial class TmdbMetadataUpdater
         return updated;
     }
 
-    private async Task<bool> UpdateMovieCastAndCrew(TMDB_Movie tmdbMovie, MovieCredits credits, bool forceRefresh, bool downloadImages)
+    private async Task<bool> UpdateMovieCastAndCrew(TMDB_Movie tmdbMovie, MovieCredits? credits, bool forceRefresh, bool downloadImages)
     {
+        if (credits is null || (credits.Cast is null && credits.Crew is null))
+            return false;
+
         var peopleToKeep = new HashSet<int>();
 
         var counter = 0;
@@ -130,7 +133,7 @@ public partial class TmdbMetadataUpdater
         var castToSave = new List<TMDB_Movie_Cast>();
         var existingCastDict = _tmdbMovieCast.GetByTmdbMovieID(tmdbMovie.Id)
             .ToDictionary(cast => cast.TmdbCreditID);
-        foreach (var cast in credits.Cast!)
+        foreach (var cast in credits.Cast ?? [])
         {
             var ordering = counter++;
             peopleToKeep.Add(cast.Id);
@@ -173,7 +176,7 @@ public partial class TmdbMetadataUpdater
         var crewToSave = new List<TMDB_Movie_Crew>();
         var existingCrewDict = _tmdbMovieCrew.GetByTmdbMovieID(tmdbMovie.Id)
             .ToDictionary(crew => crew.TmdbCreditID);
-        foreach (var crew in credits.Crew!)
+        foreach (var crew in credits.Crew ?? [])
         {
             peopleToKeep.Add(crew.Id);
             crewToKeep.Add(crew.CreditId!);

@@ -96,7 +96,7 @@ public partial class TmdbMetadataUpdater
         var (titlesUpdated, overviewsUpdated) = UpdateTitlesAndOverviewsWithTuple(tmdbShow, show.Translations, preferredTitleLanguages, preferredOverviewLanguages,
             alternativeTitles: show.AlternativeTitles?.Results);
         updated = titlesUpdated || overviewsUpdated || updated;
-        updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds!) || updated;
+        updated = UpdateShowExternalIDs(tmdbShow, show.ExternalIds) || updated;
         updated = await UpdateCompanies(tmdbShow, show.ProductionCompanies!) || updated;
         updated = UpdateSuggestions(MetadataEntityType.Series, tmdbShow.TmdbShowID,
         [
@@ -436,10 +436,10 @@ public partial class TmdbMetadataUpdater
 
         var episodeUpdated = tmdbEpisode.Populate(show, season, reducedEpisode, episode.Translations);
         episodeUpdated = UpdateTitlesAndOverviews(tmdbEpisode, episode.Translations, state.PreferredTitleLanguages, state.PreferredOverviewLanguages) || episodeUpdated;
-        episodeUpdated = UpdateEpisodeExternalIDs(tmdbEpisode, episode.ExternalIds!) || episodeUpdated;
+        episodeUpdated = UpdateEpisodeExternalIDs(tmdbEpisode, episode.ExternalIds) || episodeUpdated;
         if (state.DownloadCrewAndCast)
         {
-            var (castOrCrewUpdated, peopleToAddOrKeep, peopleToPotentiallyRemove) = UpdateEpisodeCastAndCrew(tmdbEpisode, episode.Credits!);
+            var (castOrCrewUpdated, peopleToAddOrKeep, peopleToPotentiallyRemove) = UpdateEpisodeCastAndCrew(tmdbEpisode, episode.Credits);
             episodeUpdated |= castOrCrewUpdated;
             AccumulateEpisodePeople(peopleToAddOrKeep, peopleToPotentiallyRemove, state);
         }
@@ -709,8 +709,12 @@ public partial class TmdbMetadataUpdater
             preferredOrderingUpdated;
     }
 
-    private (bool, IEnumerable<int>, IEnumerable<int>) UpdateEpisodeCastAndCrew(TMDB_Episode tmdbEpisode, CreditsWithGuestStars credits)
+    private (bool, IEnumerable<int>, IEnumerable<int>) UpdateEpisodeCastAndCrew(TMDB_Episode tmdbEpisode, CreditsWithGuestStars? credits)
     {
+        // A null credits append means "no cast/crew this pass", not a purge of the existing rows.
+        if (credits is null || (credits.Cast is null && credits.Crew is null))
+            return (false, [], []);
+
         var peopleToAddOrKeep = new HashSet<int>();
         var counter = 0;
         var castToAdd = 0;
@@ -718,8 +722,8 @@ public partial class TmdbMetadataUpdater
         var castToSave = new List<TMDB_Episode_Cast>();
         var existingCastDict = _tmdbEpisodeCast.GetByTmdbEpisodeID(tmdbEpisode.Id)
             .ToDictionary(cast => cast.TmdbCreditID);
-        var guestOffset = credits.Cast!.Count;
-        foreach (var cast in credits.Cast.Concat(credits.GuestStars!))
+        var guestOffset = credits.Cast?.Count ?? 0;
+        foreach (var cast in (credits.Cast ?? []).Concat(credits.GuestStars ?? []))
         {
             var ordering = counter++;
             var isGuestRole = ordering >= guestOffset;
@@ -773,7 +777,7 @@ public partial class TmdbMetadataUpdater
         var crewToSave = new List<TMDB_Episode_Crew>();
         var existingCrewDict = _tmdbEpisodeCrew.GetByTmdbEpisodeID(tmdbEpisode.Id)
             .ToDictionary(crew => crew.TmdbCreditID);
-        foreach (var crew in credits.Crew!)
+        foreach (var crew in credits.Crew ?? [])
         {
             peopleToAddOrKeep.Add(crew.Id);
             crewToKeep.Add(crew.CreditId!);
