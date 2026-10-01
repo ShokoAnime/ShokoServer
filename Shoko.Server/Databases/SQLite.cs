@@ -1247,6 +1247,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         // is taken as a trigger's.
         new(173, 171, "UPDATE ScheduledAction SET LastScheduledRunAt = LastRunAt;"),
         new(173, 172, "CREATE INDEX IX_FileNameHash_Hash ON FileNameHash(Hash);"),
+        new(174,  1, "ALTER TABLE TMDB_Episode ADD COLUMN TmdbEpisodeType INTEGER NULL DEFAULT NULL;"),
     ];
 
     #endregion

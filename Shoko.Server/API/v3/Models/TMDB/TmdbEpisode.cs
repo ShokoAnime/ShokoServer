@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Tmdb.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
@@ -103,6 +104,13 @@ public class TmdbEpisode
     /// The episode run-time, if it is known.
     /// </summary>
     public TimeSpan? Runtime { get; init; }
+
+    /// <summary>
+    /// TMDB's own episode classification. <c>null</c> until the episode has been
+    /// refreshed since the field was added.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public TmdbEpisodeType? TmdbEpisodeType { get; init; }
 
     /// <summary>
     /// All images stored locally for this episode, if any.
@@ -203,6 +211,7 @@ public class TmdbEpisode
             Source = "TMDB",
         };
         Runtime = episode.Runtime;
+        TmdbEpisodeType = episode.TmdbEpisodeType;
         if (include.HasFlag(IncludeDetails.Images))
             Images = ((IWithImages)episode).GetImages()
                 .InLanguage(language)

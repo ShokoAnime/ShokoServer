@@ -12,6 +12,7 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Abstractions.Metadata.Tmdb.Enums;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
@@ -131,6 +132,13 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
     public TimeSpan? Runtime { get; set; }
 
     /// <summary>
+    /// TMDB's own episode classification. <see langword="null"/> until the episode
+    /// is refreshed against a library build that fetches it, or if TMDB sends a
+    /// value we don't recognise.
+    /// </summary>
+    public TmdbEpisodeType? TmdbEpisodeType { get; set; }
+
+    /// <summary>
     /// Average user rating across all <see cref="UserVotes"/>.
     /// </summary>
     public double UserRating { get; set; }
@@ -181,6 +189,14 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
 
     #region Methods
 
+    internal static Abstractions.Metadata.Tmdb.Enums.TmdbEpisodeType? ParseEpisodeType(string? value) => value switch
+    {
+        "standard" => Abstractions.Metadata.Tmdb.Enums.TmdbEpisodeType.Standard,
+        "mid_season" => Abstractions.Metadata.Tmdb.Enums.TmdbEpisodeType.MidSeason,
+        "finale" => Abstractions.Metadata.Tmdb.Enums.TmdbEpisodeType.Finale,
+        _ => null,
+    };
+
     /// <summary>
     /// Populate the fields from the raw data.
     /// </summary>
@@ -202,8 +218,9 @@ public class TMDB_Episode : TMDB_Base<int>, IEntityMetadata, IEpisode, ITmdbEpis
             UpdateProperty(EnglishTitle, translations is null && !string.IsNullOrEmpty(EnglishTitle) ? EnglishTitle : !string.IsNullOrEmpty(translation?.Data?.Name) ? translation.Data.Name : episode.Name!, v => EnglishTitle = v),
             UpdateProperty(EnglishOverview, !string.IsNullOrEmpty(translation?.Data?.Overview) ? translation.Data.Overview : episode.Overview!, v => EnglishOverview = v),
             UpdateProperty(SeasonNumber, episode.SeasonNumber, v => SeasonNumber = v),
-            UpdateProperty(EpisodeNumber, episode.EpisodeNumber, v => EpisodeNumber = (int)v),
+            UpdateProperty(EpisodeNumber, episode.EpisodeNumber, v => EpisodeNumber = v),
             UpdateProperty(Runtime, episode.Runtime.HasValue ? TimeSpan.FromMinutes(episode.Runtime.Value) : null, v => Runtime = v),
+            UpdateProperty(TmdbEpisodeType, ParseEpisodeType(episode.EpisodeType), v => TmdbEpisodeType = v),
             UpdateProperty(UserRating, episode.VoteAverage, v => UserRating = v),
             UpdateProperty(UserVotes, episode.VoteCount, v => UserVotes = v),
             UpdateProperty(AiredAt, episode.AirDate?.ToDateOnly(), v => AiredAt = v),

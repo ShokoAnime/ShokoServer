@@ -330,8 +330,12 @@ public partial class TmdbMetadataUpdater
         if (!state.ChangedItems.HasValue || state.ChangedItems.Value.SeasonNumbers.Contains(reducedSeason.SeasonNumber) || !existingSeasons.TryGetValue(reducedSeason.Id, out var unchangedSeason))
             return false;
 
-        state.SeasonsToSkip.Add(unchangedSeason.Id);
         var localEpisodes = _tmdbEpisodes.GetByTmdbSeasonID(unchangedSeason.Id);
+        // Rows saved before episode_type was stored need the season payload to backfill, even when TMDB reports no change.
+        if (localEpisodes.Any(ep => ep.TmdbEpisodeType is null))
+            return false;
+
+        state.SeasonsToSkip.Add(unchangedSeason.Id);
         var visibleCount = 0;
         foreach (var ep in localEpisodes)
         {
@@ -403,6 +407,9 @@ public partial class TmdbMetadataUpdater
     {
         var newlyAdded = tmdbEpisode.CreatedAt == tmdbEpisode.LastUpdatedAt;
         if (!state.ChangedItems.HasValue || newlyAdded || state.ChangedItems.Value.Episodes.Contains((season.SeasonNumber, (int)reducedEpisode.EpisodeNumber)))
+            return false;
+        // Rows saved before episode_type was stored never show up as changed on TMDB; comparing against the season payload backfills them.
+        if (tmdbEpisode.TmdbEpisodeType != TMDB_Episode.ParseEpisodeType(reducedEpisode.EpisodeType))
             return false;
 
         state.EpisodesToSkip.Add(tmdbEpisode.Id);

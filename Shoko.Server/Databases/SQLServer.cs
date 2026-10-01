@@ -1411,6 +1411,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         // is taken as a trigger's.
         new(192, 171, "UPDATE ScheduledAction SET LastScheduledRunAt = LastRunAt;"),
         new(192, 172, "CREATE INDEX IX_FileNameHash_Hash ON FileNameHash(Hash);"),
+        new(193,  1, "ALTER TABLE TMDB_Episode ADD TmdbEpisodeType TINYINT NULL DEFAULT NULL;"),
     ];
 
     #endregion

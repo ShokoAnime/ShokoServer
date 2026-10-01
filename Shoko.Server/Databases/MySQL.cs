@@ -1530,6 +1530,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         // is taken as a trigger's.
         new(194, 171, "UPDATE `ScheduledAction` SET `LastScheduledRunAt` = `LastRunAt`;"),
         new(194, 172, "CREATE INDEX `IX_FileNameHash_Hash` ON `FileNameHash`(`Hash`);"),
+        new(195,  1, "ALTER TABLE `TMDB_Episode` ADD COLUMN `TmdbEpisodeType` TINYINT UNSIGNED NULL DEFAULT NULL;"),
     ];
 
     #endregion
