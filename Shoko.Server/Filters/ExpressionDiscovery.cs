@@ -57,20 +57,47 @@ internal static class ExpressionDiscovery
         => _sourceParameterExpressions.Contains(filterType);
 
     /// <summary>
-    /// Every tag, genre or keyword name any source has stored, TMDB's
-    /// included, offered as the second parameter of the expressions that ask
-    /// about one.
+    /// The parameters of the expressions asking whether a source gives a tag,
+    /// genre or keyword: the sources, every name stored, TMDB's included, and
+    /// the (source, name) pairs that exist.
     /// </summary>
     /// <param name="kinds">The kinds of tag to offer.</param>
     /// <param name="tmdbNames">TMDB's own names of that kind, kept on its models.</param>
-    /// <returns>The names, once each.</returns>
-    private static string[] StoredTagNames(IReadOnlyCollection<TagKind> kinds, IEnumerable<string> tmdbNames)
-        => [.. RepoFactory.Metadata_Tag.GetAll()
+    /// <returns>The sources, the names and the pairs.</returns>
+    private static (string[] Parameters, string[] SecondParameters, string[][] ParameterPairs) SourceTagParameters(
+        IReadOnlyCollection<TagKind> kinds,
+        IEnumerable<string> tmdbNames
+    )
+    {
+        var sources = LinkableSources;
+        var tags = RepoFactory.Metadata_Tag.GetAll()
             .Where(tag => kinds.Contains(tag.Kind))
+            .Select(tag => (Source: tag.Source.Value, tag.Name))
+            .Concat(tmdbNames.Select(name => (Source: MetadataSource.TMDB.Value, Name: name)))
+            .ToList();
+        string[] names = [.. tags
             .Select(tag => tag.Name)
-            .Concat(tmdbNames)
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase)
             .Order(StringComparer.InvariantCultureIgnoreCase)];
+        return (sources, names, SourceTagPairs(tags, sources));
+    }
+
+    /// <summary>
+    /// Pairs each source with the tag names it has, once each per source,
+    /// in the order of the sources and then by name.
+    /// </summary>
+    /// <param name="tags">The source value and name of every tag.</param>
+    /// <param name="sources">The source values to offer, in order.</param>
+    /// <returns>The (source, name) pairs.</returns>
+    internal static string[][] SourceTagPairs(IEnumerable<(string Source, string Name)> tags, IEnumerable<string> sources)
+    {
+        var namesBySource = tags.ToLookup(tag => tag.Source, tag => tag.Name);
+        return [.. sources.SelectMany(source => namesBySource[source]
+            .Where(name => !string.IsNullOrEmpty(name))
+            .Distinct(StringComparer.InvariantCultureIgnoreCase)
+            .Order(StringComparer.InvariantCultureIgnoreCase)
+            .Select(name => new[] { source, name }))];
+    }
 
     public static IReadOnlyList<IFilterExpressionHelp> GetExpressionHelp(FilterExpressionGroup? group = null)
         => ReflectionUtils.ScannableAssemblies()
@@ -265,18 +292,10 @@ internal static class ExpressionDiscovery
             _ when !TakesSourceParameter(filterType) => (null, null, null),
 
             nameof(HasSourceGenreExpression) =>
-            (
-                LinkableSources,
-                StoredTagNames([TagKind.Genre], RepoFactory.TMDB_Movie.GetAllGenres().Concat(RepoFactory.TMDB_Show.GetAllGenres())),
-                null
-            ),
+                SourceTagParameters([TagKind.Genre], RepoFactory.TMDB_Movie.GetAllGenres().Concat(RepoFactory.TMDB_Show.GetAllGenres())),
 
             nameof(HasSourceTagExpression) =>
-            (
-                LinkableSources,
-                StoredTagNames([TagKind.Tag, TagKind.Keyword], RepoFactory.TMDB_Movie.GetAllKeywords().Concat(RepoFactory.TMDB_Show.GetAllKeywords())),
-                null
-            ),
+                SourceTagParameters([TagKind.Tag, TagKind.Keyword], RepoFactory.TMDB_Movie.GetAllKeywords().Concat(RepoFactory.TMDB_Show.GetAllKeywords())),
 
             _ =>
             (

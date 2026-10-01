@@ -198,8 +198,11 @@ public class Filter : BaseModel
 
         /// <summary>
         /// This will list the possible parameter pairs, usually with the most common ones first.
+        /// A source is listed as the old enum spelled it, as in <see cref="PossibleParameters"/>.
         /// </summary>
-        public string[][]? PossibleParameterPairs { get; init; } = help.PossibleParameterPairs;
+        public string[][]? PossibleParameterPairs { get; init; } = ExpressionDiscovery.TakesSourceParameter(help.InternalType)
+            ? help.PossibleParameterPairs?.Select(pair => pair.Length > 0 ? [LegacyMetadataSpellings.OfSourceValue(pair[0]), .. pair[1..]] : pair).ToArray()
+            : help.PossibleParameterPairs;
 
         /// <summary>
         /// Magical Json.Net stuff
