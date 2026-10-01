@@ -91,14 +91,14 @@ public class ActionParameterValidationTests
         // oblige the caller to supply the rest.
         Assert.Empty(Validate<ParameterisedGlobalAction>("""{"Query": "hello"}"""));
         Assert.Empty(Validate<ParameterisedGlobalAction>("{}"));
-        Assert.Empty(Validate<DownloadAllImagesAction>("""{"Force": true}"""));
-        Assert.Empty(Validate<PurgeAllTmdbLinksAction>("""{"RemoveShowLinks": false}"""));
+        Assert.Empty(Validate<DeleteGroupAction>("""{"DeleteSeries": true}"""));
+        Assert.Empty(Validate<DeleteVideoFileAction>("""{"RemoveFiles": false}"""));
     }
 
     [Fact]
     public void TheSchema_RequiresNothing()
     {
-        var schema = SchemaFor<DownloadAllImagesAction>();
+        var schema = SchemaFor<DeleteGroupAction>();
 
         Assert.Empty(schema.RequiredProperties);
         Assert.All(schema.ActualProperties.Values, x => Assert.False(x.IsRequired));

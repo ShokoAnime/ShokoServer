@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
@@ -22,9 +21,7 @@ namespace Shoko.Tests.Services;
 
 /// <summary>
 ///   Coverage for <see cref="UiDefinitionBuilder"/>, the joiner that zips a
-///   finished schema with the typed builders that produced it. The dump test
-///   also writes the produced documents to <c>poc-output/</c> so the shape can
-///   be eyeballed and the payload sizes compared.
+///   finished schema with the typed builders that produced it.
 /// </summary>
 [Collection(ConfigurationSchemaCollection.Name)]
 public class UiDefinitionBuilderTests
@@ -36,12 +33,11 @@ public class UiDefinitionBuilderTests
         return builder.Build(Guid.Empty, name, null, wrapped);
     }
 
-    private static (UiDefinition Definition, string SchemaJson) BuildForServerSettings()
+    private static UiDefinition BuildForServerSettings()
     {
         var wrapped = ShokoJsonSchemaGeneratorGoldenTests.CreateGenerator().GetSchemaForType(typeof(ServerSettings));
         var builder = new UiDefinitionBuilder(NullLogger<UiDefinitionBuilder>.Instance);
-        var definition = builder.Build(Guid.Empty, wrapped.Schema.Title ?? "Core Settings", null, wrapped);
-        return (definition, wrapped.Schema.ToJson());
+        return builder.Build(Guid.Empty, wrapped.Schema.Title ?? "Core Settings", null, wrapped);
     }
 
     /// <summary>
@@ -93,7 +89,7 @@ public class UiDefinitionBuilderTests
     [Fact]
     public void ServerSettings_ProducesATreeWithoutUnknownOrAutoElements()
     {
-        var (definition, _) = BuildForServerSettings();
+        var definition = BuildForServerSettings();
         var elements = Flatten(definition.Root).ToList();
 
         Assert.IsType<UiSectionContainerElement>(definition.Root);
@@ -111,7 +107,7 @@ public class UiDefinitionBuilderTests
     [Fact]
     public void ServerSettings_CarriesLabelsAndConstraints()
     {
-        var (definition, _) = BuildForServerSettings();
+        var definition = BuildForServerSettings();
         var elements = Flatten(definition.Root).ToList();
 
         // The code editor on `ServerSettings.WebUI_Settings` has to survive as a
@@ -191,7 +187,7 @@ public class UiDefinitionBuilderTests
     [Fact]
     public void SectionContainer_WithoutADefaultSectionName_KeepsLooseMembersInPlace()
     {
-        var (definition, _) = BuildForServerSettings();
+        var definition = BuildForServerSettings();
         var plugins = Find<UiSectionContainerElement>(definition.Root, "Plugins");
         var web = Find<UiSectionContainerElement>(definition.Root, "Web");
 
@@ -210,13 +206,13 @@ public class UiDefinitionBuilderTests
     [Fact]
     public void ServerSettings_StructureFollowsTheAuthoredTabs()
     {
-        var (definition, _) = BuildForServerSettings();
+        var definition = BuildForServerSettings();
         var root = Assert.IsType<UiSectionContainerElement>(definition.Root);
 
         // Every nested settings object stays an item and labels its own tab,
         // with the gathered sections appended after them.
         Assert.Equal(
-            ["Image", "Import", "AniDb", "TMDB", "Anilist", "Database", "Queue", "Connectivity", "Language", "Plex", "Plugins", "ReleaseComparisonPreferences", "Logging", "Linux", "Web", "Misc.", "Web UI"],
+            ["Image", "Import", "AniDb", "TMDB", "Metadata", "Database", "Queue", "Connectivity", "Language", "Plex", "Plugins", "ReleaseComparisonPreferences", "Logging", "Linux", "Web", "Misc.", "Web UI"],
             root.Structure.Select(x => x.Name)
         );
         Assert.Equal(["Misc.", "Web UI"], root.Structure.TakeLast(2).Select(x => x.Name));
@@ -270,7 +266,7 @@ public class UiDefinitionBuilderTests
     [Fact]
     public void Descriptions_CarryNoXmlDocWhitespace()
     {
-        var (definition, _) = BuildForServerSettings();
+        var definition = BuildForServerSettings();
 
         // An XML doc summary is indented and wrapped for the reader of the
         // source, and both used to reach the client verbatim: a trailing newline
@@ -447,59 +443,6 @@ public class UiDefinitionBuilderTests
         // this only bites a client doing a textual comparison.
         Assert.Equal(["0.0", "1.0"], newtonsoft.DeniedValues!.Select(x => x!.ToString(Formatting.None)));
         Assert.Equal(["0", "1"], systemTextJson.DeniedValues!.Select(x => x!.ToString(Formatting.None)));
-    }
-
-    [Fact]
-    public void ServerSettings_DumpsDefinitionAndReportsPayloadSize()
-    {
-        var (definition, schemaJson) = BuildForServerSettings();
-
-        // Mirrors the MVC pipeline, `MaxDepth` included: the produced tree is
-        // deeper than 10 levels, so this doubles as a check that the pipeline
-        // can actually emit it.
-        var mvcSettings = new JsonSerializerSettings
-        {
-            MaxDepth = 10,
-            ContractResolver = new DefaultContractResolver { NamingStrategy = new DefaultNamingStrategy() },
-            NullValueHandling = NullValueHandling.Include,
-        };
-        var leanSettings = new JsonSerializerSettings
-        {
-            ContractResolver = new DefaultContractResolver { NamingStrategy = new DefaultNamingStrategy() },
-            NullValueHandling = NullValueHandling.Ignore,
-        };
-
-        var definitionJson = JsonConvert.SerializeObject(definition, Formatting.Indented, mvcSettings);
-        var definitionMinified = JsonConvert.SerializeObject(definition, Formatting.None, mvcSettings);
-        var definitionLean = JsonConvert.SerializeObject(definition, Formatting.None, leanSettings);
-        var schemaMinified = JToken.Parse(schemaJson).ToString(Formatting.None);
-        var elements = Flatten(definition.Root).ToList();
-
-        var outputDirectory = TestPaths.OutputDirectory;
-        Directory.CreateDirectory(outputDirectory);
-        File.WriteAllText(Path.Combine(outputDirectory, "ServerSettings.ui-definition.json"), definitionJson);
-        File.WriteAllText(Path.Combine(outputDirectory, "ServerSettings.schema.json"), schemaJson);
-        File.WriteAllText(
-            Path.Combine(outputDirectory, "payload-sizes.txt"),
-            string.Join(
-                Environment.NewLine,
-                "Payload comparison for ServerSettings (bytes, UTF-8, minified unless noted)",
-                $"  /Schema                            : {schemaMinified.Length,8}",
-                $"  /UiDefinition (NullValueHandling.Include, as MVC would emit it): {definitionMinified.Length,8}",
-                $"  /UiDefinition (NullValueHandling.Ignore)                       : {definitionLean.Length,8}",
-                $"  ratio vs schema (Include)          : {(double)definitionMinified.Length / schemaMinified.Length:0.00}x",
-                $"  ratio vs schema (Ignore)           : {(double)definitionLean.Length / schemaMinified.Length:0.00}x",
-                string.Empty,
-                "Element census",
-                $"  elements                           : {elements.Count,8}",
-                $"  with a default                     : {elements.Count(x => x.Default is not null),8}",
-                $"  hoisted definitions                : {definition.Definitions.Count,8}",
-                string.Empty
-            )
-        );
-
-        Assert.True(definitionMinified.Length > 0);
-        Assert.True(schemaMinified.Length > 0);
     }
 
     [Fact]
