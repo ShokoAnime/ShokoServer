@@ -12,10 +12,8 @@ using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Actions.Services;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User;
@@ -29,7 +27,6 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
@@ -55,12 +52,6 @@ public class ActionService : IActionService
     private readonly IAnidbService _anidbService;
 
     private readonly IVideoService _videoService;
-
-    private readonly IImageManager _imageManager;
-
-    private readonly TmdbMetadataUpdater _tmdbUpdater;
-
-    private readonly IMetadataRefreshService _refreshService;
 
     private readonly DatabaseFactory _databaseFactory;
 
@@ -103,8 +94,6 @@ public class ActionService : IActionService
 
     private readonly StoredReleaseInfoRepository _storedReleaseInfos;
 
-    private readonly StoredReleaseInfo_MatchAttemptRepository _storedReleaseInfoMatchAttempts;
-
     private readonly AniDB_AnimeRepository _anidbAnimes;
 
     private readonly AniDB_EpisodeRepository _anidbEpisodes;
@@ -131,9 +120,6 @@ public class ActionService : IActionService
         IVideoReleaseService videoReleaseService,
         IAnidbService anidbService,
         IVideoService videoService,
-        IImageManager imageManager,
-        TmdbMetadataUpdater tmdbUpdater,
-        IMetadataRefreshService refreshService,
         DatabaseFactory databaseFactory,
         HttpXmlUtils xmlUtils,
         IPluginPackageManager pluginPackageManager,
@@ -142,7 +128,6 @@ public class ActionService : IActionService
         VideoLocalRepository videoLocals,
         VideoLocal_PlaceRepository videoLocalPlaces,
         StoredReleaseInfoRepository storedReleaseInfos,
-        StoredReleaseInfo_MatchAttemptRepository storedReleaseInfoMatchAttempts,
         AniDB_AnimeRepository anidbAnimes,
         AniDB_EpisodeRepository anidbEpisodes,
         AniDB_CreatorRepository anidbCreators,
@@ -160,10 +145,7 @@ public class ActionService : IActionService
         _settingsProvider = settingsProvider;
         _videoReleaseService = videoReleaseService;
         _anidbService = anidbService;
-        _imageManager = imageManager;
         _videoService = videoService;
-        _tmdbUpdater = tmdbUpdater;
-        _refreshService = refreshService;
         _databaseFactory = databaseFactory;
         _xmlUtils = xmlUtils;
         _pluginPackageManager = pluginPackageManager;
@@ -172,7 +154,6 @@ public class ActionService : IActionService
         _videoLocals = videoLocals;
         _videoLocalPlaces = videoLocalPlaces;
         _storedReleaseInfos = storedReleaseInfos;
-        _storedReleaseInfoMatchAttempts = storedReleaseInfoMatchAttempts;
         _anidbAnimes = anidbAnimes;
         _anidbEpisodes = anidbEpisodes;
         _anidbCreators = anidbCreators;
@@ -587,77 +568,6 @@ public class ActionService : IActionService
 
     #endregion
 
-    public async Task RunImport_IntegrityCheck()
-    {
-        // files which have not been hashed yet
-        // or files which do not have a VideoInfo record
-        var filesToHash = _videoLocals.GetVideosWithoutHash();
-        var dictFilesToHash = new Dictionary<int, VideoLocal>();
-        foreach (var vl in filesToHash)
-        {
-            dictFilesToHash[vl.VideoLocalID] = vl;
-            var p = vl.FirstResolvedPlace;
-            if (p == null) continue;
-
-            await _scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path!);
-        }
-
-        foreach (var vl in filesToHash)
-        {
-            // don't use if it is in the previous list
-            if (dictFilesToHash.ContainsKey(vl.VideoLocalID)) continue;
-
-            try
-            {
-                var p = vl.FirstResolvedPlace;
-                if (p == null) continue;
-
-                await _scheduler.StartJob<HashFileJob>(c => c.FilePath = p.Path!);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogInformation("Error RunImport_IntegrityCheck XREF: {Detailed} - {Ex}", vl.ToStringDetailed(), ex.ToString());
-            }
-        }
-
-        if (!_videoReleaseService.AutoMatchEnabled)
-            return;
-
-        // files which have been hashed, but don't have an associated episode
-        var settings = _settingsProvider.GetSettings();
-        var filesWithoutEpisode = _videoLocals.GetVideosWithoutEpisode();
-        foreach (var vl in filesWithoutEpisode)
-        {
-            if (settings.Import.MaxAutoScanAttemptsPerFile != 0)
-            {
-                var matchAttempts = _storedReleaseInfoMatchAttempts.GetByEd2kAndFileSize(vl.Hash, vl.FileSize).Count;
-                if (matchAttempts > settings.Import.MaxAutoScanAttemptsPerFile)
-                    continue;
-            }
-
-            await _videoReleaseService.ScheduleFindReleaseForVideo(vl);
-        }
-    }
-
-    public Task RunImport_GetImages()
-        => _imageManager.ScheduleAllAutoDownloads();
-
-    public Task RunImport_ScanTMDB()
-        => _refreshService.AutoSearchAll(MetadataSource.TMDB);
-
-    public Task RunImport_PurgeUnlinkedTmdbPeople()
-        => _tmdbUpdater.PurgeUnlinkedPeople();
-
-    public Task RunImport_PurgeUnlinkedTmdbShowNetworks()
-        => _tmdbUpdater.PurgeUnlinkedShowNetworks();
-
-    public async Task RunImport_UpdateAllAniDB()
-    {
-        var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipSupplementaryUpdate;
-        foreach (var anime in _anidbAnimes.GetAll())
-            await _anidbService.ScheduleRefreshOfAnime(anime, refreshMethod).ConfigureAwait(false);
-    }
-
     public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMylist = true)
     {
         _logger.LogInformation("Remove Missing Files: Start");
@@ -871,35 +781,6 @@ public class ActionService : IActionService
                     await _scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID);
                 }
             }
-        }
-    }
-
-    public void CheckForPreviouslyIgnored()
-    {
-        try
-        {
-            var filesAll = _videoLocals.GetAll();
-            var filesIgnored = _videoLocals.GetIgnoredVideos();
-
-            foreach (var vl in filesAll)
-            {
-                if (!vl.IsIgnored)
-                {
-                    // Check if we have this file marked as previously ignored, matches only if it has the same hash
-                    var resultVideoLocalsIgnored =
-                        filesIgnored.Where(s => s.Hash == vl.Hash).ToList();
-
-                    if (resultVideoLocalsIgnored.Count != 0)
-                    {
-                        vl.IsIgnored = true;
-                        _videoLocals.Save(vl, false);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in CheckForPreviouslyIgnored: {Ex}", ex);
         }
     }
 

@@ -9,7 +9,7 @@ through the job queue.
 Work that runs on its own, on triggers the admin sets, is not an action but a
 [scheduled action](../../ScheduledActions/Services/README.md): global, with no
 caller, no parameters and no permission level, run and scheduled by admins
-only. "Run Import" and "Sync AniDB MyList" are scheduled actions.
+only. "Import New Files" and "Sync AniDB MyList" are scheduled actions.
 
 This folder is both sides at once: `IExecutableAction` and the four scoped base
 classes are an **extension point** you implement, and `IActionService` is the
@@ -250,7 +250,7 @@ public class MyService(IActionService actionService, ILogger<MyService> logger)
 }
 ```
 
-A scheduled action, as "Run Import", is not listed here; run it through
+A scheduled action, as "Import New Files", is not listed here; run it through
 `IScheduledActionService.InvokeAsync` instead.
 
 | Member | Notes |

@@ -823,7 +823,7 @@ public class SystemService : ISystemService
             if (settings.Import.ScanDropFoldersOnStart)
                 scheduler.Enqueue<ScanDropFoldersJob>().GetAwaiter().GetResult();
             if (settings.Import.RunOnStart)
-                scheduler.Enqueue<ImportJob>().GetAwaiter().GetResult();
+                LegacyScheduledActions.InvokeImport(_webHost.Services.GetRequiredService<IScheduledActionService>()).GetAwaiter().GetResult();
             else
                 _webHost.Services.GetRequiredService<ActionService>()
                     .ScheduleMissingAnidbAnimeForFiles().GetAwaiter().GetResult();

@@ -63,7 +63,7 @@ Three details follow from where the call sits in that walk:
   folder: subtitle files, artwork, `.nfo` sidecars, partial downloads. Do not
   assume an entry is a video.
 - **It runs on the whole tree, every scan.** One rule call per entry across the
-  entire library, on every sweep and every `ImportJob` run.
+  entire library, on every sweep and every full scan.
 
 ### What it does not cover
 

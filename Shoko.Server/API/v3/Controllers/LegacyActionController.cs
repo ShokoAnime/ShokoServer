@@ -11,9 +11,11 @@ using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.ScheduledActions.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
+using Shoko.Server.Actions;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -41,7 +43,7 @@ public class LegacyActionController : BaseController
     private readonly ActionService _actionService;
     private readonly IShokoGroupManager _groupService;
     private readonly TmdbMetadataUpdater _tmdbUpdater;
-    private readonly IVideoService _videoService;
+    private readonly IScheduledActionService _scheduledActions;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly IQueueScheduler _scheduler;
     private readonly MetadataSourceActions _sourceActions;
@@ -57,7 +59,6 @@ public class LegacyActionController : BaseController
         TmdbMetadataUpdater tmdbUpdater,
         IQueueScheduler scheduler,
         IMylistService mylistService,
-        IVideoService videoService,
         IVideoReleaseService videoReleaseService,
         ISettingsProvider settingsProvider,
         ActionService actionService,
@@ -67,12 +68,12 @@ public class LegacyActionController : BaseController
         VideoLocalRepository videoLocals,
         JMMUserRepository jmmUsers,
         MetadataSourceActions sourceActions,
-        IMetadataProviderManager providerManager
+        IMetadataProviderManager providerManager,
+        IScheduledActionService scheduledActions
     ) : base(settingsProvider)
     {
         _logger = logger;
         _tmdbUpdater = tmdbUpdater;
-        _videoService = videoService;
         _videoReleaseService = videoReleaseService;
         _scheduler = scheduler;
         _mylistService = mylistService;
@@ -84,16 +85,18 @@ public class LegacyActionController : BaseController
         _jmmUsers = jmmUsers;
         _sourceActions = sourceActions;
         _providerManager = providerManager;
+        _scheduledActions = scheduledActions;
     }
 
     /// <summary>
-    /// Run Import. This checks for new files, hashes them etc, scans Drop Folders, checks and scans for community site links (tmdb, etc), and downloads missing images.
+    /// Run Import. Queues the import's scheduled actions in order: hash unhashed files, scan the managed folders, search for metadata matches,
+    /// purge orphaned metadata, download missing images, check for previously ignored files, and check AniDB file updates.
     /// </summary>
     /// <returns></returns>
     [HttpGet("RunImport")]
     public async Task<ActionResult> RunImport()
     {
-        await _scheduler.StartJob<ImportJob>();
+        await LegacyScheduledActions.InvokeImport(_scheduledActions);
         return Ok();
     }
 
@@ -104,7 +107,7 @@ public class LegacyActionController : BaseController
     [HttpGet("ImportNewFiles")]
     public async Task<ActionResult> ImportNewFiles()
     {
-        await _videoService.ScheduleScanForManagedFolders(onlyNewFiles: true);
+        await LegacyScheduledActions.Invoke<ImportNewFilesAction>(_scheduledActions);
         return Ok();
     }
 
@@ -420,7 +423,7 @@ public class LegacyActionController : BaseController
     [HttpGet("UpdateAllAniDBInfo")]
     public async Task<ActionResult> UpdateAllAniDBInfo()
     {
-        await _actionService.RunImport_UpdateAllAniDB();
+        await LegacyScheduledActions.Invoke<UpdateAllAnidbInfoAction>(_scheduledActions);
         return Ok();
     }
 

@@ -168,14 +168,6 @@ public partial class TmdbMetadataUpdater
 
     /// <summary>
     ///   Stamps the people nothing credits any more, and removes the ones
-    ///   stamped longer ago than the metadata settings keep orphaned people.
-    /// </summary>
-    /// <returns>A task that completes once they are purged.</returns>
-    public Task PurgeUnlinkedPeople()
-        => PurgeOrphanedPeople();
-
-    /// <summary>
-    ///   Stamps the people nothing credits any more, and removes the ones
     ///   stamped before a cutoff with their credits, titles and image links.
     /// </summary>
     /// <param name="orphanedBefore">

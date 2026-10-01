@@ -16,6 +16,7 @@ using NLog;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.ScheduledActions.Services;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Enums;
@@ -61,6 +62,7 @@ public class Common : BaseController
     private readonly IVideoService _videoService;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly ReleaseComparisonService _releaseComparisonService;
+    private readonly IScheduledActionService _scheduledActions;
 
     public Common(
         IQueueScheduler scheduler,
@@ -73,7 +75,8 @@ public class Common : BaseController
         VideoLocal_UserRepository vlUsers,
         IVideoService videoService,
         IVideoReleaseService videoReleaseService,
-        ReleaseComparisonService releaseComparisonService) : base(settingsProvider)
+        ReleaseComparisonService releaseComparisonService,
+        IScheduledActionService scheduledActions) : base(settingsProvider)
     {
         _scheduler = scheduler;
         _actionService = actionService;
@@ -85,6 +88,7 @@ public class Common : BaseController
         _videoService = videoService;
         _videoReleaseService = videoReleaseService;
         _releaseComparisonService = releaseComparisonService;
+        _scheduledActions = scheduledActions;
     }
 
     //class will be found automagically thanks to inherits also class need to be public (or it will 404)
@@ -226,7 +230,7 @@ public class Common : BaseController
     [HttpGet("folder/import")]
     public async Task<ActionResult> RunImport()
     {
-        await _scheduler.StartJob<ImportJob>();
+        await LegacyScheduledActions.InvokeImport(_scheduledActions);
         return Ok();
     }
 
@@ -2442,7 +2446,7 @@ public class Common : BaseController
     [HttpGet("cloud/import")]
     public async Task<ActionResult> RunCloudImport()
     {
-        await _scheduler.StartJob<ImportJob>();
+        await LegacyScheduledActions.InvokeImport(_scheduledActions);
         return Ok();
     }
 

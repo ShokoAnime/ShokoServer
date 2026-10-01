@@ -115,7 +115,8 @@ public class ImportSettings
     public void ResetExcludeRegexes() => _internalExcludeRegexes = null;
 
     /// <summary>
-    /// Run the import scheduled task on startup.
+    /// Queue the import's scheduled actions on startup, as the legacy Run
+    /// Import route does.
     /// </summary>
     [Display(Name = "Run Import on Startup")]
     public bool RunOnStart { get; set; } = false;

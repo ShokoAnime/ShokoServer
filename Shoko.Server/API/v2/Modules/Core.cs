@@ -16,13 +16,17 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Logging.Models;
 using Shoko.Abstractions.Logging.Services;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.ScheduledActions.Services;
 using Shoko.Abstractions.User.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
+using Shoko.Server.Actions;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v2.Models.legacy;
 using Shoko.Server.Models.Shoko;
@@ -51,7 +55,9 @@ public class Core : BaseController
 
     private readonly IAnidbService _anidbService;
 
-    private readonly ActionService _actionService;
+    private readonly IScheduledActionService _scheduledActions;
+
+    private readonly IMetadataRefreshService _refreshService;
 
     private IServerSettings _settings => SettingsProvider.GetSettings();
 
@@ -61,14 +67,16 @@ public class Core : BaseController
         IMylistService mylistService,
         IUserService userService,
         IAnidbService anidbService,
-        ActionService actionService
+        IScheduledActionService scheduledActions,
+        IMetadataRefreshService refreshService
     ) : base(settingsProvider)
     {
         _scheduler = scheduler;
         _mylistService = mylistService;
         _userService = userService;
         _anidbService = anidbService;
-        _actionService = actionService;
+        _scheduledActions = scheduledActions;
+        _refreshService = refreshService;
     }
 
     #region 01.Settings
@@ -290,7 +298,7 @@ public class Core : BaseController
     [HttpGet("anidb/update")]
     public async Task<ActionResult> UpdateAllAniDB()
     {
-        await _actionService.RunImport_UpdateAllAniDB();
+        await LegacyScheduledActions.Invoke<UpdateAllAnidbInfoAction>(_scheduledActions);
         return APIStatus.OK();
     }
 
@@ -402,13 +410,13 @@ public class Core : BaseController
     #region 06.MovieDB
 
     /// <summary>
-    /// Scan MovieDB
+    /// Queue a TMDB search for every anime not linked on TMDB yet.
     /// </summary>
     /// <returns></returns>
     [HttpGet("moviedb/update")]
     public async Task<ActionResult> ScanTMDB()
     {
-        await _actionService.RunImport_ScanTMDB();
+        await _refreshService.AutoSearchAll(MetadataSource.TMDB);
         return APIStatus.OK();
     }
 
@@ -657,7 +665,7 @@ public class Core : BaseController
     [HttpGet("images/update")]
     public async Task<ActionResult> UpdateImages()
     {
-        await _actionService.RunImport_GetImages();
+        await LegacyScheduledActions.Invoke<DownloadAllImagesAction>(_scheduledActions);
 
         return APIStatus.OK();
     }
