@@ -14,6 +14,7 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.ScheduledActions;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Actions;
+using Shoko.Server.Databases;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
@@ -1322,6 +1323,25 @@ public sealed class ScheduledActionServiceTests : IDisposable
         Assert.Equal(new DateTime(2026, 9, 28, 8, 0, 0, DateTimeKind.Utc), info.LastRunAt);
         Assert.Equal(new DateTime(2026, 9, 28, 8, 0, 0, DateTimeKind.Utc), info.LastScheduledRunAt);
         Assert.Equal(new DateTime(2026, 9, 28, 14, 0, 0, DateTimeKind.Utc), info.NextRunAt);
+    }
+
+    [Fact]
+    public async Task AnActionADataFixMarked_RunsOnceAtStart_ThenKeepsToItsTriggers()
+    {
+        var ranRecently = _source.Add([ActionTrigger.Every(TimeSpan.FromHours(24))], typeof(PurgeExpiredOrphanedMetadataAction));
+        var neverSeen = _source.Add([ActionTrigger.DailyAt(new TimeOnly(3, 0))], typeof(PurgeExpiredUnusedMetadataAction));
+        SeedRow(ranRecently, Now.AddHours(-1));
+
+        Assert.True(DatabaseFixes.RunScheduledActionAtStart(_source, _schedules.Object, typeof(PurgeExpiredOrphanedMetadataAction), Now));
+        Assert.True(DatabaseFixes.RunScheduledActionAtStart(_source, _schedules.Object, typeof(PurgeExpiredUnusedMetadataAction), Now));
+        using var service = Service();
+        await service.StartSchedulingAsync(TestContext.Current.CancellationToken);
+        _clock.Advance(TimeSpan.FromHours(1));
+        await service.TickAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, _source.RunsOf(ranRecently));
+        Assert.Equal(1, _source.RunsOf(neverSeen));
+        Assert.Equal(Now.AddHours(23), service.GetScheduledAction(ranRecently)!.NextRunAt);
     }
 
     #endregion

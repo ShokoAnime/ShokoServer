@@ -509,7 +509,8 @@ public class SystemService : ISystemService
             services.AddSingleton<IMetadataImageContributorManager>(sp => sp.GetRequiredService<MetadataImageContributorManager>());
             services.AddSingleton<MetadataImageContributorScheduler>();
             services.AddSingleton<IMetadataRefreshService, MetadataRefreshService>();
-            services.AddSingleton<IMetadataPurgeService, MetadataPurgeService>();
+            services.AddSingleton<MetadataPurgeService>();
+            services.AddSingleton<IMetadataPurgeService>(provider => provider.GetRequiredService<MetadataPurgeService>());
             services.AddSingleton<IMetadataCrossReferenceTransferService, MetadataCrossReferenceTransferService>();
             services.AddSingleton<MetadataImageReconciler>();
             services.AddSingleton<IMetadataRefreshState, MetadataRefreshState>();

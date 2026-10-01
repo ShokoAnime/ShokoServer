@@ -16,11 +16,12 @@ namespace Shoko.Server.Services;
 
 /// <summary>
 ///   Purges a source's unused entries through the core's purge job, and its
-///   orphaned people, studios and networks at once.
+///   orphaned people, studios and networks and its series' leftovers at once.
 /// </summary>
 /// <param name="providerManager">The registered providers, among them those that purge their own orphans.</param>
 /// <param name="crossReferences">The links, which decide what is unused.</param>
 /// <param name="metadataService">Every source's stored series, films and collections.</param>
+/// <param name="seriesStore">Removes what is left of a series with no row of its own.</param>
 /// <param name="collectionStore">The stored collections' members.</param>
 /// <param name="peopleStore">The stored creators and characters.</param>
 /// <param name="studioStore">The stored studios and networks.</param>
@@ -28,8 +29,12 @@ namespace Shoko.Server.Services;
 /// <param name="characters">The characters' table, to find the sources that have people.</param>
 /// <param name="studios">The studios' table, to find the sources that have studios.</param>
 /// <param name="networks">The networks' table, to find the sources that have networks.</param>
+/// <param name="seriesRows">The stored series, to find the seasons and episodes left without one.</param>
+/// <param name="seasonRows">The stored seasons.</param>
+/// <param name="episodeRows">The stored episodes.</param>
 /// <param name="cleanup">Unlinks the images of the people, studios and networks removed.</param>
 /// <param name="refreshState">When each entry was last refreshed.</param>
+/// <param name="entryLocks">Keeps a refresh and a purge of the same series apart.</param>
 /// <param name="providerScheduler">Queues the purges.</param>
 /// <param name="settingsProvider">Holds how long a person, studio or network may stay orphaned.</param>
 /// <param name="logger">Where the purges are reported.</param>
@@ -37,6 +42,7 @@ public class MetadataPurgeService(
     IMetadataProviderManager providerManager,
     IMetadataCrossReferenceStore crossReferences,
     IMetadataService metadataService,
+    IMetadataSeriesStore seriesStore,
     IMetadataCollectionStore collectionStore,
     IMetadataPeopleStore peopleStore,
     IMetadataStudioStore studioStore,
@@ -44,8 +50,12 @@ public class MetadataPurgeService(
     Metadata_CharacterRepository characters,
     Metadata_StudioRepository studios,
     Metadata_NetworkRepository networks,
+    Metadata_SeriesRepository seriesRows,
+    Metadata_SeasonRepository seasonRows,
+    Metadata_EpisodeRepository episodeRows,
     MetadataEntityCleanup cleanup,
     IMetadataRefreshState refreshState,
+    MetadataEntryLocks entryLocks,
     MetadataProviderScheduler providerScheduler,
     ISettingsProvider settingsProvider,
     ILogger<MetadataPurgeService> logger
@@ -162,6 +172,18 @@ public class MetadataPurgeService(
             total += people.Count + organisations.Count;
         }
 
+        // What a plugin source's series left behind goes as the series would,
+        // and a linked one is refreshed, which stores it again.
+        var (leftovers, linked) = await PurgeStoreLeftovers(source, cancellationToken).ConfigureAwait(false);
+        foreach (var entry in linked)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            logger.LogInformation("Refreshing {Entry}, which is linked but has no row of its own.", entry);
+            await providerScheduler.ScheduleRefreshForEntry(entry, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        total += leftovers;
+
         // A source the core keeps in tables of its own, which is TMDB, has
         // its provider purge its orphans from them.
         var purgers = providerManager.MetadataProviders
@@ -181,6 +203,66 @@ public class MetadataPurgeService(
 
         return total;
     }
+
+    #endregion
+
+    #region Leftovers
+
+    /// <summary>
+    ///   Removes what the plugin sources still store for series that have no
+    ///   row of their own and that nothing links to, as removing the series
+    ///   does: their seasons, episodes, texts, images and orderings.
+    /// </summary>
+    /// <param name="source">Only this source's, or every plugin source's when left out.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <returns>How many series were cleared, and the linked ones left for a refresh to store again.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    internal async Task<(int Removed, IReadOnlyList<MetadataGuid> Linked)> PurgeStoreLeftovers(
+        MetadataSource? source = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var removed = 0;
+        var linked = new List<MetadataGuid>();
+        var series = seasonRows.GetAll().Select(season => (season.Source, season.SeriesID))
+            .Concat(episodeRows.GetAll().Select(episode => (episode.Source, episode.SeriesID)))
+            .Where(pair => !pair.Source.IsCore && (source is null || pair.Source == source))
+            .Select(pair => new MetadataGuid(pair.Source, MetadataEntityType.Series, pair.SeriesID))
+            .Distinct()
+            .Where(IsLeftoverSeries)
+            .ToList();
+        foreach (var entry in series)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var entryLock = await entryLocks.Acquire(entry, cancellationToken).ConfigureAwait(false);
+            using var imagesLock = await entryLocks.AcquireImages(entry, cancellationToken).ConfigureAwait(false);
+            if (!IsLeftoverSeries(entry))
+                continue;
+
+            if (crossReferences.IsLinked(entry))
+            {
+                linked.Add(entry);
+                continue;
+            }
+
+            using var updating = entryLocks.MarkUpdating(entry);
+            logger.LogInformation("Removing what is left of {Entry}, which has no row of its own.", entry);
+            seriesStore.RemoveSeries(entry);
+            refreshState.Forget(entry);
+            removed++;
+        }
+
+        return (removed, linked);
+    }
+
+    /// <summary>
+    ///   Whether stored seasons or episodes name a series that has no row.
+    /// </summary>
+    /// <param name="series">The series.</param>
+    /// <returns><see langword="true"/> when only leftovers name it.</returns>
+    private bool IsLeftoverSeries(MetadataGuid series)
+        => seriesRows.GetByProviderID(series.Source, series.ID) is null &&
+            (seasonRows.GetBySeriesID(series.Source, series.ID).Count > 0 || episodeRows.GetBySeriesID(series.Source, series.ID).Count > 0);
 
     #endregion
 }

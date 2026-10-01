@@ -1417,6 +1417,9 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(192, 174, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbShowID ON TMDB_AlternateOrdering_Episode(TmdbShowID);"),
         new(192, 175, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeGroupID ON TMDB_AlternateOrdering_Episode(TmdbEpisodeGroupID);"),
         new(192, 176, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeGroupCollectionID ON TMDB_AlternateOrdering_Episode(TmdbEpisodeGroupCollectionID);"),
+        // Clears what interrupted purges left of unlinked entries, and has the orphan purge
+        // refresh the linked ones soon after start.
+        new(192, 177, DatabaseFixes.PurgeMetadataLeftovers),
     ];
 
     #endregion

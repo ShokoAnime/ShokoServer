@@ -440,16 +440,13 @@ public partial class TmdbMetadataUpdater
     }
 
     /// <summary>
-    ///   Queues a refresh of each linked show and movie that has no row of its
-    ///   own, so the refresh stores it again and takes back what was left of
-    ///   it, rather than purging what is still linked.
+    ///   The linked shows and movies that have no row of their own, which a
+    ///   refresh stores again rather than a purge removing them.
     /// </summary>
-    /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>How many refreshes were queued.</returns>
-    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    public async Task<int> RestoreLinkedLeftovers(CancellationToken cancellationToken = default)
-    {
-        var entries = new List<MetadataGuid>([
+    /// <returns>The shows and movies, each once.</returns>
+    public IReadOnlyList<MetadataGuid> GetLinkedLeftovers()
+        =>
+        [
             .. _xrefAnidbTmdbShows.GetAll()
                 .Select(xref => xref.TmdbShowID)
                 .Distinct()
@@ -460,9 +457,20 @@ public partial class TmdbMetadataUpdater
                 .Distinct()
                 .Where(movieId => movieId > 0 && _tmdbMovies.GetByTmdbMovieID(movieId) is null)
                 .Select(movieId => new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Movie, movieId.ToString())),
-        ]);
+        ];
+
+    /// <summary>
+    ///   Queues a refresh of each linked show and movie that has no row of its
+    ///   own, so the refresh stores it again and takes back what was left of
+    ///   it, rather than purging what is still linked.
+    /// </summary>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <returns>How many refreshes were queued.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public async Task<int> RestoreLinkedLeftovers(CancellationToken cancellationToken = default)
+    {
         var queued = 0;
-        foreach (var entry in entries)
+        foreach (var entry in GetLinkedLeftovers())
         {
             cancellationToken.ThrowIfCancellationRequested();
             _logger.LogInformation("Refreshing {Entry}, which is linked but has no row of its own.", entry);

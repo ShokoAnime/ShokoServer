@@ -2025,7 +2025,8 @@ public class MetadataProviderJobTests
             Metadata_Studio[]? studios = null,
             ServerSettings? settings = null,
             Metadata_Creator[]? creators = null,
-            Mock<IImageManager>? images = null
+            Mock<IImageManager>? images = null,
+            Metadata_Season[]? seasons = null
         )
         {
             if (people is null)
@@ -2052,6 +2053,7 @@ public class MetadataProviderJobTests
                 Manager(infos).Object,
                 links.Object,
                 metadata.Object,
+                seriesStore.Object,
                 collectionStore.Object,
                 people.Object,
                 studioStore.Object,
@@ -2059,6 +2061,9 @@ public class MetadataProviderJobTests
                 CachedRepo.Build<Metadata_CharacterRepository, int, Metadata_Character>(row => row.Metadata_CharacterID),
                 CachedRepo.Build<Metadata_StudioRepository, int, Metadata_Studio>(row => row.Metadata_StudioID, studios ?? []),
                 CachedRepo.Build<Metadata_NetworkRepository, int, Metadata_Network>(row => row.Metadata_NetworkID),
+                CachedRepo.Build<Metadata_SeriesRepository, int, Metadata_Series>(row => row.Metadata_SeriesID),
+                CachedRepo.Build<Metadata_SeasonRepository, int, Metadata_Season>(row => row.Metadata_SeasonID, seasons ?? []),
+                CachedRepo.Build<Metadata_EpisodeRepository, int, Metadata_Episode>(row => row.Metadata_EpisodeID),
                 new MetadataEntityCleanup(
                     people.Object,
                     Mock.Of<IMetadataTagStore>(),
@@ -2068,6 +2073,7 @@ public class MetadataProviderJobTests
                     images.Object
                 ),
                 refreshState ?? new FakeRefreshState(),
+                new MetadataEntryLocks(),
                 Build(links, infos),
                 new StubSettingsProvider(settings ?? new()),
                 NullLogger<MetadataPurgeService>.Instance
@@ -2565,6 +2571,31 @@ public class MetadataProviderJobTests
             Times.Once
         );
         Assert.Equal(0, await service.PurgeOrphaned(MetadataSource.Shoko, cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task TheOrphanPurgeRemovesAnUnlinkedSeriesLeftoverAndRefreshesALinkedOne()
+    {
+        var harness = new SchedulerHarness();
+        var seriesStore = new Mock<IMetadataSeriesStore>();
+        var service = harness.PurgeService(
+            Links(series: ["linked"]),
+            [Info(new FakeProvider())],
+            seriesStore: seriesStore,
+            seasons:
+            [
+                new() { Metadata_SeasonID = 1, Source = Source, ProviderID = "gone-1", SeriesID = "gone" },
+                new() { Metadata_SeasonID = 2, Source = Source, ProviderID = "linked-1", SeriesID = "linked" },
+            ]
+        );
+
+        await service.PurgeOrphaned(cancellationToken: TestContext.Current.CancellationToken);
+
+        seriesStore.Verify(s => s.RemoveSeries(ID(MetadataEntityType.Series, "gone")), Times.Once);
+        seriesStore.Verify(s => s.RemoveSeries(ID(MetadataEntityType.Series, "linked")), Times.Never);
+        var refresh = Assert.Single(harness.Queued);
+        Assert.Equal(typeof(RefreshMetadataJob<FakeProvider>), refresh.JobType);
+        Assert.Equal(ID(MetadataEntityType.Series, "linked").ToString(), ((IMetadataRefreshJob)refresh.Job).EntryID);
     }
 
     [Fact]
