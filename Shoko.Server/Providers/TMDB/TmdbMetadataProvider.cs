@@ -579,6 +579,8 @@ public class TmdbMetadataProvider : IMetadataSeriesLinkingProvider, IMetadataMov
             RequestLimitExceededException limited => new(MetadataSource.TMDB, "TMDB kept limiting the rate of requests.", limited.RetryAfter ?? remainingPause, exception),
             GeneralHttpException { HttpStatusCode: >= HttpStatusCode.InternalServerError } http =>
                 new(MetadataSource.TMDB, $"TMDB answered with a server error ({(int)http.HttpStatusCode}).", remainingPause, exception),
+            TMDbServerException or TMDbServiceUnavailableException =>
+                new(MetadataSource.TMDB, "TMDB answered with a server error.", remainingPause, exception),
             HttpRequestException => new(MetadataSource.TMDB, "TMDB could not be reached.", remainingPause, exception),
             _ => null,
         };

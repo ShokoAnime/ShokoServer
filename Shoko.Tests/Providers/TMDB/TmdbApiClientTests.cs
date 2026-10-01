@@ -205,6 +205,8 @@ public class TmdbTransientExceptionTests
     {
         { new HttpRequestException(), true },
         { MakeRequestLimitExceeded(), true },
+        { new TMDbServerException(null), true },
+        { new TMDbServiceUnavailableException(null), true },
         { new NotFoundException(null!), false },
         { new GeneralHttpException(System.Net.HttpStatusCode.InternalServerError), false },
         { new TmdbApiKeyUnavailableException(), false },
@@ -213,7 +215,7 @@ public class TmdbTransientExceptionTests
 
     [Theory]
     [MemberData(nameof(Failures))]
-    public void OnlyANetworkFailureOrTheRateLimitIsTransient(Exception exception, bool transient)
+    public void OnlyANetworkFailureTheRateLimitOrAServerErrorIsTransient(Exception exception, bool transient)
         => Assert.Equal(transient, TmdbApiClient.IsTmdbTransient(exception));
 
     public static TheoryData<Exception, bool> ImageServerFailures() => new()

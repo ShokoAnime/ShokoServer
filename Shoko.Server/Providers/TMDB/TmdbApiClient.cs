@@ -89,6 +89,7 @@ public class TmdbApiClient
             .Handle<HttpRequestException>()
             .Or<RequestLimitExceededException>()
             .Or<GeneralHttpException>()
+            .Or<Exception>(IsTmdb5xx)
             .WaitAndRetryAsync(int.MaxValue, (_, _) => TimeSpan.Zero, OnTmdbRetryAsync);
         _instance ??= this;
     }
@@ -220,7 +221,9 @@ public class TmdbApiClient
     /// <param name="ex">The failure.</param>
     /// <returns><see langword="true"/> for a failure worth retrying later.</returns>
     internal static bool IsTmdbTransient(Exception ex) =>
-        ex is HttpRequestException or RequestLimitExceededException;
+        ex is HttpRequestException or RequestLimitExceededException || IsTmdb5xx(ex);
+
+    private static bool IsTmdb5xx(Exception ex) => ex is TMDbServerException or TMDbServiceUnavailableException;
 
     /// <summary>
     ///   Calls TMDB through the rate limiter, the bulkhead and the retry
@@ -309,6 +312,11 @@ public class TmdbApiClient
                 ctx["timeoutRetryCount"] = timeoutRetryCount + 1;
                 break;
             }
+            // TMDbLib master maps recognised 5xx responses to these types instead of GeneralHttpException.
+            case TMDbServerException or TMDbServiceUnavailableException:
+                _logger.LogWarning(ex, "Got a server-side error from TMDb: {Message}", ex.Message);
+                _rateLimiter.Notify5xxError();
+                throw ex;
             case GeneralHttpException ghEx:
                 _logger.LogWarning(ghEx, "Got a general HTTP exception while processing TMDb request: {StatusCode}", (int)ghEx.HttpStatusCode);
                 if ((int)ghEx.HttpStatusCode >= 500)

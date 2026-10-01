@@ -420,6 +420,13 @@ public class TmdbMetadataProviderTests
     }
 
     [Fact]
+    public void TMDbLibServerErrorTypesAreReportedAsUnavailable()
+    {
+        Assert.NotNull(TmdbMetadataProvider.ToUnavailable(new TMDbServerException(null), null));
+        Assert.NotNull(TmdbMetadataProvider.ToUnavailable(new TMDbServiceUnavailableException(null), null));
+    }
+
+    [Fact]
     public void AFailureRetryingWouldNotMendIsLeftAlone()
     {
         Assert.Null(TmdbMetadataProvider.ToUnavailable(new GeneralHttpException(HttpStatusCode.NotFound), null));
