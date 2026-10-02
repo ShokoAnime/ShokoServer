@@ -149,4 +149,124 @@ public class PlaylistParsingTests
     }
 
     #endregion
+
+    #region Documented examples
+
+    private const string Hash = "abc123de0000000000000000000000ff";
+
+    /// <summary>
+    /// Every example in the playlist endpoint's docs, against an empty library: an entry that
+    /// parses names the entity it could not find, rather than being refused as malformed.
+    /// </summary>
+    [Theory]
+    [InlineData("a123", "Unknown series ID \"a123\".")]
+    [InlineData("s456", "Unknown series ID \"s456\".")]
+    [InlineData("a123 r789", "Unknown series ID \"a123 r789\".")]
+    [InlineData("a123+onlyUnwatched", "Unknown series ID \"a123+onlyUnwatched\".")]
+    [InlineData("s456+includeSpecials-includeOthers", "Unknown series ID \"s456+includeSpecials-includeOthers\".")]
+    [InlineData("g123", "Unknown group ID \"g123\".")]
+    [InlineData("g123+recursive", "Unknown group ID \"g123+recursive\".")]
+    [InlineData("g123+includePrequels", "Unknown group ID \"g123+includePrequels\".")]
+    [InlineData("g123+includeAllSeries", "Unknown group ID \"g123+includeAllSeries\".")]
+    [InlineData("g123+includeAllSeries-onlyUnwatched", "Unknown group ID \"g123+includeAllSeries-onlyUnwatched\".")]
+    [InlineData("e98765", "Unknown episode ID \"e98765\" at index 0 at offset 0")]
+    [InlineData("E54321", "Unknown episode ID \"E54321\" at index 0 at offset 0")]
+    [InlineData("r789 e98765", "Unknown episode ID \"e98765\" at index 0 at offset 1")]
+    [InlineData("E54321 f" + Hash, "Unknown episode ID \"E54321\" at index 0 at offset 0 | Unknown hash \"" + Hash + "\" at index 0 at offset 1")]
+    [InlineData("42", "Unknown file ID \"42\".")]
+    [InlineData(Hash, "Unknown hash \"" + Hash + "\" at index 0 at offset 0")]
+    [InlineData(Hash + "-123456", "Unknown hash/size pair \"" + Hash + "-123456\" at index 0 at offset 0")]
+    public void EveryDocumentedExampleParses(string item, string error)
+    {
+        using var harness = new Harness();
+
+        var (valid, errors, _, _) = harness.Parse(item);
+
+        Assert.False(valid);
+        Assert.Equal(error, errors);
+    }
+
+    [Fact]
+    public void TheDocumentedThreeEntryExampleParsesEachEntry()
+    {
+        using var harness = new Harness();
+
+        var (_, _, _, keys) = harness.Parse("a123", "r789 e98765", "f" + Hash);
+
+        Assert.Equal("playlist[0],playlist[1][1],playlist[2][0]", keys);
+    }
+
+    [Fact]
+    public void AReleaseGroupAloneIsSkipped()
+    {
+        using var harness = new Harness();
+
+        var (valid, _, entries, _) = harness.Parse("r789");
+
+        Assert.True(valid);
+        Assert.Equal(0, entries);
+    }
+
+    /// <summary>
+    /// An unencoded <c>+</c> in a query string arrives as a space.
+    /// </summary>
+    [Theory]
+    [InlineData("a123 onlyUnwatched", "Unknown series ID \"a123 onlyUnwatched\".")]
+    [InlineData("s1505 onlyUnwatched", "Unknown series ID \"s1505 onlyUnwatched\".")]
+    [InlineData("s456 includeSpecials-includeOthers", "Unknown series ID \"s456 includeSpecials-includeOthers\".")]
+    [InlineData("g123 recursive", "Unknown group ID \"g123 recursive\".")]
+    [InlineData("g123 includeAllSeries-onlyUnwatched", "Unknown group ID \"g123 includeAllSeries-onlyUnwatched\".")]
+    [InlineData("a123 onlyUnwatched r789", "Unknown series ID \"a123 onlyUnwatched r789\".")]
+    public void ExtrasAfterASpaceParseLikeExtrasAfterAPlus(string item, string error)
+    {
+        using var harness = new Harness();
+
+        var (valid, errors, _, _) = harness.Parse(item);
+
+        Assert.False(valid);
+        Assert.Equal(error, errors);
+    }
+
+    [Fact]
+    public void ExtrasStayWithTheirSeriesOrGroup()
+    {
+        Assert.Equal(
+            [("g123", ["includeAllSeries", "onlyUnwatched"])],
+            GeneratedPlaylistService.SplitSubItems("g123+includeAllSeries-onlyUnwatched").Select(token => (token.Value, token.Extras.ToArray())));
+        Assert.Equal(
+            [("a123", (string[])[]), ("r789", [])],
+            GeneratedPlaylistService.SplitSubItems("a123 r789").Select(token => (token.Value, token.Extras.ToArray())));
+    }
+
+    #endregion
+
+    #region Malformed extras
+
+    [Theory]
+    [InlineData("a123+bogus")]
+    [InlineData("a123+onlyUnwatched-bogus")]
+    [InlineData("a123+recursive")]
+    [InlineData("s456 includeAllSeries")]
+    public void AnExtraTheEntryDoesNotTakeIsRejected(string item)
+    {
+        using var harness = new Harness();
+
+        var (valid, errors, _, _) = harness.Parse(item);
+
+        Assert.False(valid);
+        Assert.Equal($"Invalid item \"{item}\".", errors);
+    }
+
+    [Fact]
+    public void ASeriesIdThatIsNotANumberIsRejected()
+    {
+        using var harness = new Harness();
+
+        var (valid, errors, _, _) = harness.Parse("sabc+onlyUnwatched");
+
+        Assert.False(valid);
+        Assert.Equal("Invalid series ID \"sabc+onlyUnwatched\".", errors);
+    }
+
+    #endregion
 }

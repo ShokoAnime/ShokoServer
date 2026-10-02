@@ -86,14 +86,14 @@ public class GeneratedPlaylistService(
     ///   Without r, the most-used group is auto-selected.
     /// </para>
     /// <para>
-    ///   Series extras (appended after <c>+</c>, dash-separated):
+    ///   Series extras (appended after <c>+</c> or a space, dash-separated):
     ///     <c>a id+onlyUnwatched</c> (or <c>s id+...</c>),
     ///     <c>includeSpecials</c>,
     ///     <c>includeOthers</c>,
     ///     <c>includeRewatching</c>.
     /// </para>
     /// <para>
-    ///   Group extras (appended after <c>+</c>, dash-separated):
+    ///   Group extras (appended after <c>+</c> or a space, dash-separated):
     ///     Same as series plus:
     ///     <c>recursive</c> — include series from child groups,
     ///     <c>includeAllSeries</c> — skip chain, include all series by air date (implies recursive),
@@ -149,11 +149,12 @@ public class GeneratedPlaylistService(
                 continue;
 
             var releaseGroupID = -2;
-            var subItems = item.Split(['+', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (subItems.Any(subItem => subItem[0] is 'g'))
+            var tokens = SplitSubItems(item);
+            var subItems = tokens.Select(token => token.Value).ToArray();
+            if (tokens.Any(token => KindOf(token.Value) is 'g'))
             {
-                var groupItem = subItems.First(subItem => subItem[0] is 'g');
-                var releaseItem = subItems.FirstOrDefault(subItem => subItem[0] == 'r');
+                var (groupItem, plusExtras) = tokens.First(token => KindOf(token.Value) is 'g');
+                var releaseItem = subItems.FirstOrDefault(subItem => KindOf(subItem) is 'r');
                 if (releaseItem is not null)
                 {
                     if (subItems.Length > 2)
@@ -174,11 +175,13 @@ public class GeneratedPlaylistService(
                     continue;
                 }
 
-                var endIndex = groupItem.IndexOf(['+', ' ']);
-                if (endIndex == -1)
-                    endIndex = groupItem.Length;
-                var plusExtras = endIndex == groupItem.Length ? [] : groupItem[(endIndex + 1)..].Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                if (!int.TryParse(groupItem[1..endIndex], out var groupID) || groupID <= 0)
+                if (!plusExtras.All(_groupExtras.Contains))
+                {
+                    modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid item \"{item}\".");
+                    continue;
+                }
+
+                if (!int.TryParse(groupItem[1..], out var groupID) || groupID <= 0)
                 {
                     modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid group ID \"{item}\".");
                     continue;
@@ -197,7 +200,7 @@ public class GeneratedPlaylistService(
                 var recursive = false;
                 var includeAllSeries = false;
                 var includePrequels = false;
-                if (plusExtras.Length > 0)
+                if (plusExtras.Count > 0)
                 {
                     if (plusExtras.Contains("onlyUnwatched"))
                         onlyUnwatched = true;
@@ -234,10 +237,10 @@ public class GeneratedPlaylistService(
                 continue;
             }
 
-            if (subItems.Any(subItem => subItem[0] is 'a' or 's'))
+            if (tokens.Any(token => KindOf(token.Value) is 'a' or 's'))
             {
-                var seriesItem = subItems.First(subItem => subItem[0] is 'a' or 's');
-                var releaseItem = subItems.FirstOrDefault(subItem => subItem[0] == 'r');
+                var (seriesItem, plusExtras) = tokens.First(token => KindOf(token.Value) is 'a' or 's');
+                var releaseItem = subItems.FirstOrDefault(subItem => KindOf(subItem) is 'r');
                 if (releaseItem is not null)
                 {
                     if (subItems.Length > 2)
@@ -258,11 +261,13 @@ public class GeneratedPlaylistService(
                     continue;
                 }
 
-                var endIndex = seriesItem.IndexOf(['+', ' ']);
-                if (endIndex == -1)
-                    endIndex = seriesItem.Length;
-                var plusExtras = endIndex == seriesItem.Length ? [] : seriesItem[(endIndex + 1)..].Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                if (!int.TryParse(seriesItem[1..endIndex], out var seriesID) || seriesID <= 0)
+                if (!plusExtras.All(_seriesExtras.Contains))
+                {
+                    modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid item \"{item}\".");
+                    continue;
+                }
+
+                if (!int.TryParse(seriesItem[1..], out var seriesID) || seriesID <= 0)
                 {
                     modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid series ID \"{item}\".");
                     continue;
@@ -281,7 +286,7 @@ public class GeneratedPlaylistService(
                 var includeSpecials = false;
                 var includeOthers = false;
                 var includeRewatching = false;
-                if (plusExtras.Length > 0)
+                if (plusExtras.Count > 0)
                 {
                     if (plusExtras.Contains("onlyUnwatched"))
                         onlyUnwatched = true;
@@ -317,7 +322,7 @@ public class GeneratedPlaylistService(
             {
                 offset++;
                 var rawValue = subItem;
-                switch (subItem[0])
+                switch (KindOf(subItem))
                 {
                     case 'r':
                     {
@@ -373,11 +378,11 @@ public class GeneratedPlaylistService(
                     default:
                     {
                         // Lookup by ED2K (optionally also by file size)
-                        if (rawValue.Length >= 32)
+                        if (IsHash(rawValue))
                         {
                             var ed2kHash = rawValue[0..32];
                             var fileSize = 0L;
-                            if (rawValue[32] == '-')
+                            if (rawValue.Length > 32)
                             {
                                 if (!long.TryParse(rawValue[33..], out fileSize) || fileSize <= 0)
                                 {
@@ -489,6 +494,68 @@ public class GeneratedPlaylistService(
 
         return playlist;
     }
+
+    #region Sub-items
+
+    /// <summary>
+    ///   The extras a series entry takes, after a <c>+</c> and dash-separated.
+    /// </summary>
+    private static readonly HashSet<string> _seriesExtras = ["onlyUnwatched", "includeSpecials", "includeOthers", "includeRewatching"];
+
+    /// <summary>
+    ///   The extras a group entry takes: the series' ones and its own.
+    /// </summary>
+    private static readonly HashSet<string> _groupExtras = [.. _seriesExtras, "recursive", "includeAllSeries", "includePrequels"];
+
+    /// <summary>
+    ///   Splits an entry into its sub-items, on <c>+</c> or a space (a <c>+</c>
+    ///   in a query string reads as a space). A part made only of known extras
+    ///   belongs to the series or group sub-item before it.
+    /// </summary>
+    /// <param name="item">The entry.</param>
+    /// <returns>The sub-items, each with its extras.</returns>
+    internal static IReadOnlyList<(string Value, IReadOnlyList<string> Extras)> SplitSubItems(string item)
+    {
+        var values = new List<string>();
+        var extras = new List<List<string>>();
+        var owner = -1;
+        foreach (var part in item.Split(['+', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var names = part.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (owner >= 0 && names.Length > 0 && names.All(_groupExtras.Contains))
+            {
+                extras[owner].AddRange(names);
+                continue;
+            }
+
+            if (KindOf(part) is 'a' or 's' or 'g')
+                owner = values.Count;
+            values.Add(part);
+            extras.Add([]);
+        }
+
+        return [.. values.Select((value, index) => (value, (IReadOnlyList<string>)extras[index]))];
+    }
+
+    /// <summary>
+    ///   The kind of a sub-item: its prefix letter, or <c>'\0'</c> for a bare
+    ///   ED2K hash, which may start with a letter used as a prefix.
+    /// </summary>
+    /// <param name="subItem">The sub-item.</param>
+    /// <returns>The kind.</returns>
+    internal static char KindOf(string subItem)
+        => IsHash(subItem) ? '\0' : subItem[0];
+
+    /// <summary>
+    ///   Whether a sub-item is an ED2K hash: 32 hex characters, optionally
+    ///   followed by a dash and the file size.
+    /// </summary>
+    /// <param name="value">The sub-item.</param>
+    /// <returns><c>true</c> if it is a hash.</returns>
+    private static bool IsHash(string value)
+        => value.Length >= 32 && value[..32].All(char.IsAsciiHexDigit) && (value.Length == 32 || value[32] == '-');
+
+    #endregion
 
     private IEnumerable<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> GetListForSeries(IShokoSeries series, int? releaseGroupID = null, AnimeSeriesService.NextUpQueryOptions? options = null)
     {

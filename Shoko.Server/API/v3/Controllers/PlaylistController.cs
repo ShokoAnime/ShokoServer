@@ -39,7 +39,8 @@ public class PlaylistController : BaseController
     /// **Playlist item DSL** (`playlist` query parameter):
     ///
     /// The `playlist` parameter accepts one or more comma-separated entries. Each entry
-    /// is a list of sub-items joined by `+` or a space.
+    /// is a list of sub-items joined by `+` or a space. An unencoded `+` in the query
+    /// string reads as a space, which works the same, extras included.
     ///
     /// **Prefix reference:**
     ///
@@ -160,7 +161,8 @@ public class PlaylistController : BaseController
     /// **Playlist item DSL** (`playlist` query parameter):
     ///
     /// The `playlist` parameter accepts one or more comma-separated entries. Each entry
-    /// is a list of sub-items joined by `+` or a space.
+    /// is a list of sub-items joined by `+` or a space. An unencoded `+` in the query
+    /// string reads as a space, which works the same, extras included.
     ///
     /// **Prefix reference:**
     ///
