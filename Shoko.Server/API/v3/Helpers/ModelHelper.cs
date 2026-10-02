@@ -525,14 +525,10 @@ public static class ModelHelper
             .Where(tuple =>
             {
                 var (video, _, locations, releaseInfo, userRecord) = tuple;
-                var xrefs = video.EpisodeCrossReferences;
-                var isAnimeAllowed = xrefs
-                    .DistinctBy(xref => xref.AnimeID)
-                    .Select(xref => xref.AniDBAnime)
-                    .WhereNotNull()
-                    .All(user.AllowedAnime);
-                if (!isAnimeAllowed)
+                if (!user.AllowedVideo(video))
                     return false;
+
+                var xrefs = video.EpisodeCrossReferences;
 
                 // this one is special because ignored files are excluded by default
                 if (!include_only.Contains(FileIncludeOnlyType.Ignored) && !include.Contains(FileNonDefaultIncludeType.Ignored) && video.IsIgnored) return false;

@@ -1808,17 +1808,10 @@ public class FileController(
         var results = _videoLocalPlaces.GetAll()
             .AsParallel()
             .Where(location => location.Path?.EndsWith(query, StringComparison.OrdinalIgnoreCase) ?? false)
-            .Select(location => location.VideoLocal!)
-            .Where(file =>
-            {
-                if (file == null)
-                    return false;
-
-                var xrefs = file.EpisodeCrossReferences;
-                var series = xrefs.FirstOrDefault(xref => xref.AnimeID is not 0)?.AnimeSeries;
-                return series == null || User.AllowedSeries(series);
-            })
-            .DistinctBy(file => file.VideoLocalID);
+            .Select(location => location.VideoLocal)
+            .WhereNotNull()
+            .DistinctBy(file => file.VideoLocalID)
+            .Where(User.AllowedVideo);
 
         include ??= [];
         if (limit <= 0)
@@ -1877,11 +1870,9 @@ public class FileController(
             .DistinctBy(v => v.VideoID)
             .Select(a => a.VideoLocal)
             .WhereNotNull()
-            .Where(a =>
-            {
-                var ser = a.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
-                return ser == null || User.AllowedSeries(ser);
-            }).Select(a => new File(HttpContext, a, true)).ToList();
+            .Where(User.AllowedVideo)
+            .Select(a => new File(HttpContext, a, true))
+            .ToList();
         return results;
     }
 
@@ -1913,11 +1904,9 @@ public class FileController(
             .DistinctBy(v => v.VideoID)
             .Select(a => a.VideoLocal)
             .WhereNotNull()
-            .Where(a =>
-            {
-                var ser = a?.AnimeEpisodes.FirstOrDefault()?.AnimeSeries;
-                return ser == null || User.AllowedSeries(ser);
-            }).Select(a => new File(HttpContext, a, true)).ToList();
+            .Where(User.AllowedVideo)
+            .Select(a => new File(HttpContext, a, true))
+            .ToList();
         return results;
     }
 

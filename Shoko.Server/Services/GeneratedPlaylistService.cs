@@ -129,7 +129,8 @@ public class GeneratedPlaylistService(
     ///   The field name to use for error keys. Defaults to <c>"playlist"</c>.
     /// </param>
     /// <param name="user">
-    ///   The user the playlist is for, who only gets what they may see.
+    ///   The user the playlist is for, who only gets the groups, series and
+    ///   episodes they may see; files named by ID or hash are not checked.
     ///   Defaults to the current request's user.
     /// </param>
     /// <returns>
@@ -377,6 +378,9 @@ public class GeneratedPlaylistService(
 
                     default:
                     {
+                        // A file named by ID or hash is a direct lookup, so the
+                        // user's restrictions do not apply to it.
+
                         // Lookup by ED2K (optionally also by file size)
                         if (IsHash(rawValue))
                         {
@@ -390,7 +394,7 @@ public class GeneratedPlaylistService(
                                     continue;
                                 }
                             }
-                            if ((fileSize > 0 ? videoRepository.GetByEd2kAndSize(ed2kHash, fileSize) : videoRepository.GetByEd2k(ed2kHash)) is not { } video0 || !MaySee(user, video0))
+                            if ((fileSize > 0 ? videoRepository.GetByEd2kAndSize(ed2kHash, fileSize) : videoRepository.GetByEd2k(ed2kHash)) is not { } video0)
                             {
                                 if (fileSize == 0)
                                     modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown hash \"{rawValue}\" at index {index} at offset {offset}");
@@ -408,7 +412,7 @@ public class GeneratedPlaylistService(
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Invalid file ID \"{rawValue}\".");
                             continue;
                         }
-                        if (videoRepository.GetByID(fileID) is not { } video || !MaySee(user, video))
+                        if (videoRepository.GetByID(fileID) is not { } video)
                         {
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown file ID \"{rawValue}\".");
                             continue;
@@ -642,16 +646,6 @@ public class GeneratedPlaylistService(
     /// <returns><c>true</c> if the user may see it.</returns>
     private static bool MaySee(JMMUser? user, AnimeEpisode episode)
         => user is null || episode.AnimeSeries is not { } series || user.AllowedSeries(series);
-
-    /// <summary>
-    ///   Whether the user may see a file: every series it belongs to is
-    ///   visible to them.
-    /// </summary>
-    /// <param name="user">The user, or <c>null</c> to see everything.</param>
-    /// <param name="video">The file.</param>
-    /// <returns><c>true</c> if the user may see it.</returns>
-    private static bool MaySee(JMMUser? user, VideoLocal video)
-        => user is null || ((IVideo)video).Series.All(user.IsAllowedToSee);
 
     private static IReadOnlyList<IShokoSeries> BuildSeriesChain(IReadOnlyList<IShokoSeries> seriesList, bool includePrequels)
     {

@@ -47,7 +47,9 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = _animeEpisodes.GetWithDuplicateFiles();
+        var user = User;
+        var enumerable = _animeEpisodes.GetWithDuplicateFiles()
+            .Where(episode => episode.AnimeSeries is { } series && user.AllowedSeries(series));
 
         return enumerable
             .ToListResult(episode =>
@@ -72,7 +74,9 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
     [HttpGet("FileLocationsToAutoRemove")]
     public ActionResult<List<FileIdSet>> GetFileIdsWithPreference()
     {
-        var enumerable = _animeEpisodes.GetWithDuplicateFiles();
+        var user = User;
+        var enumerable = _animeEpisodes.GetWithDuplicateFiles()
+            .Where(episode => episode.AnimeSeries is { } series && user.AllowedSeries(series));
 
         return enumerable
             .SelectMany(episode =>
@@ -102,7 +106,8 @@ public class DuplicateFilesController(ISettingsProvider settingsProvider,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
         [FromQuery, Range(1, int.MaxValue)] int page = 1)
     {
-        var enumerable = _animeSeries.GetWithDuplicateFiles();
+        var enumerable = _animeSeries.GetWithDuplicateFiles()
+            .Where(User.AllowedSeries);
         if (onlyFinishedSeries)
             enumerable = enumerable.Where(a => a.AniDB_Anime!.GetFinishedAiring());
         if (!string.IsNullOrWhiteSpace(search))

@@ -259,29 +259,10 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
     public IReadOnlyList<VideoLocal> GetMostRecentlyAdded(int maxResults, int userID)
     {
         var user = RepoFactory.JMMUser.GetByID(userID);
-        if (user == null)
-            return maxResults < 0
-                ? Cache.GetAll().OrderByDescending(a => a.DateTimeCreated).ToList()
-                : Cache.GetAll().OrderByDescending(a => a.DateTimeCreated).Take(maxResults).ToList();
-
-        if (maxResults < 0)
-            return Cache.GetAll()
-                .Where(a => a.AnimeEpisodes
-                    .Select(b => b.AnimeSeries)
-                    .WhereNotNull()
-                    .DistinctBy(b => b.AniDB_ID)
-                    .All(user.AllowedSeries)
-                ).OrderByDescending(a => a.DateTimeCreated)
-                .ToList();
-
-        return Cache.GetAll()
-            .Where(a => a.AnimeEpisodes
-                .Select(b => b.AnimeSeries)
-                .WhereNotNull()
-                .DistinctBy(b => b.AniDB_ID)
-                .All(user.AllowedSeries)
-            ).OrderByDescending(a => a.DateTimeCreated)
-            .Take(maxResults).ToList();
+        var videos = Cache.GetAll()
+            .Where(video => user is null || user.AllowedVideo(video))
+            .OrderByDescending(a => a.DateTimeCreated);
+        return maxResults < 0 ? videos.ToList() : videos.Take(maxResults).ToList();
     }
 
     /// <summary>

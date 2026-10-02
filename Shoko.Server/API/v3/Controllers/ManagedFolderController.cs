@@ -336,6 +336,7 @@ public class ManagedFolderController(
             .GroupBy(place => place.VideoID)
             .Select(places => videoRepository.GetByID(places.Key))
             .WhereNotNull()
+            .Where(User.AllowedVideo)
             .OrderBy(file => file.DateTimeCreated)
             .ToListResult(file => new File(
                 HttpContext,

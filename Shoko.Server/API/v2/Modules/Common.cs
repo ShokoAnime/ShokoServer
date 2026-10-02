@@ -783,7 +783,7 @@ public class Common : BaseController
         var user = HttpContext.GetUser();
 
         return id == 0
-            ? GetAllFiles(limit, level, user.JMMUserID)
+            ? GetAllFiles(limit, level, user)
             : GetFileById(id, level, user.JMMUserID);
     }
 
@@ -796,7 +796,7 @@ public class Common : BaseController
     {
         var user = HttpContext.GetUser();
 
-        var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null)
+        var allVideos = RepoFactory.VideoLocal.GetAll().Where(vid => !vid.IsEmpty() && vid.MediaInfo != null && user.AllowedVideo(vid))
             .ToDictionary(a => a, a => a.ReleaseInfo);
         return allVideos.Keys.Select(vid => new { vid, anidb = allVideos[vid] })
             .Where(tuple => tuple.anidb is { ReleaseURI: not null } && tuple.anidb.ReleaseURI.StartsWith(AnidbReleaseProvider.ReleasePrefix))
@@ -854,7 +854,7 @@ public class Common : BaseController
         var user = HttpContext.GetUser();
 
         var allVideos = RepoFactory.VideoLocal.GetAll()
-            .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderName: "AniDB", IsCorrupted: true }).ToList();
+            .Where(a => !a.IsEmpty() && a.ReleaseInfo is { ProviderName: "AniDB", IsCorrupted: true } && user.AllowedVideo(a)).ToList();
         return allVideos.Select(vid => GetFileById(vid.VideoLocalID, level, user.JMMUserID).Value).ToList()!;
     }
 
@@ -875,7 +875,7 @@ public class Common : BaseController
             foreach (var ep in list)
             {
                 var series = ep?.AnimeSeries;
-                if (series == null)
+                if (series == null || !user.AllowedSeries(series))
                 {
                     continue;
                 }
@@ -941,11 +941,12 @@ public class Common : BaseController
             limit = 50;
         }
 
+        var user = User;
         var list = new List<RawFile.RecentFile>();
-        foreach (var file in RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, User.JMMUserID))
+        foreach (var file in RepoFactory.VideoLocal.GetMostRecentlyAdded(limit, user.JMMUserID))
         {
-            var firstEp = file.AnimeEpisodes.FirstOrDefault();
-            list.Add(new RawFile.RecentFile(HttpContext, file, level, User.JMMUserID)
+            var firstEp = file.AnimeEpisodes.FirstOrDefault(episode => episode.AnimeSeries is { } series && user.AllowedSeries(series));
+            list.Add(new RawFile.RecentFile(HttpContext, file, level, user.JMMUserID)
             {
                 ep_id = firstEp?.AnimeEpisodeID ?? 0,
                 series_id = firstEp?.AnimeSeries?.AnimeSeriesID ?? 0
@@ -1068,9 +1069,9 @@ public class Common : BaseController
     /// </summary>
     /// <param name="limit">number of return items</param>
     /// <param name="level"></param>
-    /// <param name="uid"></param>
+    /// <param name="user">The user, who only gets the files they may see.</param>
     /// <returns>List%lt;RawFile%gt;</returns>
-    internal object GetAllFiles(int limit, int level, int uid)
+    internal object GetAllFiles(int limit, int level, JMMUser user)
     {
         var list = new List<RawFile>();
         var limit_x = limit;
@@ -1079,9 +1080,9 @@ public class Common : BaseController
             limit_x = 100;
         }
 
-        foreach (var file in RepoFactory.VideoLocal.GetAll(limit_x))
+        foreach (var file in RepoFactory.VideoLocal.GetAll().Where(user.AllowedVideo).Take(limit_x))
         {
-            list.Add(new RawFile(HttpContext, file, level, uid));
+            list.Add(new RawFile(HttpContext, file, level, user.JMMUserID));
             if (limit != 0)
             {
                 if (list.Count >= limit)
@@ -1229,7 +1230,7 @@ public class Common : BaseController
         {
             foreach (var aep in vl.AnimeEpisodes)
             {
-                if (IDs.Contains(aep.AnimeEpisodeID))
+                if (IDs.Contains(aep.AnimeEpisodeID) || aep.AnimeSeries is not { } series || !user.AllowedSeries(series))
                 {
                     continue;
                 }
@@ -2933,9 +2934,8 @@ public class Common_v2_1 : BaseController
             .Where(v => filename.Equals(v.RelativePath.Split(Path.DirectorySeparatorChar).LastOrDefault(),
                 StringComparison.InvariantCultureIgnoreCase))
             .Where(a => a.VideoLocal is not null)
-            .Select(a => a.VideoLocal!.AnimeEpisodes)
-            .Where(a => a is not null && a.Count is not 0)
-            .Select(a => a.First())
+            .Select(a => a.VideoLocal!.AnimeEpisodes.FirstOrDefault(episode => episode.AnimeSeries is { } series && user.AllowedSeries(series)))
+            .WhereNotNull()
             .Select(aep => Episode.GenerateFromAnimeEpisode(HttpContext, aep, user.JMMUserID, level, pic)).ToList();
 
         if (items.Count is not 0)
