@@ -74,11 +74,13 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             _currentType = type;
             var schema = generator.Generate(type);
             var wrappedSchema = new WrappedJsonSchema { Schema = schema };
+            foreach (var enumSchema in schema.Definitions.Values.Where(s => s.IsEnumeration && !string.IsNullOrEmpty(s.Description)))
+                enumSchema.Description = enumSchema.Description!.WriteKeywordsAsCode();
             var schemaDefinitions = schema.Definitions.Values.Where(s => !s.IsEnumeration).Prepend(schema).ToList();
             // Post-process the schema; add the UI definitions at the correct locations.
             foreach (var subSchema in schemaDefinitions)
             {
-                subSchema.Description = string.IsNullOrEmpty(subSchema.Description) ? null : subSchema.Description.Replace(_newlineCollapseRegex, "\n");
+                subSchema.Description = string.IsNullOrEmpty(subSchema.Description) ? null : subSchema.Description.Replace(_newlineCollapseRegex, "\n").WriteKeywordsAsCode();
                 if (!_schemaKeys.TryGetValue(subSchema, out var schemaKey))
                     continue;
 
@@ -133,7 +135,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 foreach (var tuple in subSchema.Properties)
                 {
                     var (propertyKey, schemaValue) = tuple;
-                    schemaValue.Description = string.IsNullOrEmpty(schemaValue.Description) ? null : schemaValue.Description.Replace(_newlineCollapseRegex, "\n");
+                    schemaValue.Description = string.IsNullOrEmpty(schemaValue.Description) ? null : schemaValue.Description.Replace(_newlineCollapseRegex, "\n").WriteKeywordsAsCode();
                     if (schemaValue.Item is not null)
                         propertyKey += "+List";
                     if (schemaValue.AdditionalPropertiesSchema is not null)

@@ -118,12 +118,29 @@ public static partial class TypeReflectionExtensions
 
     public static string CleanDescription(this string description)
         => description
+            .WriteKeywordsAsCode()
             .Replace(BreakTwoRegex(), "\0")
             .Replace(BreakRegex(), " ")
             .Replace(SpaceRegex(), " ")
             .Replace("\0", "\n")
             .Replace("\n ", "\n")
             .Trim();
+
+    /// <summary>
+    /// Writes the language keywords in a description as inline code, in place
+    /// of the links to the keyword's documentation that Namotion.Reflection
+    /// writes for a <c>see langword</c> tag in Markdown.
+    /// </summary>
+    /// <param name="description">The description.</param>
+    /// <returns>The description with each keyword link as inline code.</returns>
+    public static string WriteKeywordsAsCode(this string description)
+        => description.Replace(KeywordLinkRegex(), "`$1`");
+
+    /// <summary>
+    /// Matches a Markdown link to the C# documentation of a language keyword.
+    /// </summary>
+    [GeneratedRegex(@"\[([^\]]+)\]\(https?://learn\.microsoft\.com/[^)\s]*/language-reference/keywords/\1/?\)")]
+    private static partial Regex KeywordLinkRegex();
 
     /// <summary>
     /// Simple regex to collapse multiple lines into a single line.
