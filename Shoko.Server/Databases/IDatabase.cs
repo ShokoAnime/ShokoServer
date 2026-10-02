@@ -1,3 +1,5 @@
+using System;
+using System.Threading;
 using NHibernate;
 
 namespace Shoko.Server.Databases;
@@ -15,7 +17,14 @@ public interface IDatabase
     /// file, MySQL and MariaDB optimize every table, and SQL Server, which
     /// reuses the space itself, does nothing.
     /// </summary>
-    void Vacuum();
+    /// <remarks>
+    /// SQLite's rebuild is one statement, so it reports no progress and runs
+    /// to the end once begun; MySQL reports and stops between two tables.
+    /// </remarks>
+    /// <param name="progress">Told how far the vacuum is, from 0 to 100.</param>
+    /// <param name="token">Stops the vacuum before it begins, or between two tables.</param>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    void Vacuum(IProgress<decimal>? progress = null, CancellationToken token = default);
 
     string Name { get; }
     int RequiredVersion { get; }

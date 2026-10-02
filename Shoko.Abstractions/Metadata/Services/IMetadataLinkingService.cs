@@ -425,14 +425,17 @@ public interface IMetadataLinkingService
     ///   Whether to also queue a purge of every series and film the removed
     ///   links pointed at, which goes ahead once nothing links to it.
     /// </param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many links were removed.</returns>
     /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<int> RemoveAllLinks(
         MetadataSource source,
         bool removeSeriesLinks = true,
         bool removeMovieLinks = true,
         bool purge = false,
+        IProgress<decimal>? progress = null,
         CancellationToken cancellationToken = default
     );
 

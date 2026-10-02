@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
@@ -15,6 +16,8 @@ namespace Shoko.Server.Actions;
 /// </summary>
 /// <remarks>
 ///   TMDB has image actions of its own.
+///   Only queues the image jobs, which run on their own; the progress covers
+///   the queuing.
 /// </remarks>
 public sealed class DownloadAllLinkedMetadataImagesAction(MetadataProviderScheduler providerScheduler, IMetadataRefreshService refreshService) : IScheduledAction
 {
@@ -27,7 +30,11 @@ public sealed class DownloadAllLinkedMetadataImagesAction(MetadataProviderSchedu
     public async Task Execute(IProgress<decimal> progress, CancellationToken token)
     {
         var sources = providerScheduler.GetImageProviders().Select(info => info.Source).Distinct().ToList();
+        var stages = new StagedProgress(progress, Math.Max(sources.Count, 1));
         foreach (var source in sources)
-            await refreshService.DownloadAllImages(source, force: true, token).ConfigureAwait(false);
+        {
+            await refreshService.DownloadAllImages(source, true, stages, token).ConfigureAwait(false);
+            stages.NextStage();
+        }
     }
 }

@@ -111,14 +111,17 @@ public interface IMetadataRefreshService
     ///   Refresh only series, only films or only collections; left out, all
     ///   three.
     /// </param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many refreshes were queued.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<int> RefreshAllLinked(
         MetadataSource source,
         bool force = false,
         MetadataRefreshOptions? options = null,
         MetadataEntityType? entityType = null,
+        IProgress<decimal>? progress = null,
         CancellationToken cancellationToken = default
     );
 
@@ -220,10 +223,12 @@ public interface IMetadataRefreshService
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="force">Whether to download the wanted images again even when they are there.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many image jobs were queued.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
-    Task<int> DownloadAllImages(MetadataSource source, bool force = false, CancellationToken cancellationToken = default);
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task<int> DownloadAllImages(MetadataSource source, bool force = false, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default);
 
     #endregion
 
@@ -265,13 +270,15 @@ public interface IMetadataRefreshService
     ///   alone. Either way only the anime not linked on the source yet are
     ///   searched, and no link is replaced.
     /// </param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
     ///   How many searches were queued, none while the auto-linker is not
     ///   configured.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
-    Task<int> AutoSearchAll(MetadataSource source, bool force = false, CancellationToken cancellationToken = default);
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task<int> AutoSearchAll(MetadataSource source, bool force = false, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default);
 
     #endregion
 

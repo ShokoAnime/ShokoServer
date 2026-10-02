@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services.Airing;
@@ -908,8 +910,11 @@ public partial class AiringScheduleService
     /// never filled. A running schedule keeps every airing, however old, so a
     /// decades-long weekly show stays whole.
     /// </summary>
+    /// <param name="progress">Told how far the sweep is, from 0 to 100.</param>
+    /// <param name="cancellationToken">Stops the sweep between two schedules.</param>
     /// <returns>How many schedules were removed.</returns>
-    internal int RunRetentionSweep()
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    internal int RunRetentionSweep(IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
     {
         var settings = LoadSettings();
         if (!settings.AutoCleanup)
@@ -918,8 +923,13 @@ public partial class AiringScheduleService
         var now = DateTime.UtcNow;
         var cutoff = GetRetentionCutoff(settings, now);
         var removed = 0;
-        foreach (var row in RepoFactory.AiringSchedule.GetAll().ToList())
+        var rows = RepoFactory.AiringSchedule.GetAll().ToList();
+        var items = new ItemProgress(progress, rows.Count);
+        items.Report(0);
+        foreach (var row in rows)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            items.Increment();
             var airings = RepoFactory.EpisodeAiring.GetByScheduleID(row.AiringScheduleID);
             if (airings.Count is 0)
             {

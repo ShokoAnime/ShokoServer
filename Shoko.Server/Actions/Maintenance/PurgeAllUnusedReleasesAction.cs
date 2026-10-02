@@ -24,5 +24,5 @@ public sealed class PurgeAllUnusedReleasesAction(IVideoReleaseService videoRelea
     public string? ConfirmationMessage => "Are you sure you want to remove all unused releases from the database?";
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => videoReleaseService.PurgeUnusedReleases(providerNames: null, skipEvents: false);
+        => videoReleaseService.PurgeUnusedReleases(null, false, progress, token);
 }

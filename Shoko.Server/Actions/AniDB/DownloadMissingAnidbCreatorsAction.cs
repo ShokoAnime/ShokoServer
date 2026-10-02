@@ -10,6 +10,10 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Download all missing AniDB creator data via the UDP API.
 /// </summary>
+/// <remarks>
+///   Only queues the creator fetches, which run on their own; the progress covers
+///   the queuing.
+/// </remarks>
 public sealed class DownloadMissingAnidbCreatorsAction(ActionService actionService) : IScheduledAction
 {
     public string Name => "Download Missing AniDB Creators";
@@ -23,5 +27,5 @@ public sealed class DownloadMissingAnidbCreatorsAction(ActionService actionServi
     public bool ScheduleCountsManualRuns => true;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => actionService.ScheduleMissingAnidbCreators();
+        => actionService.ScheduleMissingAnidbCreators(progress, token);
 }

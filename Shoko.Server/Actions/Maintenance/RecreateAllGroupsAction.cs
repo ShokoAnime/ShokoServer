@@ -2,8 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
-using Shoko.Server.Tasks;
 
 namespace Shoko.Server.Actions;
 
@@ -11,7 +11,7 @@ namespace Shoko.Server.Actions;
 ///   Delete all existing groups and recreate them from scratch based on
 ///   current settings.
 /// </summary>
-public sealed class RecreateAllGroupsAction(AnimeGroupCreator groupCreator) : IScheduledAction
+public sealed class RecreateAllGroupsAction(IShokoGroupManager groupManager) : IScheduledAction
 {
     public string Name => "Recreate All Groups";
 
@@ -24,5 +24,5 @@ public sealed class RecreateAllGroupsAction(AnimeGroupCreator groupCreator) : IS
     public string? ConfirmationMessage => "Are you sure you want to rebuild all groups from scratch?";
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => groupCreator.RecreateAllGroups();
+        => groupManager.RecreateAllGroups(progress, token);
 }

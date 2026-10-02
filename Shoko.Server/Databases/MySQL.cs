@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,7 @@ using MySqlConnector;
 using NHibernate;
 using NHibernate.Driver.MySqlConnector;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -119,12 +121,18 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
     }
 
     /// <inheritdoc />
-    public override void Vacuum()
+    public override void Vacuum(IProgress<decimal>? progress = null, CancellationToken token = default)
         => ConnectionWrapper(GetConnectionString(), connection =>
         {
             var tables = ExecuteReader(connection, "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE';");
+            var items = new ItemProgress(progress, tables.Count);
+            items.Report(0);
             foreach (var table in tables)
+            {
+                token.ThrowIfCancellationRequested();
                 Execute(connection, $"OPTIMIZE TABLE `{table[0]}`;");
+                items.Increment();
+            }
         });
 
     public override string GetConnectionString()

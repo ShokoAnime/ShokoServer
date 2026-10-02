@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using NHibernate;
 using NLog;
@@ -149,7 +150,7 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
     public abstract void BackupDatabase(string fullfilename);
 
     /// <inheritdoc />
-    public abstract void Vacuum();
+    public abstract void Vacuum(IProgress<decimal>? progress = null, CancellationToken token = default);
 
     /// <summary>
     /// Every numbered step of the schema: the tables, the patches and the

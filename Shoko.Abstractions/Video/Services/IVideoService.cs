@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Events;
@@ -547,7 +548,19 @@ public interface IVideoService
     /// <param name="prioritize">
     ///   Whether to prioritize this job in the queue.
     /// </param>
-    Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipEvents = false, bool? cleanUpStructure = null, bool forceScan = false, bool prioritize = true);
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task ScheduleScanForManagedFolders(
+        bool onlyDropSources = false,
+        bool? onlyNewFiles = null,
+        bool skipEvents = false,
+        bool? cleanUpStructure = null,
+        bool forceScan = false,
+        bool prioritize = true,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    );
 
     #endregion
 

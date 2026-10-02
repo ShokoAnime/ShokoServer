@@ -3,11 +3,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
@@ -387,9 +389,14 @@ public class AnimeGroupCreator
     /// <summary>
     /// Re-creates all AnimeGroups based on the existing AnimeSeries.
     /// </summary>
+    /// <remarks>
+    ///   Once begun it runs to the end, as stopping half way would leave the
+    ///   series without their groups.
+    /// </remarks>
     /// <param name="session">The NHibernate session.</param>
+    /// <param name="progress">Told how far the re-creation is, from 0 to 100.</param>
     /// <exception cref="ArgumentNullException"><paramref name="session"/> is <c>null</c>.</exception>
-    private async Task RecreateAllGroups(ISessionWrapper session)
+    private async Task RecreateAllGroups(ISessionWrapper session, IProgress<decimal>? progress)
     {
         if (session == null)
         {
@@ -406,6 +413,9 @@ public class AnimeGroupCreator
             if (!paused) await _queueHandler.Pause();
             _logger.LogInformation("Beginning re-creation of all groups");
 
+            // Clearing, creating the groups, saving the series, and saving the groups.
+            var stages = new StagedProgress(progress, 1, 3, 2, 3);
+            stages.Report(0);
             var animeSeries = _animeSeriesRepo.GetAll();
             AnimeGroup tempGroup;
 
@@ -421,10 +431,12 @@ public class AnimeGroupCreator
             var tempGroupID = tempGroup.AnimeGroupID.ToString(CultureInfo.InvariantCulture);
             TextAccess.Reachable?.RemoveTexts(entry => entry.Source == MetadataSource.Shoko && entry.EntityType == MetadataEntityType.Collection && entry.ID != tempGroupID);
 
+            stages.NextStage();
             var createdGroups = _autoGroupSeries
                 ? (await AutoCreateGroupsWithRelatedSeries(session, animeSeries)).AsReadOnlyCollection()
                 : (await CreateGroupPerSeries(session, animeSeries)).AsReadOnlyCollection();
 
+            stages.NextStage();
             await UpdateAnimeSeriesContractsAndSave(session, animeSeries);
 
             {
@@ -437,6 +449,7 @@ public class AnimeGroupCreator
             _animeGroupRepo.Populate(session, false);
             _animeSeriesRepo.Populate(session, false);
 
+            stages.NextStage();
             await UpdateAnimeGroupsAndTheirContracts(createdGroups);
 
             // We need to update the AnimeGroups cache again now that the contracts have been saved
@@ -444,6 +457,7 @@ public class AnimeGroupCreator
             _animeGroupRepo.Populate(session, false);
             _animeGroupUserRepo.Populate(session, false);
 
+            stages.Complete();
             _logger.LogInformation("Successfully completed re-creating all groups");
             ShokoEventHandler.Instance.OnGroupsRecreated();
             taskSource.SetResult();
@@ -476,10 +490,22 @@ public class AnimeGroupCreator
         }
     }
 
-    public async Task RecreateAllGroups()
+    /// <summary>
+    /// Re-creates all AnimeGroups based on the existing AnimeSeries.
+    /// </summary>
+    /// <remarks>
+    /// The token is only checked before it begins: once begun it runs to the
+    /// end, as stopping half way would leave the series without their groups.
+    /// </remarks>
+    /// <param name="progress">Told how far the re-creation is, from 0 to 100.</param>
+    /// <param name="token">Stops the re-creation before it begins.</param>
+    /// <returns>A task that completes once the groups are re-created.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled before it began.</exception>
+    public async Task RecreateAllGroups(IProgress<decimal>? progress = null, CancellationToken token = default)
     {
+        token.ThrowIfCancellationRequested();
         using var session = _databaseFactory.SessionFactory.OpenStatelessSession();
-        await RecreateAllGroups(session.Wrap());
+        await RecreateAllGroups(session.Wrap(), progress);
     }
 
     public async Task RecalculateStatsContractsForGroup(AnimeGroup group)

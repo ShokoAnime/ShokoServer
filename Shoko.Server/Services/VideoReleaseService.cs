@@ -1208,26 +1208,50 @@ public class VideoReleaseService(
             await ClearReleaseForVideo(video, existingRelease, skipEvents);
     }
 
-    public async Task PurgeUsedReleases(IEnumerable<string>? providerNames = null, bool skipEvents = false)
+    /// <inheritdoc />
+    public async Task PurgeUsedReleases(
+        IEnumerable<string>? providerNames = null,
+        bool skipEvents = false,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    )
     {
         var providerNameSet = providerNames?.ToHashSet();
         var releases = releaseInfoRepository.GetAll()
             .Select(release => videoRepository.GetByEd2kAndSize(release.ED2K, release.FileSize) is { } video ? (video, release) : (video: null, release))
             .Where(v => v.video is not null && (providerNameSet is null || providerNameSet.Contains(v.release.ProviderName)))
             .ToList();
+        var items = new ItemProgress(progress, releases.Count);
+        items.Report(0);
         foreach (var (video, release) in releases)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             await ClearReleaseForVideo(video, release, skipEvents);
+            items.Increment();
+        }
     }
 
-    public async Task PurgeUnusedReleases(IEnumerable<string>? providerNames = null, bool skipEvents = false)
+    /// <inheritdoc />
+    public async Task PurgeUnusedReleases(
+        IEnumerable<string>? providerNames = null,
+        bool skipEvents = false,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    )
     {
         var providerNameSet = providerNames?.ToHashSet();
         var releases = releaseInfoRepository.GetAll()
             .Where(v => videoRepository.GetByEd2kAndSize(v.ED2K, v.FileSize) is null)
             .Where(release => providerNameSet is null || providerNameSet.Contains(release.ProviderName))
             .ToList();
+        var items = new ItemProgress(progress, releases.Count);
+        items.Report(0);
         foreach (var release in releases)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             await ClearReleaseForVideo(null, release, skipEvents);
+            items.Increment();
+        }
     }
 
     public async Task RemoveRelease(IReleaseInfo releaseInfo, bool skipEvents = false)

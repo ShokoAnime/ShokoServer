@@ -404,10 +404,13 @@ public interface IMylistService
     /// <summary>
     ///   Enqueues jobs to add all files with manual links to the MyList.
     /// </summary>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
     ///   A task representing the asynchronous operation.
     /// </returns>
-    Task ScheduleAddAllManualLinks();
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task ScheduleAddAllManualLinks(IProgress<decimal>? progress = null, CancellationToken cancellationToken = default);
 
     #endregion
 

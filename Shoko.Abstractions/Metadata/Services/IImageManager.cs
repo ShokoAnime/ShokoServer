@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
@@ -586,11 +587,16 @@ public interface IImageManager
     ///   Optional. If set to <c>true</c>, will re-download even if the images
     ///   already exists locally.
     /// </param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task ScheduleAllAutoDownloads(
         MetadataSource? imageSource = null,
         ImageEntityType? imageType = null,
         MetadataSource? xrefSource = null,
-        bool force = false
+        bool force = false,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
     );
 
     #endregion
@@ -651,10 +657,18 @@ public interface IImageManager
     ///   Optional. Filter to a specific image source. If set to <c>null</c>,
     ///   purges all available images regardless of image source.
     /// </param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
     ///   The number of images that were purged.
     /// </returns>
-    Task<int> PurgeOrphanedImages(int daysOld = 7, MetadataSource? imageSource = null);
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task<int> PurgeOrphanedImages(
+        int daysOld = 7,
+        MetadataSource? imageSource = null,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Schedule a background job to check for broken cross-references and

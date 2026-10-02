@@ -1,9 +1,11 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
@@ -15,7 +17,8 @@ namespace Shoko.Server.Actions;
 /// <remarks>
 ///   A source counts only while it has an enabled auto-linker with auto-linking
 ///   turned on, so a disabled TMDB is not searched. An unconfigured source and
-///   an anime left alone are skipped.
+///   an anime left alone are skipped. Only queues the searches, which run on
+///   their own; the progress covers the queuing.
 /// </remarks>
 /// <param name="providerManager">Lists the metadata providers.</param>
 /// <param name="refreshService">Schedules the searches.</param>
@@ -29,7 +32,12 @@ public sealed class SearchForMetadataMatchesAction(IMetadataProviderManager prov
 
     public async Task Execute(IProgress<decimal> progress, CancellationToken token)
     {
-        foreach (var autoLinker in providerManager.GetAutoLinkers())
-            await refreshService.AutoSearchAll(autoLinker.Source, cancellationToken: token).ConfigureAwait(false);
+        var autoLinkers = providerManager.GetAutoLinkers().ToList();
+        var stages = new StagedProgress(progress, Math.Max(autoLinkers.Count, 1));
+        foreach (var autoLinker in autoLinkers)
+        {
+            await refreshService.AutoSearchAll(autoLinker.Source, false, stages, token).ConfigureAwait(false);
+            stages.NextStage();
+        }
     }
 }

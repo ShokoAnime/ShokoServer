@@ -10,6 +10,10 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Forcibly runs AddToMylist commands for all manually linked files.
 /// </summary>
+/// <remarks>
+///   Only queues the MyList adds, which run on their own; the progress covers
+///   the queuing.
+/// </remarks>
 public sealed class AddAllManualLinksToMylistAction(IMylistService mylistService) : IScheduledAction
 {
     public string Name => "Add All Manual Links to MyList";
@@ -23,5 +27,5 @@ public sealed class AddAllManualLinksToMylistAction(IMylistService mylistService
     public bool ScheduleCountsManualRuns => true;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => mylistService.ScheduleAddAllManualLinks();
+        => mylistService.ScheduleAddAllManualLinks(progress, token);
 }

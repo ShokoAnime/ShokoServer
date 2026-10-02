@@ -55,7 +55,13 @@ public class PurgeUnusedMetadataJobTests
     private static PurgeUnusedMetadataJob MakeJob(int days, out Mock<IMetadataPurgeService> purge, params MetadataProviderInfo[] providers)
     {
         purge = new Mock<IMetadataPurgeService>();
-        purge.Setup(service => service.PurgeUnused(It.IsAny<MetadataSource>(), It.IsAny<DateTime?>(), It.IsAny<MetadataEntityType?>(), It.IsAny<CancellationToken>()))
+        purge.Setup(service => service.PurgeUnused(
+            It.IsAny<MetadataSource>(),
+            It.IsAny<DateTime?>(),
+            It.IsAny<MetadataEntityType?>(),
+            It.IsAny<IProgress<decimal>?>(),
+            It.IsAny<CancellationToken>()
+        ))
             .ReturnsAsync(0);
         return MakeJob(days, Manager(providers), purge.Object);
     }
@@ -72,7 +78,7 @@ public class PurgeUnusedMetadataJobTests
         var services = new Mock<IServiceProvider>();
         services.Setup(provider => provider.GetService(typeof(ILoggerFactory))).Returns(NullLoggerFactory.Instance);
 
-        var job = new PurgeUnusedMetadataJob(settingsProvider.Object, manager, purge, cancellation.Object);
+        var job = new PurgeUnusedMetadataJob(settingsProvider.Object, manager, purge, cancellation.Object, Mock.Of<IJobProgressAccessor>());
         job.Setup(services.Object);
         return job;
     }
@@ -89,7 +95,13 @@ public class PurgeUnusedMetadataJobTests
         await job.Execute();
 
         purge.Verify(
-            service => service.PurgeUnused(It.IsAny<MetadataSource>(), It.IsAny<DateTime?>(), It.IsAny<MetadataEntityType?>(), It.IsAny<CancellationToken>()),
+            service => service.PurgeUnused(
+                It.IsAny<MetadataSource>(),
+                It.IsAny<DateTime?>(),
+                It.IsAny<MetadataEntityType?>(),
+                It.IsAny<IProgress<decimal>?>(),
+                It.IsAny<CancellationToken>()
+            ),
             Times.Never
         );
     }
@@ -107,6 +119,7 @@ public class PurgeUnusedMetadataJobTests
                 TestSources.Plugin,
                 It.Is<DateTime?>(cutoff => cutoff.HasValue && cutoff.Value >= before && cutoff.Value <= DateTime.Now.AddDays(-14)),
                 null,
+                It.IsAny<IProgress<decimal>?>(),
                 It.IsAny<CancellationToken>()
             ),
             Times.Once

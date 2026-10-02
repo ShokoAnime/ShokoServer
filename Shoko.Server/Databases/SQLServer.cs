@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using Microsoft.Data.SqlClient;
@@ -86,8 +87,10 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
     }
 
     /// <inheritdoc />
-    public override void Vacuum()
+    public override void Vacuum(IProgress<decimal>? progress = null, CancellationToken token = default)
     {
+        token.ThrowIfCancellationRequested();
+
         // SQL Server reuses the pages deleted rows freed, and shrinking the
         // files would only fragment the indexes.
     }

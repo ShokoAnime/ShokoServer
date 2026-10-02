@@ -536,7 +536,17 @@ public class MetadataProviderScheduler(
     /// <param name="source">The source.</param>
     /// <returns><see langword="true"/> when it does.</returns>
     public bool IsPurgeable(MetadataSource source)
-        => !source.IsCore || providerManager.MetadataProviders.Any(info => info.Source == source);
+        => IsPurgeable(source, providerManager.MetadataProviders);
+
+    /// <summary>
+    ///   Whether the core may purge a source's entries: a plugin source, or a
+    ///   core source one of the providers serves.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="providers">The registered providers.</param>
+    /// <returns><see langword="true"/> when it may.</returns>
+    public static bool IsPurgeable(MetadataSource source, IEnumerable<MetadataProviderInfo> providers)
+        => !source.IsCore || providers.Any(info => info.Source == source);
 
     /// <summary>
     ///   Whether a provider is turned on for refreshing an entry of a kind.

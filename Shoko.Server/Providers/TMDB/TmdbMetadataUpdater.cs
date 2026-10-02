@@ -231,14 +231,19 @@ public partial class TmdbMetadataUpdater
     /// <param name="enumerable">The items.</param>
     /// <param name="processAsync">The work for one item.</param>
     /// <param name="onDropped">Told about each item given up on.</param>
+    /// <param name="onFinished">Told about each item done, failed or given up on.</param>
+    /// <param name="cancellationToken">Gives up on the items not started yet.</param>
     /// <returns>A task that completes once every item is done or given up on.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="maxConcurrent"/> is below one.</exception>
     /// <exception cref="AggregateException">One or more items failed.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     private static async Task ProcessWithConcurrencyAsync<T>(
         int maxConcurrent,
         IEnumerable<T> enumerable,
         Func<T, Task> processAsync,
-        Action<T>? onDropped = null
+        Action<T>? onDropped = null,
+        Action? onFinished = null,
+        CancellationToken cancellationToken = default
     )
     {
         if (maxConcurrent < 1)
@@ -250,7 +255,13 @@ public partial class TmdbMetadataUpdater
         var block = new ActionBlock<T>(
             async item =>
             {
-                if (cts.IsCancellationRequested) { onDropped?.Invoke(item); return; }
+                if (cts.IsCancellationRequested || cancellationToken.IsCancellationRequested)
+                {
+                    onDropped?.Invoke(item);
+                    onFinished?.Invoke();
+                    return;
+                }
+
                 try { await processAsync(item); }
                 catch (Exception ex)
                 {
@@ -258,6 +269,8 @@ public partial class TmdbMetadataUpdater
                     if (Interlocked.Increment(ref failureCount) >= maxConcurrent)
                         await cts.CancelAsync();
                 }
+
+                onFinished?.Invoke();
             },
             new ExecutionDataflowBlockOptions { MaxDegreeOfParallelism = maxConcurrent }
         );
@@ -265,6 +278,7 @@ public partial class TmdbMetadataUpdater
             block.Post(item);
         block.Complete();
         await block.Completion.ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         if (!exceptions.IsEmpty)
             throw new AggregateException(exceptions);
     }

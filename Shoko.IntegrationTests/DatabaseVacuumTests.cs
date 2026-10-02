@@ -21,7 +21,7 @@ public class DatabaseVacuumTests(DatabaseMigrationFixture fixture)
         Assert.True(fixture.Success, fixture.FailureMessage);
         var database = fixture.Services.GetRequiredService<DatabaseFactory>().Instance!;
 
-        database.Vacuum();
+        database.Vacuum(token: TestContext.Current.CancellationToken);
 
         Assert.Equal(database.RequiredVersion, database.GetDatabaseVersion());
         using var connection = fixture.OpenConnection();

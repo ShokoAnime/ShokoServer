@@ -7,6 +7,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Utilities;
 
 namespace Shoko.Server.Services;
 
@@ -95,6 +96,7 @@ public class MetadataRefreshService : IMetadataRefreshService
         bool force = false,
         MetadataRefreshOptions? options = null,
         MetadataEntityType? entityType = null,
+        IProgress<decimal>? progress = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -102,7 +104,10 @@ public class MetadataRefreshService : IMetadataRefreshService
 
         options ??= MetadataProviderScheduler.FullRefresh(MetadataRefreshReason.Requested);
         var queued = 0;
-        foreach (var info in _providerManager.MetadataProviders.Where(info => info.Enabled && info.Source == source))
+        var providers = _providerManager.MetadataProviders.Where(info => info.Enabled && info.Source == source).ToList();
+        var stages = new StagedProgress(progress, Math.Max(providers.Count, 1));
+        stages.Report(0);
+        foreach (var info in providers)
         {
             // One refresh for each entry, however many anime link to it, so a
             // forced refresh does not fetch a shared entry once per anime.
@@ -110,29 +115,36 @@ public class MetadataRefreshService : IMetadataRefreshService
                 .Where(pair => entityType is null || pair.Entry.EntityType == entityType)
                 .DistinctBy(pair => pair.Entry)
                 .ToList();
+
+            // Nothing links a collection, so each stored one is asked for by name.
+            var collections = (entityType is not null && entityType != MetadataEntityType.Collection) || info.Provider is not IMetadataCollectionProvider ||
+                !MetadataProviderScheduler.MayRefresh(info, MetadataEntityType.Collection)
+                    ? []
+                    : _metadataService.GetAllCollectionsForSource(info.Source).ToList();
+            var items = new ItemProgress(stages, entries.Count + collections.Count);
             foreach (var (animeID, entry) in entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!MetadataProviderScheduler.Refreshes(info.Provider, entry.EntityType) || !MetadataProviderScheduler.MayRefresh(info, entry.EntityType))
-                    continue;
-
-                if (await _providerScheduler.ScheduleRefresh(info, animeID, entry, force, options, cancellationToken).ConfigureAwait(false))
+                if (MetadataProviderScheduler.Refreshes(info.Provider, entry.EntityType) && MetadataProviderScheduler.MayRefresh(info, entry.EntityType) &&
+                    await _providerScheduler.ScheduleRefresh(info, animeID, entry, force, options, cancellationToken).ConfigureAwait(false))
                     queued++;
+
+                items.Increment();
             }
 
-            // Nothing links a collection, so each stored one is asked for by name.
-            if ((entityType is not null && entityType != MetadataEntityType.Collection) || info.Provider is not IMetadataCollectionProvider ||
-                !MetadataProviderScheduler.MayRefresh(info, MetadataEntityType.Collection))
-                continue;
-
-            foreach (var collection in _metadataService.GetAllCollectionsForSource(info.Source).ToList())
+            foreach (var collection in collections)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (await _providerScheduler.ScheduleRefresh(info, 0, collection.ID, force, options, cancellationToken).ConfigureAwait(false))
                     queued++;
+
+                items.Increment();
             }
+
+            stages.NextStage();
         }
 
+        stages.Complete();
         return queued;
     }
 
@@ -184,25 +196,39 @@ public class MetadataRefreshService : IMetadataRefreshService
     }
 
     /// <inheritdoc />
-    public async Task<int> DownloadAllImages(MetadataSource source, bool force = false, CancellationToken cancellationToken = default)
+    public async Task<int> DownloadAllImages(
+        MetadataSource source,
+        bool force = false,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(source);
 
         var queued = 0;
-        foreach (var info in _providerScheduler.GetImageProviders(source).ToList())
+        var providers = _providerScheduler.GetImageProviders(source).ToList();
+        var stages = new StagedProgress(progress, Math.Max(providers.Count, 1));
+        stages.Report(0);
+        foreach (var info in providers)
         {
             var entries = GetLinkedEntriesInLibrary(info.Source)
                 .Select(pair => pair.Entry)
                 .Distinct()
                 .ToList();
+            var items = new ItemProgress(stages, entries.Count);
             foreach (var entry in entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (await _providerScheduler.ScheduleImages(info, entry, force, cancellationToken).ConfigureAwait(false))
                     queued++;
+
+                items.Increment();
             }
+
+            stages.NextStage();
         }
 
+        stages.Complete();
         return queued;
     }
 
@@ -234,7 +260,12 @@ public class MetadataRefreshService : IMetadataRefreshService
         => _providerScheduler.ScheduleSearch(source, anidbAnimeID, force, replace: force, cancellationToken);
 
     /// <inheritdoc />
-    public async Task<int> AutoSearchAll(MetadataSource source, bool force = false, CancellationToken cancellationToken = default)
+    public async Task<int> AutoSearchAll(
+        MetadataSource source,
+        bool force = false,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(source);
         if (_providerScheduler.GetAutoLinker(source) is not { } info || !(force || info.AutoLink))
@@ -244,19 +275,22 @@ public class MetadataRefreshService : IMetadataRefreshService
             return 0;
 
         var queued = 0;
-        foreach (var series in _metadataService.GetAllShokoSeries().ToList())
+        var allSeries = _metadataService.GetAllShokoSeries().ToList();
+        var items = new ItemProgress(progress, allSeries.Count);
+        items.Report(0);
+        foreach (var series in allSeries)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             // The search job checks these too; checking here keeps useless searches out of the queue.
             // A bulk search never replaces links, so a linked anime is left alone even when forced.
-            if (_crossReferences.GetLinkedEntries(series.AnidbAnimeID, source).Count > 0 || (!force && (
-                series.IsAutoLinkingDisabled(source) ||
-                (!info.AutoLinkRestricted && series.AnidbAnime is { Restricted: true }))))
-                continue;
-
-            if (await _providerScheduler.ScheduleSearch(source, series.AnidbAnimeID, force, replace: false, cancellationToken).ConfigureAwait(false))
+            if (_crossReferences.GetLinkedEntries(series.AnidbAnimeID, source).Count is 0 && (force || (
+                !series.IsAutoLinkingDisabled(source) &&
+                (info.AutoLinkRestricted || series.AnidbAnime is not { Restricted: true }))) &&
+                await _providerScheduler.ScheduleSearch(source, series.AnidbAnimeID, force, replace: false, cancellationToken).ConfigureAwait(false))
                 queued++;
+
+            items.Increment();
         }
 
         return queued;

@@ -3,6 +3,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Airing;
@@ -19,7 +20,11 @@ namespace Shoko.Server.Scheduling.Jobs.Airing;
 [DatabaseRequired]
 [DisallowConcurrentExecution]
 [JobKeyGroup(JobKeyGroup.Airing)]
-public class AiringScheduleRetentionJob(IAiringScheduleService airingScheduleService) : BaseJob
+public class AiringScheduleRetentionJob(
+    IAiringScheduleService airingScheduleService,
+    IJobCancellationAccessor cancellation,
+    IJobProgressAccessor progress
+) : BaseJob
 {
     private readonly AiringScheduleService _airingScheduleService = (AiringScheduleService)airingScheduleService;
 
@@ -32,7 +37,7 @@ public class AiringScheduleRetentionJob(IAiringScheduleService airingScheduleSer
     /// <inheritdoc/>
     public override Task Execute()
     {
-        _airingScheduleService.RunRetentionSweep();
+        _airingScheduleService.RunRetentionSweep(progress.Progress, cancellation.Token);
         return Task.CompletedTask;
     }
 }

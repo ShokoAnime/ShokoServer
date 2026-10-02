@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor;
 using Shoko.Server.Databases;
 using Shoko.Server.Services;
@@ -18,6 +19,8 @@ namespace Shoko.Server.Actions;
 ///   SQLite holds its write lock for the whole vacuum, and every other writer
 ///   gives up after its busy timeout, so on SQLite the database is blocked and
 ///   the queue paused and drained first, and both are released afterwards.
+///   SQLite's rebuild is one statement: a cancel stops the wait for the queue
+///   to drain, but not the rebuild once begun, which reports no progress.
 /// </remarks>
 public sealed class VacuumDatabaseAction(
     DatabaseFactory databaseFactory,
@@ -49,9 +52,13 @@ public sealed class VacuumDatabaseAction(
         var database = databaseFactory.Instance!;
         if (database is not SQLite)
         {
-            await Task.Run(database.Vacuum, token);
+            await Task.Run(() => database.Vacuum(progress, token), token);
             return;
         }
+
+        // Draining the queue, then the rebuild.
+        var stages = new StagedProgress(progress, 1, 9);
+        stages.Report(0);
 
         var paused = queueHandler.Paused;
         var released = new TaskCompletionSource();
@@ -75,7 +82,9 @@ public sealed class VacuumDatabaseAction(
                 await Task.Delay(TimeSpan.FromSeconds(1), token);
             }
 
-            await Task.Run(database.Vacuum, token);
+            stages.NextStage();
+            await Task.Run(() => database.Vacuum(stages, token), token);
+            stages.Complete();
         }
         finally
         {

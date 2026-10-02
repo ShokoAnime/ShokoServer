@@ -443,7 +443,7 @@ public class MetadataEntityStoreTests
             .Setup(scheduler => scheduler.Enqueue(It.IsAny<Action<SyncEpisodeLinksJob>?>(), It.IsAny<bool>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()))
             .Callback<Action<SyncEpisodeLinksJob>?, bool, DateTimeOffset?, CancellationToken>((configure, _, _, _) =>
             {
-                var job = new SyncEpisodeLinksJob(null!);
+                var job = new SyncEpisodeLinksJob(null!, null!, null!);
                 configure?.Invoke(job);
                 queued.Add(job);
             })

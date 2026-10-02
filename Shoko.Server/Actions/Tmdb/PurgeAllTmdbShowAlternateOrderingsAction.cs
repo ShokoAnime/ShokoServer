@@ -24,7 +24,7 @@ public sealed class PurgeAllTmdbShowAlternateOrderingsAction(TmdbMetadataUpdater
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
     {
-        tmdbUpdater.PurgeAllShowEpisodeGroups();
+        tmdbUpdater.PurgeAllShowEpisodeGroups(progress, token);
         return Task.CompletedTask;
     }
 }

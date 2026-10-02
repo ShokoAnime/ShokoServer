@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -39,8 +40,11 @@ public partial class TmdbMetadataUpdater
     /// <summary>
     ///   Fetches every person TMDB's credits name that its people table lacks.
     /// </summary>
+    /// <param name="progress">Told how far the fetching is, from 0 to 100.</param>
+    /// <param name="cancellationToken">Gives up on the people not fetched yet.</param>
     /// <returns>A task that completes once they are fetched.</returns>
-    public async Task RepairMissingPeople()
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public async Task RepairMissingPeople(IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
     {
         var missingIds = new HashSet<int>();
         var updateCount = 0;
@@ -57,6 +61,8 @@ public partial class TmdbMetadataUpdater
             if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
 
         _logger.LogDebug("Found {Count} unique missing TMDB People for Episode & Movie staff", missingIds.Count);
+        var items = new ItemProgress(progress, missingIds.Count);
+        items.Report(0);
         await ProcessWithConcurrencyAsync(TmdbApiClient.MaxConcurrency, missingIds, async personId =>
         {
             var (_, updated) = await UpdatePerson(personId, forceRefresh: true);
@@ -64,7 +70,7 @@ public partial class TmdbMetadataUpdater
                 Interlocked.Increment(ref updateCount);
             else
                 Interlocked.Increment(ref skippedCount);
-        });
+        }, onFinished: () => items.Increment(), cancellationToken: cancellationToken);
 
         _logger.LogInformation("Updated missing TMDB People: Found/Updated/Skipped {Found}/{Updated}/{Skipped}",
             missingIds.Count, updateCount, skippedCount);

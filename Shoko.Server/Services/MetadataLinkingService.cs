@@ -16,6 +16,7 @@ using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
@@ -1153,6 +1154,7 @@ public class MetadataLinkingService(
         bool removeSeriesLinks = true,
         bool removeMovieLinks = true,
         bool purge = false,
+        IProgress<decimal>? progress = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -1173,7 +1175,7 @@ public class MetadataLinkingService(
             removing.AddRange(crossReferences.GetAllMovieLinks(source));
         }
 
-        return await Remove(removing, purge, cancellationToken).ConfigureAwait(false);
+        return await Remove(removing, purge, cancellationToken, progress).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -1278,23 +1280,40 @@ public class MetadataLinkingService(
     /// <param name="links">The links, as read back from the store.</param>
     /// <param name="purge">Whether to queue the purges.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
+    /// <param name="progress">Told how far the removal is, from 0 to 100.</param>
     /// <returns>How many links were removed.</returns>
-    private async Task<int> Remove(IReadOnlyCollection<IMetadataCrossReference> links, bool purge, CancellationToken cancellationToken)
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    private async Task<int> Remove(
+        IReadOnlyCollection<IMetadataCrossReference> links,
+        bool purge,
+        CancellationToken cancellationToken,
+        IProgress<decimal>? progress = null
+    )
     {
         var distinct = links.Distinct().ToList();
         var series = distinct.OfType<IMetadataSeriesCrossReference>().ToList();
         var movies = distinct.OfType<IMetadataMovieCrossReference>().ToList();
         var episodes = distinct.OfType<IMetadataEpisodeCrossReference>().ToList();
+
+        // Each level weighs by its links, and the purges as a third of them.
+        var stages = new StagedProgress(progress, series.Count + 1, movies.Count + 1, episodes.Count + 1, purge ? (distinct.Count / 3) + 1 : 0);
+        stages.Report(0);
         var removed = 0;
         if (series.Count > 0)
             removed += (await crossReferences.MergeSeriesLinks([], series, cancellationToken: cancellationToken).ConfigureAwait(false)).Count;
+        stages.NextStage();
         if (movies.Count > 0)
             removed += (await crossReferences.MergeMovieLinks([], movies, cancellationToken: cancellationToken).ConfigureAwait(false)).Count;
+        stages.NextStage();
         if (episodes.Count > 0)
             removed += (await crossReferences.MergeEpisodeLinks([], episodes, cancellationToken: cancellationToken).ConfigureAwait(false)).Count;
+        stages.NextStage();
 
         if (!purge)
+        {
+            stages.Complete();
             return removed;
+        }
 
         var entries = series.Select(link => link.ProviderID)
             .Concat(movies.Select(link => link.ProviderID))
@@ -1302,9 +1321,15 @@ public class MetadataLinkingService(
             .OfType<MetadataGuid>()
             .Distinct()
             .ToList();
+        var items = new ItemProgress(stages, entries.Count);
         foreach (var entry in entries)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             await providerScheduler.SchedulePurge(entry, cancellationToken: cancellationToken).ConfigureAwait(false);
+            items.Increment();
+        }
 
+        stages.Complete();
         return removed;
     }
 

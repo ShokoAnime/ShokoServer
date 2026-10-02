@@ -60,8 +60,8 @@ public class SearchForMetadataMatchesActionTests
         ]);
         var searched = new List<MetadataSource>();
         var refresh = new Mock<IMetadataRefreshService>();
-        refresh.Setup(service => service.AutoSearchAll(It.IsAny<MetadataSource>(), false, It.IsAny<CancellationToken>()))
-            .Callback((MetadataSource source, bool _, CancellationToken _) => searched.Add(source))
+        refresh.Setup(service => service.AutoSearchAll(It.IsAny<MetadataSource>(), false, It.IsAny<IProgress<decimal>?>(), It.IsAny<CancellationToken>()))
+            .Callback((MetadataSource source, bool _, IProgress<decimal>? _, CancellationToken _) => searched.Add(source))
             .ReturnsAsync(0);
 
         await new SearchForMetadataMatchesAction(providers.Object, refresh.Object)

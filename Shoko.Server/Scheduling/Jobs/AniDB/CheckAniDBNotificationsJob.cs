@@ -1,11 +1,13 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Scheduling;
+using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -19,7 +21,14 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyMember("CheckAniDBNotifications")]
 [JobKeyGroup(JobKeyGroup.AniDB)]
 [DisallowConcurrentExecution]
-public class CheckAniDBNotificationsJob(IQueueScheduler scheduler, ISettingsProvider settingsProvider, ScheduledUpdateRepository scheduledUpdates, AniDB_MessageRepository anidbMessages) : BaseJob
+public class CheckAniDBNotificationsJob(
+    IQueueScheduler scheduler,
+    ISettingsProvider settingsProvider,
+    ScheduledUpdateRepository scheduledUpdates,
+    AniDB_MessageRepository anidbMessages,
+    IJobCancellationAccessor cancellation,
+    IJobProgressAccessor progress
+) : BaseJob
 {
     public override string TypeName => "Check AniDB Notifications";
 
@@ -58,8 +67,14 @@ public class CheckAniDBNotificationsJob(IQueueScheduler scheduler, ISettingsProv
         if (settings.AniDb.Notification_HandleMovedFiles)
         {
             var messages = anidbMessages.GetUnhandledFileMoveMessages();
+            var items = new ItemProgress(progress.Progress, messages.Count);
+            items.Report(0);
             foreach (var msg in messages)
+            {
+                cancellation.Token.ThrowIfCancellationRequested();
                 await scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID);
+                items.Increment();
+            }
         }
     }
 }

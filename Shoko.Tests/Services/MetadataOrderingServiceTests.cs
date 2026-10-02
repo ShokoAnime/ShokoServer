@@ -229,6 +229,20 @@ public class MetadataOrderingServiceTests
     }
 
     [Fact]
+    public void RemovingASourcesGlobalOrderingsKeepsTheUsersOwn()
+    {
+        var world = new World();
+        var series = world.AddSeries(TestSources.AniList, "s", 3);
+        world.Service.SaveOrdering(Global("o", series.ID, ("g1", ["s-e1"])));
+        var local = world.Service.CreateLocalOrdering(Local(series.ID, (null, ["s-e2"])));
+
+        Assert.Equal([TestSources.Plugin], world.Service.GetGlobalOrderingSources());
+        Assert.Equal(1, world.Service.RemoveGlobalOrderings(TestSources.Plugin, token: TestContext.Current.CancellationToken));
+        Assert.Empty(world.Service.GetStoredOrderings(TestSources.Plugin));
+        Assert.Equal(local.ID, Assert.Single(world.Service.GetStoredOrderings(MetadataSource.User)).ID);
+    }
+
+    [Fact]
     public void AGlobalOrderingIsRefusedWhenItBreaksTheRules()
     {
         var world = new World();

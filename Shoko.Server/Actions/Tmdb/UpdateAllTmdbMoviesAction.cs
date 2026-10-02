@@ -6,6 +6,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
 
@@ -13,6 +14,10 @@ namespace Shoko.Server.Actions;
 ///   Update all TMDB movies in the local database from the remote API.
 ///   Only refreshes metadata; does not download images.
 /// </summary>
+/// <remarks>
+///   Only queues the refreshes, which run on their own; the progress covers
+///   the queuing.
+/// </remarks>
 public sealed class UpdateAllTmdbMoviesAction(IMetadataRefreshService refreshService) : IScheduledAction
 {
     public string Name => "Update All TMDB Movies";
@@ -27,6 +32,7 @@ public sealed class UpdateAllTmdbMoviesAction(IMetadataRefreshService refreshSer
             force: true,
             new() { DownloadImages = false, Reason = MetadataRefreshReason.Requested },
             MetadataEntityType.Movie,
+            progress,
             token
         );
 }

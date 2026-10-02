@@ -11,6 +11,10 @@ namespace Shoko.Server.Actions;
 ///   Scan every file in the drop source folders, and the other managed
 ///   folders for new files, then import what changed.
 /// </summary>
+/// <remarks>
+///   Only queues the folder scans, which run on their own; the progress covers
+///   the queuing.
+/// </remarks>
 /// <param name="videoService">Schedules the scans.</param>
 public sealed class ScanManagedFoldersAction(IVideoService videoService) : IScheduledAction
 {
@@ -21,5 +25,5 @@ public sealed class ScanManagedFoldersAction(IVideoService videoService) : ISche
     public ActionCategory Category => ActionCategory.Import;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => videoService.ScheduleScanForManagedFolders();
+        => videoService.ScheduleScanForManagedFolders(false, null, false, null, false, true, progress, token);
 }

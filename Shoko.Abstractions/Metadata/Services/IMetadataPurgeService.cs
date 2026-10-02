@@ -63,10 +63,18 @@ public interface IMetadataPurgeService
     ///   Purge only series, only films or only collections; left out, all
     ///   three.
     /// </param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many purges were queued.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
-    Task<int> PurgeUnused(MetadataSource source, DateTime? olderThan = null, MetadataEntityType? entityType = null, CancellationToken cancellationToken = default);
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task<int> PurgeUnused(
+        MetadataSource source,
+        DateTime? olderThan = null,
+        MetadataEntityType? entityType = null,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Queue a purge of every stored collection of a source, whether its
@@ -77,10 +85,12 @@ public interface IMetadataPurgeService
     ///   stored again when the provider refreshes a series or film it holds.
     /// </remarks>
     /// <param name="source">The source: TMDB or a plugin source.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many purges were queued.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
-    Task<int> PurgeCollections(MetadataSource source, CancellationToken cancellationToken = default);
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task<int> PurgeCollections(MetadataSource source, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default);
 
     #endregion
 
@@ -106,9 +116,16 @@ public interface IMetadataPurgeService
     ///   or more ago; left out, the ones orphaned for longer than the admin's
     ///   setting, a week unless changed.
     /// </param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many creators, characters, studios and networks were removed.</returns>
-    Task<int> PurgeOrphaned(MetadataSource? source = null, DateTime? orphanedBefore = null, CancellationToken cancellationToken = default);
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task<int> PurgeOrphaned(
+        MetadataSource? source = null,
+        DateTime? orphanedBefore = null,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    );
 
     #endregion
 }

@@ -10,6 +10,10 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Recalculate stats for all series and re-apply group filters.
 /// </summary>
+/// <remarks>
+///   Only queues the stats refreshes, which run on their own; the progress covers
+///   the queuing.
+/// </remarks>
 public sealed class UpdateSeriesStatsAction(ActionService actionService) : IScheduledAction
 {
     public string Name => "Update Series Stats";
@@ -19,5 +23,5 @@ public sealed class UpdateSeriesStatsAction(ActionService actionService) : ISche
     public ActionCategory Category => ActionCategory.Maintenance;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => actionService.UpdateAllStats();
+        => actionService.UpdateAllStats(progress, token);
 }

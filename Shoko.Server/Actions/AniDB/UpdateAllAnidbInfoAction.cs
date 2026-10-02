@@ -5,6 +5,7 @@ using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Repositories.Cached.AniDB;
 
 namespace Shoko.Server.Actions;
@@ -12,6 +13,10 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Refresh all AniDB anime info from the remote API.
 /// </summary>
+/// <remarks>
+///   Only queues the refreshes, which run on their own; the progress covers
+///   the queuing.
+/// </remarks>
 /// <param name="anidbService">Schedules the refreshes.</param>
 /// <param name="anidbAnimes">The AniDB anime.</param>
 public sealed class UpdateAllAnidbInfoAction(IAnidbService anidbService, AniDB_AnimeRepository anidbAnimes) : IScheduledAction
@@ -29,10 +34,14 @@ public sealed class UpdateAllAnidbInfoAction(IAnidbService anidbService, AniDB_A
     public async Task Execute(IProgress<decimal> progress, CancellationToken token)
     {
         var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipSupplementaryUpdate;
-        foreach (var anime in anidbAnimes.GetAll())
+        var allAnime = anidbAnimes.GetAll();
+        var items = new ItemProgress(progress, allAnime.Count);
+        items.Report(0);
+        foreach (var anime in allAnime)
         {
             token.ThrowIfCancellationRequested();
             await anidbService.ScheduleRefreshOfAnime(anime, refreshMethod).ConfigureAwait(false);
+            items.Increment();
         }
     }
 }

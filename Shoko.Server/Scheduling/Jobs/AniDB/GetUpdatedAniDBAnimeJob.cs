@@ -3,11 +3,13 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Scheduling;
+using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.Titles;
@@ -27,7 +29,19 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimeRepository, AniDB_AnimeUpdateRepository anidbAnimeUpdates, AnimeSeriesRepository animeSeries, ScheduledUpdateRepository scheduledUpdates, IQueueScheduler scheduler) : BaseJob
+public class GetUpdatedAniDBAnimeJob(
+    IRequestFactory requestFactory,
+    IAnidbService anidbService,
+    ISettingsProvider settingsProvider,
+    AniDBTitleHelper titleHelper,
+    AniDB_AnimeRepository anidbAnimeRepository,
+    AniDB_AnimeUpdateRepository anidbAnimeUpdates,
+    AnimeSeriesRepository animeSeries,
+    ScheduledUpdateRepository scheduledUpdates,
+    IQueueScheduler scheduler,
+    IJobCancellationAccessor cancellation,
+    IJobProgressAccessor progress
+) : BaseJob
 {
     public bool ForceRefresh { get; set; }
 
@@ -59,45 +73,67 @@ public class GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbServi
             _logger.LogInformation("{UpdateTime} since last UPDATED command", DateTime.UtcNow - webUpdateTime);
         }
 
-        var (response, countAnime, countSeries) = await Update(webUpdateTime, schedule, 0, 0);
+        // How many pages AniDB has is only known at the end, so each page
+        // takes half of what is left.
+        var page = 0;
+        var (response, countAnime, countSeries) = await Update(webUpdateTime, schedule, 0, 0, PageProgress(page++));
 
         while (response?.Response?.Count > 200)
         {
-            (response, countAnime, countSeries) = await Update(response!.Response.LastUpdated, schedule, countAnime, countSeries);
+            (response, countAnime, countSeries) = await Update(response!.Response.LastUpdated, schedule, countAnime, countSeries, PageProgress(page++));
         }
+
+        progress.Progress.Report(100);
 
         _logger.LogInformation("Updating {Count} anime records, and {CountSeries} group status records", countAnime,
             countSeries);
     }
 
-    private async Task<(UDPResponse<ResponseUpdatedAnime>? response, int countAnime, int countSeries)> Update(DateTime webUpdateTime, ScheduledUpdate schedule, int countAnime, int countSeries)
+    /// <summary>
+    /// The share of the progress one page of updates takes: half of what the
+    /// pages before it left.
+    /// </summary>
+    /// <param name="page">The page's index, from 0.</param>
+    /// <returns>The page's slice of the job's progress.</returns>
+    private RangeProgress PageProgress(int page)
+    {
+        var left = 100m / (1L << Math.Min(page, 40));
+        return new(progress.Progress, 100m - left, 100m - (left / 2));
+    }
+
+    private async Task<(UDPResponse<ResponseUpdatedAnime>? response, int countAnime, int countSeries)> Update(
+        DateTime webUpdateTime,
+        ScheduledUpdate schedule,
+        int countAnime,
+        int countSeries,
+        IProgress<decimal> pageProgress
+    )
     {
         // get a list of updates from AniDB
         // startTime will contain the date/time from which the updates apply to
         var request = requestFactory.Create<RequestUpdatedAnime>(r => r.LastUpdated = webUpdateTime);
-        var response = await request.SendAsync();
+        var response = await request.SendAsync(cancellation.Token);
         if (response?.Response is null)
         {
             return (null, countAnime, countSeries);
         }
 
         var animeIDsToUpdate = response.Response.AnimeIDs;
-
-        // now save the update time from AniDB
-        // we will use this next time as a starting point when querying the web cache
-        schedule.LastUpdate = DateTime.Now;
-        schedule.UpdateDetails = ((int)(response.Response.LastUpdated - DateTime.UnixEpoch).TotalSeconds).ToString();
-        scheduledUpdates.Save(schedule);
-
         if (animeIDsToUpdate.Count == 0)
         {
             _logger.LogInformation("No anime to be updated");
+            SaveUpdateTime(schedule, response.Response.LastUpdated);
             return (response, countAnime, countSeries);
         }
 
         var settings = settingsProvider.GetSettings();
+        var items = new ItemProgress(pageProgress, animeIDsToUpdate.Count);
+        items.Report(0);
         foreach (var animeID in animeIDsToUpdate)
         {
+            cancellation.Token.ThrowIfCancellationRequested();
+            items.Increment();
+
             // update the anime from HTTP
             var anime = anidbAnimeRepository.GetByAnimeID(animeID);
             if (anime is null)
@@ -143,6 +179,22 @@ public class GetUpdatedAniDBAnimeJob(IRequestFactory requestFactory, IAnidbServi
                 c => (c.AnimeID, c.ForceRefresh) = (animeID, ForceRefresh));
         }
 
+        // Saved once the page is queued, so a cancelled run asks for it again
+        // next time.
+        SaveUpdateTime(schedule, response.Response.LastUpdated);
         return (response, countAnime, countSeries);
+    }
+
+    /// <summary>
+    /// Saves where AniDB's list of updates left off, the start of the next
+    /// run's.
+    /// </summary>
+    /// <param name="schedule">The row keeping it.</param>
+    /// <param name="lastUpdated">The time of the last update AniDB listed.</param>
+    private void SaveUpdateTime(ScheduledUpdate schedule, DateTime lastUpdated)
+    {
+        schedule.LastUpdate = DateTime.Now;
+        schedule.UpdateDetails = ((int)(lastUpdated - DateTime.UnixEpoch).TotalSeconds).ToString();
+        scheduledUpdates.Save(schedule);
     }
 }

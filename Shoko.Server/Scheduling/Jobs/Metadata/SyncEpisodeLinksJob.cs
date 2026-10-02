@@ -5,6 +5,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Metadata;
@@ -20,10 +21,16 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 ///   The links to an episode a save drops are removed by the series store.
 /// </remarks>
 /// <param name="crossReferences">The links.</param>
+/// <param name="cancellation">Stops the sync.</param>
+/// <param name="progress">Takes how far the sync is.</param>
 [DatabaseRequired]
 [DisallowConcurrentExecution]
 [JobKeyGroup(JobKeyGroup.Metadata)]
-public class SyncEpisodeLinksJob(MetadataCrossReferenceStore crossReferences) : BaseJob
+public class SyncEpisodeLinksJob(
+    MetadataCrossReferenceStore crossReferences,
+    IJobCancellationAccessor cancellation,
+    IJobProgressAccessor progress
+) : BaseJob
 {
     #region Properties
 
@@ -66,7 +73,7 @@ public class SyncEpisodeLinksJob(MetadataCrossReferenceStore crossReferences) : 
             return Task.CompletedTask;
         }
 
-        var changed = crossReferences.SyncFromSeriesStore(source, SeriesID);
+        var changed = crossReferences.SyncFromSeriesStore(source, SeriesID, progress.Progress, cancellation.Token);
         _logger.LogDebug("Synced {Count} episode links from the series store for {Source} {SeriesID}.", changed.Count, Source ?? "every source", SeriesID);
         return Task.CompletedTask;
     }

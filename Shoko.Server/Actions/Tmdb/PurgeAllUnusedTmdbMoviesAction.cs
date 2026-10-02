@@ -5,12 +5,17 @@ using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Purge all TMDB movies that are not linked to any AniDB anime.
 /// </summary>
+/// <remarks>
+///   Only queues the purges, which run on their own; the progress covers
+///   the queuing.
+/// </remarks>
 public sealed class PurgeAllUnusedTmdbMoviesAction(IMetadataPurgeService purgeService) : IScheduledAction
 {
     public string Name => "Purge Unused TMDB Movies";
@@ -24,5 +29,5 @@ public sealed class PurgeAllUnusedTmdbMoviesAction(IMetadataPurgeService purgeSe
     public string? ConfirmationMessage => "Are you sure you want to remove all unused TMDB movies from the database?";
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => purgeService.PurgeUnused(MetadataSource.TMDB, entityType: MetadataEntityType.Movie, cancellationToken: token);
+        => purgeService.PurgeUnused(MetadataSource.TMDB, null, MetadataEntityType.Movie, progress, token);
 }

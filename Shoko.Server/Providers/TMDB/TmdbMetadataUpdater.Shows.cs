@@ -10,6 +10,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Providers;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Scheduling.Jobs.TMDB;
 using Shoko.Server.Server;
@@ -1160,7 +1161,11 @@ public partial class TmdbMetadataUpdater
     /// <summary>
     ///   Removes every show's alternate orderings.
     /// </summary>
-    public void PurgeAllShowEpisodeGroups()
+    /// <param name="progress">Told how far the removal is, from 0 to 100.</param>
+    /// <param name="cancellationToken">Stops the removal between its episodes, seasons and orderings.</param>
+    /// <returns>How many orderings were removed.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public int PurgeAllShowEpisodeGroups(IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Purging all show episode groups.");
 
@@ -1174,9 +1179,20 @@ public partial class TmdbMetadataUpdater
         ]);
 
         _logger.LogDebug("Removing {EpisodeCount} episodes and {SeasonCount} seasons across {OrderingCount} alternate orderings for {ShowCount} shows.", episodes.Count, seasons.Count, orderings.Count, shows.Count);
+
+        // The episodes go first, so a cancelled purge leaves no episode without its season.
+        var stages = new StagedProgress(progress, episodes.Count + 1, seasons.Count + 1, orderings.Count + 1);
+        stages.Report(0);
+        cancellationToken.ThrowIfCancellationRequested();
         _tmdbAlternateOrderingEpisodes.Delete(episodes);
+        stages.NextStage();
+        cancellationToken.ThrowIfCancellationRequested();
         _tmdbAlternateOrderingSeasons.Delete(seasons);
+        stages.NextStage();
+        cancellationToken.ThrowIfCancellationRequested();
         _tmdbAlternateOrdering.Delete(orderings);
+        stages.Complete();
+        return orderings.Count;
     }
 
     #endregion

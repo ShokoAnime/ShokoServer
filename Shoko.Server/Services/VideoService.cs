@@ -1084,24 +1084,41 @@ public class VideoService : IVideoService
         );
     }
 
-    public async Task ScheduleScanForManagedFolders(bool onlyDropSources = false, bool? onlyNewFiles = null, bool skipEvents = false, bool? cleanUpStructure = null, bool forceScan = false, bool prioritize = true)
+    /// <inheritdoc />
+    public async Task ScheduleScanForManagedFolders(
+        bool onlyDropSources = false,
+        bool? onlyNewFiles = null,
+        bool skipEvents = false,
+        bool? cleanUpStructure = null,
+        bool forceScan = false,
+        bool prioritize = true,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    )
     {
         cleanUpStructure ??= _settingsProvider.GetSettings().Import.CleanUpStructure;
 
         var managedFolders = _managedFolderRepository.GetAll();
         var sources = managedFolders.Where(a => a.DropFolderType.HasFlag(DropFolderType.Source)).ToList();
         var rest = onlyDropSources ? [] : managedFolders.Except(sources).ToList();
-        if (!onlyNewFiles.HasValue)
+        var items = new ItemProgress(progress, sources.Count + rest.Count);
+        items.Report(0);
+        foreach (var folder in sources.Concat(rest))
         {
-            foreach (var source in sources)
-                await ScheduleScanForManagedFolder(source, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
-            foreach (var folder in rest)
-                await ScheduleScanForManagedFolder(folder, onlyNewFiles: true, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
-            return;
-        }
+            cancellationToken.ThrowIfCancellationRequested();
 
-        foreach (var source in sources.Concat(rest))
-            await ScheduleScanForManagedFolder(source, onlyNewFiles: onlyNewFiles.Value, skipEvents: skipEvents, cleanUpStructure: cleanUpStructure, forceScan: forceScan, prioritize: prioritize);
+            // Left unsaid, the drop sources are scanned whole and the rest for new files only.
+            var newFilesOnly = onlyNewFiles ?? !sources.Contains(folder);
+            await ScheduleScanForManagedFolder(
+                folder,
+                onlyNewFiles: newFilesOnly,
+                skipEvents: skipEvents,
+                cleanUpStructure: cleanUpStructure,
+                forceScan: forceScan,
+                prioritize: prioritize
+            );
+            items.Increment();
+        }
     }
 
     #endregion Managed Folder

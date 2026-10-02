@@ -455,7 +455,12 @@ public class MetadataProviderControllerTests
         var refused = Assert.IsType<ObjectResult>(fixture.Controller().AutoSearchAll(Source), exactMatch: false);
 
         Assert.Equal(503, refused.StatusCode);
-        fixture.Refresh.Verify(r => r.AutoSearchAll(It.IsAny<MetadataSource>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+        fixture.Refresh.Verify(r => r.AutoSearchAll(
+            It.IsAny<MetadataSource>(),
+            It.IsAny<bool>(),
+            It.IsAny<IProgress<decimal>?>(),
+            It.IsAny<CancellationToken>()
+        ), Times.Never);
     }
 
     [Fact]
@@ -467,8 +472,15 @@ public class MetadataProviderControllerTests
         await actions.RemoveAllLinks(Source, true, false, false, false, TestContext.Current.CancellationToken);
         await actions.RemoveAllLinks(Source, false, false, false, null, TestContext.Current.CancellationToken);
 
-        fixture.Linking.Verify(l => l.RemoveAllLinks(Source, true, false, false, It.IsAny<CancellationToken>()), Times.Once);
-        fixture.Linking.Verify(l => l.RemoveAllLinks(It.IsAny<MetadataSource>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Once);
+        fixture.Linking.Verify(l => l.RemoveAllLinks(Source, true, false, false, It.IsAny<IProgress<decimal>?>(), It.IsAny<CancellationToken>()), Times.Once);
+        fixture.Linking.Verify(l => l.RemoveAllLinks(
+            It.IsAny<MetadataSource>(),
+            It.IsAny<bool>(),
+            It.IsAny<bool>(),
+            It.IsAny<bool>(),
+            It.IsAny<IProgress<decimal>?>(),
+            It.IsAny<CancellationToken>()
+        ), Times.Once);
         fixture.Linking.Verify(l => l.ResetAutoLinkingState(Source, false), Times.Once);
         fixture.Linking.Verify(l => l.ResetAutoLinkingState(It.IsAny<MetadataSource>(), It.IsAny<bool>()), Times.Once);
     }
@@ -477,12 +489,17 @@ public class MetadataProviderControllerTests
     public async Task AFailedActionIsLoggedAndNotThrown()
     {
         var fixture = new Fixture();
-        fixture.Refresh.Setup(r => r.AutoSearchAll(Source, false, It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("Broken."));
+        fixture.Refresh.Setup(r => r.AutoSearchAll(
+            Source,
+            false,
+            It.IsAny<IProgress<decimal>?>(),
+            It.IsAny<CancellationToken>()
+        )).ThrowsAsync(new InvalidOperationException("Broken."));
         var actions = fixture.Actions;
 
         await actions.Start("Searching", () => actions.AutoSearchAll(Source, false));
 
-        fixture.Refresh.Verify(r => r.AutoSearchAll(Source, false, It.IsAny<CancellationToken>()), Times.Once);
+        fixture.Refresh.Verify(r => r.AutoSearchAll(Source, false, It.IsAny<IProgress<decimal>?>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion

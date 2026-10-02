@@ -10,6 +10,10 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Verify all unverified AniDB relations by fetching current data via the UDP API.
 /// </summary>
+/// <remarks>
+///   Only queues the verifications, which run on their own; the progress covers
+///   the queuing.
+/// </remarks>
 public sealed class VerifyAllRelationsAction(ActionService actionService) : IScheduledAction
 {
     public string Name => "Verify All Relations";
@@ -23,5 +27,5 @@ public sealed class VerifyAllRelationsAction(ActionService actionService) : ISch
     public bool ScheduleCountsManualRuns => true;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => actionService.VerifyAllUnverifiedRelations();
+        => actionService.VerifyAllUnverifiedRelations(progress, token);
 }

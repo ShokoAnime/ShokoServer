@@ -79,7 +79,8 @@ public class ImagePurgeRoundTripTests(DatabaseMigrationFixture fixture)
         var uploaded = images.UploadImage(Png(MagickColors.Purple));
         var uploadedPath = uploaded.LocalPath;
 
-        Assert.True(await images.PurgeOrphanedImages(daysOld: 0, imageSource: TestSources.Image) >= 1);
+        var purged = await images.PurgeOrphanedImages(daysOld: 0, imageSource: TestSources.Image, cancellationToken: TestContext.Current.CancellationToken);
+        Assert.True(purged >= 1);
         Reload();
 
         Assert.Null(images.GetImageByID(remote.ID));

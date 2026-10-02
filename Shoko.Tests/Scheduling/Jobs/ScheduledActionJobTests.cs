@@ -59,7 +59,6 @@ public sealed class ScheduledActionJobTests : IDisposable
             recorder.Scope = scope;
             progress.Report(0);
             progress.Report(50);
-            progress.Report(100);
             return Task.CompletedTask;
         }
     }
@@ -126,7 +125,7 @@ public sealed class ScheduledActionJobTests : IDisposable
     #region Tests
 
     [Fact]
-    public async Task TheJob_HandsTheActionItsProgressAndToken()
+    public async Task TheJob_HandsTheActionItsProgressAndToken_AndReports100WhenItEnds()
     {
         await Job().Execute();
 

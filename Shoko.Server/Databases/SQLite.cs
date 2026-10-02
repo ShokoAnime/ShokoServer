@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using FluentNHibernate.Cfg;
 using FluentNHibernate.Cfg.Db;
 using Microsoft.Data.Sqlite;
@@ -116,9 +117,10 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
     }
 
     /// <inheritdoc />
-    public override void Vacuum()
+    public override void Vacuum(IProgress<decimal>? progress = null, CancellationToken token = default)
         => ConnectionWrapper(GetConnectionString(), connection =>
         {
+            token.ThrowIfCancellationRequested();
             Execute(connection, "VACUUM;");
 
             // In WAL mode the rebuilt file goes through the log, which is then

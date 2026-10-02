@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Actions;
@@ -25,14 +26,19 @@ public sealed class CheckForPreviouslyIgnoredFilesAction(VideoLocalRepository vi
         var ignoredHashes = videoLocals.GetIgnoredVideos()
             .Select(video => video.Hash)
             .ToHashSet();
-        foreach (var video in videoLocals.GetAll())
+        var videos = videoLocals.GetAll();
+        var items = new ItemProgress(progress, videos.Count);
+        items.Report(0);
+        foreach (var video in videos)
         {
             token.ThrowIfCancellationRequested();
-            if (video.IsIgnored || !ignoredHashes.Contains(video.Hash))
-                continue;
+            if (!video.IsIgnored && ignoredHashes.Contains(video.Hash))
+            {
+                video.IsIgnored = true;
+                videoLocals.Save(video, false);
+            }
 
-            video.IsIgnored = true;
-            videoLocals.Save(video, false);
+            items.Increment();
         }
 
         return Task.CompletedTask;

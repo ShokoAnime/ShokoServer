@@ -14,7 +14,12 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("MediaInfo")]
 [JobKeyGroup(JobKeyGroup.Legacy)]
 [DisallowConcurrentExecution]
-internal class MediaInfoAllFilesJob(IQueueScheduler scheduler, VideoLocalRepository videoLocals, IJobCancellationAccessor cancellation, IJobProgressAccessor progress) : BaseJob
+public class MediaInfoAllFilesJob(
+    IQueueScheduler scheduler,
+    VideoLocalRepository videoLocals,
+    IJobCancellationAccessor cancellation,
+    IJobProgressAccessor progress
+) : BaseJob
 {
     public override string TypeName => "Schedule MediaInfo Scan for All Files";
 

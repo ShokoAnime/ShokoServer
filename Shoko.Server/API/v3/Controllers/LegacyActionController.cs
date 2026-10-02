@@ -279,7 +279,7 @@ public class LegacyActionController : BaseController
     [HttpGet("PurgeAllTmdbShowAlternateOrderings")]
     public ActionResult PurgeAllTmdbShowAlternateOrderings()
     {
-        Task.Factory.StartNew(ActorContext.Carry(_tmdbUpdater.PurgeAllShowEpisodeGroups));
+        Task.Factory.StartNew(ActorContext.Carry(() => _tmdbUpdater.PurgeAllShowEpisodeGroups()));
         return Ok();
     }
 
@@ -384,8 +384,8 @@ public class LegacyActionController : BaseController
     [HttpGet("DownloadMissingAniDBAnimeData")]
     public ActionResult UpdateMissingAnidbXml()
     {
-        Task.Run(ActorContext.Carry(_actionService.DownloadMissingAnidbAnimeXmls));
-        Task.Run(ActorContext.Carry(_actionService.ScheduleMissingAnidbAnimeForFiles));
+        Task.Run(ActorContext.Carry(() => _actionService.DownloadMissingAnidbAnimeXmls()));
+        Task.Run(ActorContext.Carry(() => _actionService.ScheduleMissingAnidbAnimeForFiles()));
 
         return Ok();
     }
@@ -399,7 +399,7 @@ public class LegacyActionController : BaseController
     [HttpGet("DownloadMissingAniDBCreators")]
     public ActionResult ScheduleMissingAniDBCreators()
     {
-        Task.Run(ActorContext.Carry(_actionService.ScheduleMissingAnidbCreators));
+        Task.Run(ActorContext.Carry(() => _actionService.ScheduleMissingAnidbCreators()));
         return Ok();
     }
 

@@ -28,6 +28,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Extensions;
@@ -1048,21 +1049,37 @@ public class ImageManager(
         }
     }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public async Task ScheduleAllAutoDownloads(
         MetadataSource? imageSource = null,
         ImageEntityType? imageType = null,
         MetadataSource? xrefSource = null,
-        bool force = false
+        bool force = false,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
     )
     {
-        var images = GetAllImages(new() { ImageSource = imageSource, ImageType = imageType, XrefSource = xrefSource, IsEnabled = true, IsDesired = true });
+        var options = new ImageFilteringOptions
+        {
+            ImageSource = imageSource,
+            ImageType = imageType,
+            XrefSource = xrefSource,
+            IsEnabled = true,
+            IsDesired = true,
+        };
+        var images = GetAllImages(options).ToList();
+        var items = new ItemProgress(progress, images.Count);
+        items.Report(0);
         foreach (var image in images)
         {
-            if (!force && (image.IsAvailable || image.DownloadAttempts > 3))
-                continue;
+            cancellationToken.ThrowIfCancellationRequested();
+            if (force || (!image.IsAvailable && image.DownloadAttempts <= 3))
+            {
+                await schedulerFactory.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force))
+                    .ConfigureAwait(false);
+            }
 
-            await schedulerFactory.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
+            items.Increment();
         }
     }
 
@@ -1195,15 +1212,27 @@ public class ImageManager(
         await schedulerFactory.StartJob<PurgeImageJob>(c => (c.Source, c.ResourceID) = (image.Source, image.ResourceID)).ConfigureAwait(false);
     }
 
-    /// <inheritdoc/>
-    public async Task<int> PurgeOrphanedImages(int daysOld = 7, MetadataSource? imageSource = null)
+    /// <inheritdoc />
+    public async Task<int> PurgeOrphanedImages(
+        int daysOld = 7,
+        MetadataSource? imageSource = null,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    )
     {
         var count = 0;
-        foreach (var image in GetOrphanedImages(daysOld, imageSource).ToList())
+        var images = GetOrphanedImages(daysOld, imageSource).ToList();
+        var items = new ItemProgress(progress, images.Count);
+        items.Report(0);
+        foreach (var image in images)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (await PurgeImage(image).ConfigureAwait(false))
                 count++;
+
+            items.Increment();
         }
+
         return count;
     }
 

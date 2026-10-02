@@ -18,6 +18,7 @@ using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
+using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Extensions;
@@ -721,18 +722,22 @@ public class MylistService(
             a.FetchMode = fetchMode;
         }, prioritize);
 
-    public Task ScheduleAddAllManualLinks()
+    /// <inheritdoc />
+    public async Task ScheduleAddAllManualLinks(IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
     {
-        var files = videoLocals.GetManuallyLinkedVideos();
-        return Task.WhenAll(files
+        var episodes = videoLocals.GetManuallyLinkedVideos()
             .SelectMany(video => video.AnimeEpisodes)
             .DistinctBy(episode => episode.AniDB_EpisodeID)
-            .Select(episode =>
-            {
-                var anidbEpisode = episode.AniDB_Episode!;
-                return ScheduleAddEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber);
-            })
-        );
+            .ToList();
+        var items = new ItemProgress(progress, episodes.Count);
+        items.Report(0);
+        foreach (var episode in episodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var anidbEpisode = episode.AniDB_Episode!;
+            await ScheduleAddEntry(anidbEpisode.AnimeID, anidbEpisode.EpisodeType, anidbEpisode.EpisodeNumber).ConfigureAwait(false);
+            items.Increment();
+        }
     }
 
     #region Add | Private

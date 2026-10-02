@@ -5,6 +5,7 @@ using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
 
@@ -25,5 +26,5 @@ public sealed class PurgeAllTmdbLinksAction(IMetadataLinkingService linkingServi
     public string? ConfirmationMessage => "Are you sure you want to remove all AniDB-TMDB links from the database?";
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => linkingService.RemoveAllLinks(MetadataSource.TMDB, cancellationToken: token);
+        => linkingService.RemoveAllLinks(MetadataSource.TMDB, true, true, false, progress, token);
 }

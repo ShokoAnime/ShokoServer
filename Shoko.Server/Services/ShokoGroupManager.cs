@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Core.Update;
@@ -469,7 +470,8 @@ public class ShokoGroupManager : IShokoGroupManager
         }
     }
 
-    public Task RecreateAllGroups() => _animeGroupCreator.RecreateAllGroups();
+    public Task RecreateAllGroups(IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
+        => _animeGroupCreator.RecreateAllGroups(progress, cancellationToken);
 
     private static string RelationTypeToSettingsString(RelationType type)
     {

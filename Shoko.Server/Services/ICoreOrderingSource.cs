@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Threading;
 using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Services;
@@ -56,4 +58,13 @@ public interface ICoreOrderingSource
     /// <param name="service">The ordering service, which knows the choice.</param>
     /// <returns>The place, or <c>null</c> to use the generic one.</returns>
     IEpisodeOrderingInformation? GetDefaultEpisodeOrdering(IEpisode episode, ISeries? series, MetadataOrderingService service);
+
+    /// <summary>
+    ///   Removes every ordering the source keeps in its own tables.
+    /// </summary>
+    /// <param name="progress">Told how far the removal is, from 0 to 100.</param>
+    /// <param name="token">Stops the removal.</param>
+    /// <returns>How many orderings were removed.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    int RemoveAllOrderings(IProgress<decimal>? progress, CancellationToken token);
 }

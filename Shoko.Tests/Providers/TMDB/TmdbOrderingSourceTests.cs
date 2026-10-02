@@ -111,7 +111,8 @@ public class TmdbOrderingSourceTests
                 .Returns((MetadataGuid id) => id == ID(MetadataEntityType.Series, "5") ? Show : null);
             metadata.Setup(service => service.GetEpisode(It.IsAny<MetadataGuid>()))
                 .Returns((MetadataGuid id) => Episodes.FirstOrDefault(episode => ((IMetadata)episode).ID == id));
-            Service = new OrderingTables().Build(() => metadata.Object, new TmdbOrderingSource(orderings.Object, episodes.Object));
+            var updater = new Lazy<TmdbMetadataUpdater>(() => throw new InvalidOperationException("The tests remove no orderings."));
+            Service = new OrderingTables().Build(() => metadata.Object, new TmdbOrderingSource(orderings.Object, episodes.Object, updater));
         }
 
         public void Dispose()

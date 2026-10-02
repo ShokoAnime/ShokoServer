@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories.Cached.TMDB;
@@ -14,9 +16,11 @@ namespace Shoko.Server.Providers.TMDB;
 /// </summary>
 /// <param name="orderingRepository">TMDB's episode groups.</param>
 /// <param name="episodeRepository">The episodes' places in them.</param>
+/// <param name="updater">Removes TMDB's episode groups.</param>
 public class TmdbOrderingSource(
     TMDB_AlternateOrderingRepository orderingRepository,
-    TMDB_AlternateOrdering_EpisodeRepository episodeRepository
+    TMDB_AlternateOrdering_EpisodeRepository episodeRepository,
+    Lazy<TmdbMetadataUpdater> updater
 ) : ICoreOrderingSource
 {
     #region ICoreOrderingSource Implementation
@@ -49,6 +53,10 @@ public class TmdbOrderingSource(
     /// <inheritdoc />
     public IEpisodeOrderingInformation? GetDefaultEpisodeOrdering(IEpisode episode, ISeries? series, MetadataOrderingService service)
         => episode is TMDB_Episode tmdbEpisode ? new TMDB_Episode_DefaultOrdering(tmdbEpisode, series as TMDB_Show, service) : null;
+
+    /// <inheritdoc />
+    public int RemoveAllOrderings(IProgress<decimal>? progress, CancellationToken token)
+        => updater.Value.PurgeAllShowEpisodeGroups(progress, token);
 
     #endregion
 

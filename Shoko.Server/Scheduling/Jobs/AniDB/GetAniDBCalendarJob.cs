@@ -1,12 +1,15 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
 using Shoko.Server.Repositories.Cached;
@@ -23,7 +26,17 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
-public class GetAniDBCalendarJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDB_AnimeRepository anidbAnime, AniDB_AnimeUpdateRepository anidbAnimeUpdates, AnimeSeriesRepository animeSeries, ScheduledUpdateRepository scheduledUpdates) : BaseJob
+public class GetAniDBCalendarJob(
+    IRequestFactory requestFactory,
+    IAnidbService anidbService,
+    ISettingsProvider settingsProvider,
+    AniDB_AnimeRepository anidbAnime,
+    AniDB_AnimeUpdateRepository anidbAnimeUpdates,
+    AnimeSeriesRepository animeSeries,
+    ScheduledUpdateRepository scheduledUpdates,
+    IJobCancellationAccessor cancellation,
+    IJobProgressAccessor progress
+) : BaseJob
 {
     public override string TypeName => "Get AniDB Calendar";
 
@@ -45,24 +58,20 @@ public class GetAniDBCalendarJob(IRequestFactory requestFactory, IAnidbService a
         schedule.LastUpdate = DateTime.Now;
 
         var request = requestFactory.Create<RequestCalendar>();
-        var response = await request.SendAsync();
+        var response = await request.SendAsync(cancellation.Token);
         scheduledUpdates.Save(schedule);
 
-        if (response.Response?.Next25Anime is not null)
+        var entries = (response.Response?.Next25Anime ?? [])
+            .Concat(response.Response?.Previous25Anime ?? [])
+            .Where(cal => cal.AnimeID is not 0)
+            .ToList();
+        var items = new ItemProgress(progress.Progress, entries.Count);
+        items.Report(0);
+        foreach (var cal in entries)
         {
-            foreach (var cal in response.Response.Next25Anime)
-            {
-                if (cal.AnimeID == 0) continue;
-                await GetAnime(cal, settings);
-            }
-        }
-
-        if (response.Response?.Previous25Anime is null) return;
-
-        foreach (var cal in response.Response.Previous25Anime)
-        {
-            if (cal.AnimeID == 0) continue;
+            cancellation.Token.ThrowIfCancellationRequested();
             await GetAnime(cal, settings);
+            items.Increment();
         }
     }
 

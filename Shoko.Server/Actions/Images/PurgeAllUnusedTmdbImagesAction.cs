@@ -24,5 +24,5 @@ public sealed class PurgeAllUnusedTmdbImagesAction(IImageManager imageManager) :
     public string? ConfirmationMessage => "Are you sure you want to remove all unused TMDB images from the database?";
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => imageManager.SchedulePurgeOfOrphanedImages(0, MetadataSource.TMDB);
+        => imageManager.PurgeOrphanedImages(0, MetadataSource.TMDB, progress, token);
 }

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
 
@@ -30,5 +31,5 @@ public sealed class PurgeOrphanedMetadataAction(IMetadataPurgeService purgeServi
         => "Are you sure you want to remove the people, studios and networks of TMDB and the plugin metadata sources that nothing uses?";
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => purgeService.PurgeOrphaned(cancellationToken: token);
+        => purgeService.PurgeOrphaned(null, null, progress, token);
 }

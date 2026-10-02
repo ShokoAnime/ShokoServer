@@ -1001,7 +1001,7 @@ public class AiringScheduleServiceTests
         ]);
         harness.Settings.AutoCleanup = true;
 
-        Assert.Equal(1, harness.Service.RunRetentionSweep());
+        Assert.Equal(1, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
         Assert.Empty(harness.Schedules.Object.GetAll());
         Assert.Empty(harness.Airings.Object.GetAll());
     }
@@ -1018,8 +1018,37 @@ public class AiringScheduleServiceTests
         ]);
         harness.Settings.AutoCleanup = true;
 
-        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(2, harness.Airings.Object.GetAll().Count);
+    }
+
+    [Fact]
+    public void RetentionSweep_ReportsUpTo100_AndRemovesNothingOnceCancelled()
+    {
+        using var harness = new Harness();
+        harness.Settings.AutoCleanup = false;
+        var schedule = harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
+        harness.Service.SetAirings(harness.Primary, schedule, [
+            new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) },
+        ]);
+        harness.Settings.AutoCleanup = true;
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        var progress = new List<decimal>();
+
+        Assert.Throws<OperationCanceledException>(() => harness.Service.RunRetentionSweep(cancellationToken: cancelled.Token));
+        Assert.Single(harness.Schedules.Object.GetAll());
+        Assert.Equal(1, harness.Service.RunRetentionSweep(new ListProgress(progress), TestContext.Current.CancellationToken));
+        Assert.Equal([0m, 100m], progress);
+    }
+
+    /// <summary>
+    /// Adds every value reported to a list, in order.
+    /// </summary>
+    /// <param name="values">The list.</param>
+    private sealed class ListProgress(List<decimal> values) : IProgress<decimal>
+    {
+        public void Report(decimal value) => values.Add(value);
     }
 
     [Fact]
@@ -1032,7 +1061,7 @@ public class AiringScheduleServiceTests
             new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-4) },
         ]);
 
-        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
         Assert.Single(harness.Schedules.Object.GetAll());
     }
 
@@ -1042,7 +1071,7 @@ public class AiringScheduleServiceTests
         using var harness = new Harness();
         harness.Service.AddOrUpdateSchedule(harness.Primary, harness.ScheduleData());
 
-        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
         Assert.Single(harness.Schedules.Object.GetAll());
     }
 
@@ -1054,7 +1083,7 @@ public class AiringScheduleServiceTests
         var row = Assert.Single(harness.Schedules.Object.GetAll());
         row.CreatedAt = DateTime.UtcNow.AddHours(-2);
 
-        Assert.Equal(1, harness.Service.RunRetentionSweep());
+        Assert.Equal(1, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
         Assert.Empty(harness.Schedules.Object.GetAll());
     }
 
@@ -1106,7 +1135,7 @@ public class AiringScheduleServiceTests
 
         harness.Settings.AutoCleanup = true;
         // And what the write refuses is exactly what the sweep takes away.
-        Assert.Equal(1, harness.Service.RunRetentionSweep());
+        Assert.Equal(1, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -1123,7 +1152,7 @@ public class AiringScheduleServiceTests
 
         Assert.Equal(3, written.Count);
         // A run that still airs keeps its whole history, and the sweep agrees.
-        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(3, harness.Airings.Object.GetAll().Count);
     }
 
@@ -1139,7 +1168,7 @@ public class AiringScheduleServiceTests
         Assert.Single(harness.Service.SetAirings(harness.Primary, schedule, [
             new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddMonths(-months).AddMinutes(1) },
         ]));
-        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
 
         var exception = Assert.Throws<AiringScheduleValidationException>(() => harness.Service.SetAirings(harness.Primary, schedule, [
             new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddMonths(-months).AddMinutes(-1) },
@@ -1161,7 +1190,7 @@ public class AiringScheduleServiceTests
         // An airing with no slot has no date to judge, which is the arm the
         // sweep keeps the schedule under as well.
         Assert.Equal(2, written.Count);
-        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(2, harness.Airings.Object.GetAll().Count);
 
         // One aged-out slot beside them still decides it.
@@ -1188,7 +1217,7 @@ public class AiringScheduleServiceTests
             new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) },
         ]);
         Assert.Equal(2, harness.Airings.Object.GetAll().Count);
-        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
 
         // The same omission on a finished run is history rather than a hiatus,
         // which leaves nothing inside the window at all.
@@ -1223,7 +1252,7 @@ public class AiringScheduleServiceTests
         // to the one it lost, and that is what retention judges it by.
         harness.Service.MergeAirings(harness.Primary, schedule, [], [pulled], new EpisodeAiringUpdateOptions() { KeepRemovalsAsHiatus = true });
         Assert.Equal(2, harness.Airings.Object.GetAll().Count);
-        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -1241,7 +1270,7 @@ public class AiringScheduleServiceTests
         ]);
 
         Assert.Equal(2, harness.Airings.Object.GetAll().Count);
-        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -1278,7 +1307,7 @@ public class AiringScheduleServiceTests
         harness.Service.MergeAirings(harness.Primary, schedule, [
             new EpisodeAiringData() { Episode = harness.Episodes[0], AiredAt = DateTime.UtcNow.AddYears(-3) },
         ]);
-        Assert.Equal(0, harness.Service.RunRetentionSweep());
+        Assert.Equal(0, harness.Service.RunRetentionSweep(cancellationToken: TestContext.Current.CancellationToken));
 
         // Moving the last one inside the window back empties the window out.
         var exception = Assert.Throws<AiringScheduleValidationException>(() => harness.Service.MergeAirings(harness.Primary, schedule, [

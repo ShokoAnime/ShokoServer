@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -27,20 +28,26 @@ public class PeriodicImageMaintenanceJob(
     public override async Task Execute()
     {
         var settings = settingsProvider.GetSettings();
-        if (settings.Image.AutoPurge)
+        var (purge, validate) = (settings.Image.AutoPurge, settings.Image.AutoValidate);
+        var stages = new StagedProgress(progress.Progress, purge ? 1 : 0, validate ? 4 : 0, purge || validate ? 0 : 1);
+        stages.Report(0);
+        if (purge)
         {
             _logger.LogInformation("Purging orphaned images older than 7 days...");
-            var purged = await imageManager.PurgeOrphanedImages(daysOld: 7).ConfigureAwait(false);
+            var purged = await imageManager.PurgeOrphanedImages(7, null, stages, cancellation.Token).ConfigureAwait(false);
             _logger.LogInformation("Purged {Count} orphaned images.", purged);
         }
 
+        stages.NextStage();
         cancellation.Token.ThrowIfCancellationRequested();
 
-        if (settings.Image.AutoValidate)
+        if (validate)
         {
             _logger.LogInformation("Validating image integrity...");
-            var queued = await imageManager.ValidateAllImages(progress.Progress, cancellation.Token).ConfigureAwait(false);
+            var queued = await imageManager.ValidateAllImages(stages, cancellation.Token).ConfigureAwait(false);
             _logger.LogInformation("Validation queued {Count} images for re-download.", queued);
         }
+
+        stages.Complete();
     }
 }

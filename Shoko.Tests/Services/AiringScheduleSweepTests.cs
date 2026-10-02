@@ -548,7 +548,7 @@ public class AiringScheduleSweepTests
         using var harness = new Harness(first, second);
         harness.Disable(second);
 
-        await harness.Service.ScheduleSweeps(TestContext.Current.CancellationToken);
+        await harness.Service.ScheduleSweeps(cancellationToken: TestContext.Current.CancellationToken);
 
         harness.Scheduler.Verify(
             scheduler => scheduler.Enqueue(

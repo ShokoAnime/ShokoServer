@@ -248,7 +248,7 @@ public class ShokoTextMigrationTests(DatabaseMigrationFixture fixture)
 
             // The texts are removed while the groups are made again, which must not wait on the
             // groups' own transaction.
-            await groupCreator.RecreateAllGroups();
+            await groupCreator.RecreateAllGroups(token: TestContext.Current.CancellationToken);
 
             Assert.Null(groups.GetByID(oldGroup.AnimeGroupID));
             Assert.Empty(Stored(connection, "Metadata_Title", oldID));

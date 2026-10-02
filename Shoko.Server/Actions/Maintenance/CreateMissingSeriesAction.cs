@@ -11,6 +11,10 @@ namespace Shoko.Server.Actions;
 ///   Create anime series entries for files that have release info but no
 ///   corresponding series.
 /// </summary>
+/// <remarks>
+///   Only queues the series creations, which run on their own; the progress covers
+///   the queuing.
+/// </remarks>
 public sealed class CreateMissingSeriesAction(ActionService actionService) : IScheduledAction
 {
     public string Name => "Create Missing Series";
@@ -24,5 +28,5 @@ public sealed class CreateMissingSeriesAction(ActionService actionService) : ISc
     public bool ScheduleCountsManualRuns => true;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => actionService.CreateMissingSeries();
+        => actionService.CreateMissingSeries(progress, token);
 }

@@ -9,6 +9,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories.Cached;
@@ -355,6 +356,61 @@ public class MetadataOrderingService(
     {
         MetadataEntries.CheckEntry(orderingID, MetadataEntityType.Ordering, nameof(orderingID));
         return Remove(orderingID);
+    }
+
+    /// <summary>
+    ///   Every source keeping global orderings: the core sources with
+    ///   orderings in tables of their own, and the sources with stored ones.
+    /// </summary>
+    /// <returns>The sources.</returns>
+    internal IReadOnlyList<MetadataSource> GetGlobalOrderingSources()
+        => coreSources.Value.Select(core => core.Source)
+            .Concat(orderingRepository.GetAll().Select(row => row.Source).Where(source => source != MetadataSource.User))
+            .Distinct()
+            .ToList();
+
+    /// <summary>
+    ///   Whether a source keeps global orderings: a plugin source, or a core
+    ///   source with orderings in tables of its own.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns><see langword="true"/> when it does.</returns>
+    internal bool KeepsGlobalOrderings(MetadataSource source)
+        => !source.IsCore || CoreSourcesFor(source).Any();
+
+    /// <summary>
+    ///   Removes every global ordering of a source, with its groups and the
+    ///   choices of it. The users' own orderings are kept.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="progress">Told how far the removal is, from 0 to 100.</param>
+    /// <param name="token">Stops the removal between two orderings.</param>
+    /// <returns>How many orderings were removed.</returns>
+    /// <exception cref="ArgumentException">The source keeps no global orderings.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    internal int RemoveGlobalOrderings(MetadataSource source, IProgress<decimal>? progress = null, CancellationToken token = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!KeepsGlobalOrderings(source))
+            throw new ArgumentException($"{source} keeps no global orderings.", nameof(source));
+
+        if (source.IsCore)
+            return CoreSourcesFor(source).Sum(core => core.RemoveAllOrderings(progress, token));
+
+        var rows = orderingRepository.GetBySource(source).ToList();
+        var items = new ItemProgress(progress, rows.Count);
+        items.Report(0);
+        var removed = 0;
+        foreach (var row in rows)
+        {
+            token.ThrowIfCancellationRequested();
+            if (Remove(row.ID))
+                removed++;
+
+            items.Increment();
+        }
+
+        return removed;
     }
 
     #endregion

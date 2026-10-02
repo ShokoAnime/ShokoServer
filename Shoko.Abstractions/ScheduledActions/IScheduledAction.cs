@@ -120,7 +120,9 @@ public interface IScheduledAction
     ///   Takes how far the run is, as a percentage from 0 to 100, shown on the
     ///   queue job. The job shows none until the first report, so report 0 as
     ///   soon as the work knows it will report. Values outside the range are
-    ///   clamped.
+    ///   clamped, and the job reports 100 itself once the run ends well.
+    ///   <see cref="Utilities.StagedProgress"/>,
+    ///   <see cref="Utilities.ItemProgress"/> and their siblings shape it.
     /// </param>
     /// <param name="token">
     ///   The queue job's token. It is cancelled when an admin cancels the run,

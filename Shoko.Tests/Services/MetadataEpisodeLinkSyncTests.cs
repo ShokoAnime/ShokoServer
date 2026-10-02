@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
+using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories.Cached;
@@ -201,12 +202,12 @@ public class MetadataEpisodeLinkSyncTests
         var other = Link(2, 201, "x1");
         var tables = new Tables([Stored(1, "e1", "s1", "s1-2", 2, 5), Stored(2, "x1", "s2", null, null, 3)], stale, other);
 
-        var changed = tables.Store.SyncFromSeriesStore(TestSources.Plugin, "s1");
+        var changed = tables.Store.SyncFromSeriesStore(TestSources.Plugin, "s1", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal([1], changed.Select(link => link.CrossRef_AniDB_Metadata_EpisodeID));
         Assert.Equal(("s1-2", 2, 5), (stale.ProviderSeasonID, stale.SeasonNumber, stale.EpisodeNumber));
         Assert.Null(other.EpisodeNumber);
-        Assert.Empty(tables.Store.SyncFromSeriesStore(TestSources.Plugin, "s1"));
+        Assert.Empty(tables.Store.SyncFromSeriesStore(TestSources.Plugin, "s1", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -218,7 +219,7 @@ public class MetadataEpisodeLinkSyncTests
         var unknown = Link(4, 104, "missing");
         var tables = new Tables([Stored(1, "e1", "s1", null, null, 7), Stored(2, "a1", "as", "as-1", 1, 2, TestSources.AniList)], plugin, anilist, tmdb, unknown);
 
-        var changed = tables.Store.SyncFromSeriesStore();
+        var changed = tables.Store.SyncFromSeriesStore(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal([1, 2], changed.Select(link => link.CrossRef_AniDB_Metadata_EpisodeID).Order());
         Assert.Equal(("s1", null, (int?)null, (int?)7), (plugin.ProviderParentID, plugin.ProviderSeasonID, plugin.SeasonNumber, plugin.EpisodeNumber));
@@ -232,7 +233,11 @@ public class MetadataEpisodeLinkSyncTests
     {
         var stale = Link(1, 101, "e1");
         var tables = new Tables([Stored(1, "e1", "s1", "s1-1", 1, 4)], stale);
-        var job = new SyncEpisodeLinksJob(tables.Store) { Source = TestSources.Plugin.Value, SeriesID = "s1" };
+        var job = new SyncEpisodeLinksJob(tables.Store, Mock.Of<IJobCancellationAccessor>(), Mock.Of<IJobProgressAccessor>())
+        {
+            Source = TestSources.Plugin.Value,
+            SeriesID = "s1",
+        };
         job.Setup(new ServiceCollection().AddLogging().BuildServiceProvider());
 
         await job.Execute();
@@ -245,7 +250,7 @@ public class MetadataEpisodeLinkSyncTests
     {
         var stale = Link(1, 101, "e1");
         var tables = new Tables([Stored(1, "e1", "s1", "s1-1", 1, 4)], stale);
-        var job = new SyncEpisodeLinksJob(tables.Store) { Source = "Not a source!" };
+        var job = new SyncEpisodeLinksJob(tables.Store, Mock.Of<IJobCancellationAccessor>(), Mock.Of<IJobProgressAccessor>()) { Source = "Not a source!" };
         job.Setup(new ServiceCollection().AddLogging().BuildServiceProvider());
 
         await job.Execute();

@@ -5,6 +5,7 @@ using Shoko.Abstractions.Plugin;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
+using Shoko.QueueProcessor.Workers;
 
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
@@ -16,7 +17,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("CheckPluginUpdates")]
 [JobKeyGroup(JobKeyGroup.Actions)]
 [DisallowConcurrentExecution]
-public class CheckPluginUpdatesJob(IPluginPackageManager pluginPackageManager) : BaseJob
+public class CheckPluginUpdatesJob(IPluginPackageManager pluginPackageManager, IJobCancellationAccessor cancellation) : BaseJob
 {
     /// <summary>
     ///   Force sync even if not stale. If null, checks the configured schedule.
@@ -41,6 +42,6 @@ public class CheckPluginUpdatesJob(IPluginPackageManager pluginPackageManager) :
     public override async Task Execute()
     {
         _logger.LogInformation("Processing CheckPluginUpdatesJob: ForceSync={ForceSync}, PerformUpgrade={PerformUpgrade}", ForceSync, PerformUpgrade);
-        await pluginPackageManager.CheckForUpdates(ForceSync, PerformUpgrade).ConfigureAwait(false);
+        await pluginPackageManager.CheckForUpdates(ForceSync, PerformUpgrade, cancellation.Token).ConfigureAwait(false);
     }
 }

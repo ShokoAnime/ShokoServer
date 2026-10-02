@@ -22,5 +22,5 @@ public sealed class RemoveMissingFilesAction(ActionService actionService) : ISch
     public ActionCategory Category => ActionCategory.Import;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => actionService.RemoveRecordsWithoutPhysicalFiles(removeMylist: true);
+        => actionService.RemoveRecordsWithoutPhysicalFiles(removeMylist: true, progress, token);
 }

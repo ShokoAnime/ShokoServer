@@ -600,172 +600,233 @@ public class ActionService : IActionService
 
     #endregion
 
-    public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMylist = true)
+    #region Maintenance
+
+    /// <summary>
+    ///   Removes the records of files that are gone from disk, merges
+    ///   duplicate files and drops orphaned rows, then queues a stats refresh
+    ///   of every series touched.
+    /// </summary>
+    /// <remarks>
+    ///   Each file is removed in a transaction of its own, so a cancelled run
+    ///   leaves the rest for the next one. The series touched so far get
+    ///   their stats refresh queued however the run ends.
+    /// </remarks>
+    /// <param name="removeMylist">Whether to remove the files from the AniDB MyList too.</param>
+    /// <param name="progress">Told how far the run is, from 0 to 100.</param>
+    /// <param name="token">Stops the run between two files.</param>
+    /// <returns>A task that completes once the records are removed.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    public async Task RemoveRecordsWithoutPhysicalFiles(bool removeMylist = true, IProgress<decimal>? progress = null, CancellationToken token = default)
     {
         _logger.LogInformation("Remove Missing Files: Start");
+        var stages = new StagedProgress(progress, 4, 1, 4, 1);
+        stages.Report(0);
         var seriesToUpdate = new HashSet<AnimeSeries>();
-        using var session = _databaseFactory.SessionFactory.OpenSession();
-
-        // remove missing files in valid managed folders
-        var filesAll = _videoLocalPlaces.GetAll()
-            .Where(a => a.ManagedFolder is not null)
-            .GroupBy(a => a.ManagedFolder!)
-            .ToDictionary(a => a.Key!, a => a.ToList());
-        foreach (var vl in filesAll.Keys.SelectMany(a => filesAll[a]))
+        try
         {
-            if (File.Exists(vl.Path)) continue;
+            using var session = _databaseFactory.SessionFactory.OpenSession();
 
-            // delete video local record
-            _logger.LogInformation("Removing Missing File: {ID}", vl.VideoID);
-            // skipEvents covers the secondary events — outward side effects, the
-            // MyList removal among them — rather than first-party ones like the
-            // file-deleted event, which fire either way. So it inverts this flag
-            await ((VideoService)_videoService).RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, skipEvents: !removeMylist);
-        }
+            // remove missing files in valid managed folders
+            var filesAll = _videoLocalPlaces.GetAll()
+                .Where(a => a.ManagedFolder is not null)
+                .GroupBy(a => a.ManagedFolder!)
+                .SelectMany(a => a)
+                .ToList();
+            var placeItems = new ItemProgress(stages, filesAll.Count);
+            foreach (var vl in filesAll)
+            {
+                token.ThrowIfCancellationRequested();
+                placeItems.Increment();
+                if (File.Exists(vl.Path)) continue;
 
-        var videoLocalsAll = _videoLocals.GetAll().ToList();
-        // remove empty video locals
-        {
-            using var transaction = session.BeginTransaction();
-            _videoLocals.DeleteWithOpenTransaction(session, videoLocalsAll.Where(a => a.IsEmpty()).ToList());
-            transaction.Commit();
-        }
+                // delete video local record
+                _logger.LogInformation("Removing Missing File: {ID}", vl.VideoID);
+                // skipEvents covers the secondary events — outward side effects, the
+                // MyList removal among them — rather than first-party ones like the
+                // file-deleted event, which fire either way. So it inverts this flag
+                await ((VideoService)_videoService).RemoveRecordWithOpenTransaction(session, vl, seriesToUpdate, skipEvents: !removeMylist);
+            }
 
-        // Remove duplicate video locals
-        var locals = videoLocalsAll
-            .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
-            .GroupBy(a => a.Hash)
-            .ToDictionary(g => g.Key, g => g.ToList());
-        var toRemove = new List<VideoLocal>();
-        var comparer = new VideoLocalComparer();
-
-        foreach (var hash in locals.Keys)
-        {
-            var values = locals[hash].ToList();
-            values.Sort(comparer);
-            var to = values.First();
-            values.Remove(to);
-            foreach (var places in values.Select(from => from.Places).Where(places => places != null && places.Count != 0))
+            stages.NextStage();
+            token.ThrowIfCancellationRequested();
+            var videoLocalsAll = _videoLocals.GetAll().ToList();
+            // remove empty video locals
             {
                 using var transaction = session.BeginTransaction();
-                foreach (var place in places)
-                {
-                    place.VideoID = to.VideoLocalID;
-                    _videoLocalPlaces.SaveWithOpenTransaction(session, place);
-                }
-
+                _videoLocals.DeleteWithOpenTransaction(session, videoLocalsAll.Where(a => a.IsEmpty()).ToList());
                 transaction.Commit();
             }
 
-            toRemove.AddRange(values);
-        }
+            // Remove duplicate video locals
+            var locals = videoLocalsAll
+                .Where(a => !string.IsNullOrWhiteSpace(a.Hash))
+                .GroupBy(a => a.Hash)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var toRemove = new List<VideoLocal>();
+            var comparer = new VideoLocalComparer();
 
-        {
-            using var transaction = session.BeginTransaction();
-            foreach (var remove in toRemove)
+            foreach (var hash in locals.Keys)
             {
-                _videoLocals.DeleteWithOpenTransaction(session, remove);
-            }
-
-            transaction.Commit();
-        }
-
-        // Remove files in invalid managed folders
-        foreach (var v in videoLocalsAll)
-        {
-            var places = v.Places;
-            if (places.Count > 0)
-            {
-                using var transaction = session.BeginTransaction();
-                foreach (var place in places.Where(place => string.IsNullOrWhiteSpace(place?.Path)))
-                {
-#pragma warning disable CS0618
-                    _logger.LogInformation("Remove Records With Orphaned Managed Folder: {Filename}", v.FileName);
-#pragma warning restore CS0618
-                    seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
-                    _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
-                }
-
-                transaction.Commit();
-            }
-
-            // Remove duplicate places
-            places = v.Places;
-            if (places.Count == 1) continue;
-
-            if (places.Count > 0)
-            {
-                places = places.DistinctBy(a => a.Path).ToList();
-                places = v.Places.Except(places).ToList() ?? [];
-                foreach (var place in places)
+                var values = locals[hash].ToList();
+                values.Sort(comparer);
+                var to = values.First();
+                values.Remove(to);
+                foreach (var places in values.Select(from => from.Places).Where(places => places != null && places.Count != 0))
                 {
                     using var transaction = session.BeginTransaction();
-                    _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
+                    foreach (var place in places)
+                    {
+                        place.VideoID = to.VideoLocalID;
+                        _videoLocalPlaces.SaveWithOpenTransaction(session, place);
+                    }
+
+                    transaction.Commit();
+                }
+
+                toRemove.AddRange(values);
+            }
+
+            {
+                using var transaction = session.BeginTransaction();
+                foreach (var remove in toRemove)
+                {
+                    _videoLocals.DeleteWithOpenTransaction(session, remove);
+                }
+
+                transaction.Commit();
+            }
+
+            // Remove files in invalid managed folders
+            stages.NextStage();
+            var videoItems = new ItemProgress(stages, videoLocalsAll.Count);
+            foreach (var v in videoLocalsAll)
+            {
+                token.ThrowIfCancellationRequested();
+                videoItems.Increment();
+                var places = v.Places;
+                if (places.Count > 0)
+                {
+                    using var transaction = session.BeginTransaction();
+                    foreach (var place in places.Where(place => string.IsNullOrWhiteSpace(place?.Path)))
+                    {
+#pragma warning disable CS0618
+                        _logger.LogInformation("Remove Records With Orphaned Managed Folder: {Filename}", v.FileName);
+#pragma warning restore CS0618
+                        seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
+                        _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
+                    }
+
+                    transaction.Commit();
+                }
+
+                // Remove duplicate places
+                places = v.Places;
+                if (places.Count == 1) continue;
+
+                if (places.Count > 0)
+                {
+                    places = places.DistinctBy(a => a.Path).ToList();
+                    places = v.Places.Except(places).ToList() ?? [];
+                    foreach (var place in places)
+                    {
+                        using var transaction = session.BeginTransaction();
+                        _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
+                        transaction.Commit();
+                    }
+                }
+
+                if (v.Places.Count > 0) continue;
+
+                // delete video local record
+#pragma warning disable CS0618
+                _logger.LogInformation("RemoveOrphanedVideoLocal : {Filename}", v.FileName);
+#pragma warning restore CS0618
+                seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
+
+                if (removeMylist)
+                    await ((VideoService)_videoService).ScheduleRemovalFromMylist(v);
+
+                {
+                    using var transaction = session.BeginTransaction();
+                    _videoLocals.DeleteWithOpenTransaction(session, v);
                     transaction.Commit();
                 }
             }
 
-            if (v.Places.Count > 0) continue;
-
-            // delete video local record
-#pragma warning disable CS0618
-            _logger.LogInformation("RemoveOrphanedVideoLocal : {Filename}", v.FileName);
-#pragma warning restore CS0618
-            seriesToUpdate.UnionWith(v.AnimeEpisodes.Select(a => a.AnimeSeries).WhereNotNull().DistinctBy(a => a.AnimeSeriesID));
-
-            if (removeMylist)
-                await ((VideoService)_videoService).ScheduleRemovalFromMylist(v);
-
+            // Clean up failed imports
+            stages.NextStage();
+            token.ThrowIfCancellationRequested();
+            var list = _videoLocals.GetAll()
+                .SelectMany(a => a.EpisodeCrossReferences)
+                .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
+                .ToArray();
             {
                 using var transaction = session.BeginTransaction();
-                _videoLocals.DeleteWithOpenTransaction(session, v);
+                foreach (var xref in list)
+                {
+                    // We don't need to update anything since they don't exist
+                    _crossRefFileEpisodes.DeleteWithOpenTransaction(session, xref);
+                }
+
                 transaction.Commit();
             }
-        }
 
-        // Clean up failed imports
-        var list = _videoLocals.GetAll()
-            .SelectMany(a => a.EpisodeCrossReferences)
-            .Where(a => a.AniDBAnime == null || a.AniDBEpisode == null)
-            .ToArray();
-        {
-            using var transaction = session.BeginTransaction();
-            foreach (var xref in list)
+            // clean up orphaned video local places
+            var placesToRemove = _videoLocalPlaces.GetAll().Where(a => a.VideoLocal == null).ToList();
             {
-                // We don't need to update anything since they don't exist
-                _crossRefFileEpisodes.DeleteWithOpenTransaction(session, xref);
+                using var transaction = session.BeginTransaction();
+                foreach (var place in placesToRemove)
+                {
+                    // We don't need to update anything since they don't exist
+                    _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
+                }
+
+                transaction.Commit();
             }
 
-            transaction.Commit();
+            // NOTE: use 'purge unused releases' if you want to remove the cross-references too.
         }
-
-        // clean up orphaned video local places
-        var placesToRemove = _videoLocalPlaces.GetAll().Where(a => a.VideoLocal == null).ToList();
+        finally
         {
-            using var transaction = session.BeginTransaction();
-            foreach (var place in placesToRemove)
-            {
-                // We don't need to update anything since they don't exist
-                _videoLocalPlaces.DeleteWithOpenTransaction(session, place);
-            }
-
-            transaction.Commit();
+            // update everything we modified
+            await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
         }
 
-        // NOTE: use 'purge unused releases' if you want to remove the cross-references too.
-
-        // update everything we modified
-        await Task.WhenAll(seriesToUpdate.Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
-
+        stages.Complete();
         _logger.LogInformation("Remove Missing Files: Finished");
     }
 
-    public async Task UpdateAllStats()
+    /// <summary>
+    ///   Queues a stats refresh of every series.
+    /// </summary>
+    /// <param name="progress">Told how far the queuing is, from 0 to 100.</param>
+    /// <param name="token">Stops the queuing between two series.</param>
+    /// <returns>A task that completes once the refreshes are queued.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    public async Task UpdateAllStats(IProgress<decimal>? progress = null, CancellationToken token = default)
     {
-        await Task.WhenAll(_animeSeries.GetAll().Select(a => _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = a.AniDB_ID)));
+        var series = _animeSeries.GetAll();
+        var items = new ItemProgress(progress, series.Count);
+        items.Report(0);
+        foreach (var each in series)
+        {
+            token.ThrowIfCancellationRequested();
+            await _scheduler.StartJob<RefreshAnimeStatsJob>(b => b.AnimeID = each.AniDB_ID);
+            items.Increment();
+        }
     }
 
-    public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false)
+    /// <summary>
+    ///   Queues a new release search of the AniDB files missing their release
+    ///   group, and a fetch of the release groups missing their names.
+    /// </summary>
+    /// <param name="countOnly">Whether to only count the files, without queuing anything.</param>
+    /// <param name="progress">Told how far the queuing is, from 0 to 100.</param>
+    /// <param name="token">Stops the queuing between two files or groups.</param>
+    /// <returns>How many files miss their release group.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    public async Task<int> UpdateAnidbReleaseInfo(bool countOnly = false, IProgress<decimal>? progress = null, CancellationToken token = default)
     {
         _logger.LogInformation("Updating Missing AniDB_File Info");
         var missingFiles = !_videoReleaseService.AutoMatchEnabled ? [] : _storedReleaseInfos.GetAll()
@@ -776,10 +837,18 @@ public class ActionService : IActionService
             .ToList();
         if (!countOnly)
         {
+            var stages = new StagedProgress(progress, 2);
+            stages.Report(0);
             _logger.LogInformation("Queuing {Count} GetFile commands", missingFiles.Count);
+            var fileItems = new ItemProgress(stages, missingFiles.Count);
             foreach (var id in missingFiles)
+            {
+                token.ThrowIfCancellationRequested();
                 await _videoReleaseService.ScheduleFindReleaseForVideo(id, force: true);
+                fileItems.Increment();
+            }
 
+            stages.NextStage();
             var incorrectGroups = _storedReleaseInfos.GetAll()
                 .Where(r =>
                     !string.IsNullOrEmpty(r.GroupID) &&
@@ -793,51 +862,79 @@ public class ActionService : IActionService
                 .Select(a => int.Parse(a.GroupID!))
                 .ToHashSet();
             _logger.LogInformation("Queuing {Count} GetReleaseGroup commands", incorrectGroups.Count);
+            var groupItems = new ItemProgress(stages, incorrectGroups.Count);
             foreach (var a in incorrectGroups)
+            {
+                token.ThrowIfCancellationRequested();
                 await _scheduler.StartJob<GetAniDBReleaseGroupJob>(c => c.GroupID = a);
+                groupItems.Increment();
+            }
+
+            stages.Complete();
         }
 
         return missingFiles.Count;
     }
 
-    public async Task RefreshAniDBMovedFiles(bool force)
+    /// <summary>
+    ///   Queues the handling of every AniDB file-moved message not handled
+    ///   yet.
+    /// </summary>
+    /// <param name="force">Whether to queue them even when the setting to handle moved files is off.</param>
+    /// <param name="progress">Told how far the queuing is, from 0 to 100.</param>
+    /// <param name="token">Stops the queuing between two messages.</param>
+    /// <returns>A task that completes once the messages are queued.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    public async Task RefreshAniDBMovedFiles(bool force, IProgress<decimal>? progress = null, CancellationToken token = default)
     {
         var settings = _settingsProvider.GetSettings();
-        if (force || settings.AniDb.Notification_HandleMovedFiles)
+        if (!force && !settings.AniDb.Notification_HandleMovedFiles)
+            return;
+
+        var messages = _anidbMessages.GetUnhandledFileMoveMessages();
+        var items = new ItemProgress(progress, messages.Count);
+        items.Report(0);
+        foreach (var msg in messages)
         {
-            var messages = _anidbMessages.GetUnhandledFileMoveMessages();
-            if (messages.Count > 0)
-            {
-                foreach (var msg in messages)
-                {
-                    await _scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID);
-                }
-            }
+            token.ThrowIfCancellationRequested();
+            await _scheduler.StartJob<ProcessFileMovedMessageJob>(c => c.MessageID = msg.MessageID);
+            items.Increment();
         }
     }
 
-    public async Task DownloadMissingAnidbAnimeXmls()
+    /// <summary>
+    ///   Queues a remote refresh of every AniDB anime missing its cached XML
+    ///   file.
+    /// </summary>
+    /// <param name="progress">Told how far the check is, from 0 to 100.</param>
+    /// <param name="token">Stops the check between two anime.</param>
+    /// <returns>A task that completes once the refreshes are queued.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    public async Task DownloadMissingAnidbAnimeXmls(IProgress<decimal>? progress = null, CancellationToken token = default)
     {
         // Check existing anime.
         var index = 0;
-        var queuedAnimeSet = new HashSet<int>();
         var localAnimeSet = _anidbAnimes.GetAll()
             .Select(a => a.AnimeID)
             .OrderBy(a => a)
             .ToHashSet();
+        var items = new ItemProgress(progress, localAnimeSet.Count);
+        items.Report(0);
         _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files…", localAnimeSet.Count);
         foreach (var animeID in localAnimeSet)
         {
+            token.ThrowIfCancellationRequested();
             if (++index % 10 == 1 || index == localAnimeSet.Count)
                 _logger.LogInformation("Checking {AllAnimeCount} anime for missing XML files — {CurrentCount}/{AllAnimeCount}", localAnimeSet.Count, index + 1, localAnimeSet.Count);
 
             var rawXml = await _xmlUtils.LoadAnimeHTTPFromFile(animeID);
-            if (rawXml != null)
-                continue;
+            if (rawXml is null)
+            {
+                _logger.LogDebug("Found anime {AnimeID} with missing XML", animeID);
+                await QueueAniDBRefresh(animeID, true, false, false, SkipSupplementaryUpdate: true);
+            }
 
-            _logger.LogDebug("Found anime {AnimeID} with missing XML", animeID);
-            await QueueAniDBRefresh(animeID, true, false, false, SkipSupplementaryUpdate: true);
-            queuedAnimeSet.Add(animeID);
+            items.Increment();
         }
     }
 
@@ -876,9 +973,20 @@ public class ActionService : IActionService
         return false;
     }
 
-    public async Task ScheduleMissingAnidbAnimeForFiles()
+    /// <summary>
+    ///   Fills in the anime of file cross-references that lack it, asking
+    ///   AniDB for an episode not stored, then queues a refresh of every
+    ///   anime the files need that is missing its series or episodes.
+    /// </summary>
+    /// <param name="progress">Told how far the run is, from 0 to 100.</param>
+    /// <param name="token">Stops the run between two episodes or anime.</param>
+    /// <returns>A task that completes once the refreshes are queued.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    public async Task ScheduleMissingAnidbAnimeForFiles(IProgress<decimal>? progress = null, CancellationToken token = default)
     {
         // Attempt to fix cross-references with incomplete data.
+        var stages = new StagedProgress(progress, 2);
+        stages.Report(0);
         var index = 0;
         var videos = _videoLocals.GetVideosWithMissingCrossReferenceData();
         var unknownEpisodeDict = videos
@@ -887,8 +995,10 @@ public class ActionService : IActionService
             .GroupBy(xref => xref.EpisodeID)
             .ToDictionary(groupBy => groupBy.Key, groupBy => groupBy.ToList());
         _logger.LogInformation("Attempting to fix {MissingAnimeCount} cross-references with unknown anime…", unknownEpisodeDict.Count);
+        var episodeItems = new ItemProgress(stages, unknownEpisodeDict.Count);
         foreach (var (episodeId, xrefs) in unknownEpisodeDict)
         {
+            token.ThrowIfCancellationRequested();
             if (++index % 10 == 1)
                 _logger.LogInformation("Attempting to fix cross-references with unknown anime — {CurrentCount}/{MissingAnimeCount}", index + 1, unknownEpisodeDict.Count);
 
@@ -898,6 +1008,7 @@ public class ActionService : IActionService
                 foreach (var xref in xrefs)
                     xref.AnimeID = episode.AnimeID;
                 _crossRefFileEpisodes.Save(xrefs);
+                episodeItems.Increment();
                 continue;
             }
 
@@ -905,10 +1016,10 @@ public class ActionService : IActionService
             var epRequest = _requestFactory.Create<RequestGetEpisode>(r => r.EpisodeID = episodeId);
             try
             {
-                var epResponse = await epRequest.SendAsync();
+                var epResponse = await epRequest.SendAsync(token);
                 epAnimeID = epResponse.Response?.AnimeID;
             }
-            catch (Exception e)
+            catch (Exception e) when (e is not OperationCanceledException)
             {
                 _logger.LogError(e, "Could not get Episode Info for {EpisodeID}", episodeId);
             }
@@ -919,9 +1030,12 @@ public class ActionService : IActionService
                     xref.AnimeID = epAnimeID.Value;
                 _crossRefFileEpisodes.Save(xrefs);
             }
+
+            episodeItems.Increment();
         }
 
         // Queue missing anime needed by existing files.
+        stages.NextStage();
         index = 0;
         var localAnimeSet = _animeSeries.GetAll()
             .Select(a => a.AniDB_ID)
@@ -939,16 +1053,29 @@ public class ActionService : IActionService
         var refreshMethod = AnidbRefreshMethod.Remote | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.SkipSupplementaryUpdate | AnidbRefreshMethod.CreateShokoSeries;
         if (settings.AutoGroupSeries || settings.AniDb.DownloadRelatedAnime)
             refreshMethod |= AnidbRefreshMethod.DownloadRelations;
+        var animeItems = new ItemProgress(stages, missingAnimeSet.Count);
         foreach (var animeID in missingAnimeSet)
         {
+            token.ThrowIfCancellationRequested();
             if (++index % 10 == 1 || index == missingAnimeSet.Count)
                 _logger.LogInformation("Queueing anime that needs an update — {CurrentCount}/{MissingAnimeCount}", index, missingAnimeSet.Count);
 
             await _anidbService.ScheduleRefreshOfAnimeByID(animeID, refreshMethod);
+            animeItems.Increment();
         }
+
+        stages.Complete();
     }
 
-    public async Task ScheduleMissingAnidbCreators()
+    /// <summary>
+    ///   Queues a fetch of every AniDB creator whose type is unknown, when
+    ///   creators are downloaded at all.
+    /// </summary>
+    /// <param name="progress">Told how far the queuing is, from 0 to 100.</param>
+    /// <param name="token">Stops the queuing between two creators.</param>
+    /// <returns>A task that completes once the fetches are queued.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    public async Task ScheduleMissingAnidbCreators(IProgress<decimal>? progress = null, CancellationToken token = default)
     {
         if (!_settingsProvider.GetSettings().AniDb.DownloadCreators) return;
 
@@ -961,19 +1088,30 @@ public class ActionService : IActionService
 
         var startedAt = DateTime.Now;
         _logger.LogInformation("Scheduling {Count} AniDB Creators for a refresh.", allMissingCreators.Count);
-        var progressCount = 0;
+        var items = new ItemProgress(progress, allMissingCreators.Count);
+        items.Report(0);
         foreach (var creatorID in allMissingCreators)
         {
+            token.ThrowIfCancellationRequested();
             await _scheduler.StartJob<GetAniDBCreatorJob>(c => c.CreatorID = creatorID).ConfigureAwait(false);
+            items.Increment();
 
-            if (++progressCount % 10 == 0)
-                _logger.LogInformation("Scheduling AniDB Creators for a refresh. (Progress={Count}/{Total})", progressCount, allMissingCreators.Count);
+            if (items.Done % 10 == 0)
+                _logger.LogInformation("Scheduling AniDB Creators for a refresh. (Progress={Count}/{Total})", items.Done, allMissingCreators.Count);
         }
 
         _logger.LogInformation("Scheduled {Count} AniDB Creators in {TimeSpan}", allMissingCreators.Count, DateTime.Now - startedAt);
     }
 
-    public async Task CreateMissingSeries()
+    /// <summary>
+    ///   Queues the creation of a series for every stored AniDB anime a file
+    ///   links to that has none.
+    /// </summary>
+    /// <param name="progress">Told how far the queuing is, from 0 to 100.</param>
+    /// <param name="token">Stops the queuing between two anime.</param>
+    /// <returns>A task that completes once the creations are queued.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    public async Task CreateMissingSeries(IProgress<decimal>? progress = null, CancellationToken token = default)
     {
         var missingSeries = _videoLocals.GetAll().SelectMany(vid =>
         {
@@ -985,13 +1123,27 @@ public class ActionService : IActionService
         _logger.LogInformation("Creating {Count} Series that are missing.", missingSeries.Count);
 
         var methods = AnidbRefreshMethod.Cache | AnidbRefreshMethod.DeferToRemoteIfUnsuccessful | AnidbRefreshMethod.CreateShokoSeries;
+        var items = new ItemProgress(progress, missingSeries.Count);
+        items.Report(0);
         foreach (var aniDBAnime in missingSeries)
+        {
+            token.ThrowIfCancellationRequested();
             await _anidbService.ScheduleRefreshOfAnime(aniDBAnime, methods, prioritize: false);
+            items.Increment();
+        }
 
         _logger.LogInformation("Queued Creation of {Count} Series that were missing.", missingSeries.Count);
     }
 
-    public async Task<int> VerifyAllUnverifiedRelations()
+    /// <summary>
+    ///   Queues a verification of the relations of every anime with an
+    ///   unverified one.
+    /// </summary>
+    /// <param name="progress">Told how far the queuing is, from 0 to 100.</param>
+    /// <param name="token">Stops the queuing between two anime.</param>
+    /// <returns>How many anime have unverified relations.</returns>
+    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
+    public async Task<int> VerifyAllUnverifiedRelations(IProgress<decimal>? progress = null, CancellationToken token = default)
     {
         var unverifiedAnimeIDs = _anidbAnimeRelations.GetAll()
             .Where(r => !r.Verified)
@@ -1001,10 +1153,17 @@ public class ActionService : IActionService
 
         _logger.LogInformation("Scheduling verification of relations for {Count} anime with unverified relations", unverifiedAnimeIDs.Count);
 
+        var items = new ItemProgress(progress, unverifiedAnimeIDs.Count);
+        items.Report(0);
         foreach (var animeID in unverifiedAnimeIDs)
+        {
+            token.ThrowIfCancellationRequested();
             await _scheduler.StartJob<VerifyAniDBRelationsJob>(c => c.AnimeID = animeID);
+            items.Increment();
+        }
 
         return unverifiedAnimeIDs.Count;
     }
 
+    #endregion
 }

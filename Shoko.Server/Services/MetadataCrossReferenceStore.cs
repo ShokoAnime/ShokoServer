@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Repositories.Cached;
@@ -361,8 +362,16 @@ public class MetadataCrossReferenceStore(
     ///   The source's own ID for one stored series whose episodes' links are
     ///   synced, or every link of the source when left out.
     /// </param>
+    /// <param name="progress">Told how far the sync is, from 0 to 100.</param>
+    /// <param name="cancellationToken">Stops the sync between two anime's links.</param>
     /// <returns>The links that changed.</returns>
-    internal IReadOnlyList<CrossRef_AniDB_Metadata_Episode> SyncFromSeriesStore(MetadataSource? source = null, string? seriesID = null)
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    internal IReadOnlyList<CrossRef_AniDB_Metadata_Episode> SyncFromSeriesStore(
+        MetadataSource? source = null,
+        string? seriesID = null,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    )
     {
         var links = source is null
             ? episodeRepository.GetAll().Where(link => !link.Source.IsCore)
@@ -371,8 +380,13 @@ public class MetadataCrossReferenceStore(
                 : storedEpisodes.GetBySeriesID(source, seriesID).SelectMany(episode => episodeRepository.GetByProviderID(source, episode.ProviderID));
 
         var changed = new List<CrossRef_AniDB_Metadata_Episode>();
-        foreach (var slot in links.Select(link => link.Slot).Distinct().ToList())
+        var slots = links.Select(link => link.Slot).Distinct().ToList();
+        var items = new ItemProgress(progress, slots.Count);
+        items.Report(0);
+        foreach (var slot in slots)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            items.Increment();
             lock (LockFor<CrossRef_AniDB_Metadata_Episode>(slot))
             {
                 // Read again under the lock, so a write that got there first is

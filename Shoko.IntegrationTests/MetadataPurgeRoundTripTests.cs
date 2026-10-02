@@ -290,7 +290,8 @@ public class MetadataPurgeRoundTripTests(DatabaseMigrationFixture fixture)
         finally
         {
             await Purge(series);
-            await fixture.Services.GetRequiredService<IMetadataPurgeService>().PurgeOrphaned(_plugin, DateTime.MaxValue, TestContext.Current.CancellationToken);
+            await fixture.Services.GetRequiredService<IMetadataPurgeService>()
+                .PurgeOrphaned(_plugin, DateTime.MaxValue, cancellationToken: TestContext.Current.CancellationToken);
         }
     }
 
@@ -307,7 +308,7 @@ public class MetadataPurgeRoundTripTests(DatabaseMigrationFixture fixture)
         networks.Save(new TMDB_Network { TmdbNetworkID = 990101, Name = "Long orphaned", LastOrphanedAt = DateTime.UtcNow.AddDays(-10) });
         networks.Save(new TMDB_Network { TmdbNetworkID = 990102, Name = "Just orphaned", LastOrphanedAt = DateTime.UtcNow.AddHours(-1) });
 
-        await purge.PurgeOrphaned(MetadataSource.TMDB, DateTime.Now.AddDays(-7), TestContext.Current.CancellationToken);
+        await purge.PurgeOrphaned(MetadataSource.TMDB, DateTime.Now.AddDays(-7), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Null(people.GetByTmdbPersonID(990001));
         Assert.NotNull(people.GetByTmdbPersonID(990002));

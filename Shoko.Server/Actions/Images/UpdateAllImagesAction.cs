@@ -10,6 +10,10 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Schedule auto-downloads for all missing images across all entities.
 /// </summary>
+/// <remarks>
+///   Only queues the downloads, which run on their own; the progress covers
+///   the queuing.
+/// </remarks>
 public sealed class UpdateAllImagesAction(IImageManager imageManager) : IScheduledAction
 {
     public string Name => "Update All Images";
@@ -19,5 +23,5 @@ public sealed class UpdateAllImagesAction(IImageManager imageManager) : ISchedul
     public ActionCategory Category => ActionCategory.Images;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => imageManager.ScheduleAllAutoDownloads();
+        => imageManager.ScheduleAllAutoDownloads(null, null, null, false, progress, token);
 }

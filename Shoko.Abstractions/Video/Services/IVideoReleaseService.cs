@@ -352,10 +352,18 @@ public interface IVideoReleaseService
     ///   Optional. Set to <c>true</c> to skip provider-specific post-clear
     ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
     ///   A task that represents the asynchronous operation.
     /// </returns>
-    Task PurgeUsedReleases(IEnumerable<string>? providerNames = null, bool skipEvents = false);
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task PurgeUsedReleases(
+        IEnumerable<string>? providerNames = null,
+        bool skipEvents = false,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Purges all releases not linked to any videos from the database.
@@ -369,10 +377,18 @@ public interface IVideoReleaseService
     ///   Optional. Set to <c>true</c> to skip provider-specific post-clear
     ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
     ///   A task that represents the asynchronous operation.
     /// </returns>
-    Task PurgeUnusedReleases(IEnumerable<string>? providerNames = null, bool skipEvents = false);
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    Task PurgeUnusedReleases(
+        IEnumerable<string>? providerNames = null,
+        bool skipEvents = false,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    );
 
     /// <summary>
     ///   Removes the specified release from the database.

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -23,6 +24,7 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 /// <param name="providerManager">The registered providers, which decide which core sources are purged.</param>
 /// <param name="purgeService">Queues the purges.</param>
 /// <param name="cancellationAccessor">Cancels the work.</param>
+/// <param name="progressAccessor">Takes how far the work is, by source.</param>
 [DatabaseRequired]
 [DisallowConcurrentExecution]
 [JobKeyGroup(JobKeyGroup.Metadata)]
@@ -30,7 +32,8 @@ public class PurgeUnusedMetadataJob(
     ISettingsProvider settingsProvider,
     IMetadataProviderManager providerManager,
     IMetadataPurgeService purgeService,
-    IJobCancellationAccessor cancellationAccessor
+    IJobCancellationAccessor cancellationAccessor,
+    IJobProgressAccessor progressAccessor
 ) : BaseJob
 {
     #region Constants
@@ -80,10 +83,14 @@ public class PurgeUnusedMetadataJob(
 
         var cutoff = DateTime.Now.AddDays(-days);
         var queued = 0;
-        foreach (var source in GetPurgeableSources(MetadataSource.All, providerManager.MetadataProviders))
+        var sources = GetPurgeableSources(MetadataSource.All, providerManager.MetadataProviders);
+        var items = new ItemProgress(progressAccessor.Progress, sources.Count);
+        items.Report(0);
+        foreach (var source in sources)
         {
             cancellationAccessor.Token.ThrowIfCancellationRequested();
             queued += await purgeService.PurgeUnused(source, cutoff, cancellationToken: cancellationAccessor.Token).ConfigureAwait(false);
+            items.Increment();
         }
 
         _logger.LogDebug("Queued the purge of {Count} unused entries last refreshed before {Cutoff}.", queued, cutoff);

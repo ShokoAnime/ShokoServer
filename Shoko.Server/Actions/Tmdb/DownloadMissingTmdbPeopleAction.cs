@@ -19,5 +19,5 @@ public sealed class DownloadMissingTmdbPeopleAction(TmdbMetadataUpdater tmdbUpda
     public ActionCategory Category => ActionCategory.TMDB;
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
-        => tmdbUpdater.RepairMissingPeople();
+        => tmdbUpdater.RepairMissingPeople(progress, token);
 }

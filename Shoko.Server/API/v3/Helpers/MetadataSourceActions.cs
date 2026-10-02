@@ -95,7 +95,7 @@ public sealed class MetadataSourceActions(
         ArgumentNullException.ThrowIfNull(source);
 
         var options = new MetadataRefreshOptions { DownloadImages = downloadImages, Reason = MetadataRefreshReason.Requested };
-        var count = await refreshService.RefreshAllLinked(source, force, options, entityType, cancellationToken).ConfigureAwait(false);
+        var count = await refreshService.RefreshAllLinked(source, force, options, entityType, cancellationToken: cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Queued {Count} {Source} refreshes of linked {Kind}.", count, source.Name, entityType?.Value ?? "entries");
         return count;
     }
@@ -112,7 +112,7 @@ public sealed class MetadataSourceActions(
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var count = await refreshService.DownloadAllImages(source, force, cancellationToken).ConfigureAwait(false);
+        var count = await refreshService.DownloadAllImages(source, force, cancellationToken: cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Queued {Count} {Source} image downloads.", count, source.Name);
         return count;
     }
@@ -129,7 +129,7 @@ public sealed class MetadataSourceActions(
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var count = await refreshService.AutoSearchAll(source, force, cancellationToken).ConfigureAwait(false);
+        var count = await refreshService.AutoSearchAll(source, force, cancellationToken: cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Queued {Count} {Source} auto-searches.", count, source.Name);
         return count;
     }
@@ -151,7 +151,7 @@ public sealed class MetadataSourceActions(
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var count = await purgeService.PurgeUnused(source, olderThan, entityType, cancellationToken).ConfigureAwait(false);
+        var count = await purgeService.PurgeUnused(source, olderThan, entityType, cancellationToken: cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Queued {Count} {Source} purges of unused {Kind}.", count, source.Name, entityType?.Value ?? "entries");
         return count;
     }
@@ -167,7 +167,7 @@ public sealed class MetadataSourceActions(
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var count = await purgeService.PurgeCollections(source, cancellationToken).ConfigureAwait(false);
+        var count = await purgeService.PurgeCollections(source, cancellationToken: cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Purged {Count} {Source} collections.", count, source.Name);
         return count;
     }
@@ -185,7 +185,7 @@ public sealed class MetadataSourceActions(
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var count = await purgeService.PurgeOrphaned(source, orphanedBefore, cancellationToken).ConfigureAwait(false);
+        var count = await purgeService.PurgeOrphaned(source, orphanedBefore, cancellationToken: cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Purged {Count} orphaned {Source} entries.", count, source.Name);
         return count;
     }
@@ -236,7 +236,13 @@ public sealed class MetadataSourceActions(
         ArgumentNullException.ThrowIfNull(source);
 
         var count = removeSeriesLinks || removeMovieLinks
-            ? await linkingService.RemoveAllLinks(source, removeSeriesLinks, removeMovieLinks, purge, cancellationToken).ConfigureAwait(false)
+            ? await linkingService.RemoveAllLinks(
+                source,
+                removeSeriesLinks,
+                removeMovieLinks,
+                purge,
+                cancellationToken: cancellationToken
+            ).ConfigureAwait(false)
             : 0;
         if (resetAutoLinkingState is { } disabled)
             linkingService.ResetAutoLinkingState(source, disabled);

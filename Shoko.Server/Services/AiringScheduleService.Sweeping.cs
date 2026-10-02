@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Airing;
@@ -40,18 +41,25 @@ public partial class AiringScheduleService
     /// a tick that lands while a provider's chunk is still queued is a no-op
     /// for that provider.
     /// </summary>
+    /// <param name="progress">Told how far the queuing is, from 0 to 100.</param>
     /// <param name="cancellationToken">The token cancelling the enqueue.</param>
     /// <returns>A task that completes once the chunks are queued.</returns>
     /// <exception cref="InvalidOperationException">Parts have not been added yet.</exception>
-    internal async Task ScheduleSweeps(CancellationToken cancellationToken = default)
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    internal async Task ScheduleSweeps(IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
     {
         if (!_loaded)
             throw new InvalidOperationException("Parts have not been added yet.");
 
-        foreach (var info in GetDueSweepProviders(DateTime.UtcNow))
+        var providers = GetDueSweepProviders(DateTime.UtcNow);
+        var items = new ItemProgress(progress, providers.Count);
+        items.Report(0);
+        foreach (var info in providers)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             logger.LogDebug("Queueing a sweep with provider {ProviderName}.", info.Name);
             await schedulerFactory.Enqueue<SweepAiringScheduleProviderJob>(job => job.ProviderID = info.ID, ct: cancellationToken).ConfigureAwait(false);
+            items.Increment();
         }
     }
 

@@ -1997,7 +1997,7 @@ public class MetadataProviderJobTests
             queue.Setup(q => q.Enqueue(It.IsAny<Action<SyncEpisodeLinksJob>?>(), It.IsAny<bool>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()))
                 .Returns((Action<SyncEpisodeLinksJob>? configure, bool prioritize, DateTimeOffset? _, CancellationToken _) =>
                 {
-                    var job = new SyncEpisodeLinksJob(null!);
+                    var job = new SyncEpisodeLinksJob(null!, null!, null!);
                     configure?.Invoke(job);
                     Queued.Add((typeof(SyncEpisodeLinksJob), job, prioritize));
                     return Task.CompletedTask;
@@ -2498,7 +2498,12 @@ public class MetadataProviderJobTests
 
         Assert.Equal(2, await service.PurgeUnused(Source, DateTime.Now.AddDays(-14), cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(0, await service.PurgeUnused(MetadataSource.TMDB, cancellationToken: TestContext.Current.CancellationToken));
-        Assert.Equal(1, await service.PurgeUnused(Source, DateTime.Now.AddDays(-14), MetadataEntityType.Movie, TestContext.Current.CancellationToken));
+        Assert.Equal(1, await service.PurgeUnused(
+            Source,
+            DateTime.Now.AddDays(-14),
+            MetadataEntityType.Movie,
+            cancellationToken: TestContext.Current.CancellationToken
+        ));
 
         Assert.Equal(
             [stale.ToString(), never.ToString(), never.ToString()],
@@ -2538,7 +2543,7 @@ public class MetadataProviderJobTests
         collectionStore.Setup(s => s.GetAllCollections(Source)).Returns([Entity<ICollection>(collectionID)]);
         var service = harness.PurgeService(Links(), infos, collectionStore: collectionStore);
 
-        Assert.Equal(1, await service.PurgeCollections(Source, TestContext.Current.CancellationToken));
+        Assert.Equal(1, await service.PurgeCollections(Source, cancellationToken: TestContext.Current.CancellationToken));
         Assert.True(await service.PurgeEntry(ID(MetadataEntityType.Series, "1"), force: true, TestContext.Current.CancellationToken));
 
         Assert.All(harness.Queued, queued => Assert.True(((PurgeMetadataJob)queued.Job).Force));
@@ -2632,7 +2637,7 @@ public class MetadataProviderJobTests
         Assert.Equal(3, await service.PurgeOrphaned(cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(2, await service.PurgeOrphaned(MetadataSource.TMDB, cancellationToken: TestContext.Current.CancellationToken));
         var exact = DateTime.Now.AddDays(-30);
-        Assert.Equal(1, await service.PurgeOrphaned(Source, exact, TestContext.Current.CancellationToken));
+        Assert.Equal(1, await service.PurgeOrphaned(Source, exact, cancellationToken: TestContext.Current.CancellationToken));
 
         people.Verify(s => s.RemoveOrphaned(Source, It.IsAny<DateTime>()), Times.Exactly(2));
         people.Verify(s => s.RemoveOrphaned(TestSources.AniList, It.IsAny<DateTime>()), Times.Once);

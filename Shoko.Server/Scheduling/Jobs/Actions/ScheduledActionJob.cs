@@ -12,9 +12,10 @@ using Shoko.Server.Services;
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 /// <summary>
-/// Runs one scheduled action, with the job's progress and cancellation. Its
-/// key is the scheduled action's ID alone, so a run is never queued twice. It
-/// is long running, so the watchdog leaves every scheduled action alone.
+/// Runs one scheduled action, with the job's progress and cancellation, and
+/// reports 100 once the action returns. Its key is the scheduled action's ID
+/// alone, so a run is never queued twice. It is long running, so the watchdog
+/// leaves every scheduled action alone.
 /// </summary>
 /// <param name="services">The job's own container, which the action is resolved from.</param>
 /// <param name="registry">The scheduled actions.</param>
@@ -77,6 +78,9 @@ public class ScheduledActionJob(
 
         _logger.LogInformation("Running scheduled action \"{ActionName}\" ({ActionId})", definition.Name, ActionId);
         await action.Execute(progress.Progress, cancellation.Token);
+
+        // A run that ended well is done, whether the action reported it or not.
+        progress.Progress.Report(100);
         _logger.LogInformation("Finished scheduled action \"{ActionName}\" ({ActionId})", definition.Name, ActionId);
     }
 

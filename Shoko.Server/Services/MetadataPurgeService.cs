@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Settings;
@@ -72,6 +73,7 @@ public class MetadataPurgeService(
         MetadataSource source,
         DateTime? olderThan = null,
         MetadataEntityType? entityType = null,
+        IProgress<decimal>? progress = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -91,10 +93,13 @@ public class MetadataPurgeService(
             .Where(entry => olderThan is not { } cutoff || GetLastTouchedAt(entry) is not { } touchedAt || touchedAt < cutoff)
             .Select(entry => entry.ID)
             .ToList();
+        var items = new ItemProgress(progress, unused.Count);
+        items.Report(0);
         foreach (var id in unused)
         {
             cancellationToken.ThrowIfCancellationRequested();
             await providerScheduler.SchedulePurge(id, cancellationToken: cancellationToken).ConfigureAwait(false);
+            items.Increment();
         }
 
         logger.LogInformation("Queued the purge of {Count} unused entries of {Source}.", unused.Count, source);
@@ -119,17 +124,20 @@ public class MetadataPurgeService(
         };
 
     /// <inheritdoc />
-    public async Task<int> PurgeCollections(MetadataSource source, CancellationToken cancellationToken = default)
+    public async Task<int> PurgeCollections(MetadataSource source, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
         if (!providerScheduler.IsPurgeable(source))
             return 0;
 
         var collections = metadataService.GetAllCollectionsForSource(source).Select(collection => collection.ID).ToList();
+        var items = new ItemProgress(progress, collections.Count);
+        items.Report(0);
         foreach (var id in collections)
         {
             cancellationToken.ThrowIfCancellationRequested();
             await providerScheduler.SchedulePurge(id, force: true, cancellationToken).ConfigureAwait(false);
+            items.Increment();
         }
 
         logger.LogInformation("Queued the purge of {Count} collections of {Source}.", collections.Count, source);
@@ -141,7 +149,12 @@ public class MetadataPurgeService(
     #region Orphans
 
     /// <inheritdoc />
-    public async Task<int> PurgeOrphaned(MetadataSource? source = null, DateTime? orphanedBefore = null, CancellationToken cancellationToken = default)
+    public async Task<int> PurgeOrphaned(
+        MetadataSource? source = null,
+        DateTime? orphanedBefore = null,
+        IProgress<decimal>? progress = null,
+        CancellationToken cancellationToken = default
+    )
     {
         var cutoff = orphanedBefore ?? DateTime.Now.AddDays(-settingsProvider.GetSettings().Metadata.PurgeOrphanedAfterDays);
         IReadOnlyList<MetadataSource> sources = source is not null
@@ -154,6 +167,11 @@ public class MetadataPurgeService(
                 .Distinct()
                 .ToList();
 
+        // The orphans of each plugin source, the leftovers, the refreshes of
+        // linked leftovers, and the core sources' own purges.
+        var stages = new StagedProgress(progress, 1, 2, 1, 1);
+        stages.Report(0);
+        var sourceItems = new ItemProgress(stages, sources.Count);
         var total = 0;
         foreach (var each in sources)
         {
@@ -170,16 +188,21 @@ public class MetadataPurgeService(
                     cutoff
                 );
             total += people.Count + organisations.Count;
+            sourceItems.Increment();
         }
 
         // What a plugin source's series left behind goes as the series would,
         // and a linked one is refreshed, which stores it again.
-        var (leftovers, linked) = await PurgeStoreLeftovers(source, cancellationToken).ConfigureAwait(false);
+        stages.NextStage();
+        var (leftovers, linked) = await PurgeStoreLeftovers(source, stages, cancellationToken).ConfigureAwait(false);
+        stages.NextStage();
+        var linkedItems = new ItemProgress(stages, linked.Count);
         foreach (var entry in linked)
         {
             cancellationToken.ThrowIfCancellationRequested();
             logger.LogInformation("Refreshing {Entry}, which is linked but has no row of its own.", entry);
             await providerScheduler.ScheduleRefreshForEntry(entry, cancellationToken: cancellationToken).ConfigureAwait(false);
+            linkedItems.Increment();
         }
 
         total += leftovers;
@@ -192,6 +215,8 @@ public class MetadataPurgeService(
             .Where(pair => pair.Purger is not null)
             .DistinctBy(pair => pair.Source)
             .ToList();
+        stages.NextStage();
+        var purgerItems = new ItemProgress(stages, purgers.Count);
         foreach (var (each, purger) in purgers)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -199,8 +224,10 @@ public class MetadataPurgeService(
             if (removed > 0)
                 logger.LogInformation("Purged {Count} orphans of {Source} orphaned before {Cutoff}.", removed, each, cutoff);
             total += removed;
+            purgerItems.Increment();
         }
 
+        stages.Complete();
         return total;
     }
 
@@ -214,11 +241,13 @@ public class MetadataPurgeService(
     ///   does: their seasons, episodes, texts, images and orderings.
     /// </summary>
     /// <param name="source">Only this source's, or every plugin source's when left out.</param>
+    /// <param name="progress">Told how far the removal is, from 0 to 100.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many series were cleared, and the linked ones left for a refresh to store again.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     internal async Task<(int Removed, IReadOnlyList<MetadataGuid> Linked)> PurgeStoreLeftovers(
         MetadataSource? source = null,
+        IProgress<decimal>? progress = null,
         CancellationToken cancellationToken = default
     )
     {
@@ -231,9 +260,11 @@ public class MetadataPurgeService(
             .Distinct()
             .Where(IsLeftoverSeries)
             .ToList();
+        var items = new ItemProgress(progress, series.Count);
         foreach (var entry in series)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            items.Increment();
             using var entryLock = await entryLocks.Acquire(entry, cancellationToken).ConfigureAwait(false);
             using var imagesLock = await entryLocks.AcquireImages(entry, cancellationToken).ConfigureAwait(false);
             if (!IsLeftoverSeries(entry))
