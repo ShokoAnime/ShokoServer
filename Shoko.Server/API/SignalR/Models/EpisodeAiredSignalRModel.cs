@@ -19,18 +19,36 @@ namespace Shoko.Server.API.SignalR.Models;
 /// moves. Nothing is replayed after downtime, so a client that was connected
 /// through a server restart has a gap rather than a burst.
 /// </remarks>
-/// <param name="args">The event arguments.</param>
-public class EpisodeAiredSignalRModel(EpisodeAiredEventArgs args)
+public class EpisodeAiredSignalRModel
 {
+    /// <summary>
+    /// Builds the message from the event.
+    /// </summary>
+    /// <param name="args">The event arguments.</param>
+    public EpisodeAiredSignalRModel(EpisodeAiredEventArgs args)
+        : this(args.AiredAt, args.Airings) { }
+
+    /// <summary>
+    /// Builds the message from some of the event's airings, for a user who may
+    /// not see every one of them.
+    /// </summary>
+    /// <param name="airedAt">The minute that passed.</param>
+    /// <param name="airings">The airings to include.</param>
+    public EpisodeAiredSignalRModel(DateTime airedAt, IEnumerable<IEpisodeAiring> airings)
+    {
+        AiredAt = airedAt.ToUtc();
+        Airings = airings.Select(airing => new EpisodeAiring(airing)).ToList();
+    }
+
     /// <summary>
     /// The minute that passed, in UTC.
     /// </summary>
-    public DateTime AiredAt { get; } = args.AiredAt.ToUtc();
+    public DateTime AiredAt { get; }
 
     /// <summary>
     /// The airings whose slot passed, in slot order, in the same shape the
     /// airings endpoint returns, so a client can render a pushed airing with the
     /// code it already has. Never empty.
     /// </summary>
-    public IReadOnlyList<EpisodeAiring> Airings { get; } = args.Airings.Select(airing => new EpisodeAiring(airing)).ToList();
+    public IReadOnlyList<EpisodeAiring> Airings { get; }
 }

@@ -19,10 +19,20 @@ public class MetadataLinksChangedSignalRModel
     /// <param name="eventArgs">The event.</param>
     /// <param name="shokoSeriesIDs">The Shoko series of the AniDB anime the links belong to.</param>
     public MetadataLinksChangedSignalRModel(MetadataLinksChangedEventArgs eventArgs, IReadOnlyList<int> shokoSeriesIDs)
+        : this(eventArgs.Reason, eventArgs.Changes, shokoSeriesIDs) { }
+
+    /// <summary>
+    /// The event narrowed to some of its changes, for a user who may not see
+    /// every anime the event is about.
+    /// </summary>
+    /// <param name="reason">Why the links changed.</param>
+    /// <param name="changes">The changes to include.</param>
+    /// <param name="shokoSeriesIDs">The Shoko series of the included changes' anime.</param>
+    public MetadataLinksChangedSignalRModel(MetadataLinkChangeReason reason, IEnumerable<MetadataLinkChange> changes, IReadOnlyList<int> shokoSeriesIDs)
     {
-        Reason = eventArgs.Reason;
+        Reason = reason;
         ShokoSeriesIDs = shokoSeriesIDs;
-        Changes = [.. eventArgs.Changes.Select(change => new LinkChange(change))];
+        Changes = [.. changes.Select(change => new LinkChange(change))];
     }
 
     /// <summary>

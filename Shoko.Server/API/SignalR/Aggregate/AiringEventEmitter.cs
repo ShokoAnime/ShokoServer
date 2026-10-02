@@ -1,9 +1,14 @@
 using System;
+using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.API.SignalR.Models;
+using Shoko.Server.Repositories.Cached.AniDB;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
@@ -15,6 +20,9 @@ namespace Shoko.Server.API.SignalR.Aggregate;
 /// every emitter here wraps exactly one service, and a client interested in
 /// when things air is rarely the same client interested in series and episode
 /// metadata changing. Keeping them apart lets it subscribe to the one it wants.
+/// Each user gets the airings it may see, by the rule of the airing calendar:
+/// an airing whose anime is unknown is shown to everyone. A sweep names no
+/// series, and goes to everyone.
 /// </remarks>
 public class AiringEventEmitter : BaseEventEmitter, IDisposable
 {
@@ -35,18 +43,22 @@ public class AiringEventEmitter : BaseEventEmitter, IDisposable
     /// </summary>
     private readonly IAiringScheduleService _airingScheduleService;
 
+    private readonly AniDB_AnimeRepository _anidbAnime;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AiringEventEmitter"/> class.
     /// </summary>
     /// <param name="hub">The aggregate hub.</param>
     /// <param name="airingScheduleService">The airing schedule service.</param>
+    /// <param name="anidbAnime">The AniDB anime, to check airings against.</param>
     /// <param name="logger">The logger.</param>
-    public AiringEventEmitter(IHubContext<AggregateHub> hub, IAiringScheduleService airingScheduleService, ILogger<AiringEventEmitter> logger) : base(hub)
+    public AiringEventEmitter(IHubContext<AggregateHub> hub, IAiringScheduleService airingScheduleService, AniDB_AnimeRepository anidbAnime, ILogger<AiringEventEmitter> logger) : base(hub)
     {
         ArgumentNullException.ThrowIfNull(airingScheduleService);
 
         _logger = logger;
         _airingScheduleService = airingScheduleService;
+        _anidbAnime = anidbAnime;
         _subscription = airingScheduleService.SubscribeToAirings(OnEpisodesAired);
         _airingScheduleService.SweepCompleted += OnSweepCompleted;
     }
@@ -63,7 +75,12 @@ public class AiringEventEmitter : BaseEventEmitter, IDisposable
     {
         try
         {
-            await SendAsync("episode.aired", new EpisodeAiredSignalRModel(e));
+            await SendVisiblePartsAsync(
+                "episode.aired",
+                e.Airings,
+                [.. e.Airings.Select(airing => EventAudience.ForAiring(AnimeIDOf(airing), _anidbAnime.GetByAnimeID))],
+                airings => new EpisodeAiredSignalRModel(e.AiredAt, airings)
+            );
         }
         catch (Exception ex)
         {
@@ -82,4 +99,18 @@ public class AiringEventEmitter : BaseEventEmitter, IDisposable
             _logger.LogError(ex, "An error occurred while sending the 'provider.swept' event.");
         }
     }
+
+    /// <summary>
+    /// The AniDB anime of an airing's series, found the way the airing calendar
+    /// finds it.
+    /// </summary>
+    /// <param name="airing">The airing.</param>
+    /// <returns>The AniDB anime ID, or <see langword="null"/> when the series is of another source or unknown.</returns>
+    private static int? AnimeIDOf(IEpisodeAiring airing)
+        => ((ISeries?)airing.ShokoEpisode?.Series ?? airing.AnidbEpisode?.Series ?? airing.Episode?.Series ?? airing.Schedule.Series) switch
+        {
+            IShokoSeries series => series.AnidbAnimeID,
+            IAnidbAnime anime => anime.AnidbID,
+            _ => null,
+        };
 }

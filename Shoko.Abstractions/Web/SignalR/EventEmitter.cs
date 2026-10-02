@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Abstractions.User;
@@ -12,7 +13,8 @@ namespace Shoko.Abstractions.Web.SignalR;
 /// The base of a feed on the aggregate hub. It tracks the feed's connections
 /// per user, adds them to and removes them from the feed's group, and sends
 /// the initial messages on join. A derived feed names itself and sends with
-/// <see cref="SendAsync"/> and <see cref="SendToUserAsync"/>.
+/// <see cref="SendAsync"/>, <see cref="SendToUserAsync"/>,
+/// <see cref="SendWhereAsync"/> and <see cref="SendPerUserAsync"/>.
 /// </summary>
 public abstract class EventEmitter : IEventEmitter
 {
@@ -20,7 +22,15 @@ public abstract class EventEmitter : IEventEmitter
 
     private readonly ConcurrentDictionary<string, IUser> _connections = [];
 
-    private readonly ConcurrentDictionary<int, HashSet<string>> _userConnections = [];
+    private readonly Dictionary<int, UserConnections> _userConnections = [];
+
+    private readonly Lock _userConnectionsLock = new();
+
+    /// <summary>
+    /// Every user on the feed with their connections, rebuilt whenever a
+    /// connection joins or leaves, so a send reads it without locking.
+    /// </summary>
+    private volatile Listener[] _listeners = [];
 
     private IHubContext? _hub;
 
@@ -33,8 +43,7 @@ public abstract class EventEmitter : IEventEmitter
 
     /// <summary>
     /// The aggregate hub's context, once the server attached the feed, for a
-    /// feed that sends in ways <see cref="SendAsync"/> and
-    /// <see cref="SendToUserAsync"/> don't cover.
+    /// feed that sends in ways the send methods don't cover.
     /// </summary>
     protected IHubContext? HubContext => _hub;
 
@@ -59,10 +68,13 @@ public abstract class EventEmitter : IEventEmitter
         if (!CanConnect(user) || !_connections.TryAdd(connectionId, user))
             return false;
 
-        lock (_userConnections)
+        lock (_userConnectionsLock)
         {
-            if (_userConnections.TryGetValue(user.LocalID, out var connections) || _userConnections.TryAdd(user.LocalID, connections = []))
-                connections.Add(connectionId);
+            if (!_userConnections.TryGetValue(user.LocalID, out var connections))
+                _userConnections.Add(user.LocalID, connections = new());
+            connections.User = user;
+            connections.ConnectionIDs.Add(connectionId);
+            RebuildListeners();
         }
 
         await hub.Groups.AddToGroupAsync(connectionId, Name);
@@ -80,13 +92,14 @@ public abstract class EventEmitter : IEventEmitter
         if (!_connections.TryRemove(connectionId, out var user))
             return false;
 
-        lock (_userConnections)
+        lock (_userConnectionsLock)
         {
             if (_userConnections.TryGetValue(user.LocalID, out var connections))
             {
-                connections.Remove(connectionId);
-                if (connections.Count == 0)
-                    _userConnections.TryRemove(user.LocalID, out _);
+                connections.ConnectionIDs.Remove(connectionId);
+                if (connections.ConnectionIDs.Count == 0)
+                    _userConnections.Remove(user.LocalID);
+                RebuildListeners();
             }
         }
 
@@ -113,6 +126,13 @@ public abstract class EventEmitter : IEventEmitter
     /// <param name="connectionId">The SignalR connection ID that left.</param>
     protected virtual void OnConnectionRemoved(string connectionId) { }
 
+    /// <summary>
+    /// Rebuilds <see cref="_listeners"/> from the connections per user. Called
+    /// with the lock held.
+    /// </summary>
+    private void RebuildListeners()
+        => _listeners = [.. _userConnections.Values.Select(connections => new Listener(connections.User, [.. connections.ConnectionIDs]))];
+
     #endregion
 
     #region Sending
@@ -131,10 +151,66 @@ public abstract class EventEmitter : IEventEmitter
             return;
 
         string[] connectionIds;
-        lock (_userConnections)
-            connectionIds = _userConnections.TryGetValue(user.LocalID, out var connections) ? connections.ToArray() : [];
+        lock (_userConnectionsLock)
+            connectionIds = _userConnections.TryGetValue(user.LocalID, out var connections) ? [.. connections.ConnectionIDs] : [];
         foreach (var connectionId in connectionIds)
             await hub.Clients.Client(connectionId).SendCoreAsync(GetMessageName(subject), args);
+    }
+
+    /// <summary>
+    /// Sends a message to the connections of the users on the feed that match
+    /// a predicate, such as the users who may see what the message is about.
+    /// The predicate is asked once per user, before anything is sent.
+    /// </summary>
+    /// <param name="predicate">Whether a user on the feed receives the message.</param>
+    /// <param name="subject">The message's subject; clients receive it as <c>&lt;name&gt;:&lt;subject&gt;</c>.</param>
+    /// <param name="args">The message's arguments, serialized for the client.</param>
+    /// <returns>A task completing once the message was handed to the matching connections, of which there may be none.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    protected Task SendWhereAsync(Func<IUser, bool> predicate, string subject, params object[] args)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        return SendPerUserAsync(subject, user => predicate(user) ? args : null);
+    }
+
+    /// <summary>
+    /// Sends a message whose arguments depend on the user, to the connections
+    /// of every user on the feed. The arguments are asked for once per user,
+    /// before anything is sent; users given the same array share one send.
+    /// </summary>
+    /// <param name="subject">The message's subject; clients receive it as <c>&lt;name&gt;:&lt;subject&gt;</c>.</param>
+    /// <param name="getArgs">The message's arguments for a user, or <see langword="null"/> to send that user nothing.</param>
+    /// <returns>A task completing once the messages were handed to the connections, of which there may be none.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="getArgs"/> is <see langword="null"/>.</exception>
+    protected async Task SendPerUserAsync(string subject, Func<IUser, object[]?> getArgs)
+    {
+        ArgumentNullException.ThrowIfNull(getArgs);
+        if (_hub is not { } hub)
+            return;
+
+        var listeners = _listeners;
+        if (listeners.Length is 0)
+            return;
+
+        var batches = new List<(object[] Args, List<string> ConnectionIDs)>();
+        foreach (var listener in listeners)
+        {
+            if (getArgs(listener.User) is not { } args)
+                continue;
+
+            var index = batches.FindIndex(batch => ReferenceEquals(batch.Args, args));
+            if (index is -1)
+                batches.Add((args, [.. listener.ConnectionIDs]));
+            else
+                batches[index].ConnectionIDs.AddRange(listener.ConnectionIDs);
+        }
+
+        if (batches.Count is 0)
+            return;
+
+        var name = GetMessageName(subject);
+        foreach (var (args, connectionIDs) in batches)
+            await hub.Clients.Clients(connectionIDs).SendCoreAsync(name, args);
     }
 
     /// <summary>
@@ -162,6 +238,33 @@ public abstract class EventEmitter : IEventEmitter
     /// <param name="subject">The message's subject.</param>
     /// <returns>The name clients receive the message by, <c>&lt;name&gt;:&lt;subject&gt;</c>.</returns>
     protected string GetMessageName(string subject) => Name + ":" + subject;
+
+    #endregion
+
+    #region Nested Types
+
+    /// <summary>
+    /// A user's connections to the feed.
+    /// </summary>
+    private sealed class UserConnections
+    {
+        /// <summary>
+        /// The user, as the latest of its connections signed in.
+        /// </summary>
+        public IUser User { get; set; } = null!;
+
+        /// <summary>
+        /// The user's SignalR connection IDs on the feed.
+        /// </summary>
+        public HashSet<string> ConnectionIDs { get; } = [];
+    }
+
+    /// <summary>
+    /// A user on the feed and its connections, as one send reads them.
+    /// </summary>
+    /// <param name="User">The user.</param>
+    /// <param name="ConnectionIDs">The user's SignalR connection IDs on the feed.</param>
+    private sealed record Listener(IUser User, string[] ConnectionIDs);
 
     #endregion
 }

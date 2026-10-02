@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
@@ -7,9 +8,21 @@ using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.API.SignalR.Models;
+using Shoko.Server.Repositories.Cached.AniDB;
 
 namespace Shoko.Server.API.SignalR.Aggregate;
 
+/// <summary>
+/// Bridges the metadata and link events to the aggregate hub. An entry's event
+/// reaches the users who may see the entry, by the rule of the metadata entry
+/// routes: only AniDB and Shoko entries are kept from users.
+/// </summary>
+/// <remarks>
+/// An AniDB or Shoko entry being removed may have lost what it belongs to, so
+/// its removal goes to users without restricted tags, or to those who may still
+/// be shown its anime. A link event is narrowed per user to the changes of the
+/// anime the user may see, and an anime no longer known is hidden.
+/// </remarks>
 public class MetadataEventEmitter : BaseEventEmitter, IDisposable
 {
     public override string Name => "metadata";
@@ -18,17 +31,21 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
 
     private readonly IMetadataLinkingService _linkingService;
 
+    private readonly AniDB_AnimeRepository _anidbAnime;
+
     private readonly ILogger<MetadataEventEmitter> _logger;
 
     public MetadataEventEmitter(
         IHubContext<AggregateHub> hub,
         IMetadataService metadataService,
         IMetadataLinkingService linkingService,
+        AniDB_AnimeRepository anidbAnime,
         ILogger<MetadataEventEmitter> logger
     ) : base(hub)
     {
         _metadataService = metadataService;
         _linkingService = linkingService;
+        _anidbAnime = anidbAnime;
         _logger = logger;
         _linkingService.LinksChanged += OnLinksChanged;
         _metadataService.SeriesAdded += OnSeriesUpdated;
@@ -61,7 +78,8 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         try
         {
             var eventName = e.Reason is UpdateReason.None ? "series.updated" : "series." + e.Reason.ToString().ToLower();
-            await SendAsync(eventName, new SeriesInfoUpdatedEventSignalRModel(e));
+            var audience = EventAudience.ForEntry(e.SeriesInfo, _anidbAnime.GetByAnimeID, e.Reason is UpdateReason.Removed);
+            await SendToAudienceAsync(audience, eventName, new SeriesInfoUpdatedEventSignalRModel(e));
         }
         catch (Exception ex)
         {
@@ -74,7 +92,8 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         try
         {
             var eventName = e.Reason is UpdateReason.None ? "episode.updated" : "episode." + e.Reason.ToString().ToLower();
-            await SendAsync(eventName, new EpisodeInfoUpdatedEventSignalRModel(e));
+            var audience = EventAudience.ForEntry(e.EpisodeInfo, _anidbAnime.GetByAnimeID, e.Reason is UpdateReason.Removed);
+            await SendToAudienceAsync(audience, eventName, new EpisodeInfoUpdatedEventSignalRModel(e));
         }
         catch (Exception ex)
         {
@@ -86,13 +105,25 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
     {
         try
         {
-            var shokoSeriesIDs = e.AnidbAnimeIDs
-                .Select(_metadataService.GetShokoSeriesByAnidbID)
-                .OfType<IShokoSeries>()
-                .Select(series => series.LocalID)
-                .Order()
-                .ToList();
-            await SendAsync("links.changed", new MetadataLinksChangedSignalRModel(e, shokoSeriesIDs));
+            var shokoSeriesIDs = new Dictionary<int, int>();
+            var audiences = new Dictionary<int, EventAudience>();
+            foreach (var animeID in e.AnidbAnimeIDs)
+            {
+                audiences[animeID] = EventAudience.ForAnime(animeID, _anidbAnime.GetByAnimeID);
+                if (_metadataService.GetShokoSeriesByAnidbID(animeID) is IShokoSeries series)
+                    shokoSeriesIDs[animeID] = series.LocalID;
+            }
+
+            await SendVisiblePartsAsync(
+                "links.changed",
+                e.Changes,
+                [.. e.Changes.Select(change => audiences[change.AnidbAnimeID])],
+                changes => new MetadataLinksChangedSignalRModel(
+                    e.Reason,
+                    changes,
+                    [.. changes.Select(change => change.AnidbAnimeID).Distinct().Where(shokoSeriesIDs.ContainsKey).Select(animeID => shokoSeriesIDs[animeID]).Order()]
+                )
+            );
         }
         catch (Exception ex)
         {
@@ -105,7 +136,8 @@ public class MetadataEventEmitter : BaseEventEmitter, IDisposable
         try
         {
             var eventName = e.Reason is UpdateReason.None ? "movie.updated" : "movie." + e.Reason.ToString().ToLower();
-            await SendAsync(eventName, new MovieInfoUpdatedEventSignalRModel(e));
+            var audience = EventAudience.ForEntry(e.MovieInfo, _anidbAnime.GetByAnimeID, e.Reason is UpdateReason.Removed);
+            await SendToAudienceAsync(audience, eventName, new MovieInfoUpdatedEventSignalRModel(e));
         }
         catch (Exception ex)
         {

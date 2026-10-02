@@ -1,7 +1,5 @@
-using System.Collections.Generic;
-using System.Threading;
+using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Newtonsoft.Json.Linq;
@@ -12,7 +10,9 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.API.SignalR.Aggregate;
 using Shoko.Server.API.SignalR.Models;
+using Shoko.Tests.Infrastructure;
 using Xunit;
+using static Shoko.Tests.Infrastructure.TestViewers;
 
 namespace Shoko.Tests.API;
 
@@ -23,12 +23,12 @@ namespace Shoko.Tests.API;
 public class MetadataEventEmitterTests
 {
     [Fact]
-    public void LinksChanged_IsSentToTheMetadataFeed()
+    public async Task LinksChanged_IsSentToTheMetadataFeed()
     {
-        var harness = new Harness();
+        var harness = await Harness.Create();
         var series = new Mock<IShokoSeries>();
         series.Setup(s => s.LocalID).Returns(42);
-        harness.Metadata.Setup(m => m.GetShokoSeriesByAnidbID(7)).Returns(series.Object);
+        harness.Metadata.Setup(m => m.GetShokoSeriesByAnidbID(VisibleAnimeID)).Returns(series.Object);
 
         harness.Linking.Raise(l => l.LinksChanged += null, new MetadataLinksChangedEventArgs
         {
@@ -40,7 +40,7 @@ public class MetadataEventEmitterTests
                     Kind = MetadataLinkChangeKind.Replaced,
                     Source = MetadataSource.TMDB,
                     EntityType = MetadataEntityType.Series,
-                    AnidbAnimeID = 7,
+                    AnidbAnimeID = VisibleAnimeID,
                     ProviderID = new(MetadataSource.TMDB, MetadataEntityType.Series, "2"),
                     PreviousProviderID = new(MetadataSource.TMDB, MetadataEntityType.Series, "1"),
                     MatchRating = MatchRating.TitleMatches,
@@ -49,8 +49,9 @@ public class MetadataEventEmitterTests
             ],
         });
 
-        var (_, args) = Assert.Single(harness.GroupSent);
-        var model = Assert.IsType<MetadataLinksChangedSignalRModel>(Assert.Single(args));
+        var message = Assert.Single(harness.Hub.Sent);
+        Assert.Equal([RestrictedConnection, UnrestrictedConnection], message.ConnectionIDs.Order());
+        var model = Assert.IsType<MetadataLinksChangedSignalRModel>(Assert.Single(message.Args));
         Assert.Equal([42], model.ShokoSeriesIDs);
         var json = JObject.FromObject(model);
         Assert.Equal("ForcedResearch", json["Reason"]?.ToString());
@@ -59,42 +60,61 @@ public class MetadataEventEmitterTests
     }
 
     [Fact]
-    public void Dispose_StopsForwarding()
+    public async Task LinksChanged_IsNarrowedToTheAnimeTheUserMaySee()
     {
-        var harness = new Harness();
+        var harness = await Harness.Create();
+
+        harness.Linking.Raise(l => l.LinksChanged += null, new MetadataLinksChangedEventArgs
+        {
+            Reason = MetadataLinkChangeReason.ForcedResearch,
+            Changes =
+            [
+                new() { Kind = MetadataLinkChangeKind.Added, Source = MetadataSource.TMDB, EntityType = MetadataEntityType.Series, AnidbAnimeID = HiddenAnimeID },
+                new() { Kind = MetadataLinkChangeKind.Added, Source = MetadataSource.TMDB, EntityType = MetadataEntityType.Series, AnidbAnimeID = VisibleAnimeID },
+            ],
+        });
+
+        int[] AnimeSentTo(string connectionID)
+            => [.. harness.Hub.Sent.Single(message => message.ConnectionIDs.Contains(connectionID)).Args
+                .OfType<MetadataLinksChangedSignalRModel>().Single().Changes.Select(change => change.AnidbAnimeID)];
+        Assert.Equal([VisibleAnimeID], AnimeSentTo(RestrictedConnection));
+        Assert.Equal([HiddenAnimeID, VisibleAnimeID], AnimeSentTo(UnrestrictedConnection));
+    }
+
+    [Fact]
+    public async Task Dispose_StopsForwarding()
+    {
+        var harness = await Harness.Create();
 
         harness.Emitter.Dispose();
         harness.Linking.Raise(l => l.LinksChanged += null, new MetadataLinksChangedEventArgs
         {
             Reason = MetadataLinkChangeReason.ForcedResearch,
-            Changes = [new() { Kind = MetadataLinkChangeKind.Added, Source = MetadataSource.TMDB, EntityType = MetadataEntityType.Series, AnidbAnimeID = 7 }],
+            Changes = [new() { Kind = MetadataLinkChangeKind.Added, Source = MetadataSource.TMDB, EntityType = MetadataEntityType.Series, AnidbAnimeID = VisibleAnimeID }],
         });
 
-        Assert.Empty(harness.GroupSent);
+        Assert.Empty(harness.Hub.Sent);
     }
 
     private sealed class Harness
     {
+        public RecordingHub Hub { get; } = new();
+
         public Mock<IMetadataService> Metadata { get; } = new();
 
         public Mock<IMetadataLinkingService> Linking { get; } = new();
 
-        public List<(string Method, object?[] Args)> GroupSent { get; } = [];
-
         public MetadataEventEmitter Emitter { get; }
 
-        public Harness()
-        {
-            var group = new Mock<IClientProxy>();
-            group.Setup(proxy => proxy.SendCoreAsync(It.IsAny<string>(), It.IsAny<object?[]>(), It.IsAny<CancellationToken>()))
-                .Callback((string method, object?[] args, CancellationToken _) => GroupSent.Add((method, args)))
-                .Returns(Task.CompletedTask);
-            var clients = new Mock<IHubClients>();
-            clients.Setup(c => c.Group(It.IsAny<string>())).Returns(group.Object);
-            var hub = new Mock<IHubContext<AggregateHub>>();
-            hub.Setup(h => h.Clients).Returns(clients.Object);
+        private Harness()
+            => Emitter = new(Hub.Typed, Metadata.Object, Linking.Object, AnimeRepository(), NullLogger<MetadataEventEmitter>.Instance);
 
-            Emitter = new(hub.Object, Metadata.Object, Linking.Object, NullLogger<MetadataEventEmitter>.Instance);
+        public static async Task<Harness> Create()
+        {
+            var harness = new Harness();
+            await harness.Emitter.ConnectAsync(RestrictedConnection, Restricted());
+            await harness.Emitter.ConnectAsync(UnrestrictedConnection, Unrestricted());
+            return harness;
         }
     }
 }

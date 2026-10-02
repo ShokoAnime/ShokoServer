@@ -59,11 +59,19 @@ What the base class does for you:
 - **Sending.** `SendAsync(subject, args)` goes to every connection on the
   feed, and `SendToUserAsync(user, subject, args)` to one user's connections
   on it. Clients receive both as `<name>:<subject>`.
+- **Sending to some users.** `SendWhereAsync(predicate, subject, args)` goes
+  to the users the predicate accepts, asked once per user on the feed. Use it
+  for anything about a series, episode or file, as
+  `SendWhereAsync(user => user.IsAllowedToSee(series), …)`, so users kept from
+  a series by their restricted tags hear nothing about it.
+  `SendPerUserAsync(subject, getArgs)` builds the arguments per user instead,
+  for a message listing several entities: return `null` to skip a user, and
+  the same array to users who get the same message.
 - **Cleaning up.** Override `OnConnectionRemoved(connectionId)` to drop what
   you keep per connection.
 
 The server attaches each feed to the hub before any client can join; a feed
-sending before then sends nothing. For sends the two methods don't cover,
+sending before then sends nothing. For sends these methods don't cover,
 `HubContext` is the hub's context once attached.
 
 Payloads are serialized with Newtonsoft.Json and the API's contract resolver,
