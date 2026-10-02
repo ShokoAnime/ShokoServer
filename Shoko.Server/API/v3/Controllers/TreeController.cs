@@ -52,7 +52,7 @@ public class TreeController(ISettingsProvider settingsProvider,
 
         return group.Children
             .Select(child => AnimeGroupView.For(child, user))
-            .Where(view => view.IsVisible && (includeEmpty || !view.AllSeries.Any(s => s.VideoLocals.Count > 0)))
+            .Where(view => view.IsVisible && (includeEmpty || view.AllSeries.Any(s => s.VideoLocals.Count > 0)))
             .OrderBy(view => view.SortName)
             .Select(view => new Group(view, randomImages))
             .ToList();
