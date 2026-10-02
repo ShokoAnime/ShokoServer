@@ -13,6 +13,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.API.v2.Models.common;
@@ -37,9 +38,11 @@ public class Group : BaseDirectory
     public static Group GenerateFromAnimeGroup(HttpContext ctx, AnimeGroup ag, int uid, bool noCast, bool noTag, int level,
         bool all, int filterID, bool allPic, int pic, TagFilter.Filter tagFilter, List<int>? evaluatedSeriesIDs = null)
     {
+        // Only what the user may see of the group is shown.
+        var view = AnimeGroupView.For(ag, RepoFactory.JMMUser.GetByID(uid));
         var g = new Group
         {
-            name = ag.GroupName,
+            name = view.Name,
             id = ag.AnimeGroupID,
             added = ag.DateTimeCreated,
             edited = ag.DateTimeUpdated
@@ -61,7 +64,12 @@ public class Group : BaseDirectory
                 .OrderBy(a => a.BeginYear)
                 .ThenBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
                 .ToList()
-            : ag.Anime?.OrderBy(a => a.BeginYear).ThenBy(a => a.AirDate ?? PartialDateOnly.MaxValue).ToList();
+            : view.Series
+                .Select(ser => ser.AniDB_Anime)
+                .WhereNotNull()
+                .OrderBy(a => a.BeginYear)
+                .ThenBy(a => a.AirDate ?? PartialDateOnly.MaxValue)
+                .ToList();
 
         if (allAnime is not { Count: > 0 }) return g;
 
@@ -84,7 +92,7 @@ public class Group : BaseDirectory
         }
         else
         {
-            var series = ag.AllSeries;
+            var series = view.AllSeries;
             ael = series.SelectMany(a => a?.AnimeEpisodes!).WhereNotNull().ToList();
             g.size = series.Count;
         }
@@ -93,7 +101,7 @@ public class Group : BaseDirectory
 
         g.air = anime.AirDate?.ToDateTime().ToISO8601Date() ?? string.Empty;
 
-        g.rating = Math.Round(ag.AniDBRating / 100, 1).ToString(CultureInfo.InvariantCulture);
+        g.rating = Math.Round((view.IsComplete ? ag.AniDBRating : GetRating(allAnime)) / 100, 1).ToString(CultureInfo.InvariantCulture);
         g.summary = anime.Description ?? string.Empty;
         g.titles = anime.Titles.Select(s => new AnimeTitle
         {
@@ -103,7 +111,7 @@ public class Group : BaseDirectory
         }).ToList();
         g.year = anime.BeginYear.ToString();
 
-        var tags = ag.Tags.Select(a => a.TagName).ToList();
+        var tags = AnimeGroup.TagsOf(view.AllSeries).Select(a => a.TagName).ToList();
         if (!noTag && tags.Count > 0)
         {
             g.tags = TagFilter.String.ProcessTags(tagFilter, tags);
@@ -119,6 +127,24 @@ public class Group : BaseDirectory
         }
 
         return g;
+    }
+
+    /// <summary>
+    ///   The vote-weighted AniDB rating of the given anime.
+    /// </summary>
+    /// <param name="anime">The anime.</param>
+    /// <returns>The rating, or 0 when nobody voted.</returns>
+    private static decimal GetRating(IEnumerable<AniDB_Anime> anime)
+    {
+        decimal totalRating = 0;
+        var totalVotes = 0;
+        foreach (var entry in anime)
+        {
+            totalRating += entry.GetAniDBTotalRating();
+            totalVotes += entry.GetAniDBTotalVotes();
+        }
+
+        return totalVotes == 0 ? 0 : totalRating / totalVotes;
     }
 
     private static IEnumerable<T> Randomize<T>(IEnumerable<T> source, int seed = -1)

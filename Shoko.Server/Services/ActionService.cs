@@ -22,8 +22,10 @@ using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
+using Shoko.Server.Actions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.Interfaces;
 using Shoko.Server.Providers.AniDB.UDP.Info;
@@ -502,6 +504,32 @@ public class ActionService : IActionService
     }
 
     /// <summary>
+    ///   Whether the caller may act on the entity: a series, episode or file
+    ///   whose series the caller may see, or a group visible to the caller, in
+    ///   whole unless the action only touches the series the caller may see.
+    /// </summary>
+    /// <param name="action">The action.</param>
+    /// <param name="scopeEntity">The entity the action is scoped to, or <see langword="null"/>.</param>
+    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted call.</param>
+    /// <returns>A rejection, or <see langword="null"/> when the caller may act on it.</returns>
+    internal static ActionValidationResult? CheckVisible(IExecutableAction action, object? scopeEntity, IUser? caller)
+    {
+        if (AnimeGroupView.IsUnrestricted(caller))
+            return null;
+
+        var visible = scopeEntity switch
+        {
+            AnimeGroup group when action is IVisibleSeriesGroupAction => caller!.IsAllowedToSee(group),
+            AnimeGroup group => AnimeGroupView.For(group, caller) is { IsVisible: true, IsComplete: true },
+            AnimeSeries series => caller!.IsAllowedToSee(series),
+            AnimeEpisode episode => episode.AnimeSeries is not { } series || caller!.IsAllowedToSee(series),
+            VideoLocal video => ((IVideo)video).Series.All(caller!.IsAllowedToSee),
+            _ => true,
+        };
+        return visible ? null : new ActionValidationResult($"The {ScopeOf(scopeEntity).ToString().ToLowerInvariant()} is not visible to the calling user.");
+    }
+
+    /// <summary>
     ///   Runs the action's own validation against one entity, on a throwaway
     ///   instance.
     /// </summary>
@@ -516,6 +544,9 @@ public class ActionService : IActionService
     private async Task<ActionValidationResult?> ValidateEntryAsync(RegisteredAction registered, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
     {
         var probe = (IExecutableAction)_services.GetRequiredService(registered.ActionType);
+        if (CheckVisible(probe, scopeEntity, caller) is { } hidden)
+            return hidden;
+
         if (probe is IScopedAction scoped && scopeEntity is not null)
             scoped.SetContext(scopeEntity);
         if (probe is IActionCaller callerAware)

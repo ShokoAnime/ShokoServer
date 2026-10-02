@@ -13,6 +13,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
@@ -153,14 +154,14 @@ public class ShokoTextMigrationTests(DatabaseMigrationFixture fixture)
             Assert.Equal("My overview.", namedGroup.Description);
             Assert.True(((IShokoGroup)namedGroup).HasCustomTitle);
             Assert.True(((IShokoGroup)namedGroup).HasCustomOverview);
-            var namedDto = new Group(namedGroup);
+            var namedDto = new Group(AnimeGroupView.For(namedGroup, null));
             Assert.Equal(("My Group", "My overview.", true, true), (namedDto.Name, namedDto.Description, namedDto.HasCustomName, namedDto.HasCustomDescription));
 
             // A group named after its main series reads the series' name as it is now.
             Assert.Equal(autoSeries.Title, autoGroup.GroupName);
             Assert.Equal(autoSeries.PreferredOverview?.Value ?? string.Empty, autoGroup.Description);
             Assert.False(((IShokoGroup)autoGroup).HasCustomTitle);
-            var autoDto = new Group(autoGroup);
+            var autoDto = new Group(AnimeGroupView.For(autoGroup, null));
             Assert.Equal((autoSeries.Title, false, false), (autoDto.Name, autoDto.HasCustomName, autoDto.HasCustomDescription));
 
             // The cleared overview still hides any other, as it did before.
@@ -179,7 +180,7 @@ public class ShokoTextMigrationTests(DatabaseMigrationFixture fixture)
             // Clearing an overview on purpose keeps it, blank, and only null resets it.
             groupManager.UpdateGroup(autoGroup, new() { Overview = string.Empty });
             Assert.Equal(string.Empty, autoGroup.Description);
-            Assert.True(new Group(autoGroup).HasCustomDescription);
+            Assert.True(new Group(AnimeGroupView.For(autoGroup, null)).HasCustomDescription);
             groupManager.UpdateGroup(autoGroup, new() { Overview = null });
             Assert.False(((IShokoGroup)autoGroup).HasCustomOverview);
 

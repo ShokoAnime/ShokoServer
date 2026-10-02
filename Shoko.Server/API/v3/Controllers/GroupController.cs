@@ -19,6 +19,8 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Settings;
@@ -69,28 +71,21 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         startsWith = startsWith.ToLowerInvariant();
         var user = User;
         return _animeGroups.GetAll()
-            .Where(group =>
+            .Where(group => !topLevelOnly || !group.AnimeGroupParentID.HasValue)
+            .Select(group => AnimeGroupView.For(group, user))
+            .Where(view =>
             {
-                if (topLevelOnly && group.AnimeGroupParentID.HasValue)
-                {
+                if (!view.IsVisible)
                     return false;
-                }
 
-                if (!string.IsNullOrEmpty(startsWith) && !group.GroupName.StartsWith(startsWith, StringComparison.InvariantCultureIgnoreCase))
-                {
+                if (!string.IsNullOrEmpty(startsWith) && !view.Name.StartsWith(startsWith, StringComparison.InvariantCultureIgnoreCase))
                     return false;
-                }
 
-                if (!user.AllowedGroup(group))
-                {
-                    return false;
-                }
-
-                return includeEmpty || group.AllSeries
+                return includeEmpty || view.AllSeries
                     .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
             })
-            .OrderBy(group => group.SortName)
-            .ToListResult(group => new Group(group, User.JMMUserID, randomImages), page, pageSize);
+            .OrderBy(view => view.SortName)
+            .ToListResult(view => new Group(view, randomImages), page, pageSize);
     }
 
     /// <summary>
@@ -107,18 +102,11 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     {
         var user = User;
         return _animeGroups.GetAll()
-            .Where(group =>
-            {
-                if (topLevelOnly && group.AnimeGroupParentID.HasValue)
-                    return false;
-
-                if (!user.AllowedGroup(group))
-                    return false;
-
-                return includeEmpty || group.AllSeries
-                    .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0));
-            })
-            .GroupBy(group => group.SortName[0])
+            .Where(group => !topLevelOnly || !group.AnimeGroupParentID.HasValue)
+            .Select(group => AnimeGroupView.For(group, user))
+            .Where(view => view.IsVisible && (includeEmpty || view.AllSeries
+                .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0))))
+            .GroupBy(view => view.SortName[0])
             .OrderBy(groupList => groupList.Key)
             .ToDictionary(groupList => groupList.Key, groupList => groupList.Count());
     }
@@ -141,7 +129,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
     [HttpPost]
     public ActionResult<Group> CreateGroup([FromBody] Group.Input.CreateOrUpdateGroupBody body)
     {
-        var group = body.MergeWithExisting(null, User.JMMUserID, ModelState)!;
+        var group = body.MergeWithExisting(null, User, ModelState)!;
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
@@ -165,10 +153,11 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } animeGroup)
             return NotFound(GroupNotFound);
 
-        if (!User.AllowedGroup(animeGroup))
+        var view = AnimeGroupView.For(animeGroup, User);
+        if (!view.IsVisible)
             return Forbid(GroupForbiddenForUser);
 
-        return new Group(animeGroup, User.JMMUserID);
+        return new Group(view);
     }
 
     /// <summary>
@@ -187,10 +176,10 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } animeGroup)
             return NotFound(GroupNotFound);
 
-        if (!User.AllowedGroup(animeGroup))
+        if (!User.AllowedWholeGroup(animeGroup))
             return Forbid(GroupForbiddenForUser);
 
-        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState)!;
+        var group = body.MergeWithExisting(animeGroup, User, ModelState)!;
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -215,7 +204,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } animeGroup)
             return NotFound(GroupNotFound);
 
-        if (!User.AllowedGroup(animeGroup))
+        if (!User.AllowedWholeGroup(animeGroup))
             return Forbid(GroupForbiddenForUser);
 
         // Patch the body with the existing model.
@@ -224,7 +213,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var group = body.MergeWithExisting(animeGroup, User.JMMUserID, ModelState)!;
+        var group = body.MergeWithExisting(animeGroup, User, ModelState)!;
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -248,11 +237,11 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
-        var user = User;
-        if (!user.AllowedGroup(group))
+        var view = AnimeGroupView.For(group, User);
+        if (!view.IsVisible)
             return Forbid(GroupForbiddenForUser);
 
-        var seriesDict = (recursive ? group.AllSeries : group.Series)
+        var seriesDict = (recursive ? view.AllSeries : view.Series)
             .ToDictionary(series => series.AniDB_ID);
         var animeIds = seriesDict.Values
             .Select(series => series.AniDB_ID)
@@ -304,12 +293,12 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
-        var user = User;
-        if (!user.AllowedGroup(group))
+        var view = AnimeGroupView.For(group, User);
+        if (!view.IsVisible)
             return Forbid(GroupForbiddenForUser);
 
         var options = new ImageFilteringOptions { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true };
-        return ((IWithImages)group).GetImages(options)
+        return view.GetImages(_imageManager, options)
             .OrderBy(a => a.Type)
             .ThenBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
@@ -317,7 +306,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
             .ToDto(showLinkedIDs: showLinkedIDs, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource)
-            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, options));
+            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(view, options));
     }
 
     /// <summary>
@@ -347,20 +336,20 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
-        var user = User;
-        if (!user.AllowedGroup(group))
+        var view = AnimeGroupView.For(group, User);
+        if (!view.IsVisible)
             return Forbid(GroupForbiddenForUser);
 
         var options = new ImageFilteringOptions { ImageType = imageType, IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true };
-        return ((IWithImages)group)
-            .GetImages(options)
+        return view
+            .GetImages(_imageManager, options)
             .OrderBy(a => a.Source)
             .ThenByDescending(a => a.LanguageCode is null)
             .ThenBy(a => a.LanguageCode)
             .ThenByDescending(a => a.CountryCode is null)
             .ThenBy(a => a.CountryCode)
             .ToListResult(image => new Image(image, showLinkedIDs, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(image.Source)), page, pageSize)
-            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, options));
+            .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(view, options));
     }
 
     #endregion
@@ -391,7 +380,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
-        if (!User.AllowedGroup(group))
+        if (!User.AllowedWholeGroup(group))
             return Forbid(GroupForbiddenForUser);
 
         if (file is null || file.Length == 0)
@@ -427,16 +416,16 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
-        var user = User;
-        if (!user.AllowedGroup(group))
+        var view = AnimeGroupView.For(group, User);
+        if (!view.IsVisible)
             return Forbid(GroupForbiddenForUser);
 
-        var preferredImage = ((IWithImages)group).GetPreferredImageForType(imageType);
+        var preferredImage = view.GetPreferredImageForType(_imageManager, imageType);
         if (preferredImage is not null)
             return new Image(preferredImage, false, null, includeRemoteUrl, _imageManager.GetTemplateUrlForSource(preferredImage.Source))
-                .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, new() { ImageType = imageType }));
+                .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(view, new() { ImageType = imageType }));
 
-        var images = ((IWithImages)group).GetImages(new() { ImageType = imageType }).ToDto();
+        var images = view.GetImages(_imageManager, new() { ImageType = imageType }).ToDto();
         var image = imageType switch
         {
             ImageEntityType.Primary => images.Posters.FirstOrDefault(),
@@ -450,7 +439,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (image is null)
             return NotFound(NoDefaultImageForType);
 
-        return image.WithCrossReferences(_imageManager.GetCrossReferencesForImageList(group, new() { ImageType = imageType }));
+        return image.WithCrossReferences(_imageManager.GetCrossReferencesForImageList(view, new() { ImageType = imageType }));
     }
 
     /// <summary>
@@ -470,8 +459,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
-        var user = User;
-        if (!user.AllowedGroup(group))
+        if (!User.AllowedWholeGroup(group))
             return Forbid(GroupForbiddenForUser);
 
         var image = _imageManager.GetImageByID(body.ID);
@@ -496,8 +484,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
-        var user = User;
-        if (!user.AllowedGroup(group))
+        if (!User.AllowedWholeGroup(group))
             return Forbid(GroupForbiddenForUser);
 
         // Check if a default image is set.
@@ -553,7 +540,7 @@ public class GroupController(ISettingsProvider settingsProvider, IImageManager _
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupNotFound);
 
-        if (!User.AllowedGroup(group))
+        if (!User.AllowedWholeGroup(group))
             return Forbid(GroupForbiddenForUser);
 
         var image = _imageManager.GetImageByID(imageID);

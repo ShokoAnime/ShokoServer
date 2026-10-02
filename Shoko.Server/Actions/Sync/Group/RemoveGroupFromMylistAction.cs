@@ -3,6 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.User.Services;
 
 namespace Shoko.Server.Actions;
 
@@ -11,7 +13,7 @@ namespace Shoko.Server.Actions;
 ///   the configured delete type — which may mark the entries rather than
 ///   remove them outright.
 /// </summary>
-public sealed class RemoveGroupFromMylistAction(IMylistService mylistService) : GroupAction
+public sealed class RemoveGroupFromMylistAction(IMylistService mylistService, IActorContext actorContext) : GroupAction, IVisibleSeriesGroupAction
 {
     public override string Name => "Remove from MyList";
 
@@ -27,7 +29,7 @@ public sealed class RemoveGroupFromMylistAction(IMylistService mylistService) : 
 
     public override async Task Execute(CancellationToken token = default)
     {
-        foreach (var video in Group.AllSeries.SelectMany(series => series.Videos).DistinctBy(video => video.LocalID))
+        foreach (var video in Group.GetVisibleSeries(actorContext).SelectMany(series => ((IShokoSeries)series).Videos).DistinctBy(video => video.LocalID))
             await mylistService.ScheduleDisposeVideo(video);
     }
 }

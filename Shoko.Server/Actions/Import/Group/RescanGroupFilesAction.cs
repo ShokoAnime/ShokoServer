@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Models.Shoko;
 
@@ -10,7 +11,7 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Rescan all files for the group, re-running release matching.
 /// </summary>
-public sealed class RescanGroupFilesAction(IVideoReleaseService releaseService) : GroupAction
+public sealed class RescanGroupFilesAction(IVideoReleaseService releaseService, IActorContext actorContext) : GroupAction, IVisibleSeriesGroupAction
 {
     public override string Name => "Rescan Files";
 
@@ -27,8 +28,7 @@ public sealed class RescanGroupFilesAction(IVideoReleaseService releaseService) 
 
     public override async Task Execute(CancellationToken token = default)
     {
-        var animeGroup = (AnimeGroup)Group;
-        var files = animeGroup.AllSeries
+        var files = Group.GetVisibleSeries(actorContext)
             .SelectMany(s => s.VideoLocals)
             .DistinctBy(v => v.VideoLocalID)
             .ToList();

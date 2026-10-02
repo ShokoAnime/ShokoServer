@@ -9,6 +9,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
@@ -107,7 +108,7 @@ public class ReverseTreeController : BaseController
             return InternalError("No parent Group entry for the given groupID");
         }
 
-        return new Group(parentGroup, User.JMMUserID);
+        return new Group(AnimeGroupView.For(parentGroup, User));
     }
 
     /// <summary>
@@ -141,7 +142,7 @@ public class ReverseTreeController : BaseController
             return InternalError("No Group entry for the Series");
         }
 
-        return new Group(group, User.JMMUserID);
+        return new Group(AnimeGroupView.For(group, User));
     }
 
     /// <summary>

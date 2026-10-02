@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
+using Shoko.Abstractions.User.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -11,7 +12,7 @@ namespace Shoko.Server.Actions;
 /// <summary>
 ///   Rehash all files for the group.
 /// </summary>
-public sealed class RehashGroupFilesAction(IQueueScheduler scheduler) : GroupAction
+public sealed class RehashGroupFilesAction(IQueueScheduler scheduler, IActorContext actorContext) : GroupAction, IVisibleSeriesGroupAction
 {
     public override string Name => "Rehash Files";
 
@@ -23,8 +24,7 @@ public sealed class RehashGroupFilesAction(IQueueScheduler scheduler) : GroupAct
 
     public override async Task Execute(CancellationToken token = default)
     {
-        var animeGroup = (AnimeGroup)Group;
-        var files = animeGroup.AllSeries
+        var files = Group.GetVisibleSeries(actorContext)
             .SelectMany(s => s.VideoLocals)
             .DistinctBy(v => v.VideoLocalID)
             .ToList();

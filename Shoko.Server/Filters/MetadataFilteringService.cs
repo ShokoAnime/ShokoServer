@@ -9,6 +9,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.User;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Filters;
@@ -351,13 +352,22 @@ public class MetadataFilteringService(
 
         var now = time?.ToLocalTime() ?? DateTime.Now;
         var sort = filter.SortingExpression;
+        var unrestricted = AnimeGroupView.IsUnrestricted(user);
         if (sort is null)
-            return items.OrderBy(item => groupSelector(item).SortName);
+            return unrestricted
+                ? items.OrderBy(item => groupSelector(item).SortName)
+                : items.OrderBy(item => AnimeGroupView.For(groupSelector(item), user).SortName);
 
+        // A group the user sees only part of is sorted by what the user sees of it.
         var keyed = items.Select(item =>
         {
             var group = groupSelector(item);
-            return (item, filterable: (IFilterableInfo)new FilterableAnimeGroup(group, now), userInfo: user is null ? null : (IFilterableUserInfo)new FilterableGroupUserInfo(group, user.LocalID, now));
+            var view = unrestricted ? null : AnimeGroupView.For(group, user);
+            return (
+                item,
+                filterable: (IFilterableInfo)new FilterableAnimeGroup(group, now, view),
+                userInfo: user is null ? null : (IFilterableUserInfo)new FilterableGroupUserInfo(group, user.LocalID, now, view)
+            );
         });
         var ordered = sort.Descending
             ? keyed.OrderByDescending(x =>

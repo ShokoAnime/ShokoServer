@@ -10,6 +10,7 @@ using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
@@ -50,9 +51,10 @@ public class TreeController(ISettingsProvider settingsProvider,
             return Forbid(GroupController.GroupForbiddenForUser);
 
         return group.Children
-            .Where(a => user.AllowedGroup(a) && (includeEmpty || !a.AllSeries.Any(s => s.VideoLocals.Count > 0)))
-            .OrderBy(g => g.SortName)
-            .Select(g => new Group(g, user.JMMUserID, randomImages))
+            .Select(child => AnimeGroupView.For(child, user))
+            .Where(view => view.IsVisible && (includeEmpty || !view.AllSeries.Any(s => s.VideoLocals.Count > 0)))
+            .OrderBy(view => view.SortName)
+            .Select(view => new Group(view, randomImages))
             .ToList();
     }
 
@@ -107,11 +109,12 @@ public class TreeController(ISettingsProvider settingsProvider,
         if (_animeGroups.GetByID(groupID) is not { } group)
             return NotFound(GroupController.GroupNotFound);
 
-        var user = User;
-        if (!user.AllowedGroup(group))
+        var view = AnimeGroupView.For(group, User);
+        if (!view.IsVisible)
             return Forbid(GroupController.GroupForbiddenForUser);
 
-        if (group.MainSeries is not { } mainSeries)
+        var user = User;
+        if (view.MainSeries is not { } mainSeries)
             return InternalError("Unable to find main series for group.");
 
         return new Series(mainSeries, user.JMMUserID, randomImages, includeDataFrom);

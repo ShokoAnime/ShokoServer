@@ -79,14 +79,19 @@ public class AnimeGroup : IShokoGroup
     ///   A predictable sort name, made from <see cref="GroupName"/>, that
     ///   stuffs everything that's not between A-Z under #.
     /// </summary>
-    public string SortName
+    public string SortName => ToGroupSortName(GroupName);
+
+    /// <summary>
+    ///   Makes a group's sort name from its name, stuffing everything that's
+    ///   not between A-Z under #.
+    /// </summary>
+    /// <param name="name">The group's name.</param>
+    /// <returns>The sort name.</returns>
+    internal static string ToGroupSortName(string name)
     {
-        get
-        {
-            var sortName = GroupName.ToSortName().ToUpperInvariant();
-            var initialChar = (short)(sortName.Length > 0 ? sortName[0] : ' ');
-            return initialChar is >= 65 and <= 90 ? sortName : "#" + sortName;
-        }
+        var sortName = name.ToSortName().ToUpperInvariant();
+        var initialChar = (short)(sortName.Length > 0 ? sortName[0] : ' ');
+        return initialChar is >= 65 and <= 90 ? sortName : "#" + sortName;
     }
 
     public AnimeGroup? Parent => AnimeGroupParentID.HasValue ? RepoFactory.AnimeGroup.GetByID(AnimeGroupParentID.Value) : null;
@@ -210,31 +215,17 @@ public class AnimeGroup : IShokoGroup
         }
     }
 
-    public List<AniDB_Tag> Tags => AllSeries
-        .SelectMany(ser => ser.AniDB_Anime?.AnimeTags ?? [])
-        .OrderByDescending(a => a.Weight)
-        .Select(animeTag => RepoFactory.AniDB_Tag.GetByTagID(animeTag.TagID))
-        .WhereNotNull()
-        .DistinctBy(a => a.TagID)
-        .ToList();
+    public List<AniDB_Tag> Tags => TagsOf(AllSeries);
 
-    public List<CustomTag> CustomTags => AllSeries
-        .SelectMany(ser => RepoFactory.CustomTag.GetByAnimeID(ser.AniDB_ID))
-        .DistinctBy(a => a.CustomTagID)
-        .OrderBy(a => a.TagName)
-        .ToList();
+    public List<CustomTag> CustomTags => CustomTagsOf(AllSeries);
 
-    public HashSet<int> Years => AllSeries.SelectMany(a => a.Years).ToHashSet();
+    public HashSet<int> Years => YearsOf(AllSeries);
 
-    public HashSet<(int Year, YearlySeason Season)> YearlySeasons => AllSeries.SelectMany(a => a.AniDB_Anime?.YearlySeasons ?? []).ToHashSet();
+    public HashSet<(int Year, YearlySeason Season)> YearlySeasons => YearlySeasonsOf(AllSeries);
 
-    public HashSet<ImageEntityType> AvailableImageTypes => AllSeries
-        .SelectMany(ser => ser.AvailableImageTypes)
-        .ToHashSet();
+    public HashSet<ImageEntityType> AvailableImageTypes => AvailableImageTypesOf(AllSeries);
 
-    public HashSet<ImageEntityType> PreferredImageTypes => AllSeries
-        .SelectMany(ser => ser.PreferredImageTypes)
-        .ToHashSet();
+    public HashSet<ImageEntityType> PreferredImageTypes => PreferredImageTypesOf(AllSeries);
 
     public List<ITitle> Titles => AllSeries
         .SelectMany(ser => ser.AniDB_Anime?.Titles ?? [])
@@ -287,6 +278,133 @@ public class AnimeGroup : IShokoGroup
 
         return false;
     }
+
+    #region Aggregates
+
+    /// <summary>
+    ///   The AniDB tags of the given series, heaviest first, each once.
+    /// </summary>
+    /// <param name="series">The series, all of a group or the ones a user may see.</param>
+    /// <returns>The tags.</returns>
+    internal static List<AniDB_Tag> TagsOf(IEnumerable<AnimeSeries> series) => series
+        .SelectMany(ser => ser.AniDB_Anime?.AnimeTags ?? [])
+        .OrderByDescending(a => a.Weight)
+        .Select(animeTag => RepoFactory.AniDB_Tag.GetByTagID(animeTag.TagID))
+        .WhereNotNull()
+        .DistinctBy(a => a.TagID)
+        .ToList();
+
+    /// <summary>
+    ///   The custom tags of the given series, by name, each once.
+    /// </summary>
+    /// <param name="series">The series, all of a group or the ones a user may see.</param>
+    /// <returns>The tags.</returns>
+    internal static List<CustomTag> CustomTagsOf(IEnumerable<AnimeSeries> series) => series
+        .SelectMany(ser => RepoFactory.CustomTag.GetByAnimeID(ser.AniDB_ID))
+        .DistinctBy(a => a.CustomTagID)
+        .OrderBy(a => a.TagName)
+        .ToList();
+
+    /// <summary>
+    ///   The years the given series aired in.
+    /// </summary>
+    /// <param name="series">The series, all of a group or the ones a user may see.</param>
+    /// <returns>The years.</returns>
+    internal static HashSet<int> YearsOf(IEnumerable<AnimeSeries> series)
+        => series.SelectMany(a => a.Years).ToHashSet();
+
+    /// <summary>
+    ///   The yearly seasons the given series aired in.
+    /// </summary>
+    /// <param name="series">The series, all of a group or the ones a user may see.</param>
+    /// <returns>The seasons.</returns>
+    internal static HashSet<(int Year, YearlySeason Season)> YearlySeasonsOf(IEnumerable<AnimeSeries> series)
+        => series.SelectMany(a => a.AniDB_Anime?.YearlySeasons ?? []).ToHashSet();
+
+    /// <summary>
+    ///   The image types the given series have images of.
+    /// </summary>
+    /// <param name="series">The series, all of a group or the ones a user may see.</param>
+    /// <returns>The image types.</returns>
+    internal static HashSet<ImageEntityType> AvailableImageTypesOf(IEnumerable<AnimeSeries> series)
+        => series.SelectMany(ser => ser.AvailableImageTypes).ToHashSet();
+
+    /// <summary>
+    ///   The image types the given series have a preferred image of.
+    /// </summary>
+    /// <param name="series">The series, all of a group or the ones a user may see.</param>
+    /// <returns>The image types.</returns>
+    internal static HashSet<ImageEntityType> PreferredImageTypesOf(IEnumerable<AnimeSeries> series)
+        => series.SelectMany(ser => ser.PreferredImageTypes).ToHashSet();
+
+    /// <summary>
+    ///   Adds up one kind of episode counts of the given series.
+    /// </summary>
+    /// <param name="series">The series, all of a group or the ones a user may see.</param>
+    /// <param name="selector">Picks the counts of one series.</param>
+    /// <returns>The summed counts.</returns>
+    internal static EpisodeCounts SumEpisodeCounts(IEnumerable<IShokoSeries> series, Func<IShokoSeries, EpisodeCounts> selector)
+    {
+        var counts = new EpisodeCounts();
+        foreach (var ser in series)
+        {
+            var ec = selector(ser);
+            counts.Episodes += ec.Episodes;
+            counts.Specials += ec.Specials;
+            counts.Credits += ec.Credits;
+            counts.Trailers += ec.Trailers;
+            counts.Parodies += ec.Parodies;
+            counts.Others += ec.Others;
+        }
+        return counts;
+    }
+
+    /// <summary>
+    ///   Adds up the file source counts of the given series.
+    /// </summary>
+    /// <param name="series">The series, all of a group or the ones a user may see.</param>
+    /// <returns>The summed counts.</returns>
+    internal static FileSourceCounts SumFileSourceCounts(IEnumerable<IShokoSeries> series)
+    {
+        var counts = new FileSourceCounts();
+        foreach (var ser in series)
+        {
+            var fsc = ser.FileSourceCounts;
+            counts.Unknown += fsc.Unknown;
+            counts.Other += fsc.Other;
+            counts.TV += fsc.TV;
+            counts.DVD += fsc.DVD;
+            counts.BluRay += fsc.BluRay;
+            counts.Web += fsc.Web;
+            counts.VHS += fsc.VHS;
+            counts.VCD += fsc.VCD;
+            counts.LaserDisc += fsc.LaserDisc;
+            counts.Camera += fsc.Camera;
+            counts.Film += fsc.Film;
+        }
+        return counts;
+    }
+
+    /// <summary>
+    ///   Adds up the release provider counts of the given series.
+    /// </summary>
+    /// <param name="series">The series, all of a group or the ones a user may see.</param>
+    /// <returns>The summed counts, by provider.</returns>
+    internal static IReadOnlyDictionary<string, int> SumReleaseProviderCounts(IEnumerable<IShokoSeries> series)
+    {
+        var counts = new Dictionary<string, int>();
+        foreach (var ser in series)
+        {
+            foreach (var (provider, count) in ser.ReleaseProviderCounts)
+            {
+                counts.TryGetValue(provider, out var existing);
+                counts[provider] = existing + count;
+            }
+        }
+        return counts;
+    }
+
+    #endregion
 
     #region IMetadata Implementation
 
@@ -499,126 +617,17 @@ public class AnimeGroup : IShokoGroup
 
     IReadOnlyList<IShokoSeries> IShokoGroup.Series => Series;
 
-    EpisodeCounts IShokoGroup.EpisodeCounts
-    {
-        get
-        {
-            var series = (this as IShokoGroup).AllSeries;
-            var counts = new EpisodeCounts();
-            foreach (var ser in series)
-            {
-                var ec = ser.EpisodeCounts;
-                counts.Episodes += ec.Episodes;
-                counts.Specials += ec.Specials;
-                counts.Credits += ec.Credits;
-                counts.Trailers += ec.Trailers;
-                counts.Parodies += ec.Parodies;
-                counts.Others += ec.Others;
-            }
-            return counts;
-        }
-    }
+    EpisodeCounts IShokoGroup.EpisodeCounts => SumEpisodeCounts((this as IShokoGroup).AllSeries, ser => ser.EpisodeCounts);
 
-    FileSourceCounts IShokoGroup.FileSourceCounts
-    {
-        get
-        {
-            var counts = new FileSourceCounts();
-            foreach (var ser in (this as IShokoGroup).AllSeries)
-            {
-                var fsc = ser.FileSourceCounts;
-                counts.Unknown += fsc.Unknown;
-                counts.Other += fsc.Other;
-                counts.TV += fsc.TV;
-                counts.DVD += fsc.DVD;
-                counts.BluRay += fsc.BluRay;
-                counts.Web += fsc.Web;
-                counts.VHS += fsc.VHS;
-                counts.VCD += fsc.VCD;
-                counts.LaserDisc += fsc.LaserDisc;
-                counts.Camera += fsc.Camera;
-                counts.Film += fsc.Film;
-            }
-            return counts;
-        }
-    }
+    FileSourceCounts IShokoGroup.FileSourceCounts => SumFileSourceCounts((this as IShokoGroup).AllSeries);
 
-    EpisodeCounts IShokoGroup.LocalEpisodeCounts
-    {
-        get
-        {
-            var series = (this as IShokoGroup).AllSeries;
-            var counts = new EpisodeCounts();
-            foreach (var ser in series)
-            {
-                var lec = ser.LocalEpisodeCounts;
-                counts.Episodes += lec.Episodes;
-                counts.Specials += lec.Specials;
-                counts.Credits += lec.Credits;
-                counts.Trailers += lec.Trailers;
-                counts.Parodies += lec.Parodies;
-                counts.Others += lec.Others;
-            }
-            return counts;
-        }
-    }
+    EpisodeCounts IShokoGroup.LocalEpisodeCounts => SumEpisodeCounts((this as IShokoGroup).AllSeries, ser => ser.LocalEpisodeCounts);
 
-    EpisodeCounts IShokoGroup.MissingEpisodeCounts
-    {
-        get
-        {
-            var series = (this as IShokoGroup).AllSeries;
-            var counts = new EpisodeCounts();
-            foreach (var ser in series)
-            {
-                var mec = ser.MissingEpisodeCounts;
-                counts.Episodes += mec.Episodes;
-                counts.Specials += mec.Specials;
-                counts.Credits += mec.Credits;
-                counts.Trailers += mec.Trailers;
-                counts.Parodies += mec.Parodies;
-                counts.Others += mec.Others;
-            }
-            return counts;
-        }
-    }
+    EpisodeCounts IShokoGroup.MissingEpisodeCounts => SumEpisodeCounts((this as IShokoGroup).AllSeries, ser => ser.MissingEpisodeCounts);
 
-    EpisodeCounts IShokoGroup.UnairedEpisodeCounts
-    {
-        get
-        {
-            var series = (this as IShokoGroup).AllSeries;
-            var counts = new EpisodeCounts();
-            foreach (var ser in series)
-            {
-                var uec = ser.UnairedEpisodeCounts;
-                counts.Episodes += uec.Episodes;
-                counts.Specials += uec.Specials;
-                counts.Credits += uec.Credits;
-                counts.Trailers += uec.Trailers;
-                counts.Parodies += uec.Parodies;
-                counts.Others += uec.Others;
-            }
-            return counts;
-        }
-    }
+    EpisodeCounts IShokoGroup.UnairedEpisodeCounts => SumEpisodeCounts((this as IShokoGroup).AllSeries, ser => ser.UnairedEpisodeCounts);
 
-    IReadOnlyDictionary<string, int> IShokoGroup.ReleaseProviderCounts
-    {
-        get
-        {
-            var counts = new Dictionary<string, int>();
-            foreach (var ser in (this as IShokoGroup).AllSeries)
-            {
-                foreach (var (provider, count) in ser.ReleaseProviderCounts)
-                {
-                    counts.TryGetValue(provider, out var existing);
-                    counts[provider] = existing + count;
-                }
-            }
-            return counts;
-        }
-    }
+    IReadOnlyDictionary<string, int> IShokoGroup.ReleaseProviderCounts => SumReleaseProviderCounts((this as IShokoGroup).AllSeries);
 
     IReadOnlyList<IShokoSeries> IShokoGroup.AllSeries => AllSeries;
 

@@ -100,6 +100,7 @@ public class ActionExecutionJob(
         // Unknown property names are ignored.
         ActionService.PopulateParameters(action, Parameters);
 
+        object? entity = null;
         if (action is IScopedAction scoped)
         {
             // No entity ID on a scoped action is a bug in whatever enqueued it, not a
@@ -107,7 +108,8 @@ public class ActionExecutionJob(
             if (ScopeEntityId is not { } entityId)
                 throw new InvalidOperationException($"Scoped action '{info.Name}' ({info.ID}) has no scope entity ID.");
 
-            if (ResolveScopeEntity(info.Scope, entityId) is not { } entity)
+            entity = ResolveScopeEntity(info.Scope, entityId);
+            if (entity is null)
             {
                 _logger.LogWarning("Skipping action \"{ActionName}\" ({ActionId}): the {Scope} it was queued for ({EntityId}) no longer exists", info.Name, ActionId, info.Scope, entityId);
                 return;
@@ -116,7 +118,7 @@ public class ActionExecutionJob(
             scoped.SetContext(entity);
         }
 
-        if (CallerUserId > 0 && action is IActionCaller callerAware)
+        if (CallerUserId > 0)
         {
             if (users.GetByID(CallerUserId) is not { } caller)
             {
@@ -124,7 +126,15 @@ public class ActionExecutionJob(
                 return;
             }
 
-            callerAware.SetCaller(caller);
+            // What the caller may see can change while the job waits.
+            if (ActionService.CheckVisible(action, entity, caller) is { } hidden)
+            {
+                _logger.LogWarning("Skipping action \"{ActionName}\" ({ActionId}): {Reason}", info.Name, ActionId, hidden.Reason);
+                return;
+            }
+
+            if (action is IActionCaller callerAware)
+                callerAware.SetCaller(caller);
         }
 
         // Validate ran before this job was enqueued, and that answer can be hours old

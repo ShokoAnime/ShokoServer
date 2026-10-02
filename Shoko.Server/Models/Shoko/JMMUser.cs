@@ -92,9 +92,7 @@ public class JMMUser : IIdentity, IUser
     {
         if (grp is not AnimeGroup shokoGroup)
             throw new ArgumentException("Expected AnimeGroup", nameof(grp));
-        if (GetHideCategories().Count == 0) return true;
-        var forbidden = GetForbiddenAnimeIds();
-        return !shokoGroup.AllSeries.Any(s => forbidden.Contains(s.AniDB_ID));
+        return AllowedGroup(shokoGroup);
     }
 
     /// <summary>
@@ -117,12 +115,37 @@ public class JMMUser : IIdentity, IUser
         return !GetForbiddenAnimeIds().Contains(anime.AnimeID);
     }
 
+    /// <summary>
+    ///   Returns whether the user may see the group: when it holds at least
+    ///   one series, at any level, that the user may see.
+    /// </summary>
+    /// <param name="grp">The group.</param>
+    /// <returns><c>true</c> if the user may see the group.</returns>
     public bool AllowedGroup(AnimeGroup grp)
     {
-        if (GetHideCategories().Count == 0) return true;
-        var forbidden = GetForbiddenAnimeIds();
-        return !grp.AllSeries.Any(s => forbidden.Contains(s.AniDB_ID));
+        if (!HasRestrictions()) return true;
+        return grp.AllSeries.Any(AllowedSeries);
     }
+
+    /// <summary>
+    ///   Returns whether the user may see every series in the group, at any
+    ///   level, as changing the group needs.
+    /// </summary>
+    /// <param name="grp">The group.</param>
+    /// <returns><c>true</c> if the user may see the whole group.</returns>
+    public bool AllowedWholeGroup(AnimeGroup grp)
+    {
+        if (!HasRestrictions()) return true;
+        return grp.AllSeries.All(AllowedSeries);
+    }
+
+    /// <summary>
+    ///   Returns whether the user has restricted tags, and so may be kept
+    ///   from seeing some series.
+    /// </summary>
+    /// <returns><c>true</c> if the user has restricted tags.</returns>
+    public bool HasRestrictions()
+        => GetHideCategories().Count > 0;
 
     public bool AllowedTag(AniDB_Tag tag)
     {

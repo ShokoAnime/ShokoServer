@@ -11,6 +11,7 @@ using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -71,7 +72,7 @@ public class FilterFactory
             : _evaluator.EvaluateFilterWithGrouping(groupFilter, user).Count(a =>
             {
                 var group = RepoFactory.AnimeGroup.GetByID(a.Key);
-                return group is { AnimeGroupParentID: null } && (includeEmpty || group.AllSeries
+                return group is { AnimeGroupParentID: null } && (includeEmpty || AnimeGroupView.For(group, user).AllSeries
                     .Any(s => s.AnimeEpisodes.Any(e => e.VideoLocals.Count > 0)));
             });
         return filter;

@@ -29,6 +29,7 @@ using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v2.Models.legacy;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
@@ -1901,7 +1902,7 @@ public class Common : BaseController
         if (para.id != 0)
         {
             var anime = RepoFactory.AnimeSeries.GetByID(para.id);
-            if (anime == null)
+            if (anime == null || !user.AllowedSeries(anime))
             {
                 return new List<Group>();
             }
@@ -2668,11 +2669,15 @@ public class Common : BaseController
         TagFilter.Filter tagfilter)
     {
         var grps = new List<Group>();
+        var user = HttpContext.GetUser();
         var allGrps = RepoFactory.AnimeGroup_User.GetByUserID(uid);
         foreach (var gr in allGrps)
         {
             var ag = RepoFactory.AnimeGroup.GetByID(gr.AnimeGroupID);
-            var grp = Group.GenerateFromAnimeGroup(HttpContext, ag!, uid, nocast, notag, level, all, 0, allpics, pic,
+            if (ag is null || !user.AllowedGroup(ag))
+                continue;
+
+            var grp = Group.GenerateFromAnimeGroup(HttpContext, ag, uid, nocast, notag, level, all, 0, allpics, pic,
                 tagfilter);
             grps.Add(grp);
         }
@@ -2698,7 +2703,7 @@ public class Common : BaseController
         int pic, TagFilter.Filter tagfilter)
     {
         var ag = RepoFactory.AnimeGroup.GetByID(id);
-        if (ag != null)
+        if (ag != null && HttpContext.GetUser().AllowedGroup(ag))
         {
             var gr = Group.GenerateFromAnimeGroup(HttpContext, ag, uid, nocast, notag, level, all, filterid, allpics,
                 pic, tagfilter);
@@ -2720,12 +2725,12 @@ public class Common : BaseController
         try
         {
             var group = RepoFactory.AnimeGroup.GetByID(groupid);
-            if (group == null)
+            if (group == null || !user.AllowedGroup(group))
             {
                 return NotFound("Group not Found");
             }
 
-            foreach (var series in group.AllSeries)
+            foreach (var series in AnimeGroupView.For(group, user).AllSeries)
             {
                 foreach (var episode in series.AllAnimeEpisodes)
                 {
@@ -2751,7 +2756,7 @@ public class Common : BaseController
         return BadRequest();
     }
 
-    private static void CheckGroupNameFuzzy(AnimeGroup a, string? query,
+    private static void CheckGroupNameFuzzy(AnimeGroupView view, string? query,
         ConcurrentDictionary<AnimeGroup, double> distLevenshtein, int limit)
     {
         if (distLevenshtein.Count >= limit)
@@ -2760,13 +2765,13 @@ public class Common : BaseController
         }
 
         var dist = double.MaxValue;
-
-        if (string.IsNullOrEmpty(a.GroupName))
+        var a = view.Group;
+        if (string.IsNullOrEmpty(view.Name))
         {
             return;
         }
 
-        var result = SeriesSearch.DiceFuzzySearch(a.GroupName, query!, a);
+        var result = SeriesSearch.DiceFuzzySearch(view.Name, query!, a);
         if (result.Index == -1)
         {
             return;
@@ -2798,17 +2803,21 @@ public class Common : BaseController
 
         var group_list = new List<Group>();
         var groups = new List<AnimeGroup>();
-        var allGroups = RepoFactory.AnimeGroup.GetAll().Where(a => RepoFactory.AnimeSeries.GetByGroupID(a.AnimeGroupID).Any(user.AllowedSeries));
+        var allGroups = RepoFactory.AnimeGroup.GetAll()
+            .Select(group => AnimeGroupView.For(group, user))
+            .Where(view => view.IsVisible)
+            .ToDictionary(view => view.Group);
 
         #region Search_TitlesOnly
 
         if (!fuzzy || query.Length >= IntPtr.Size * 8)
         {
-            groups = allGroups
-                .Where(a => a.GroupName
+            groups = allGroups.Values
+                .Where(a => a.Name
                     .IndexOf(SeriesSearch.SanitizeFuzzy(query, fuzzy), 0,
                         StringComparison.InvariantCultureIgnoreCase) >= 0)
                 .OrderBy(a => a.SortName)
+                .Select(a => a.Group)
                 .ToList();
             foreach (var grp in groups)
             {
@@ -2831,11 +2840,11 @@ public class Common : BaseController
         else
         {
             var distLevenshtein = new ConcurrentDictionary<AnimeGroup, double>();
-            allGroups.ForEach(a => CheckGroupNameFuzzy(a, query, distLevenshtein, limit));
+            allGroups.Values.ForEach(a => CheckGroupNameFuzzy(a, query, distLevenshtein, limit));
 
             groups = distLevenshtein.Keys.OrderBy(a => distLevenshtein[a])
-                .ThenBy(a => a.GroupName.ToSortName().Length)
-                .ThenBy(a => a.GroupName.ToSortName()).ToList();
+                .ThenBy(a => allGroups[a].Name.ToSortName().Length)
+                .ThenBy(a => allGroups[a].Name.ToSortName()).ToList();
             foreach (var grp in groups)
             {
                 if (offset == 0)

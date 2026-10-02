@@ -12,14 +12,26 @@ using Shoko.Server.MediaInfo;
 using Shoko.Server.Models;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Filters;
 
-public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilterableInfo
+/// <summary>
+///   What the filters read of a group. Given a view that differs for its user,
+///   everything is read from the series the user may see, with the user's name
+///   for the group.
+/// </summary>
+/// <param name="group">The group.</param>
+/// <param name="now">The time the filters are evaluated at.</param>
+/// <param name="view">The group as the user sees it, if any.</param>
+public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now, AnimeGroupView? view = null) : IFilterableInfo
 {
+    // Only kept when it differs from the group as everyone sees it.
+    private readonly AnimeGroupView? _view = view is { IsPersonal: true } ? view : null;
+
     private static readonly HashSet<TitleLanguage> s_basePreferredLanguages =
     [
         TitleLanguage.Unknown, TitleLanguage.English, TitleLanguage.Japanese,
@@ -28,7 +40,7 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
     ];
 
     private List<AnimeSeries>? _series;
-    private List<AnimeSeries> AllSeries => _series ??= group.AllSeries;
+    private List<AnimeSeries> AllSeries => _series ??= _view is null ? group.AllSeries : [.. _view.AllSeries];
 
     // Derived from AllSeries to avoid a redundant repo call that group.Anime would make
     private List<AniDB_Anime>? _anime;
@@ -46,20 +58,23 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
         return result;
     }
 
-    public string Name => group.GroupName;
+    private string GroupName => _view?.Name ?? group.GroupName;
 
-    public string SortName => group.GroupName.ToSortName();
+    public string Name => GroupName;
 
-    public string MainName => group.GroupName;
+    public string SortName => GroupName.ToSortName();
 
-    public string OriginalName => group.GroupName;
+    public string MainName => GroupName;
+
+    public string OriginalName => GroupName;
+
+    private IEnumerable<string> AncestorNames => _view?.AncestorNames ?? group.AllGroupsAbove.Select(grp => grp.GroupName);
 
     public IReadOnlySet<string> Names
         => Remembered(TextMemoSlot.FilterNames, () =>
         {
-            var result = new HashSet<string> { group.GroupName };
-            foreach (var grp in group.AllGroupsAbove)
-                result.Add(grp.GroupName);
+            var result = new HashSet<string> { GroupName };
+            result.UnionWith(AncestorNames);
             result.UnionWith(AllSeries.SelectMany(a => a.Titles.Select(t => t.Value)));
             return result;
         });
@@ -68,9 +83,8 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
         => Remembered(TextMemoSlot.FilterPreferredNames, () =>
         {
             var langs = BuildPreferredLanguageSet();
-            var result = new HashSet<string> { group.GroupName };
-            foreach (var grp in group.AllGroupsAbove)
-                result.Add(grp.GroupName);
+            var result = new HashSet<string> { GroupName };
+            result.UnionWith(AncestorNames);
             result.UnionWith(AllSeries.SelectMany(a =>
                 a.Titles
                     .Where(t => langs.Contains(t.Language) && (t.Source != MetadataSource.TMDB || t.Language != TitleLanguage.Unknown))
@@ -87,7 +101,8 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
     /// <returns>The set.</returns>
     private IReadOnlySet<string> Remembered(TextMemoSlot slot, Func<HashSet<string>> build)
     {
-        if (TextAccess.Current is not { } manager)
+        // The sets are remembered for the group as everyone sees it.
+        if (_view is not null || TextAccess.Current is not { } manager)
             return build();
 
         var id = ((IMetadata)group).ID;
@@ -101,13 +116,13 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
         }, () => build());
     }
 
-    public string Description => group.Description;
+    public string Description => _view?.Description ?? group.Description;
 
     public IReadOnlySet<string> Descriptions
     {
         get
         {
-            var result = new HashSet<string> { group.Description };
+            var result = new HashSet<string> { Description };
             result.UnionWith(AllSeries.SelectMany(s => ((ISeries)s).Overviews.Select(a => a.Value)));
             return result;
         }
@@ -128,9 +143,9 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
 
     public int SeriesCount => AllSeries.Count;
 
-    public int GroupCount => group.Children.Count;
+    public int GroupCount => _view?.Children.Count ?? group.Children.Count;
 
-    public int TotalGroupCount => group.AllChildren.Count();
+    public int TotalGroupCount => (_view?.AllChildren ?? group.AllChildren).Count();
 
     public PartialDateOnly? AirDate =>
         AllSeries.Select(a => a.AirDate).WhereNotNull().DefaultIfEmpty(PartialDateOnly.MaxValue).Min();
@@ -147,17 +162,17 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
     public DateTime? LastAddedDate =>
         AllVideoLocals.Select(a => a.DateTimeCreated).DefaultIfEmpty().Max();
 
-    public int MissingEpisodes => group.MissingEpisodeCount;
+    public int MissingEpisodes => _view is null ? group.MissingEpisodeCount : AllSeries.Sum(series => series.MissingEpisodeCount);
 
-    public int MissingEpisodesCollecting => group.MissingEpisodeCountGroups;
+    public int MissingEpisodesCollecting => _view is null ? group.MissingEpisodeCountGroups : AllSeries.Sum(series => series.MissingEpisodeCountGroups);
 
     public int VideoFiles => AllVideoLocals.Count;
 
     private List<AniDB_Tag>? _anidbTagRefs;
-    private List<AniDB_Tag> AnidbTagRefs => _anidbTagRefs ??= group.Tags;
+    private List<AniDB_Tag> AnidbTagRefs => _anidbTagRefs ??= AnimeGroup.TagsOf(AllSeries);
 
     private List<CustomTag>? _customTagRefs;
-    private List<CustomTag> CustomTagRefs => _customTagRefs ??= group.CustomTags;
+    private List<CustomTag> CustomTagRefs => _customTagRefs ??= AnimeGroup.CustomTagsOf(AllSeries);
 
     private IReadOnlySet<string>? _anidbTagIDs;
     public IReadOnlySet<string> AnidbTagIDs =>
@@ -175,13 +190,13 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
     public IReadOnlySet<string> CustomTags =>
         _customTags ??= CustomTagRefs.Select(a => a.TagName).ToHashSet(StringComparer.InvariantCultureIgnoreCase);
 
-    public IReadOnlySet<int> Years => group.Years;
+    public IReadOnlySet<int> Years => AnimeGroup.YearsOf(AllSeries);
 
-    public IReadOnlySet<(int year, YearlySeason season)> Seasons => group.YearlySeasons;
+    public IReadOnlySet<(int year, YearlySeason season)> Seasons => AnimeGroup.YearlySeasonsOf(AllSeries);
 
-    public IReadOnlySet<ImageEntityType> AvailableImageTypes => group.AvailableImageTypes;
+    public IReadOnlySet<ImageEntityType> AvailableImageTypes => AnimeGroup.AvailableImageTypesOf(AllSeries);
 
-    public IReadOnlySet<ImageEntityType> PreferredImageTypes => group.PreferredImageTypes;
+    public IReadOnlySet<ImageEntityType> PreferredImageTypes => AnimeGroup.PreferredImageTypesOf(AllSeries);
 
     public IReadOnlySet<string> CharacterIDs =>
         AllSeries.SelectMany(ser => RepoFactory.AniDB_Anime_Character.GetByAnimeID(ser.AniDB_ID))
@@ -278,17 +293,17 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now) : IFilt
     public int HiddenEpisodes =>
         AllSeries.SelectMany(ser => ser.AnimeEpisodes).Count(ep => ep.IsHidden);
 
-    public EpisodeCounts EpisodeCounts => ((IShokoGroup)group).EpisodeCounts;
+    public EpisodeCounts EpisodeCounts => AnimeGroup.SumEpisodeCounts(AllSeries, series => series.EpisodeCounts);
 
-    public EpisodeCounts LocalEpisodeCounts => ((IShokoGroup)group).LocalEpisodeCounts;
+    public EpisodeCounts LocalEpisodeCounts => AnimeGroup.SumEpisodeCounts(AllSeries, series => series.LocalEpisodeCounts);
 
-    public EpisodeCounts MissingEpisodeCounts => ((IShokoGroup)group).MissingEpisodeCounts;
+    public EpisodeCounts MissingEpisodeCounts => AnimeGroup.SumEpisodeCounts(AllSeries, series => series.MissingEpisodeCounts);
 
-    public EpisodeCounts UnairedEpisodeCounts => ((IShokoGroup)group).UnairedEpisodeCounts;
+    public EpisodeCounts UnairedEpisodeCounts => AnimeGroup.SumEpisodeCounts(AllSeries, series => series.UnairedEpisodeCounts);
 
-    public FileSourceCounts FileSourceCounts => ((IShokoGroup)group).FileSourceCounts;
+    public FileSourceCounts FileSourceCounts => AnimeGroup.SumFileSourceCounts(AllSeries);
 
-    public IReadOnlyDictionary<string, int> ReleaseProviderCounts => ((IShokoGroup)group).ReleaseProviderCounts;
+    public IReadOnlyDictionary<string, int> ReleaseProviderCounts => AnimeGroup.SumReleaseProviderCounts(AllSeries);
 
     public double LowestAniDBRating =>
         AllAnime.Select(a => double.Round(Convert.ToDouble(a?.Rating ?? 0) / 100, 1, MidpointRounding.AwayFromZero)).DefaultIfEmpty().Min();

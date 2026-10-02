@@ -9,6 +9,8 @@ using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Filtering.Sorting.Selectors;
 using Shoko.Abstractions.User;
+using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories.Cached;
 
 namespace Shoko.Server.Filters;
@@ -42,15 +44,10 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                 .AsParallel()
                 .Where(a => user?.IsAllowedToSee(a) ?? true)
                 .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, new FilterableAnimeSeries(a, now))),
-            false when needsUser =>
-                groupRepository.GetAll()
-                    .AsParallel()
-                    .Where(a => user!.IsAllowedToSee(a))
-                    .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now), new FilterableGroupUserInfo(a, user!.LocalID, now))),
             false => groupRepository.GetAll()
                 .AsParallel()
-                .Where(a => user?.IsAllowedToSee(a) ?? true)
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now))),
+                .Select(ToFilterableGroup(user, needsUser, now))
+                .OfType<FilterableWithID>(),
         };
         var filtered = filterable.Where(a =>
         {
@@ -83,7 +80,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             : OrderFilterable(filter, filtered, now);
         var result = filter.ApplyAtSeriesLevel
             ? sorted.Select(a => (a.GroupID, a.SeriesID))
-            : sorted.SelectMany(a => seriesRepository.GetByGroupID(a.GroupID).Select(ser => (a.GroupID, ser.AnimeSeriesID)));
+            : sorted.SelectMany(a => GetVisibleSeriesIDs(a.GroupID, user));
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -146,15 +143,10 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                 .Where(a => user?.IsAllowedToSee(a) ?? true)
                 .Select(a => new FilterableWithID(a.AnimeSeriesID, a.AnimeGroupID, new FilterableAnimeSeries(a, now)))
                 .ToArray();
-        var groups = !hasGroups ? [] : groupsNeedUser
-            ? groupRepository.GetAll()
-                .Where(a => user!.IsAllowedToSee(a))
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now), new FilterableGroupUserInfo(a, user!.LocalID, now)))
-                .ToArray()
-            : groupRepository.GetAll()
-                .Where(a => user?.IsAllowedToSee(a) ?? true)
-                .Select(a => new FilterableWithID(0, a.AnimeGroupID, new FilterableAnimeGroup(a, now)))
-                .ToArray();
+        var groups = !hasGroups ? [] : groupRepository.GetAll()
+            .Select(ToFilterableGroup(user, groupsNeedUser, now))
+            .OfType<FilterableWithID>()
+            .ToArray();
         var results = new Dictionary<TFilter, Lazy<IReadOnlyList<TValue>>>();
         foreach (var filter in filters.Where(a => a is not IFilterPreset { IsDirectory: true }))
         {
@@ -187,7 +179,7 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
                 : OrderFilterable(filter, filtered, now);
             var result = filter.ApplyAtSeriesLevel
                 ? sorted.Select(a => (a.GroupID, a.SeriesID))
-                : sorted.SelectMany(a => seriesRepository.GetByGroupID(a.GroupID).Select(ser => (a.GroupID, ser.AnimeSeriesID)));
+                : sorted.SelectMany(a => GetVisibleSeriesIDs(a.GroupID, user));
             var capturedToken = cancellationToken;
             results[filter] = new(() =>
             {
@@ -209,6 +201,55 @@ public class FilteringEngine(ILogger<FilteringEngine> logger, AnimeGroupReposito
             results.Add(filter, new(() => []));
 
         return new LazyDictionary<TFilter, IReadOnlyList<TValue>>(results);
+    }
+
+    /// <summary>
+    ///   Makes a group filterable for the user, or <c>null</c> when the user
+    ///   may not see it. A group the user sees only part of is read from the
+    ///   series the user may see.
+    /// </summary>
+    /// <param name="user">The user, if any.</param>
+    /// <param name="withUserInfo">Whether to add the user's data.</param>
+    /// <param name="now">The time the filters are evaluated at.</param>
+    /// <returns>Makes one group filterable.</returns>
+    private static Func<AnimeGroup, FilterableWithID?> ToFilterableGroup(IUser? user, bool withUserInfo, DateTime now)
+    {
+        if (AnimeGroupView.IsUnrestricted(user))
+            return group => new FilterableWithID(
+                0,
+                group.AnimeGroupID,
+                new FilterableAnimeGroup(group, now),
+                withUserInfo ? new FilterableGroupUserInfo(group, user!.LocalID, now) : null
+            );
+
+        return group =>
+        {
+            var view = AnimeGroupView.For(group, user);
+            if (!view.IsVisible)
+                return null;
+
+            return new FilterableWithID(
+                0,
+                group.AnimeGroupID,
+                new FilterableAnimeGroup(group, now, view),
+                withUserInfo ? new FilterableGroupUserInfo(group, user!.LocalID, now, view) : null
+            );
+        };
+    }
+
+    /// <summary>
+    ///   The series directly in a group the user may see, for a group-level
+    ///   filter's results.
+    /// </summary>
+    /// <param name="groupID">The group's ID.</param>
+    /// <param name="user">The user, if any.</param>
+    /// <returns>The group and series ID pairs.</returns>
+    private IEnumerable<(int GroupID, int SeriesID)> GetVisibleSeriesIDs(int groupID, IUser? user)
+    {
+        var series = seriesRepository.GetByGroupID(groupID);
+        return AnimeGroupView.IsUnrestricted(user)
+            ? series.Select(ser => (groupID, ser.AnimeSeriesID))
+            : series.Where(ser => user!.IsAllowedToSee(ser)).Select(ser => (groupID, ser.AnimeSeriesID));
     }
 
     private static IOrderedEnumerable<FilterableWithID> OrderFilterable(IFilter filter, IEnumerable<FilterableWithID> filtered, DateTime now)

@@ -16,6 +16,7 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Settings;
 
@@ -260,13 +261,11 @@ public class FilterController(
         {
             var user = User;
             return animeGroupRepository.GetAll()
-                .Where(group =>
-                    (!topLevelOnly || group is { AnimeGroupParentID: null }) &&
-                    user.AllowedGroup(group) &&
-                    (includeEmpty || group.AllSeries.Any(s => s.VideoLocals.Count > 0))
-                )
-                .OrderBy(group => group.SortName)
-                .ToListResult(group => new Group(group, User.JMMUserID, randomImages), page, pageSize);
+                .Where(group => !topLevelOnly || group is { AnimeGroupParentID: null })
+                .Select(group => AnimeGroupView.For(group, user))
+                .Where(view => view.IsVisible && (includeEmpty || view.AllSeries.Any(s => s.VideoLocals.Count > 0)))
+                .OrderBy(view => view.SortName)
+                .ToListResult(view => new Group(view, randomImages), page, pageSize);
         }
 
         if (filterPresetRepository.GetByID(filterID) is not { } filterPreset)
@@ -287,9 +286,9 @@ public class FilterController(
                 ? filteringService.GetTopLevelFilteredGroups(filterPreset, user, cancellationToken: HttpContext.RequestAborted)
                 : filteringService.GetAllFilteredGroupsWithChains(filterPreset, user, cancellationToken: HttpContext.RequestAborted)
         )
-            .Select(r => (r, group: (AnimeGroup)r.Group))
-            .Where(t => includeEmpty || t.group.AllSeries.Any(s => s.VideoLocals.Count > 0))
-            .ToListResult(t => new Group(t.group, user.JMMUserID, randomImages, t.r.GroupIDChains, t.r.SeriesIDs), page, pageSize);
+            .Select(r => (r, view: AnimeGroupView.For((AnimeGroup)r.Group, user)))
+            .Where(t => includeEmpty || t.view.AllSeries.Any(s => s.VideoLocals.Count > 0))
+            .ToListResult(t => new Group(t.view, randomImages, t.r.GroupIDChains, t.r.SeriesIDs), page, pageSize);
     }
 
     /// <summary>
@@ -427,9 +426,9 @@ public class FilterController(
     {
         var user = User;
         return filteringService.GetFilteredSubGroups(filterPreset, group, user, cancellationToken: HttpContext.RequestAborted)
-            .Select(r => (r, group: (AnimeGroup)r.Group))
-            .Where(t => includeEmpty || t.group.AllSeries.Any(s => s.VideoLocals.Count > 0))
-            .Select(t => new Group(t.group, user.JMMUserID, randomImages, t.r.GroupIDChains, t.r.SeriesIDs))
+            .Select(r => (r, view: AnimeGroupView.For((AnimeGroup)r.Group, user)))
+            .Where(t => includeEmpty || t.view.AllSeries.Any(s => s.VideoLocals.Count > 0))
+            .Select(t => new Group(t.view, randomImages, t.r.GroupIDChains, t.r.SeriesIDs))
             .ToList();
     }
 

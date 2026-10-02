@@ -40,7 +40,8 @@ public interface IUser : IMetadata, IWithPrimaryImage, IWithBackdropImage
 
     /// <summary>
     ///   Indicates that the user is allowed to see the specified group based on
-    ///   the user's restricted tags.
+    ///   the user's restricted tags: when the group holds at least one series,
+    ///   at any level, that the user is allowed to see.
     /// </summary>
     /// <param name="group">
     ///   The group.

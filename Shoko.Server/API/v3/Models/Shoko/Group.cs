@@ -17,6 +17,7 @@ using Shoko.Abstractions.User.Services;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories;
 
 // ReSharper disable UnusedMember.Local
@@ -100,16 +101,27 @@ public class Group : BaseModel
 
     #region Constructors
 
-    public Group(AnimeGroup group, int userID = 0, bool randomizeImages = false, IReadOnlyList<IReadOnlyList<int>>? groupIDChains = null, IReadOnlySet<int>? seriesIDs = null)
+    /// <summary>
+    ///   Makes the group as its user sees it: the counts, sizes, name,
+    ///   overview and images come only from the series the user may see.
+    /// </summary>
+    /// <param name="view">The group as the user sees it.</param>
+    /// <param name="randomizeImages">Whether to pick random images.</param>
+    /// <param name="groupIDChains">The group ID chains a filter matched, if any.</param>
+    /// <param name="seriesIDs">The series IDs a filter matched, if any.</param>
+    public Group(AnimeGroupView view, bool randomizeImages = false, IReadOnlyList<IReadOnlyList<int>>? groupIDChains = null, IReadOnlySet<int>? seriesIDs = null)
     {
-        var allSeries = group.AllSeries;
-        var subGroupCount = groupIDChains is null ? group.Children.Count : group.Children.Count(a => groupIDChains.Any(b => b.Contains(a.AnimeGroupID)));
+        var group = view.Group;
+        var userID = view.UserID;
+        var allSeries = view.AllSeries;
+        var children = view.Children;
+        var subGroupCount = groupIDChains is null ? children.Count : children.Count(a => groupIDChains.Any(b => b.Contains(a.AnimeGroupID)));
         var filteredSeries = seriesIDs is null ? allSeries : allSeries.Where(a => seriesIDs.Contains(a.AnimeSeriesID)).ToList();
-        var mainSeries = group.MainSeries;
+        var mainSeries = view.MainSeries;
         var episodes = filteredSeries.SelectMany(a => a.AllAnimeEpisodes).ToList();
         IDs = new GroupIDs { ID = group.AnimeGroupID };
-        if (group.DefaultAnimeSeriesID != null)
-            IDs.PreferredSeries = group.DefaultAnimeSeriesID.Value;
+        if (view.PreferredSeriesID is { } preferredSeriesID)
+            IDs.PreferredSeries = preferredSeriesID;
         if (mainSeries != null)
         {
             IDs.MainSeries = mainSeries.AnimeSeriesID;
@@ -118,9 +130,9 @@ public class Group : BaseModel
         if (group.AnimeGroupParentID.HasValue)
             IDs.ParentGroup = group.AnimeGroupParentID.Value;
         IDs.TopLevelGroup = group.TopLevelAnimeGroup.AnimeGroupID;
-        Name = group.GroupName;
-        SortName = group.SortName;
-        Description = group.Description;
+        Name = view.Name;
+        SortName = view.SortName;
+        Description = view.Description;
         Sizes = ModelHelper.GenerateGroupSizes(filteredSeries, episodes, subGroupCount, userID);
         Size = filteredSeries.Count(series => series.AnimeGroupID == group.AnimeGroupID);
         TotalSize = allSeries.Count;
@@ -128,10 +140,8 @@ public class Group : BaseModel
         Updated = group.DateTimeUpdated.ToUniversalTime();
         HasCustomName = group.CustomTitle is not null;
         HasCustomDescription = group.CustomOverview is not null;
-        Images = ((IWithImages)group).GetBestImages().ToDto(
-            preferredImages: true,
-            randomizeImages: randomizeImages
-        );
+        Images = view.GetBestImages(ISystemService.StaticServices.GetRequiredService<IImageManager>())
+            .ToDto(preferredImages: true, randomizeImages: randomizeImages);
     }
 
     #endregion
@@ -301,7 +311,7 @@ public class Group : BaseModel
 
             public CreateOrUpdateGroupBody() { }
 
-            public Group? MergeWithExisting(AnimeGroup? group, int userID, ModelStateDictionary modelState)
+            public Group? MergeWithExisting(AnimeGroup? group, JMMUser user, ModelStateDictionary modelState)
             {
                 group ??= new() { DateTimeCreated = DateTime.Now, DateTimeUpdated = DateTime.Now };
                 var parent = ParentGroupID is > 0 ? RepoFactory.AnimeGroup.GetByID(ParentGroupID.Value) : null;
@@ -382,7 +392,7 @@ public class Group : BaseModel
                 }
 
                 // Return a new representation of the group.
-                return new Group(group, userID);
+                return new Group(AnimeGroupView.For(group, user));
             }
         }
     }

@@ -22,6 +22,7 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories.Cached;
 
 using FileSummaryGroupByCriteria = Shoko.Server.API.v3.Models.Shoko.WebUI.WebUISeriesFileSummary.FileSummaryGroupByCriteria;
@@ -280,12 +281,12 @@ public partial class WebUIController(
             .Select(groupID =>
             {
                 var group = _animeGroups.GetByID(groupID);
-                if (group is null || !user.AllowedGroup(group))
+                if (group is null || AnimeGroupView.For(group, user) is not { IsVisible: true } view)
                 {
                     return null;
                 }
 
-                var series = group.MainSeries;
+                var series = view.MainSeries;
                 var anime = series?.AniDB_Anime;
                 if (anime is null)
                 {

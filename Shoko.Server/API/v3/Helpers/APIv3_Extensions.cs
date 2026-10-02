@@ -14,6 +14,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
@@ -130,7 +131,26 @@ public static class APIv3_Extensions
     /// <param name="options">The options the images were listed with, or <c>null</c> for all.</param>
     /// <returns>The links, the entity's own first for each image and type.</returns>
     public static IReadOnlyList<IImageCrossReference> GetCrossReferencesForImageList(this IImageManager imageManager, IWithImages entity, ImageFilteringOptions? options = null)
-        => imageManager.GetImageCrossReferencesForEntity(entity, new()
+        => imageManager.GetImageCrossReferencesForEntity(entity, ToCrossReferenceOptions(options));
+
+    /// <summary>
+    /// The links an image list of a group as a user sees it, made with the
+    /// same options, sees its images through.
+    /// </summary>
+    /// <param name="imageManager">The image manager.</param>
+    /// <param name="view">The group as the user sees it.</param>
+    /// <param name="options">The options the images were listed with, or <c>null</c> for all.</param>
+    /// <returns>The links.</returns>
+    public static IReadOnlyList<IImageCrossReference> GetCrossReferencesForImageList(this IImageManager imageManager, AnimeGroupView view, ImageFilteringOptions? options = null)
+        => view.GetImageCrossReferences(imageManager, ToCrossReferenceOptions(options));
+
+    /// <summary>
+    /// Turns image list options into the matching link options.
+    /// </summary>
+    /// <param name="options">The image list options, or <c>null</c> for all.</param>
+    /// <returns>The link options.</returns>
+    private static ImageCrossReferenceFilteringOptions ToCrossReferenceOptions(ImageFilteringOptions? options)
+        => new()
         {
             ImageSource = options?.ImageSource,
             ImageType = options?.ImageType,
@@ -142,7 +162,7 @@ public static class APIv3_Extensions
             IsPrimaryImage = options?.IsPrimaryImage,
             IsPrimaryAvailable = options?.IsPrimaryAvailable,
             LinkedEntityImages = options?.LinkedEntityImages,
-        });
+        };
 
     /// <summary>
     /// Links an uploaded image to the entity it was uploaded for, as a user's

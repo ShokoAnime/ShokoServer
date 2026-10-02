@@ -17,6 +17,7 @@ using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video;
 using Shoko.Server.API;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories.Cached;
 
 using FileCrossReference = Shoko.Server.API.v3.Models.Shoko.FileCrossReference;
@@ -44,11 +45,12 @@ public class GeneratedPlaylistService(
     /// <param name="playlist">The parsed playlist tuples: episode groups and their associated video files.</param>
     /// <param name="modelState">Optional model state dictionary to collect validation errors.</param>
     /// <param name="fieldName">The field name to use for error keys. Defaults to <c>"playlist"</c>.</param>
+    /// <param name="user">The user the playlist is for. Defaults to the current request's user.</param>
     /// <returns><c>true</c> if the playlist is valid; otherwise <c>false</c>.</returns>
-    public bool TryParsePlaylist(string[] items, out IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> playlist, ModelStateDictionary? modelState = null, string fieldName = "playlist")
+    public bool TryParsePlaylist(string[] items, out IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> playlist, ModelStateDictionary? modelState = null, string fieldName = "playlist", JMMUser? user = null)
     {
         modelState ??= new();
-        playlist = ParsePlaylist(items, modelState, fieldName);
+        playlist = ParsePlaylist(items, modelState, fieldName, user);
         return modelState.IsValid;
     }
 
@@ -126,12 +128,18 @@ public class GeneratedPlaylistService(
     /// <param name="fieldName">
     ///   The field name to use for error keys. Defaults to <c>"playlist"</c>.
     /// </param>
+    /// <param name="user">
+    ///   The user the playlist is for, who only gets what they may see.
+    ///   Defaults to the current request's user.
+    /// </param>
     /// <returns>
     ///   The parsed playlist as a list of episode-group/video-file tuples.
     /// </returns>
-    public IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> ParsePlaylist(string[] items, ModelStateDictionary? modelState = null, string fieldName = "playlist")
+    public IReadOnlyList<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> ParsePlaylist(string[] items, ModelStateDictionary? modelState = null, string fieldName = "playlist", JMMUser? user = null)
     {
         items ??= [];
+        // What the user may not see is reported as unknown, so its existence does not leak.
+        user ??= contextAccessor?.HttpContext?.GetUser();
         var playlist = new List<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)>();
         var index = -1;
         foreach (var item in items)
@@ -175,7 +183,7 @@ public class GeneratedPlaylistService(
                     modelState?.AddModelError($"{fieldName}[{index}]", $"Invalid group ID \"{item}\".");
                     continue;
                 }
-                if (groupRepository.GetByID(groupID) is not { } group)
+                if (groupRepository.GetByID(groupID) is not { } group || AnimeGroupView.For(group, user) is not { IsVisible: true } groupView)
                 {
                     modelState?.AddModelError($"{fieldName}[{index}]", $"Unknown group ID \"{item}\".");
                     continue;
@@ -208,7 +216,7 @@ public class GeneratedPlaylistService(
                 }
 
                 foreach (var tuple in GetListForGroup(
-                    group,
+                    groupView,
                     releaseGroupID,
                     new()
                     {
@@ -262,7 +270,7 @@ public class GeneratedPlaylistService(
                 var series = seriesItem[0] is 's'
                     ? seriesRepository.GetByID(seriesID)
                     : seriesRepository.GetByAnimeID(seriesID);
-                if (series is null)
+                if (series is null || (user is not null && !user.AllowedSeries(series)))
                 {
                     modelState?.AddModelError($"{fieldName}[{index}]", $"Unknown series ID \"{item}\".");
                     continue;
@@ -333,7 +341,7 @@ public class GeneratedPlaylistService(
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Invalid episode ID \"{rawValue}\" at index {index} at offset {offset}");
                             continue;
                         }
-                        if (episodeRepository.GetByAniDBEpisodeID(episodeID) is not { } extraEpisode)
+                        if (episodeRepository.GetByAniDBEpisodeID(episodeID) is not { } extraEpisode || !MaySee(user, extraEpisode))
                         {
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown episode ID \"{rawValue}\" at index {index} at offset {offset}");
                             continue;
@@ -349,7 +357,7 @@ public class GeneratedPlaylistService(
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Invalid episode ID \"{rawValue}\" at index {index} at offset {offset}");
                             continue;
                         }
-                        if (episodeRepository.GetByID(episodeID) is not { } extraEpisode)
+                        if (episodeRepository.GetByID(episodeID) is not { } extraEpisode || !MaySee(user, extraEpisode))
                         {
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown episode ID \"{rawValue}\" at index {index} at offset {offset}");
                             continue;
@@ -377,7 +385,7 @@ public class GeneratedPlaylistService(
                                     continue;
                                 }
                             }
-                            if ((fileSize > 0 ? videoRepository.GetByEd2kAndSize(ed2kHash, fileSize) : videoRepository.GetByEd2k(ed2kHash)) is not { } video0)
+                            if ((fileSize > 0 ? videoRepository.GetByEd2kAndSize(ed2kHash, fileSize) : videoRepository.GetByEd2k(ed2kHash)) is not { } video0 || !MaySee(user, video0))
                             {
                                 if (fileSize == 0)
                                     modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown hash \"{rawValue}\" at index {index} at offset {offset}");
@@ -395,7 +403,7 @@ public class GeneratedPlaylistService(
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Invalid file ID \"{rawValue}\".");
                             continue;
                         }
-                        if (videoRepository.GetByID(fileID) is not { } video)
+                        if (videoRepository.GetByID(fileID) is not { } video || !MaySee(user, video))
                         {
                             modelState?.AddModelError($"{fieldName}[{index}][{offset}]", $"Unknown file ID \"{rawValue}\".");
                             continue;
@@ -514,11 +522,12 @@ public class GeneratedPlaylistService(
         public bool IncludePrequels { get; init; }
     }
 
-    private IEnumerable<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> GetListForGroup(IShokoGroup group, int? releaseGroupID = null, GroupQueryOptions? options = null)
+    private IEnumerable<(IReadOnlyList<IShokoEpisode> episodes, IReadOnlyList<IVideo> videos)> GetListForGroup(AnimeGroupView group, int? releaseGroupID = null, GroupQueryOptions? options = null)
     {
         options ??= new();
 
-        var seriesList = options.Recursive || options.IncludeAllSeries
+        // Only the series the user may see.
+        IReadOnlyList<IShokoSeries> seriesList = options.Recursive || options.IncludeAllSeries
             ? group.AllSeries
             : group.Series;
 
@@ -557,6 +566,25 @@ public class GeneratedPlaylistService(
                     yield return tuple;
         }
     }
+
+    /// <summary>
+    ///   Whether the user may see an episode: its series is visible to them.
+    /// </summary>
+    /// <param name="user">The user, or <c>null</c> to see everything.</param>
+    /// <param name="episode">The episode.</param>
+    /// <returns><c>true</c> if the user may see it.</returns>
+    private static bool MaySee(JMMUser? user, AnimeEpisode episode)
+        => user is null || episode.AnimeSeries is not { } series || user.AllowedSeries(series);
+
+    /// <summary>
+    ///   Whether the user may see a file: every series it belongs to is
+    ///   visible to them.
+    /// </summary>
+    /// <param name="user">The user, or <c>null</c> to see everything.</param>
+    /// <param name="video">The file.</param>
+    /// <returns><c>true</c> if the user may see it.</returns>
+    private static bool MaySee(JMMUser? user, VideoLocal video)
+        => user is null || ((IVideo)video).Series.All(user.IsAllowedToSee);
 
     private static IReadOnlyList<IShokoSeries> BuildSeriesChain(IReadOnlyList<IShokoSeries> seriesList, bool includePrequels)
     {

@@ -7,14 +7,23 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Filters;
 
-public sealed class FilterableGroupUserInfo(AnimeGroup group, int userID, DateTime now) : IFilterableUserInfo
+/// <summary>
+///   What the filters read of a user's data for a group, over the series the
+///   user may see when a view is given.
+/// </summary>
+/// <param name="group">The group.</param>
+/// <param name="userID">The user's ID.</param>
+/// <param name="now">The time the filters are evaluated at.</param>
+/// <param name="view">The group as the user sees it, if any.</param>
+public sealed class FilterableGroupUserInfo(AnimeGroup group, int userID, DateTime now, AnimeGroupView? view = null) : IFilterableUserInfo
 {
     private List<AnimeSeries>? _allSeries;
-    private List<AnimeSeries> AllSeries => _allSeries ??= group.AllSeries;
+    private List<AnimeSeries> AllSeries => _allSeries ??= view is { IsComplete: false } ? [.. view.AllSeries] : group.AllSeries;
 
     private Dictionary<int, AnimeSeries_User>? _seriesUserDict;
     private Dictionary<int, AnimeSeries_User> SeriesUserDict => _seriesUserDict ??=

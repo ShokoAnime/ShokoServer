@@ -3,6 +3,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.User.Services;
 
 namespace Shoko.Server.Actions;
 
@@ -10,7 +12,7 @@ namespace Shoko.Server.Actions;
 ///   Add every file in the group to the user's AniDB MyList. Files already on the
 ///   MyList have their state refreshed rather than being added twice.
 /// </summary>
-public sealed class AddGroupToMylistAction(IMylistService mylistService) : GroupAction
+public sealed class AddGroupToMylistAction(IMylistService mylistService, IActorContext actorContext) : GroupAction, IVisibleSeriesGroupAction
 {
     public override string Name => "Add to MyList";
 
@@ -22,7 +24,7 @@ public sealed class AddGroupToMylistAction(IMylistService mylistService) : Group
 
     public override async Task Execute(CancellationToken token = default)
     {
-        foreach (var video in Group.AllSeries.SelectMany(series => series.Videos).DistinctBy(video => video.LocalID))
+        foreach (var video in Group.GetVisibleSeries(actorContext).SelectMany(series => ((IShokoSeries)series).Videos).DistinctBy(video => video.LocalID))
             await mylistService.ScheduleAddVideo(video);
     }
 }
