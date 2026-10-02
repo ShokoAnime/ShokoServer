@@ -18,7 +18,6 @@ using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.User.Update;
-using Shoko.Abstractions.Video.Media;
 using Shoko.Abstractions.Video.Services;
 using Shoko.Abstractions.Video.Streaming;
 using Shoko.QueueProcessor.Abstractions;
@@ -1526,6 +1525,11 @@ public class FileController(
     /// <summary>
     /// Update either watch status, resume position, or both.
     /// </summary>
+    /// <remarks>
+    /// A <c>resumePosition</c> past 97.5% of the runtime marks the file watched
+    /// and clears it for <c>stop</c>, <c>user-interaction</c> or no event; the
+    /// other events store the position as given.
+    /// </remarks>
     /// <param name="fileID">VideoLocal ID. Watch status and resume position is kept per file, regardless of how many duplicates the file has.</param>
     /// <param name="eventName">The name of the event that triggered the scrobble.</param>
     /// <param name="watched">True if file should be marked as watched, false if file should be unmarked, or null if it shall not be updated.</param>
@@ -1540,7 +1544,6 @@ public class FileController(
             return NotFound(FileNotFoundWithFileID);
 
         TimeSpan? playPosition = null;
-        var playPositionWasAdjusted = false;
         if (resumePosition != null && long.TryParse(resumePosition, out var resumePositionLong))
             playPosition = TimeSpan.FromTicks(resumePositionLong);
         else if (resumePosition != null && TimeSpan.TryParse(resumePosition, out var playPositionTs))
@@ -1551,21 +1554,8 @@ public class FileController(
             if (playPosition < TimeSpan.Zero)
                 return ValidationProblem("The resume position cannot be less than zero.", nameof(resumePosition));
 
-            // Alternatively, we could leave this to the user data service, but we want to give a useful response.
-            // Set the video as watched and reset the progress if the progress is over 97.5%
-            var percentage = file.MediaInfo is IMediaInfo { Duration: var duration }
-                ? playPosition.Value.TotalMilliseconds / duration.TotalMilliseconds
-                : 0d;
-            if (percentage > 0.975d)
-            {
-                watched = true;
+            if (watched is true && playPosition == TimeSpan.Zero)
                 playPosition = null;
-                playPositionWasAdjusted = true;
-            }
-            else if (watched is true && playPosition == TimeSpan.Zero)
-            {
-                playPosition = null;
-            }
         }
 
         var reason = eventName switch
@@ -1583,13 +1573,14 @@ public class FileController(
             userDataUpdate.ProgressPosition = playPosition;
         if (watched.HasValue)
             userDataUpdate.LastPlayedAt = watched.Value ? userDataUpdate.LastUpdatedAt.Value : null;
-        await _userDataService.SaveVideoUserData(file, User, userDataUpdate, reason);
+        // The service decides whether the position counts as finished.
+        var result = await ((UserDataService)_userDataService).SaveVideoUserDataWithResult(file, User, userDataUpdate, reason);
 
         // Give useful responses
         // We are trying to scrobble position
-        if (playPositionWasAdjusted)
+        if (result.CompletionApplied)
             return Accepted((string?)null,
-                $"The {nameof(resumePosition)} was greater than or equal to the file's duration, so it was marked as watched. {nameof(resumePosition)}: {playPosition} vs {nameof(file.DurationTimeSpan)}: {file.DurationTimeSpan}");
+                $"The {nameof(resumePosition)} was past the completion threshold, so the file counts as watched and its progress was cleared. {nameof(resumePosition)}: {playPosition} vs {nameof(file.DurationTimeSpan)}: {file.DurationTimeSpan}");
         if (watched is true && playPosition.HasValue)
             return Accepted((string?)null, $"The file was marked as watched with the progress position set to {playPosition}.");
         if (watched is true)

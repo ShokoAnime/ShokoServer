@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using Shoko.Abstractions.User.Enums;
 
 namespace Shoko.Abstractions.User.Update;
 
@@ -69,6 +70,21 @@ public class VideoUserDataUpdate
     ///   propagating to any episodes associated with the video.
     /// </summary>
     public bool NoEpisodePropagation { get; set; }
+
+    /// <summary>
+    ///   Forces the completion rule on (<c>true</c>) or off (<c>false</c>)
+    ///   for this save, or leaves it to the save reason (<c>null</c>). The
+    ///   rule treats a <see cref="ProgressPosition"/> past 97.5% of the
+    ///   runtime as finished: it marks the video watched and clears the
+    ///   position.
+    /// </summary>
+    /// <remarks>
+    ///   By default only <see cref="VideoUserDataSaveReason.PlaybackEnd"/>,
+    ///   <see cref="VideoUserDataSaveReason.UserInteraction"/> and
+    ///   <see cref="VideoUserDataSaveReason.None"/> apply it. Every other
+    ///   reason stores the position as given.
+    /// </remarks>
+    public bool? ApplyCompletionThreshold { get; set; }
 
     /// <summary>
     ///   Indicates if <see cref="LastVideoStreamIndex"/> has been set to a

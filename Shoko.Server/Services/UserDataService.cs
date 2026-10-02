@@ -45,6 +45,12 @@ public class UserDataService(
 
     #region Video User Data
 
+    /// <summary>
+    ///   The share of a video's runtime past which the completion rule
+    ///   treats a position as finished.
+    /// </summary>
+    internal const double CompletionThreshold = 0.975d;
+
     public event EventHandler<VideoUserDataSavedEventArgs>? VideoUserDataSaved;
 
     public IVideoUserData? GetVideoUserData(IVideo video, IUser user)
@@ -74,8 +80,8 @@ public class UserDataService(
         return videoUserDataRepository.GetByVideoLocalID(video.LocalID);
     }
 
-    public Task<IVideoUserData> SetVideoWatchedStatus(IVideo video, IUser user, bool watched = true, DateTime? watchedAt = null, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool noEpisodePropagation = false, bool updateStatsNow = true)
-        => SaveVideoUserDataInternal(
+    public async Task<IVideoUserData> SetVideoWatchedStatus(IVideo video, IUser user, bool watched = true, DateTime? watchedAt = null, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool noEpisodePropagation = false, bool updateStatsNow = true)
+        => (await SaveVideoUserDataInternal(
             video,
             user,
             new()
@@ -87,15 +93,31 @@ public class UserDataService(
             },
             reason: reason,
             updateStatsNow: updateStatsNow
-        );
+        )).UserData;
 
-    public Task<IVideoUserData> SaveVideoUserData(IVideo video, IUser user, VideoUserDataUpdate userDataUpdate, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool updateStatsNow = true)
-        => SaveVideoUserDataInternal(video, user, userDataUpdate, reason, null, updateStatsNow);
+    public async Task<IVideoUserData> SaveVideoUserData(IVideo video, IUser user, VideoUserDataUpdate userDataUpdate, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, bool updateStatsNow = true)
+        => (await SaveVideoUserDataInternal(video, user, userDataUpdate, reason, null, updateStatsNow)).UserData;
 
-    public Task<IVideoUserData> ImportVideoUserData(IVideo video, IUser user, VideoUserDataUpdate userDataUpdate, string importSource, bool updateStatsNow = true)
-        => SaveVideoUserDataInternal(video, user, userDataUpdate, VideoUserDataSaveReason.Import, importSource, updateStatsNow);
+    /// <summary>
+    ///   Saves the user data like <see cref="SaveVideoUserData"/>, and also
+    ///   reports whether the completion rule treated the position as finished.
+    /// </summary>
+    /// <param name="video">The video to save user data for.</param>
+    /// <param name="user">The user to save user data for.</param>
+    /// <param name="userDataUpdate">The update to save.</param>
+    /// <param name="reason">The reason for the save.</param>
+    /// <exception cref="ArgumentNullException">
+    ///   Thrown when <paramref name="video"/>, <paramref name="user"/> or
+    ///   <paramref name="userDataUpdate"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>The saved user data and whether the rule applied.</returns>
+    internal Task<VideoUserDataSaveResult> SaveVideoUserDataWithResult(IVideo video, IUser user, VideoUserDataUpdate userDataUpdate, VideoUserDataSaveReason reason)
+        => SaveVideoUserDataInternal(video, user, userDataUpdate, reason);
 
-    private async Task<IVideoUserData> SaveVideoUserDataInternal(IVideo video, IUser user, VideoUserDataUpdate userDataUpdate, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, string? importSource = null, bool updateStatsNow = true)
+    public async Task<IVideoUserData> ImportVideoUserData(IVideo video, IUser user, VideoUserDataUpdate userDataUpdate, string importSource, bool updateStatsNow = true)
+        => (await SaveVideoUserDataInternal(video, user, userDataUpdate, VideoUserDataSaveReason.Import, importSource, updateStatsNow)).UserData;
+
+    private async Task<VideoUserDataSaveResult> SaveVideoUserDataInternal(IVideo video, IUser user, VideoUserDataUpdate userDataUpdate, VideoUserDataSaveReason reason = VideoUserDataSaveReason.None, string? importSource = null, bool updateStatsNow = true)
     {
         ArgumentNullException.ThrowIfNull(user, nameof(user));
         ArgumentNullException.ThrowIfNull(video, nameof(video));
@@ -116,21 +138,12 @@ public class UserDataService(
         ))
             reason = VideoUserDataSaveReason.None;
 
-        // Set the video as watched and reset the progress if the progress is over 97.5%
         var duration = video.MediaInfo is { } mediaInfo
             ? mediaInfo.Duration
             : (TimeSpan?)null;
-        var percentage = userDataUpdate.ProgressPosition.HasValue && duration.HasValue
-            ? userDataUpdate.ProgressPosition.Value.TotalMilliseconds / duration.Value.TotalMilliseconds
-            : 0d;
-        if (percentage > 0.975d)
-        {
-            userDataUpdate.LastPlayedAt ??= DateTime.Now;
-            userDataUpdate.ProgressPosition = null;
-        }
-
         var userData = videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, video.LocalID)
             ?? new() { JMMUserID = user.LocalID, VideoLocalID = video.LocalID };
+        var completionApplied = ApplyCompletionRule(userData, userDataUpdate, duration, reason);
         // WatchedDate stores local time, but a caller can hand us UTC — the MyList
         // sync reads AniDB, which is UTC throughout. Read as local for both the
         // compare and the store, or an equal date in the other kind reads as a
@@ -367,8 +380,47 @@ public class UserDataService(
                 UpdateWatchedStats(group, user);
         }
 
-        return userData;
+        return new(userData, completionApplied);
     }
+
+    /// <summary>
+    ///   Treats a position past <see cref="CompletionThreshold"/> of the
+    ///   runtime as finished, when the update or the reason asks for it: the
+    ///   position is cleared and, unless nothing played since the video was
+    ///   last finished, the video is marked watched.
+    /// </summary>
+    /// <param name="userData">The stored user data.</param>
+    /// <param name="userDataUpdate">The update, rewritten in place.</param>
+    /// <param name="duration">The video's runtime, if known.</param>
+    /// <param name="reason">The reason for the save.</param>
+    /// <returns><c>true</c> if the position was treated as finished.</returns>
+    private static bool ApplyCompletionRule(VideoLocal_User userData, VideoUserDataUpdate userDataUpdate, TimeSpan? duration, VideoUserDataSaveReason reason)
+    {
+        var apply = userDataUpdate.ApplyCompletionThreshold ?? reason is
+            VideoUserDataSaveReason.None or
+            VideoUserDataSaveReason.UserInteraction or
+            VideoUserDataSaveReason.PlaybackEnd;
+        if (!apply || userDataUpdate.ProgressPosition is not { } position || duration is not { } runtime || runtime <= TimeSpan.Zero)
+            return false;
+        if (position.TotalMilliseconds / runtime.TotalMilliseconds <= CompletionThreshold)
+            return false;
+
+        // A playthrough finishes once. Saving past the threshold again with no
+        // progress stored since must not count, sync or raise a new watch.
+        if (!userData.WatchedDate.HasValue || userData.ProgressPosition.HasValue)
+            userDataUpdate.LastPlayedAt ??= DateTime.Now;
+        userDataUpdate.ProgressPosition = null;
+        return true;
+    }
+
+    /// <summary>
+    ///   The outcome of a video user data save.
+    /// </summary>
+    /// <param name="UserData">The saved user data.</param>
+    /// <param name="CompletionApplied">
+    ///   Whether the completion rule treated the position as finished.
+    /// </param>
+    internal sealed record VideoUserDataSaveResult(IVideoUserData UserData, bool CompletionApplied);
 
     #endregion
 

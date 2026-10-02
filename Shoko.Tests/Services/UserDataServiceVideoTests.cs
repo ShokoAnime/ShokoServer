@@ -237,16 +237,110 @@ public class UserDataServiceVideoTests
         Assert.Equal(TimeSpan.Zero, result.ProgressPosition);
     }
 
-    [Fact]
-    public async Task ProgressPastTheNearlyFinishedThresholdMarksTheVideoWatched()
+    [Theory]
+    [InlineData(VideoUserDataSaveReason.PlaybackEnd)]
+    [InlineData(VideoUserDataSaveReason.UserInteraction)]
+    [InlineData(VideoUserDataSaveReason.None)]
+    public async Task ProgressPastTheNearlyFinishedThresholdMarksTheVideoWatched(VideoUserDataSaveReason reason)
     {
         using var harness = Create();
 
         // Anything past 97.5% counts as finished, so trailing credits do not leave it unwatched.
-        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.98 });
+        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.98 }, reason);
 
         Assert.NotNull(result.LastPlayedAt);
         Assert.Equal(TimeSpan.Zero, result.ProgressPosition);
+    }
+
+    [Theory]
+    [InlineData(VideoUserDataSaveReason.PlaybackStart)]
+    [InlineData(VideoUserDataSaveReason.PlaybackPause)]
+    [InlineData(VideoUserDataSaveReason.PlaybackResume)]
+    [InlineData(VideoUserDataSaveReason.PlaybackProgress)]
+    public async Task ProgressPastTheThresholdDuringPlaybackIsStoredAsGiven(VideoUserDataSaveReason reason)
+    {
+        using var harness = Create();
+
+        // A player still running through the credits has not finished; marking it watched on
+        // every tick would raise a watch, and a sync, per tick.
+        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.98 }, reason);
+
+        Assert.Null(result.LastPlayedAt);
+        Assert.Equal(s_duration * 0.98, result.ProgressPosition);
+    }
+
+    [Fact]
+    public async Task AnImportPastTheThresholdIsStoredAsGiven()
+    {
+        using var harness = Create();
+
+        var result = await harness.Service.ImportVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.98 }, "Test");
+
+        Assert.Null(result.LastPlayedAt);
+        Assert.Equal(s_duration * 0.98, result.ProgressPosition);
+    }
+
+    [Fact]
+    public async Task TheOverrideForcesTheRuleOn()
+    {
+        using var harness = Create();
+        var update = new VideoUserDataUpdate { ProgressPosition = s_duration * 0.98, ApplyCompletionThreshold = true };
+
+        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, update, VideoUserDataSaveReason.PlaybackProgress);
+
+        Assert.NotNull(result.LastPlayedAt);
+        Assert.Equal(TimeSpan.Zero, result.ProgressPosition);
+    }
+
+    [Fact]
+    public async Task TheOverrideForcesTheRuleOff()
+    {
+        using var harness = Create();
+        var update = new VideoUserDataUpdate { ProgressPosition = s_duration * 0.98, ApplyCompletionThreshold = false };
+
+        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, update, VideoUserDataSaveReason.PlaybackEnd);
+
+        Assert.Null(result.LastPlayedAt);
+        Assert.Equal(s_duration * 0.98, result.ProgressPosition);
+    }
+
+    [Fact]
+    public async Task FinishingAgainWithNoProgressSinceIsNotANewWatch()
+    {
+        var watchedAt = new DateTime(2024, 5, 1, 12, 0, 0, DateTimeKind.Local);
+        using var harness = Create(Existing(watchedDate: watchedAt, watchedCount: 1));
+        var raised = false;
+        harness.Service.VideoUserDataSaved += (_, _) => raised = true;
+
+        // A client without event names repeats its position past the end until it stops.
+        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.99 });
+
+        Assert.Equal(watchedAt, result.LastPlayedAt);
+        Assert.Equal(1, result.PlaybackCount);
+        Assert.False(raised);
+    }
+
+    [Fact]
+    public async Task FinishingARewatchCountsAgain()
+    {
+        using var harness = Create(Existing(watchedDate: new DateTime(2024, 5, 1, 12, 0, 0, DateTimeKind.Local), watchedCount: 1, progress: s_duration * 0.98));
+
+        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.99 }, VideoUserDataSaveReason.PlaybackEnd);
+
+        Assert.Equal(2, result.PlaybackCount);
+        Assert.Equal(TimeSpan.Zero, result.ProgressPosition);
+    }
+
+    [Fact]
+    public async Task TheResultReportsWhetherTheRuleApplied()
+    {
+        using var harness = Create();
+
+        var progress = await harness.Service.SaveVideoUserDataWithResult(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.98 }, VideoUserDataSaveReason.PlaybackProgress);
+        var end = await harness.Service.SaveVideoUserDataWithResult(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.99 }, VideoUserDataSaveReason.PlaybackEnd);
+
+        Assert.False(progress.CompletionApplied);
+        Assert.True(end.CompletionApplied);
     }
 
     [Fact]

@@ -120,7 +120,9 @@ public interface IUserDataService
     ///   The update containing the details to save.
     /// </param>
     /// <param name="reason">
-    ///   The reason why the user data was updated.
+    ///   The reason why the user data was updated. It also decides whether
+    ///   the completion rule applies, unless
+    ///   <see cref="VideoUserDataUpdate.ApplyCompletionThreshold"/> is set.
     /// </param>
     /// <param name="updateStatsNow">
     ///   Optional. When set to <c>true</c> will update the series stats after
