@@ -467,6 +467,20 @@ public class UserDataServiceVideoTests
     }
 
     [Fact]
+    public async Task AnImportKeepsItsSource()
+    {
+        using var harness = Create();
+        VideoUserDataSavedEventArgs? captured = null;
+        harness.Service.VideoUserDataSaved += (_, args) => captured = args;
+
+        await harness.Service.ImportVideoUserData(harness.Video, harness.User, new() { LastPlayedAt = DateTime.Now }, "AniDB");
+
+        // The source is what stops an AniDB import from being queued back to AniDB.
+        Assert.True(captured!.IsImport);
+        Assert.Equal("AniDB", captured.ImportSource);
+    }
+
+    [Fact]
     public async Task NoEventIsRaisedWhenNothingChanged()
     {
         var watchedAt = new DateTime(2024, 5, 1, 12, 0, 0, DateTimeKind.Local);

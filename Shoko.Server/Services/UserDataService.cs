@@ -124,7 +124,7 @@ public class UserDataService(
         ArgumentNullException.ThrowIfNull(userDataUpdate, nameof(userDataUpdate));
         if (reason is VideoUserDataSaveReason.Import && string.IsNullOrWhiteSpace(importSource))
             reason = VideoUserDataSaveReason.None;
-        else if (!string.IsNullOrWhiteSpace(importSource))
+        else if (reason is not VideoUserDataSaveReason.Import)
             importSource = null;
         if (reason is not (
             VideoUserDataSaveReason.None or

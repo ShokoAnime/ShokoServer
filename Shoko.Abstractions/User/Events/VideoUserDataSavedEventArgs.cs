@@ -54,7 +54,7 @@ public class VideoUserDataSavedEventArgs : EventArgs
     {
         if (reason is VideoUserDataSaveReason.Import && string.IsNullOrWhiteSpace(importSource))
             reason = VideoUserDataSaveReason.None;
-        else if (!string.IsNullOrWhiteSpace(importSource))
+        else if (reason is not VideoUserDataSaveReason.Import)
             importSource = null;
 
         Reason = reason;
