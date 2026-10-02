@@ -759,6 +759,10 @@ public class RelocationController(
             if (presetInfo.Configuration is null)
                 return NotFound("Relocation provider not found for relocation preset.");
 
+            // Without the provider the secrets can't be masked, so only an admin sees the raw configuration.
+            if (User.IsAdmin is 0)
+                return Forbid();
+
             // Support showing the configuration in the REST API even if the provider is unavailable.
             return Content(Encoding.UTF8.GetString(presetInfo.Configuration!), "application/json");
         }
@@ -790,6 +794,7 @@ public class RelocationController(
     /// <returns>
     ///   Ok if successful.
     /// </returns>
+    [Authorize("admin")]
     [HttpPut("Preset/{presetID}/Configuration")]
     public ActionResult PutConfigurationForRelocationPresetByPresetID(Guid presetID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] JToken? body)
     {
@@ -836,6 +841,7 @@ public class RelocationController(
     /// <returns>
     ///   Ok if successful.
     /// </returns>
+    [Authorize("admin")]
     [HttpPatch("Preset/{presetID}/Configuration")]
     public ActionResult PatchConfigurationForRelocationPresetByPresetID(Guid presetID, [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] JsonPatchDocument patchDocument)
     {
