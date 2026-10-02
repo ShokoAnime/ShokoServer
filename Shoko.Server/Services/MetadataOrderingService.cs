@@ -135,7 +135,7 @@ public class MetadataOrderingService(
         if (orderingID.EntityType != MetadataEntityType.Ordering)
             return null;
         if (FindOrdering(orderingID) is { } ordering)
-            return ordering;
+            return GetSeries(ordering.SeriesID) is not null ? ordering : null;
 
         return SeriesOfDefaultOrdering(orderingID) is { } seriesID &&
             GetSeries(seriesID) is { } series &&
@@ -148,7 +148,7 @@ public class MetadataOrderingService(
     public IReadOnlyList<IOrdering> GetStoredOrderings(MetadataSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        return Stored(orderingRepository.GetBySource(source));
+        return Stored(orderingRepository.GetBySource(source).Where(row => GetSeries(row.SeriesGuid) is not null));
     }
 
     /// <inheritdoc />
@@ -199,7 +199,8 @@ public class MetadataOrderingService(
         ArgumentNullException.ThrowIfNull(groupID);
         if (groupID.EntityType != MetadataEntityType.Season ||
             groupRepository.GetByProviderID(groupID.Source, groupID.ID) is not { } group ||
-            orderingRepository.GetByProviderID(group.Source, group.OrderingID) is not { } ordering)
+            orderingRepository.GetByProviderID(group.Source, group.OrderingID) is not { } ordering ||
+            GetSeries(ordering.SeriesGuid) is null)
             return null;
 
         return new StoredOrdering(ordering, this).Groups.FirstOrDefault(stored => stored.ID == groupID);

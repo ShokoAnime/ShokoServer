@@ -187,18 +187,22 @@ public class TmdbMetadataProvider : IMetadataSeriesLinkingProvider, IMetadataMov
     }
 
     /// <summary>
-    ///   Clears what TMDB's tables still hold for shows, movies and
-    ///   collections with no row of their own, then stamps the people and
-    ///   networks nothing uses any more and removes the ones stamped before a
-    ///   cutoff.
+    ///   Clears what TMDB's tables still hold for unlinked shows, movies and
+    ///   collections with no row of their own, queues a refresh of the linked
+    ///   ones with no row, then stamps the people and networks nothing uses
+    ///   any more and removes the ones stamped before a cutoff.
     /// </summary>
     /// <param name="orphanedBefore">Remove only the people and networks orphaned before this time.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many leftover entries, people and networks were removed.</returns>
     async Task<int> ICoreMetadataOrphanPurger.PurgeOrphaned(DateTime orphanedBefore, CancellationToken cancellationToken)
-        => await _updater.PurgeLeftovers(cancellationToken).ConfigureAwait(false) +
+    {
+        var removed = await _updater.PurgeLeftovers(cancellationToken).ConfigureAwait(false);
+        await _updater.RestoreLinkedLeftovers(cancellationToken).ConfigureAwait(false);
+        return removed +
             await _updater.PurgeOrphanedPeople(orphanedBefore).ConfigureAwait(false) +
             await _updater.PurgeUnlinkedShowNetworks(orphanedBefore).ConfigureAwait(false);
+    }
 
     #endregion
 

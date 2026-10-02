@@ -441,20 +441,14 @@ public partial class TmdbMetadataUpdater
     /// <remarks>
     ///   The people it credited are stamped as orphaned and removed once they
     ///   have been for long enough. The links to the movie are the core's, and
-    ///   are gone before this is called.
+    ///   are gone before this is called. The movie's own row goes last, so an
+    ///   interrupted purge is finished by the next one.
     /// </remarks>
     /// <param name="movieId">The TMDB movie ID.</param>
     /// <returns>A task that completes once the movie is removed.</returns>
     public async Task PurgeMovie(int movieId)
     {
         var movie = _tmdbMovies.GetByTmdbMovieID(movieId);
-        if (movie is not null)
-        {
-            _logger.LogTrace("Removing movie {MovieName} (Movie={MovieID})", movie.OriginalTitle, movie.Id);
-            _tmdbMovies.Delete(movie);
-        }
-
-        _imageService.PurgeImages(movie ?? new() { TmdbMovieID = movieId });
 
         PurgeMovieCompanies(movieId);
 
@@ -465,6 +459,14 @@ public partial class TmdbMetadataUpdater
         PurgeSuggestions(MetadataEntityType.Movie, movieId);
 
         PurgeTitlesAndOverviews(MetadataEntityType.Movie, movieId);
+
+        _imageService.PurgeImages(movie ?? new() { TmdbMovieID = movieId });
+
+        if (movie is not null)
+        {
+            _logger.LogTrace("Removing movie {MovieName} (Movie={MovieID})", movie.OriginalTitle, movie.Id);
+            _tmdbMovies.Delete(movie);
+        }
     }
 
     private void PurgeMovieCompanies(int movieId)

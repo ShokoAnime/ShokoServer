@@ -35,8 +35,14 @@ public class TMDB_EpisodeRepository(DatabaseFactory databaseFactory) : BaseCache
         return _seasonIDs.GetMultiple(seasonId).OrderBy(a => a.EpisodeNumber).ToList();
     }
 
+    /// <summary>
+    ///   Looks up an episode whose show is stored. An episode left without its
+    ///   show, as by an interrupted purge, is never handed out.
+    /// </summary>
+    /// <param name="episodeId">The TMDB episode ID.</param>
+    /// <returns>The episode, or <c>null</c> when it or its show is missing.</returns>
     public TMDB_Episode? GetByTmdbEpisodeID(int episodeId)
-    {
-        return _episodeIDs.GetOne(episodeId);
-    }
+        => _episodeIDs.GetOne(episodeId) is { } episode && RepoFactory.TMDB_Show.GetByTmdbShowID(episode.TmdbShowID) is not null
+            ? episode
+            : null;
 }

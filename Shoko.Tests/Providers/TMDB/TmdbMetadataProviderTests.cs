@@ -235,6 +235,11 @@ public class TmdbMetadataProviderTests
             new TMDB_Episode { TmdbEpisodeID = 521, TmdbShowID = 5, TmdbSeasonID = 52, SeasonNumber = 2, EpisodeNumber = 1, AiredAt = _firstAired },
         ]);
 
+    // The shows the matching seasons and episodes belong to, which a season
+    // or episode needs to be found.
+    private static TMDB_ShowRepository MatchingShows()
+        => CachedRepo.Build<TMDB_ShowRepository, int, TMDB_Show>(show => show.TmdbShowID, [new TMDB_Show(5), new TMDB_Show(6)]);
+
     private static TmdbMetadataProvider MatchingProvider(
         TMDB_EpisodeRepository? episodes = null,
         TMDB_AlternateOrdering_SeasonRepository? alternateOrderingSeasons = null,
@@ -249,7 +254,7 @@ public class TmdbMetadataProviderTests
             new MetadataMatchingEngine(NullLogger<MetadataMatchingEngine>.Instance, new FuzzySearchService()),
             null!,
             null!,
-            CachedRepo.Build<TMDB_ShowRepository, int, TMDB_Show>(show => show.TmdbShowID, [new TMDB_Show(5), new TMDB_Show(6)]),
+            MatchingShows(),
             CachedRepo.Build<TMDB_SeasonRepository, int, TMDB_Season>(season => season.TmdbSeasonID,
             [
                 new TMDB_Season { TmdbSeasonID = 50, TmdbShowID = 5, SeasonNumber = 0 },
@@ -314,6 +319,7 @@ public class TmdbMetadataProviderTests
     [Fact]
     public async Task MatchingOneSeason_OffersItsEpisodesAndTheSpecials()
     {
+        using var scope = new RepoFactoryScope().Set(MatchingShows());
         var provider = MatchingProvider();
 
         var matches = await Match(provider, [AnidbEpisode(1, 1, _firstAired), AnidbEpisode(2, 1, _firstAired.AddDays(3), EpisodeType.Special)], seasonID: 51);
@@ -327,6 +333,7 @@ public class TmdbMetadataProviderTests
     [Fact]
     public async Task ASeasonOfAnotherShow_IsRefused()
     {
+        using var scope = new RepoFactoryScope().Set(MatchingShows());
         var matches = await Match(MatchingProvider(), [AnidbEpisode(1, 1, _firstAired)], seasonID: 61);
 
         Assert.Empty(matches);
@@ -370,6 +377,7 @@ public class TmdbMetadataProviderTests
             _ => null,
         });
         using var scope = new RepoFactoryScope()
+            .Set(MatchingShows())
             .Set(episodes)
             .Set(groupEpisodes.Object);
         var provider = MatchingProvider(episodes, alternateOrderingSeasons: groups.Object);

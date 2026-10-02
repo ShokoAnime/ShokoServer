@@ -950,13 +950,30 @@ public partial class TmdbMetadataUpdater
     /// <remarks>
     ///   The people it credited are stamped as orphaned and removed once they
     ///   have been for long enough. The links to the show are the core's, and
-    ///   are gone before this is called.
+    ///   are gone before this is called. The show's own row goes last, so an
+    ///   interrupted purge never leaves seasons or episodes without it.
     /// </remarks>
     /// <param name="showId">The TMDB show ID.</param>
     /// <returns>A task that completes once the show is removed.</returns>
     public async Task PurgeShow(int showId)
     {
         var show = _tmdbShows.GetByTmdbShowID(showId);
+
+        PurgeShowCompanies(showId);
+
+        await PurgeShowNetworks(showId);
+
+        PurgeSuggestions(MetadataEntityType.Series, showId);
+
+        PurgeShowEpisodeGroups(showId);
+
+        PurgeShowEpisodes(showId);
+
+        PurgeShowSeasons(showId);
+
+        await PurgeShowCastAndCrew(showId);
+
+        PurgeTitlesAndOverviews(MetadataEntityType.Series, showId);
 
         _imageService.PurgeImages(show ?? new() { TmdbShowID = showId });
 
@@ -969,22 +986,6 @@ public partial class TmdbMetadataUpdater
             );
             _tmdbShows.Delete(show);
         }
-
-        PurgeTitlesAndOverviews(MetadataEntityType.Series, showId);
-
-        PurgeShowCompanies(showId);
-
-        await PurgeShowNetworks(showId);
-
-        PurgeSuggestions(MetadataEntityType.Series, showId);
-
-        PurgeShowEpisodes(showId);
-
-        PurgeShowSeasons(showId);
-
-        await PurgeShowCastAndCrew(showId);
-
-        PurgeShowEpisodeGroups(showId);
     }
 
     private void PurgeShowCompanies(int showId)

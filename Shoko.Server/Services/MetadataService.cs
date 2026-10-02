@@ -538,7 +538,16 @@ public class MetadataService : IMetadataService
     private IMetadata? GetTmdbSeason(MetadataGuid id)
         => id.TryGetNumericID<int>(out var tmdbID)
             ? tmdbID > 0 ? _tmdbSeasonRepository.GetByTmdbSeasonID(tmdbID) : null
-            : _tmdbAlternateSeasonRepository.GetByTmdbEpisodeGroupID(id.ID);
+            : _tmdbAlternateSeasonRepository.GetByTmdbEpisodeGroupID(id.ID) is { } season && HasTmdbShow(season.TmdbShowID) ? season : null;
+
+    /// <summary>
+    ///   Whether a TMDB show is stored, which its seasons and episodes need to
+    ///   be handed out.
+    /// </summary>
+    /// <param name="showID">The TMDB show ID.</param>
+    /// <returns><see langword="true"/> when the show has its row.</returns>
+    private bool HasTmdbShow(int showID)
+        => _tmdbShowRepository.GetByTmdbShowID(showID) is not null;
 
     /// <summary>
     ///   A TMDB genre or keyword, which TMDB's tables keep only as names on
@@ -726,7 +735,7 @@ public class MetadataService : IMetadataService
         {
             _ when source == MetadataSource.Shoko => _episodeRepository.GetAll(),
             _ when source == MetadataSource.AniDB => _anidbEpisodeRepository.GetAll(),
-            _ when source == MetadataSource.TMDB => _tmdbEpisodeRepository.GetAll(),
+            _ when source == MetadataSource.TMDB => _tmdbEpisodeRepository.GetAll().Where(episode => HasTmdbShow(episode.TmdbShowID)),
             _ when source.IsCore => [],
             _ => _seriesStore.GetAllEpisodes(source),
         };
@@ -777,8 +786,11 @@ public class MetadataService : IMetadataService
         => source switch
         {
             _ when source == MetadataSource.TMDB => includeAlternateSeasons
-                ? [.. _tmdbSeasonRepository.GetAll(), .. _tmdbAlternateSeasonRepository.GetAll()]
-                : _tmdbSeasonRepository.GetAll(),
+                ? [
+                    .. _tmdbSeasonRepository.GetAll().Where(season => HasTmdbShow(season.TmdbShowID)),
+                    .. _tmdbAlternateSeasonRepository.GetAll().Where(season => HasTmdbShow(season.TmdbShowID)),
+                ]
+                : _tmdbSeasonRepository.GetAll().Where(season => HasTmdbShow(season.TmdbShowID)),
             _ when source.IsCore => [],
             _ => _seriesStore.GetAllSeasons(source),
         };

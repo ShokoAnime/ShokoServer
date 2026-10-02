@@ -26,8 +26,14 @@ public class TMDB_SeasonRepository(DatabaseFactory databaseFactory) : BaseCached
             .ToList();
     }
 
+    /// <summary>
+    ///   Looks up a season whose show is stored. A season left without its
+    ///   show, as by an interrupted purge, is never handed out.
+    /// </summary>
+    /// <param name="tmdbSeasonId">The TMDB season ID.</param>
+    /// <returns>The season, or <c>null</c> when it or its show is missing.</returns>
     public TMDB_Season? GetByTmdbSeasonID(int tmdbSeasonId)
-    {
-        return _seasonIDs.GetOne(tmdbSeasonId);
-    }
+        => _seasonIDs.GetOne(tmdbSeasonId) is { } season && RepoFactory.TMDB_Show.GetByTmdbShowID(season.TmdbShowID) is not null
+            ? season
+            : null;
 }

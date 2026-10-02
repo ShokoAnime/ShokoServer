@@ -58,7 +58,12 @@ public class MetadataEpisodeLinkNumberTests
         );
 
     private static RepoFactoryScope TmdbEpisodes(params TMDB_Episode[] episodes)
-        => new RepoFactoryScope().With<TMDB_EpisodeRepository, int, TMDB_Episode>(episode => episode.TMDB_EpisodeID, episodes);
+    {
+        var shows = episodes.Select(episode => episode.TmdbShowID).Distinct().Select(showID => new TMDB_Show(showID));
+        return new RepoFactoryScope()
+            .With<TMDB_ShowRepository, int, TMDB_Show>(show => show.TmdbShowID, shows)
+            .With<TMDB_EpisodeRepository, int, TMDB_Episode>(episode => episode.TMDB_EpisodeID, episodes);
+    }
 
     #endregion
 

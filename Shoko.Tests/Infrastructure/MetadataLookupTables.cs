@@ -79,6 +79,11 @@ public sealed class MetadataLookupTables
     public Metadata_Collection_MemberRepository CollectionMembers { get; }
         = CachedRepo.Build<Metadata_Collection_MemberRepository, int, Metadata_Collection_Member>(row => row.Metadata_Collection_MemberID);
 
+    /// <summary>
+    /// The TMDB shows, which a TMDB season or episode needs to be found.
+    /// </summary>
+    public TMDB_ShowRepository TmdbShows { get; }
+
     public Metadata_CreatorRepository Creators { get; }
         = CachedRepo.Build<Metadata_CreatorRepository, int, Metadata_Creator>(row => row.Metadata_CreatorID);
 
@@ -136,7 +141,7 @@ public sealed class MetadataLookupTables
             series => series.AnimeSeriesID,
             new AnimeSeries { AnimeSeriesID = 3, AniDB_ID = 30, AnimeGroupID = 2 }
         );
-        var tmdbShows = CachedRepo.Build<TMDB_ShowRepository, int, TMDB_Show>(
+        var tmdbShows = TmdbShows = CachedRepo.Build<TMDB_ShowRepository, int, TMDB_Show>(
             show => show.TmdbShowID,
             new TMDB_Show(5) { Genres = ["Drama"], Keywords = [" isekai ", LongKeyword] }
         );
@@ -237,7 +242,7 @@ public sealed class MetadataLookupTables
     /// </summary>
     /// <returns>The scope, which puts the statics back when disposed.</returns>
     public RepoFactoryScope Scope()
-        => new RepoFactoryScope().Set(Series).Set(Seasons).Set(Episodes).Set(Movies).Set(Texts).Set(Collections).Set(CollectionMembers);
+        => new RepoFactoryScope().Set(Series).Set(Seasons).Set(Episodes).Set(Movies).Set(Texts).Set(Collections).Set(CollectionMembers).Set(TmdbShows);
 
     /// <summary>
     /// Stores one creator, character, tag, studio, network and collection of

@@ -62,14 +62,18 @@ public class MetadataSeriesStore(
     public ISeason? GetSeason(MetadataGuid id)
     {
         ArgumentNullException.ThrowIfNull(id);
-        return id.EntityType == MetadataEntityType.Season ? seasonRepository.GetByProviderID(id.Source, id.ID) : null;
+        return id.EntityType == MetadataEntityType.Season && seasonRepository.GetByProviderID(id.Source, id.ID) is { } season && HasSeries(season.Source, season.SeriesID)
+            ? season
+            : null;
     }
 
     /// <inheritdoc />
     public IEpisode? GetEpisode(MetadataGuid id)
     {
         ArgumentNullException.ThrowIfNull(id);
-        return id.EntityType == MetadataEntityType.Episode ? episodeRepository.GetByProviderID(id.Source, id.ID) : null;
+        return id.EntityType == MetadataEntityType.Episode && episodeRepository.GetByProviderID(id.Source, id.ID) is { } episode && HasSeries(episode.Source, episode.SeriesID)
+            ? episode
+            : null;
     }
 
     /// <inheritdoc />
@@ -83,15 +87,25 @@ public class MetadataSeriesStore(
     public IReadOnlyList<ISeason> GetAllSeasons(MetadataSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        return seasonRepository.GetBySource(source);
+        return [.. seasonRepository.GetBySource(source).Where(season => HasSeries(season.Source, season.SeriesID))];
     }
 
     /// <inheritdoc />
     public IReadOnlyList<IEpisode> GetAllEpisodes(MetadataSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        return episodeRepository.GetBySource(source);
+        return [.. episodeRepository.GetBySource(source).Where(episode => HasSeries(episode.Source, episode.SeriesID))];
     }
+
+    /// <summary>
+    ///   Whether a series is stored, which its seasons and episodes need to be
+    ///   handed out.
+    /// </summary>
+    /// <param name="source">The series' source.</param>
+    /// <param name="seriesID">The source's ID for the series.</param>
+    /// <returns><c>true</c> when the series has its row.</returns>
+    private bool HasSeries(MetadataSource source, string seriesID)
+        => seriesRepository.GetByProviderID(source, seriesID) is not null;
 
     #endregion
 

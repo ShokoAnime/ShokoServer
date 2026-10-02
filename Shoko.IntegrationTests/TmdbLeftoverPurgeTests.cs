@@ -60,8 +60,7 @@ public class TmdbLeftoverPurgeTests(DatabaseMigrationFixture fixture)
         }
         finally
         {
-            if (episodes.GetByTmdbEpisodeID(987_811) is { } episode)
-                episodes.Delete(episode);
+            episodes.Delete(episodes.GetByTmdbShowID(987_801));
             episodes.Delete(keptEpisode);
             shows.Delete(keptShow);
             movies.Delete(keptMovie);
