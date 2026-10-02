@@ -12,7 +12,6 @@ using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.TMDB;
-using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Xunit;
 using static Shoko.IntegrationTests.Sql;
 

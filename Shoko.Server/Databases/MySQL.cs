@@ -1530,6 +1530,12 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         // is taken as a trigger's.
         new(194, 171, "UPDATE `ScheduledAction` SET `LastScheduledRunAt` = `LastRunAt`;"),
         new(194, 172, "CREATE INDEX `IX_FileNameHash_Hash` ON `FileNameHash`(`Hash`);"),
+        // TMDB's episode groups are read by episode for every episode's orderings, which
+        // without an index meant a full scan each time.
+        new(194, 173, "CREATE INDEX `IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeID` ON `TMDB_AlternateOrdering_Episode`(`TmdbEpisodeID`);"),
+        new(194, 174, "CREATE INDEX `IX_TMDB_AlternateOrdering_Episode_TmdbShowID` ON `TMDB_AlternateOrdering_Episode`(`TmdbShowID`);"),
+        new(194, 175, "CREATE INDEX `IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeGroupID` ON `TMDB_AlternateOrdering_Episode`(`TmdbEpisodeGroupID`);"),
+        new(194, 176, "CREATE INDEX `IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeGroupCollectionID` ON `TMDB_AlternateOrdering_Episode`(`TmdbEpisodeGroupCollectionID`);"),
     ];
 
     #endregion

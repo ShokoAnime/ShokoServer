@@ -26,8 +26,6 @@ public static class RepositoryStartup
         services.AddDirectRepository<FileNameHashRepository>();
         services.AddDirectRepository<ScheduledUpdateRepository>();
         services.AddDirectRepository<TMDB_AlternateOrdering_EpisodeRepository>();
-        services.AddDirectRepository<TMDB_AlternateOrdering_SeasonRepository>();
-        services.AddDirectRepository<TMDB_AlternateOrderingRepository>();
         services.AddDirectRepository<TMDB_Collection_MovieRepository>();
         services.AddDirectRepository<TMDB_Company_EntityRepository>();
         services.AddDirectRepository<TMDB_CompanyRepository>();
@@ -110,6 +108,8 @@ public static class RepositoryStartup
         services.AddCachedRepository<Metadata_Ordering_GroupRepository>();
         services.AddCachedRepository<Metadata_Ordering_EntryRepository>();
         services.AddSingleton<MetadataRowWriter>();
+        services.AddCachedRepository<TMDB_AlternateOrderingRepository>();
+        services.AddCachedRepository<TMDB_AlternateOrdering_SeasonRepository>();
         services.AddCachedRepository<TMDB_CollectionRepository>();
         services.AddCachedRepository<TMDB_EpisodeRepository>();
         services.AddCachedRepository<TMDB_MovieRepository>();

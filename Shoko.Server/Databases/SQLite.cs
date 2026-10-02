@@ -1247,6 +1247,12 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         // is taken as a trigger's.
         new(173, 171, "UPDATE ScheduledAction SET LastScheduledRunAt = LastRunAt;"),
         new(173, 172, "CREATE INDEX IX_FileNameHash_Hash ON FileNameHash(Hash);"),
+        // TMDB's episode groups are read by episode for every episode's orderings, which
+        // without an index meant a full scan each time.
+        new(173, 173, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeID ON TMDB_AlternateOrdering_Episode(TmdbEpisodeID);"),
+        new(173, 174, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbShowID ON TMDB_AlternateOrdering_Episode(TmdbShowID);"),
+        new(173, 175, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeGroupID ON TMDB_AlternateOrdering_Episode(TmdbEpisodeGroupID);"),
+        new(173, 176, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeGroupCollectionID ON TMDB_AlternateOrdering_Episode(TmdbEpisodeGroupCollectionID);"),
     ];
 
     #endregion

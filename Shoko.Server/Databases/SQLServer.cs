@@ -1411,6 +1411,12 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         // is taken as a trigger's.
         new(192, 171, "UPDATE ScheduledAction SET LastScheduledRunAt = LastRunAt;"),
         new(192, 172, "CREATE INDEX IX_FileNameHash_Hash ON FileNameHash(Hash);"),
+        // TMDB's episode groups are read by episode for every episode's orderings, which
+        // without an index meant a full scan each time.
+        new(192, 173, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeID ON TMDB_AlternateOrdering_Episode(TmdbEpisodeID);"),
+        new(192, 174, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbShowID ON TMDB_AlternateOrdering_Episode(TmdbShowID);"),
+        new(192, 175, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeGroupID ON TMDB_AlternateOrdering_Episode(TmdbEpisodeGroupID);"),
+        new(192, 176, "CREATE INDEX IX_TMDB_AlternateOrdering_Episode_TmdbEpisodeGroupCollectionID ON TMDB_AlternateOrdering_Episode(TmdbEpisodeGroupCollectionID);"),
     ];
 
     #endregion
