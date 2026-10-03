@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.495",
+      "tag": "v6.0.0-dev.495",
+      "commit": "87e893dc5df955d9f259de765e988b84fcc58009",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.495/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-03T16:18:19Z",
+      "releaseNotes": "\n`refactor`: **My fourth most evilest commit to date**:\n\nMoved TMDb out of the core into a bundled plugin, brought the WebAOM renamer back as one too, and finished what the last one started. Every source, TMDb included, now keeps its data in the same shared tables, and the core no longer knows anything about TMDb beyond its API routes and the upgrade that moves its data over.\n\n**Internal changes:**\n\n- Moved TMDb into the bundled `Shoko.Plugin.Tmdb` plugin: its client, rate limiter, mapping, auto-linker, images, site pages, settings and actions. The upgrade copies the old `TMDB_*` tables into the shared `Metadata_*` tables and drops them, and moves the TMDb settings into the plugin's own configuration. Removed the `Shoko.Abstractions.Metadata.Tmdb` interfaces and services, and the core's `TMDbLib` dependency.\n\n- Brought the WebAOM renamer back as the bundled `Shoko.Plugin.WebAOM` plugin, and moved the existing presets over to it.\n\n- Typed series, seasons, episodes, orderings, movies and collections generically (`ISeries<TSeries, TEpisode>`, `IMovie<TMovie>`, …), so a source's own types come through without interfaces of their own, and gave suggestions their vote counts, approval ratings and scores.\n\n- Placed specials in every ordering. Providers can say where a special airs, AniDB specials are placed by their titles (\"Episode 6.5\"), and every place in an ordering says what it airs before or after. Orderings also got their networks, which users' orderings carry through export and import.\n\n- Added `IMetadataEntityProvider` for creators, characters, studios and networks. Entries a source names but hasn't stored yet are kept as stubs and refreshed by the provider that owns them. Entries now say when they were created, last updated and last refreshed, and movies, studios and creators got a few more fields (runtime, country, birthplace).\n\n- Let providers pin an entry's default images through the stores (`DefaultImageResourceIDs`) instead of marking image candidates, kept every content rating a source gives, and resolved the site pages of every kind of entry, people and companies included.\n\n- Kept a provider order per source and kind, so admins choose which provider answers for what, and let providers and image contributors name an icon.\n\n- Made the completion threshold a setting (`CompletionThresholdPercent`, 95% by default), added a queue-cleared trigger for scheduled actions, and made metadata jobs show their provider, source, kind and ID in the queue in their display form.\n\n- Gave the bundled plugins their thumbnails and icons, and made `DataType.Password` settings password fields in configuration schemas.\n\n- **Broke the abstraction again.** The TMDb interfaces are gone, the metadata types are generic, `ImageCandidate.IsDefault` and the TMDb action category were removed, and suggestions changed shape. Plugins built against an earlier alpha need to be rebuilt, and the ones reading TMDb data need changes too. **Use at your own risk.**\n\n**Changes in APIv3:**\n\n- Kept the TMDb routes and models, now read from the shared tables. TMDb's settings and actions moved to the plugin, `IsLocked` is gone from seasons, generic episode titles (\"Episode 6\") are made for the ordering being shown, and the English title is the main one.\n\n- Added per-source provider orders (`Metadata/Source/{source}/Providers`), source and provider icons, site URLs on metadata entries, creation and refresh dates on the metadata models, stubs and refreshes by hand for people, studios and networks, and the ordering choice on the generic metadata routes.\n\n`chore` (`abstractions`): **Bump abstractions version to v6.0.0-alpha.98**.\n"
+    },
+    {
       "version": "6.0.0.494",
       "tag": "v6.0.0-dev.494",
       "commit": "6a7aee133ac5ed1c715f90ba1cbd3999d8f42a95",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.466/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-15T18:20:04Z",
       "releaseNotes": "\n`fix` (`anidb`): **Read `code` attribute from `<error>` in mylist response** ([#1440](https://github.com/ShokoAnime/ShokoServer/pull/1440)):\n\nAniDB's error element uses `code`, not `value`. The wrong attribute\nname made `Attribute(\"code\")!` throw `ArgumentNullException` on any\nerror response (e.g. `<error code=\"310\">illegal input or access\ndenied</error>`), masking the real error and crashing MyList refresh.\n"
-    },
-    {
-      "version": "6.0.0.465",
-      "tag": "v6.0.0-dev.465",
-      "commit": "0e6d2dac2abd3304b8f5532d6ebd3479f6068ac3",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.465/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-15T18:11:49Z",
-      "releaseNotes": "\n`misc`: **Some Stream Pipeline Fixes and Tests**.\n"
     }
   ]
 }
