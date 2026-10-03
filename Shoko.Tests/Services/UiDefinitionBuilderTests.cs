@@ -212,7 +212,7 @@ public class UiDefinitionBuilderTests
         // Every nested settings object stays an item and labels its own tab,
         // with the gathered sections appended after them.
         Assert.Equal(
-            ["Image", "Import", "AniDb", "TMDB", "Metadata", "Database", "Queue", "Connectivity", "Language", "Plex", "Plugins", "ReleaseComparisonPreferences", "Logging", "Linux", "Web", "Misc.", "Web UI"],
+            ["Image", "Import", "AniDb", "Metadata", "Database", "Queue", "Connectivity", "Language", "Plex", "Plugins", "ReleaseComparisonPreferences", "Logging", "Linux", "Web", "Misc.", "Web UI"],
             root.Structure.Select(x => x.Name)
         );
         Assert.Equal(["Misc.", "Web UI"], root.Structure.TakeLast(2).Select(x => x.Name));
@@ -363,6 +363,7 @@ public class UiDefinitionBuilderTests
         // the same thing and is what a plugin author reaches for first.
         Assert.IsType<UiPasswordElement>(root.Items["Password"]);
         Assert.IsType<UiPasswordElement>(root.Items["Token"]);
+        Assert.IsNotType<UiPasswordElement>(root.Items["Username"]);
     }
 
     [Fact]
