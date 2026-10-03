@@ -41,6 +41,16 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- Checks the plugin's configurations and actions with the analyzer as
+             it is in this repository, as the server's are. A plugin outside it
+             references the Shoko.BuildTools.Analyzers package instead. -->
+        <ProjectReference Include="..\Shoko.BuildTools.Analyzers\Shoko.BuildTools.Analyzers.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup>
         <!-- Injects the embedded plugin identity metadata the server reads during
              discovery. With no `manifest.json` beside this file, the ID, name and
              description are read from the literals in `Plugin.cs`. -->

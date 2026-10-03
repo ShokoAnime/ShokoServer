@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Config.Attributes;
-using Shoko.Abstractions.Config.Enums;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.UI.Attributes;
+using Shoko.Abstractions.UI.Enums;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Settings;

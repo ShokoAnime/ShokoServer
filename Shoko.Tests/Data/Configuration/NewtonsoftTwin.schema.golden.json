@@ -1,0 +1,261 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Newtonsoft Twin",
+  "type": "object",
+  "properties": {
+    "Body": {
+      "title": "Body",
+      "$ref": "#/definitions/TwinBody"
+    }
+  },
+  "definitions": {
+    "TwinBody": {
+      "title": "Twin Body",
+      "type": "object",
+      "properties": {
+        "Name": {
+          "title": "Display Name",
+          "type": "string",
+          "default": "shoko"
+        },
+        "Enabled": {
+          "title": "Enabled",
+          "type": "boolean",
+          "x-uiDefinition": {
+            "elementType": "auto",
+            "requiresRestart": true,
+            "envVar": "TWIN_ENABLED",
+            "envVarOverridable": false
+          }
+        },
+        "Count": {
+          "title": "Count",
+          "type": "integer",
+          "format": "int32",
+          "maximum": 100.0,
+          "minimum": 1.0
+        },
+        "Ratio": {
+          "title": "Ratio",
+          "type": "number",
+          "format": "double"
+        },
+        "Mode": {
+          "title": "Mode",
+          "$ref": "#/definitions/TwinMode",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "slow-and-steady",
+                "aliasValues": ""
+              },
+              {
+                "value": "balanced",
+                "aliasValues": ""
+              },
+              {
+                "value": "fast",
+                "aliasValues": ""
+              }
+            ]
+          }
+        },
+        "Modes": {
+          "title": "Modes",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TwinMode"
+          }
+        },
+        "Secret": {
+          "title": "Secret",
+          "type": "string"
+        },
+        "Note": {
+          "title": "Note",
+          "type": "string"
+        },
+        "Script": {
+          "title": "Script",
+          "type": "string"
+        },
+        "Endpoints": {
+          "title": "Endpoints",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TwinEndpoint"
+          }
+        },
+        "Weights": {
+          "title": "Weights",
+          "type": "object",
+          "x-dictionaryKey": {
+            "$ref": "#/definitions/TwinMode"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "Toggles": {
+          "title": "Toggles",
+          "type": "object",
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "Picked": {
+          "title": "Picked",
+          "$ref": "#/definitions/SelectComponent_1"
+        }
+      }
+    },
+    "TwinMode": {
+      "type": "string",
+      "x-enumNames": [
+        "Slow",
+        "Balanced",
+        "Fast"
+      ],
+      "x-enum-descriptions": [
+        "Takes its time.",
+        null,
+        null
+      ],
+      "enum": [
+        "slow-and-steady",
+        "balanced",
+        "fast"
+      ]
+    },
+    "TwinEndpoint": {
+      "type": "object",
+      "properties": {
+        "ID": {
+          "title": "ID",
+          "type": "string"
+        },
+        "Url": {
+          "title": "Url",
+          "type": "string",
+          "format": "uri"
+        },
+        "Mode": {
+          "title": "Mode",
+          "$ref": "#/definitions/TwinMode",
+          "x-uiDefinition": {
+            "elementType": "enum",
+            "requiresRestart": false,
+            "enumDefinitions": [
+              {
+                "value": "slow-and-steady",
+                "aliasValues": ""
+              },
+              {
+                "value": "balanced",
+                "aliasValues": ""
+              },
+              {
+                "value": "fast",
+                "aliasValues": ""
+              }
+            ]
+          }
+        }
+      }
+    },
+    "SelectComponent_1": {
+      "type": "object",
+      "description": "A select component for the UI.",
+      "required": [
+        "Options",
+        "Groups"
+      ],
+      "properties": {
+        "Options": {
+          "type": "array",
+          "description": "The options for the select component in the UI.",
+          "default": [],
+          "items": {
+            "$ref": "#/definitions/SelectOption_1"
+          }
+        },
+        "Groups": {
+          "type": "array",
+          "description": "The groups for the select component in the UI.",
+          "default": [],
+          "items": {
+            "$ref": "#/definitions/SelectGroup"
+          }
+        }
+      }
+    },
+    "SelectOption_1": {
+      "type": "object",
+      "description": "A select option for the UI.",
+      "required": [
+        "Value"
+      ],
+      "properties": {
+        "Label": {
+          "type": [
+            "null",
+            "string"
+          ],
+          "description": "The label for the option."
+        },
+        "GroupID": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "The unique identifier for the group this option belongs to, or `null` if it should be rendered outside of a group."
+        },
+        "Value": {
+          "type": "string",
+          "description": "The value of the option."
+        },
+        "IsSelected": {
+          "type": "boolean",
+          "description": "Whether the option is selected.",
+          "default": false
+        },
+        "IsDefault": {
+          "type": "boolean",
+          "description": "Whether the option is the default.",
+          "default": false
+        },
+        "IsDisabled": {
+          "type": "boolean",
+          "description": "Whether the option is disabled.",
+          "default": false
+        }
+      }
+    },
+    "SelectGroup": {
+      "type": "object",
+      "description": "A select group for the UI.",
+      "required": [
+        "Label",
+        "IsDisabled"
+      ],
+      "properties": {
+        "ID": {
+          "type": "integer",
+          "description": "The unique identifier for the group."
+        },
+        "Label": {
+          "type": "string",
+          "description": "The label for the group."
+        },
+        "IsDisabled": {
+          "type": "boolean",
+          "description": "Whether the group is disabled.",
+          "default": false
+        }
+      }
+    }
+  }
+}
