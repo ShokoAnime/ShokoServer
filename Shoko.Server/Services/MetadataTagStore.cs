@@ -142,5 +142,35 @@ public class MetadataTagStore(Metadata_TagRepository tagRepository, Metadata_Tag
         }
     }
 
+    /// <summary>
+    ///   Removes a source's tags that no entry is tagged with any more and
+    ///   that its provider has not saved since a time, such as the name-keyed
+    ///   tags a source replaced with ones keyed by its own IDs.
+    /// </summary>
+    /// <remarks>
+    ///   A provider saves a tag before tagging an entry with it, so a tag
+    ///   saved since the time is kept even while nothing is tagged with it.
+    /// </remarks>
+    /// <param name="source">The source.</param>
+    /// <param name="savedBefore">Remove only the tags last saved before this time, in local time.</param>
+    /// <returns>The tags removed.</returns>
+    internal IReadOnlyList<MetadataGuid> RemoveUnused(MetadataSource source, DateTime savedBefore)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        MetadataEntries.CheckWritableSource(source, nameof(source));
+
+        lock (_writeLock)
+        {
+            var deleting = tagRepository.GetBySource(source)
+                .Where(tag => tag.LastUpdatedAt < savedBefore && entryRepository.GetByTagID(tag.Metadata_TagID).Count is 0)
+                .ToList();
+            if (deleting.Count is 0)
+                return [];
+
+            textStore.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Tag>(tagRepository, [], deleting));
+            return [.. deleting.Select(tag => ((ITag)tag).ID)];
+        }
+    }
+
     #endregion
 }

@@ -107,8 +107,8 @@ public class MetadataCrossReferenceTransferService(
                 .Where(link => options.AnidbAnimeID is not { } animeID || animeID == link.AnidbAnimeID)
                 .Where(link => options.AnidbEpisodeID is not { } episodeID || episodeID == link.AnidbEpisodeID)
                 .Where(link => options.ProviderMovieID is not { } movieID || movieID == format.Write(link.ProviderID))
-                // TMDB's files have always listed the films by anime, episode
-                // and film, so an export compares line for line with an old one.
+                // Films are listed by anime, episode and film, so an export
+                // compares line for line with an older one.
                 .OrderBy(link => link.AnidbAnimeID)
                 .ThenBy(link => link.AnidbEpisodeID)
                 .ThenBy(link => link.ProviderID!.TryGetNumericID<long>(out var number) ? number : long.MaxValue)
@@ -416,7 +416,7 @@ public class MetadataCrossReferenceTransferService(
         }
 
         // A series line to nothing is skipped: a series is never linked to
-        // nothing, and older TMDB files hold such lines.
+        // nothing, and older files hold such lines.
         foreach (var line in seriesLines)
         {
             if (line.SeriesID is not { } seriesID)
@@ -670,19 +670,12 @@ public class MetadataCrossReferenceTransferService(
     private sealed class Format
     {
         /// <summary>
-        ///   Whether the source's IDs are numbers and a link to nothing is
-        ///   <c>0</c>, which is how TMDB's files have always been written.
-        /// </summary>
-        private readonly bool _numeric;
-
-        /// <summary>
         ///   The format of a source's file, with its headers named after it.
         /// </summary>
         /// <param name="source">The source.</param>
         public Format(MetadataSource source)
         {
             Source = source;
-            _numeric = source == MetadataSource.TMDB;
             var prefix = string.Concat(source.Value.Split('-', StringSplitOptions.RemoveEmptyEntries)
                 .Select(part => char.ToUpperInvariant(part[0]) + part[1..]));
             MovieHeader = $"AnidbAnimeId,AnidbEpisodeId,{prefix}MovieId,Rating";
@@ -716,7 +709,7 @@ public class MetadataCrossReferenceTransferService(
         /// <param name="id">The entry, or <see langword="null"/> for none.</param>
         /// <returns>The source's own ID, or how the source writes none.</returns>
         public string Write(MetadataGuid? id)
-            => id?.ID ?? (_numeric ? "0" : string.Empty);
+            => id?.ID ?? string.Empty;
 
         /// <summary>
         ///   Reads an entry of a kind from a field.
@@ -728,18 +721,9 @@ public class MetadataCrossReferenceTransferService(
         public bool TryRead(string text, MetadataEntityType entityType, out MetadataGuid? id)
         {
             id = null;
-            if (_numeric)
-            {
-                if (!int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) || number < 0)
-                    return false;
 
-                if (number > 0)
-                    id = new(Source, entityType, number.ToString(CultureInfo.InvariantCulture));
-                return true;
-            }
-
-            // A 0 is a link to nothing too, as the numeric sources write it
-            // and as other tools write it for any source.
+            // A 0 is a link to nothing too, as older files and other tools
+            // write it.
             if (text.Length is 0 || text is "0")
                 return true;
 

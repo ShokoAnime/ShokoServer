@@ -61,6 +61,12 @@ public class MetadataImageContributorInfo
     public required int MaxConcurrentJobs { get; init; }
 
     /// <summary>
+    ///   The icon the contributor declared, extracted beside its plugin, or
+    ///   <see langword="null"/> when it has none.
+    /// </summary>
+    public PackageImageInfo? Icon { get; init; }
+
+    /// <summary>
     ///   The sources and kinds the contributor can add images for: its
     ///   declared <see cref="IMetadataImageContributor.Scope"/>, less the
     ///   pairs on its own <see cref="Source"/>.

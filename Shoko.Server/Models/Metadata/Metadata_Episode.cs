@@ -21,7 +21,7 @@ namespace Shoko.Server.Models.Metadata;
 ///   An episode a plugin source keeps in the series store, as part of its
 ///   series.
 /// </summary>
-public class Metadata_Episode : IEpisode, IMetadataStoreRow<Metadata_Episode>
+public class Metadata_Episode : IEpisode<ISeries, IEpisode>, IMetadataStoreRow<Metadata_Episode>, IMetadataDefaultImageSource
 {
     #region Database Columns
 
@@ -104,6 +104,17 @@ public class Metadata_Episode : IEpisode, IMetadataStoreRow<Metadata_Episode>
     public List<MetadataGuid> CrossSourceIDs { get; set; } = [];
 
     /// <summary>
+    ///   What the source said of the episode that needs no column of its
+    ///   own, or <c>null</c> when it said none of it.
+    /// </summary>
+    public Metadata_EpisodeExtra? ExtraData { get; set; }
+
+    /// <summary>
+    ///   When the store first wrote the episode. Set once and never changed.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
     ///   When the source last wrote the episode.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
@@ -125,6 +136,24 @@ public class Metadata_Episode : IEpisode, IMetadataStoreRow<Metadata_Episode>
     public MetadataGuid ID => new(Source, MetadataEntityType.Episode, ProviderID);
 
     /// <summary>
+    ///   The season of the regular episode a special airs before, as its
+    ///   source said. Always <c>null</c> outside season 0.
+    /// </summary>
+    internal int? AirsBeforeSeasonNumber => ExtraData?.AirsBeforeSeasonNumber;
+
+    /// <summary>
+    ///   The number of the regular episode a special airs before, as its
+    ///   source said. Always <c>null</c> outside season 0.
+    /// </summary>
+    internal int? AirsBeforeEpisodeNumber => ExtraData?.AirsBeforeEpisodeNumber;
+
+    /// <summary>
+    ///   The season a special airs after, as its source said. Always
+    ///   <c>null</c> outside season 0.
+    /// </summary>
+    internal int? AirsAfterSeasonNumber => ExtraData?.AirsAfterSeasonNumber;
+
+    /// <summary>
     ///   Whether the stored columns are the same as another row's, leaving
     ///   out the row's ID and when it was written.
     /// </summary>
@@ -144,7 +173,8 @@ public class Metadata_Episode : IEpisode, IMetadataStoreRow<Metadata_Episode>
             AirDate == other.AirDate &&
             AirDateWithTime == other.AirDateWithTime &&
             MetadataStoredEntry.SameResources(Resources, other.Resources) &&
-            CrossSourceIDs.SequenceEqual(other.CrossSourceIDs);
+            CrossSourceIDs.SequenceEqual(other.CrossSourceIDs) &&
+            Equals(ExtraData, other.ExtraData);
 
     /// <summary>
     ///   Puts episodes in a stable order: by season number, type, number and
@@ -202,6 +232,13 @@ public class Metadata_Episode : IEpisode, IMetadataStoreRow<Metadata_Episode>
 
     #endregion
 
+    #region IMetadataDefaultImageSource Implementation
+
+    string? IMetadataDefaultImageSource.GetDefaultResourceID(ImageEntityType imageType)
+        => ExtraData?.GetDefaultResourceID(imageType);
+
+    #endregion
+
     #region IWithImages Implementation
 
     IImageCrossReference? IWithImages.DefaultPrimaryImageCrossReference => MetadataStoredEntry.DefaultImage(this, ImageEntityType.Primary);
@@ -233,9 +270,11 @@ public class Metadata_Episode : IEpisode, IMetadataStoreRow<Metadata_Episode>
 
     #region IEpisode Implementation
 
-    IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings => OrderingLookup.For(this);
+    DateTime? IEpisode.LastRefreshedAt => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID)?.LastRefreshedAt?.ToUniversalTime();
 
-    IEpisodeOrderingInformation? IEpisode.PreferredOrdering => OrderingLookup.PreferredFor(this);
+    IReadOnlyList<IEpisodeOrderingInformation<ISeries, IEpisode>> IEpisode<ISeries, IEpisode>.Orderings => OrderingLookup.PlacesOf<ISeries, IEpisode>(this);
+
+    IEpisodeOrderingInformation<ISeries, IEpisode>? IEpisode<ISeries, IEpisode>.PreferredOrdering => OrderingLookup.PreferredPlaceOf<ISeries, IEpisode>(this);
 
     MetadataGuid IEpisode.SeriesID => new(Source, MetadataEntityType.Series, SeriesID);
 
@@ -245,8 +284,10 @@ public class Metadata_Episode : IEpisode, IMetadataStoreRow<Metadata_Episode>
 
     TimeSpan IEpisode.Runtime => TimeSpan.FromSeconds(RuntimeSeconds);
 
-    ISeries IEpisode.Series => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID) ??
+    ISeries IEpisode<ISeries, IEpisode>.Series => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID) ??
         throw new NullReferenceException($"Unable to find {Source.Name} series {SeriesID} for its episode {ProviderID}");
+
+    ISeason<ISeries, IEpisode>? IEpisode<ISeries, IEpisode>.Season => string.IsNullOrEmpty(SeasonID) ? null : RepoFactory.Metadata_Season.GetByProviderID(Source, SeasonID);
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => MetadataStoredEntry.ShokoEpisodes(Links.Select(link => link.AnidbEpisodeID));
 

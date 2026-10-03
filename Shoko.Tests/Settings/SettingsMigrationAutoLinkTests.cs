@@ -30,6 +30,7 @@ public sealed class SettingsMigrationAutoLinkTests : IDisposable
 
         var applicationPaths = new Mock<IApplicationPaths>(MockBehavior.Loose);
         applicationPaths.SetupGet(paths => paths.DataPath).Returns(_dataPath);
+        applicationPaths.SetupGet(paths => paths.ConfigurationsPath).Returns(Path.Join(_dataPath, "configurations"));
         _applicationPaths = applicationPaths.Object;
     }
 
@@ -108,10 +109,12 @@ public sealed class SettingsMigrationAutoLinkTests : IDisposable
 
         var migrated = JObject.Parse(SettingsMigrations.MigrateSettings(settings, _applicationPaths));
 
-        Assert.Null(migrated["TMDB"]!["AutoLink"]);
-        Assert.Null(migrated["TMDB"]!["AutoLinkRestricted"]);
-
-        Assert.Equal("keep-me", migrated["TMDB"]!["UserApiKey"]!.Value<string>());
+        // Migration 26 then moves what is left of the section to the plugin.
+        Assert.Null(migrated["TMDB"]);
+        var plugin = JObject.Parse(File.ReadAllText(SettingsMigrations.TmdbPluginConfigurationPath(_applicationPaths)));
+        Assert.Null(plugin["AutoLink"]);
+        Assert.Null(plugin["AutoLinkRestricted"]);
+        Assert.Equal("keep-me", plugin["UserApiKey"]!.Value<string>());
         // Migration 23 moves TMDB's image switches to its image entry.
         Assert.True(migrated["Image"]!["MetadataSources"]![0]!["AutoDownloadPosters"]!.Value<bool>());
     }

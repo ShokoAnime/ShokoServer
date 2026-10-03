@@ -19,6 +19,7 @@ public class AniDB_AnimeMap : ClassMap<AniDB_Anime>
         Map(x => x.AnimeType).Not.Nullable().CustomType<AnimeType>();
         Map(x => x.AvgReviewRating).Not.Nullable();
         Map(x => x.BeginYear).Not.Nullable();
+        Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.DateTimeDescUpdated).Not.Nullable();
 #pragma warning disable CS0618
         Map(x => x.DateTimeUpdated).Not.Nullable();

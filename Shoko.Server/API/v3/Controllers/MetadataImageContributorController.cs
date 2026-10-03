@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Models.Metadata;
@@ -24,18 +25,22 @@ namespace Shoko.Server.API.v3.Controllers;
 /// </remarks>
 /// <param name="settingsProvider">The settings.</param>
 /// <param name="contributorManager">Lists and sets up the contributors.</param>
+/// <param name="applicationPaths">Finds the contributors' icons on disk.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/Metadata")]
 [ApiV3]
 [Authorize]
 public class MetadataImageContributorController(
     ISettingsProvider settingsProvider,
-    IMetadataImageContributorManager contributorManager
+    IMetadataImageContributorManager contributorManager,
+    IApplicationPaths applicationPaths
 ) : BaseController(settingsProvider)
 {
     #region Constants
 
     internal const string ContributorNotFound = "An image contributor by the given `contributorID` was not found.";
+
+    internal const string ContributorIconNotFound = "The image contributor was not found or has no icon.";
 
     #endregion
 
@@ -65,6 +70,25 @@ public class MetadataImageContributorController(
     [HttpGet("ImageContributor/{contributorID:guid}")]
     public ActionResult<MetadataImageContributor> GetImageContributor([FromRoute] Guid contributorID)
         => contributorManager.GetImageContributorInfo(contributorID) is { } info ? new MetadataImageContributor(info) : NotFound(ContributorNotFound);
+
+    /// <summary>
+    /// Get an image contributor's icon.
+    /// </summary>
+    /// <remarks>
+    /// An SVG or a PNG, sent so that an SVG opened on its own runs no script.
+    /// </remarks>
+    /// <param name="contributorID">The contributor's ID.</param>
+    /// <returns>
+    /// The icon, <c>304 Not Modified</c> when the client's copy has the same
+    /// ETag, or <c>404 Not Found</c> when there is no such contributor or it
+    /// has no icon.
+    /// </returns>
+    [AllowAnonymous]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("ImageContributor/{contributorID:guid}/Icon")]
+    public ActionResult GetImageContributorIcon([FromRoute] Guid contributorID)
+        => PackageIcon(contributorManager.GetImageContributorInfo(contributorID)?.Icon, applicationPaths, ContributorIconNotFound);
 
     /// <summary>
     /// Set the sources and kinds an image contributor is on for. The images

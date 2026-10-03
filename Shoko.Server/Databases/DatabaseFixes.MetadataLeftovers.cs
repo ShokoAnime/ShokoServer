@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.ScheduledActions;
 using Shoko.Server.Actions;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Services;
@@ -16,24 +15,19 @@ public partial class DatabaseFixes
     #region Metadata Leftovers | Steps
 
     /// <summary>
-    ///   Removes what TMDB's tables and the plugin stores still hold for
-    ///   unlinked entries with no row of their own, as the daily orphan purge
-    ///   does, and has that purge run once soon after start for the linked
-    ///   ones, which it refreshes.
+    ///   Removes what the stores still hold for unlinked entries with no row
+    ///   of their own, as the daily orphan purge does, and has that purge run
+    ///   once soon after start for the linked ones, which it refreshes.
     /// </summary>
     public static void PurgeMetadataLeftovers()
     {
         var services = ISystemService.StaticServices;
-        var tmdbUpdater = services.GetRequiredService<TmdbMetadataUpdater>();
         var purgeService = services.GetRequiredService<MetadataPurgeService>();
-        var tmdbRemoved = tmdbUpdater.PurgeLeftovers().GetAwaiter().GetResult();
         var (storeRemoved, storeLinked) = purgeService.PurgeStoreLeftovers().GetAwaiter().GetResult();
-        var tmdbLinked = tmdbUpdater.GetLinkedLeftovers();
         _logger.Info(
-            $"Removed the leftovers of {tmdbRemoved} unlinked TMDB shows, movies and collections and of {storeRemoved} unlinked plugin series; " +
-            $"left {tmdbLinked.Count} linked TMDB shows and movies and {storeLinked.Count} linked plugin series without a row of their own for a refresh."
+            $"Removed the leftovers of {storeRemoved} unlinked series; left {storeLinked.Count} linked series without a row of their own for a refresh."
         );
-        if (tmdbLinked.Count + storeLinked.Count is 0)
+        if (storeLinked.Count is 0)
             return;
 
         var marked = RunScheduledActionAtStart(

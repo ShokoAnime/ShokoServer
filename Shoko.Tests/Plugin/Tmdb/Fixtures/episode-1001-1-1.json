@@ -1,0 +1,24 @@
+{
+  "air_date": "2023-09-29", "episode_number": 1, "id": 3001, "name": "The Journey's End", "overview": "The party returns.", "runtime": 24, "season_number": 1, "still_path": "/still-3001.jpg", "vote_average": 8.5, "vote_count": 20,
+  "credits": {
+    "cast": [
+      { "id": 5001, "name": "Atsumi Tanezaki", "character": "Frieren (voice)", "credit_id": "c-3001-1", "order": 0, "gender": 1, "adult": false, "known_for_department": "Acting", "original_name": "種崎敦美", "popularity": 10.0, "profile_path": "/p-5001.jpg" },
+      { "id": 5002, "name": "Kana Ichinose", "character": "Fern (voice)", "credit_id": "c-3001-2", "order": 1, "gender": 1, "adult": false, "known_for_department": "Acting", "original_name": "市ノ瀬加那", "popularity": 8.0, "profile_path": null }
+    ],
+    "crew": [
+      { "id": 6001, "name": "Keiichiro Saito", "job": "Director", "department": "Directing", "credit_id": "c-3001-3", "gender": 2, "adult": false, "known_for_department": "Directing", "original_name": "斎藤圭一郎", "popularity": 2.0, "profile_path": null },
+      { "id": 6002, "name": "Evan Call", "job": "Original Music Composer", "department": "Sound", "credit_id": "c-3001-4", "gender": 2, "adult": false, "known_for_department": "Sound", "original_name": "Evan Call", "popularity": 2.0, "profile_path": null }
+    ],
+    "guest_stars": [
+      { "id": 5003, "name": "Hiroaki Hirata", "character": "Heiter (voice)", "credit_id": "c-3001-5", "order": 5, "gender": 2, "adult": false, "known_for_department": "Acting", "original_name": "平田広明", "popularity": 4.0, "profile_path": null }
+    ]
+  },
+  "external_ids": { "imdb_id": "tt30000001", "tvdb_id": 9000001 },
+  "translations": {
+    "translations": [
+      { "iso_3166_1": "US", "iso_639_1": "en", "name": "English", "english_name": "English", "data": { "name": "The Journey's End", "overview": "The party returns." } },
+      { "iso_3166_1": "DE", "iso_639_1": "de", "name": "Deutsch", "english_name": "German", "data": { "name": "Das Ende der Reise", "overview": "Die Gruppe kehrt heim." } },
+      { "iso_3166_1": "FR", "iso_639_1": "fr", "name": "Français", "english_name": "French", "data": { "name": "Épisode 1", "overview": "" } }
+    ]
+  }
+}

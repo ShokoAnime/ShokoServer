@@ -2,7 +2,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
@@ -78,16 +77,5 @@ public class MetadataLinkDataTests
         var stored = new CrossRef_AniDB_Metadata_Series { Source = TestSources.AniList, AnidbAnimeID = 100, ProviderID = "0" };
 
         Assert.Equal(new MetadataGuid(TestSources.AniList, MetadataEntityType.Series, "0"), ((IMetadataCrossReference)stored).ProviderID);
-    }
-
-    [Fact]
-    public void ATmdbLinkToNothingIsStoredEmpty()
-    {
-        var xref = new CrossRef_AniDB_TMDB_Episode(1001, 100, 0, 0);
-
-        Assert.Equal(string.Empty, xref.Row.ProviderID);
-        Assert.Null(((IMetadataCrossReference)xref).ProviderID);
-        Assert.Null(((IMetadataEpisodeCrossReference)xref).ProviderParentID);
-        Assert.Equal(0, xref.TmdbEpisodeID);
     }
 }

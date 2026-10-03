@@ -415,7 +415,7 @@ Schedules and airings key on `ISeries`, `ISeason` and `IEpisode`. The service
 finds every entry through `IMetadataService.GetEntry` (a plugin's
 `IMetadataResolver` first, then the stores;
 [resolving your own kinds](../Providers/README.md#resolving-your-own-kinds)),
-and follows links through `IShokoSeries.LinkedSeries`,
-`IShokoSeason.LinkedSeasons` and `IShokoEpisode.LinkedEpisodes`, so a plugin
+and follows links through `IShokoSeries.LinkedSeries`, the `LinkedSeasons`
+of a Shoko series' seasons and `IShokoEpisode.LinkedEpisodes`, so a plugin
 links its entries in `IMetadataCrossReferenceStore`, not through this
 service.

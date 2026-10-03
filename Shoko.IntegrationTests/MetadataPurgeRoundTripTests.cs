@@ -10,16 +10,11 @@ using Shoko.Abstractions.Metadata.Stub;
 using Shoko.QueueProcessor;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
-using Shoko.Server.Repositories.Cached.TMDB;
-using Shoko.Server.Repositories.Direct.TMDB;
-using Shoko.Server.Repositories.Direct.TMDB.Optional;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Services;
 using Xunit;
@@ -30,7 +25,7 @@ namespace Shoko.IntegrationTests;
 /// <summary>
 /// Runs the core's purge job and purge service against the migrated
 /// database, so what they remove is read back gone from every table. Also
-/// checks that the core's provider job types are registered, closed, for TMDB.
+/// checks that no provider job type is registered open.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public class MetadataPurgeRoundTripTests(DatabaseMigrationFixture fixture)
@@ -56,7 +51,6 @@ public class MetadataPurgeRoundTripTests(DatabaseMigrationFixture fixture)
             services.GetRequiredService<Metadata_Tag_EntryRepository>(),
             services.GetRequiredService<TextCache>(),
             services.GetRequiredService<Metadata_CreatorRepository>(),
-            services.GetRequiredService<Metadata_CrewRepository>(),
             services.GetRequiredService<Metadata_OrderingRepository>(),
             services.GetRequiredService<Metadata_Ordering_GroupRepository>(),
             services.GetRequiredService<Metadata_Ordering_EntryRepository>(),
@@ -189,26 +183,6 @@ public class MetadataPurgeRoundTripTests(DatabaseMigrationFixture fixture)
     }
 
     [Fact]
-    public async Task APurgedTmdbShowTakesEveryOrderingOfItAlong()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-        var shows = fixture.Services.GetRequiredService<TMDB_ShowRepository>();
-        var episodes = fixture.Services.GetRequiredService<TMDB_EpisodeRepository>();
-        shows.Save(new TMDB_Show(987_801) { EnglishTitle = "Ordered" });
-        episodes.Save(new TMDB_Episode(987_802) { TmdbShowID = 987_801, TmdbSeasonID = 987_803, SeasonNumber = 1, EpisodeNumber = 1 });
-        var show = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Series, "987801");
-        var episode = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Episode, "987802");
-        var (global, local) = AddOrderings(show, episode, "tmdb-ordered");
-
-        await Purge(show);
-        Reload();
-
-        AssertOrderingsGone(show, episode, global, local);
-        Assert.Null(shows.GetByTmdbShowID(987_801));
-        Assert.Empty(episodes.GetByTmdbShowID(987_801));
-    }
-
-    [Fact]
     public async Task APurgedAnimeAndItsDeletedSeriesTakeEveryOrderingOfThemAlong()
     {
         Assert.True(fixture.Success, fixture.FailureMessage);
@@ -296,39 +270,11 @@ public class MetadataPurgeRoundTripTests(DatabaseMigrationFixture fixture)
     }
 
     [Fact]
-    public async Task TmdbsOrphanedPeopleAndNetworksArePurgedThroughThePurgeServiceByTheCutoff()
-    {
-        Assert.True(fixture.Success, fixture.FailureMessage);
-        var people = fixture.Services.GetRequiredService<TMDB_PersonRepository>();
-        var networks = fixture.Services.GetRequiredService<TMDB_NetworkRepository>();
-        var purge = fixture.Services.GetRequiredService<IMetadataPurgeService>();
-        people.Save(new TMDB_Person(990001) { EnglishName = "Long orphaned", LastOrphanedAt = DateTime.UtcNow.AddDays(-10) });
-        people.Save(new TMDB_Person(990002) { EnglishName = "Just orphaned", LastOrphanedAt = DateTime.UtcNow.AddHours(-1) });
-        people.Save(new TMDB_Person(990003) { EnglishName = "Never stamped" });
-        networks.Save(new TMDB_Network { TmdbNetworkID = 990101, Name = "Long orphaned", LastOrphanedAt = DateTime.UtcNow.AddDays(-10) });
-        networks.Save(new TMDB_Network { TmdbNetworkID = 990102, Name = "Just orphaned", LastOrphanedAt = DateTime.UtcNow.AddHours(-1) });
-
-        await purge.PurgeOrphaned(MetadataSource.TMDB, DateTime.Now.AddDays(-7), cancellationToken: TestContext.Current.CancellationToken);
-
-        Assert.Null(people.GetByTmdbPersonID(990001));
-        Assert.NotNull(people.GetByTmdbPersonID(990002));
-        // Found uncredited without a stamp, so stamped now and kept.
-        Assert.NotNull(people.GetByTmdbPersonID(990003)?.LastOrphanedAt);
-        Assert.Null(networks.GetByTmdbNetworkID(990101));
-        Assert.NotNull(networks.GetByTmdbNetworkID(990102));
-
-        people.Delete(people.GetByTmdbPersonID(990002)!);
-        people.Delete(people.GetByTmdbPersonID(990003)!);
-        networks.Delete(networks.GetByTmdbNetworkID(990102)!);
-    }
-
-    [Fact]
-    public void TmdbsProviderGetsTheCoresProviderJobTypes()
+    public void NoProviderJobTypeIsRegisteredOpen()
     {
         Assert.True(fixture.Success, fixture.FailureMessage);
         var jobTypes = fixture.Services.GetRequiredService<QueueJobTypeRegistry>().JobTypes;
 
-        Assert.Contains(typeof(RefreshMetadataJob<TmdbMetadataProvider>), jobTypes);
         Assert.DoesNotContain(jobTypes, type => type.ContainsGenericParameters);
     }
 }

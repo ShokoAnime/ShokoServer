@@ -1,0 +1,61 @@
+{
+  "adult": false,
+  "backdrop_path": "/movie-backdrop.jpg",
+  "belongs_to_collection": { "id": 8001, "name": "Journey's End Collection", "poster_path": "/collection-poster.jpg", "backdrop_path": null },
+  "budget": 0,
+  "genres": [{ "id": 16, "name": "Animation" }, { "id": 14, "name": "Fantasy" }],
+  "homepage": "",
+  "id": 7001,
+  "imdb_id": "tt40000001",
+  "original_language": "ja",
+  "original_title": "旅の終わり 劇場版",
+  "overview": "The journey continues on the big screen.",
+  "popularity": 30.5,
+  "poster_path": "/movie-poster.jpg",
+  "production_companies": [{ "id": 21444, "logo_path": "/company-21444.png", "name": "MADHOUSE", "origin_country": "JP" }],
+  "production_countries": [{ "iso_3166_1": "JP", "name": "Japan" }, { "iso_3166_1": "US", "name": "United States of America" }],
+  "release_date": "2025-03-01",
+  "revenue": 0,
+  "runtime": 106,
+  "spoken_languages": [],
+  "status": "Released",
+  "tagline": "",
+  "title": "Journey's End: The Movie",
+  "video": false,
+  "vote_average": 7.9,
+  "vote_count": 120,
+  "alternative_titles": { "id": 7001, "titles": [{ "iso_3166_1": "JP", "title": "Tabi no Owari Gekijouban", "type": "Romaji" }] },
+  "credits": {
+    "id": 7001,
+    "cast": [
+      { "adult": false, "gender": 1, "id": 5002, "known_for_department": "Acting", "name": "Kana Ichinose", "original_name": "市ノ瀬加那", "popularity": 8.0, "profile_path": null, "cast_id": 2, "character": "Fern (voice)", "credit_id": "m-2", "order": 1 },
+      { "adult": false, "gender": 1, "id": 5001, "known_for_department": "Acting", "name": "Atsumi Tanezaki", "original_name": "種崎敦美", "popularity": 10.0, "profile_path": "/p-5001.jpg", "cast_id": 1, "character": "Frieren (voice)", "credit_id": "m-1", "order": 0 }
+    ],
+    "crew": [
+      { "adult": false, "gender": 2, "id": 6001, "known_for_department": "Directing", "name": "Keiichiro Saito", "original_name": "斎藤圭一郎", "popularity": 2.0, "profile_path": null, "credit_id": "m-3", "department": "Directing", "job": "Director" }
+    ]
+  },
+  "external_ids": { "id": 7001, "imdb_id": "tt40000001", "wikidata_id": null, "facebook_id": null, "instagram_id": null, "twitter_id": null },
+  "keywords": { "id": 7001, "keywords": [{ "id": 210024, "name": "anime" }] },
+  "recommendations": { "page": 1, "results": [{ "id": 7002, "title": "Journey's End 2", "original_title": "旅の終わり 2", "genre_ids": [16] }], "total_pages": 1, "total_results": 1 },
+  "similar": { "page": 1, "results": [], "total_pages": 0, "total_results": 0 },
+  "release_dates": {
+    "id": 7001,
+    "results": [
+      { "iso_3166_1": "US", "release_dates": [{ "certification": "PG", "iso_639_1": "", "note": "", "release_date": "2025-03-01T00:00:00.000Z", "type": 3 }] },
+      { "iso_3166_1": "JP", "release_dates": [
+        { "certification": "", "iso_639_1": "", "note": "Premiere", "release_date": "2024-12-20T00:00:00.000Z", "type": 1 },
+        { "certification": "G", "iso_639_1": "", "note": "", "release_date": "2025-01-10T00:00:00.000Z", "type": 3 },
+        { "certification": "PG12", "iso_639_1": "", "note": "Director's cut", "release_date": "2025-06-01T00:00:00.000Z", "type": 3 },
+        { "certification": "G", "iso_639_1": "", "note": "", "release_date": "2025-07-01T00:00:00.000Z", "type": 4 }
+      ] }
+    ]
+  },
+  "translations": {
+    "id": 7001,
+    "translations": [
+      { "iso_3166_1": "US", "iso_639_1": "en", "name": "English", "english_name": "English", "data": { "title": "Journey's End: The Movie", "overview": "The journey continues on the big screen.", "homepage": "", "tagline": "", "runtime": 106 } },
+      { "iso_3166_1": "DE", "iso_639_1": "de", "name": "Deutsch", "english_name": "German", "data": { "title": "Das Ende der Reise: Der Film", "overview": "Die Reise geht im Kino weiter.", "homepage": "", "tagline": "", "runtime": 106 } }
+    ]
+  }
+}

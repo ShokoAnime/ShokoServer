@@ -1,0 +1,60 @@
+<Project>
+  <!--
+    Builds the first-party plugins that ship with the server and copies each
+    one's output to `plugins/<project name>/` in the build and publish output,
+    where the server loads the system plugins from. Imported by the projects
+    that assemble a runnable server (`Shoko.CLI` and `Shoko.TrayService`).
+
+    To bundle another plugin, add one `ShokoBundledPlugin` item below.
+  -->
+
+  <ItemGroup>
+    <ShokoBundledPlugin Include="$(MSBuildThisFileDirectory)Shoko.Plugin.Tmdb\Shoko.Plugin.Tmdb.csproj" />
+    <ShokoBundledPlugin Include="$(MSBuildThisFileDirectory)Shoko.Plugin.WebAOM\Shoko.Plugin.WebAOM.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Only so restore and the build order take the plugins in. They are not
+         built through the reference, nor referenced by the server. -->
+    <ProjectReference Include="@(ShokoBundledPlugin)"
+                      ReferenceOutputAssembly="false"
+                      BuildReference="false"
+                      Private="false"
+                      PrivateAssets="all"
+                      SkipGetTargetFrameworkProperties="true" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <!-- The plugins only have the Debug and Release configurations, as the
+         solution maps them. -->
+    <_ShokoBundledPluginConfiguration Condition="'$(Configuration)' == 'Release'">Release</_ShokoBundledPluginConfiguration>
+    <_ShokoBundledPluginConfiguration Condition="'$(Configuration)' != 'Release'">Debug</_ShokoBundledPluginConfiguration>
+  </PropertyGroup>
+
+  <!--
+    Builds every bundled plugin as a portable library in its own folder, so
+    the runtime, the output path and the publishing state of the server are
+    left out, and adds its files to the output under `plugins/`.
+  -->
+  <Target Name="_ShokoBuildBundledPlugins" BeforeTargets="AssignTargetPaths" Condition="'@(ShokoBundledPlugin)' != ''">
+    <MSBuild Projects="@(ShokoBundledPlugin)"
+             Targets="Build"
+             BuildInParallel="$(BuildInParallel)"
+             Properties="Configuration=$(_ShokoBundledPluginConfiguration);Platform=$(Platform)"
+             RemoveProperties="RuntimeIdentifier;SelfContained;TargetFramework;OutputPath;OutDir;PublishDir;_IsPublishing;_CommandLineDefinedOutputPath;_CommandLineDefinedRuntimeIdentifier">
+      <Output TaskParameter="TargetOutputs" ItemName="_ShokoBundledPluginAssembly" />
+    </MSBuild>
+
+    <ItemGroup>
+      <_ShokoBundledPluginFile Include="%(_ShokoBundledPluginAssembly.RootDir)%(_ShokoBundledPluginAssembly.Directory)**\*">
+        <PluginName>%(_ShokoBundledPluginAssembly.Filename)</PluginName>
+      </_ShokoBundledPluginFile>
+      <None Include="@(_ShokoBundledPluginFile)"
+            Link="plugins\%(_ShokoBundledPluginFile.PluginName)\%(_ShokoBundledPluginFile.RecursiveDir)%(_ShokoBundledPluginFile.Filename)%(_ShokoBundledPluginFile.Extension)"
+            CopyToOutputDirectory="PreserveNewest"
+            CopyToPublishDirectory="PreserveNewest"
+            ExcludeFromSingleFile="true"
+            Visible="false" />
+    </ItemGroup>
+  </Target>
+</Project>

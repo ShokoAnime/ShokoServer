@@ -8,8 +8,7 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Models.CrossReference.Embedded;
-using Shoko.Server.Models.TMDB;
+using Shoko.Server.Models.Metadata;
 
 using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 
@@ -187,7 +186,7 @@ public class TmdbMovie
     [Required]
     public DateTime LastUpdatedAt { get; init; }
 
-    public TmdbMovie(TMDB_Movie movie, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
+    public TmdbMovie(Metadata_Movie movie, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         var include = includeDetails ?? default;
         var preferredTitle = movie.GetPreferredTitle();
@@ -196,45 +195,45 @@ public class TmdbMovie
         ID = movie.TmdbMovieID;
         CollectionID = movie.TmdbCollectionID;
         ImdbMovieID = movie.ImdbMovieID;
-        Title = preferredTitle!.Value;
+        Title = preferredTitle.Value;
         if (include.HasFlag(IncludeDetails.Titles))
             Titles = movie.GetAllTitles()
                 .ToTitleDto(movie.EnglishTitle, preferredTitle, language);
-        Overview = preferredOverview!.Value;
+        Overview = preferredOverview.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = movie.GetAllOverviews()
                 .ToOverviewDto(movie.EnglishOverview, preferredOverview, language);
-        OriginalLanguage = movie.OriginalLanguageCode;
+        OriginalLanguage = movie.OriginalLanguageCodeOrEmpty;
         IsRestricted = movie.IsRestricted;
         IsVideo = movie.IsVideo;
         UserRating = new()
         {
-            Value = movie.UserRating,
+            Value = movie.Rating,
             MaxValue = 10,
-            Votes = movie.UserVotes,
+            Votes = movie.RatingVotes,
             Source = "TMDB",
             Type = "User",
         };
         Runtime = movie.Runtime;
         Genres = movie.Genres;
         if (include.HasFlag(IncludeDetails.ContentRatings))
-            ContentRatings = movie.ContentRatings
+            ContentRatings = movie.TmdbContentRatings
                 .Select(contentRating => new ContentRating(contentRating))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Studios))
-            Studios = movie.TmdbCompanies
+            Studios = movie.TmdbStudios
                 .Select(company => new Studio(company))
                 .ToList();
         if (include.HasFlag(IncludeDetails.Images))
             Images = ((IWithImages)movie).GetImages()
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
-            Cast = movie.Cast
+            Cast = movie.TmdbCast
                 .Select(Role.FromTmdb)
                 .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
-            Crew = movie.Crew
+            Crew = movie.TmdbCrew
                 .Select(Role.FromTmdb)
                 .OfType<Role>()
                 .ToList();
@@ -252,8 +251,7 @@ public class TmdbMovie
         if (include.HasFlag(IncludeDetails.Keywords))
             Keywords = movie.Keywords;
         if (include.HasFlag(IncludeDetails.ProductionCountries))
-            ProductionCountries = movie.ProductionCountries
-                .ToDictionary(country => country.CountryCode, country => country.CountryName);
+            ProductionCountries = movie.TmdbProductionCountries;
         ReleasedAt = movie.ReleasedAt;
         CreatedAt = movie.CreatedAt.ToUniversalTime();
         LastUpdatedAt = movie.LastUpdatedAt.ToUniversalTime();
@@ -316,10 +314,10 @@ public class TmdbMovie
         [Required]
         public DateTime LastUpdatedAt { get; init; }
 
-        public Collection(TMDB_Collection collection, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
+        public Collection(Metadata_Collection collection, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
         {
             var include = includeDetails ?? default;
-            var preferredTitle = collection.GetPreferredTitle()!;
+            var preferredTitle = collection.GetPreferredTitle();
             var preferredOverview = collection.GetPreferredOverview();
 
             ID = collection.TmdbCollectionID;
@@ -327,7 +325,7 @@ public class TmdbMovie
             if (include.HasFlag(IncludeDetails.Titles))
                 Titles = collection.GetAllTitles()
                     .ToTitleDto(collection.EnglishTitle, preferredTitle, language);
-            Overview = preferredOverview!.Value;
+            Overview = preferredOverview.Value;
             if (include.HasFlag(IncludeDetails.Overviews))
                 Overviews = collection.GetAllOverviews()
                     .ToOverviewDto(collection.EnglishOverview, preferredOverview, language);

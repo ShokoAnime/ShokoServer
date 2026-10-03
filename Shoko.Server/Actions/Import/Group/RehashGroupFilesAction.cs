@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.User.Services;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.Server.Models.Shoko;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 
 namespace Shoko.Server.Actions;

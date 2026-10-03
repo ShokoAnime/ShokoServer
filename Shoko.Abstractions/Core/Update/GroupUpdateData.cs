@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Shoko;
 
@@ -65,18 +64,6 @@ public sealed class GroupUpdateData
         get => _overview;
         set { HasOverview = true; _overview = value; }
     }
-
-    /// <summary>
-    ///   Indicates that <see cref="Overview"/> has been explicitly set.
-    /// </summary>
-    [Obsolete("Use HasOverview instead.")]
-    public bool HasDescription { get => HasOverview; }
-
-    /// <summary>
-    ///   The group's new description.
-    /// </summary>
-    [Obsolete("Use Overview instead.")]
-    public string? Description { get => Overview; set => Overview = value; }
 
     private IShokoGroup? _parentGroup;
 

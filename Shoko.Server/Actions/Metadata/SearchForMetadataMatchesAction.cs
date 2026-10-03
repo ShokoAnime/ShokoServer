@@ -11,12 +11,12 @@ using Shoko.Server.Services;
 namespace Shoko.Server.Actions;
 
 /// <summary>
-///   Search every metadata source that auto-links, TMDB included, for every
-///   anime not linked on it yet.
+///   Search every metadata source that auto-links for every anime not
+///   linked on it yet.
 /// </summary>
 /// <remarks>
 ///   A source counts only while it has an enabled auto-linker with auto-linking
-///   turned on, so a disabled TMDB is not searched. An unconfigured source and
+///   turned on, so a disabled source is not searched. An unconfigured source and
 ///   an anime left alone are skipped. Only queues the searches, which run on
 ///   their own; the progress covers the queuing.
 /// </remarks>
@@ -26,7 +26,7 @@ public sealed class SearchForMetadataMatchesAction(IMetadataProviderManager prov
 {
     public string Name => "Search for Metadata Matches";
 
-    public string? Description => "Searches every metadata source that auto-links, TMDB included, for every anime not linked on it yet.";
+    public string? Description => "Searches every metadata source that auto-links for every anime not linked on it yet.";
 
     public ActionCategory Category => ActionCategory.Maintenance;
 

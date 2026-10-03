@@ -154,8 +154,14 @@ public partial class MetadataEntryController : BaseController
 
     internal const string CrossReferencesNotFound = "No link to an entry by the given source and `id` matched.";
 
-    [GeneratedRegex(@"^(?<qualified>[#eE])?(?<number>\d+)$")]
+    [GeneratedRegex(@"^\d+$")]
     private static partial Regex EpisodeNumberSearchRegex();
+
+    [GeneratedRegex(
+        @"^(?:(?<special>specials?)(?:\s*(?<specialNumber>\d+))?|s(?<season>\d+)(?:\s*[e#](?<episode>\d+))?|[e#](?<episode>\d+))(?=\s|$)",
+        RegexOptions.IgnoreCase
+    )]
+    private static partial Regex EpisodePrefixSearchRegex();
 
     #endregion
 
@@ -323,10 +329,10 @@ public partial class MetadataEntryController : BaseController
         => entry switch
         {
             IAnidbAnime anime => user().IsAllowedToSee(anime),
-            IAnidbSeason season => user().IsAllowedToSee(season.Series),
+            ISeason<IAnidbAnime, IAnidbEpisode> season => user().IsAllowedToSee(season.Series),
             IAnidbEpisode episode => episode.Series is not { } anime || user().IsAllowedToSee(anime),
             IShokoSeries series => user().IsAllowedToSee(series),
-            IShokoSeason season => user().IsAllowedToSee(season.Series),
+            ISeason<IShokoSeries, IShokoEpisode> season => user().IsAllowedToSee(season.Series),
             IShokoEpisode episode => episode.Series is not { } series || user().IsAllowedToSee(series),
             IVideo video => video.Series is var linked && (linked.Count is 0 || linked.Any(series => user().IsAllowedToSee(series))),
             _ => true,
@@ -512,28 +518,47 @@ public partial class MetadataEntryController : BaseController
     }
 
     /// <summary>
-    /// Filters an entry's episodes by a number search: a bare number matches
-    /// anywhere in the episode number, and one after <c>E</c> or <c>#</c>
-    /// matches that episode only.
+    /// Filters an entry's episodes by a search. A bare number matches anywhere
+    /// in the episode number. A leading <c>E5</c> or <c>#5</c>, <c>S1</c> or
+    /// <c>S1E5</c> when the episodes have seasons, or <c>Special 3</c> or
+    /// <c>Specials</c> narrows to those episodes, and the rest of the search
+    /// matches the titles, ignoring case.
     /// </summary>
     /// <param name="episodes">The episodes.</param>
     /// <param name="search">The search, if any.</param>
-    /// <returns>The episodes that match, or <see langword="null"/> when the search is not a number.</returns>
-    internal static IEnumerable<IEpisode>? SearchEpisodes(IEnumerable<IEpisode> episodes, string? search)
+    /// <param name="titlesOf">Reads every title of an episode, only once there is text to match.</param>
+    /// <returns>The episodes that match.</returns>
+    internal static IEnumerable<IEpisode> SearchEpisodes(IEnumerable<IEpisode> episodes, string? search, Func<IEpisode, IEnumerable<string>> titlesOf)
     {
         if (string.IsNullOrWhiteSpace(search))
             return episodes;
 
-        if (EpisodeNumberSearchRegex().Match(search.Trim()) is not { Success: true } match)
-            return null;
+        var text = search.Trim();
+        if (EpisodeNumberSearchRegex().IsMatch(text))
+            return episodes.Where(episode => episode.EpisodeNumber.ToString(CultureInfo.InvariantCulture).Contains(text, StringComparison.Ordinal));
 
-        var numberText = match.Groups["number"].Value;
-        if (!match.Groups["qualified"].Success)
-            return episodes.Where(episode => episode.EpisodeNumber.ToString(CultureInfo.InvariantCulture).Contains(numberText, StringComparison.Ordinal));
+        var list = episodes as IReadOnlyCollection<IEpisode> ?? [.. episodes];
+        IEnumerable<IEpisode> found = list;
+        if (EpisodePrefixSearchRegex().Match(text) is { Success: true } match &&
+            (!match.Groups["season"].Success || list.Any(episode => episode.SeasonNumber is not null)))
+        {
+            if (match.Groups["special"].Success)
+                found = found.Where(episode => episode.Type is EpisodeType.Special);
+            if (Number(match.Groups["specialNumber"]) is { } specialNumber)
+                found = found.Where(episode => episode.EpisodeNumber == specialNumber);
+            if (Number(match.Groups["season"]) is { } seasonNumber)
+                found = found.Where(episode => episode.SeasonNumber == seasonNumber);
+            if (Number(match.Groups["episode"]) is { } episodeNumber)
+                found = found.Where(episode => episode.EpisodeNumber == episodeNumber);
+            text = text[match.Length..].Trim();
+        }
 
-        return int.TryParse(numberText, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
-            ? episodes.Where(episode => episode.EpisodeNumber == number)
-            : null;
+        return text.Length > 0
+            ? found.Where(episode => titlesOf(episode).Any(title => title.Contains(text, StringComparison.OrdinalIgnoreCase)))
+            : found;
+
+        static int? Number(System.Text.RegularExpressions.Group group)
+            => group.Success && int.TryParse(group.Value, NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : null;
     }
 
     /// <summary>

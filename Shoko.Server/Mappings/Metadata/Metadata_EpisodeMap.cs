@@ -3,6 +3,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 
 namespace Shoko.Server.Mappings;
 
@@ -29,6 +30,8 @@ public class Metadata_EpisodeMap : ClassMap<Metadata_Episode>
         Map(x => x.AirDateWithTime).Nullable();
         Map(x => x.Resources).CustomType<JsonListConverter<Resource>>().Nullable();
         Map(x => x.CrossSourceIDs).CustomType<JsonListConverter<MetadataGuid>>().Nullable();
+        Map(x => x.ExtraData).CustomType<JsonObjectConverter<Metadata_EpisodeExtra>>().Nullable();
+        Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
         Map(x => x.IsHidden).Not.Nullable();
     }

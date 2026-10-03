@@ -20,10 +20,8 @@ using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko.Embedded;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
@@ -199,54 +197,6 @@ public class AnimeSeries : IShokoSeries
     #region AniDB
 
     public AniDB_Anime? AniDB_Anime => RepoFactory.AniDB_Anime.GetByAnimeID(AniDB_ID);
-
-    #endregion
-
-    #region TMDB
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> TmdbMovieCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(AniDB_ID);
-
-    public IReadOnlyList<TMDB_Movie> TmdbMovies => TmdbMovieCrossReferences
-        .DistinctBy(xref => xref.TmdbMovieID)
-        .Select(xref => xref.TmdbMovie)
-        .WhereNotNull()
-        .ToList();
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Show> TmdbShowCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(AniDB_ID);
-
-    public IReadOnlyList<TMDB_Show> TmdbShows => TmdbShowCrossReferences
-        .Select(xref => xref.TmdbShow)
-        .WhereNotNull()
-        .ToList();
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
-
-    #endregion
-
-    #region TMDB (continued)
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetTmdbEpisodeCrossReferences(int? tmdbShowId = null) => tmdbShowId.HasValue
-        ? RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(AniDB_ID, tmdbShowId.Value)
-        : RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AniDB_ID);
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Season> TmdbSeasonCrossReferences =>
-        TmdbEpisodeCrossReferences
-            .Select(xref => xref.TmdbSeasonCrossReference)
-            .WhereNotNull()
-            .DistinctBy(xref => xref.TmdbSeasonID)
-            .ToList();
-
-    public IReadOnlyList<TMDB_Season> TmdbSeasons => TmdbSeasonCrossReferences
-        .Select(xref => xref.TmdbSeason)
-        .WhereNotNull()
-        .ToList();
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Season> GetTmdbSeasonCrossReferences(int? tmdbShowId = null) =>
-        GetTmdbEpisodeCrossReferences(tmdbShowId)
-            .Select(xref => xref.TmdbSeasonCrossReference)
-            .WhereNotNull()
-            .Distinct()
-            .ToList();
 
     #endregion
 
@@ -477,9 +427,18 @@ public class AnimeSeries : IShokoSeries
 
     IReadOnlyList<INetwork> ISeries.Networks => [.. LinkedSeries.SelectMany(series => series.Networks).DistinctBy(network => network.ID)];
 
-    IReadOnlyList<IOrdering> ISeries.Orderings => OrderingLookup.For(this);
+    IReadOnlyList<string> ISeries.ProductionCountries => [.. LinkedSeries.SelectMany(series => series.ProductionCountries).Distinct()];
 
-    IOrdering ISeries.PreferredOrdering => OrderingLookup.PreferredFor(this);
+    string? ISeries.OriginalLanguageCode => LinkedSeries.Select(series => series.OriginalLanguageCode).FirstOrDefault(code => !string.IsNullOrEmpty(code));
+
+    // Each source measures these on its own scale, so a Shoko series has none.
+    double? ISeries.Popularity => null;
+
+    int? ISeries.FavoriteCount => null;
+
+    IReadOnlyList<IOrdering<IShokoSeries, IShokoEpisode>> ISeries<IShokoSeries, IShokoEpisode>.Orderings => OrderingLookup.For<IShokoSeries, IShokoEpisode>(this);
+
+    IOrdering<IShokoSeries, IShokoEpisode> ISeries<IShokoSeries, IShokoEpisode>.PreferredOrdering => OrderingLookup.PreferredFor<IShokoSeries, IShokoEpisode>(this);
 
     IReadOnlyList<IMetadataSeriesCrossReference> ISeries.MetadataSeriesCrossReferences
         => ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeriesCrossReferences(AniDB_ID, null) ?? [];
@@ -525,24 +484,21 @@ public class AnimeSeries : IShokoSeries
 
     /// <summary>
     ///   Everything every provider linked to this series suggests, in one
-    ///   list. A plugin that wants one provider's view reads it from that
-    ///   provider's own entity instead.
+    ///   list, with this series as the base. A plugin that wants one
+    ///   provider's view reads it from that provider's own entity instead.
     /// </summary>
-    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions =>
-        [.. LinkedSeries.SelectMany(series => series.Suggestions)];
+    IReadOnlyList<ISuggestedMetadata<IShokoSeries, ISeries>> ISeries<IShokoSeries, IShokoEpisode>.Suggestions =>
+        [.. GetLinkedSuggestions().Select(suggestion => new AnimeSeriesSuggestion(suggestion, this))];
 
     /// <summary>
-    ///   Everything every provider linked to this series is suggested by.
+    ///   Everything every provider linked to this series is suggested by,
+    ///   each based on the Shoko series standing for the suggesting entry.
     /// </summary>
-    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy =>
-        [.. LinkedSeries.SelectMany(series => series.SuggestedBy)];
+    IReadOnlyList<ISuggestedMetadata<IShokoSeries, ISeries>> ISeries<IShokoSeries, IShokoEpisode>.SuggestedBy =>
+        [.. GetLinkedSuggestedBy().Select(suggestion => new AnimeSeriesSuggestion(suggestion, (suggestion.Base as ISeries)?.ShokoSeries.FirstOrDefault()))];
 
     IReadOnlyList<IVideoCrossReference> ISeries.VideoCrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID);
-
-    IReadOnlyList<ISeason> ISeries.Seasons => AnimeSeasons;
-
-    IReadOnlyList<IEpisode> ISeries.Episodes => AllAnimeEpisodes;
 
     IReadOnlyList<IVideo> ISeries.Videos =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AniDB_ID)
@@ -745,6 +701,21 @@ public class AnimeSeries : IShokoSeries
         }
     }
 
+    /// <summary>
+    ///   What every series linked to this one suggests, as each gives it.
+    /// </summary>
+    /// <returns>The suggestions, by linked series.</returns>
+    internal IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> GetLinkedSuggestions()
+        => [.. LinkedSeries.SelectMany(series => series.Suggestions)];
+
+    /// <summary>
+    ///   What every series linked to this one is suggested by, as each gives
+    ///   it.
+    /// </summary>
+    /// <returns>The suggestions, by linked series.</returns>
+    internal IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> GetLinkedSuggestedBy()
+        => [.. LinkedSeries.SelectMany(series => series.SuggestedBy)];
+
     IReadOnlyList<ISeries> IShokoSeries.LinkedSeries => LinkedSeries;
 
     IReadOnlyList<ISeason> IShokoSeries.LinkedSeasons
@@ -754,9 +725,9 @@ public class AnimeSeries : IShokoSeries
 
     IReadOnlyList<IMovie> IShokoSeries.LinkedMovies => LinkedMovies;
 
-    IReadOnlyList<IShokoSeason> IShokoSeries.Seasons => AnimeSeasons;
+    IReadOnlyList<ISeason<IShokoSeries, IShokoEpisode>> ISeries<IShokoSeries, IShokoEpisode>.Seasons => AnimeSeasons;
 
-    IReadOnlyList<IShokoEpisode> IShokoSeries.Episodes => AllAnimeEpisodes;
+    IReadOnlyList<IShokoEpisode> ISeries<IShokoSeries, IShokoEpisode>.Episodes => AllAnimeEpisodes;
 
     ISeriesUserData IShokoSeries.GetUserData(IUser user)
     {

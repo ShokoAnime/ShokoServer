@@ -66,7 +66,7 @@ public enum AnidbRefreshMethod : int
     CreateShokoSeries = 128,
 
     /// <summary>
-    /// Skip supplementary metadata updates (e.g., TMDB) after the AniDB update.
+    /// Skip the supplementary metadata sources' updates after the AniDB update.
     /// </summary>
     SkipSupplementaryUpdate = 256,
 }

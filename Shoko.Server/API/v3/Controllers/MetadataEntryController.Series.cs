@@ -17,6 +17,7 @@ using Shoko.Server.API.v3.Models.Metadata;
 using Shoko.Server.API.v3.Models.Metadata.Input;
 using Shoko.Server.API.v3.Models.Ordering;
 using Shoko.Server.API.v3.Models.Shoko;
+using Shoko.Server.Models.Shoko;
 
 using File = Shoko.Server.API.v3.Models.Shoko.File;
 using Resource = Shoko.Server.API.v3.Models.Common.Resource;
@@ -357,7 +358,7 @@ public partial class MetadataEntryController
     [HttpGet("Series/{id}/Suggestions")]
     public async Task<ActionResult<IReadOnlyList<MetadataSuggestion>>> GetSeriesSuggestions([FromRoute] MetadataSource source, [FromRoute] string id, CancellationToken cancellationToken = default)
         => await Get<ISeries>(source, MetadataEntityType.Series, id, cancellationToken).ConfigureAwait(false) is { } series
-            ? series.Suggestions.Select(suggestion => _models.Suggestion(suggestion)).ToList()
+            ? (series is AnimeSeries shokoSeries ? shokoSeries.GetLinkedSuggestions() : series.Suggestions).Select(suggestion => _models.Suggestion(suggestion)).ToList()
             : NotFound(SeriesNotFound);
 
     /// <summary>
@@ -370,7 +371,7 @@ public partial class MetadataEntryController
     [HttpGet("Series/{id}/SuggestedBy")]
     public async Task<ActionResult<IReadOnlyList<MetadataSuggestion>>> GetSeriesSuggestedBy([FromRoute] MetadataSource source, [FromRoute] string id, CancellationToken cancellationToken = default)
         => await Get<ISeries>(source, MetadataEntityType.Series, id, cancellationToken).ConfigureAwait(false) is { } series
-            ? series.SuggestedBy.Select(suggestion => _models.Suggestion(suggestion, suggestedBy: true)).ToList()
+            ? (series is AnimeSeries shokoSeries ? shokoSeries.GetLinkedSuggestedBy() : series.SuggestedBy).Select(suggestion => _models.Suggestion(suggestion, suggestedBy: true)).ToList()
             : NotFound(SeriesNotFound);
 
     /// <summary>
@@ -390,8 +391,48 @@ public partial class MetadataEntryController
         CancellationToken cancellationToken = default
     )
         => await Get<ISeries>(source, MetadataEntityType.Series, id, cancellationToken).ConfigureAwait(false) is { } series
-            ? _orderingService.GetOrderings(series).Select(ordering => new SeriesOrdering(ordering, includeGroups)).ToList()
+            ? _orderingService.GetOrderings(series).Select(ordering => new SeriesOrdering(ordering, includeGroups, _models)).ToList()
             : NotFound(SeriesNotFound);
+
+    /// <summary>
+    /// Choose the ordering to use for a stored series, or go back to its
+    /// default one. <see cref="SeriesOrdering.IsPreferred"/> marks the choice.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="id">The source's ID for the series.</param>
+    /// <param name="body">The ordering to choose.</param>
+    /// <param name="cancellationToken">Stops the wait for a running refresh.</param>
+    /// <returns>Nothing, or 400 when the ordering is not one of the series'.</returns>
+    [Authorize("admin")]
+    [HttpPost("Series/{id}/Orderings/SetPreferred")]
+    public async Task<ActionResult> SetPreferredSeriesOrdering(
+        [FromRoute] MetadataSource source,
+        [FromRoute] string id,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] SeriesOrdering.Input.SetPreferredOrderingBody body,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (await Get<ISeries>(source, MetadataEntityType.Series, id, cancellationToken).ConfigureAwait(false) is not { } series)
+            return NotFound(SeriesNotFound);
+
+        if (!SeriesOrderingController.TryParsePreferredOrderingID(body.OrderingID, out var orderingID))
+            return ValidationProblem("Invalid ordering ID.", nameof(body.OrderingID));
+
+        try
+        {
+            _orderingService.SetPreferredOrdering(series.ID, orderingID);
+            return Ok();
+        }
+        catch (ArgumentException ex) when (ex.ParamName is "seriesID")
+        {
+            // Served by a resolver only, so not stored here.
+            return NotFound(SeriesNotFound);
+        }
+        catch (ArgumentException ex)
+        {
+            return ValidationProblem(ex.Message, nameof(body.OrderingID));
+        }
+    }
 
     /// <summary>
     /// Get the seasons of a stored series.
@@ -423,8 +464,10 @@ public partial class MetadataEntryController
     /// <param name="source">The source.</param>
     /// <param name="id">The source's ID for the series.</param>
     /// <param name="search">
-    /// Filters on the episode number. A bare number matches anywhere in it;
-    /// with an <c>E</c> or <c>#</c> in front it matches that episode only.
+    /// Filters the episodes. A bare number matches anywhere in the episode
+    /// number. A leading <c>E5</c> or <c>#5</c>, <c>S1</c> or <c>S1E5</c> when
+    /// the source has seasons, or <c>Special 3</c> or <c>Specials</c> narrows
+    /// to those episodes, and the rest matches the titles, ignoring case.
     /// </param>
     /// <param name="include">The extra details to include.</param>
     /// <param name="language">The languages of the titles, overviews and images to include.</param>
@@ -447,9 +490,7 @@ public partial class MetadataEntryController
         if (await Get<ISeries>(source, MetadataEntityType.Series, id, cancellationToken).ConfigureAwait(false) is not { } series)
             return NotFound(SeriesNotFound);
 
-        if (SearchEpisodes(series.Episodes, search) is not { } episodes)
-            return new ListResult<MetadataEpisode>();
-
+        var episodes = SearchEpisodes(series.Episodes, search, _models.TitleValues);
         return Page(InOrder(episodes).Select(episode => _models.Episode(episode, include, language)), page, pageSize);
     }
 
@@ -467,7 +508,7 @@ public partial class MetadataEntryController
     [HttpGet("Series/{id}/CrossReferences")]
     public async Task<ActionResult<IReadOnlyList<MetadataCrossReference>>> GetSeriesCrossReferences([FromRoute] MetadataSource source, [FromRoute] string id, CancellationToken cancellationToken = default)
         => await Get<ISeries>(source, MetadataEntityType.Series, id, cancellationToken).ConfigureAwait(false) is { } series
-            ? Ok(MetadataModelBuilder.CrossReferences(series.MetadataSeriesCrossReferences))
+            ? Ok(MetadataModelBuilder.CrossReferences(series.MetadataSeriesCrossReferences, _metadataService))
             : NotFound(SeriesNotFound);
 
     /// <summary>
@@ -488,7 +529,7 @@ public partial class MetadataEntryController
         CancellationToken cancellationToken = default
     )
         => await Get<ISeries>(source, MetadataEntityType.Series, id, cancellationToken).ConfigureAwait(false) is { } series
-            ? Page(MetadataModelBuilder.CrossReferences(series.MetadataEpisodeCrossReferences), page, pageSize)
+            ? Page(MetadataModelBuilder.CrossReferences(series.MetadataEpisodeCrossReferences, _metadataService), page, pageSize)
             : NotFound(SeriesNotFound);
 
     /// <summary>
@@ -515,7 +556,7 @@ public partial class MetadataEntryController
             return NotFound(SeriesNotFound);
 
         var groups = GroupEpisodeLinks(series.MetadataEpisodeCrossReferences)
-            .Select(group => group.Select((link, index) => Reindex(MetadataModelBuilder.CrossReference(link), index)).ToList());
+            .Select(group => group.Select((link, index) => Reindex(MetadataModelBuilder.CrossReference(link, _metadataService), index)).ToList());
         return Page(groups, page, pageSize);
     }
 
@@ -533,6 +574,7 @@ public partial class MetadataEntryController
             AnidbAnimeID = link.AnidbAnimeID,
             AnidbEpisodeID = link.AnidbEpisodeID,
             ID = link.ID,
+            SiteUrl = link.SiteUrl,
             ParentID = link.ParentID,
             SeasonID = link.SeasonID,
             SeasonNumber = link.SeasonNumber,

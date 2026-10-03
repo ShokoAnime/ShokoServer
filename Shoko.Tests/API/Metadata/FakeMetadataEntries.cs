@@ -51,6 +51,22 @@ public static class FakeMetadataEntries
 
         public bool IsSynthesized { get; init; }
 
+        public int? ID { get; init; }
+
+        public MetadataGuid? EntityID { get; init; }
+
+        public int? ReferenceID { get; init; }
+
+        public bool IsEnabled { get; init; } = true;
+
+        public TextPreference Preference { get; init; }
+
+        public int Ordering { get; init; }
+
+        public string? ScriptCode { get; init; }
+
+        public bool IsInlineDefault { get; init; }
+
         public bool Equals(IText? other)
             => IText.Equals(this, other);
 
@@ -110,6 +126,20 @@ public static class FakeMetadataEntries
 
         public bool Restricted { get; set; }
 
+        public ReleaseStatus ReleaseStatus { get; set; }
+
+        public SourceMaterial SourceMaterial { get; set; }
+
+        public string? OriginalLanguageCode { get; set; }
+
+        public double? Popularity { get; set; }
+
+        public int? FavoriteCount { get; set; }
+
+        public IReadOnlyList<INetwork> Networks { get; set; } = [];
+
+        public IReadOnlyList<string> ProductionCountries { get; set; } = [];
+
         public IReadOnlyList<IShokoSeries> ShokoSeries { get; set; } = [];
 
         public IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> RelatedSeries { get; set; } = [];
@@ -141,6 +171,12 @@ public static class FakeMetadataEntries
         public IReadOnlyList<IVideo> Videos { get; set; } = [];
 
         public EpisodeCounts EpisodeCounts { get; set; } = new();
+
+        public DateTime CreatedAt { get; set; } = DateTime.UnixEpoch;
+
+        public DateTime LastUpdatedAt { get; set; } = DateTime.UnixEpoch;
+
+        public DateTime? LastRefreshedAt { get; set; }
     }
 
     public sealed class FakeEpisode(string id, string seriesID, int number, EpisodeType type = EpisodeType.Episode, int? seasonNumber = 1) : IEpisode
@@ -187,6 +223,8 @@ public static class FakeMetadataEntries
 
         public TimeSpan Runtime { get; set; } = TimeSpan.FromMinutes(24);
 
+        public bool IsHidden { get; set; }
+
         public DateOnly? AirDate { get; set; }
 
         public DateTime? AirDateWithTime { get; set; }
@@ -208,6 +246,13 @@ public static class FakeMetadataEntries
         public IReadOnlyList<IMetadataMovieCrossReference> MetadataMovieCrossReferences { get; set; } = [];
 
         public IReadOnlyList<IVideo> Videos { get; set; } = [];
+
+        public DateTime CreatedAt { get; set; } = DateTime.UnixEpoch;
+
+        public DateTime LastUpdatedAt { get; set; } = DateTime.UnixEpoch;
+
+        // Most tests leave the series unset.
+        public DateTime? LastRefreshedAt => Series?.LastRefreshedAt;
     }
 
     public sealed class FakeTag(string id, string name) : ITag
@@ -258,6 +303,8 @@ public static class FakeMetadataEntries
         public IShokoSeries? ShokoSeries => null;
 
         public IMetadata? Provider => null;
+
+        public Guid? WrittenBy { get; set; }
     }
 
     #endregion

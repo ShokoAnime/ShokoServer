@@ -20,7 +20,6 @@ using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
@@ -42,12 +41,13 @@ public class LegacyActionController : BaseController
     private readonly AnimeGroupCreator _groupCreator;
     private readonly ActionService _actionService;
     private readonly IShokoGroupManager _groupService;
-    private readonly TmdbMetadataUpdater _tmdbUpdater;
+    private readonly MetadataEntityRefreshScheduler _entityScheduler;
     private readonly IScheduledActionService _scheduledActions;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly IQueueScheduler _scheduler;
     private readonly MetadataSourceActions _sourceActions;
     private readonly IMetadataProviderManager _providerManager;
+    private readonly IMetadataOrderingService _orderingService;
 
     private readonly IMylistService _mylistService;
     private readonly IImageManager _imageManager;
@@ -56,7 +56,7 @@ public class LegacyActionController : BaseController
 
     public LegacyActionController(
         ILogger<ActionController> logger,
-        TmdbMetadataUpdater tmdbUpdater,
+        MetadataEntityRefreshScheduler entityScheduler,
         IQueueScheduler scheduler,
         IMylistService mylistService,
         IVideoReleaseService videoReleaseService,
@@ -69,11 +69,12 @@ public class LegacyActionController : BaseController
         JMMUserRepository jmmUsers,
         MetadataSourceActions sourceActions,
         IMetadataProviderManager providerManager,
+        IMetadataOrderingService orderingService,
         IScheduledActionService scheduledActions
     ) : base(settingsProvider)
     {
         _logger = logger;
-        _tmdbUpdater = tmdbUpdater;
+        _entityScheduler = entityScheduler;
         _videoReleaseService = videoReleaseService;
         _scheduler = scheduler;
         _mylistService = mylistService;
@@ -85,6 +86,7 @@ public class LegacyActionController : BaseController
         _jmmUsers = jmmUsers;
         _sourceActions = sourceActions;
         _providerManager = providerManager;
+        _orderingService = orderingService;
         _scheduledActions = scheduledActions;
     }
 
@@ -241,12 +243,13 @@ public class LegacyActionController : BaseController
     }
 
     /// <summary>
-    /// Download any missing TMDB People.
+    /// Refresh every stub and stale person, studio and network, TMDB's among
+    /// them, through the provider taking its source.
     /// </summary>
     [HttpGet("DownloadMissingTmdbPeople")]
     public ActionResult DownloadMissingTmdbPeople()
     {
-        Task.Factory.StartNew(ActorContext.Carry(() => _tmdbUpdater.RepairMissingPeople()));
+        _sourceActions.Start("Refreshing the stale people, studios and networks", () => _entityScheduler.ScheduleAllDue());
         return Ok();
     }
 
@@ -279,7 +282,7 @@ public class LegacyActionController : BaseController
     [HttpGet("PurgeAllTmdbShowAlternateOrderings")]
     public ActionResult PurgeAllTmdbShowAlternateOrderings()
     {
-        Task.Factory.StartNew(ActorContext.Carry(() => _tmdbUpdater.PurgeAllShowEpisodeGroups()));
+        _sourceActions.Start("Purging the TMDB alternate orderings", () => Task.FromResult(_orderingService.RemoveOrderings(MetadataSource.TMDB)));
         return Ok();
     }
 

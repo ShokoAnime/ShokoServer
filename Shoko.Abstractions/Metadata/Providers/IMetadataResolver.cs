@@ -8,9 +8,9 @@ namespace Shoko.Abstractions.Metadata.Providers;
 /// </summary>
 /// <remarks>
 ///   Each pair is taken by one resolver, the first in plugin load order; a
-///   pair on a core source (<c>shoko</c>, <c>user</c>, <c>generated</c>,
-///   <c>anidb</c> or <c>tmdb</c>), or one another resolver already took, is
-///   refused and logged, and the resolver keeps the rest.
+///   pair on a core source (<c>shoko</c>, <c>user</c>, <c>generated</c> or
+///   <c>anidb</c>), or one another resolver already took, is refused and
+///   logged, and the resolver keeps the rest.
 /// </remarks>
 public interface IMetadataResolver
 {
@@ -40,4 +40,25 @@ public interface IMetadataResolver
     ///   stores.
     /// </returns>
     IMetadata? GetEntry(MetadataGuid id);
+
+    /// <summary>
+    ///   The address of an entry's own page on its source's site, for an
+    ///   entry of a pair the resolver took. Asked before the source's
+    ///   provider.
+    /// </summary>
+    /// <remarks>
+    ///   Called for every row of a list, so keep it cheap: build it from the
+    ///   entry, and reach for the network or a database only when there is no
+    ///   other way. A thrown exception is logged and read as no page.
+    /// </remarks>
+    /// <param name="entry">
+    ///   The entry, always of a pair the resolver took from its
+    ///   <see cref="Scope"/>. When nothing holds it, such as a search hit not
+    ///   stored yet, it is only an <see cref="IMetadata"/> carrying its ID.
+    /// </param>
+    /// <returns>
+    ///   The absolute URL, or <see langword="null"/> when the entry has no
+    ///   page.
+    /// </returns>
+    string? GetSiteUrl(IMetadata entry) => null;
 }

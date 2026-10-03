@@ -9,6 +9,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Services.MetadataStorage;
@@ -141,6 +142,7 @@ public class MetadataSeriesStore(
         var originalLanguageCode = MetadataEntries.CheckLanguageCode(series.OriginalLanguageCode, nameof(series));
         var resources = MetadataEntries.CheckResources(series.Resources, nameof(series));
         var crossSourceIDs = MetadataEntries.CheckCrossSourceIDs(series.CrossSourceIDs, nameof(series));
+        var countries = MetadataEntries.CheckCountries(series.ProductionCountries, nameof(series));
         var contentRatings = MetadataContentRatings.Check(series.ContentRatings, nameof(series));
         List<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles, IReadOnlyList<IText> Descriptions)> texts =
         [
@@ -155,7 +157,7 @@ public class MetadataSeriesStore(
         {
             var now = DateTime.Now;
             var storedSeries = seriesRepository.GetByProviderID(source, series.ID.ID);
-            var seriesRow = MetadataRows.Copy(storedSeries) ?? new Metadata_Series();
+            var seriesRow = MetadataRows.Copy(storedSeries) ?? new Metadata_Series { CreatedAt = now };
             seriesRow.Source = source;
             seriesRow.ProviderID = series.ID.ID;
             seriesRow.Type = series.Type;
@@ -172,22 +174,25 @@ public class MetadataSeriesStore(
             seriesRow.FavoriteCount = series.FavoriteCount;
             seriesRow.Resources = resources;
             seriesRow.CrossSourceIDs = crossSourceIDs;
+            seriesRow.ExtraData = MetadataDefaultImages.Apply((seriesRow.ExtraData ?? new()) with { ProductionCountries = countries }, series.DefaultImageResourceIDs)
+                .NullIfEmpty();
             var (ratingsSaving, ratingsDeleting) = MetadataContentRatings.Plan(contentRatingRepository, series.ID, contentRatings);
 
             var seasonRows = seasons.Values.Select(season =>
             {
                 var stored = seasonRepository.GetByProviderID(source, season.ID.ID);
-                var row = MetadataRows.Copy(stored) ?? new Metadata_Season();
+                var row = MetadataRows.Copy(stored) ?? new Metadata_Season { CreatedAt = now };
                 row.Source = source;
                 row.ProviderID = season.ID.ID;
                 row.SeriesID = series.ID.ID;
                 row.SeasonNumber = season.SeasonNumber;
+                row.ExtraData = MetadataDefaultImages.Apply(row.ExtraData ?? new(), season.DefaultImageResourceIDs).NullIfEmpty();
                 return (Stored: stored, Row: row);
             }).ToList();
             var episodeRows = episodes.Values.Select(episode =>
             {
                 var stored = episodeRepository.GetByProviderID(source, episode.ID.ID);
-                var row = MetadataRows.Copy(stored) ?? new Metadata_Episode();
+                var row = MetadataRows.Copy(stored) ?? new Metadata_Episode { CreatedAt = now };
                 row.Source = source;
                 row.ProviderID = episode.ID.ID;
                 row.SeriesID = series.ID.ID;
@@ -204,6 +209,7 @@ public class MetadataSeriesStore(
                     : episode.AirDate;
                 row.Resources = episodeResources[episode.ID];
                 row.CrossSourceIDs = episodeCrossSourceIDs[episode.ID];
+                row.ExtraData = ExtraData(episode, row.SeasonNumber, row.ExtraData);
                 return (Stored: stored, Row: row);
             }).ToList();
 
@@ -376,6 +382,32 @@ public class MetadataSeriesStore(
 
     #endregion
 
+    #region Refresh State
+
+    /// <summary>
+    ///   Stamps when the core last refreshed a stored series, on the series's
+    ///   own row, leaving the rest of it as it is.
+    /// </summary>
+    /// <param name="seriesID">The series.</param>
+    /// <param name="refreshedAt">When the refresh finished, in local time.</param>
+    /// <returns><c>true</c> if the series is stored.</returns>
+    internal bool SetLastRefreshedAt(MetadataGuid seriesID, DateTime refreshedAt)
+    {
+        lock (_writeLock)
+        {
+            if (seriesRepository.GetByProviderID(seriesID.Source, seriesID.ID) is not { } stored)
+                return false;
+
+            // A copy, so the cached row stays as it was until the write has committed.
+            var row = MetadataRows.Copy(stored)!;
+            row.LastRefreshedAt = refreshedAt;
+            textStore.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Series>(seriesRepository, [row], []));
+            return true;
+        }
+    }
+
+    #endregion
+
     #region Helpers
 
     /// <summary>
@@ -431,6 +463,27 @@ public class MetadataSeriesStore(
     /// <returns>Added, updated, or none.</returns>
     private static UpdateReason Reason(bool isNew, bool isSame, bool textsChanged)
         => isNew ? UpdateReason.Added : !isSame || textsChanged ? UpdateReason.Updated : UpdateReason.None;
+
+    /// <summary>
+    ///   The extras an episode stores. Where a special airs is kept in
+    ///   season 0 only, and the default images stored are kept when the
+    ///   source gives none.
+    /// </summary>
+    /// <param name="episode">The episode, as its source gave it.</param>
+    /// <param name="seasonNumber">The season number the episode is stored with.</param>
+    /// <param name="stored">The extras stored now, or <c>null</c>.</param>
+    /// <returns>The extras, or <c>null</c> when none is set.</returns>
+    private static Metadata_EpisodeExtra? ExtraData(MetadataEpisodeData episode, int? seasonNumber, Metadata_EpisodeExtra? stored)
+    {
+        var special = seasonNumber is 0;
+        var extra = (stored ?? new()) with
+        {
+            AirsBeforeSeasonNumber = special ? episode.AirsBeforeSeasonNumber : null,
+            AirsBeforeEpisodeNumber = special ? episode.AirsBeforeEpisodeNumber : null,
+            AirsAfterSeasonNumber = special ? episode.AirsAfterSeasonNumber : null,
+        };
+        return MetadataDefaultImages.Apply(extra, episode.DefaultImageResourceIDs).NullIfEmpty();
+    }
 
     /// <summary>
     ///   Raises the series event, with the seasons and episodes that changed

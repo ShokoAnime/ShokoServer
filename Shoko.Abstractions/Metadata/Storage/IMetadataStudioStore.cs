@@ -8,11 +8,13 @@ namespace Shoko.Abstractions.Metadata.Storage;
 ///   worked on or aired, so a provider does not have to.
 /// </summary>
 /// <remarks>
-///   Only a plugin's source can be written; the core keeps the studios and
-///   networks of <c>shoko</c>, <c>user</c>, <c>generated</c>, <c>anidb</c>
-///   and <c>tmdb</c> itself. No write removes a studio or network: one no
-///   entry names any more is purged by <see cref="RemoveOrphaned"/> once it
-///   has been orphaned long enough.
+///   Every source but the core's own can be written; the core keeps the
+///   studios and networks of <c>shoko</c>, <c>user</c>, <c>generated</c> and
+///   <c>anidb</c> itself. An entry naming a studio or network not stored
+///   yet stores a stub: the ID and the name the link carried, filled in by
+///   the next save of it. No write removes a studio or network: one no entry
+///   names any more is purged by <see cref="RemoveOrphaned"/> once it has
+///   been orphaned long enough.
 /// </remarks>
 public interface IMetadataStudioStore
 {
@@ -22,7 +24,7 @@ public interface IMetadataStudioStore
     ///   Looks up a studio.
     /// </summary>
     /// <param name="id">The studio, e.g. <c>anilist://studio/7</c>.</param>
-    /// <returns>The studio, or <c>null</c> when it is not stored.</returns>
+    /// <returns>The studio, a stub read with the name its link carried, or <c>null</c> when it is not stored.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     IStudio? GetStudio(MetadataGuid id);
 
@@ -43,7 +45,8 @@ public interface IMetadataStudioStore
     IReadOnlyList<MetadataGuid> GetEntriesForStudio(MetadataGuid studio);
 
     /// <summary>
-    ///   Looks up a network.
+    ///   Looks up a network. A stub reads with the name its link carried, or
+    ///   an empty one, such as one a user's ordering named.
     /// </summary>
     /// <param name="id">The network, e.g. <c>anilist://network/3</c>.</param>
     /// <returns>The network, or <c>null</c> when it is not stored.</returns>
@@ -71,7 +74,8 @@ public interface IMetadataStudioStore
     #region Writing
 
     /// <summary>
-    ///   Adds studios, or updates the ones already stored.
+    ///   Adds studios, or updates the ones already stored, filling in any
+    ///   stub the core made for one.
     /// </summary>
     /// <param name="studios">The studios.</param>
     /// <exception cref="ArgumentNullException"><paramref name="studios"/> is or holds <c>null</c>.</exception>
@@ -79,7 +83,8 @@ public interface IMetadataStudioStore
     void SaveStudios(IEnumerable<MetadataStudioData> studios);
 
     /// <summary>
-    ///   Makes an entry's studios exactly the ones given, in that order.
+    ///   Makes an entry's studios exactly the ones given, in that order. A
+    ///   studio not stored yet is stored as a stub.
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <param name="studios">
@@ -90,8 +95,8 @@ public interface IMetadataStudioStore
     ///   <paramref name="entry"/> or <paramref name="studios"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="ArgumentException">
-    ///   The entry is on a source the core keeps itself, or a studio is not
-    ///   stored or is on another source.
+    ///   The entry is on a source the core keeps itself, or a studio is of
+    ///   another kind or on another source.
     /// </exception>
     void SetStudios(MetadataGuid entry, IEnumerable<MetadataEntryStudioData> studios);
 
@@ -105,7 +110,8 @@ public interface IMetadataStudioStore
     int RemoveStudios(MetadataGuid entry);
 
     /// <summary>
-    ///   Adds networks, or updates the ones already stored.
+    ///   Adds networks, or updates the ones already stored, filling in any
+    ///   stub the core made for one.
     /// </summary>
     /// <param name="networks">The networks.</param>
     /// <exception cref="ArgumentNullException"><paramref name="networks"/> is or holds <c>null</c>.</exception>
@@ -113,7 +119,8 @@ public interface IMetadataStudioStore
     void SaveNetworks(IEnumerable<MetadataNetworkData> networks);
 
     /// <summary>
-    ///   Makes an entry's networks exactly the ones given, in that order.
+    ///   Makes an entry's networks exactly the ones given, in that order. A
+    ///   network not stored yet is stored as a stub with an empty name.
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <param name="networks">The networks. A network given twice keeps its first place.</param>
@@ -122,10 +129,26 @@ public interface IMetadataStudioStore
     ///   <c>null</c>.
     /// </exception>
     /// <exception cref="ArgumentException">
-    ///   The entry is on a source the core keeps itself, or a network is not
-    ///   stored or is on another source.
+    ///   The entry is on a source the core keeps itself, or a network is of
+    ///   another kind or on another source.
     /// </exception>
     void SetNetworks(MetadataGuid entry, IEnumerable<MetadataGuid> networks);
+
+    /// <summary>
+    ///   Makes an entry's networks exactly the ones given, in that order. A
+    ///   network not stored yet is stored as a stub with the name given.
+    /// </summary>
+    /// <param name="entry">The entry.</param>
+    /// <param name="networks">The networks. A network given twice keeps its first place.</param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="entry"/> or <paramref name="networks"/> is or holds
+    ///   <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   The entry is on a source the core keeps itself, or a network is of
+    ///   another kind or on another source.
+    /// </exception>
+    void SetNetworks(MetadataGuid entry, IEnumerable<MetadataEntryNetworkData> networks);
 
     /// <summary>
     ///   Removes every network from an entry.

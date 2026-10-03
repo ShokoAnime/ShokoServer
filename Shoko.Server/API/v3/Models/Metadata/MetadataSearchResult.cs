@@ -23,8 +23,9 @@ public class MetadataSearchResult
     /// </summary>
     /// <param name="result">The provider's answer.</param>
     /// <param name="isLocal">Whether the entry is stored already.</param>
+    /// <param name="siteUrl">The entry's own page on its source's site, if it has one.</param>
     /// <exception cref="ArgumentNullException"><paramref name="result"/> is <see langword="null"/>.</exception>
-    public MetadataSearchResult(AbstractSearchResult result, bool isLocal)
+    public MetadataSearchResult(AbstractSearchResult result, bool isLocal, string? siteUrl)
     {
         ArgumentNullException.ThrowIfNull(result);
 
@@ -32,6 +33,7 @@ public class MetadataSearchResult
         Source = result.ID.Source;
         Type = result.ID.EntityType;
         Guid = result.ID.ToString();
+        SiteUrl = siteUrl;
         Title = result.Title;
         OriginalTitle = result.OriginalTitle;
         OriginalLanguage = result.OriginalLanguageCode;
@@ -83,6 +85,12 @@ public class MetadataSearchResult
     /// </summary>
     [Required]
     public string Guid { get; init; }
+
+    /// <summary>
+    /// The entry's own page on its source's site, or <c>null</c> when it has
+    /// none.
+    /// </summary>
+    public string? SiteUrl { get; init; }
 
     /// <summary>
     /// Whether the entry is stored already, so its full details can be read
@@ -208,8 +216,9 @@ public class MetadataAutoMatchResult
     /// </summary>
     /// <param name="candidate">The match.</param>
     /// <param name="isLocal">Whether the matched entry is stored already.</param>
+    /// <param name="siteUrl">The matched entry's own page on its source's site, if it has one.</param>
     /// <exception cref="ArgumentNullException"><paramref name="candidate"/> is <see langword="null"/>.</exception>
-    public MetadataAutoMatchResult(MetadataAutoLinkCandidate candidate, bool isLocal)
+    public MetadataAutoMatchResult(MetadataAutoLinkCandidate candidate, bool isLocal, string? siteUrl)
     {
         ArgumentNullException.ThrowIfNull(candidate);
 
@@ -222,7 +231,7 @@ public class MetadataAutoMatchResult
         Origin = candidate.Origin;
         LinkMatchRating = candidate.LinkMatchRating;
         PrequelAnidbAnimeID = candidate.PrequelAnidbAnimeID;
-        Result = new(candidate.Result, IsLocal);
+        Result = new(candidate.Result, IsLocal, siteUrl);
         Rejection = candidate.Rejection is { } rejection ? new(rejection) : null;
     }
 

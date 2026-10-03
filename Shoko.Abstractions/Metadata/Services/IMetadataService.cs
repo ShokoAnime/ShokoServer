@@ -57,8 +57,8 @@ public interface IMetadataService
     ///   source it names.
     /// </summary>
     /// <remarks>
-    ///   The core answers <c>shoko</c>, <c>user</c>, <c>generated</c>,
-    ///   <c>anidb</c> and <c>tmdb</c> itself. Other sources ask the
+    ///   The core answers <c>shoko</c>, <c>user</c>, <c>generated</c> and
+    ///   <c>anidb</c> itself. Other sources ask the
     ///   <see cref="IMetadataResolver"/> that took the source and kind, then the
     ///   metadata stores; orderings and their groups come from
     ///   <see cref="IMetadataOrderingService"/>. A removed plugin's stored
@@ -148,6 +148,44 @@ public interface IMetadataService
     /// <returns>The collections, or an empty list when it is in none.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="member"/> is <see langword="null"/>.</exception>
     IReadOnlyList<ICollection> GetCollectionsWith(MetadataGuid member);
+
+    #endregion
+
+    #region Site URLs
+
+    /// <summary>
+    ///   Gets the address of an entry's own page on its source's site, such as
+    ///   an anime's page on AniDB.
+    /// </summary>
+    /// <remarks>
+    ///   Asks the <see cref="IMetadataResolver"/> that took the entry's source
+    ///   and kind, then the source's series provider for a series, season or
+    ///   episode, or its movie provider for a movie or collection, enabled or
+    ///   not. A throwing implementation is logged and answers nothing.
+    /// </remarks>
+    /// <param name="entry">The entry.</param>
+    /// <returns>
+    ///   The absolute URL, or <see langword="null"/> when nobody owns the
+    ///   entry's source and kind or the entry has no page.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    string? GetSiteUrl(IMetadata entry);
+
+    /// <summary>
+    ///   Gets the address of an entry's own page on its source's site, as
+    ///   <see cref="GetSiteUrl(IMetadata)"/> does, looking the entry up first.
+    /// </summary>
+    /// <remarks>
+    ///   An entry nothing holds, such as a search hit not stored yet, is asked
+    ///   about as a bare <see cref="IMetadata"/> carrying only its ID.
+    /// </remarks>
+    /// <param name="id">The entry, e.g. <c>anidb://series/1</c>.</param>
+    /// <returns>
+    ///   The absolute URL, or <see langword="null"/> when nobody owns the
+    ///   entry's source and kind or the entry has no page.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    string? GetSiteUrl(MetadataGuid id);
 
     #endregion
 

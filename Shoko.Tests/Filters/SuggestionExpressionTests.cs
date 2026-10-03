@@ -8,13 +8,9 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
-using Shoko.Server.Repositories.Cached.TMDB;
-using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
@@ -122,17 +118,6 @@ public class SuggestionExpressionTests
     // Anime 10 suggests six entries across AniDB and TMDB, two resolving back to anime 11, the
     // collection's only other series; anime 11 suggests nothing, though two suggestions point at it.
 
-    /// <summary>
-    /// A store the facades can read through.
-    /// </summary>
-    private static MetadataCrossReferenceStore ReadOnlyStore()
-        => new(
-            RepoFactory.CrossRef_AniDB_Metadata_Series,
-            RepoFactory.CrossRef_AniDB_Metadata_Movie,
-            RepoFactory.CrossRef_AniDB_Metadata_Episode,
-            CachedRepo.Build<Metadata_EpisodeRepository, int, Metadata_Episode>(row => row.Metadata_EpisodeID)
-        );
-
     private static RepoFactoryScope Scope()
         => new RepoFactoryScope()
             .With<AniDB_AnimeRepository, int, AniDB_Anime>(a => a.AniDB_AnimeID)
@@ -143,7 +128,7 @@ public class SuggestionExpressionTests
                 new() { AniDB_Anime_SimilarID = 2, AnimeID = SuggestingAnidbID, SimilarAnimeID = 12, Approval = 5, Total = 10, Ordering = 1 },
                 new() { AniDB_Anime_SimilarID = 3, AnimeID = SuggestingAnidbID, SimilarAnimeID = 13, Approval = 1, Total = 10, Ordering = 2 },
             ])
-            // Every source's series links live in one table, each source's own repository a view over it.
+            // Every source's series links live in one table.
             .With<CrossRef_AniDB_Metadata_SeriesRepository, int, CrossRef_AniDB_Metadata_Series>(x => x.CrossRef_AniDB_Metadata_SeriesID,
             [
                 new() { CrossRef_AniDB_Metadata_SeriesID = 1, Source = MetadataSource.TMDB, AnidbAnimeID = SuggestingAnidbID, ProviderID = "200" },
@@ -154,14 +139,24 @@ public class SuggestionExpressionTests
                 new() { CrossRef_AniDB_Metadata_MovieID = 1, Source = MetadataSource.TMDB, AnidbAnimeID = SuggestingAnidbID, AnidbEpisodeID = 1000, ProviderID = "300" },
             ])
             .With<CrossRef_AniDB_Metadata_EpisodeRepository, int, CrossRef_AniDB_Metadata_Episode>(x => x.CrossRef_AniDB_Metadata_EpisodeID, [])
-            .Set(new CrossRef_AniDB_TMDB_ShowRepository(RepoFactory.CrossRef_AniDB_Metadata_Series, ReadOnlyStore()))
-            .Set(new CrossRef_AniDB_TMDB_MovieRepository(RepoFactory.CrossRef_AniDB_Metadata_Movie, ReadOnlyStore()))
-            .With<TMDB_SuggestionRepository, int, TMDB_Suggestion>(s => s.TMDB_SuggestionID,
+            .With<Metadata_SuggestionRepository, int, Metadata_Suggestion>(s => s.Metadata_SuggestionID,
             [
-                new() { TMDB_SuggestionID = 1, TmdbEntityType = MetadataEntityType.Series, TmdbEntityID = 200, SuggestedTmdbEntityID = 201, Kind = SuggestionKind.Recommended },
-                new() { TMDB_SuggestionID = 2, TmdbEntityType = MetadataEntityType.Series, TmdbEntityID = 200, SuggestedTmdbEntityID = 202, Kind = SuggestionKind.Similar },
-                new() { TMDB_SuggestionID = 3, TmdbEntityType = MetadataEntityType.Movie, TmdbEntityID = 300, SuggestedTmdbEntityID = 301, Kind = SuggestionKind.Recommended },
+                TmdbSuggestion(1, MetadataEntityType.Series, "200", "201", SuggestionKind.Recommended),
+                TmdbSuggestion(2, MetadataEntityType.Series, "200", "202", SuggestionKind.Similar),
+                TmdbSuggestion(3, MetadataEntityType.Movie, "300", "301", SuggestionKind.Recommended),
             ]);
+
+    private static Metadata_Suggestion TmdbSuggestion(int rowID, MetadataEntityType entityType, string baseID, string suggestedID, SuggestionKind kind)
+        => new()
+        {
+            Metadata_SuggestionID = rowID,
+            Source = MetadataSource.TMDB,
+            BaseType = entityType,
+            BaseID = baseID,
+            SuggestedType = entityType,
+            SuggestedID = suggestedID,
+            Kind = kind,
+        };
 
     [Fact]
     public void ASeriesWithSuggestionsFromEverySourceCountsEachOne()
@@ -171,7 +166,7 @@ public class SuggestionExpressionTests
 
         Assert.Equal(3, filterable.AnidbSuggestions);
         // Two from the linked show plus one from the linked movie.
-        Assert.Equal(3, filterable.TmdbSuggestions);
+        Assert.Equal(3, filterable.GetSuggestions(MetadataSource.TMDB));
         Assert.Equal(6, filterable.TotalSuggestions);
     }
 

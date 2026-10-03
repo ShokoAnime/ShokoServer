@@ -12,6 +12,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
@@ -20,7 +21,7 @@ namespace Shoko.Server.Models.Metadata;
 /// <summary>
 ///   A movie a plugin source keeps in the movie store.
 /// </summary>
-public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>
+public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>, IMetadataDefaultImageSource
 {
     #region Database Columns
 
@@ -55,6 +56,12 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>
     public bool IsVideo { get; set; }
 
     /// <summary>
+    ///   How long the movie runs, in seconds, or <c>null</c> when not
+    ///   known.
+    /// </summary>
+    public int? RuntimeSeconds { get; set; }
+
+    /// <summary>
     ///   The language the movie was first made in, as a language code, when
     ///   the source says.
     /// </summary>
@@ -82,9 +89,27 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>
     public List<MetadataGuid> CrossSourceIDs { get; set; } = [];
 
     /// <summary>
+    ///   What the source said of the movie that needs no column of its
+    ///   own, or <c>null</c> when it said none of it.
+    /// </summary>
+    public Metadata_MovieExtra? ExtraData { get; set; }
+
+    /// <summary>
+    ///   When the store first wrote the movie. Set once and never changed.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
     ///   When the source last wrote the movie.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
+
+    /// <summary>
+    ///   When the core last refreshed the movie in full without failing, in
+    ///   local time, or <c>null</c> when it never did. Kept by the refresh job
+    ///   alone; a save of the movie keeps it.
+    /// </summary>
+    public DateTime? LastRefreshedAt { get; set; }
 
     #endregion
 
@@ -107,11 +132,13 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>
             ReleasedAt == other.ReleasedAt &&
             IsRestricted == other.IsRestricted &&
             IsVideo == other.IsVideo &&
+            RuntimeSeconds == other.RuntimeSeconds &&
             OriginalLanguageCode == other.OriginalLanguageCode &&
             Rating.Equals(other.Rating) &&
             RatingVotes == other.RatingVotes &&
             MetadataStoredEntry.SameResources(Resources, other.Resources) &&
-            CrossSourceIDs.SequenceEqual(other.CrossSourceIDs);
+            CrossSourceIDs.SequenceEqual(other.CrossSourceIDs) &&
+            Equals(ExtraData, other.ExtraData);
 
     /// <summary>
     ///   The links naming the movie, at its own level and as a whole anime.
@@ -157,6 +184,13 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>
     IText? IWithOverviews.PreferredOverview => MetadataStoredEntry.PreferredOverview(this);
 
     IReadOnlyList<IText> IWithOverviews.Overviews => MetadataStoredEntry.Overviews(this);
+
+    #endregion
+
+    #region IMetadataDefaultImageSource Implementation
+
+    string? IMetadataDefaultImageSource.GetDefaultResourceID(ImageEntityType imageType)
+        => ExtraData?.GetDefaultResourceID(imageType);
 
     #endregion
 
@@ -221,6 +255,8 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>
 
     #region IMovie Implementation
 
+    DateTime? IMovie.LastRefreshedAt => LastRefreshedAt?.ToUniversalTime();
+
     IReadOnlyList<int> IMovie.ShokoSeriesIDs => [.. ((IMovie)this).ShokoSeries.Select(series => series.LocalID)];
 
     IReadOnlyList<int> IMovie.ShokoEpisodeIDs => [.. ((IMovie)this).ShokoEpisodes.Select(episode => episode.LocalID)];
@@ -230,6 +266,8 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>
     bool IMovie.Restricted => IsRestricted;
 
     bool IMovie.Video => IsVideo;
+
+    TimeSpan? IMovie.Runtime => RuntimeSeconds is { } seconds ? TimeSpan.FromSeconds(seconds) : null;
 
     IReadOnlyList<IShokoEpisode> IMovie.ShokoEpisodes => MetadataStoredEntry.ShokoEpisodes(LinkedEpisodeIDs);
 
@@ -242,6 +280,16 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>
     IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> IMovie.Suggestions => MetadataStoredEntry.Suggestions<IMovie>(ID);
 
     IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> IMovie.SuggestedBy => MetadataStoredEntry.SuggestedBy<IMovie>(ID);
+
+    IReadOnlyList<string> IMovie.ProductionCountries => ExtraData?.ProductionCountries ?? [];
+
+    MetadataGuid? IMovie.CollectionID => CollectionMembership is { } member ? new(member.Source, MetadataEntityType.Collection, member.CollectionID) : null;
+
+    IMovieCollection? IMovie.Collection
+        => CollectionMembership is { } member ? RepoFactory.Metadata_Collection.GetByProviderID(member.Source, member.CollectionID) : null;
+
+    private Metadata_Collection_Member? CollectionMembership
+        => RepoFactory.Metadata_Collection_Member.GetByMember(ID).FirstOrDefault(member => member.Source == Source);
 
     IReadOnlyList<IVideoCrossReference> IMovie.VideoCrossReferences => MetadataStoredEntry.VideoLinksForEpisodes(LinkedEpisodeIDs);
 

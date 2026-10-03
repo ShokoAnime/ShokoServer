@@ -17,8 +17,7 @@ namespace Shoko.Server.Filters;
 /// <remarks>
 /// Links are read from the cached cross-reference tables, and tags and genres
 /// off the linked entries as <see cref="ITag"/>s, so every source is read the
-/// same way. TMDB's entries are taken straight from its own tables, which is
-/// cheaper than resolving them through the metadata service.
+/// same way.
 /// </remarks>
 internal static class FilterableSources
 {
@@ -73,7 +72,7 @@ internal static class FilterableSources
     /// <summary>
     /// The number of a series' episode links to a source, films included,
     /// that were or were not verified by a user. A link made to nothing
-    /// counts, as TMDB always counted it.
+    /// counts.
     /// </summary>
     /// <param name="series">The series.</param>
     /// <param name="source">The source.</param>
@@ -135,8 +134,8 @@ internal static class FilterableSources
 
     /// <summary>
     /// The entries a series is linked to on a source that carry tags: AniDB's
-    /// anime, TMDB's shows and movies read from TMDB's tables, and any other
-    /// source's series and movies resolved only when a link exists.
+    /// anime, and any other source's series and movies resolved only when a
+    /// link exists.
     /// </summary>
     /// <param name="series">The series.</param>
     /// <param name="source">The source.</param>
@@ -148,9 +147,6 @@ internal static class FilterableSources
         var withMovies = entityType is null || entityType == MetadataEntityType.Movie;
         if (source == MetadataSource.AniDB)
             return withSeries && series.AniDB_Anime is ISeries anime ? [anime] : [];
-
-        if (source == MetadataSource.TMDB)
-            return [.. withSeries ? series.TmdbShows : [], .. withMovies ? series.TmdbMovies : []];
 
         if (!LinkedSources(series).Contains(source))
             return [];
@@ -166,27 +162,19 @@ internal static class FilterableSources
     #region Suggestions
 
     /// <summary>
-    /// The series a series is linked to on the sources the suggestion counts
-    /// do not read from their own tables: everything but AniDB and TMDB.
+    /// The series and movies a series is linked to on every source but AniDB,
+    /// by their IDs, each once.
     /// </summary>
     /// <param name="series">The series.</param>
     /// <returns>The linked entries.</returns>
-    public static IEnumerable<ISeries> OtherLinkedSeries(AnimeSeries series)
-        => LinkedSources(series)
-            .Where(source => source != MetadataSource.AniDB && source != MetadataSource.TMDB)
-            .SelectMany(source => LinkedEntries(series, source));
-
-    /// <summary>
-    /// The series a series is linked to on one source, resolved only when a
-    /// link exists, since resolving reads the core's metadata stores.
-    /// </summary>
-    /// <param name="series">The series.</param>
-    /// <param name="source">The source.</param>
-    /// <returns>The linked entries.</returns>
-    private static IEnumerable<ISeries> LinkedEntries(AnimeSeries series, MetadataSource source)
-        => LinkedSources(series).Contains(source)
-            ? series.LinkedSeries.Where(entry => entry.Source == source)
-            : [];
+    public static IEnumerable<MetadataGuid> OtherLinkedEntries(AnimeSeries series)
+        => Linked(RepoFactory.CrossRef_AniDB_Metadata_Series.GetByAnidbAnimeID(series.AniDB_ID))
+            .Where(xref => xref.Source != MetadataSource.AniDB && !string.IsNullOrEmpty(xref.ProviderID))
+            .Select(xref => new MetadataGuid(xref.Source, MetadataEntityType.Series, xref.ProviderID))
+            .Concat(Linked(RepoFactory.CrossRef_AniDB_Metadata_Movie.GetByAnidbAnimeID(series.AniDB_ID))
+                .Where(xref => xref.Source != MetadataSource.AniDB && !string.IsNullOrEmpty(xref.ProviderID))
+                .Select(xref => new MetadataGuid(xref.Source, MetadataEntityType.Movie, xref.ProviderID)))
+            .Distinct();
 
     #endregion
 

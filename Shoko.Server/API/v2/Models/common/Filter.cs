@@ -117,11 +117,11 @@ public class Filter : Filters
         // since this is called for every series in the filter to pre-filter candidates.
         if (RepoFactory.ShokoImage_Entity.GetByEntityForType(MetadataSource.Shoko, MetadataEntityType.Series, series.AnimeSeriesID.ToString(), ImageEntityType.Backdrop).Count > 0)
             return true;
-        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(series.AniDB_ID))
-            if (RepoFactory.ShokoImage_Entity.GetByEntityForType(MetadataSource.TMDB, MetadataEntityType.Series, xref.TmdbShowID.ToString(), ImageEntityType.Backdrop).Count > 0)
+        foreach (var xref in RepoFactory.CrossRef_AniDB_Metadata_Series.GetByAnidbAnimeID(series.AniDB_ID))
+            if (!string.IsNullOrEmpty(xref.ProviderID) && RepoFactory.ShokoImage_Entity.GetByEntityForType(xref.Source, MetadataEntityType.Series, xref.ProviderID, ImageEntityType.Backdrop).Count > 0)
                 return true;
-        foreach (var xref in RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(series.AniDB_ID))
-            if (RepoFactory.ShokoImage_Entity.GetByEntityForType(MetadataSource.TMDB, MetadataEntityType.Movie, xref.TmdbMovieID.ToString(), ImageEntityType.Backdrop).Count > 0)
+        foreach (var xref in RepoFactory.CrossRef_AniDB_Metadata_Movie.GetByAnidbAnimeID(series.AniDB_ID))
+            if (!string.IsNullOrEmpty(xref.ProviderID) && RepoFactory.ShokoImage_Entity.GetByEntityForType(xref.Source, MetadataEntityType.Movie, xref.ProviderID, ImageEntityType.Backdrop).Count > 0)
                 return true;
         return false;
     }

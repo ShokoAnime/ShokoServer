@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using ImageMagick;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -20,6 +21,7 @@ using Shoko.Abstractions.Metadata.Image.Options;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Scheduling.Concurrency;
@@ -110,7 +112,7 @@ public sealed class MetadataImageContributorTests : IDisposable
     {
         public string Name => "Core";
 
-        public MetadataSource Source => MetadataSource.TMDB;
+        public MetadataSource Source => MetadataSource.AniDB;
 
         public MetadataEntityScope Scope => MetadataEntityScope.Single(MetadataSource.AniDB, MetadataEntityType.Series);
 
@@ -129,12 +131,19 @@ public sealed class MetadataImageContributorTests : IDisposable
         public MetadataImageContributorManager Manager { get; }
 
         public Harness(string dataPath, params IMetadataImageContributor[] contributors)
+            : this(dataPath, PluginTestDoubles.InstalledPluginInfo(typeof(PluginTestDoubles.TestPlugin), Guid.Parse("33333333-3333-3333-3333-333333333333")), contributors)
+        {
+        }
+
+        public Harness(string dataPath, LocalPluginInfo pluginInfo, params IMetadataImageContributor[] contributors)
         {
             // The real service keeps the file, so a new harness on the same
             // path reads back what an earlier one saved, as a restart would.
             var applicationPaths = new Mock<IApplicationPaths>(MockBehavior.Loose);
             applicationPaths.SetupGet(paths => paths.DataPath).Returns(dataPath);
             applicationPaths.SetupGet(paths => paths.ConfigurationsPath).Returns(Path.Join(dataPath, "configurations"));
+            applicationPaths.SetupGet(paths => paths.PluginsPath).Returns(Path.Join(dataPath, "plugins"));
+            applicationPaths.SetupGet(paths => paths.ApplicationPath).Returns(Path.Join(dataPath, "app"));
             Configuration = new ConfigurationService(NullLoggerFactory.Instance, applicationPaths.Object, new Mock<IPluginManager>(MockBehavior.Loose).Object);
             var configurationInfo = (ConfigurationInfo)RuntimeHelpers.GetUninitializedObject(typeof(ConfigurationInfo));
             var configurationService = new Mock<IConfigurationService>();
@@ -145,8 +154,7 @@ public sealed class MetadataImageContributorTests : IDisposable
                 .Returns((MetadataServiceSettings settings) => Configuration.Save(settings));
 
             var pluginManager = new Mock<IPluginManager>();
-            pluginManager.Setup(manager => manager.GetPluginInfo(It.IsAny<Assembly>()))
-                .Returns(PluginTestDoubles.InstalledPluginInfo(typeof(PluginTestDoubles.TestPlugin), Guid.Parse("33333333-3333-3333-3333-333333333333")));
+            pluginManager.Setup(manager => manager.GetPluginInfo(It.IsAny<Assembly>())).Returns(pluginInfo);
             Queue.Setup(q => q.Enqueue(It.IsAny<Type>(), It.IsAny<Action<IQueueJob>?>(), It.IsAny<bool>()))
                 .Returns((Type type, Action<IQueueJob>? configure, bool prioritize) => Record(type, configure, prioritize));
             Queue.Setup(q => q.Enqueue(It.IsAny<Action<ClearContributedImagesJob>?>(), It.IsAny<bool>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()))
@@ -156,6 +164,7 @@ public sealed class MetadataImageContributorTests : IDisposable
                 pluginManager.Object,
                 new ConfigurationProvider<MetadataServiceSettings>(configurationService.Object),
                 Queue.Object,
+                applicationPaths.Object,
                 NullLogger<MetadataImageContributorManager>.Instance
             );
             Manager.AddParts(contributors);
@@ -220,6 +229,23 @@ public sealed class MetadataImageContributorTests : IDisposable
         Assert.Equal(3, artInfo.MaxConcurrentJobs);
         Assert.Equal(MetadataImageContributorManager.DefaultMaxConcurrentJobs, ownInfo.MaxConcurrentJobs);
         Assert.Equal([artInfo], harness.Manager.GetImageContributorsFor(EpisodeID));
+    }
+
+    [Fact]
+    public void AContributorTakesTheIconBesideItsPluginNamedAfterItsSource()
+    {
+        var directory = Directory.CreateDirectory(Path.Join(_dataPath, "plugins", "Art")).FullName;
+        using (var image = new MagickImage(MagickColors.Red, 2, 2))
+            image.Write(Path.Join(directory, MetadataImageContributorManager.IconKind(TestSources.Plugin) + ".png"));
+        var pluginInfo = PluginTestDoubles.InstalledPluginInfoInFolder(typeof(PluginTestDoubles.TestPlugin), Guid.NewGuid(), directory, Path.Join(directory, "Art.dll"));
+        var art = new ArtContributor();
+        var posters = new PosterContributor();
+
+        var harness = new Harness(_dataPath, pluginInfo, art, posters);
+
+        var icon = harness.Manager.GetImageContributorInfo(art).Icon;
+        Assert.Equal(("%PluginsPath%/Art/test-plugin.images-icon.png", "image/png"), (icon?.FilePath.Replace('\\', '/'), icon?.MimeType));
+        Assert.Null(harness.Manager.GetImageContributorInfo(posters).Icon);
     }
 
     [Fact]

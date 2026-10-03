@@ -95,7 +95,8 @@ public class QueueController : BaseController
     }
 
     /// <summary>
-    /// Clear the queue and reschedule recurring jobs.
+    /// Clear the queue. The scheduled actions with a queue-cleared trigger are
+    /// queued again right after it.
     /// </summary>
     /// <returns>Void.</returns>
     [Authorize("admin")]

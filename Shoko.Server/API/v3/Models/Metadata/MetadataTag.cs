@@ -104,15 +104,34 @@ public class MetadataStudio
     public string Name { get; init; } = string.Empty;
 
     /// <summary>
+    /// The studio's own page on its source's site, or <c>null</c> when it has
+    /// none.
+    /// </summary>
+    public string? SiteUrl { get; init; }
+
+    /// <summary>
     /// The studio's name in its own language, if the source gives it.
     /// </summary>
     public string? OriginalName { get; init; }
+
+    /// <summary>
+    /// The country the studio originates from, usually an ISO 3166-1 code,
+    /// or <c>null</c> when its source does not say.
+    /// </summary>
+    public string? CountryOfOrigin { get; init; }
 
     /// <summary>
     /// What the studio did.
     /// </summary>
     [Required, JsonConverter(typeof(StringEnumConverter))]
     public StudioType StudioType { get; init; }
+
+    /// <summary>
+    /// Whether the studio is a stub: only what a link named, kept until its
+    /// source is asked for the rest.
+    /// </summary>
+    [Required]
+    public bool IsStub { get; init; }
 
     /// <summary>
     /// How many series and movies the studio worked on.
@@ -149,6 +168,25 @@ public class MetadataNetwork
     /// </summary>
     [Required]
     public string Name { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The country the network originates from, usually an ISO 3166-1 code,
+    /// or <c>null</c> when its source does not say.
+    /// </summary>
+    public string? CountryOfOrigin { get; init; }
+
+    /// <summary>
+    /// The network's own page on its source's site, or <c>null</c> when it has
+    /// none.
+    /// </summary>
+    public string? SiteUrl { get; init; }
+
+    /// <summary>
+    /// Whether the network is a stub: only what a link named, kept until its
+    /// source is asked for the rest.
+    /// </summary>
+    [Required]
+    public bool IsStub { get; init; }
 
     /// <summary>
     /// How many series aired on the network, when asked for.

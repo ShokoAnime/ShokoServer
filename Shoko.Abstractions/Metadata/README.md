@@ -25,9 +25,8 @@ source of its own also implements the provider contracts.
 |---|---|
 | (this one) | The entry interfaces, the identity types (`MetadataSource`, `MetadataEntityType`, `MetadataGuid`), `ITitle` and `IText`, relations and suggestions, `Resource`, `PartialDateOnly` and `FuzzyDateOnly` |
 | `Containers/` | The `IWith…` interfaces entries are built from: titles, overviews, images, cast and crew, studios, tags, content ratings, resources and dates |
-| `Shoko/` | Shoko's own entries: `IShokoSeries`, `IShokoSeason`, `IShokoEpisode`, `IShokoGroup` and `IShokoTag` |
+| `Shoko/` | Shoko's own entries: `IShokoSeries`, `IShokoEpisode`, `IShokoGroup` and `IShokoTag` |
 | `Anidb/` | AniDB's entries, the MyList and AVDump models, and the [AniDB services](Anidb/Services/README.md) |
-| `Tmdb/` | TMDB's entries, typed cross-references and orderings, and the [TMDB services](Tmdb/Services/README.md) |
 | `CrossReferences/` | The link contracts, the link data the link store takes, and the CSV transfer options |
 | `Storage/` | The typed stores a provider writes through, the `Metadata*Data` records they take, and `IMetadataCrossReferenceStore` |
 | `Providers/` | The [provider contracts](Providers/README.md), `IMetadataResolver`, `IResourceResolver`, and the refresh options and pause status |
@@ -51,7 +50,7 @@ carries it, and every reference from one entry to another is one too.
 
 | Type | Names | The core registers |
 |---|---|---|
-| `MetadataSource` | Where the data comes from | `shoko`, `user` and `generated` (local), `anidb` and `tmdb` (remote) |
+| `MetadataSource` | Where the data comes from | `shoko`, `user` and `generated` (local), `anidb` (remote), and `tmdb`, which the bundled TMDb plugin serves |
 | `MetadataEntityType` | What kind of entry it is | `series`, `season`, `episode`, `movie`, `collection`, `studio`, `network`, `channel`, `creator`, `character`, `tag`, `filter`, `video`, `user` and `ordering` |
 | `MetadataGuid` | One entry: a source, a kind and an ID of 1 to 128 characters | nothing; any source and kind combine |
 
@@ -67,10 +66,12 @@ Sources and kinds are registries of shared instances:
   `provider`, `entry` or `episode`, which the `/api/v3/Metadata` routes keep.
 - There is no `None` or `Unknown`: nothing is `null`.
 
-The core serves `anidb` and `tmdb` and keeps `shoko`, `user` and `generated`
-for data made on the server; no plugin provider may claim them
-(`IMetadataProviderManager.ReservedSources`). Every other source, AniList
-included, is a plugin's. See [choosing a source](Providers/README.md#choosing-a-source),
+The core serves `anidb` and keeps `shoko`, `user` and `generated` for data
+made on the server; no plugin provider may claim them
+(`IMetadataProviderManager.ReservedSources`). Every other source, TMDb and
+AniList included, is a plugin's. `tmdb` is registered up front for the
+bundled TMDb plugin, and is kept in the shared stores like any other. See
+[choosing a source](Providers/README.md#choosing-a-source),
 [entity types](Providers/README.md#entity-types) and
 [identifiers](Providers/README.md#identifiers).
 
@@ -82,21 +83,45 @@ An entry is anything with an ID (`IMetadata`). The kinds most code reads:
 
 | Interface | Is | Implemented by |
 |---|---|---|
-| `ISeries` | A series, with its seasons, episodes and orderings | `IShokoSeries`, `IAnidbAnime`, `ITmdbShow`, a plugin source's stored series |
-| `ISeason` | A season, or a group of an ordering (`OrderingID` set) | `IShokoSeason`, `IAnidbSeason`, `ITmdbSeason`, stored seasons, ordering groups |
-| `IEpisode` | One episode | `IShokoEpisode`, `IAnidbEpisode`, `ITmdbEpisode`, stored episodes |
-| `IMovie` | A film | `ITmdbMovie`, stored movies |
-| `ICollection` | A collection of series or films | `IShokoGroup`, `ITmdbCollection`, stored collections |
-| `IOrdering` | Another grouping of a series' episodes | Every series' default ordering, TMDB's episode groups, stored and local orderings |
+| `ISeries` | A series, with its seasons, episodes and orderings | `IShokoSeries`, `IAnidbAnime`, a plugin source's stored series |
+| `ISeason` | A season, a group of the ordering `OrderingID` names | Every series' own seasons, stored seasons, the groups of every other ordering |
+| `IEpisode` | One episode | `IShokoEpisode`, `IAnidbEpisode`, stored episodes |
+| `IMovie` | A film | Stored movies |
+| `ICollection` | A collection of series or films | `IShokoGroup`, `IMovieCollection`, stored collections |
+| `IMovieCollection` | A collection of films, with its `Movies` | Stored movie collections |
+| `IOrdering` | Another grouping of a series' episodes | Every series' default ordering, stored and local orderings |
 | `ICreator`, `ICharacter` | The people credited through `ICast` and `ICrew` | Each source that has them |
 | `ITag`, `IStudio`, `INetwork` | What describes, made or aired an entry | Each source that has them |
 
+A series, season, episode, ordering and place in an ordering also come typed:
+`ISeries<TSeries, TEpisode>`, `ISeason<TSeries, TEpisode>`,
+`IEpisode<TSeries, TEpisode>`, `IOrdering<TSeries, TEpisode>` and
+`IEpisodeOrderingInformation<TSeries, TEpisode>` hand back the series and
+episodes as their own types, and the base of a series' suggestions.
+`IShokoSeries` is an `ISeries<IShokoSeries, IShokoEpisode>`, `IAnidbAnime`
+the same, and a plugin source's stored entries use `ISeries` and `IEpisode`.
+Films come typed the same way: `IMovie<TMovie>` types the base of a film's
+suggestions and its `Collection`, and `IMovieCollection<TMovie>` its
+`Movies`. There is no season type: a group of any ordering but the default
+one is that ordering's group, not one of the source's seasons, so every
+season reads as `ISeason<TSeries, TEpisode>` of its series' types. Every
+season has its `LinkedSeasons` and `LinkedMovies`, read off its
+cross-references.
+
 What an entry carries comes from the `Containers/` interfaces. Text about an
-entry is an overview everywhere (`IWithOverviews`, `ITag.Overview`);
-`IWithDescriptions` and `ITag.Description` are obsolete. A series also has
-`ReleaseStatus`, `SourceMaterial`, `OriginalLanguageCode`, `Popularity`,
-`FavoriteCount` and `Networks`, each `Unknown`, `null` or empty for a source
-that does not say.
+entry is an overview everywhere (`IWithOverviews`, `ITag.Overview`). A series
+also has `ReleaseStatus`, `SourceMaterial`, `OriginalLanguageCode`,
+`ProductionCountries`, `Popularity`, `FavoriteCount` and `Networks`, each
+`Unknown`, `null` or empty for a source that does not say. A film has
+`OriginalLanguageCode`, `ProductionCountries` and the movie collection it is
+part of (`CollectionID`, `Collection`). Genres and keywords are tags, told
+apart by `ITag.Kind`. The IDs other sites give an entry, such as IMDb's, are
+in `CrossSourceIDs`, under each site's own source.
+
+Series, seasons, episodes, films, collections, creators and characters say
+when they were first stored (`CreatedAt`) and when their data last changed
+(`LastUpdatedAt`). Every implementer gives both; a season built from its
+series, such as an AniDB or Shoko season, takes the series' dates.
 
 `IMetadataService.GetEntry` turns any `MetadataGuid` back into its entry, and
 everything holding an ID goes through it: the core's sources from the core's
@@ -109,8 +134,8 @@ A Shoko series is built on its AniDB anime and reads its cast, crew, studios,
 content ratings, resources, networks, relations and suggestions from the anime
 and the entries it is linked to (`IShokoSeries.LinkedSeries`, which starts
 with the anime, and `LinkedMovies`; `IShokoEpisode.LinkedEpisodes` and
-`LinkedMovies`). The AniDB and TMDB entries are also reachable as their own
-types: `IShokoSeries.AnidbAnime`, `TmdbShows`, `TmdbMovies` and the rest.
+`LinkedMovies`). The AniDB anime is also reachable as its own type,
+`IShokoSeries.AnidbAnime`.
 
 ---
 
@@ -129,7 +154,8 @@ and the language and source order in the settings.
 
 `ChoosePreferredTitle` and `ChoosePreferredOverview` apply the same rules to
 any list of texts, such as a video chapter's names (`IChapterInfo` is an
-`IWithTitles`). The rules are in
+`IWithTitles`). `GetLanguageOrder` hands a provider the language order itself,
+for choosing which translations to store. The rules are in
 [`IMetadataTextManager`](Services/README.md#imetadatatextmanager) and
 [managing texts](Services/README.md#managing-texts).
 
@@ -140,8 +166,7 @@ any list of texts, such as a video chapter's names (`IChapterInfo` is an
 An ordering groups a series' episodes in viewing order, such as a DVD order.
 Every series has an unstored default one from its own seasons; a plugin saves
 global orderings under its own source (`IMetadataOrderingService.SaveOrdering`),
-TMDB's episode groups read as orderings of their shows, and users keep local
-orderings under `user`.
+such as TMDb's episode groups, and users keep local orderings under `user`.
 
 | Read | From |
 |---|---|
@@ -168,10 +193,12 @@ and [`IMetadataOrderingTransferService`](Services/README.md#imetadataorderingtra
 
 The typed stores write only under a plugin's source; what only a plugin keeps
 goes in [a database of its own](../Plugin/README.md#a-database-of-your-own).
+A credit or link naming a creator, character, studio or network not stored
+yet keeps a stub of it, which the provider taking its kind refreshes; see
+[refreshing people, studios and networks](Providers/README.md#refreshing-people-studios-and-networks).
 See [storing your data](Providers/README.md#storing-your-data).
 `IMetadataRefreshService`, `IMetadataLinkingService`, `IMetadataPurgeService`
-and `IMetadataCrossReferenceTransferService` work the same for every source,
-TMDB included.
+and `IMetadataCrossReferenceTransferService` work the same for every source.
 
 ---
 
@@ -239,10 +266,9 @@ Each contract has an `<out TProvider>` variant narrowing `Provider`.
 
 #### Reading and writing links
 
-From a Shoko entry: `IShokoSeries.GetMetadataSeriesCrossReferences`,
-`GetMetadataSeasonCrossReferences`, `GetMetadataEpisodeCrossReferences` and
-`GetMetadataMovieCrossReferences` (and the matching ones on `IShokoSeason` and
-`IShokoEpisode`), each taking an optional source. From the other end, the
+From a Shoko episode: `IShokoEpisode.GetMetadataSeriesCrossReferences`,
+`GetMetadataEpisodeCrossReferences` and `GetMetadataMovieCrossReferences`, each
+taking an optional source. From the other end, the
 `Metadata*CrossReferences` lists on `ISeries`, `ISeason`, `IEpisode` and
 `IMovie` say which Shoko entries claim a provider's entry; a film is a level
 of its own, so it only shows up in the film lists. `IVideoCrossReference`
@@ -253,14 +279,14 @@ carries the links of the anime and episode a file is linked to.
 The extensions in `MetadataCrossReferenceExtensions` keep one source's links
 of an entry, and their generic forms keep only the links whose provider entry
 has the type asked for, resolving each link's entry to tell. The same
-extensions read one source's entries out of a Shoko entry's `Linked*` lists
-(`GetLinkedSeries`, `GetLinkedSeasons`, `GetLinkedEpisodes`,
+extensions read one source's entries out of the `Linked*` lists of a Shoko
+entry or a season (`GetLinkedSeries`, `GetLinkedSeasons`, `GetLinkedEpisodes`,
 `GetLinkedMovies`):
 
 ```csharp
 IReadOnlyList<IMetadataSeriesCrossReference> links = series.GetSeriesCrossReferences(MetadataSource.TMDB);
-IReadOnlyList<IMetadataSeriesCrossReference<ITmdbShow>> shows = series.GetSeriesCrossReferences<ITmdbShow>(MetadataSource.TMDB);
-IReadOnlyList<ITmdbShow> linkedShows = shokoSeries.GetLinkedSeries<ITmdbShow>(MetadataSource.TMDB);
+IReadOnlyList<IMetadataSeriesCrossReference<ISeries>> shows = series.GetSeriesCrossReferences<ISeries>(MetadataSource.TMDB);
+IReadOnlyList<ISeries> linkedShows = shokoSeries.GetLinkedSeries<ISeries>(MetadataSource.TMDB);
 ```
 
 Links are written through `IMetadataLinkingService`, with the checks a
@@ -278,28 +304,32 @@ IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> Suggestions { get; }
 IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> SuggestedBy { get; }
 ```
 
-`IMovie` has the same four with `IMovie` as the base. `SuggestedBy` is the
-same set read from the other end, and covers only the entries in the
-collection. A Shoko series gives its anime's lists and those of every series
-it is linked to; a source's own entry gives only that source's, narrowed to
-its type:
+`IMovie` has the same four with `IMovie` as the base. The typed
+`ISeries<TSeries, TEpisode>` and `IMovie<TMovie>` type the base end only, as
+`ISuggestedMetadata<TSeries, ISeries>` and `ISuggestedMetadata<TMovie, IMovie>`;
+the suggested end stays `ISeries` or `IMovie`. `SuggestedBy` is the same set
+read from the other end, and covers only the entries in the collection. A
+Shoko series gives the lists of its anime and of every series it is linked
+to, based on itself (or, for `SuggestedBy`, on the Shoko series standing for
+the suggesting entry); a source's own entry gives only that source's:
 
 ```csharp
 foreach (var suggestion in series.Suggestions)
     logger.LogInformation("{Source} suggests {ID}", suggestion.Source, suggestion.SuggestedID);
 
-// AniDB only, with its vote counts.
-foreach (var suggestion in series.AnidbAnime.Suggestions)
-    logger.LogInformation("{Votes} votes, {Rating}% approval", suggestion.TotalVotes, suggestion.ApprovalRating);
+// Only the suggestions a source voted on, with the counts.
+foreach (var suggestion in series.Suggestions)
+    if (suggestion.HasVotes)
+        logger.LogInformation("{Approved} of {Votes} votes, {Rating}% approval", suggestion.ApprovalVotes.Value, suggestion.Votes.Value, suggestion.ApprovalRating);
 ```
 
-| Entry | Its suggestions are | Which adds |
-|---|---|---|
-| `IAnidbAnime` | `IAnidbSuggestion` | `ApprovalVotes`, `TotalVotes` |
-| `ITmdbShow`, `ITmdbMovie` | `ITmdbShowSuggestion`, `ITmdbMovieSuggestion` | nothing |
-| A plugin source's series or movie | `ISuggestedMetadata<…>`, from `IMetadataSuggestionStore` | nothing the core defines |
+| Entry | Its suggestions are |
+|---|---|
+| `IAnidbAnime` | `ISuggestedMetadata<IAnidbAnime, ISeries>` |
+| `IShokoSeries` | `ISuggestedMetadata<IShokoSeries, ISeries>` |
+| A plugin source's series or movie | `ISuggestedMetadata<…>`, from `IMetadataSuggestionStore` |
 
-`ISuggestedMetadata` is covariant, so an `IAnidbSuggestion` already is an
+`ISuggestedMetadata` is covariant, so an AniDB suggestion already is an
 `ISuggestedMetadata<ISeries, ISeries>`; `IRelatedMetadata` is not. Only AniDB
 fills a relation's `Verified`. A film's suggestions are on the film, reached
 through `LinkedMovies`.
@@ -310,15 +340,16 @@ through `LinkedMovies`.
 | `Base` / `Suggested` | The entries, when in the collection. `Suggested` is usually `null`, and that is normal. |
 | `Kind` | `Recommended` or `Similar`. |
 | `Order` | The source's ranking, best first from `0`, or `null`. |
-| `ApprovalRating`, `Votes` | For a source that votes; `null` otherwise, never "nobody voted". |
-| `Score` | A source's net score, may be negative. |
+| `ApprovalVotes`, `Votes` | The votes in favour and in total, for a source that votes; `null` otherwise, never "nobody voted". `HasVotes` checks both. |
+| `ApprovalRating` | The percentage in favour, worked out from the counts unless the source gives its own. `HasApprovalRating` checks it. |
+| `Score` | A source's net score, may be negative. `HasScore` checks it. |
 
-The ranking fields are not interchangeable: AniDB fills `ApprovalRating` and
-`Votes`, TMDB only `Order`, and a scoring source such as AniList fills `Order`
+The ranking fields are not interchangeable: AniDB fills `ApprovalVotes`,
+`Votes` and so `ApprovalRating`, TMDb only `Order`, and a scoring source such as AniList fills `Order`
 and `Score`. Sort a mixed list within each source.
 
 The core merges no directions on a source's behalf. A plugin serving a
 symmetric source may merge both directions itself when it writes suggestions,
-which recovers entries a paged list cuts off on one side. AniDB and TMDB are
+which recovers entries a paged list cuts off on one side. AniDB and TMDb are
 not merged: their reverse entries carry different votes or ranks, or do not
 exist.

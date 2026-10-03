@@ -6,25 +6,24 @@ using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
 using Shoko.Abstractions.Utilities;
-using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
-///   Refresh everything linked from the plugin sources, for every anime, and
-///   the stored collections.
+///   Refresh everything linked from every source with an enabled provider,
+///   for every anime, and the stored collections.
 /// </summary>
 /// <remarks>
-///   TMDB has update actions of its own.
 ///   Only queues the refreshes, which run on their own; the progress covers
-///   the queuing.
+///   the queuing. <see cref="RefreshLinkedMetadataAction"/> does it for one
+///   source, one kind, or forced.
 /// </remarks>
 public sealed class RefreshAllLinkedMetadataAction(IMetadataProviderManager providerManager, IMetadataRefreshService refreshService) : IScheduledAction
 {
     public string Name => "Refresh All Linked Metadata";
 
     public string? Description
-        => "Has the plugin metadata providers refresh everything linked, for every anime, and every stored collection, "
+        => "Has every metadata provider refresh everything linked, for every anime, and every stored collection, "
             + "that was not refreshed within the last hour.";
 
     public ActionCategory Category => ActionCategory.Maintenance;
@@ -32,7 +31,7 @@ public sealed class RefreshAllLinkedMetadataAction(IMetadataProviderManager prov
     public async Task Execute(IProgress<decimal> progress, CancellationToken token)
     {
         var sources = providerManager.MetadataProviders
-            .Where(info => info.Enabled && !info.Source.IsCore)
+            .Where(info => info.Enabled)
             .Select(info => info.Source)
             .Distinct()
             .ToList();

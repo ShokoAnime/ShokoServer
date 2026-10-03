@@ -3,9 +3,9 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Models.TMDB;
+using Shoko.Server.API.v3.Helpers;
 
 namespace Shoko.Server.API.v3.Models.Common;
 
@@ -51,16 +51,15 @@ public class Studio
     [Required, JsonConverter(typeof(StringEnumConverter))]
     public DataSourceType Source { get; init; }
 
-    public Studio(TMDB_Company company)
+    public Studio(IStudio company)
     {
-        ID = company.TmdbCompanyID;
+        ID = TmdbCompatibility.TmdbID(company);
         Name = company.Name;
-        CountryOfOrigin = company.CountryOfOrigin;
-        Size = company.GetTmdbCompanyCrossReferences().Count;
-        Logos = ((IWithImages)company).GetImages(new() { ImageType = ImageEntityType.Logo })
+        CountryOfOrigin = company.CountryOfOrigin ?? string.Empty;
+        Size = TmdbCompatibility.StudioSize(company);
+        Logos = company.GetImages(new() { ImageType = ImageEntityType.Logo })
             .Select(image => new Image(image))
             .ToList();
         Source = DataSourceType.TMDB;
     }
-
 }

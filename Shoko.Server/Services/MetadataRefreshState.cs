@@ -1,62 +1,56 @@
 using System;
 using Shoko.Abstractions.Metadata;
-using Shoko.Server.Models.Metadata;
-using Shoko.Server.Repositories.Cached.Metadata;
-using Shoko.Server.Repositories.Cached.TMDB;
+using Shoko.Abstractions.Metadata.Services;
 
 namespace Shoko.Server.Services;
 
 /// <summary>
-///   When each provider's series, movies and collections were last
-///   refreshed, which the refresh job reads to skip an entry that is still
-///   fresh.
+///   When each provider's entries were last refreshed, which the refresh jobs
+///   read to skip an entry that is still fresh and write after a refresh.
 /// </summary>
 public interface IMetadataRefreshState
 {
     /// <summary>
-    ///   When an entry was last refreshed without failing.
+    ///   When an entry was last refreshed without failing: the
+    ///   <c>LastRefreshedAt</c> of the entry it names.
     /// </summary>
-    /// <param name="entry">The series, movie or collection.</param>
-    /// <returns>The time, or <see langword="null"/> when it never was.</returns>
+    /// <param name="entry">The entry.</param>
+    /// <returns>The time, in UTC, or <see langword="null"/> when it never was or is not stored.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
     DateTime? GetLastRefreshedAt(MetadataGuid entry);
 
     /// <summary>
-    ///   Record that an entry was refreshed without failing.
+    ///   Record that an entry was refreshed without failing, on its row in the
+    ///   store keeping it.
     /// </summary>
-    /// <param name="entry">The series, movie or collection.</param>
+    /// <param name="entry">The series, movie or collection, or the creator, character, studio or network.</param>
     /// <param name="refreshedAt">When the refresh finished.</param>
+    /// <returns><see langword="true"/> if a stored row took it; <see langword="false"/> for an entry no store keeps.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
-    void RecordRefresh(MetadataGuid entry, DateTime refreshedAt);
-
-    /// <summary>
-    ///   Forget when an entry was refreshed, such as once it is purged.
-    /// </summary>
-    /// <param name="entry">The series, movie or collection.</param>
-    /// <returns>Whether there was anything to forget.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
-    bool Forget(MetadataGuid entry);
+    bool RecordRefresh(MetadataGuid entry, DateTime refreshedAt);
 }
 
 /// <summary>
-///   Keeps when each plugin source's entries were last refreshed in the
-///   <c>Metadata_Refresh</c> table, and reads TMDB's from its own tables.
+///   Reads the refresh time off each entry and writes it on the stores' rows.
 /// </summary>
 /// <remarks>
-///   A TMDB entry was last refreshed when its row was last updated, which is
-///   when a refresh last found something new; one never updated since its
-///   creation counts as never refreshed. Nothing is recorded or forgotten for
-///   TMDB, whose provider keeps those times itself.
+///   The time goes with the row, so a purge forgets it. A core source keeps
+///   its own tables, whose entries answer from them, so nothing is written
+///   for them.
 /// </remarks>
-/// <param name="repository">The table.</param>
-/// <param name="tmdbShows">TMDB's shows.</param>
-/// <param name="tmdbMovies">TMDB's movies.</param>
-/// <param name="tmdbCollections">TMDB's collections.</param>
+/// <param name="metadataService">Finds the entries, through the plugins' resolvers first.</param>
+/// <param name="seriesStore">Writes a plugin source's series under its own lock.</param>
+/// <param name="movieStore">Writes a plugin source's movies under its own lock.</param>
+/// <param name="collectionStore">Writes a plugin source's collections under its own lock.</param>
+/// <param name="peopleStore">Writes the creators and characters under its own lock.</param>
+/// <param name="studioStore">Writes the studios and networks under its own lock.</param>
 public class MetadataRefreshState(
-    Metadata_RefreshRepository repository,
-    TMDB_ShowRepository tmdbShows,
-    TMDB_MovieRepository tmdbMovies,
-    TMDB_CollectionRepository tmdbCollections
+    IMetadataService metadataService,
+    MetadataSeriesStore seriesStore,
+    MetadataMovieStore movieStore,
+    MetadataCollectionStore collectionStore,
+    MetadataPeopleStore peopleStore,
+    MetadataStudioStore studioStore
 ) : IMetadataRefreshState
 {
     #region Refresh State
@@ -67,63 +61,51 @@ public class MetadataRefreshState(
     /// </summary>
     public static readonly TimeSpan FreshFor = TimeSpan.FromHours(1);
 
+    /// <summary>
+    ///   Reads when an entry was last refreshed off the entry itself.
+    /// </summary>
+    /// <param name="entry">The entry, or <see langword="null"/>.</param>
+    /// <returns>The time, in UTC, or <see langword="null"/> when there is none.</returns>
+    public static DateTime? LastRefreshedAt(IMetadata? entry)
+        => entry switch
+        {
+            ISeries series => series.LastRefreshedAt,
+            IMovie movie => movie.LastRefreshedAt,
+            ICollection collection => collection.LastRefreshedAt,
+            IEpisode episode => episode.LastRefreshedAt,
+            ISeason season => season.LastRefreshedAt,
+            ICreator creator => creator.LastRefreshedAt,
+            ICharacter character => character.LastRefreshedAt,
+            IStudio studio => studio.LastRefreshedAt,
+            INetwork network => network.LastRefreshedAt,
+            _ => null,
+        };
+
     /// <inheritdoc />
     public DateTime? GetLastRefreshedAt(MetadataGuid entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        if (entry.Source == MetadataSource.TMDB)
-            return GetTmdbLastUpdatedAt(entry);
-
-        return repository.GetByEntry(entry)?.LastRefreshedAt;
+        return LastRefreshedAt(metadataService.GetEntry(entry));
     }
 
     /// <inheritdoc />
-    public void RecordRefresh(MetadataGuid entry, DateTime refreshedAt)
+    public bool RecordRefresh(MetadataGuid entry, DateTime refreshedAt)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        if (entry.Source.IsCore)
-            return;
 
-        var row = repository.GetByEntry(entry) ?? new Metadata_Refresh
+        // The stores' rows keep local time, like their other dates.
+        var localTime = refreshedAt.Kind is DateTimeKind.Utc ? refreshedAt.ToLocalTime() : refreshedAt;
+        return entry.EntityType switch
         {
-            Source = entry.Source,
-            EntityType = entry.EntityType,
-            ProviderID = entry.ID,
+            _ when entry.EntityType == MetadataEntityType.Series => seriesStore.SetLastRefreshedAt(entry, localTime),
+            _ when entry.EntityType == MetadataEntityType.Movie => movieStore.SetLastRefreshedAt(entry, localTime),
+            _ when entry.EntityType == MetadataEntityType.Collection => collectionStore.SetLastRefreshedAt(entry, localTime),
+            _ when entry.EntityType == MetadataEntityType.Creator || entry.EntityType == MetadataEntityType.Character =>
+                peopleStore.SetLastRefreshedAt(entry, localTime),
+            _ when entry.EntityType == MetadataEntityType.Studio || entry.EntityType == MetadataEntityType.Network =>
+                studioStore.SetLastRefreshedAt(entry, localTime),
+            _ => false,
         };
-        row.LastRefreshedAt = refreshedAt;
-        repository.Save(row);
-    }
-
-    /// <inheritdoc />
-    public bool Forget(MetadataGuid entry)
-    {
-        ArgumentNullException.ThrowIfNull(entry);
-        if (entry.Source.IsCore || repository.GetByEntry(entry) is not { } row)
-            return false;
-
-        repository.Delete(row);
-        return true;
-    }
-
-    /// <summary>
-    ///   When TMDB's tables say a show, movie or collection was last updated.
-    /// </summary>
-    /// <param name="entry">The TMDB entry.</param>
-    /// <returns>The time, or <see langword="null"/> when it is not stored or was never updated after it was added.</returns>
-    private DateTime? GetTmdbLastUpdatedAt(MetadataGuid entry)
-    {
-        if (!entry.TryGetNumericID<int>(out var tmdbID) || tmdbID <= 0)
-            return null;
-
-        var (createdAt, lastUpdatedAt) = entry.EntityType switch
-        {
-            _ when entry.EntityType == MetadataEntityType.Series && tmdbShows.GetByTmdbShowID(tmdbID) is { } show => (show.CreatedAt, show.LastUpdatedAt),
-            _ when entry.EntityType == MetadataEntityType.Movie && tmdbMovies.GetByTmdbMovieID(tmdbID) is { } movie => (movie.CreatedAt, movie.LastUpdatedAt),
-            _ when entry.EntityType == MetadataEntityType.Collection && tmdbCollections.GetByTmdbCollectionID(tmdbID) is { } collection =>
-                (collection.CreatedAt, collection.LastUpdatedAt),
-            _ => (default(DateTime), default(DateTime)),
-        };
-        return createdAt == lastUpdatedAt ? null : lastUpdatedAt;
     }
 
     #endregion

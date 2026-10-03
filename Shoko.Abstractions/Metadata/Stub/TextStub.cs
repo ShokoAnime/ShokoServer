@@ -23,6 +23,30 @@ public class TextStub : IText
     public required string Value { get; init; }
 
     /// <inheritdoc />
+    public int? ID { get; init; }
+
+    /// <inheritdoc />
+    public MetadataGuid? EntityID { get; init; }
+
+    /// <inheritdoc />
+    public int? ReferenceID { get; init; }
+
+    /// <inheritdoc />
+    public bool IsEnabled { get; init; } = true;
+
+    /// <inheritdoc />
+    public TextPreference Preference { get; init; } = TextPreference.None;
+
+    /// <inheritdoc />
+    public int Ordering { get; init; }
+
+    /// <inheritdoc />
+    public string? ScriptCode { get; init; }
+
+    /// <inheritdoc />
+    public bool IsInlineDefault { get; init; }
+
+    /// <inheritdoc />
     public bool Equals(IText? other)
         => IText.Equals(this, other);
 }

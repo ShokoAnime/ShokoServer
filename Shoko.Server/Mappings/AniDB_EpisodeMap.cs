@@ -14,6 +14,7 @@ public class AniDB_EpisodeMap : ClassMap<AniDB_Episode>
 
         Map(x => x.AirDate).Not.Nullable();
         Map(x => x.AnimeID).Not.Nullable();
+        Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.DateTimeUpdated).Not.Nullable();
         Map(x => x.Description).Not.Nullable().CustomType("StringClob");
         Map(x => x.EpisodeID).Not.Nullable();

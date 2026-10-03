@@ -11,6 +11,7 @@ using Shoko.Abstractions.Metadata.Orderings;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.API.Annotations;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Ordering;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
@@ -30,13 +31,19 @@ public class SeriesOrderingController(
     ISettingsProvider settingsProvider,
     AnimeSeriesRepository seriesRepository,
     IMetadataOrderingService orderingService,
-    IMetadataOrderingTransferService transferService
+    IMetadataOrderingTransferService transferService,
+    MetadataModelBuilder models
 ) : BaseController(settingsProvider)
 {
     /// <summary>
     /// The route ID of a series' default ordering.
     /// </summary>
     private const string DefaultOrderingID = "default";
+
+    /// <summary>
+    /// The route ID of the ordering chosen for a series.
+    /// </summary>
+    private const string PreferredOrderingID = "preferred";
 
     /// <summary>
     /// Get every ordering of a series: its default one first, then the ones
@@ -54,14 +61,14 @@ public class SeriesOrderingController(
         if (GetSeries(seriesID, out var error) is not { } series)
             return error!;
 
-        return orderingService.GetOrderings(series).Select(ordering => new SeriesOrdering(ordering, includeGroups)).ToList();
+        return orderingService.GetOrderings(series).Select(ordering => new SeriesOrdering(ordering, includeGroups, models)).ToList();
     }
 
     /// <summary>
     /// Get one of a series' orderings, with its groups.
     /// </summary>
     /// <param name="seriesID">Shoko series ID.</param>
-    /// <param name="orderingID">The ordering's full ID (URL-encoded), a user's ordering's local ID, or <c>default</c> for the default ordering.</param>
+    /// <param name="orderingID">The ordering's full ID (URL-encoded), a user's ordering's local ID, <c>default</c> for the default ordering, or <c>preferred</c> for the one chosen for the series.</param>
     /// <returns>The ordering.</returns>
     [HttpGet("{orderingID}")]
     public ActionResult<SeriesOrdering> GetOrdering(
@@ -73,12 +80,14 @@ public class SeriesOrderingController(
             return error!;
 
         if (string.Equals(orderingID, DefaultOrderingID, StringComparison.OrdinalIgnoreCase))
-            return new SeriesOrdering(orderingService.GetDefaultOrdering(series), true);
+            return new SeriesOrdering(orderingService.GetDefaultOrdering(series), true, models);
+        if (string.Equals(orderingID, PreferredOrderingID, StringComparison.OrdinalIgnoreCase))
+            return new SeriesOrdering(orderingService.GetPreferredOrdering(series), true, models);
 
         if (FindOrdering(series, orderingID, false) is not { } ordering)
             return NotFound("No ordering of the series has the given orderingID.");
 
-        return new SeriesOrdering(ordering, true);
+        return new SeriesOrdering(ordering, true, models);
     }
 
     /// <summary>
@@ -103,7 +112,7 @@ public class SeriesOrderingController(
             if (data is null)
                 return ValidationProblem(problem, nameof(body.Groups));
 
-            return new SeriesOrdering(orderingService.CreateLocalOrdering(data), true);
+            return new SeriesOrdering(orderingService.CreateLocalOrdering(data), true, models);
         }
         catch (ArgumentException ex)
         {
@@ -139,7 +148,7 @@ public class SeriesOrderingController(
                 return ValidationProblem(problem, nameof(body.Groups));
 
             return orderingService.UpdateLocalOrdering(id, data) is { } updated
-                ? new SeriesOrdering(updated, true)
+                ? new SeriesOrdering(updated, true, models)
                 : NotFound("No ordering of the series has the given orderingID.");
         }
         catch (ArgumentException ex)
@@ -186,13 +195,8 @@ public class SeriesOrderingController(
         if (GetSeries(seriesID, out var error) is not { } series)
             return error!;
 
-        MetadataGuid? orderingID = null;
-        if (!string.IsNullOrWhiteSpace(body.OrderingID) && !string.Equals(body.OrderingID, DefaultOrderingID, StringComparison.OrdinalIgnoreCase))
-        {
-            orderingID = MetadataGuid.TryParse(body.OrderingID, null, out var parsed) ? parsed : LocalID(body.OrderingID);
-            if (orderingID is null)
-                return ValidationProblem("Invalid ordering ID.", nameof(body.OrderingID));
-        }
+        if (!TryParsePreferredOrderingID(body.OrderingID, out var orderingID))
+            return ValidationProblem("Invalid ordering ID.", nameof(body.OrderingID));
 
         try
         {
@@ -307,6 +311,24 @@ public class SeriesOrderingController(
     {
         var text = Uri.UnescapeDataString(orderingID);
         return MetadataGuid.TryParse(text, null, out var id) ? id : LocalID(text);
+    }
+
+    /// <summary>
+    /// The ordering a body chooses for a series: none, for its default one,
+    /// when the text is empty or <c>default</c>, else a full ID or a user's
+    /// ordering's local ID.
+    /// </summary>
+    /// <param name="text">The body's ordering ID.</param>
+    /// <param name="orderingID">The ordering's full ID, or <c>null</c> for the default one.</param>
+    /// <returns><see langword="false"/> when the text is not a valid ID.</returns>
+    internal static bool TryParsePreferredOrderingID(string? text, out MetadataGuid? orderingID)
+    {
+        orderingID = null;
+        if (string.IsNullOrWhiteSpace(text) || string.Equals(text, DefaultOrderingID, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        orderingID = MetadataGuid.TryParse(text, null, out var parsed) ? parsed : LocalID(text);
+        return orderingID is not null;
     }
 
     /// <summary>

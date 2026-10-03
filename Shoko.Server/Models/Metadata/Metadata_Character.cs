@@ -9,6 +9,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
@@ -17,7 +18,7 @@ namespace Shoko.Server.Models.Metadata;
 /// <summary>
 ///   A character a source keeps in the people store.
 /// </summary>
-public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Character>, IInlineTextSource
+public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Character>, IInlineTextSource, IMetadataStubRow, IMetadataDefaultImageSource
 {
     #region Database Columns
 
@@ -73,15 +74,46 @@ public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Charact
     public List<Resource> Resources { get; set; } = [];
 
     /// <summary>
-    ///   When the source last wrote the character.
+    ///   When the store first wrote the character, stub or not. Set once and never
+    ///   changed.
     /// </summary>
-    public DateTime LastUpdatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    ///   When the source last wrote the character, or <c>null</c> for a stub
+    ///   the core made for a credit before the source wrote it.
+    /// </summary>
+    public DateTime? LastUpdatedAt { get; set; }
 
     /// <summary>
     ///   Since when nothing has credited the character, or <c>null</c> while
     ///   something does. The purge of orphaned metadata goes by it.
     /// </summary>
     public DateTime? LastOrphanedAt { get; set; }
+
+    /// <summary>
+    ///   When the core last asked the source to refresh the character, found or
+    ///   not, in local time, or <c>null</c> when it never did. Kept by the
+    ///   entity refresh job alone; a save of the character keeps it.
+    /// </summary>
+    public DateTime? LastRefreshedAt { get; set; }
+
+    /// <summary>
+    ///   What the source said of the character that needs no column of its
+    ///   own, or <c>null</c> when it said none of it.
+    /// </summary>
+    public Metadata_CharacterExtra? ExtraData { get; set; }
+
+    #endregion
+
+    #region Helpers
+
+    /// <summary>
+    ///   Whether the character is a stub: a row the core made, with only the
+    ///   name a credit carried, before its source wrote it. The source's
+    ///   next save of the character fills it in.
+    /// </summary>
+    public bool IsStub => LastUpdatedAt is null;
 
     #endregion
 
@@ -104,6 +136,13 @@ public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Charact
 
     #endregion
 
+    #region IWithUpdateDate Implementation
+
+    // A stub was never written by its source.
+    DateTime IWithUpdateDate.LastUpdatedAt => LastUpdatedAt ?? DateTime.UnixEpoch;
+
+    #endregion
+
     #region IInlineTextSource Implementation
 
     ITitle? IInlineTextSource.InlineTitle => InlineText.Title(Source, Name, TitleLanguage.Unknown, "unk");
@@ -122,13 +161,21 @@ public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Charact
 
     #endregion
 
+    #region IMetadataDefaultImageSource Implementation
+
+    string? IMetadataDefaultImageSource.GetDefaultResourceID(ImageEntityType imageType)
+        => ExtraData?.GetDefaultResourceID(imageType);
+
+    #endregion
+
     #region IWithImages Implementation
 
     /// <summary>
-    ///   The first primary image the character's own source gave it.
+    ///   The primary image the character's own source pins as its default,
+    ///   else the first one it gave it.
     /// </summary>
     public IImageCrossReference? DefaultPrimaryImageCrossReference
-        => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = Source, ImageType = ImageEntityType.Primary }).FirstOrDefault();
+        => MetadataStoredEntry.DefaultImage(this, ImageEntityType.Primary);
 
     #endregion
 
@@ -140,6 +187,8 @@ public class Metadata_Character : ICharacter, IMetadataStoreRow<Metadata_Charact
     #endregion
 
     #region ICharacter Implementation
+
+    DateTime? ICharacter.LastRefreshedAt => LastRefreshedAt?.ToUniversalTime();
 
     IReadOnlyList<ITitle> ICharacter.AlternativeNames => TextAccess.Manager.AlternativeNamesOf(this);
 

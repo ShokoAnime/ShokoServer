@@ -150,6 +150,20 @@ public class OrderingImportResult
         public IReadOnlyList<UnresolvedEpisode> UnresolvedEpisodes { get; init; }
 
         /// <summary>
+        /// The full IDs of the networks the ordering was linked to, or on a
+        /// dry run would be, in order.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> Networks { get; init; }
+
+        /// <summary>
+        /// The full IDs of the networks this server did not have, kept as
+        /// stubs with an empty name until their source saves them.
+        /// </summary>
+        [Required]
+        public IReadOnlyList<string> StubbedNetworks { get; init; }
+
+        /// <summary>
         /// What was done with each image of the ordering and its groups.
         /// </summary>
         [Required]
@@ -177,6 +191,8 @@ public class OrderingImportResult
             Reason = entry.Reason;
             IsPreferred = entry.IsPreferred;
             UnresolvedEpisodes = [.. entry.UnresolvedEpisodes.Select(episode => new UnresolvedEpisode(episode))];
+            Networks = [.. entry.Networks.Select(network => network.ToString())];
+            StubbedNetworks = [.. entry.StubbedNetworks.Select(network => network.ToString())];
             Images = [.. entry.Images.Select(image => new ImageImportEntry(image))];
             Notes = entry.Notes;
         }

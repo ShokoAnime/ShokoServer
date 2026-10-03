@@ -68,9 +68,9 @@ public enum MatchRejectionReason : byte
 
     /// <summary>
     ///   It names no entry that can be linked to the anime: one on another
-    ///   source, of a kind that is neither a series nor a film, with an ID the
-    ///   source never gives, or for another anime or an episode of one. Set by
-    ///   the core when it applies an auto-link.
+    ///   source, of a kind that is neither a series nor a film, or for another
+    ///   anime or an episode of one. Set by the core when it applies an
+    ///   auto-link.
     /// </summary>
     InvalidID = 9,
 

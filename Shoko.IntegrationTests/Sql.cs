@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
+using System.Linq;
 using Xunit;
 
 namespace Shoko.IntegrationTests;
@@ -35,11 +37,27 @@ internal static class Sql
     }
 
     /// <summary>
+    /// Inserts one row.
+    /// </summary>
+    /// <param name="connection">The open connection.</param>
+    /// <param name="table">The table.</param>
+    /// <param name="values">The row's columns and values, a flag sent as <c>1</c> or <c>0</c>.</param>
+    public static void Insert(IDbConnection connection, string table, params (string Column, object? Value)[] values)
+        => Execute(
+            connection,
+            $"INSERT INTO {table} ({string.Join(", ", values.Select(value => value.Column))}) VALUES ({string.Join(", ", values.Select((_, index) => $"@p{index}"))})",
+            [.. values.Select((value, index) => ($"@p{index}", value.Value is bool flag ? (flag ? 1 : 0) : value.Value))]
+        );
+
+    /// <summary>
     /// Reads every row of a query as one line of text.
     /// </summary>
     /// <param name="connection">The open connection.</param>
     /// <param name="sql">The query.</param>
-    /// <returns>Each row's values joined by <c>|</c>, a <c>null</c> as <c>NULL</c> and a flag as <c>1</c> or <c>0</c>.</returns>
+    /// <returns>
+    /// Each row's values joined by <c>|</c>, a <c>null</c> as <c>NULL</c>, a flag as <c>1</c> or <c>0</c> and a decimal
+    /// without trailing zeros.
+    /// </returns>
     public static List<string> Read(IDbConnection connection, string sql)
     {
         using var command = connection.CreateCommand();
@@ -50,7 +68,13 @@ internal static class Sql
         {
             var values = new string[reader.FieldCount];
             for (var index = 0; index < values.Length; index++)
-                values[index] = reader.IsDBNull(index) ? "NULL" : reader.GetValue(index) is bool flag ? (flag ? "1" : "0") : Convert.ToString(reader.GetValue(index))!;
+                values[index] = reader.IsDBNull(index) ? "NULL" : reader.GetValue(index) switch
+                {
+                    bool flag => flag ? "1" : "0",
+                    // A server's fixed-point column pads its scale, 8.00 for 8, where SQLite has none.
+                    decimal number => number.ToString("0.############################", CultureInfo.InvariantCulture),
+                    var value => Convert.ToString(value)!,
+                };
             rows.Add(string.Join("|", values));
         }
 

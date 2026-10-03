@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
 
@@ -8,7 +9,7 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Season Metadata.
 /// </summary>
-public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithYearlySeasons, IMetadata
+public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithYearlySeasons, IWithCreationDate, IWithUpdateDate, IMetadata
 {
     /// <summary>
     ///   The series the season belongs to.
@@ -16,11 +17,14 @@ public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     MetadataGuid SeriesID { get; }
 
     /// <summary>
-    ///   The season number. For one of the series' own seasons this is its
-    ///   number in the default ordering. For a group of an ordering (when
-    ///   <see cref="OrderingID"/> is set) stored by the core it is <c>0</c>
-    ///   for the special group and the others' place among themselves from
-    ///   1; a core source's own orderings keep the source's numbers.
+    ///   The ordering the season is a group of. The series' own seasons make
+    ///   its default ordering, whose ID
+    ///   <see cref="IOrdering.DefaultOrderingID"/> gives.
+    /// </summary>
+    MetadataGuid OrderingID { get => IOrdering.DefaultOrderingID(SeriesID); }
+
+    /// <summary>
+    ///   The season's number in its ordering.
     /// </summary>
     int SeasonNumber { get; }
 
@@ -31,12 +35,6 @@ public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     bool IsSpecial { get => SeasonNumber == 0; }
 
     /// <summary>
-    ///   The ordering the season is a group of, or <c>null</c> for one of
-    ///   the series' own seasons, which make its default ordering.
-    /// </summary>
-    MetadataGuid? OrderingID { get => null; }
-
-    /// <summary>
     /// Get the series info for the season. A season always belongs to a
     /// series.
     /// </summary>
@@ -44,9 +42,36 @@ public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     ISeries Series { get; }
 
     /// <summary>
-    /// All episodes for the season.
+    ///   The season's episodes. For a regular group of an ordering, only the
+    ///   episodes at home there: a placed special belongs to the special
+    ///   group, and its place in a regular group only says where it airs.
     /// </summary>
     IReadOnlyList<IEpisode> Episodes { get; }
+
+    /// <summary>
+    ///   When the core last refreshed the season's series in full from its
+    ///   source, in UTC, see <see cref="ISeries.LastRefreshedAt"/>.
+    /// </summary>
+    DateTime? LastRefreshedAt { get => Series.LastRefreshedAt; }
+
+    /// <summary>
+    ///   The seasons of other sources the season's episodes are linked into,
+    ///   read off <see cref="MetadataSeasonCrossReferences"/>. Empty on a
+    ///   provider's side, where the links lead to AniDB anime.
+    /// </summary>
+    IReadOnlyList<ISeason> LinkedSeasons
+    {
+        get => [.. MetadataSeasonCrossReferences.Where(xref => xref.ProviderID != ID).Select(xref => xref.Provider).OfType<ISeason>()];
+    }
+
+    /// <summary>
+    ///   The movies linked to the season's episodes, read off
+    ///   <see cref="MetadataMovieCrossReferences"/>.
+    /// </summary>
+    IReadOnlyList<IMovie> LinkedMovies
+    {
+        get => [.. MetadataMovieCrossReferences.Select(xref => xref.Provider).OfType<IMovie>()];
+    }
 
     /// <summary>
     /// The season-level cross-references Shoko made that involve this entry:
@@ -71,4 +96,38 @@ public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     /// on a provider's side, where a film sits in no season.
     /// </summary>
     IReadOnlyList<IMetadataMovieCrossReference> MetadataMovieCrossReferences { get; }
+}
+
+/// <summary>
+///   A season, or a group of an ordering, with its series, episodes and
+///   ordering typed.
+/// </summary>
+/// <typeparam name="TSeries">The series' type.</typeparam>
+/// <typeparam name="TEpisode">The episodes' type.</typeparam>
+public interface ISeason<out TSeries, out TEpisode> : ISeason
+    where TSeries : class, ISeries
+    where TEpisode : class, IEpisode
+{
+    /// <summary>
+    ///   The series the season belongs to.
+    /// </summary>
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    new TSeries Series { get; }
+
+    ISeries ISeason.Series { get => Series; }
+
+    /// <summary>
+    ///   The season's episodes. For a regular group of an ordering, only the
+    ///   episodes at home there, placed specials left out.
+    /// </summary>
+    new IReadOnlyList<TEpisode> Episodes { get; }
+
+    IReadOnlyList<IEpisode> ISeason.Episodes { get => Episodes; }
+
+    /// <summary>
+    ///   The ordering the season is a group of, see
+    ///   <see cref="ISeason.OrderingID"/>.
+    /// </summary>
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    IOrdering<TSeries, TEpisode> Ordering { get; }
 }

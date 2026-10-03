@@ -364,7 +364,7 @@ public partial class MetadataEntryController
     [HttpGet("Movie/{id}/CrossReferences")]
     public async Task<ActionResult<IReadOnlyList<MetadataCrossReference>>> GetMovieCrossReferences([FromRoute] MetadataSource source, [FromRoute] string id, CancellationToken cancellationToken = default)
         => await Get<IMovie>(source, MetadataEntityType.Movie, id, cancellationToken).ConfigureAwait(false) is { } movie
-            ? Ok(MetadataModelBuilder.CrossReferences(movie.MetadataMovieCrossReferences))
+            ? Ok(MetadataModelBuilder.CrossReferences(movie.MetadataMovieCrossReferences, _metadataService))
             : NotFound(MovieNotFound);
 
     #endregion

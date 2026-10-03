@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using NLog;
@@ -11,7 +12,7 @@ namespace Shoko.Server.API;
 
 /// <summary>
 ///   Queues scheduled actions for the legacy routes that once ran their work
-///   directly, and for the import those routes and the start-up setting ran.
+///   directly, and for the import those routes ran.
 /// </summary>
 internal static class LegacyScheduledActions
 {
@@ -33,6 +34,12 @@ internal static class LegacyScheduledActions
         Invoke<CheckForPreviouslyIgnoredFilesAction>,
         Invoke<CheckAnidbFileUpdatesAction>,
     ];
+
+    /// <summary>
+    ///   The types of the scheduled actions an import queues, in the order of
+    ///   <see cref="ImportSteps"/>.
+    /// </summary>
+    internal static readonly IReadOnlyList<Type> ImportActionTypes = [.. ImportSteps.Select(step => step.Method.GetGenericArguments()[0])];
 
     #endregion
 

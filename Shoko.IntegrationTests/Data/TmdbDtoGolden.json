@@ -1,0 +1,1685 @@
+{
+  "show": {
+    "ID": 9870101,
+    "AlternateOrderingID": "9870101",
+    "TvdbID": 555,
+    "Title": "A Show",
+    "Titles": [
+      {
+        "Name": "A Show",
+        "Language": "en-US",
+        "Type": "None",
+        "Default": true,
+        "Preferred": true,
+        "Source": "TMDB"
+      },
+      {
+        "Name": "Le Show",
+        "Language": "fr",
+        "Type": "None",
+        "Default": false,
+        "Preferred": false,
+        "Source": "TMDB"
+      },
+      {
+        "Name": "番組",
+        "Language": "ja",
+        "Type": "None",
+        "Default": false,
+        "Preferred": false,
+        "Source": "TMDB"
+      }
+    ],
+    "Overview": "About it.",
+    "Overviews": [
+      {
+        "Value": "Darüber.",
+        "Language": "de",
+        "Default": false,
+        "Preferred": false,
+        "Source": "TMDB"
+      }
+    ],
+    "OriginalLanguage": "ja",
+    "IsRestricted": false,
+    "UserRating": {
+      "Value": 8.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 10,
+      "Type": null
+    },
+    "Genres": [
+      "Animation",
+      "Sci-Fi"
+    ],
+    "Keywords": [
+      "school",
+      "magic"
+    ],
+    "ContentRatings": [
+      {
+        "Rating": "TV-14",
+        "Country": "US",
+        "Language": "EN-US",
+        "Source": "TMDB"
+      },
+      {
+        "Rating": "12",
+        "Country": "BR",
+        "Language": "PT-BR",
+        "Source": "TMDB"
+      },
+      {
+        "Rating": "14",
+        "Country": "BR",
+        "Language": "PT-BR",
+        "Source": "TMDB"
+      }
+    ],
+    "Studios": [
+      {
+        "ID": 9870161,
+        "Name": "Studio",
+        "CountryOfOrigin": "JP",
+        "Size": 2,
+        "Logos": [],
+        "Source": "TMDB"
+      }
+    ],
+    "ProductionCountries": {
+      "JP": "Japan",
+      "KR": "Korea"
+    },
+    "Networks": [
+      {
+        "ID": 9870171,
+        "Name": "Net",
+        "CountryOfOrigin": "",
+        "Size": 1,
+        "Source": "TMDB"
+      }
+    ],
+    "Images": {
+      "Posters": [
+        {
+          "UID": "00000000-0000-0000-0000-000009870901",
+          "PrimaryUID": "00000000-0000-0000-0000-000009870901",
+          "Type": "Primary",
+          "Source": "tmdb",
+          "ResourceID": "p1.jpg",
+          "ContentType": "image/jpeg",
+          "Available": false,
+          "Disabled": false,
+          "Preferred": false,
+          "Desired": true,
+          "LanguageCode": null,
+          "CountryCode": null,
+          "Width": null,
+          "Height": null
+        },
+        {
+          "UID": "00000000-0000-0000-0000-000009870902",
+          "PrimaryUID": "00000000-0000-0000-0000-000009870902",
+          "Type": "Primary",
+          "Source": "tmdb",
+          "ResourceID": "p2.jpg",
+          "ContentType": "image/jpeg",
+          "Available": false,
+          "Disabled": false,
+          "Preferred": false,
+          "Desired": true,
+          "LanguageCode": null,
+          "CountryCode": null,
+          "Width": null,
+          "Height": null
+        }
+      ],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Hero",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      },
+      {
+        "Character": {
+          "Name": "Villain",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      }
+    ],
+    "Crew": [
+      {
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Directing, Director",
+        "Language": "ja"
+      },
+      {
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Writing, Writer",
+        "Language": "ja"
+      }
+    ],
+    "DaysOfWeek": [
+      "Thursday",
+      "Friday"
+    ],
+    "YearlySeasons": [
+      {
+        "Year": 2020,
+        "AnimeSeason": "Winter"
+      },
+      {
+        "Year": 2020,
+        "AnimeSeason": "Spring"
+      }
+    ],
+    "EpisodeCount": 2,
+    "HiddenEpisodeCount": 0,
+    "SeasonCount": 1,
+    "AlternateOrderingCount": 1,
+    "Ordering": [
+      {
+        "OrderingID": "9870101",
+        "OrderingName": "Seasons",
+        "EpisodeCount": 2,
+        "HiddenEpisodeCount": 0,
+        "SeasonCount": 1,
+        "IsDefault": true,
+        "IsPreferred": true,
+        "InUse": true
+      },
+      {
+        "OrderingID": "aa00000000000000000000a1",
+        "OrderingType": "Absolute",
+        "OrderingName": "Absolute",
+        "EpisodeCount": 3,
+        "HiddenEpisodeCount": 0,
+        "SeasonCount": 2,
+        "IsDefault": false,
+        "IsPreferred": false,
+        "InUse": false
+      }
+    ],
+    "CrossReferences": [
+      {
+        "AnidbAnimeID": 9870001,
+        "TmdbShowID": 9870101,
+        "Rating": "UserVerified"
+      }
+    ],
+    "FirstAiredAt": "2020-01-02",
+    "LastAiredAt": "2020-06-30",
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "show-fresh": {
+    "ID": 9870102,
+    "AlternateOrderingID": "9870102",
+    "TvdbID": 0,
+    "Title": "Second",
+    "Titles": [
+      {
+        "Name": "Die Zweite",
+        "Language": "de",
+        "Type": "None",
+        "Default": false,
+        "Preferred": false,
+        "Source": "TMDB"
+      }
+    ],
+    "Overview": "",
+    "Overviews": [],
+    "OriginalLanguage": "en",
+    "IsRestricted": true,
+    "UserRating": {
+      "Value": 0.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 0,
+      "Type": null
+    },
+    "Genres": [
+      ""
+    ],
+    "Keywords": [],
+    "ContentRatings": [],
+    "Studios": [],
+    "ProductionCountries": {},
+    "Networks": [],
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [],
+    "Crew": [],
+    "DaysOfWeek": [],
+    "YearlySeasons": [],
+    "EpisodeCount": 0,
+    "HiddenEpisodeCount": 0,
+    "SeasonCount": 0,
+    "AlternateOrderingCount": 0,
+    "Ordering": [
+      {
+        "OrderingID": "9870102",
+        "OrderingName": "Seasons",
+        "EpisodeCount": 0,
+        "HiddenEpisodeCount": 0,
+        "SeasonCount": 0,
+        "IsDefault": true,
+        "IsPreferred": true,
+        "InUse": true
+      }
+    ],
+    "CrossReferences": [],
+    "FirstAiredAt": null,
+    "LastAiredAt": null,
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-01-01T09:00:00Z"
+  },
+  "show-ordering": {
+    "ID": 9870101,
+    "AlternateOrderingID": "aa00000000000000000000a1",
+    "TvdbID": 555,
+    "Title": "A Show",
+    "Titles": [
+      {
+        "Name": "A Show",
+        "Language": "en-US",
+        "Type": "None",
+        "Default": true,
+        "Preferred": true,
+        "Source": "TMDB"
+      },
+      {
+        "Name": "Le Show",
+        "Language": "fr",
+        "Type": "None",
+        "Default": false,
+        "Preferred": false,
+        "Source": "TMDB"
+      },
+      {
+        "Name": "番組",
+        "Language": "ja",
+        "Type": "None",
+        "Default": false,
+        "Preferred": false,
+        "Source": "TMDB"
+      }
+    ],
+    "Overview": "About it.",
+    "Overviews": [
+      {
+        "Value": "Darüber.",
+        "Language": "de",
+        "Default": false,
+        "Preferred": false,
+        "Source": "TMDB"
+      }
+    ],
+    "OriginalLanguage": "ja",
+    "IsRestricted": false,
+    "UserRating": {
+      "Value": 8.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 10,
+      "Type": null
+    },
+    "Genres": [
+      "Animation",
+      "Sci-Fi"
+    ],
+    "Keywords": [
+      "school",
+      "magic"
+    ],
+    "ContentRatings": [
+      {
+        "Rating": "TV-14",
+        "Country": "US",
+        "Language": "EN-US",
+        "Source": "TMDB"
+      },
+      {
+        "Rating": "12",
+        "Country": "BR",
+        "Language": "PT-BR",
+        "Source": "TMDB"
+      },
+      {
+        "Rating": "14",
+        "Country": "BR",
+        "Language": "PT-BR",
+        "Source": "TMDB"
+      }
+    ],
+    "Studios": [
+      {
+        "ID": 9870161,
+        "Name": "Studio",
+        "CountryOfOrigin": "JP",
+        "Size": 2,
+        "Logos": [],
+        "Source": "TMDB"
+      }
+    ],
+    "ProductionCountries": {
+      "JP": "Japan",
+      "KR": "Korea"
+    },
+    "Networks": [
+      {
+        "ID": 9870171,
+        "Name": "Net",
+        "CountryOfOrigin": "",
+        "Size": 1,
+        "Source": "TMDB"
+      }
+    ],
+    "Images": {
+      "Posters": [
+        {
+          "UID": "00000000-0000-0000-0000-000009870901",
+          "PrimaryUID": "00000000-0000-0000-0000-000009870901",
+          "Type": "Primary",
+          "Source": "tmdb",
+          "ResourceID": "p1.jpg",
+          "ContentType": "image/jpeg",
+          "Available": false,
+          "Disabled": false,
+          "Preferred": false,
+          "Desired": true,
+          "LanguageCode": null,
+          "CountryCode": null,
+          "Width": null,
+          "Height": null
+        },
+        {
+          "UID": "00000000-0000-0000-0000-000009870902",
+          "PrimaryUID": "00000000-0000-0000-0000-000009870902",
+          "Type": "Primary",
+          "Source": "tmdb",
+          "ResourceID": "p2.jpg",
+          "ContentType": "image/jpeg",
+          "Available": false,
+          "Disabled": false,
+          "Preferred": false,
+          "Desired": true,
+          "LanguageCode": null,
+          "CountryCode": null,
+          "Width": null,
+          "Height": null
+        }
+      ],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Hero",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      },
+      {
+        "Character": {
+          "Name": "Villain",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      }
+    ],
+    "Crew": [
+      {
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Directing, Director",
+        "Language": "ja"
+      },
+      {
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Writing, Writer",
+        "Language": "ja"
+      }
+    ],
+    "DaysOfWeek": [
+      "Thursday",
+      "Friday"
+    ],
+    "YearlySeasons": [
+      {
+        "Year": 2020,
+        "AnimeSeason": "Winter"
+      },
+      {
+        "Year": 2020,
+        "AnimeSeason": "Spring"
+      }
+    ],
+    "EpisodeCount": 3,
+    "HiddenEpisodeCount": 0,
+    "SeasonCount": 2,
+    "AlternateOrderingCount": 1,
+    "Ordering": [
+      {
+        "OrderingID": "9870101",
+        "OrderingName": "Seasons",
+        "EpisodeCount": 2,
+        "HiddenEpisodeCount": 0,
+        "SeasonCount": 1,
+        "IsDefault": true,
+        "IsPreferred": true,
+        "InUse": false
+      },
+      {
+        "OrderingID": "aa00000000000000000000a1",
+        "OrderingType": "Absolute",
+        "OrderingName": "Absolute",
+        "EpisodeCount": 3,
+        "HiddenEpisodeCount": 0,
+        "SeasonCount": 2,
+        "IsDefault": false,
+        "IsPreferred": false,
+        "InUse": true
+      }
+    ],
+    "CrossReferences": [
+      {
+        "AnidbAnimeID": 9870001,
+        "TmdbShowID": 9870101,
+        "Rating": "UserVerified"
+      }
+    ],
+    "FirstAiredAt": "2020-01-02",
+    "LastAiredAt": "2020-06-30",
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "season": {
+    "ID": "9870111",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "9870101",
+    "Title": "Season 1",
+    "Titles": [],
+    "Overview": "",
+    "Overviews": [],
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Hero",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "unk"
+      },
+      {
+        "Character": {
+          "Name": "Villain",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "unk"
+      }
+    ],
+    "Crew": [
+      {
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Directing, Director",
+        "Language": "unk"
+      },
+      {
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Writing, Writer",
+        "Language": "unk"
+      }
+    ],
+    "DaysOfWeek": [
+      "Thursday",
+      "Friday"
+    ],
+    "YearlySeasons": [
+      {
+        "Year": 2020,
+        "AnimeSeason": "Winter"
+      }
+    ],
+    "SeasonNumber": 1,
+    "EpisodeCount": 2,
+    "HiddenEpisodeCount": 0,
+    "IsLocked": false,
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "season-specials": {
+    "ID": "9870112",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "9870101",
+    "Title": "Specials",
+    "Titles": [],
+    "Overview": "",
+    "Overviews": [],
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Villain",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "unk"
+      }
+    ],
+    "Crew": [],
+    "DaysOfWeek": [
+      "Thursday"
+    ],
+    "YearlySeasons": [
+      {
+        "Year": 2020,
+        "AnimeSeason": "Winter"
+      }
+    ],
+    "SeasonNumber": 0,
+    "EpisodeCount": 1,
+    "HiddenEpisodeCount": 0,
+    "IsLocked": false,
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "group-bb00000000000000000000b0": {
+    "ID": "bb00000000000000000000b0",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "aa00000000000000000000a1",
+    "Title": "Extras",
+    "Titles": [
+      {
+        "Name": "Extras",
+        "Language": "en-US",
+        "Type": "None",
+        "Default": true,
+        "Preferred": true,
+        "Source": "TMDB"
+      }
+    ],
+    "Overview": "",
+    "Overviews": [],
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "DaysOfWeek": [
+      "Thursday"
+    ],
+    "YearlySeasons": [
+      {
+        "Year": 2020,
+        "AnimeSeason": "Winter"
+      }
+    ],
+    "SeasonNumber": 0,
+    "EpisodeCount": 1,
+    "HiddenEpisodeCount": 0,
+    "IsLocked": true,
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "group-bb00000000000000000000b1": {
+    "ID": "bb00000000000000000000b1",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "aa00000000000000000000a1",
+    "Title": "Part A",
+    "Titles": [
+      {
+        "Name": "Part A",
+        "Language": "en-US",
+        "Type": "None",
+        "Default": true,
+        "Preferred": true,
+        "Source": "TMDB"
+      }
+    ],
+    "Overview": "",
+    "Overviews": [],
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "DaysOfWeek": [
+      "Thursday",
+      "Friday"
+    ],
+    "YearlySeasons": [
+      {
+        "Year": 2020,
+        "AnimeSeason": "Winter"
+      }
+    ],
+    "SeasonNumber": 1,
+    "EpisodeCount": 1,
+    "HiddenEpisodeCount": 0,
+    "IsLocked": true,
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "group-bb00000000000000000000b2": {
+    "ID": "bb00000000000000000000b2",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "aa00000000000000000000a1",
+    "Title": "More",
+    "Titles": [
+      {
+        "Name": "More",
+        "Language": "en-US",
+        "Type": "None",
+        "Default": true,
+        "Preferred": true,
+        "Source": "TMDB"
+      }
+    ],
+    "Overview": "",
+    "Overviews": [],
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "DaysOfWeek": [],
+    "YearlySeasons": [],
+    "SeasonNumber": 0,
+    "EpisodeCount": 1,
+    "HiddenEpisodeCount": 0,
+    "IsLocked": true,
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "episode-9870121": {
+    "ID": 9870121,
+    "SeasonID": "9870111",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "9870101",
+    "TvdbEpisodeID": null,
+    "Title": "Episode 1",
+    "Titles": [],
+    "Overview": "Episode 1.",
+    "Overviews": [],
+    "IsHidden": false,
+    "EpisodeNumber": 1,
+    "SeasonNumber": 1,
+    "UserRating": {
+      "Value": 7.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 3,
+      "Type": null
+    },
+    "Runtime": "00:24:00",
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Hero",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      },
+      {
+        "Character": {
+          "Name": "Villain",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      }
+    ],
+    "Crew": [
+      {
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Directing, Director",
+        "Language": "ja"
+      },
+      {
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Writing, Writer",
+        "Language": "ja"
+      }
+    ],
+    "Ordering": [
+      {
+        "OrderingID": "9870101",
+        "OrderingName": "Seasons",
+        "SeasonID": "9870111",
+        "SeasonName": "Season 1",
+        "SeasonNumber": 1,
+        "EpisodeNumber": 1,
+        "IsDefault": true,
+        "IsPreferred": true,
+        "InUse": true
+      },
+      {
+        "OrderingID": "aa00000000000000000000a1",
+        "OrderingType": "Absolute",
+        "OrderingName": "Absolute",
+        "SeasonID": "bb00000000000000000000b1",
+        "SeasonName": "Part A",
+        "SeasonNumber": 1,
+        "EpisodeNumber": 2,
+        "IsDefault": false,
+        "IsPreferred": false,
+        "InUse": false
+      }
+    ],
+    "CrossReferences": [
+      {
+        "AnidbAnimeID": 9870001,
+        "AnidbEpisodeID": 9870011,
+        "TmdbShowID": 9870101,
+        "TmdbEpisodeID": 9870121,
+        "Index": 0,
+        "Rating": "UserVerified"
+      }
+    ],
+    "FileCrossReferences": [],
+    "AiredAt": "2020-01-02",
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "episode-9870121-bb00000000000000000000b1": {
+    "ID": 9870121,
+    "SeasonID": "bb00000000000000000000b1",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "aa00000000000000000000a1",
+    "TvdbEpisodeID": null,
+    "Title": "Episode 1",
+    "Titles": [],
+    "Overview": "Episode 1.",
+    "Overviews": [],
+    "IsHidden": false,
+    "EpisodeNumber": 2,
+    "SeasonNumber": 1,
+    "UserRating": {
+      "Value": 7.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 3,
+      "Type": null
+    },
+    "Runtime": "00:24:00",
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Hero",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      },
+      {
+        "Character": {
+          "Name": "Villain",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      }
+    ],
+    "Crew": [
+      {
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Directing, Director",
+        "Language": "ja"
+      },
+      {
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Writing, Writer",
+        "Language": "ja"
+      }
+    ],
+    "Ordering": [
+      {
+        "OrderingID": "9870101",
+        "OrderingName": "Seasons",
+        "SeasonID": "9870111",
+        "SeasonName": "Season 1",
+        "SeasonNumber": 1,
+        "EpisodeNumber": 1,
+        "IsDefault": true,
+        "IsPreferred": true,
+        "InUse": false
+      },
+      {
+        "OrderingID": "aa00000000000000000000a1",
+        "OrderingType": "Absolute",
+        "OrderingName": "Absolute",
+        "SeasonID": "bb00000000000000000000b1",
+        "SeasonName": "Part A",
+        "SeasonNumber": 1,
+        "EpisodeNumber": 2,
+        "IsDefault": false,
+        "IsPreferred": false,
+        "InUse": true
+      }
+    ],
+    "CrossReferences": [
+      {
+        "AnidbAnimeID": 9870001,
+        "AnidbEpisodeID": 9870011,
+        "TmdbShowID": 9870101,
+        "TmdbEpisodeID": 9870121,
+        "Index": 0,
+        "Rating": "UserVerified"
+      }
+    ],
+    "FileCrossReferences": [],
+    "AiredAt": "2020-01-02",
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "episode-9870122": {
+    "ID": 9870122,
+    "SeasonID": "9870111",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "9870101",
+    "TvdbEpisodeID": null,
+    "Title": "Second Title",
+    "Titles": [],
+    "Overview": "Second Title.",
+    "Overviews": [],
+    "IsHidden": true,
+    "EpisodeNumber": 2,
+    "SeasonNumber": 1,
+    "UserRating": {
+      "Value": 7.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 3,
+      "Type": null
+    },
+    "Runtime": null,
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Hero",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      }
+    ],
+    "Crew": [
+      {
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Directing, Director",
+        "Language": "ja"
+      }
+    ],
+    "Ordering": [
+      {
+        "OrderingID": "9870101",
+        "OrderingName": "Seasons",
+        "SeasonID": "9870111",
+        "SeasonName": "Season 1",
+        "SeasonNumber": 1,
+        "EpisodeNumber": 2,
+        "IsDefault": true,
+        "IsPreferred": true,
+        "InUse": true
+      },
+      {
+        "OrderingID": "aa00000000000000000000a1",
+        "OrderingType": "Absolute",
+        "OrderingName": "Absolute",
+        "SeasonID": "bb00000000000000000000b1",
+        "SeasonName": "Part A",
+        "SeasonNumber": 1,
+        "EpisodeNumber": 1,
+        "IsDefault": false,
+        "IsPreferred": false,
+        "InUse": false
+      }
+    ],
+    "CrossReferences": [],
+    "FileCrossReferences": [],
+    "AiredAt": "2020-01-03",
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "episode-9870122-bb00000000000000000000b1": {
+    "ID": 9870122,
+    "SeasonID": "bb00000000000000000000b1",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "aa00000000000000000000a1",
+    "TvdbEpisodeID": null,
+    "Title": "Second Title",
+    "Titles": [],
+    "Overview": "Second Title.",
+    "Overviews": [],
+    "IsHidden": true,
+    "EpisodeNumber": 1,
+    "SeasonNumber": 1,
+    "UserRating": {
+      "Value": 7.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 3,
+      "Type": null
+    },
+    "Runtime": null,
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Hero",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      }
+    ],
+    "Crew": [
+      {
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Directing, Director",
+        "Language": "ja"
+      }
+    ],
+    "Ordering": [
+      {
+        "OrderingID": "9870101",
+        "OrderingName": "Seasons",
+        "SeasonID": "9870111",
+        "SeasonName": "Season 1",
+        "SeasonNumber": 1,
+        "EpisodeNumber": 2,
+        "IsDefault": true,
+        "IsPreferred": true,
+        "InUse": false
+      },
+      {
+        "OrderingID": "aa00000000000000000000a1",
+        "OrderingType": "Absolute",
+        "OrderingName": "Absolute",
+        "SeasonID": "bb00000000000000000000b1",
+        "SeasonName": "Part A",
+        "SeasonNumber": 1,
+        "EpisodeNumber": 1,
+        "IsDefault": false,
+        "IsPreferred": false,
+        "InUse": true
+      }
+    ],
+    "CrossReferences": [],
+    "FileCrossReferences": [],
+    "AiredAt": "2020-01-03",
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "episode-9870123": {
+    "ID": 9870123,
+    "SeasonID": "9870112",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "9870101",
+    "TvdbEpisodeID": 777,
+    "Title": "The Special",
+    "Titles": [],
+    "Overview": "The Special.",
+    "Overviews": [],
+    "IsHidden": false,
+    "EpisodeNumber": 1,
+    "SeasonNumber": 0,
+    "UserRating": {
+      "Value": 7.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 3,
+      "Type": null
+    },
+    "Runtime": "00:12:00",
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Villain",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      }
+    ],
+    "Crew": [],
+    "Ordering": [
+      {
+        "OrderingID": "9870101",
+        "OrderingName": "Seasons",
+        "SeasonID": "9870112",
+        "SeasonName": "Specials",
+        "SeasonNumber": 0,
+        "EpisodeNumber": 1,
+        "IsDefault": true,
+        "IsPreferred": true,
+        "InUse": true
+      },
+      {
+        "OrderingID": "aa00000000000000000000a1",
+        "OrderingType": "Absolute",
+        "OrderingName": "Absolute",
+        "SeasonID": "bb00000000000000000000b0",
+        "SeasonName": "Extras",
+        "SeasonNumber": 1,
+        "EpisodeNumber": 1,
+        "IsDefault": false,
+        "IsPreferred": false,
+        "InUse": false
+      }
+    ],
+    "CrossReferences": [],
+    "FileCrossReferences": [],
+    "AiredAt": "2020-01-02",
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "episode-9870123-bb00000000000000000000b0": {
+    "ID": 9870123,
+    "SeasonID": "bb00000000000000000000b0",
+    "ShowID": 9870101,
+    "AlternateOrderingID": "aa00000000000000000000a1",
+    "TvdbEpisodeID": 777,
+    "Title": "The Special",
+    "Titles": [],
+    "Overview": "The Special.",
+    "Overviews": [],
+    "IsHidden": false,
+    "EpisodeNumber": 1,
+    "SeasonNumber": 1,
+    "UserRating": {
+      "Value": 7.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 3,
+      "Type": null
+    },
+    "Runtime": "00:12:00",
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Villain",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      }
+    ],
+    "Crew": [],
+    "Ordering": [
+      {
+        "OrderingID": "9870101",
+        "OrderingName": "Seasons",
+        "SeasonID": "9870112",
+        "SeasonName": "Specials",
+        "SeasonNumber": 0,
+        "EpisodeNumber": 1,
+        "IsDefault": true,
+        "IsPreferred": true,
+        "InUse": false
+      },
+      {
+        "OrderingID": "aa00000000000000000000a1",
+        "OrderingType": "Absolute",
+        "OrderingName": "Absolute",
+        "SeasonID": "bb00000000000000000000b0",
+        "SeasonName": "Extras",
+        "SeasonNumber": 1,
+        "EpisodeNumber": 1,
+        "IsDefault": false,
+        "IsPreferred": false,
+        "InUse": true
+      }
+    ],
+    "CrossReferences": [],
+    "FileCrossReferences": [],
+    "AiredAt": "2020-01-02",
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "movie-9870141": {
+    "ID": 9870141,
+    "CollectionID": 9870151,
+    "ImdbMovieID": "tt0000001",
+    "Title": "A Movie",
+    "Titles": [],
+    "Overview": "A film.",
+    "Overviews": [],
+    "OriginalLanguage": "ja",
+    "IsRestricted": false,
+    "IsVideo": true,
+    "UserRating": {
+      "Value": 6.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 2,
+      "Type": "User"
+    },
+    "Runtime": "01:35:00",
+    "Genres": [
+      "Drama"
+    ],
+    "Keywords": [],
+    "ContentRatings": [
+      {
+        "Rating": "G",
+        "Country": "JP",
+        "Language": "JA",
+        "Source": "TMDB"
+      }
+    ],
+    "Studios": [
+      {
+        "ID": 9870161,
+        "Name": "Studio",
+        "CountryOfOrigin": "JP",
+        "Size": 2,
+        "Logos": [],
+        "Source": "TMDB"
+      }
+    ],
+    "ProductionCountries": {
+      "JP": "Japan"
+    },
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [
+      {
+        "Character": {
+          "Name": "Lead",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "Staff": {
+          "ID": 9870131,
+          "Name": "Alice",
+          "AlternateName": "",
+          "Description": "A life.",
+          "Image": null
+        },
+        "RoleName": "Actor",
+        "RoleDetails": "Character",
+        "Language": "ja"
+      }
+    ],
+    "Crew": [
+      {
+        "Staff": {
+          "ID": 9870132,
+          "Name": "Bob",
+          "AlternateName": "",
+          "Description": "",
+          "Image": null
+        },
+        "RoleName": "Staff",
+        "RoleDetails": "Writing, Screenplay",
+        "Language": "ja"
+      }
+    ],
+    "YearlySeasons": [
+      {
+        "Year": 2021,
+        "AnimeSeason": "Spring"
+      }
+    ],
+    "CrossReferences": [
+      {
+        "AnidbAnimeID": 9870002,
+        "AnidbEpisodeID": 9870021,
+        "TmdbMovieID": 9870141,
+        "Rating": "UserVerified"
+      }
+    ],
+    "FileCrossReferences": [],
+    "ReleasedAt": "2021-03-04",
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-01-01T09:00:00Z"
+  },
+  "search-movie-9870141": {
+    "ID": 9870141,
+    "Title": "A Movie",
+    "OriginalTitle": "映画",
+    "OriginalLanguage": "ja",
+    "Overview": "A film.",
+    "IsRestricted": false,
+    "IsVideo": true,
+    "ReleasedAt": "2021-03-04",
+    "Poster": null,
+    "Backdrop": null,
+    "UserRating": {
+      "Value": 6.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 2,
+      "Type": "User"
+    },
+    "Genres": [
+      "Drama"
+    ]
+  },
+  "movie-9870142": {
+    "ID": 9870142,
+    "CollectionID": null,
+    "ImdbMovieID": null,
+    "Title": "Another Movie",
+    "Titles": [],
+    "Overview": "",
+    "Overviews": [],
+    "OriginalLanguage": "en",
+    "IsRestricted": false,
+    "IsVideo": false,
+    "UserRating": {
+      "Value": 0.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 0,
+      "Type": "User"
+    },
+    "Runtime": null,
+    "Genres": [
+      ""
+    ],
+    "Keywords": [],
+    "ContentRatings": [],
+    "Studios": [],
+    "ProductionCountries": {},
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "Cast": [],
+    "Crew": [],
+    "YearlySeasons": [],
+    "CrossReferences": [],
+    "FileCrossReferences": [],
+    "ReleasedAt": null,
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "search-movie-9870142": {
+    "ID": 9870142,
+    "Title": "Another Movie",
+    "OriginalTitle": "Another Movie",
+    "OriginalLanguage": "en",
+    "Overview": "",
+    "IsRestricted": false,
+    "IsVideo": false,
+    "ReleasedAt": null,
+    "Poster": null,
+    "Backdrop": null,
+    "UserRating": {
+      "Value": 0.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 0,
+      "Type": "User"
+    },
+    "Genres": [
+      ""
+    ]
+  },
+  "collection": {
+    "ID": 9870151,
+    "Title": "A Collection",
+    "Titles": [],
+    "Overview": "Both.",
+    "Overviews": [],
+    "MovieCount": 2,
+    "Images": {
+      "Posters": [],
+      "Backdrops": [],
+      "Banners": [],
+      "Logos": [],
+      "Discs": []
+    },
+    "CreatedAt": "2024-01-01T09:00:00Z",
+    "LastUpdatedAt": "2024-02-01T09:00:00Z"
+  },
+  "search-show": {
+    "ID": 9870101,
+    "Title": "A Show",
+    "OriginalTitle": "番組",
+    "OriginalLanguage": "ja",
+    "Overview": "About it.",
+    "FirstAiredAt": "2020-01-02",
+    "Poster": "https://image.tmdb.org/t/p/original/p2.jpg",
+    "Backdrop": "https://image.tmdb.org/t/p/original/b1.jpg",
+    "UserRating": {
+      "Value": 8.0,
+      "MaxValue": 10,
+      "Source": "TMDB",
+      "Votes": 10,
+      "Type": "User"
+    },
+    "Genres": [
+      "Animation",
+      "Sci-Fi"
+    ]
+  }
+}

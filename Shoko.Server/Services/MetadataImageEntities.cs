@@ -35,10 +35,13 @@ public static class MetadataImageEntities
 
     private static readonly FrozenSet<MetadataEntityType> _collectionKinds = FrozenSet.ToFrozenSet([MetadataEntityType.Collection]);
 
+    private static readonly FrozenDictionary<MetadataEntityType, FrozenSet<MetadataEntityType>> _entityKinds = MetadataEntityRefreshScheduler.EntityKinds
+        .ToFrozenDictionary(kind => kind, kind => FrozenSet.ToFrozenSet([kind]));
+
     /// <summary>
     ///   The kinds of entities the walk of an entry of a kind can reach.
     /// </summary>
-    /// <param name="entryKind">The kind of entry: series, movie or collection.</param>
+    /// <param name="entryKind">The kind of entry: series, movie, collection, creator, character, studio or network.</param>
     /// <returns>The kinds, or none for any other kind of entry.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entryKind"/> is <see langword="null"/>.</exception>
     public static IReadOnlySet<MetadataEntityType> GetReachableKinds(MetadataEntityType entryKind)
@@ -47,7 +50,7 @@ public static class MetadataImageEntities
         return entryKind == MetadataEntityType.Series ? _seriesKinds
             : entryKind == MetadataEntityType.Movie ? _movieKinds
             : entryKind == MetadataEntityType.Collection ? _collectionKinds
-            : FrozenSet<MetadataEntityType>.Empty;
+            : _entityKinds.GetValueOrDefault(entryKind) ?? FrozenSet<MetadataEntityType>.Empty;
     }
 
     #endregion
@@ -56,10 +59,11 @@ public static class MetadataImageEntities
 
     /// <summary>
     ///   The entities under an entry, on its source, with the people and
-    ///   studios credited on them, and the entry's original language.
+    ///   studios credited on them, and the entry's original language. A
+    ///   creator, character, studio or network is walked alone.
     /// </summary>
     /// <param name="metadataService">Resolves the entry.</param>
-    /// <param name="entry">The series, film or collection.</param>
+    /// <param name="entry">The series, film, collection, creator, character, studio or network.</param>
     /// <returns>The entities, each once, or none when the entry is not stored.</returns>
     /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
     public static (List<IWithImages> Entities, string? OriginalLanguage) Gather(IMetadataService metadataService, MetadataGuid entry)
@@ -83,6 +87,10 @@ public static class MetadataImageEntities
         else if (entry.EntityType == MetadataEntityType.Collection && metadataService.GetCollection(entry) is { } collection)
         {
             entities.Add(collection);
+        }
+        else if (MetadataEntityRefreshScheduler.EntityKinds.Contains(entry.EntityType))
+        {
+            return (metadataService.GetEntry(entry) is IWithImages entity && entity.ID.Source == entry.Source ? [entity] : [], null);
         }
 
         // Each person, studio or network is resolved once, however often it

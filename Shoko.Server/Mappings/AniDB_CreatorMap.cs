@@ -20,6 +20,7 @@ public class AniDB_CreatorMap : ClassMap<AniDB_Creator>
         Map(x => x.JapaneseHomepageUrl);
         Map(x => x.EnglishWikiUrl);
         Map(x => x.JapaneseWikiUrl);
+        Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
     }
 }

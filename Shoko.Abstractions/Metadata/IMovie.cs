@@ -10,8 +10,15 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Movie metadata.
 /// </summary>
-public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IWithResources, IWithCrossSources, IWithTags, IMetadata
+public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IWithResources, IWithCrossSources, IWithTags, IWithCreationDate, IWithUpdateDate, IMetadata
 {
+    /// <summary>
+    ///   When the core last refreshed the movie in full from its source
+    ///   without failing, whether or not anything changed, in UTC. Set by the
+    ///   core alone; <see langword="null"/> when it never was.
+    /// </summary>
+    DateTime? LastRefreshedAt { get; }
+
     /// <summary>
     /// The shoko series ID, if we have any.
     /// </summary>
@@ -28,6 +35,12 @@ public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithL
     DateTime? ReleaseDate { get; }
 
     /// <summary>
+    ///   How long the movie runs, or <see langword="null"/> when the source
+    ///   does not say.
+    /// </summary>
+    TimeSpan? Runtime { get; }
+
+    /// <summary>
     /// Indicates it's restricted for non-adult viewers. 😉
     /// </summary>
     bool Restricted { get; }
@@ -41,7 +54,25 @@ public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithL
     /// The language the movie was first made in, as a language code, when
     /// the source says.
     /// </summary>
-    string? OriginalLanguageCode { get => null; }
+    string? OriginalLanguageCode { get; }
+
+    /// <summary>
+    ///   The countries the movie was made in, as ISO 3166-1 codes when the
+    ///   source gives them.
+    /// </summary>
+    IReadOnlyList<string> ProductionCountries { get; }
+
+    /// <summary>
+    ///   The movie collection the movie is part of, or <see langword="null"/>
+    ///   when it is part of none or the source does not say.
+    /// </summary>
+    MetadataGuid? CollectionID { get; }
+
+    /// <summary>
+    ///   The movie collection named by <see cref="CollectionID"/>, when it is
+    ///   stored.
+    /// </summary>
+    IMovieCollection? Collection { get; }
 
     /// <summary>
     /// Overall user rating for the movie, normalized on a scale of 1-10.
@@ -76,7 +107,7 @@ public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithL
     /// <summary>
     /// The movies a provider's users suggest to someone looking at this one,
     /// best first. Most of them are not in the collection, so their
-    /// <see cref="ISuggestedMetadata{TBase,TSuggested}.Suggested"/> is usually
+    /// <see cref="ISuggestedMetadata.Suggested"/> is usually
     /// <see langword="null"/>.
     /// </summary>
     IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> Suggestions { get; }
@@ -102,4 +133,35 @@ public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithL
     /// Get all videos linked to the movie, if any.
     /// </summary>
     IReadOnlyList<IVideo> Videos { get; }
+}
+
+/// <summary>
+///   A movie with its suggestions and collection typed.
+/// </summary>
+/// <typeparam name="TMovie">The movie's type.</typeparam>
+public interface IMovie<out TMovie> : IMovie
+    where TMovie : class, IMovie
+{
+    /// <summary>
+    ///   The movies a provider's users suggest to someone looking at this
+    ///   one, best first, with this movie as the base.
+    /// </summary>
+    new IReadOnlyList<ISuggestedMetadata<TMovie, IMovie>> Suggestions { get; }
+
+    IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> IMovie.Suggestions { get => Suggestions; }
+
+    /// <summary>
+    ///   The movies in the collection that suggest this one.
+    /// </summary>
+    new IReadOnlyList<ISuggestedMetadata<TMovie, IMovie>> SuggestedBy { get; }
+
+    IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> IMovie.SuggestedBy { get => SuggestedBy; }
+
+    /// <summary>
+    ///   The movie collection named by <see cref="IMovie.CollectionID"/>,
+    ///   when it is stored.
+    /// </summary>
+    new IMovieCollection<TMovie>? Collection { get; }
+
+    IMovieCollection? IMovie.Collection { get => Collection; }
 }

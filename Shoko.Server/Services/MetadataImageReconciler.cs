@@ -11,6 +11,7 @@ using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Server.Models.Metadata;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.Services;
@@ -21,11 +22,13 @@ namespace Shoko.Server.Services;
 /// </summary>
 /// <remarks>
 ///   Per downloaded image type, candidates are ordered by preferred language,
-///   the default and the first up to the limit marked desired, and links to
-///   images no longer offered removed. A type the settings skip is left as it
-///   is; one no setting covers is linked but never downloaded. A shared
-///   creator, character or studio is reconciled one job at a time, in every
-///   language.
+///   then the source's order. The entry's stored default, the image its own
+///   source pinned, takes the first of the type's slots, whatever its
+///   language, and the first others up to the limit take the rest; those
+///   are marked desired, and links to images no longer offered removed. A
+///   type the settings skip is left as it is; one no setting covers is
+///   linked but never downloaded. A shared creator, character or studio is
+///   reconciled one job at a time, in every language.
 /// </remarks>
 /// <param name="imageManager">Adds and links the images.</param>
 /// <param name="entityLocks">Serialises the reconciling of an entity shared between entries.</param>
@@ -101,7 +104,8 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
                     continue;
 
                 var ofType = valid.Where(candidate => candidate.ImageType == imageType).ToList();
-                linked += ReconcileType(entity, source, imageType, ofType, rule?.MaxCount, languages);
+                var defaultID = source == entity.ID.Source ? (entity as IMetadataDefaultImageSource)?.GetDefaultResourceID(imageType) : null;
+                linked += ReconcileType(entity, source, imageType, ofType, defaultID, rule?.MaxCount, languages);
             }
         }
 
@@ -117,6 +121,7 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
     /// <param name="source">The source.</param>
     /// <param name="imageType">The image type.</param>
     /// <param name="candidates">The type's candidates, in the source's order.</param>
+    /// <param name="defaultID">The resource ID of the entry's stored default of the type, or <c>null</c>.</param>
     /// <param name="maxCount">
     ///   How many to download at most (0 for no limit), or <c>null</c> when
     ///   none are downloaded.
@@ -128,6 +133,7 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
         MetadataSource source,
         ImageEntityType imageType,
         IReadOnlyList<ImageCandidate> candidates,
+        string? defaultID,
         int? maxCount,
         IReadOnlyList<TitleLanguage> languages
     )
@@ -139,15 +145,18 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
         var desired = new HashSet<string>();
         if (maxCount is { } max)
         {
+            // The stored default is the first within the limit, whatever its language.
+            if (defaultID is not null && indexed.Any(tuple => tuple.Candidate.ResourceID == defaultID))
+                desired.Add(defaultID);
             desired.UnionWith(indexed
-                .Where(tuple => languages.Count == 0 || languages.Contains(tuple.Language))
+                .Where(tuple => tuple.Candidate.ResourceID != defaultID && (languages.Count == 0 || languages.Contains(tuple.Language)))
                 .OrderBy(tuple => IndexOf(languages, tuple.Language))
                 .ThenBy(tuple => tuple.Index)
-                .Take(max > 0 ? max : int.MaxValue)
+                .Take(max > 0 ? max - desired.Count : int.MaxValue)
                 .Select(tuple => tuple.Candidate.ResourceID));
-            desired.UnionWith(indexed.Where(tuple => tuple.Candidate.IsDefault).Select(tuple => tuple.Candidate.ResourceID));
         }
 
+        // The preferred languages first, in their order, then the rest, each in the source's order.
         var ordered = indexed
             .OrderByDescending(tuple => languages.Contains(tuple.Language))
             .ThenBy(tuple => IndexOf(languages, tuple.Language))

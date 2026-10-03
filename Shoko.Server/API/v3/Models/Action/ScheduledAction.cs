@@ -113,7 +113,8 @@ public class ScheduledAction
     /// <summary>
     /// When a trigger queues the action next, never sooner than
     /// <see cref="MinimumInterval"/> after the last run the schedule counts,
-    /// or <see langword="null"/> when only a start-up trigger, or none, would.
+    /// or <see langword="null"/> when only start-up and queue-cleared triggers, or
+    /// none, would.
     /// It lies in the past for a run that is due and about to be queued. A
     /// daily, weekly or monthly run is on its wall-clock minute, at 0 seconds.
     /// </summary>

@@ -139,10 +139,11 @@ public IReadOnlyList<ActionTrigger> DefaultTriggers =>
     ActionTrigger.DailyAt(new TimeOnly(3, 30)),
     ActionTrigger.WeeklyOn([DayOfWeek.Monday, DayOfWeek.Friday], new TimeOnly(4, 0)),
     ActionTrigger.MonthlyOn([1, -1], new TimeOnly(5, 0)),
+    ActionTrigger.OnQueueCleared,
 ];
 ```
 
-There are five kinds of trigger, and each sets only its own fields:
+There are six kinds of trigger, and each sets only its own fields:
 
 | Type | Fields | Runs |
 |---|---|---|
@@ -151,11 +152,12 @@ There are five kinds of trigger, and each sets only its own fields:
 | `Weekly` | `DaysOfWeek`, `TimeOfDay` | On each of the days of the week (at least one), at the time of day. |
 | `Monthly` | `DaysOfMonth`, `TimeOfDay` | On each of the days of the month (at least one), at the time of day. |
 | `Startup` | none | Every time the server has started. |
+| `QueueCleared` | none | Every time the job queue is cleared, see [Queue-cleared triggers](#queue-cleared-triggers). |
 
 A time of day is whole minutes in the server's time zone. A day of the month is
 1 to 31 from the start, or -1 to -31 from the end (-1 is the last day); a day a
 month does not have is skipped that month. The factories (`Every`, `DailyAt`,
-`WeeklyOn`, `MonthlyOn`, `AtStartup`) throw on bad input, while
+`WeeklyOn`, `MonthlyOn`, `AtStartup`, `OnQueueCleared`) throw on bad input, while
 `ActionTrigger.GetValidationError()` returns the reason. `Describe()` writes a
 trigger out in English for logs and UIs ("daily 04:00 trigger").
 
@@ -171,6 +173,21 @@ checks, plugin update checks) runs this way.
   at start-up, however many were missed.
 - **Triggers fire once the server has started.** A stored trigger that is no
   longer valid is dropped with a warning; with none left, the defaults apply.
+
+### Queue-cleared triggers
+
+`ActionTrigger.OnQueueCleared` runs the action every time the whole job queue
+is cleared: by an admin through `POST /api/v3/Queue/Clear`, or by code calling
+`IQueueScheduler.Clear`. The clear drops the action's own waiting run with the
+rest, and the trigger queues a new one right after it. It does not fire when the
+queue runs out of jobs, when a single job is removed, or when the queue is
+paused or resumed. A run still running through the clear is left alone, and
+the minimum interval holds as for any trigger, with the skip logged at debug
+level.
+
+The core's "Check Network Availability" runs this way, besides at start-up and
+every 30 minutes, so the jobs that wait on the network see a fresh answer after
+a clear.
 
 ### Minimum interval
 

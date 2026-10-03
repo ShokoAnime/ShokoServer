@@ -32,6 +32,7 @@ public class MetadataImageContributor
         Source = info.Source;
         Plugin = new(info.PluginInfo);
         MaxConcurrentJobs = info.MaxConcurrentJobs;
+        HasIcon = info.Icon is not null;
         Available = MetadataEntityScopeEntry.From(info.AvailableScope);
         Enabled = MetadataEntityScopeEntry.From(info.EnabledScope);
         IsEnabled = info.Enabled;
@@ -78,6 +79,13 @@ public class MetadataImageContributor
     /// </summary>
     [Required]
     public int MaxConcurrentJobs { get; init; }
+
+    /// <summary>
+    /// Whether the contributor has an icon, served at
+    /// <c>Metadata/ImageContributor/{contributorID}/Icon</c>.
+    /// </summary>
+    [Required]
+    public bool HasIcon { get; init; }
 
     /// <summary>
     /// The sources and kinds the contributor can add images for.

@@ -72,8 +72,8 @@ public sealed record MetadataEpisodeLinkData : MetadataLinkData
     /// <summary>
     ///   The season on <see cref="MetadataLinkData.Source"/> the episode sits
     ///   in, when known. Left out, the store fills it from the core's series
-    ///   store when the episode is there. Not kept for a core source such as
-    ///   TMDB, whose links read the season and numbers from its own tables.
+    ///   store when the episode is there. Not kept for a core source, whose
+    ///   links read the season and numbers from its own tables.
     /// </summary>
     /// <remarks>
     ///   The link counts toward a season link only when the season's number

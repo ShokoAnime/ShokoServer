@@ -15,6 +15,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
 
 namespace Shoko.Tests.Infrastructure;
 
@@ -53,6 +54,19 @@ public sealed class OrderingTables
     public Metadata_Ordering_EntryRepository Entries { get; }
         = CachedRepo.Build<Metadata_Ordering_EntryRepository, int, Metadata_Ordering_Entry>(row => row.Metadata_Ordering_EntryID);
 
+    public Metadata_NetworkRepository Networks { get; }
+        = CachedRepo.Build<Metadata_NetworkRepository, int, Metadata_Network>(row => row.Metadata_NetworkID);
+
+    public Metadata_Network_EntryRepository NetworkEntries { get; }
+        = CachedRepo.Build<Metadata_Network_EntryRepository, int, Metadata_Network_Entry>(row => row.Metadata_Network_EntryID);
+
+    /// <summary>
+    /// The studio store the orderings' networks go through; one over
+    /// <see cref="Networks"/> and <see cref="NetworkEntries"/>, writing apart
+    /// from <see cref="Writer"/>, unless a test shares its own.
+    /// </summary>
+    public MetadataStudioStore StudioStore { get; set; }
+
     /// <summary>
     /// The chosen orderings and hidden flags on the rows of the series and
     /// episodes the metadata service finds.
@@ -72,12 +86,26 @@ public sealed class OrderingTables
     public Mock<IImageManager> Images { get; } = new();
 
     /// <summary>
+    /// The settings the service reads, such as whether AniDB specials are
+    /// placed by their titles.
+    /// </summary>
+    public ServerSettings Settings { get; } = new();
+
+    /// <summary>
     /// Builds the tables.
     /// </summary>
     /// <param name="shokoEpisodes">The Shoko episodes the hidden state reads, if any.</param>
     public OrderingTables(params AnimeEpisode[] shokoEpisodes)
     {
         TextStore = new(Texts, Writer);
+        StudioStore = new MetadataStudioStore(
+            CachedRepo.Build<Metadata_StudioRepository, int, Metadata_Studio>(row => row.Metadata_StudioID),
+            CachedRepo.Build<Metadata_Studio_EntryRepository, int, Metadata_Studio_Entry>(row => row.Metadata_Studio_EntryID),
+            Networks,
+            NetworkEntries,
+            new CacheOnlyRowWriter(),
+            TextStore
+        );
         ShokoEpisodes = CachedRepo.BuildWritable<AnimeEpisodeRepository, int, AnimeEpisode>(episode => episode.AnimeEpisodeID, shokoEpisodes);
         ShokoEpisodes.Setup(repository => repository.Save(It.IsAny<AnimeEpisode>()))
             .Callback<AnimeEpisode>(episode => ShokoEpisodes.Object.Cache.Update(episode));
@@ -104,13 +132,12 @@ public sealed class OrderingTables
     /// Builds the service over the tables.
     /// </summary>
     /// <param name="metadata">Finds the series and episodes, called on first use.</param>
-    /// <param name="coreSources">The core sources that keep their own orderings.</param>
     /// <returns>The service.</returns>
-    public MetadataOrderingService Build(Func<IMetadataService> metadata, params ICoreOrderingSource[] coreSources)
+    public MetadataOrderingService Build(Func<IMetadataService> metadata)
     {
         RowState.SeriesExists = id => metadata().GetSeries(id) is not null;
         RowState.EpisodeExists = id => metadata().GetEpisode(id) is not null;
-        return Build(metadata, RowState, coreSources);
+        return Build(metadata, RowState);
     }
 
     /// <summary>
@@ -119,9 +146,8 @@ public sealed class OrderingTables
     /// </summary>
     /// <param name="metadata">Finds the series and episodes, called on first use.</param>
     /// <param name="rowState">Keeps the chosen orderings and hidden flags.</param>
-    /// <param name="coreSources">The core sources that keep their own orderings.</param>
     /// <returns>The service.</returns>
-    public MetadataOrderingService Build(Func<IMetadataService> metadata, IOrderingRowState rowState, params ICoreOrderingSource[] coreSources)
+    public MetadataOrderingService Build(Func<IMetadataService> metadata, IOrderingRowState rowState)
         => new(
             Orderings,
             Groups,
@@ -130,7 +156,6 @@ public sealed class OrderingTables
             ShokoEpisodes.Object,
             TextStore,
             new Lazy<IMetadataService>(metadata),
-            new Lazy<IEnumerable<ICoreOrderingSource>>(() => coreSources),
             new Lazy<AnimeSeriesService>(() => throw new InvalidOperationException("The tests do not update Shoko stats.")),
             new Lazy<AnimeGroupService>(() => throw new InvalidOperationException("The tests do not update Shoko stats.")),
             new Lazy<MetadataEntityCleanup>(() => new(
@@ -141,6 +166,7 @@ public sealed class OrderingTables
                 Mock.Of<IMetadataSuggestionStore>(),
                 Images.Object
             )),
+            StudioStore,
             NullLogger<MetadataOrderingService>.Instance
         );
 }

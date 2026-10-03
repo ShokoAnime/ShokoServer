@@ -9,8 +9,11 @@ namespace Shoko.Abstractions.Metadata.Storage;
 /// </summary>
 /// <remarks>
 ///   A creator or character is keyed by its own <see cref="MetadataGuid"/>,
-///   a credit by the entry it is on. Only plugin sources can be written. No
-///   write removes a person: one nothing credits any more is purged by
+///   a credit by the entry it is on. Only sources outside the core can be
+///   written. A
+///   credit naming someone not stored yet stores a stub: the ID and the name
+///   the credit carried, filled in by the next save of that person. No write
+///   removes a person: one nothing credits any more is purged by
 ///   <see cref="RemoveOrphaned"/> once orphaned long enough.
 /// </remarks>
 public interface IMetadataPeopleStore
@@ -21,7 +24,7 @@ public interface IMetadataPeopleStore
     ///   Looks up a creator.
     /// </summary>
     /// <param name="id">The creator, e.g. <c>anilist://creator/95</c>.</param>
-    /// <returns>The creator, or <c>null</c> when it is not stored.</returns>
+    /// <returns>The creator, a stub read with the name its credit carried, or <c>null</c> when it is not stored.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     ICreator? GetCreator(MetadataGuid id);
 
@@ -29,7 +32,7 @@ public interface IMetadataPeopleStore
     ///   Looks up a character.
     /// </summary>
     /// <param name="id">The character, e.g. <c>anilist://character/40</c>.</param>
-    /// <returns>The character, or <c>null</c> when it is not stored.</returns>
+    /// <returns>The character, a stub read with the name its credit carried, or <c>null</c> when it is not stored.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     ICharacter? GetCharacter(MetadataGuid id);
 
@@ -54,8 +57,8 @@ public interface IMetadataPeopleStore
     #region Writing
 
     /// <summary>
-    ///   Adds creators, or updates the ones already stored, with their
-    ///   alternative names.
+    ///   Adds creators, or updates the ones already stored, stubs included,
+    ///   with their alternative names.
     /// </summary>
     /// <param name="creators">The creators.</param>
     /// <exception cref="ArgumentNullException"><paramref name="creators"/> is or holds <c>null</c>.</exception>
@@ -66,8 +69,8 @@ public interface IMetadataPeopleStore
     void SaveCreators(IEnumerable<MetadataCreatorData> creators);
 
     /// <summary>
-    ///   Adds characters, or updates the ones already stored, with their
-    ///   alternative names.
+    ///   Adds characters, or updates the ones already stored, stubs included,
+    ///   with their alternative names.
     /// </summary>
     /// <param name="characters">The characters.</param>
     /// <exception cref="ArgumentNullException"><paramref name="characters"/> is or holds <c>null</c>.</exception>
@@ -80,7 +83,8 @@ public interface IMetadataPeopleStore
     /// <summary>
     ///   Makes an entry's cast exactly the credits given, in that order. A
     ///   credit is known by its character, creator and language: one already
-    ///   stored is updated, a new one added, and a missing one removed.
+    ///   stored is updated, a new one added, and a missing one removed. A
+    ///   character or creator not stored yet is stored as a stub.
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <param name="cast">The cast credits. Empty removes the whole cast.</param>
@@ -88,7 +92,7 @@ public interface IMetadataPeopleStore
     /// <exception cref="ArgumentNullException"><paramref name="entry"/> or <paramref name="cast"/> is or holds <c>null</c>.</exception>
     /// <exception cref="ArgumentException">
     ///   The entry is on a source the core keeps itself, a credit names a
-    ///   creator or character that is not stored or is on another source, or a
+    ///   creator or character of another kind or on another source, or a
     ///   language code is longer than 32 characters.
     /// </exception>
     int SetCast(MetadataGuid entry, IEnumerable<MetadataCastData> cast);
@@ -96,7 +100,8 @@ public interface IMetadataPeopleStore
     /// <summary>
     ///   Makes an entry's crew exactly the credits given, in that order. A
     ///   credit is known by its creator and job: one already stored is
-    ///   updated, a new one added, and a missing one removed.
+    ///   updated, a new one added, and a missing one removed. A creator not
+    ///   stored yet is stored as a stub.
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <param name="crew">The crew credits. Empty removes the whole crew.</param>
@@ -104,8 +109,8 @@ public interface IMetadataPeopleStore
     /// <exception cref="ArgumentNullException"><paramref name="entry"/> or <paramref name="crew"/> is or holds <c>null</c>.</exception>
     /// <exception cref="ArgumentException">
     ///   The entry is on a source the core keeps itself, a credit names a
-    ///   creator that is not stored or is on another source, or a language
-    ///   code is longer than 32 characters.
+    ///   creator of another kind or on another source, or a language code is
+    ///   longer than 32 characters.
     /// </exception>
     int SetCrew(MetadataGuid entry, IEnumerable<MetadataCrewData> crew);
 

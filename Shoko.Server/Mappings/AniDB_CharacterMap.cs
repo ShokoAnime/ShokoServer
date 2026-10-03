@@ -19,6 +19,7 @@ public class AniDB_CharacterMap : ClassMap<AniDB_Character>
         Map(x => x.Name).Not.Nullable();
         Map(x => x.Gender).CustomType<PersonGender>().Not.Nullable();
         Map(x => x.Type).CustomType<CharacterType>().Not.Nullable();
+        Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdated).Not.Nullable();
     }
 }

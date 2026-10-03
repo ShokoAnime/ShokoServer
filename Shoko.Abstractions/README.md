@@ -27,7 +27,7 @@ contract or service each.
   images and airing schedules attach to them
 - [Metadata image contributors](Metadata/Providers/README.md#adding-images-to-other-sources-entries),
   adding images from a source of the plugin's own to entries of other sources,
-  TMDB's and AniDB's included
+  AniDB's included
 - [Resource resolvers](Metadata/Resources/README.md), contributing external
   links to an entity
 - [Metadata providers](Metadata/Providers/README.md), fetching series, episodes,
@@ -42,12 +42,12 @@ contract or service each.
 
 ### Metadata sources a plugin reads
 
-The core serves AniDB and TMDB itself. Any other source, AniList included,
+The core serves AniDB itself. Any other source, TMDb and AniList included,
 comes from a plugin's metadata provider, is kept in the core's metadata
-stores, and is read through the general metadata services below.
+stores, and is read through the general metadata services below. TMDb comes
+from the bundled TMDb plugin.
 
 - [AniDB](Metadata/Anidb/Services/README.md), metadata, MyList and AVDump
-- [TMDB](Metadata/Tmdb/Services/README.md), search, metadata and linking
 
 ### Server services a plugin calls
 

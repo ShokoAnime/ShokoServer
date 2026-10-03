@@ -36,14 +36,11 @@ using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.Release;
-using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Server;
@@ -439,107 +436,6 @@ public partial class DatabaseFixes
             seriesService.UpdateStats(series, false, true);
     }
 
-    public static void FixOrphanedShokoEpisodes()
-    {
-        var videoReleaseService = ISystemService.StaticServices.GetRequiredService<IVideoReleaseService>();
-        var allSeries = RepoFactory.AnimeSeries.GetAll()
-            .ToDictionary(series => series.AnimeSeriesID);
-        var allSeriesAnidbId = allSeries.Values
-            .ToDictionary(series => series.AniDB_ID);
-        var allAniDBEpisodes = RepoFactory.AniDB_Episode.GetAll()
-            .ToDictionary(ep => ep.EpisodeID);
-        var shokoEpisodesToRemove = RepoFactory.AnimeEpisode.GetAll()
-            .Where(episode =>
-            {
-                // Series doesn't exist anymore.
-                if (!allSeries.TryGetValue(episode.AnimeSeriesID, out var series))
-                    return true;
-
-                // AniDB Episode doesn't exist anymore.
-                if (!allAniDBEpisodes.TryGetValue(episode.AniDB_EpisodeID, out var anidbEpisode))
-                    return true;
-
-                return false;
-            })
-            .ToHashSet();
-
-        // Validate existing shoko episodes.
-        _logger.Trace($"Checking {allAniDBEpisodes.Values.Count} anidb episodes for broken or incorrect links…");
-        var shokoEpisodesToSave = new List<AnimeEpisode>();
-        foreach (var episode in allAniDBEpisodes.Values)
-        {
-            // No shoko episode, continue.
-            var shokoEpisode = RepoFactory.AnimeEpisode.GetByAniDBEpisodeID(episode.EpisodeID);
-            if (shokoEpisode is null)
-                continue;
-
-            // The series exists and the episode mapping is correct, continue.
-            if (allSeries.TryGetValue(shokoEpisode.AnimeSeriesID, out var actualSeries) && actualSeries.AniDB_ID == episode.AnimeID)
-                continue;
-
-            // The series was incorrectly linked to the wrong series. Correct it
-            // if it's possible, or delete the episode.
-            if (allSeriesAnidbId.TryGetValue(episode.AnimeID, out var correctSeries))
-            {
-                shokoEpisode.AnimeSeriesID = correctSeries.AnimeSeriesID;
-                shokoEpisodesToSave.Add(shokoEpisode);
-                continue;
-            }
-
-            // Delete the episode and clean up any remaining traces of the shoko
-            // episode.
-            shokoEpisodesToRemove.Add(shokoEpisode);
-        }
-        _logger.Trace($"Checked {allAniDBEpisodes.Values.Count} anidb episodes for broken or incorrect links. Found {shokoEpisodesToSave.Count} shoko episodes to fix and {shokoEpisodesToRemove.Count} to remove.");
-        RepoFactory.AnimeEpisode.Save(shokoEpisodesToSave);
-
-        // Remove any existing links to the episodes that will be removed.
-        _logger.Trace($"Checking {shokoEpisodesToRemove.Count} orphaned shoko episodes before deletion.");
-        var databaseReleasesToRemove = new List<StoredReleaseInfo>();
-        var xrefsToRemove = new List<CrossRef_File_Episode>();
-        var videosToRefetch = new List<VideoLocal>();
-        var tmdbXrefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
-        foreach (var shokoEpisode in shokoEpisodesToRemove)
-        {
-            var xrefs = RepoFactory.CrossRef_File_Episode.GetByEpisodeID(shokoEpisode.AniDB_EpisodeID);
-            var videos = xrefs
-                .Select(xref => RepoFactory.VideoLocal.GetByEd2kAndSize(xref.Hash, xref.FileSize))
-                .WhereNotNull()
-                .ToList();
-            var databaseReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(shokoEpisode.AniDB_EpisodeID);
-            var tmdbXrefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(shokoEpisode.AniDB_EpisodeID);
-            xrefsToRemove.AddRange(xrefs);
-            videosToRefetch.AddRange(videos);
-            databaseReleasesToRemove.AddRange(databaseReleases);
-            tmdbXrefsToRemove.AddRange(tmdbXrefs);
-        }
-
-        // Schedule a refetch of any video files affected by the removal of the
-        // episodes. They were likely moved to another episode entry so let's
-        // try and fetch that.
-        _logger.Trace($"Scheduling {videosToRefetch.Count} videos for a re-fetch.");
-        // If auto-match is not available then clear the release so the video is
-        // not referencing no longer existing episodes.
-        var autoMatch = videoReleaseService.AutoMatchEnabled;
-        foreach (var video in videosToRefetch)
-        {
-            videoReleaseService.ClearReleaseForVideo(video).GetAwaiter().GetResult();
-            videoReleaseService.ScheduleFindReleaseForVideo(video).GetAwaiter().GetResult();
-        }
-
-        _logger.Trace($"Deleting {shokoEpisodesToRemove.Count} orphaned shoko episodes.");
-        RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
-
-        _logger.Trace($"Deleting {databaseReleasesToRemove.Count} orphaned releases.");
-        RepoFactory.StoredReleaseInfo.Delete(databaseReleasesToRemove);
-
-        _logger.Trace($"Deleting {tmdbXrefsToRemove.Count} orphaned tmdb xrefs.");
-        RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(tmdbXrefsToRemove);
-
-        _logger.Trace($"Deleting {xrefsToRemove.Count} orphaned file/episode cross-references.");
-        RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
-    }
-
     public static void CleanupAfterRemovingTvDB()
     {
         var dir = new DirectoryInfo(Path.Join(ApplicationPaths.Instance.ImagesPath, "TvDB"));
@@ -551,41 +447,6 @@ public partial class DatabaseFixes
     {
         var queueHandler = ISystemService.StaticServices.GetRequiredService<QueueHandler>();
         queueHandler.Clear().ConfigureAwait(false).GetAwaiter().GetResult();
-    }
-
-    public static void RepairMissingTMDBPersons()
-    {
-        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
-        var service = ISystemService.StaticServices.GetRequiredService<TmdbMetadataUpdater>();
-        var missingIds = new HashSet<int>();
-        var updateCount = 0;
-        var skippedCount = 0;
-        var peopleIds = RepoFactory.TMDB_Person.GetAll().Select(person => person.TmdbPersonID).ToHashSet();
-        var str = systemService.StartupMessage ?? "";
-        foreach (var person in RepoFactory.TMDB_Episode_Cast.GetAll())
-            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
-        foreach (var person in RepoFactory.TMDB_Episode_Crew.GetAll())
-            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
-
-        foreach (var person in RepoFactory.TMDB_Movie_Cast.GetAll())
-            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
-        foreach (var person in RepoFactory.TMDB_Movie_Crew.GetAll())
-            if (!peopleIds.Contains(person.TmdbPersonID)) missingIds.Add(person.TmdbPersonID);
-
-        systemService.StartupMessage = $"{str} - 0 / {missingIds.Count}";
-        _logger.Debug("Found {Count} unique missing TMDB People for Episode & Movie staff", missingIds.Count);
-        foreach (var personId in missingIds)
-        {
-            var (_, updated) = service.UpdatePerson(personId, forceRefresh: true).ConfigureAwait(false).GetAwaiter().GetResult();
-            if (updated)
-                updateCount++;
-            else
-                skippedCount++;
-            systemService.StartupMessage = $"{str} - {updateCount + skippedCount} / {missingIds.Count}";
-        }
-
-        _logger.Info("Updated missing TMDB People: Found/Updated/Skipped {Found}/{Updated}/{Skipped}",
-            missingIds.Count, updateCount, skippedCount);
     }
 
     /// <summary>
@@ -709,47 +570,15 @@ public partial class DatabaseFixes
         _logger.Info($"Done recreating characters and creator relations for {animeList.Count} anidb anime entries.");
     }
 
+    /// <summary>
+    ///   Queues the image download of every TMDB show and movie linked in the
+    ///   library, as its first image refresh after the image tables changed.
+    /// </summary>
     public static void ScheduleTmdbImageUpdates()
     {
-        var systemService = ISystemService.StaticServices.GetRequiredService<SystemService>();
         var refreshService = ISystemService.StaticServices.GetRequiredService<IMetadataRefreshService>();
-        var tmdbMovies = RepoFactory.TMDB_Movie.GetAll();
-        var tmdbShows = RepoFactory.TMDB_Show.GetAll();
-        var movies = tmdbMovies.Count;
-        var shows = tmdbShows.Count;
-        var str = systemService.StartupMessage ?? string.Empty;
-        systemService.StartupMessage = $"{str} - 0 / {movies} movies - 0 / {shows} shows";
-        _logger.Info($"Scheduling tmdb image updates for {movies} tmdb movies and {shows} tmdb shows...");
-
-        var count = 0;
-        foreach (var tmdbMovie in tmdbMovies)
-        {
-            if (++count % 10 == 0 || count == movies)
-            {
-                _logger.Info($"Scheduling tmdb image updates for tmdb movies... ({count}/{movies})");
-                systemService.StartupMessage = $"{str} - {count} / {movies} movies - 0 / {shows} shows";
-            }
-
-            refreshService.DownloadImages(new(MetadataSource.TMDB, MetadataEntityType.Movie, tmdbMovie.Id.ToString()))
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        count = 0;
-        foreach (var tmdbShow in tmdbShows)
-        {
-            if (++count % 10 == 0 || count == shows)
-            {
-                _logger.Info($"Scheduling tmdb image updates for tmdb shows... ({count}/{shows})");
-                systemService.StartupMessage = $"{str} - {movies} / {movies} movies - {count} / {shows} shows";
-            }
-
-            refreshService.DownloadImages(new(MetadataSource.TMDB, MetadataEntityType.Series, tmdbShow.Id.ToString()))
-                .GetAwaiter()
-                .GetResult();
-        }
-
-        _logger.Info($"Done scheduling tmdb image updates for {movies} tmdb movies and {shows} tmdb shows.");
+        var queued = refreshService.DownloadAllImages(MetadataSource.TMDB).GetAwaiter().GetResult();
+        _logger.Info($"Scheduled the image download of {queued} TMDB shows and movies.");
     }
 
     public static void MoveTmdbImagesOnDisc()
@@ -1225,10 +1054,13 @@ public partial class DatabaseFixes
             const string DropCommand = "DROP TABLE IF EXISTS RenameScript; DROP TABLE IF EXISTS RenamerInstance;";
             string? defaultName = null;
             var rawPresets = new List<StoredRelocationPreset>();
-            var webAomRenamer = renamerService.GetProviderInfo<WebAOMRenamer>();
+            // The WebAOM renamer moved to its bundled plugin, which may be turned off.
+            var webAomRenamer = renamerService.GetProviderInfo(WebAOMRenamerMigration.ProviderID);
             var renamersByKey = renamerService.GetAvailableProviders()
                 .Where(a => a.Provider.GetType().FullName is { Length: > 0 })
                 .ToDictionary(a => a.Provider.GetType().FullName!);
+            if (webAomRenamer is not null)
+                renamersByKey.TryAdd(WebAOMRenamerMigration.LegacyProviderTypeName, webAomRenamer);
             var defaultRenamerConfigName = SettingsMigrations.MigratedDefaultRenamer;
             try
             {
@@ -1266,17 +1098,12 @@ public partial class DatabaseFixes
                                 : null;
                         if (providerInfo is null)
                         {
-                            if (renamerScript.RenamerType == "GroupAwareRenamer")
+                            if (renamerScript.RenamerType == "GroupAwareRenamer" && webAomRenamer is not null)
                             {
-                                configuration = webAomRenamer.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
-                                    configurationService.Serialize(
-                                        new WebAOMSettings
-                                        {
-                                            Script = renamerScript.Script,
-                                            GroupAwareSorting = true
-                                        }
-                                    )
-                                );
+                                var groupAwareSettings = new JsonObject { ["Script"] = renamerScript.Script, ["GroupAwareSorting"] = true };
+                                configuration = WebAOMRenamerMigration.CarryOverSettings(configurationService, webAomRenamer, groupAwareSettings.ToJsonString()) is { } config
+                                    ? Encoding.UTF8.GetBytes(configurationService.Serialize(config))
+                                    : null;
                                 rawPresets.Add(new() { Name = renamerScript.ScriptName, ProviderID = webAomRenamer.ID, Configuration = configuration, IsDefault = renamerScript.ScriptName == defaultRenamerConfigName });
                                 continue;
                             }
@@ -1354,7 +1181,14 @@ public partial class DatabaseFixes
                             continue;
                         }
 
-                        if (providerInfo.ConfigurationInfo is not null && renamerConfig.Settings is { Length: > 0 })
+                        // The type of the WebAOM renamer's settings went with it to its plugin, so they are carried over by name.
+                        if (renamerConfig.Type == WebAOMRenamerMigration.LegacyProviderTypeName)
+                        {
+                            configuration = WebAOMRenamerMigration.CarryOverPackedSettings(configurationService, providerInfo, renamerConfig.Settings) is { } config
+                                ? Encoding.UTF8.GetBytes(configurationService.Serialize(config))
+                                : null;
+                        }
+                        else if (providerInfo.ConfigurationInfo is not null && renamerConfig.Settings is { Length: > 0 })
                         {
                             var config = MessagePackSerializer.Typeless.Deserialize(renamerConfig.Settings)!;
                             if (config.GetType() != providerInfo.ConfigurationInfo.Type)
@@ -1377,10 +1211,11 @@ public partial class DatabaseFixes
                 }
             }
             catch (GenericADOException) { }
-            if (rawPresets.Count == 0)
+            if (rawPresets.Count == 0 && webAomRenamer is not null)
             {
                 defaultName = "Default";
-                rawPresets.Add(new() { Name = "Default", ProviderID = webAomRenamer.ID, Configuration = Encoding.UTF8.GetBytes(configurationService.Serialize(configurationService.New<WebAOMSettings>())), IsDefault = true });
+                var defaultConfig = WebAOMRenamerMigration.CarryOverSettings(configurationService, webAomRenamer, null);
+                rawPresets.Add(new() { Name = "Default", ProviderID = webAomRenamer.ID, Configuration = defaultConfig is null ? null : Encoding.UTF8.GetBytes(configurationService.Serialize(defaultConfig)), IsDefault = true });
             }
             var presets = new List<StoredRelocationPreset>();
             foreach (var presetGroup in rawPresets.GroupBy(t => t.Name.Trim()))
@@ -1397,7 +1232,7 @@ public partial class DatabaseFixes
                 }
             }
 
-            if (string.IsNullOrEmpty(defaultName))
+            if (string.IsNullOrEmpty(defaultName) && presets.Count > 0)
                 defaultName = presets[0].Name;
 
             foreach (var presetGroup in rawPresets.GroupBy(t => t.Name.Trim()))
@@ -1800,7 +1635,7 @@ public partial class DatabaseFixes
         var oldTMDBImageIDToNewGuid = new Dictionary<int, Guid>(oldTmdbImages.Count);
         foreach (var old in oldTmdbImages)
         {
-            var resourceID = TmdbImageService.SafeTransformResourceID(old.RemoteFileName);
+            var resourceID = SafeTransformTmdbResourceID(old.RemoteFileName);
             var guid = IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.TMDB, resourceID);
             if (RepoFactory.ShokoImage.GetByID(guid) != null)
             {
@@ -1907,7 +1742,7 @@ public partial class DatabaseFixes
         migratedCount = 0;
         foreach (var old in oldTmdbImageEntities)
         {
-            var resourceID = TmdbImageService.SafeTransformResourceID(old.RemoteFileName);
+            var resourceID = SafeTransformTmdbResourceID(old.RemoteFileName);
             var guid = IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.TMDB, resourceID);
             if (RepoFactory.ShokoImage.GetByID(guid) is null)
             {
@@ -2876,6 +2711,15 @@ public partial class DatabaseFixes
 
         public VoteType VoteType { get; set; }
     }
+
+    /// <summary>
+    ///   The resource ID an old TMDB image is stored under: its path without
+    ///   the leading slash, with an SVG asked for as a PNG.
+    /// </summary>
+    /// <param name="resourceID">TMDB's path for the image.</param>
+    /// <returns>The resource ID.</returns>
+    private static string SafeTransformTmdbResourceID(string resourceID)
+        => resourceID.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) ? resourceID[1..^4] + ".png" : resourceID[1..];
 
     private class DNF_TMDB_Image
     {

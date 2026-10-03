@@ -15,6 +15,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plex;

@@ -19,43 +19,43 @@ namespace Shoko.Server.Services;
 ///   Purges a source's unused entries through the core's purge job, and its
 ///   orphaned people, studios and networks and its series' leftovers at once.
 /// </summary>
-/// <param name="providerManager">The registered providers, among them those that purge their own orphans.</param>
 /// <param name="crossReferences">The links, which decide what is unused.</param>
 /// <param name="metadataService">Every source's stored series, films and collections.</param>
 /// <param name="seriesStore">Removes what is left of a series with no row of its own.</param>
 /// <param name="collectionStore">The stored collections' members.</param>
 /// <param name="peopleStore">The stored creators and characters.</param>
 /// <param name="studioStore">The stored studios and networks.</param>
+/// <param name="tagStore">The stored tags, whose unused ones go with the orphans.</param>
 /// <param name="creators">The creators' table, to find the sources that have people.</param>
 /// <param name="characters">The characters' table, to find the sources that have people.</param>
 /// <param name="studios">The studios' table, to find the sources that have studios.</param>
 /// <param name="networks">The networks' table, to find the sources that have networks.</param>
+/// <param name="tags">The tags' table, to find the sources that have tags.</param>
 /// <param name="seriesRows">The stored series, to find the seasons and episodes left without one.</param>
 /// <param name="seasonRows">The stored seasons.</param>
 /// <param name="episodeRows">The stored episodes.</param>
 /// <param name="cleanup">Unlinks the images of the people, studios and networks removed.</param>
-/// <param name="refreshState">When each entry was last refreshed.</param>
 /// <param name="entryLocks">Keeps a refresh and a purge of the same series apart.</param>
 /// <param name="providerScheduler">Queues the purges.</param>
 /// <param name="settingsProvider">Holds how long a person, studio or network may stay orphaned.</param>
 /// <param name="logger">Where the purges are reported.</param>
 public class MetadataPurgeService(
-    IMetadataProviderManager providerManager,
     IMetadataCrossReferenceStore crossReferences,
     IMetadataService metadataService,
     IMetadataSeriesStore seriesStore,
     IMetadataCollectionStore collectionStore,
     IMetadataPeopleStore peopleStore,
     IMetadataStudioStore studioStore,
+    MetadataTagStore tagStore,
     Metadata_CreatorRepository creators,
     Metadata_CharacterRepository characters,
     Metadata_StudioRepository studios,
     Metadata_NetworkRepository networks,
+    Metadata_TagRepository tags,
     Metadata_SeriesRepository seriesRows,
     Metadata_SeasonRepository seasonRows,
     Metadata_EpisodeRepository episodeRows,
     MetadataEntityCleanup cleanup,
-    IMetadataRefreshState refreshState,
     MetadataEntryLocks entryLocks,
     MetadataProviderScheduler providerScheduler,
     ISettingsProvider settingsProvider,
@@ -88,7 +88,7 @@ public class MetadataPurgeService(
             .Concat(Wanted(MetadataEntityType.Movie) ? metadataService.GetAllMoviesForSource(source) : [])
             .Where(entry => !crossReferences.IsLinked(entry.ID))
             .Concat(Wanted(MetadataEntityType.Collection) && !source.IsCore
-                ? collectionStore.GetAllCollections(source).Where(collection => !crossReferences.IsCollectionInUse(collectionStore, metadataService, collection.ID))
+                ? collectionStore.GetAllCollections(source).Where(collection => !crossReferences.IsCollectionInUse(collectionStore, collection.ID))
                 : [])
             .Where(entry => olderThan is not { } cutoff || GetLastTouchedAt(entry) is not { } touchedAt || touchedAt < cutoff)
             .Select(entry => entry.ID)
@@ -108,13 +108,12 @@ public class MetadataPurgeService(
 
     /// <summary>
     ///   When an entry was last refreshed, or for one that never was, such as
-    ///   one only quick-refreshed for a preview, when it was last stored,
-    ///   which is what TMDB's own sweep always went by.
+    ///   one only quick-refreshed for a preview, when it was last stored.
     /// </summary>
     /// <param name="entry">The series, film or collection.</param>
     /// <returns>The time, in local time, or <see langword="null"/> when there is none.</returns>
     private DateTime? GetLastTouchedAt(IMetadata entry)
-        => refreshState.GetLastRefreshedAt(entry.ID) ?? entry switch
+        => MetadataRefreshState.LastRefreshedAt(entry)?.ToLocalTime() ?? entry switch
         {
             Metadata_Series series => series.LastUpdatedAt,
             Metadata_Movie movie => movie.LastUpdatedAt,
@@ -163,13 +162,14 @@ public class MetadataPurgeService(
                 .Concat(characters.GetAll().Select(character => character.Source))
                 .Concat(studios.GetAll().Select(studio => studio.Source))
                 .Concat(networks.GetAll().Select(network => network.Source))
+                .Concat(tags.GetAll().Select(tag => tag.Source))
                 .Where(each => !each.IsCore)
                 .Distinct()
                 .ToList();
 
-        // The orphans of each plugin source, the leftovers, the refreshes of
-        // linked leftovers, and the core sources' own purges.
-        var stages = new StagedProgress(progress, 1, 2, 1, 1);
+        // The orphans of each source, the leftovers, and the refreshes of
+        // linked leftovers.
+        var stages = new StagedProgress(progress, 1, 2, 1);
         stages.Report(0);
         var sourceItems = new ItemProgress(stages, sources.Count);
         var total = 0;
@@ -178,16 +178,18 @@ public class MetadataPurgeService(
             cancellationToken.ThrowIfCancellationRequested();
             var people = peopleStore.RemoveOrphaned(each, cutoff);
             var organisations = studioStore.RemoveOrphaned(each, cutoff);
-            cleanup.RemoveImageLinks([.. people, .. organisations]);
-            if (people.Count + organisations.Count > 0)
+            var unusedTags = tagStore.RemoveUnused(each, cutoff);
+            cleanup.RemoveImageLinks([.. people, .. organisations, .. unusedTags]);
+            if (people.Count + organisations.Count + unusedTags.Count > 0)
                 logger.LogInformation(
-                    "Purged {PeopleCount} people and {StudioCount} studios and networks of {Source} orphaned before {Cutoff}.",
+                    "Purged {PeopleCount} people, {StudioCount} studios and networks, and {TagCount} unused tags of {Source} orphaned before {Cutoff}.",
                     people.Count,
                     organisations.Count,
+                    unusedTags.Count,
                     each,
                     cutoff
                 );
-            total += people.Count + organisations.Count;
+            total += people.Count + organisations.Count + unusedTags.Count;
             sourceItems.Increment();
         }
 
@@ -206,26 +208,6 @@ public class MetadataPurgeService(
         }
 
         total += leftovers;
-
-        // A source the core keeps in tables of its own, which is TMDB, has
-        // its provider purge its orphans from them.
-        var purgers = providerManager.MetadataProviders
-            .Where(info => info.Source.IsCore && (source is null || info.Source == source))
-            .Select(info => (info.Source, Purger: info.Provider as ICoreMetadataOrphanPurger))
-            .Where(pair => pair.Purger is not null)
-            .DistinctBy(pair => pair.Source)
-            .ToList();
-        stages.NextStage();
-        var purgerItems = new ItemProgress(stages, purgers.Count);
-        foreach (var (each, purger) in purgers)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var removed = await purger!.PurgeOrphaned(cutoff, cancellationToken).ConfigureAwait(false);
-            if (removed > 0)
-                logger.LogInformation("Purged {Count} orphans of {Source} orphaned before {Cutoff}.", removed, each, cutoff);
-            total += removed;
-            purgerItems.Increment();
-        }
 
         stages.Complete();
         return total;
@@ -279,7 +261,6 @@ public class MetadataPurgeService(
             using var updating = entryLocks.MarkUpdating(entry);
             logger.LogInformation("Removing what is left of {Entry}, which has no row of its own.", entry);
             seriesStore.RemoveSeries(entry);
-            refreshState.Forget(entry);
             removed++;
         }
 

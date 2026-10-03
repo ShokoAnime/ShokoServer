@@ -5,6 +5,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models.Metadata;
@@ -12,7 +13,7 @@ namespace Shoko.Server.Models.Metadata;
 /// <summary>
 ///   A collection a plugin source keeps in the collection store.
 /// </summary>
-public class Metadata_Collection : ICollection, IMetadataStoreRow<Metadata_Collection>
+public class Metadata_Collection : IMovieCollection, IMetadataStoreRow<Metadata_Collection>, IMetadataDefaultImageSource
 {
     #region Database Columns
 
@@ -32,9 +33,27 @@ public class Metadata_Collection : ICollection, IMetadataStoreRow<Metadata_Colle
     public string ProviderID { get; set; } = string.Empty;
 
     /// <summary>
+    ///   When the store first wrote the collection. Set once and never changed.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
     ///   When the source last wrote the collection.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
+
+    /// <summary>
+    ///   When the core last refreshed the collection in full without failing, in
+    ///   local time, or <c>null</c> when it never did. Kept by the refresh job
+    ///   alone; a save of the collection keeps it.
+    /// </summary>
+    public DateTime? LastRefreshedAt { get; set; }
+
+    /// <summary>
+    ///   What the source said of the collection that needs no column of its
+    ///   own, or <c>null</c> when it said none of it.
+    /// </summary>
+    public Metadata_CollectionExtra? ExtraData { get; set; }
 
     #endregion
 
@@ -88,6 +107,13 @@ public class Metadata_Collection : ICollection, IMetadataStoreRow<Metadata_Colle
 
     #endregion
 
+    #region IMetadataDefaultImageSource Implementation
+
+    string? IMetadataDefaultImageSource.GetDefaultResourceID(ImageEntityType imageType)
+        => ExtraData?.GetDefaultResourceID(imageType);
+
+    #endregion
+
     #region IWithImages Implementation
 
     IImageCrossReference? IWithImages.DefaultPrimaryImageCrossReference => MetadataStoredEntry.DefaultImage(this, ImageEntityType.Primary);
@@ -99,6 +125,23 @@ public class Metadata_Collection : ICollection, IMetadataStoreRow<Metadata_Colle
     IImageCrossReference? IWithImages.DefaultBannerImageCrossReference => MetadataStoredEntry.DefaultImage(this, ImageEntityType.Banner);
 
     IImageCrossReference? IWithImages.DefaultDiscImageCrossReference => MetadataStoredEntry.DefaultImage(this, ImageEntityType.Disc);
+
+    #endregion
+
+    #region ICollection Implementation
+
+    DateTime? ICollection.LastRefreshedAt => LastRefreshedAt?.ToUniversalTime();
+
+    #endregion
+
+    #region IMovieCollection Implementation
+
+    IReadOnlyList<IMovie> IMovieCollection.Movies => [
+        .. RepoFactory.Metadata_Collection_Member.GetByCollectionID(Source, ProviderID)
+            .Where(member => member.MemberType == MetadataEntityType.Movie)
+            .Select(member => RepoFactory.Metadata_Movie.GetByProviderID(member.Source, member.MemberID))
+            .OfType<IMovie>(),
+    ];
 
     #endregion
 }

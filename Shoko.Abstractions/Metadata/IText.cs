@@ -43,7 +43,7 @@ public interface IText : IEquatable<IText>
     ///   The ID, or <c>null</c> for a text that is not stored, such as one a
     ///   source keeps on its own entity row or one built on the fly.
     /// </value>
-    int? ID { get => null; }
+    int? ID { get; }
 
     /// <summary>
     ///   The entry the stored text belongs to.
@@ -51,7 +51,7 @@ public interface IText : IEquatable<IText>
     /// <value>
     ///   The entry, or <c>null</c> for a text that is not stored.
     /// </value>
-    MetadataGuid? EntityID { get => null; }
+    MetadataGuid? EntityID { get; }
 
     /// <summary>
     ///   The stored text a user's pick copies, which keeps the copy's value
@@ -61,7 +61,7 @@ public interface IText : IEquatable<IText>
     ///   The ID of the picked text, of the same kind, or <c>null</c> when the
     ///   text is not a pick of another stored text.
     /// </value>
-    int? ReferenceID { get => null; }
+    int? ReferenceID { get; }
 
     /// <summary>
     ///   Whether the text may be listed and chosen. A disabled text is kept,
@@ -70,7 +70,7 @@ public interface IText : IEquatable<IText>
     /// <value>
     ///   <c>false</c> when a user disabled the text; otherwise <c>true</c>.
     /// </value>
-    bool IsEnabled { get => true; }
+    bool IsEnabled { get; }
 
     /// <summary>
     ///   How strongly a user prefers the text for its entry.
@@ -81,7 +81,7 @@ public interface IText : IEquatable<IText>
     ///   language, and <see cref="TextPreference.None"/> leaves the choice to
     ///   the language and source orders.
     /// </value>
-    TextPreference Preference { get => TextPreference.None; }
+    TextPreference Preference { get; }
 
     /// <summary>
     ///   Where the text sits among the texts of the same kind its source gave
@@ -90,7 +90,7 @@ public interface IText : IEquatable<IText>
     /// <value>
     ///   The position, from <c>0</c>, as the source listed it.
     /// </value>
-    int Ordering { get => 0; }
+    int Ordering { get; }
 
     /// <summary>
     ///   The script the text is written in, as an ISO 15924 code.
@@ -99,7 +99,7 @@ public interface IText : IEquatable<IText>
     ///   The code, such as <c>Latn</c> or <c>Hans</c>, or <c>null</c> when the
     ///   source did not say.
     /// </value>
-    string? ScriptCode { get => null; }
+    string? ScriptCode { get; }
 
     /// <summary>
     ///   Whether the text is the source's own default, kept on the entry's own
@@ -109,7 +109,7 @@ public interface IText : IEquatable<IText>
     ///   <c>true</c> for such a default, which can be overridden by a
     ///   preference but never disabled or removed; otherwise <c>false</c>.
     /// </value>
-    bool IsInlineDefault { get => false; }
+    bool IsInlineDefault { get; }
 
     #endregion
 

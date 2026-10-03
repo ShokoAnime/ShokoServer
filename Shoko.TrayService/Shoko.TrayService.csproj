@@ -45,4 +45,5 @@
             <Link>db.ico</Link>
         </AvaloniaResource>
     </ItemGroup>
+    <Import Project="..\BundledPlugins.targets" />
 </Project>

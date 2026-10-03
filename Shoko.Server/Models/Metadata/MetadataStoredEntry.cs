@@ -60,12 +60,14 @@ internal static class MetadataStoredEntry
 
     /// <summary>
     ///   The title the source calls the entry by: its main title, else its
-    ///   first, else an empty one.
+    ///   first, else the made-up one when asked for, else an empty one.
     /// </summary>
     /// <param name="entry">The entry.</param>
+    /// <param name="synthesize">Whether an entry with no title at all gets its made-up one.</param>
     /// <returns>The title.</returns>
-    internal static ITitle DefaultTitle(IMetadata entry)
+    internal static ITitle DefaultTitle(IMetadata entry, bool synthesize = false)
         => TextAccess.Manager.DefaultTitleFor(entry)
+            ?? (synthesize ? TextAccess.Manager.SynthesizedTitleFor(entry) : null)
             ?? new TitleStub { Source = entry.ID.Source, Language = TitleLanguage.Unknown, LanguageCode = "unk", Value = string.Empty, Type = TitleType.Main };
 
     /// <summary>
@@ -169,14 +171,36 @@ internal static class MetadataStoredEntry
         => Service<IMetadataSuggestionStore>().GetSuggestedBy<T, T>(entry);
 
     /// <summary>
-    ///   The first image of one type the entry's own source gave it, which is
-    ///   the one the source marks as its default.
+    ///   The entry's default image of one type: the one its own source pins,
+    ///   else the first one the source gave it.
     /// </summary>
     /// <param name="entity">The entry.</param>
     /// <param name="imageType">The type of image.</param>
     /// <returns>The image's cross-reference, or <c>null</c> when there is none.</returns>
     internal static IImageCrossReference? DefaultImage(IWithImages entity, ImageEntityType imageType)
-        => entity.GetImageCrossReferences(new() { ImageSource = entity.ID.Source, ImageType = imageType }).FirstOrDefault();
+        => DefaultOf(
+            entity.GetImageCrossReferences(new() { ImageSource = entity.ID.Source, ImageType = imageType }),
+            entity.ID.Source,
+            (entity as IMetadataDefaultImageSource)?.GetDefaultResourceID(imageType)
+        );
+
+    /// <summary>
+    ///   The default among an entry's links of one type: the link to the
+    ///   pinned image, else the first link.
+    /// </summary>
+    /// <param name="xrefs">The links of the type from the entry's source.</param>
+    /// <param name="source">The entry's source.</param>
+    /// <param name="resourceID">The resource ID of the pinned image, or <c>null</c> for none.</param>
+    /// <returns>The link, or <c>null</c> when there is none.</returns>
+    internal static IImageCrossReference? DefaultOf(IEnumerable<IImageCrossReference> xrefs, MetadataSource source, string? resourceID)
+    {
+        var ordered = xrefs.OrderBy(xref => xref.Ordering).ToList();
+        if (string.IsNullOrEmpty(resourceID))
+            return ordered.FirstOrDefault();
+
+        var imageID = IImageManager.GetIDForImageSourceAndResourceID(source, resourceID);
+        return ordered.FirstOrDefault(xref => xref.ImageID == imageID) ?? ordered.FirstOrDefault();
+    }
 
     #endregion
 

@@ -44,6 +44,8 @@ public class DownloadContributedImagesJob<TContributor>(
 {
     #region Properties
 
+    private MetadataImageContributorInfo? _contributorInfo;
+
     /// <summary>
     ///   The series, film or collection whose entities get the images, as its
     ///   <see cref="MetadataGuid"/> string.
@@ -63,11 +65,12 @@ public class DownloadContributedImagesJob<TContributor>(
     public override string Title => "Downloading Contributed Images";
 
     /// <inheritdoc />
-    public override Dictionary<string, object> Details => new()
-    {
-        ["Contributor"] = typeof(TContributor).Name,
-        ["Entry"] = EntryID,
-    };
+    public override Dictionary<string, object> Details
+        => new Dictionary<string, object> { ["Contributor"] = _contributorInfo?.Name ?? typeof(TContributor).Name }.WithEntry(EntryID);
+
+    /// <inheritdoc />
+    public override void PostInit()
+        => _contributorInfo = contributorManager.ImageContributors.FirstOrDefault(info => info.Contributor.GetType() == typeof(TContributor));
 
     #endregion
 

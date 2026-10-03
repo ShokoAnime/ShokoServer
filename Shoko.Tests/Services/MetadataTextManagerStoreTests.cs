@@ -152,13 +152,13 @@ public class MetadataTextManagerStoreTests
     public void ACoreEntrysDefaultOnItsRowIsListedOrLeftOutAsAsked()
     {
         var harness = new Harness();
-        var show = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Series, "7");
-        var english = InlineText.Title(MetadataSource.TMDB, "Show", TitleLanguage.EnglishAmerican, "en", "US", TitleType.Official)!;
-        var french = new TitleStub { Source = MetadataSource.TMDB, Value = "Série", Language = TitleLanguage.French, LanguageCode = "fr", Type = TitleType.Official };
-        var described = InlineText.Overview(MetadataSource.TMDB, "About it.", TitleLanguage.EnglishAmerican, "en", "US")!;
+        var show = new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Series, "7");
+        var english = InlineText.Title(MetadataSource.AniDB, "Show", TitleLanguage.EnglishAmerican, "en", "US", TitleType.Official)!;
+        var french = new TitleStub { Source = MetadataSource.AniDB, Value = "Série", Language = TitleLanguage.French, LanguageCode = "fr", Type = TitleType.Official };
+        var described = InlineText.Overview(MetadataSource.AniDB, "About it.", TitleLanguage.EnglishAmerican, "en", "US")!;
         harness.Holds(show, new CoreEntry(show, [french], [described], english, described));
 
-        // TMDB leaves an English title it did not list out of the entry's own list.
+        // The default on the row is listed first, unless left out.
         Assert.Equal(["Show", "Série"], harness.Manager.GetTitles(show).Select(title => title.Value));
         Assert.Equal(["Série"], harness.Manager.GetTitles(show, new() { IncludeInlineDefault = false }).Select(title => title.Value));
         Assert.Equal(["About it."], harness.Manager.GetOverviews(show).Select(overview => overview.Value));

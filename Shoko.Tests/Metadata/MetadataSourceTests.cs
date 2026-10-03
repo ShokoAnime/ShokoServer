@@ -479,7 +479,6 @@ public class MetadataSourceTests
     {
         { "AniDB", "anidb", ["mst-core-alias"], false },
         { "AniDB", "anidb", [], true },
-        { "TMDB", "tmdb", ["themoviedb", "mst-core-alias"], false },
         { "Shoko", "shoko", [], false },
         { "Locally Generated", "generated", ["mst-core-alias"], true },
     };

@@ -1379,7 +1379,17 @@ public class VideoRelocationService(
             : Guid.Empty;
 
     private static Guid GetID(Type type, LocalPluginInfo pluginInfo)
-        => UuidUtility.GetV5($"RelocationProvider={type.FullName!}", pluginInfo.ID);
+        => GetProviderID(type.FullName!, pluginInfo.ID);
+
+    /// <summary>
+    ///   The ID of a relocation provider, from its type's full name and the
+    ///   ID of the plugin it ships in.
+    /// </summary>
+    /// <param name="typeFullName">The full name of the provider's type.</param>
+    /// <param name="pluginID">The ID of the plugin the provider ships in.</param>
+    /// <returns>The provider's ID.</returns>
+    internal static Guid GetProviderID(string typeFullName, Guid pluginID)
+        => UuidUtility.GetV5($"RelocationProvider={typeFullName}", pluginID);
 
     #endregion ID Helpers
 }

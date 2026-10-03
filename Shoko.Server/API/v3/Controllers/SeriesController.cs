@@ -36,14 +36,10 @@ using Shoko.Server.API.v3.Models.TMDB.Input;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.Titles;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
@@ -65,10 +61,8 @@ public class SeriesController(
     AnimeGroupService _groupService,
     AniDBTitleHelper _titleHelper,
     IQueueScheduler _scheduler,
-    TmdbSearchService _tmdbSearchService,
     IMetadataService _metadataService,
     IMetadataLinkingService _linkingService,
-    MetadataLinkingService _autoLinkReview,
     IImageManager _imageManager,
     IUserDataService _userDataService,
     IVideoReleaseService _videoReleaseService,
@@ -79,19 +73,12 @@ public class SeriesController(
     AniDB_AnimeRepository _anidbAnime,
     AniDB_Anime_RelationRepository _anidbAnimeRelations,
     AniDB_Anime_SimilarRepository _anidbAnimeSimilar,
-    TMDB_SuggestionRepository _tmdbSuggestions,
     AniDB_GroupStatusRepository _anidbGroupStatus,
     AniDB_EpisodeRepository _anidbEpisodes,
     AnimeEpisodeRepository _animeEpisodes,
     AnimeEpisode_UserRepository _animeEpisodeUsers,
     AnimeGroupRepository _animeGroups,
     AnimeSeriesRepository _animeSeries,
-    CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies,
-    CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows,
-    TMDB_EpisodeRepository _tmdbEpisodes,
-    TMDB_MovieRepository _tmdbMovies,
-    TMDB_SeasonRepository _tmdbSeasons,
-    TMDB_ShowRepository _tmdbShows,
     VideoLocal_PlaceRepository _videoLocalPlaces,
     VideoLocal_UserRepository _videoLocalUsers,
     IShokoGroupManager _groupManagementService
@@ -745,20 +732,12 @@ public class SeriesController(
 
     private List<SeriesSuggestion> GetTmdbSuggestions(AnimeSeries series, MetadataEntityType entityType, bool reverse)
     {
-        var suggestions = new List<TMDB_Suggestion>();
-        if (entityType == MetadataEntityType.Movie)
-            foreach (var movieID in series.TmdbMovieCrossReferences.Select(xref => xref.TmdbMovieID).Distinct())
-                suggestions.AddRange(reverse
-                    ? _tmdbSuggestions.GetBySuggestedTmdbEntityID(MetadataEntityType.Movie, movieID)
-                    : _tmdbSuggestions.GetByTmdbEntityID(MetadataEntityType.Movie, movieID));
-        else
-            foreach (var showID in series.TmdbShowCrossReferences.Select(xref => xref.TmdbShowID).Distinct())
-                suggestions.AddRange(reverse
-                    ? _tmdbSuggestions.GetBySuggestedTmdbEntityID(MetadataEntityType.Series, showID)
-                    : _tmdbSuggestions.GetByTmdbEntityID(MetadataEntityType.Series, showID));
-
-        return suggestions
-            .Select(suggestion => new SeriesSuggestion(suggestion))
+        var entries = entityType == MetadataEntityType.Movie
+            ? series.TmdbMovieCrossReferences.Select(xref => TmdbMovieEntry(xref.TmdbMovieID)).Distinct()
+            : series.TmdbShowCrossReferences.Select(xref => TmdbShowEntry(xref.TmdbShowID)).Distinct();
+        return entries
+            .SelectMany(entry => TmdbCompatibility.GetSuggestions(entry, reverse))
+            .Select(suggestion => new SeriesSuggestion(suggestion.Suggestion) { Order = suggestion.Order })
             .ToList();
     }
 
@@ -1306,11 +1285,10 @@ public class SeriesController(
         if (anime is null)
             return InternalError($"Unable to get AnidbAnime with ID {series.AniDB_ID} for Series with ID {series.AnimeSeriesID}!");
 
-        // Adds the core's refusals on top of the search's, as a forced search
-        // (the only one run over a linked anime) would when applying them.
-        var results = await _tmdbSearchService.FindAutoMatches(anime);
-        var reviewed = _autoLinkReview.ReviewAutoLinks(MetadataSource.TMDB, anime.AnimeID, [.. results.Select(TmdbMetadataProvider.ToCandidate)], replace: true);
-        return results.Select((result, index) => new Search.AutoMatchResult(result, reviewed[index].Rejection)).ToList();
+        // Reviewed by the core as a forced search (the only one run over a
+        // linked anime) would review them when applying them.
+        var candidates = await _linkingService.PreviewAutoLink(MetadataSource.TMDB, anime.AnimeID, HttpContext.RequestAborted);
+        return candidates.Select(candidate => new Search.AutoMatchResult(candidate)).ToList();
     }
 
     /// <summary>
@@ -1452,7 +1430,7 @@ public class SeriesController(
             {
                 var movie = xref.TmdbMovie;
                 if (movie is not null && WaitForTmdbMovie(movie.TmdbMovieID))
-                    movie = _tmdbMovies.GetByTmdbMovieID(movie.TmdbMovieID);
+                    movie = TmdbCompatibility.GetMovie(movie.TmdbMovieID);
                 return movie;
             })
             .WhereNotNull()
@@ -1497,7 +1475,7 @@ public class SeriesController(
             Additive = !body.Replace,
         });
 
-        var needRefresh = _tmdbMovies.GetByTmdbMovieID(body.ID) is null || body.Refresh;
+        var needRefresh = TmdbCompatibility.GetMovie(body.ID) is null || body.Refresh;
         if (needRefresh)
             await _metadataRefreshService.RefreshEntry(TmdbMovieEntry(body.ID), body.Refresh, RequestedWithImages);
 
@@ -1588,8 +1566,8 @@ public class SeriesController(
             Reason = MetadataRefreshReason.Requested,
         };
         await Task.WhenAll(
-            _crossRefAnidbTmdbMovies.GetByAnidbAnimeID(series.AniDB_ID)
-                .Select(xref => body.SkipIfExists && _tmdbMovies.GetByTmdbMovieID(xref.TmdbMovieID) is not null
+            TmdbCompatibility.GetMovieLinks(series.AniDB_ID)
+                .Select(xref => body.SkipIfExists && TmdbCompatibility.GetMovie(xref.TmdbMovieID) is not null
                     ? Task.CompletedTask
                     : _metadataRefreshService.RefreshEntry(TmdbMovieEntry(xref.TmdbMovieID), body.Force, options, body.Immediate))
         );
@@ -1620,7 +1598,7 @@ public class SeriesController(
             return Forbid(SeriesForbiddenForUser);
 
         await Task.WhenAll(
-            _crossRefAnidbTmdbMovies.GetByAnidbAnimeID(series.AniDB_ID)
+            TmdbCompatibility.GetMovieLinks(series.AniDB_ID)
                 .Select(xref => _metadataRefreshService.DownloadImages(TmdbMovieEntry(xref.TmdbMovieID), body.Force, body.Immediate))
         );
         return body.Immediate ? Ok() : NoContent();
@@ -1680,7 +1658,7 @@ public class SeriesController(
             .Select(o =>
             {
                 if (WaitForTmdbShow(o.Id))
-                    o = _tmdbShows.GetByTmdbShowID(o.Id) ?? o;
+                    o = TmdbCompatibility.GetShow(o.Id) ?? o;
                 return new TmdbShow(o, o.PreferredAlternateOrdering, include?.CombineFlags(), language);
             })
             .ToList();
@@ -1709,7 +1687,7 @@ public class SeriesController(
 
         await LinkTmdbShow(series.AniDB_ID, body.ID, additive: !body.Replace);
 
-        var needRefresh = body.Refresh || _tmdbShows.GetByTmdbShowID(body.ID) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt;
+        var needRefresh = body.Refresh || TmdbCompatibility.GetShow(body.ID) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt;
         if (needRefresh)
             await _metadataRefreshService.RefreshEntry(TmdbShowEntry(body.ID), body.Refresh, RequestedWithImages);
 
@@ -1799,7 +1777,7 @@ public class SeriesController(
             Reason = MetadataRefreshReason.Requested,
         };
         await Task.WhenAll(
-            _crossRefAnidbTmdbShows.GetByAnidbAnimeID(series.AniDB_ID)
+            TmdbCompatibility.GetShowLinks(series.AniDB_ID)
                 .Select(xref => _metadataRefreshService.RefreshEntry(TmdbShowEntry(xref.TmdbShowID), body.Force, options, body.Immediate))
         );
         return body.Immediate ? Ok() : NoContent();
@@ -1829,7 +1807,7 @@ public class SeriesController(
             return Forbid(SeriesForbiddenForUser);
 
         await Task.WhenAll(
-            _crossRefAnidbTmdbShows.GetByAnidbAnimeID(series.AniDB_ID)
+            TmdbCompatibility.GetShowLinks(series.AniDB_ID)
                 .Select(xref => _metadataRefreshService.DownloadImages(TmdbShowEntry(xref.TmdbShowID), body.Force, body.Immediate))
         );
         return body.Immediate ? Ok() : NoContent();
@@ -1948,7 +1926,7 @@ public class SeriesController(
                 ModelState.AddModelError("Mapping", $"The AniDB Episode with id '{link.AniDBID}' is not part of the series.");
                 continue;
             }
-            var tmdbEpisode = link.TmdbID == 0 ? null : _tmdbEpisodes.GetByTmdbEpisodeID(link.TmdbID);
+            var tmdbEpisode = link.TmdbID == 0 ? null : TmdbCompatibility.GetEpisode(link.TmdbID);
             if (link.TmdbID != 0)
             {
                 if (tmdbEpisode is null)
@@ -1993,7 +1971,7 @@ public class SeriesController(
 
         var scheduled = false;
         foreach (var showId in missingIDs)
-            if (_tmdbShows.GetByTmdbShowID(showId) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
+            if (TmdbCompatibility.GetShow(showId) is not { } tmdbShow || tmdbShow.CreatedAt == tmdbShow.LastUpdatedAt)
             {
                 scheduled = true;
                 await _metadataRefreshService.RefreshEntry(TmdbShowEntry(showId), options: RequestedWithImages);
@@ -2052,7 +2030,7 @@ public class SeriesController(
 
         if (tmdbSeasonID.HasValue)
         {
-            var season = _tmdbSeasons.GetByTmdbSeasonID(tmdbSeasonID.Value);
+            var season = TmdbCompatibility.GetSeason(tmdbSeasonID.Value);
             if (season == null)
                 return ValidationProblem("Unable to find existing TMDB Season with the given season ID.", "tmdbSeasonID");
 
@@ -2113,12 +2091,12 @@ public class SeriesController(
         }
 
         // Hard bail if the TMDB show isn't locally available.
-        if (_tmdbShows.GetByTmdbShowID(body.TmdbShowID.Value) is not { } tmdbShow)
+        if (TmdbCompatibility.GetShow(body.TmdbShowID.Value) is not { } tmdbShow)
             return ValidationProblem("Unable to find the selected TMDB Show locally. Add the TMDB Show locally first.", "tmdbShowID");
 
         if (body.TmdbSeasonID.HasValue)
         {
-            var season = _tmdbSeasons.GetByTmdbSeasonID(body.TmdbSeasonID.Value);
+            var season = TmdbCompatibility.GetSeason(body.TmdbSeasonID.Value);
             if (season == null)
                 return ValidationProblem("Unable to find existing TMDB Season with the given season ID.", "tmdbSeasonID");
 
@@ -2244,7 +2222,7 @@ public class SeriesController(
             {
                 var season = o.TmdbSeason;
                 if (season is not null && WaitForTmdbShow(season.TmdbShowID))
-                    season = _tmdbSeasons.GetByTmdbSeasonID(season.TmdbSeasonID);
+                    season = TmdbCompatibility.GetSeason(season.TmdbSeasonID);
                 return season;
             })
             .WhereNotNull()

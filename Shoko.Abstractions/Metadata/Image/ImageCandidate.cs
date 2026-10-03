@@ -56,10 +56,4 @@ public sealed record ImageCandidate
     ///   How many votes <see cref="Rating"/> is from.
     /// </summary>
     public int? RatingVotes { get; init; }
-
-    /// <summary>
-    ///   Whether the source uses this image as the entity's default of its
-    ///   type. The default is always downloaded when its type is.
-    /// </summary>
-    public bool IsDefault { get; init; }
 }

@@ -14,7 +14,6 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Shoko.Embedded;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -86,19 +85,10 @@ public class MetadataServiceLookupTests
         { "anidb://studio/40", typeof(AniDB_Studio) },
         { "anidb://tag/42", typeof(AniDB_Tag) },
         { "anidb://ordering/30", typeof(IOrdering) },
-        { "tmdb://series/5", typeof(TMDB_Show) },
-        { "tmdb://season/50", typeof(TMDB_Season) },
-        { $"tmdb://season/{MetadataLookupTables.TmdbAlternateSeasonID}", typeof(Shoko.Server.Models.TMDB.TMDB_AlternateOrdering_Season) },
-        { "tmdb://episode/55", typeof(TMDB_Episode) },
-        { "tmdb://movie/600", typeof(TMDB_Movie) },
-        { "tmdb://collection/700", typeof(TMDB_Collection) },
-        { "tmdb://creator/80", typeof(TMDB_Person) },
-        { "tmdb://studio/81", typeof(TMDB_Company) },
-        { "tmdb://network/82", typeof(TMDB_Network) },
-        { "tmdb://tag/genre/Drama", typeof(TMDB_Tag) },
-        { "tmdb://tag/genre/Animation", typeof(TMDB_Tag) },
-        { "tmdb://tag/keyword/isekai", typeof(TMDB_Tag) },
-        { "tmdb://ordering/5", typeof(IOrdering) },
+        { "tmdb://series/5", typeof(Metadata_Series) },
+        { "tmdb://movie/600", typeof(Metadata_Movie) },
+        { "tmdb://collection/700", typeof(Metadata_Collection) },
+        { "tmdb://ordering/default/5", typeof(IOrdering) },
         { "test-plugin://series/s1", typeof(Metadata_Series) },
         { "test-plugin://season/s1-1", typeof(Metadata_Season) },
         { "test-plugin://season/g1", typeof(ISeason) },
@@ -162,9 +152,7 @@ public class MetadataServiceLookupTests
         "tmdb://character/1",
         "tmdb://season/5f0c1a2b3c4d5e6f7a8b9c0e",
         "tmdb://tag/genre/Missing",
-        "tmdb://tag/keyword/Drama",
-        "tmdb://tag/Drama",
-        "tmdb://tag/genre/",
+        "tmdb://ordering/5",
         "anilist://series/1",
         "test-plugin://creator/99",
         "test-plugin://library/1",
@@ -179,19 +167,6 @@ public class MetadataServiceLookupTests
         tables.StorePluginEntries();
 
         Assert.Null(tables.Service.GetEntry(MetadataGuid.Parse(idText)));
-    }
-
-    [Fact]
-    public void AKeywordTooLongForItsIDIsFoundByTheHashOfItsName()
-    {
-        var tables = new MetadataLookupTables();
-        var id = ID(MetadataSource.TMDB, MetadataEntityType.Tag, TMDB_Tag.IDFor(MetadataLookupTables.LongKeyword, TagKind.Keyword));
-
-        var tag = Assert.IsAssignableFrom<ITag>(tables.Service.GetEntry(id));
-
-        Assert.Equal(MetadataLookupTables.LongKeyword, tag.Name);
-        Assert.Equal(id, tag.ID);
-        Assert.Null(tables.Service.GetEntry(ID(MetadataSource.TMDB, MetadataEntityType.Tag, "keyword/#" + new string('0', 64))));
     }
 
     #endregion
@@ -331,7 +306,7 @@ public class MetadataServiceLookupTests
         var tables = new MetadataLookupTables();
         var id = ID(TestSources.Plugin, TestEntityTypes.Library, "a");
         var entry = Entry(id);
-        var scope = MetadataEntityScope.FromPairs([(MetadataSource.TMDB, MetadataEntityType.Series), (TestSources.Plugin, TestEntityTypes.Library)]);
+        var scope = MetadataEntityScope.FromPairs([(MetadataSource.AniDB, MetadataEntityType.Series), (TestSources.Plugin, TestEntityTypes.Library)]);
         var resolver = Resolver("Mixed", scope, entry);
 
         tables.Service.AddParts([], [resolver.Object]);
@@ -339,8 +314,8 @@ public class MetadataServiceLookupTests
         Assert.Equal([resolver.Object], tables.Service.MetadataResolvers);
         Assert.Equal(1, ErrorsLogged(tables));
         Assert.Same(entry, tables.Service.GetEntry(id));
-        Assert.IsType<Shoko.Server.Models.TMDB.TMDB_Show>(tables.Service.GetEntry(ID(MetadataSource.TMDB, MetadataEntityType.Series, "5")));
-        resolver.Verify(r => r.GetEntry(It.Is<MetadataGuid>(guid => guid.Source == MetadataSource.TMDB)), Times.Never);
+        tables.Service.GetEntry(ID(MetadataSource.AniDB, MetadataEntityType.Series, "5"));
+        resolver.Verify(r => r.GetEntry(It.Is<MetadataGuid>(guid => guid.Source == MetadataSource.AniDB)), Times.Never);
     }
 
     [Fact]
@@ -439,16 +414,8 @@ public class MetadataServiceLookupTests
     }
 
     [Fact]
-    public void AShokoSeasonsLinksAreLookedUpForOneSourceOrEvery()
+    public void AShokoSeasonsLinksAreReadOffItsEpisodes_ForOneSourceOrEvery()
     {
-        var tables = new MetadataLookupTables();
-        var series = new Mock<IShokoSeries>();
-        series.SetupGet(item => item.AnidbAnimeID).Returns(30);
-        var episode = new Mock<IShokoEpisode>();
-        episode.SetupGet(item => item.AnidbEpisodeID).Returns(300);
-        var season = new Mock<IShokoSeason>();
-        season.SetupGet(item => item.Series).Returns(series.Object);
-        season.SetupGet(item => item.Episodes).Returns([episode.Object]);
         var seasonID = ID(TestSources.Plugin, MetadataEntityType.Season, "s1-1");
         var link = new Mock<IMetadataEpisodeCrossReference>();
         link.SetupGet(item => item.Source).Returns(TestSources.Plugin);
@@ -458,21 +425,25 @@ public class MetadataServiceLookupTests
         link.SetupGet(item => item.SeasonNumber).Returns(1);
         link.SetupGet(item => item.ProviderParentID).Returns(ID(TestSources.Plugin, MetadataEntityType.Series, "s1"));
         var film = new Mock<IMetadataMovieCrossReference>();
-        tables.CrossReferences.Setup(store => store.GetEpisodeLinks(300, It.IsAny<MetadataSource?>())).Returns([]);
-        tables.CrossReferences.Setup(store => store.GetEpisodeLinks(300, TestSources.Plugin)).Returns([link.Object]);
-        tables.CrossReferences.Setup(store => store.GetEpisodeLinks(300, null)).Returns([link.Object]);
-        tables.CrossReferences.Setup(store => store.GetMovieLinks(300, It.IsAny<MetadataSource?>())).Returns([]);
-        tables.CrossReferences.Setup(store => store.GetMovieLinks(300, TestSources.Plugin)).Returns([film.Object]);
-        var service = tables.Service;
+        film.SetupGet(item => item.Source).Returns(TestSources.Plugin);
+        var episode = new Mock<IShokoEpisode>();
+        episode.SetupGet(item => item.Type).Returns(EpisodeType.Episode);
+        episode.SetupGet(item => item.SeasonNumber).Returns(1);
+        episode.SetupGet(item => item.MetadataEpisodeCrossReferences).Returns([link.Object]);
+        episode.SetupGet(item => item.MetadataMovieCrossReferences).Returns([film.Object]);
+        var series = new Mock<IShokoSeries>();
+        series.SetupGet(item => item.ID).Returns(ID(MetadataSource.Shoko, MetadataEntityType.Series, "3"));
+        series.SetupGet(item => item.Episodes).Returns([episode.Object]);
+        ISeason season = new AnimeSeason(series.Object, EpisodeType.Episode, 1);
 
-        Assert.Same(link.Object, Assert.Single(service.GetEpisodeCrossReferences(season.Object)));
-        Assert.Same(link.Object, Assert.Single(service.GetEpisodeCrossReferences(season.Object, TestSources.Plugin)));
-        Assert.Empty(service.GetEpisodeCrossReferences(season.Object, TestSources.AniList));
-        var seasonLink = Assert.Single(service.GetSeasonCrossReferences(season.Object, TestSources.Plugin));
+        Assert.Same(link.Object, Assert.Single(season.MetadataEpisodeCrossReferences));
+        Assert.Same(link.Object, Assert.Single(season.GetEpisodeCrossReferences(TestSources.Plugin)));
+        Assert.Empty(season.GetEpisodeCrossReferences(TestSources.AniList));
+        var seasonLink = Assert.Single(season.GetSeasonCrossReferences(TestSources.Plugin));
         Assert.Equal((seasonID, 1, 30), (seasonLink.ProviderID, seasonLink.SeasonNumber, seasonLink.AnidbAnimeID));
-        Assert.Empty(service.GetSeasonCrossReferences(season.Object, TestSources.AniList));
-        Assert.Same(film.Object, Assert.Single(service.GetMovieCrossReferences(season.Object, TestSources.Plugin)));
-        Assert.Empty(service.GetMovieCrossReferences(season.Object));
+        Assert.Empty(season.GetSeasonCrossReferences(TestSources.AniList));
+        Assert.Same(film.Object, Assert.Single(season.GetMovieCrossReferences(TestSources.Plugin)));
+        Assert.Empty(season.GetMovieCrossReferences(TestSources.AniList));
     }
 
     [Fact]
@@ -511,7 +482,7 @@ public class MetadataServiceLookupTests
         Assert.Empty(service.GetCollectionsWith(ID(MetadataSource.AniDB, MetadataEntityType.Series, "30")));
         Assert.Empty(service.GetCollectionsWith(ID(MetadataSource.TMDB, MetadataEntityType.Series, "5")));
         Assert.Empty(service.GetCollectionsWith(ID(MetadataSource.TMDB, MetadataEntityType.Movie, "404")));
-        Assert.Equal(700, Assert.IsType<TMDB_Collection>(Assert.Single(service.GetCollectionsWith(ID(MetadataSource.TMDB, MetadataEntityType.Movie, "600")))).TmdbCollectionID);
+        Assert.Equal(ID(MetadataSource.TMDB, MetadataEntityType.Collection, "700"), Assert.Single(service.GetCollectionsWith(ID(MetadataSource.TMDB, MetadataEntityType.Movie, "600"))).ID);
         Assert.Empty(service.GetCollectionsWith(ID(MetadataSource.TMDB, MetadataEntityType.Movie, "601")));
         Assert.Throws<ArgumentNullException>(() => service.GetCollectionsWith(null!));
     }

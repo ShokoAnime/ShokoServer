@@ -1,0 +1,16 @@
+{
+  "id": 8001,
+  "name": "Journey's End Collection",
+  "overview": "The movies of the journey.",
+  "poster_path": "/collection-poster.jpg",
+  "backdrop_path": null,
+  "parts": [
+    { "adult": false, "backdrop_path": null, "genre_ids": [16], "id": 7001, "original_language": "ja", "original_title": "旅の終わり 劇場版", "overview": "", "poster_path": null, "release_date": "2025-03-01", "title": "Journey's End: The Movie", "video": false, "vote_average": 7.9, "vote_count": 120 },
+    { "adult": false, "backdrop_path": null, "genre_ids": [16], "id": 7002, "original_language": "ja", "original_title": "旅の終わり 2", "overview": "", "poster_path": null, "release_date": "2027-03-01", "title": "Journey's End 2", "video": false, "vote_average": 0, "vote_count": 0 }
+  ],
+  "translations": {
+    "translations": [
+      { "iso_3166_1": "US", "iso_639_1": "en", "name": "English", "english_name": "English", "data": { "title": "Journey's End Collection", "overview": "The movies of the journey.", "homepage": "" } }
+    ]
+  }
+}

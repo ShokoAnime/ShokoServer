@@ -24,8 +24,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Hand-written TMDb answers in the shapes TMDb's API documents, for the
+         TMDb plugin's client to read through TMDbLib. -->
+    <Content Include="Plugin\Tmdb\Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- ExcludeAssets keeps Microsoft.Build.Locator's MSBL001 guard out of this project. -->
     <ProjectReference Include="..\Shoko.BuildTools\Shoko.BuildTools.csproj" ExcludeAssets="build;buildTransitive" />
+    <ProjectReference Include="..\Shoko.Plugin.Tmdb\Shoko.Plugin.Tmdb.csproj" />
+    <ProjectReference Include="..\Shoko.Plugin.WebAOM\Shoko.Plugin.WebAOM.csproj" />
     <ProjectReference Include="..\Shoko.Server\Shoko.Server.csproj" />
     <ProjectReference Include="..\Shoko.TestData\Shoko.TestData.csproj" />
   </ItemGroup>

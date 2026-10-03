@@ -12,10 +12,8 @@ using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Filters;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.HTTP;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
 using Shoko.Server.Repositories;
@@ -23,7 +21,6 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
-using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -110,11 +107,16 @@ public sealed class TextFixture
 
     public List<AnimeGroup> Groups { get; } = [];
 
-    public List<TMDB_Show> TmdbShows { get; } = [];
+    public List<Metadata_Series> TmdbShows { get; } = [];
 
-    public List<TMDB_Episode> TmdbEpisodes { get; } = [];
+    public List<Metadata_Episode> TmdbEpisodes { get; } = [];
 
-    public List<TMDB_Movie> TmdbMovies { get; } = [];
+    public List<Metadata_Movie> TmdbMovies { get; } = [];
+
+    /// <summary>
+    ///   The English title and overview TMDB gave each show, episode and movie.
+    /// </summary>
+    private readonly Dictionary<(MetadataEntityType Type, int ID), (string Title, string Overview)> _tmdbEnglish = [];
 
     public List<TmdbText> TmdbTitles { get; } = [];
 
@@ -166,11 +168,10 @@ public sealed class TextFixture
         var series = Set(Build<AnimeSeriesRepository, AnimeSeries>(Series, s => s.AnimeSeriesID));
         var episodes = Set(Build<AnimeEpisodeRepository, AnimeEpisode>(Episodes, e => e.AnimeEpisodeID));
         var groups = Set(Build<AnimeGroupRepository, AnimeGroup>(Groups, g => g.AnimeGroupID));
-        var shows = Set(Build<TMDB_ShowRepository, TMDB_Show>(TmdbShows, s => s.Id));
-        var seasons = Set(Build<TMDB_SeasonRepository, TMDB_Season>([], s => s.Id));
-        var tmdbEpisodes = Set(Build<TMDB_EpisodeRepository, TMDB_Episode>(TmdbEpisodes, e => e.Id));
-        var movies = Set(Build<TMDB_MovieRepository, TMDB_Movie>(TmdbMovies, m => m.Id));
-        var collections = Set(Build<TMDB_CollectionRepository, TMDB_Collection>([], c => c.Id));
+        var shows = Set(Build<Metadata_SeriesRepository, Metadata_Series>(TmdbShows, s => s.Metadata_SeriesID));
+        var seasons = Set(Build<Metadata_SeasonRepository, Metadata_Season>([], s => s.Metadata_SeasonID));
+        var movies = Set(Build<Metadata_MovieRepository, Metadata_Movie>(TmdbMovies, m => m.Metadata_MovieID));
+        var contentRatings = Set(Build<Metadata_ContentRatingRepository, Metadata_ContentRating>([], r => r.Metadata_ContentRatingID));
         var seriesLinks = Set(Build<CrossRef_AniDB_Metadata_SeriesRepository, CrossRef_AniDB_Metadata_Series>(
             SeriesLinks, x => x.CrossRef_AniDB_Metadata_SeriesID));
         var movieLinks = Set(Build<CrossRef_AniDB_Metadata_MovieRepository, CrossRef_AniDB_Metadata_Movie>(
@@ -178,18 +179,20 @@ public sealed class TextFixture
         var episodeLinks = Set(Build<CrossRef_AniDB_Metadata_EpisodeRepository, CrossRef_AniDB_Metadata_Episode>(
             EpisodeLinks, x => x.CrossRef_AniDB_Metadata_EpisodeID));
         var texts = Set(new TextCache());
-        var storedEpisodes = Set(Build<Metadata_EpisodeRepository, Metadata_Episode>([], e => e.Metadata_EpisodeID));
+        var storedEpisodes = Set(Build<Metadata_EpisodeRepository, Metadata_Episode>(TmdbEpisodes, e => e.Metadata_EpisodeID));
         Set(Build<AniDB_Anime_TagRepository, AniDB_Anime_Tag>([], t => t.AniDB_Anime_TagID));
         Set(Build<AniDB_TagRepository, AniDB_Tag>([], t => t.AniDB_TagID));
         Set(Build<CustomTagRepository, CustomTag>([], t => t.CustomTagID));
         Set(Build<CrossRef_CustomTagRepository, CrossRef_CustomTag>([], x => x.CrossRef_CustomTagID));
 
         var crossReferences = new MetadataCrossReferenceStore(seriesLinks, movieLinks, episodeLinks, storedEpisodes);
-        var metadataService = new MetadataService(groups, series, episodes, null!, null!, null!, null!, anime, anidbEpisodes, null!, null!, null!,
-            shows, seasons, null!, tmdbEpisodes, movies, collections, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!,
-            null!, crossReferences, NullLogger<MetadataService>.Instance);
         var textStore = new MetadataTextStore(texts, new CacheOnlyWriter());
         TextStore = textStore;
+        var seriesStore = new MetadataSeriesStore(shows, seasons, storedEpisodes, contentRatings, textStore, null!, new(() => null!),
+            new(() => crossReferences), null!, NullLogger<MetadataSeriesStore>.Instance);
+        var movieStore = new MetadataMovieStore(movies, contentRatings, textStore, null!);
+        var metadataService = new MetadataService(groups, series, episodes, null!, null!, null!, null!, anime, anidbEpisodes, null!, null!, null!,
+            seriesStore, movieStore, null!, null!, null!, null!, null!, null!, null!, crossReferences, null!, NullLogger<MetadataService>.Instance);
         var textManager = new MetadataTextManager(metadataService, textStore, NullLogger<MetadataTextManager>.Instance);
 
         var services = new ServiceCollection();
@@ -230,8 +233,8 @@ public sealed class TextFixture
     }
 
     /// <summary>
-    ///   Stores each TMDB entity's titles and overviews as the TMDB updater does: in the order listed, with the
-    ///   American English ones equal to the English text on the entity's row left out and flagged as listed.
+    ///   Stores each TMDB entity's titles and overviews as the TMDB updater does: the English text first, then the
+    ///   rest in the order listed.
     /// </summary>
     /// <param name="store">The text store over the fixture's text cache.</param>
     private void SeedTmdbText(MetadataTextStore store)
@@ -239,54 +242,43 @@ public sealed class TextFixture
         var titles = TmdbTitles.ToLookup(t => (t.Type, t.ID));
         var overviews = TmdbOverviews.ToLookup(o => (o.Type, o.ID));
         var entries = new List<MetadataTextStore.ListedTexts>();
-        foreach (var show in TmdbShows)
-            entries.Add(Seed(show, MetadataEntityType.Series, show.TmdbShowID, titles, overviews));
-        foreach (var episode in TmdbEpisodes)
-            entries.Add(Seed(episode, MetadataEntityType.Episode, episode.TmdbEpisodeID, titles, overviews));
-        foreach (var movie in TmdbMovies)
-            entries.Add(Seed(movie, MetadataEntityType.Movie, movie.TmdbMovieID, titles, overviews));
+        foreach (var ((type, id), (englishTitle, englishOverview)) in _tmdbEnglish)
+        {
+            entries.Add(new(
+                new(MetadataSource.TMDB, type, id.ToString()),
+                [Title(new(type, id, englishTitle, "en", "US"), TitleType.Main), .. titles[(type, id)].Where(text => !IsEnglish(text, englishTitle)).Select(text => Title(text, TitleType.Official))],
+                null,
+                [Overview(new(type, id, englishOverview, "en", "US")), .. overviews[(type, id)].Where(text => !IsEnglish(text, englishOverview)).Select(Overview)],
+                null
+            ));
+        }
+
         store.WriteListedTexts(entries);
     }
 
-    private static MetadataTextStore.ListedTexts Seed(IEntityMetadata entity, MetadataEntityType type, int id, ILookup<(MetadataEntityType, int), TmdbText> titles,
-        ILookup<(MetadataEntityType, int), TmdbText> overviews)
-    {
-        var (storedTitles, titleGap) = Listed(titles[(type, id)], entity.EnglishTitle, text => new TitleStub
+    private static bool IsEnglish(TmdbText text, string english)
+        => text is { Language: "en", Country: "US" } && text.Value == english;
+
+    private static ITitle Title(TmdbText text, TitleType type)
+        => new TitleStub
         {
             Source = MetadataSource.TMDB,
             Language = text.Language.GetTitleLanguage(text.Country),
             LanguageCode = text.Language,
             CountryCode = text.Country,
             Value = text.Value,
-            Type = TitleType.Official,
-        });
-        var (storedOverviews, overviewGap) = Listed(overviews[(type, id)], entity.EnglishOverview, text => (IText)new TextStub
+            Type = type,
+        };
+
+    private static IText Overview(TmdbText text)
+        => new TextStub
         {
             Source = MetadataSource.TMDB,
             Language = text.Language.GetTitleLanguage(text.Country),
             LanguageCode = text.Language,
             CountryCode = text.Country,
             Value = text.Value,
-        });
-        entity.EnglishTitleListed = titleGap.HasValue;
-        entity.EnglishOverviewListed = overviewGap.HasValue;
-        return new(new(MetadataSource.TMDB, type, id.ToString()), storedTitles, titleGap, storedOverviews, overviewGap);
-    }
-
-    private static (List<T> Texts, int? Gap) Listed<T>(IEnumerable<TmdbText> texts, string? english, Func<TmdbText, T> build)
-    {
-        var stored = new List<T>();
-        int? gap = null;
-        foreach (var text in texts)
-        {
-            if (gap is null && text is { Language: "en", Country: "US" } && text.Value == english)
-                gap = stored.Count;
-            else
-                stored.Add(build(text));
-        }
-
-        return (stored, gap);
-    }
+        };
 
     /// <summary>
     ///   Builds a real cached repository over the given rows, with its own indexes, and no database behind it.
@@ -373,7 +365,8 @@ public sealed class TextFixture
             {
                 showID = ++tmdbShowID;
                 var overview = Paragraph(random, 40, 120);
-                TmdbShows.Add(new(showID) { EnglishTitle = english, OriginalTitle = japanese, OriginalLanguageCode = "ja", EnglishOverview = overview });
+                TmdbShows.Add(new() { Metadata_SeriesID = showID, Source = MetadataSource.TMDB, ProviderID = $"{showID}", OriginalLanguageCode = "ja" });
+                _tmdbEnglish[(MetadataEntityType.Series, showID)] = (english, overview);
                 AddTmdbText(random, MetadataEntityType.Series, showID, english, japanese, overview, 0.9);
                 SeriesLinks.Add(new()
                 {
@@ -386,13 +379,8 @@ public sealed class TextFixture
             else if (type is AnimeType.Movie && random.NextDouble() < 0.8)
             {
                 var overview = Paragraph(random, 40, 120);
-                TmdbMovies.Add(new(++tmdbMovieID)
-                {
-                    EnglishTitle = english,
-                    OriginalTitle = japanese,
-                    OriginalLanguageCode = "ja",
-                    EnglishOverview = overview,
-                });
+                TmdbMovies.Add(new() { Metadata_MovieID = ++tmdbMovieID, Source = MetadataSource.TMDB, ProviderID = $"{tmdbMovieID}", OriginalLanguageCode = "ja" });
+                _tmdbEnglish[(MetadataEntityType.Movie, tmdbMovieID)] = (english, overview);
                 AddTmdbText(random, MetadataEntityType.Movie, tmdbMovieID, english, japanese, overview, 0.9);
                 MovieLinks.Add(new()
                 {
@@ -441,15 +429,17 @@ public sealed class TextFixture
                     continue;
 
                 var episodeOverview = Paragraph(random, 20, 80);
-                TmdbEpisodes.Add(new(++tmdbEpisodeID)
+                TmdbEpisodes.Add(new()
                 {
-                    TmdbShowID = showID,
-                    TmdbSeasonID = showID * 10 + 1,
+                    Metadata_EpisodeID = ++tmdbEpisodeID,
+                    Source = MetadataSource.TMDB,
+                    ProviderID = $"{tmdbEpisodeID}",
+                    SeriesID = $"{showID}",
+                    SeasonID = $"{showID * 10 + 1}",
                     SeasonNumber = 1,
                     EpisodeNumber = number,
-                    EnglishTitle = episodeEnglish,
-                    EnglishOverview = episodeOverview,
                 });
+                _tmdbEnglish[(MetadataEntityType.Episode, tmdbEpisodeID)] = (episodeEnglish, episodeOverview);
                 AddTmdbText(random, MetadataEntityType.Episode, tmdbEpisodeID, episodeEnglish, Chars(random, Kanji + Kana, 4, 12), episodeOverview, 0.35);
                 EpisodeLinks.Add(new()
                 {

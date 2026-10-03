@@ -5,13 +5,12 @@ using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
-using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Remove every link between the AniDB anime and one metadata source, or
-///   every other source, TMDB included, at every level.
+///   every other source, at every level.
 /// </summary>
 /// <remarks>
 ///   Nothing the links pointed at is purged, and no anime is told to be left
@@ -30,15 +29,14 @@ public sealed class PurgeMetadataLinksAction(
     private IProgress<decimal>? _progress;
 
     /// <summary>
-    ///   The source to purge, or <see langword="null"/> for every source, TMDB
-    ///   included.
+    ///   The source to purge, or <see langword="null"/> for every source.
     /// </summary>
     public MetadataSource? Source { get; set; }
 
     public string Name => "Purge Metadata Links";
 
     public string? Description
-        => "Removes every link between AniDB anime and one metadata source, or every other source, TMDB included. Links made by hand are lost "
+        => "Removes every link between AniDB anime and one metadata source, or every other source. Links made by hand are lost "
             + "too, and every anime has to be matched again.";
 
     public ActionCategory Category => ActionCategory.Destructive;

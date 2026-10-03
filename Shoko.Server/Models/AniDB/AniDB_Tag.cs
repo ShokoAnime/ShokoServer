@@ -5,6 +5,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models.AniDB;
@@ -86,6 +87,17 @@ public class AniDB_Tag : IAnidbTag
     string ITag.Name => TagName;
 
     string ITag.Overview => TagDescription;
+
+    TagKind ITag.Kind => TagKind.Tag;
+
+    // AniDB files its tags in a tree, under parent tags, not named categories.
+    string? ITag.Category => null;
+
+    // AniDB marks no tag as adult-only.
+    bool ITag.IsRestricted => false;
+
+    // Read outside any anime, so it has no weight there.
+    int? ITag.Weight => null;
 
     #endregion
 

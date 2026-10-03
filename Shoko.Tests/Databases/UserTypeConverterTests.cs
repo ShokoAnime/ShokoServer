@@ -8,7 +8,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.MediaInfo;
-using Shoko.Server.Models.TMDB;
+using Shoko.Server.Models.Metadata.Embedded;
 using Xunit;
 
 namespace Shoko.Tests.Databases;
@@ -36,6 +36,10 @@ public class UserTypeConverterTests
         // Closed over MediaContainer because reflection never yields an open generic, which quietly
         // left the converter for VideoLocal.MediaInfo out of every theory below.
         typeof(MessagePackConverter<MediaContainer>),
+        typeof(JsonObjectConverter<Metadata_EpisodeExtra>),
+        typeof(JsonObjectConverter<Metadata_SeriesExtra>),
+        typeof(JsonObjectConverter<Metadata_MovieExtra>),
+        typeof(JsonObjectConverter<Metadata_CreatorExtra>),
     ];
 
     private static IUserType Resolve(string fullName)
@@ -70,8 +74,6 @@ public class UserTypeConverterTests
     public static TheoryData<string, object, object> EqualButDistinctValues() => new()
     {
         { typeof(StringListConverter).FullName!, new List<string> { "a", "b" }, new List<string> { "a", "b" } },
-        { typeof(TmdbContentRatingConverter).FullName!, ContentRatings(), ContentRatings() },
-        { typeof(TmdbProductionCountryConverter).FullName!, ProductionCountries(), ProductionCountries() },
         { typeof(TitleTypeConverter).FullName!, TitleType.Main, TitleType.Main },
         { typeof(TitleLanguageConverter).FullName!, TitleLanguage.English, TitleLanguage.English },
         { typeof(MessagePackConverter<MediaContainer>).FullName!, new MediaContainer(), new MediaContainer() },
@@ -83,17 +85,32 @@ public class UserTypeConverterTests
             new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },
             new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) }
         },
+        {
+            typeof(JsonObjectConverter<Metadata_EpisodeExtra>).FullName!,
+            new Metadata_EpisodeExtra { AirsBeforeSeasonNumber = 1 },
+            new Metadata_EpisodeExtra { AirsBeforeSeasonNumber = 1 }
+        },
+        {
+            typeof(JsonObjectConverter<Metadata_SeriesExtra>).FullName!,
+            new Metadata_SeriesExtra { ProductionCountries = ["JP", "US"] },
+            new Metadata_SeriesExtra { ProductionCountries = ["JP", "US"] }
+        },
+        {
+            typeof(JsonObjectConverter<Metadata_MovieExtra>).FullName!,
+            new Metadata_MovieExtra { ProductionCountries = ["JP"] },
+            new Metadata_MovieExtra { ProductionCountries = ["JP"] }
+        },
+        {
+            typeof(JsonObjectConverter<Metadata_CreatorExtra>).FullName!,
+            new Metadata_CreatorExtra { PlaceOfBirth = "Tokyo, Japan" },
+            new Metadata_CreatorExtra { PlaceOfBirth = "Tokyo, Japan" }
+        },
     };
-
-    private static List<TMDB_ContentRating> ContentRatings() => [new("US", "PG-13")];
-
-    private static List<TMDB_ProductionCountry> ProductionCountries() => [new("US", "United States")];
 
     public static TheoryData<string, object, object> UnequalValues() => new()
     {
         { typeof(StringListConverter).FullName!, new List<string> { "a", "b" }, new List<string> { "a", "c" } },
         { typeof(StringListConverter).FullName!, new List<string> { "a" }, new List<string> { "a", "b" } },
-        { typeof(TmdbContentRatingConverter).FullName!, ContentRatings(), new List<TMDB_ContentRating> { new("GB", "12A") } },
         { typeof(PartialDateOnlyConverter).FullName!, new PartialDateOnly(2024, 5, 1), new PartialDateOnly(2024, 5, 2) },
         { typeof(FuzzyDateOnlyConverter).FullName!, new FuzzyDateOnly(null, 5, 1), new FuzzyDateOnly(2024, 5, 1) },
         { typeof(DateOnlyConverter).FullName!, new DateOnly(2024, 5, 1), new DateOnly(2024, 5, 2) },
@@ -107,10 +124,29 @@ public class UserTypeConverterTests
             new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },
             new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1), ["b"] = JToken.FromObject(2) }
         },
-        { typeof(TmdbProductionCountryConverter).FullName!, ProductionCountries(), new List<TMDB_ProductionCountry> { new("GB", "United Kingdom") } },
         { typeof(TitleTypeConverter).FullName!, TitleType.Main, TitleType.Official },
         { typeof(TitleLanguageConverter).FullName!, TitleLanguage.English, TitleLanguage.Japanese },
         { typeof(MessagePackConverter<MediaContainer>).FullName!, new MediaContainer(), new MediaContainer { media = new() } },
+        {
+            typeof(JsonObjectConverter<Metadata_EpisodeExtra>).FullName!,
+            new Metadata_EpisodeExtra { AirsBeforeSeasonNumber = 1 },
+            new Metadata_EpisodeExtra { AirsAfterSeasonNumber = 1 }
+        },
+        {
+            typeof(JsonObjectConverter<Metadata_SeriesExtra>).FullName!,
+            new Metadata_SeriesExtra { ProductionCountries = ["JP", "US"] },
+            new Metadata_SeriesExtra { ProductionCountries = ["US", "JP"] }
+        },
+        {
+            typeof(JsonObjectConverter<Metadata_MovieExtra>).FullName!,
+            new Metadata_MovieExtra { ProductionCountries = ["JP"] },
+            new Metadata_MovieExtra()
+        },
+        {
+            typeof(JsonObjectConverter<Metadata_CreatorExtra>).FullName!,
+            new Metadata_CreatorExtra { PlaceOfBirth = "Tokyo, Japan" },
+            new Metadata_CreatorExtra()
+        },
     };
 
     [Fact]
@@ -323,6 +359,18 @@ public class UserTypeConverterTests
         Assert.Equal(2, dictionary.Count);
         Assert.True(JToken.DeepEquals(original["a"], dictionary["a"]));
         Assert.True(JToken.DeepEquals(original["b"], dictionary["b"]));
+    }
+
+    [Fact]
+    public void AJsonObjectReadsBackWithMissingAndUnknownPropertiesAndStoresNullAsNull()
+    {
+        var converter = new JsonObjectConverter<Metadata_EpisodeExtra>();
+
+        var restored = converter.ConvertFrom(null, CultureInfo.InvariantCulture, """{"AirsBeforeSeasonNumber":1,"SomeLaterExtra":{"a":[1]}}""");
+
+        Assert.Equal(new Metadata_EpisodeExtra { AirsBeforeSeasonNumber = 1 }, restored);
+        Assert.Null(converter.ConvertFrom(null, CultureInfo.InvariantCulture, null));
+        Assert.Null(converter.ConvertTo(null, CultureInfo.InvariantCulture, null, typeof(string)));
     }
 
     #endregion

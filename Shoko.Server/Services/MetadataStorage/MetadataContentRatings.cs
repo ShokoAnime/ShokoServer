@@ -23,7 +23,8 @@ internal static class MetadataContentRatings
 
     /// <summary>
     ///   Checks the ratings given for an entry before anything is written,
-    ///   keeping the first rating given for each country.
+    ///   keeping every rating in the order given but an exact repeat of a
+    ///   country and rating.
     /// </summary>
     /// <param name="ratings">The ratings, which may be left out.</param>
     /// <param name="paramName">The argument they came in through.</param>
@@ -33,7 +34,7 @@ internal static class MetadataContentRatings
     internal static List<MetadataContentRatingData> Check(IReadOnlyList<MetadataContentRatingData>? ratings, string paramName)
     {
         var checkedRatings = new List<MetadataContentRatingData>();
-        var countries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<(string Country, string Rating)>();
         foreach (var rating in ratings ?? [])
         {
             ArgumentNullException.ThrowIfNull(rating, paramName);
@@ -43,7 +44,7 @@ internal static class MetadataContentRatings
                 ?? throw new ArgumentException("A content rating must name its country.", paramName);
             if (string.IsNullOrWhiteSpace(rating.Rating) || rating.Rating.Length > MaxRatingLength)
                 throw new ArgumentException($"A content rating must be 1 to {MaxRatingLength} characters, but got '{rating.Rating}'.", paramName);
-            if (!countries.Add(countryCode))
+            if (!seen.Add((countryCode.ToUpperInvariant(), rating.Rating)))
                 continue;
 
             var languageCode = MetadataEntries.CheckLanguageCode(rating.LanguageCode, paramName) ?? countryCode.FromIso3166ToIso639();
@@ -58,8 +59,9 @@ internal static class MetadataContentRatings
     #region Planning
 
     /// <summary>
-    ///   Works out which rows make an entry's ratings the ones given. A
-    ///   country's row is reused, and left out when nothing about it changed.
+    ///   Works out which rows make an entry's ratings the ones given. The row
+    ///   of a country and rating is reused, and left out when nothing about
+    ///   it changed.
     /// </summary>
     /// <param name="repository">The ratings' table.</param>
     /// <param name="entry">The rated entry.</param>
@@ -73,8 +75,8 @@ internal static class MetadataContentRatings
         => MetadataRows.Replace(
             repository.GetByEntry(entry),
             ratings,
-            row => row.CountryCode.ToUpperInvariant(),
-            rating => rating.CountryCode.ToUpperInvariant(),
+            row => (row.CountryCode.ToUpperInvariant(), row.Rating),
+            rating => (rating.CountryCode.ToUpperInvariant(), rating.Rating),
             (row, rating, position) =>
             {
                 MetadataRows.Place(row, entry, position);

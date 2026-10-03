@@ -5,7 +5,7 @@ using Shoko.Server.Repositories;
 
 namespace Shoko.Server.Models.AniDB;
 
-public class AniDB_Anime_Similar : IAnidbSuggestion
+public class AniDB_Anime_Similar : ISuggestedMetadata<IAnidbAnime, ISeries>
 {
     public int AniDB_Anime_SimilarID { get; set; }
 
@@ -23,15 +23,11 @@ public class AniDB_Anime_Similar : IAnidbSuggestion
     /// </summary>
     public int Ordering { get; set; }
 
-    #region IAnidbSuggestion Implementation
+    #region ISuggestedMetadata<IAnidbAnime, ISeries> Implementation
 
-    IAnidbAnime? ISuggestedMetadata<IAnidbAnime, IAnidbAnime>.Base => RepoFactory.AniDB_Anime.GetByID(AnimeID);
+    IAnidbAnime? ISuggestedMetadata<IAnidbAnime, ISeries>.Base => RepoFactory.AniDB_Anime.GetByID(AnimeID);
 
-    IAnidbAnime? ISuggestedMetadata<IAnidbAnime, IAnidbAnime>.Suggested => RepoFactory.AniDB_Anime.GetByID(SimilarAnimeID);
-
-    int IAnidbSuggestion.ApprovalVotes => Approval;
-
-    int IAnidbSuggestion.TotalVotes => Total;
+    ISeries? ISuggestedMetadata<IAnidbAnime, ISeries>.Suggested => RepoFactory.AniDB_Anime.GetByID(SimilarAnimeID);
 
     #endregion
 
@@ -51,9 +47,12 @@ public class AniDB_Anime_Similar : IAnidbSuggestion
 
     int? ISuggestedMetadata.Order => Ordering;
 
-    double? ISuggestedMetadata.ApprovalRating => Total is 0 ? null : Approval / (double)Total * 100;
+    int? ISuggestedMetadata.ApprovalVotes => Approval;
 
     int? ISuggestedMetadata.Votes => Total;
+
+    // AniDB votes on its suggestions but keeps no net score.
+    int? ISuggestedMetadata.Score => null;
 
     MetadataSource ISuggestedMetadata.Source => MetadataSource.AniDB;
 
@@ -64,5 +63,4 @@ public class AniDB_Anime_Similar : IAnidbSuggestion
             other.SuggestedID == ((ISuggestedMetadata)this).SuggestedID;
 
     #endregion
-
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
@@ -13,6 +14,12 @@ public class AniDB_CharacterRepository(DatabaseFactory databaseFactory) : BaseCa
 
     protected override int SelectKey(AniDB_Character entity)
         => entity.AniDB_CharacterID;
+
+    protected override void OnBeginSave(AniDB_Character obj)
+    {
+        if (obj.AniDB_CharacterID is 0)
+            obj.CreatedAt = DateTime.Now;
+    }
 
     public override void PopulateIndexes()
     {

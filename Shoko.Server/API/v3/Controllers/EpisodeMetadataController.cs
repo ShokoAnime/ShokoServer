@@ -127,7 +127,8 @@ public class EpisodeMetadataController : ShokoMetadataControllerBase
             [
                 .. _metadataService.GetEpisodeCrossReferences(episode.AnidbEpisodeID, source),
                 .. _metadataService.GetMovieCrossReferences(episode.AnidbEpisodeID, source),
-            ]
+            ],
+            _metadataService
         ).ToList();
     }
 

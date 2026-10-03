@@ -38,11 +38,23 @@ public class AniDB_Character : ICharacter, IInlineTextSource
 
     public DateTime LastUpdated { get; set; }
 
+    /// <summary>
+    ///   When the character was first stored, in local time. Set once, on the
+    ///   first save.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
     #endregion
 
     #region IMetadata Implementation
 
     MetadataGuid IMetadata.ID => new(MetadataSource.AniDB, MetadataEntityType.Character, CharacterID.ToString());
+
+    #endregion
+
+    #region IWithCreationDate Implementation
+
+    DateTime IWithCreationDate.CreatedAt => CreatedAt.ToUniversalTime();
 
     #endregion
 
@@ -95,6 +107,9 @@ public class AniDB_Character : ICharacter, IInlineTextSource
     #endregion
 
     #region ICharacter Implementation
+
+    // Characters come with their anime, and nothing stores when one was last fetched.
+    DateTime? ICharacter.LastRefreshedAt => null;
 
     IReadOnlyList<ITitle> ICharacter.AlternativeNames => [];
 

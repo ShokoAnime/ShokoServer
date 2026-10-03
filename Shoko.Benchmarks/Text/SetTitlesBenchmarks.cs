@@ -9,10 +9,6 @@ namespace Benchmarks.Text;
 ///   Writing an AniDB anime's titles on import: the diff <c>AnimeCreator</c> runs against the stored titles, and
 ///   the write through the text store, for every anime in the library, with the writes landing in the cache.
 /// </summary>
-/// <remarks>
-///   The TMDB side (<c>TmdbMetadataUpdater.UpdateTitlesAndOverviewsWithTuple</c>) reads and writes its rows through
-///   direct repositories, so it cannot run without a database and has no baseline here.
-/// </remarks>
 [BenchmarkCategory("Text")]
 [MemoryDiagnoser]
 public class SetTitlesBenchmarks

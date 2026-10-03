@@ -10,5 +10,4 @@ public static class JobKeyGroup
     public const string Legacy = "Legacy";
     public const string Metadata = "Metadata";
     public const string System = "System";
-    public const string TMDB = "TMDB";
 }

@@ -8,7 +8,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
-using Shoko.Server.Models.TMDB;
+using Shoko.Server.Models.Metadata;
 
 using TitleLanguage = Shoko.Abstractions.Metadata.Enums.TitleLanguage;
 
@@ -111,12 +111,6 @@ public class TmdbSeason
     public int HiddenEpisodeCount { get; init; }
 
     /// <summary>
-    /// Indicates the season is locked for edits in TMDB.
-    /// </summary>
-    [Required]
-    public bool IsLocked { get; init; }
-
-    /// <summary>
     /// When the local metadata was first created.
     /// </summary>
     [Required]
@@ -129,20 +123,20 @@ public class TmdbSeason
     [Required]
     public DateTime LastUpdatedAt { get; init; }
 
-    public TmdbSeason(TMDB_Season season, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
+    public TmdbSeason(Metadata_Season season, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         var include = includeDetails ?? default;
         var preferredOverview = season.GetPreferredOverview();
         var preferredTitle = season.GetPreferredTitle();
 
-        ID = season.TmdbSeasonID.ToString();
+        ID = season.ProviderID;
         ShowID = season.TmdbShowID;
         AlternateOrderingID = season.TmdbShowID.ToString();
-        Title = preferredTitle!.Value;
+        Title = preferredTitle.Value;
         if (include.HasFlag(IncludeDetails.Titles))
             Titles = season.GetAllTitles()
                 .ToTitleDto(season.EnglishTitle, preferredTitle, language);
-        Overview = preferredOverview!.Value;
+        Overview = preferredOverview.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = season.GetAllOverviews()
                 .ToOverviewDto(season.EnglishOverview, preferredOverview, language);
@@ -150,12 +144,12 @@ public class TmdbSeason
             Images = ((IWithImages)season).GetImages()
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
-            Cast = season.Cast
+            Cast = season.TmdbCast
                 .Select(Role.FromTmdb)
                 .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
-            Crew = season.Crew
+            Crew = season.TmdbCrew
                 .Select(Role.FromTmdb)
                 .OfType<Role>()
                 .ToList();
@@ -171,12 +165,11 @@ public class TmdbSeason
         SeasonNumber = season.SeasonNumber;
         EpisodeCount = season.EpisodeCount;
         HiddenEpisodeCount = season.HiddenEpisodeCount;
-        IsLocked = false;
         CreatedAt = season.CreatedAt.ToUniversalTime();
         LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime();
     }
 
-    public TmdbSeason(TMDB_AlternateOrdering_Season season, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
+    public TmdbSeason(TmdbCompatibility.AlternateOrderingSeason season, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
     {
         var include = includeDetails ?? default;
 
@@ -195,8 +188,8 @@ public class TmdbSeason
         if (include.HasFlag(IncludeDetails.YearlySeasons))
             YearlySeasons = season.YearlySeasons.ToV3Dto();
         if (include.HasFlag(IncludeDetails.DaysOfWeek))
-            DaysOfWeek = season.TmdbAlternateOrderingEpisodes
-                .Select(e => e.TmdbEpisode?.AiredAt?.DayOfWeek)
+            DaysOfWeek = season.ListedEpisodes
+                .Select(e => e.AiredAt?.DayOfWeek)
                 .WhereNotNullOrDefault()
                 .Distinct()
                 .Order()
@@ -204,9 +197,8 @@ public class TmdbSeason
         SeasonNumber = season.SeasonNumber;
         EpisodeCount = season.EpisodeCount;
         HiddenEpisodeCount = season.HiddenEpisodeCount;
-        IsLocked = season.IsLocked;
-        CreatedAt = season.CreatedAt.ToUniversalTime();
-        LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime();
+        CreatedAt = season.CreatedAt;
+        LastUpdatedAt = season.LastUpdatedAt;
     }
 
     [Flags]

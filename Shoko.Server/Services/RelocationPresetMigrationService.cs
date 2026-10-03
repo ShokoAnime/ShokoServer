@@ -108,7 +108,10 @@ public class RelocationPresetMigrationService(
                 try
                 {
                     var bytes = File.ReadAllBytes(file);
-                    var config = bytes.Length is 0 ? null : MessagePackSerializer.Typeless.Deserialize(bytes) as IRelocationProviderConfiguration;
+                    // The type of the WebAOM renamer's settings went with it to its plugin, so they are carried over by name.
+                    var config = typeName == WebAOMRenamerMigration.LegacyProviderTypeName
+                        ? WebAOMRenamerMigration.CarryOverPackedSettings(configurationService, provider, bytes)
+                        : bytes.Length is 0 ? null : MessagePackSerializer.Typeless.Deserialize(bytes) as IRelocationProviderConfiguration;
                     if (config is null && bytes.Length is > 0)
                     {
                         logger.LogWarning("Failed to re-import failed migration preset: deserialized config is null or wrong type: {File}", file);
@@ -138,8 +141,9 @@ public class RelocationPresetMigrationService(
     }
 
     private RelocationProviderInfo? FindProvider(string typeName)
-        => relocationService.GetAvailableProviders()
-            .FirstOrDefault(p => p.Provider.GetType().FullName == typeName);
+        => typeName == WebAOMRenamerMigration.LegacyProviderTypeName
+            ? relocationService.GetProviderInfo(WebAOMRenamerMigration.ProviderID)
+            : relocationService.GetAvailableProviders().FirstOrDefault(p => p.Provider.GetType().FullName == typeName);
 
     private void CleanupEmptyDirs(string path)
     {

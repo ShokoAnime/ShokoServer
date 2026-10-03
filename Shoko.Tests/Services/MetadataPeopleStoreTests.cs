@@ -7,6 +7,7 @@ using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
+using Shoko.Server.Repositories.Direct.Metadata;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -16,7 +17,7 @@ namespace Shoko.Tests.Services;
 /// <summary>
 /// Covers <see cref="MetadataPeopleStore"/> against in-memory tables: credits
 /// keep the order they were given, a new set replaces the old one and says
-/// how much changed, a credit naming someone missing changes nothing, a
+/// how much changed, a credit refused changes nothing, a
 /// person's alternative names live in the text table, and people no credit
 /// names are stamped as orphaned and removed after a cutoff.
 /// </summary>
@@ -37,9 +38,9 @@ public class MetadataPeopleStoreTests
         public Metadata_CharacterRepository Characters { get; }
             = CachedRepo.Build<Metadata_CharacterRepository, int, Metadata_Character>(row => row.Metadata_CharacterID);
 
-        public Metadata_CastRepository Cast { get; } = CachedRepo.Build<Metadata_CastRepository, int, Metadata_Cast>(row => row.Metadata_CastID);
+        public Metadata_CastRepository Cast { get; } = new InMemoryCastRepository();
 
-        public Metadata_CrewRepository Crew { get; } = CachedRepo.Build<Metadata_CrewRepository, int, Metadata_Crew>(row => row.Metadata_CrewID);
+        public Metadata_CrewRepository Crew { get; } = new InMemoryCrewRepository();
 
         public TextCache Texts { get; } = new();
 
@@ -186,17 +187,20 @@ public class MetadataPeopleStoreTests
     }
 
     [Fact]
-    public void ACreditNamingSomeoneMissingChangesNothing()
+    public void ACreditRefusedChangesNothing()
     {
         var tables = Seeded();
         var store = tables.Store();
         store.SetCast(_series, [Role("x1", "c1")]);
         var before = tables.Writer.Writes;
 
-        Assert.Throws<ArgumentException>(() => store.SetCast(_series, [Role("x2", "c2"), Role("x9", null)]));
-        Assert.Throws<ArgumentException>(() => store.SetCrew(_series, [Job("nobody", "Music")]));
+        // The second credit names a character as its creator, so neither is written.
+        Assert.Throws<ArgumentException>(() => store.SetCast(_series, [Role("x9", "c9"), Role("x8", null) with { CreatorID = CharacterID("x1") }]));
+        Assert.Throws<ArgumentException>(() => store.SetCrew(_series, [Job("c9", "Music"), Job("c1", "Music") with { LanguageCode = new string('x', 33) }]));
 
         Assert.Equal(before, tables.Writer.Writes);
+        Assert.Null(tables.Creators.GetByProviderID(TestSources.AniList, "c9"));
+        Assert.Null(tables.Characters.GetByProviderID(TestSources.AniList, "x9"));
         Assert.Equal(["x1"], store.GetCast(_series).Select(cast => cast.Name));
     }
 
@@ -207,7 +211,12 @@ public class MetadataPeopleStoreTests
         var store = tables.Store();
         store.SaveCreators([Creator("t1", "Elsewhere", TestSources.Plugin)]);
 
-        Assert.Throws<ArgumentException>(() => store.SetCrew(_series, [Job("t1", "Music")]));
+        Assert.Throws<ArgumentException>(() => store.SetCrew(_series, [Job("c1", "Music") with { CreatorID = CreatorID("t1", TestSources.Plugin) }]));
+
+        // The same ID on the credit's own source is another creator, kept as a stub.
+        store.SetCrew(_series, [Job("t1", "Music")]);
+        Assert.True(tables.Creators.GetByProviderID(TestSources.AniList, "t1")!.IsStub);
+        Assert.False(tables.Creators.GetByProviderID(TestSources.Plugin, "t1")!.IsStub);
     }
 
     [Fact]
@@ -378,7 +387,7 @@ public class MetadataPeopleStoreTests
         Assert.NotNull(store.GetCreator(CreatorID("t1", TestSources.Plugin)));
         Assert.NotNull(tables.Creators.GetByProviderID(TestSources.AniList, "c3")!.LastOrphanedAt);
         Assert.Empty(tables.Texts.GetAll());
-        Assert.Throws<ArgumentException>(() => store.RemoveOrphaned(MetadataSource.TMDB, DateTime.Now));
+        Assert.Throws<ArgumentException>(() => store.RemoveOrphaned(MetadataSource.AniDB, DateTime.Now));
     }
 
     [Fact]

@@ -3,6 +3,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 
 namespace Shoko.Server.Mappings;
 
@@ -30,7 +31,10 @@ public class Metadata_SeriesMap : ClassMap<Metadata_Series>
         Map(x => x.FavoriteCount).Nullable();
         Map(x => x.Resources).CustomType<JsonListConverter<Resource>>().Nullable();
         Map(x => x.CrossSourceIDs).CustomType<JsonListConverter<MetadataGuid>>().Nullable();
+        Map(x => x.ExtraData).CustomType<JsonObjectConverter<Metadata_SeriesExtra>>().Nullable();
+        Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
+        Map(x => x.LastRefreshedAt).Nullable();
         Map(x => x.PreferredOrderingID).CustomType<MetadataGuidType>().Nullable();
     }
 }

@@ -12,6 +12,7 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Image.Exceptions;
 using Shoko.Abstractions.Metadata.Image.Options;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Server.Models.Metadata;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
@@ -131,11 +132,16 @@ public class MetadataImageReconcilerTests
             => Xrefs.Single(xref => xref.ImageID == IImageManager.GetIDForImageSourceAndResourceID(Source, resourceID) && xref.ImageType == type);
     }
 
-    private static IWithImages Entity(MetadataEntityType entityType)
-        => Mock.Of<IWithImages>(entity => entity.ID == new MetadataGuid(Source, entityType, "1"));
+    private static IWithImages Entity(MetadataEntityType entityType, string? defaultPoster = null)
+    {
+        var entity = new Mock<IWithImages>();
+        entity.SetupGet(e => e.ID).Returns(new MetadataGuid(Source, entityType, "1"));
+        entity.As<IMetadataDefaultImageSource>().Setup(e => e.GetDefaultResourceID(ImageEntityType.Primary)).Returns(defaultPoster);
+        return entity.Object;
+    }
 
-    private static ImageCandidate Poster(string resourceID, string? language = null, bool isDefault = false, double? rating = null)
-        => new() { ResourceID = resourceID, ImageType = ImageEntityType.Primary, LanguageCode = language, IsDefault = isDefault, Rating = rating, RatingVotes = rating is null ? null : 3 };
+    private static ImageCandidate Poster(string resourceID, string? language = null, double? rating = null)
+        => new() { ResourceID = resourceID, ImageType = ImageEntityType.Primary, LanguageCode = language, Rating = rating, RatingVotes = rating is null ? null : 3 };
 
     private static MetadataImageReconciler Reconciler(FakeImages images)
         => new(images.Manager.Object, new MetadataEntryLocks(), NullLogger<MetadataImageReconciler>.Instance);
@@ -170,15 +176,33 @@ public class MetadataImageReconcilerTests
     }
 
     [Fact]
-    public async Task TheDefaultIsAlwaysDesired()
+    public async Task TheStoredDefaultTakesTheFirstSlotInAnyLanguage()
+    {
+        var images = new FakeImages();
+        var settings = new MetadataImageSettings { MaxAutoPosters = 2, InternalImageLanguageOrder = ["en"] };
+
+        await Reconciler(images).Reconcile(Entity(MetadataEntityType.Movie, "de.jpg"), Source, [
+            Poster("en.jpg", "en"),
+            Poster("en-2.jpg", "en"),
+            Poster("de.jpg", "de"),
+        ], settings);
+
+        Assert.Equal([true, true, false], new[] { "de.jpg", "en.jpg", "en-2.jpg" }.Select(image => images.Of(image).IsDesired));
+    }
+
+    [Fact]
+    public async Task TheStoredDefaultKeepsItsPlaceInTheLanguageOrder()
     {
         var images = new FakeImages();
         var settings = new MetadataImageSettings { MaxAutoPosters = 1, InternalImageLanguageOrder = ["en"] };
 
-        await Reconciler(images).Reconcile(Entity(MetadataEntityType.Movie), Source, [Poster("en.jpg", "en"), Poster("de.jpg", "de", isDefault: true)], settings);
+        await Reconciler(images).Reconcile(Entity(MetadataEntityType.Movie, "de.jpg"), Source, [
+            Poster("fr.jpg", "fr"),
+            Poster("de.jpg", "de"),
+            Poster("en.jpg", "en"),
+        ], settings);
 
-        Assert.True(images.Of("en.jpg").IsDesired);
-        Assert.True(images.Of("de.jpg").IsDesired);
+        Assert.Equal([0, 1, 2], new[] { "en.jpg", "fr.jpg", "de.jpg" }.Select(image => images.Of(image).Ordering));
     }
 
     [Fact]
@@ -309,7 +333,7 @@ public class MetadataImageReconcilerTests
         var settings = new MetadataImageSettings { AutoDownloadPosters = type is not ImageEntityType.Primary, AutoDownloadBanners = type is not ImageEntityType.Banner };
 
         var linked = await Reconciler(images).Reconcile(Entity(MetadataEntityType.Series), Source, [
-            new() { ResourceID = "new.jpg", ImageType = type, IsDefault = true },
+            new() { ResourceID = "new.jpg", ImageType = type },
         ], settings);
 
         Assert.Equal(0, linked);
@@ -323,7 +347,7 @@ public class MetadataImageReconcilerTests
         var images = new FakeImages();
 
         await Reconciler(images).Reconcile(Entity(MetadataEntityType.Series), Source, [
-            new() { ResourceID = "disc.png", ImageType = ImageEntityType.Disc, IsDefault = true },
+            new() { ResourceID = "disc.png", ImageType = ImageEntityType.Disc },
         ], new());
 
         Assert.False(images.Of("disc.png", ImageEntityType.Disc).IsDesired);

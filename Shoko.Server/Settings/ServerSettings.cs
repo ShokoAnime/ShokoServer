@@ -96,6 +96,11 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     /// <inheritdoc />
     public bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 
+    /// <inheritdoc />
+    [Display(Name = "Completion Threshold (%)")]
+    [Range(50, 100, ErrorMessage = "Completion Threshold must be between 50 and 100")]
+    public int CompletionThresholdPercent { get; set; } = 95;
+
     /// <summary>
     /// Configure the image settings for Shoko.
     /// </summary>
@@ -139,12 +144,6 @@ public class ServerSettings : IServerSettings, INewtonsoftJsonConfiguration, IHi
     /// </summary>
     [Display(Name = "AniDB")]
     public AniDbSettings AniDb { get; set; } = new();
-
-    /// <summary>
-    /// Configure the information Shoko retrieves from TMDB for the series in
-    /// your collection.
-    /// </summary>
-    public TMDBSettings TMDB { get; set; } = new();
 
     /// <inheritdoc />
     public MetadataSettings Metadata { get; set; } = new();

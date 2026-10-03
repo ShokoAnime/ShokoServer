@@ -58,28 +58,43 @@ internal static class ExpressionDiscovery
 
     /// <summary>
     /// The parameters of the expressions asking whether a source gives a tag,
-    /// genre or keyword: the sources, every name stored, TMDB's included, and
-    /// the (source, name) pairs that exist.
+    /// genre or keyword: the sources, every name stored, and the (source,
+    /// name) pairs that exist.
     /// </summary>
     /// <param name="kinds">The kinds of tag to offer.</param>
-    /// <param name="tmdbNames">TMDB's own names of that kind, kept on its models.</param>
     /// <returns>The sources, the names and the pairs.</returns>
-    private static (string[] Parameters, string[] SecondParameters, string[][] ParameterPairs) SourceTagParameters(
-        IReadOnlyCollection<TagKind> kinds,
-        IEnumerable<string> tmdbNames
-    )
+    private static (string[] Parameters, string[] SecondParameters, string[][] ParameterPairs) SourceTagParameters(IReadOnlyCollection<TagKind> kinds)
     {
         var sources = LinkableSources;
         var tags = RepoFactory.Metadata_Tag.GetAll()
             .Where(tag => kinds.Contains(tag.Kind))
             .Select(tag => (Source: tag.Source.Value, tag.Name))
-            .Concat(tmdbNames.Select(name => (Source: MetadataSource.TMDB.Value, Name: name)))
             .ToList();
         string[] names = [.. tags
             .Select(tag => tag.Name)
             .ToHashSet(StringComparer.InvariantCultureIgnoreCase)
             .Order(StringComparer.InvariantCultureIgnoreCase)];
         return (sources, names, SourceTagPairs(tags, sources));
+    }
+
+    /// <summary>
+    /// The names of TMDB's genres or keywords on its shows, its movies or
+    /// both, each once, sorted.
+    /// </summary>
+    /// <param name="kind">Genres or keywords.</param>
+    /// <param name="entityType">Only the shows' or only the movies', or <c>null</c> for both.</param>
+    /// <returns>The names.</returns>
+    private static string[] TmdbTagNames(TagKind kind, MetadataEntityType? entityType)
+    {
+        var tags = RepoFactory.Metadata_Tag.GetBySource(MetadataSource.TMDB).Where(tag => tag.Kind == kind).ToList();
+        return
+        [
+            .. tags
+                .Where(tag => entityType is null || RepoFactory.Metadata_Tag_Entry.GetByTagID(tag.Metadata_TagID).Any(entry => entry.EntityType == entityType))
+                .Select(tag => tag.Name)
+                .ToHashSet(StringComparer.InvariantCultureIgnoreCase)
+                .Order(StringComparer.InvariantCultureIgnoreCase),
+        ];
     }
 
     /// <summary>
@@ -241,61 +256,25 @@ internal static class ExpressionDiscovery
                 null
             ),
 
-            nameof(HasTmdbMovieKeywordExpression) =>
-            (
-                RepoFactory.TMDB_Movie.GetAllKeywords().ToArray(),
-                null,
-                null
-            ),
+            nameof(HasTmdbMovieKeywordExpression) => (TmdbTagNames(TagKind.Keyword, MetadataEntityType.Movie), null, null),
 
-            nameof(HasTmdbMovieGenreExpression) =>
-            (
-                RepoFactory.TMDB_Movie.GetAllGenres().ToArray(),
-                null,
-                null
-            ),
+            nameof(HasTmdbMovieGenreExpression) => (TmdbTagNames(TagKind.Genre, MetadataEntityType.Movie), null, null),
 
-            nameof(HasTmdbShowKeywordExpression) =>
-            (
-                RepoFactory.TMDB_Show.GetAllKeywords().ToArray(),
-                null,
-                null
-            ),
+            nameof(HasTmdbShowKeywordExpression) => (TmdbTagNames(TagKind.Keyword, MetadataEntityType.Series), null, null),
 
-            nameof(HasTmdbShowGenreExpression) =>
-            (
-                RepoFactory.TMDB_Show.GetAllGenres().ToArray(),
-                null,
-                null
-            ),
+            nameof(HasTmdbShowGenreExpression) => (TmdbTagNames(TagKind.Genre, MetadataEntityType.Series), null, null),
 
-            nameof(HasTmdbKeywordExpression) =>
-            (
-                RepoFactory.TMDB_Movie.GetAllKeywords()
-                    .Concat(RepoFactory.TMDB_Show.GetAllKeywords())
-                    .ToHashSet(StringComparer.InvariantCultureIgnoreCase)
-                    .ToArray(),
-                null,
-                null
-            ),
+            nameof(HasTmdbKeywordExpression) => (TmdbTagNames(TagKind.Keyword, null), null, null),
 
-            nameof(HasTmdbGenreExpression) =>
-            (
-                RepoFactory.TMDB_Movie.GetAllGenres()
-                    .Concat(RepoFactory.TMDB_Show.GetAllGenres())
-                    .ToHashSet(StringComparer.InvariantCultureIgnoreCase)
-                    .ToArray(),
-                null,
-                null
-            ),
+            nameof(HasTmdbGenreExpression) => (TmdbTagNames(TagKind.Genre, null), null, null),
 
             _ when !TakesSourceParameter(filterType) => (null, null, null),
 
             nameof(HasSourceGenreExpression) =>
-                SourceTagParameters([TagKind.Genre], RepoFactory.TMDB_Movie.GetAllGenres().Concat(RepoFactory.TMDB_Show.GetAllGenres())),
+                SourceTagParameters([TagKind.Genre]),
 
             nameof(HasSourceTagExpression) =>
-                SourceTagParameters([TagKind.Tag, TagKind.Keyword], RepoFactory.TMDB_Movie.GetAllKeywords().Concat(RepoFactory.TMDB_Show.GetAllKeywords())),
+                SourceTagParameters([TagKind.Tag, TagKind.Keyword]),
 
             _ =>
             (

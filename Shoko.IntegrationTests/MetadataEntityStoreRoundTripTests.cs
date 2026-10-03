@@ -2,10 +2,12 @@ using System;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
@@ -79,6 +81,7 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
             ReleaseStatus = ReleaseStatus.Finished,
             SourceMaterial = SourceMaterial.Manga,
             OriginalLanguageCode = "ja",
+            ProductionCountries = ["JP", " US ", "jp", ""],
             Popularity = 1234.5,
             FavoriteCount = 99,
             Resources = [new() { Type = ResourceType.Website, Name = "Homepage", Url = "https://example.com/series", ID = "series-home" }],
@@ -111,7 +114,16 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
                     EpisodeNumber = 1,
                     AirDate = new DateOnly(2024, 1, 11),
                 },
-                new() { ID = ID(MetadataEntityType.Episode, "entity-special-1"), EpisodeNumber = 1, Type = EpisodeType.Special },
+                new()
+                {
+                    ID = ID(MetadataEntityType.Episode, "entity-special-1"),
+                    SeasonNumber = 0,
+                    EpisodeNumber = 1,
+                    Type = EpisodeType.Special,
+                    AirsBeforeSeasonNumber = 1,
+                    AirsBeforeEpisodeNumber = 1,
+                    AirsAfterSeasonNumber = 2,
+                },
             ],
         });
         tags.SaveTags([new() { ID = ID(MetadataEntityType.Tag, "entity-tag"), Name = "Isekai" }]);
@@ -122,8 +134,10 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
             ID = ID(MetadataEntityType.Movie, "entity-movie-1"),
             Titles = [Title("Entity Movie")],
             ReleaseDate = new DateOnly(2022, 12, 24),
+            Runtime = TimeSpan.FromSeconds(5730.4),
             Video = true,
             OriginalLanguageCode = "ja",
+            ProductionCountries = ["JP"],
             Rating = 6.5,
             RatingVotes = 3,
             Resources = [new() { Type = ResourceType.Streaming, Name = "Watch", Url = "https://example.com/watch" }],
@@ -149,6 +163,13 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal((ReleaseStatus.Finished, SourceMaterial.Manga, "ja", 1234.5, 99), (row.ReleaseStatus, row.SourceMaterial, row.OriginalLanguageCode, row.Popularity, row.FavoriteCount));
         Assert.Equal(("https://example.com/series", "series-home"), (Assert.Single(row.Resources).Url, row.Resources[0].ID));
         Assert.Equal(["imdb://series/tt0000002", "anidb://series/1"], storedSeries.CrossSourceIDs.Select(id => id.ToString()));
+        Assert.Equal(["JP", "US"], storedSeries.ProductionCountries);
+        // A new entry is created when it is first written.
+        var createdAt = row.CreatedAt;
+        Assert.Equal(row.LastUpdatedAt, createdAt);
+        Assert.InRange(createdAt, DateTime.Now.AddMinutes(-5), DateTime.Now.AddMinutes(1));
+        Assert.All(storedSeries.Seasons, season => Assert.Equal(createdAt, ((IWithCreationDate)season).CreatedAt));
+        Assert.All(storedSeries.Episodes, episode => Assert.Equal(createdAt, ((IWithCreationDate)episode).CreatedAt));
         Assert.Equal(["Entity Series", "エンティティ"], storedSeries.Titles.Select(title => title.Value));
         Assert.Equal([TitleType.Main, TitleType.Official], storedSeries.Titles.Select(title => title.Type));
         Assert.Equal(longText, Assert.Single(storedSeries.Overviews).Value);
@@ -174,12 +195,18 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal(2, longEpisode?.SeasonNumber);
         Assert.Equal(new DateOnly(2024, 1, 11), longEpisode?.AirDate);
         Assert.Null(longEpisode?.AirDateWithTime);
-        Assert.Equal(EpisodeType.Special, seriesStore.GetEpisode(ID(MetadataEntityType.Episode, "entity-special-1"))?.Type);
+        var special = Assert.IsType<Metadata_Episode>(seriesStore.GetEpisode(ID(MetadataEntityType.Episode, "entity-special-1")));
+        Assert.Equal(EpisodeType.Special, special.Type);
+        Assert.Equal(new Metadata_EpisodeExtra { AirsBeforeSeasonNumber = 1, AirsBeforeEpisodeNumber = 1, AirsAfterSeasonNumber = 2 }, special.ExtraData);
+        Assert.Null(Assert.IsType<Metadata_Episode>(episode).ExtraData);
 
         var movie = movieStore.GetMovie(ID(MetadataEntityType.Movie, "entity-movie-1"));
         Assert.NotNull(movie);
         Assert.Equal((new DateTime(2022, 12, 24), true, false, 6.5, 3), (movie.ReleaseDate, movie.Video, movie.Restricted, movie.Rating, movie.RatingVotes));
         Assert.Equal("ja", movie.OriginalLanguageCode);
+        Assert.Equal(["JP"], movie.ProductionCountries);
+        Assert.Equal(TimeSpan.FromSeconds(5730), movie.Runtime);
+        Assert.Equal(((Metadata_Movie)movie).LastUpdatedAt, ((IWithCreationDate)movie).CreatedAt);
         Assert.Equal("Entity Movie", movie.DefaultTitle.Value);
         Assert.Equal("imdb://movie/tt0000003", Assert.Single(movie.CrossSourceIDs).ToString());
         Assert.Equal(("DE", "FSK 12"), movie.ContentRatings.Select(rating => (rating.CountryCode, rating.Value)).Single());
@@ -188,6 +215,8 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
             collectionStore.GetMembers(ID(MetadataEntityType.Collection, "entity-collection-1"))
         );
         Assert.Equal("Entity Franchise", collectionStore.GetCollectionsWith(series).Single().DefaultTitle.Value);
+        var storedCollection = Assert.IsType<Metadata_Collection>(collectionStore.GetCollectionsWith(series).Single());
+        Assert.Equal(storedCollection.LastUpdatedAt, storedCollection.CreatedAt);
 
         seriesStore.SaveSeries(new()
         {
@@ -199,6 +228,9 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Reload();
 
         Assert.Equal(["entity-episode-1"], seriesStore.GetSeries(series)!.Episodes.Select(item => item.ID.ID));
+        // A later write leaves the creation date alone.
+        Assert.Equal(createdAt, Assert.IsType<Metadata_Series>(seriesStore.GetSeries(series)).CreatedAt);
+        Assert.Equal(createdAt, ((IWithCreationDate)seriesStore.GetEpisode(ID(MetadataEntityType.Episode, "entity-episode-1"))!).CreatedAt);
         Assert.Null(seriesStore.GetSeason(ID(MetadataEntityType.Season, longID)));
         Assert.Empty(seriesStore.GetSeries(series)!.Titles);
         Assert.Empty(fixture.Services.GetRequiredService<TextCache>().GetRows(ID(MetadataEntityType.Season, "entity-season-1")));
@@ -218,6 +250,33 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Empty(collectionStore.GetCollectionsWith(series));
         Assert.Empty(fixture.Services.GetRequiredService<Metadata_Collection_MemberRepository>().GetAll());
         Assert.Empty(fixture.Services.GetRequiredService<TextCache>().GetRows(series));
+    }
+
+    [Fact]
+    public void AnEpisodesStoredExtrasLoadWithAPropertyTheServerDoesNotKnow()
+    {
+        Assert.True(fixture.Success, fixture.FailureMessage);
+        var seriesStore = fixture.Services.GetRequiredService<IMetadataSeriesStore>();
+        var series = ID(MetadataEntityType.Series, "extra-series");
+        var special = ID(MetadataEntityType.Episode, "extra-special");
+        seriesStore.SaveSeries(new()
+        {
+            ID = series,
+            Episodes = [new() { ID = special, SeasonNumber = 0, EpisodeNumber = 1, Type = EpisodeType.Special, AirsAfterSeasonNumber = 1 }],
+        });
+
+        // What a later server could write, with an extra this one has never heard of.
+        using (var connection = fixture.OpenConnection())
+            Sql.Execute(
+                connection,
+                """UPDATE Metadata_Episode SET ExtraData = '{"AirsBeforeSeasonNumber":2,"SomeLaterExtra":{"a":[1]}}' WHERE ProviderID = 'extra-special'"""
+            );
+        Reload();
+
+        var row = Assert.IsType<Metadata_Episode>(seriesStore.GetEpisode(special));
+        Assert.Equal(new Metadata_EpisodeExtra { AirsBeforeSeasonNumber = 2 }, row.ExtraData);
+
+        seriesStore.RemoveSeries(series);
     }
 
     [Fact]

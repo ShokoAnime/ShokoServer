@@ -18,12 +18,12 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 
 /// <summary>
 ///   Removes what the core stores for a series, film or collection that
-///   nothing links to any more, on a plugin source or on TMDB.
+///   nothing links to any more, on a source the core does not keep itself.
 /// </summary>
 /// <remarks>
-///   Removes the entry from its store with everything stored under it, forgets
-///   its refresh time, removes a series' orderings and lets each provider of the
-///   source clean up (TMDB's clears its own tables). Credited people stay until
+///   Removes the entry from its store with everything stored under it, its
+///   refresh time on its row included, removes a series' orderings and lets each
+///   provider of the source clean up. Credited people stay until
 ///   the orphan purge. Holds the entry's locks throughout; unless forced, an entry
 ///   still linked (or a collection with a linked member) is left alone. Purging a
 ///   series or film queues the purge of each collection holding it.
@@ -36,10 +36,8 @@ public class PurgeMetadataJob(
     IMetadataSeriesStore seriesStore,
     IMetadataMovieStore movieStore,
     IMetadataCollectionStore collectionStore,
-    IMetadataService metadataService,
     MetadataEntityCleanup cleanup,
     MetadataOrderingService orderings,
-    IMetadataRefreshState refreshState,
     MetadataEntryLocks entryLocks,
     MetadataProviderScheduler providerScheduler,
     IJobCancellationAccessor cancellationAccessor,
@@ -69,9 +67,16 @@ public class PurgeMetadataJob(
     public override string Title => "Purging Metadata";
 
     /// <inheritdoc />
-    public override Dictionary<string, object> Details => Force
-        ? new() { ["Entry"] = EntryID, ["Force"] = true }
-        : new() { ["Entry"] = EntryID };
+    public override Dictionary<string, object> Details
+    {
+        get
+        {
+            var details = new Dictionary<string, object>().WithEntry(EntryID);
+            if (Force)
+                details["Force"] = true;
+            return details;
+        }
+    }
 
     #endregion
 
@@ -94,7 +99,7 @@ public class PurgeMetadataJob(
             await RemoveLinksTo(entry, token).ConfigureAwait(false);
 
         var inUse = !Force && (entry.EntityType == MetadataEntityType.Collection
-            ? crossReferences.IsCollectionInUse(collectionStore, metadataService, entry)
+            ? crossReferences.IsCollectionInUse(collectionStore, entry)
             : crossReferences.IsLinked(entry));
         if (inUse)
         {
@@ -107,7 +112,7 @@ public class PurgeMetadataJob(
             ? []
             : collectionStore.GetCollectionsWith(entry).Select(collection => collection.ID).ToList();
 
-        // TMDB keeps its entries in its own tables, which its provider clears below.
+        // The core's own sources keep their entries in tables of their own.
         if (!entry.Source.IsCore)
         {
             var removed = entry.EntityType switch
@@ -122,12 +127,11 @@ public class PurgeMetadataJob(
             // other stores may still hold for the entry is removed on its own.
             if (removed is 0)
                 cleanup.Remove([entry]);
-            refreshState.Forget(entry);
             _logger.LogInformation("Purged {Entry}: {Count} store rows.", entry, removed);
         }
 
-        // Every ordering goes, whoever made it. A stored plugin series lost them with its store
-        // rows already; this covers TMDB's shows and series no longer stored.
+        // Every ordering goes, whoever made it. A stored series lost them with its store rows
+        // already; this covers series no longer stored.
         if (entry.EntityType == MetadataEntityType.Series)
             orderings.RemoveForSeries(entry);
 

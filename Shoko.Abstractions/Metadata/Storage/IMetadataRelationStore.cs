@@ -8,9 +8,9 @@ namespace Shoko.Abstractions.Metadata.Storage;
 ///   provider does not have to.
 /// </summary>
 /// <remarks>
-///   Only a plugin's source can be written; the core keeps the relations of
-///   <c>shoko</c>, <c>user</c>, <c>generated</c>, <c>anidb</c> and
-///   <c>tmdb</c> itself.
+///   Every source but the core's own can be written; the core keeps the
+///   relations of <c>shoko</c>, <c>user</c>, <c>generated</c> and
+///   <c>anidb</c> itself.
 /// </remarks>
 public interface IMetadataRelationStore
 {

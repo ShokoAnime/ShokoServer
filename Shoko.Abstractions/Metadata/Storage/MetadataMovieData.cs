@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata.Storage;
 
@@ -32,6 +33,12 @@ public sealed record MetadataMovieData
     public DateOnly? ReleaseDate { get; init; }
 
     /// <summary>
+    ///   How long the movie runs, or <c>null</c> when not known. Stored to
+    ///   the second.
+    /// </summary>
+    public TimeSpan? Runtime { get; init; }
+
+    /// <summary>
     ///   Whether the movie is for adults only.
     /// </summary>
     public bool Restricted { get; init; }
@@ -46,6 +53,12 @@ public sealed record MetadataMovieData
     ///   the source says. At most 32 characters.
     /// </summary>
     public string? OriginalLanguageCode { get; init; }
+
+    /// <summary>
+    ///   The countries the movie was made in, in order, as ISO 3166-1 codes
+    ///   when the source gives them. A country given twice is kept once.
+    /// </summary>
+    public IReadOnlyList<string> ProductionCountries { get; init; } = [];
 
     /// <summary>
     ///   The source's user rating, on a scale of 1 to 10.
@@ -70,8 +83,17 @@ public sealed record MetadataMovieData
     public IReadOnlyList<MetadataGuid> CrossSourceIDs { get; init; } = [];
 
     /// <summary>
-    ///   The movie's content ratings, in order, one per country. A rating
-    ///   given twice for a country keeps its first place.
+    ///   The movie's content ratings, in order, a country as often as it
+    ///   is rated. A rating given twice for a country keeps its first place.
     /// </summary>
     public IReadOnlyList<MetadataContentRatingData> ContentRatings { get; init; } = [];
+
+    /// <summary>
+    ///   The source's resource ID of the movie's default image of each type,
+    ///   which becomes its pinned default and is always the first downloaded
+    ///   within the type's limit. <c>null</c> leaves the stored defaults as
+    ///   they are, and an empty map clears them. A type the movie has no
+    ///   images of is ignored.
+    /// </summary>
+    public IReadOnlyDictionary<ImageEntityType, string>? DefaultImageResourceIDs { get; init; }
 }

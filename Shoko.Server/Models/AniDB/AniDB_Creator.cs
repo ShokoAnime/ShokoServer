@@ -77,6 +77,12 @@ public class AniDB_Creator : ICreator
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
 
+    /// <summary>
+    ///   When the creator was first stored, in local time. Set once, on the
+    ///   first save.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
     #endregion
 
     public AbstractCreatorType AbstractType => Type switch
@@ -139,7 +145,21 @@ public class AniDB_Creator : ICreator
 
     #endregion
 
+    #region IWithCreationDate Implementation
+
+    DateTime IWithCreationDate.CreatedAt => CreatedAt.ToUniversalTime();
+
+    #endregion
+
     #region ICreator Implementation
+
+    // Nothing stores when the creator was last fetched.
+    DateTime? ICreator.LastRefreshedAt => null;
+
+    // AniDB gives neither a place of birth nor an adult-only mark.
+    string? ICreator.PlaceOfBirth => null;
+
+    bool ICreator.IsRestricted => false;
 
     AbstractCreatorType ICreator.Type => AbstractType;
 

@@ -1,12 +1,11 @@
 using System;
-using Shoko.Abstractions.Metadata.Containers;
 
 namespace Shoko.Abstractions.Metadata.Anidb;
 
 /// <summary>
 /// An AniDB episode.
 /// </summary>
-public interface IAnidbEpisode : IEpisode, IWithUpdateDate
+public interface IAnidbEpisode : IEpisode<IAnidbAnime, IAnidbEpisode>
 {
     /// <summary>
     ///   The ID of the AniDB anime this belongs to, the same ID
@@ -31,11 +30,5 @@ public interface IAnidbEpisode : IEpisode, IWithUpdateDate
     ///   description notes the episode was shown early (at an event, on a
     ///   stream or on one channel) and when the regular run started.
     /// </remarks>
-    DateOnly? RegularAirDate { get => AirDate; }
-
-    /// <summary>
-    /// Get the anidb anime info for the episode.
-    /// </summary>
-    /// <exception cref="NullReferenceException">The series is missing.</exception>
-    new IAnidbAnime Series { get; }
+    DateOnly? RegularAirDate { get; }
 }

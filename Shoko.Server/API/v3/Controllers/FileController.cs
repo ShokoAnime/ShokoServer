@@ -1526,9 +1526,10 @@ public class FileController(
     /// Update either watch status, resume position, or both.
     /// </summary>
     /// <remarks>
-    /// A <c>resumePosition</c> past 97.5% of the runtime marks the file watched
-    /// and clears it for <c>stop</c>, <c>user-interaction</c> or no event; the
-    /// other events store the position as given.
+    /// A <c>resumePosition</c> at or past the completion threshold (95% of the
+    /// runtime by default) marks the file watched and clears it for
+    /// <c>stop</c>, <c>user-interaction</c> or no event; the other events store
+    /// the position as given.
     /// </remarks>
     /// <param name="fileID">VideoLocal ID. Watch status and resume position is kept per file, regardless of how many duplicates the file has.</param>
     /// <param name="eventName">The name of the event that triggered the scrobble.</param>

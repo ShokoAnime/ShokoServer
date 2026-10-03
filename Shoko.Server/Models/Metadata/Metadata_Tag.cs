@@ -95,5 +95,8 @@ public class Metadata_Tag : ITag, IMetadataStoreRow<Metadata_Tag>, IInlineTextSo
 
     string ITag.Overview => Description;
 
+    // Read outside any entity, so it has no weight there.
+    int? ITag.Weight => null;
+
     #endregion
 }

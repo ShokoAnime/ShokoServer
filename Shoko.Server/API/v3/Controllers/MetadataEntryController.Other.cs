@@ -3,13 +3,16 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Metadata;
+using Shoko.Server.API.v3.Models.Metadata.Input;
 
 using Resource = Shoko.Server.API.v3.Models.Common.Resource;
 
@@ -220,8 +223,8 @@ public partial class MetadataEntryController
     /// List the tags of a source.
     /// </summary>
     /// <remarks>
-    /// A plugin source's tags are read from the tag store; AniDB's and TMDB's
-    /// are gathered from their series and movies.
+    /// A plugin source's tags are read from the tag store; a core source's are
+    /// gathered from its series and movies.
     /// </remarks>
     /// <param name="source">The source.</param>
     /// <param name="kind">Only the tags of this kind: tags, genres or keywords.</param>
@@ -503,11 +506,146 @@ public partial class MetadataEntryController
 
     #endregion
 
+    #region Actions
+
+    /// <summary>
+    /// Refresh a creator of a source from the provider refreshing its
+    /// creators one at a time, or fetch it when it is not stored yet.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="id">The source's ID for the creator.</param>
+    /// <param name="body">How to refresh it.</param>
+    /// <param name="cancellationToken">Cancels a refresh waited on.</param>
+    /// <returns>
+    /// 200 when it was waited on, 204 when it was queued, 400 when no provider
+    /// refreshes it or it cannot run now, or 503 while the source is paused.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpPost("Creator/{id}/Action/Refresh")]
+    public Task<ActionResult> RefreshCreator(
+        [FromRoute] MetadataSource source,
+        [FromRoute] string id,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] MetadataEntityRefreshBody body,
+        CancellationToken cancellationToken = default
+    )
+        => RefreshEntity(source, MetadataEntityType.Creator, id, body, CreatorNotFound, cancellationToken);
+
+    /// <summary>
+    /// Refresh a character of a source from the provider refreshing its
+    /// characters one at a time, or fetch it when it is not stored yet.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="id">The source's ID for the character.</param>
+    /// <param name="body">How to refresh it.</param>
+    /// <param name="cancellationToken">Cancels a refresh waited on.</param>
+    /// <returns>
+    /// 200 when it was waited on, 204 when it was queued, 400 when no provider
+    /// refreshes it or it cannot run now, or 503 while the source is paused.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpPost("Character/{id}/Action/Refresh")]
+    public Task<ActionResult> RefreshCharacter(
+        [FromRoute] MetadataSource source,
+        [FromRoute] string id,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] MetadataEntityRefreshBody body,
+        CancellationToken cancellationToken = default
+    )
+        => RefreshEntity(source, MetadataEntityType.Character, id, body, CharacterNotFound, cancellationToken);
+
+    /// <summary>
+    /// Refresh a studio of a source from the provider refreshing its studios
+    /// one at a time, or fetch it when it is not stored yet.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="id">The source's ID for the studio.</param>
+    /// <param name="body">How to refresh it.</param>
+    /// <param name="cancellationToken">Cancels a refresh waited on.</param>
+    /// <returns>
+    /// 200 when it was waited on, 204 when it was queued, 400 when no provider
+    /// refreshes it or it cannot run now, or 503 while the source is paused.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpPost("Studio/{id}/Action/Refresh")]
+    public Task<ActionResult> RefreshStudio(
+        [FromRoute] MetadataSource source,
+        [FromRoute] string id,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] MetadataEntityRefreshBody body,
+        CancellationToken cancellationToken = default
+    )
+        => RefreshEntity(source, MetadataEntityType.Studio, id, body, StudioNotFound, cancellationToken);
+
+    /// <summary>
+    /// Refresh a network of a source from the provider refreshing its
+    /// networks one at a time, or fetch it when it is not stored yet.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="id">The source's ID for the network.</param>
+    /// <param name="body">How to refresh it.</param>
+    /// <param name="cancellationToken">Cancels a refresh waited on.</param>
+    /// <returns>
+    /// 200 when it was waited on, 204 when it was queued, 400 when no provider
+    /// refreshes it or it cannot run now, or 503 while the source is paused.
+    /// </returns>
+    [Authorize("admin")]
+    [HttpPost("Network/{id}/Action/Refresh")]
+    public Task<ActionResult> RefreshNetwork(
+        [FromRoute] MetadataSource source,
+        [FromRoute] string id,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] MetadataEntityRefreshBody body,
+        CancellationToken cancellationToken = default
+    )
+        => RefreshEntity(source, MetadataEntityType.Network, id, body, NetworkNotFound, cancellationToken);
+
+    /// <summary>
+    /// Queues a refresh of a creator, character, studio or network, or runs it
+    /// and waits for it.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="kind">The kind of entry.</param>
+    /// <param name="id">The ID as the route holds it.</param>
+    /// <param name="body">How to refresh it.</param>
+    /// <param name="notFound">What to answer when the ID is not valid.</param>
+    /// <param name="cancellationToken">Cancels a refresh waited on.</param>
+    /// <returns>
+    /// 200 when it ran, 204 when it was queued, 400 when no provider refreshes
+    /// it or it cannot run now, or 503 while the source is paused.
+    /// </returns>
+    private async Task<ActionResult> RefreshEntity(
+        MetadataSource source,
+        MetadataEntityType kind,
+        string id,
+        MetadataEntityRefreshBody body,
+        string notFound,
+        CancellationToken cancellationToken
+    )
+    {
+        if (ToGuid(source, kind, id) is not { } guid)
+            return NotFound(notFound);
+
+        var paused = await QueueWhenPaused(
+            source,
+            () => _refreshService.RefreshEntry(guid, body.Force, prioritize: true, cancellationToken: cancellationToken),
+            "A refresh",
+            body.Immediate
+        ).ConfigureAwait(false);
+        if (paused is not null)
+            return paused;
+
+        if (!await _refreshService.RefreshEntry(guid, body.Force, immediate: body.Immediate, cancellationToken: cancellationToken).ConfigureAwait(false))
+        {
+            ModelState.AddModelError("source", $"No enabled metadata provider refreshes the {kind.Value} entries of {source.Name}, or it cannot run now.");
+            return ValidationProblem(ModelState);
+        }
+
+        return body.Immediate ? Ok() : NoContent();
+    }
+
+    #endregion
+
     #region Helpers | Plain Lookup
 
     /// <summary>
-    /// Look an entry up that is not refreshed on its own, such as a person,
-    /// tag, studio or network.
+    /// Look up a stored person, tag, studio or network, a stub included.
     /// </summary>
     /// <typeparam name="TMetadata">The entry's type.</typeparam>
     /// <param name="source">The source.</param>

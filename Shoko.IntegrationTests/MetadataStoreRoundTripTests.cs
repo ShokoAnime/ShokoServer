@@ -58,8 +58,6 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
         {
             services.GetRequiredService<Metadata_CreatorRepository>(),
             services.GetRequiredService<Metadata_CharacterRepository>(),
-            services.GetRequiredService<Metadata_CastRepository>(),
-            services.GetRequiredService<Metadata_CrewRepository>(),
             services.GetRequiredService<Metadata_TagRepository>(),
             services.GetRequiredService<Metadata_Tag_EntryRepository>(),
             services.GetRequiredService<Metadata_StudioRepository>(),
@@ -93,6 +91,8 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
                 Gender = PersonGender.Female,
                 BirthDay = new(1990, 4, 1),
                 DeathDay = new(null, 11, 30),
+                PlaceOfBirth = " Tokyo, Japan ",
+                IsRestricted = true,
                 Resources = [new() { Type = ResourceType.Website, Name = "Homepage", Url = "https://example.com/kana", LanguageCode = "ja" }],
                 AlternativeNames = [new() { Name = "かな", LanguageCode = "ja" }, new() { Name = "Kana-chan" }],
             },
@@ -141,7 +141,7 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
         tags.SetTags(_series, [new() { TagID = Tag("t2") }, new() { TagID = Tag("t1"), Weight = 60, IsSpoiler = true }]);
         tags.SetTags(_other, [new() { TagID = Tag("t2") }]);
 
-        studios.SaveStudios([new() { ID = Studio("s1"), Name = "Sunrise" }]);
+        studios.SaveStudios([new() { ID = Studio("s1"), Name = "Sunrise", CountryOfOrigin = "JP" }, new() { ID = Studio("s2"), Name = "Bones", CountryOfOrigin = "" }]);
         studios.SetStudios(_series, [new() { StudioID = Studio("s1") }, new() { StudioID = Studio("s1"), Type = StudioType.Production }]);
         studios.SaveNetworks([new() { ID = Network("n1"), Name = "Tokyo MX" }, new() { ID = Network("n2"), Name = "BS11" }]);
         studios.SetNetworks(_series, [Network("n2"), Network("n1")]);
@@ -156,7 +156,7 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
         ]);
 
         suggestions.SetSuggestions(_series, [
-            new() { SuggestedID = new(_plugin, MetadataEntityType.Series, "series-2"), Order = 0, ApprovalRating = 87.5, Votes = 12, Score = -3 },
+            new() { SuggestedID = new(_plugin, MetadataEntityType.Series, "series-2"), Order = 0, ApprovalRating = 87.5, ApprovalVotes = 9, Votes = 12, Score = -3 },
             new() { SuggestedID = new(_plugin, MetadataEntityType.Movie, "film-1"), Kind = SuggestionKind.Similar },
         ]);
 
@@ -168,6 +168,7 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal(new FuzzyDateOnly(1990, 4, 1), creator.BirthDay);
         Assert.Equal(new FuzzyDateOnly(null, 11, 30), creator.DeathDay);
         Assert.Equal(PersonGender.Female, creator.Gender);
+        Assert.Equal(("Tokyo, Japan", true), (creator.PlaceOfBirth, creator.IsRestricted));
         var link = Assert.Single(((Metadata_Creator)creator).Resources);
         Assert.Equal((ResourceType.Website, "Homepage", "https://example.com/kana", "ja"), (link.Type, link.Name, link.Url, link.LanguageCode));
         Assert.Equal(["かな", "Kana-chan"], creator.AlternativeNames.Select(name => name.Value));
@@ -177,6 +178,8 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal("Hiro Studio", company?.Name);
         Assert.Equal(new FuzzyDateOnly(1985, 7), company?.BirthDay);
         Assert.Empty(((Metadata_Creator)company!).Resources);
+        Assert.Equal((null, false), (company.PlaceOfBirth, company.IsRestricted));
+        Assert.Null(((Metadata_Creator)company).ExtraData);
         var character = people.GetCharacter(Character("x1"));
         Assert.Equal("アリス", character?.OriginalName);
         Assert.Equal(PersonGender.NonBinary, character?.Gender);
@@ -189,6 +192,11 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal(creator.ID, cast.Creator?.ID);
         Assert.Equal(["Animation", "Director"], people.GetCrew(_series).Select(crew => crew.Name));
         Assert.Equal(CrewRoleType.Director, people.GetCrew(_series)[1].RoleType);
+        // A person's credits are read back by the person too.
+        Assert.Equal(["Alice (young)"], creator.SeriesCastRoles.Select(role => role.Name));
+        Assert.Equal(["Director"], creator.SeriesCrewRoles.Select(role => role.Name));
+        Assert.Empty(creator.MovieCrewRoles);
+        Assert.Equal(["Alice (young)"], character.SeriesCastRoles.Select(role => role.Name));
 
         Assert.Equal(["Action", "Mecha"], tags.GetTags(_series).Select(tag => tag.Name));
         Assert.Equal([null, 60], tags.GetTags(_series).Select(tag => tag.Weight));
@@ -199,6 +207,8 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal(2, tags.GetEntriesWithTag(Tag("t2")).Count);
 
         Assert.Equal([StudioType.Animation, StudioType.Production], studios.GetStudios(_series).Select(studio => studio.StudioType));
+        Assert.Equal(["JP", "JP"], studios.GetStudios(_series).Select(studio => studio.CountryOfOrigin));
+        Assert.Null(Assert.IsType<Metadata_Studio>(studios.GetStudio(Studio("s2"))).CountryOfOrigin);
         Assert.Equal(["BS11", "Tokyo MX"], studios.GetNetworks(_series).Select(network => network.Name));
         Assert.Equal([_series], studios.GetEntriesForNetwork(Network("n1")));
         Assert.Null(fixture.Services.GetRequiredService<Metadata_StudioRepository>().GetByProviderID(_plugin, "s1")?.LastOrphanedAt);
@@ -208,6 +218,7 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
 
         var suggestion = suggestions.GetSuggestions<ISeries, IMetadata>(_series)[0];
         Assert.Equal(87.5, suggestion.ApprovalRating);
+        Assert.Equal(9, suggestion.ApprovalVotes);
         Assert.Equal(12, suggestion.Votes);
         Assert.Equal(-3, suggestion.Score);
         Assert.Equal(SuggestionKind.Similar, Assert.Single(suggestions.GetSuggestedBy<ISeries, IMovie>(_film)).Kind);
@@ -243,7 +254,7 @@ public class MetadataStoreRoundTripTests(DatabaseMigrationFixture fixture)
 
         // The studio and networks nothing names any more go with the purge.
         Assert.Equal(
-            [Studio("s1"), Network("n1"), Network("n2")],
+            [Studio("s1"), Studio("s2"), Network("n1"), Network("n2")],
             studios.RemoveOrphaned(_plugin, DateTime.MaxValue).OrderBy(id => id.EntityType).ThenBy(id => id.ID)
         );
         Reload();

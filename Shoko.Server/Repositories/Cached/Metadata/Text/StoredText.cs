@@ -55,6 +55,9 @@ internal class StoredText : IText
 
     MetadataGuid? IText.EntityID => EntityID;
 
+    // Stored among the entry's texts, so never the entry's inline default.
+    bool IText.IsInlineDefault => false;
+
     /// <summary>
     ///   Whether the text is a title or an overview.
     /// </summary>
@@ -75,6 +78,9 @@ internal sealed class StoredTitle : StoredText, ITitle
 
     /// <inheritdoc />
     public override TextKind Kind => TextKind.Title;
+
+    // A stored title was never made up on the spot.
+    bool ITitle.IsSynthesized => false;
 
     /// <inheritdoc />
     public bool Equals(ITitle? other)

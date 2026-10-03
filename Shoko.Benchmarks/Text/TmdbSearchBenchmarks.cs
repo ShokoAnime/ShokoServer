@@ -1,8 +1,9 @@
 using BenchmarkDotNet.Attributes;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.Models.Metadata;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -46,21 +47,17 @@ public class TmdbSearchBenchmarks
     public int MovieSearch()
         => _fixture.Queries.Sum(query => _fixture.TmdbMovies.Search(query, MovieTitles, fuzzy: true).Count());
 
-    private List<string> ShowTitles(TMDB_Show show)
-        => show.GetAllTitles()
-            .WhereInLanguages(_languages)
-            .Select(title => title.Value)
-            .Append(show.EnglishTitle)
-            .Append(show.OriginalTitle)
-            .Distinct()
-            .ToList();
+    private List<string> ShowTitles(Metadata_Series show)
+        => Titles(show);
 
-    private List<string> MovieTitles(TMDB_Movie movie)
-        => movie.GetAllTitles()
+    private List<string> MovieTitles(Metadata_Movie movie)
+        => Titles(movie);
+
+    private List<string> Titles(IWithTitles entry)
+        => entry.Titles
             .WhereInLanguages(_languages)
             .Select(title => title.Value)
-            .Append(movie.EnglishTitle)
-            .Append(movie.OriginalTitle)
+            .Append(entry.DefaultTitle.Value)
             .Distinct()
             .ToList();
 }

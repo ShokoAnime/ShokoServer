@@ -35,6 +35,7 @@ public class AdminAuthorizationTests
     [InlineData(typeof(MetadataController), nameof(MetadataController.SetEpisodeHiddenState))]
     [InlineData(typeof(EpisodeController), nameof(EpisodeController.PostEpisodeSetHidden))]
     [InlineData(typeof(TmdbController), nameof(TmdbController.SetPreferredTmdbShowOrdering))]
+    [InlineData(typeof(MetadataEntryController), nameof(MetadataEntryController.SetPreferredSeriesOrdering))]
     [InlineData(typeof(TmdbController), nameof(TmdbController.SetHiddenStateForTmdbEpisodeByEpisodeID))]
     [InlineData(typeof(SeriesController), nameof(SeriesController.EnableSeriesImageForType))]
     [InlineData(typeof(EpisodeController), nameof(EpisodeController.EnableEpisodeImageForType))]

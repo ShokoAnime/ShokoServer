@@ -7,8 +7,8 @@ public sealed record MetadataContentRatingData
 {
     /// <summary>
     ///   The ISO 3166-1 alpha-2 code of the country the rating is for, such as
-    ///   <c>US</c>. At most 32 characters, and only one rating per country is
-    ///   kept for an entry.
+    ///   <c>US</c>. At most 32 characters. A country may have several
+    ///   ratings for an entry.
     /// </summary>
     public required string CountryCode { get; init; }
 
@@ -20,10 +20,10 @@ public sealed record MetadataContentRatingData
 
     /// <summary>
     ///   The code of the rating's language, such as <c>ja</c>, kept as given.
-    ///   Left out, it is the main language of <see cref="CountryCode"/> as
-    ///   TMDB's ratings work it out: an upper-case ISO 639-1 code, with a
-    ///   region where the country has its own form, such as <c>EN-US</c> for
-    ///   <c>US</c> or <c>DE</c> for <c>AT</c>. At most 32 characters.
+    ///   Left out, it is the main language of <see cref="CountryCode"/>: an
+    ///   upper-case ISO 639-1 code, with a region where the country has its
+    ///   own form, such as <c>EN-US</c> for <c>US</c> or <c>DE</c> for
+    ///   <c>AT</c>. At most 32 characters.
     /// </summary>
     public string? LanguageCode { get; init; }
 }

@@ -18,34 +18,41 @@ public class MetadataEntry
     /// <summary>
     /// The source's own ID for the entry.
     /// </summary>
-    [Required, JsonProperty(Order = -20)]
+    [Required, JsonProperty(Order = -21)]
     public string ID { get; set; } = string.Empty;
 
     /// <summary>
     /// The source the entry belongs to.
     /// </summary>
-    [Required, JsonProperty(Order = -19)]
+    [Required, JsonProperty(Order = -20)]
     public MetadataSource Source { get; set; } = null!;
 
     /// <summary>
     /// What kind of entry it is.
     /// </summary>
-    [Required, JsonProperty(Order = -18)]
+    [Required, JsonProperty(Order = -19)]
     public MetadataEntityType Type { get; set; } = null!;
 
     /// <summary>
     /// The entry's full identifier, e.g. <c>anilist://series/21</c>, as
     /// <c>Metadata/Entry</c> and the bulk bodies take it.
     /// </summary>
-    [Required, JsonProperty(Order = -17)]
+    [Required, JsonProperty(Order = -18)]
     public string Guid { get; set; } = string.Empty;
 
     /// <summary>
     /// The route that serves the entry, relative to <c>/api/v3/</c>, with a
     /// <c>/</c> in its ID sent as <c>%2F</c>.
     /// </summary>
-    [Required, JsonProperty(Order = -16)]
+    [Required, JsonProperty(Order = -17)]
     public string Path { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The entry's own page on its source's site, or <c>null</c> when it has
+    /// none.
+    /// </summary>
+    [JsonProperty(Order = -16)]
+    public string? SiteUrl { get; set; }
 
     #endregion
 

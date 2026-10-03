@@ -67,6 +67,25 @@ public interface IMetadataImageContributor
     int? MaxConcurrentJobs { get => null; }
 
     /// <summary>
+    ///   The embedded resource of your contributor's icon, shown beside its
+    ///   name. Must be an absolute resource name, including the assembly name.
+    /// </summary>
+    /// <remarks>
+    ///   SVG is preferred, PNG is accepted; make it square and readable at 16
+    ///   pixels. It is extracted beside your plugin as
+    ///   <c>&lt;source&gt;.images-icon.&lt;ext&gt;</c>, or
+    ///   <c>&lt;dll&gt;.&lt;source&gt;.images-icon.&lt;ext&gt;</c> beside a
+    ///   lone dll, named after your <see cref="Source"/>, and a file already
+    ///   there by that name is used instead. Read once, at registration.
+    /// </remarks>
+    /// <example>
+    ///   <c>"Shoko.Plugin.Example.assets.artwork-icon.svg"</c>, or the same
+    ///   name as <see cref="Plugin.IPlugin.EmbeddedIconResourceName"/> to
+    ///   reuse the plugin's icon.
+    /// </example>
+    string? EmbeddedIconResourceName { get => null; }
+
+    /// <summary>
     ///   The images you have for one entity.
     /// </summary>
     /// <remarks>

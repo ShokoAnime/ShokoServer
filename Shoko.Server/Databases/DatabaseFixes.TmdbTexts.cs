@@ -9,7 +9,6 @@ using Microsoft.Data.Sqlite;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
 
@@ -92,7 +91,8 @@ public partial class DatabaseFixes
     ///   The American English title equal to the English title on the entry's
     ///   row is not copied; the row's flag says it was listed, and a gap in
     ///   the positions says where. An episode's generic title with its own
-    ///   number, such as <c>Episode 5</c>, is not copied either. Runs in one
+    ///   number, such as <c>Episode 5</c>, is not copied either, nor is a
+    ///   season's English generic name, such as <c>Season 2</c>. Runs in one
     ///   transaction, and first removes what an earlier run of it wrote.
     /// </remarks>
     /// <param name="connection">The open connection to the database.</param>
@@ -277,8 +277,13 @@ public partial class DatabaseFixes
     )
     {
         var parentType = (int)table.ForeignType;
-        var withNumbers = titleType is not TitleType.None && table.ForeignType is ForeignEntityType.Episode;
-        var numberColumn = withNumbers ? ", EpisodeNumber" : string.Empty;
+        var numberColumn = titleType is TitleType.None ? string.Empty : table.ForeignType switch
+        {
+            ForeignEntityType.Episode => ", EpisodeNumber",
+            ForeignEntityType.Season => ", SeasonNumber",
+            _ => string.Empty,
+        };
+        var withNumbers = numberColumn.Length > 0;
         var copied = 0;
         var parentIDs = ReadIDs(transaction, $"SELECT DISTINCT ParentID FROM {oldTable} WHERE ParentType = {parentType} ORDER BY ParentID");
         var label = $"Copying TMDB {table.ForeignType.ToString().ToLowerInvariant()} {(titleType is TitleType.None ? "overviews" : "titles")}";
@@ -287,7 +292,7 @@ public partial class DatabaseFixes
         foreach (var page in parentIDs.Chunk(TextEntriesPerPage))
         {
             var range = $"BETWEEN {page[0]} AND {page[^1]}";
-            var english = new Dictionary<int, (string Text, int? EpisodeNumber)>();
+            var english = new Dictionary<int, (string Text, int? Number)>();
             foreach (var row in Read(transaction, $"SELECT {table.IDColumn}, {englishColumn}{numberColumn} FROM {table.Table} WHERE {table.IDColumn} {range}"))
                 english[Convert.ToInt32(row[0], CultureInfo.InvariantCulture)] = (
                     row[1] as string ?? string.Empty,
@@ -317,13 +322,13 @@ public partial class DatabaseFixes
     ///   what positions, and which entries listed their English text.
     /// </summary>
     /// <param name="table">The table of the entries the texts belong to.</param>
-    /// <param name="english">The entries' English text and, for episodes' titles, their number, by TMDB ID.</param>
+    /// <param name="english">The entries' English text and, for episodes' and seasons' titles, their number, by TMDB ID.</param>
     /// <param name="old">The old texts, by entry and in the order they were listed.</param>
     /// <param name="titleType">The kind of title to copy the texts as, or <see cref="TitleType.None"/> for overviews.</param>
     /// <returns>The texts to copy, and the TMDB IDs of the entries that listed their English text.</returns>
     private static (List<CopiedText> Copied, List<int> Listed) PlanTmdbTexts(
         TmdbTextTable table,
-        IReadOnlyDictionary<int, (string Text, int? EpisodeNumber)> english,
+        IReadOnlyDictionary<int, (string Text, int? Number)> english,
         IEnumerable<OldTmdbText> old,
         TitleType titleType
     )
@@ -334,24 +339,28 @@ public partial class DatabaseFixes
         {
             var entityID = entry.Key.ToString(CultureInfo.InvariantCulture);
             var hasRow = english.TryGetValue(entry.Key, out var row);
-            var episodeNumber = hasRow ? row.EpisodeNumber : null;
+            var episodeNumber = hasRow && table.EntityType == MetadataEntityType.Episode ? row.Number : null;
+            var seasonNumber = hasRow && table.EntityType == MetadataEntityType.Season ? row.Number : null;
             int? gap = null;
             var position = 0;
             foreach (var text in entry)
             {
-                if (gap is null && hasRow && TmdbTextListing.IsEnglishDefault(text.LanguageCode, text.CountryCode, text.Value, row.Text))
+                // A season's English generic name is made up, not stored, so it leaves no gap.
+                var genericSeason = seasonNumber is { } season && text.LanguageCode.Trim().Equals("en", StringComparison.OrdinalIgnoreCase) &&
+                    GenericEpisodeTitles.IsGenericSeasonName(text.Value, season);
+                if (gap is null && hasRow && IsTmdbEnglishDefault(text.LanguageCode, text.CountryCode, text.Value, row.Text))
                 {
-                    gap = position++;
+                    gap = genericSeason ? position : position++;
                     continue;
                 }
 
-                if (episodeNumber is { } episode && GenericEpisodeTitles.IsGeneric(text.Value, EpisodeType.Episode, episode))
+                if (genericSeason || (episodeNumber is { } episode && GenericEpisodeTitles.IsGeneric(text.Value, EpisodeType.Episode, episode)))
                     continue;
 
                 copied.Add(new(
                     table.EntityType,
                     entityID,
-                    TmdbTextListing.Language(text.LanguageCode, text.CountryCode),
+                    TmdbTextLanguage(text.LanguageCode, text.CountryCode),
                     string.IsNullOrWhiteSpace(text.LanguageCode) ? "unk" : text.LanguageCode,
                     string.IsNullOrWhiteSpace(text.CountryCode) ? null : text.CountryCode,
                     text.Value,
@@ -530,6 +539,38 @@ public partial class DatabaseFixes
         command.Transaction = transaction;
         command.CommandText = $"SELECT COUNT(*) FROM {table}";
         return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    ///   Whether a listed text is the American English one equal to the
+    ///   English default on the entity's row.
+    /// </summary>
+    /// <param name="languageCode">The text's language code.</param>
+    /// <param name="countryCode">The text's country code.</param>
+    /// <param name="value">The text.</param>
+    /// <param name="english">The English default on the entity's row.</param>
+    /// <returns><c>true</c> when it is.</returns>
+    private static bool IsTmdbEnglishDefault(string languageCode, string? countryCode, string value, string? english)
+        => languageCode == "en" && countryCode == "US" && !string.IsNullOrEmpty(english) && string.Equals(value, english, StringComparison.Ordinal);
+
+    /// <summary>
+    ///   The language of a TMDB text, from its codes. TMDB's own <c>xx</c>
+    ///   means no language and <c>cn</c> Cantonese; a code no language
+    ///   matches is unknown, without reporting it.
+    /// </summary>
+    /// <param name="languageCode">The language code.</param>
+    /// <param name="countryCode">The country code, which may be empty.</param>
+    /// <returns>The language.</returns>
+    internal static TitleLanguage TmdbTextLanguage(string? languageCode, string? countryCode)
+    {
+        var code = languageCode?.Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(code) || code is "xx")
+            return TitleLanguage.None;
+        if (code is "cn")
+            return TitleLanguage.Chinese;
+        if (!string.IsNullOrWhiteSpace(countryCode) && $"{code}-{countryCode.Trim()}".TryGetTitleLanguage(out var regional))
+            return regional;
+        return code.TryGetTitleLanguage(out var language) ? language : TitleLanguage.Unknown;
     }
 
     /// <summary>

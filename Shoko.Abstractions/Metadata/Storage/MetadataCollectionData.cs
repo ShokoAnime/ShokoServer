@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata.Storage;
 
@@ -30,4 +31,13 @@ public sealed record MetadataCollectionData
     ///   the collection's source; one given twice keeps its first place.
     /// </summary>
     public IReadOnlyList<MetadataGuid> Members { get; init; } = [];
+
+    /// <summary>
+    ///   The source's resource ID of the collection's default image of each type,
+    ///   which becomes its pinned default and is always the first downloaded
+    ///   within the type's limit. <c>null</c> leaves the stored defaults as
+    ///   they are, and an empty map clears them. A type the collection has no
+    ///   images of is ignored.
+    /// </summary>
+    public IReadOnlyDictionary<ImageEntityType, string>? DefaultImageResourceIDs { get; init; }
 }

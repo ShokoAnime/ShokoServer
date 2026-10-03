@@ -1,13 +1,15 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Metadata;
@@ -15,6 +17,7 @@ using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Services.MetadataStorage;
+using Shoko.Server.Services.Ordering;
 
 namespace Shoko.Server.Services;
 
@@ -31,10 +34,10 @@ namespace Shoko.Server.Services;
 /// <param name="shokoEpisodeRepository">The Shoko episodes, whose hidden flag is set with their stats.</param>
 /// <param name="textStore">Writes an ordering's rows in one transaction, removing the texts of the orderings that go, and tells the text manager.</param>
 /// <param name="metadataService">Finds the series and episodes an ordering names.</param>
-/// <param name="coreSources">The core sources that keep orderings in their own tables.</param>
 /// <param name="seriesService">Updates a Shoko series' stats when one of its episodes is hidden or shown.</param>
 /// <param name="groupService">Updates a Shoko group's stats likewise.</param>
 /// <param name="cleanup">Removes the image links of the orderings and groups that go.</param>
+/// <param name="studioStore">Keeps the networks of the orderings, with stubs for the users' own.</param>
 /// <param name="logger">The logger.</param>
 public class MetadataOrderingService(
     Metadata_OrderingRepository orderingRepository,
@@ -44,18 +47,18 @@ public class MetadataOrderingService(
     AnimeEpisodeRepository shokoEpisodeRepository,
     MetadataTextStore textStore,
     Lazy<IMetadataService> metadataService,
-    Lazy<IEnumerable<ICoreOrderingSource>> coreSources,
     Lazy<AnimeSeriesService> seriesService,
     Lazy<AnimeGroupService> groupService,
     Lazy<MetadataEntityCleanup> cleanup,
+    MetadataStudioStore studioStore,
     ILogger<MetadataOrderingService> logger
-) : IMetadataOrderingService
+) : IMetadataOrderingService, IDisposable
 {
     /// <summary>
     ///   The start of a plugin source's default ordering IDs, which a global
     ///   ordering's ID may not start with.
     /// </summary>
-    internal const string DefaultIDPrefix = "default/";
+    internal const string DefaultIDPrefix = IOrdering.DefaultIDPrefix;
 
     /// <summary>
     ///   Held around every write, so two writers never read the same state
@@ -63,25 +66,38 @@ public class MetadataOrderingService(
     /// </summary>
     private readonly Lock _writeLock = new();
 
+    /// <summary>
+    ///   The places of each series' default ordering, dropped when the series
+    ///   or one of its episodes is updated.
+    /// </summary>
+    private readonly ConcurrentDictionary<MetadataGuid, OrderingPlaces> _defaultPlacements = new();
+
+    /// <summary>
+    ///   Counts the drops of each series' kept places, so places built
+    ///   during a drop are not kept. AniDB and Shoko series share one count.
+    /// </summary>
+    private readonly ConcurrentDictionary<MetadataGuid, int> _placementGenerations = new();
+
+    /// <summary>
+    ///   The key AniDB and Shoko series share in <see cref="_placementGenerations"/>.
+    /// </summary>
+    private static readonly MetadataGuid _anidbPlacementKey = new(MetadataSource.AniDB, MetadataEntityType.Series, "*");
+
+    /// <summary>
+    ///   Whether the service listens to the series and episode updates.
+    /// </summary>
+    private int _listening;
+
     #region Identity
 
     /// <summary>
-    ///   The ID of a series' default ordering: the series' own ID for a
-    ///   source the core keeps, and <c>default/</c> and the series' ID for a
-    ///   plugin's source, or a hash of the ID when that would be too long.
+    ///   The ID of a series' default ordering, see
+    ///   <see cref="IOrdering.DefaultOrderingID"/>.
     /// </summary>
     /// <param name="seriesID">The series.</param>
     /// <returns>The default ordering's ID, under the series' source.</returns>
     public static MetadataGuid DefaultOrderingID(MetadataGuid seriesID)
-    {
-        if (seriesID.Source.IsCore)
-            return new(seriesID.Source, MetadataEntityType.Ordering, seriesID.ID);
-
-        var id = DefaultIDPrefix + seriesID.ID;
-        if (id.Length > MetadataGuid.MaxIDLength)
-            id = DefaultIDPrefix + "#" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(seriesID.ID)));
-        return new(seriesID.Source, MetadataEntityType.Ordering, id);
-    }
+        => IOrdering.DefaultOrderingID(seriesID);
 
     /// <summary>
     ///   The series a default ordering's ID names, when it can be read back.
@@ -117,10 +133,22 @@ public class MetadataOrderingService(
         return
         [
             DefaultFor(series),
-            .. CoreSourcesFor(series.ID.Source).SelectMany(source => source.GetOrderings(series)),
-            .. Stored(orderingRepository.GetBySeries(series.ID)),
+            .. InReadingOrder(orderingRepository.GetBySeries(series.ID)).Select(row => StoredFor(row, series)),
         ];
     }
+
+    /// <summary>
+    ///   Every ordering of a series whose seasons and episodes are typed, the
+    ///   default one first, read with them typed.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="series">The series, an <see cref="ISeries{TSeries,TEpisode}"/>.</param>
+    /// <returns>The orderings.</returns>
+    internal IReadOnlyList<IOrdering<TSeries, TEpisode>> GetOrderings<TSeries, TEpisode>(TSeries series)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => [DefaultFor<TSeries, TEpisode>(series), .. OtherOrderings<TSeries, TEpisode>(series)];
 
     /// <inheritdoc />
     public IReadOnlyList<IOrdering> GetOrderings(MetadataGuid seriesID)
@@ -149,7 +177,12 @@ public class MetadataOrderingService(
     public IReadOnlyList<IOrdering> GetStoredOrderings(MetadataSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        return Stored(orderingRepository.GetBySource(source).Where(row => GetSeries(row.SeriesGuid) is not null));
+        return
+        [
+            .. InReadingOrder(orderingRepository.GetBySource(source))
+                .Select(row => GetSeries(row.SeriesGuid) is { } series ? StoredFor(row, series) : null)
+                .OfType<IOrdering>(),
+        ];
     }
 
     /// <inheritdoc />
@@ -159,13 +192,61 @@ public class MetadataOrderingService(
         return DefaultFor(series);
     }
 
+    /// <summary>
+    ///   The default ordering of a series whose seasons and episodes are
+    ///   typed, read with them typed.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="series">The series, an <see cref="ISeries{TSeries,TEpisode}"/>.</param>
+    /// <returns>The default ordering.</returns>
+    internal IOrdering<TSeries, TEpisode> GetDefaultOrdering<TSeries, TEpisode>(TSeries series)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => DefaultFor<TSeries, TEpisode>(series);
+
     /// <inheritdoc />
     public IReadOnlyList<IEpisodeOrderingInformation> GetEpisodeOrderings(IEpisode episode)
     {
         ArgumentNullException.ThrowIfNull(episode);
-        var series = episode.Series ?? GetSeries(episode.SeriesID);
-        var places = new List<IEpisodeOrderingInformation> { DefaultPlaceFor(episode, series) };
-        places.AddRange(CoreSourcesFor(episode.ID.Source).SelectMany(source => source.GetEpisodeOrderings(episode)));
+        return episode switch
+        {
+            IShokoEpisode shoko => GetEpisodeOrderings<IShokoSeries, IShokoEpisode>(shoko),
+            IAnidbEpisode anidb => GetEpisodeOrderings<IAnidbAnime, IAnidbEpisode>(anidb),
+            IEpisode<ISeries, IEpisode> typed => GetEpisodeOrderings<ISeries, IEpisode>(typed),
+            _ => [new DefaultEpisodeOrdering(episode, episode.Series ?? GetSeries(episode.SeriesID), this), .. OtherPlaces<ISeries, IEpisode>(episode)],
+        };
+    }
+
+    /// <summary>
+    ///   Every place an episode whose series is typed has in the series'
+    ///   orderings, read with them typed.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="episode">The episode, an <see cref="IEpisode{TSeries,TEpisode}"/>.</param>
+    /// <returns>The places, its place in the default ordering first.</returns>
+    internal IReadOnlyList<IEpisodeOrderingInformation<TSeries, TEpisode>> GetEpisodeOrderings<TSeries, TEpisode>(TEpisode episode)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+    {
+        var series = (episode.Series ?? GetSeries(episode.SeriesID)) as TSeries;
+        return [new DefaultEpisodeOrdering<TSeries, TEpisode>(episode, series, this), .. OtherPlaces<TSeries, TEpisode>(episode)];
+    }
+
+    /// <summary>
+    ///   The places an episode has in its series' orderings other than the
+    ///   default one.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="episode">The episode.</param>
+    /// <returns>The places, the core sources' first.</returns>
+    private List<IEpisodeOrderingInformation<TSeries, TEpisode>> OtherPlaces<TSeries, TEpisode>(IEpisode episode)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+    {
+        var places = new List<IEpisodeOrderingInformation<TSeries, TEpisode>>();
 
         var orderingIDs = entryRepository.GetByEpisode(episode.ID)
             .Select(entry => (entry.Source, entry.OrderingID))
@@ -175,15 +256,16 @@ public class MetadataOrderingService(
             .Select(ordering => orderingRepository.GetByProviderID(ordering.Source, ordering.OrderingID))
             .OfType<Metadata_Ordering>()
             .Where(row => row.SeriesGuid == episode.SeriesID);
-        foreach (var ordering in Stored(orderings))
+        foreach (var ordering in InReadingOrder(orderings).Select(row => new StoredOrdering<TSeries, TEpisode>(row, this)))
         {
-            foreach (var group in ((StoredOrdering)ordering).Groups)
+            if (ordering.EpisodeByID(episode.ID) is not { } typed)
+                continue;
+
+            var airing = ordering.Placement.AiringOf(episode.ID);
+            foreach (var place in ordering.Placement.PlacesOf(episode.ID))
             {
-                for (var position = 0; position < group.Places.Count; position++)
-                {
-                    if (group.Places[position].Episode.ID == episode.ID)
-                        places.Add(new StoredEpisodeOrdering(group, group.Places[position].Episode, position));
-                }
+                if (ordering.Groups.FirstOrDefault(group => group.ID == place.GroupID) is { } group)
+                    places.Add(new StoredEpisodeOrdering<TSeries, TEpisode>(group, typed, place.EpisodeNumber, place.IsSpecial ? airing : null));
             }
         }
 
@@ -201,30 +283,34 @@ public class MetadataOrderingService(
         if (groupID.EntityType != MetadataEntityType.Season ||
             groupRepository.GetByProviderID(groupID.Source, groupID.ID) is not { } group ||
             orderingRepository.GetByProviderID(group.Source, group.OrderingID) is not { } ordering ||
-            GetSeries(ordering.SeriesGuid) is null)
+            GetSeries(ordering.SeriesGuid) is not { } series)
             return null;
 
-        return new StoredOrdering(ordering, this).Groups.FirstOrDefault(stored => stored.ID == groupID);
+        return StoredFor(ordering, series).Seasons.FirstOrDefault(stored => stored.ID == groupID);
     }
 
     /// <summary>
     ///   Reads the groups of a stored ordering, with the episodes still
     ///   available in each, in order.
     /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
     /// <param name="ordering">The ordering.</param>
     /// <returns>The groups, in viewing order.</returns>
-    internal IReadOnlyList<StoredOrderingGroup> ReadGroups(StoredOrdering ordering)
+    internal IReadOnlyList<StoredOrderingGroup<TSeries, TEpisode>> ReadGroups<TSeries, TEpisode>(StoredOrdering<TSeries, TEpisode> ordering)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
     {
         var row = ordering.Row;
         var entries = entryRepository.GetByOrderingID(row.Source, row.ProviderID)
             .GroupBy(entry => entry.GroupID, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.OrderBy(entry => entry.Position).ToList(), StringComparer.Ordinal);
-        var episodes = new Dictionary<MetadataGuid, IEpisode?>();
+        var episodes = new Dictionary<MetadataGuid, TEpisode?>();
         var groups = groupRepository.GetByOrderingID(row.Source, row.ProviderID);
         var seasonNumbers = NumberGroups([.. groups.Select(group => group.IsSpecial)]);
         return
         [
-            .. groups.Select((group, index) => new StoredOrderingGroup(
+            .. groups.Select((group, index) => new StoredOrderingGroup<TSeries, TEpisode>(
                 ordering,
                 group,
                 seasonNumbers[index],
@@ -237,10 +323,10 @@ public class MetadataOrderingService(
             )),
         ];
 
-        IEpisode? Episode(MetadataGuid id)
+        TEpisode? Episode(MetadataGuid id)
         {
             if (!episodes.TryGetValue(id, out var episode))
-                episodes[id] = episode = metadataService.Value.GetEpisode(id);
+                episodes[id] = episode = metadataService.Value.GetEpisode(id) as TEpisode;
             return episode;
         }
     }
@@ -254,63 +340,206 @@ public class MetadataOrderingService(
         => metadataService.Value.GetSeries(seriesID);
 
     /// <summary>
-    ///   Looks up a stored ordering, or one a core source keeps, but not a
-    ///   default one.
+    ///   Reads the networks of a stored ordering, each as its source serves
+    ///   it when it can, so a user's ordering shows a source's network by
+    ///   its name. A stub no source serves reads with an empty name.
     /// </summary>
     /// <param name="orderingID">The ordering.</param>
-    /// <returns>The ordering, or <c>null</c>.</returns>
-    private IOrdering? FindOrdering(MetadataGuid orderingID)
-    {
-        if (orderingRepository.GetByProviderID(orderingID.Source, orderingID.ID) is { } row)
-            return new StoredOrdering(row, this);
-
-        return CoreSourcesFor(orderingID.Source)
-            .Select(source => source.GetOrdering(orderingID))
-            .FirstOrDefault(ordering => ordering is not null);
-    }
+    /// <returns>The networks, in order.</returns>
+    internal IReadOnlyList<INetwork> GetNetworks(MetadataGuid orderingID)
+        => [.. studioStore.GetNetworks(orderingID).Select(network => metadataService.Value.GetEntry(network.ID) as INetwork ?? network)];
 
     /// <summary>
-    ///   Stored orderings as read back: global before local, oldest first.
+    ///   Looks up a stored ordering, but not a default one.
+    /// </summary>
+    /// <param name="orderingID">The ordering.</param>
+    /// <param name="series">The series it should order, when known, to save looking it up.</param>
+    /// <returns>The ordering, or <c>null</c>.</returns>
+    private IOrdering? FindOrdering(MetadataGuid orderingID, ISeries? series = null)
+        => orderingRepository.GetByProviderID(orderingID.Source, orderingID.ID) is { } row
+            ? StoredFor(row, series is not null && series.ID == row.SeriesGuid ? series : GetSeries(row.SeriesGuid))
+            : null;
+
+    /// <summary>
+    ///   Looks up a stored ordering, but not a default one, read with its
+    ///   series and episodes typed.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="orderingID">The ordering.</param>
+    /// <returns>The ordering, or <c>null</c>.</returns>
+    private IOrdering<TSeries, TEpisode>? FindOrdering<TSeries, TEpisode>(MetadataGuid orderingID)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => orderingRepository.GetByProviderID(orderingID.Source, orderingID.ID) is { } row
+            ? new StoredOrdering<TSeries, TEpisode>(row, this)
+            : null;
+
+    /// <summary>
+    ///   The orderings of a series other than the default one: the stored
+    ///   ones.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="series">The series.</param>
+    /// <returns>The orderings.</returns>
+    private IEnumerable<IOrdering<TSeries, TEpisode>> OtherOrderings<TSeries, TEpisode>(TSeries series)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        =>
+        [
+            .. InReadingOrder(orderingRepository.GetBySeries(series.ID)).Select(row => new StoredOrdering<TSeries, TEpisode>(row, this)),
+        ];
+
+    /// <summary>
+    ///   Stored orderings' rows in the order they are read back: global
+    ///   before local, oldest first.
     /// </summary>
     /// <param name="rows">The orderings' rows.</param>
-    /// <returns>The orderings.</returns>
-    private IReadOnlyList<IOrdering> Stored(IEnumerable<Metadata_Ordering> rows)
-        => [.. rows
+    /// <returns>The rows, in order.</returns>
+    private static IEnumerable<Metadata_Ordering> InReadingOrder(IEnumerable<Metadata_Ordering> rows)
+        => rows
             .OrderBy(row => row.Source == MetadataSource.User)
             .ThenBy(row => row.CreatedAt)
-            .ThenBy(row => row.Metadata_OrderingID)
-            .Select(row => new StoredOrdering(row, this))];
+            .ThenBy(row => row.Metadata_OrderingID);
 
     /// <summary>
-    ///   The default ordering of a series, in its core source's own view
-    ///   when the source has one.
+    ///   A stored ordering, read with the types of the series it orders.
+    /// </summary>
+    /// <param name="row">The ordering's row.</param>
+    /// <param name="series">The series it orders, if it is available.</param>
+    /// <returns>The ordering.</returns>
+    private IOrdering StoredFor(Metadata_Ordering row, ISeries? series) => series switch
+    {
+        IShokoSeries => new StoredOrdering<IShokoSeries, IShokoEpisode>(row, this),
+        IAnidbAnime => new StoredOrdering<IAnidbAnime, IAnidbEpisode>(row, this),
+        _ => new StoredOrdering<ISeries, IEpisode>(row, this),
+    };
+
+    /// <summary>
+    ///   The default ordering of a series, read with its types when its
+    ///   seasons and episodes are typed.
     /// </summary>
     /// <param name="series">The series.</param>
     /// <returns>The default ordering.</returns>
-    private IOrdering DefaultFor(ISeries series)
-        => CoreSourcesFor(series.ID.Source)
-            .Select(source => source.GetDefaultOrdering(series, this))
-            .FirstOrDefault(ordering => ordering is not null) ?? new DefaultOrdering(series, this);
+    private IOrdering DefaultFor(ISeries series) => series switch
+    {
+        IShokoSeries shoko => DefaultFor<IShokoSeries, IShokoEpisode>(shoko),
+        IAnidbAnime anime => DefaultFor<IAnidbAnime, IAnidbEpisode>(anime),
+        ISeries<ISeries, IEpisode> typed => DefaultFor<ISeries, IEpisode>(typed),
+        _ => new DefaultOrdering(series, this),
+    };
 
     /// <summary>
-    ///   An episode's place in the default ordering of its series, in its
-    ///   core source's own view when the source has one.
+    ///   The default ordering of a series whose seasons and episodes are
+    ///   typed.
     /// </summary>
-    /// <param name="episode">The episode.</param>
-    /// <param name="series">The episode's series, if it is available.</param>
-    /// <returns>The place.</returns>
-    private IEpisodeOrderingInformation DefaultPlaceFor(IEpisode episode, ISeries? series)
-        => CoreSourcesFor(episode.ID.Source)
-            .Select(source => source.GetDefaultEpisodeOrdering(episode, series, this))
-            .FirstOrDefault(place => place is not null) ?? new DefaultEpisodeOrdering(episode, series, this);
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="series">The series, an <see cref="ISeries{TSeries,TEpisode}"/>.</param>
+    /// <returns>The default ordering.</returns>
+    private DefaultOrdering<TSeries, TEpisode> DefaultFor<TSeries, TEpisode>(TSeries series)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => new(series, this);
+
+    #endregion
+
+    #region Default Placement
 
     /// <summary>
-    ///   The core sources that keep orderings of a source's series.
+    ///   The places of a series' default ordering, its specials placed where
+    ///   they air without leaving season 0. Kept per series until the series
+    ///   or one of its episodes is updated.
     /// </summary>
-    /// <param name="source">The series' source.</param>
-    /// <returns>The core sources, usually none.</returns>
-    private IEnumerable<ICoreOrderingSource> CoreSourcesFor(MetadataSource source)
-        => source.IsCore ? coreSources.Value.Where(core => core.Source == source) : [];
+    /// <param name="series">The series.</param>
+    /// <returns>The places, keyed by the series' season IDs.</returns>
+    internal OrderingPlaces GetDefaultPlacement(ISeries series)
+    {
+        Listen();
+        if (_defaultPlacements.TryGetValue(series.ID, out var cached))
+            return cached;
+
+        var generation = _placementGenerations.GetValueOrDefault(GenerationKey(series.ID));
+        var places = DefaultOrderingPlacement.Build(series);
+        if (_placementGenerations.GetValueOrDefault(GenerationKey(series.ID)) == generation)
+            _defaultPlacements[series.ID] = places;
+        return places;
+    }
+
+    /// <summary>
+    ///   Starts listening to the series and episode updates, once.
+    /// </summary>
+    private void Listen()
+    {
+        if (Interlocked.Exchange(ref _listening, 1) is 1)
+            return;
+
+        ShokoEventHandler.Instance.SeriesUpdated += OnSeriesUpdated;
+        ShokoEventHandler.Instance.EpisodeUpdated += OnEpisodeUpdated;
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _listening, 0) is 0)
+            return;
+
+        ShokoEventHandler.Instance.SeriesUpdated -= OnSeriesUpdated;
+        ShokoEventHandler.Instance.EpisodeUpdated -= OnEpisodeUpdated;
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    ///   Drops the kept places of an updated series.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="eventArgs">The update.</param>
+    private void OnSeriesUpdated(object? sender, SeriesInfoUpdatedEventArgs eventArgs)
+    {
+        if (eventArgs.SeriesInfo?.ID is { } seriesID)
+            ForgetDefaultPlacement(seriesID);
+    }
+
+    /// <summary>
+    ///   Drops the kept places of the series of an updated episode.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="eventArgs">The update.</param>
+    private void OnEpisodeUpdated(object? sender, EpisodeInfoUpdatedEventArgs eventArgs)
+    {
+        if (eventArgs.EpisodeInfo?.SeriesID is { } seriesID)
+            ForgetDefaultPlacement(seriesID);
+    }
+
+    /// <summary>
+    ///   Drops the kept places of a series. A Shoko series reads its AniDB
+    ///   anime's titles, so an AniDB or Shoko update drops them all.
+    /// </summary>
+    /// <param name="seriesID">The series.</param>
+    internal void ForgetDefaultPlacement(MetadataGuid seriesID)
+    {
+        _placementGenerations.AddOrUpdate(GenerationKey(seriesID), 1, (_, generation) => generation + 1);
+        if (seriesID.Source != MetadataSource.AniDB && seriesID.Source != MetadataSource.Shoko)
+        {
+            _defaultPlacements.TryRemove(seriesID, out _);
+            return;
+        }
+
+        foreach (var key in _defaultPlacements.Keys)
+        {
+            if (key.Source == MetadataSource.AniDB || key.Source == MetadataSource.Shoko)
+                _defaultPlacements.TryRemove(key, out _);
+        }
+    }
+
+    /// <summary>
+    ///   The key a series' drops are counted under.
+    /// </summary>
+    /// <param name="seriesID">The series.</param>
+    /// <returns>The series, or the key AniDB and Shoko series share.</returns>
+    private static MetadataGuid GenerationKey(MetadataGuid seriesID)
+        => seriesID.Source == MetadataSource.AniDB || seriesID.Source == MetadataSource.Shoko ? _anidbPlacementKey : seriesID;
 
     #endregion
 
@@ -348,7 +577,10 @@ public class MetadataOrderingService(
         }
 
         CheckSpecialGroups(groups, nameof(ordering));
-        return Write(ordering.ID, series.ID, ordering.Type, ordering.Name, ordering.Overview, groups, false, nameof(ordering))!;
+        var networks = CheckNetworks(ordering.Networks ?? [], source, nameof(ordering));
+        var stored = Write(ordering.ID, series.ID, ordering.Type, ordering.Name, ordering.Overview, groups, false, nameof(ordering))!;
+        studioStore.SetNetworks(ordering.ID, networks);
+        return stored;
     }
 
     /// <inheritdoc />
@@ -359,43 +591,26 @@ public class MetadataOrderingService(
     }
 
     /// <summary>
-    ///   Every source keeping global orderings: the core sources with
-    ///   orderings in tables of their own, and the sources with stored ones.
+    ///   Every source keeping global orderings: the sources with stored ones.
     /// </summary>
     /// <returns>The sources.</returns>
     internal IReadOnlyList<MetadataSource> GetGlobalOrderingSources()
-        => coreSources.Value.Select(core => core.Source)
-            .Concat(orderingRepository.GetAll().Select(row => row.Source).Where(source => source != MetadataSource.User))
-            .Distinct()
-            .ToList();
+        => [.. orderingRepository.GetAll().Select(row => row.Source).Where(source => source != MetadataSource.User).Distinct()];
 
     /// <summary>
-    ///   Whether a source keeps global orderings: a plugin source, or a core
-    ///   source with orderings in tables of its own.
+    ///   Whether a source keeps global orderings: any source outside the core.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns><see langword="true"/> when it does.</returns>
     internal bool KeepsGlobalOrderings(MetadataSource source)
-        => !source.IsCore || CoreSourcesFor(source).Any();
+        => !source.IsCore;
 
-    /// <summary>
-    ///   Removes every global ordering of a source, with its groups and the
-    ///   choices of it. The users' own orderings are kept.
-    /// </summary>
-    /// <param name="source">The source.</param>
-    /// <param name="progress">Told how far the removal is, from 0 to 100.</param>
-    /// <param name="token">Stops the removal between two orderings.</param>
-    /// <returns>How many orderings were removed.</returns>
-    /// <exception cref="ArgumentException">The source keeps no global orderings.</exception>
-    /// <exception cref="OperationCanceledException"><paramref name="token"/> was cancelled.</exception>
-    internal int RemoveGlobalOrderings(MetadataSource source, IProgress<decimal>? progress = null, CancellationToken token = default)
+    /// <inheritdoc />
+    public int RemoveOrderings(MetadataSource source, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
         if (!KeepsGlobalOrderings(source))
             throw new ArgumentException($"{source} keeps no global orderings.", nameof(source));
-
-        if (source.IsCore)
-            return CoreSourcesFor(source).Sum(core => core.RemoveAllOrderings(progress, token));
 
         var rows = orderingRepository.GetBySource(source).ToList();
         var items = new ItemProgress(progress, rows.Count);
@@ -403,7 +618,7 @@ public class MetadataOrderingService(
         var removed = 0;
         foreach (var row in rows)
         {
-            token.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
             if (Remove(row.ID))
                 removed++;
 
@@ -440,8 +655,12 @@ public class MetadataOrderingService(
         }
 
         CheckSpecialGroups(groups, nameof(ordering));
+        var networks = MetadataStudioStore.CheckUserOrderingNetworks(ordering.Networks ?? [], nameof(ordering));
         var orderingID = new MetadataGuid(MetadataSource.User, MetadataEntityType.Ordering, NewLocalID());
-        return Write(orderingID, series.ID, OrderingType.User, ordering.Name, ordering.Overview, groups, false, nameof(ordering))!;
+        var stored = Write(orderingID, series.ID, OrderingType.User, ordering.Name, ordering.Overview, groups, false, nameof(ordering))!;
+        if (networks.Count > 0)
+            studioStore.SetUserOrderingNetworks(orderingID, networks);
+        return stored;
     }
 
     /// <inheritdoc />
@@ -486,7 +705,11 @@ public class MetadataOrderingService(
         }
 
         CheckSpecialGroups(groups, nameof(ordering));
-        return Write(orderingID, series.ID, OrderingType.User, ordering.Name, ordering.Overview, groups, true, nameof(ordering));
+        var networks = ordering.Networks is { } given ? MetadataStudioStore.CheckUserOrderingNetworks(given, nameof(ordering)) : null;
+        var updated = Write(orderingID, series.ID, OrderingType.User, ordering.Name, ordering.Overview, groups, true, nameof(ordering));
+        if (updated is not null && networks is not null)
+            studioStore.SetUserOrderingNetworks(orderingID, networks);
+        return updated;
     }
 
     /// <inheritdoc />
@@ -555,7 +778,7 @@ public class MetadataOrderingService(
     /// <param name="paramName">The argument the ordering came in through.</param>
     /// <returns>The stored ordering, or <c>null</c> when <paramref name="mustExist"/> is set and it is gone.</returns>
     /// <exception cref="ArgumentException">A group's ID is taken by another ordering of the source.</exception>
-    private StoredOrdering? Write(
+    private StoredOrdering<ISeries, IEpisode>? Write(
         MetadataGuid orderingID,
         MetadataGuid seriesID,
         OrderingType type,
@@ -587,7 +810,7 @@ public class MetadataOrderingService(
     /// <param name="removedGroups">Gets the groups the write removed.</param>
     /// <returns>The stored ordering, or <c>null</c> when <paramref name="mustExist"/> is set and it is gone.</returns>
     /// <exception cref="ArgumentException">A group's ID is taken by another ordering of the source.</exception>
-    private StoredOrdering? WriteLocked(
+    private StoredOrdering<ISeries, IEpisode>? WriteLocked(
         MetadataGuid orderingID,
         MetadataGuid seriesID,
         OrderingType type,
@@ -709,6 +932,7 @@ public class MetadataOrderingService(
             logger.LogDebug("Removed the ordering {Ordering}.", orderingID);
         }
 
+        RemoveNetworks([orderingID]);
         RemoveImageLinks(removed);
         return true;
     }
@@ -722,6 +946,22 @@ public class MetadataOrderingService(
     {
         if (entries.Count > 0)
             cleanup.Value.RemoveImageLinks(entries);
+    }
+
+    /// <summary>
+    ///   Removes the networks of orderings that are gone, out of the write
+    ///   lock.
+    /// </summary>
+    /// <param name="orderings">The orderings.</param>
+    private void RemoveNetworks(IEnumerable<MetadataGuid> orderings)
+    {
+        foreach (var orderingID in orderings)
+        {
+            if (orderingID.Source == MetadataSource.User)
+                studioStore.RemoveUserOrderingNetworks(orderingID);
+            else if (!orderingID.Source.IsCore)
+                studioStore.RemoveNetworks(orderingID);
+        }
     }
 
     #endregion
@@ -794,6 +1034,27 @@ public class MetadataOrderingService(
     }
 
     /// <summary>
+    ///   Checks a global ordering's networks before anything is written.
+    /// </summary>
+    /// <param name="networks">The networks.</param>
+    /// <param name="source">The ordering's source, which they must be on.</param>
+    /// <param name="paramName">The argument they came in through.</param>
+    /// <returns>The networks, in order.</returns>
+    /// <exception cref="ArgumentNullException">A network is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">A network is on another source, names another kind or is not stored.</exception>
+    private IReadOnlyList<MetadataGuid> CheckNetworks(IReadOnlyList<MetadataGuid> networks, MetadataSource source, string paramName)
+    {
+        foreach (var network in networks)
+        {
+            MetadataEntries.CheckReference(network, source, MetadataEntityType.Network, paramName);
+            if (studioStore.GetNetwork(network) is null)
+                throw new ArgumentException($"The network \"{network}\" is not stored.", paramName);
+        }
+
+        return networks;
+    }
+
+    /// <summary>
     ///   Checks that an ID names a user's ordering.
     /// </summary>
     /// <param name="orderingID">The ordering.</param>
@@ -818,6 +1079,19 @@ public class MetadataOrderingService(
         return Chosen(series) ?? DefaultFor(series);
     }
 
+    /// <summary>
+    ///   The ordering chosen for a series whose seasons and episodes are
+    ///   typed, or its default one, read with them typed.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="series">The series, an <see cref="ISeries{TSeries,TEpisode}"/>.</param>
+    /// <returns>The ordering.</returns>
+    internal IOrdering<TSeries, TEpisode> GetPreferredOrdering<TSeries, TEpisode>(TSeries series)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => Chosen<TSeries, TEpisode>(series) ?? DefaultFor<TSeries, TEpisode>(series);
+
     /// <inheritdoc />
     public bool SetPreferredOrdering(MetadataGuid seriesID, MetadataGuid? orderingID)
     {
@@ -833,7 +1107,7 @@ public class MetadataOrderingService(
             if (orderingID is null || orderingID == DefaultOrderingID(series.ID))
                 return rowState.SetPreferredOrdering(series.ID, null);
 
-            if (orderingID.EntityType != MetadataEntityType.Ordering || FindOrdering(orderingID) is not { } ordering || ordering.SeriesID != series.ID)
+            if (orderingID.EntityType != MetadataEntityType.Ordering || FindOrdering(orderingID, series) is not { } ordering || ordering.SeriesID != series.ID)
                 throw new ArgumentException($"\"{orderingID}\" is not an ordering of the series \"{series.ID}\".", nameof(orderingID));
 
             return rowState.SetPreferredOrdering(series.ID, orderingID);
@@ -877,7 +1151,24 @@ public class MetadataOrderingService(
     /// <returns>The ordering, or <c>null</c>.</returns>
     private IOrdering? Chosen(ISeries series)
         => rowState.GetPreferredOrdering(series.ID) is { } orderingID &&
-            FindOrdering(orderingID) is { } ordering &&
+            FindOrdering(orderingID, series) is { } ordering &&
+            ordering.SeriesID == series.ID
+                ? ordering
+                : null;
+
+    /// <summary>
+    ///   The ordering chosen for a series, if one is and it is still there,
+    ///   read with its series and episodes typed.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="series">The series.</param>
+    /// <returns>The ordering, or <c>null</c>.</returns>
+    private IOrdering<TSeries, TEpisode>? Chosen<TSeries, TEpisode>(TSeries series)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => rowState.GetPreferredOrdering(series.ID) is { } orderingID &&
+            FindOrdering<TSeries, TEpisode>(orderingID) is { } ordering &&
             ordering.SeriesID == series.ID
                 ? ordering
                 : null;
@@ -989,6 +1280,7 @@ public class MetadataOrderingService(
 
         int count;
         List<MetadataGuid> removed;
+        List<MetadataGuid> removedOrderings;
         lock (_writeLock)
         {
             var orderings = orderingRepository.GetBySeries(seriesID);
@@ -1007,10 +1299,12 @@ public class MetadataOrderingService(
                 )
             );
             count = orderings.Count;
-            removed = [.. orderings.Select(row => row.ID), .. groups.Select(group => group.ID)];
+            removedOrderings = [.. orderings.Select(row => row.ID)];
+            removed = [.. removedOrderings, .. groups.Select(group => group.ID)];
             logger.LogDebug("Removed {OrderingCount} orderings of the removed series {Series}.", count, seriesID);
         }
 
+        RemoveNetworks(removedOrderings);
         RemoveImageLinks(removed);
         return count;
     }

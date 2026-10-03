@@ -145,7 +145,7 @@ The expressions named `…Source…` take the source as their first parameter (i
 value, an alias or an old spelling, such as `tmdb`) and ask `IFilterableInfo`
 the matching question: `LinkedSources`, `UnlinkedSources`,
 `AutoLinkingDisabledSources`, the link counts, `GetGenres`, `GetTags` and
-`GetSuggestions`. Every source, TMDB included, is read the same way, from the
+`GetSuggestions`. Every source is read the same way, from the
 shared cross-reference tables and the linked entries' `ITag`s.
 
 | Question | Answer |

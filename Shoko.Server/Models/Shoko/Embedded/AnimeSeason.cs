@@ -11,12 +11,13 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Services;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.Shoko.Embedded;
 
-public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seasonNumber) : IShokoSeason
+public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seasonNumber) : ISeason<IShokoSeries, IShokoEpisode>, IWithCreationDate
 {
     /// <summary>
     ///   The ID of a season of a Shoko series, the part after
@@ -28,18 +29,24 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
     /// <returns>The season's ID.</returns>
     public static string GetID(int seriesID, EpisodeType episodeType, int seasonNumber) => $"{seriesID}:{episodeType}:{seasonNumber}";
 
-    int IShokoSeason.ShokoSeriesID => series.LocalID;
+    MetadataGuid ISeason.SeriesID => series.ID;
 
     int ISeason.SeasonNumber => seasonNumber;
 
     public IImageCrossReference? DefaultPrimaryImageCrossReference
         => series.DefaultBackdropImageCrossReference;
 
-    ISeries ISeason.Series => series;
+    IShokoSeries ISeason<IShokoSeries, IShokoEpisode>.Series => series;
 
-    IReadOnlyList<IEpisode> ISeason.Episodes => series.Episodes
-        .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
-        .ToList();
+    IReadOnlyList<IShokoEpisode> ISeason<IShokoSeries, IShokoEpisode>.Episodes => [.. Episodes];
+
+    IOrdering<IShokoSeries, IShokoEpisode> ISeason<IShokoSeries, IShokoEpisode>.Ordering => OrderingLookup.DefaultFor<IShokoSeries, IShokoEpisode>(series);
+
+    /// <summary>
+    ///   The season's episodes.
+    /// </summary>
+    private IEnumerable<IShokoEpisode> Episodes
+        => ((ISeries<IShokoSeries, IShokoEpisode>)series).Episodes.Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber);
 
     string IWithTitles.Title
         => seasonNumber is 0
@@ -145,42 +152,14 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
 
     MetadataGuid IMetadata.ID => new(MetadataSource.Shoko, MetadataEntityType.Season, GetID(series.LocalID, episodeType, seasonNumber));
 
-    IShokoSeries IShokoSeason.Series => series;
+    IReadOnlyList<IMetadataSeasonCrossReference> ISeason.MetadataSeasonCrossReferences
+        => MetadataService.GetSeasonCrossReferences(this, ((ISeason)this).MetadataEpisodeCrossReferences);
 
-    IReadOnlyList<IShokoEpisode> IShokoSeason.Episodes => series.Episodes
-        .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
-        .ToList();
+    IReadOnlyList<IMetadataEpisodeCrossReference> ISeason.MetadataEpisodeCrossReferences
+        => [.. Episodes.SelectMany(episode => episode.MetadataEpisodeCrossReferences)];
 
-    IReadOnlyList<ISeason> IShokoSeason.LinkedSeasons
-        => ISystemService.StaticServices.GetRequiredService<IMetadataService>() is MetadataService metadataService
-            ? metadataService.GetLinkedSeasons(this)
-            : [];
-
-    IReadOnlyList<IMovie> IShokoSeason.LinkedMovies
-        => ISystemService.StaticServices.GetRequiredService<IMetadataService>() is MetadataService metadataService
-            ? metadataService.GetLinkedMovies(this)
-            : [];
-
-    IReadOnlyList<IMetadataSeasonCrossReference> ISeason.MetadataSeasonCrossReferences => ((IShokoSeason)this).GetMetadataSeasonCrossReferences();
-
-    IReadOnlyList<IMetadataEpisodeCrossReference> ISeason.MetadataEpisodeCrossReferences => ((IShokoSeason)this).GetMetadataEpisodeCrossReferences();
-
-    IReadOnlyList<IMetadataMovieCrossReference> ISeason.MetadataMovieCrossReferences => ((IShokoSeason)this).GetMetadataMovieCrossReferences();
-
-    IReadOnlyList<IMetadataSeasonCrossReference> IShokoSeason.GetMetadataSeasonCrossReferences(MetadataSource? source)
-        => ISystemService.StaticServices.GetRequiredService<IMetadataService>() is MetadataService metadataService
-            ? metadataService.GetSeasonCrossReferences(this, source)
-            : [];
-
-    IReadOnlyList<IMetadataEpisodeCrossReference> IShokoSeason.GetMetadataEpisodeCrossReferences(MetadataSource? source)
-        => ISystemService.StaticServices.GetRequiredService<IMetadataService>() is MetadataService metadataService
-            ? metadataService.GetEpisodeCrossReferences(this, source)
-            : [];
-
-    IReadOnlyList<IMetadataMovieCrossReference> IShokoSeason.GetMetadataMovieCrossReferences(MetadataSource? source)
-        => ISystemService.StaticServices.GetRequiredService<IMetadataService>() is MetadataService metadataService
-            ? metadataService.GetMovieCrossReferences(this, source)
-            : [];
+    IReadOnlyList<IMetadataMovieCrossReference> ISeason.MetadataMovieCrossReferences
+        => [.. Episodes.SelectMany(episode => episode.MetadataMovieCrossReferences)];
 
     IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons
         => seasonNumber is 0 ? [] : series.YearlySeasons;

@@ -63,7 +63,7 @@ public interface IMetadataCrossReference
     /// The provider that wrote the link, where one did. Only where it came
     /// from: a link belongs to its source, not to a provider.
     /// </summary>
-    Guid? WrittenBy { get => null; }
+    Guid? WrittenBy { get; }
 }
 
 /// <summary>

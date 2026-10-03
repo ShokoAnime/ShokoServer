@@ -34,7 +34,7 @@ public class ImageTemplateRegistrationTests(DatabaseMigrationFixture fixture)
         images.SetTemplateUrlForSource(source, null);
         Assert.Equal(Template, images.GetTemplateUrlForSource(source));
 
-        Assert.Throws<InvalidOperationException>(() => images.RegisterTemplateUrl(MetadataSource.TMDB, Template));
+        Assert.Throws<InvalidOperationException>(() => images.RegisterTemplateUrl(MetadataSource.AniDB, Template));
         Assert.Throws<ArgumentException>(() => images.RegisterTemplateUrl(source, "https://images.example.com/"));
     }
 }

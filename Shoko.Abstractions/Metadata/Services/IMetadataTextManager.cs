@@ -141,6 +141,21 @@ public interface IMetadataTextManager
     /// <exception cref="ArgumentNullException"><paramref name="overviews"/> is <c>null</c>.</exception>
     IText? ChoosePreferredOverview(IEnumerable<IText> overviews);
 
+    /// <summary>
+    ///   The languages the settings rank for one kind of text, best first,
+    ///   for a provider choosing which of its translations to store.
+    /// </summary>
+    /// <param name="kind">Titles or overviews.</param>
+    /// <param name="entityType">
+    ///   Which title order to read. Episodes have their own; anything else,
+    ///   <c>null</c> included, reads the series order. Ignored for overviews.
+    /// </param>
+    /// <returns>
+    ///   The languages, <see cref="TitleLanguage.Main"/> included where the
+    ///   settings place it.
+    /// </returns>
+    IReadOnlyList<TitleLanguage> GetLanguageOrder(TextKind kind, MetadataEntityType? entityType = null);
+
     #endregion
 
     #region Reading by Entry
@@ -194,8 +209,8 @@ public interface IMetadataTextManager
     /// <remarks>
     ///   The entry's own source is read first whatever the source order says,
     ///   then the ranked sources. With nothing in a preferred language the
-    ///   default is used, and an episode with no title at all gets a made-up
-    ///   one such as <c>Episode 5</c>.
+    ///   default is used, and an episode or season with no title at all gets a
+    ///   made-up one such as <c>Episode 5</c> or <c>Season 2</c>.
     /// </remarks>
     /// <param name="entityID">The entry.</param>
     /// <returns>The title, or <c>null</c> when the entry has none.</returns>

@@ -18,6 +18,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Image.Options;
 using Shoko.Abstractions.Metadata.Providers;
+using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -27,10 +28,7 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.API.v3.Models.TMDB.Input;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
-using Shoko.Server.Repositories.Cached.TMDB;
-using Shoko.Server.Repositories.Direct.TMDB.Optional;
+using Shoko.Server.Models.Metadata;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
@@ -47,20 +45,11 @@ namespace Shoko.Server.API.v3.Controllers;
 public partial class TmdbController(
     ISettingsProvider settingsProvider,
     ILogger<TmdbController> _logger,
-    TmdbSearchService _tmdbSearchService,
-    TmdbApiClient _tmdbClient,
+    IMetadataLinkingService _linkingService,
     IMetadataRefreshService _metadataRefreshService,
     IMetadataPurgeService _metadataPurgeService,
     IMetadataCrossReferenceTransferService _crossReferenceTransferService,
     IMetadataOrderingService _orderingService,
-    TMDB_AlternateOrderingRepository _tmdbAlternateOrderings,
-    TMDB_AlternateOrdering_EpisodeRepository _tmdbAlternateOrderingEpisodes,
-    TMDB_AlternateOrdering_SeasonRepository _tmdbAlternateOrderingSeasons,
-    TMDB_CollectionRepository _tmdbCollections,
-    TMDB_EpisodeRepository _tmdbEpisodes,
-    TMDB_MovieRepository _tmdbMovies,
-    TMDB_SeasonRepository _tmdbSeasons,
-    TMDB_ShowRepository _tmdbShows,
     IImageManager _imageManager
 ) : BaseController(settingsProvider)
 {
@@ -150,6 +139,18 @@ public partial class TmdbController(
         => new(MetadataSource.TMDB, MetadataEntityType.Movie, movieID.ToString());
 
     /// <summary>
+    ///   What a remote search of TMDB asks for.
+    /// </summary>
+    /// <param name="query">The text to search for.</param>
+    /// <param name="includeRestricted">Whether to include restricted entries.</param>
+    /// <param name="year">The year, or <c>0</c> for any.</param>
+    /// <param name="page">The page, from <c>1</c>.</param>
+    /// <param name="pageSize">The page size, <c>0</c> for only the total.</param>
+    /// <returns>The options.</returns>
+    private static MetadataSearchOptions SearchOptions(string query, bool includeRestricted, int year, int page, int pageSize)
+        => new() { Query = query, IncludeRestricted = includeRestricted, Year = year > 0 ? year : null, Page = page, PageSize = pageSize };
+
+    /// <summary>
     ///   Wait out a running refresh or purge of a TMDB show.
     /// </summary>
     /// <param name="showID">The TMDB show ID.</param>
@@ -217,7 +218,7 @@ public partial class TmdbController(
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var movies = _tmdbMovies.GetAll()
+        var movies = TmdbCompatibility.GetMovies()
             .AsParallel()
             .Where(movie =>
             {
@@ -258,7 +259,7 @@ public partial class TmdbController(
                 {
                     var movie = searchResult.Result;
                     if (WaitForMovieUpdate(movie.Id))
-                        movie = _tmdbMovies.GetByTmdbMovieID(movie.Id) ?? movie;
+                        movie = TmdbCompatibility.GetMovie(movie.Id) ?? movie;
                     return new TmdbMovie(movie, include?.CombineFlags());
                 }, page, pageSize);
         }
@@ -269,7 +270,7 @@ public partial class TmdbController(
             .ToListResult(movie =>
             {
                 if (WaitForMovieUpdate(movie.Id))
-                    movie = _tmdbMovies.GetByTmdbMovieID(movie.Id) ?? movie;
+                    movie = TmdbCompatibility.GetMovie(movie.Id) ?? movie;
                 return new TmdbMovie(movie, include?.CombineFlags());
             }, page, pageSize);
     }
@@ -277,12 +278,12 @@ public partial class TmdbController(
     [HttpPost("Movie/Bulk")]
     public ActionResult<List<TmdbMovie>> BulkGetTmdbMoviesByMovieIDs([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkFetchBody<TmdbMovie.IncludeDetails> body) =>
         body.IDs
-            .Select(movieID => movieID <= 0 ? null : _tmdbMovies.GetByTmdbMovieID(movieID))
+            .Select(movieID => movieID <= 0 ? null : TmdbCompatibility.GetMovie(movieID))
             .WhereNotNull()
             .Select(movie =>
             {
                 if (WaitForMovieUpdate(movie.Id))
-                    movie = _tmdbMovies.GetByTmdbMovieID(movie.Id) ?? movie;
+                    movie = TmdbCompatibility.GetMovie(movie.Id) ?? movie;
                 return new TmdbMovie(movie, body.Include?.CombineFlags(), body.Language);
             })
             .ToList();
@@ -301,9 +302,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -330,9 +331,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -346,9 +347,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -374,9 +375,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -391,13 +392,13 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return movie.Cast
+        return movie.TmdbCast
             .Select(Role.FromTmdb)
             .WhereNotNull()
             .ToList();
@@ -408,13 +409,13 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return movie.Crew
+        return movie.TmdbCrew
             .Select(Role.FromTmdb)
             .WhereNotNull()
             .ToList();
@@ -425,9 +426,9 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -441,7 +442,7 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -453,13 +454,13 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return movie.TmdbCompanies
+        return movie.TmdbStudios
             .Select(company => new Studio(company))
             .ToList();
     }
@@ -470,13 +471,13 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return new(movie.ContentRatings.ToDto(language));
+        return new(movie.TmdbContentRatings.ToDto(language));
     }
 
     [HttpGet("Movie/{movieID}/Keywords")]
@@ -484,13 +485,13 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return movie.Keywords;
+        return movie.Keywords.ToList();
     }
 
     [HttpGet("Movie/{movieID}/ProductionCountries")]
@@ -498,14 +499,13 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
-        return movie.ProductionCountries
-            .ToDictionary(country => country.CountryCode, country => country.CountryName);
+        return movie.TmdbProductionCountries.ToDictionary();
     }
 
     [HttpGet("Movie/{movieID}/YearlySeasons")]
@@ -513,9 +513,9 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -532,9 +532,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TmdbMovie.Collection.IncludeDetails>? include = null
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is not null && WaitForMovieUpdate(movieID))
-            movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -559,7 +559,7 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -580,7 +580,7 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -605,7 +605,7 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -628,7 +628,7 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -663,7 +663,7 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -697,7 +697,7 @@ public partial class TmdbController(
     {
         if (body.SkipIfExists)
         {
-            var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+            var movie = TmdbCompatibility.GetMovie(movieID);
             if (movie is not null)
                 return Ok();
         }
@@ -733,7 +733,7 @@ public partial class TmdbController(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbDownloadImagesBody body
     )
     {
-        var movie = _tmdbMovies.GetByTmdbMovieID(movieID);
+        var movie = TmdbCompatibility.GetMovie(movieID);
         if (movie is null)
             return NotFound(MovieNotFound);
 
@@ -755,7 +755,7 @@ public partial class TmdbController(
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("Movie/Online/Search")]
-    public ListResult<Search.RemoteSearchMovie> SearchOnlineForTmdbMovies(
+    public async Task<ListResult<Search.RemoteSearchMovie>> SearchOnlineForTmdbMovies(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(0, int.MaxValue)] int year = 0,
@@ -763,11 +763,7 @@ public partial class TmdbController(
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var (pageView, totalMovies) = _tmdbSearchService.SearchMovies(query, includeRestricted, year, page, pageSize)
-            .ConfigureAwait(false)
-            .GetAwaiter()
-            .GetResult();
-
+        var (pageView, totalMovies) = await _linkingService.SearchMovies(MetadataSource.TMDB, SearchOptions(query, includeRestricted, year, page, pageSize), HttpContext.RequestAborted);
         return new ListResult<Search.RemoteSearchMovie>(totalMovies, pageView.Select(a => new Search.RemoteSearchMovie(a)));
     }
 
@@ -792,17 +788,16 @@ public partial class TmdbController(
         // so we do a distinct here, then at the end we map back to the original order.
         var uniqueIds = body.IDs.Distinct().ToList();
         var movieDict = uniqueIds
-            .Select(id => id <= 0 ? null : _tmdbMovies.GetByTmdbMovieID(id))
+            .Select(id => id <= 0 ? null : TmdbCompatibility.GetMovie(id))
             .WhereNotNull()
             .Select(movie => new Search.RemoteSearchMovie(movie))
             .ToDictionary(movie => movie.ID);
         foreach (var id in uniqueIds.Except(movieDict.Keys))
         {
-            var movie = id <= 0 ? null : await _tmdbClient.UseClient(c => c.GetMovieAsync(id), $"Get movie {id}");
-            if (movie is null)
+            if (id <= 0 || await _linkingService.LookupMovie(MovieEntry(id), HttpContext.RequestAborted) is not { } movie)
                 continue;
 
-            movieDict[movie.Id] = new Search.RemoteSearchMovie(movie);
+            movieDict[id] = new Search.RemoteSearchMovie(movie);
         }
 
         var unknownMovies = uniqueIds.Except(movieDict.Keys).ToList();
@@ -833,10 +828,10 @@ public partial class TmdbController(
         [FromRoute] int movieID
     )
     {
-        if (_tmdbMovies.GetByTmdbMovieID(movieID) is { } localMovie)
+        if (TmdbCompatibility.GetMovie(movieID) is { } localMovie)
             return new Search.RemoteSearchMovie(localMovie);
 
-        if (await _tmdbClient.UseClient(c => c.GetMovieAsync(movieID), $"Get movie {movieID}") is not { } remoteMovie)
+        if (movieID <= 0 || await _linkingService.LookupMovie(MovieEntry(movieID), HttpContext.RequestAborted) is not { } remoteMovie)
             return NotFound("Movie not found on TMDB.");
 
         return new Search.RemoteSearchMovie(remoteMovie);
@@ -871,7 +866,7 @@ public partial class TmdbController(
         if (!string.IsNullOrWhiteSpace(search))
         {
             var languages = SearchTitleLanguages();
-            return _tmdbCollections.GetAll()
+            return TmdbCompatibility.GetCollections()
                 .Search(
                     search,
                     collection => collection.GetAllTitles()
@@ -886,16 +881,16 @@ public partial class TmdbController(
             {
                 var movieCollection = searchResult.Result;
                 if (WaitForCollectionUpdate(movieCollection.Id))
-                    movieCollection = _tmdbCollections.GetByTmdbCollectionID(movieCollection.Id) ?? movieCollection;
+                    movieCollection = TmdbCompatibility.GetCollection(movieCollection.Id) ?? movieCollection;
                 return new TmdbMovie.Collection(movieCollection, include?.CombineFlags(), language);
             }, page, pageSize);
         }
 
-        return _tmdbCollections.GetAll()
+        return TmdbCompatibility.GetCollections()
             .ToListResult(movieCollection =>
             {
                 if (WaitForCollectionUpdate(movieCollection.Id))
-                    movieCollection = _tmdbCollections.GetByTmdbCollectionID(movieCollection.Id) ?? movieCollection;
+                    movieCollection = TmdbCompatibility.GetCollection(movieCollection.Id) ?? movieCollection;
                 return new TmdbMovie.Collection(movieCollection, include?.CombineFlags(), language);
             }, page, pageSize);
     }
@@ -907,9 +902,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var collection = _tmdbCollections.GetByTmdbCollectionID(collectionID);
+        var collection = TmdbCompatibility.GetCollection(collectionID);
         if (collection is not null && WaitForCollectionUpdate(collection.Id))
-            collection = _tmdbCollections.GetByTmdbCollectionID(collection.Id);
+            collection = TmdbCompatibility.GetCollection(collection.Id);
         if (collection is null)
             return NotFound(MovieCollectionNotFound);
 
@@ -922,9 +917,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var collection = _tmdbCollections.GetByTmdbCollectionID(collectionID);
+        var collection = TmdbCompatibility.GetCollection(collectionID);
         if (collection is not null && WaitForCollectionUpdate(collection.Id))
-            collection = _tmdbCollections.GetByTmdbCollectionID(collection.Id);
+            collection = TmdbCompatibility.GetCollection(collection.Id);
         if (collection is null)
             return NotFound(MovieCollectionNotFound);
 
@@ -938,9 +933,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var collection = _tmdbCollections.GetByTmdbCollectionID(collectionID);
+        var collection = TmdbCompatibility.GetCollection(collectionID);
         if (collection is not null && WaitForCollectionUpdate(collection.Id))
-            collection = _tmdbCollections.GetByTmdbCollectionID(collection.Id);
+            collection = TmdbCompatibility.GetCollection(collection.Id);
         if (collection is null)
             return NotFound(MovieCollectionNotFound);
 
@@ -966,9 +961,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var collection = _tmdbCollections.GetByTmdbCollectionID(collectionID);
+        var collection = TmdbCompatibility.GetCollection(collectionID);
         if (collection is not null && WaitForCollectionUpdate(collection.Id))
-            collection = _tmdbCollections.GetByTmdbCollectionID(collection.Id);
+            collection = TmdbCompatibility.GetCollection(collection.Id);
         if (collection is null)
             return NotFound(MovieCollectionNotFound);
 
@@ -989,9 +984,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var collection = _tmdbCollections.GetByTmdbCollectionID(collectionID);
+        var collection = TmdbCompatibility.GetCollection(collectionID);
         if (collection is not null && WaitForCollectionUpdate(collection.Id))
-            collection = _tmdbCollections.GetByTmdbCollectionID(collection.Id);
+            collection = TmdbCompatibility.GetCollection(collection.Id);
         if (collection is null)
             return NotFound(MovieCollectionNotFound);
 
@@ -999,7 +994,7 @@ public partial class TmdbController(
             .Select(movie =>
             {
                 if (WaitForMovieUpdate(movie.Id))
-                    movie = _tmdbMovies.GetByTmdbMovieID(movie.Id) ?? movie;
+                    movie = TmdbCompatibility.GetMovie(movie.Id) ?? movie;
                 return new TmdbMovie(movie, include?.CombineFlags(), language);
             })
             .ToList();
@@ -1051,7 +1046,7 @@ public partial class TmdbController(
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var shows = _tmdbShows.GetAll()
+        var shows = TmdbCompatibility.GetShows()
             .AsParallel()
             .Where(show =>
             {
@@ -1084,11 +1079,11 @@ public partial class TmdbController(
                 {
                     var show = searchResult.Result;
                     if (WaitForShowUpdate(show.Id))
-                        show = _tmdbShows.GetByTmdbShowID(show.Id) ?? show;
+                        show = TmdbCompatibility.GetShow(show.Id) ?? show;
 
-                    var alternateOrdering = (TMDB_AlternateOrdering?)null;
+                    var alternateOrdering = (TmdbCompatibility.AlternateOrdering?)null;
                     if (!string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
-                        alternateOrdering = _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(show.PreferredAlternateOrderingID);
+                        alternateOrdering = TmdbCompatibility.GetAlternateOrdering(show.PreferredAlternateOrderingID);
 
                     return new TmdbShow(show, alternateOrdering, include?.CombineFlags(), language);
                 }, page, pageSize);
@@ -1100,11 +1095,11 @@ public partial class TmdbController(
             .ToListResult(show =>
             {
                 if (WaitForShowUpdate(show.Id))
-                    show = _tmdbShows.GetByTmdbShowID(show.Id) ?? show;
+                    show = TmdbCompatibility.GetShow(show.Id) ?? show;
 
-                var alternateOrdering = (TMDB_AlternateOrdering?)null;
+                var alternateOrdering = (TmdbCompatibility.AlternateOrdering?)null;
                 if (!string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
-                    alternateOrdering = _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(show.PreferredAlternateOrderingID);
+                    alternateOrdering = TmdbCompatibility.GetAlternateOrdering(show.PreferredAlternateOrderingID);
 
                 return new TmdbShow(show, alternateOrdering, include?.CombineFlags(), language);
             }, page, pageSize);
@@ -1113,16 +1108,16 @@ public partial class TmdbController(
     [HttpPost("Show/Bulk")]
     public ActionResult<List<TmdbShow>> BulkGetTmdbShowsByShowIDs([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkFetchBody<TmdbShow.IncludeDetails> body) =>
         body.IDs
-            .Select(showID => showID <= 0 ? null : _tmdbShows.GetByTmdbShowID(showID))
+            .Select(showID => showID <= 0 ? null : TmdbCompatibility.GetShow(showID))
             .WhereNotNull()
             .Select(show =>
             {
                 if (WaitForShowUpdate(show.Id))
-                    show = _tmdbShows.GetByTmdbShowID(show.Id) ?? show;
+                    show = TmdbCompatibility.GetShow(show.Id) ?? show;
 
-                var alternateOrdering = (TMDB_AlternateOrdering?)null;
+                var alternateOrdering = (TmdbCompatibility.AlternateOrdering?)null;
                 if (!string.IsNullOrWhiteSpace(show.PreferredAlternateOrderingID))
-                    alternateOrdering = _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(show.PreferredAlternateOrderingID);
+                    alternateOrdering = TmdbCompatibility.GetAlternateOrdering(show.PreferredAlternateOrderingID);
 
                 return new TmdbShow(show, alternateOrdering, body.Include?.CombineFlags(), body.Language);
             })
@@ -1140,9 +1135,9 @@ public partial class TmdbController(
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1156,7 +1151,7 @@ public partial class TmdbController(
         {
             if (alternateOrderingID.Length == SeasonIdHexLength)
             {
-                var alternateOrdering = _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                var alternateOrdering = TmdbCompatibility.GetAlternateOrdering(alternateOrderingID);
                 if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                     return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
@@ -1190,9 +1185,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1206,9 +1201,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1234,9 +1229,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1252,9 +1247,9 @@ public partial class TmdbController(
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1267,10 +1262,10 @@ public partial class TmdbController(
         if (!string.IsNullOrWhiteSpace(alternateOrderingID) && alternateOrderingID.Length != SeasonIdHexLength && alternateOrderingID != show.Id.ToString())
             return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-        var alternateOrdering = (TMDB_AlternateOrdering?)null;
+        var alternateOrdering = (TmdbCompatibility.AlternateOrdering?)null;
         if (!string.IsNullOrWhiteSpace(alternateOrderingID) && alternateOrderingID != show.Id.ToString())
         {
-            alternateOrdering = !string.IsNullOrWhiteSpace(alternateOrderingID) ? _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID) : null;
+            alternateOrdering = !string.IsNullOrWhiteSpace(alternateOrderingID) ? TmdbCompatibility.GetAlternateOrdering(alternateOrderingID) : null;
             if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
@@ -1279,8 +1274,9 @@ public partial class TmdbController(
         {
             new(show, alternateOrdering),
         };
+        var preferredOrderingID = show.PreferredAlternateOrderingID;
         foreach (var altOrder in show.TmdbAlternateOrdering)
-            ordering.Add(new(show, altOrder, alternateOrdering));
+            ordering.Add(new(altOrder, preferredOrderingID, alternateOrdering));
         return ordering
             .OrderByDescending(o => o.IsDefault)
             .ThenBy(o => o.OrderingType)
@@ -1292,29 +1288,34 @@ public partial class TmdbController(
     /// Choose the ordering to use for a TMDB show, or go back to its default
     /// one. Only the choice changes; the orderings stay TMDB's own.
     /// </summary>
+    /// <remarks>
+    /// Superseded by <c>POST /api/v3/Metadata/tmdb/Series/{showID}/Orderings/SetPreferred</c>,
+    /// which takes a full ordering ID and works for every source.
+    /// </remarks>
     /// <param name="showID">TMDB Show ID.</param>
     /// <param name="body">The ordering to choose.</param>
     /// <returns>Nothing.</returns>
     [Authorize("admin")]
+    [Obsolete("Use POST /api/v3/Metadata/tmdb/Series/{showID}/Orderings/SetPreferred instead.")]
     [HttpPost("Show/{showID}/Ordering/SetPreferred")]
     public ActionResult SetPreferredTmdbShowOrdering(
         [FromRoute] int showID,
         [FromBody] TmdbSetPreferredOrderingBody body
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
         if (!string.IsNullOrWhiteSpace(body.AlternateOrderingID) && body.AlternateOrderingID.Length == SeasonIdHexLength)
         {
-            var alternateOrdering = _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(body.AlternateOrderingID);
+            var alternateOrdering = TmdbCompatibility.GetAlternateOrdering(body.AlternateOrderingID);
             if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                 return ValidationProblem("Invalid Alternate Ordering ID for show.", nameof(body.AlternateOrderingID));
 
-            _orderingService.SetPreferredOrdering(((IMetadata)show).ID, ((IMetadata)alternateOrdering).ID);
+            _orderingService.SetPreferredOrdering(((IMetadata)show).ID, alternateOrdering.Ordering.ID);
         }
         else
         {
@@ -1332,7 +1333,7 @@ public partial class TmdbController(
         [FromRoute] int showID
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1348,9 +1349,9 @@ public partial class TmdbController(
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1364,7 +1365,7 @@ public partial class TmdbController(
         {
             if (alternateOrderingID.Length == SeasonIdHexLength)
             {
-                var alternateOrdering = _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                var alternateOrdering = TmdbCompatibility.GetAlternateOrdering(alternateOrderingID);
                 if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                     return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
@@ -1378,7 +1379,7 @@ public partial class TmdbController(
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
-        return show.Cast
+        return show.TmdbCast
             .Select(Role.FromTmdb)
             .WhereNotNull()
             .ToList();
@@ -1390,9 +1391,9 @@ public partial class TmdbController(
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1406,7 +1407,7 @@ public partial class TmdbController(
         {
             if (alternateOrderingID.Length == SeasonIdHexLength)
             {
-                var alternateOrdering = _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                var alternateOrdering = TmdbCompatibility.GetAlternateOrdering(alternateOrderingID);
                 if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                     return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
@@ -1420,7 +1421,7 @@ public partial class TmdbController(
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
-        return show.Crew
+        return show.TmdbCrew
             .Select(Role.FromTmdb)
             .WhereNotNull()
             .ToList();
@@ -1431,13 +1432,13 @@ public partial class TmdbController(
         [FromRoute] int showID
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return show.TmdbCompanies
+        return show.TmdbStudios
             .Select(company => new Studio(company))
             .ToList();
     }
@@ -1447,9 +1448,9 @@ public partial class TmdbController(
         [FromRoute] int showID
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1464,13 +1465,13 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return new(show.ContentRatings.ToDto(language));
+        return new(show.TmdbContentRatings.ToDto(language));
     }
 
     [HttpGet("Show/{showID}/Keywords")]
@@ -1478,13 +1479,13 @@ public partial class TmdbController(
         [FromRoute] int showID
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return show.Keywords;
+        return show.Keywords.ToList();
     }
 
     [HttpGet("Show/{showID}/ProductionCountries")]
@@ -1492,14 +1493,13 @@ public partial class TmdbController(
         [FromRoute] int showID
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
-        return show.ProductionCountries
-            .ToDictionary(country => country.CountryCode, country => country.CountryName);
+        return show.TmdbProductionCountries.ToDictionary();
     }
 
     [HttpGet("Show/{showID}/YearlySeasons")]
@@ -1507,9 +1507,9 @@ public partial class TmdbController(
         [FromRoute] int showID
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1521,9 +1521,9 @@ public partial class TmdbController(
         [FromRoute] int showID
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1549,9 +1549,9 @@ public partial class TmdbController(
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1565,11 +1565,11 @@ public partial class TmdbController(
         {
             if (alternateOrderingID.Length == SeasonIdHexLength)
             {
-                var alternateOrdering = _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                var alternateOrdering = TmdbCompatibility.GetAlternateOrdering(alternateOrderingID);
                 if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                     return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-                return alternateOrdering.TmdbAlternateOrderingSeasons
+                return alternateOrdering.Seasons
                     .ToListResult(season => new TmdbSeason(season, include?.CombineFlags()), page, pageSize);
             }
 
@@ -1611,9 +1611,9 @@ public partial class TmdbController(
         [FromQuery] bool fuzzy = false
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1651,14 +1651,14 @@ public partial class TmdbController(
         {
             if (alternateOrderingID.Length == SeasonIdHexLength)
             {
-                var alternateOrdering = _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                var alternateOrdering = TmdbCompatibility.GetAlternateOrdering(alternateOrderingID);
                 if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                     return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-                var altEpisodes = alternateOrdering.TmdbAlternateOrderingEpisodes
+                var altEpisodes = alternateOrdering.Episodes
                     .Select(ordering => (ordering, episode: ordering.TmdbEpisode))
                     .Where(tuple => tuple.episode is not null)
-                    .OfType<(TMDB_AlternateOrdering_Episode ordering, TMDB_Episode episode)>();
+                    .OfType<(TmdbCompatibility.AlternateOrderingEpisode ordering, Metadata_Episode episode)>();
                 if (includeHidden is not IncludeOnlyFilter.True)
                 {
                     var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
@@ -1671,7 +1671,7 @@ public partial class TmdbController(
                 else if (episodeNumber is not null)
                     altEpisodes = altEpisodes.Where(t => t.episode.EpisodeNumber == episodeNumber);
                 if (!string.IsNullOrWhiteSpace(search))
-                    altEpisodes = altEpisodes.Search(search, t => t.episode.GetAllPreferredTitles().Select(t => t.Value), fuzzy).Select(r => r.Result);
+                    altEpisodes = altEpisodes.Search(search, t => t.episode.GetAllPreferredTitles(t.ordering).Select(t => t.Value), fuzzy).Select(r => r.Result);
                 return altEpisodes
                     .ToListResult(t => new TmdbEpisode(show, t.episode, t.ordering, include?.CombineFlags(), language), page, pageSize);
             }
@@ -1680,7 +1680,7 @@ public partial class TmdbController(
                 return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
         }
 
-        IEnumerable<TMDB_Episode> episodes = show.TmdbEpisodes;
+        IEnumerable<Metadata_Episode> episodes = show.TmdbEpisodes;
         if (includeHidden is not IncludeOnlyFilter.True)
         {
             var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
@@ -1711,9 +1711,9 @@ public partial class TmdbController(
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1736,9 +1736,9 @@ public partial class TmdbController(
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1761,9 +1761,9 @@ public partial class TmdbController(
         [FromRoute] int showID
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1788,9 +1788,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1825,9 +1825,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is not null && WaitForShowUpdate(show.Id))
-            show = _tmdbShows.GetByTmdbShowID(showID);
+            show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1859,7 +1859,7 @@ public partial class TmdbController(
         // If we want quick results, we're already running an update, and we already have episodes to use, then
         // just return early. This is answered entirely from local state, so it must run before the pause check
         // below — it never touches TMDB and shouldn't be refused just because TMDB itself is unavailable.
-        if (body.Immediate && body.QuickRefresh && _metadataRefreshService.IsRefreshing(ShowEntry(showID)) && _tmdbEpisodes.GetByTmdbShowID(showID).Count > 0)
+        if (body.Immediate && body.QuickRefresh && _metadataRefreshService.IsRefreshing(ShowEntry(showID)) && TmdbCompatibility.GetShow(showID)?.TmdbEpisodes.Count > 0)
             return Ok();
 
         // QuickRefresh is only meaningful for a synchronous, immediate caller waiting on the
@@ -1898,7 +1898,7 @@ public partial class TmdbController(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbDownloadImagesBody body
     )
     {
-        var show = _tmdbShows.GetByTmdbShowID(showID);
+        var show = TmdbCompatibility.GetShow(showID);
         if (show is null)
             return NotFound(ShowNotFound);
 
@@ -1920,7 +1920,7 @@ public partial class TmdbController(
     /// <returns></returns>
     [Authorize("admin")]
     [HttpGet("Show/Online/Search")]
-    public ListResult<Search.RemoteSearchShow> SearchOnlineForTmdbShows(
+    public async Task<ListResult<Search.RemoteSearchShow>> SearchOnlineForTmdbShows(
         [FromQuery] string query,
         [FromQuery] bool includeRestricted = false,
         [FromQuery, Range(0, int.MaxValue)] int year = 0,
@@ -1928,11 +1928,7 @@ public partial class TmdbController(
         [FromQuery, Range(1, int.MaxValue)] int page = 1
     )
     {
-        var (pageView, totalShows) = _tmdbSearchService.SearchShows(query, includeRestricted, year, page, pageSize)
-            .ConfigureAwait(false)
-            .GetAwaiter()
-            .GetResult();
-
+        var (pageView, totalShows) = await _linkingService.SearchSeries(MetadataSource.TMDB, SearchOptions(query, includeRestricted, year, page, pageSize), HttpContext.RequestAborted);
         return new ListResult<Search.RemoteSearchShow>(totalShows, pageView.Select(a => new Search.RemoteSearchShow(a)));
     }
 
@@ -1957,17 +1953,16 @@ public partial class TmdbController(
         // so we do a distinct here, then at the end we map back to the original order.
         var uniqueIds = body.IDs.Distinct().ToList();
         var showDict = uniqueIds
-            .Select(id => id <= 0 ? null : _tmdbShows.GetByTmdbShowID(id))
+            .Select(id => id <= 0 ? null : TmdbCompatibility.GetShow(id))
             .WhereNotNull()
             .Select(show => new Search.RemoteSearchShow(show))
             .ToDictionary(show => show.ID);
         foreach (var id in uniqueIds.Except(showDict.Keys))
         {
-            var show = id <= 0 ? null : await _tmdbClient.UseClient(c => c.GetTvShowAsync(id), $"Get show {id}");
-            if (show is null)
+            if (id <= 0 || await _linkingService.LookupSeries(ShowEntry(id), HttpContext.RequestAborted) is not { } show)
                 continue;
 
-            showDict[show.Id] = new Search.RemoteSearchShow(show);
+            showDict[id] = new Search.RemoteSearchShow(show);
         }
 
         var unknownShows = uniqueIds.Except(showDict.Keys).ToList();
@@ -1998,10 +1993,10 @@ public partial class TmdbController(
         [FromRoute] int showID
     )
     {
-        if (_tmdbShows.GetByTmdbShowID(showID) is { } localShow)
+        if (TmdbCompatibility.GetShow(showID) is { } localShow)
             return new Search.RemoteSearchShow(localShow);
 
-        if (await _tmdbClient.UseClient(c => c.GetTvShowAsync(showID), $"Get show {showID}") is not { } remoteShow)
+        if (showID <= 0 || await _linkingService.LookupSeries(ShowEntry(showID), HttpContext.RequestAborted) is not { } remoteShow)
             return NotFound("Show not found on TMDB.");
 
         return new Search.RemoteSearchShow(remoteShow);
@@ -2036,9 +2031,9 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
@@ -2046,9 +2041,9 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2063,9 +2058,9 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
@@ -2074,9 +2069,9 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2092,9 +2087,9 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
@@ -2102,9 +2097,9 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2133,21 +2128,21 @@ public partial class TmdbController(
         var options = new ImageFilteringOptions { IsEnabled = includeDisabled ? null : true, IsDesired = includeUndesired ? null : true };
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
-            return ((IWithImages)altOrderSeason).GetImages(options)
+            return ((IWithImages)altOrderSeason.Season).GetImages(options)
                 .ToDto(language, includeRemoteUrl: includeRemoteUrl, remoteUrlTemplate: _imageManager.GetTemplateUrlForSource)
-                .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(altOrderSeason, options));
+                .WithCrossReferences(_imageManager.GetCrossReferencesForImageList(altOrderSeason.Season, options));
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2163,9 +2158,9 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
@@ -2176,13 +2171,13 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.Cast
+        return season.TmdbCast
             .Select(Role.FromTmdb)
             .WhereNotNull()
             .ToList();
@@ -2195,9 +2190,9 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
@@ -2208,13 +2203,13 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
-        return season.Crew
+        return season.TmdbCrew
             .Select(Role.FromTmdb)
             .WhereNotNull()
             .ToList();
@@ -2227,9 +2222,9 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
@@ -2237,9 +2232,9 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2253,14 +2248,14 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
-            return altOrderSeason.TmdbAlternateOrderingEpisodes
-                .Select(e => e.TmdbEpisode?.AiredAt?.DayOfWeek.ToString())
+            return altOrderSeason.ListedEpisodes
+                .Select(e => e.AiredAt?.DayOfWeek.ToString())
                 .WhereNotNullOrDefault()
                 .Distinct()
                 .Order()
@@ -2268,9 +2263,9 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2295,9 +2290,9 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
             var altOrder = altOrderSeason.TmdbAlternateOrdering;
@@ -2309,9 +2304,9 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2334,9 +2329,9 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
@@ -2344,10 +2339,10 @@ public partial class TmdbController(
             if (altShow is null)
                 return NotFound(ShowNotFoundBySeasonID);
 
-            var altEpisodes = altOrderSeason.TmdbAlternateOrderingEpisodes
+            var altEpisodes = altOrderSeason.HomeEpisodes
                 .Select(ordering => (ordering, episode: ordering.TmdbEpisode))
                 .Where(tuple => tuple.episode is not null)
-                .OfType<(TMDB_AlternateOrdering_Episode ordering, TMDB_Episode episode)>();
+                .OfType<(TmdbCompatibility.AlternateOrderingEpisode ordering, Metadata_Episode episode)>();
             if (includeHidden is not IncludeOnlyFilter.True)
             {
                 var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
@@ -2358,9 +2353,9 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2368,7 +2363,7 @@ public partial class TmdbController(
         if (show is null)
             return NotFound(ShowNotFoundBySeasonID);
 
-        IEnumerable<TMDB_Episode> episodes = season.TmdbEpisodes;
+        IEnumerable<Metadata_Episode> episodes = season.TmdbEpisodes;
         if (includeHidden is not IncludeOnlyFilter.True)
         {
             var shouldHideHidden = includeHidden is IncludeOnlyFilter.False;
@@ -2389,15 +2384,13 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
-            return altOrderSeason.TmdbAlternateOrderingEpisodes
-                .Select(altOrderEpisode => altOrderEpisode.TmdbEpisode)
-                .WhereNotNull()
+            return altOrderSeason.ListedEpisodes
                 .SelectMany(episode => episode.CrossReferences)
                 .DistinctBy(xref => xref.AnidbAnimeID)
                 .Select(xref => xref.AnidbAnime)
@@ -2407,9 +2400,9 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2431,15 +2424,13 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
-            return altOrderSeason.TmdbAlternateOrderingEpisodes
-                .Select(altOrderEpisode => altOrderEpisode.TmdbEpisode)
-                .WhereNotNull()
+            return altOrderSeason.ListedEpisodes
                 .SelectMany(episode => episode.CrossReferences)
                 .DistinctBy(xref => xref.AnidbAnimeID)
                 .Select(xref => xref.AnimeSeries)
@@ -2449,9 +2440,9 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2490,15 +2481,13 @@ public partial class TmdbController(
     {
         if (seasonID.Length == SeasonIdHexLength)
         {
-            var altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+            var altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is not null && WaitForShowUpdate(altOrderSeason.TmdbShowID))
-                altOrderSeason = _tmdbAlternateOrderingSeasons.GetByTmdbEpisodeGroupID(seasonID);
+                altOrderSeason = TmdbCompatibility.GetAlternateOrderingSeason(seasonID);
             if (altOrderSeason is null)
                 return NotFound(SeasonNotFound);
 
-            var videoLocals1 = altOrderSeason.TmdbAlternateOrderingEpisodes
-                .Select(altOrderEpisode => altOrderEpisode.TmdbEpisode)
-                .WhereNotNull()
+            var videoLocals1 = altOrderSeason.ListedEpisodes
                 .SelectMany(episode => episode.CrossReferences)
                 .Select(xref => xref.AnimeEpisode)
                 .WhereNotNull()
@@ -2508,9 +2497,9 @@ public partial class TmdbController(
         }
 
         var seasonId = int.Parse(seasonID);
-        var season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+        var season = TmdbCompatibility.GetSeason(seasonId);
         if (season is not null && WaitForShowUpdate(season.TmdbShowID))
-            season = _tmdbSeasons.GetByTmdbSeasonID(seasonId);
+            season = TmdbCompatibility.GetSeason(seasonId);
         if (season is null)
             return NotFound(SeasonNotFound);
 
@@ -2540,7 +2529,7 @@ public partial class TmdbController(
     [HttpPost("Episode/Bulk")]
     public ActionResult<List<TmdbEpisode>> BulkGetTmdbEpisodesByEpisodeIDs([FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] TmdbBulkFetchBody<TmdbEpisode.IncludeDetails> body) =>
         body.IDs
-            .Select(episodeID => episodeID <= 0 ? null : _tmdbEpisodes.GetByTmdbEpisodeID(episodeID))
+            .Select(episodeID => episodeID <= 0 ? null : TmdbCompatibility.GetEpisode(episodeID))
             .WhereNotNull()
             .GroupBy(episode => episode.TmdbShowID)
             .SelectMany(group =>
@@ -2548,13 +2537,13 @@ public partial class TmdbController(
                 var show = group.First().TmdbShow
                     ?? throw new Exception(ShowNotFoundByEpisodeID);
                 if (WaitForShowUpdate(show.Id))
-                    show = _tmdbShows.GetByTmdbShowID(show.Id)
+                    show = TmdbCompatibility.GetShow(show.Id)
                         ?? throw new Exception(ShowNotFoundByEpisodeID);
 
                 return group.Select(episode =>
                 {
                     var alternateOrderingEpisode = !string.IsNullOrEmpty(show.PreferredAlternateOrderingID)
-                        ? _tmdbAlternateOrderingEpisodes.GetByEpisodeGroupCollectionAndEpisodeIDs(show.PreferredAlternateOrderingID, episode.TmdbEpisodeID)
+                        ? TmdbCompatibility.GetAlternateOrderingEpisode(show.PreferredAlternateOrderingID, episode.TmdbEpisodeID)
                         : null;
                     return new TmdbEpisode(show, episode, alternateOrderingEpisode, body.Include?.CombineFlags(), body.Language);
                 });
@@ -2569,9 +2558,9 @@ public partial class TmdbController(
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2589,7 +2578,7 @@ public partial class TmdbController(
         {
             if (alternateOrderingID.Length == SeasonIdHexLength)
             {
-                var alternateOrderingEpisode = _tmdbAlternateOrderingEpisodes.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID);
+                var alternateOrderingEpisode = TmdbCompatibility.GetAlternateOrderingEpisode(alternateOrderingID, episodeID);
                 if (alternateOrderingEpisode is null)
                     return ValidationProblem("Invalid alternateOrderingID for episode.", "alternateOrderingID");
 
@@ -2609,14 +2598,14 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
         var preferredTitle = episode.GetPreferredTitle();
-        return new(episode.GetAllTitles().ToTitleDto(episode.EnglishTitle, preferredTitle, language));
+        return new(episode.GetAllTitles().ToTitleDto(episode.GetEnglishTitle().Value, preferredTitle, language));
     }
 
     [HttpGet("Episode/{episodeID}/Overviews")]
@@ -2625,9 +2614,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2641,9 +2630,9 @@ public partial class TmdbController(
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2660,20 +2649,20 @@ public partial class TmdbController(
         if (!string.IsNullOrWhiteSpace(alternateOrderingID) && alternateOrderingID.Length != SeasonIdHexLength && alternateOrderingID != show.Id.ToString())
             return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
-        var alternateOrderingEpisode = (TMDB_AlternateOrdering_Episode?)null;
+        var alternateOrderingEpisode = (TmdbCompatibility.AlternateOrderingEpisode?)null;
         if (!string.IsNullOrWhiteSpace(alternateOrderingID) && alternateOrderingID != show.Id.ToString())
         {
-            alternateOrderingEpisode = !string.IsNullOrWhiteSpace(alternateOrderingID) ? _tmdbAlternateOrderingEpisodes.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID) : null;
+            alternateOrderingEpisode = TmdbCompatibility.GetAlternateOrderingEpisode(alternateOrderingID, episodeID);
             if (alternateOrderingEpisode is null || alternateOrderingEpisode.TmdbShowID != show.TmdbShowID)
                 return ValidationProblem("Invalid alternateOrderingID for episode.", "alternateOrderingID");
         }
 
         var ordering = new List<TmdbEpisode.OrderingInformation>
         {
-            new(show, episode, alternateOrderingEpisode),
+            new(episode, show.PreferredAlternateOrderingID is null, alternateOrderingEpisode),
         };
         foreach (var altOrderEp in episode.TmdbAlternateOrderingEpisodes)
-            ordering.Add(new(show, altOrderEp, alternateOrderingEpisode));
+            ordering.Add(new(altOrderEp, show.PreferredAlternateOrderingID, alternateOrderingEpisode));
 
         return ordering
             .OrderByDescending(o => o.IsDefault)
@@ -2700,9 +2689,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2717,13 +2706,13 @@ public partial class TmdbController(
         [FromRoute] int episodeID
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        return episode.Cast
+        return episode.TmdbCast
             .Select(Role.FromTmdb)
             .WhereNotNull()
             .ToList();
@@ -2734,13 +2723,13 @@ public partial class TmdbController(
         [FromRoute] int episodeID
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
-        return episode.Crew
+        return episode.TmdbCrew
             .Select(Role.FromTmdb)
             .WhereNotNull()
             .ToList();
@@ -2751,9 +2740,9 @@ public partial class TmdbController(
         [FromRoute] int episodeID
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2767,9 +2756,9 @@ public partial class TmdbController(
         [FromRoute] int episodeID
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2793,7 +2782,7 @@ public partial class TmdbController(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] TmdbEpisode.SetHiddenStateForTmdbEpisodeByEpisodeIDRequestBody? body
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2814,9 +2803,9 @@ public partial class TmdbController(
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2834,7 +2823,7 @@ public partial class TmdbController(
         {
             if (alternateOrderingID.Length == SeasonIdHexLength)
             {
-                var alternateOrdering = _tmdbAlternateOrderings.GetByTmdbEpisodeGroupCollectionID(alternateOrderingID);
+                var alternateOrdering = TmdbCompatibility.GetAlternateOrdering(alternateOrderingID);
                 if (alternateOrdering is null || alternateOrdering.TmdbShowID != show.TmdbShowID)
                     return ValidationProblem("Invalid alternateOrderingID for show.", "alternateOrderingID");
 
@@ -2856,9 +2845,9 @@ public partial class TmdbController(
         [FromQuery, RegularExpression(AlternateOrderingIdRegex)] string? alternateOrderingID = null
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2876,7 +2865,7 @@ public partial class TmdbController(
         {
             if (alternateOrderingID.Length == SeasonIdHexLength)
             {
-                var alternateOrderingEpisode = _tmdbAlternateOrderingEpisodes.GetByEpisodeGroupCollectionAndEpisodeIDs(alternateOrderingID, episodeID);
+                var alternateOrderingEpisode = TmdbCompatibility.GetAlternateOrderingEpisode(alternateOrderingID, episodeID);
                 var altOrderSeason = alternateOrderingEpisode?.TmdbAlternateOrderingSeason;
                 if (altOrderSeason is null)
                     return NotFound(SeasonNotFoundByEpisodeID);
@@ -2904,9 +2893,9 @@ public partial class TmdbController(
         [FromRoute] int episodeID
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2923,9 +2912,9 @@ public partial class TmdbController(
         [FromRoute] int episodeID
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2944,9 +2933,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -2964,9 +2953,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 
@@ -3002,9 +2991,9 @@ public partial class TmdbController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] List<string>? sortOrder = null
     )
     {
-        var episode = _tmdbEpisodes.GetByTmdbEpisodeID(episodeID);
+        var episode = TmdbCompatibility.GetEpisode(episodeID);
         if (episode is not null && WaitForShowUpdate(episode.TmdbShowID))
-            episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
         if (episode is null)
             return NotFound(EpisodeNotFound);
 

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 
@@ -65,6 +67,13 @@ public interface IOrdering : IMetadata, IWithCreationDate, IWithUpdateDate, IWit
     int SeasonCount { get; }
 
     /// <summary>
+    ///   The networks the ordering follows, such as the broadcaster whose
+    ///   order it is. The default ordering's are the series' own
+    ///   <see cref="ISeries.Networks"/>.
+    /// </summary>
+    IReadOnlyList<INetwork> Networks { get; }
+
+    /// <summary>
     ///   The series the ordering orders.
     /// </summary>
     /// <exception cref="NullReferenceException">The series is missing.</exception>
@@ -73,13 +82,80 @@ public interface IOrdering : IMetadata, IWithCreationDate, IWithUpdateDate, IWit
     /// <summary>
     ///   The ordering's groups in viewing order, each read as a season. For
     ///   the default ordering these are the series' own seasons; for any
-    ///   other their <see cref="ISeason.OrderingID"/> names this ordering.
+    ///   other they are the ordering's own groups. Each one's
+    ///   <see cref="ISeason.OrderingID"/> names this ordering.
     /// </summary>
     IReadOnlyList<ISeason> Seasons { get; }
 
     /// <summary>
-    ///   The ordering's episodes in viewing order, each once, where it first
-    ///   comes.
+    ///   The ordering's episodes in viewing order, each once: a placed
+    ///   special (in the special group and a regular one) where it airs, and
+    ///   any other episode where it first comes.
     /// </summary>
     IReadOnlyList<IEpisode> Episodes { get; }
+
+    #region Static Helpers
+
+    /// <summary>
+    ///   The ID of a series' default ordering: the series' own ID for a
+    ///   source the core keeps, and <c>default/</c> and the series' ID for any
+    ///   other source, or a hash of the ID when that would be too long.
+    /// </summary>
+    /// <param name="seriesID">The series.</param>
+    /// <returns>The default ordering's ID, under the series' source.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="seriesID"/> is <c>null</c>.</exception>
+    public static MetadataGuid DefaultOrderingID(MetadataGuid seriesID)
+    {
+        ArgumentNullException.ThrowIfNull(seriesID);
+        if (seriesID.Source.IsCore)
+            return new(seriesID.Source, MetadataEntityType.Ordering, seriesID.ID);
+
+        var id = DefaultIDPrefix + seriesID.ID;
+        if (id.Length > MetadataGuid.MaxIDLength)
+            id = DefaultIDPrefix + "#" + Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(seriesID.ID)));
+        return new(seriesID.Source, MetadataEntityType.Ordering, id);
+    }
+
+    /// <summary>
+    ///   The start of a plugin source's default ordering IDs, which a global
+    ///   ordering's ID may not start with.
+    /// </summary>
+    internal const string DefaultIDPrefix = "default/";
+
+    #endregion
+}
+
+/// <summary>
+///   An ordering with its series, groups and episodes typed. The groups are
+///   the ordering's own, not the source's seasons, unless it is the default
+///   ordering.
+/// </summary>
+/// <typeparam name="TSeries">The series' type.</typeparam>
+/// <typeparam name="TEpisode">The episodes' type.</typeparam>
+public interface IOrdering<out TSeries, out TEpisode> : IOrdering
+    where TSeries : class, ISeries
+    where TEpisode : class, IEpisode
+{
+    /// <summary>
+    ///   The series the ordering orders.
+    /// </summary>
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    new TSeries Series { get; }
+
+    ISeries IOrdering.Series { get => Series; }
+
+    /// <summary>
+    ///   The ordering's groups in viewing order, each read as a season.
+    /// </summary>
+    new IReadOnlyList<ISeason<TSeries, TEpisode>> Seasons { get; }
+
+    IReadOnlyList<ISeason> IOrdering.Seasons { get => Seasons; }
+
+    /// <summary>
+    ///   The ordering's episodes in viewing order, each once: a placed
+    ///   special where it airs, and any other episode where it first comes.
+    /// </summary>
+    new IReadOnlyList<TEpisode> Episodes { get; }
+
+    IReadOnlyList<IEpisode> IOrdering.Episodes { get => Episodes; }
 }

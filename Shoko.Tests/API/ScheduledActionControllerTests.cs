@@ -140,6 +140,19 @@ public class ScheduledActionControllerTests
     }
 
     [Fact]
+    public void AQueueClearedTrigger_IsTakenWithNoFields_AndRefusedWithOne()
+    {
+        var refused = Controller().AddTrigger(ActionID, new() { Type = ActionTriggerType.QueueCleared, TimeOfDay = new(3, 0) });
+
+        var problem = Assert.IsType<ValidationProblemDetails>(Assert.IsAssignableFrom<ObjectResult>(refused.Result).Value);
+        Assert.Contains("takes no fields", Assert.Single(problem.Errors["[1]"]));
+        Assert.Null(_stored);
+
+        Controller().AddTrigger(ActionID, new() { Type = ActionTriggerType.QueueCleared });
+        Assert.Equal([ActionTrigger.Every(TimeSpan.FromHours(24)), ActionTrigger.OnQueueCleared], _stored);
+    }
+
+    [Fact]
     public void SettingNoTriggers_StoresAnEmptyList_AndResettingStoresNull()
     {
         var controller = Controller();

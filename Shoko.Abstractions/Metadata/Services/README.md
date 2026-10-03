@@ -9,7 +9,7 @@ Every interface here is implemented by the server and called by you.
 | `IImageManager` | Read, add, link and download images |
 | `IAiringScheduleService` | Read and write broadcast schedules ([`../Airing/README.md`](../Airing/README.md)) |
 | `IMetadataTextManager` | Keep, choose and gather the titles and overviews of any entry |
-| `IMetadataProviderManager` | See which provider answers for which source, and which sources are reserved |
+| `IMetadataProviderManager` | See and set which provider answers for which source and kind, in what order the rest stand by, and which sources are reserved |
 | `IMetadataImageContributorManager` | List the image contributors and turn each one on or off per source and kind |
 | `IMetadataLinkingService` | Make, break and correct links between Shoko entries and a source's, one at a time or in bulk |
 | `IMetadataRefreshService` | Ask the providers to refresh entries, download their images and auto-search, and read why a source is paused |
@@ -51,24 +51,24 @@ and `MetadataServiceExtensions` adds overloads taking a source and an `int`
 (`metadataService.GetEpisode(MetadataSource.AniDB, 1)`). What each source
 answers, by kind:
 
-| Kind | `shoko` | `user` | `anidb` | `tmdb` | Any plugin source |
-|---|---|---|---|---|---|
-| `series` | `AnimeSeries` | | `AniDB_Anime` | TMDB's show | the series store |
-| `season` | a Shoko season | a group of a user's ordering | an AniDB season | TMDB's season, or an alternate ordering's | the series store, then a group of a stored ordering |
-| `episode` | `AnimeEpisode` | | `AniDB_Episode` | TMDB's episode | the series store |
-| `movie` | | | | TMDB's movie | the movie store |
-| `collection` | `AnimeGroup` | | | TMDB's collection | the collection store |
-| `ordering` | the default | a user's ordering | the default | the default, or an alternate ordering | a stored ordering, or the default |
-| `creator` | | | AniDB's creator | TMDB's person | the people store |
-| `character` | | | AniDB's character | | the people store |
-| `studio` | | | AniDB's creator, as a studio | TMDB's company | the studio store |
-| `network` | | | | TMDB's network | the studio store |
-| `tag` | | a custom tag | AniDB's tag | a genre or keyword | the tag store |
-| `video` | `VideoLocal` | | | | |
-| `user` | `JMMUser` | | | | |
-| `filter` | `FilterPreset` | | | | |
-| `channel` | an airing channel | | | | |
-| any other | | | | | the plugin's `IMetadataResolver`, if one took it |
+| Kind | `shoko` | `user` | `anidb` | Any plugin source, `tmdb` included |
+|---|---|---|---|---|
+| `series` | `AnimeSeries` | | `AniDB_Anime` | the series store |
+| `season` | a Shoko season | a group of a user's ordering | an AniDB season | the series store, then a group of a stored ordering |
+| `episode` | `AnimeEpisode` | | `AniDB_Episode` | the series store |
+| `movie` | | | | the movie store |
+| `collection` | `AnimeGroup` | | | the collection store |
+| `ordering` | the default | a user's ordering | the default | a stored ordering, or the default |
+| `creator` | | | AniDB's creator | the people store |
+| `character` | | | AniDB's character | the people store |
+| `studio` | | | AniDB's creator, as a studio | the studio store |
+| `network` | | | | the studio store |
+| `tag` | | a custom tag | AniDB's tag | the tag store |
+| `video` | `VideoLocal` | | | |
+| `user` | `JMMUser` | | | |
+| `filter` | `FilterPreset` | | | |
+| `channel` | an airing channel | | | |
+| any other | | | | the plugin's `IMetadataResolver`, if one took it |
 
 A blank cell answers nothing, and `generated` answers nothing at all. For a
 plugin source the resolver that took the ID's source and kind is asked first
@@ -79,14 +79,23 @@ still read. "Nothing" is `null` or an empty sequence, never an exception.
 
 Some IDs are shaped rather than numbered: a Shoko or AniDB season is
 `<series ID>:<episode type>:<season number>` (found but not enumerated), a
-video `<ED2K>+<file size>`, a TMDB genre or keyword `genre/<name>` or
-`keyword/<name>` (hashed when too long), and an airing channel its GUID. Cast
+video `<ED2K>+<file size>`, a TMDb genre or keyword `genre/<id>`,
+`genre/<id>/<part>` or `keyword/<id>`, and an airing channel its GUID. Cast
 and crew credits, cross-references and search results are not entries; a
 cross-reference carries the ID of the entry it points at.
 
 `GetCollectionsWith` answers the stored collections a series, movie or group
-is in. `GetAllSeasonsForSource(TMDB, includeAlternativeSeasons: true)` adds
-TMDB's alternate-ordering seasons to its real ones.
+is in. `GetAllSeasonsForSource(source, includeAlternativeSeasons: true)` adds
+the groups of a source's stored orderings to its real seasons.
+
+`GetSiteUrl(entry)` answers the address of an entry's page on its source's
+site, or `null`: the resolver that took the source and kind first, then the
+source's series provider (series, seasons, episodes) or movie provider
+(movies, collections), enabled or not, or for creators, characters, studios
+and networks its entity provider first. The core answers AniDB's anime,
+episodes, creators, characters and studios. Shoko's own
+entries and users' orderings have none. `GetSiteUrl(id)` looks the entry up
+first, and asks about a bare ID when nothing holds it.
 
 ## Events
 
@@ -146,12 +155,12 @@ does; see [`../Resources/README.md`](../Resources/README.md).
 
 # Refreshing, purging and linking
 
-`IMetadataRefreshService` queues the providers' jobs, TMDB's among them:
+`IMetadataRefreshService` queues the providers' jobs:
 `RefreshEntry` (one series, film or collection), `RefreshForAnime` and
 `RefreshAllLinked`, the image jobs (`DownloadImages`, `DownloadImagesForAnime`,
 `DownloadAllImages`) and the auto-linker's searches (`AutoSearch`,
 `AutoSearchAll`). A force flag skips the hour-long freshness window, and
-`MetadataRefreshOptions` carries TMDB's switches. `IsRefreshing` and
+`MetadataRefreshOptions` carries the refresh switches. `IsRefreshing` and
 `WaitForRefresh` let a reader avoid handing back a copy that is about to
 change. `GetPauseStatus` and `PauseStatusChanged` say why a source cannot take
 work.
@@ -165,13 +174,13 @@ takes every ordering of it along. Keep any cutoff you pass a day or more in
 the past, since a running refresh may have saved something it has not used
 yet.
 
-`IMetadataCrossReferenceTransferService` writes a source's links as CSV in the
-format TMDB's export always used, and reads them back. An import reads every
+`IMetadataCrossReferenceTransferService` writes a source's links as CSV in one
+format for every source, and reads them back. An import reads every
 line before writing, so a bad line changes nothing.
 
 ## Linking
 
-`IMetadataLinkingService` writes links for every source, TMDB included, with
+`IMetadataLinkingService` writes links for every source, with
 the checks and follow-ups a person's change needs. The store's `Merge…Links`
 methods write links without any of them.
 
@@ -225,17 +234,13 @@ linkingService.LinksChanged += (_, eventArgs) =>
 };
 ```
 
-`ITmdbLinkingService` is a shim over this service; see
-[`../Tmdb/Services/README.md`](../Tmdb/Services/README.md).
-
 ---
 
 # `IMetadataTextManager`
 
 Every stored title and overview belongs to one entry (by `MetadataGuid`) and
 to the source that wrote it, in two tables held in memory. A source's own
-default, such as TMDB's English title, stays on the entry's row and is read
-beside them (`IText.IsInlineDefault`).
+default stays on the entry's row and is read beside them (`IText.IsInlineDefault`).
 
 ## Who writes what
 
@@ -278,7 +283,8 @@ One chooser serves every entry and `ChoosePreferredTitle`:
 5. The entry's default.
 6. For an episode with no title at all, a generic title made up in the first
    preferred language that has a form for it (`ITitle.IsSynthesized`), never
-   stored.
+   stored. A season with no title at all gets `Season 2`, or `Specials` for
+   season 0, the same way. Sources don't store these generic season names.
 
 Overviews follow steps 1, 2, 4 and 5.
 
@@ -289,9 +295,6 @@ Overviews follow steps 1, 2, 4 and 5.
   steps 1 to 4, else `null`, so `Title` falls back on the default. A person's
   `AlternativeNames` are the titles its source stored. Tags, studios, networks
   and orderings keep their name on their own rows.
-- **TMDB.** The English title and overview stay on the row; the translations
-  are stored under `tmdb`. The row's English title answers `x-main`, and
-  English only where TMDB listed it.
 - **AniDB.** An anime's and episode's titles are stored under `anidb`; an
   episode with no English title is named by its generic title, made up when
   read. Descriptions and the names of characters, creators and tags stay on
@@ -360,11 +363,13 @@ calls it to write.
 
 | Kind | Made by | IDs | `Type` |
 |---|---|---|---|
-| Default | The core, from the series' own seasons; never stored | the series' ID for a core source (`tmdb://ordering/1396`), `default/<series ID>` for a plugin's | `Default` |
+| Default | The core, from the series' own seasons; never stored | the series' ID for a core source (`anidb://ordering/1396`), `default/<series ID>` for any other (`tmdb://ordering/default/1396`) | `Default` |
 | Global | A plugin, through `SaveOrdering` | the plugin's own, under its source | anything but `Default` and `User` |
 | Local | A user, through `CreateLocalOrdering` | given by the core, under `user` | `User` |
 
-A group is an `ISeason` whose `OrderingID` names its ordering, so group IDs
+Every season names the ordering it is a group of in `OrderingID`: the
+default one for a series' own seasons, and the stored or source ordering for
+the others. Group IDs
 share the season namespace of their source; keep them apart from season IDs.
 At most one group is special (`IsSpecial`). Nobody sets numbers; an episode's
 place is an `IEpisodeOrderingInformation`:
@@ -372,11 +377,23 @@ place is an `IEpisodeOrderingInformation`:
 | Ordering | `SeasonNumber` | `EpisodeNumber` | `EpisodeType` |
 |---|---|---|---|
 | Default | the episode's own season | the episode's own number | the episode's own type |
-| Stored | `0` for the special group, else the group's place, from 1 | the place in the group, from 1 | `Special` in the special group, else `Episode` |
-| TMDB's episode groups | TMDB's order of the group; `0` is special | the place in the group, from 1 | `Special` in order `0`, else `Episode` |
+| Stored | `0` for the special group, else the group's place, from 1 | the place among the group's home episodes, from 1 | `Special` in the special group, else `Episode` |
 
 So read `EpisodeType` on the place, not `IEpisode.Type`, when an ordering is
-in use. An episode placed in two groups has two places.
+in use. An episode in two regular groups has two places.
+
+**Placed specials.** An episode in the special group and in a regular one is
+a placed special: it stays a special, numbered in the special group, and its
+place in the regular group only says where it airs. It has one place, in the
+special group, carrying `AirsBeforeSeasonNumber` and `AirsBeforeEpisodeNumber`
+(the regular episode of that group that follows it) or `AirsAfterSeasonNumber`
+(none follows), and the regular episodes around it in `AirsAfterEpisodeID` and
+`AirsBeforeEpisodeID`. The regular group numbers its home episodes without it,
+`ISeason.Episodes` leaves it out, and `IOrdering.Episodes` lists it where it
+airs. The default ordering places specials too, without moving them out of
+season 0: a plugin's series by the `AirsBefore*`/`AirsAfter*` its provider
+gave each season 0 episode, and an AniDB anime or a Shoko series by titles
+such as `Episode 17.5`, unless the admin turned that off.
 
 `SaveOrdering` replaces a global ordering whole and is refused under a core
 source, for a `default/` ID, for a group ID another ordering holds, for an
@@ -388,14 +405,13 @@ hidden flags of its episodes.
 
 `SetPreferredOrdering` chooses the ordering a series uses (`null` for the
 default), and `SetEpisodeHidden` hides an episode. Both are kept on the
-entry's own row (Shoko series or episode, AniDB anime or episode, TMDB show or
-episode, or the plugin's in the series store, whose saves keep them), so an
-entry only a resolver serves can have neither. When a refresh finds that TMDB
-dropped the episode group a show chose, the show goes back to its default.
+entry's own row (Shoko series or episode, AniDB anime or episode, or the
+plugin's in the series store, whose saves keep them), so an entry only a
+resolver serves can have neither.
 
-TMDB's episode groups read as orderings of their shows,
-`tmdb://ordering/<collection ID>`, whose groups keep their season IDs;
-`ITmdbShow.TmdbOrderings` lists only those. An ordering carries images like
+The TMDb plugin stores its episode groups as global orderings of its shows,
+`tmdb://ordering/<collection ID>`, whose groups keep their season IDs. An
+ordering carries images like
 any entry, but `IImageManager` links images only to users' and plugins'
 stored orderings and their groups, never to a default ordering or one a core
 source keeps.
@@ -576,9 +592,9 @@ desired, then enabled.
 
 `ImageFilteringOptions` fields are tri-state `bool?` filters, except
 `AsPrimaryImage`. `LinkedEntityImages` matters most: `null` (the default)
-means `true` for `IShokoGroup`, `IShokoSeries`, `IShokoSeason` and
+means `true` for `IShokoGroup`, `IShokoSeries`, a Shoko series' seasons and
 `IShokoEpisode` and `false` for everything else, which is how a Shoko series
-shows TMDB posters. Results come own images first, `User` and `Generated`
+shows the posters of what it is linked to. Results come own images first, `User` and `Generated`
 sources first within that, deduplicated on image and type. Pass `false` to see
 only what an entity itself owns.
 
@@ -615,8 +631,8 @@ image demotes the entity's previous preferred image of that type.
 ### A template URL for your source
 
 A remote image's URL is rebuilt as `string.Format(template, image.ResourceID)`
-on every download. The core registers AniDB's and TMDB's templates; any other
-source needs `RegisterTemplateUrl` on every start before its first `AddImage`,
+on every download. The core registers AniDB's template; any other source
+needs `RegisterTemplateUrl` on every start before its first `AddImage`,
 which otherwise throws `MissingImageSourceTemplateUrlException`. The default
 lives in memory; a user's own template (`SetTemplateUrlForSource`) takes
 precedence, and clearing it goes back to yours.

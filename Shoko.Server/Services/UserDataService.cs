@@ -45,12 +45,6 @@ public class UserDataService(
 
     #region Video User Data
 
-    /// <summary>
-    ///   The share of a video's runtime past which the completion rule
-    ///   treats a position as finished.
-    /// </summary>
-    internal const double CompletionThreshold = 0.975d;
-
     public event EventHandler<VideoUserDataSavedEventArgs>? VideoUserDataSaved;
 
     public IVideoUserData? GetVideoUserData(IVideo video, IUser user)
@@ -143,7 +137,7 @@ public class UserDataService(
             : (TimeSpan?)null;
         var userData = videoUserDataRepository.GetByUserAndVideoLocalID(user.LocalID, video.LocalID)
             ?? new() { JMMUserID = user.LocalID, VideoLocalID = video.LocalID };
-        var completionApplied = ApplyCompletionRule(userData, userDataUpdate, duration, reason);
+        var completionApplied = ApplyCompletionRule(userData, userDataUpdate, duration, reason, settingsProvider.GetSettings().CompletionThresholdPercent);
         // WatchedDate stores local time, but a caller can hand us UTC — the MyList
         // sync reads AniDB, which is UTC throughout. Read as local for both the
         // compare and the store, or an equal date in the other kind reads as a
@@ -384,7 +378,7 @@ public class UserDataService(
     }
 
     /// <summary>
-    ///   Treats a position past <see cref="CompletionThreshold"/> of the
+    ///   Treats a position at or past the completion threshold of the
     ///   runtime as finished, when the update or the reason asks for it: the
     ///   position is cleared and, unless nothing played since the video was
     ///   last finished, the video is marked watched.
@@ -393,8 +387,15 @@ public class UserDataService(
     /// <param name="userDataUpdate">The update, rewritten in place.</param>
     /// <param name="duration">The video's runtime, if known.</param>
     /// <param name="reason">The reason for the save.</param>
+    /// <param name="thresholdPercent">The share of the runtime, in percent, from which a position counts as finished.</param>
     /// <returns><c>true</c> if the position was treated as finished.</returns>
-    private static bool ApplyCompletionRule(VideoLocal_User userData, VideoUserDataUpdate userDataUpdate, TimeSpan? duration, VideoUserDataSaveReason reason)
+    private static bool ApplyCompletionRule(
+        VideoLocal_User userData,
+        VideoUserDataUpdate userDataUpdate,
+        TimeSpan? duration,
+        VideoUserDataSaveReason reason,
+        int thresholdPercent
+    )
     {
         var apply = userDataUpdate.ApplyCompletionThreshold ?? reason is
             VideoUserDataSaveReason.None or
@@ -402,7 +403,7 @@ public class UserDataService(
             VideoUserDataSaveReason.PlaybackEnd;
         if (!apply || userDataUpdate.ProgressPosition is not { } position || duration is not { } runtime || runtime <= TimeSpan.Zero)
             return false;
-        if (position.TotalMilliseconds / runtime.TotalMilliseconds <= CompletionThreshold)
+        if (position.TotalMilliseconds * 100 < runtime.TotalMilliseconds * thresholdPercent)
             return false;
 
         // A playthrough finishes once. Saving past the threshold again with no

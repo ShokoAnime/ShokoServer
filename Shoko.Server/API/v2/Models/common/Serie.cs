@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using Microsoft.AspNetCore.Http;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;

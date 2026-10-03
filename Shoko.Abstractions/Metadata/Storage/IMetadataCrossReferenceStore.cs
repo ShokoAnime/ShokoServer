@@ -144,9 +144,8 @@ public interface IMetadataCrossReferenceStore
     ///   <paramref name="links"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="System.ArgumentException">
-    ///   A link names no provider entry, or one on another source, one that is
-    ///   neither a series nor a film claiming the whole anime, or one with an
-    ///   ID its source never gives.
+    ///   A link names no provider entry, or one on another source, or one that
+    ///   is neither a series nor a film claiming the whole anime.
     /// </exception>
     Task<IReadOnlyList<IMetadataSeriesCrossReference>> MergeSeriesLinks(
         IEnumerable<MetadataSeriesLinkData> links,
@@ -177,8 +176,8 @@ public interface IMetadataCrossReferenceStore
     ///   <paramref name="links"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="System.ArgumentException">
-    ///   A link names no provider entry, or one on another source, one that is
-    ///   not a film, or one with an ID its source never gives.
+    ///   A link names no provider entry, or one on another source, or one that
+    ///   is not a film.
     /// </exception>
     Task<IReadOnlyList<IMetadataMovieCrossReference>> MergeMovieLinks(
         IEnumerable<MetadataMovieLinkData> links,
@@ -212,9 +211,8 @@ public interface IMetadataCrossReferenceStore
     /// </exception>
     /// <exception cref="System.ArgumentException">
     ///   A link's provider entry is on another source or is not an episode,
-    ///   its parent is on another source or is not a series, its season is on
-    ///   another source or is not a season, or its entry or parent has an ID
-    ///   its source never gives.
+    ///   its parent is on another source or is not a series, or its season is
+    ///   on another source or is not a season.
     /// </exception>
     Task<IReadOnlyList<IMetadataEpisodeCrossReference>> MergeEpisodeLinks(
         IEnumerable<MetadataEpisodeLinkData> links,

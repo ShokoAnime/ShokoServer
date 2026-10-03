@@ -50,6 +50,8 @@ public class RefreshMetadataJob<TProvider>(
 {
     #region Properties
 
+    private MetadataProviderInfo? _providerInfo;
+
     /// <summary>
     ///   The AniDB anime whose linked entries are refreshed, or, with
     ///   <see cref="EntryID"/>, the anime the entry was refreshed for. 0 when
@@ -132,14 +134,16 @@ public class RefreshMetadataJob<TProvider>(
     {
         get
         {
-            var details = new Dictionary<string, object> { ["Provider"] = typeof(TProvider).Name };
+            var details = new Dictionary<string, object> { ["Provider"] = _providerInfo?.Name ?? typeof(TProvider).Name };
             if (AnimeID > 0)
                 details["AnimeID"] = AnimeID;
-            if (EntryID is not null)
-                details["Entry"] = EntryID;
-            return details;
+            return details.WithEntry(EntryID);
         }
     }
+
+    /// <inheritdoc />
+    public override void PostInit()
+        => _providerInfo = MetadataProviderJobContext.Find<TProvider>(providerManager);
 
     #endregion
 
@@ -248,7 +252,7 @@ public class RefreshMetadataJob<TProvider>(
         }
 
         var lastRefreshedAt = refreshState.GetLastRefreshedAt(entry);
-        if (!Force && lastRefreshedAt is { } last && DateTime.Now - last < MetadataRefreshState.FreshFor)
+        if (!Force && lastRefreshedAt is { } last && DateTime.UtcNow - last.ToUniversalTime() < MetadataRefreshState.FreshFor)
         {
             _logger.LogDebug("Not refreshing {Entry}, which {Provider} last refreshed at {LastRefreshedAt}.", entry, info.Name, last);
             return false;
@@ -279,7 +283,7 @@ public class RefreshMetadataJob<TProvider>(
         // A quick refresh leaves out what is costly to fetch, so the next
         // refresh that is not forced must still run in full.
         if (!QuickRefresh)
-            refreshState.RecordRefresh(entry, DateTime.Now);
+            refreshState.RecordRefresh(entry, DateTime.UtcNow);
 
         _logger.LogDebug("{Provider} refreshed {Entry}.", info.Name, entry);
         return true;

@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Video.Services;
@@ -16,7 +17,6 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Release;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.HTTP.GetAnime;
@@ -38,6 +38,7 @@ public class AnimeCreator
     private readonly IQueueScheduler _scheduler;
     private readonly IVideoReleaseService _videoReleaseService;
     private readonly MetadataTextStore _textStore;
+    private readonly MetadataCrossReferenceStore _crossReferences;
     private readonly ConcurrentDictionary<int, object> _updatingIDs = [];
 
     public AnimeCreator(
@@ -45,7 +46,8 @@ public class AnimeCreator
         ISettingsProvider settings,
         IQueueScheduler scheduler,
         IVideoReleaseService videoReleaseService,
-        MetadataTextStore textStore
+        MetadataTextStore textStore,
+        MetadataCrossReferenceStore crossReferences
     )
     {
         _logger = logger;
@@ -53,6 +55,7 @@ public class AnimeCreator
         _scheduler = scheduler;
         _videoReleaseService = videoReleaseService;
         _textStore = textStore;
+        _crossReferences = crossReferences;
     }
 
 
@@ -173,7 +176,14 @@ public class AnimeCreator
     }
 #pragma warning restore CS0618
 
-    private static (bool animeUpdated, bool descriptionUpdated, bool shouldUpdateFiles) PopulateAnime(ResponseAnime animeInfo, AniDB_Anime anime)
+    /// <summary>
+    ///   Copies the anime's fields from AniDB's response onto the stored row,
+    ///   stamping a new row's creation date.
+    /// </summary>
+    /// <param name="animeInfo">The anime as AniDB gave it.</param>
+    /// <param name="anime">The stored row, new or existing.</param>
+    /// <returns>Whether the anime, its description or its files' names changed.</returns>
+    internal static (bool animeUpdated, bool descriptionUpdated, bool shouldUpdateFiles) PopulateAnime(ResponseAnime animeInfo, AniDB_Anime anime)
     {
         var isUpdated = false;
         var descriptionUpdated = false;
@@ -321,11 +331,32 @@ public class AnimeCreator
 #pragma warning disable CS0618
         // Make sure these fields are set for new entries.
         if (isNew)
-            anime.DateTimeUpdated = anime.DateTimeDescUpdated = DateTime.Now;
+            anime.CreatedAt = anime.DateTimeUpdated = anime.DateTimeDescUpdated = DateTime.Now;
 #pragma warning restore CS0618
 
         return (isUpdated, descriptionUpdated, shouldUpdateFiles);
     }
+
+    /// <summary>
+    ///   Makes the row of an episode not stored before.
+    /// </summary>
+    /// <param name="rawEpisode">The episode as AniDB gave it.</param>
+    /// <param name="createdAt">When the row is first stored.</param>
+    /// <returns>The new row.</returns>
+    internal static AniDB_Episode NewEpisode(ResponseEpisode rawEpisode, DateTime createdAt) => new()
+    {
+        AirDate = AniDBExtensions.GetAniDBDateAsSeconds(rawEpisode.AirDate),
+        AnimeID = rawEpisode.AnimeID,
+        CreatedAt = createdAt,
+        DateTimeUpdated = rawEpisode.LastUpdated,
+        EpisodeID = rawEpisode.EpisodeID,
+        EpisodeNumber = rawEpisode.EpisodeNumber,
+        EpisodeType = (AbstractEpisodeType)rawEpisode.EpisodeType,
+        LengthSeconds = rawEpisode.LengthSeconds,
+        Rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture),
+        Votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture),
+        Description = rawEpisode.Description ?? string.Empty,
+    };
 
     private async Task<(bool, Dictionary<AniDB_Episode, UpdateReason>)> CreateEpisodes(List<ResponseEpisode> rawEpisodeList, AniDB_Anime anime, AnimeTexts texts)
     {
@@ -423,19 +454,7 @@ public class AnimeCreator
             else
             {
                 isNew = true;
-                episode = new()
-                {
-                    AirDate = AniDBExtensions.GetAniDBDateAsSeconds(rawEpisode.AirDate),
-                    AnimeID = rawEpisode.AnimeID,
-                    DateTimeUpdated = rawEpisode.LastUpdated,
-                    EpisodeID = rawEpisode.EpisodeID,
-                    EpisodeNumber = rawEpisode.EpisodeNumber,
-                    EpisodeType = (AbstractEpisodeType)rawEpisode.EpisodeType,
-                    LengthSeconds = rawEpisode.LengthSeconds,
-                    Rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture),
-                    Votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture),
-                    Description = rawEpisode.Description ?? string.Empty
-                };
+                episode = NewEpisode(rawEpisode, DateTime.Now);
             }
 
             // Work out the titles to store, leaving out the generic one with
@@ -497,7 +516,7 @@ public class AnimeCreator
         var storedReleasesToRemove = new List<StoredReleaseInfo>();
         var xrefsToRemove = new List<CrossRef_File_Episode>();
         var videosToRefetch = new List<VideoLocal>();
-        var tmdbXRefsToRemove = new List<CrossRef_AniDB_TMDB_Episode>();
+        var episodeLinksToRemove = new List<CrossRef_AniDB_Metadata_Episode>();
         if (correctSeries != null)
             shokoSeriesDict.Add(correctSeries.AnimeSeriesID, correctSeries);
         foreach (var episode in epsToSave)
@@ -532,11 +551,10 @@ public class AnimeCreator
                 .WhereNotNull()
                 .ToList();
             var storedReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
-            var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
             storedReleasesToRemove.AddRange(storedReleases);
-            tmdbXRefsToRemove.AddRange(tmdbXRefs);
+            episodeLinksToRemove.AddRange(RepoFactory.CrossRef_AniDB_Metadata_Episode.GetByAnidbEpisodeID(episode.EpisodeID));
         }
         shokoSeriesDict.Clear();
 
@@ -553,11 +571,10 @@ public class AnimeCreator
                 .WhereNotNull()
                 .ToList();
             var databaseReleases = RepoFactory.StoredReleaseInfo.GetByAnidbEpisodeID(episode.EpisodeID);
-            var tmdbXRefs = RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(episode.EpisodeID);
             xrefsToRemove.AddRange(xrefs);
             videosToRefetch.AddRange(videos);
             storedReleasesToRemove.AddRange(databaseReleases);
-            tmdbXRefsToRemove.AddRange(tmdbXRefs);
+            episodeLinksToRemove.AddRange(RepoFactory.CrossRef_AniDB_Metadata_Episode.GetByAnidbEpisodeID(episode.EpisodeID));
         }
 
         RepoFactory.StoredReleaseInfo.Delete(storedReleasesToRemove.DistinctBy(a => a.StoredReleaseInfoID).ToList());
@@ -566,7 +583,7 @@ public class AnimeCreator
         RepoFactory.AnimeEpisode.Save(shokoEpisodesToSave);
         RepoFactory.AnimeEpisode.Delete(shokoEpisodesToRemove);
         RepoFactory.CrossRef_File_Episode.Delete(xrefsToRemove);
-        RepoFactory.CrossRef_AniDB_TMDB_Episode.Delete(tmdbXRefsToRemove);
+        RemoveEpisodeLinks(episodeLinksToRemove);
 
         // Schedule a refetch of any video files affected by the removal of the
         // episodes. They were likely moved to another episode entry so let's
@@ -592,6 +609,21 @@ public class AnimeCreator
             episodeEventsToEmit.ContainsValue(UpdateReason.Added) || epsToRemove.Count > 0,
             episodeEventsToEmit
         );
+    }
+
+    /// <summary>
+    ///   Removes the links the removed or moved episodes had on every source,
+    ///   closing the gaps they leave among the anime's links.
+    /// </summary>
+    /// <param name="links">The links.</param>
+    private void RemoveEpisodeLinks(IReadOnlyList<CrossRef_AniDB_Metadata_Episode> links)
+    {
+        if (links.Count is 0)
+            return;
+
+        using var changes = _crossReferences.BeginChanges();
+        foreach (var link in links.DistinctBy(link => link.CrossRef_AniDB_Metadata_EpisodeID))
+            _crossReferences.RemoveEpisodeLink(link.Source, link.AnidbAnimeID, link.AnidbEpisodeID, ((IMetadataCrossReference)link).ProviderID);
     }
 
     /// <summary>

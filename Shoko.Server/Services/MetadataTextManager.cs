@@ -240,6 +240,17 @@ public class MetadataTextManager : IMetadataTextManager
         );
     }
 
+    /// <inheritdoc />
+    public IReadOnlyList<TitleLanguage> GetLanguageOrder(TextKind kind, MetadataEntityType? entityType = null)
+    {
+        var languages = kind is TextKind.Overview
+            ? Languages.PreferredDescriptionNamingLanguages
+            : entityType == MetadataEntityType.Episode
+                ? Languages.PreferredEpisodeNamingLanguages
+                : Languages.PreferredNamingLanguages;
+        return [.. languages.Select(language => language.Language)];
+    }
+
     #endregion
 
     #region Reading by Entry
@@ -398,8 +409,8 @@ public class MetadataTextManager : IMetadataTextManager
     ///   the entry's own default first where the list leaves it out.
     /// </summary>
     /// <remarks>
-    ///   TMDB leaves its English title out of the list when TMDB did not list
-    ///   it, yet it is still a text to choose from. A Shoko entry's list also
+    ///   A source may leave its English title out of the list when it did
+    ///   not list it, yet it is still a text to choose from. A Shoko entry's list also
     ///   holds the defaults on the rows of the entries it is linked to.
     /// </remarks>
     /// <param name="texts">The entry's own list, with what was stored for it.</param>
@@ -427,13 +438,17 @@ public class MetadataTextManager : IMetadataTextManager
         => string.IsNullOrEmpty(text?.Value) ? null : text;
 
     /// <summary>
-    ///   A made-up title for an episode with no title of its own at all.
+    ///   A made-up title for an episode or season with no title of its own at
+    ///   all, such as <c>Episode 5</c> or <c>Season 2</c>.
     /// </summary>
     /// <param name="entityID">The entry.</param>
     /// <param name="entry">The entry, when it was found.</param>
-    /// <returns>The title, or <c>null</c> when the entry is not an episode or has titles.</returns>
+    /// <returns>The title, or <c>null</c> when the entry is neither an episode nor a season, or has titles.</returns>
     private static ITitle? Synthesized(MetadataGuid entityID, IWithTitles? entry)
     {
+        if (entityID.EntityType == MetadataEntityType.Season && entry is ISeason season && season.Titles is not { Count: > 0 })
+            return GenericEpisodeTitles.SynthesizeSeason(season.SeasonNumber);
+
         if (entityID.EntityType != MetadataEntityType.Episode || entry is not IEpisode episode || episode.Titles is { Count: > 0 })
             return null;
 
@@ -592,11 +607,11 @@ public class MetadataTextManager : IMetadataTextManager
         => StoredDefaultTitle(entry.ID, entry as IInlineTextSource);
 
     /// <summary>
-    ///   The generic title made up for a stored episode with no title at all,
-    ///   for its model.
+    ///   The generic title made up for a stored episode or season with no
+    ///   title at all, for its model.
     /// </summary>
     /// <param name="entry">The entry.</param>
-    /// <returns>The title, or <c>null</c> when the entry is not an episode or has titles.</returns>
+    /// <returns>The title, or <c>null</c> when the entry is neither an episode nor a season, or has titles.</returns>
     internal ITitle? SynthesizedTitleFor(IMetadata entry)
         => Synthesized(entry.ID, entry as IWithTitles);
 
@@ -1970,8 +1985,8 @@ public class MetadataTextManager : IMetadataTextManager
         ], []);
 
     private IReadOnlyList<IMetadataCrossReference> SeasonLinks(AnimeSeason season)
-        => _metadataService is MetadataService service
-            ? Links(AnidbAnimeID(((IShokoSeason)season).Series is IShokoSeries series ? series.AnidbAnimeID : 0), service.GetSeasonCrossReferences(season))
+        => _metadataService is MetadataService
+            ? Links(AnidbAnimeID(((ISeason<IShokoSeries, IShokoEpisode>)season).Series is { } series ? series.AnidbAnimeID : 0), ((ISeason)season).MetadataSeasonCrossReferences)
             : [];
 
     #endregion

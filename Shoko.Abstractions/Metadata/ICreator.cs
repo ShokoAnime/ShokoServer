@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
@@ -7,8 +8,15 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Creator.
 /// </summary>
-public interface ICreator : IMetadata, IWithOverviews, IWithPrimaryImage, IWithUpdateDate, IWithResources
+public interface ICreator : IMetadata, IWithOverviews, IWithPrimaryImage, IWithCreationDate, IWithUpdateDate, IWithResources
 {
+    /// <summary>
+    ///   When the core last asked the source to refresh the creator, found or
+    ///   not, in UTC. Set by the core alone; <see langword="null"/> when it
+    ///   never did.
+    /// </summary>
+    DateTime? LastRefreshedAt { get; }
+
     /// <summary>
     /// Casted role name.
     /// </summary>
@@ -47,6 +55,18 @@ public interface ICreator : IMetadata, IWithOverviews, IWithPrimaryImage, IWithU
     ///   unknown, as with <see cref="BirthDay"/>.
     /// </summary>
     FuzzyDateOnly? DeathDay { get; }
+
+    /// <summary>
+    ///   Where the creator was born, as free text the way the source gives
+    ///   it, such as <c>Tokyo, Japan</c>, or <c>null</c> when it does not say.
+    /// </summary>
+    string? PlaceOfBirth { get; }
+
+    /// <summary>
+    ///   Whether the source marks the creator as known for adult content
+    ///   only.
+    /// </summary>
+    bool IsRestricted { get; }
 
     /// <summary>
     /// All episode cast roles the creator have participated in.

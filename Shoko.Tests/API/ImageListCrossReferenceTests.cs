@@ -86,11 +86,11 @@ public class ImageListCrossReferenceTests
     /// <summary>
     /// A shoko season linked to one AniDB season.
     /// </summary>
-    private static IShokoSeason Season()
+    private static ISeason<IShokoSeries, IShokoEpisode> Season()
     {
         var anidbSeason = new Mock<ISeason>();
         anidbSeason.SetupGet(s => s.ID).Returns(_anidbSeasonID);
-        var season = new Mock<IShokoSeason>();
+        var season = new Mock<ISeason<IShokoSeries, IShokoEpisode>>();
         season.SetupGet(s => s.ID).Returns(_shokoSeasonID);
         season.SetupGet(s => s.LinkedSeasons).Returns([anidbSeason.Object]);
         return season.Object;

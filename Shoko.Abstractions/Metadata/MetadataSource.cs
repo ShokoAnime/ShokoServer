@@ -107,7 +107,8 @@ public sealed partial class MetadataSource : IEquatable<MetadataSource>, ICompar
         Generated = RegisterCore("Locally Generated", "generated", ["locally-generated", "locallygenerated"], true,
             "Images made on the server rather than entered by a person, such as thumbnails.");
         AniDB = RegisterCore("AniDB", "anidb", [], false, "The anime database at anidb.net, which every series in Shoko is built on.");
-        TMDB = RegisterCore("TMDB", "tmdb", ["themoviedb"], false, "The Movie Database at themoviedb.org, for shows, movies and their artwork.");
+        // Pre-registered, but kept like any other source's: in the shared stores.
+        TMDB = RegisterInternal("TMDb", "tmdb", ["themoviedb"], false, "The Movie Database at themoviedb.org, for shows, movies and their artwork.", core: false);
     }
 
     /// <summary>
@@ -531,8 +532,9 @@ public sealed partial class MetadataSource : IEquatable<MetadataSource>, ICompar
 
     /// <summary>
     ///   Whether the source is one the core registers and answers for itself:
-    ///   <see cref="Shoko"/>, <see cref="User"/>, <see cref="Generated"/>,
-    ///   <see cref="AniDB"/> or <see cref="TMDB"/>.
+    ///   <see cref="Shoko"/>, <see cref="User"/>, <see cref="Generated"/> or
+    ///   <see cref="AniDB"/>. <see cref="TMDB"/> is registered up front but
+    ///   kept in the shared stores, like a plugin's source.
     /// </summary>
     internal bool IsCore => _core || (!_registered && _registeredByValue.TryGetValue(Value, out var registered) && registered._core);
 

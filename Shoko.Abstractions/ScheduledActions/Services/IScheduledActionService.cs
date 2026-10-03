@@ -14,8 +14,8 @@ namespace Shoko.Abstractions.ScheduledActions.Services;
 /// <remarks>
 ///   A trigger queues a run through the job queue, never twice. No trigger runs
 ///   an action sooner than its <see cref="ScheduledActionInfo.MinimumInterval"/>
-///   after its last counted run: a firing inside it, start-up included, is
-///   skipped and logged. A run whose job started late delays the next one. A run
+///   after its last counted run: a firing inside it, start-up and queue-cleared
+///   included, is skipped and logged. A run whose job started late delays the next one. A run
 ///   by hand is never held back. Usable once the server has started.
 /// </remarks>
 public interface IScheduledActionService

@@ -7,13 +7,16 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.ScheduledActions;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Actions;
+using Shoko.Server.API;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Repositories.Cached;
@@ -198,15 +201,21 @@ public sealed class ScheduledActionServiceTests : IDisposable
     {
         Directory.CreateDirectory(_dataPath);
         _applicationPaths.SetupGet(paths => paths.DataPath).Returns(_dataPath);
+        _applicationPaths.SetupGet(paths => paths.ConfigurationsPath).Returns(Path.Join(_dataPath, "configurations"));
         _systemService.SetupGet(service => service.IsStarted).Returns(true);
         _source = new(_queue);
         _schedules = CachedRepo.BuildWritable<ScheduledActionRepository, int, ScheduledAction>(row => row.ScheduledActionID);
-        _schedules.Setup(repository => repository.Save(It.IsAny<ScheduledAction>())).Callback<ScheduledAction>(row =>
-        {
-            if (row.ScheduledActionID is 0)
-                row.ScheduledActionID = _nextRowID++;
-            _schedules.Object.Cache.Update(row);
-        });
+        _schedules.Setup(repository => repository.Save(It.IsAny<ScheduledAction>())).Callback<ScheduledAction>(StoreRow);
+    }
+
+    /// <summary>
+    /// Saves a row into the cache, as the repository would.
+    /// </summary>
+    private void StoreRow(ScheduledAction row)
+    {
+        if (row.ScheduledActionID is 0)
+            row.ScheduledActionID = _nextRowID++;
+        _schedules.Object.Cache.Update(row);
     }
 
     public void Dispose()
@@ -661,6 +670,7 @@ public sealed class ScheduledActionServiceTests : IDisposable
             ActionTrigger.Every(TimeSpan.FromMinutes(90)),
             ActionTrigger.DailyAt(new TimeOnly(3, 30)),
             ActionTrigger.WeeklyOn(DayOfWeek.Monday, new TimeOnly(9, 0)),
+            ActionTrigger.OnQueueCleared,
         ];
         using (var first = Service())
         {
@@ -1259,7 +1269,162 @@ public sealed class ScheduledActionServiceTests : IDisposable
 
     #endregion
 
+    #region Queue Cleared
+
+    /// <summary>
+    /// A scheduler that hears the queue's events, started with an empty queue.
+    /// </summary>
+    private async Task<ScheduledActionService> ListeningService()
+    {
+        var service = Service();
+        _systemService.SetupGet(system => system.IsStarted).Returns(false);
+        await service.StartAsync(TestContext.Current.CancellationToken);
+        _systemService.SetupGet(system => system.IsStarted).Returns(true);
+        await service.StartSchedulingAsync(TestContext.Current.CancellationToken);
+        return service;
+    }
+
+    /// <summary>
+    /// Clears the queue, as the API does, and waits for the queue-cleared
+    /// triggers it fired.
+    /// </summary>
+    private async Task ClearQueue(ScheduledActionService service)
+    {
+        await _queue.Handler.Clear();
+        await service.QueueClearedFiring;
+    }
+
+    [Fact]
+    public async Task AQueueClearedTrigger_RunsTheActionAfterAClear_ButNotAtStart()
+    {
+        var action = _source.Add([ActionTrigger.OnQueueCleared]);
+        using var service = await ListeningService();
+        Assert.Equal(0, _source.RunsOf(action));
+        Assert.Null(service.GetScheduledAction(action)!.NextRunAt);
+
+        await _queue.Enqueue<QueueControllerTests.PlainJob>(99);
+        _clock.Advance(TimeSpan.FromMinutes(5));
+        await ClearQueue(service);
+
+        var info = service.GetScheduledAction(action)!;
+        Assert.Equal(1, _source.RunsOf(action));
+        Assert.Equal(ScheduledActionState.Waiting, info.State);
+        Assert.Equal(Now, info.LastScheduledRunAt);
+        Assert.Equal(1, _queue.Handler.TotalCount);
+        await service.StopAsync(TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task TheQueueRunningOut_RemovingAJob_OrPausingIt_DoesNotRunAQueueClearedAction()
+    {
+        var action = _source.Add([ActionTrigger.OnQueueCleared]);
+        using var service = await ListeningService();
+
+        await _queue.Enqueue<QueueControllerTests.PlainJob>(1, run: true);
+        FinishRun(_queue.Orchestrator.GetExecuting().Single().Id);
+        var removed = await _queue.Enqueue<QueueControllerTests.PlainJob>(2);
+        await _queue.Handler.Remove(removed);
+        _queue.Events.InvokeQueuePaused();
+        _queue.Events.InvokeQueueStarted();
+        await service.QueueClearedFiring;
+
+        Assert.Equal(0, _source.RunsOf(action));
+        Assert.Equal(0, _queue.Handler.TotalCount);
+        await service.StopAsync(TestContext.Current.CancellationToken);
+    }
+
+    [Fact]
+    public async Task AClearInsideTheMinimum_IsSkipped_AndRunsOnceItHasPassed()
+    {
+        var action = _source.Add([ActionTrigger.OnQueueCleared]);
+        using var service = await ListeningService();
+        _clock.Advance(TimeSpan.FromMinutes(5));
+        await ClearQueue(service);
+        FinishRun(StartRun(service, action));
+
+        _clock.Advance(TimeSpan.FromSeconds(30));
+        await ClearQueue(service);
+        Assert.Equal(1, _source.RunsOf(action));
+
+        _clock.Advance(TimeSpan.FromSeconds(30));
+        await ClearQueue(service);
+        Assert.Equal(2, _source.RunsOf(action));
+        await service.StopAsync(TestContext.Current.CancellationToken);
+    }
+
+    #endregion
+
     #region Upgrade
+
+    /// <summary>
+    /// Adds a ported action with the defaults and minimum of the real one.
+    /// </summary>
+    private Guid AddPorted(IScheduledAction action)
+        => _source.Add(action.DefaultTriggers, action.GetType(), action.MinimumInterval);
+
+    [Fact]
+    public void OldSettings_BecomeTheTriggersOfTheRealPortedActions()
+    {
+        var scheduler = Mock.Of<IQueueScheduler>();
+        var calendar = AddPorted(new UpdateAnidbCalendarAction(scheduler));
+        var anime = AddPorted(new GetUpdatedAnidbAnimeAction(scheduler));
+        var files = AddPorted(new CheckAnidbFileUpdatesAction(scheduler));
+        var notifications = AddPorted(new GetAnidbNotificationsAction(scheduler));
+        var mylist = AddPorted(new SyncAnidbMylistOnScheduleAction(scheduler));
+        var plugins = AddPorted(new CheckPluginUpdatesAction(scheduler));
+        const string settings = """
+        {
+          "SettingsVersion": 24,
+          "AniDb": {
+            "Calendar_UpdateFrequency": "HoursTwelve",
+            "Anime_UpdateFrequency": "EveryHour",
+            "File_UpdateFrequency": "Daily",
+            "Notification_UpdateFrequency": "Never",
+            "MyList": { "UpdateFrequency": "WeekOne" }
+          },
+          "Plugins": { "Updates": { "AutoUpdateFrequency": "Never" } }
+        }
+        """;
+        SettingsMigrations.MigrateSettings(settings, _applicationPaths.Object);
+        using var service = Service();
+
+        var byId = service.GetScheduledActions().ToDictionary(info => info.ID);
+
+        Assert.Equal([ActionTrigger.Every(TimeSpan.FromHours(12))], byId[calendar].Triggers);
+        // Every hour is under the action's minimum of four.
+        Assert.Equal([ActionTrigger.Every(TimeSpan.FromHours(4))], byId[anime].Triggers);
+        Assert.Equal([ActionTrigger.Every(TimeSpan.FromDays(7))], byId[mylist].Triggers);
+        Assert.Empty(byId[plugins].Triggers);
+        Assert.True(byId[plugins].HasCustomTriggers);
+        Assert.False(byId[files].HasCustomTriggers);
+        Assert.False(byId[notifications].HasCustomTriggers);
+        Assert.False(File.Exists(SettingsMigrations.UpdateFrequencyCarryOverPath(_dataPath)));
+    }
+
+    [Fact]
+    public void ABootThatFailsToSave_KeepsTheCarryOver_ForTheNext()
+    {
+        var notifications = _source.Add([], typeof(GetAnidbNotificationsAction));
+        var path = SettingsMigrations.UpdateFrequencyCarryOverPath(_dataPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, JsonConvert.SerializeObject(new Dictionary<string, int> { [SettingsMigrations.AnidbNotificationFrequency] = 6 }));
+        var failing = true;
+        _schedules.Setup(repository => repository.Save(It.IsAny<ScheduledAction>())).Callback<ScheduledAction>(row =>
+        {
+            if (failing)
+                throw new IOException("The database is gone.");
+            StoreRow(row);
+        });
+
+        using (var failed = Service())
+            Assert.Throws<IOException>(() => failed.GetScheduledActions());
+        Assert.True(File.Exists(path));
+
+        failing = false;
+        using var service = Service();
+        Assert.Equal([ActionTrigger.Every(TimeSpan.FromHours(6))], service.GetScheduledAction(notifications)!.Triggers);
+        Assert.False(File.Exists(path));
+    }
 
     [Fact]
     public void CarriedOverFrequencies_BecomeTriggers_UnlessTheyAreTheDefaults()
@@ -1342,6 +1507,99 @@ public sealed class ScheduledActionServiceTests : IDisposable
         Assert.Equal(1, _source.RunsOf(ranRecently));
         Assert.Equal(1, _source.RunsOf(neverSeen));
         Assert.Equal(Now.AddHours(23), service.GetScheduledAction(ranRecently)!.NextRunAt);
+    }
+
+    /// <summary>
+    /// Adds the import's actions and the drop folder scan, as the registry
+    /// would, with the real minimum and defaults of the ported file check.
+    /// </summary>
+    private (Dictionary<Type, Guid> Import, Guid DropScan) AddStartupCarriedActions()
+    {
+        var import = LegacyScheduledActions.ImportActionTypes.ToDictionary(
+            type => type,
+            type => type == typeof(CheckAnidbFileUpdatesAction)
+                ? AddPorted(new CheckAnidbFileUpdatesAction(Mock.Of<IQueueScheduler>()))
+                : _source.Add([], type)
+        );
+        return (import, _source.Add([], typeof(ScanDropFoldersAction)));
+    }
+
+    /// <summary>
+    /// A settings document at the version just before migration 25, with the
+    /// file check's update frequency and the start-up settings in it.
+    /// </summary>
+    private static string StartupSettings(string importBody)
+        => $$"""
+        {
+          "SettingsVersion": 24,
+          "AniDb": { "File_UpdateFrequency": "HoursTwelve" },
+          "Import": {
+            {{importBody}}
+            "UseExistingFileWatchedStatus": true
+          }
+        }
+        """;
+
+    [Fact]
+    public void StartupSettingsThatWereOn_AddAStartupTrigger_ToTheTriggersInEffect()
+    {
+        var (import, dropScan) = AddStartupCarriedActions();
+        var hashing = import[typeof(HashUnhashedFilesAction)];
+        SeedRow(hashing, null, ScheduledActionService.SerializeTriggers([ActionTrigger.DailyAt(new(4, 0))]));
+        var other = _source.Add([ActionTrigger.Every(TimeSpan.FromHours(24))]);
+        var migrated = JObject.Parse(SettingsMigrations.MigrateSettings(
+            StartupSettings("\"RunOnStart\": true, \"ScanDropFoldersOnStart\": true,"),
+            _applicationPaths.Object
+        ));
+        using var service = Service();
+
+        var byId = service.GetScheduledActions().ToDictionary(info => info.ID);
+
+        Assert.Equal([ActionTrigger.DailyAt(new(4, 0)), ActionTrigger.AtStartup], byId[hashing].Triggers);
+        // The carried-over frequency still replaces the default first.
+        Assert.Equal([ActionTrigger.Every(TimeSpan.FromHours(12)), ActionTrigger.AtStartup], byId[import[typeof(CheckAnidbFileUpdatesAction)]].Triggers);
+        foreach (var id in import.Values.Except([hashing, import[typeof(CheckAnidbFileUpdatesAction)]]))
+            Assert.Equal([ActionTrigger.AtStartup], byId[id].Triggers);
+        Assert.Equal([ActionTrigger.AtStartup], byId[dropScan].Triggers);
+        Assert.False(byId[other].HasCustomTriggers);
+        Assert.Null(((JObject)migrated["Import"]!).Property("RunOnStart"));
+        Assert.Null(((JObject)migrated["Import"]!).Property("ScanDropFoldersOnStart"));
+        Assert.False(File.Exists(SettingsMigrations.StartupTriggerCarryOverPath(_dataPath)));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("\"RunOnStart\": false, \"ScanDropFoldersOnStart\": false,")]
+    public void StartupSettingsThatWereOffOrAbsent_ChangeNoTriggers(string importBody)
+    {
+        var (import, dropScan) = AddStartupCarriedActions();
+        SettingsMigrations.MigrateSettings(StartupSettings(importBody), _applicationPaths.Object);
+        using var service = Service();
+
+        var byId = service.GetScheduledActions().ToDictionary(info => info.ID);
+
+        Assert.False(File.Exists(SettingsMigrations.StartupTriggerCarryOverPath(_dataPath)));
+        Assert.Empty(byId[dropScan].Triggers);
+        foreach (var id in import.Values)
+            Assert.DoesNotContain(ActionTrigger.AtStartup, byId[id].Triggers);
+    }
+
+    [Fact]
+    public void AStartupCarryOverAppliedTwice_AddsNoSecondTrigger()
+    {
+        var (_, dropScan) = AddStartupCarriedActions();
+        var path = SettingsMigrations.StartupTriggerCarryOverPath(_dataPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, JsonConvert.SerializeObject(new[] { SettingsMigrations.ScanDropFoldersOnStart }));
+        using (var first = Service())
+            first.GetScheduledActions();
+
+        // As when the boot stopped before the file was removed.
+        File.WriteAllText(path, JsonConvert.SerializeObject(new[] { SettingsMigrations.ScanDropFoldersOnStart }));
+        using var service = Service();
+
+        Assert.Equal([ActionTrigger.AtStartup], service.GetScheduledAction(dropScan)!.Triggers);
+        Assert.False(File.Exists(path));
     }
 
     #endregion

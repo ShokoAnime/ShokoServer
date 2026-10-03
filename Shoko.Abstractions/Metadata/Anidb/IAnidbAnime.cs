@@ -6,7 +6,7 @@ namespace Shoko.Abstractions.Metadata.Anidb;
 /// <summary>
 /// An AniDB anime.
 /// </summary>
-public interface IAnidbAnime : ISeries, IWithUpdateDate
+public interface IAnidbAnime : ISeries<IAnidbAnime, IAnidbEpisode>
 {
     /// <summary>
     ///   The AniDB anime ID, the same ID <see cref="IMetadata.ID"/> holds as
@@ -26,7 +26,7 @@ public interface IAnidbAnime : ISeries, IWithUpdateDate
     ///   <see cref="IAnidbEpisode.RegularAirDate"/> falls after it, which it
     ///   then is. <see cref="ISeries.AirDate"/> keeps AniDB's own date.
     /// </summary>
-    PartialDateOnly? RegularAirDate { get => AirDate; }
+    PartialDateOnly? RegularAirDate { get; }
 
     /// <summary>
     /// All tags for the AniDB anime.
@@ -36,27 +36,7 @@ public interface IAnidbAnime : ISeries, IWithUpdateDate
     IReadOnlyList<ITag> IWithTags.Tags { get => Tags; }
 
     /// <summary>
-    /// The anime AniDB's users find similar to this one, best approved first.
-    /// </summary>
-    new IReadOnlyList<IAnidbSuggestion> Suggestions { get; }
-
-    /// <summary>
-    /// The anime AniDB's users find this one similar to.
-    /// </summary>
-    new IReadOnlyList<IAnidbSuggestion> SuggestedBy { get; }
-
-    /// <summary>
     ///   All release group statuses for the AniDB anime.
     /// </summary>
     IReadOnlyList<IAnidbReleaseGroupStatus> ReleaseGroupStatuses { get; }
-
-    /// <summary>
-    /// All known fake "seasons" for the AniDB anime.
-    /// </summary>
-    new IReadOnlyList<IAnidbSeason> Seasons { get; }
-
-    /// <summary>
-    /// All episodes for the AniDB anime.
-    /// </summary>
-    new IReadOnlyList<IAnidbEpisode> Episodes { get; }
 }

@@ -4,12 +4,11 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
-using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
-///   Purge every stored collection of every metadata source, TMDB included.
+///   Purge every stored collection of every metadata source.
 /// </summary>
 /// <remarks>
 ///   Nothing links a collection, so no link is lost: a refresh of a series or
@@ -24,14 +23,14 @@ public sealed class PurgeAllMetadataCollectionsAction(IMetadataProviderManager p
     public string Name => "Purge Metadata Collections";
 
     public string? Description
-        => "Removes every stored collection of every metadata source, TMDB included. A refresh of a series or film a collection holds stores "
+        => "Removes every stored collection of every metadata source. A refresh of a series or film a collection holds stores "
             + "it again.";
 
     public ActionCategory Category => ActionCategory.Destructive;
 
     public bool RequiresConfirmation => true;
 
-    public string? ConfirmationMessage => "Are you sure you want to remove every collection of every metadata source, TMDB included?";
+    public string? ConfirmationMessage => "Are you sure you want to remove every collection of every metadata source?";
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
         => MetadataPurges.ForEach(

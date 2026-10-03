@@ -9,9 +9,9 @@ namespace Shoko.Abstractions.Metadata.Storage;
 /// </summary>
 /// <remarks>
 ///   A stored collection reads back with its titles, overviews and
-///   images. Only a plugin's source can be written; the core keeps the
-///   collections of <c>shoko</c>, <c>user</c>, <c>generated</c>,
-///   <c>anidb</c> and <c>tmdb</c> itself.
+///   images. Every source but the core's own can be written; the core keeps
+///   the collections of <c>shoko</c>, <c>user</c>, <c>generated</c> and
+///   <c>anidb</c> itself.
 /// </remarks>
 public interface IMetadataCollectionStore
 {

@@ -15,12 +15,10 @@ using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB.Embedded;
-using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -57,6 +55,11 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
     public string Description { get; set; } = string.Empty;
 
     public int AirDate { get; set; }
+
+    /// <summary>
+    ///   When the episode was first stored locally. Set once and never changed.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
 
     public DateTime DateTimeUpdated { get; set; }
 
@@ -152,28 +155,6 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 
     #endregion
 
-    #region TMDB
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> TmdbMovieCrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbEpisodeID(EpisodeID);
-
-    public IReadOnlyList<TMDB_Movie> TmdbMovies =>
-        TmdbMovieCrossReferences
-            .Select(xref => xref.TmdbMovie)
-            .WhereNotNull()
-            .ToList();
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(EpisodeID);
-
-    public IReadOnlyList<TMDB_Episode> TmdbEpisodes =>
-        TmdbEpisodeCrossReferences
-            .Select(xref => xref.TmdbEpisode)
-            .WhereNotNull()
-            .ToList();
-
-    #endregion
-
     #region IMetadata Implementation
 
     MetadataGuid IMetadata.ID => new(MetadataSource.AniDB, MetadataEntityType.Episode, EpisodeID.ToString());
@@ -212,6 +193,12 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
             Source = MetadataSource.AniDB,
         },
     ];
+
+    #endregion
+
+    #region IWithCreationDate Implementation
+
+    DateTime IWithCreationDate.CreatedAt => CreatedAt.ToUniversalTime();
 
     #endregion
 
@@ -276,9 +263,11 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 
     #region IEpisode Implementation
 
-    IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings => OrderingLookup.For(this);
+    DateTime? IEpisode.LastRefreshedAt => (AniDB_Anime as ISeries)?.LastRefreshedAt;
 
-    IEpisodeOrderingInformation? IEpisode.PreferredOrdering => OrderingLookup.PreferredFor(this);
+    IReadOnlyList<IEpisodeOrderingInformation<IAnidbAnime, IAnidbEpisode>> IEpisode<IAnidbAnime, IAnidbEpisode>.Orderings => OrderingLookup.PlacesOf<IAnidbAnime, IAnidbEpisode>(this);
+
+    IEpisodeOrderingInformation<IAnidbAnime, IAnidbEpisode>? IEpisode<IAnidbAnime, IAnidbEpisode>.PreferredOrdering => OrderingLookup.PreferredPlaceOf<IAnidbAnime, IAnidbEpisode>(this);
 
     IReadOnlyList<IMetadataEpisodeCrossReference> IEpisode.MetadataEpisodeCrossReferences =>
         ISystemService.StaticServices.GetService<IMetadataService>()?.GetEpisodeCrossReferences(EpisodeID) ?? [];
@@ -307,8 +296,6 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 
     DateTime? IEpisode.AirDateWithTime => GetAirDateAsDate();
 
-    ISeries IEpisode.Series => Series;
-
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => AnimeEpisode is IShokoEpisode shokoEpisode ? [shokoEpisode] : [];
 
     IReadOnlyList<IVideoCrossReference> IEpisode.VideoCrossReferences =>
@@ -325,10 +312,15 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 
     #endregion
 
-    #region IAnidbEpisode Implementation
+    #region IEpisode<IAnidbAnime, IAnidbEpisode> Implementation
 
     public IAnidbAnime Series => AniDB_Anime ??
         throw new NullReferenceException($"Unable to find AniDB Anime {AnimeID} for AniDB Episode {EpisodeID}");
+
+    ISeason<IAnidbAnime, IAnidbEpisode>? IEpisode<IAnidbAnime, IAnidbEpisode>.Season
+        => ((IEpisode)this).SeasonID is { } seasonID && AniDB_Anime is { } anime
+            ? anime.AniDBSeasons.FirstOrDefault(season => ((IMetadata)season).ID == seasonID)
+            : null;
 
     #endregion
 }

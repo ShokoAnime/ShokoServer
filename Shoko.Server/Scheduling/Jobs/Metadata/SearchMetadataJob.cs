@@ -39,6 +39,8 @@ public class SearchMetadataJob<TProvider>(
 {
     #region Properties
 
+    private MetadataProviderInfo? _providerInfo;
+
     /// <summary>
     ///   The AniDB anime to work out.
     /// </summary>
@@ -64,11 +66,13 @@ public class SearchMetadataJob<TProvider>(
     public override string Title => "Searching For Metadata Links";
 
     /// <inheritdoc />
-    public override Dictionary<string, object> Details => new()
-    {
-        ["Provider"] = typeof(TProvider).Name,
-        ["AnimeID"] = AnimeID,
-    };
+    public override Dictionary<string, object> Details => _providerInfo is { } info
+        ? new() { ["Provider"] = info.Name, ["Source"] = info.Source.Name, ["AnimeID"] = AnimeID }
+        : new() { ["Provider"] = typeof(TProvider).Name, ["AnimeID"] = AnimeID };
+
+    /// <inheritdoc />
+    public override void PostInit()
+        => _providerInfo = MetadataProviderJobContext.Find<TProvider>(providerManager);
 
     #endregion
 

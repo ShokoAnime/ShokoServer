@@ -22,8 +22,9 @@ public static class MetadataProviderJobs
     /// </summary>
     /// <remarks>
     ///   A refresh job for a provider that refreshes series, films or
-    ///   collections, a search job for one that auto-links, and an image job
-    ///   for one that supplies images. A job type whose stored name is too
+    ///   collections, a search job for one that auto-links, an image job for
+    ///   one that supplies images, and an entity refresh job for one that
+    ///   refreshes creators, characters, studios or networks. A job type whose stored name is too
     ///   long for the queue is left out; see <see cref="GetOverlongJobTypes"/>.
     /// </remarks>
     /// <param name="providerType">The provider's concrete type.</param>
@@ -64,6 +65,8 @@ public static class MetadataProviderJobs
             jobTypes.Add(typeof(SearchMetadataJob<>).MakeGenericType(providerType));
         if (typeof(IMetadataImageProvider).IsAssignableFrom(providerType))
             jobTypes.Add(typeof(DownloadMetadataImagesJob<>).MakeGenericType(providerType));
+        if (typeof(IMetadataEntityProvider).IsAssignableFrom(providerType))
+            jobTypes.Add(typeof(RefreshMetadataEntityJob<>).MakeGenericType(providerType));
 
         return jobTypes;
     }
@@ -106,6 +109,14 @@ public static class MetadataProviderJobs
     /// <returns>The closed job type, or <see langword="null"/> when it has none.</returns>
     public static Type? GetImagesJobType(Type providerType)
         => GetJobTypes(providerType).FirstOrDefault(type => type.GetGenericTypeDefinition() == typeof(DownloadMetadataImagesJob<>));
+
+    /// <summary>
+    ///   The entity refresh job type for a provider type.
+    /// </summary>
+    /// <param name="providerType">The provider's concrete type.</param>
+    /// <returns>The closed job type, or <see langword="null"/> when it has none.</returns>
+    public static Type? GetEntityRefreshJobType(Type providerType)
+        => GetJobTypes(providerType).FirstOrDefault(type => type.GetGenericTypeDefinition() == typeof(RefreshMetadataEntityJob<>));
 
     #endregion
 }

@@ -19,6 +19,7 @@ using Shoko.Abstractions.Metadata.Orderings;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Server.Services.Ordering;
 using Shoko.Server.Services.OrderingTransfer;
 
 namespace Shoko.Server.Services;
@@ -32,6 +33,7 @@ namespace Shoko.Server.Services;
 /// <param name="metadataService">Finds the series and episodes, and the Shoko entries for AniDB IDs.</param>
 /// <param name="imageManager">Reads, adds, links and downloads the images.</param>
 /// <param name="imageFiles">Keeps an imported file as the held copy of a remote image.</param>
+/// <param name="studioStore">Tells which networks an import would add as stubs.</param>
 /// <param name="systemService">Tells the server's version for the file.</param>
 /// <param name="logger">Where an import is reported.</param>
 public class MetadataOrderingTransferService(
@@ -39,6 +41,7 @@ public class MetadataOrderingTransferService(
     IMetadataService metadataService,
     IImageManager imageManager,
     IImageFileStore imageFiles,
+    IMetadataStudioStore studioStore,
     ISystemService systemService,
     ILogger<MetadataOrderingTransferService> logger
 ) : IMetadataOrderingTransferService
@@ -212,11 +215,17 @@ public class MetadataOrderingTransferService(
             return null;
         }
 
+        // A placed special is written where it airs too, so it is placed again on import.
+        var placement = (ordering as IPlacedOrdering)?.Placement;
+        var byID = ordering.Episodes.DistinctBy(episode => episode.ID).ToDictionary(episode => episode.ID);
         var groups = new List<(ISeason Season, List<AnidbPlace> Episodes)>();
         foreach (var season in ordering.Seasons)
         {
             var episodes = new List<AnidbPlace>();
-            foreach (var episode in season.Episodes)
+            var listed = placement is null
+                ? season.Episodes
+                : [.. placement.Listed(season.ID).Select(place => byID.GetValueOrDefault(place.EpisodeID)).OfType<IEpisode>()];
+            foreach (var episode in listed)
             {
                 var places = ToAnidb(episode);
                 if (places.Count is 0)
@@ -241,6 +250,7 @@ public class MetadataOrderingTransferService(
             Description = string.IsNullOrEmpty(ordering.Overview) ? null : ordering.Overview,
             Type = ordering.Type,
             IsPreferred = context.Options.IncludePreferred ? ordering.IsPreferred : null,
+            Networks = [.. ordering.Networks.Select(network => network.ID.ToString())],
             Images = await ExportImages(ordering, context, cancellationToken).ConfigureAwait(false),
         };
         foreach (var (season, episodes) in groups)
@@ -638,7 +648,13 @@ public class MetadataOrderingTransferService(
 
         entry = entry with { SeriesID = series.ID };
         var (groups, unresolved) = ResolveGroups(ordering, series, notes);
-        entry = entry with { UnresolvedEpisodes = unresolved };
+        var networks = ResolveNetworks(ordering, notes);
+        entry = entry with
+        {
+            UnresolvedEpisodes = unresolved,
+            Networks = networks ?? [],
+            StubbedNetworks = [.. (networks ?? []).Where(network => studioStore.GetNetwork(network) is null)],
+        };
 
         // A local ordering of the series by the same name, or one this import named so.
         var existing = orderingService.GetOrderings(series).Where(stored => stored.ID.Source == MetadataSource.User).ToList();
@@ -667,6 +683,7 @@ public class MetadataOrderingTransferService(
             SeriesID = series.ID,
             Name = storedName,
             Overview = string.IsNullOrWhiteSpace(ordering.Description) ? null : ordering.Description,
+            Networks = networks,
             Groups = groups,
         };
         var outcome = replace ? MetadataOrderingImportOutcome.Replaced : MetadataOrderingImportOutcome.Created;
@@ -804,6 +821,32 @@ public class MetadataOrderingTransferService(
         }
 
         return (groups, unresolved);
+    }
+
+    /// <summary>
+    ///   Reads an ordering's networks, leaving out with a note each one that
+    ///   is not a network's ID or is on a source this server does not know.
+    /// </summary>
+    /// <param name="ordering">The ordering.</param>
+    /// <param name="notes">Gets the networks left out.</param>
+    /// <returns>The networks, in order, each once, or <c>null</c> when the file predates them.</returns>
+    internal static IReadOnlyList<MetadataGuid>? ResolveNetworks(OrderingDocumentOrdering ordering, List<string> notes)
+    {
+        if (ordering.Networks is not { } given)
+            return null;
+
+        var networks = new List<MetadataGuid>();
+        foreach (var text in given)
+        {
+            if (!MetadataGuid.TryParse(text, out var network) || network.EntityType != MetadataEntityType.Network)
+                notes.Add($"\"{text}\" does not name a network, so it is left out.");
+            else if (!network.Source.IsRegistered)
+                notes.Add($"The network \"{network}\" is on {network.Source.Value}, a source this server does not know, so it is left out.");
+            else if (!networks.Contains(network))
+                networks.Add(network);
+        }
+
+        return networks;
     }
 
     /// <summary>

@@ -19,8 +19,9 @@ internal static class LinkedMetadataHelper
 
     /// <summary>
     /// The sources asked for that get a generic block: the plugins' sources.
-    /// AniDB and TMDB keep blocks of their own, and the other core sources
-    /// hold no linked entries, so they are left out as they always were.
+    /// AniDB and TMDB keep blocks of their own, TMDB whether the core serves
+    /// it or not, and the other core sources hold no linked entries, so they
+    /// are left out as they always were.
     /// </summary>
     /// <param name="includeDataFrom">The sources asked for, if any.</param>
     /// <returns>The sources, ordered by value.</returns>
@@ -28,7 +29,7 @@ internal static class LinkedMetadataHelper
         => includeDataFrom is not { Count: > 0 }
             ? []
             : [.. includeDataFrom
-                .Where(source => !source.IsCore)
+                .Where(source => !source.IsCore && source != MetadataSource.TMDB)
                 .OrderBy(source => source.Value, StringComparer.Ordinal)];
 
     #endregion

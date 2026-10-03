@@ -34,7 +34,6 @@ using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.UDP;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Server;
@@ -61,15 +60,6 @@ public class ImageManager(
     private Dictionary<MetadataSource, string?>? _cachedUrls = null;
 
     /// <summary>
-    /// When templates that could not be worked out are asked for again. Until
-    /// then the incomplete list is served, so a source that is down is not
-    /// asked on every image.
-    /// </summary>
-    private DateTime? _cachedUrlsRetryAt = null;
-
-    private static readonly TimeSpan _templateRetryDelay = TimeSpan.FromMinutes(5);
-
-    /// <summary>
     /// The default templates plugins registered for their sources, used when
     /// the user has not set one.
     /// </summary>
@@ -78,17 +68,16 @@ public class ImageManager(
     /// <inheritdoc/>
     public IReadOnlyDictionary<MetadataSource, string?> GetTemplateUrls()
     {
-        if (_cachedUrls is not null && (_cachedUrlsRetryAt is null || _cachedUrlsRetryAt > DateTime.UtcNow))
+        if (_cachedUrls is not null)
             return _cachedUrls;
         lock (applicationPaths)
         {
-            if (_cachedUrls is not null && (_cachedUrlsRetryAt is null || _cachedUrlsRetryAt > DateTime.UtcNow))
+            if (_cachedUrls is not null)
                 return _cachedUrls;
             var userRegisteredTemplates = configurationProvider.Load().Image.ImageTemplateUrls
                 .DistinctBy(template => template.ImageSource)
                 .ToDictionary(template => template.ImageSource, template => template.TemplateUrl);
             var dict = new Dictionary<MetadataSource, string?>();
-            var complete = true;
             foreach (var dataSource in MetadataSource.All)
             {
                 if (dataSource.IsLocal)
@@ -97,38 +86,10 @@ public class ImageManager(
                     dict.Add(dataSource, templateUrl);
                 else if (dataSource == MetadataSource.AniDB)
                     dict.Add(dataSource, DefaultAnidbUrlTemplate());
-                else if (dataSource == MetadataSource.TMDB)
-                    dict.Add(dataSource, DefaultOrNull(dataSource, DefaultTmdbUrlTemplate, ref complete));
                 else
                     dict.Add(dataSource, _registeredTemplates.TryGetValue(dataSource, out var registered) ? registered : null);
             }
-
-            // A source whose default could not be worked out is asked again
-            // after a while, rather than staying without a template until restart.
-            _cachedUrlsRetryAt = complete ? null : DateTime.UtcNow + _templateRetryDelay;
             return _cachedUrls = dict;
-        }
-    }
-
-    /// <summary>
-    /// A source's default template, or <see langword="null"/> when it cannot be
-    /// worked out right now, so one source failing leaves the others usable.
-    /// </summary>
-    /// <param name="dataSource">The source, for the log.</param>
-    /// <param name="template">Works out the default template.</param>
-    /// <param name="complete">Cleared when the template could not be worked out.</param>
-    /// <returns>The template, or <see langword="null"/>.</returns>
-    private string? DefaultOrNull(MetadataSource dataSource, Func<string> template, ref bool complete)
-    {
-        try
-        {
-            return template();
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Could not work out the default image template for {Source}; its images are left unresolved for now.", dataSource);
-            complete = false;
-            return null;
         }
     }
 
@@ -154,26 +115,6 @@ public class ImageManager(
 
         // Static fallback.
         return string.Format(Constants.URLS.AniDB_Images, Constants.AnidbCdnUrl);
-    }
-
-    private string DefaultTmdbUrlTemplate()
-    {
-        // Setting override.
-        var setting = settingsProvider.GetSettings().TMDB.ImageCdnUrl;
-        if (!string.IsNullOrWhiteSpace(setting) && !string.Equals(setting, TmdbApiClient.ImageServerUrl) && (setting.StartsWith("http://") || setting.StartsWith("https://")))
-        {
-            // Setting as a URL template.
-            if (setting.Contains("{0}"))
-                return setting;
-
-            // Setting as a base URL.
-            if (!setting.EndsWith("/", StringComparison.Ordinal))
-                setting += "/";
-            return $"{setting}original/{{0}}";
-        }
-
-        // Static fallback.
-        return $"{TmdbApiClient.ImageServerUrl}original/{{0}}";
     }
 
     /// <inheritdoc/>
@@ -363,7 +304,7 @@ public class ImageManager(
                     )
                 : xrefs => xrefs;
 
-        linkedEntityImages ??= entity is IShokoGroup or IShokoSeries or IShokoSeason or IShokoEpisode;
+        linkedEntityImages ??= entity is IShokoGroup or IShokoSeries or ISeason<IShokoSeries, IShokoEpisode> or IShokoEpisode;
         if (linkedEntityImages.Value)
         {
             var xrefs = new List<IEnumerable<IImageCrossReference>>();
@@ -408,7 +349,7 @@ public class ImageManager(
                     AddSeriesXrefs(series);
                     break;
                 }
-                case IShokoSeason season:
+                case ISeason<IShokoSeries, IShokoEpisode> season:
                 {
                     foreach (var s in season.LinkedSeasons)
                         AddEntryXrefs(s);
@@ -1466,7 +1407,7 @@ public class ImageManager(
                     )
                 : xrefs => xrefs;
 
-        linkedEntityImages ??= entity is IShokoGroup or IShokoSeries or IShokoSeason or IShokoEpisode;
+        linkedEntityImages ??= entity is IShokoGroup or IShokoSeries or ISeason<IShokoSeries, IShokoEpisode> or IShokoEpisode;
         if (linkedEntityImages.Value)
         {
             var xrefs = new List<IEnumerable<IImageCrossReference>>();
@@ -1511,7 +1452,7 @@ public class ImageManager(
                     AddSeriesXrefs(series);
                     break;
                 }
-                case IShokoSeason season:
+                case ISeason<IShokoSeries, IShokoEpisode> season:
                 {
                     foreach (var s in season.LinkedSeasons)
                         AddEntryXrefs(s);

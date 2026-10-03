@@ -24,26 +24,63 @@ internal static class OrderingLookup
     /// <summary>
     ///   Every ordering of a series, the default one first.
     /// </summary>
-    /// <param name="series">The series.</param>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="series">The series, an <see cref="ISeries{TSeries,TEpisode}"/>.</param>
     /// <returns>The orderings.</returns>
-    internal static IReadOnlyList<IOrdering> For(ISeries series)
-        => Service?.GetOrderings(series) ?? [new DefaultOrdering(series, null)];
+    internal static IReadOnlyList<IOrdering<TSeries, TEpisode>> For<TSeries, TEpisode>(TSeries series)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => Service?.GetOrderings<TSeries, TEpisode>(series) ?? [new DefaultOrdering<TSeries, TEpisode>(series, null)];
 
     /// <summary>
     ///   The ordering chosen for a series, or its default one.
     /// </summary>
-    /// <param name="series">The series.</param>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="series">The series, an <see cref="ISeries{TSeries,TEpisode}"/>.</param>
     /// <returns>The ordering.</returns>
-    internal static IOrdering PreferredFor(ISeries series)
-        => Service?.GetPreferredOrdering(series) ?? new DefaultOrdering(series, null);
+    internal static IOrdering<TSeries, TEpisode> PreferredFor<TSeries, TEpisode>(TSeries series)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => Service?.GetPreferredOrdering<TSeries, TEpisode>(series) ?? new DefaultOrdering<TSeries, TEpisode>(series, null);
+
+    /// <summary>
+    ///   The default ordering of a series, made from its own seasons.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="series">The series, an <see cref="ISeries{TSeries,TEpisode}"/>.</param>
+    /// <returns>The default ordering.</returns>
+    internal static IOrdering<TSeries, TEpisode> DefaultFor<TSeries, TEpisode>(TSeries series)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => Service?.GetDefaultOrdering<TSeries, TEpisode>(series) ?? new DefaultOrdering<TSeries, TEpisode>(series, null);
 
     /// <summary>
     ///   Every place an episode has in its series' orderings.
     /// </summary>
-    /// <param name="episode">The episode.</param>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="episode">The episode, an <see cref="IEpisode{TSeries,TEpisode}"/>.</param>
     /// <returns>The places, its place in the default ordering first.</returns>
-    internal static IReadOnlyList<IEpisodeOrderingInformation> For(IEpisode episode)
-        => Service?.GetEpisodeOrderings(episode) ?? [new DefaultEpisodeOrdering(episode, episode.Series, null)];
+    internal static IReadOnlyList<IEpisodeOrderingInformation<TSeries, TEpisode>> PlacesOf<TSeries, TEpisode>(TEpisode episode)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => Service?.GetEpisodeOrderings<TSeries, TEpisode>(episode) ??
+            [new DefaultEpisodeOrdering<TSeries, TEpisode>(episode, ((IEpisode<TSeries, TEpisode>)episode).Series, null)];
+
+    /// <summary>
+    ///   The episode's first place in the ordering chosen for its series.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="episode">The episode, an <see cref="IEpisode{TSeries,TEpisode}"/>.</param>
+    /// <returns>The place, or <c>null</c> when that ordering leaves it out.</returns>
+    internal static IEpisodeOrderingInformation<TSeries, TEpisode>? PreferredPlaceOf<TSeries, TEpisode>(TEpisode episode)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => PlacesOf<TSeries, TEpisode>(episode).FirstOrDefault(place => place.IsPreferred);
 
     /// <summary>
     ///   Whether an ordering is the one chosen for a series. Without the
@@ -62,12 +99,4 @@ internal static class OrderingLookup
     /// <returns><c>true</c> if it is hidden.</returns>
     internal static bool IsHidden(MetadataGuid episodeID)
         => Service?.IsEpisodeHidden(episodeID) ?? false;
-
-    /// <summary>
-    ///   The episode's first place in the ordering chosen for its series.
-    /// </summary>
-    /// <param name="episode">The episode.</param>
-    /// <returns>The place, or <c>null</c> when that ordering leaves it out.</returns>
-    internal static IEpisodeOrderingInformation? PreferredFor(IEpisode episode)
-        => For(episode).FirstOrDefault(place => place.IsPreferred);
 }

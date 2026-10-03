@@ -107,8 +107,8 @@ internal static class MetadataEntries
 
     /// <summary>
     ///   Refuses a write under a source the core registers and keeps in its
-    ///   own tables: <c>shoko</c>, <c>user</c>, <c>generated</c>,
-    ///   <c>anidb</c> and <c>tmdb</c>. Every typed store checks the source it
+    ///   own tables: <c>shoko</c>, <c>user</c>, <c>generated</c> and
+    ///   <c>anidb</c>. Every typed store checks the source it
     ///   writes for with this before anything is written.
     /// </summary>
     /// <param name="source">The source written for.</param>
@@ -174,6 +174,24 @@ internal static class MetadataEntries
         if (languageCode.Length > MaxLanguageCodeLength)
             throw new ArgumentException($"A language code must be at most {MaxLanguageCodeLength} characters, but got '{languageCode}'.", paramName);
         return languageCode;
+    }
+
+    /// <summary>
+    ///   Checks the production countries given for an entry before they are
+    ///   written, dropping blank and repeated ones.
+    /// </summary>
+    /// <param name="countries">The countries, which may be left out.</param>
+    /// <param name="paramName">The argument they came in through.</param>
+    /// <returns>The countries to store, trimmed, in order.</returns>
+    /// <exception cref="ArgumentNullException">A country is <c>null</c>.</exception>
+    internal static List<string> CheckCountries(IReadOnlyList<string>? countries, string paramName)
+    {
+        if (countries is null)
+            return [];
+
+        foreach (var country in countries)
+            ArgumentNullException.ThrowIfNull(country, paramName);
+        return [.. countries.Select(country => country.Trim()).Where(country => country.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase)];
     }
 
     /// <summary>

@@ -18,11 +18,16 @@ using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 using Shoko.Server.API.v3.Controllers;
 using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Metadata;
 using Shoko.Server.API.v3.Models.Metadata.Input;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
+using Shoko.Tests.Services;
 using Xunit;
 using static Shoko.Tests.API.Metadata.FakeMetadataEntries;
 
@@ -63,6 +68,8 @@ public class MetadataProviderControllerTests
         public Mock<IImageManager> Images { get; } = new();
 
         public List<MetadataProviderInfo> Registered { get; } = [];
+
+        public IApplicationPaths Paths { get; } = Mock.Of<IApplicationPaths>(paths => paths.PluginsPath == Path.GetTempPath() && paths.ApplicationPath == AppContext.BaseDirectory);
 
         /// <summary>
         /// Whether the providers registered from now on are configured.
@@ -118,16 +125,17 @@ public class MetadataProviderControllerTests
         public MetadataSourceActions Actions
             => new(Refresh.Object, Purge.Object, Linking.Object, Images.Object, NullLogger<MetadataSourceActions>.Instance);
 
-        public MetadataProviderController Controller()
+        public MetadataProviderController Controller(IMetadataProviderManager? providers = null)
             => new(
                 new StubSettingsProvider(new ServerSettings()),
-                Providers.Object,
+                providers ?? Providers.Object,
                 Refresh.Object,
                 Linking.Object,
                 Metadata.Object,
                 Transfer.Object,
-                new MetadataModelBuilder(Metadata.Object, Mock.Of<IMetadataTextManager>(), Images.Object, Refresh.Object, Mock.Of<IMetadataStudioStore>()),
-                Actions
+                new MetadataModelBuilder(Metadata.Object, Mock.Of<IMetadataTextManager>(), Images.Object, Mock.Of<IMetadataStudioStore>()),
+                Actions,
+                Paths
             )
             {
                 ControllerContext = new()
@@ -142,6 +150,9 @@ public class MetadataProviderControllerTests
 
     private static T Value<T>(ActionResult<T> result) where T : class
         => result.Value ?? Assert.IsType<T>(Assert.IsType<OkObjectResult>(result.Result).Value, exactMatch: false);
+
+    private static PackageImageInfo Icon(string path, string mimeType)
+        => new() { FilePath = path, MimeType = mimeType, Width = 24, Height = 24 };
 
     private static int StatusOf<T>(ActionResult<T> result)
         => result.Result switch
@@ -186,6 +197,55 @@ public class MetadataProviderControllerTests
         // A source whose providers link nothing is not listed.
         fixture.Registered.RemoveAll(info => info.Provider is IMetadataSeriesLinkingProvider { LinkableEntityTypes.Count: 2 });
         Assert.Empty(Value(fixture.Controller().GetLinkSources()));
+    }
+
+    [Fact]
+    public void LinkSourcesSayWhetherTheSourceHasAnIconAndWhosePluginItIs()
+    {
+        var fixture = new Fixture();
+        var info = fixture.Register();
+
+        var plain = Assert.Single(Value(fixture.Controller().GetLinkSources()));
+        fixture.Providers.Setup(p => p.GetSourceIcon(Source)).Returns(Icon("/nowhere/icon.svg", "image/svg+xml"));
+        var withIcon = Assert.Single(Value(fixture.Controller().GetLinkSources()));
+
+        Assert.Equal((false, info.PluginInfo.ID), (plain.HasIcon, plain.PluginID));
+        Assert.True(withIcon.HasIcon);
+    }
+
+    [Fact]
+    public void ASourceIconIsServedWithItsTypeAndSafeHeaders()
+    {
+        var fixture = new Fixture();
+        var file = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(file, "<svg xmlns=\"http://www.w3.org/2000/svg\"/>");
+            fixture.Providers.Setup(p => p.GetSourceIcon(Source)).Returns(Icon(file, "image/svg+xml"));
+            var controller = fixture.Controller();
+
+            var result = Assert.IsType<FileContentResult>(controller.GetSourceIcon(Source));
+
+            Assert.Equal("image/svg+xml", result.ContentType);
+            Assert.Equal(File.ReadAllBytes(file), result.FileContents);
+            Assert.NotNull(result.EntityTag);
+            var headers = controller.Response.Headers;
+            Assert.Equal(("nosniff", "sandbox"), (headers.XContentTypeOptions.ToString(), headers.ContentSecurityPolicy.ToString()));
+            Assert.StartsWith("private", headers.CacheControl.ToString());
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    [Fact]
+    public void ASourceWithoutAnIconAnswersNotFound()
+    {
+        var fixture = new Fixture();
+        fixture.Register();
+
+        Assert.IsType<NotFoundObjectResult>(fixture.Controller().GetSourceIcon(Source));
     }
 
     [Fact]
@@ -252,6 +312,113 @@ public class MetadataProviderControllerTests
         fixture.Register(enabled: false);
 
         Assert.True(Value(fixture.Controller().GetStatus(Source)).IsConfigured);
+    }
+
+    #endregion
+
+    #region Provider Order
+
+    /// <summary>
+    /// A real provider manager over a folder of its own, booted with the
+    /// first linker alone and then with the later one too.
+    /// </summary>
+    private sealed class Booted : IDisposable
+    {
+        private readonly string _path = Path.Join(Path.GetTempPath(), $"shoko-provider-order-tests-{Guid.NewGuid():N}");
+
+        public Booted()
+        {
+            Directory.CreateDirectory(_path);
+            TestProviderManagers.Boot(_path).AddParts([First]);
+            Manager = TestProviderManagers.Boot(_path);
+            Manager.AddParts([First, Later]);
+        }
+
+        public ProviderClaimTests.FirstLinker First { get; } = new();
+
+        public ProviderClaimTests.LaterLinker Later { get; } = new();
+
+        public MetadataProviderManager Manager { get; }
+
+        public Guid FirstID => Manager.GetProviderInfo(First).ID;
+
+        public Guid LaterID => Manager.GetProviderInfo(Later).ID;
+
+        public void Dispose()
+            => Directory.Delete(_path, recursive: true);
+    }
+
+    private static IEnumerable<(Guid, int, bool, bool)> Slots(MetadataProviderOrder order)
+        => order.Providers.Select(provider => (provider.ProviderID, provider.Priority, provider.IsEnabled, provider.IsActive));
+
+    [Fact]
+    public void ASourcesProvidersAreListedPerKindInOrder()
+    {
+        using var booted = new Booted();
+
+        var rows = Value(new Fixture().Controller(booted.Manager).GetProviderOrders(TestSources.Plugin));
+
+        Assert.Equal(booted.Manager.GetProviderInfo(booted.First).AvailableEntityTypes.Order(), rows.Select(row => row.EntityType));
+        Assert.All(rows, row => Assert.Equal([(booted.FirstID, 0, true, true), (booted.LaterID, 1, true, false)], Slots(row)));
+        Assert.Equal(booted.Manager.GetProviderInfo(booted.First).PluginInfo.ID, rows[0].Providers[0].PluginID);
+        Assert.Empty(Value(new Fixture().Controller(booted.Manager).GetProviderOrders(TestSources.AniList)));
+    }
+
+    [Fact]
+    public void AnOrderSetPerSourceAgreesWithTheProviderRoute()
+    {
+        using var booted = new Booted();
+        var controller = new Fixture().Controller(booted.Manager);
+
+        var rows = Value(controller.UpdateProviderOrders(TestSources.Plugin, [
+            new()
+            {
+                EntityType = MetadataEntityType.Series,
+                Providers = [new() { ProviderID = booted.FirstID, IsEnabled = false, Priority = 1 }, new() { ProviderID = booted.LaterID, Priority = 0 }],
+            },
+        ]));
+
+        var series = rows.Single(row => row.EntityType == MetadataEntityType.Series);
+        Assert.Equal([(booted.LaterID, 0, true, true), (booted.FirstID, 1, false, false)], Slots(series));
+        Assert.Equal([MetadataEntityType.Series], Value(controller.GetProvider(booted.LaterID)).EnabledEntityTypes);
+        Assert.DoesNotContain(MetadataEntityType.Series, Value(controller.GetProvider(booted.FirstID)).EnabledEntityTypes);
+
+        // The provider route moves it back to the front.
+        controller.UpdateProvider(booted.FirstID, new() { EnabledEntityTypes = [.. booted.Manager.GetProviderInfo(booted.First).AvailableEntityTypes] });
+        series = Value(controller.GetProviderOrders(TestSources.Plugin)).Single(row => row.EntityType == MetadataEntityType.Series);
+        Assert.Equal([(booted.FirstID, 0, true, true), (booted.LaterID, 1, true, false)], Slots(series));
+
+        // Turned off there, it no longer stands by for any kind.
+        controller.UpdateProvider(booted.LaterID, new() { EnabledEntityTypes = [] });
+        var later = Value(controller.GetProviderOrders(TestSources.Plugin)).Select(row => row.Providers.Single(provider => provider.ProviderID == booted.LaterID));
+        Assert.All(later, provider => Assert.False(provider.IsEnabled));
+    }
+
+    [Fact]
+    public void AnOrderForAKindNobodyAnswersOrNamingAStrangerOrTwiceIsRefused()
+    {
+        using var booted = new Booted();
+        var controller = new Fixture().Controller(booted.Manager);
+        var before = Value(controller.GetProviderOrders(TestSources.Plugin)).SelectMany(Slots).ToList();
+
+        int Refused(List<MetadataProviderOrderBody> body)
+            => StatusOf(controller.UpdateProviderOrders(TestSources.Plugin, body));
+
+        Assert.Equal(400, Refused([new() { EntityType = MetadataEntityType.Movie, Providers = [new() { ProviderID = booted.FirstID }] }]));
+        Assert.Equal(400, Refused([new() { EntityType = MetadataEntityType.Series, Providers = [new() { ProviderID = Guid.NewGuid() }] }]));
+        Assert.Equal(400, Refused([
+            new() { EntityType = MetadataEntityType.Series, Providers = [new() { ProviderID = booted.LaterID }] },
+            new() { EntityType = MetadataEntityType.Series, Providers = [new() { ProviderID = booted.FirstID }] },
+        ]));
+        Assert.Equal(400, Refused([
+            new()
+            {
+                EntityType = MetadataEntityType.Series,
+                Providers = [new() { ProviderID = booted.LaterID }, new() { ProviderID = booted.LaterID, Priority = 1 }],
+            },
+        ]));
+
+        Assert.Equal(before, Value(controller.GetProviderOrders(TestSources.Plugin)).SelectMany(Slots));
     }
 
     #endregion

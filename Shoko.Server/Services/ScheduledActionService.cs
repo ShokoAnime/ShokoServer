@@ -20,6 +20,7 @@ using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Events;
 using Shoko.Server.Actions;
+using Shoko.Server.API;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
@@ -41,6 +42,7 @@ namespace Shoko.Server.Services;
 /// counts those), so the schedule survives a restart and a missed run runs once
 /// at start-up. Firings inside the minimum interval are skipped and logged once;
 /// a busy queue delays runs but loses none. Runs by hand are never held back.
+/// A queue-cleared trigger fires each time the queue is cleared.
 /// </remarks>
 public sealed class ScheduledActionService : IScheduledActionService, IHostedService, IDisposable
 {
@@ -90,6 +92,17 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
         (typeof(GetAnidbNotificationsAction), ScheduledUpdateType.AniDBNotify, SettingsMigrations.AnidbNotificationFrequency),
         (typeof(SyncAnidbMylistOnScheduleAction), null, SettingsMigrations.AnidbMylistFrequency),
         (typeof(CheckPluginUpdatesAction), ScheduledUpdateType.PluginUpdates, SettingsMigrations.PluginUpdatesFrequency),
+    ];
+
+    /// <summary>
+    /// The actions that the start-up settings removed by settings migration 27
+    /// ran, by the key each setting was carried over under: an action whose
+    /// setting was on gains a start-up trigger.
+    /// </summary>
+    private static readonly (string Key, IReadOnlyList<Type> ActionTypes)[] _startupCarriedActions =
+    [
+        (SettingsMigrations.RunImportOnStart, LegacyScheduledActions.ImportActionTypes),
+        (SettingsMigrations.ScanDropFoldersOnStart, [typeof(ScanDropFoldersAction)]),
     ];
 
     #endregion
@@ -168,6 +181,11 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
     /// </summary>
     private readonly ConcurrentDictionary<Guid, bool> _waitingByTrigger = new();
 
+    /// <summary>
+    /// The last firing of the queue-cleared triggers, for the tests to wait on.
+    /// </summary>
+    private Task _queueClearedFiring = Task.CompletedTask;
+
     private ITimer? _timer;
 
     private bool _loaded;
@@ -232,6 +250,7 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _queueEvents.ExecutingJobsChanged += OnExecutingJobsChanged;
+        _queueEvents.QueueItemsRemoved += OnQueueItemsRemoved;
         _systemService.Started += OnServerStarted;
         if (_systemService.IsStarted)
             OnServerStarted(this, EventArgs.Empty);
@@ -243,6 +262,7 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _queueEvents.ExecutingJobsChanged -= OnExecutingJobsChanged;
+        _queueEvents.QueueItemsRemoved -= OnQueueItemsRemoved;
         _systemService.Started -= OnServerStarted;
         lock (_lock)
         {
@@ -262,6 +282,7 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
 
         _disposed = true;
         _queueEvents.ExecutingJobsChanged -= OnExecutingJobsChanged;
+        _queueEvents.QueueItemsRemoved -= OnQueueItemsRemoved;
         _systemService.Started -= OnServerStarted;
         _timer?.Dispose();
     }
@@ -650,13 +671,104 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
 
     #endregion
 
+    #region Queue Cleared
+
+    /// <summary>
+    /// Fires the queue-cleared triggers when the whole queue was cleared, off
+    /// the thread that cleared it. Removing single jobs fires nothing.
+    /// </summary>
+    /// <param name="sender">The queue's events.</param>
+    /// <param name="eventArgs">The jobs removed, none for a clear.</param>
+    private void OnQueueItemsRemoved(object? sender, QueueItemsRemovedEventArgs eventArgs)
+    {
+        if (eventArgs.RemovedKeys.Count is not 0 || _disposed || !_scheduling || !_startupPassDone || !HasQueueClearedTriggers())
+            return;
+
+        // The triggers are the system's: the run is never for whoever cleared the queue.
+        using (DetachedFlow.Suppress())
+            _queueClearedFiring = Task.Run(() => FireQueueClearedAsync());
+    }
+
+    /// <summary>
+    /// Whether any action has a queue-cleared trigger in effect, so a clear
+    /// with none does not hold up a tick.
+    /// </summary>
+    /// <returns><c>true</c> when one does.</returns>
+    private bool HasQueueClearedTriggers()
+    {
+        try
+        {
+            return GetSchedules().Any(schedule => schedule.Triggers.Any(trigger => trigger.Type is ActionTriggerType.QueueCleared));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not read the triggers of the scheduled actions when the queue was cleared");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// The last firing of the queue-cleared triggers, for the tests to wait on.
+    /// </summary>
+    internal Task QueueClearedFiring => _queueClearedFiring;
+
+    /// <summary>
+    /// Queues a run of each action with a queue-cleared trigger, unless one is
+    /// still running or its minimum interval has not passed since its last
+    /// counted run, as for a start-up trigger.
+    /// </summary>
+    /// <param name="token">Cancels the queuing.</param>
+    /// <returns>A task that completes once the runs are queued.</returns>
+    internal async Task FireQueueClearedAsync(CancellationToken token = default)
+    {
+        await _tickLock.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            if (_disposed || !_scheduling)
+                return;
+
+            var now = UtcNow;
+            foreach (var (action, triggers, row) in GetSchedules())
+            {
+                if (!triggers.Any(trigger => trigger.Type is ActionTriggerType.QueueCleared) || _scheduler.IsQueued(action.JobKey))
+                    continue;
+
+                // A clear is someone's doing, not a schedule to check, so the skip is only logged at debug level.
+                if (GetMinimumEnd(action, row, GetAnchor(action, row)) is { } end && end > now + MinimumSleep)
+                {
+                    _logger.LogDebug(
+                        "Skipped the queue-cleared trigger of \"{ActionName}\": it last ran {LastRun}, within its minimum of {MinimumInterval}",
+                        action.Name,
+                        (now - GetDueAt(action, row)).ToTimeAgoString(),
+                        action.MinimumInterval.ToDurationString()
+                    );
+                    continue;
+                }
+
+                await FireAsync(action, now, now, true, token).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "The action scheduler failed to fire the queue-cleared triggers");
+        }
+        finally
+        {
+            _tickLock.Release();
+            Arm();
+        }
+    }
+
+    #endregion
+
     #region Schedule Rows
 
     /// <summary>
     /// Makes sure every scheduled action has its row: a new one
     /// takes its first last run, as a triggered one, from the row its ported
     /// job kept, if any, and the update frequency carried over from the
-    /// settings becomes its triggers.
+    /// settings becomes its triggers. A carried-over start-up setting that was
+    /// on adds a start-up trigger to the actions it ran.
     /// </summary>
     /// <exception cref="InvalidOperationException">The server has not started yet.</exception>
     private void EnsureLoaded()
@@ -678,6 +790,14 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
                 .Select(entry => (Info: _source.GetAction(entry.ActionType), entry.LastRun, entry.FrequencyKey))
                 .Where(entry => entry.Info is not null)
                 .ToDictionary(entry => entry.Info!.ID);
+            var carriedStartup = SettingsMigrations.ReadStartupTriggerCarryOver(_applicationPaths.DataPath, _logger);
+            var gainsStartup = _startupCarriedActions
+                .Where(entry => carriedStartup.Contains(entry.Key))
+                .SelectMany(entry => entry.ActionTypes)
+                .Select(_source.GetAction)
+                .OfType<ScheduledActionDefinition>()
+                .Select(action => action.ID)
+                .ToHashSet();
             foreach (var action in _source.GetActions())
             {
                 ported.TryGetValue(action.ID, out var port);
@@ -702,12 +822,20 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
                     }
                 }
 
+                // A start-up setting that was on adds to the triggers in effect, stored or default.
+                if (gainsStartup.Contains(action.ID) && GetTriggers(action, row) is var current && !current.Contains(ActionTrigger.AtStartup))
+                {
+                    row.Triggers = SerializeTriggers([.. current, ActionTrigger.AtStartup]);
+                    changed = true;
+                }
+
                 if (changed)
                     _schedules.Save(row);
             }
 
             // Only once it is saved, so a boot that fails before this keeps it.
             SettingsMigrations.ClearUpdateFrequencyCarryOver(_applicationPaths.DataPath);
+            SettingsMigrations.ClearStartupTriggerCarryOver(_applicationPaths.DataPath);
             _runKeys = _source.GetActions()
                 .GroupBy(action => action.JobKey)
                 .ToDictionary(group => group.Key, group => group.ToArray());
@@ -908,8 +1036,8 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
     /// <param name="triggers">The triggers in effect.</param>
     /// <param name="row">Its row, or <c>null</c>.</param>
     /// <returns>
-    /// The time in UTC, or <c>null</c> when only a start-up trigger, or none,
-    /// is set. It may lie in the past, when a run was missed.
+    /// The time in UTC, or <c>null</c> when only start-up and queue-cleared
+    /// triggers, or none, are set. It may lie in the past, when a run was missed.
     /// </returns>
     private DateTime? GetNextRun(ScheduledActionDefinition action, IReadOnlyList<ActionTrigger> triggers, ScheduledAction? row)
         => GetNextRun(action, triggers, row, out _);
@@ -929,8 +1057,8 @@ public sealed class ScheduledActionService : IScheduledActionService, IHostedSer
     /// result.
     /// </param>
     /// <returns>
-    /// The time in UTC, or <c>null</c> when only a start-up trigger, or none,
-    /// is set. It may lie in the past, when a run was missed.
+    /// The time in UTC, or <c>null</c> when only start-up and queue-cleared
+    /// triggers, or none, are set. It may lie in the past, when a run was missed.
     /// </returns>
     private DateTime? GetNextRun(ScheduledActionDefinition action, IReadOnlyList<ActionTrigger> triggers, ScheduledAction? row, out DateTime? dueAt)
     {

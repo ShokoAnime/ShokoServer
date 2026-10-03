@@ -1,0 +1,10 @@
+{
+  "air_date": "2023-09-01", "episode_number": 1, "id": 3000, "name": "Episode 1", "overview": "A look back.", "runtime": 12, "season_number": 0, "still_path": "/still-3000.jpg", "vote_average": 7.0, "vote_count": 3,
+  "credits": {
+    "cast": [ { "id": 5001, "name": "Atsumi Tanezaki", "character": "Frieren (voice)", "credit_id": "c-3000-1", "order": 0, "gender": 1, "adult": false, "known_for_department": "Acting", "original_name": "種崎敦美", "popularity": 10.0, "profile_path": "/p-5001.jpg" } ],
+    "crew": [],
+    "guest_stars": []
+  },
+  "external_ids": { "imdb_id": null, "tvdb_id": null },
+  "translations": { "translations": [] }
+}

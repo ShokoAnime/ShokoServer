@@ -1051,7 +1051,7 @@ public partial class PluginPackageManager(
             try
             {
                 var imageInfo = new MagickImageInfo(existingFile);
-                var mime = PluginManager.GetMimeFromFormat(imageInfo);
+                var mime = PackageImageLoader.GetMimeFromFormat(imageInfo);
                 if (mime is not null)
                     return new PackageImageInfo
                     {
@@ -1085,7 +1085,7 @@ public partial class PluginPackageManager(
                 await response.Content.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
 
                 var imageInfo = new MagickImageInfo(imagePath);
-                var mime = PluginManager.GetMimeFromFormat(imageInfo);
+                var mime = PackageImageLoader.GetMimeFromFormat(imageInfo);
                 if (mime is not null)
                 {
                     return new PackageImageInfo

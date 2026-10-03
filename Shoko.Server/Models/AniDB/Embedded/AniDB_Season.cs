@@ -9,11 +9,12 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Models.AniDB.Embedded;
 
-public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int seasonNumber) : IAnidbSeason
+public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int seasonNumber) : ISeason<IAnidbAnime, IAnidbEpisode>
 {
     public static string GetID(int animeID, EpisodeType episodeType, int seasonNumber) => $"{animeID}:{episodeType}:{seasonNumber}";
 
@@ -21,24 +22,30 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 
     private readonly string? _imagePath = ((AniDB_Anime)anime).Picname;
 
-    int IAnidbSeason.AnidbAnimeID => anime.AnidbID;
+    MetadataGuid ISeason.SeriesID => anime.ID;
 
     int ISeason.SeasonNumber => seasonNumber;
 
-    ISeries ISeason.Series => anime;
+    IAnidbAnime ISeason<IAnidbAnime, IAnidbEpisode>.Series => anime;
 
-    IReadOnlyList<IEpisode> ISeason.Episodes => anime.Episodes
-        .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
-        .ToList();
+    IReadOnlyList<IAnidbEpisode> ISeason<IAnidbAnime, IAnidbEpisode>.Episodes => [.. Episodes];
+
+    IOrdering<IAnidbAnime, IAnidbEpisode> ISeason<IAnidbAnime, IAnidbEpisode>.Ordering => OrderingLookup.DefaultFor<IAnidbAnime, IAnidbEpisode>(anime);
+
+    /// <summary>
+    ///   The season's episodes.
+    /// </summary>
+    private IEnumerable<IAnidbEpisode> Episodes
+        => ((ISeries<IAnidbAnime, IAnidbEpisode>)anime).Episodes.Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber);
 
     IReadOnlyList<IMetadataSeasonCrossReference> ISeason.MetadataSeasonCrossReferences
         => MetadataService.GetSeasonCrossReferences(this, ((ISeason)this).MetadataEpisodeCrossReferences);
 
     IReadOnlyList<IMetadataEpisodeCrossReference> ISeason.MetadataEpisodeCrossReferences
-        => [.. ((ISeason)this).Episodes.SelectMany(episode => episode.MetadataEpisodeCrossReferences)];
+        => [.. Episodes.SelectMany(episode => episode.MetadataEpisodeCrossReferences)];
 
     IReadOnlyList<IMetadataMovieCrossReference> ISeason.MetadataMovieCrossReferences
-        => [.. ((ISeason)this).Episodes.SelectMany(episode => episode.MetadataMovieCrossReferences)];
+        => [.. Episodes.SelectMany(episode => episode.MetadataMovieCrossReferences)];
 
     string IWithTitles.Title
         => seasonNumber is 0
@@ -116,17 +123,13 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
         ]
         : anime.Overviews;
 
+    DateTime IWithCreationDate.CreatedAt => anime.CreatedAt;
+
     DateTime IWithUpdateDate.LastUpdatedAt => anime.LastUpdatedAt;
 
     IReadOnlyList<ICast> IWithCastAndCrew.Cast => anime.Cast;
 
     IReadOnlyList<ICrew> IWithCastAndCrew.Crew => anime.Crew;
-
-    IAnidbAnime IAnidbSeason.Series => anime;
-
-    IReadOnlyList<IAnidbEpisode> IAnidbSeason.Episodes => anime.Episodes
-        .Where(x => x.Type == episodeType && x.SeasonNumber == seasonNumber)
-        .ToList();
 
     IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons
         => seasonNumber is 0 ? [] : anime.YearlySeasons;

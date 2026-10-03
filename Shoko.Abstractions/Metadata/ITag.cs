@@ -1,4 +1,3 @@
-using System;
 using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Abstractions.Metadata;
@@ -19,35 +18,29 @@ public interface ITag : IMetadata
     string Overview { get; }
 
     /// <summary>
-    /// What does the tag mean/what's it for.
-    /// </summary>
-    [Obsolete("Use Overview instead.")]
-    string Description { get => Overview; }
-
-    /// <summary>
     /// Whether the tag is a descriptive tag, a genre or a keyword.
     /// </summary>
-    TagKind Kind { get => TagKind.Tag; }
+    TagKind Kind { get; }
 
     /// <summary>
     /// The group the source files the tag under, when it has one.
     /// </summary>
-    string? Category { get => null; }
+    string? Category { get; }
 
     /// <summary>
     /// Whether the tag gives something away. Read through an entity, whether
     /// it does for that entity.
     /// </summary>
-    bool IsSpoiler { get => false; }
+    bool IsSpoiler { get; }
 
     /// <summary>
     /// Whether the tag is for adult content.
     /// </summary>
-    bool IsRestricted { get => false; }
+    bool IsRestricted { get; }
 
     /// <summary>
     /// How strongly the tag applies, on the source's own scale. Only set when
     /// the tag is read through an entity, and the source weighs its tags.
     /// </summary>
-    int? Weight { get => null; }
+    int? Weight { get; }
 }

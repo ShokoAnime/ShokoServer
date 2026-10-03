@@ -238,4 +238,27 @@ public class AnidbResourceTests
         => (resource.Name, resource.Url, resource.ID);
 
     #endregion
+
+    #region Cross-Source IDs
+
+    [Fact]
+    public void TheTmdbAndImdbResourcesBecomeTheAnimesCrossSourceIDs()
+    {
+        static AniDB_Resource Resource(ResourceLinkType type, params string[] identifiers)
+            => new() { AnimeID = 1, ResourceType = type, Identifiers = [.. identifiers], Urls = [] };
+        List<AniDB_Resource> rows =
+        [
+            Resource(ResourceLinkType.TMDB, "42", "tv"),
+            Resource(ResourceLinkType.TMDB, "7", "movie"),
+            Resource(ResourceLinkType.TMDB, "9"),
+            Resource(ResourceLinkType.IMDb, "tt0000001"),
+            Resource(ResourceLinkType.MAL, "5"),
+            Resource(ResourceLinkType.TMDB, "42", "tv"),
+        ];
+
+        Assert.Equal(["tmdb://series/42", "tmdb://movie/7", "imdb://series/tt0000001"], AnidbResourceLinks.ToCrossSourceIDs(rows, isMovie: false).Select(id => id.ToString()));
+        Assert.Equal("imdb://movie/tt0000001", AnidbResourceLinks.ToCrossSourceIDs(rows, isMovie: true)[2].ToString());
+    }
+
+    #endregion
 }

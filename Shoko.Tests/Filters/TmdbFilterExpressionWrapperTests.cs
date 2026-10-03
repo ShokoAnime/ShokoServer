@@ -15,13 +15,9 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
-using Shoko.Server.Repositories.Cached.TMDB;
-using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
@@ -257,18 +253,10 @@ public class TmdbFilterExpressionWrapperTests
 
     private static readonly AnimeSeries s_series = new() { AnimeSeriesID = SeriesID, AniDB_ID = AnidbID };
 
-    private static MetadataCrossReferenceStore ReadOnlyStore()
-        => new(
-            RepoFactory.CrossRef_AniDB_Metadata_Series,
-            RepoFactory.CrossRef_AniDB_Metadata_Movie,
-            RepoFactory.CrossRef_AniDB_Metadata_Episode,
-            CachedRepo.Build<Metadata_EpisodeRepository, int, Metadata_Episode>(row => row.Metadata_EpisodeID)
-        );
-
     /// <summary>
-    /// A series linked to one TMDB show and one TMDB movie, each with its own genres and keywords,
-    /// whose three episodes are linked, linked to nothing by a person, and linked to nothing by the
-    /// matcher.
+    /// A series linked to one TMDB show with the genre Drama and one TMDB movie with the keyword
+    /// space, whose three episodes are linked, linked to nothing by a person, and linked to nothing
+    /// by the matcher.
     /// </summary>
     /// <param name="seriesLinks">The series-level TMDB links.</param>
     /// <param name="withFilm">Whether the third episode stands for the TMDB movie.</param>
@@ -303,27 +291,16 @@ public class TmdbFilterExpressionWrapperTests
                 },
                 new() { CrossRef_AniDB_Metadata_EpisodeID = 3, Source = MetadataSource.TMDB, AnidbAnimeID = AnidbID, AnidbEpisodeID = 203, ProviderID = string.Empty },
             ])
-            .Set(new CrossRef_AniDB_TMDB_ShowRepository(RepoFactory.CrossRef_AniDB_Metadata_Series, ReadOnlyStore()))
-            .Set(new CrossRef_AniDB_TMDB_MovieRepository(RepoFactory.CrossRef_AniDB_Metadata_Movie, ReadOnlyStore()))
-            .With<TMDB_ShowRepository, int, TMDB_Show>(s => s.Id, [new() { TmdbShowID = 300, Genres = ["Drama"], Keywords = ["school"] }])
-            .With<TMDB_MovieRepository, int, TMDB_Movie>(m => m.Id, [new() { TmdbMovieID = 400, Genres = ["Action"], Keywords = ["space"] }]);
-
-    [Fact]
-    public void TheShowAndMovieGenresAndKeywordsComeFromTheirOwnEntries()
-    {
-        using var scope = Scope();
-        IFilterableInfo filterable = new FilterableAnimeSeries(s_series, s_date);
-
-        Assert.Equal(Names("Drama"), new TmdbShowGenresSelector().Evaluate(filterable, null, s_date));
-        Assert.Equal(Names("Action"), new TmdbMovieGenresSelector().Evaluate(filterable, null, s_date));
-        Assert.Equal(Names("Drama", "Action"), new TmdbGenresSelector().Evaluate(filterable, null, s_date));
-        Assert.Equal(Names("school"), new TmdbShowKeywordsSelector().Evaluate(filterable, null, s_date));
-        Assert.Equal(Names("space"), new TmdbMovieKeywordsSelector().Evaluate(filterable, null, s_date));
-        Assert.Equal(Names("school", "space"), new TmdbKeywordsSelector().Evaluate(filterable, null, s_date));
-        Assert.True(new HasTmdbGenreExpression("drama").Evaluate(filterable, null, s_date));
-        Assert.True(new HasTmdbMovieKeywordExpression("SPACE").Evaluate(filterable, null, s_date));
-        Assert.False(new HasTmdbShowKeywordExpression("space").Evaluate(filterable, null, s_date));
-    }
+            .With<Metadata_TagRepository, int, Metadata_Tag>(tag => tag.Metadata_TagID,
+            [
+                new() { Metadata_TagID = 1, Source = MetadataSource.TMDB, ProviderID = "genre/18", Name = "Drama", Kind = TagKind.Genre },
+                new() { Metadata_TagID = 2, Source = MetadataSource.TMDB, ProviderID = "keyword/9882", Name = "space", Kind = TagKind.Keyword },
+            ])
+            .With<Metadata_Tag_EntryRepository, int, Metadata_Tag_Entry>(entry => entry.Metadata_Tag_EntryID,
+            [
+                new() { Metadata_Tag_EntryID = 1, Source = MetadataSource.TMDB, EntityType = MetadataEntityType.Series, EntityID = "300", TagID = 1 },
+                new() { Metadata_Tag_EntryID = 2, Source = MetadataSource.TMDB, EntityType = MetadataEntityType.Movie, EntityID = "400", TagID = 2 },
+            ]);
 
     [Fact]
     public void TheEpisodeCountsCountTheLinksMadeToNothingAsTmdbAlwaysDid()

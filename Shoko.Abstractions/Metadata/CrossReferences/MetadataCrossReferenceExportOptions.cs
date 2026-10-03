@@ -4,9 +4,9 @@ namespace Shoko.Abstractions.Metadata.CrossReferences;
 ///   Which of a source's links to write into a cross-reference file, and how.
 /// </summary>
 /// <remarks>
-///   The provider IDs are compared with what the file writes, so for TMDB a
-///   link to nothing is matched by <c>0</c> and for any other source by an
-///   empty string. A filter left out matches everything.
+///   The provider IDs are compared with what the file writes, so a link to
+///   nothing is matched by an empty string. A filter left out matches
+///   everything.
 /// </remarks>
 public sealed record MetadataCrossReferenceExportOptions
 {

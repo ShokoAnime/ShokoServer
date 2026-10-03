@@ -9,7 +9,7 @@ namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Remove the alternate orderings one metadata source, or every source,
-///   keeps, TMDB's episode groups included.
+///   keeps.
 /// </summary>
 /// <remarks>
 ///   The users' own orderings are kept. A refresh stores a source's
@@ -21,15 +21,14 @@ public sealed class PurgeMetadataOrderingsAction(MetadataOrderingService orderin
     private IProgress<decimal>? _progress;
 
     /// <summary>
-    ///   The source to purge, or <see langword="null"/> for every source, TMDB
-    ///   included.
+    ///   The source to purge, or <see langword="null"/> for every source.
     /// </summary>
     public MetadataSource? Source { get; set; }
 
     public string Name => "Purge Metadata Alternate Orderings";
 
     public string? Description
-        => "Removes the alternate orderings of one metadata source, or of every source, TMDB's episode groups included. The users' own "
+        => "Removes the alternate orderings of one metadata source, or of every source. The users' own "
             + "orderings are kept.";
 
     public ActionCategory Category => ActionCategory.Destructive;
@@ -49,7 +48,7 @@ public sealed class PurgeMetadataOrderingsAction(MetadataOrderingService orderin
     public Task Execute(CancellationToken token = default)
         => MetadataPurges.ForEach(
             Source is { } source ? [source] : orderingService.GetGlobalOrderingSources(),
-            (each, stage, ct) => Task.FromResult(orderingService.RemoveGlobalOrderings(each, stage, ct)),
+            (each, stage, ct) => Task.FromResult(orderingService.RemoveOrderings(each, stage, ct)),
             _progress,
             token
         );

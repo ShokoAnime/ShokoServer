@@ -98,6 +98,12 @@ internal sealed class OrderingDocumentOrdering
     public bool? IsPreferred { get; set; }
 
     /// <summary>
+    ///   The full IDs of the networks it follows, in order, or <c>null</c> in
+    ///   a file written before exports carried them.
+    /// </summary>
+    public List<string>? Networks { get; set; }
+
+    /// <summary>
     ///   Its own images.
     /// </summary>
     public List<OrderingDocumentImage> Images { get; set; } = [];

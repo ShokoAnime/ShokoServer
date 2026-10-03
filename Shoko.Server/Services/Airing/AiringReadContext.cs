@@ -257,7 +257,6 @@ internal sealed class AiringReadContext
         {
             _ when source == MetadataSource.Shoko => int.TryParse(id, out var shokoSeriesID) ? RepoFactory.AnimeSeries.GetByID(shokoSeriesID) : null,
             _ when source == MetadataSource.AniDB => int.TryParse(id, out var anidbAnimeID) ? RepoFactory.AniDB_Anime.GetByAnimeID(anidbAnimeID) : null,
-            _ when source == MetadataSource.TMDB => int.TryParse(id, out var tmdbShowID) ? RepoFactory.TMDB_Show.GetByTmdbShowID(tmdbShowID) : null,
             _ => ResolveThroughResolvers(source, MetadataEntityType.Series, id) as ISeries,
         };
 
@@ -268,7 +267,6 @@ internal sealed class AiringReadContext
                 ? null : new AnimeSeason(shokoSeries, shoko.Type, shoko.Number),
             _ when source == MetadataSource.AniDB => ParseEmbeddedSeasonID(id) is not { } anidb || RepoFactory.AniDB_Anime.GetByAnimeID(anidb.ID) is not { } anidbAnime
                 ? null : new AniDB_Season(anidbAnime, anidb.Type, anidb.Number),
-            _ when source == MetadataSource.TMDB => int.TryParse(id, out var tmdbSeasonID) ? RepoFactory.TMDB_Season.GetByTmdbSeasonID(tmdbSeasonID) : null,
             _ => ResolveThroughResolvers(source, MetadataEntityType.Season, id) as ISeason,
         };
 
@@ -277,7 +275,6 @@ internal sealed class AiringReadContext
         {
             _ when source == MetadataSource.Shoko => int.TryParse(id, out var shokoEpisodeID) ? RepoFactory.AnimeEpisode.GetByID(shokoEpisodeID) : null,
             _ when source == MetadataSource.AniDB => int.TryParse(id, out var anidbEpisodeID) ? RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisodeID) : null,
-            _ when source == MetadataSource.TMDB => int.TryParse(id, out var tmdbEpisodeID) ? RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(tmdbEpisodeID) : null,
             _ => ResolveThroughResolvers(source, MetadataEntityType.Episode, id) as IEpisode,
         };
 

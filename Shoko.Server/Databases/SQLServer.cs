@@ -664,7 +664,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(110,  1, "ALTER TABLE VideoLocal ADD LastAVDumped datetime;"),
         new(110,  2, "ALTER TABLE VideoLocal ADD LastAVDumpVersion nvarchar(128);"),
         new(111,  1),
-        new(111,  2, DatabaseFixes.FixOrphanedShokoEpisodes),
+        new(111,  2),
         new(112,  1, "CREATE TABLE FilterPreset( FilterPresetID INT IDENTITY(1,1), ParentFilterPresetID int, Name nvarchar(250) NOT NULL, FilterType int NOT NULL, Locked bit NOT NULL, Hidden bit NOT NULL, ApplyAtSeriesLevel bit NOT NULL, Expression nvarchar(max), SortingExpression nvarchar(max) ); "),
         new(112,  2, "CREATE INDEX IX_FilterPreset_ParentFilterPresetID ON FilterPreset(ParentFilterPresetID); CREATE INDEX IX_FilterPreset_Name ON FilterPreset(Name); CREATE INDEX IX_FilterPreset_FilterType ON FilterPreset(FilterType); CREATE INDEX IX_FilterPreset_LockedHidden ON FilterPreset(Locked, Hidden);"),
         new(112,  3, "DELETE FROM GroupFilter WHERE FilterType = 2; DELETE FROM GroupFilter WHERE FilterType = 16;"),
@@ -762,7 +762,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(131, 10, "ALTER TABLE Trakt_Show ADD TmdbShowID INT NULL;"),
         new(131, 11, DatabaseFixes.CleanupAfterRemovingTvDB),
         new(131, 12, DatabaseFixes.ClearQuartzQueue),
-        new(132,  1, DatabaseFixes.RepairMissingTMDBPersons),
+        new(132,  1),
         new(133,  1, "ALTER TABLE TMDB_Movie ADD Keywords NVARCHAR(512) NULL DEFAULT NULL;"),
         new(133,  2, "ALTER TABLE TMDB_Movie ADD ProductionCountries NVARCHAR(32) NULL DEFAULT NULL;"),
         new(133,  3, "ALTER TABLE TMDB_Show ADD Keywords NVARCHAR(512) NULL DEFAULT NULL;"),
@@ -1275,9 +1275,9 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(192, 33, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Metadata_Episode_Link ON CrossRef_AniDB_Metadata_Episode(Source, AnidbAnimeID, AnidbEpisodeID, ProviderID);"),
         new(192, 34, "CREATE UNIQUE INDEX UIX_CrossRef_AniDB_Metadata_Episode_Ordering ON CrossRef_AniDB_Metadata_Episode(Source, AnidbAnimeID, AnidbEpisodeID, Ordering);"),
         new(192, 35, "INSERT INTO CrossRef_AniDB_Metadata_Episode (Source, AnidbAnimeID, AnidbEpisodeID, ProviderID, ProviderParentID, MatchRating, Ordering) SELECT 1, x.AnidbAnimeID, x.AnidbEpisodeID, CASE WHEN x.TmdbEpisodeID = 0 THEN '' ELSE CAST(x.TmdbEpisodeID AS NVARCHAR(128)) END, CASE WHEN x.TmdbShowID = 0 THEN '' ELSE CAST(x.TmdbShowID AS NVARCHAR(128)) END, x.MatchRating, (SELECT COUNT(*) FROM CrossRef_AniDB_TMDB_Episode y WHERE y.AnidbAnimeID = x.AnidbAnimeID AND y.AnidbEpisodeID = x.AnidbEpisodeID AND (y.Ordering < x.Ordering OR (y.Ordering = x.Ordering AND y.CrossRef_AniDB_TMDB_EpisodeID < x.CrossRef_AniDB_TMDB_EpisodeID)) AND NOT EXISTS (SELECT 1 FROM CrossRef_AniDB_TMDB_Episode w WHERE w.AnidbAnimeID = y.AnidbAnimeID AND w.AnidbEpisodeID = y.AnidbEpisodeID AND w.TmdbEpisodeID = y.TmdbEpisodeID AND (w.Ordering < y.Ordering OR (w.Ordering = y.Ordering AND w.CrossRef_AniDB_TMDB_EpisodeID < y.CrossRef_AniDB_TMDB_EpisodeID)))) FROM CrossRef_AniDB_TMDB_Episode x WHERE NOT EXISTS (SELECT 1 FROM CrossRef_AniDB_TMDB_Episode z WHERE z.AnidbAnimeID = x.AnidbAnimeID AND z.AnidbEpisodeID = x.AnidbEpisodeID AND z.TmdbEpisodeID = x.TmdbEpisodeID AND (z.Ordering < x.Ordering OR (z.Ordering = x.Ordering AND z.CrossRef_AniDB_TMDB_EpisodeID < x.CrossRef_AniDB_TMDB_EpisodeID)));"),
-        new(192, 36, "CREATE TABLE Metadata_Creator (Metadata_CreatorID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, Name NVARCHAR(MAX) NOT NULL, OriginalName NVARCHAR(MAX) NULL, Description NVARCHAR(MAX) NULL, Type TINYINT NOT NULL, BirthDay NVARCHAR(10) NULL, LastUpdatedAt DATETIME NOT NULL, Gender INT NOT NULL DEFAULT 0, Resources NVARCHAR(MAX) NULL, LastOrphanedAt DATETIME NULL, DeathDay NVARCHAR(10) NULL, CONSTRAINT PK_Metadata_Creator PRIMARY KEY CLUSTERED (Metadata_CreatorID));"),
+        new(192, 36, "CREATE TABLE Metadata_Creator (Metadata_CreatorID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, Name NVARCHAR(MAX) NOT NULL, OriginalName NVARCHAR(MAX) NULL, Description NVARCHAR(MAX) NULL, Type TINYINT NOT NULL, BirthDay NVARCHAR(10) NULL, CreatedAt DATETIME NOT NULL CONSTRAINT DF_Metadata_Creator_CreatedAt DEFAULT '1970-01-01 00:00:00', LastUpdatedAt DATETIME NOT NULL, Gender INT NOT NULL DEFAULT 0, Resources NVARCHAR(MAX) NULL, LastOrphanedAt DATETIME NULL, DeathDay NVARCHAR(10) NULL, CONSTRAINT PK_Metadata_Creator PRIMARY KEY CLUSTERED (Metadata_CreatorID));"),
         new(192, 37, "CREATE UNIQUE INDEX UIX_Metadata_Creator_ProviderID ON Metadata_Creator(Source, ProviderID);"),
-        new(192, 38, "CREATE TABLE Metadata_Character (Metadata_CharacterID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, Name NVARCHAR(MAX) NOT NULL, OriginalName NVARCHAR(MAX) NULL, Description NVARCHAR(MAX) NULL, Type TINYINT NOT NULL, LastUpdatedAt DATETIME NOT NULL, Gender INT NOT NULL DEFAULT 0, BirthDay NVARCHAR(10) NULL, Resources NVARCHAR(MAX) NULL, LastOrphanedAt DATETIME NULL, CONSTRAINT PK_Metadata_Character PRIMARY KEY CLUSTERED (Metadata_CharacterID));"),
+        new(192, 38, "CREATE TABLE Metadata_Character (Metadata_CharacterID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, ProviderID NVARCHAR(128) NOT NULL, Name NVARCHAR(MAX) NOT NULL, OriginalName NVARCHAR(MAX) NULL, Description NVARCHAR(MAX) NULL, Type TINYINT NOT NULL, CreatedAt DATETIME NOT NULL CONSTRAINT DF_Metadata_Character_CreatedAt DEFAULT '1970-01-01 00:00:00', LastUpdatedAt DATETIME NOT NULL, Gender INT NOT NULL DEFAULT 0, BirthDay NVARCHAR(10) NULL, Resources NVARCHAR(MAX) NULL, LastOrphanedAt DATETIME NULL, CONSTRAINT PK_Metadata_Character PRIMARY KEY CLUSTERED (Metadata_CharacterID));"),
         new(192, 39, "CREATE UNIQUE INDEX UIX_Metadata_Character_ProviderID ON Metadata_Character(Source, ProviderID);"),
         new(192, 40, "CREATE TABLE Metadata_Cast (Metadata_CastID INT IDENTITY(1,1) NOT NULL, Source TINYINT NOT NULL, EntityType TINYINT NOT NULL, EntityID NVARCHAR(128) NOT NULL, CreatorID INT NULL, CharacterID INT NULL, Name NVARCHAR(MAX) NOT NULL, RoleType TINYINT NOT NULL, LanguageCode NVARCHAR(32) NULL, Ordering INT NOT NULL, RoleNotes NVARCHAR(MAX) NULL, DubGroup NVARCHAR(MAX) NULL, CONSTRAINT PK_Metadata_Cast PRIMARY KEY CLUSTERED (Metadata_CastID));"),
         new(192, 41, "CREATE INDEX IX_Metadata_Cast_Entry ON Metadata_Cast(Source, EntityType, EntityID);"),
@@ -1423,6 +1423,143 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         // Clears what interrupted purges left of unlinked entries, and has the orphan purge
         // refresh the linked ones soon after start.
         new(192, 177, DatabaseFixes.PurgeMetadataLeftovers),
+        new(192, 178, "ALTER TABLE Metadata_Episode ADD ExtraData NVARCHAR(MAX) NULL;"),
+        new(192, 179, "ALTER TABLE Metadata_Network ADD CountryOfOrigin NVARCHAR(MAX) NULL;"),
+        // A network a user's ordering names before its source wrote it is a stub,
+        // never written by its source.
+        new(192, 180, "ALTER TABLE Metadata_Network ALTER COLUMN LastUpdatedAt DATETIME NULL;"),
+        new(192, 181, "ALTER TABLE Metadata_Series ADD ExtraData NVARCHAR(MAX) NULL;"),
+        new(192, 182, "ALTER TABLE Metadata_Movie ADD ExtraData NVARCHAR(MAX) NULL;"),
+        new(192, 183, "ALTER TABLE Metadata_Suggestion ADD ApprovalVotes INT NULL;"),
+        // A stored entry's creation date. Every existing row has a last update,
+        // as the column is not nullable, so it stands in for the creation date.
+        new(192, 184, "ALTER TABLE Metadata_Series ADD CreatedAt DATETIME NULL;"),
+        new(192, 185, "UPDATE Metadata_Series SET CreatedAt = LastUpdatedAt;"),
+        new(192, 186, "ALTER TABLE Metadata_Series ALTER COLUMN CreatedAt DATETIME NOT NULL;"),
+        new(192, 187, "ALTER TABLE Metadata_Season ADD CreatedAt DATETIME NULL;"),
+        new(192, 188, "UPDATE Metadata_Season SET CreatedAt = LastUpdatedAt;"),
+        new(192, 189, "ALTER TABLE Metadata_Season ALTER COLUMN CreatedAt DATETIME NOT NULL;"),
+        new(192, 190, "ALTER TABLE Metadata_Episode ADD CreatedAt DATETIME NULL;"),
+        new(192, 191, "UPDATE Metadata_Episode SET CreatedAt = LastUpdatedAt;"),
+        new(192, 192, "ALTER TABLE Metadata_Episode ALTER COLUMN CreatedAt DATETIME NOT NULL;"),
+        new(192, 193, "ALTER TABLE Metadata_Movie ADD CreatedAt DATETIME NULL;"),
+        new(192, 194, "UPDATE Metadata_Movie SET CreatedAt = LastUpdatedAt;"),
+        new(192, 195, "ALTER TABLE Metadata_Movie ALTER COLUMN CreatedAt DATETIME NOT NULL;"),
+        new(192, 196, "ALTER TABLE Metadata_Collection ADD CreatedAt DATETIME NULL;"),
+        new(192, 197, "UPDATE Metadata_Collection SET CreatedAt = LastUpdatedAt;"),
+        new(192, 198, "ALTER TABLE Metadata_Collection ALTER COLUMN CreatedAt DATETIME NOT NULL;"),
+        new(192, 199, "ALTER TABLE Metadata_Movie ADD Runtime INT NULL;"),
+        new(192, 200, "ALTER TABLE Metadata_Studio ADD CountryOfOrigin NVARCHAR(MAX) NULL;"),
+        new(192, 201, "ALTER TABLE Metadata_Creator ADD IsRestricted BIT NOT NULL DEFAULT 0;"),
+        new(192, 202, "ALTER TABLE Metadata_Creator ADD ExtraData NVARCHAR(MAX) NULL;"),
+        // When an AniDB anime or episode was first stored. The epoch marks the rows
+        // stored before the column, which the fix after fills from what is known.
+        new(192, 203, "ALTER TABLE AniDB_Anime ADD CreatedAt DATETIME NOT NULL CONSTRAINT DF_AniDB_Anime_CreatedAt DEFAULT '1970-01-01 00:00:00';"),
+        new(192, 204, "ALTER TABLE AniDB_Episode ADD CreatedAt DATETIME NOT NULL CONSTRAINT DF_AniDB_Episode_CreatedAt DEFAULT '1970-01-01 00:00:00';"),
+        new(192, 205, DatabaseFixes.BackfillAnidbCreationDates),
+        // A creator, character or studio a credit or link names before its source
+        // wrote it is a stub, never written by its source.
+        new(192, 206, "ALTER TABLE Metadata_Creator ALTER COLUMN LastUpdatedAt DATETIME NULL;"),
+        new(192, 207, "ALTER TABLE Metadata_Character ALTER COLUMN LastUpdatedAt DATETIME NULL;"),
+        new(192, 208, "ALTER TABLE Metadata_Studio ALTER COLUMN LastUpdatedAt DATETIME NULL;"),
+        // When the core last refreshed an entry of a plugin source, now kept on the entry's own row: a
+        // series, movie or collection after a full refresh, a person, studio or network after every
+        // attempt. The times move over from Metadata_Refresh; those of no stored entry go with it.
+        new(192, 209, "ALTER TABLE Metadata_Series ADD LastRefreshedAt DATETIME NULL;"),
+        new(192, 210, "ALTER TABLE Metadata_Movie ADD LastRefreshedAt DATETIME NULL;"),
+        new(192, 211, "ALTER TABLE Metadata_Collection ADD LastRefreshedAt DATETIME NULL;"),
+        new(192, 212, "ALTER TABLE Metadata_Creator ADD LastRefreshedAt DATETIME NULL;"),
+        new(192, 213, "ALTER TABLE Metadata_Character ADD LastRefreshedAt DATETIME NULL;"),
+        new(192, 214, "ALTER TABLE Metadata_Studio ADD LastRefreshedAt DATETIME NULL;"),
+        new(192, 215, "ALTER TABLE Metadata_Network ADD LastRefreshedAt DATETIME NULL;"),
+        new(192, 216, "UPDATE Metadata_Series SET LastRefreshedAt = (SELECT r.LastRefreshedAt FROM Metadata_Refresh r WHERE r.Source = Metadata_Series.Source AND r.EntityType = 2 AND r.ProviderID = Metadata_Series.ProviderID);"),
+        new(192, 217, "UPDATE Metadata_Movie SET LastRefreshedAt = (SELECT r.LastRefreshedAt FROM Metadata_Refresh r WHERE r.Source = Metadata_Movie.Source AND r.EntityType = 5 AND r.ProviderID = Metadata_Movie.ProviderID);"),
+        new(192, 218, "UPDATE Metadata_Collection SET LastRefreshedAt = (SELECT r.LastRefreshedAt FROM Metadata_Refresh r WHERE r.Source = Metadata_Collection.Source AND r.EntityType = 1 AND r.ProviderID = Metadata_Collection.ProviderID);"),
+        new(192, 219, "UPDATE Metadata_Creator SET LastRefreshedAt = (SELECT r.LastRefreshedAt FROM Metadata_Refresh r WHERE r.Source = Metadata_Creator.Source AND r.EntityType = 9 AND r.ProviderID = Metadata_Creator.ProviderID);"),
+        new(192, 220, "UPDATE Metadata_Character SET LastRefreshedAt = (SELECT r.LastRefreshedAt FROM Metadata_Refresh r WHERE r.Source = Metadata_Character.Source AND r.EntityType = 10 AND r.ProviderID = Metadata_Character.ProviderID);"),
+        new(192, 221, "UPDATE Metadata_Studio SET LastRefreshedAt = (SELECT r.LastRefreshedAt FROM Metadata_Refresh r WHERE r.Source = Metadata_Studio.Source AND r.EntityType = 7 AND r.ProviderID = Metadata_Studio.ProviderID);"),
+        new(192, 222, "UPDATE Metadata_Network SET LastRefreshedAt = (SELECT r.LastRefreshedAt FROM Metadata_Refresh r WHERE r.Source = Metadata_Network.Source AND r.EntityType = 8 AND r.ProviderID = Metadata_Network.ProviderID);"),
+        new(192, 223, "DROP TABLE Metadata_Refresh;"),
+        new(192, 224, DatabaseFixes.MoveWebAOMPresetsToPlugin),
+        // A country may be rated more than once, and every entry with images gets extra data, which pins
+        // its default images.
+        new(192, 225, "DROP INDEX UIX_Metadata_ContentRating_Country ON Metadata_ContentRating;"),
+        new(192, 226, "CREATE INDEX IX_Metadata_ContentRating_Entry ON Metadata_ContentRating(Source, EntityType, EntityID);"),
+        new(192, 227, "ALTER TABLE Metadata_Season ADD ExtraData NVARCHAR(MAX) NULL;"),
+        new(192, 228, "ALTER TABLE Metadata_Collection ADD ExtraData NVARCHAR(MAX) NULL;"),
+        new(192, 229, "ALTER TABLE Metadata_Character ADD ExtraData NVARCHAR(MAX) NULL;"),
+        new(192, 230, "ALTER TABLE Metadata_Studio ADD ExtraData NVARCHAR(MAX) NULL;"),
+        new(192, 231, "ALTER TABLE Metadata_Network ADD ExtraData NVARCHAR(MAX) NULL;"),
+        // TMDB moves out of the core: its shows, seasons, episodes, movies, collections, people,
+        // companies, networks, credits, orderings, suggestions and default texts are copied into the
+        // shared tables under the same IDs, show and season credits are gathered from the episodes',
+        // choices naming a show's default ordering take the default ordering ID of other sources, and
+        // the episode links record the numbers TMDB's tables gave them.
+        new(192, 232, DatabaseFixes.CopyTmdbShows),
+        new(192, 233, DatabaseFixes.CopyTmdbSeasons),
+        new(192, 234, DatabaseFixes.CopyTmdbEpisodes),
+        new(192, 235, DatabaseFixes.CopyTmdbMovies),
+        new(192, 236, DatabaseFixes.CopyTmdbCollections),
+        new(192, 237, DatabaseFixes.CopyTmdbCollectionMovies),
+        new(192, 238, DatabaseFixes.CopyTmdbContentRatings),
+        new(192, 239, DatabaseFixes.CopyTmdbTags),
+        new(192, 240, DatabaseFixes.CopyTmdbPeople),
+        new(192, 241, DatabaseFixes.CopyTmdbCompanies),
+        new(192, 242, DatabaseFixes.CopyTmdbCompanyLinks),
+        new(192, 243, DatabaseFixes.CopyTmdbNetworks),
+        new(192, 244, DatabaseFixes.CopyTmdbShowNetworks),
+        new(192, 245, DatabaseFixes.CopyTmdbEpisodeCast),
+        new(192, 246, DatabaseFixes.CopyTmdbEpisodeCrew),
+        new(192, 247, DatabaseFixes.CopyTmdbMovieCast),
+        new(192, 248, DatabaseFixes.CopyTmdbMovieCrew),
+        new(192, 249, DatabaseFixes.AggregateTmdbShowCast),
+        new(192, 250, DatabaseFixes.AggregateTmdbShowCrew),
+        new(192, 251, DatabaseFixes.CopyTmdbOrderings),
+        new(192, 252, DatabaseFixes.CopyTmdbOrderingGroups),
+        new(192, 253, DatabaseFixes.CopyTmdbOrderingEpisodes),
+        new(192, 254, DatabaseFixes.CopyTmdbOrderingNetworks),
+        new(192, 255, DatabaseFixes.CopyTmdbSuggestions),
+        new(192, 256, DatabaseFixes.CopyTmdbDefaultTitles),
+        new(192, 257, DatabaseFixes.CopyTmdbDefaultOverviews),
+        new(192, 258, DatabaseFixes.RewriteTmdbDefaultOrderingIDs),
+        new(192, 259, DatabaseFixes.FillTmdbEpisodeLinkNumbers),
+        new(192, 260, DatabaseFixes.CopyTmdbDefaultImages),
+        // TMDB's own tables go once everything in them is in the shared ones.
+        new(192, 261, "DROP TABLE TMDB_AlternateOrdering_Episode;"),
+        new(192, 262, "DROP TABLE TMDB_AlternateOrdering_Season;"),
+        new(192, 263, "DROP TABLE TMDB_AlternateOrdering;"),
+        new(192, 264, "DROP TABLE TMDB_Collection_Movie;"),
+        new(192, 265, "DROP TABLE TMDB_Collection;"),
+        new(192, 266, "DROP TABLE TMDB_Company_Entity;"),
+        new(192, 267, "DROP TABLE TMDB_Company;"),
+        new(192, 268, "DROP TABLE TMDB_Episode_Cast;"),
+        new(192, 269, "DROP TABLE TMDB_Episode_Crew;"),
+        new(192, 270, "DROP TABLE TMDB_Movie_Cast;"),
+        new(192, 271, "DROP TABLE TMDB_Movie_Crew;"),
+        new(192, 272, "DROP TABLE TMDB_Show_Network;"),
+        new(192, 273, "DROP TABLE TMDB_Network;"),
+        new(192, 274, "DROP TABLE TMDB_Suggestion;"),
+        new(192, 275, "DROP TABLE TMDB_Episode;"),
+        new(192, 276, "DROP TABLE TMDB_Season;"),
+        new(192, 277, "DROP TABLE TMDB_Movie;"),
+        new(192, 278, "DROP TABLE TMDB_Show;"),
+        new(192, 279, "DROP TABLE TMDB_Person;"),
+        // An AniDB anime's or episode's creation date takes any date, as its other dates do.
+        new(192, 280, "ALTER TABLE AniDB_Anime DROP CONSTRAINT DF_AniDB_Anime_CreatedAt;"),
+        new(192, 281, "ALTER TABLE AniDB_Anime ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        new(192, 282, "ALTER TABLE AniDB_Episode DROP CONSTRAINT DF_AniDB_Episode_CreatedAt;"),
+        new(192, 283, "ALTER TABLE AniDB_Episode ALTER COLUMN CreatedAt datetime2 NOT NULL;"),
+        // When an AniDB or stored character or creator was first saved. Rows saved before the
+        // column take their last update; a creator or stub never fetched keeps the epoch.
+        new(192, 284, "ALTER TABLE AniDB_Character ADD CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_AniDB_Character_CreatedAt DEFAULT '1970-01-01 00:00:00';"),
+        new(192, 285, "ALTER TABLE AniDB_Creator ADD CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_AniDB_Creator_CreatedAt DEFAULT '1970-01-01 00:00:00';"),
+        new(192, 286, AddMetadata_CharacterCreatedAt),
+        new(192, 287, AddMetadata_CreatorCreatedAt),
+        new(192, 288, "UPDATE AniDB_Character SET CreatedAt = LastUpdated;"),
+        new(192, 289, "UPDATE AniDB_Creator SET CreatedAt = LastUpdatedAt WHERE LastUpdatedAt > '1970-01-01 00:00:00';"),
+        new(192, 290, "UPDATE Metadata_Character SET CreatedAt = LastUpdatedAt WHERE CreatedAt = '1970-01-01 00:00:00' AND LastUpdatedAt IS NOT NULL;"),
+        new(192, 291, "UPDATE Metadata_Creator SET CreatedAt = LastUpdatedAt WHERE CreatedAt = '1970-01-01 00:00:00' AND LastUpdatedAt IS NOT NULL;"),
+        new(192, 292, DatabaseFixes.RemoveTmdbGenericSeasonTitles),
     ];
 
     #endregion
@@ -1431,14 +1568,47 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
 
     private static void AlterImdbMovieIDType()
     {
+        // A fix runs after every schema step, so a new database has dropped TMDB_Movie by then,
+        // and the TMDB copy reads either type of the column.
+        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
+        const string typeQuery = "SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'TMDB_Movie' AND COLUMN_NAME = 'ImdbMovieID';";
+        var columnType = session.CreateSQLQuery(typeQuery).UniqueResult<string>();
+        if (columnType is null || columnType.Equals("nvarchar", StringComparison.OrdinalIgnoreCase))
+            return;
+
         DropColumnWithDefaultConstraint("TMDB_Movie", "ImdbMovieID");
 
-        using var session = ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
         using var transaction = session.BeginTransaction();
 
         const string alterCommand = "ALTER TABLE TMDB_Movie ADD ImdbMovieID NVARCHAR(12) NULL DEFAULT NULL;";
         session.CreateSQLQuery(alterCommand).ExecuteUpdate();
         transaction.Commit();
+    }
+
+    private static Tuple<bool, string?> AddMetadata_CharacterCreatedAt(object connection)
+        => AddCreatedAtIfMissing(connection, "Metadata_Character");
+
+    private static Tuple<bool, string?> AddMetadata_CreatorCreatedAt(object connection)
+        => AddCreatedAtIfMissing(connection, "Metadata_Creator");
+
+    // A table created before its CREATE TABLE gained the column gets it here.
+    internal static Tuple<bool, string?> AddCreatedAtIfMissing(object connection, string tableName)
+    {
+        try
+        {
+            var conn = (SqlConnection)connection;
+            var sqlServer = (SQLServer)ISystemService.StaticServices.GetRequiredService<DatabaseFactory>().Instance!;
+            var query = $"SELECT COUNT(*) FROM sys.columns WHERE object_id = OBJECT_ID(N'{tableName}') AND name = N'CreatedAt';";
+            if (sqlServer.ExecuteScalar(conn, query) is 0)
+                sqlServer.Execute(conn,
+                    $"ALTER TABLE {tableName} ADD CreatedAt DATETIME NOT NULL CONSTRAINT DF_{tableName}_CreatedAt DEFAULT '1970-01-01 00:00:00';");
+        }
+        catch (Exception e)
+        {
+            return new Tuple<bool, string?>(false, e.ToString());
+        }
+
+        return new Tuple<bool, string?>(true, null);
     }
 
     private static Tuple<bool, string?> DropDefaultsOnAnimeEpisode_User(object connection)

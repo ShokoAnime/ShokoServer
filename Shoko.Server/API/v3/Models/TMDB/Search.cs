@@ -6,16 +6,11 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Search;
-using Shoko.Abstractions.Metadata.Tmdb;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Metadata;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
-using TMDbLib.Objects.Search;
-
-using RemoteMovie = TMDbLib.Objects.Movies.Movie;
-using RemoteShow = TMDbLib.Objects.TvShows.TvShow;
+using Shoko.Server.Models.Metadata;
 
 namespace Shoko.Server.API.v3.Models.TMDB;
 
@@ -99,26 +94,25 @@ public static class Search
         public MetadataAutoLinkRejectionResult? Rejection { get; set; }
 
         /// <summary>
-        /// Describes a match.
+        /// Describes a match the auto-linker offered.
         /// </summary>
-        /// <param name="result">The match.</param>
-        /// <param name="rejection">Why it is not linked, if it is not.</param>
-        public AutoMatchResult(TmdbAutoSearchResult result, MetadataAutoLinkRejection? rejection = null)
+        /// <param name="candidate">The candidate, reviewed by the core.</param>
+        public AutoMatchResult(MetadataAutoLinkCandidate candidate)
         {
-            Rejection = rejection is null ? null : new(rejection);
-            AnimeID = result.AnidbAnime.AnimeID;
-            IsLocal = result.IsLocal;
-            IsRemote = result.IsRemote;
-            Origin = result.Origin;
-            if (result.IsMovie)
+            Rejection = candidate.Rejection is { } rejection ? new(rejection) : null;
+            AnimeID = candidate.AnidbAnimeID;
+            IsLocal = candidate.IsLocal;
+            IsRemote = candidate.IsRemote;
+            Origin = candidate.Origin;
+            if (candidate.Result is MetadataMovieSearchResult movie)
             {
                 IsMovie = true;
-                EpisodeID = result.AnidbEpisode.EpisodeID;
-                Movie = new(result.TmdbMovieRaw);
+                EpisodeID = candidate.AnidbEpisodeID ?? 0;
+                Movie = new(movie);
             }
-            else
+            else if (candidate.Result is MetadataSeriesSearchResult show)
             {
-                Show = new(result.TmdbShowRaw);
+                Show = new(show);
             }
         }
     }
@@ -211,102 +205,48 @@ public static class Search
         [Required]
         public IReadOnlyList<string> Genres { get; init; }
 
-        public RemoteSearchMovie(TMDB_Movie movie)
+        public RemoteSearchMovie(Metadata_Movie movie)
         {
-            ID = movie.Id;
+            ID = movie.TmdbMovieID;
             Title = movie.EnglishTitle;
             OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguageCode;
-            Overview = movie.EnglishOverview ?? string.Empty;
+            OriginalLanguage = movie.OriginalLanguageCodeOrEmpty;
+            Overview = movie.EnglishOverview;
             IsRestricted = movie.IsRestricted;
             IsVideo = movie.IsVideo;
             ReleasedAt = movie.ReleasedAt;
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.PosterPath}"
-                : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.BackdropPath}"
-                : null;
+            Poster = TmdbCompatibility.DefaultImageUrl(movie, ImageEntityType.Primary);
+            Backdrop = TmdbCompatibility.DefaultImageUrl(movie, ImageEntityType.Backdrop);
             UserRating = new Rating
             {
-                Value = movie.UserRating,
+                Value = movie.Rating,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = movie.UserVotes,
+                Votes = movie.RatingVotes,
             };
             Genres = movie.Genres;
         }
 
-        public RemoteSearchMovie(RemoteMovie movie)
+        public RemoteSearchMovie(MetadataMovieSearchResult movie)
         {
-            ID = movie.Id;
-            Title = movie.Title!;
-            OriginalTitle = movie.OriginalTitle!;
-            OriginalLanguage = movie.OriginalLanguage!;
-            Overview = movie.Overview ?? string.Empty;
-            IsRestricted = movie.Adult;
-            IsVideo = movie.Video;
-            ReleasedAt = movie.ReleaseDate?.ToDateOnly();
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.PosterPath}"
-                : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.BackdropPath}"
-                : null;
-            UserRating = new Rating
-            {
-                Value = movie.VoteAverage,
-                MaxValue = 10,
-                Source = "TMDB",
-                Type = "User",
-                Votes = movie.VoteCount,
-            };
-            Genres = movie.GetGenres();
-        }
-
-        public RemoteSearchMovie(SearchMovie movie)
-        {
-            ID = movie.Id;
-            Title = movie.Title!;
-            OriginalTitle = movie.OriginalTitle!;
-            OriginalLanguage = movie.OriginalLanguage!;
-            Overview = movie.Overview ?? string.Empty;
-            IsRestricted = movie.Adult;
-            IsVideo = movie.Video;
-            ReleasedAt = movie.ReleaseDate?.ToDateOnly();
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.PosterPath}"
-                : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.BackdropPath}"
-                : null;
-            UserRating = new Rating
-            {
-                Value = movie.VoteAverage,
-                MaxValue = 10,
-                Source = "TMDB",
-                Type = "User",
-                Votes = movie.VoteCount,
-            };
-            Genres = movie.GetGenres();
-        }
-
-        public RemoteSearchMovie(ITmdbMovieSearchResult movie)
-        {
-            ID = movie.ID;
+            ID = TmdbCompatibility.Number(movie.ID.ID);
             Title = movie.Title;
-            OriginalTitle = movie.OriginalTitle;
-            OriginalLanguage = movie.OriginalLanguage;
-            Overview = movie.Overview;
+            OriginalTitle = movie.OriginalTitle ?? movie.Title;
+            OriginalLanguage = movie.OriginalLanguageCode ?? string.Empty;
+            Overview = movie.Overview ?? string.Empty;
             IsRestricted = movie.IsRestricted;
-            IsVideo = movie.IsVideo;
-            ReleasedAt = movie.ReleasedAt;
-            Poster = !string.IsNullOrEmpty(movie.PosterPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.PosterPath}"
-                : null;
-            Backdrop = !string.IsNullOrEmpty(movie.BackdropPath) ? $"{TmdbApiClient.ImageServerUrl}original{movie.BackdropPath}"
-                : null;
+            IsVideo = movie.IsStandaloneVideo;
+            ReleasedAt = movie.ReleasedAt is { } releasedAt && releasedAt.TryConvertToDateOnly(out var date) ? date : null;
+            Poster = movie.PosterUrl;
+            Backdrop = movie.BackdropUrl;
             UserRating = new Rating
             {
-                Value = (double)movie.UserRating,
+                Value = (double)(movie.UserRating ?? 0),
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = movie.UserVotes,
+                Votes = movie.UserVotes ?? 0,
             };
             Genres = movie.Genres;
         }
@@ -374,102 +314,44 @@ public static class Search
         [Required]
         public IReadOnlyList<string> Genres { get; init; }
 
-        public RemoteSearchShow(TMDB_Show show)
+        public RemoteSearchShow(Metadata_Series show)
         {
-            ID = show.Id;
+            ID = show.TmdbShowID;
             Title = show.EnglishTitle;
             OriginalTitle = show.OriginalTitle;
-            OriginalLanguage = show.OriginalLanguageCode;
-            Overview = show.EnglishOverview ?? string.Empty;
+            OriginalLanguage = show.OriginalLanguageCodeOrEmpty;
+            Overview = show.EnglishOverview;
             FirstAiredAt = show.FirstAiredAt;
-            Poster = !string.IsNullOrEmpty(show.PosterPath)
-                ? $"{TmdbApiClient.ImageServerUrl}original{show.PosterPath}"
-                : null;
-            Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
-                ? $"{TmdbApiClient.ImageServerUrl}original{show.BackdropPath}"
-                : null;
+            Poster = TmdbCompatibility.DefaultImageUrl(show, ImageEntityType.Primary);
+            Backdrop = TmdbCompatibility.DefaultImageUrl(show, ImageEntityType.Backdrop);
             UserRating = new Rating
             {
-                Value = show.UserRating,
+                Value = show.Rating,
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = show.UserVotes,
+                Votes = show.RatingVotes,
             };
             Genres = show.Genres;
         }
 
-        public RemoteSearchShow(RemoteShow show)
+        public RemoteSearchShow(MetadataSeriesSearchResult show)
         {
-            ID = show.Id;
-            Title = show.Name!;
-            OriginalTitle = show.OriginalName!;
-            OriginalLanguage = show.OriginalLanguage!;
-            Overview = show.Overview ?? string.Empty;
-            FirstAiredAt = show.FirstAirDate?.ToDateOnly();
-            Poster = !string.IsNullOrEmpty(show.PosterPath)
-                ? $"{TmdbApiClient.ImageServerUrl}original{show.PosterPath}"
-                : null;
-            Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
-                ? $"{TmdbApiClient.ImageServerUrl}original{show.BackdropPath}"
-                : null;
-            UserRating = new Rating
-            {
-                Value = show.VoteAverage,
-                MaxValue = 10,
-                Source = "TMDB",
-                Type = "User",
-                Votes = show.VoteCount,
-            };
-            Genres = show.GetGenres();
-        }
-
-        public RemoteSearchShow(SearchTv show)
-        {
-            ID = show.Id;
-            Title = show.Name!;
-            OriginalTitle = show.OriginalName!;
-            OriginalLanguage = show.OriginalLanguage!;
-            Overview = show.Overview ?? string.Empty;
-            FirstAiredAt = show.FirstAirDate?.ToDateOnly();
-            Poster = !string.IsNullOrEmpty(show.PosterPath)
-                ? $"{TmdbApiClient.ImageServerUrl}original{show.PosterPath}"
-                : null;
-            Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
-                ? $"{TmdbApiClient.ImageServerUrl}original{show.BackdropPath}"
-                : null;
-            UserRating = new Rating
-            {
-                Value = show.VoteAverage,
-                MaxValue = 10,
-                Source = "TMDB",
-                Type = "User",
-                Votes = show.VoteCount,
-            };
-            Genres = show.GetGenres();
-        }
-
-        public RemoteSearchShow(ITmdbShowSearchResult show)
-        {
-            ID = show.ID;
+            ID = TmdbCompatibility.Number(show.ID.ID);
             Title = show.Title;
-            OriginalTitle = show.OriginalTitle;
-            OriginalLanguage = show.OriginalLanguage;
-            Overview = show.Overview;
-            FirstAiredAt = show.FirstAiredAt;
-            Poster = !string.IsNullOrEmpty(show.PosterPath)
-                ? $"{TmdbApiClient.ImageServerUrl}original{show.PosterPath}"
-                : null;
-            Backdrop = !string.IsNullOrEmpty(show.BackdropPath)
-                ? $"{TmdbApiClient.ImageServerUrl}original{show.BackdropPath}"
-                : null;
+            OriginalTitle = show.OriginalTitle ?? show.Title;
+            OriginalLanguage = show.OriginalLanguageCode ?? string.Empty;
+            Overview = show.Overview ?? string.Empty;
+            FirstAiredAt = show.FirstAiredAt is { } firstAiredAt && firstAiredAt.TryConvertToDateOnly(out var date) ? date : null;
+            Poster = show.PosterUrl;
+            Backdrop = show.BackdropUrl;
             UserRating = new Rating
             {
-                Value = (double)show.UserRating,
+                Value = (double)(show.UserRating ?? 0),
                 MaxValue = 10,
                 Source = "TMDB",
                 Type = "User",
-                Votes = show.UserVotes,
+                Votes = show.UserVotes ?? 0,
             };
             Genres = show.Genres;
         }

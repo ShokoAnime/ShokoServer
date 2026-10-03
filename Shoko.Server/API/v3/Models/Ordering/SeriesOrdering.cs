@@ -10,6 +10,8 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.Metadata;
+using Shoko.Server.Services.Ordering;
 
 namespace Shoko.Server.API.v3.Models.Ordering;
 
@@ -95,6 +97,13 @@ public class SeriesOrdering
     public int SeasonCount { get; init; }
 
     /// <summary>
+    /// The networks the ordering follows. The default ordering's are the
+    /// series' own.
+    /// </summary>
+    [Required]
+    public IReadOnlyList<MetadataNetwork> Networks { get; init; }
+
+    /// <summary>
     /// The ordering's own images. A user's ordering gets them through the
     /// image cross-reference endpoints, as <c>user</c>/<c>ordering</c>/<see cref="LocalID"/>.
     /// </summary>
@@ -124,7 +133,8 @@ public class SeriesOrdering
     /// </summary>
     /// <param name="ordering">The ordering.</param>
     /// <param name="includeGroups">Whether to include its groups and their episodes.</param>
-    public SeriesOrdering(IOrdering ordering, bool includeGroups)
+    /// <param name="models">Builds the models of its networks.</param>
+    public SeriesOrdering(IOrdering ordering, bool includeGroups, MetadataModelBuilder models)
     {
         ID = ordering.ID.ToString();
         LocalID = ordering.ID.ID;
@@ -138,8 +148,10 @@ public class SeriesOrdering
         EpisodeCount = ordering.EpisodeCount;
         HiddenEpisodeCount = ordering.HiddenEpisodeCount;
         SeasonCount = ordering.SeasonCount;
+        Networks = [.. ordering.Networks.Select(network => models.Network(network))];
         Images = ((IWithImages)ordering).GetImages().ToDto();
-        Groups = includeGroups ? [.. ordering.Seasons.Select(season => new OrderingGroup(season))] : null;
+        var placement = (ordering as IPlacedOrdering)?.Placement;
+        Groups = includeGroups ? [.. ordering.Seasons.Select(season => new OrderingGroup(season, placement))] : null;
         CreatedAt = ordering.CreatedAt.ToUniversalTime();
         LastUpdatedAt = ordering.LastUpdatedAt.ToUniversalTime();
     }
@@ -165,7 +177,7 @@ public class SeriesOrdering
         /// The group's number in the ordering: the season's own number for the
         /// default ordering, <c>0</c> for the special group of an ordering
         /// stored on this server and the others' place among themselves from
-        /// 1. TMDB's episode groups keep TMDB's numbers.
+        /// 1.
         /// </summary>
         [Required]
         public int SeasonNumber { get; init; }
@@ -186,7 +198,10 @@ public class SeriesOrdering
         public Images Images { get; init; }
 
         /// <summary>
-        /// The group's episodes, in order.
+        /// The group's episodes, in order. A regular group also lists the
+        /// placed specials airing in it, flagged <see cref="OrderingEpisode.IsSpecial"/>
+        /// with their special group numbers, so a group's IDs round-trip
+        /// through an update.
         /// </summary>
         [Required]
         public IReadOnlyList<OrderingEpisode> Episodes { get; init; }
@@ -195,14 +210,17 @@ public class SeriesOrdering
         /// Builds the model of a group.
         /// </summary>
         /// <param name="season">The group, as a season of its ordering.</param>
-        public OrderingGroup(ISeason season)
+        /// <param name="placement">The ordering's places, when it places its specials.</param>
+        internal OrderingGroup(ISeason season, OrderingPlaces? placement)
         {
             ID = season.ID.ToString();
             Name = season.Title;
             SeasonNumber = season.SeasonNumber;
             IsSpecial = season.IsSpecial;
             Images = ((IWithImages)season).GetImages().ToDto();
-            Episodes = [.. season.Episodes.Select((episode, index) => new OrderingEpisode(episode, index + 1))];
+            Episodes = placement is not null
+                ? [.. placement.Listed(season.ID).Select(place => new OrderingEpisode(place))]
+                : [.. season.Episodes.Select((episode, index) => new OrderingEpisode(episode.ID, index + 1, season.IsSpecial, null))];
         }
     }
 
@@ -224,21 +242,80 @@ public class SeriesOrdering
         public int? ShokoEpisodeID { get; init; }
 
         /// <summary>
-        /// The episode's number in the group, from 1.
+        /// The episode's number: among the group's home episodes, from 1, or
+        /// its number in the special group for a special. The default
+        /// ordering keeps each episode's own number.
         /// </summary>
         [Required]
         public int EpisodeNumber { get; init; }
 
         /// <summary>
-        /// Builds the model of an episode's place in a group.
+        /// Whether the episode is a special here: it is in the special group,
+        /// or it is a placed special airing in this regular group.
         /// </summary>
-        /// <param name="episode">The episode.</param>
-        /// <param name="episodeNumber">Its place in the group, from 1.</param>
-        public OrderingEpisode(IEpisode episode, int episodeNumber)
+        [Required]
+        public bool IsSpecial { get; init; }
+
+        /// <summary>
+        /// The season of the regular episode a placed special airs before.
+        /// Set only on a placed special's entry in the special group.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? AirsBeforeSeasonNumber { get; init; }
+
+        /// <summary>
+        /// The number of the regular episode a placed special airs before.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? AirsBeforeEpisodeNumber { get; init; }
+
+        /// <summary>
+        /// The season a placed special airs after, when no episode of it
+        /// follows the special.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? AirsAfterSeasonNumber { get; init; }
+
+        /// <summary>
+        /// The full ID of the regular episode a placed special airs right
+        /// after, in any group.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? AirsAfterEpisodeID { get; init; }
+
+        /// <summary>
+        /// The full ID of the regular episode a placed special airs right
+        /// before, in any group.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? AirsBeforeEpisodeID { get; init; }
+
+        /// <summary>
+        /// Builds the model of an entry of a group.
+        /// </summary>
+        /// <param name="place">The entry.</param>
+        internal OrderingEpisode(ListedPlace place)
+            : this(place.EpisodeID, place.EpisodeNumber, place.IsSpecial, place.Airing)
+        { }
+
+        /// <summary>
+        /// Builds the model of an entry of a group.
+        /// </summary>
+        /// <param name="episodeID">The episode.</param>
+        /// <param name="episodeNumber">Its number.</param>
+        /// <param name="isSpecial">Whether it is a special here.</param>
+        /// <param name="airing">Where a placed special airs, on its special group entry.</param>
+        internal OrderingEpisode(MetadataGuid episodeID, int episodeNumber, bool isSpecial, OrderingAiring? airing)
         {
-            ID = episode.ID.ToString();
-            ShokoEpisodeID = episode.ID.Source == MetadataSource.Shoko && episode.ID.TryGetNumericID<int>(out var localID) ? localID : null;
+            ID = episodeID.ToString();
+            ShokoEpisodeID = episodeID.Source == MetadataSource.Shoko && episodeID.TryGetNumericID<int>(out var localID) ? localID : null;
             EpisodeNumber = episodeNumber;
+            IsSpecial = isSpecial;
+            AirsBeforeSeasonNumber = airing?.AirsBeforeSeasonNumber;
+            AirsBeforeEpisodeNumber = airing?.AirsBeforeEpisodeNumber;
+            AirsAfterSeasonNumber = airing?.AirsAfterSeasonNumber;
+            AirsAfterEpisodeID = airing?.AirsAfterEpisodeID?.ToString();
+            AirsBeforeEpisodeID = airing?.AirsBeforeEpisodeID?.ToString();
         }
     }
 
@@ -301,7 +378,8 @@ public class SeriesOrdering
             /// <summary>
             /// The Shoko episode IDs of the group's episodes, in order. Each
             /// must be an episode of the series; an episode may be in more
-            /// than one group.
+            /// than one group. An episode in the special group and a regular
+            /// one is a placed special, airing where the regular group lists it.
             /// </summary>
             [Required]
             public List<int> EpisodeIDs { get; set; } = [];

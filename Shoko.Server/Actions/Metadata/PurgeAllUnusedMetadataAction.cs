@@ -4,14 +4,13 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.ScheduledActions;
-using Shoko.Server.Services;
 
 namespace Shoko.Server.Actions;
 
 /// <summary>
-///   Purge the stored series and films of every metadata source, TMDB
-///   included, that nothing links to any more, and the collections none of
-///   whose members anything links to.
+///   Purge the stored series and films of every metadata source that
+///   nothing links to any more, and the collections none of whose members
+///   anything links to.
 /// </summary>
 /// <remarks>
 ///   Only queues the purges, which run on their own; the progress covers
@@ -25,13 +24,13 @@ public sealed class PurgeAllUnusedMetadataAction(IMetadataProviderManager provid
     public string Name => "Purge Unused Metadata";
 
     public string? Description
-        => "Removes the stored series, films and collections of every metadata source, TMDB included, that are not linked to any AniDB anime.";
+        => "Removes the stored series, films and collections of every metadata source that are not linked to any AniDB anime.";
 
     public ActionCategory Category => ActionCategory.Destructive;
 
     public bool RequiresConfirmation => true;
 
-    public string? ConfirmationMessage => "Are you sure you want to remove all unlinked series, films and collections of every metadata source, TMDB included?";
+    public string? ConfirmationMessage => "Are you sure you want to remove all unlinked series, films and collections of every metadata source?";
 
     public Task Execute(IProgress<decimal> progress, CancellationToken token)
         => MetadataPurges.ForEach(

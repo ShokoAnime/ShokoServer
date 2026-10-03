@@ -115,19 +115,6 @@ public class ImportSettings
     public void ResetExcludeRegexes() => _internalExcludeRegexes = null;
 
     /// <summary>
-    /// Queue the import's scheduled actions on startup, as the legacy Run
-    /// Import route does.
-    /// </summary>
-    [Display(Name = "Run Import on Startup")]
-    public bool RunOnStart { get; set; } = false;
-
-    /// <summary>
-    /// Scan all source managed folders on server startup.
-    /// </summary>
-    [Display(Name = "Scan Source Managed Folders on Startup")]
-    public bool ScanDropFoldersOnStart { get; set; } = false;
-
-    /// <summary>
     /// Determines if we should clean up the managed folder structure when doing
     /// a scan of the folder by default if it's not overridden on a per job
     /// basis.

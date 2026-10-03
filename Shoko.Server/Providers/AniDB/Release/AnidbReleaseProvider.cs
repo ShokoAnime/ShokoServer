@@ -51,7 +51,7 @@ public partial class AnidbReleaseProvider(
     /// <summary>
     ///    Prefix for AniDB file URLs.
     /// </summary>
-    public const string ReleasePrefix = "https://anidb.net/file/";
+    public const string ReleasePrefix = AnidbSiteUrls.BaseUrl + "/file/";
 
     public const string IdPrefix = "anidb://";
 

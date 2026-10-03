@@ -1,3 +1,4 @@
+using System;
 using Shoko.Abstractions.Metadata.Containers;
 
 namespace Shoko.Abstractions.Metadata;
@@ -14,4 +15,18 @@ public interface INetwork : IMetadata, IWithImages, IWithPrimaryImage
     ///   The main name of the network.
     /// </summary>
     string Name { get; }
+
+    /// <summary>
+    ///   The country the network originates from, as the source gives it,
+    ///   usually an ISO 3166-1 code such as <c>JP</c>, or <c>null</c> when
+    ///   the source does not say.
+    /// </summary>
+    string? CountryOfOrigin { get; }
+
+    /// <summary>
+    ///   When the core last asked the source to refresh the network, found or
+    ///   not, in UTC. Set by the core alone; <see langword="null"/> when it
+    ///   never did.
+    /// </summary>
+    DateTime? LastRefreshedAt { get; }
 }

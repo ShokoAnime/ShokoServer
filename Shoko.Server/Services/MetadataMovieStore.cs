@@ -4,6 +4,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Services.MetadataStorage;
 
@@ -59,6 +60,7 @@ public class MetadataMovieStore(
         var originalLanguageCode = MetadataEntries.CheckLanguageCode(movie.OriginalLanguageCode, nameof(movie));
         var resources = MetadataEntries.CheckResources(movie.Resources, nameof(movie));
         var crossSourceIDs = MetadataEntries.CheckCrossSourceIDs(movie.CrossSourceIDs, nameof(movie));
+        var countries = MetadataEntries.CheckCountries(movie.ProductionCountries, nameof(movie));
         var contentRatings = MetadataContentRatings.Check(movie.ContentRatings, nameof(movie));
         lock (_writeLock)
         {
@@ -69,12 +71,14 @@ public class MetadataMovieStore(
             row.ReleasedAt = movie.ReleaseDate;
             row.IsRestricted = movie.Restricted;
             row.IsVideo = movie.Video;
+            row.RuntimeSeconds = movie.Runtime is { } runtime ? (int)Math.Round(runtime.TotalSeconds) : null;
             row.OriginalLanguageCode = originalLanguageCode;
             // Ratings are stored with two decimals on every backend.
             row.Rating = Math.Round(movie.Rating, 2);
             row.RatingVotes = movie.RatingVotes;
             row.Resources = resources;
             row.CrossSourceIDs = crossSourceIDs;
+            row.ExtraData = MetadataDefaultImages.Apply((row.ExtraData ?? new()) with { ProductionCountries = countries }, movie.DefaultImageResourceIDs).NullIfEmpty();
             var (ratingsSaving, ratingsDeleting) = MetadataContentRatings.Plan(contentRatingRepository, movie.ID, contentRatings);
 
             // Written, and reported as changed, only when new or when its
@@ -91,6 +95,8 @@ public class MetadataMovieStore(
                     return [];
 
                 row.LastUpdatedAt = DateTime.Now;
+                if (stored is null)
+                    row.CreatedAt = row.LastUpdatedAt;
                 return
                 [
                     new MetadataRowChanges<Metadata_Movie>(movieRepository, [row], []),
@@ -127,6 +133,32 @@ public class MetadataMovieStore(
         // Outside the lock, since the other stores take their own.
         cleanup.Remove([id]);
         return 1;
+    }
+
+    #endregion
+
+    #region Refresh State
+
+    /// <summary>
+    ///   Stamps when the core last refreshed a stored movie, on the movie's
+    ///   own row, leaving the rest of it as it is.
+    /// </summary>
+    /// <param name="movieID">The movie.</param>
+    /// <param name="refreshedAt">When the refresh finished, in local time.</param>
+    /// <returns><c>true</c> if the movie is stored.</returns>
+    internal bool SetLastRefreshedAt(MetadataGuid movieID, DateTime refreshedAt)
+    {
+        lock (_writeLock)
+        {
+            if (movieRepository.GetByProviderID(movieID.Source, movieID.ID) is not { } stored)
+                return false;
+
+            // A copy, so the cached row stays as it was until the write has committed.
+            var row = MetadataRows.Copy(stored)!;
+            row.LastRefreshedAt = refreshedAt;
+            textStore.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Movie>(movieRepository, [row], []));
+            return true;
+        }
     }
 
     #endregion

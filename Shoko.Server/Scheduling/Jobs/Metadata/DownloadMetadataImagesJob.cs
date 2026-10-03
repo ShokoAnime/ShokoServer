@@ -21,9 +21,8 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 /// </summary>
 /// <remarks>
 ///   One job type per provider, so a paused or limited provider holds back only
-///   its own image jobs. It holds the entry's image lock (and for a plugin source
-///   the entry's lock), so no purge or refresh removes what it links; a TMDB job
-///   runs beside a refresh so the refresh never waits for images. A failed entity
+///   its own image jobs. It holds the entry's image lock (and outside the core's
+///   own sources the entry's lock), so no purge or refresh removes what it links. A failed entity
 ///   does not stop the rest, but the job fails afterwards so the queue retries it.
 ///   The enabled contributors are queued last, even when the provider was not asked.
 /// </remarks>
@@ -44,9 +43,11 @@ public class DownloadMetadataImagesJob<TProvider>(
 {
     #region Properties
 
+    private MetadataProviderInfo? _providerInfo;
+
     /// <summary>
-    ///   The series, film or collection whose images are linked, as its
-    ///   <see cref="MetadataGuid"/> string.
+    ///   The series, film, collection, creator, character, studio or network
+    ///   whose images are linked, as its <see cref="MetadataGuid"/> string.
     /// </summary>
     public string EntryID { get; set; } = string.Empty;
 
@@ -63,11 +64,12 @@ public class DownloadMetadataImagesJob<TProvider>(
     public override string Title => "Downloading Metadata Images";
 
     /// <inheritdoc />
-    public override Dictionary<string, object> Details => new()
-    {
-        ["Provider"] = typeof(TProvider).Name,
-        ["Entry"] = EntryID,
-    };
+    public override Dictionary<string, object> Details
+        => new Dictionary<string, object> { ["Provider"] = _providerInfo?.Name ?? typeof(TProvider).Name }.WithEntry(EntryID);
+
+    /// <inheritdoc />
+    public override void PostInit()
+        => _providerInfo = MetadataProviderJobContext.Find<TProvider>(providerManager);
 
     #endregion
 

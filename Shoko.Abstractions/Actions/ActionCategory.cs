@@ -10,6 +10,8 @@ namespace Shoko.Abstractions.Actions;
 /// <remarks>
 ///   This is a closed, core-owned enum — a plugin cannot invent a new
 ///   core-owned category at runtime; adding one requires a PR against core.
+///   AniDB is the only source with a category of its own; every other
+///   source's actions go under what they do, or under a plugin's own group.
 ///   <see cref="Miscellaneous"/> is the shared fallback for any action that
 ///   declares no category. <see cref="PluginInferred"/> is an explicit opt-in
 ///   a plugin uses to request its own dedicated group; its display label is
@@ -28,11 +30,6 @@ public enum ActionCategory : byte
     ///   AniDB metadata and synchronization actions.
     /// </summary>
     AniDB = 0x21,
-
-    /// <summary>
-    ///   TMDB metadata and synchronization actions.
-    /// </summary>
-    TMDB = 0x22,
 
     /// <summary>
     ///   Data synchronization actions across providers.

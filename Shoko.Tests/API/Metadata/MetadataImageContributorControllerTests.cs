@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -11,7 +12,10 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 using Shoko.Server.API.v3.Controllers;
+using Shoko.Server.API.v3.Models.Metadata;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -38,7 +42,9 @@ public class MetadataImageContributorControllerTests
             => Task.FromResult<IReadOnlyList<ImageCandidate>?>(null);
     }
 
-    private static MetadataImageContributorInfo Info()
+    private static readonly IApplicationPaths _paths = Mock.Of<IApplicationPaths>(paths => paths.PluginsPath == Path.GetTempPath() && paths.ApplicationPath == AppContext.BaseDirectory);
+
+    private static MetadataImageContributorInfo Info(PackageImageInfo? icon = null)
     {
         var contributor = new Contributor();
         return new()
@@ -53,11 +59,12 @@ public class MetadataImageContributorControllerTests
             MaxConcurrentJobs = 2,
             AvailableScope = contributor.Scope,
             EnabledScope = contributor.Scope,
+            Icon = icon,
         };
     }
 
     private static MetadataImageContributorController Controller(Mock<IMetadataImageContributorManager> manager)
-        => new(new StubSettingsProvider(new ServerSettings()), manager.Object)
+        => new(new StubSettingsProvider(new ServerSettings()), manager.Object, _paths)
         {
             ControllerContext = new()
             {
@@ -118,5 +125,49 @@ public class MetadataImageContributorControllerTests
         manager.Verify(m => m.SetImageContributorEnabled(info.ID, MetadataEntityScope.Single(MetadataSource.TMDB, MetadataEntityType.Movie)), Times.Once);
         manager.Verify(m => m.SetImageContributorEnabled(It.IsAny<Guid>(), It.IsAny<MetadataEntityScope>()), Times.Once);
         Assert.IsType<NotFoundObjectResult>(controller.UpdateImageContributor(Guid.NewGuid(), new()).Result);
+    }
+
+    [Fact]
+    public void ContributorsSayWhetherTheyHaveAnIcon()
+    {
+        var plain = new MetadataImageContributor(Info());
+        var withIcon = new MetadataImageContributor(Info(new() { FilePath = "/nowhere/icon.svg", MimeType = "image/svg+xml", Width = 24, Height = 24 }));
+
+        Assert.Equal((false, true), (plain.HasIcon, withIcon.HasIcon));
+    }
+
+    [Fact]
+    public void AContributorIconIsServedWithItsTypeAndSafeHeaders()
+    {
+        var file = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(file, "<svg xmlns=\"http://www.w3.org/2000/svg\"/>");
+            var info = Info(new() { FilePath = file, MimeType = "image/svg+xml", Width = 24, Height = 24 });
+            var controller = Controller(Manager(info));
+
+            var result = Assert.IsType<FileContentResult>(controller.GetImageContributorIcon(info.ID));
+
+            Assert.Equal("image/svg+xml", result.ContentType);
+            Assert.Equal(File.ReadAllBytes(file), result.FileContents);
+            Assert.NotNull(result.EntityTag);
+            var headers = controller.Response.Headers;
+            Assert.Equal(("nosniff", "sandbox"), (headers.XContentTypeOptions.ToString(), headers.ContentSecurityPolicy.ToString()));
+            Assert.StartsWith("private", headers.CacheControl.ToString());
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    [Fact]
+    public void AContributorWithoutAnIconAnswersNotFound()
+    {
+        var info = Info();
+        var controller = Controller(Manager(info));
+
+        Assert.IsType<NotFoundObjectResult>(controller.GetImageContributorIcon(info.ID));
+        Assert.IsType<NotFoundObjectResult>(controller.GetImageContributorIcon(Guid.NewGuid()));
     }
 }

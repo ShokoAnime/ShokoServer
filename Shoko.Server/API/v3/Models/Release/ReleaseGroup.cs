@@ -18,8 +18,8 @@ public class ReleaseGroup : IReleaseGroup
     public string Name { get; init; }
 
     /// <summary>
-    /// The Release Group's Short Name (UTW). <c>null</c> when omitted, and
-    /// the <see cref="Name"/> stands in for it then.
+    /// The Release Group's Short Name (UTW). Always set in responses. May be
+    /// omitted when sent in, and the <see cref="Name"/> stands in for it then.
     /// </summary>
     public string? ShortName { get; init; }
 

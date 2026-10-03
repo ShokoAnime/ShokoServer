@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
@@ -7,8 +8,15 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Character.
 /// </summary>
-public interface ICharacter : IMetadata, IWithOverviews, IWithPrimaryImage, IWithUpdateDate, IWithResources
+public interface ICharacter : IMetadata, IWithOverviews, IWithPrimaryImage, IWithCreationDate, IWithUpdateDate, IWithResources
 {
+    /// <summary>
+    ///   When the core last asked the source to refresh the character, found or
+    ///   not, in UTC. Set by the core alone; <see langword="null"/> when it
+    ///   never did.
+    /// </summary>
+    DateTime? LastRefreshedAt { get; }
+
     /// <summary>
     /// Casted role name.
     /// </summary>

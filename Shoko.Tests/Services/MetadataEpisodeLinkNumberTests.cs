@@ -3,10 +3,8 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Metadata;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.Metadata;
-using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -15,8 +13,8 @@ namespace Shoko.Tests.Services;
 
 /// <summary>
 /// Covers the season and numbers an episode link records, and the season
-/// links worked out from them. A TMDB link reads what it does not record from
-/// TMDB's own tables through <c>RepoFactory</c>, so these tests share its
+/// links worked out from them. A link reads what it does not record from the
+/// stored episode through <c>RepoFactory</c>, so these tests share its
 /// collection.
 /// </summary>
 [Collection(nameof(RepoFactoryCollection))]
@@ -57,13 +55,20 @@ public class MetadataEpisodeLinkNumberTests
             CachedRepo.Build<Metadata_EpisodeRepository, int, Metadata_Episode>(row => row.Metadata_EpisodeID, stored)
         );
 
-    private static RepoFactoryScope TmdbEpisodes(params TMDB_Episode[] episodes)
-    {
-        var shows = episodes.Select(episode => episode.TmdbShowID).Distinct().Select(showID => new TMDB_Show(showID));
-        return new RepoFactoryScope()
-            .With<TMDB_ShowRepository, int, TMDB_Show>(show => show.TmdbShowID, shows)
-            .With<TMDB_EpisodeRepository, int, TMDB_Episode>(episode => episode.TMDB_EpisodeID, episodes);
-    }
+    private static RepoFactoryScope StoredEpisodes(params Metadata_Episode[] episodes)
+        => new RepoFactoryScope().With<Metadata_EpisodeRepository, int, Metadata_Episode>(episode => episode.Metadata_EpisodeID, episodes);
+
+    private static Metadata_Episode TmdbEpisode(int seasonNumber, int episodeNumber)
+        => new()
+        {
+            Metadata_EpisodeID = 1,
+            Source = MetadataSource.TMDB,
+            ProviderID = "500",
+            SeriesID = "5",
+            SeasonID = "50",
+            SeasonNumber = seasonNumber,
+            EpisodeNumber = episodeNumber,
+        };
 
     #endregion
 
@@ -72,7 +77,7 @@ public class MetadataEpisodeLinkNumberTests
     [Fact]
     public void SeasonLinksAreReadOffTheSeasonEachEpisodeLinkRecords()
     {
-        using var scope = TmdbEpisodes();
+        using var scope = StoredEpisodes();
         var store = Store(
             Link(1, TestSources.AniList, 101, "e1", "s2", 2),
             Link(2, TestSources.AniList, 102, "e2", "s2", 2),
@@ -91,7 +96,7 @@ public class MetadataEpisodeLinkNumberTests
     [Fact]
     public void AnEpisodeLinkWithNoSeasonAddsNone()
     {
-        using var scope = TmdbEpisodes();
+        using var scope = StoredEpisodes();
         var store = Store(
             Link(1, TestSources.AniList, 101, "e1"),
             Link(2, TestSources.AniList, 102, "e2", "s1", seasonNumber: null),
@@ -104,7 +109,7 @@ public class MetadataEpisodeLinkNumberTests
     [Fact]
     public void ALinkNamingOnlyItsSeasonReadsTheRestFromTheSeriesStore()
     {
-        using var scope = TmdbEpisodes();
+        using var scope = StoredEpisodes();
         var stored = new Metadata_Episode
         {
             Metadata_EpisodeID = 1,
@@ -125,20 +130,12 @@ public class MetadataEpisodeLinkNumberTests
 
     #endregion
 
-    #region TMDB
+    #region Stored Episodes
 
     [Fact]
-    public void ATmdbLinkReadsWhatItDoesNotRecordFromTheTmdbEpisode()
+    public void ALinkReadsWhatItDoesNotRecordFromTheStoredEpisode()
     {
-        using var scope = TmdbEpisodes(new TMDB_Episode
-        {
-            TMDB_EpisodeID = 1,
-            TmdbEpisodeID = 500,
-            TmdbSeasonID = 50,
-            TmdbShowID = 5,
-            SeasonNumber = 3,
-            EpisodeNumber = 9,
-        });
+        using var scope = StoredEpisodes(TmdbEpisode(3, 9));
         IMetadataEpisodeCrossReference link = Link(1, MetadataSource.TMDB, 101, "500", parentID: "5");
 
         Assert.Equal(new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Season, "50"), link.SeasonID);
@@ -148,9 +145,9 @@ public class MetadataEpisodeLinkNumberTests
     }
 
     [Fact]
-    public void WhatALinkRecordsIsReadAheadOfTheTmdbEpisode()
+    public void WhatALinkRecordsIsReadAheadOfTheStoredEpisode()
     {
-        using var scope = TmdbEpisodes(new TMDB_Episode { TMDB_EpisodeID = 1, TmdbEpisodeID = 500, TmdbSeasonID = 50, SeasonNumber = 3, EpisodeNumber = 9 });
+        using var scope = StoredEpisodes(TmdbEpisode(3, 9));
         IMetadataEpisodeCrossReference link = Link(1, MetadataSource.TMDB, 104, "500", "60", 4);
 
         Assert.Equal(new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Season, "60"), link.SeasonID);
@@ -159,9 +156,9 @@ public class MetadataEpisodeLinkNumberTests
     }
 
     [Fact]
-    public void ALinkOfAnotherSourceNeverReadsTheTmdbTables()
+    public void ALinkNeverReadsAnotherSourcesEpisode()
     {
-        using var scope = TmdbEpisodes(new TMDB_Episode { TMDB_EpisodeID = 1, TmdbEpisodeID = 500, TmdbSeasonID = 50, SeasonNumber = 3 });
+        using var scope = StoredEpisodes(TmdbEpisode(3, 1));
         IMetadataEpisodeCrossReference link = Link(1, TestSources.AniList, 101, "500");
 
         Assert.Null(link.SeasonID);

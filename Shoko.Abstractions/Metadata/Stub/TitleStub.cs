@@ -11,6 +11,9 @@ public class TitleStub : TextStub, ITitle
     public TitleType Type { get; set; } = TitleType.None;
 
     /// <inheritdoc />
+    public bool IsSynthesized { get; init; }
+
+    /// <inheritdoc />
     public bool Equals(ITitle? other)
         => ITitle.Equals(this, other);
 }

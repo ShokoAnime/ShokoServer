@@ -133,7 +133,7 @@ public class MetadataSourceConverterTests
     {
         var json = JsonConvert.SerializeObject(new NameHolder { Source = MetadataSource.TMDB });
 
-        Assert.Equal("{\"Source\":\"TMDB\"}", json);
+        Assert.Equal("{\"Source\":\"TMDb\"}", json);
         Assert.Same(MetadataSource.TMDB, JsonConvert.DeserializeObject<NameHolder>(json)!.Source);
         Assert.Equal("{\"Source\":null}", JsonConvert.SerializeObject(new NameHolder()));
     }

@@ -113,7 +113,7 @@ so spell out every flag you need:
 | `IgnoreHttpBans` | Ask anyway during a ban. Do not reach for this. |
 | `DownloadRelations` | Follow related anime, to the configured depth. |
 | `CreateShokoSeries` | Create the `IShokoSeries` if there isn't one. |
-| `SkipSupplementaryUpdate` | Skip asking the metadata providers afterwards, TMDB and plugins' alike. |
+| `SkipSupplementaryUpdate` | Skip asking the metadata providers afterwards. |
 | `Default` | `Cache` plus `Remote` plus `DeferToRemoteIfUnsuccessful`. |
 | `None` | Do nothing. Both refresh shapes return without work when neither `Cache` nor `Remote` is set. |
 

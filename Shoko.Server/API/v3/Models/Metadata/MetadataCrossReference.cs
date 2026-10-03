@@ -44,6 +44,12 @@ public class MetadataCrossReference
     public string? ID { get; init; }
 
     /// <summary>
+    /// The linked entry's own page on its source's site, or <c>null</c> when
+    /// it has none.
+    /// </summary>
+    public string? SiteUrl { get; init; }
+
+    /// <summary>
     /// The source's ID of the series a season or episode link points into, if
     /// known.
     /// </summary>

@@ -32,6 +32,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
+using Shoko.Server.Repositories.Cached.Metadata.Text;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
@@ -166,26 +167,15 @@ public class MetadataProviderJobTests
     }
 
     /// <summary>
-    /// A provider for TMDB, the source the core keeps in tables of its own,
-    /// which runs through the same jobs as any other.
+    /// A provider for TMDB, which runs through the same jobs as any other.
     /// </summary>
-    public sealed class FakeTmdbProvider : IMetadataSeriesProvider, IMetadataMovieProvider, IMetadataAutoLinkingProvider, ICoreMetadataOrphanPurger
+    public sealed class FakeTmdbProvider : IMetadataSeriesProvider, IMetadataMovieProvider, IMetadataAutoLinkingProvider
     {
         public string Name => "TMDB";
 
         public MetadataSource Source => MetadataSource.TMDB;
 
         public List<MetadataGuid> CleanedUp { get; } = [];
-
-        public List<DateTime> PeoplePurgedBefore { get; } = [];
-
-        public int PeoplePurged { get; set; }
-
-        public Task<int> PurgeOrphaned(DateTime orphanedBefore, CancellationToken cancellationToken = default)
-        {
-            PeoplePurgedBefore.Add(orphanedBefore);
-            return Task.FromResult(PeoplePurged);
-        }
 
         public Task RefreshSeries(MetadataGuid seriesID, MetadataRefreshOptions options, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
@@ -213,11 +203,11 @@ public class MetadataProviderJobTests
         public DateTime? GetLastRefreshedAt(MetadataGuid entry)
             => Times.TryGetValue(entry, out var time) ? time : null;
 
-        public void RecordRefresh(MetadataGuid entry, DateTime refreshedAt)
-            => Times[entry] = refreshedAt;
-
-        public bool Forget(MetadataGuid entry)
-            => Times.Remove(entry);
+        public bool RecordRefresh(MetadataGuid entry, DateTime refreshedAt)
+        {
+            Times[entry] = refreshedAt;
+            return true;
+        }
     }
 
     private static MetadataProviderInfo Info(
@@ -613,8 +603,8 @@ public class MetadataProviderJobTests
         var harness = new RefreshHarness();
         var fresh = ID(MetadataEntityType.Series, "1");
         var stale = ID(MetadataEntityType.Series, "2");
-        var freshAt = DateTime.Now.AddMinutes(-10);
-        var staleAt = DateTime.Now.AddHours(-2);
+        var freshAt = DateTime.UtcNow.AddMinutes(-10);
+        var staleAt = DateTime.UtcNow.AddHours(-2);
         harness.RefreshState.Times[fresh] = freshAt;
         harness.RefreshState.Times[stale] = staleAt;
         var info = Info(harness.Provider);
@@ -1136,29 +1126,23 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task ATmdbImageJobRunsBesideARefreshButWaitsForAPurge()
+    public async Task ATmdbImageJobWaitsForARefreshLikeAPluginSourcesOne()
     {
         var harness = new ImagesHarness();
         var info = Info(harness.Provider, source: MetadataSource.TMDB);
         var movieID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Movie, "9");
         harness.Metadata.Setup(m => m.GetMovie(movieID)).Returns(Entity<IMovie>(movieID));
 
-        // A refresh holds only the entry's lock.
-        using (await harness.Locks.Acquire(movieID, TestContext.Current.CancellationToken))
-            await harness.Job(movieID.ToString(), info).Execute();
-
-        Assert.Equal([movieID], harness.Provider.ImagesAsked);
-
-        // A purge holds the image lock too.
+        // A refresh holds the entry's lock.
         Task running;
-        using (await harness.Locks.AcquireImages(movieID, TestContext.Current.CancellationToken))
+        using (await harness.Locks.Acquire(movieID, TestContext.Current.CancellationToken))
         {
             running = harness.Job(movieID.ToString(), info).Execute();
-            Assert.Single(harness.Provider.ImagesAsked);
+            Assert.Empty(harness.Provider.ImagesAsked);
         }
 
         await running;
-        Assert.Equal([movieID, movieID], harness.Provider.ImagesAsked);
+        Assert.Equal([movieID], harness.Provider.ImagesAsked);
     }
 
     [Fact]
@@ -1597,8 +1581,6 @@ public class MetadataProviderJobTests
 
         public Mock<IImageManager> Images { get; } = new();
 
-        public FakeRefreshState RefreshState { get; } = new();
-
         public MetadataEntryLocks Locks { get; } = new();
 
         public SchedulerHarness Queue { get; } = new();
@@ -1629,10 +1611,8 @@ public class MetadataProviderJobTests
                 SeriesStore.Object,
                 MovieStore.Object,
                 CollectionStore.Object,
-                Metadata.Object,
                 new MetadataEntityCleanup(People.Object, Tags.Object, Studios.Object, Relations.Object, Suggestions.Object, Images.Object),
                 Orderings.Build(() => Metadata.Object),
-                RefreshState,
                 Locks,
                 Queue.Build(Links, infos),
                 NoCancellation(),
@@ -1795,10 +1775,7 @@ public class MetadataProviderJobTests
         var harness = new PurgeHarness();
         var collectionID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Collection, "5");
         var linkedMovie = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Movie, "9");
-        var collection = new Mock<Abstractions.Metadata.Tmdb.ITmdbCollection>();
-        collection.SetupGet(c => c.ID).Returns(collectionID);
-        collection.SetupGet(c => c.Movies).Returns([Mock.Of<Abstractions.Metadata.Tmdb.ITmdbMovie>(movie => movie.ID == linkedMovie)]);
-        harness.Metadata.Setup(m => m.GetCollection(collectionID)).Returns(collection.Object);
+        harness.CollectionStore.Setup(s => s.GetMembers(collectionID)).Returns([linkedMovie]);
         harness.Links.Setup(s => s.GetLinksTo(linkedMovie))
             .Returns([new CrossRef_AniDB_Metadata_Movie { Source = MetadataSource.TMDB, AnidbAnimeID = AnimeID, AnidbEpisodeID = 1, ProviderID = "9" }]);
 
@@ -1837,20 +1814,6 @@ public class MetadataProviderJobTests
 
         Assert.Equal([movieID], harness.Provider.CleanedUp);
         Assert.Equal([movieID], other.CleanedUp);
-    }
-
-    [Fact]
-    public async Task APurgeForgetsWhenTheEntryWasLastRefreshed()
-    {
-        var harness = new PurgeHarness();
-        var movieID = ID(MetadataEntityType.Movie, "9");
-        var otherID = ID(MetadataEntityType.Movie, "10");
-        harness.RefreshState.Times[movieID] = DateTime.Now;
-        harness.RefreshState.Times[otherID] = DateTime.Now;
-
-        await harness.Job(movieID.ToString()).Execute();
-
-        Assert.Equal([otherID], harness.RefreshState.Times.Keys);
     }
 
     [Fact]
@@ -1899,7 +1862,7 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task ATmdbPurgeLeavesTheStoresAloneAndTmdbCleansUp()
+    public async Task ATmdbPurgeGoesThroughTheStoresAndAnAnidbOneLeavesThemAlone()
     {
         var harness = new PurgeHarness();
         var tmdbSeries = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Series, "1");
@@ -1907,8 +1870,9 @@ public class MetadataProviderJobTests
         await harness.Job(tmdbSeries.ToString()).Execute();
         await harness.Job(new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Series, "1").ToString()).Execute();
 
-        harness.SeriesStore.Verify(s => s.RemoveSeries(It.IsAny<MetadataGuid>()), Times.Never);
-        harness.Tags.Verify(s => s.RemoveTags(It.IsAny<MetadataGuid>()), Times.Never);
+        harness.SeriesStore.Verify(s => s.RemoveSeries(tmdbSeries), Times.Once);
+        harness.SeriesStore.Verify(s => s.RemoveSeries(It.Is<MetadataGuid>(id => id.Source == MetadataSource.AniDB)), Times.Never);
+        harness.Tags.Verify(s => s.RemoveTags(It.Is<MetadataGuid>(id => id.Source == MetadataSource.AniDB)), Times.Never);
         Assert.Equal([tmdbSeries], harness.Tmdb.CleanedUp);
         Assert.Empty(harness.Provider.CleanedUp);
     }
@@ -2020,7 +1984,6 @@ public class MetadataProviderJobTests
             Mock<IMetadataMovieStore>? movieStore = null,
             Mock<IMetadataCollectionStore>? collectionStore = null,
             Mock<IMetadataPeopleStore>? people = null,
-            IMetadataRefreshState? refreshState = null,
             Mock<IMetadataStudioStore>? studioStore = null,
             Metadata_Studio[]? studios = null,
             ServerSettings? settings = null,
@@ -2049,18 +2012,26 @@ public class MetadataProviderJobTests
                 .Returns((MetadataSource source) => movieStore.Object.GetAllMovies(source) ?? []);
             metadata.Setup(m => m.GetAllCollectionsForSource(It.IsAny<MetadataSource>()))
                 .Returns((MetadataSource source) => collectionStore.Object.GetAllCollections(source) ?? []);
+            var tagRows = CachedRepo.Build<Metadata_TagRepository, int, Metadata_Tag>(row => row.Metadata_TagID);
+            var writer = new CacheOnlyRowWriter();
             return new(
-                Manager(infos).Object,
                 links.Object,
                 metadata.Object,
                 seriesStore.Object,
                 collectionStore.Object,
                 people.Object,
                 studioStore.Object,
+                new MetadataTagStore(
+                    tagRows,
+                    CachedRepo.Build<Metadata_Tag_EntryRepository, int, Metadata_Tag_Entry>(row => row.Metadata_Tag_EntryID),
+                    writer,
+                    new MetadataTextStore(new TextCache(), writer)
+                ),
                 CachedRepo.Build<Metadata_CreatorRepository, int, Metadata_Creator>(row => row.Metadata_CreatorID, creators ?? []),
                 CachedRepo.Build<Metadata_CharacterRepository, int, Metadata_Character>(row => row.Metadata_CharacterID),
                 CachedRepo.Build<Metadata_StudioRepository, int, Metadata_Studio>(row => row.Metadata_StudioID, studios ?? []),
                 CachedRepo.Build<Metadata_NetworkRepository, int, Metadata_Network>(row => row.Metadata_NetworkID),
+                tagRows,
                 CachedRepo.Build<Metadata_SeriesRepository, int, Metadata_Series>(row => row.Metadata_SeriesID),
                 CachedRepo.Build<Metadata_SeasonRepository, int, Metadata_Season>(row => row.Metadata_SeasonID, seasons ?? []),
                 CachedRepo.Build<Metadata_EpisodeRepository, int, Metadata_Episode>(row => row.Metadata_EpisodeID),
@@ -2072,7 +2043,6 @@ public class MetadataProviderJobTests
                     Mock.Of<IMetadataSuggestionStore>(),
                     images.Object
                 ),
-                refreshState ?? new FakeRefreshState(),
                 new MetadataEntryLocks(),
                 Build(links, infos),
                 new StubSettingsProvider(settings ?? new()),
@@ -2156,7 +2126,7 @@ public class MetadataProviderJobTests
     }
 
     [Fact]
-    public async Task ALinkSyncIsQueuedForAPluginSeriesOnly()
+    public async Task ALinkSyncIsQueuedForASeriesOutsideTheCoresOwnSourcesOnly()
     {
         var harness = new SchedulerHarness();
         var scheduler = harness.Build(Links(), Info(new FakeProvider()));
@@ -2164,11 +2134,14 @@ public class MetadataProviderJobTests
 
         await scheduler.ScheduleLinkSync(ID(MetadataEntityType.Series, "1"), token);
         await scheduler.ScheduleLinkSync(ID(MetadataEntityType.Movie, "9"), token);
-        await scheduler.ScheduleLinkSync(new(MetadataSource.TMDB, MetadataEntityType.Series, "1"), token);
+        await scheduler.ScheduleLinkSync(new(MetadataSource.TMDB, MetadataEntityType.Series, "2"), token);
+        await scheduler.ScheduleLinkSync(new(MetadataSource.AniDB, MetadataEntityType.Series, "3"), token);
 
-        var (type, job, _) = Assert.Single(harness.Queued);
-        Assert.Equal(typeof(SyncEpisodeLinksJob), type);
-        Assert.Equal("1", ((SyncEpisodeLinksJob)job).SeriesID);
+        Assert.All(harness.Queued, queued => Assert.Equal(typeof(SyncEpisodeLinksJob), queued.JobType));
+        Assert.Equal(
+            [(Source.Value, "1"), (MetadataSource.TMDB.Value, "2")],
+            harness.Queued.Select(queued => (((SyncEpisodeLinksJob)queued.Job).Source, ((SyncEpisodeLinksJob)queued.Job).SeriesID))
+        );
     }
 
     [Fact]
@@ -2486,15 +2459,16 @@ public class MetadataProviderJobTests
         var stale = ID(MetadataEntityType.Series, "stale");
         var never = ID(MetadataEntityType.Movie, "never");
         var seriesStore = new Mock<IMetadataSeriesStore>();
-        seriesStore.Setup(s => s.GetAllSeries(Source)).Returns([Entity<ISeries>(fresh), Entity<ISeries>(stale)]);
+        seriesStore.Setup(s => s.GetAllSeries(Source)).Returns(
+        [
+            new Metadata_Series { Source = Source, ProviderID = fresh.ID, LastUpdatedAt = DateTime.Now.AddDays(-30), LastRefreshedAt = DateTime.Now.AddDays(-1) },
+            new Metadata_Series { Source = Source, ProviderID = stale.ID, LastUpdatedAt = DateTime.Now.AddDays(-30), LastRefreshedAt = DateTime.Now.AddDays(-30) },
+        ]);
         var movieStore = new Mock<IMetadataMovieStore>();
         movieStore.Setup(s => s.GetAllMovies(Source)).Returns([Entity<IMovie>(never)]);
         var collectionStore = new Mock<IMetadataCollectionStore>();
-        collectionStore.Setup(s => s.GetAllCollections(Source)).Returns([]);
-        var refreshState = new FakeRefreshState();
-        refreshState.Times[fresh] = DateTime.Now.AddDays(-1);
-        refreshState.Times[stale] = DateTime.Now.AddDays(-30);
-        var service = harness.PurgeService(links, infos, seriesStore, movieStore, collectionStore, refreshState: refreshState);
+        collectionStore.Setup(s => s.GetAllCollections(It.IsAny<MetadataSource>())).Returns([]);
+        var service = harness.PurgeService(links, infos, seriesStore, movieStore, collectionStore);
 
         Assert.Equal(2, await service.PurgeUnused(Source, DateTime.Now.AddDays(-14), cancellationToken: TestContext.Current.CancellationToken));
         Assert.Equal(0, await service.PurgeUnused(MetadataSource.TMDB, cancellationToken: TestContext.Current.CancellationToken));
@@ -2526,7 +2500,7 @@ public class MetadataProviderJobTests
         movieStore.Setup(s => s.GetAllMovies(Source)).Returns([]);
         var collectionStore = new Mock<IMetadataCollectionStore>();
         collectionStore.Setup(s => s.GetAllCollections(Source)).Returns([]);
-        var service = harness.PurgeService(Links(), infos, seriesStore, movieStore, collectionStore, refreshState: new FakeRefreshState());
+        var service = harness.PurgeService(Links(), infos, seriesStore, movieStore, collectionStore);
 
         Assert.Equal(1, await service.PurgeUnused(Source, DateTime.Now.AddDays(-14), cancellationToken: TestContext.Current.CancellationToken));
 
@@ -2619,33 +2593,31 @@ public class MetadataProviderJobTests
                 cutoffs.Add(cutoff);
                 return source == Source ? [gone] : [];
             });
-        var tmdb = new FakeTmdbProvider { PeoplePurged = 2 };
         var service = harness.PurgeService(
             Links(),
-            [Info(new FakeProvider()), Info(tmdb)],
+            [Info(new FakeProvider()), Info(new FakeTmdbProvider())],
             people: people,
             settings: settings,
             creators:
             [
                 new() { Metadata_CreatorID = 1, Source = Source, ProviderID = "gone" },
                 new() { Metadata_CreatorID = 2, Source = TestSources.AniList, ProviderID = "kept" },
+                new() { Metadata_CreatorID = 3, Source = MetadataSource.TMDB, ProviderID = "kept" },
             ],
             images: images
         );
 
-        // TMDB's provider purges TMDB's own people, by the same cutoff.
-        Assert.Equal(3, await service.PurgeOrphaned(cancellationToken: TestContext.Current.CancellationToken));
-        Assert.Equal(2, await service.PurgeOrphaned(MetadataSource.TMDB, cancellationToken: TestContext.Current.CancellationToken));
+        // TMDB's people go through the people store like any other source's.
+        Assert.Equal(1, await service.PurgeOrphaned(cancellationToken: TestContext.Current.CancellationToken));
+        Assert.Equal(0, await service.PurgeOrphaned(MetadataSource.TMDB, cancellationToken: TestContext.Current.CancellationToken));
         var exact = DateTime.Now.AddDays(-30);
         Assert.Equal(1, await service.PurgeOrphaned(Source, exact, cancellationToken: TestContext.Current.CancellationToken));
 
         people.Verify(s => s.RemoveOrphaned(Source, It.IsAny<DateTime>()), Times.Exactly(2));
         people.Verify(s => s.RemoveOrphaned(TestSources.AniList, It.IsAny<DateTime>()), Times.Once);
-        people.Verify(s => s.RemoveOrphaned(MetadataSource.TMDB, It.IsAny<DateTime>()), Times.Never);
+        people.Verify(s => s.RemoveOrphaned(MetadataSource.TMDB, It.IsAny<DateTime>()), Times.Exactly(2));
         Assert.InRange(cutoffs[0], DateTime.Now.AddDays(-3).AddMinutes(-1), DateTime.Now.AddDays(-3));
         Assert.Equal(exact, cutoffs[^1]);
-        Assert.Equal(2, tmdb.PeoplePurgedBefore.Count);
-        Assert.All(tmdb.PeoplePurgedBefore, cutoff => Assert.InRange(cutoff, DateTime.Now.AddDays(-3).AddMinutes(-1), DateTime.Now.AddDays(-3)));
         images.Verify(i => i.GetImageCrossReferencesForEntity(It.Is<IWithImages>(entity => entity.ID == gone), It.IsAny<ImageCrossReferenceFilteringOptions?>()), Times.Exactly(2));
     }
 

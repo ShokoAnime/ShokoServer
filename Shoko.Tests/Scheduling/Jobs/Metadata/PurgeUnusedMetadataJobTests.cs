@@ -154,7 +154,6 @@ public class PurgeUnusedMetadataJobTests
 
         // The unused purge reads none of the orphan purge's parts.
         var purge = new MetadataPurgeService(
-            manager,
             links.Object,
             metadata.Object,
             null!,
@@ -169,7 +168,8 @@ public class PurgeUnusedMetadataJobTests
             null!,
             null!,
             null!,
-            Mock.Of<IMetadataRefreshState>(),
+            null!,
+            null!,
             null!,
             scheduler,
             null!,
@@ -186,12 +186,12 @@ public class PurgeUnusedMetadataJobTests
     #region Sources
 
     [Fact]
-    public void PluginSources_ArePurgeable_AndTmdbOnlyWhileAProviderClaimsIt()
+    public void PluginSourcesAndTmdbArePurgeable_AndACoreSourceOnlyWhileAProviderClaimsIt()
     {
         MetadataSource[] registered = [MetadataSource.Shoko, MetadataSource.User, MetadataSource.AniDB, MetadataSource.TMDB, TestSources.Plugin];
 
-        Assert.Equal([MetadataSource.TMDB, TestSources.Plugin], PurgeUnusedMetadataJob.GetPurgeableSources(registered, [Info(MetadataSource.TMDB), Info(TestSources.Plugin)]));
-        Assert.Equal([TestSources.Plugin], PurgeUnusedMetadataJob.GetPurgeableSources(registered, []));
+        Assert.Equal([MetadataSource.AniDB, MetadataSource.TMDB, TestSources.Plugin], PurgeUnusedMetadataJob.GetPurgeableSources(registered, [Info(MetadataSource.AniDB)]));
+        Assert.Equal([MetadataSource.TMDB, TestSources.Plugin], PurgeUnusedMetadataJob.GetPurgeableSources(registered, []));
     }
 
     #endregion

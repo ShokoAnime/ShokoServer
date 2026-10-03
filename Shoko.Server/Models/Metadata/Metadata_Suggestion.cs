@@ -57,7 +57,12 @@ public class Metadata_Suggestion : IMetadataStoreRow<Metadata_Suggestion>
     public double? ApprovalRating { get; set; }
 
     /// <summary>
-    ///   How many voted, when the source says.
+    ///   How many voted in favour, when the source says.
+    /// </summary>
+    public int? ApprovalVotes { get; set; }
+
+    /// <summary>
+    ///   How many voted in total, when the source says.
     /// </summary>
     public int? Votes { get; set; }
 

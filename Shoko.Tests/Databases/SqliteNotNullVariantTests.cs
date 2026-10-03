@@ -88,6 +88,17 @@ public class SqliteNotNullVariantTests
         Assert.Contains("\"Title\"    text NOT NULL,", patched);
     }
 
+    [Fact]
+    public void AColumnIsLoosenedAndTheOthersAreLeftAlone()
+    {
+        const string creator = "CREATE TABLE Metadata_Creator (Metadata_CreatorID INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, "
+            + "LastUpdatedAt DATETIME NOT NULL, Gender INTEGER NOT NULL DEFAULT 0, IsRestricted INTEGER NOT NULL DEFAULT 0)";
+
+        var patched = SQLite.NullableVariantOf(creator, "LastUpdatedAt");
+
+        Assert.Equal(creator.Replace("LastUpdatedAt DATETIME NOT NULL", "LastUpdatedAt DATETIME NULL"), patched);
+    }
+
     #endregion
 
     #region Everything else is left alone

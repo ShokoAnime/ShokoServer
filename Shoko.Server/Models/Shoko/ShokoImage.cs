@@ -16,7 +16,7 @@ namespace Shoko.Server.Models.Shoko;
 
 /// <summary>
 /// Unified image model. One row per unique image regardless of source.
-/// This model replaces TMDB_Image and Image_Base as the universal image entity.
+/// This model replaces the per-source image tables as the universal image entity.
 /// </summary>
 public class ShokoImage : IImage
 {

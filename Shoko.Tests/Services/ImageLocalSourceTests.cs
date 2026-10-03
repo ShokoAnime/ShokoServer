@@ -111,7 +111,7 @@ public class ImageLocalSourceTests
             Season(new(MetadataSource.Shoko, MetadataEntityType.Season, "50")),
         };
         var manager = Manager([.. linked.Select((season, index) => Xref(index + 1, season))]);
-        var season = new Mock<IShokoSeason>();
+        var season = new Mock<ISeason<IShokoSeries, IShokoEpisode>>();
         season.SetupGet(s => s.ID).Returns(seasonID);
         season.SetupGet(s => s.LinkedSeasons).Returns(linked);
 

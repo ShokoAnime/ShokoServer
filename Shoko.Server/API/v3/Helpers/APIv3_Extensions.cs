@@ -15,16 +15,17 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.ImageManagement;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko.Embedded;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Server;
 
 namespace Shoko.Server.API.v3.Helpers;
 
 public static class APIv3_Extensions
 {
-    public static CreatorRoleType ToCreatorRole(this TMDB_Crew crew)
-        => ToCreatorRole(crew.Department, crew.Job);
+    public static CreatorRoleType ToCreatorRole(this ICrew crew)
+    {
+        var (department, job) = TmdbCompatibility.DepartmentAndJob(crew);
+        return ToCreatorRole(department, job);
+    }
 
     private static CreatorRoleType ToCreatorRole(string department, string job)
         => department switch
@@ -311,7 +312,7 @@ public static class APIv3_Extensions
             .ToList();
     }
 
-    public static IReadOnlyList<ContentRating> ToDto(this IEnumerable<TMDB_ContentRating> contentRatings, IReadOnlySet<TitleLanguage>? language = null)
+    public static IReadOnlyList<ContentRating> ToDto(this IEnumerable<IContentRating> contentRatings, IReadOnlySet<TitleLanguage>? language = null)
     {
         if (language != null && language.Count > 0)
             contentRatings = contentRatings.WhereInLanguages(language);

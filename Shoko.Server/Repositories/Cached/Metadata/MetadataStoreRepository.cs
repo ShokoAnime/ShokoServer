@@ -14,7 +14,7 @@ namespace Shoko.Server.Repositories.Cached.Metadata;
 /// </summary>
 /// <typeparam name="T">The table's row.</typeparam>
 /// <param name="databaseFactory">The database factory.</param>
-public abstract class MetadataStoreRepository<T>(DatabaseFactory databaseFactory) : BaseCachedRepository<T, int>(databaseFactory)
+public abstract class MetadataStoreRepository<T>(DatabaseFactory databaseFactory) : BaseCachedRepository<T, int>(databaseFactory), IMetadataRowTable<T>
     where T : class, IMetadataStoreRow<T>, new()
 {
     /// <inheritdoc />
@@ -26,7 +26,7 @@ public abstract class MetadataStoreRepository<T>(DatabaseFactory databaseFactory
     /// </summary>
     /// <param name="saved">The rows written, each with its ID.</param>
     /// <param name="deleted">The rows removed.</param>
-    internal void ApplyToCache(IEnumerable<T> saved, IEnumerable<T> deleted)
+    void IMetadataRowTable<T>.OnCommitted(IEnumerable<T> saved, IEnumerable<T> deleted)
     {
         foreach (var row in deleted)
             DeleteFromCache(row);

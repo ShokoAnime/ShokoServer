@@ -26,8 +26,8 @@ public class TmdbExportBodyTests
         }.ToOptions();
 
         Assert.Equal(MetadataCrossReferenceSections.Series | MetadataCrossReferenceSections.Episode, options.Sections);
-        // A TMDB ID is handed on as the provider's ID, zero included.
-        Assert.Equal("0", options.ProviderEpisodeID);
+        // A TMDB ID is handed on as the provider's ID, zero as a link to nothing.
+        Assert.Equal(string.Empty, options.ProviderEpisodeID);
     }
 
     [Theory]

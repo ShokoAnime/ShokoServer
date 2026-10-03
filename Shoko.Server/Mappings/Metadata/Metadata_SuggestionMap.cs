@@ -22,6 +22,7 @@ public class Metadata_SuggestionMap : ClassMap<Metadata_Suggestion>
         Map(x => x.Kind).CustomType<SuggestionKind>().Not.Nullable();
         Map(x => x.Ranking).Nullable();
         Map(x => x.ApprovalRating).Nullable();
+        Map(x => x.ApprovalVotes).Nullable();
         Map(x => x.Votes).Nullable();
         Map(x => x.Score).Nullable();
         Map(x => x.Ordering).Not.Nullable();

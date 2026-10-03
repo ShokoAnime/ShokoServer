@@ -630,7 +630,7 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
             {
                 uiDict[ElementType] = Convert(DisplayElementType.TextArea);
             }
-            else if (info.GetAttribute<PasswordPropertyTextAttribute>(false) is not null)
+            else if (info.GetAttribute<PasswordPropertyTextAttribute>(false) is not null || info.GetAttribute<DataTypeAttribute>(false) is { DataType: DataType.Password })
             {
                 uiDict[ElementType] = Convert(DisplayElementType.Password);
             }

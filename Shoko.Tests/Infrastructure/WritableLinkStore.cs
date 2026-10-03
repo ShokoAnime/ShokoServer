@@ -19,21 +19,10 @@ public sealed class WritableLinkStore
     #region Constructors
 
     /// <summary>
-    /// Builds the store, with the given ID rules.
-    /// </summary>
-    /// <param name="idRules">The rules the store checks IDs against.</param>
-    public WritableLinkStore(params IMetadataLinkIDRule[] idRules)
-        : this(null, idRules)
-    {
-    }
-
-    /// <summary>
-    /// Builds the store, reporting its writes to a tracker, with the given ID
-    /// rules.
+    /// Builds the store, reporting its writes to a tracker when one is given.
     /// </summary>
     /// <param name="linkChanges">Where the store reports the links it changed.</param>
-    /// <param name="idRules">The rules the store checks IDs against.</param>
-    public WritableLinkStore(MetadataLinkChangeTracker? linkChanges, params IMetadataLinkIDRule[] idRules)
+    public WritableLinkStore(MetadataLinkChangeTracker? linkChanges = null)
     {
         Series = Writable<CrossRef_AniDB_Metadata_SeriesRepository, CrossRef_AniDB_Metadata_Series>(
             row => row.CrossRef_AniDB_Metadata_SeriesID,
@@ -47,7 +36,7 @@ public sealed class WritableLinkStore
             row => row.CrossRef_AniDB_Metadata_EpisodeID,
             (row, id) => row.CrossRef_AniDB_Metadata_EpisodeID = id
         );
-        Store = new(Series, Movies, Episodes, CachedRepo.Build<Metadata_EpisodeRepository, int, Metadata_Episode>(row => row.Metadata_EpisodeID), idRules, linkChanges);
+        Store = new(Series, Movies, Episodes, CachedRepo.Build<Metadata_EpisodeRepository, int, Metadata_Episode>(row => row.Metadata_EpisodeID), linkChanges);
     }
 
     #endregion

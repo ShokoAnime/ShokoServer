@@ -13,10 +13,10 @@ namespace Shoko.Server.Services;
 /// <summary>
 ///   Tells a generic episode title, such as <c>Episode 5</c>, <c>Folge 5</c>
 ///   or <c>第5話</c>, from a real one, and makes one up for an episode no
-///   source named.
+///   source named, or a generic name for a season with no title.
 /// </summary>
 /// <remarks>
-///   The forms are the ones AniDB and TMDB use for normal episodes, in about
+///   The forms are the ones AniDB and the other sources use for normal episodes, in about
 ///   thirty languages, and AniDB's <c>Episode S1</c> form for the other
 ///   episode types. Numbered labels such as <c>Opening 2</c> or
 ///   <c>Special 1</c> are real titles. Every form must fill the whole title,
@@ -161,6 +161,27 @@ internal static partial class GenericEpisodeTitles
     internal static bool IsEnglishGeneric(string? title, EpisodeType type, int number)
         => !string.IsNullOrWhiteSpace(title) && title.Trim().Equals($"Episode {type.Prefix}{number}", StringComparison.InvariantCultureIgnoreCase);
 
+    /// <summary>
+    ///   Whether a title is a generic English name of one season,
+    ///   <c>Season {number}</c>, or also <c>Specials</c> for season 0.
+    /// </summary>
+    /// <param name="title">The title.</param>
+    /// <param name="number">The season's number.</param>
+    /// <returns><c>true</c> when the title is that name, in any case.</returns>
+    internal static bool IsGenericSeasonName(string? title, int number)
+        => !string.IsNullOrWhiteSpace(title) && (
+            title.Trim().Equals(SeasonName(number), StringComparison.InvariantCultureIgnoreCase) ||
+            title.Trim().Equals(string.Create(CultureInfo.InvariantCulture, $"Season {number}"), StringComparison.InvariantCultureIgnoreCase)
+        );
+
+    /// <summary>
+    ///   The generic English name of one season.
+    /// </summary>
+    /// <param name="number">The season's number.</param>
+    /// <returns><c>Season {number}</c>, or <c>Specials</c> for season 0.</returns>
+    internal static string SeasonName(int number)
+        => number is 0 ? "Specials" : string.Create(CultureInfo.InvariantCulture, $"Season {number}");
+
     #endregion
 
     #region Making Up
@@ -202,6 +223,21 @@ internal static partial class GenericEpisodeTitles
             Type = TitleType.None,
         };
     }
+
+    /// <summary>
+    ///   Makes up the generic English name of a season.
+    /// </summary>
+    /// <param name="number">The season's number.</param>
+    /// <returns>The title, marked as made up.</returns>
+    internal static ITitle SynthesizeSeason(int number)
+        => new SynthesizedTitle
+        {
+            Source = MetadataSource.Generated,
+            Language = TitleLanguage.English,
+            LanguageCode = "en",
+            Value = SeasonName(number),
+            Type = TitleType.None,
+        };
 
     /// <summary>
     ///   A title made up on the spot.

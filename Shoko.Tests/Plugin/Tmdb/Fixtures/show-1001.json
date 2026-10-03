@@ -1,0 +1,100 @@
+{
+  "adult": false,
+  "backdrop_path": "/show-backdrop.jpg",
+  "created_by": [],
+  "episode_run_time": [24],
+  "first_air_date": "2023-09-29",
+  "genres": [
+    { "id": 16, "name": "Animation" },
+    { "id": 10759, "name": "Action & Adventure" }
+  ],
+  "homepage": "https://example.com/journey",
+  "id": 1001,
+  "in_production": false,
+  "languages": ["ja"],
+  "last_air_date": "2023-10-06",
+  "name": "Journey's End",
+  "networks": [
+    { "id": 98, "logo_path": "/network-98.png", "name": "Nippon TV", "origin_country": "JP" }
+  ],
+  "number_of_episodes": 2,
+  "number_of_seasons": 1,
+  "origin_country": ["JP"],
+  "original_language": "ja",
+  "original_name": "旅の終わり",
+  "overview": "An elf mage outlives her party.",
+  "popularity": 120.5,
+  "poster_path": "/show-poster.jpg",
+  "production_companies": [
+    { "id": 21444, "logo_path": "/company-21444.png", "name": "MADHOUSE", "origin_country": "JP" }
+  ],
+  "production_countries": [{ "iso_3166_1": "JP", "name": "Japan" }],
+  "seasons": [
+    { "air_date": "2023-09-01", "episode_count": 1, "id": 2000, "name": "Specials", "overview": "", "poster_path": null, "season_number": 0 },
+    { "air_date": "2023-09-29", "episode_count": 2, "id": 2001, "name": "Season 1", "overview": "The first season.", "poster_path": "/season-1.jpg", "season_number": 1 }
+  ],
+  "spoken_languages": [],
+  "status": "Ended",
+  "tagline": "",
+  "type": "Scripted",
+  "vote_average": 8.8,
+  "vote_count": 400,
+  "alternative_titles": {
+    "results": [
+      { "iso_3166_1": "JP", "title": "Tabi no Owari", "type": "Romaji" },
+      { "iso_3166_1": "US", "title": "The End of the Journey", "type": "" }
+    ]
+  },
+  "content_ratings": {
+    "results": [
+      { "iso_3166_1": "US", "rating": "TV-14" },
+      { "iso_3166_1": "JP", "rating": "G" },
+      { "iso_3166_1": "BR", "rating": "12" }
+    ]
+  },
+  "external_ids": { "imdb_id": "tt22248376", "tvdb_id": 424536 },
+  "keywords": {
+    "results": [
+      { "id": 210024, "name": "anime" },
+      { "id": 9663, "name": "sequel" }
+    ]
+  },
+  "recommendations": {
+    "page": 1,
+    "results": [
+      { "id": 1002, "name": "Another Journey", "original_name": "別の旅", "genre_ids": [16], "vote_average": 7.0, "vote_count": 10 }
+    ],
+    "total_pages": 1,
+    "total_results": 1
+  },
+  "similar": {
+    "page": 1,
+    "results": [
+      { "id": 1001, "name": "Journey's End", "original_name": "旅の終わり", "genre_ids": [16], "vote_average": 8.8, "vote_count": 400 },
+      { "id": 1003, "name": "A Similar Journey", "original_name": "似た旅", "genre_ids": [16], "vote_average": 6.0, "vote_count": 5 }
+    ],
+    "total_pages": 1,
+    "total_results": 2
+  },
+  "translations": {
+    "translations": [
+      { "iso_3166_1": "US", "iso_639_1": "en", "name": "English", "english_name": "English", "data": { "name": "Journey's End", "overview": "An elf mage outlives her party.", "homepage": "", "tagline": "" } },
+      { "iso_3166_1": "JP", "iso_639_1": "ja", "name": "日本語", "english_name": "Japanese", "data": { "name": "旅の終わり", "overview": "エルフの魔法使いの物語。", "homepage": "", "tagline": "" } },
+      { "iso_3166_1": "DE", "iso_639_1": "de", "name": "Deutsch", "english_name": "German", "data": { "name": "Das Ende der Reise", "overview": "Eine Elfenmagierin überlebt ihre Gefährten.", "homepage": "", "tagline": "" } },
+      { "iso_3166_1": "FR", "iso_639_1": "fr", "name": "Français", "english_name": "French", "data": { "name": "Journey's End", "overview": "", "homepage": "", "tagline": "" } }
+    ]
+  },
+  "episode_groups": {
+    "results": [
+      {
+        "description": "The order the episodes were made in.",
+        "episode_count": 3,
+        "group_count": 2,
+        "id": "5acf93e60e0a26346d0000ce",
+        "name": "Production Order",
+        "network": { "id": 98, "logo_path": "/network-98.png", "name": "Nippon TV", "origin_country": "JP" },
+        "type": 6
+      }
+    ]
+  }
+}

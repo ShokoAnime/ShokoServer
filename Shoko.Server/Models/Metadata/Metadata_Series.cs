@@ -21,7 +21,7 @@ namespace Shoko.Server.Models.Metadata;
 /// <summary>
 ///   A series a plugin source keeps in the series store.
 /// </summary>
-public class Metadata_Series : ISeries, IMetadataStoreRow<Metadata_Series>
+public class Metadata_Series : ISeries<ISeries, IEpisode>, IMetadataStoreRow<Metadata_Series>, IMetadataDefaultImageSource
 {
     #region Database Columns
 
@@ -107,9 +107,27 @@ public class Metadata_Series : ISeries, IMetadataStoreRow<Metadata_Series>
     public List<MetadataGuid> CrossSourceIDs { get; set; } = [];
 
     /// <summary>
+    ///   What the source said of the series that needs no column of its
+    ///   own, or <c>null</c> when it said none of it.
+    /// </summary>
+    public Metadata_SeriesExtra? ExtraData { get; set; }
+
+    /// <summary>
+    ///   When the store first wrote the series. Set once and never changed.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
     ///   When the source last wrote the series.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
+
+    /// <summary>
+    ///   When the core last refreshed the series in full without failing, in
+    ///   local time, or <c>null</c> when it never did. Kept by the refresh job
+    ///   alone; a save of the series keeps it.
+    /// </summary>
+    public DateTime? LastRefreshedAt { get; set; }
 
     /// <summary>
     ///   The ordering chosen for the series, of any source, or <c>null</c>
@@ -148,7 +166,8 @@ public class Metadata_Series : ISeries, IMetadataStoreRow<Metadata_Series>
             Nullable.Equals(Popularity, other.Popularity) &&
             FavoriteCount == other.FavoriteCount &&
             MetadataStoredEntry.SameResources(Resources, other.Resources) &&
-            CrossSourceIDs.SequenceEqual(other.CrossSourceIDs);
+            CrossSourceIDs.SequenceEqual(other.CrossSourceIDs) &&
+            Equals(ExtraData, other.ExtraData);
 
     /// <summary>
     ///   The series' seasons, by number.
@@ -196,6 +215,13 @@ public class Metadata_Series : ISeries, IMetadataStoreRow<Metadata_Series>
     IText? IWithOverviews.PreferredOverview => MetadataStoredEntry.PreferredOverview(this);
 
     IReadOnlyList<IText> IWithOverviews.Overviews => MetadataStoredEntry.Overviews(this);
+
+    #endregion
+
+    #region IMetadataDefaultImageSource Implementation
+
+    string? IMetadataDefaultImageSource.GetDefaultResourceID(ImageEntityType imageType)
+        => ExtraData?.GetDefaultResourceID(imageType);
 
     #endregion
 
@@ -260,11 +286,13 @@ public class Metadata_Series : ISeries, IMetadataStoreRow<Metadata_Series>
 
     #region ISeries Implementation
 
+    DateTime? ISeries.LastRefreshedAt => LastRefreshedAt?.ToUniversalTime();
+
     IReadOnlyList<INetwork> ISeries.Networks => MetadataStoredEntry.Networks(ID);
 
-    IReadOnlyList<IOrdering> ISeries.Orderings => OrderingLookup.For(this);
+    IReadOnlyList<IOrdering<ISeries, IEpisode>> ISeries<ISeries, IEpisode>.Orderings => OrderingLookup.For<ISeries, IEpisode>(this);
 
-    IOrdering ISeries.PreferredOrdering => OrderingLookup.PreferredFor(this);
+    IOrdering<ISeries, IEpisode> ISeries<ISeries, IEpisode>.PreferredOrdering => OrderingLookup.PreferredFor<ISeries, IEpisode>(this);
 
     IReadOnlyList<int> ISeries.ShokoSeriesIDs => [.. ((ISeries)this).ShokoSeries.Select(series => series.LocalID)];
 
@@ -276,9 +304,11 @@ public class Metadata_Series : ISeries, IMetadataStoreRow<Metadata_Series>
 
     IReadOnlyList<IRelatedMetadata<ISeries, IMovie>> ISeries.RelatedMovies => MetadataStoredEntry.Relations<ISeries, IMovie>(ID);
 
-    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions => MetadataStoredEntry.Suggestions<ISeries>(ID);
+    IReadOnlyList<string> ISeries.ProductionCountries => ExtraData?.ProductionCountries ?? [];
 
-    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy => MetadataStoredEntry.SuggestedBy<ISeries>(ID);
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries<ISeries, IEpisode>.Suggestions => MetadataStoredEntry.Suggestions<ISeries>(ID);
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries<ISeries, IEpisode>.SuggestedBy => MetadataStoredEntry.SuggestedBy<ISeries>(ID);
 
     IReadOnlyList<IVideoCrossReference> ISeries.VideoCrossReferences
         => MetadataStoredEntry.VideoLinksForAnime(MetadataStoredEntry.SeriesLinksTo(ID).Select(link => link.AnidbAnimeID));
@@ -294,9 +324,9 @@ public class Metadata_Series : ISeries, IMetadataStoreRow<Metadata_Series>
     // A film sits in no series, so nothing links one to a provider's series.
     IReadOnlyList<IMetadataMovieCrossReference> ISeries.MetadataMovieCrossReferences => [];
 
-    IReadOnlyList<ISeason> ISeries.Seasons => StoredSeasons;
+    IReadOnlyList<ISeason<ISeries, IEpisode>> ISeries<ISeries, IEpisode>.Seasons => StoredSeasons;
 
-    IReadOnlyList<IEpisode> ISeries.Episodes => StoredEpisodes;
+    IReadOnlyList<IEpisode> ISeries<ISeries, IEpisode>.Episodes => StoredEpisodes;
 
     IReadOnlyList<IVideo> ISeries.Videos => MetadataStoredEntry.Videos(((ISeries)this).VideoCrossReferences);
 

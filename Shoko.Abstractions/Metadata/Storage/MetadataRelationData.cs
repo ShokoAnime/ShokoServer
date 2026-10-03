@@ -44,7 +44,12 @@ public sealed record MetadataSuggestionData
     public double? ApprovalRating { get; init; }
 
     /// <summary>
-    ///   How many voted, when the source says.
+    ///   How many voted in favour, when the source says.
+    /// </summary>
+    public int? ApprovalVotes { get; init; }
+
+    /// <summary>
+    ///   How many voted in total, when the source says.
     /// </summary>
     public int? Votes { get; init; }
 

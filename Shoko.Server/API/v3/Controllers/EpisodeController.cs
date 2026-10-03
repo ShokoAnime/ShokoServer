@@ -27,7 +27,6 @@ using Shoko.Server.API.v3.Models.Shoko;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
@@ -52,9 +51,6 @@ public class EpisodeController(
     AniDB_EpisodeRepository _anidbEpisodes,
     AnimeEpisodeRepository _animeEpisodes,
     AnimeEpisode_UserRepository _animeEpisodeUsers,
-    TMDB_EpisodeRepository _tmdbEpisodes,
-    TMDB_MovieRepository _tmdbMovies,
-    TMDB_SuggestionRepository _tmdbSuggestions,
     VideoLocalRepository _videoLocals,
     VideoLocal_PlaceRepository _videoLocalPlaces,
     VideoReleaseGroupingService _releaseGrouper,
@@ -556,11 +552,9 @@ public class EpisodeController(
         return episode.TmdbMovieCrossReferences
             .Select(xref => xref.TmdbMovieID)
             .Distinct()
-            .SelectMany(movieID => reverse
-                ? _tmdbSuggestions.GetBySuggestedTmdbEntityID(MetadataEntityType.Movie, movieID)
-                : _tmdbSuggestions.GetByTmdbEntityID(MetadataEntityType.Movie, movieID))
-            .Where(suggestion => kind is null || suggestion.Kind == kind)
-            .Select(suggestion => new SeriesSuggestion(suggestion))
+            .SelectMany(movieID => TmdbCompatibility.GetSuggestions(new(MetadataSource.TMDB, MetadataEntityType.Movie, movieID.ToString()), reverse))
+            .Where(suggestion => kind is null || suggestion.Suggestion.Kind == kind)
+            .Select(suggestion => new SeriesSuggestion(suggestion.Suggestion) { Order = suggestion.Order })
             .ToList();
     }
 
@@ -594,7 +588,7 @@ public class EpisodeController(
             {
                 var movie = xref.TmdbMovie;
                 if (movie is not null && WaitForTmdbMovie(movie.TmdbMovieID))
-                    movie = _tmdbMovies.GetByTmdbMovieID(movie.TmdbMovieID);
+                    movie = TmdbCompatibility.GetMovie(movie.TmdbMovieID);
                 return movie;
             })
             .WhereNotNull()
@@ -638,7 +632,7 @@ public class EpisodeController(
             Additive = !body.Replace,
         });
 
-        var needRefresh = _tmdbMovies.GetByTmdbMovieID(body.ID) is null || body.Refresh;
+        var needRefresh = TmdbCompatibility.GetMovie(body.ID) is null || body.Refresh;
         if (needRefresh)
             await _metadataRefreshService.RefreshEntry(TmdbMovieEntry(body.ID), body.Refresh, RequestedWithImages);
 
@@ -749,7 +743,7 @@ public class EpisodeController(
             {
                 var episode = xref.TmdbEpisode;
                 if (episode is not null && WaitForTmdbShow(episode.TmdbShowID))
-                    episode = _tmdbEpisodes.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+                    episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
                 return episode;
             })
             .WhereNotNull()

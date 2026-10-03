@@ -1,8 +1,47 @@
 # Orderings, for client authors
 
 Swagger lists the routes and their parameters. This covers what they do not
-say: how an ordering and its groups get images, and how orderings move between
-servers.
+say: how specials are placed, how an ordering and its groups get images, and
+how orderings move between servers.
+
+## Placed specials
+
+An episode in the special group (season 0) and in a regular group is a placed
+special. It stays a special, numbered in the special group; its entry in the
+regular group only says where it airs. So the regular group numbers its other
+episodes without it, and `EpisodeCount` counts it once.
+
+With `includeGroups`, a regular group lists the special where it airs with
+`IsSpecial: true` and its special group number, and the special group's entry
+carries where it airs. `AirsBeforeSeasonNumber` and `AirsBeforeEpisodeNumber`
+name the regular episode of that group that follows it; when none does,
+`AirsAfterSeasonNumber` names the group. `AirsAfterEpisodeID` and
+`AirsBeforeEpisodeID` are the regular episodes around it, in any group.
+
+```json
+[
+  { "ID": "user://season/a1", "SeasonNumber": 1, "IsSpecial": false, "Episodes": [
+    { "ID": "shoko://episode/11", "ShokoEpisodeID": 11, "EpisodeNumber": 1, "IsSpecial": false },
+    { "ID": "shoko://episode/90", "ShokoEpisodeID": 90, "EpisodeNumber": 1, "IsSpecial": true },
+    { "ID": "shoko://episode/12", "ShokoEpisodeID": 12, "EpisodeNumber": 2, "IsSpecial": false }
+  ] },
+  { "ID": "user://season/b2", "SeasonNumber": 0, "IsSpecial": true, "Episodes": [
+    { "ID": "shoko://episode/90", "ShokoEpisodeID": 90, "EpisodeNumber": 1, "IsSpecial": true,
+      "AirsBeforeSeasonNumber": 1, "AirsBeforeEpisodeNumber": 2,
+      "AirsAfterEpisodeID": "shoko://episode/11", "AirsBeforeEpisodeID": "shoko://episode/12" }
+  ] }
+]
+```
+
+To edit, send each group's `EpisodeIDs` as listed: the special in both
+groups. The generic metadata routes give the episode one place in that
+ordering, in the special group, with the same `Airs*` fields.
+The default ordering places specials too without moving them out of season 0:
+a plugin's series where its provider said they air, and an AniDB anime or a
+Shoko series by titles such as `Episode 17.5`. TMDB's episode groups count
+a group numbered 0 as the special group. `GET
+/api/v3/Series/{seriesID}/Ordering/preferred` returns the ordering the series
+uses, next to `default`.
 
 ## Images on an ordering and its groups
 
@@ -48,7 +87,17 @@ default), `UrlFirst`, `PayloadOnly`, `UrlOnly` or `None`; `verifyHashes`
 refuses a file whose SHA-256 does not match; `applyPreferred` chooses each
 ordering that was chosen where it came from; `dryRun` writes nothing.
 
+Each ordering of the file lists its networks in `networks`, by their full IDs
+such as `tmdb://network/82`, and nothing else about them. An import links the
+local ordering to them in that order. A network this server does not have yet
+is kept as a stub, with an empty `Name`, until its source saves it, such as
+when a series it aired is refreshed. A network on a source this server does
+not know is left out with a note. A file without `networks` makes an ordering
+with none, and `Replace` then keeps the networks the local ordering had.
+
 The response lists every ordering of the file with its outcome, the episodes
-dropped from its groups, and each image as `FromPayload`, `FromUrl`, `Pending`
-(its download is queued), `Failed` or `Skipped`, with a reason. A file that
-cannot be read at all gives a `400` and changes nothing.
+dropped from its groups, the `Networks` it was linked to and the
+`StubbedNetworks` among them, and each image as `FromPayload`, `FromUrl`,
+`Pending` (its download is queued), `Failed` or `Skipped`, with a reason. A dry
+run lists the networks it would link and stub. A file that cannot be read at
+all gives a `400` and changes nothing.

@@ -62,7 +62,7 @@ public sealed class EpisodeAiringFilteringOptions
     ///   airings. Set to <c>true</c> to also retrieve the airings of other
     ///   entities linked to the entity. Set to <c>null</c> to let the service
     ///   decide based on the entity, which means linked for
-    ///   <see cref="IShokoSeries"/>, <see cref="IShokoSeason"/> and
+    ///   <see cref="IShokoSeries"/>, a season of one and
     ///   <see cref="IShokoEpisode"/>, and own-only for everything else.
     ///   Defaults to <c>null</c>.
     /// </summary>

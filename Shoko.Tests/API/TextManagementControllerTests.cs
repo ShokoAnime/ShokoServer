@@ -40,47 +40,7 @@ public class TextManagementControllerTests
 
     private static readonly MetadataGuid _episode = new(MetadataSource.AniDB, MetadataEntityType.Episode, "10");
 
-    /// <summary>
-    /// A stored title, with the members a stored text carries.
-    /// </summary>
-    private sealed class StoredTitle : TitleStub, ITitle
-    {
-        public int? ID { get; init; }
-
-        public MetadataGuid? EntityID { get; init; }
-
-        public int? ReferenceID { get; init; }
-
-        public bool IsEnabled { get; init; } = true;
-
-        public TextPreference Preference { get; init; }
-
-        public int Ordering { get; init; }
-
-        public string? ScriptCode { get; init; }
-
-        public bool IsInlineDefault { get; init; }
-
-        public bool IsSynthesized { get; init; }
-    }
-
-    /// <summary>
-    /// A stored overview, with the members a stored text carries.
-    /// </summary>
-    private sealed class StoredOverview : TextStub, IText
-    {
-        public int? ID { get; init; }
-
-        public MetadataGuid? EntityID { get; init; }
-
-        public bool IsEnabled { get; init; } = true;
-
-        public TextPreference Preference { get; init; }
-
-        public bool IsInlineDefault { get; init; }
-    }
-
-    private static StoredTitle Title(int? id, string value, TitleLanguage language = TitleLanguage.English, string code = "en", MetadataSource? source = null, TitleType type = TitleType.Official, MetadataGuid? entity = null)
+    private static TitleStub Title(int? id, string value, TitleLanguage language = TitleLanguage.English, string code = "en", MetadataSource? source = null, TitleType type = TitleType.Official, MetadataGuid? entity = null)
         => new()
         {
             ID = id,
@@ -92,7 +52,7 @@ public class TextManagementControllerTests
             Type = type,
         };
 
-    private static StoredOverview Overview(int? id, string value, MetadataSource? source = null)
+    private static TextStub Overview(int? id, string value, MetadataSource? source = null)
         => new()
         {
             ID = id,
@@ -255,7 +215,7 @@ public class TextManagementControllerTests
         var fixture = new Fixture();
         var text = Title(5, "Title");
         fixture.Text.Setup(t => t.GetTitleByID(5)).Returns(text);
-        fixture.Text.Setup(t => t.SetPreferredTitle(_anime, text, true)).Returns(new StoredTitle { ID = 5, EntityID = _anime, Source = MetadataSource.AniDB, Value = "Title", Language = TitleLanguage.English, LanguageCode = "en", Preference = TextPreference.Language });
+        fixture.Text.Setup(t => t.SetPreferredTitle(_anime, text, true)).Returns(new TitleStub { ID = 5, EntityID = _anime, Source = MetadataSource.AniDB, Value = "Title", Language = TitleLanguage.English, LanguageCode = "en", Preference = TextPreference.Language });
 
         Value(fixture.Controller().SetPreferredText(TextKind.Title, 5, languageOnly: true));
 
@@ -300,7 +260,7 @@ public class TextManagementControllerTests
         var fixture = new Fixture();
         var show = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Series, "7");
         fixture.Stores(show);
-        var inline = new StoredTitle { Source = MetadataSource.TMDB, Value = "Show", Language = TitleLanguage.EnglishAmerican, LanguageCode = "en", CountryCode = "US", IsInlineDefault = true };
+        var inline = new TitleStub { Source = MetadataSource.TMDB, Value = "Show", Language = TitleLanguage.EnglishAmerican, LanguageCode = "en", CountryCode = "US", IsInlineDefault = true };
         var translation = Title(3, "Série", TitleLanguage.French, "fr", MetadataSource.TMDB, entity: show);
         fixture.Text.Setup(t => t.GetTitles(show, It.Is<TextFilteringOptions?>(o => o!.IncludeInlineDefault && o.IsEnabled == null))).Returns([inline, translation]);
         fixture.Text.Setup(t => t.GetDefaultTitle(show)).Returns(inline);
@@ -323,7 +283,7 @@ public class TextManagementControllerTests
     {
         var fixture = new Fixture();
         fixture.Stores(_anime);
-        var inline = new StoredOverview { Source = MetadataSource.AniDB, Value = "Described.", Language = TitleLanguage.English, LanguageCode = "en", IsInlineDefault = true };
+        var inline = new TextStub { Source = MetadataSource.AniDB, Value = "Described.", Language = TitleLanguage.English, LanguageCode = "en", IsInlineDefault = true };
         fixture.Text.Setup(t => t.GetOverviews(_anime, It.IsAny<TextFilteringOptions?>()))
             .Returns<MetadataGuid, TextFilteringOptions?>((_, options) => options!.Source is null ? [inline] : []);
         fixture.Text.Setup(t => t.GetDefaultOverview(_anime)).Returns(inline);
@@ -417,7 +377,7 @@ public class TextManagementControllerTests
         fixture.Stores(series);
         var anidbTitle = Title(4, "Official");
         fixture.Text.Setup(t => t.GetTitleByID(4)).Returns(anidbTitle);
-        fixture.Text.Setup(t => t.SetPreferredTitle(series, anidbTitle, false)).Returns(new StoredTitle { ID = 11, EntityID = series, ReferenceID = 4, Source = MetadataSource.User, Value = "Official", Language = TitleLanguage.English, LanguageCode = "en", Preference = TextPreference.Overall });
+        fixture.Text.Setup(t => t.SetPreferredTitle(series, anidbTitle, false)).Returns(new TitleStub { ID = 11, EntityID = series, ReferenceID = 4, Source = MetadataSource.User, Value = "Official", Language = TitleLanguage.English, LanguageCode = "en", Preference = TextPreference.Overall });
 
         var result = Value(fixture.Controller().SetPreferredTextForEntity(MetadataSource.Shoko, MetadataEntityType.Series, "3", new() { Kind = TextKind.Title, TextID = 4 }));
 
@@ -430,7 +390,7 @@ public class TextManagementControllerTests
     {
         var fixture = new Fixture();
         fixture.Stores(_anime);
-        var inline = new StoredOverview { Source = MetadataSource.AniDB, Value = "Described.", Language = TitleLanguage.English, LanguageCode = "en", IsInlineDefault = true };
+        var inline = new TextStub { Source = MetadataSource.AniDB, Value = "Described.", Language = TitleLanguage.English, LanguageCode = "en", IsInlineDefault = true };
         fixture.Text.Setup(t => t.GetDefaultOverview(_anime)).Returns(inline);
         fixture.Text.Setup(t => t.SetPreferredOverview(_anime, inline, false)).Returns(Overview(20, "Described.", MetadataSource.User));
         IText? typed = null;
@@ -512,8 +472,8 @@ public class TextManagementControllerTests
     [Fact]
     public void AUsersPicksAreTheirOwnSteps()
     {
-        var overall = new StoredTitle { ID = 1, EntityID = _anime, Source = MetadataSource.User, Value = "Mine", Language = TitleLanguage.Unknown, LanguageCode = "unk", Preference = TextPreference.Overall };
-        var forLanguage = new StoredTitle { ID = 2, EntityID = _anime, Source = MetadataSource.AniDB, Value = "Mine", Language = TitleLanguage.English, LanguageCode = "en", Preference = TextPreference.Language };
+        var overall = new TitleStub { ID = 1, EntityID = _anime, Source = MetadataSource.User, Value = "Mine", Language = TitleLanguage.Unknown, LanguageCode = "unk", Preference = TextPreference.Overall };
+        var forLanguage = new TitleStub { ID = 2, EntityID = _anime, Source = MetadataSource.AniDB, Value = "Mine", Language = TitleLanguage.English, LanguageCode = "en", Preference = TextPreference.Language };
 
         Assert.Equal(TextChoiceStep.OverallPreference, StepOf(_anime, TextKind.Title, overall, null).Step);
         Assert.Equal((TextChoiceStep.LanguagePreference, (TitleLanguage?)TitleLanguage.English), StepOf(_anime, TextKind.Title, forLanguage, null, s => s.Language.SeriesTitleLanguageOrder = ["x-main", "en"]));
@@ -547,7 +507,7 @@ public class TextManagementControllerTests
     {
         var generic = Title(2, "Episode 5", source: MetadataSource.User, entity: _episode);
         var anidbGeneric = Title(3, "Episode 5", entity: _episode);
-        var synthesized = new StoredTitle { Source = MetadataSource.Shoko, Value = "Episode 5", Language = TitleLanguage.English, LanguageCode = "en", IsSynthesized = true };
+        var synthesized = new TitleStub { Source = MetadataSource.Shoko, Value = "Episode 5", Language = TitleLanguage.English, LanguageCode = "en", IsSynthesized = true };
 
         Assert.Equal((TextChoiceStep.GenericTitle, (TitleLanguage?)TitleLanguage.English), StepOf(_episode, TextKind.Title, generic, null));
         Assert.Equal((TextChoiceStep.GenericTitle, (TitleLanguage?)TitleLanguage.English), StepOf(_episode, TextKind.Title, anidbGeneric, null));

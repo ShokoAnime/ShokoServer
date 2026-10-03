@@ -22,7 +22,6 @@ using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Utilities;
@@ -196,14 +195,16 @@ public class Series : BaseModel
         if (LinkedMetadataHelper.GenericSources(includeDataFrom) is { Count: > 0 } sources)
             Sources = LinkedMetadataHelper.ForSeries(ISystemService.StaticServices.GetRequiredService<IMetadataService>(), ser.AniDB_ID, sources);
         if (includeDataFrom?.Contains(MetadataSource.TMDB) ?? false)
+        {
+            var refreshService = ISystemService.StaticServices.GetRequiredService<IMetadataRefreshService>();
             TMDB = new()
             {
                 Movies = tmdbMovieXRefs
                     .Select(tmdbEpisodeXref =>
                     {
                         var movie = tmdbEpisodeXref.TmdbMovie;
-                        if (movie is not null && (TmdbMetadataService.Instance?.WaitForMovieUpdate(movie.TmdbMovieID) ?? false))
-                            movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movie.TmdbMovieID);
+                        if (movie is not null && refreshService.WaitForRefresh(movie.ID).GetAwaiter().GetResult())
+                            movie = TmdbCompatibility.GetMovie(movie.TmdbMovieID);
                         return movie;
                     })
                     .WhereNotNull()
@@ -213,14 +214,15 @@ public class Series : BaseModel
                     .Select(tmdbEpisodeXref =>
                     {
                         var show = tmdbEpisodeXref.TmdbShow;
-                        if (show is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(show.TmdbShowID) ?? false))
-                            show = RepoFactory.TMDB_Show.GetByTmdbShowID(show.TmdbShowID);
+                        if (show is not null && refreshService.WaitForRefresh(show.ID).GetAwaiter().GetResult())
+                            show = TmdbCompatibility.GetShow(show.TmdbShowID);
                         return show;
                     })
                     .WhereNotNull()
                     .Select(show => new TmdbShow(show, show.PreferredAlternateOrdering))
                     .ToList(),
             };
+        }
     }
 
     /// <summary>

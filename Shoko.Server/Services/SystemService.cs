@@ -31,7 +31,6 @@ using Shoko.Abstractions.Logging.Services;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
-using Shoko.Abstractions.Metadata.Tmdb.Services;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.ScheduledActions.Services;
@@ -53,12 +52,10 @@ using Shoko.Server.Plugin;
 using Shoko.Server.Plugin.Databases;
 using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Providers.AniDB.UDP;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
-using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Server;
 using Shoko.Server.Services.Airing;
@@ -471,18 +468,6 @@ public class SystemService : ISystemService
             services.AddSingleton<FileSystemHelpers>();
             services.AddSingleton<IFileSystemHelpers>(sp => sp.GetRequiredService<FileSystemHelpers>());
             services.AddSingleton<FileWatcherService>();
-            services.AddSingleton<TmdbRateLimiter>();
-            services.AddSingleton<TmdbApiClient>();
-            services.AddSingleton<TmdbImageService>();
-            services.AddSingleton<TmdbMetadataUpdater>();
-            services.AddSingleton<ICoreOrderingSource, TmdbOrderingSource>();
-            services.AddSingleton<IMetadataLinkIDRule, TmdbLinkIDRule>();
-            services.AddSingleton<TmdbLinkingService>();
-            services.AddSingleton<ITmdbLinkingService>(sp => sp.GetRequiredService<TmdbLinkingService>());
-            services.AddSingleton<TmdbMetadataService>();
-            services.AddSingleton<ITmdbMetadataService>(sp => sp.GetRequiredService<TmdbMetadataService>());
-            services.AddSingleton<TmdbSearchService>();
-            services.AddSingleton<ITmdbSearchService>(sp => sp.GetRequiredService<TmdbSearchService>());
             services.AddSingleton<IFilteringEngine, FilteringEngine>();
             services.AddSingleton<IMetadataFilteringService, MetadataFilteringService>();
             services.AddSingleton<IFilterPresetManager, FilterPresetManager>();
@@ -505,6 +490,7 @@ public class SystemService : ISystemService
             services.AddSingleton<MetadataProviderManager>();
             services.AddSingleton<IMetadataProviderManager>(sp => sp.GetRequiredService<MetadataProviderManager>());
             services.AddSingleton<MetadataProviderScheduler>();
+            services.AddSingleton<MetadataEntityRefreshScheduler>();
             services.AddSingleton<MetadataImageContributorManager>();
             services.AddSingleton<IMetadataImageContributorManager>(sp => sp.GetRequiredService<MetadataImageContributorManager>());
             services.AddSingleton<MetadataImageContributorScheduler>();
@@ -529,16 +515,21 @@ public class SystemService : ISystemService
                 TextAccess.Use(manager);
                 return manager;
             });
-            services.AddSingleton<IMetadataPeopleStore, MetadataPeopleStore>();
-            services.AddSingleton<IMetadataTagStore, MetadataTagStore>();
-            services.AddSingleton<IMetadataStudioStore, MetadataStudioStore>();
+            services.AddSingleton<MetadataPeopleStore>();
+            services.AddSingleton<IMetadataPeopleStore>(provider => provider.GetRequiredService<MetadataPeopleStore>());
+            services.AddSingleton<MetadataTagStore>();
+            services.AddSingleton<IMetadataTagStore>(provider => provider.GetRequiredService<MetadataTagStore>());
+            services.AddSingleton<MetadataStudioStore>();
+            services.AddSingleton<IMetadataStudioStore>(provider => provider.GetRequiredService<MetadataStudioStore>());
             services.AddSingleton<IMetadataRelationStore, MetadataRelationStore>();
             services.AddSingleton<IMetadataSuggestionStore, MetadataSuggestionStore>();
             services.AddSingleton<MetadataEntityCleanup>();
             services.AddSingleton<MetadataSeriesStore>();
             services.AddSingleton<IMetadataSeriesStore>(provider => provider.GetRequiredService<MetadataSeriesStore>());
-            services.AddSingleton<IMetadataMovieStore, MetadataMovieStore>();
-            services.AddSingleton<IMetadataCollectionStore, MetadataCollectionStore>();
+            services.AddSingleton<MetadataMovieStore>();
+            services.AddSingleton<IMetadataMovieStore>(provider => provider.GetRequiredService<MetadataMovieStore>());
+            services.AddSingleton<MetadataCollectionStore>();
+            services.AddSingleton<IMetadataCollectionStore>(provider => provider.GetRequiredService<MetadataCollectionStore>());
             services.AddSingleton<MetadataLinkingService>();
             services.AddSingleton<IMetadataLinkingService>(provider => provider.GetRequiredService<MetadataLinkingService>());
             services.AddSingleton<IOrderingRowState, OrderingRowState>();
@@ -611,7 +602,6 @@ public class SystemService : ISystemService
             // Register acquisition filters
             services.AddSingleton<IAcquisitionFilter, AniDBUdpRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, AniDBHttpRateLimitedAcquisitionFilter>();
-            services.AddSingleton<IAcquisitionFilter, TmdbApiRateLimitedAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, DatabaseRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, NetworkRequiredAcquisitionFilter>();
             services.AddSingleton<IAcquisitionFilter, MetadataProviderPausedAcquisitionFilter>();
@@ -735,8 +725,7 @@ public class SystemService : ISystemService
         var settings = _settingsProvider.GetSettings();
         try
         {
-            var scheduler = _webHost!.Services.GetRequiredService<IQueueScheduler>();
-            var databaseFactory = _webHost.Services.GetRequiredService<DatabaseFactory>();
+            var databaseFactory = _webHost!.Services.GetRequiredService<DatabaseFactory>();
             var repoFactory = _webHost.Services.GetRequiredService<RepoFactory>();
             var fileWatcherService = _webHost.Services.GetRequiredService<FileWatcherService>();
             var lifetime = _webHost.Services.GetRequiredService<IHostApplicationLifetime>();
@@ -819,14 +808,6 @@ public class SystemService : ISystemService
 
             _startupTaskSource?.SetResult();
             _startupTaskSource = null;
-
-            if (settings.Import.ScanDropFoldersOnStart)
-                scheduler.Enqueue<ScanDropFoldersJob>().GetAwaiter().GetResult();
-            if (settings.Import.RunOnStart)
-                LegacyScheduledActions.InvokeImport(_webHost.Services.GetRequiredService<IScheduledActionService>()).GetAwaiter().GetResult();
-            else
-                _webHost.Services.GetRequiredService<ActionService>()
-                    .ScheduleMissingAnidbAnimeForFiles().GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {

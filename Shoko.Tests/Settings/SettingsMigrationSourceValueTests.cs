@@ -30,6 +30,7 @@ public sealed class SettingsMigrationSourceValueTests : IDisposable
 
         var applicationPaths = new Mock<IApplicationPaths>(MockBehavior.Loose);
         applicationPaths.SetupGet(paths => paths.DataPath).Returns(_dataPath);
+        applicationPaths.SetupGet(paths => paths.ConfigurationsPath).Returns(Path.Join(_dataPath, "configurations"));
         _applicationPaths = applicationPaths.Object;
     }
 
@@ -41,6 +42,9 @@ public sealed class SettingsMigrationSourceValueTests : IDisposable
 
     private JObject Migrate(string settings)
         => JObject.Parse(SettingsMigrations.MigrateSettings(settings, _applicationPaths));
+
+    private JObject TmdbPluginFile()
+        => JObject.Parse(File.ReadAllText(SettingsMigrations.TmdbPluginConfigurationPath(_applicationPaths)));
 
     private static string[] Strings(JToken? token)
         => token is JArray array ? [.. array.Values<string>().OfType<string>()] : [];
@@ -112,8 +116,9 @@ public sealed class SettingsMigrationSourceValueTests : IDisposable
             }
             """);
 
-        var tmdb = (JObject)migrated["TMDB"]!;
-        Assert.Equal(["UserApiKey"], tmdb.Properties().Select(property => property.Name));
+        // Migration 26 then moves what is left of the section to the plugin.
+        Assert.Null(migrated["TMDB"]);
+        Assert.Equal(["UserApiKey"], TmdbPluginFile().Properties().Select(property => property.Name));
         var entry = (JObject)Assert.Single((JArray)migrated["Image"]!["MetadataSources"]!);
         Assert.Equal("tmdb", entry["Source"]!.Value<string>());
         Assert.Equal(["en", "x-main"], Strings(entry["ImageLanguageOrder"]));
@@ -166,7 +171,7 @@ public sealed class SettingsMigrationSourceValueTests : IDisposable
         var migrated = Migrate("""{ "SettingsVersion": 19, "TMDB": { "UserApiKey": "keep-me" } }""");
 
         Assert.Null(migrated["Image"]);
-        Assert.Equal("keep-me", migrated["TMDB"]!["UserApiKey"]!.Value<string>());
+        Assert.Equal("keep-me", TmdbPluginFile()["UserApiKey"]!.Value<string>());
     }
 
     [Fact]

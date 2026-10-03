@@ -9,6 +9,7 @@ using Shoko.Abstractions.Filtering.Expressions.Logic.Expressions;
 using Shoko.Abstractions.Filtering.Expressions.Selectors.DateSelectors;
 using Shoko.Abstractions.Filtering.Expressions.User;
 using Shoko.Abstractions.Filtering.Sorting.Selectors;
+using Shoko.Abstractions.Metadata;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Server;
@@ -188,13 +189,13 @@ public class FilterPresetRepository(DatabaseFactory databaseFactory) : BaseCache
         };
         Save(gf);
 
-        // TMDB Link Missing
+        // Missing links on the source the bundled provider serves.
         gf = new FilterPreset
         {
             Name = Constants.GroupFilterName.MissingLinks,
             ApplyAtSeriesLevel = true,
             FilterType = FilterPresetType.UserDefined,
-            Expression = new MissingTmdbLinkExpression(),
+            Expression = new MissingSourceLinkExpression(MetadataSource.TMDB.Value),
             SortingExpression = new NameSortingSelector()
         };
         Save(gf);

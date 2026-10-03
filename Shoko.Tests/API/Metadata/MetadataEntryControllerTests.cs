@@ -14,6 +14,7 @@ using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Providers;
@@ -87,7 +88,7 @@ public class MetadataEntryControllerTests
         }
 
         public MetadataModelBuilder Models
-            => new(Metadata.Object, Text.Object, Images.Object, Refresh.Object, Studios.Object);
+            => new(Metadata.Object, Text.Object, Images.Object, Studios.Object);
 
         public MetadataEntryController Controller()
             => new(
@@ -140,9 +141,9 @@ public class MetadataEntryControllerTests
         var series = fixture.StoreSeries(new FakeSeries("21", "Show")
         {
             Tags = [new FakeTag("1", "Drama") { Kind = TagKind.Genre }, new FakeTag("2", "Isekai")],
+            LastRefreshedAt = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc),
         });
-        var refreshedAt = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
-        fixture.Refresh.Setup(r => r.GetLastRefreshedAt(series.ID)).Returns(refreshedAt);
+        var refreshedAt = series.LastRefreshedAt;
 
         var model = Value(await fixture.Controller().GetSeriesByID(Source, "21", cancellationToken: TestContext.Current.CancellationToken));
 
@@ -154,6 +155,71 @@ public class MetadataEntryControllerTests
         Assert.Null(model.Tags);
         Assert.Null(model.Images);
         Assert.False(JObject.Parse(JsonConvert.SerializeObject(model, _apiSettings)).ContainsKey("Titles"));
+    }
+
+    [Fact]
+    public async Task ASeriesAndEpisodeAreSentWithTheirDatesInUtc()
+    {
+        var fixture = new Fixture();
+        var createdAt = new DateTime(2025, 6, 7, 8, 9, 10, DateTimeKind.Local);
+        var updatedAt = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Local);
+        fixture.StoreSeries(new FakeSeries("21", "Show") { CreatedAt = createdAt, LastUpdatedAt = updatedAt });
+        fixture.Store<IEpisode>(new FakeEpisode("e1", "21", 1) { CreatedAt = createdAt, LastUpdatedAt = updatedAt });
+
+        var series = Value(await fixture.Controller().GetSeriesByID(Source, "21", cancellationToken: TestContext.Current.CancellationToken));
+        var episode = Value(await fixture.Controller().GetEpisodeByID(Source, "e1", cancellationToken: TestContext.Current.CancellationToken));
+
+        var expected = (createdAt.ToUniversalTime(), updatedAt.ToUniversalTime());
+        Assert.Equal(expected, (series.CreatedAt, series.LastUpdatedAt));
+        Assert.Equal(expected, (episode.CreatedAt, episode.LastUpdatedAt));
+        Assert.Equal(DateTimeKind.Utc, series.CreatedAt.Kind);
+        var json = JObject.Parse(JsonConvert.SerializeObject(episode, _apiSettings));
+        Assert.True(json.ContainsKey("CreatedAt") && json.ContainsKey("LastUpdatedAt"));
+    }
+
+    [Fact]
+    public void ASeasonIsBuiltWithItsDatesInUtc()
+    {
+        var fixture = new Fixture();
+        var createdAt = new DateTime(2025, 1, 2, 3, 4, 5, DateTimeKind.Local);
+        var updatedAt = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Local);
+        var season = new Mock<ISeason>();
+        season.Setup(s => s.ID).Returns(ID(MetadataEntityType.Season, "s1"));
+        season.Setup(s => s.SeriesID).Returns(ID(MetadataEntityType.Series, "21"));
+        season.Setup(s => s.Episodes).Returns([]);
+        season.As<IWithCreationDate>().Setup(s => s.CreatedAt).Returns(createdAt);
+        season.As<IWithUpdateDate>().Setup(s => s.LastUpdatedAt).Returns(updatedAt);
+
+        var model = fixture.Models.Season(season.Object);
+
+        Assert.Equal((createdAt.ToUniversalTime(), updatedAt.ToUniversalTime()), (model.CreatedAt, model.LastUpdatedAt));
+    }
+
+    [Fact]
+    public void TheRefreshTimeIsSentOnEveryKindInUtc()
+    {
+        var fixture = new Fixture();
+        var refreshedAt = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Local);
+        var series = new FakeSeries("21", "Show") { LastRefreshedAt = refreshedAt };
+        var episode = new FakeEpisode("e1", "21", 1) { Series = series };
+        var season = new Mock<ISeason>();
+        season.Setup(s => s.ID).Returns(ID(MetadataEntityType.Season, "s1"));
+        season.Setup(s => s.SeriesID).Returns(series.ID);
+        season.Setup(s => s.Episodes).Returns([]);
+        season.Setup(s => s.LastRefreshedAt).Returns(refreshedAt);
+        var collection = new Mock<ICollection>();
+        collection.Setup(c => c.ID).Returns(ID(MetadataEntityType.Collection, "c1"));
+        collection.Setup(c => c.LastRefreshedAt).Returns(refreshedAt);
+
+        var expected = refreshedAt.ToUniversalTime();
+        Assert.Equal(expected, fixture.Models.Series(series).LastRefreshedAt);
+        Assert.Equal(expected, fixture.Models.Episode(episode).LastRefreshedAt);
+        Assert.Equal(expected, fixture.Models.Season(season.Object).LastRefreshedAt);
+        Assert.Equal(expected, fixture.Models.Collection(collection.Object, []).LastRefreshedAt);
+
+        // One never refreshed still sends the field, as null.
+        var json = JObject.Parse(JsonConvert.SerializeObject(fixture.Models.Series(new FakeSeries("22", "Other")), _apiSettings));
+        Assert.Equal(JTokenType.Null, json["LastRefreshedAt"]!.Type);
     }
 
     [Fact]
@@ -372,6 +438,24 @@ public class MetadataEntryControllerTests
     }
 
     [Fact]
+    public void AnEntryAndItsLinksCarryTheirSiteUrls()
+    {
+        var fixture = new Fixture();
+        var id = ID(MetadataEntityType.Series, "21");
+        var series = new FakeSeries("21", "Show")
+        {
+            MetadataSeriesCrossReferences = [Mock.Of<IMetadataSeriesCrossReference>(link => link.AnidbAnimeID == 5 && link.Source == Source && link.EntityType == MetadataEntityType.Series && link.ProviderID == id)],
+        };
+        fixture.Metadata.Setup(m => m.GetSiteUrl(series)).Returns("https://example.com/entry/21");
+        fixture.Metadata.Setup(m => m.GetSiteUrl(id)).Returns("https://example.com/link/21");
+
+        var model = fixture.Models.Series(series, new HashSet<MetadataIncludeDetails> { MetadataIncludeDetails.CrossReferences });
+
+        Assert.Equal("https://example.com/entry/21", model.SiteUrl);
+        Assert.Equal("https://example.com/link/21", Assert.Single(model.CrossReferences!).SiteUrl);
+    }
+
+    [Fact]
     public void TheTitlesComeFromTheTextManager_PreferredFirst()
     {
         var fixture = new Fixture();
@@ -433,22 +517,49 @@ public class MetadataEntryControllerTests
 
     #region Episodes
 
+    /// <summary>
+    /// Two seasons and a special, each with one title.
+    /// </summary>
+    private static readonly (IEpisode Episode, string Title)[] _searchedEpisodes =
+    [
+        (new FakeEpisode("e1", "21", 1), "Arrival"),
+        (new FakeEpisode("e2", "21", 2), "Beach Day"),
+        (new FakeEpisode("e10", "21", 10), "Finale"),
+        (new FakeEpisode("b1", "21", 1, seasonNumber: 2), "Return to the Beach"),
+        (new FakeEpisode("s3", "21", 3, EpisodeType.Special, seasonNumber: 0), "Beach Special"),
+    ];
+
+    private static IEnumerable<string> TitlesOf(IEpisode episode)
+        => _searchedEpisodes.Where(pair => pair.Episode == episode).Select(pair => pair.Title);
+
     [Theory]
-    [InlineData("1", new[] { 1, 10, 11 })]
-    [InlineData("E1", new[] { 1 })]
-    [InlineData("#10", new[] { 10 })]
-    [InlineData("x", null)]
-    [InlineData(null, new[] { 1, 2, 10, 11 })]
-    public void EpisodesAreSearchedByNumber(string? search, int[]? numbers)
+    [InlineData(null, "e1,e2,e10,b1,s3")]
+    [InlineData("1", "e1,e10,b1")]
+    [InlineData("E1", "e1,b1")]
+    [InlineData("#10", "e10")]
+    [InlineData("S2", "b1")]
+    [InlineData("S1E2", "e2")]
+    [InlineData("s1 e2", "e2")]
+    [InlineData("Special 3", "s3")]
+    [InlineData("specials", "s3")]
+    [InlineData("BEACH", "e2,b1,s3")]
+    [InlineData("S1 beach", "e2")]
+    [InlineData("x", "")]
+    public void EpisodesAreSearchedByNumberSeasonSpecialAndTitle(string? search, string expected)
     {
-        IEpisode[] episodes = [.. new[] { 1, 2, 10, 11 }.Select(number => new FakeEpisode($"e{number}", "21", number))];
+        var found = MetadataEntryController.SearchEpisodes(_searchedEpisodes.Select(pair => pair.Episode), search, TitlesOf);
 
-        var found = MetadataEntryController.SearchEpisodes(episodes, search);
+        Assert.Equal(expected, string.Join(',', found.Select(episode => episode.ID.ID)));
+    }
 
-        if (numbers is null)
-            Assert.Null(found);
-        else
-            Assert.Equal(numbers, found!.Select(episode => episode.EpisodeNumber));
+    [Fact]
+    public void ASeasonFormIsATitleWhenTheEpisodesHaveNoSeasons()
+    {
+        IEpisode[] episodes = [new FakeEpisode("e1", "21", 1, seasonNumber: null), new FakeEpisode("e2", "21", 2, seasonNumber: null)];
+
+        var found = MetadataEntryController.SearchEpisodes(episodes, "S1", episode => episode.EpisodeNumber is 2 ? ["S1 Recap"] : ["Opening"]);
+
+        Assert.Equal("e2", Assert.Single(found).ID.ID);
     }
 
     [Fact]

@@ -3,7 +3,6 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Repositories.Cached.TMDB;
 
 namespace Shoko.Server.Services;
 
@@ -18,8 +17,8 @@ public interface IOrderingRowState
 
     /// <summary>
     ///   Whether a series has a row to keep its chosen ordering on: a Shoko
-    ///   series, an AniDB anime, a TMDB show, or a plugin source's series in
-    ///   the series store.
+    ///   series, an AniDB anime, or any other source's series in the series
+    ///   store.
     /// </summary>
     /// <param name="seriesID">The series.</param>
     /// <returns><c>true</c> if the series is stored.</returns>
@@ -45,8 +44,8 @@ public interface IOrderingRowState
     #region Episodes
 
     /// <summary>
-    ///   Whether an episode has a row to keep its hidden flag on: an AniDB or
-    ///   TMDB episode, or a plugin source's episode in the series store. A
+    ///   Whether an episode has a row to keep its hidden flag on: an AniDB
+    ///   episode, or any other source's episode in the series store. A
     ///   Shoko episode's flag is left to the ordering service, which updates
     ///   the stats with it.
     /// </summary>
@@ -79,15 +78,11 @@ public interface IOrderingRowState
 /// <param name="shokoSeriesRepository">The Shoko series.</param>
 /// <param name="anidbAnimeRepository">The AniDB anime.</param>
 /// <param name="anidbEpisodeRepository">The AniDB episodes.</param>
-/// <param name="tmdbShowRepository">The TMDB shows.</param>
-/// <param name="tmdbEpisodeRepository">The TMDB episodes.</param>
-/// <param name="seriesStore">Writes a plugin source's series and episodes under its own lock.</param>
+/// <param name="seriesStore">Writes a stored source's series and episodes under its own lock.</param>
 public class OrderingRowState(
     AnimeSeriesRepository shokoSeriesRepository,
     AniDB_AnimeRepository anidbAnimeRepository,
     AniDB_EpisodeRepository anidbEpisodeRepository,
-    TMDB_ShowRepository tmdbShowRepository,
-    TMDB_EpisodeRepository tmdbEpisodeRepository,
     Lazy<MetadataSeriesStore> seriesStore
 ) : IOrderingRowState
 {
@@ -128,16 +123,6 @@ public class OrderingRowState(
             return true;
         }
 
-        if (seriesID.Source == MetadataSource.TMDB)
-        {
-            if (!seriesID.TryGetNumericID<int>(out var id) || tmdbShowRepository.GetByTmdbShowID(id) is not { } show || show.PreferredOrderingID == orderingID)
-                return false;
-
-            show.PreferredOrderingID = orderingID;
-            tmdbShowRepository.Save(show);
-            return true;
-        }
-
         return !seriesID.Source.IsCore && seriesStore.Value.SetPreferredOrdering(seriesID, orderingID);
     }
 
@@ -156,8 +141,6 @@ public class OrderingRowState(
             return seriesID.TryGetNumericID<int>(out var id) && shokoSeriesRepository.GetByID(id) is { } series ? (true, series.PreferredOrderingID) : (false, null);
         if (seriesID.Source == MetadataSource.AniDB)
             return seriesID.TryGetNumericID<int>(out var id) && anidbAnimeRepository.GetByAnimeID(id) is { } anime ? (true, anime.PreferredOrderingID) : (false, null);
-        if (seriesID.Source == MetadataSource.TMDB)
-            return seriesID.TryGetNumericID<int>(out var id) && tmdbShowRepository.GetByTmdbShowID(id) is { } show ? (true, show.PreferredOrderingID) : (false, null);
         if (seriesID.Source.IsCore)
             return (false, null);
 
@@ -193,16 +176,6 @@ public class OrderingRowState(
             return true;
         }
 
-        if (episodeID.Source == MetadataSource.TMDB)
-        {
-            if (!episodeID.TryGetNumericID<int>(out var id) || tmdbEpisodeRepository.GetByTmdbEpisodeID(id) is not { } episode || episode.IsHidden == hidden)
-                return false;
-
-            episode.IsHidden = hidden;
-            tmdbEpisodeRepository.Save(episode);
-            return true;
-        }
-
         return !episodeID.Source.IsCore && seriesStore.Value.SetEpisodeHidden(episodeID, hidden);
     }
 
@@ -219,8 +192,6 @@ public class OrderingRowState(
 
         if (episodeID.Source == MetadataSource.AniDB)
             return episodeID.TryGetNumericID<int>(out var id) && anidbEpisodeRepository.GetByEpisodeID(id) is { } episode ? (true, episode.IsHidden) : (false, false);
-        if (episodeID.Source == MetadataSource.TMDB)
-            return episodeID.TryGetNumericID<int>(out var id) && tmdbEpisodeRepository.GetByTmdbEpisodeID(id) is { } episode ? (true, episode.IsHidden) : (false, false);
         if (episodeID.Source.IsCore)
             return (false, false);
 

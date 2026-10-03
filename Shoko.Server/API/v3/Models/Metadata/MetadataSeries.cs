@@ -99,8 +99,20 @@ public class MetadataSeries : MetadataEntry
     public IReadOnlyList<int> ShokoSeriesIDs { get; init; } = [];
 
     /// <summary>
-    /// When the series was last refreshed in full, or <c>null</c> when it
-    /// never was.
+    /// When the series was first stored locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime CreatedAt { get; init; }
+
+    /// <summary>
+    /// When the series was last updated locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime LastUpdatedAt { get; init; }
+
+    /// <summary>
+    /// When the series was last refreshed in full, in UTC, or <c>null</c> when
+    /// it never was.
     /// </summary>
     public DateTime? LastRefreshedAt { get; init; }
 
@@ -189,6 +201,24 @@ public class MetadataSeason : MetadataEntry
     public int EpisodeCount { get; init; }
 
     /// <summary>
+    /// When the season was first stored locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime CreatedAt { get; init; }
+
+    /// <summary>
+    /// When the season was last updated locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime LastUpdatedAt { get; init; }
+
+    /// <summary>
+    /// When the season's series was last refreshed in full, in UTC, or <c>null</c> when
+    /// it never was.
+    /// </summary>
+    public DateTime? LastRefreshedAt { get; init; }
+
+    /// <summary>
     /// The cast, when asked for.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -269,6 +299,24 @@ public class MetadataEpisode : MetadataEntry
     /// </summary>
     [Required]
     public IReadOnlyList<int> ShokoEpisodeIDs { get; init; } = [];
+
+    /// <summary>
+    /// When the episode was first stored locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime CreatedAt { get; init; }
+
+    /// <summary>
+    /// When the episode was last updated locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime LastUpdatedAt { get; init; }
+
+    /// <summary>
+    /// When the episode's series was last refreshed in full, in UTC, or <c>null</c> when
+    /// it never was.
+    /// </summary>
+    public DateTime? LastRefreshedAt { get; init; }
 
     /// <summary>
     /// The cast, when asked for.

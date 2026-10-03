@@ -5,19 +5,28 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Services;
+using Shoko.Server.Services.Ordering;
 
 namespace Shoko.Server.Models.Metadata.Embedded;
 
 /// <summary>
 ///   A stored ordering, read back with its groups.
 /// </summary>
+/// <typeparam name="TSeries">The series' type.</typeparam>
+/// <typeparam name="TEpisode">The episodes' type.</typeparam>
 /// <param name="row">The ordering's row.</param>
 /// <param name="service">The ordering service, which reads the groups and knows the choice and the hidden episodes.</param>
-public sealed class StoredOrdering(Metadata_Ordering row, MetadataOrderingService service) : IOrdering, IInlineTextSource
+public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, MetadataOrderingService service) : IOrdering<TSeries, TEpisode>, IInlineTextSource, IPlacedOrdering
+    where TSeries : class, ISeries
+    where TEpisode : class, IEpisode
 {
-    private IReadOnlyList<StoredOrderingGroup>? _groups;
+    private IReadOnlyList<StoredOrderingGroup<TSeries, TEpisode>>? _groups;
 
-    private IReadOnlyList<IEpisode>? _episodes;
+    private IReadOnlyList<TEpisode>? _episodes;
+
+    private OrderingPlaces? _placement;
+
+    private Dictionary<MetadataGuid, TEpisode>? _episodesByID;
 
     /// <summary>
     ///   The ordering's row.
@@ -27,7 +36,25 @@ public sealed class StoredOrdering(Metadata_Ordering row, MetadataOrderingServic
     /// <summary>
     ///   The ordering's groups, in viewing order.
     /// </summary>
-    public IReadOnlyList<StoredOrderingGroup> Groups => _groups ??= service.ReadGroups(this);
+    public IReadOnlyList<StoredOrderingGroup<TSeries, TEpisode>> Groups => _groups ??= service.ReadGroups(this);
+
+    /// <summary>
+    ///   The ordering's places, its specials placed.
+    /// </summary>
+    internal OrderingPlaces Placement => _placement ??= OrderingPlaces.ByPlace(
+        [.. Groups.Select(group => new OrderingPlacesGroup(group.ID, group.SeasonNumber, group.IsSpecial, [.. group.Places.Select(place => place.Episode.ID)]))]
+    );
+
+    /// <summary>
+    ///   Finds one of the ordering's episodes.
+    /// </summary>
+    /// <param name="episodeID">The episode.</param>
+    /// <returns>The episode, or <c>null</c> when no group lists it.</returns>
+    internal TEpisode? EpisodeByID(MetadataGuid episodeID)
+    {
+        _episodesByID ??= Groups.SelectMany(group => group.Places).DistinctBy(place => place.Episode.ID).ToDictionary(place => place.Episode.ID, place => place.Episode);
+        return _episodesByID.GetValueOrDefault(episodeID);
+    }
 
     #region IMetadata Implementation
 
@@ -36,7 +63,7 @@ public sealed class StoredOrdering(Metadata_Ordering row, MetadataOrderingServic
 
     #endregion
 
-    #region IOrdering Implementation
+    #region IOrdering<TSeries, TEpisode> Implementation
 
     /// <inheritdoc />
     public MetadataGuid SeriesID => row.SeriesGuid;
@@ -57,7 +84,7 @@ public sealed class StoredOrdering(Metadata_Ordering row, MetadataOrderingServic
     public bool IsPreferred => service.IsChosen(SeriesID, ID);
 
     /// <inheritdoc />
-    public int EpisodeCount => Episodes.Count;
+    public int EpisodeCount => Placement.EpisodeCount;
 
     /// <inheritdoc />
     public int HiddenEpisodeCount => service.CountHidden(Episodes);
@@ -66,14 +93,23 @@ public sealed class StoredOrdering(Metadata_Ordering row, MetadataOrderingServic
     public int SeasonCount => Groups.Count;
 
     /// <inheritdoc />
-    public ISeries Series => service.GetSeries(SeriesID) ??
+    public IReadOnlyList<INetwork> Networks => service.GetNetworks(ID);
+
+    /// <inheritdoc />
+    public TSeries Series => service.GetSeries(SeriesID) as TSeries ??
         throw new NullReferenceException($"Unable to find series {SeriesID} for ordering {ID}");
 
     /// <inheritdoc />
-    public IReadOnlyList<ISeason> Seasons => Groups;
+    public IReadOnlyList<ISeason<TSeries, TEpisode>> Seasons => Groups;
 
     /// <inheritdoc />
-    public IReadOnlyList<IEpisode> Episodes => _episodes ??= [.. Groups.SelectMany(group => group.Episodes).DistinctBy(episode => episode.ID)];
+    public IReadOnlyList<TEpisode> Episodes => _episodes ??= [.. Placement.ViewingOrder.Select(EpisodeByID).OfType<TEpisode>()];
+
+    #endregion
+
+    #region IPlacedOrdering Implementation
+
+    OrderingPlaces IPlacedOrdering.Placement => Placement;
 
     #endregion
 

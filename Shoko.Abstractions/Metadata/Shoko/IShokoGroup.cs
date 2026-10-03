@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Metadata.Shoko;
@@ -8,13 +7,19 @@ namespace Shoko.Abstractions.Metadata.Shoko;
 /// <summary>
 /// Shoko group metadata.
 /// </summary>
-public interface IShokoGroup : ICollection, IWithCreationDate, IWithUpdateDate
+public interface IShokoGroup : ICollection
 {
     /// <summary>
     ///   The Shoko group ID, the same ID <see cref="IMetadata.ID"/> holds as
     ///   text.
     /// </summary>
     int LocalID { get; }
+
+    /// <summary>
+    ///   Always <see langword="null"/>: a Shoko group is never refreshed from
+    ///   a source.
+    /// </summary>
+    DateTime? ICollection.LastRefreshedAt { get => null; }
 
     /// <summary>
     /// The id of the direct parent group if the group is a child-group.
@@ -47,12 +52,6 @@ public interface IShokoGroup : ICollection, IWithCreationDate, IWithUpdateDate
     /// Indicates that the group has a custom overview set.
     /// </summary>
     bool HasCustomOverview { get; }
-
-    /// <summary>
-    /// Indicates that the group has a custom description set.
-    /// </summary>
-    [Obsolete("Use HasCustomOverview instead.")]
-    bool HasCustomDescription { get => HasCustomOverview; }
 
     /// <summary>
     /// The direct parent of the group if the group is a child-group.

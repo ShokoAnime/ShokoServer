@@ -4,8 +4,9 @@ using Moq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.TMDB;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
@@ -37,33 +38,24 @@ public class CrossSourceIDsTests
     [Fact]
     public void AnAnidbAnimeListsTheOtherIDsItCarriesForTheSameAnime()
     {
-        using var scope = new RepoFactoryScope().With<CrossRef_AniDB_MALRepository, int, CrossRef_AniDB_MAL>(xref => xref.CrossRef_AniDB_MALID,
-        [
-            new() { CrossRef_AniDB_MALID = 1, AnimeID = 1, MALID = 100 },
-            new() { CrossRef_AniDB_MALID = 2, AnimeID = 1, MALID = 101 },
-            new() { CrossRef_AniDB_MALID = 3, AnimeID = 1, MALID = 100 },
-            new() { CrossRef_AniDB_MALID = 4, AnimeID = 2, MALID = 200 },
-        ]);
+        using var scope = new RepoFactoryScope()
+            .With<CrossRef_AniDB_MALRepository, int, CrossRef_AniDB_MAL>(xref => xref.CrossRef_AniDB_MALID,
+            [
+                new() { CrossRef_AniDB_MALID = 1, AnimeID = 1, MALID = 100 },
+                new() { CrossRef_AniDB_MALID = 2, AnimeID = 1, MALID = 101 },
+                new() { CrossRef_AniDB_MALID = 3, AnimeID = 1, MALID = 100 },
+                new() { CrossRef_AniDB_MALID = 4, AnimeID = 2, MALID = 200 },
+            ])
+            .With<AniDB_ResourceRepository, int, AniDB_Resource>(row => row.AniDB_ResourceID,
+            [
+                new() { AniDB_ResourceID = 1, AnimeID = 1, ResourceType = ResourceLinkType.TMDB, Identifiers = ["42", "tv"], Urls = [] },
+                new() { AniDB_ResourceID = 2, AnimeID = 1, ResourceType = ResourceLinkType.Syoboi, Identifiers = ["7"], Urls = [] },
+                new() { AniDB_ResourceID = 3, AnimeID = 2, ResourceType = ResourceLinkType.IMDb, Identifiers = ["tt0000002"], Urls = [] },
+            ]);
         var anime = new AniDB_Anime { AnimeID = 1 };
 
-        // Only the MAL IDs: the other sites are the anime's resources.
-        Assert.Equal(["mal://series/100", "mal://series/101"], Texts(anime));
-        Assert.All(((ISeries)anime).CrossSourceIDs, id => Assert.False(id.Source.IsRegistered));
-    }
-
-    #endregion
-
-    #region TMDB
-
-    [Fact]
-    public void TmdbEntriesListTheOtherIDsTheyCarry()
-    {
-        Assert.Equal(["tvdb://series/81797"], Texts(new TMDB_Show(1) { TvdbShowID = 81797 }));
-        Assert.Empty(Texts(new TMDB_Show(2)));
-        Assert.Equal(["tvdb://episode/349232"], Texts(new TMDB_Episode(3) { TvdbEpisodeID = 349232 }));
-        Assert.Empty(Texts(new TMDB_Episode(4) { TvdbEpisodeID = 0 }));
-        Assert.Equal(["imdb://movie/tt0000001"], Texts(new TMDB_Movie(5) { ImdbMovieID = "tt0000001" }));
-        Assert.Empty(Texts(new TMDB_Movie(6) { ImdbMovieID = "0" }));
+        // The MAL IDs, then what the anime's resources name on TMDB and IMDb.
+        Assert.Equal(["mal://series/100", "mal://series/101", "tmdb://series/42"], Texts(anime));
     }
 
     #endregion

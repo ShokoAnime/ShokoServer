@@ -1,0 +1,13 @@
+{
+  "_id": "s0",
+  "air_date": "2023-09-01",
+  "episodes": [
+    { "air_date": "2023-09-01", "episode_number": 1, "id": 3000, "name": "Episode 1", "overview": "A look back.", "runtime": 12, "season_number": 0, "still_path": "/still-3000.jpg", "vote_average": 7.0, "vote_count": 3, "crew": [], "guest_stars": [] }
+  ],
+  "name": "Specials",
+  "overview": "",
+  "id": 2000,
+  "poster_path": null,
+  "season_number": 0,
+  "translations": { "translations": [] }
+}

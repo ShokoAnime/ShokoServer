@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Actions;
@@ -16,7 +15,7 @@ namespace Shoko.Tests.Metadata;
 /// <summary>
 /// The purges across every metadata source cover TMDB and the plugin sources
 /// alike, one named source narrows them to it, a source that is not known or
-/// keeps nothing is refused, and the TMDB-only purges stay on TMDB.
+/// keeps nothing is refused, and one named kind narrows the unused purge.
 /// </summary>
 public class MetadataPurgeActionsTests
 {
@@ -109,13 +108,17 @@ public class MetadataPurgeActionsTests
     }
 
     [Fact]
-    public async Task TheTmdbOnlyPurge_StaysOnTmdbShows()
+    public async Task TheExecutablePurge_NarrowsToOneKind_AndRefusesAKindNotStoredWhole()
     {
         var purged = new List<(MetadataSource Source, MetadataEntityType? Kind)>();
+        var purge = PurgeService(purged).Object;
 
-        await new PurgeAllUnusedTmdbShowsAction(PurgeService(purged).Object).Execute(new Progress<decimal>(), TestContext.Current.CancellationToken);
-
+        await new PurgeUnusedMetadataAction(Providers(), purge) { Source = MetadataSource.TMDB, EntityType = MetadataEntityType.Series }
+            .Execute(TestContext.Current.CancellationToken);
         Assert.Equal([(MetadataSource.TMDB, MetadataEntityType.Series)], purged);
+
+        Assert.NotNull(await new PurgeUnusedMetadataAction(Providers(), purge) { EntityType = MetadataEntityType.Episode }
+            .Validate(TestContext.Current.CancellationToken));
     }
 
     #endregion

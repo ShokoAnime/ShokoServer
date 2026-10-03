@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Shoko.Abstractions.Video;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 

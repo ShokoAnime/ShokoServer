@@ -189,8 +189,8 @@ public interface IWithImages : IMetadata
     IEnumerable<IImageCrossReference> GetDefaultImageCrossReferences()
     {
         foreach (var imageType in Enum.GetValues<ImageEntityType>().Except([ImageEntityType.None]))
-            if (GetPreferredImageCrossReferenceForType(imageType) is { } image)
-                yield return image;
+            if (GetDefaultImageCrossReferenceForType(imageType) is { } xref)
+                yield return xref;
     }
 
     #endregion

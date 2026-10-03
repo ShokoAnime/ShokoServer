@@ -3,5 +3,4 @@
 public enum WorkerPriority
 {
     AniDB,
-    TMDB,
 }

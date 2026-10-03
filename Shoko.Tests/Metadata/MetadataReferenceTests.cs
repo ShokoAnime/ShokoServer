@@ -4,7 +4,6 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Shoko.Embedded;
-using Shoko.Server.Models.TMDB;
 using Xunit;
 
 namespace Shoko.Tests.Metadata;
@@ -49,7 +48,7 @@ public class MetadataReferenceTests
 
     #endregion
 
-    #region Relations and Suggestions
+    #region Relations
 
     [Fact]
     public void AReversedRelationSwapsItsEnds()
@@ -58,15 +57,6 @@ public class MetadataReferenceTests
 
         Assert.Equal(relation.BaseID, relation.Reversed.RelatedID);
         Assert.Equal(relation.RelatedID, relation.Reversed.BaseID);
-    }
-
-    [Fact]
-    public void ATmdbSuggestionNamesBothEndsAsTheKindTheyAre()
-    {
-        ISuggestedMetadata suggestion = new TMDB_Suggestion { TmdbEntityType = MetadataEntityType.Movie, TmdbEntityID = 4, SuggestedTmdbEntityID = 5 };
-
-        Assert.Equal(new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Movie, "4"), suggestion.BaseID);
-        Assert.Equal(new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Movie, "5"), suggestion.SuggestedID);
     }
 
     #endregion

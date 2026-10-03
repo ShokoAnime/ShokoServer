@@ -1,0 +1,19 @@
+{
+  "_id": "s1",
+  "air_date": "2023-09-29",
+  "episodes": [
+    { "air_date": "2023-09-29", "episode_number": 1, "id": 3001, "name": "The Journey's End", "overview": "The party returns.", "runtime": 24, "season_number": 1, "still_path": "/still-3001.jpg", "vote_average": 8.5, "vote_count": 20, "crew": [], "guest_stars": [] },
+    { "air_date": "2023-10-06", "episode_number": 2, "id": 3002, "name": "Episode 2", "overview": "", "runtime": 24, "season_number": 1, "still_path": null, "vote_average": 8.0, "vote_count": 15, "crew": [], "guest_stars": [] }
+  ],
+  "name": "Season 1",
+  "overview": "The first season.",
+  "id": 2001,
+  "poster_path": "/season-1.jpg",
+  "season_number": 1,
+  "translations": {
+    "translations": [
+      { "iso_3166_1": "US", "iso_639_1": "en", "name": "English", "english_name": "English", "data": { "name": "Season 1", "overview": "The first season." } },
+      { "iso_3166_1": "DE", "iso_639_1": "de", "name": "Deutsch", "english_name": "German", "data": { "name": "Staffel 1", "overview": "Die erste Staffel." } }
+    ]
+  }
+}

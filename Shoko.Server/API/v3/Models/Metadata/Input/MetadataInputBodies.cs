@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -105,6 +106,22 @@ public class MetadataRefreshBody
 }
 
 /// <summary>
+/// How to refresh a creator, character, studio or network.
+/// </summary>
+public class MetadataEntityRefreshBody
+{
+    /// <summary>
+    /// Refresh it however recently it was refreshed.
+    /// </summary>
+    public bool Force { get; set; }
+
+    /// <summary>
+    /// Run the refresh now and wait for it, rather than queueing it.
+    /// </summary>
+    public bool Immediate { get; set; }
+}
+
+/// <summary>
 /// How to download an entry's images.
 /// </summary>
 public class MetadataDownloadImagesBody
@@ -148,6 +165,50 @@ public class MetadataProviderUpdateBody
     /// Whether the source's automatic links may point at restricted entries.
     /// </summary>
     public bool? AutoLinkRestricted { get; set; }
+}
+
+/// <summary>
+/// Sets the order of the providers claiming one kind of entry on a source,
+/// and which of them are enabled.
+/// </summary>
+public class MetadataProviderOrderBody
+{
+    /// <summary>
+    /// The kind of entry.
+    /// </summary>
+    [Required, RegisteredMetadataValues]
+    public MetadataEntityType EntityType { get; set; } = null!;
+
+    /// <summary>
+    /// The providers, tried by <see cref="MetadataProviderOrderEntryBody.Priority"/>.
+    /// Each must claim the kind on the source. Those left out keep their
+    /// place and switch after them.
+    /// </summary>
+    [Required]
+    public List<MetadataProviderOrderEntryBody> Providers { get; set; } = [];
+}
+
+/// <summary>
+/// One provider's place in a <see cref="MetadataProviderOrderBody"/>.
+/// </summary>
+public class MetadataProviderOrderEntryBody
+{
+    /// <summary>
+    /// The provider's ID.
+    /// </summary>
+    [Required]
+    public Guid ProviderID { get; set; }
+
+    /// <summary>
+    /// Whether the provider may answer. Defaults to <c>true</c>.
+    /// </summary>
+    [DefaultValue(true)]
+    public bool IsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Where the provider goes, lowest first; ties keep the order given.
+    /// </summary>
+    public int Priority { get; set; }
 }
 
 /// <summary>

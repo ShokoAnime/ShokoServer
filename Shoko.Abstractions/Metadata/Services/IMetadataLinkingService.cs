@@ -112,8 +112,7 @@ public interface IMetadataLinkingService
     ///   does not look them up.
     /// </exception>
     /// <exception cref="MetadataProviderUnavailableException">The source cannot be reached for now.</exception>
-    Task<MetadataSeriesSearchResult?> LookupSeries(MetadataGuid seriesID, CancellationToken cancellationToken = default)
-        => throw new System.NotSupportedException("Looking series up is not supported.");
+    Task<MetadataSeriesSearchResult?> LookupSeries(MetadataGuid seriesID, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Look one film up by its ID at its source, the way a search would have
@@ -135,8 +134,7 @@ public interface IMetadataLinkingService
     ///   does not look them up.
     /// </exception>
     /// <exception cref="MetadataProviderUnavailableException">The source cannot be reached for now.</exception>
-    Task<MetadataMovieSearchResult?> LookupMovie(MetadataGuid movieID, CancellationToken cancellationToken = default)
-        => throw new System.NotSupportedException("Looking films up is not supported.");
+    Task<MetadataMovieSearchResult?> LookupMovie(MetadataGuid movieID, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   Show what a source's auto-linking would do for an anime, without
@@ -170,8 +168,7 @@ public interface IMetadataLinkingService
     ///   Thrown when no provider is set to auto-link that source.
     /// </exception>
     /// <exception cref="MetadataProviderUnavailableException">The source cannot be reached for now.</exception>
-    Task<IReadOnlyList<MetadataAutoLinkCandidate>> PreviewAutoLink(MetadataSource source, int anidbAnimeID, CancellationToken cancellationToken = default)
-        => throw new System.NotSupportedException("Previewing auto-links is not supported.");
+    Task<IReadOnlyList<MetadataAutoLinkCandidate>> PreviewAutoLink(MetadataSource source, int anidbAnimeID, CancellationToken cancellationToken = default);
 
     /// <summary>
     ///   The entries of a source that the anime's links on other sources name
@@ -191,8 +188,7 @@ public interface IMetadataLinkingService
     ///   the anime's links were read; empty when none name the source.
     /// </returns>
     /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
-    IReadOnlyList<MetadataAutoLinkHint> GetCrossSourceHints(MetadataSource source, int anidbAnimeID)
-        => [];
+    IReadOnlyList<MetadataAutoLinkHint> GetCrossSourceHints(MetadataSource source, int anidbAnimeID);
 
     #endregion
 
@@ -215,8 +211,8 @@ public interface IMetadataLinkingService
     ///   <see langword="true"/> if the link now exists.
     /// </returns>
     /// <exception cref="System.ArgumentException">
-    ///   Thrown when the request names no entry, or one on another source, of
-    ///   another kind, or with an ID the source never gives.
+    ///   Thrown when the request names no entry, or one on another source or
+    ///   of another kind.
     /// </exception>
     /// <exception cref="System.NotSupportedException">
     ///   Thrown when nothing can link that source and entity type.
@@ -236,8 +232,8 @@ public interface IMetadataLinkingService
     ///   <see langword="true"/> if the link now exists.
     /// </returns>
     /// <exception cref="System.ArgumentException">
-    ///   Thrown when the request names no film, or an entry on another source,
-    ///   of another kind, or with an ID the source never gives.
+    ///   Thrown when the request names no film, or an entry on another source
+    ///   or of another kind.
     /// </exception>
     /// <exception cref="System.NotSupportedException">
     ///   Thrown when that source does not link films.
@@ -391,15 +387,11 @@ public interface IMetadataLinkingService
     /// <exception cref="System.ArgumentOutOfRangeException">
     ///   <paramref name="matchRating"/> is not a defined rating.
     /// </exception>
-    /// <exception cref="System.NotSupportedException">
-    ///   Thrown when the implementation cannot change ratings.
-    /// </exception>
     Task<IReadOnlyList<IMetadataCrossReference>> SetMatchRating(
         IEnumerable<IMetadataCrossReference> links,
         MatchRating matchRating = MatchRating.UserVerified,
         CancellationToken cancellationToken = default
-    )
-        => throw new System.NotSupportedException("Setting match ratings is not supported.");
+    );
 
     #endregion
 

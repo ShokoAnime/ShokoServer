@@ -28,10 +28,6 @@ namespace Shoko.Server.Services;
 ///   The series store's episodes, which fill in what an episode link leaves
 ///   out and keep its numbers in step.
 /// </param>
-/// <param name="idRules">
-///   Optional. What the core sources say about their own IDs, so a link to an
-///   entry a source could never have given is refused.
-/// </param>
 /// <param name="linkChanges">
 ///   Optional. Where every write reports the links it changed, so
 ///   <see cref="Shoko.Abstractions.Metadata.Services.IMetadataLinkingService.LinksChanged"/>
@@ -42,15 +38,9 @@ public class MetadataCrossReferenceStore(
     CrossRef_AniDB_Metadata_MovieRepository movieRepository,
     CrossRef_AniDB_Metadata_EpisodeRepository episodeRepository,
     Metadata_EpisodeRepository storedEpisodes,
-    IEnumerable<IMetadataLinkIDRule>? idRules = null,
     MetadataLinkChangeTracker? linkChanges = null
 ) : IMetadataCrossReferenceStore
 {
-    /// <summary>
-    ///   The ID rule of each source that has one.
-    /// </summary>
-    private readonly Dictionary<MetadataSource, IMetadataLinkIDRule> _idRules = (idRules ?? []).ToDictionary(rule => rule.Source);
-
     /// <summary>
     ///   One lock per entry, so two callers adding links to the same anime do
     ///   not read the same free position. The unique indexes are what catches
@@ -256,8 +246,8 @@ public class MetadataCrossReferenceStore(
     /// <returns>The links this write wrote, removals included.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="links"/> is or holds <c>null</c>.</exception>
     /// <exception cref="ArgumentException">
-    ///   A link names an entry on another source, of the wrong kind or with an
-    ///   ID its source never gives, or a series or film link names none.
+    ///   A link names an entry on another source or of the wrong kind, or a
+    ///   series or film link names none.
     /// </exception>
     private List<TRow> Merge<TData, TRow>(
         IEnumerable<TData> links,
@@ -447,8 +437,8 @@ public class MetadataCrossReferenceStore(
     /// <param name="matchRating">How the link was arrived at.</param>
     /// <returns>The stored link.</returns>
     /// <exception cref="ArgumentException">
-    ///   <paramref name="providerID"/> is <c>null</c>, on another source, of
-    ///   the wrong kind, or an ID the source never gives.
+    ///   <paramref name="providerID"/> is <c>null</c>, on another source or
+    ///   of the wrong kind.
     /// </exception>
     internal CrossRef_AniDB_Metadata_Series AddSeriesLink(MetadataSource source, int anidbAnimeID, MetadataGuid? providerID, MatchRating matchRating)
     {
@@ -477,8 +467,8 @@ public class MetadataCrossReferenceStore(
     /// <param name="matchRating">How the link was arrived at.</param>
     /// <returns>The stored link.</returns>
     /// <exception cref="ArgumentException">
-    ///   <paramref name="providerID"/> is <c>null</c>, on another source, of
-    ///   the wrong kind, or an ID the source never gives.
+    ///   <paramref name="providerID"/> is <c>null</c>, on another source or
+    ///   of the wrong kind.
     /// </exception>
     internal CrossRef_AniDB_Metadata_Movie AddMovieLink(
         MetadataSource source,
@@ -535,8 +525,7 @@ public class MetadataCrossReferenceStore(
     /// <returns>The stored link.</returns>
     /// <exception cref="ArgumentException">
     ///   <paramref name="providerID"/> or <paramref name="providerParentID"/>
-    ///   is on another source, of the wrong kind, or an ID the source never
-    ///   gives.
+    ///   is on another source or of the wrong kind.
     /// </exception>
     internal CrossRef_AniDB_Metadata_Episode AddEpisodeLink(
         MetadataSource source,
@@ -897,17 +886,17 @@ public class MetadataCrossReferenceStore(
     }
 
     /// <summary>
-    ///   Refuses an entry a link names that is not on the link's source, not
-    ///   of the kind the link's level stores, or has an ID the source's rule
-    ///   says it never gives, and a missing entry where one is required.
+    ///   Refuses an entry a link names that is not on the link's source or not
+    ///   of the kind the link's level stores, and a missing entry where one is
+    ///   required.
     /// </summary>
     /// <param name="source">The link's source.</param>
     /// <param name="entry">The entry named, or <c>null</c> for none.</param>
     /// <param name="entityType">The kind the entry must be.</param>
     /// <param name="required">Whether the link must name an entry.</param>
     /// <exception cref="ArgumentException">
-    ///   The entry is missing where required, on another source, of another
-    ///   kind, or an ID the source never gives.
+    ///   The entry is missing where required, on another source or of another
+    ///   kind.
     /// </exception>
     private void CheckLinked(MetadataSource source, MetadataGuid? entry, MetadataEntityType entityType, bool required = false)
     {
@@ -923,8 +912,6 @@ public class MetadataCrossReferenceStore(
 
         if (entry.Source != source || entry.EntityType != entityType)
             throw new ArgumentException($"A {entityType.Value} link on {source.Value} cannot name \"{entry}\".", "links");
-        if (_idRules.TryGetValue(source, out var rule) && !rule.IsValid(entry))
-            throw new ArgumentException($"\"{entry}\" is not an ID {source.Name} gives, so nothing can be linked to it.", "links");
     }
 
     private object LockFor<TRow>((MetadataSource Source, int AnidbAnimeID, int AnidbEpisodeID) slot) where TRow : CrossRef_AniDB_Metadata, new()

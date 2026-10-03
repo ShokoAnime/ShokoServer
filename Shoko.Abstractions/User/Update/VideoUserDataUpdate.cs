@@ -74,9 +74,9 @@ public class VideoUserDataUpdate
     /// <summary>
     ///   Forces the completion rule on (<c>true</c>) or off (<c>false</c>)
     ///   for this save, or leaves it to the save reason (<c>null</c>). The
-    ///   rule treats a <see cref="ProgressPosition"/> past 97.5% of the
-    ///   runtime as finished: it marks the video watched and clears the
-    ///   position.
+    ///   rule treats a <see cref="ProgressPosition"/> at or past the server's
+    ///   completion threshold (95% of the runtime by default) as finished: it
+    ///   marks the video watched and clears the position.
     /// </summary>
     /// <remarks>
     ///   By default only <see cref="VideoUserDataSaveReason.PlaybackEnd"/>,

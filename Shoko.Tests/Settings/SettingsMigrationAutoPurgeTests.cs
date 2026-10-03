@@ -27,6 +27,7 @@ public sealed class SettingsMigrationAutoPurgeTests : IDisposable
 
         var applicationPaths = new Mock<IApplicationPaths>(MockBehavior.Loose);
         applicationPaths.SetupGet(paths => paths.DataPath).Returns(_dataPath);
+        applicationPaths.SetupGet(paths => paths.ConfigurationsPath).Returns(Path.Join(_dataPath, "configurations"));
         _applicationPaths = applicationPaths.Object;
     }
 
@@ -38,6 +39,9 @@ public sealed class SettingsMigrationAutoPurgeTests : IDisposable
 
     private JObject Migrate(string settings)
         => JObject.Parse(SettingsMigrations.MigrateSettings(settings, _applicationPaths));
+
+    private JObject TmdbPluginFile()
+        => JObject.Parse(File.ReadAllText(SettingsMigrations.TmdbPluginConfigurationPath(_applicationPaths)));
 
     #endregion
 
@@ -55,8 +59,9 @@ public sealed class SettingsMigrationAutoPurgeTests : IDisposable
             }
             """);
 
-        Assert.Null(migrated["TMDB"]!["AutoPurgeUnlinkedAfterDays"]);
-        Assert.Equal("keep-me", migrated["TMDB"]!["UserApiKey"]!.Value<string>());
+        Assert.Null(migrated["TMDB"]);
+        Assert.Null(TmdbPluginFile()["AutoPurgeUnlinkedAfterDays"]);
+        Assert.Equal("keep-me", TmdbPluginFile()["UserApiKey"]!.Value<string>());
         Assert.Equal(days, migrated["Metadata"]!["AutoPurgeUnlinkedAfterDays"]!.Value<int>());
     }
 

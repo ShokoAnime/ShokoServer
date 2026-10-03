@@ -135,6 +135,19 @@ public sealed record MetadataOrderingImportEntry
     public IReadOnlyList<MetadataOrderingUnresolvedEpisode> UnresolvedEpisodes { get; init; } = [];
 
     /// <summary>
+    ///   The networks the ordering was linked to, or on a dry run would be,
+    ///   in order.
+    /// </summary>
+    public IReadOnlyList<MetadataGuid> Networks { get; init; } = [];
+
+    /// <summary>
+    ///   The networks of <see cref="Networks"/> this server did not have,
+    ///   kept as stubs with an empty name until their source saves them, or
+    ///   on a dry run that would be.
+    /// </summary>
+    public IReadOnlyList<MetadataGuid> StubbedNetworks { get; init; } = [];
+
+    /// <summary>
     ///   What was done with each image of the ordering and its groups.
     /// </summary>
     public IReadOnlyList<MetadataOrderingImageImportEntry> Images { get; init; } = [];

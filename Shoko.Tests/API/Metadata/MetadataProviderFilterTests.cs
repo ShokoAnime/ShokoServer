@@ -12,7 +12,6 @@ using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 using static Shoko.Tests.API.Metadata.FakeMetadataEntries;
@@ -79,9 +78,9 @@ public class MetadataProviderFilterTests
     }
 
     [Fact]
-    public void TmdbWithoutAnApiKeyBehindABlockingWaitAnswers503()
+    public void AnUnconfiguredProviderBehindABlockingWaitAnswers503()
     {
-        var context = Failed(new AggregateException(new TmdbApiKeyUnavailableException()));
+        var context = Failed(new AggregateException(new MetadataProviderNotConfiguredException(Source, "No API key is configured.")));
 
         new MetadataProviderUnavailableAttribute().OnException(context);
 

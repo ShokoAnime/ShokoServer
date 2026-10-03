@@ -23,7 +23,7 @@ public class ImageSettings
     public MetadataImageSettings MetadataSourceDefaults { get; set; } = new();
 
     /// <summary>
-    ///   Which images to download for TMDB and each plugin metadata source, keyed by
+    ///   Which images to download for each plugin metadata source, keyed by
     ///   source, in place of <see cref="MetadataSourceDefaults"/>.
     /// </summary>
     [Display(Name = "Metadata Source Images")]

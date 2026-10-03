@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Moq;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Actions;

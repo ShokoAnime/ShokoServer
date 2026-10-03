@@ -10,9 +10,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Shoko;
-using Shoko.Server.Models.CrossReference.Embedded;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
+using Shoko.Server.Models.Metadata;
 
 namespace Shoko.Server.API.v3.Models.TMDB;
 
@@ -158,15 +156,21 @@ public class TmdbEpisode
     [Required]
     public DateTime LastUpdatedAt { get; init; }
 
-    public TmdbEpisode(TMDB_Show show, TMDB_Episode episode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null) :
+    public TmdbEpisode(Metadata_Series show, Metadata_Episode episode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null) :
         this(show, episode, null, includeDetails, language)
     { }
 
-    public TmdbEpisode(TMDB_Show show, TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null)
+    public TmdbEpisode(
+        Metadata_Series show,
+        Metadata_Episode episode,
+        TmdbCompatibility.AlternateOrderingEpisode? alternateOrderingEpisode,
+        IncludeDetails? includeDetails = null,
+        IReadOnlySet<TitleLanguage>? language = null
+    )
     {
         var include = includeDetails ?? default;
         var preferredOverview = episode.GetPreferredOverview();
-        var preferredTitle = episode.GetPreferredTitle();
+        var preferredTitle = episode.GetPreferredTitle(alternateOrderingEpisode);
 
         ID = episode.TmdbEpisodeID;
         SeasonID = alternateOrderingEpisode?.TmdbEpisodeGroupID ?? episode.TmdbSeasonID.ToString();
@@ -174,12 +178,12 @@ public class TmdbEpisode
         AlternateOrderingID = alternateOrderingEpisode?.TmdbEpisodeGroupCollectionID ?? show.TmdbShowID.ToString();
         TvdbEpisodeID = episode.TvdbEpisodeID;
 
-        Title = preferredTitle!.Value;
+        Title = preferredTitle.Value;
         if (include.HasFlag(IncludeDetails.Titles))
-            Titles = episode.GetAllTitles()
-                .ToTitleDto(episode.EnglishTitle, preferredTitle, language);
+            Titles = episode.GetAllTitles(alternateOrderingEpisode)
+                .ToTitleDto(episode.GetEnglishTitle(alternateOrderingEpisode).Value, preferredTitle, language);
 
-        Overview = preferredOverview!.Value;
+        Overview = preferredOverview.Value;
         if (include.HasFlag(IncludeDetails.Overviews))
             Overviews = episode.GetAllOverviews()
                 .ToOverviewDto(episode.EnglishOverview, preferredOverview, language);
@@ -187,19 +191,19 @@ public class TmdbEpisode
 
         if (alternateOrderingEpisode != null)
         {
-            EpisodeNumber = alternateOrderingEpisode.EpisodeNumber;
+            EpisodeNumber = alternateOrderingEpisode.PlacedEpisodeNumber;
             SeasonNumber = alternateOrderingEpisode.SeasonNumber;
         }
         else
         {
             EpisodeNumber = episode.EpisodeNumber;
-            SeasonNumber = episode.SeasonNumber;
+            SeasonNumber = episode.TmdbSeasonNumber;
         }
         UserRating = new()
         {
-            Value = episode.UserRating,
+            Value = episode.Rating,
             MaxValue = 10,
-            Votes = episode.UserVotes,
+            Votes = episode.RatingVotes,
             Source = "TMDB",
         };
         Runtime = episode.Runtime;
@@ -208,23 +212,24 @@ public class TmdbEpisode
                 .InLanguage(language)
                 .ToDto(language);
         if (include.HasFlag(IncludeDetails.Cast))
-            Cast = episode.Cast
+            Cast = episode.TmdbCast
                 .Select(Role.FromTmdb)
                 .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.Crew))
-            Crew = episode.Crew
+            Crew = episode.TmdbCrew
                 .Select(Role.FromTmdb)
                 .OfType<Role>()
                 .ToList();
         if (include.HasFlag(IncludeDetails.Ordering))
         {
+            var preferredOrderingID = show.PreferredAlternateOrderingID;
             var ordering = new List<OrderingInformation>
             {
-                new(show, episode, alternateOrderingEpisode),
+                new(episode, preferredOrderingID is null, alternateOrderingEpisode),
             };
             foreach (var altOrderEp in episode.TmdbAlternateOrderingEpisodes)
-                ordering.Add(new(show, altOrderEp, alternateOrderingEpisode));
+                ordering.Add(new(altOrderEp, preferredOrderingID, alternateOrderingEpisode));
             Ordering = ordering
                 .OrderByDescending(o => o.IsDefault)
                 .ThenBy(o => o.OrderingType)
@@ -289,6 +294,26 @@ public class TmdbEpisode
         public int EpisodeNumber { get; init; }
 
         /// <summary>
+        /// The season of the regular episode a placed special airs before, in
+        /// an episode group that lists it in its special group and a regular one.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? AirsBeforeSeasonNumber { get; init; }
+
+        /// <summary>
+        /// The number of the regular episode a placed special airs before.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? AirsBeforeEpisodeNumber { get; init; }
+
+        /// <summary>
+        /// The season a placed special airs after, when no episode of it
+        /// follows the special.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? AirsAfterSeasonNumber { get; init; }
+
+        /// <summary>
         /// Indicates the current ordering is the default ordering for the episode.
         /// </summary>
         [Required]
@@ -306,22 +331,38 @@ public class TmdbEpisode
         [Required]
         public bool InUse { get; init; }
 
-        public OrderingInformation(TMDB_Show show, TMDB_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisodeInUse)
+        /// <summary>
+        /// The episode's place in its show's own ordering of its seasons.
+        /// </summary>
+        /// <param name="episode">The episode.</param>
+        /// <param name="isPreferred">Whether no alternate ordering is chosen for the show.</param>
+        /// <param name="alternateOrderingEpisodeInUse">The episode's place in the alternate ordering it is read in, if any.</param>
+        public OrderingInformation(Metadata_Episode episode, bool isPreferred, TmdbCompatibility.AlternateOrderingEpisode? alternateOrderingEpisodeInUse)
         {
             var season = episode.TmdbSeason;
             OrderingID = episode.TmdbShowID.ToString();
-            OrderingName = "Seasons";
+            OrderingName = TmdbCompatibility.DefaultOrderingName;
             OrderingType = null;
             SeasonID = episode.TmdbSeasonID.ToString();
             SeasonName = season?.EnglishTitle ?? "<unknown name>";
-            SeasonNumber = episode.SeasonNumber;
+            SeasonNumber = episode.TmdbSeasonNumber;
             EpisodeNumber = episode.EpisodeNumber;
             IsDefault = true;
-            IsPreferred = string.IsNullOrEmpty(show.PreferredAlternateOrderingID) || string.Equals(show.PreferredAlternateOrderingID, episode.TmdbShowID.ToString());
+            IsPreferred = isPreferred;
             InUse = alternateOrderingEpisodeInUse == null;
         }
 
-        public OrderingInformation(TMDB_Show show, TMDB_AlternateOrdering_Episode episode, TMDB_AlternateOrdering_Episode? alternateOrderingEpisodeInUse)
+        /// <summary>
+        /// The episode's place in one of TMDB's alternate orderings of its show.
+        /// </summary>
+        /// <param name="episode">The episode's place.</param>
+        /// <param name="preferredOrderingID">TMDB's ID for the alternate ordering chosen for the show, if any.</param>
+        /// <param name="alternateOrderingEpisodeInUse">The episode's place in the alternate ordering it is read in, if any.</param>
+        public OrderingInformation(
+            TmdbCompatibility.AlternateOrderingEpisode episode,
+            string? preferredOrderingID,
+            TmdbCompatibility.AlternateOrderingEpisode? alternateOrderingEpisodeInUse
+        )
         {
             var ordering = episode.TmdbAlternateOrdering;
             var season = episode.TmdbAlternateOrderingSeason;
@@ -331,11 +372,15 @@ public class TmdbEpisode
             SeasonID = episode.TmdbEpisodeGroupID;
             SeasonName = season?.EnglishTitle ?? "<unknown name>";
             SeasonNumber = episode.SeasonNumber;
-            EpisodeNumber = episode.EpisodeNumber;
+            EpisodeNumber = episode.PlacedEpisodeNumber;
+            AirsBeforeSeasonNumber = episode.Place.AirsBeforeSeasonNumber;
+            AirsBeforeEpisodeNumber = episode.Place.AirsBeforeEpisodeNumber;
+            AirsAfterSeasonNumber = episode.Place.AirsAfterSeasonNumber;
             IsDefault = false;
-            IsPreferred = string.Equals(show.PreferredAlternateOrderingID, episode.TmdbEpisodeGroupCollectionID);
+            IsPreferred = string.Equals(preferredOrderingID, episode.TmdbEpisodeGroupCollectionID);
             InUse = alternateOrderingEpisodeInUse != null &&
-                episode.TMDB_AlternateOrdering_EpisodeID == alternateOrderingEpisodeInUse.TMDB_AlternateOrdering_EpisodeID;
+                string.Equals(episode.TmdbEpisodeGroupCollectionID, alternateOrderingEpisodeInUse.TmdbEpisodeGroupCollectionID) &&
+                string.Equals(episode.TmdbEpisodeGroupID, alternateOrderingEpisodeInUse.TmdbEpisodeGroupID);
         }
     }
 

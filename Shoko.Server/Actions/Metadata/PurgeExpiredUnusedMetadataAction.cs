@@ -15,7 +15,7 @@ public sealed class PurgeExpiredUnusedMetadataAction(IQueueScheduler scheduler) 
 {
     public override string Name => "Purge Expired Unused Metadata";
 
-    public override string? Description => "Removes the series, films and collections of TMDB and the plugin metadata sources that nothing has linked to for longer than the metadata settings allow.";
+    public override string? Description => "Removes the series, films and collections of the plugin metadata sources that nothing has linked to for longer than the metadata settings allow.";
 
     public override ActionCategory Category => ActionCategory.Maintenance;
 

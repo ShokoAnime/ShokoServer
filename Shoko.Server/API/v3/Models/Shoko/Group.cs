@@ -10,7 +10,6 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Core.Update;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Extensions;
-using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User;
 using Shoko.Abstractions.User.Services;

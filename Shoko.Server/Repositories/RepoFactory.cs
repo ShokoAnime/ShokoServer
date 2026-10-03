@@ -8,10 +8,8 @@ using Shoko.Server.Repositories.Cached.Airing;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
-using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Repositories.Direct;
-using Shoko.Server.Repositories.Direct.TMDB;
-using Shoko.Server.Repositories.Direct.TMDB.Optional;
+using Shoko.Server.Repositories.Direct.Metadata;
 using Shoko.Server.Services;
 
 // ReSharper disable InconsistentNaming
@@ -56,9 +54,6 @@ public class RepoFactory
     public static CrossRef_AniDB_Metadata_SeriesRepository CrossRef_AniDB_Metadata_Series = null!;
     public static CrossRef_AniDB_Metadata_MovieRepository CrossRef_AniDB_Metadata_Movie = null!;
     public static CrossRef_AniDB_Metadata_EpisodeRepository CrossRef_AniDB_Metadata_Episode = null!;
-    public static CrossRef_AniDB_TMDB_EpisodeRepository CrossRef_AniDB_TMDB_Episode = null!;
-    public static CrossRef_AniDB_TMDB_MovieRepository CrossRef_AniDB_TMDB_Movie = null!;
-    public static CrossRef_AniDB_TMDB_ShowRepository CrossRef_AniDB_TMDB_Show = null!;
     public static CrossRef_CustomTagRepository CrossRef_CustomTag = null!;
     public static CrossRef_File_EpisodeRepository CrossRef_File_Episode = null!;
     public static CustomTagRepository CustomTag = null!;
@@ -92,25 +87,6 @@ public class RepoFactory
     public static StoredReleaseInfoRepository StoredReleaseInfo = null!;
     public static StoredRelocationPresetRepository StoredRelocationPreset = null!;
     public static StoredReleaseInfo_MatchAttemptRepository StoredReleaseInfo_MatchAttempt = null!;
-    public static TMDB_AlternateOrdering_EpisodeRepository TMDB_AlternateOrdering_Episode = null!;
-    public static TMDB_AlternateOrdering_SeasonRepository TMDB_AlternateOrdering_Season = null!;
-    public static TMDB_AlternateOrderingRepository TMDB_AlternateOrdering = null!;
-    public static TMDB_Collection_MovieRepository TMDB_Collection_Movie = null!;
-    public static TMDB_CollectionRepository TMDB_Collection = null!;
-    public static TMDB_Company_EntityRepository TMDB_Company_Entity = null!;
-    public static TMDB_CompanyRepository TMDB_Company = null!;
-    public static TMDB_Episode_CastRepository TMDB_Episode_Cast = null!;
-    public static TMDB_Episode_CrewRepository TMDB_Episode_Crew = null!;
-    public static TMDB_EpisodeRepository TMDB_Episode = null!;
-    public static TMDB_Movie_CastRepository TMDB_Movie_Cast = null!;
-    public static TMDB_Movie_CrewRepository TMDB_Movie_Crew = null!;
-    public static TMDB_MovieRepository TMDB_Movie = null!;
-    public static TMDB_NetworkRepository TMDB_Network = null!;
-    public static TMDB_PersonRepository TMDB_Person = null!;
-    public static TMDB_SeasonRepository TMDB_Season = null!;
-    public static TMDB_Show_NetworkRepository TMDB_Show_Network = null!;
-    public static TMDB_SuggestionRepository TMDB_Suggestion = null!;
-    public static TMDB_ShowRepository TMDB_Show = null!;
     public static VersionsRepository Versions = null!;
     public static VideoLocalRepository VideoLocal = null!;
     public static VideoLocal_HashDigestRepository VideoLocalHashDigest = null!;
@@ -152,9 +128,6 @@ public class RepoFactory
         CrossRef_AniDB_Metadata_SeriesRepository crossRefAniDBMetadataSeries,
         CrossRef_AniDB_Metadata_MovieRepository crossRefAniDBMetadataMovie,
         CrossRef_AniDB_Metadata_EpisodeRepository crossRefAniDBMetadataEpisode,
-        CrossRef_AniDB_TMDB_EpisodeRepository crossRefAniDBTmdbEpisode,
-        CrossRef_AniDB_TMDB_MovieRepository crossRefAniDBTmdbMovie,
-        CrossRef_AniDB_TMDB_ShowRepository crossRefAniDBTmdbShow,
         CrossRef_CustomTagRepository crossRefCustomTag,
         CrossRef_File_EpisodeRepository crossRefFileEpisode,
         CustomTagRepository customTag,
@@ -188,25 +161,6 @@ public class RepoFactory
         StoredRelocationPresetRepository storedRelocationPreset,
         StoredReleaseInfoRepository storedReleaseInfo,
         StoredReleaseInfo_MatchAttemptRepository storedReleaseInfoMatchAttempt,
-        TMDB_AlternateOrdering_EpisodeRepository tmdbAlternateOrderingEpisode,
-        TMDB_AlternateOrdering_SeasonRepository tmdbAlternateOrderingSeason,
-        TMDB_AlternateOrderingRepository tmdbAlternateOrdering,
-        TMDB_Collection_MovieRepository tmdbCollectionMovie,
-        TMDB_CollectionRepository tmdbCollection,
-        TMDB_Company_EntityRepository tmdbCompanyEntity,
-        TMDB_CompanyRepository tmdbCompany,
-        TMDB_Episode_CastRepository tmdbEpisodeCast,
-        TMDB_Episode_CrewRepository tmdbEpisodeCrew,
-        TMDB_EpisodeRepository tmdbEpisode,
-        TMDB_Movie_CastRepository tmdbMovieCast,
-        TMDB_Movie_CrewRepository tmdbMovieCrew,
-        TMDB_MovieRepository tmdbMovie,
-        TMDB_NetworkRepository tmdbNetwork,
-        TMDB_PersonRepository tmdbPerson,
-        TMDB_SeasonRepository tmdbSeason,
-        TMDB_Show_NetworkRepository tmdbShowNetwork,
-        TMDB_SuggestionRepository tmdbSuggestion,
-        TMDB_ShowRepository tmdbShow,
         VersionsRepository versions,
         VideoLocal_HashDigestRepository videoLocalHashDigest,
         VideoLocal_PlaceRepository videoLocalPlace,
@@ -248,9 +202,6 @@ public class RepoFactory
         CrossRef_AniDB_Metadata_Series = crossRefAniDBMetadataSeries;
         CrossRef_AniDB_Metadata_Movie = crossRefAniDBMetadataMovie;
         CrossRef_AniDB_Metadata_Episode = crossRefAniDBMetadataEpisode;
-        CrossRef_AniDB_TMDB_Episode = crossRefAniDBTmdbEpisode;
-        CrossRef_AniDB_TMDB_Movie = crossRefAniDBTmdbMovie;
-        CrossRef_AniDB_TMDB_Show = crossRefAniDBTmdbShow;
         CrossRef_CustomTag = crossRefCustomTag;
         CrossRef_File_Episode = crossRefFileEpisode;
         CustomTag = customTag;
@@ -284,25 +235,6 @@ public class RepoFactory
         StoredReleaseInfo = storedReleaseInfo;
         StoredRelocationPreset = storedRelocationPreset;
         StoredReleaseInfo_MatchAttempt = storedReleaseInfoMatchAttempt;
-        TMDB_AlternateOrdering = tmdbAlternateOrdering;
-        TMDB_AlternateOrdering_Episode = tmdbAlternateOrderingEpisode;
-        TMDB_AlternateOrdering_Season = tmdbAlternateOrderingSeason;
-        TMDB_Collection = tmdbCollection;
-        TMDB_Collection_Movie = tmdbCollectionMovie;
-        TMDB_Company = tmdbCompany;
-        TMDB_Company_Entity = tmdbCompanyEntity;
-        TMDB_Episode = tmdbEpisode;
-        TMDB_Episode_Cast = tmdbEpisodeCast;
-        TMDB_Episode_Crew = tmdbEpisodeCrew;
-        TMDB_Movie = tmdbMovie;
-        TMDB_Movie_Cast = tmdbMovieCast;
-        TMDB_Movie_Crew = tmdbMovieCrew;
-        TMDB_Network = tmdbNetwork;
-        TMDB_Person = tmdbPerson;
-        TMDB_Season = tmdbSeason;
-        TMDB_Show = tmdbShow;
-        TMDB_Show_Network = tmdbShowNetwork;
-        TMDB_Suggestion = tmdbSuggestion;
         Versions = versions;
         VideoLocal = videoLocal;
         VideoLocalHashDigest = videoLocalHashDigest;

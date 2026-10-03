@@ -1,0 +1,30 @@
+{
+  "adult": false,
+  "also_known_as": ["種崎敦美", "Tanezaki Atsumi", " "],
+  "biography": "A Japanese voice actress.",
+  "birthday": "1989-09-27",
+  "deathday": null,
+  "gender": 1,
+  "homepage": "https://example.com/tanezaki",
+  "id": 5001,
+  "imdb_id": "nm5001",
+  "known_for_department": "Acting",
+  "name": "Atsumi Tanezaki",
+  "place_of_birth": "Ōita Prefecture, Japan",
+  "popularity": 10.0,
+  "profile_path": "/p-5001.jpg",
+  "external_ids": { "id": 5001, "imdb_id": "nm5001", "wikidata_id": null },
+  "images": {
+    "id": 5001,
+    "profiles": [
+      { "aspect_ratio": 0.667, "file_path": "/p-5001.jpg", "height": 900, "iso_639_1": null, "vote_average": 5.3, "vote_count": 3, "width": 600 },
+      { "aspect_ratio": 0.667, "file_path": "/p-5001-b.jpg", "height": 600, "iso_639_1": null, "vote_average": 0, "vote_count": 0, "width": 400 }
+    ]
+  },
+  "translations": {
+    "translations": [
+      { "iso_3166_1": "US", "iso_639_1": "en", "name": "English", "english_name": "English", "data": { "biography": "A Japanese voice actress." } },
+      { "iso_3166_1": "DE", "iso_639_1": "de", "name": "Deutsch", "english_name": "German", "data": { "overview": "Eine japanische Synchronsprecherin." } }
+    ]
+  }
+}

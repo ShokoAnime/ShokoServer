@@ -1,8 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Net.Http.Headers;
+using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Settings;
 
@@ -46,6 +51,40 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
         }
 
         return StatusCode(StatusCodes.Status500InternalServerError, message);
+    }
+
+    /// <summary>
+    /// Sends an icon a plugin ships, with an ETag, so that an SVG opened on
+    /// its own runs no script.
+    /// </summary>
+    /// <param name="icon">The icon, if there is one.</param>
+    /// <param name="applicationPaths">Resolves the icon's path.</param>
+    /// <param name="notFound">The message sent when there is no icon.</param>
+    /// <returns>
+    /// The icon, <c>304 Not Modified</c> when the client's copy has the same
+    /// ETag, or <c>404 Not Found</c> when there is none.
+    /// </returns>
+    [NonAction]
+    protected ActionResult PackageIcon(PackageImageInfo? icon, IApplicationPaths applicationPaths, string notFound)
+    {
+        if (icon is null || icon.GetStream(applicationPaths) is not { } stream)
+            return NotFound(notFound);
+
+        byte[] bytes;
+        using (stream)
+        {
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            bytes = buffer.ToArray();
+        }
+
+        // The file result answers a matching If-None-Match with 304 by itself.
+        var headers = Response.Headers;
+        headers.CacheControl = "private, max-age=86400";
+        headers.XContentTypeOptions = "nosniff";
+        headers.ContentSecurityPolicy = "sandbox";
+        var etag = new EntityTagHeaderValue($"\"{Convert.ToHexStringLower(SHA256.HashData(bytes), 0, 8)}\"");
+        return File(bytes, icon.MimeType, null, etag);
     }
 
     [NonAction]

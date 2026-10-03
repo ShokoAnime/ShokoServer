@@ -16,6 +16,7 @@ refresh itself: fetch from your source and write into the stores.
 | `IMetadataCollectionProvider` | Refresh a stored collection into the stores. |
 | `IMetadataAutoLinkingProvider` | Work out what an anime is on your own, for the core to link. |
 | `IMetadataImageProvider` | Offer the images your source has for its entities. |
+| `IMetadataEntityProvider` | Refresh your creators, characters, studios and networks one at a time. |
 | `IPausableMetadataProvider` | Say you cannot take work right now, so your jobs wait. |
 
 A provider implementing none of `IMetadataSeriesProvider`,
@@ -36,11 +37,12 @@ A provider answers for exactly one `MetadataSource`, returned from `Source`
 and read once at registration; a plugin serving several sources defines one
 provider per source.
 
-- **The core's sources are refused.** `anidb` and `tmdb` are served by the
-  core, and `shoko`, `user` and `generated` name no provider. The full list is
+- **The core's sources are refused.** `anidb` is served by the core, and
+  `shoko`, `user` and `generated` name no provider. The full list is
   `IMetadataProviderManager.ReservedSources`, and it can grow.
 - **Any other source is yours to claim** when your data is what it names.
-  AniList is one of them, served by its own plugin like any other.
+  TMDb and AniList are among them, each served by its own plugin like any
+  other; `tmdb` is registered up front for the bundled TMDb plugin.
 - **There is no catch-all source.** Register your own with
   `MetadataSource.Register` and pass that instance wherever a source is asked
   for.
@@ -135,18 +137,25 @@ public static MetadataSource? Example => MetadataSource.TryGet("example", out va
 ### Which provider answers
 
 Two plugins may claim one source; the core refuses neither. Each source and
-entity type is answered by one provider at a time, and every claimant gets to
-clean up after a purge. What was never decided goes to the first provider
-registered for the source, the core's before any plugin's: every entity type
-no earlier provider was given, and auto-linking for the first one implementing
+entity type keeps an order of the providers claiming it: the first enabled
+one answers, the rest stand by, and every claimant gets to clean up after a
+purge. What was never decided goes to the first provider registered for the
+source, the core's before any plugin's: every entity type no earlier provider
+was given, and auto-linking for the first one implementing
 `IMetadataAutoLinkingProvider` (starting from `AutoLinkByDefault` and
-`AutoLinkRestrictedByDefault`). The choice is saved, so a provider installed
-later never takes over by itself, and an admin's decisions are always kept.
-When the assigned provider disappears, its assignments go to the first
-provider still claiming the source. Being turned on queues nothing: the whole
-library is searched only when somebody asks
-(`IMetadataRefreshService.AutoSearchAll`, the "Search for Metadata Matches"
-action or `POST /api/v3/Metadata/{source}/Action/AutoSearchAll`).
+`AutoLinkRestrictedByDefault`). A provider installed later joins the end of
+each order, so it never takes over by itself, and an admin's decisions are
+always kept (`IMetadataProviderManager.SetProviderOrder`, or
+`PUT /api/v3/Metadata/Source/{source}/Providers`). When the provider
+answering is turned off, the next enabled one takes over; when it disappears,
+so does the next enabled one, or else the first one still claiming the type.
+The order is not tried at the time of asking: a paused or unconfigured
+provider holds its work back rather than handing it on.
+
+Being turned on queues nothing: the whole library is searched only when
+somebody asks (`IMetadataRefreshService.AutoSearchAll`, the "Search for
+Metadata Matches" action or
+`POST /api/v3/Metadata/{source}/Action/AutoSearchAll`).
 
 Return `false` from `IsConfigured` while you lack what you need, such as an
 API key, with the reason in `NotConfiguredReason`. Auto-linking then skips
@@ -212,9 +221,9 @@ plain non-negative integer. `MetadataGuid.For("anidb", "series", "1")` takes
 registered values only.
 
 The ID part is always the source's own ID: a Shoko row's local ID, a video's
-`<ED2K>+<size>`, an airing channel's GUID, an AniDB or TMDB ID, or the ID you
-stored an entry under. Where it is an integer it is also exposed as
-`LocalID`, `AnidbID` or `TmdbID`. Every reference between entries is a
+`<ED2K>+<size>`, an airing channel's GUID, an AniDB ID, or the ID you stored
+an entry under. Where it is an integer it is also exposed as `LocalID` or
+`AnidbID`. Every reference between entries is a
 `MetadataGuid` too (`SeriesID`, `SeasonID`, both ends of a relation, a link's
 `ProviderID`), built from the stored columns. A cast or crew credit has no
 identifier of its own.
@@ -263,8 +272,17 @@ an episode not stored yet is kept as written.
 
 **Resources and ratings.** Series, episodes and movies carry `Resource` links;
 fill `Resource.ID` with the site's bare ID (`tt0123456` for IMDb) whenever the
-site has IDs. Series and movies carry one `MetadataContentRatingData` per
-country.
+site has IDs. Series and movies carry their `MetadataContentRatingData` in
+your order, a country as often as your source rates it; only an exact repeat
+of a country and rating is dropped.
+
+**Default images.** Every entry with images (series, seasons, episodes,
+movies, collections, creators, characters, studios and networks) takes
+`DefaultImageResourceIDs`: your resource ID of its default image of each
+type, the one your source names on the entry. The store keeps it with the
+entry, and that image becomes the entry's default of its type, wherever it
+sits among the links. Leave it `null` to keep what is stored, or give an
+empty map to clear it; a type the entry has no images of is ignored.
 
 **People.** `SetCast` and `SetCrew` make an entry's list exactly the credits
 given. A cast credit is known by its character, creator and language, a crew
@@ -272,14 +290,24 @@ credit by its creator and job. Alternative names are stored as `Synonym`
 titles, and birthdays and days of death are `FuzzyDateOnly`, where year, month
 and day may each be unknown (`--07-04`).
 
+**Stubs.** A credit or link may name a creator, character, studio or network
+that is not stored yet. The store then keeps a stub of it: its ID and the name
+the credit or link carried (`CreatorName`, `CharacterName` or the role's
+`Name`, `StudioName`, `NetworkName`), or an empty one. A stub reads like any
+entry with that name, and the next `SaveCreators`, `SaveCharacters`,
+`SaveStudios` or `SaveNetworks` naming it fills it in. See
+[refreshing people, studios and networks](#refreshing-people-studios-and-networks)
+for who fills it in.
+
 **Tags, studios and networks.** A tag's `Kind` is a descriptive tag, a genre
 or a keyword; keep loose keywords apart with `TagKind.Keyword`.
 `IMetadataStudioStore` keeps networks as it keeps studios (`SaveNetworks`,
-`SetNetworks`, `RemoveNetworks`).
+`SetNetworks`, `RemoveNetworks`); give `SetNetworks` the
+`MetadataEntryNetworkData` form to name a stub.
 
 **Orphans.** People, studios and networks are never removed on the spot:
 their store stamps them when they lose their last use and clears the stamp
-when they are used again. The core purges those unused for longer than the
+when they are used again. A stub something names is kept like any entry. The core purges those unused for longer than the
 admin's setting (a week unless changed) daily, so you may save them before or
 after the entries naming them. `RemoveOrphaned` on either store is that purge
 for one source; pass a cutoff a day or more in the past.
@@ -306,6 +334,7 @@ linked to several of your films.
 | `IMetadataSeriesProvider.RefreshSeries` | Each series linked to an anime on your source, or that its episode links point into | `IMetadataSeriesStore.SaveSeries` |
 | `IMetadataMovieProvider.RefreshMovie` | Each film linked to an anime, whole or through an episode | `IMetadataMovieStore.SaveMovie` |
 | `IMetadataCollectionProvider.RefreshCollection` | Each stored collection in the library refresh, or one asked for by `RefreshEntry` | `IMetadataCollectionStore.SaveCollection` |
+| `IMetadataEntityProvider.RefreshEntity` | Each stub or stale creator, character, studio or network something names, or one asked for by `RefreshEntry` | `SaveCreators`, `SaveCharacters`, `SaveStudios`, `SaveNetworks` |
 
 The core writes nothing of yours for you: fetch, then write the entry, its
 cast and crew, and its tags, studios, networks, relations and suggestions.
@@ -313,12 +342,15 @@ When your source no longer has an entry, keeping or removing it is up to you.
 A collection enters the store when you save it during a series or film
 refresh.
 
-`MetadataRefreshOptions` carries TMDB's switches (`DownloadImages`,
+`MetadataRefreshOptions` carries the refresh switches (`DownloadImages`,
 `DownloadCrewAndCast`, `DownloadAlternateOrdering`, `DownloadNetworks`,
 `DownloadCollections`, `null` meaning your settings; ignore what means nothing
 for you), `QuickRefresh` (skip what is costly; no images, and it does not count
 as a refresh), `Reason` (`Scheduled`, `Linked` or `Requested`),
-`LastRefreshedAt` and `AnidbAnimeID`.
+`LastRefreshedAt` (UTC) and `AnidbAnimeID`. The core keeps that time on the
+stored entry, read back as `LastRefreshedAt` on series, movies, collections,
+people, studios and networks; you never set it. A resolver's own entries
+answer it themselves, or `null`.
 
 There is no force flag. Before calling you the core:
 
@@ -343,6 +375,7 @@ You write no queue code. The core registers one job type per provider:
 | `RefreshMetadataJob<TProvider>` | Your refresh calls for what an anime links to, or the one entry asked for | AniDB telling the core about an anime, `RefreshForAnime`, `RefreshEntry`, the search job after it linked something, the refresh actions |
 | `SearchMetadataJob<TProvider>` | `IMetadataAutoLinkingProvider.FindAutoLinks`, then links what you took | An anime not linked on your source, `IMetadataLinkingService.AutoLink`, the search actions |
 | `DownloadMetadataImagesJob<TProvider>` | `IMetadataImageProvider.GetImages` for each entity under the entry | A refresh asking for images, `IMetadataRefreshService.DownloadImages`, the image actions |
+| `RefreshMetadataEntityJob<TProvider>` | `IMetadataEntityProvider.RefreshEntity` for one entry | A store write naming a stub or stale entry, `RefreshEntry`, the "Refresh Stale People, Studios and Networks" action |
 | `PurgeMetadataJob` | Your `CleanUp`, last | A link removed with `Purge`, `IMetadataPurgeService`, the purge actions |
 | `DownloadContributedImagesJob<TContributor>` | `IMetadataImageContributor.GetImages` | The owner's image job, or `DownloadImages` for an entry no provider covers |
 | `ClearContributedImagesJob` | Nothing of yours | A contributor turned off for a pair |
@@ -398,8 +431,8 @@ series or film queues the purge of each collection holding it. Then
 even disabled ones, for what you keep in your own database.
 
 You never sweep your own entries: the core purges daily, for every plugin
-source and TMDB, what nothing links to and was not refreshed within the
-admin's setting (two weeks unless changed).
+source, what nothing links to and was not refreshed within the admin's
+setting (two weeks unless changed).
 
 ### Pausing and concurrency
 
@@ -413,10 +446,75 @@ admin's setting (two weeks unless changed).
 The actions a person can run are `Refresh Linked Metadata`,
 `Auto-Search Metadata Links` and `Download Linked Metadata Images - Force` on a
 series, and `Refresh All Linked Metadata`, `Search for Metadata Matches`,
-`Download All Linked Metadata Images - Force`, `Purge Unused Metadata` and
-`Purge Orphaned Metadata` across the library. Each is a call on
+`Download All Linked Metadata Images - Force`, `Purge Unused Metadata`,
+`Purge Orphaned Metadata` and `Refresh Stale People, Studios and Networks`
+across the library. Each is a call on
 `IMetadataRefreshService` or `IMetadataPurgeService` that a plugin can make
 too.
+
+## Refreshing people, studios and networks
+
+Without `IMetadataEntityProvider`, a series or movie refresh writes its people,
+studios and networks itself, before the credits and links naming them. With
+it, the refresh writes the credits and links by ID, with whatever names it
+has, and the core asks you for each entry on its own:
+
+```csharp
+public class ExampleProvider(ExampleClient client, IMetadataPeopleStore people) : IMetadataSeriesProvider, IMetadataEntityProvider
+{
+    public MetadataEntityScope EntityScope { get; } = MetadataEntityScope.ForSource(
+        ExampleSources.Example,
+        MetadataEntityType.Creator,
+        MetadataEntityType.Character
+    );
+
+    public async Task<bool> RefreshEntity(MetadataGuid entityID, CancellationToken cancellationToken = default)
+    {
+        if (await client.GetPerson(entityID.ID, cancellationToken) is not { } person)
+            return false;
+
+        people.SaveCreators([person.ToCreatorData()]);
+        return true;
+    }
+
+    // RefreshSeries and the rest as before.
+}
+```
+
+- **Scope.** `EntityScope` names the kinds you refresh, any of `creator`,
+  `character`, `studio` and `network`, on your own source. Other pairs are
+  dropped with a warning. The kinds join your entity types, so an admin turns
+  them on and off per kind, and each source and kind is answered by one
+  provider at a time.
+- **What is due.** Every write naming these entries (`SetCast`, `SetCrew`,
+  `SetStudios`, `SetNetworks`) checks each one it names: a stub is due, and so
+  is an entry last saved longer ago than `EntityStaleAfter` (30 days unless
+  you say otherwise; `null` refreshes stubs only).
+- **One job per entry.** Each due entry is queued as a
+  `RefreshMetadataEntityJob<TProvider>` keyed by its ID, so an entry many
+  series name is fetched once. The job holds the entry's lock, checks again
+  that it is due, and calls `RefreshEntity`. Your pause and `MaxConcurrentJobs`
+  hold it back like your other jobs.
+- **Not found.** Return `false` when your source does not have the entry. A
+  stub still a stub after a refresh is asked for again once
+  `EntityMissRetryAfter` has passed (7 days unless you say otherwise, even
+  with `EntityStaleAfter` set to `null`; `null` waits out `EntityStaleAfter`).
+  A stale entry a refresh left as it was waits out `EntityStaleAfter`. Throw
+  on failure: the queue retries.
+- **Images.** An entry you found has its images queued as a series' are: your
+  `DownloadMetadataImagesJob<TProvider>` when you supply images, else the
+  image contributors' jobs.
+- **Names.** A stub keeps the first name a credit or link gave it. One stored
+  with no name takes the next name given, until your source saves it.
+- **The library.** "Refresh Stale People, Studios and Networks" runs daily and
+  queues every stub and stale entry something names, of every source with
+  such a provider. `IMetadataRefreshService.RefreshEntry` takes these kinds
+  too, and `POST /api/v3/Metadata/{source}/{kind}/{id}/Action/Refresh` asks
+  for one (`Creator`, `Character`, `Studio` or `Network`).
+
+A source with no such provider keeps its stubs until something saves them.
+Clients see a stub through `IsStub` on the creator, character, studio and
+network models.
 
 ## Matching episodes
 
@@ -431,7 +529,7 @@ and write nothing: the core saves the result when asked.
 ## Moving links between servers
 
 `IMetadataCrossReferenceTransferService` exports and imports a source's links
-as CSV over the core's store, in TMDB's format with your source's name in the
+as CSV over the core's store, in one format with your source's name in the
 headers. You implement nothing for it.
 
 ## Images
@@ -451,19 +549,23 @@ to leave an entity's images alone:
 | `Width`, `Height` | The size, when known |
 | `LanguageCode`, `CountryCode` | The language of the text in the image, and the country it is for |
 | `Rating`, `RatingVotes` | The community rating from 1 to 10 and its votes |
-| `IsDefault` | Whether your source uses it as the entity's default of its type |
 
 An image you stop offering is unlinked, but only links your source made are
 touched. What is downloaded follows the admin's image settings for your source
 (or the shared defaults): per type a switch and a maximum, plus a language
-order where "main" is the series' or film's `OriginalLanguageCode`. Register
+order where "main" is the series' or film's `OriginalLanguageCode`. The
+candidate whose resource ID is the entry's stored default
+([`DefaultImageResourceIDs`](#storing-your-data)) is always the first
+downloaded within the maximum, whatever its language. The links are kept with
+the preferred languages first and then the rest, each in your order; the
+default is not moved. Register
 your template URL with `IImageManager.RegisterTemplateUrl` on every start;
 without one no image of your source is linked.
 
 ### Adding images to other sources' entries
 
 A plugin with images but no entries of its own, such as an artwork service for
-TMDB's shows and movies, implements `IMetadataImageContributor`. It names the
+TMDb's shows and movies, implements `IMetadataImageContributor`. It names the
 source its images are kept under (registered by the plugin as a remote source)
 and the sources and kinds it adds images for, core sources included:
 
@@ -485,7 +587,7 @@ public class ArtworkContributor(ArtworkClient client) : IMetadataImageContributo
     public async Task<IReadOnlyList<ImageCandidate>?> GetImages(IMetadata entity, CancellationToken cancellationToken = default)
         => entity switch
         {
-            ITmdbMovie movie => await client.GetMovieArt(movie.ID.ID, cancellationToken),
+            IMovie movie => await client.GetMovieArt(movie.ID.ID, cancellationToken),
             ISeries series => await client.GetShowArt(series.ID.ID, cancellationToken),
             _ => null,
         };
@@ -509,37 +611,70 @@ contributor whose source is unregistered, core, local or another
 contributor's, and drops pairs on your own source, which your provider's
 image job serves.
 
+Name the contributor's icon with `EmbeddedIconResourceName`, SVG preferred,
+PNG accepted. The core extracts it beside your plugin as
+`<source>.images-icon.<ext>` (`<dll>.<source>.images-icon.<ext>` beside a
+lone dll), so it never takes the place of your source's icon or your plugin's,
+keeps it on `MetadataImageContributorInfo.Icon`, and serves it at
+`GET /api/v3/Metadata/ImageContributor/{contributorID}/Icon`.
+
+## Site URLs
+
+`GetSiteUrl(entry)` on your series provider (series, seasons and episodes),
+your movie provider (movies and collections) and your entity provider
+(creators, characters, studios and networks) gives the address of the
+entry's own page on your source's site, for clients to link to. It defaults
+to `null`. A resolver answers it for the pairs it took, ahead of the provider.
+For a creator, character, studio or network, your series and then your movie
+provider are asked when your entity provider answers nothing, so one
+provider class answering every kind is enough.
+It is called for every row of a list, so build the URL from the entry rather
+than fetching anything. An entry nothing holds, such as a search hit not
+stored yet, reaches you as a bare `IMetadata` carrying only its ID.
+
+```csharp
+public string? GetSiteUrl(IMetadata entry)
+    => entry.ID.EntityType == MetadataEntityType.Series ? $"https://example.com/show/{entry.ID.ID}" : null;
+```
+
+## Source icons
+
+Name your source's icon with `EmbeddedIconResourceName` on your series or
+movie provider, the way a plugin names its own with
+`IPlugin.EmbeddedIconResourceName`: an absolute resource name in your
+assembly, SVG preferred, PNG accepted. The core extracts it beside your plugin
+as `<source>-icon.<ext>` (`<dll>.<source>-icon.<ext>` beside a lone dll), uses
+a file already there by that name instead, and keeps it on the provider's
+`MetadataProviderInfo.Icon`. A source has one icon, the series provider's
+before the movie provider's, served at
+`GET /api/v3/Metadata/Source/{source}/Icon`.
+
 ## What clients see
 
 A series or episode asked for with `includeDataFrom=<source>` gains a
 `Sources` object keyed by your source, with a generic view of each linked
 series, episode and movie read back through `IMetadataService`: ID, entity
-type, titles, description, dates, rating and preferred images. AniDB and TMDB
-keep their own blocks. A link to nothing, or to an entry not stored yet, is
-left out.
+type, titles, description, dates, rating and preferred images. AniDB and TMDb
+keep their own blocks, TMDb's for the APIv3 TMDB routes and models. A link to
+nothing, or to an entry not stored yet, is left out.
 
-## TMDB
+## TMDb
 
-TMDB is the one provider the core ships, and runs through the same jobs,
-freshness check and locking. It differs where it keeps its entries in tables
-of its own:
+TMDb is served by the bundled plugin `Shoko.Plugin.Tmdb`, a provider like any
+other: it claims `tmdb`, runs through the same jobs, freshness check and
+locking, and keeps its entries in the shared stores, so the core resolves,
+refreshes and purges them the same way:
 
-- Its refresh calls write TMDB's tables, which the core resolves TMDB's
-  entries and last refresh times from.
-- A purge removes nothing from the stores; TMDB's `CleanUp` clears its own
-  tables, and a collection goes with its last movie. The core still removes a
-  purged show's orderings.
-- Its image settings are TMDB's entry in the per-source image settings. It
-  marks no candidate as default, hands over a person's images only when a
-  refresh fetched the person within two hours, and its image job holds only
-  the entry's image lock.
-- Its people and networks are stamped and purged from TMDB's tables by the
-  same setting as a plugin source's; its companies go with the last entry
-  naming them.
+- Its refresh calls write the series, movie, collection, people, studio, tag,
+  suggestion and ordering stores, and the texts through the series and movie
+  data. A genre joining two with `&` is stored as one tag per part.
+- Its image settings are TMDb's entry in the per-source image settings. It
+  saves the images each entry names as its defaults with the entry, and hands
+  over a person's images only when a refresh fetched the person within two
+  hours.
 - Its links are in the shared tables and go through `IMetadataLinkingService`.
   Its `MatchEpisodes` uses `IMetadataMatchingEngine` with
   `DateAndTitleWithinSeasons`, and runs again on every full refresh.
-- Its episode groups are served by `IMetadataOrderingService` as orderings of
-  its shows.
-- `ITmdbMetadataService` and `ITmdbLinkingService` are shims over the generic
-  services; see [`../Tmdb/Services/README.md`](../Tmdb/Services/README.md).
+- Its episode groups are stored as global orderings of its shows.
+- Its rate limiting is its own: it pauses through `IPausableMetadataProvider`,
+  and the core holds its jobs back while it is paused.

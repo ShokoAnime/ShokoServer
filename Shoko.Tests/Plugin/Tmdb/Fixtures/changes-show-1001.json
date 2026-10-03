@@ -1,0 +1,22 @@
+{
+  "changes": [
+    {
+      "key": "season",
+      "items": [
+        { "id": "ch-1", "action": "updated", "time": "2023-10-07 10:00:00 UTC", "value": { "season_id": 2001, "season_number": 1 } }
+      ]
+    },
+    {
+      "key": "episode",
+      "items": [
+        { "id": "ch-2", "action": "updated", "time": "2023-10-07 10:00:00 UTC", "value": { "episode_id": 3002, "season_number": 1, "episode_number": 2 } }
+      ]
+    },
+    {
+      "key": "name",
+      "items": [
+        { "id": "ch-3", "action": "updated", "time": "2023-10-07 10:00:00 UTC", "value": "Journey's End", "original_value": "Journeys End" }
+      ]
+    }
+  ]
+}

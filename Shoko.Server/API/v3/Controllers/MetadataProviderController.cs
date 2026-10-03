@@ -15,6 +15,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
@@ -48,6 +49,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="transferService">Exports and imports links.</param>
 /// <param name="models">Builds the stored entries' search results.</param>
 /// <param name="sourceActions">Runs the source-wide actions.</param>
+/// <param name="applicationPaths">Finds the sources' icons on disk.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/Metadata")]
 [ApiV3]
@@ -61,7 +63,8 @@ public class MetadataProviderController(
     IMetadataService metadataService,
     IMetadataCrossReferenceTransferService transferService,
     MetadataModelBuilder models,
-    MetadataSourceActions sourceActions
+    MetadataSourceActions sourceActions,
+    IApplicationPaths applicationPaths
 ) : BaseController(settingsProvider)
 {
     #region Constants
@@ -69,6 +72,8 @@ public class MetadataProviderController(
     internal const string ProviderNotFound = "A metadata provider by the given `providerID` was not found.";
 
     internal const string EntryNotFoundOnSource = "The source has no entry by the given `id`.";
+
+    internal const string SourceIconNotFound = "The source has no icon.";
 
     #endregion
 
@@ -119,17 +124,107 @@ public class MetadataProviderController(
                 group.Any(info => Links(info, MetadataEntityType.Movie)),
                 LinkingProvider(group.Key, MetadataEntityType.Series) is not null,
                 LinkingProvider(group.Key, MetadataEntityType.Movie) is not null,
-                new(group.Key, refreshService.GetPauseStatus(group.Key), providerManager.MetadataProviders)
+                new(group.Key, refreshService.GetPauseStatus(group.Key), providerManager.MetadataProviders),
+                providerManager.GetSourceIcon(group.Key) is not null,
+                group.First().PluginInfo.ID
             ))
             .Where(row => row.SupportsSeries || row.SupportsMovies)
             .OrderBy(row => row.Source)
             .ToList();
 
     /// <summary>
+    /// Get a source's icon: its series provider's, else its movie provider's.
+    /// </summary>
+    /// <remarks>
+    /// An SVG or a PNG, sent so that an SVG opened on its own runs no script.
+    /// </remarks>
+    /// <param name="source">The source.</param>
+    /// <returns>
+    /// The icon, <c>304 Not Modified</c> when the client's copy has the same
+    /// ETag, or <c>404 Not Found</c> when the source has none.
+    /// </returns>
+    [AllowAnonymous]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Source/{source:metadata-source}/Icon")]
+    public ActionResult GetSourceIcon([FromRoute] MetadataSource source)
+        => PackageIcon(providerManager.GetSourceIcon(source), applicationPaths, SourceIconNotFound);
+
+    /// <summary>
+    /// Get the order of the providers claiming each kind of entry on a
+    /// source, one row per kind, kinds no provider claims left out.
+    /// </summary>
+    /// <remarks>
+    /// The first enabled provider of a kind answers for it. The rest stand
+    /// by: the next enabled one takes over when it is turned off or removed.
+    /// A paused or unconfigured provider is not skipped.
+    /// </remarks>
+    /// <param name="source">The source.</param>
+    /// <returns>The kinds, in kind order.</returns>
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Source/{source:metadata-source}/Providers")]
+    public ActionResult<List<MetadataProviderOrder>> GetProviderOrders([FromRoute] MetadataSource source)
+        => ProviderOrders(source);
+
+    /// <summary>
+    /// Set the order of the providers claiming one or more kinds of entries
+    /// on a source, and which of them are enabled. Kinds left out are kept.
+    /// </summary>
+    /// <remarks>
+    /// Agrees with <c>PUT Provider/{providerID}</c>, which moves a provider
+    /// to the front of each kind it turns on and turns it off for the rest.
+    /// </remarks>
+    /// <param name="source">The source.</param>
+    /// <param name="body">The kinds to change, each with its providers in order.</param>
+    /// <returns>Every kind's order as it is now.</returns>
+    [Authorize(Roles = "admin,init")]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpPut("Source/{source:metadata-source}/Providers")]
+    public ActionResult<List<MetadataProviderOrder>> UpdateProviderOrders(
+        [FromRoute] MetadataSource source,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] List<MetadataProviderOrderBody> body
+    )
+    {
+        ArgumentNullException.ThrowIfNull(body);
+
+        var orders = new Dictionary<MetadataEntityType, IReadOnlyList<MetadataProviderAssignment>>();
+        foreach (var order in body)
+        {
+            var entityType = order.EntityType;
+            if (orders.ContainsKey(entityType))
+                return ValidationProblem($"The kind {entityType.Value} is given twice.", nameof(body));
+
+            var claimants = providerManager.GetProviderOrder(source, entityType).Select(slot => slot.ProviderID).ToHashSet();
+            if (claimants.Count is 0)
+                return ValidationProblem($"No provider answers for {entityType.Value} on {source.Name}.", nameof(body));
+
+            if (order.Providers.FirstOrDefault(provider => !claimants.Contains(provider.ProviderID)) is { } stranger)
+                return ValidationProblem($"The provider {stranger.ProviderID} does not answer for {entityType.Value} on {source.Name}.", nameof(body));
+
+            if (order.Providers.GroupBy(provider => provider.ProviderID).FirstOrDefault(group => group.Count() > 1) is { } twice)
+                return ValidationProblem($"The provider {twice.Key} is given twice for {entityType.Value}.", nameof(body));
+
+            orders[entityType] = [.. order.Providers
+                .OrderBy(provider => provider.Priority)
+                .Select(provider => new MetadataProviderAssignment(provider.ProviderID, provider.IsEnabled))];
+        }
+
+        providerManager.SetProviderOrder(source, orders);
+        return ProviderOrders(source);
+    }
+
+    /// <summary>
     /// Change how a metadata provider is set up: the kinds of entries it is
     /// on for, and for its source whether it is the auto-linker and whether
     /// the source links new anime on its own.
     /// </summary>
+    /// <remarks>
+    /// The provider answers for exactly the kinds given: it moves to the
+    /// front of each one's order, and is turned off, standing by included,
+    /// for the rest. <c>Source/{source}/Providers</c> sets the order itself.
+    /// </remarks>
     /// <param name="providerID">The provider's ID.</param>
     /// <param name="body">What to change; left-out fields are kept.</param>
     /// <returns>The provider as it is set up now.</returns>
@@ -175,12 +270,29 @@ public class MetadataProviderController(
         => new MetadataSourceStatus(source, refreshService.GetPauseStatus(source), providerManager.MetadataProviders);
 
     /// <summary>
+    /// The order of every kind of entry a provider claims on a source.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>The kinds, in kind order.</returns>
+    private List<MetadataProviderOrder> ProviderOrders(MetadataSource source)
+        => providerManager.MetadataProviders
+            .Where(info => info.Source == source)
+            .SelectMany(info => info.AvailableEntityTypes)
+            .Distinct()
+            .Order()
+            .Select(kind => new MetadataProviderOrder(kind, providerManager.GetProviderOrder(source, kind)
+                .Select(slot => (Info: providerManager.GetProviderInfo(slot.ProviderID), slot.IsEnabled))
+                .Where(slot => slot.Info is not null)
+                .Select(slot => (slot.Info!, slot.IsEnabled))))
+            .ToList();
+
+    /// <summary>
     /// A provider as the routes send it.
     /// </summary>
     /// <param name="info">The provider.</param>
     /// <returns>The model.</returns>
     private MetadataProvider ToModel(MetadataProviderInfo info)
-        => new(info, refreshService.GetPauseStatus(info.Source), providerManager.MetadataProviders);
+        => new(info, refreshService.GetPauseStatus(info.Source), providerManager.MetadataProviders, providerManager.GetSourceIcon(info.Source) is not null);
 
     #endregion
 
@@ -246,7 +358,7 @@ public class MetadataProviderController(
         else
             (results, total) = await linkingService.SearchMovies(source, options, cancellationToken).ConfigureAwait(false);
 
-        return new ListResult<MetadataSearchResult>(total, results.Select(result => new MetadataSearchResult(result, metadataService.GetEntry(result.ID) is not null)));
+        return new ListResult<MetadataSearchResult>(total, results.Select(result => Remote(result, metadataService.GetEntry(result.ID) is not null)));
     }
 
     /// <summary>
@@ -270,7 +382,7 @@ public class MetadataProviderController(
             return refused;
 
         return await linkingService.LookupSeries(guid, cancellationToken).ConfigureAwait(false) is { } found
-            ? new MetadataSearchResult(found, false)
+            ? Remote(found, false)
             : NotFound(EntryNotFoundOnSource);
     }
 
@@ -295,7 +407,7 @@ public class MetadataProviderController(
             return refused;
 
         return await linkingService.LookupMovie(guid, cancellationToken).ConfigureAwait(false) is { } found
-            ? new MetadataSearchResult(found, false)
+            ? Remote(found, false)
             : NotFound(EntryNotFoundOnSource);
     }
 
@@ -365,7 +477,7 @@ public class MetadataProviderController(
 
         foreach (var guid in remaining)
             if (await lookup(guid, cancellationToken).ConfigureAwait(false) is { } result)
-                found[guid] = new(result, false);
+                found[guid] = Remote(result, false);
 
         foreach (var (text, guid) in asked)
             if (guid is null || !found.ContainsKey(guid))
@@ -375,6 +487,15 @@ public class MetadataProviderController(
 
         return asked.Select(pair => found[pair.ID!]).ToList();
     }
+
+    /// <summary>
+    /// A series or movie as the provider found it.
+    /// </summary>
+    /// <param name="result">The provider's answer.</param>
+    /// <param name="isLocal">Whether the entry is stored already.</param>
+    /// <returns>The result.</returns>
+    private MetadataSearchResult Remote(Abstractions.Metadata.Search.MetadataSearchResult result, bool isLocal)
+        => new(result, isLocal, metadataService.GetSiteUrl(result.ID));
 
     /// <summary>
     /// A stored series or movie as a search result, when it is stored and the
@@ -390,8 +511,8 @@ public class MetadataProviderController(
 
         return entry switch
         {
-            ISeries series => new(models.SearchResult(series), true),
-            IMovie movie => new(models.SearchResult(movie), true),
+            ISeries series => new(models.SearchResult(series), true, metadataService.GetSiteUrl(series)),
+            IMovie movie => new(models.SearchResult(movie), true, metadataService.GetSiteUrl(movie)),
             _ => null,
         };
     }

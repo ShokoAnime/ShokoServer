@@ -28,6 +28,7 @@ public class TextTableRemovalTests(DatabaseMigrationFixture fixture)
         Assert.True(fixture.Success, fixture.FailureMessage);
 
         using var connection = fixture.OpenConnection();
+        var restored = ReleasedTmdbSchema.Restore(connection, fixture.Backend);
         try
         {
             ReleasedTextSchema.Restore(connection, fixture.Backend);
@@ -48,6 +49,7 @@ public class TextTableRemovalTests(DatabaseMigrationFixture fixture)
         finally
         {
             ReleasedTextSchema.Drop(fixture, connection);
+            ReleasedTmdbSchema.Drop(connection, restored);
         }
     }
 

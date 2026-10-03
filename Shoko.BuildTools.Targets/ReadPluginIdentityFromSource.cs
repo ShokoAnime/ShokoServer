@@ -14,9 +14,22 @@ namespace Shoko.BuildTools.Tasks;
 public class ReadPluginIdentityFromSource : PluginMetadataTask
 {
     /// <summary>
+    ///   How deep the ID is followed through the fields and properties it
+    ///   names before giving up.
+    /// </summary>
+    private const int MaxMemberDepth = 4;
+
+    /// <summary>
     ///   Path to search for the Shoko.Abstractions assembly in NuGet cache.
     /// </summary>
     public string? NuGetPackageRoot { get; set; }
+
+    /// <summary>
+    ///   The project's resolved references, <c>@(ReferencePath)</c>, searched
+    ///   for the Shoko.Abstractions assembly before the NuGet cache, so a
+    ///   project reference to it is found too.
+    /// </summary>
+    public ITaskItem[]? ReferencePaths { get; set; }
 
     public override bool Execute()
     {
@@ -51,16 +64,15 @@ public class ReadPluginIdentityFromSource : PluginMetadataTask
                         if (member is PropertyDeclarationSyntax prop)
                         {
                             var propName = prop.Identifier.Text;
-                            var value = GetExpressionValue(prop.Initializer?.Value);
-
-                            // Also check expression-bodied members: => "value"
-                            if (value is null && prop.ExpressionBody is not null)
-                                value = GetExpressionValue(prop.ExpressionBody.Expression);
+                            var value = GetExpressionValue(GetPropertyExpression(prop));
 
                             switch (propName)
                             {
                                 case "ID" when value is not null && Guid.TryParse(value, out var g):
                                     candidateId = g;
+                                    break;
+                                case "ID":
+                                    candidateId = ResolveGuid(classDecl, GetPropertyExpression(prop), 0);
                                     break;
                                 case "Name":
                                     candidateName = value;
@@ -72,18 +84,8 @@ public class ReadPluginIdentityFromSource : PluginMetadataTask
                         }
                     }
 
-                    // If ID wasn't found as a literal, check GetV5 patterns
-                    if (candidateId is null)
-                    {
-                        // Check the ID property itself
-                        candidateId = TryResolveGetV5Guid(classDecl, NuGetPackageRoot);
-
-                        // Also check static fields that compute the ID (e.g., StaticID = GetV5(...))
-                        if (candidateId is null)
-                        {
-                            candidateId = TryResolveGetV5FromField(classDecl, NuGetPackageRoot);
-                        }
-                    }
+                    // Also check static fields that give the ID (e.g., StaticID = GetV5(...) or new Guid("..."))
+                    candidateId ??= TryResolveGetV5FromField(classDecl);
 
                     // Take the first result with at least an ID; prefer results with more fields
                     if (candidateId.HasValue)
@@ -149,6 +151,25 @@ public class ReadPluginIdentityFromSource : PluginMetadataTask
         return string.Join(".", parts);
     }
 
+    /// <summary>
+    ///   The expression a property gives its value with: its initializer,
+    ///   its expression body, or its getter's expression body or single
+    ///   <c>return</c>.
+    /// </summary>
+    private static ExpressionSyntax? GetPropertyExpression(PropertyDeclarationSyntax prop)
+    {
+        if (prop.Initializer?.Value is { } initializer)
+            return initializer;
+        if (prop.ExpressionBody?.Expression is { } body)
+            return body;
+
+        var getter = prop.AccessorList?.Accessors.FirstOrDefault(accessor => accessor.IsKind(SyntaxKind.GetAccessorDeclaration));
+        if (getter?.ExpressionBody?.Expression is { } getterBody)
+            return getterBody;
+
+        return getter?.Body?.Statements is [ReturnStatementSyntax { Expression: { } returned }] ? returned : null;
+    }
+
     private static string? GetExpressionValue(ExpressionSyntax? expr)
     {
         if (expr is null)
@@ -190,45 +211,50 @@ public class ReadPluginIdentityFromSource : PluginMetadataTask
     }
 
     /// <summary>
-    ///   For plugins that compute their ID via UuidUtility.GetV5(typeof(X).FullName),
-    ///   load the referenced Shoko.Abstractions assembly from NuGet cache and call
-    ///   GetV5 via reflection.
+    ///   Resolves the GUID an ID expression gives: a literal, a call to
+    ///   GetV5, or a field or property of the class that gives one of those.
     /// </summary>
-    private Guid? TryResolveGetV5Guid(ClassDeclarationSyntax classDecl, string? nuGetPackageRoot)
+    /// <param name="classDecl">The plugin class.</param>
+    /// <param name="expr">The expression.</param>
+    /// <param name="depth">How many members were followed to get here.</param>
+    /// <returns>The GUID, or <c>null</c> when it cannot be worked out from source.</returns>
+    private Guid? ResolveGuid(ClassDeclarationSyntax classDecl, ExpressionSyntax? expr, int depth)
     {
-        try
-        {
-            // Look for GetV5(typeof(X).FullName) or UuidUtility.GetV5(typeof(X).FullName!) expressions
-            foreach (var member in classDecl.Members)
-            {
-                if (member is PropertyDeclarationSyntax prop && prop.Identifier.Text == "ID")
-                {
-                    var fullName = ExtractGetV5TypeName(prop);
-                    if (fullName is null && classDecl.Parent is BaseNamespaceDeclarationSyntax ns)
-                    {
-                        // Try typeof(ClassName).FullName where ClassName is the current class
-                        fullName = $"{ns.Name}.{classDecl.Identifier.Text}";
-                    }
+        if (expr is null || depth > MaxMemberDepth)
+            return null;
 
-                    if (fullName is not null)
-                        return CallGetV5(fullName, nuGetPackageRoot);
-                }
-            }
+        if (GetExpressionValue(expr) is { } literal && Guid.TryParse(literal, out var guid))
+            return guid;
 
-            // Fallback: check if ID is computed via GetV5 in the member list
-            foreach (var member in classDecl.Members)
-            {
-                if (member is PropertyDeclarationSyntax prop && prop.Identifier.Text == "ID")
-                {
-                    var fullName = ExtractGetV5TypeName(prop);
-                    if (fullName is not null)
-                        return CallGetV5(fullName, nuGetPackageRoot);
-                }
-            }
-        }
-        catch (Exception ex)
+        // GetV5(typeof(X).FullName!), guessing this class when the argument cannot be read.
+        if (ContainsGetV5(expr))
+            return CallGetV5(ExtractGetV5TypeName(expr, classDecl) ?? GetFullName(classDecl));
+
+        // A field or property of this class: StaticID, or Plugin.StaticID.
+        var memberName = expr switch
         {
-            Log.LogWarning("Failed to resolve GetV5 GUID: {0}", ex.Message);
+            IdentifierNameSyntax id => id.Identifier.Text,
+            MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax owner, Name: IdentifierNameSyntax name }
+                when owner.Identifier.Text == classDecl.Identifier.Text => name.Identifier.Text,
+            MemberAccessExpressionSyntax { Expression: ThisExpressionSyntax, Name: IdentifierNameSyntax name } => name.Identifier.Text,
+            _ => null,
+        };
+        if (memberName is null)
+            return null;
+
+        foreach (var member in classDecl.Members)
+        {
+            switch (member)
+            {
+                case FieldDeclarationSyntax field:
+                    foreach (var variable in field.Declaration.Variables)
+                        if (variable.Identifier.Text == memberName)
+                            return ResolveGuid(classDecl, variable.Initializer?.Value, depth + 1);
+                    break;
+
+                case PropertyDeclarationSyntax prop when prop.Identifier.Text == memberName:
+                    return ResolveGuid(classDecl, GetPropertyExpression(prop), depth + 1);
+            }
         }
 
         return null;
@@ -238,44 +264,30 @@ public class ReadPluginIdentityFromSource : PluginMetadataTask
     ///   Check if a static field (like <c>StaticID = GetV5(typeof(X).FullName!)</c> or
     ///   <c>StaticID = new Guid("...")</c>) provides the plugin ID, and resolve it.
     /// </summary>
-    private Guid? TryResolveGetV5FromField(ClassDeclarationSyntax classDecl, string? nuGetPackageRoot)
+    private Guid? TryResolveGetV5FromField(ClassDeclarationSyntax classDecl)
     {
-        try
+        foreach (var member in classDecl.Members)
         {
-            foreach (var member in classDecl.Members)
-            {
-                if (member is FieldDeclarationSyntax field &&
-                    field.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
-                {
-                    // Check for GetV5 expression in the field initializer
-                    var fullName = ExtractGetV5TypeName(field);
-                    if (fullName is not null)
-                        return CallGetV5(fullName, nuGetPackageRoot);
+            if (member is not FieldDeclarationSyntax field || !field.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
+                continue;
 
-                    // Check for new Guid("...") literal in the field initializer
-                    foreach (var eq in field.DescendantNodes().OfType<EqualsValueClauseSyntax>())
-                    {
-                        var guidStr = GetExpressionValue(eq.Value);
-                        if (guidStr is not null && Guid.TryParse(guidStr, out var guid))
-                            return guid;
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.LogWarning("Failed to resolve GetV5 from field: {0}", ex.Message);
+            foreach (var variable in field.Declaration.Variables)
+                if (ResolveGuid(classDecl, variable.Initializer?.Value, MaxMemberDepth) is { } guid)
+                    return guid;
         }
 
         return null;
     }
 
-    private static string? ExtractGetV5TypeName(SyntaxNode member)
+    private static bool ContainsGetV5(SyntaxNode node)
+        => node.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>().Any(inv => inv.Expression.ToString().Contains("GetV5"));
+
+    private static string? ExtractGetV5TypeName(SyntaxNode member, ClassDeclarationSyntax classDecl)
     {
         // Look for patterns like:
         //   GetV5(typeof(Plugin).FullName!)
         //   UuidUtility.GetV5(typeof(Plugin).FullName!)
-        foreach (var inv in member.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        foreach (var inv in member.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>())
         {
             var methodName = inv.Expression.ToString();
             if (!methodName.Contains("GetV5"))
@@ -286,6 +298,8 @@ public class ReadPluginIdentityFromSource : PluginMetadataTask
                 continue;
 
             var arg = inv.ArgumentList.Arguments[0].Expression;
+            if (arg is PostfixUnaryExpressionSyntax outer && outer.IsKind(SyntaxKind.SuppressNullableWarningExpression))
+                arg = outer.Operand;
 
             // typeof(Plugin).FullName or typeof(Plugin).FullName!
             if (arg is MemberAccessExpressionSyntax memberAccess)
@@ -299,6 +313,8 @@ public class ReadPluginIdentityFromSource : PluginMetadataTask
                 {
                     return typeofExpr.Type switch
                     {
+                        // The plugin class itself, named without its namespace.
+                        IdentifierNameSyntax id when id.Identifier.Text == classDecl.Identifier.Text => GetFullName(classDecl),
                         IdentifierNameSyntax id => id.Identifier.Text,
                         QualifiedNameSyntax qn => qn.ToString(),
                         _ => null,
@@ -314,36 +330,45 @@ public class ReadPluginIdentityFromSource : PluginMetadataTask
         return null;
     }
 
-    private Guid? CallGetV5(string typeName, string? nuGetPackageRoot)
+    /// <summary>
+    ///   Finds the Shoko.Abstractions assembly: among the project's resolved
+    ///   references first, then in the NuGet cache.
+    /// </summary>
+    /// <returns>The assembly's path, or <c>null</c> when it is in neither.</returns>
+    private string? FindAbstractionsAssembly()
     {
-        // Find the Shoko.Abstractions DLL from the NuGet cache
-        var root = nuGetPackageRoot
-                   ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
+        var referenced = ReferencePaths?
+            .Select(item => item.GetMetadata("FullPath") is { Length: > 0 } fullPath ? fullPath : item.ItemSpec)
+            .FirstOrDefault(path => string.Equals(Path.GetFileName(path), "Shoko.Abstractions.dll", StringComparison.OrdinalIgnoreCase) && File.Exists(path));
+        if (referenced is not null)
+            return referenced;
 
-        var abstractionsDir = Directory.GetDirectories(Path.Combine(root, "shoko.abstractions"))
-            .OrderByDescending(d => d)
-            .FirstOrDefault()
-            ?? Directory.GetDirectories(Path.Combine(root, "Shoko.Abstractions"))
-                .OrderByDescending(d => d)
-                .FirstOrDefault();
-
-        if (abstractionsDir is null)
-        {
-            Log.LogMessage(MessageImportance.Low, "Shoko.Abstractions not found in NuGet cache.");
-            return null;
-        }
-
-        var dllPath = Directory.GetFiles(abstractionsDir, "Shoko.Abstractions.dll", SearchOption.AllDirectories)
+        var root = NuGetPackageRoot is { Length: > 0 }
+            ? NuGetPackageRoot
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
+        var abstractionsDir = new[] { "shoko.abstractions", "Shoko.Abstractions" }
+            .Select(name => Path.Combine(root, name))
+            .Where(Directory.Exists)
+            .SelectMany(Directory.GetDirectories)
+            .OrderByDescending(dir => dir)
             .FirstOrDefault();
 
-        if (dllPath is null)
-        {
-            Log.LogMessage(MessageImportance.Low, "Shoko.Abstractions.dll not found at {0}", abstractionsDir);
-            return null;
-        }
+        return abstractionsDir is null
+            ? null
+            : Directory.GetFiles(abstractionsDir, "Shoko.Abstractions.dll", SearchOption.AllDirectories).FirstOrDefault();
+    }
 
+    private Guid? CallGetV5(string typeName)
+    {
         try
         {
+            var dllPath = FindAbstractionsAssembly();
+            if (dllPath is null)
+            {
+                Log.LogMessage(MessageImportance.Low, "Shoko.Abstractions.dll not found among the references or in the NuGet cache.");
+                return null;
+            }
+
             // Load in an isolated collectible context so we can call GetV5
             var alc = new AssemblyLoadContext("GetV5Loader", isCollectible: true);
             try

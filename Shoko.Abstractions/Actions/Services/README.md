@@ -349,17 +349,19 @@ separately.
 
 ## Categories
 
-`ActionCategory` is a closed, core-owned enum: `Import`, `AniDB`, `TMDB`,
-`Sync`, `Images`, `Maintenance`, `Miscellaneous`, `Destructive`,
-`PluginInferred`. A source gets a named category only while the core itself
-serves it. A plugin's real choices are two:
+`ActionCategory` is a closed, core-owned enum: `Import`, `AniDB`, `Sync`,
+`Images`, `Maintenance`, `Miscellaneous`, `Destructive`, `PluginInferred`.
+AniDB, which every series is built on, is the only source with a named
+category. The actions of any other source, a bundled plugin's included, go
+under what they do (`Images`, `Maintenance`, `Destructive`, …) or under the
+plugin's own group. A plugin's real choices are two:
 
 - **`Miscellaneous`**, the shared fallback and the default. Fine for a one-off.
 - **`PluginInferred`**, a group of your own labelled with your plugin's name.
   Use it when your plugin contributes several actions that belong together.
 
-A core category such as `TMDB` fits only when your action genuinely belongs
-alongside core's.
+A core category such as `Images` or `Sync` fits only when your action genuinely
+belongs alongside core's.
 
 `IsPrimaryAction` (default `false`) is a separate axis: it says the action is
 prominent enough to be offered on its own, outside its category, which it keeps

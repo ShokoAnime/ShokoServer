@@ -7,11 +7,9 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
-using Shoko.Abstractions.Metadata.Tmdb;
-using Shoko.Server.Models.TMDB;
+using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached.Metadata;
-using Shoko.Server.Repositories.Cached.TMDB;
 using Xunit;
 using static Shoko.IntegrationTests.Sql;
 
@@ -24,6 +22,8 @@ namespace Shoko.IntegrationTests;
 /// checked on each backend. The chosen ordering and the hidden flags are read
 /// back from the series' and episodes' own rows, a plugin's and TMDB's, and
 /// the step moving TMDB's chosen episode group is run on a copy of its table.
+/// A user's ordering's networks, stubs among them, and the step that lets a
+/// network be a stub are checked the same way.
 /// </summary>
 [Collection(DatabaseCollection.Name)]
 public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
@@ -47,8 +47,8 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
             services.GetRequiredService<Metadata_Ordering_EntryRepository>(),
             services.GetRequiredService<Metadata_SeriesRepository>(),
             services.GetRequiredService<Metadata_EpisodeRepository>(),
-            services.GetRequiredService<TMDB_ShowRepository>(),
-            services.GetRequiredService<TMDB_EpisodeRepository>(),
+            services.GetRequiredService<Metadata_NetworkRepository>(),
+            services.GetRequiredService<Metadata_Network_EntryRepository>(),
         })
             repository.Populate(displayName: false);
     }
@@ -179,61 +179,126 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
     }
 
     [Fact]
-    public void TmdbChoicesAndHiddenEpisodesAreKeptOnTmdbsOwnRows()
+    public void AGlobalOrderingsNetworksReadBackFromTheDatabaseAndGoWithIt()
     {
         Assert.True(fixture.Success, fixture.FailureMessage);
-        var shows = fixture.Services.GetRequiredService<TMDB_ShowRepository>();
-        var episodes = fixture.Services.GetRequiredService<TMDB_EpisodeRepository>();
-        var groups = fixture.Services.GetRequiredService<TMDB_AlternateOrderingRepository>();
+        var seriesStore = fixture.Services.GetRequiredService<IMetadataSeriesStore>();
+        var studios = fixture.Services.GetRequiredService<IMetadataStudioStore>();
         var orderings = fixture.Services.GetRequiredService<IMetadataOrderingService>();
-        var group = new TMDB_AlternateOrdering("5f0c1a2b3c4d5e6f7a8b9c0d") { TmdbShowID = 987_701, EnglishTitle = "DVD Order", Type = OrderingType.DVD };
-        shows.Save(new TMDB_Show(987_701));
-        shows.Save(new TMDB_Show(987_702));
-        episodes.Save(new TMDB_Episode(987_703) { TmdbShowID = 987_701, TmdbSeasonID = 987_704, SeasonNumber = 1, EpisodeNumber = 1 });
-        groups.Save(group);
-        var showID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Series, "987701");
-        var episodeID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Episode, "987703");
-        var groupID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Ordering, group.TmdbEpisodeGroupCollectionID);
-        try
+        var seriesID = ID(MetadataEntityType.Series, "ordering-series-2");
+        var tokyoMX = ID(MetadataEntityType.Network, "ordering-network-1");
+        var bs11 = ID(MetadataEntityType.Network, "ordering-network-2");
+        seriesStore.SaveSeries(new() { ID = seriesID });
+        studios.SaveNetworks([new() { ID = tokyoMX, Name = "Tokyo MX", CountryOfOrigin = "JP" }, new() { ID = bs11, Name = "BS11" }]);
+        var global = orderings.SaveOrdering(new()
         {
-            // What the TMDB endpoints write goes through the ordering service.
-            Assert.True(orderings.SetPreferredOrdering(showID, groupID));
-            Assert.True(orderings.SetEpisodeHidden(episodeID, true));
-            Reload();
+            ID = ID(MetadataEntityType.Ordering, "ordering-networks"),
+            SeriesID = seriesID,
+            Name = "Broadcast Order",
+            Type = OrderingType.OriginalAirDate,
+            Networks = [bs11, tokyoMX],
+        });
 
-            var show = shows.GetByTmdbShowID(987_701)!;
-            Assert.Equal(groupID, show.PreferredOrderingID);
-            Assert.Null(shows.GetByTmdbShowID(987_702)!.PreferredOrderingID);
-            Assert.Equal(groupID, orderings.GetPreferredOrdering(show).ID);
-            Assert.Equal(group.TmdbEpisodeGroupCollectionID, show.PreferredAlternateOrderingID);
-            Assert.True(orderings.IsEpisodeHidden(episodeID));
-            Assert.True(episodes.GetByTmdbEpisodeID(987_703)!.IsHidden);
-            using (var connection = fixture.OpenConnection())
-                Assert.Equal(groupID.ToString(), Scalar(connection, "SELECT PreferredOrderingID FROM TMDB_Show WHERE TmdbShowID = 987701"));
+        Reload();
 
-            var all = orderings.GetOrderings(show);
-            Assert.Equal([new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Ordering, "987701"), groupID], all.Select(ordering => ordering.ID));
-            Assert.All(all, ordering => Assert.IsAssignableFrom<ITmdbShowOrderingInformation>(ordering));
-            Assert.False(all[0].IsPreferred);
-            Assert.True(all[1].IsPreferred);
+        var read = orderings.GetOrdering(global.ID);
+        Assert.NotNull(read);
+        Assert.Equal([bs11, tokyoMX], read.Networks.Select(network => network.ID));
+        Assert.Equal([null, "JP"], read.Networks.Select(network => network.CountryOfOrigin));
 
-            Assert.True(orderings.SetPreferredOrdering(showID, null));
-            Assert.True(orderings.SetEpisodeHidden(episodeID, false));
-            Reload();
+        Assert.True(orderings.RemoveOrdering(global.ID));
+        Reload();
 
-            Assert.Null(shows.GetByTmdbShowID(987_701)!.PreferredOrderingID);
-            Assert.Null(shows.GetByTmdbShowID(987_701)!.PreferredAlternateOrderingID);
-            Assert.False(episodes.GetByTmdbEpisodeID(987_703)!.IsHidden);
-        }
-        finally
+        Assert.Empty(studios.GetNetworks(global.ID));
+        Assert.NotNull(studios.GetNetwork(tokyoMX));
+        Assert.Superset(new HashSet<MetadataGuid> { tokyoMX, bs11 }, studios.RemoveOrphaned(_plugin, DateTime.MaxValue).ToHashSet());
+        seriesStore.RemoveSeries(seriesID);
+    }
+
+    [Fact]
+    public void AUsersOrderingsNetworksAndStubsReadBackFromTheDatabase()
+    {
+        Assert.True(fixture.Success, fixture.FailureMessage);
+        var seriesStore = fixture.Services.GetRequiredService<IMetadataSeriesStore>();
+        var studios = fixture.Services.GetRequiredService<IMetadataStudioStore>();
+        var orderings = fixture.Services.GetRequiredService<IMetadataOrderingService>();
+        var networkRows = fixture.Services.GetRequiredService<Metadata_NetworkRepository>();
+        var seriesID = ID(MetadataEntityType.Series, "ordering-series-3");
+        var tokyoMX = ID(MetadataEntityType.Network, "ordering-network-3");
+        var atx = ID(MetadataEntityType.Network, "ordering-network-4");
+        var gone = ID(MetadataEntityType.Network, "ordering-network-5");
+        var fujiTV = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Network, "987654");
+        seriesStore.SaveSeries(new() { ID = seriesID });
+        studios.SaveNetworks([new() { ID = tokyoMX, Name = "Tokyo MX" }]);
+        var local = orderings.CreateLocalOrdering(new() { SeriesID = seriesID, Name = "My Broadcast Order", Networks = [atx, tokyoMX, gone, fujiTV] });
+        orderings.UpdateLocalOrdering(local.ID, new() { SeriesID = seriesID, Name = "My Broadcast Order", Networks = [atx, tokyoMX, fujiTV] });
+
+        Reload();
+
+        var read = orderings.GetOrdering(local.ID);
+        Assert.NotNull(read);
+        Assert.Equal([atx, tokyoMX, fujiTV], read.Networks.Select(network => network.ID));
+        Assert.Equal(["", "Tokyo MX", ""], read.Networks.Select(network => network.Name));
+        Assert.Equal([true, false, true], new[] { atx, tokyoMX, fujiTV }.Select(network => networkRows.GetByProviderID(network.Source, network.ID)!.IsStub));
+
+        // The purge keeps the linked stub and drops the unlinked one; a provider's save fills the stub in.
+        var purged = studios.RemoveOrphaned(_plugin, DateTime.MaxValue);
+        Assert.Contains(gone, purged);
+        Assert.DoesNotContain(atx, purged);
+        studios.SaveNetworks([new() { ID = atx, Name = "AT-X" }]);
+        Reload();
+        Assert.False(networkRows.GetByProviderID(atx.Source, atx.ID)!.IsStub);
+        Assert.Equal("AT-X", orderings.GetOrdering(local.ID)!.Networks[0].Name);
+
+        // Deleting the ordering orphans the TMDB stub, which the purge then removes.
+        Assert.True(orderings.DeleteLocalOrdering(local.ID));
+        Reload();
+        Assert.Empty(studios.GetNetworks(local.ID));
+        Assert.NotNull(networkRows.GetByProviderID(fujiTV.Source, fujiTV.ID)?.LastOrphanedAt);
+        Assert.Contains(fujiTV, studios.RemoveOrphaned(MetadataSource.TMDB, DateTime.MaxValue));
+        Assert.Null(networkRows.GetByProviderID(fujiTV.Source, fujiTV.ID));
+        studios.RemoveOrphaned(_plugin, DateTime.MaxValue);
+        seriesStore.RemoveSeries(seriesID);
+    }
+
+    [Fact]
+    public void TheStubStepKeepsEveryNetworkWithItsIDAndItsLinks()
+    {
+        Assert.True(fixture.Success, fixture.FailureMessage);
+        var seriesStore = fixture.Services.GetRequiredService<IMetadataSeriesStore>();
+        var studios = fixture.Services.GetRequiredService<IMetadataStudioStore>();
+        var orderings = fixture.Services.GetRequiredService<IMetadataOrderingService>();
+        var networkRows = fixture.Services.GetRequiredService<Metadata_NetworkRepository>();
+        var seriesID = ID(MetadataEntityType.Series, "ordering-series-4");
+        var tokyoMX = ID(MetadataEntityType.Network, "ordering-network-6");
+        var atx = ID(MetadataEntityType.Network, "ordering-network-7");
+        seriesStore.SaveSeries(new() { ID = seriesID });
+        studios.SaveNetworks([new() { ID = tokyoMX, Name = "Tokyo MX", CountryOfOrigin = "JP" }]);
+        var local = orderings.CreateLocalOrdering(new() { SeriesID = seriesID, Name = "Stubbed", Networks = [atx, tokyoMX] });
+        const string networks = "SELECT Metadata_NetworkID, Source, ProviderID, Name, LastUpdatedAt, LastOrphanedAt, CountryOfOrigin FROM Metadata_Network ORDER BY Metadata_NetworkID";
+
+        // SQLite rebuilds the table to let a network be a stub, which drops the refresh time and the
+        // extra data added after, so those columns are added back; the others change the column in place.
+        int[] revisions = fixture.Services.GetRequiredService<DatabaseFactory>().Instance is SQLite ? [180, 181, 182, 183, 184, 214, 230] : [180];
+        using (var connection = fixture.OpenConnection())
         {
-            orderings.SetPreferredOrdering(showID, null);
-            orderings.SetEpisodeHidden(episodeID, false);
-            groups.Delete(group);
-            episodes.Delete(episodes.GetByTmdbEpisodeID(987_703)!);
-            shows.Delete(shows.GetByTmdbShowID(987_701)!);
-            shows.Delete(shows.GetByTmdbShowID(987_702)!);
+            var before = Read(connection, networks);
+            foreach (var step in SchemaSteps.Get(fixture, revisions))
+                Execute(connection, step.Command!);
+
+            Assert.Equal(before, Read(connection, networks));
         }
+
+        Reload();
+        Assert.Equal([atx, tokyoMX], orderings.GetOrdering(local.ID)!.Networks.Select(network => network.ID));
+        Assert.True(networkRows.GetByProviderID(atx.Source, atx.ID)!.IsStub);
+        var kept = networkRows.GetAll().Max(network => network.Metadata_NetworkID);
+        studios.SaveNetworks([new() { ID = ID(MetadataEntityType.Network, "ordering-network-8"), Name = "BS11" }]);
+        Assert.True(networkRows.GetByProviderID(_plugin, "ordering-network-8")!.Metadata_NetworkID > kept);
+
+        Assert.True(orderings.DeleteLocalOrdering(local.ID));
+        studios.RemoveOrphaned(_plugin, DateTime.MaxValue);
+        seriesStore.RemoveSeries(seriesID);
     }
 
     [Fact]

@@ -48,6 +48,11 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <!-- The core's source icons, embedded and also shipped already extracted beside the dll, where the loader finds them without writing. -->
+    <EmbeddedResource Include="Resources\Icons\*-icon.png" />
+    <None Update="Resources\Icons\anidb-icon.png" Link="Shoko.Server.anidb-icon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Shoko.Abstractions\Shoko.Abstractions.csproj" />
     <ProjectReference Include="..\Shoko.QueueProcessor\Shoko.QueueProcessor.csproj" />
   </ItemGroup>
@@ -94,7 +99,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="10.2.3" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3" />
     <PackageReference Include="TaskScheduler" Version="2.12.2" />
-    <PackageReference Include="TMDbLib" Version="3.0.0" />
     <PackageReference Include="Trinet.Core.IO.Ntfs" Version="4.1.3" />
   </ItemGroup>
   <ItemGroup>
@@ -108,7 +112,34 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+  <!--
+    The build tools' tasks are built from this repository and run from there, so the core is stamped
+    by the current ones whatever the NuGet cache holds. They build for no runtime and into their own
+    folder, whatever output folder or runtime this build was given.
+  -->
   <ItemGroup>
-    <PackageReference Include="Shoko.BuildTools.Targets" Version="0.3.0" />
+    <ProjectReference Include="..\Shoko.BuildTools.Targets\Shoko.BuildTools.Targets.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      PrivateAssets="all"
+                      OutputItemType="ShokoBuildToolsTasksOutput"
+                      GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;OutputPath;OutDir;_CommandLineDefinedOutputPath" />
   </ItemGroup>
+  <PropertyGroup>
+    <ShokoBuildToolsTasksDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(BaseIntermediateOutputPath)', 'buildtools', '$(Configuration)'))</ShokoBuildToolsTasksDirectory>
+    <ShokoBuildToolsTasksAssembly>$(ShokoBuildToolsTasksDirectory)Shoko.BuildTools.Tasks.dll</ShokoBuildToolsTasksAssembly>
+    <ShokoBuildToolsUseTaskHost>true</ShokoBuildToolsUseTaskHost>
+    <ShokoBuildToolsPrepareTargets>_ShokoCopyBuildToolsTasks</ShokoBuildToolsPrepareTargets>
+  </PropertyGroup>
+  <Import Project="..\Shoko.BuildTools.Targets\build\Shoko.BuildTools.Targets.targets" />
+  <Target Name="_ShokoCopyBuildToolsTasks" DependsOnTargets="ResolveProjectReferences">
+    <Error Condition="'@(ShokoBuildToolsTasksOutput)' == ''" Text="The build tools' tasks were not built." />
+    <PropertyGroup>
+      <_ShokoBuildToolsTasksOutputDirectory>@(ShokoBuildToolsTasksOutput->'%(RootDir)%(Directory)')</_ShokoBuildToolsTasksOutputDirectory>
+    </PropertyGroup>
+    <ItemGroup>
+      <_ShokoBuildToolsTasksFiles Include="$(_ShokoBuildToolsTasksOutputDirectory)*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ShokoBuildToolsTasksFiles)" DestinationFolder="$(ShokoBuildToolsTasksDirectory)" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

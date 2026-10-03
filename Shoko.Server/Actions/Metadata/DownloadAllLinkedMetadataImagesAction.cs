@@ -11,11 +11,10 @@ using Shoko.Server.Services;
 namespace Shoko.Server.Actions;
 
 /// <summary>
-///   Link and download again the images of everything linked from the plugin
-///   sources, for every anime.
+///   Link and download again the images of everything linked from every
+///   source with an enabled image provider, for every anime.
 /// </summary>
 /// <remarks>
-///   TMDB has image actions of its own.
 ///   Only queues the image jobs, which run on their own; the progress covers
 ///   the queuing.
 /// </remarks>
@@ -23,7 +22,8 @@ public sealed class DownloadAllLinkedMetadataImagesAction(MetadataProviderSchedu
 {
     public string Name => "Download All Linked Metadata Images - Force";
 
-    public string? Description => "Links and downloads again the images of everything linked from the plugin metadata providers, for every anime.";
+    public string? Description
+        => "Links and downloads again the images of everything linked from every metadata provider supplying images, for every anime.";
 
     public ActionCategory Category => ActionCategory.Images;
 

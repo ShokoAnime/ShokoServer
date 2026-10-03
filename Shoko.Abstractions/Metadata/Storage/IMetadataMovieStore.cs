@@ -9,9 +9,9 @@ namespace Shoko.Abstractions.Metadata.Storage;
 /// </summary>
 /// <remarks>
 ///   A stored movie reads back whole, with what the other stores hold for
-///   it. Only a plugin's source can be written; the core keeps the movies of
-///   <c>shoko</c>, <c>user</c>, <c>generated</c>, <c>anidb</c> and
-///   <c>tmdb</c> itself. A write raises the movie events on
+///   it. Every source but the core's own can be written; the core keeps the
+///   movies of <c>shoko</c>, <c>user</c>, <c>generated</c> and <c>anidb</c>
+///   itself. A write raises the movie events on
 ///   <see cref="IMetadataService"/>.
 /// </remarks>
 public interface IMetadataMovieStore

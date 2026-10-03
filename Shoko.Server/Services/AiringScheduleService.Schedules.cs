@@ -198,12 +198,12 @@ public partial class AiringScheduleService
 
         options ??= new AiringScheduleFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
-        var anchor = ResolveAnchor(options.EntityAnchor, season, season is IShokoSeason || season.Series is IShokoSeries or { ShokoSeries.Count: > 0 });
+        var anchor = ResolveAnchor(options.EntityAnchor, season, season is ISeason<IShokoSeries, IShokoEpisode> || season.Series is IShokoSeries or { ShokoSeries.Count: > 0 });
         var rows = RepoFactory.AiringSchedule
             .GetBySeriesIDAndSeasonID(season.Source, season.SeriesID.ID, season.ID.ID)
             .ToList();
-        if (options.LinkedEntitySchedules ?? season is IShokoSeason)
-            foreach (var shokoSeason in season is IShokoSeason own ? [own] : season.Series?.ShokoSeries.SelectMany(s => s.Seasons).OfType<IShokoSeason>() ?? [])
+        if (options.LinkedEntitySchedules ?? season is ISeason<IShokoSeries, IShokoEpisode>)
+            foreach (var shokoSeason in season is ISeason<IShokoSeries, IShokoEpisode> own ? [own] : season.Series?.ShokoSeries.SelectMany(s => s.Seasons) ?? [])
                 rows.AddRange(GetLinkedSeasonSchedules(shokoSeason, season));
 
         return FilterSchedules(context, rows, options, anchor);
@@ -235,7 +235,7 @@ public partial class AiringScheduleService
 
     /// <summary>
     /// The schedules of a shoko series' linked series that actually belong to
-    /// it. One TMDB show can be linked to several shoko series, so a schedule
+    /// it. One linked show can be linked to several shoko series, so a schedule
     /// only counts when it has an airing on an episode linked to this series,
     /// or it narrows to one of this series' linked seasons.
     /// </summary>
@@ -288,7 +288,7 @@ public partial class AiringScheduleService
     /// <param name="shokoSeason">The shoko season the read is for.</param>
     /// <param name="ownSeason">The season the read started from, which is never walked twice.</param>
     /// <returns>The schedules that belong through a link.</returns>
-    private IEnumerable<AiringSchedule> GetLinkedSeasonSchedules(IShokoSeason shokoSeason, ISeason ownSeason)
+    private IEnumerable<AiringSchedule> GetLinkedSeasonSchedules(ISeason<IShokoSeries, IShokoEpisode> shokoSeason, ISeason ownSeason)
     {
         var ownKey = GetEntityKey(ownSeason);
         var episodeKeys = shokoSeason.Episodes

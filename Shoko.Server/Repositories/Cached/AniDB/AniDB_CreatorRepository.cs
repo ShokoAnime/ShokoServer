@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.AniDB;
@@ -11,6 +12,12 @@ public class AniDB_CreatorRepository(DatabaseFactory databaseFactory) : BaseCach
 
     protected override int SelectKey(AniDB_Creator entity)
         => entity.AniDB_CreatorID;
+
+    protected override void OnBeginSave(AniDB_Creator obj)
+    {
+        if (obj.AniDB_CreatorID is 0)
+            obj.CreatedAt = DateTime.Now;
+    }
 
     public override void PopulateIndexes()
     {

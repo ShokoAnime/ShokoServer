@@ -97,6 +97,25 @@ public class ResponseAniDBTitles
             string IText.Value => Title;
 
             MetadataSource IText.Source => MetadataSource.AniDB;
+
+            // A title from AniDB's title dump, read for searching and never stored.
+            int? IText.ID => null;
+
+            MetadataGuid? IText.EntityID => null;
+
+            int? IText.ReferenceID => null;
+
+            bool IText.IsEnabled => true;
+
+            TextPreference IText.Preference => TextPreference.None;
+
+            int IText.Ordering => 0;
+
+            string? IText.ScriptCode => null;
+
+            bool IText.IsInlineDefault => false;
+
+            bool ITitle.IsSynthesized => false;
         }
     }
 }

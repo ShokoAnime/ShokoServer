@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Services.Configuration;
@@ -66,21 +67,42 @@ public sealed class MetadataServiceSettingsTests : IDisposable
     #endregion
 
     [Fact]
-    public void ANullEntry_SurvivesAsADecision_WhileAMissingOneStaysUndecided()
+    public void AnOrderWithNothingEnabled_SurvivesAsADecision_WhileAMissingOneStaysUndecided()
     {
         var reloaded = SaveAndReload(settings => settings.Sources[MetadataSource.TMDB] = new()
         {
             AutoLinker = null,
-            Enabled = { [MetadataEntityType.Series] = _tmdb, [MetadataEntityType.Movie] = null },
+            Providers = { [MetadataEntityType.Series] = [new(_tmdb, true)], [MetadataEntityType.Movie] = [new(_tmdb, false)] },
         });
 
         var tmdb = reloaded.Sources[MetadataSource.TMDB];
         Assert.Null(tmdb.AutoLinker);
-        Assert.Equal(_tmdb, tmdb.Enabled[MetadataEntityType.Series]);
-        Assert.True(tmdb.Enabled.ContainsKey(MetadataEntityType.Movie));
-        Assert.Null(tmdb.Enabled[MetadataEntityType.Movie]);
-        Assert.False(tmdb.Enabled.ContainsKey(MetadataEntityType.Collection));
+        Assert.Equal([new(_tmdb, true)], tmdb.Providers[MetadataEntityType.Series]);
+        Assert.Equal([new(_tmdb, false)], tmdb.Providers[MetadataEntityType.Movie]);
+        Assert.False(tmdb.Providers.ContainsKey(MetadataEntityType.Collection));
         Assert.False(reloaded.Sources.ContainsKey(TestSources.AniList));
+    }
+
+    [Fact]
+    public void OlderAssignmentsAreReadButNeverWritten()
+    {
+        var writer = NewService();
+        var settings = writer.Load<MetadataServiceSettings>();
+        settings.Sources[MetadataSource.TMDB] = new() { Enabled = new() { [MetadataEntityType.Series] = _tmdb } };
+        writer.Save(settings);
+        var file = Directory.GetFiles(_dataPath, "*.json", SearchOption.AllDirectories).Single(path => File.ReadAllText(path).Contains("\"Providers\""));
+        Assert.DoesNotContain("\"Enabled\"", File.ReadAllText(file));
+
+        // A file from before the order kept one provider per type.
+        var json = JObject.Parse(File.ReadAllText(file));
+        var tmdb = (JObject)((JObject)json["Sources"]!).Properties().Single().Value;
+        tmdb.Remove("Providers");
+        tmdb["Enabled"] = new JObject { ["series"] = _tmdb.ToString(), ["movie"] = null };
+        File.WriteAllText(file, json.ToString());
+
+        var older = NewService().Load<MetadataServiceSettings>().Sources[MetadataSource.TMDB];
+        Assert.Equal(_tmdb, older.Enabled![MetadataEntityType.Series]);
+        Assert.Null(older.Enabled[MetadataEntityType.Movie]);
     }
 
     [Fact]
@@ -88,9 +110,12 @@ public sealed class MetadataServiceSettingsTests : IDisposable
     {
         var writer = NewService();
         var settings = writer.Load<MetadataServiceSettings>();
-        settings.Sources[MetadataSource.TMDB] = new() { Enabled = { [MetadataEntityType.Series] = _tmdb, [MetadataEntityType.Collection] = null } };
+        settings.Sources[MetadataSource.TMDB] = new()
+        {
+            Providers = { [MetadataEntityType.Series] = [new(_tmdb, true)], [MetadataEntityType.Collection] = [] },
+        };
         writer.Save(settings);
-        var file = Directory.GetFiles(_dataPath, "*.json", SearchOption.AllDirectories).Single(path => File.ReadAllText(path).Contains("\"Enabled\""));
+        var file = Directory.GetFiles(_dataPath, "*.json", SearchOption.AllDirectories).Single(path => File.ReadAllText(path).Contains("\"Providers\""));
         var json = File.ReadAllText(file);
 
         Assert.Contains("\"series\"", json);

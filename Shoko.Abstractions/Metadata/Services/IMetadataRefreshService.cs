@@ -21,15 +21,18 @@ public interface IMetadataRefreshService
     #region Refresh
 
     /// <summary>
-    ///   Queue a refresh of one series, film or collection.
+    ///   Queue a refresh of one series, film or collection, or of one
+    ///   creator, character, studio or network.
     /// </summary>
     /// <remarks>
     ///   A series or film is refreshed only while something links to it, and a
     ///   collection only while it is stored, unless the options say somebody
     ///   asked for it (<see cref="MetadataRefreshReason.Requested"/>). Forcing a
-    ///   refresh does not count as asking for it.
+    ///   refresh does not count as asking for it. A creator, character, studio
+    ///   or network goes to the <see cref="Providers.IMetadataEntityProvider"/>
+    ///   taking its kind, which ignores the options.
     /// </remarks>
-    /// <param name="entryID">The series, film or collection.</param>
+    /// <param name="entryID">The series, film, collection, creator, character, studio or network.</param>
     /// <param name="force">
     ///   Whether to refresh it however recently it last was. A forced refresh
     ///   is queued ahead of the rest.
@@ -152,19 +155,17 @@ public interface IMetadataRefreshService
     Task<bool> WaitForRefresh(MetadataGuid entryID, CancellationToken cancellationToken = default);
 
     /// <summary>
-    ///   When an entry was last refreshed in full without failing.
+    ///   When an entry was last refreshed in full without failing: the
+    ///   <c>LastRefreshedAt</c> of the series, film or collection it names.
     /// </summary>
     /// <remarks>
     ///   What the core's freshness check reads; an entry fetched only in part
-    ///   has not been refreshed yet. Implementations should override it: the
-    ///   default answers <see langword="null"/>, so every linked entry looks
-    ///   never refreshed and is refreshed again at once.
+    ///   has not been refreshed yet.
     /// </remarks>
     /// <param name="entryID">The series, film or collection.</param>
-    /// <returns>The time, or <see langword="null"/> when it never was.</returns>
+    /// <returns>The time, in UTC, or <see langword="null"/> when it never was or the entry is not stored.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
-    DateTime? GetLastRefreshedAt(MetadataGuid entryID)
-        => null;
+    DateTime? GetLastRefreshedAt(MetadataGuid entryID);
 
     #endregion
 

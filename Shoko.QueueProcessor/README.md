@@ -426,7 +426,7 @@ scope so scoped services (including `IJobChainContextAccessor`) are naturally sh
 // Build a chain: A → B → C (C always runs, even if B aborts)
 await scheduler.CreateJobChain()
     .Then<GetAniDBAnimeJob>(j => j.AnimeID = animeID)
-    .Then<SearchMetadataJob<TmdbMetadataProvider>>(j => j.AnimeID = animeID)
+    .Then<SearchMetadataJob<MyMetadataProvider>>(j => j.AnimeID = animeID)
     .Then<FinalizeReleaseSearchJob>(j => j.AnimeID = animeID)  // [ChainFinally]
     .EnqueueAfterCurrent();  // or .Enqueue() to start independently
 ```

@@ -2,7 +2,7 @@
 
 The API for deciding **where a video file should live and what it should be
 called**. Any plugin can add `IRelocationProvider` implementations (renamers),
-alongside the WebAOM renamer that ships in core.
+alongside the WebAOM renamer, which ships with the server as a bundled plugin.
 
 A provider never touches the file system. It is handed everything known about
 one file and answers with a destination; `IVideoRelocationService` does the
@@ -125,7 +125,7 @@ public class MyRenamer(IVideoRelocationService relocationService) : IRelocationP
 ```
 
 `Name` is the only property you must supply, and `GetPath` is the only method
-that does any work. Everything else has a default:
+that does any work. Every other property has a default:
 
 | Member | Default | Notes |
 |---|---|---|
@@ -135,13 +135,11 @@ that does any work. Everything else has a default:
 | `SupportsIncompleteMetadata` | `false` | See below. |
 | `SupportsMoving` | `true` | When `false`, every result is treated as `SkipMove`. |
 | `SupportsRenaming` | `true` | When `false`, every result is treated as `SkipRename`. |
-| `GetPath(RelocationContext)` | Returns a `NotImplementedException` error | Leave it alone when you implement `IRelocationProvider<TConfig>`. |
 
-Note the shape of the configured variant: `IRelocationProvider<TConfig>.GetPath`
-is a **separate method**, not an override. When your provider declares a
-configuration type the service resolves and invokes the generic overload
-directly, so the inherited non-generic default is never called and there is no
-need to implement it.
+A provider without a configuration implements `GetPath(RelocationContext)`.
+A configured one implements `IRelocationProvider<TConfig>.GetPath` instead,
+whose interface hands any non-generic call on to it with the configured
+context, so there is no need to implement both.
 
 ### Registering
 

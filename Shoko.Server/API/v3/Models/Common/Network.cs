@@ -1,7 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Shoko.Server.Models.TMDB;
+using Shoko.Abstractions.Metadata;
+using Shoko.Server.API.v3.Helpers;
 
 namespace Shoko.Server.API.v3.Models.Common;
 
@@ -41,12 +42,12 @@ public class Network
     [Required, JsonConverter(typeof(StringEnumConverter))]
     public DataSourceType Source { get; init; }
 
-    public Network(TMDB_Network company)
+    public Network(INetwork company)
     {
-        ID = company.TmdbNetworkID;
+        ID = TmdbCompatibility.TmdbID(company);
         Name = company.Name;
-        CountryOfOrigin = company.CountryOfOrigin;
-        Size = company.GetTmdbNetworkCrossReferences().Count;
+        CountryOfOrigin = company.CountryOfOrigin ?? string.Empty;
+        Size = TmdbCompatibility.NetworkSize(company);
         Source = DataSourceType.TMDB;
     }
 }

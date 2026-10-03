@@ -15,7 +15,7 @@ namespace Shoko.Abstractions.Metadata.Shoko;
 ///   of a movie it is linked to, or one set on the episode itself. It has no
 ///   default primary image of its own.
 /// </remarks>
-public interface IShokoEpisode : IEpisode, IWithPrimaryImage, IWithCreationDate, IWithUpdateDate
+public interface IShokoEpisode : IEpisode<IShokoSeries, IShokoEpisode>, IWithPrimaryImage
 {
     /// <summary>
     ///   The ID of the Shoko series this belongs to, the same ID
@@ -32,16 +32,15 @@ public interface IShokoEpisode : IEpisode, IWithPrimaryImage, IWithCreationDate,
     int LocalID { get; }
 
     /// <summary>
+    ///   Always <see langword="null"/>: a Shoko episode is never refreshed
+    ///   from a source, and does not take its AniDB episode's time.
+    /// </summary>
+    DateTime? IEpisode.LastRefreshedAt { get => null; }
+
+    /// <summary>
     /// The id of the anidb episode linked to the shoko episode.
     /// </summary>
     int AnidbEpisodeID { get; }
-
-    /// <summary>
-    /// Get the shoko series info for the episode. A Shoko episode always
-    /// belongs to a Shoko series.
-    /// </summary>
-    /// <exception cref="NullReferenceException">The series the episode belongs to is missing.</exception>
-    new IShokoSeries Series { get; }
 
     /// <summary>
     /// A direct link to the anidb episode metadata.
@@ -63,8 +62,7 @@ public interface IShokoEpisode : IEpisode, IWithPrimaryImage, IWithCreationDate,
     ///   belongs to.
     /// </summary>
     /// <param name="source">
-    ///   The source to look up, TMDB or a plugin's, or <c>null</c> for every
-    ///   source.
+    ///   The source to look up, a plugin's, or <c>null</c> for every source.
     /// </param>
     /// <returns>The links, or an empty list when there are none.</returns>
     IReadOnlyList<IMetadataSeriesCrossReference> GetMetadataSeriesCrossReferences(MetadataSource? source = null);
@@ -74,8 +72,7 @@ public interface IShokoEpisode : IEpisode, IWithPrimaryImage, IWithCreationDate,
     ///   work as another source's episode.
     /// </summary>
     /// <param name="source">
-    ///   The source to look up, TMDB or a plugin's, or <c>null</c> for every
-    ///   source.
+    ///   The source to look up, a plugin's, or <c>null</c> for every source.
     /// </param>
     /// <returns>The links, or an empty list when there are none.</returns>
     IReadOnlyList<IMetadataEpisodeCrossReference> GetMetadataEpisodeCrossReferences(MetadataSource? source = null);
@@ -86,8 +83,7 @@ public interface IShokoEpisode : IEpisode, IWithPrimaryImage, IWithCreationDate,
     ///   among the series- or episode-level links.
     /// </summary>
     /// <param name="source">
-    ///   The source to look up, TMDB or a plugin's, or <c>null</c> for every
-    ///   source.
+    ///   The source to look up, a plugin's, or <c>null</c> for every source.
     /// </param>
     /// <returns>The links, or an empty list when there are none.</returns>
     IReadOnlyList<IMetadataMovieCrossReference> GetMetadataMovieCrossReferences(MetadataSource? source = null);

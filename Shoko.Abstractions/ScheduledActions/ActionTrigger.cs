@@ -8,10 +8,11 @@ namespace Shoko.Abstractions.ScheduledActions;
 
 /// <summary>
 ///   When a scheduled action runs on its own: after an interval, daily, weekly or
-///   monthly at a time of day in the server's time zone, or at start-up.
-///   Build one through <see cref="Every"/>, <see cref="DailyAt"/>,
-///   <see cref="WeeklyOn(System.DayOfWeek, TimeOnly)"/>,
-///   <see cref="MonthlyOn(int, TimeOnly)"/> or <see cref="AtStartup"/>.
+///   monthly at a time of day in the server's time zone, at start-up, or when
+///   the job queue is cleared. Build one through <see cref="Every"/>,
+///   <see cref="DailyAt"/>, <see cref="WeeklyOn(System.DayOfWeek, TimeOnly)"/>,
+///   <see cref="MonthlyOn(int, TimeOnly)"/>, <see cref="AtStartup"/> or
+///   <see cref="OnQueueCleared"/>.
 /// </summary>
 /// <remarks>
 ///   Each type sets only its own fields. A run missed while the server was down
@@ -211,6 +212,11 @@ public sealed record ActionTrigger
     /// </summary>
     public static ActionTrigger AtStartup { get; } = new() { Type = ActionTriggerType.Startup };
 
+    /// <summary>
+    ///   A trigger that runs the action every time the job queue is cleared.
+    /// </summary>
+    public static ActionTrigger OnQueueCleared { get; } = new() { Type = ActionTriggerType.QueueCleared };
+
     #endregion
 
     #region Validation
@@ -318,6 +324,7 @@ public sealed record ActionTrigger
             ActionTriggerType.Daily => ("A daily trigger", [nameof(TimeOfDay)]),
             ActionTriggerType.Weekly => ("A weekly trigger", [nameof(DaysOfWeek), nameof(TimeOfDay)]),
             ActionTriggerType.Monthly => ("A monthly trigger", [nameof(DaysOfMonth), nameof(TimeOfDay)]),
+            ActionTriggerType.QueueCleared => ("A queue-cleared trigger", []),
             _ => ("A start-up trigger", []),
         };
 
@@ -397,7 +404,8 @@ public sealed record ActionTrigger
     /// <summary>
     ///   Describes the trigger in English, for logs and UIs: "every 30 minutes
     ///   trigger", "daily 04:00 trigger", "Monday and Friday 02:00 trigger",
-    ///   "monthly 1st and last day 04:00 trigger" or "start-up trigger".
+    ///   "monthly 1st and last day 04:00 trigger", "start-up trigger" or
+    ///   "queue-cleared trigger".
     /// </summary>
     /// <remarks>
     ///   Times of day are on a 24 hour clock, in the server's time zone, and
@@ -420,6 +428,7 @@ public sealed record ActionTrigger
                 ? $"monthly {JoinAnd([.. daysOfMonth.Distinct().OrderBy(day => day < 0).ThenBy(day => day).Select(DescribeDayOfMonth)])}{at} trigger"
                 : $"monthly{at} trigger",
             ActionTriggerType.Startup => "start-up trigger",
+            ActionTriggerType.QueueCleared => "queue-cleared trigger",
             _ => "unknown trigger",
         };
     }

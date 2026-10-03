@@ -10,7 +10,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [JobKeyMember("ScanDropFolders")]
 [JobKeyGroup(JobKeyGroup.Legacy)]
 [DisallowConcurrentExecution]
-internal class ScanDropFoldersJob(IVideoService videoService) : BaseJob
+public class ScanDropFoldersJob(IVideoService videoService) : BaseJob
 {
     public override string TypeName => "Scan Drop Folders";
 

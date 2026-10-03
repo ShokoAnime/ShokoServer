@@ -124,7 +124,7 @@ public partial class MetadataEntryController
             return ValidationProblem(ModelState);
 
         var updated = await _linkingService.SetMatchRating(links, body.MatchRating, cancellationToken).ConfigureAwait(false);
-        return Ok(MetadataModelBuilder.CrossReferences(updated));
+        return Ok(MetadataModelBuilder.CrossReferences(updated, _metadataService));
     }
 
     /// <summary>
@@ -159,7 +159,7 @@ public partial class MetadataEntryController
             return NotFound(CrossReferencesNotFound);
 
         var updated = await _linkingService.SetMatchRating(links, body.MatchRating, cancellationToken).ConfigureAwait(false);
-        return Ok(MetadataModelBuilder.CrossReferences(updated));
+        return Ok(MetadataModelBuilder.CrossReferences(updated, _metadataService));
     }
 
     /// <summary>

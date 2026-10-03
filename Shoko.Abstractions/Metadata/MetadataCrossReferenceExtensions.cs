@@ -673,72 +673,72 @@ public static class MetadataCrossReferenceExtensions
 
     #endregion
 
-    #region Shoko Season Linked Entries
+    #region Season Linked Entries
 
     /// <summary>
-    ///   The seasons of one source in the Shoko season's
-    ///   <see cref="IShokoSeason.LinkedSeasons"/>, in the order the Shoko season lists them.
+    ///   The seasons of one source in the season's
+    ///   <see cref="ISeason.LinkedSeasons"/>, in the order the season lists them.
     /// </summary>
-    /// <param name="season">The Shoko season.</param>
+    /// <param name="season">The season.</param>
     /// <param name="source">The source whose seasons to keep.</param>
     /// <returns>The seasons of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
     ///   <see langword="null"/>.
     /// </exception>
-    public static IReadOnlyList<ISeason> GetLinkedSeasons(this IShokoSeason season, MetadataSource source)
+    public static IReadOnlyList<ISeason> GetLinkedSeasons(this ISeason season, MetadataSource source)
     {
         ArgumentNullException.ThrowIfNull(season);
         return EntriesFromSource(season.LinkedSeasons, source);
     }
 
     /// <summary>
-    ///   The seasons of one source in the Shoko season's
-    ///   <see cref="IShokoSeason.LinkedSeasons"/> that are a
-    ///   <typeparamref name="TSeason"/>, in the order the Shoko season lists them.
+    ///   The seasons of one source in the season's
+    ///   <see cref="ISeason.LinkedSeasons"/> that are a
+    ///   <typeparamref name="TSeason"/>, in the order the season lists them.
     /// </summary>
     /// <typeparam name="TSeason">The type the entries must have.</typeparam>
-    /// <param name="season">The Shoko season.</param>
+    /// <param name="season">The season.</param>
     /// <param name="source">The source whose seasons to keep.</param>
     /// <returns>The typed seasons of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
     ///   <see langword="null"/>.
     /// </exception>
-    public static IReadOnlyList<TSeason> GetLinkedSeasons<TSeason>(this IShokoSeason season, MetadataSource source) where TSeason : ISeason
+    public static IReadOnlyList<TSeason> GetLinkedSeasons<TSeason>(this ISeason season, MetadataSource source) where TSeason : ISeason
         => [.. season.GetLinkedSeasons(source).OfType<TSeason>()];
 
     /// <summary>
-    ///   The movies of one source in the Shoko season's
-    ///   <see cref="IShokoSeason.LinkedMovies"/>, in the order the Shoko season lists them.
+    ///   The movies of one source in the season's
+    ///   <see cref="ISeason.LinkedMovies"/>, in the order the season lists them.
     /// </summary>
-    /// <param name="season">The Shoko season.</param>
+    /// <param name="season">The season.</param>
     /// <param name="source">The source whose movies to keep.</param>
     /// <returns>The movies of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
     ///   <see langword="null"/>.
     /// </exception>
-    public static IReadOnlyList<IMovie> GetLinkedMovies(this IShokoSeason season, MetadataSource source)
+    public static IReadOnlyList<IMovie> GetLinkedMovies(this ISeason season, MetadataSource source)
     {
         ArgumentNullException.ThrowIfNull(season);
         return EntriesFromSource(season.LinkedMovies, source);
     }
 
     /// <summary>
-    ///   The movies of one source in the Shoko season's
-    ///   <see cref="IShokoSeason.LinkedMovies"/> that are a
-    ///   <typeparamref name="TMovie"/>, in the order the Shoko season lists them.
+    ///   The movies of one source in the season's
+    ///   <see cref="ISeason.LinkedMovies"/> that are a
+    ///   <typeparamref name="TMovie"/>, in the order the season lists them.
     /// </summary>
     /// <typeparam name="TMovie">The type the entries must have.</typeparam>
-    /// <param name="season">The Shoko season.</param>
+    /// <param name="season">The season.</param>
     /// <param name="source">The source whose movies to keep.</param>
     /// <returns>The typed movies of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
     ///   <see langword="null"/>.
     /// </exception>
-    public static IReadOnlyList<TMovie> GetLinkedMovies<TMovie>(this IShokoSeason season, MetadataSource source) where TMovie : IMovie
+    public static IReadOnlyList<TMovie> GetLinkedMovies<TMovie>(this ISeason season, MetadataSource source) where TMovie : IMovie
         => [.. season.GetLinkedMovies(source).OfType<TMovie>()];
 
     #endregion

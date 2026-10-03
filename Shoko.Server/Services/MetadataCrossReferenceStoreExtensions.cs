@@ -2,9 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
-using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
-using Shoko.Abstractions.Metadata.Tmdb;
 
 namespace Shoko.Server.Services;
 
@@ -29,28 +27,12 @@ internal static class MetadataCrossReferenceStoreExtensions
     ///   Whether anything still links to one of a stored collection's members,
     ///   which keeps the collection from being purged.
     /// </summary>
-    /// <remarks>
-    ///   A plugin source's members are in the collection store. TMDB keeps
-    ///   its collections in tables of its own, which the metadata service
-    ///   reads, so a TMDB collection's members are its stored movies.
-    /// </remarks>
     /// <param name="store">The cross-reference store.</param>
     /// <param name="collections">The collection store.</param>
-    /// <param name="metadataService">Reads a collection the core keeps in tables of its own.</param>
     /// <param name="collection">The collection.</param>
     /// <returns><see langword="true"/> when a member is linked.</returns>
-    public static bool IsCollectionInUse(
-        this IMetadataCrossReferenceStore store,
-        IMetadataCollectionStore collections,
-        IMetadataService metadataService,
-        MetadataGuid collection
-    )
-    {
-        var members = collection.Source.IsCore
-            ? (metadataService.GetCollection(collection) as ITmdbCollection)?.Movies.Select(movie => movie.ID) ?? []
-            : collections.GetMembers(collection);
-        return members.Any(member => store.IsLinked(member));
-    }
+    public static bool IsCollectionInUse(this IMetadataCrossReferenceStore store, IMetadataCollectionStore collections, MetadataGuid collection)
+        => collections.GetMembers(collection).Any(member => store.IsLinked(member));
 
     /// <summary>
     ///   The episode links naming no series that are left behind once the

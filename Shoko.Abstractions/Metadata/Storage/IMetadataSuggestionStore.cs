@@ -8,9 +8,9 @@ namespace Shoko.Abstractions.Metadata.Storage;
 ///   not have to.
 /// </summary>
 /// <remarks>
-///   Only a plugin's source can be written; the core keeps the suggestions of
-///   <c>shoko</c>, <c>user</c>, <c>generated</c>, <c>anidb</c> and
-///   <c>tmdb</c> itself.
+///   Every source but the core's own can be written; the core keeps the
+///   suggestions of <c>shoko</c>, <c>user</c>, <c>generated</c> and
+///   <c>anidb</c> itself.
 /// </remarks>
 public interface IMetadataSuggestionStore
 {

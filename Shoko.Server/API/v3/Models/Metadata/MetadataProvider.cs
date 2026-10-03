@@ -22,8 +22,9 @@ public class MetadataProvider
     /// <param name="info">The provider's registration.</param>
     /// <param name="status">The pause status of the provider's source.</param>
     /// <param name="providers">Every registered provider, to tell whether the source is configured.</param>
+    /// <param name="hasIcon">Whether the provider's source has an icon.</param>
     /// <exception cref="ArgumentNullException"><paramref name="info"/>, <paramref name="status"/> or <paramref name="providers"/> is <see langword="null"/>.</exception>
-    public MetadataProvider(MetadataProviderInfo info, MetadataProviderPauseStatus status, IEnumerable<MetadataProviderInfo> providers)
+    public MetadataProvider(MetadataProviderInfo info, MetadataProviderPauseStatus status, IEnumerable<MetadataProviderInfo> providers, bool hasIcon)
     {
         ArgumentNullException.ThrowIfNull(info);
         ArgumentNullException.ThrowIfNull(status);
@@ -34,6 +35,8 @@ public class MetadataProvider
         Version = info.Version;
         Source = info.Source;
         Plugin = new(info.PluginInfo);
+        PluginID = info.PluginInfo.ID;
+        HasIcon = hasIcon;
         Configuration = info.ConfigurationInfo is null ? null : new(info.ConfigurationInfo);
         SupportsSeries = info.SupportsSeries;
         SupportsMovies = info.SupportsMovies;
@@ -91,6 +94,19 @@ public class MetadataProvider
     /// </summary>
     [Required]
     public PluginInfo Plugin { get; init; }
+
+    /// <summary>
+    /// The ID of the plugin the provider belongs to.
+    /// </summary>
+    [Required]
+    public Guid PluginID { get; init; }
+
+    /// <summary>
+    /// Whether the provider's source has an icon, served at
+    /// <c>Metadata/Source/{source}/Icon</c>.
+    /// </summary>
+    [Required]
+    public bool HasIcon { get; init; }
 
     /// <summary>
     /// The configuration the provider uses, if any.

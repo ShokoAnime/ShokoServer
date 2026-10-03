@@ -107,6 +107,7 @@ public class MetadataSuggestionStore(Metadata_SuggestionRepository repository, M
                     row.Kind = suggestion.Kind;
                     row.Ranking = suggestion.Order;
                     row.ApprovalRating = suggestion.ApprovalRating;
+                    row.ApprovalVotes = suggestion.ApprovalVotes;
                     row.Votes = suggestion.Votes;
                     row.Score = suggestion.Score;
                     row.Ordering = position;

@@ -70,7 +70,7 @@ public class GetAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbService a
     public bool CreateSeriesEntry { get; set; }
 
     /// <summary>
-    /// Skip updating related TMDB entities after update.
+    /// Skip updating the supplementary metadata sources after update.
     /// </summary>
     public bool SkipSupplementaryUpdate { get; set; }
 
@@ -164,7 +164,7 @@ public class GetAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbService a
         if (!CreateSeriesEntry && other.CreateSeriesEntry) { CreateSeriesEntry = true; changed = true; }
         if (!UseRemote && other.UseRemote) { UseRemote = true; changed = true; }
         if (!UseCache && other.UseCache) { UseCache = true; changed = true; }
-        // AND-semantics: SkipSupplementaryUpdate=false means "do update TMDB" — false wins
+        // AND-semantics: SkipSupplementaryUpdate=false means "do update the other sources" — false wins
         if (SkipSupplementaryUpdate && !other.SkipSupplementaryUpdate) { SkipSupplementaryUpdate = false; changed = true; }
         // MIN-semantics: lower RelDepth = can recurse deeper
         if (other.RelDepth < RelDepth) { RelDepth = other.RelDepth; changed = true; }

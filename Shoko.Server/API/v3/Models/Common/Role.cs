@@ -5,7 +5,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 
@@ -105,15 +104,16 @@ public class Role
         Language = RepoFactory.AniDB_Anime.GetByAnimeID(xref.AnimeID)?.OriginalLanguage.GetString();
     }
 
-    public static Role? FromTmdb(TMDB_Cast cast)
+    public static Role? FromTmdb(ICast cast)
     {
-        var person = cast.GetTmdbPerson();
-        if (person is null) return null;
+        if (TmdbCompatibility.CreditedPerson(cast.Creator) is not { } person)
+            return null;
+
         return new()
         {
             Character = new()
             {
-                Name = cast.CharacterName,
+                Name = cast.Name,
             },
             Staff = CreateStaffFromTmdbPerson(person),
             RoleName = CreatorRoleType.Actor,
@@ -122,31 +122,32 @@ public class Role
         };
     }
 
-    public static Role? FromTmdb(TMDB_Crew crew)
+    public static Role? FromTmdb(ICrew crew)
     {
-        var person = crew.GetTmdbPerson();
-        if (person is null) return null;
+        if (TmdbCompatibility.CreditedPerson(crew.Creator) is not { } person)
+            return null;
+
         return new()
         {
             Staff = CreateStaffFromTmdbPerson(person),
             RoleName = crew.ToCreatorRole(),
-            RoleDetails = $"{crew.Department}, {crew.Job}",
+            RoleDetails = crew.Name,
             Language = crew.LanguageCode,
         };
     }
 
-    private static Person CreateStaffFromTmdbPerson(TMDB_Person person)
+    private static Person CreateStaffFromTmdbPerson(ICreator person)
     {
         // A person with no other names always had one empty name stored, so
         // the alternate name stays empty for one.
-        var aliases = ((ICreator)person).AlternativeNames;
+        var aliases = person.AlternativeNames;
         return new()
         {
-            ID = person.Id,
-            Name = person.EnglishName,
+            ID = TmdbCompatibility.TmdbID(person),
+            Name = person.Name,
             AlternateName = aliases.Count == 0 ? string.Empty : aliases[0].Value.Split("/").Last().Trim(),
-            Description = person.EnglishBiography,
-            Image = (person as ICreator).PrimaryImage is { } staffImage ? new Image(staffImage) : null,
+            Description = person.DefaultOverview?.Value ?? string.Empty,
+            Image = person.PrimaryImage is { } staffImage ? new Image(staffImage) : null,
         };
     }
 

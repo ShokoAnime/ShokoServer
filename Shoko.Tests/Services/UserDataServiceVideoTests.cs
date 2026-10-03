@@ -48,7 +48,7 @@ public class UserDataServiceVideoTests
 
         public void Dispose() => _scope.Dispose();
 
-        public Harness(VideoLocal_User? existing, TimeSpan? duration, bool isAnidbUser)
+        public Harness(VideoLocal_User? existing, TimeSpan? duration, bool isAnidbUser, int thresholdPercent)
         {
             // VideoLocal_User.ToString() resolves the video through RepoFactory, and Moq calls it
             // when rendering a failed verification. Without this a genuine assertion failure would
@@ -61,7 +61,7 @@ public class UserDataServiceVideoTests
                 u => u.VideoLocal_UserID, existing is null ? [] : [existing]);
 
             var settings = new Mock<ISettingsProvider>();
-            settings.Setup(s => s.GetSettings(It.IsAny<bool>())).Returns(new ServerSettings());
+            settings.Setup(s => s.GetSettings(It.IsAny<bool>())).Returns(new ServerSettings { CompletionThresholdPercent = thresholdPercent });
 
             var video = new Mock<IVideo>();
             video.SetupGet(v => v.LocalID).Returns(VideoID);
@@ -93,8 +93,8 @@ public class UserDataServiceVideoTests
         }
     }
 
-    private static Harness Create(VideoLocal_User? existing = null, TimeSpan? duration = null, bool isAnidbUser = false)
-        => new(existing, duration ?? s_duration, isAnidbUser);
+    private static Harness Create(VideoLocal_User? existing = null, TimeSpan? duration = null, bool isAnidbUser = false, int thresholdPercent = 95)
+        => new(existing, duration ?? s_duration, isAnidbUser, thresholdPercent);
 
     private static VideoLocal_User Existing(DateTime? watchedDate = null, int watchedCount = 0, TimeSpan? progress = null)
         => new()
@@ -231,7 +231,7 @@ public class UserDataServiceVideoTests
 
         var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration + TimeSpan.FromMinutes(10) });
 
-        // Anything past the end is already past the 97.5% threshold, so it is treated as watched
+        // Anything past the end is already past the threshold, so it is treated as watched
         // and the position reset — the clamp to the duration never comes into play here.
         Assert.NotNull(result.LastPlayedAt);
         Assert.Equal(TimeSpan.Zero, result.ProgressPosition);
@@ -245,11 +245,23 @@ public class UserDataServiceVideoTests
     {
         using var harness = Create();
 
-        // Anything past 97.5% counts as finished, so trailing credits do not leave it unwatched.
+        // Anything past the threshold counts as finished, so trailing credits do not leave it unwatched.
         var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.98 }, reason);
 
         Assert.NotNull(result.LastPlayedAt);
         Assert.Equal(TimeSpan.Zero, result.ProgressPosition);
+    }
+
+    [Theory]
+    [InlineData(90, true)]
+    [InlineData(100, false)]
+    public async Task TheConfiguredThresholdDecidesWhenAPositionIsFinished(int thresholdPercent, bool finished)
+    {
+        using var harness = Create(thresholdPercent: thresholdPercent);
+
+        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.92 }, VideoUserDataSaveReason.PlaybackEnd);
+
+        Assert.Equal(finished, result.LastPlayedAt.HasValue);
     }
 
     [Theory]
@@ -348,10 +360,10 @@ public class UserDataServiceVideoTests
     {
         using var harness = Create();
 
-        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.97 });
+        var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = s_duration * 0.94 });
 
         Assert.Null(result.LastPlayedAt);
-        Assert.Equal(s_duration * 0.97, result.ProgressPosition);
+        Assert.Equal(s_duration * 0.94, result.ProgressPosition);
     }
 
     [Fact]
@@ -367,7 +379,7 @@ public class UserDataServiceVideoTests
     [Fact]
     public async Task ProgressIsLeftAloneWhenTheDurationIsUnknown()
     {
-        using var harness = new Harness(null, duration: null, isAnidbUser: false);
+        using var harness = new Harness(null, duration: null, isAnidbUser: false, thresholdPercent: 95);
         var progress = TimeSpan.FromHours(99);
 
         var result = await harness.Service.SaveVideoUserData(harness.Video, harness.User, new() { ProgressPosition = progress });

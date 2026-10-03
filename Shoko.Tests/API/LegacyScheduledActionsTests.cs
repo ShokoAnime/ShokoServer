@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Moq;
@@ -79,7 +78,7 @@ public class LegacyScheduledActionsTests
     }
 
     private static List<Type> StepTypes()
-        => LegacyScheduledActions.ImportSteps.Select(step => step.Method.GetGenericArguments()[0]).ToList();
+        => [.. LegacyScheduledActions.ImportActionTypes];
 
     #endregion
 

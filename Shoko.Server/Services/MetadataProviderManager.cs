@@ -2,6 +2,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
@@ -112,6 +113,82 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     public IReadOnlyList<Type> GetPausedProviderTypes()
         => [.. Entries.Where(entry => entry.Provider is IPausableMetadataProvider pausable && pausable.PauseStatus.IsPaused).Select(entry => entry.Provider.GetType())];
 
+    #region Source Icons
+
+    /// <summary>
+    ///   The embedded resource of AniDB's icon, which the core serves without
+    ///   a provider.
+    /// </summary>
+    internal const string AnidbIconResourceName = "Shoko.Server.Resources.Icons.anidb-icon.png";
+
+    /// <summary>
+    ///   The icons of the core's sources that have no provider.
+    /// </summary>
+    private readonly Dictionary<MetadataSource, PackageImageInfo> _coreSourceIcons = [];
+
+    /// <inheritdoc />
+    public PackageImageInfo? GetSourceIcon(MetadataSource source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        return _coreSourceIcons.TryGetValue(source, out var icon) ? icon : ChooseSourceIcon(MetadataProviders, source);
+    }
+
+    /// <summary>
+    ///   Chooses a source's one icon among its providers': the first series
+    ///   provider's, else the first movie provider's, in registration order.
+    /// </summary>
+    /// <param name="providers">The registered providers, in registration order.</param>
+    /// <param name="source">The source.</param>
+    /// <returns>The icon, or <see langword="null"/> when no provider of the source has one.</returns>
+    internal static PackageImageInfo? ChooseSourceIcon(IEnumerable<MetadataProviderInfo> providers, MetadataSource source)
+    {
+        PackageImageInfo? movieIcon = null;
+        foreach (var info in providers)
+        {
+            if (info.Source != source || info.Icon is not { } icon)
+                continue;
+
+            if (info.Provider is IMetadataSeriesProvider)
+                return icon;
+
+            movieIcon ??= icon;
+        }
+
+        return movieIcon;
+    }
+
+    /// <summary>
+    ///   The icon a provider names, the series provider's name first when it
+    ///   is both.
+    /// </summary>
+    /// <param name="provider">The provider.</param>
+    /// <returns>The embedded resource name, or <see langword="null"/> when it names none.</returns>
+    private static string? DeclaredIcon(IMetadataProvider provider)
+        => (provider as IMetadataSeriesProvider)?.EmbeddedIconResourceName ?? (provider as IMetadataMovieProvider)?.EmbeddedIconResourceName;
+
+    /// <summary>
+    ///   Loads a source's icon the way a plugin's own icon is loaded: a file
+    ///   beside the plugin, or the embedded image extracted there, named
+    ///   <c>&lt;source&gt;-icon</c>.
+    /// </summary>
+    /// <param name="pluginInfo">The plugin the icon ships with.</param>
+    /// <param name="assembly">The assembly holding the embedded image.</param>
+    /// <param name="resourceName">The embedded resource, if one is named.</param>
+    /// <param name="source">The source.</param>
+    /// <returns>The icon, or <see langword="null"/> when there is none or it is neither SVG nor PNG.</returns>
+    private PackageImageInfo? LoadSourceIcon(LocalPluginInfo pluginInfo, Assembly assembly, string? resourceName, MetadataSource source)
+        => PackageImageLoader.LoadIcon(pluginInfo, assembly, resourceName, SourceIconKind(source), _applicationPaths, _logger);
+
+    /// <summary>
+    ///   The image kind a source's icon is stored under beside its plugin.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>The kind, e.g. <c>anilist-icon</c>.</returns>
+    internal static string SourceIconKind(MetadataSource source)
+        => $"{source.Value}-icon";
+
+    #endregion
+
     #region Providers
 
     /// <inheritdoc />
@@ -202,6 +279,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
                 (provider is IMetadataSeriesProvider ? (MetadataEntityType[])[MetadataEntityType.Series, MetadataEntityType.Season, MetadataEntityType.Episode] : [])
                     .Concat(provider is IMetadataMovieProvider ? [MetadataEntityType.Movie] : [])
                     .Concat(provider is IMetadataCollectionProvider ? [MetadataEntityType.Collection] : [])
+                    .Concat(provider is IMetadataEntityProvider entityProvider ? EntityKinds(entityProvider) : [])
             );
             var configurationType = providerType.GetInterfaces()
                 .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IMetadataProvider<>))
@@ -227,9 +305,15 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
                     Overrides(providerType, typeof(IMetadataMovieLinkingProvider), nameof(IMetadataMovieLinkingProvider.LookupMovie)),
                 AvailableEntityTypes = availableEntityTypes,
                 EnabledEntityTypes = FrozenSet<MetadataEntityType>.Empty,
+                Icon = LoadSourceIcon(pluginInfo, providerType.Assembly, DeclaredIcon(provider), source),
             };
             _metadataProviders.Add(new(info, sources));
         }
+
+        // AniDB has no provider, so the core names its icon here.
+        if (_pluginManager.GetPluginInfo(typeof(CorePlugin).Assembly) is { } corePlugin &&
+            LoadSourceIcon(corePlugin, typeof(CorePlugin).Assembly, AnidbIconResourceName, MetadataSource.AniDB) is { } anidbIcon)
+            _coreSourceIcons[MetadataSource.AniDB] = anidbIcon;
 
         // Asked in this order, so the core's own answer before whichever
         // plugin happened to load first.
@@ -287,11 +371,13 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     ///   provider able to do it, whenever that one shows up.
     /// </summary>
     /// <remarks>
-    ///   Anything already decided, <see langword="null"/> included, is kept,
-    ///   so a provider registered after the claim never takes over by itself.
-    ///   A source still waiting for a linker says so in its settings. What an
-    ///   upgrade carried over is the admin's old decision, so it wins over the
-    ///   default whether or not the source is new.
+    ///   Anything already decided is kept: a provider new to an entity type
+    ///   joins the end of its order, enabled only while something there is,
+    ///   so it never takes over by itself. A source still waiting for a
+    ///   linker says so in its settings. What an upgrade carried over is the
+    ///   admin's old decision, so it wins over the default whether or not the
+    ///   source is new. Older settings naming one provider per type are read
+    ///   in first.
     /// </remarks>
     /// <param name="settings">The settings to update.</param>
     /// <param name="providers">Every registered provider and what it claims, in registration order.</param>
@@ -306,11 +392,12 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     )
     {
         autoLinkers = [];
+        var seeded = ReadOlderAssignments(settings);
         var fresh = providers
             .SelectMany(provider => provider.Sources)
             .Where(source => !settings.Sources.ContainsKey(source))
             .ToHashSet();
-        var seeded = fresh.Count > 0;
+        seeded |= fresh.Count > 0;
         foreach (var provider in providers)
         {
             foreach (var source in provider.Sources)
@@ -340,10 +427,17 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
 
                 foreach (var entityType in provider.EntityTypes)
                 {
-                    if (decisions.Enabled.ContainsKey(entityType))
+                    if (!decisions.Providers.TryGetValue(entityType, out var order))
+                    {
+                        decisions.Providers[entityType] = [new(provider.ID, true)];
+                        seeded = true;
+                        continue;
+                    }
+
+                    if (order.Any(slot => slot.ProviderID == provider.ID))
                         continue;
 
-                    decisions.Enabled[entityType] = provider.ID;
+                    order.Add(new(provider.ID, order.Any(slot => slot.IsEnabled)));
                     seeded = true;
                 }
             }
@@ -353,56 +447,98 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     }
 
     /// <summary>
+    ///   Reads the one provider per entity type older settings kept into the
+    ///   order, as its only enabled provider, or none for nobody.
+    /// </summary>
+    /// <param name="settings">The settings to update.</param>
+    /// <returns>Whether anything was read.</returns>
+    private static bool ReadOlderAssignments(MetadataServiceSettings settings)
+    {
+        var read = false;
+        foreach (var decisions in settings.Sources.Values)
+        {
+            if (decisions.Enabled is not { } older)
+                continue;
+
+            foreach (var (entityType, providerID) in older)
+                if (!decisions.Providers.ContainsKey(entityType))
+                    decisions.Providers[entityType] = providerID is { } id ? [new(id, true)] : [];
+
+            decisions.Enabled = null;
+            read = true;
+        }
+
+        return read;
+    }
+
+    /// <summary>
     ///   Hands the assignments whose provider is gone to their heirs, and
     ///   logs each one.
     /// </summary>
     /// <param name="settings">The settings to update.</param>
     /// <param name="claims">Every registered provider and what it claims, in registration order.</param>
-    /// <returns>Whether anything was handed over.</returns>
+    /// <returns>Whether anything changed.</returns>
     private bool AdoptAndLogOrphanedAssignments(MetadataServiceSettings settings, IReadOnlyList<ProviderClaim> claims)
     {
-        var adoptions = AdoptOrphanedAssignments(settings, claims);
+        var adoptions = AdoptOrphanedAssignments(settings, claims, out var changed);
         foreach (var adoption in adoptions)
             _logger.LogInformation(
                 "Handed {Source} {What} from the missing provider {Orphan} to {Provider}.",
                 adoption.Source, adoption.EntityType?.ToString() ?? "auto-linking", adoption.Orphan, adoption.Heir
             );
 
-        return adoptions.Count > 0;
+        return changed;
     }
 
     /// <summary>
-    ///   Hands an assignment whose provider is gone to the first provider now
-    ///   claiming its source, such as when a source moves from the core into
-    ///   a plugin and its provider's ID changes with it.
+    ///   Drops the providers gone from each entity type's order, handing the
+    ///   type to the next enabled one, or else the first claiming it, when
+    ///   the one answering is gone; and hands auto-linking on the same way.
     /// </summary>
     /// <remarks>
-    ///   An assignment left empty on purpose stays empty. Auto-linking only
-    ///   goes to a provider able to do it.
+    ///   An order nothing registered claims is kept whole, for its providers
+    ///   to find on their return. One left with nothing enabled on purpose
+    ///   stays that way. Auto-linking only goes to a provider able to do it.
     /// </remarks>
     /// <param name="settings">The settings to update.</param>
     /// <param name="providers">Every registered provider and what it claims, in registration order.</param>
+    /// <param name="changed">Whether anything changed.</param>
     /// <returns>What was handed over, the entity type unset for auto-linking.</returns>
     internal static List<(MetadataSource Source, MetadataEntityType? EntityType, Guid Orphan, string Heir)> AdoptOrphanedAssignments(
         MetadataServiceSettings settings,
-        IReadOnlyList<ProviderClaim> providers
+        IReadOnlyList<ProviderClaim> providers,
+        out bool changed
     )
     {
+        changed = false;
         var registered = providers.Select(provider => provider.ID).ToHashSet();
         var adoptions = new List<(MetadataSource, MetadataEntityType?, Guid, string)>();
         foreach (var (source, decisions) in settings.Sources)
         {
             var claimants = providers.Where(provider => provider.Sources.Contains(source)).ToList();
-            foreach (var (entityType, providerID) in decisions.Enabled.ToList())
+            foreach (var (entityType, order) in decisions.Providers)
             {
-                if (providerID is not { } orphan || registered.Contains(orphan))
+                var claiming = claimants.Where(provider => provider.EntityTypes.Contains(entityType)).ToList();
+                if (claiming.Count is 0 || order.All(slot => claiming.Any(provider => provider.ID == slot.ProviderID)))
                     continue;
 
-                if (claimants.FirstOrDefault(provider => provider.EntityTypes.Contains(entityType)) is not { } heir)
+                var answering = order.FirstOrDefault(slot => slot.IsEnabled);
+                order.RemoveAll(slot => !claiming.Any(provider => provider.ID == slot.ProviderID));
+                changed = true;
+                if (answering is null || claiming.Any(provider => provider.ID == answering.ProviderID))
                     continue;
 
-                decisions.Enabled[entityType] = heir.ID;
-                adoptions.Add((source, entityType, orphan, heir.Name));
+                var heir = order.FindIndex(slot => slot.IsEnabled);
+                if (heir < 0)
+                {
+                    if (order.Count is 0)
+                        order.Add(new(claiming[0].ID, true));
+                    else
+                        order[0] = order[0] with { IsEnabled = true };
+                    heir = 0;
+                }
+
+                adoptions.Add((source, entityType, answering.ProviderID, claiming.First(provider => provider.ID == order[heir].ProviderID).Name));
             }
 
             if (decisions.AutoLinker is { } orphanedLinker && !registered.Contains(orphanedLinker)
@@ -410,6 +546,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
             {
                 decisions.AutoLinker = linker.ID;
                 adoptions.Add((source, null, orphanedLinker, linker.Name));
+                changed = true;
             }
         }
 
@@ -492,88 +629,80 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
             entry.Info.AutoLinkRestricted = decisions?.AutoLinkRestricted ?? false;
         }
 
-        // What a provider was assigned, narrowed to what it still claims and can do;
-        // the settings hold one provider per source and entity type, so nothing to resolve.
+        // The entity types a provider answers for: those whose order it is the first enabled claimant of.
         FrozenSet<MetadataEntityType> Settle(ProviderEntry entry)
-            => Claims(settings.Sources, entry).TryGetValue(entry.Info.Source, out var entityTypes)
-                ? entityTypes.ToFrozenSet()
+            => settings.Sources.TryGetValue(entry.Info.Source, out var decisions)
+                ? decisions.Providers
+                    .Where(pair => entry.Info.AvailableEntityTypes.Contains(pair.Key) && Answering(pair.Value, entry.Info.Source, pair.Key) == entry.Info.ID)
+                    .Select(pair => pair.Key)
+                    .ToFrozenSet()
                 : FrozenSet<MetadataEntityType>.Empty;
     }
 
     /// <summary>
-    ///   The source and entity type pairs assigned to one provider, less any it
-    ///   no longer claims or can answer for.
+    ///   The provider answering in an order: the first enabled one that is
+    ///   registered and claims the source and entity type.
     /// </summary>
-    private static Dictionary<MetadataSource, HashSet<MetadataEntityType>> Claims(
-        Dictionary<MetadataSource, MetadataSourceSettings> sources,
-        ProviderEntry entry
-    )
-    {
-        Dictionary<MetadataSource, HashSet<MetadataEntityType>> claims = [];
-        foreach (var (source, decisions) in sources)
-        {
-            if (!entry.Sources.Contains(source))
-                continue;
-
-            foreach (var (entityType, providerID) in decisions.Enabled)
-            {
-                if (providerID != entry.Info.ID || !entry.Info.AvailableEntityTypes.Contains(entityType))
-                    continue;
-
-                if (!claims.TryGetValue(source, out var entityTypes))
-                    claims[source] = entityTypes = [];
-
-                entityTypes.Add(entityType);
-            }
-        }
-
-        return claims;
-    }
+    /// <param name="order">The order.</param>
+    /// <param name="source">The source.</param>
+    /// <param name="entityType">The entity type.</param>
+    /// <returns>The provider's ID, or <see langword="null"/> when none answers.</returns>
+    private Guid? Answering(IEnumerable<MetadataProviderAssignment> order, MetadataSource source, MetadataEntityType entityType)
+        => order.FirstOrDefault(slot => slot.IsEnabled && Claims(slot.ProviderID, source, entityType))?.ProviderID;
 
     /// <summary>
-    ///   Hands a provider exactly the source and entity type pairs asked for,
-    ///   and takes back any it currently holds that were left out.
+    ///   Whether a registered provider claims an entity type on a source.
+    /// </summary>
+    /// <param name="providerID">The provider's ID.</param>
+    /// <param name="source">The source.</param>
+    /// <param name="entityType">The entity type.</param>
+    /// <returns><see langword="true"/> when it does.</returns>
+    private bool Claims(Guid providerID, MetadataSource source, MetadataEntityType entityType)
+        => Entry(providerID) is { } entry && entry.Sources.Contains(source) && entry.Info.AvailableEntityTypes.Contains(entityType);
+
+    /// <summary>
+    ///   Makes a provider answer for exactly the entity types asked for on its
+    ///   source: first in each of their orders, and off in every other.
     /// </summary>
     /// <remarks>
-    ///   Only one provider can hold a pair, so handing it one takes it off
-    ///   whoever had it. A pair let go is written as belonging to nobody
-    ///   rather than dropped, since deciding against a provider is a decision
-    ///   and has to survive a restart.
+    ///   A type left out is written as off rather than dropped, since deciding
+    ///   against a provider is a decision and has to survive a restart.
     /// </remarks>
-    /// <param name="sources">The decisions to rewrite.</param>
-    /// <param name="entry">The provider being assigned to.</param>
-    /// <param name="wanted">What the caller asked for.</param>
-    /// <param name="allowed">Whether the provider may hold a given pair.</param>
+    /// <param name="decisions">The decisions about the provider's source.</param>
+    /// <param name="entry">The provider.</param>
+    /// <param name="wanted">The entity types asked for.</param>
     /// <returns><see langword="true"/> when anything changed.</returns>
-    private static bool Reassign(
-        Dictionary<MetadataSource, MetadataSourceSettings> sources,
-        ProviderEntry entry,
-        IReadOnlyDictionary<MetadataSource, HashSet<MetadataEntityType>>? wanted,
-        Func<MetadataSource, MetadataEntityType, bool> allowed
-    )
+    private bool Reassign(MetadataSourceSettings decisions, ProviderEntry entry, IReadOnlySet<MetadataEntityType> wanted)
     {
-        HashSet<(MetadataSource Source, MetadataEntityType EntityType)> asked = [.. (wanted ?? new Dictionary<MetadataSource, HashSet<MetadataEntityType>>())
-            .SelectMany(pair => pair.Value.Select(entityType => (Source: pair.Key, EntityType: entityType)))
-            .Where(pair => allowed(pair.Source, pair.EntityType))];
-
+        var (source, id) = (entry.Info.Source, entry.Info.ID);
         var changed = false;
-        foreach (var (source, entityType) in asked)
+        foreach (var entityType in entry.Info.AvailableEntityTypes)
         {
-            var decisions = Of(sources, source);
-            if (decisions.Enabled.TryGetValue(entityType, out var current) && current == entry.Info.ID)
-                continue;
+            if (!decisions.Providers.TryGetValue(entityType, out var order))
+                decisions.Providers[entityType] = order = [];
 
-            decisions.Enabled[entityType] = entry.Info.ID;
-            changed = true;
+            var index = order.FindIndex(slot => slot.ProviderID == id);
+            if (wanted.Contains(entityType))
+            {
+                if (Answering(order, source, entityType) == id)
+                    continue;
+
+                if (index >= 0)
+                    order.RemoveAt(index);
+                order.Insert(0, new(id, true));
+                changed = true;
+            }
+            else if (index < 0)
+            {
+                order.Add(new(id, false));
+                changed = true;
+            }
+            else if (order[index].IsEnabled)
+            {
+                order[index] = order[index] with { IsEnabled = false };
+                changed = true;
+            }
         }
-
-        foreach (var (source, decisions) in sources)
-            foreach (var entityType in decisions.Enabled.Keys.ToList())
-                if (decisions.Enabled[entityType] == entry.Info.ID && !asked.Contains((source, entityType)))
-                {
-                    decisions.Enabled[entityType] = null;
-                    changed = true;
-                }
 
         return changed;
     }
@@ -686,8 +815,69 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
             return;
 
         var settings = _configurationProvider.Load();
-        var wanted = new Dictionary<MetadataSource, HashSet<MetadataEntityType>> { [entry.Info.Source] = [.. enabled] };
-        if (Reassign(settings.Sources, entry, wanted, (source, entityType) => entry.Sources.Contains(source) && entry.Info.AvailableEntityTypes.Contains(entityType)))
+        if (Reassign(Of(settings.Sources, entry.Info.Source), entry, enabled))
+        {
+            _configurationProvider.Save(settings);
+            ApplyProviderSettings();
+        }
+    }
+
+    /// <inheritdoc />
+    public IReadOnlyList<MetadataProviderAssignment> GetProviderOrder(MetadataSource source, MetadataEntityType entityType)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(entityType);
+        var claimants = Entries.Where(entry => entry.Sources.Contains(source) && entry.Info.AvailableEntityTypes.Contains(entityType)).ToList();
+        if (claimants.Count is 0)
+            return [];
+
+        // A claimant not in the order yet, which seeding leaves none of, is shown last and off.
+        var order = _configurationProvider.Load().Sources.GetValueOrDefault(source)?.Providers.GetValueOrDefault(entityType) ?? [];
+        var listed = order
+            .Where(slot => claimants.Any(entry => entry.Info.ID == slot.ProviderID))
+            .DistinctBy(slot => slot.ProviderID)
+            .ToList();
+        listed.AddRange(claimants
+            .Where(entry => !listed.Any(slot => slot.ProviderID == entry.Info.ID))
+            .Select(entry => new MetadataProviderAssignment(entry.Info.ID, false)));
+        return listed;
+    }
+
+    /// <inheritdoc />
+    public void SetProviderOrder(MetadataSource source, IReadOnlyDictionary<MetadataEntityType, IReadOnlyList<MetadataProviderAssignment>> orders)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(orders);
+        foreach (var (entityType, order) in orders)
+        {
+            ArgumentNullException.ThrowIfNull(order, nameof(orders));
+            var seen = new HashSet<Guid>();
+            foreach (var slot in order)
+            {
+                ArgumentNullException.ThrowIfNull(slot, nameof(orders));
+                if (!seen.Add(slot.ProviderID))
+                    throw new ArgumentException($"'{slot.ProviderID}' is given twice for {entityType}.", nameof(orders));
+                if (!Claims(slot.ProviderID, source, entityType))
+                    throw new ArgumentException($"'{slot.ProviderID}' does not answer for {entityType} on {source}.", nameof(orders));
+            }
+        }
+
+        var settings = _configurationProvider.Load();
+        var decisions = Of(settings.Sources, source);
+        var changed = false;
+        foreach (var (entityType, order) in orders)
+        {
+            var current = decisions.Providers.GetValueOrDefault(entityType) ?? [];
+            var given = order.Select(slot => slot.ProviderID).ToHashSet();
+            List<MetadataProviderAssignment> next = [.. order, .. current.Where(slot => !given.Contains(slot.ProviderID))];
+            if (current.SequenceEqual(next))
+                continue;
+
+            decisions.Providers[entityType] = next;
+            changed = true;
+        }
+
+        if (changed)
         {
             _configurationProvider.Save(settings);
             ApplyProviderSettings();
@@ -736,6 +926,27 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
         ApplyProviderSettings();
     }
 
+    /// <summary>
+    ///   The creator, character, studio and network kinds a provider refreshes
+    ///   on its own source, logging each pair of its scope that is dropped.
+    /// </summary>
+    /// <param name="provider">The provider.</param>
+    /// <returns>The kinds.</returns>
+    private IReadOnlySet<MetadataEntityType> EntityKinds(IMetadataEntityProvider provider)
+    {
+        var (kinds, dropped) = MetadataEntityRefreshScheduler.GetKinds(provider);
+        foreach (var (source, entityType) in dropped)
+            _logger.LogWarning(
+                "Metadata provider {Provider} cannot refresh {Source} {Kind} entries one at a time: "
+                    + "only creators, characters, studios and networks of its own source are.",
+                provider.Name,
+                source,
+                entityType
+            );
+
+        return kinds;
+    }
+
     private static Guid GetResolverID(Type type, LocalPluginInfo pluginInfo)
         => UuidUtility.GetV5($"MetadataResolver={type.FullName!}", pluginInfo.ID);
 
@@ -749,7 +960,6 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     [
         MetadataSource.Shoko,
         MetadataSource.AniDB,
-        MetadataSource.TMDB,
         MetadataSource.User,
         MetadataSource.Generated,
     ]);

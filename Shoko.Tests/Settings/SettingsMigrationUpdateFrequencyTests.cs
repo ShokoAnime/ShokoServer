@@ -27,6 +27,7 @@ public sealed class SettingsMigrationUpdateFrequencyTests : IDisposable
 
         var applicationPaths = new Mock<IApplicationPaths>(MockBehavior.Loose);
         applicationPaths.SetupGet(paths => paths.DataPath).Returns(_dataPath);
+        applicationPaths.SetupGet(paths => paths.ConfigurationsPath).Returns(Path.Join(_dataPath, "configurations"));
         _applicationPaths = applicationPaths.Object;
     }
 

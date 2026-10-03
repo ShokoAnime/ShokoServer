@@ -136,7 +136,13 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
             return refused;
 
         var candidates = await _linkingService.PreviewAutoLink(source, series.AnidbAnimeID, cancellationToken).ConfigureAwait(false);
-        return candidates.Select(candidate => new MetadataAutoMatchResult(candidate, _metadataService.GetEntry(candidate.ID) is not null)).ToList();
+        return candidates
+            .Select(candidate => new MetadataAutoMatchResult(
+                candidate,
+                _metadataService.GetEntry(candidate.ID) is not null,
+                _metadataService.GetSiteUrl(candidate.ID)
+            ))
+            .ToList();
     }
 
     /// <summary>
@@ -560,7 +566,8 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
             [
                 .. _metadataService.GetSeriesCrossReferences(series.AnidbAnimeID, source),
                 .. _metadataService.GetMovieCrossReferencesForSeries(series.AnidbAnimeID, source),
-            ]
+            ],
+            _metadataService
         ).ToList();
     }
 
@@ -589,7 +596,7 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
         if (EpisodeLinks(series, source, parentID, out var problem) is not { } links)
             return problem!;
 
-        return links.ToListResult(MetadataModelBuilder.CrossReference, page, pageSize);
+        return links.ToListResult(link => MetadataModelBuilder.CrossReference(link, _metadataService), page, pageSize);
     }
 
     /// <summary>
@@ -619,7 +626,7 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
             return problem!;
 
         return MetadataEntryController.GroupEpisodeLinks(links, _metadataService)
-            .ToListResult(group => group.Select(MetadataModelBuilder.CrossReference).ToList(), page, pageSize);
+            .ToListResult(group => group.Select(link => MetadataModelBuilder.CrossReference(link, _metadataService)).ToList(), page, pageSize);
     }
 
     /// <summary>
@@ -756,7 +763,7 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
             considerOtherLinks: considerExistingOtherLinks,
             cancellationToken: cancellationToken
         ).ConfigureAwait(false);
-        return links.ToListResult(MetadataModelBuilder.CrossReference, page, pageSize);
+        return links.ToListResult(link => MetadataModelBuilder.CrossReference(link, _metadataService), page, pageSize);
     }
 
     /// <summary>

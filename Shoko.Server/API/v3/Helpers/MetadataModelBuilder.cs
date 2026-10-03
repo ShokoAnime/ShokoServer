@@ -13,6 +13,7 @@ using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.API.Converters;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.Metadata;
+using Shoko.Server.Models.Metadata;
 
 using AbstractResource = Shoko.Abstractions.Metadata.Resource;
 using Resource = Shoko.Server.API.v3.Models.Common.Resource;
@@ -31,13 +32,11 @@ namespace Shoko.Server.API.v3.Helpers;
 /// <param name="metadataService">Resolves related entries and resources.</param>
 /// <param name="textManager">Reads titles and overviews.</param>
 /// <param name="imageManager">Reads images.</param>
-/// <param name="refreshService">Tells when an entry was last refreshed.</param>
 /// <param name="studioStore">Counts a plugin source's network entries.</param>
 public sealed class MetadataModelBuilder(
     IMetadataService metadataService,
     IMetadataTextManager textManager,
     IImageManager imageManager,
-    IMetadataRefreshService refreshService,
     IMetadataStudioStore studioStore
 )
 {
@@ -116,13 +115,15 @@ public sealed class MetadataModelBuilder(
             SeasonCount = series.Seasons.Count(season => !season.IsSpecial),
             Genres = [.. series.Tags.Where(tag => tag.Kind is TagKind.Genre).Select(tag => tag.Name)],
             ShokoSeriesIDs = series.ShokoSeriesIDs,
-            LastRefreshedAt = refreshService.GetLastRefreshedAt(series.ID)?.ToUniversalTime(),
+            CreatedAt = series.CreatedAt.ToUniversalTime(),
+            LastUpdatedAt = series.LastUpdatedAt.ToUniversalTime(),
+            LastRefreshedAt = series.LastRefreshedAt?.ToUniversalTime(),
             Tags = include.Contains(MetadataIncludeDetails.Tags) ? Tags(series.Tags) : null,
             Studios = include.Contains(MetadataIncludeDetails.Studios) ? [.. series.Studios.Select(Studio)] : null,
             Networks = include.Contains(MetadataIncludeDetails.Networks) ? [.. series.Networks.Select(network => Network(network))] : null,
             Cast = include.Contains(MetadataIncludeDetails.Cast) ? [.. series.Cast.Select(Cast)] : null,
             Crew = include.Contains(MetadataIncludeDetails.Crew) ? [.. series.Crew.Select(Crew)] : null,
-            CrossReferences = include.Contains(MetadataIncludeDetails.CrossReferences) ? CrossReferences(series.MetadataSeriesCrossReferences) : null,
+            CrossReferences = include.Contains(MetadataIncludeDetails.CrossReferences) ? Links(series.MetadataSeriesCrossReferences) : null,
             Resources = include.Contains(MetadataIncludeDetails.Resources) ? Resources(series) : null,
             ContentRatings = include.Contains(MetadataIncludeDetails.ContentRatings) ? ContentRatings(series.ContentRatings, language) : null,
             YearlySeasons = include.Contains(MetadataIncludeDetails.YearlySeasons) ? series.YearlySeasons.ToV3Dto() : null,
@@ -146,6 +147,9 @@ public sealed class MetadataModelBuilder(
             SeriesID = season.SeriesID.ID,
             SeasonNumber = season.SeasonNumber,
             EpisodeCount = season.Episodes.Count,
+            CreatedAt = season.CreatedAt.ToUniversalTime(),
+            LastUpdatedAt = season.LastUpdatedAt.ToUniversalTime(),
+            LastRefreshedAt = season.LastRefreshedAt?.ToUniversalTime(),
             Cast = include.Contains(MetadataIncludeDetails.Cast) ? [.. season.Cast.Select(Cast)] : null,
             Crew = include.Contains(MetadataIncludeDetails.Crew) ? [.. season.Crew.Select(Crew)] : null,
             YearlySeasons = include.Contains(MetadataIncludeDetails.YearlySeasons) ? season.YearlySeasons.ToV3Dto() : null,
@@ -176,9 +180,12 @@ public sealed class MetadataModelBuilder(
             AiredAt = episode.AirDateWithTime is { } airedAt ? AsUtc(airedAt) : null,
             Rating = Rating(episode.Source, episode.Rating, episode.RatingVotes),
             ShokoEpisodeIDs = episode.ShokoEpisodeIDs,
+            CreatedAt = episode.CreatedAt.ToUniversalTime(),
+            LastUpdatedAt = episode.LastUpdatedAt.ToUniversalTime(),
+            LastRefreshedAt = episode.LastRefreshedAt?.ToUniversalTime(),
             Cast = include.Contains(MetadataIncludeDetails.Cast) ? [.. episode.Cast.Select(Cast)] : null,
             Crew = include.Contains(MetadataIncludeDetails.Crew) ? [.. episode.Crew.Select(Crew)] : null,
-            CrossReferences = include.Contains(MetadataIncludeDetails.CrossReferences) ? CrossReferences(episode.MetadataEpisodeCrossReferences) : null,
+            CrossReferences = include.Contains(MetadataIncludeDetails.CrossReferences) ? Links(episode.MetadataEpisodeCrossReferences) : null,
             Resources = include.Contains(MetadataIncludeDetails.Resources) ? Resources(episode) : null,
         }, episode, include, language);
     }
@@ -198,6 +205,7 @@ public sealed class MetadataModelBuilder(
         return Fill(new MetadataMovie
         {
             ReleaseDate = movie.ReleaseDate is { } released ? DateOnly.FromDateTime(released) : null,
+            Runtime = movie.Runtime,
             IsRestricted = movie.Restricted,
             IsVideo = movie.Video,
             OriginalLanguage = movie.OriginalLanguageCode,
@@ -205,12 +213,14 @@ public sealed class MetadataModelBuilder(
             Genres = [.. movie.Tags.Where(tag => tag.Kind is TagKind.Genre).Select(tag => tag.Name)],
             ShokoSeriesIDs = movie.ShokoSeriesIDs,
             ShokoEpisodeIDs = movie.ShokoEpisodeIDs,
-            LastRefreshedAt = refreshService.GetLastRefreshedAt(movie.ID)?.ToUniversalTime(),
+            CreatedAt = movie.CreatedAt.ToUniversalTime(),
+            LastUpdatedAt = movie.LastUpdatedAt.ToUniversalTime(),
+            LastRefreshedAt = movie.LastRefreshedAt?.ToUniversalTime(),
             Tags = include.Contains(MetadataIncludeDetails.Tags) ? Tags(movie.Tags) : null,
             Studios = include.Contains(MetadataIncludeDetails.Studios) ? [.. movie.Studios.Select(Studio)] : null,
             Cast = include.Contains(MetadataIncludeDetails.Cast) ? [.. movie.Cast.Select(Cast)] : null,
             Crew = include.Contains(MetadataIncludeDetails.Crew) ? [.. movie.Crew.Select(Crew)] : null,
-            CrossReferences = include.Contains(MetadataIncludeDetails.CrossReferences) ? CrossReferences(movie.MetadataMovieCrossReferences) : null,
+            CrossReferences = include.Contains(MetadataIncludeDetails.CrossReferences) ? Links(movie.MetadataMovieCrossReferences) : null,
             Resources = include.Contains(MetadataIncludeDetails.Resources) ? Resources(movie) : null,
             ContentRatings = include.Contains(MetadataIncludeDetails.ContentRatings) ? ContentRatings(movie.ContentRatings, language) : null,
             YearlySeasons = include.Contains(MetadataIncludeDetails.YearlySeasons) ? movie.YearlySeasons.ToV3Dto() : null,
@@ -234,6 +244,9 @@ public sealed class MetadataModelBuilder(
         {
             MovieCount = members.Count(member => member is IMovie),
             SeriesCount = members.Count(member => member is ISeries),
+            CreatedAt = collection.CreatedAt.ToUniversalTime(),
+            LastUpdatedAt = collection.LastUpdatedAt.ToUniversalTime(),
+            LastRefreshedAt = collection.LastRefreshedAt?.ToUniversalTime(),
         }, collection, include, language);
     }
 
@@ -257,7 +270,12 @@ public sealed class MetadataModelBuilder(
             Gender = creator.Gender,
             BirthDay = creator.BirthDay,
             DeathDay = creator.DeathDay,
+            PlaceOfBirth = creator.PlaceOfBirth,
+            IsRestricted = creator.IsRestricted,
+            IsStub = IsStub(creator),
             AlternativeNames = [.. creator.AlternativeNames.Select(name => name.Value).Distinct()],
+            CreatedAt = creator.CreatedAt.ToUniversalTime(),
+            LastUpdatedAt = creator.LastUpdatedAt.ToUniversalTime(),
             Resources = include.Contains(MetadataIncludeDetails.Resources) ? Resources(creator) : null,
         }, creator, include, null);
     }
@@ -281,7 +299,10 @@ public sealed class MetadataModelBuilder(
             CharacterType = character.Type,
             Gender = character.Gender,
             BirthDay = character.BirthDay,
+            IsStub = IsStub(character),
             AlternativeNames = [.. character.AlternativeNames.Select(name => name.Value).Distinct()],
+            CreatedAt = character.CreatedAt.ToUniversalTime(),
+            LastUpdatedAt = character.LastUpdatedAt.ToUniversalTime(),
             Resources = include.Contains(MetadataIncludeDetails.Resources) ? Resources(character) : null,
         }, character, include, null);
     }
@@ -308,6 +329,7 @@ public sealed class MetadataModelBuilder(
         model.Type = id.EntityType;
         model.Guid = id.ToString();
         model.Path = PathOf(id);
+        model.SiteUrl = metadataService.GetSiteUrl(entry);
         if (entry is IWithTitles titled)
         {
             model.Title ??= textManager.GetPreferredTitle(id)?.Value ?? titled.Title;
@@ -331,6 +353,17 @@ public sealed class MetadataModelBuilder(
     #endregion
 
     #region Text
+
+    /// <summary>
+    /// The text of every title of an entry, from the text manager.
+    /// </summary>
+    /// <param name="entry">The entry.</param>
+    /// <returns>The titles' text, in no particular order.</returns>
+    public IEnumerable<string> TitleValues(IMetadata entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return textManager.GetTitles(entry.ID).Select(title => title.Value);
+    }
 
     /// <summary>
     /// Every title of an entry, the preferred one first, then the default.
@@ -499,8 +532,11 @@ public sealed class MetadataModelBuilder(
             ID = studio.ID.ID,
             Source = studio.ID.Source,
             Name = studio.Name,
+            SiteUrl = metadataService.GetSiteUrl(studio),
             OriginalName = studio.OriginalName,
+            CountryOfOrigin = studio.CountryOfOrigin,
             StudioType = studio.StudioType,
+            IsStub = IsStub(studio),
             Size = studio.Works.Count(),
             Logos = PrimaryImages(studio),
         };
@@ -521,10 +557,28 @@ public sealed class MetadataModelBuilder(
             ID = network.ID.ID,
             Source = network.ID.Source,
             Name = network.Name,
+            CountryOfOrigin = network.CountryOfOrigin,
+            SiteUrl = metadataService.GetSiteUrl(network),
+            IsStub = IsStub(network),
             Size = size,
             Logos = PrimaryImages(network),
         };
     }
+
+    /// <summary>
+    /// Whether a creator, character, studio or network is a stub the core
+    /// keeps until its source saves it, read through the entry it is on too.
+    /// </summary>
+    /// <param name="entity">The entity.</param>
+    /// <returns><see langword="true"/> for a stub.</returns>
+    internal static bool IsStub(IMetadata entity)
+        => entity switch
+        {
+            IMetadataStubRow row => row.IsStub,
+            Metadata_Studio_Entry studio => studio.Studio?.IsStub ?? false,
+            Metadata_Network_Entry network => network.Network?.IsStub ?? false,
+            _ => false,
+        };
 
     /// <summary>
     /// The series and movies that aired on a network.
@@ -535,8 +589,12 @@ public sealed class MetadataModelBuilder(
     {
         ArgumentNullException.ThrowIfNull(network);
 
+        // The store also links an ordering to the network it follows, which aired nothing itself.
         if (!network.ID.Source.IsCore)
-            return studioStore.GetEntriesForNetwork(network.ID);
+            return [
+                .. studioStore.GetEntriesForNetwork(network.ID)
+                    .Where(entry => entry.EntityType == MetadataEntityType.Series || entry.EntityType == MetadataEntityType.Movie),
+            ];
 
         return [.. metadataService.GetAllSeriesForSource(network.ID.Source)
             .Where(series => series.Networks.Any(other => other.ID == network.ID))
@@ -665,22 +723,34 @@ public sealed class MetadataModelBuilder(
     /// Links from AniDB, by AniDB anime and episode.
     /// </summary>
     /// <param name="links">The links.</param>
+    /// <param name="metadataService">Gives the linked entries' pages.</param>
     /// <returns>The models.</returns>
-    public static IReadOnlyList<MetadataCrossReference> CrossReferences(IEnumerable<IMetadataCrossReference> links)
+    public static IReadOnlyList<MetadataCrossReference> CrossReferences(IEnumerable<IMetadataCrossReference> links, IMetadataService metadataService)
         => [.. links
-            .Select(CrossReference)
+            .Select(link => CrossReference(link, metadataService))
             .OrderBy(link => link.AnidbAnimeID)
             .ThenBy(link => link.AnidbEpisodeID ?? 0)
             .ThenBy(link => link.Index)];
 
     /// <summary>
+    /// Links from AniDB, with the linked entries' pages read through this
+    /// builder's metadata service.
+    /// </summary>
+    /// <param name="links">The links.</param>
+    /// <returns>The models.</returns>
+    private IReadOnlyList<MetadataCrossReference> Links(IEnumerable<IMetadataCrossReference> links)
+        => CrossReferences(links, metadataService);
+
+    /// <summary>
     /// A link from AniDB.
     /// </summary>
     /// <param name="link">The link.</param>
+    /// <param name="metadataService">Gives the linked entry's page.</param>
     /// <returns>The model.</returns>
-    public static MetadataCrossReference CrossReference(IMetadataCrossReference link)
+    public static MetadataCrossReference CrossReference(IMetadataCrossReference link, IMetadataService metadataService)
     {
         ArgumentNullException.ThrowIfNull(link);
+        ArgumentNullException.ThrowIfNull(metadataService);
 
         var (anidbEpisodeID, parentID, seasonID, seasonNumber, episodeNumber) = link switch
         {
@@ -696,6 +766,7 @@ public sealed class MetadataModelBuilder(
             AnidbAnimeID = link.AnidbAnimeID,
             AnidbEpisodeID = anidbEpisodeID,
             ID = link.ProviderID?.ID,
+            SiteUrl = link.ProviderID is { } providerID ? metadataService.GetSiteUrl(providerID) : null,
             ParentID = parentID,
             SeasonID = seasonID,
             SeasonNumber = seasonNumber,
@@ -771,6 +842,11 @@ public sealed class MetadataModelBuilder(
             SeasonNumber = ordering.SeasonNumber,
             EpisodeNumber = ordering.EpisodeNumber,
             EpisodeType = ordering.EpisodeType,
+            AirsBeforeSeasonNumber = ordering.AirsBeforeSeasonNumber,
+            AirsBeforeEpisodeNumber = ordering.AirsBeforeEpisodeNumber,
+            AirsAfterSeasonNumber = ordering.AirsAfterSeasonNumber,
+            AirsAfterEpisodeID = ordering.AirsAfterEpisodeID?.ToString(),
+            AirsBeforeEpisodeID = ordering.AirsBeforeEpisodeID?.ToString(),
             IsDefault = ordering.IsDefault,
             IsPreferred = ordering.IsPreferred,
             CreatedAt = ordering.CreatedAt.ToUniversalTime(),

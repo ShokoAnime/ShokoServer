@@ -75,6 +75,12 @@ public sealed record MetadataSeriesData
     public string? OriginalLanguageCode { get; init; }
 
     /// <summary>
+    ///   The countries the series was made in, in order, as ISO 3166-1 codes
+    ///   when the source gives them. A country given twice is kept once.
+    /// </summary>
+    public IReadOnlyList<string> ProductionCountries { get; init; } = [];
+
+    /// <summary>
     ///   How popular the series is, on the source's own scale, when the
     ///   source measures it.
     /// </summary>
@@ -99,8 +105,8 @@ public sealed record MetadataSeriesData
     public IReadOnlyList<MetadataGuid> CrossSourceIDs { get; init; } = [];
 
     /// <summary>
-    ///   The series' content ratings, in order, one per country. A rating
-    ///   given twice for a country keeps its first place.
+    ///   The series' content ratings, in order, a country as often as it
+    ///   is rated. A rating given twice for a country keeps its first place.
     /// </summary>
     public IReadOnlyList<MetadataContentRatingData> ContentRatings { get; init; } = [];
 
@@ -114,6 +120,15 @@ public sealed record MetadataSeriesData
     ///   a season it names must be one of <see cref="Seasons"/>.
     /// </summary>
     public IReadOnlyList<MetadataEpisodeData> Episodes { get; init; } = [];
+
+    /// <summary>
+    ///   The source's resource ID of the series's default image of each type,
+    ///   which becomes its pinned default and is always the first downloaded
+    ///   within the type's limit. <c>null</c> leaves the stored defaults as
+    ///   they are, and an empty map clears them. A type the series has no
+    ///   images of is ignored.
+    /// </summary>
+    public IReadOnlyDictionary<ImageEntityType, string>? DefaultImageResourceIDs { get; init; }
 }
 
 /// <summary>
@@ -141,6 +156,15 @@ public sealed record MetadataSeasonData
     ///   The season's overviews, in order, stored like the titles.
     /// </summary>
     public IReadOnlyList<IText> Overviews { get; init; } = [];
+
+    /// <summary>
+    ///   The source's resource ID of the season's default image of each type,
+    ///   which becomes its pinned default and is always the first downloaded
+    ///   within the type's limit. <c>null</c> leaves the stored defaults as
+    ///   they are, and an empty map clears them. A type the season has no
+    ///   images of is ignored.
+    /// </summary>
+    public IReadOnlyDictionary<ImageEntityType, string>? DefaultImageResourceIDs { get; init; }
 }
 
 /// <summary>
@@ -175,6 +199,27 @@ public sealed record MetadataEpisodeData
     ///   What kind of episode it is.
     /// </summary>
     public EpisodeType Type { get; init; } = EpisodeType.Episode;
+
+    /// <summary>
+    ///   The season of the regular episode a special airs before. Honoured
+    ///   only for an episode in season 0, with the numbers of the series' own
+    ///   seasons and episodes. A target that does not exist is ignored.
+    /// </summary>
+    public int? AirsBeforeSeasonNumber { get; init; }
+
+    /// <summary>
+    ///   The number of the regular episode a special airs before, within
+    ///   <see cref="AirsBeforeSeasonNumber"/>. Honoured only for an episode
+    ///   in season 0. A target that does not exist is ignored.
+    /// </summary>
+    public int? AirsBeforeEpisodeNumber { get; init; }
+
+    /// <summary>
+    ///   The season a special airs after, once its last episode aired.
+    ///   Honoured only for an episode in season 0, with the numbers of the
+    ///   series' own seasons. A target that does not exist is ignored.
+    /// </summary>
+    public int? AirsAfterSeasonNumber { get; init; }
 
     /// <summary>
     ///   The source's user rating, on a scale of 1 to 10.
@@ -224,4 +269,13 @@ public sealed record MetadataEpisodeData
     ///   The episode's overviews, in order, stored like the titles.
     /// </summary>
     public IReadOnlyList<IText> Overviews { get; init; } = [];
+
+    /// <summary>
+    ///   The source's resource ID of the episode's default image of each type,
+    ///   which becomes its pinned default and is always the first downloaded
+    ///   within the type's limit. <c>null</c> leaves the stored defaults as
+    ///   they are, and an empty map clears them. A type the episode has no
+    ///   images of is ignored.
+    /// </summary>
+    public IReadOnlyDictionary<ImageEntityType, string>? DefaultImageResourceIDs { get; init; }
 }

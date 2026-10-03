@@ -93,7 +93,6 @@ public partial class DatabaseFixes
         ("Metadata_Crew", "Source"),
         ("Metadata_Episode", "Source"),
         ("Metadata_Movie", "Source"),
-        ("Metadata_Refresh", "Source"),
         ("Metadata_Ordering", "Source"),
         ("Metadata_Ordering", "SeriesSource"),
         ("Metadata_Ordering_Group", "Source"),
@@ -132,7 +131,6 @@ public partial class DatabaseFixes
         ("Metadata_ContentRating", "EntityType"),
         ("Metadata_Crew", "EntityType"),
         ("Metadata_Network_Entry", "EntityType"),
-        ("Metadata_Refresh", "EntityType"),
         ("Metadata_Relation", "BaseType"),
         ("Metadata_Relation", "RelatedType"),
         ("Metadata_Studio_Entry", "EntityType"),
@@ -142,7 +140,6 @@ public partial class DatabaseFixes
         ("Metadata_Title", "EntityType"),
         ("Metadata_Overview", "EntityType"),
         ("ShokoImage_Entity", "EntityType"),
-        ("TMDB_Suggestion", "TmdbEntityType"),
     ];
 
     /// <summary>

@@ -207,8 +207,8 @@ public class MetadataImageSettings
 }
 
 /// <summary>
-/// Which images to download for one metadata source with a provider, TMDB or
-/// a plugin source, in place of the shared defaults.
+/// Which images to download for one metadata source with a provider, in
+/// place of the shared defaults.
 /// </summary>
 public class MetadataSourceImageSettings : MetadataImageSettings
 {
@@ -221,8 +221,7 @@ public class MetadataSourceImageSettings : MetadataImageSettings
     public MetadataSource Source { get; set; } = MetadataSource.User;
 
     /// <summary>
-    /// Refuses a core source other than TMDB, whose images the core handles
-    /// itself.
+    /// Refuses a core source, whose images the core handles itself.
     /// </summary>
     /// <param name="config">The settings to check.</param>
     /// <returns>The errors, by member name.</returns>
@@ -230,8 +229,8 @@ public class MetadataSourceImageSettings : MetadataImageSettings
     public static IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(MetadataSourceImageSettings config)
     {
         var errors = new Dictionary<string, IReadOnlyList<string>>();
-        if (config.Source.IsCore && config.Source != MetadataSource.TMDB)
-            errors.Add(nameof(config.Source), [$"{nameof(config.Source)} must be TMDB or a plugin source; the core handles {config.Source.Value} images itself."]);
+        if (config.Source.IsCore)
+            errors.Add(nameof(config.Source), [$"{nameof(config.Source)} must be a plugin source; the core handles {config.Source.Value} images itself."]);
         return errors;
     }
 }

@@ -19,5 +19,5 @@ public sealed class CheckNetworkAvailabilityAction(IQueueScheduler scheduler) : 
 
     public override ActionCategory Category => ActionCategory.Miscellaneous;
 
-    public override IReadOnlyList<ActionTrigger> DefaultTriggers => [ActionTrigger.AtStartup, ActionTrigger.Every(TimeSpan.FromMinutes(30))];
+    public override IReadOnlyList<ActionTrigger> DefaultTriggers => [ActionTrigger.AtStartup, ActionTrigger.Every(TimeSpan.FromMinutes(30)), ActionTrigger.OnQueueCleared];
 }

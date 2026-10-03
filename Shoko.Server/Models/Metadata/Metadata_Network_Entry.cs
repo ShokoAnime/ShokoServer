@@ -1,7 +1,5 @@
 using System;
-using System.Linq;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Server.Repositories;
@@ -10,7 +8,8 @@ namespace Shoko.Server.Models.Metadata;
 
 /// <summary>
 ///   A network one entry aired on. Read as a network, it is the stored
-///   network.
+///   network, which is on the entry's own source except for a user's
+///   ordering, whose networks may be on any source.
 /// </summary>
 public class Metadata_Network_Entry : MetadataEntryRow, INetwork, IMetadataStoreRow<Metadata_Network_Entry>
 {
@@ -52,12 +51,13 @@ public class Metadata_Network_Entry : MetadataEntryRow, INetwork, IMetadataStore
 
     #region IMetadata Implementation
 
-    // The row's source and kind name its entry; a network is only purged once
-    // no entry names it, so the row always has one.
+    // A network is only purged once no entry names it, so the row always has one.
     MetadataGuid IMetadata.ID
-        => new(Source, MetadataEntityType.Network, Network?.ProviderID ?? throw new InvalidOperationException($"The stored network {NetworkID} is missing."));
+        => Network is { } network
+            ? new(network.Source, MetadataEntityType.Network, network.ProviderID)
+            : throw new InvalidOperationException($"The stored network {NetworkID} is missing.");
 
-    MetadataSource IMetadata.Source => Source;
+    MetadataSource IMetadata.Source => Network?.Source ?? Source;
 
     MetadataEntityType IMetadata.EntityType => MetadataEntityType.Network;
 
@@ -66,16 +66,21 @@ public class Metadata_Network_Entry : MetadataEntryRow, INetwork, IMetadataStore
     #region IWithImages Implementation
 
     /// <summary>
-    ///   The first primary image the network's own source gave it.
+    ///   The primary image the network's own source pins as its default, else
+    ///   the first one it gave it.
     /// </summary>
     public IImageCrossReference? DefaultPrimaryImageCrossReference
-        => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = Source, ImageType = ImageEntityType.Primary }).FirstOrDefault();
+        => Network is { } network ? MetadataStoredEntry.DefaultImage(network, ImageEntityType.Primary) : null;
 
     #endregion
 
     #region INetwork Implementation
 
     string INetwork.Name => Network?.Name ?? string.Empty;
+
+    string? INetwork.CountryOfOrigin => Network?.CountryOfOrigin;
+
+    DateTime? INetwork.LastRefreshedAt => (Network as INetwork)?.LastRefreshedAt;
 
     #endregion
 }

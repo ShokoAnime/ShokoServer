@@ -19,6 +19,11 @@ public class MetadataMovie : MetadataEntry
     public DateOnly? ReleaseDate { get; init; }
 
     /// <summary>
+    /// How long the movie runs, or <c>null</c> when the source does not say.
+    /// </summary>
+    public TimeSpan? Runtime { get; init; }
+
+    /// <summary>
     /// Whether the movie is for adults only.
     /// </summary>
     [Required]
@@ -61,8 +66,20 @@ public class MetadataMovie : MetadataEntry
     public IReadOnlyList<int> ShokoEpisodeIDs { get; init; } = [];
 
     /// <summary>
-    /// When the movie was last refreshed in full, or <c>null</c> when it
-    /// never was.
+    /// When the movie was first stored locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime CreatedAt { get; init; }
+
+    /// <summary>
+    /// When the movie was last updated locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime LastUpdatedAt { get; init; }
+
+    /// <summary>
+    /// When the movie was last refreshed in full, in UTC, or <c>null</c> when
+    /// it never was.
     /// </summary>
     public DateTime? LastRefreshedAt { get; init; }
 
@@ -137,4 +154,22 @@ public class MetadataCollection : MetadataEntry
     /// </summary>
     [Required]
     public int SeriesCount { get; init; }
+
+    /// <summary>
+    /// When the collection was first stored locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime CreatedAt { get; init; }
+
+    /// <summary>
+    /// When the collection was last updated locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime LastUpdatedAt { get; init; }
+
+    /// <summary>
+    /// When the collection was last refreshed in full, in UTC, or <c>null</c> when
+    /// it never was.
+    /// </summary>
+    public DateTime? LastRefreshedAt { get; init; }
 }

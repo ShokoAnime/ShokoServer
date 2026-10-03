@@ -108,7 +108,7 @@ public sealed record ScheduledActionInfo
 
     /// <summary>
     ///   When a trigger queues it next, in UTC, or <see langword="null"/> when
-    ///   only a start-up trigger, or none, would.
+    ///   only start-up and queue-cleared triggers, or none, would.
     /// </summary>
     /// <remarks>
     ///   The first time one fires at least <see cref="MinimumInterval"/> after

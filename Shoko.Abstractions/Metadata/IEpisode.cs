@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
@@ -11,8 +12,14 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Episode metadata.
 /// </summary>
-public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWithCastAndCrew, IWithResources, IWithCrossSources, IMetadata
+public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWithCastAndCrew, IWithResources, IWithCrossSources, IWithCreationDate, IWithUpdateDate, IMetadata
 {
+    /// <summary>
+    ///   When the core last refreshed the episode's series in full from its
+    ///   source, in UTC, see <see cref="ISeries.LastRefreshedAt"/>.
+    /// </summary>
+    DateTime? LastRefreshedAt { get => Series.LastRefreshedAt; }
+
     /// <summary>
     ///   The series the episode belongs to.
     /// </summary>
@@ -62,9 +69,9 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     /// <summary>
     ///   Whether a user hid the episode. Set it through
     ///   <c>IMetadataOrderingService.SetEpisodeHidden</c>. An episode type
-    ///   that cannot be hidden leaves it <see langword="false"/>.
+    ///   that cannot be hidden gives <see langword="false"/>.
     /// </summary>
-    bool IsHidden { get => false; }
+    bool IsHidden { get; }
 
     /// <summary>
     /// The day the episode aired, if available. When a precise air time is
@@ -85,6 +92,12 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     /// </summary>
     /// <exception cref="NullReferenceException">The series is missing.</exception>
     ISeries Series { get; }
+
+    /// <summary>
+    ///   The season the episode belongs to, see <see cref="SeasonID"/>, or
+    ///   <c>null</c> when it is in none or the season is not available.
+    /// </summary>
+    ISeason? Season { get => SeasonID is { } seasonID ? Series.Seasons.FirstOrDefault(season => season.ID == seasonID) : null; }
 
     /// <summary>
     ///   Every place the episode has in its series' orderings: its place in
@@ -134,4 +147,47 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     /// Get all videos linked to the episode, if any.
     /// </summary>
     IReadOnlyList<IVideo> Videos { get; }
+}
+
+/// <summary>
+///   An episode with its series, season and places in orderings typed.
+/// </summary>
+/// <typeparam name="TSeries">The series' type.</typeparam>
+/// <typeparam name="TEpisode">The episodes' type.</typeparam>
+public interface IEpisode<out TSeries, out TEpisode> : IEpisode
+    where TSeries : class, ISeries
+    where TEpisode : class, IEpisode
+{
+    /// <summary>
+    ///   The series the episode belongs to.
+    /// </summary>
+    /// <exception cref="NullReferenceException">The series is missing.</exception>
+    new TSeries Series { get; }
+
+    ISeries IEpisode.Series { get => Series; }
+
+    /// <summary>
+    ///   The season the episode belongs to, or <c>null</c> when it is in none
+    ///   or the season is not available.
+    /// </summary>
+    new ISeason<TSeries, TEpisode>? Season { get; }
+
+    ISeason? IEpisode.Season { get => Season; }
+
+    /// <summary>
+    ///   Every place the episode has in its series' orderings: its place in
+    ///   the default ordering first, then one for each group of another
+    ///   ordering it is in.
+    /// </summary>
+    new IReadOnlyList<IEpisodeOrderingInformation<TSeries, TEpisode>> Orderings { get; }
+
+    IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings { get => Orderings; }
+
+    /// <summary>
+    ///   The episode's first place in the ordering chosen for its series, or
+    ///   <c>null</c> when that ordering leaves it out.
+    /// </summary>
+    new IEpisodeOrderingInformation<TSeries, TEpisode>? PreferredOrdering { get; }
+
+    IEpisodeOrderingInformation? IEpisode.PreferredOrdering { get => PreferredOrdering; }
 }

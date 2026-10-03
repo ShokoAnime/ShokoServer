@@ -1,0 +1,31 @@
+{
+  "description": "The order the episodes were made in.",
+  "episode_count": 3,
+  "group_count": 2,
+  "groups": [
+    {
+      "id": "5acf93efc3a368739a0000a9",
+      "name": "Part 1",
+      "order": 1,
+      "episodes": [
+        { "air_date": "2023-10-06", "episode_number": 2, "id": 3002, "name": "Episode 2", "order": 0, "season_number": 1, "show_id": 1001, "vote_average": 8.0, "vote_count": 15 },
+        { "air_date": "2023-09-29", "episode_number": 1, "id": 3001, "name": "The Journey's End", "order": 1, "season_number": 1, "show_id": 1001, "vote_average": 8.5, "vote_count": 20 },
+        { "air_date": "2024-01-01", "episode_number": 9, "id": 9999, "name": "Not Stored", "order": 2, "season_number": 1, "show_id": 1001, "vote_average": 0, "vote_count": 0 }
+      ],
+      "locked": true
+    },
+    {
+      "id": "5acf93efc3a368739a0000a8",
+      "name": "Specials",
+      "order": 0,
+      "episodes": [
+        { "air_date": "2023-09-01", "episode_number": 1, "id": 3000, "name": "Episode 1", "order": 0, "season_number": 0, "show_id": 1001, "vote_average": 7.0, "vote_count": 3 }
+      ],
+      "locked": false
+    }
+  ],
+  "id": "5acf93e60e0a26346d0000ce",
+  "name": "Production Order",
+  "network": { "id": 98, "logo_path": "/network-98.png", "name": "Nippon TV", "origin_country": "JP" },
+  "type": 6
+}

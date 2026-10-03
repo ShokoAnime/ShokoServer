@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
-using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Actions;
 

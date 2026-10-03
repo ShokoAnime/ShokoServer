@@ -40,6 +40,13 @@ public sealed record MetadataOrderingData
     public OrderingType Type { get; init; } = OrderingType.Unknown;
 
     /// <summary>
+    ///   The networks the ordering follows, in order. Each must be a network
+    ///   of the ordering's source already saved through
+    ///   <see cref="IMetadataStudioStore.SaveNetworks"/>.
+    /// </summary>
+    public IReadOnlyList<MetadataGuid> Networks { get; init; } = [];
+
+    /// <summary>
     ///   The ordering's groups, in viewing order.
     /// </summary>
     public IReadOnlyList<MetadataOrderingGroupData> Groups { get; init; } = [];
@@ -76,7 +83,9 @@ public sealed record MetadataOrderingGroupData
 
     /// <summary>
     ///   The group's episodes, in viewing order. Each must be an episode of
-    ///   the ordered series; an episode may be in more than one group.
+    ///   the ordered series, and may be in more than one group. A special in
+    ///   the special group and a regular one stays a special, numbered in the
+    ///   special group; its place in the regular group only says where it airs.
     /// </summary>
     public IReadOnlyList<MetadataGuid> Episodes { get; init; } = [];
 }
@@ -103,6 +112,14 @@ public sealed record MetadataLocalOrderingData
     ///   What the ordering is about, if anything.
     /// </summary>
     public string? Overview { get; init; }
+
+    /// <summary>
+    ///   The networks the ordering follows, in order, on any source this
+    ///   server knows. A network not stored yet is kept as a stub with an
+    ///   empty name until its source saves it. Left out, an update keeps the
+    ///   ordering's networks as they are.
+    /// </summary>
+    public IReadOnlyList<MetadataGuid>? Networks { get; init; }
 
     /// <summary>
     ///   The ordering's groups, in viewing order.
@@ -140,7 +157,9 @@ public sealed record MetadataLocalOrderingGroupData
 
     /// <summary>
     ///   The group's episodes, in viewing order. Each must be an episode of
-    ///   the ordered series; an episode may be in more than one group.
+    ///   the ordered series, and may be in more than one group. A special in
+    ///   the special group and a regular one stays a special, numbered in the
+    ///   special group; its place in the regular group only says where it airs.
     /// </summary>
     public IReadOnlyList<MetadataGuid> Episodes { get; init; } = [];
 }

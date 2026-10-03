@@ -118,8 +118,7 @@ public class MetadataLinkingServiceTests
         AnimeSeriesRepository? animeSeries = null,
         bool providersOff = false,
         MetadataEntityType[]? enabledEntityTypes = null,
-        MetadataLinkChangeTracker? linkChanges = null,
-        params IMetadataLinkIDRule[] idRules
+        MetadataLinkChangeTracker? linkChanges = null
     )
     {
         var provider = new Mock<IMetadataSeriesLinkingProvider>();
@@ -171,7 +170,6 @@ public class MetadataLinkingServiceTests
             animeSeries ?? CachedRepo.Build<AnimeSeriesRepository, int, AnimeSeries>(series => series.AnimeSeriesID),
             anidbAnime ?? CachedRepo.Build<AniDB_AnimeRepository, int, AniDB_Anime>(row => row.AniDB_AnimeID),
             anidbEpisodes ?? CachedRepo.Build<AniDB_EpisodeRepository, int, AniDB_Episode>(row => row.AniDB_EpisodeID),
-            idRules,
             linkChanges
         );
         return new(service, provider, movieProvider, queued);
@@ -195,17 +193,6 @@ public class MetadataLinkingServiceTests
             AvailableEntityTypes = new HashSet<MetadataEntityType>(),
             EnabledEntityTypes = new HashSet<MetadataEntityType>(enabled ?? []),
         };
-
-    /// <summary>
-    /// Says a 0 is no ID of the test source, as TMDB's rule does for TMDB.
-    /// </summary>
-    private sealed class NoZeroRule : IMetadataLinkIDRule
-    {
-        public MetadataSource Source => MetadataLinkingServiceTests.Source;
-
-        public bool IsValid(MetadataGuid entry)
-            => entry.ID is not "0";
-    }
 
     #endregion
 
@@ -643,14 +630,13 @@ public class MetadataLinkingServiceTests
             new AniDB_Episode { AniDB_EpisodeID = 1, EpisodeID = 5, AnimeID = AnimeID, EpisodeType = EpisodeType.Episode },
             new AniDB_Episode { AniDB_EpisodeID = 2, EpisodeID = 6, AnimeID = 200, EpisodeType = EpisodeType.Episode }
         );
-        var (service, _, _, _) = Build(new LinkTables().Store, anidbEpisodes: episodes, idRules: new NoZeroRule());
+        var (service, _, _, _) = Build(new LinkTables().Store, anidbEpisodes: episodes);
 
         var reviewed = service.ReviewAutoLinks(Source, AnimeID, [
             Candidate("1"),
             Candidate("2", rejected: MatchRejectionReason.TitleMismatch),
             Candidate("3", source: TestSources.AniList),
             Candidate("4", MetadataEntityType.Episode),
-            Candidate("0"),
             Candidate("5", animeID: 200),
             Candidate("6", MetadataEntityType.Movie, anidbEpisodeID: 6),
             Candidate("7", anidbEpisodeID: 5),
@@ -661,7 +647,6 @@ public class MetadataLinkingServiceTests
             [
                 null,
                 MatchRejectionReason.TitleMismatch,
-                MatchRejectionReason.InvalidID,
                 MatchRejectionReason.InvalidID,
                 MatchRejectionReason.InvalidID,
                 MatchRejectionReason.InvalidID,
@@ -929,11 +914,11 @@ public class MetadataLinkingServiceTests
     [Fact]
     public void AHintIsTakenWhenTheCoreRefusedWhatTheSearchTook()
     {
-        var (service, _, _, _) = Build(new LinkTables().Store, idRules: new NoZeroRule());
+        var (service, _, _, _) = Build(new LinkTables().Store);
 
         var reviewed = service.ReviewAutoLinks(Source, AnimeID,
         [
-            Candidate("0"),
+            Candidate("0", MetadataEntityType.Episode),
             Candidate("2") with { Origin = MetadataAutoLinkOrigin.AnidbResource },
         ]);
 
@@ -1014,10 +999,10 @@ public class MetadataLinkingServiceTests
     public async Task OnlyOneHintIsTaken()
     {
         var store = new LinkTables();
-        var (service, _, _, _) = Build(store.Store, idRules: new NoZeroRule());
+        var (service, _, _, _) = Build(store.Store);
         IReadOnlyList<MetadataAutoLinkCandidate> candidates =
         [
-            Candidate("0") with { Origin = MetadataAutoLinkOrigin.AnidbResource },
+            Candidate("0", MetadataEntityType.Episode) with { Origin = MetadataAutoLinkOrigin.AnidbResource },
             Candidate("2") with { Origin = MetadataAutoLinkOrigin.AnidbResource },
             Candidate("3") with { Origin = MetadataAutoLinkOrigin.AnidbResource },
         ];

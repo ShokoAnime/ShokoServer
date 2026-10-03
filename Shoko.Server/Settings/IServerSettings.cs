@@ -39,6 +39,13 @@ public interface IServerSettings
     bool AutoGroupSeriesUseScoreAlgorithm { get; set; }
 
     /// <summary>
+    /// How far into a video, in percent of its runtime, a position counts as
+    /// finished when playback ends or a user saves it: the video is marked
+    /// watched and its position cleared. A save can opt out of the rule.
+    /// </summary>
+    int CompletionThresholdPercent { get; set; }
+
+    /// <summary>
     /// Configure the image settings for Shoko.
     /// </summary>
     ImageSettings Image { get; set; }
@@ -81,11 +88,6 @@ public interface IServerSettings
     /// The AniDB settings.
     /// </summary>
     AniDbSettings AniDb { get; set; }
-
-    /// <summary>
-    /// The TMDB settings.
-    /// </summary>
-    TMDBSettings TMDB { get; set; }
 
     /// <summary>
     /// The settings for the metadata the plugin providers keep.

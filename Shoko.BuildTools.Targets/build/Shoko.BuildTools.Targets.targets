@@ -4,7 +4,17 @@
     Injects assembly metadata from manifest.json and git at build time.
     PluginID, PluginName, PluginOverview, PluginTags and PluginDependencies
     override what the manifest or the source says.
+
+    A build that imports these targets from source rather than from the
+    package points ShokoBuildToolsTasksAssembly at the tasks it built, names
+    the targets that put them there in ShokoBuildToolsPrepareTargets, and
+    sets ShokoBuildToolsUseTaskHost so the tasks run out of process and no
+    build node keeps an old copy of them loaded.
   -->
+
+  <PropertyGroup>
+    <ShokoBuildToolsTasksAssembly Condition="'$(ShokoBuildToolsTasksAssembly)' == ''">$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll</ShokoBuildToolsTasksAssembly>
+  </PropertyGroup>
 
   <!-- RuntimeIdentifier — explicit RID or "any" for portable libraries -->
   <ItemGroup>
@@ -12,11 +22,26 @@
     <AssemblyMetadata Include="RuntimeIdentifier" Value="any" Condition="'$(RuntimeIdentifier)' == ''" />
   </ItemGroup>
 
-  <!-- Manifest metadata — generate .cs from manifest.json -->
-  <UsingTask TaskName="Shoko.BuildTools.Tasks.ReadPluginManifest"
-             AssemblyFile="$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll" />
+  <!-- The tasks: in process from the package, out of process when built from source -->
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.ReadPluginManifest" AssemblyFile="$(ShokoBuildToolsTasksAssembly)"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.ReadPluginManifest" AssemblyFile="$(ShokoBuildToolsTasksAssembly)" TaskFactory="TaskHostFactory"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' == 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.ReadPluginIdentityFromSource" AssemblyFile="$(ShokoBuildToolsTasksAssembly)"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.ReadPluginIdentityFromSource" AssemblyFile="$(ShokoBuildToolsTasksAssembly)" TaskFactory="TaskHostFactory"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' == 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.AppendReleaseChannel" AssemblyFile="$(ShokoBuildToolsTasksAssembly)"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.AppendReleaseChannel" AssemblyFile="$(ShokoBuildToolsTasksAssembly)" TaskFactory="TaskHostFactory"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' == 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.StampGitMetadata" AssemblyFile="$(ShokoBuildToolsTasksAssembly)"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' != 'true'" />
+  <UsingTask TaskName="Shoko.BuildTools.Tasks.StampGitMetadata" AssemblyFile="$(ShokoBuildToolsTasksAssembly)" TaskFactory="TaskHostFactory"
+             Condition="'$(ShokoBuildToolsUseTaskHost)' == 'true'" />
 
-  <Target Name="_ShokoStampManifestMetadata" BeforeTargets="CoreGenerateAssemblyInfo"
+  <!-- Manifest metadata — generate .cs from manifest.json -->
+  <Target Name="_ShokoStampManifestMetadata" BeforeTargets="CoreGenerateAssemblyInfo" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)"
           Condition="Exists('$(MSBuildProjectDirectory)\manifest.json') or Exists('$(MSBuildProjectDirectory)\..\manifest.json')">
     <ReadPluginManifest ProjectDir="$(MSBuildProjectDirectory)"
                         OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.ManifestInfo.cs"
@@ -31,14 +56,12 @@
   </Target>
 
   <!-- Source-based identity — fallback when no manifest.json exists -->
-  <UsingTask TaskName="Shoko.BuildTools.Tasks.ReadPluginIdentityFromSource"
-             AssemblyFile="$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll" />
-
-  <Target Name="_ShokoReadPluginIdentityFromSource" BeforeTargets="CoreGenerateAssemblyInfo"
+  <Target Name="_ShokoReadPluginIdentityFromSource" BeforeTargets="CoreGenerateAssemblyInfo" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)"
           Condition="!Exists('$(MSBuildProjectDirectory)\manifest.json') And !Exists('$(MSBuildProjectDirectory)\..\manifest.json')">
     <ReadPluginIdentityFromSource ProjectDir="$(MSBuildProjectDirectory)"
                                   OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.PluginIdentity.cs"
                                   NuGetPackageRoot="$(NuGetPackageRoot)"
+                                  ReferencePaths="@(ReferencePath)"
                                   PluginID="$(PluginID)"
                                   PluginName="$(PluginName)"
                                   PluginOverview="$(PluginOverview)"
@@ -50,10 +73,7 @@
   </Target>
 
   <!-- Release channel -->
-  <UsingTask TaskName="Shoko.BuildTools.Tasks.AppendReleaseChannel"
-             AssemblyFile="$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll" />
-
-  <Target Name="_ShokoAppendReleaseChannel" BeforeTargets="CoreGenerateAssemblyInfo">
+  <Target Name="_ShokoAppendReleaseChannel" BeforeTargets="CoreGenerateAssemblyInfo" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)">
     <AppendReleaseChannel ProjectDir="$(MSBuildProjectDirectory)"
                           OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.AppendReleaseChannel.cs"
                           ReleaseChannel="$(ReleaseChannel)" />
@@ -63,10 +83,7 @@
   </Target>
 
   <!-- Git metadata — C# task runs git and writes .cs file -->
-  <UsingTask TaskName="Shoko.BuildTools.Tasks.StampGitMetadata"
-             AssemblyFile="$(MSBuildThisFileDirectory)..\lib\net10.0\Shoko.BuildTools.Tasks.dll" />
-
-  <Target Name="_ShokoStampGitMetadata" BeforeTargets="CoreGenerateAssemblyInfo">
+  <Target Name="_ShokoStampGitMetadata" BeforeTargets="CoreGenerateAssemblyInfo" DependsOnTargets="$(ShokoBuildToolsPrepareTargets)">
     <StampGitMetadata ProjectDir="$(MSBuildProjectDirectory)"
                       OutputPath="$(IntermediateOutputPath)Shoko.BuildTools.GitInfo.cs" />
     <ItemGroup>

@@ -14,7 +14,6 @@ using Shoko.Abstractions.Video.Services;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Internal;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Renamer;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
@@ -333,7 +332,10 @@ public abstract class BaseDatabase<T>(SystemService systemService) : IDatabase
 
         var configurationService = ISystemService.StaticServices.GetRequiredService<IConfigurationService>();
         var relocationService = ISystemService.StaticServices.GetRequiredService<IVideoRelocationService>();
-        var provider = relocationService.GetProviderInfo<WebAOMRenamer>();
+        // The bundled WebAOM plugin may be turned off, and the preset is made on a later start once it is on.
+        if (relocationService.GetProviderInfo(WebAOMRenamerMigration.ProviderID) is not { } provider)
+            return;
+
         var configuration = provider.ConfigurationInfo is null ? null : Encoding.UTF8.GetBytes(
             configurationService.Serialize(
                 configurationService.New(provider.ConfigurationInfo)

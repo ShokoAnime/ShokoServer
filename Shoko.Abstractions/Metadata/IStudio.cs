@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
@@ -20,9 +21,23 @@ public interface IStudio : IMetadata, IWithPrimaryImage
     string? OriginalName { get; }
 
     /// <summary>
+    ///   When the core last asked the source to refresh the studio, found or
+    ///   not, in UTC. Set by the core alone; <see langword="null"/> when it
+    ///   never did.
+    /// </summary>
+    DateTime? LastRefreshedAt { get; }
+
+    /// <summary>
     /// The type of studio.
     /// </summary>
     StudioType StudioType { get; }
+
+    /// <summary>
+    ///   The country the studio originates from, as the source gives it,
+    ///   usually an ISO 3166-1 code such as <c>JP</c>, or <c>null</c> when
+    ///   the source does not say.
+    /// </summary>
+    string? CountryOfOrigin { get; }
 
     /// <summary>
     /// All locally known movie works by the studio.

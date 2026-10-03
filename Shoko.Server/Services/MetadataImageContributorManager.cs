@@ -23,11 +23,13 @@ namespace Shoko.Server.Services;
 /// <param name="pluginManager">Tells which plugin a contributor belongs to.</param>
 /// <param name="configurationProvider">Where the decisions are kept.</param>
 /// <param name="scheduler">Queues the removal of links on pairs turned off.</param>
+/// <param name="applicationPaths">Gives the folders the contributors' icons are recorded against.</param>
 /// <param name="logger">Where refused contributors are reported.</param>
 public class MetadataImageContributorManager(
     IPluginManager pluginManager,
     ConfigurationProvider<MetadataServiceSettings> configurationProvider,
     IQueueScheduler scheduler,
+    IApplicationPaths applicationPaths,
     ILogger<MetadataImageContributorManager> logger
 ) : IMetadataImageContributorManager
 {
@@ -98,14 +100,16 @@ public class MetadataImageContributorManager(
 
         MetadataSource source;
         MetadataEntityScope scope;
+        string? iconResourceName;
         try
         {
             source = contributor.Source;
             scope = contributor.Scope;
+            iconResourceName = contributor.EmbeddedIconResourceName;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Refusing image contributor {Contributor}: reading its source or scope failed.", contributor.Name);
+            logger.LogError(ex, "Refusing image contributor {Contributor}: reading its source, scope or icon failed.", contributor.Name);
             return null;
         }
 
@@ -168,8 +172,23 @@ public class MetadataImageContributorManager(
             MaxConcurrentJobs = contributor.MaxConcurrentJobs is > 0 and var limit ? limit : DefaultMaxConcurrentJobs,
             AvailableScope = available,
             EnabledScope = available,
+            Icon = PackageImageLoader.LoadIcon(pluginInfo, contributorType.Assembly, iconResourceName, IconKind(source), applicationPaths, logger),
         };
     }
+
+    /// <summary>
+    ///   The image kind a contributor's icon is stored under beside its
+    ///   plugin, named after the contributor's source, which no other
+    ///   contributor shares.
+    /// </summary>
+    /// <remarks>
+    ///   The dot keeps it apart from every source icon, since a source's
+    ///   value never holds one.
+    /// </remarks>
+    /// <param name="source">The contributor's source.</param>
+    /// <returns>The kind, e.g. <c>artwork.images-icon</c>.</returns>
+    internal static string IconKind(MetadataSource source)
+        => $"{source.Value}.images-icon";
 
     /// <summary>
     ///   Re-reads which pairs each contributor is turned off for. Called once

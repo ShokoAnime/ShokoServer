@@ -24,10 +24,10 @@ using Xunit;
 namespace Shoko.Tests.Services;
 
 /// <summary>
-/// Covers <see cref="MetadataCrossReferenceTransferService"/>: TMDB's CSV
-/// format is written and read as it always was, another source uses the same
-/// format under its own name, and an import writes nothing when a line cannot
-/// be read.
+/// Covers <see cref="MetadataCrossReferenceTransferService"/>: every source's
+/// CSV file is written and read in one format under the source's own name, an
+/// older file's <c>0</c> still reads as a link to nothing, and an import writes
+/// nothing when a line cannot be read.
 /// </summary>
 public class MetadataCrossReferenceTransferServiceTests
 {
@@ -118,7 +118,7 @@ public class MetadataCrossReferenceTransferServiceTests
         2,6,TitleMatches
         AnidbAnimeId,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating
         1,10,5,55,DateAndTitleMatches
-        1,11,0,0,UserVerified
+        1,11,,,UserVerified
 
         """;
 
@@ -127,7 +127,7 @@ public class MetadataCrossReferenceTransferServiceTests
     #region Export
 
     [Fact]
-    public void TmdbIsWrittenInItsOwnFormat()
+    public void TmdbIsWrittenInTheSharedFormat()
     {
         var text = Tmdb().Build().Export(MetadataSource.TMDB);
 
@@ -149,8 +149,8 @@ public class MetadataCrossReferenceTransferServiceTests
             service.Export(MetadataSource.TMDB, new() { Sections = MetadataCrossReferenceSections.Series, WithEpisodes = true })
         );
         Assert.Equal(
-            "AnidbAnimeId,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating\n1,11,0,0,UserVerified\n".ReplaceLineEndings(),
-            service.Export(MetadataSource.TMDB, new() { Sections = MetadataCrossReferenceSections.Episode, ProviderEpisodeID = "0" })
+            "AnidbAnimeId,AnidbEpisodeId,TmdbShowId,TmdbEpisodeId,Rating\n1,11,,,UserVerified\n".ReplaceLineEndings(),
+            service.Export(MetadataSource.TMDB, new() { Sections = MetadataCrossReferenceSections.Episode, ProviderEpisodeID = string.Empty })
         );
         Assert.Empty(service.Export(MetadataSource.TMDB, new() { Sections = MetadataCrossReferenceSections.None }));
         Assert.Empty(service.Export(MetadataSource.TMDB, new() { Sections = MetadataCrossReferenceSections.Movie, AnidbEpisodeID = 99 }));
@@ -322,7 +322,7 @@ public class MetadataCrossReferenceTransferServiceTests
     {
         var harness = Tmdb();
 
-        var result = await harness.Import(MetadataSource.TMDB, "AnidbAnimeId,TmdbShowId,Rating\n1,5,UserVerified\n1,x,UserVerified\n2,-1,UserVerified\n");
+        var result = await harness.Import(MetadataSource.TMDB, "AnidbAnimeId,TmdbShowId,Rating\n1,5,UserVerified\n0,5,UserVerified\n-1,6,UserVerified\n");
         var headless = await harness.Import(MetadataSource.TMDB, "1,5,UserVerified\n");
         var badRating = await harness.Import(MetadataSource.TMDB, "AnidbAnimeId,AnidbEpisodeId,TmdbMovieId,Rating\n1,2,0,UserVerified\n1,2,3,Nope\n");
 

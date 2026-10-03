@@ -12,7 +12,6 @@ using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Events;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
@@ -71,9 +70,6 @@ public class ShokoEventHandler
     public void OnSeriesUpdated(AniDB_Anime anime, UpdateReason reason, IEnumerable<KeyValuePair<AniDB_Episode, UpdateReason>>? episodes = null)
         => OnSeriesUpdated(anime, reason, [], episodes?.Select(e => ((IEpisode)e.Key, e.Value)));
 
-    public void OnSeriesUpdated(TMDB_Show show, UpdateReason reason, IEnumerable<KeyValuePair<TMDB_Season, UpdateReason>>? seasons = null, IEnumerable<KeyValuePair<TMDB_Episode, UpdateReason>>? episodes = null)
-        => OnSeriesUpdated(show, reason, seasons?.Select(s => ((ISeason)s.Key, s.Value)), episodes?.Select(e => ((IEpisode)e.Key, e.Value)));
-
     public void OnSeriesUpdated(ISeries series, UpdateReason reason, IEnumerable<(ISeason season, UpdateReason reason)>? seasons = null, IEnumerable<(IEpisode episode, UpdateReason reason)>? episodes = null)
     {
         ArgumentNullException.ThrowIfNull(series, nameof(series));
@@ -96,13 +92,6 @@ public class ShokoEventHandler
         SeriesUpdated?.Invoke(null, new(series, reason, [], episodeEvents) { Actor = actor });
         foreach (var e in episodeEvents)
             EpisodeUpdated?.Invoke(null, e);
-    }
-
-    public void OnSeasonUpdated(IShokoSeries series, IShokoSeason season, UpdateReason reason)
-    {
-        ArgumentNullException.ThrowIfNull(series, nameof(series));
-        ArgumentNullException.ThrowIfNull(season, nameof(season));
-        SeasonUpdated?.Invoke(null, new(series, season, reason) { Actor = ActorContext.CurrentActor });
     }
 
     public void OnSeasonUpdated(ISeries anime, ISeason season, UpdateReason reason)

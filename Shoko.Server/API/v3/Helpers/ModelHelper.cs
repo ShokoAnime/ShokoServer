@@ -5,9 +5,9 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Server.API.v3.Models.Common;
+using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 
@@ -222,7 +222,7 @@ public static class ModelHelper
             xref => xref.AnidbEpisodeID,
             xref => xref.Ordering,
             xref => xref.TmdbEpisodeID,
-            xref => xref.TmdbEpisode is { } tmdbEpisode ? (tmdbEpisode.SeasonNumber, tmdbEpisode.EpisodeNumber) : null
+            xref => xref.TmdbEpisode is { } tmdbEpisode ? (tmdbEpisode.TmdbSeasonNumber, tmdbEpisode.EpisodeNumber) : null
         );
 
     public static (int, EpisodeType?, string?) GetEpisodeNumberAndTypeFromInput(string input)

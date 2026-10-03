@@ -132,10 +132,10 @@ public sealed class EventAudience
         var audience = entry switch
         {
             IAnidbAnime anime => ForAnime(anime.AnidbID, getAnime),
-            IAnidbSeason season => ForAnime(season.AnidbAnimeID, getAnime),
+            ISeason<IAnidbAnime, IAnidbEpisode> season => ForAnime(season.SeriesID.TryGetNumericID<int>(out var animeID) ? animeID : 0, getAnime),
             IAnidbEpisode episode => new(() => [episode.AnidbAnimeID], getAnime, Fallback.Visible),
             IShokoSeries series => ForSeries(series, getAnime),
-            IShokoSeason season => ForSeries(season.Series, getAnime),
+            ISeason<IShokoSeries, IShokoEpisode> season => ForSeries(season.Series, getAnime),
             IShokoEpisode episode => ForEpisode(episode, getAnime),
             IVideo video => ForVideo(video, getAnime, isRemoval: isRemoval),
             _ => Everyone,

@@ -43,12 +43,9 @@ public class MetadataLinkingService(
     AnimeSeriesRepository seriesRepository,
     AniDB_AnimeRepository anidbAnimeRepository,
     AniDB_EpisodeRepository anidbEpisodeRepository,
-    IEnumerable<IMetadataLinkIDRule>? idRules = null,
     MetadataLinkChangeTracker? linkChanges = null
 ) : IMetadataLinkingService
 {
-    private readonly Dictionary<MetadataSource, IMetadataLinkIDRule> _idRules = (idRules ?? []).ToDictionary(rule => rule.Source);
-
     /// <summary>
     ///   Where the store reports the links it changed, and where this
     ///   service's calls begin their operations.
@@ -1030,8 +1027,6 @@ public class MetadataLinkingService(
             return Invalid($"It is on {entry.Source.Name}, not {source.Name}.");
         if (entry.EntityType != MetadataEntityType.Series && entry.EntityType != MetadataEntityType.Movie)
             return Invalid($"A {entry.EntityType.Value} is neither a series nor a film.");
-        if (_idRules.TryGetValue(source, out var rule) && !rule.IsValid(entry))
-            return Invalid($"\"{entry.ID}\" is not an ID {source.Name} gives.");
         if (candidate.AnidbAnimeID != anidbAnimeID)
             return Invalid($"It is for AniDB anime {candidate.AnidbAnimeID}.");
         if (candidate.AnidbEpisodeID is { } anidbEpisodeID)

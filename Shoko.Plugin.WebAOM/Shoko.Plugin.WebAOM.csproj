@@ -1,0 +1,42 @@
+<Project TreatAsLocalProperty="Version;InformationalVersion;TargetFramework" Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>Library</OutputType>
+        <LangVersion>latest</LangVersion>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <Title>Shoko WebAOM Renamer</Title>
+        <Authors>Shoko Team</Authors>
+        <Version>1.0.0</Version>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>AnyCPU;x64</Platforms>
+        <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+        <Nullable>enable</Nullable>
+        <EnableDynamicLoading>true</EnableDynamicLoading>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Shoko.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The server supplies the abstractions at runtime, and a plugin that
+             ships its own copy resolves `IPlugin` against that copy and is then
+             skipped without an error, so the dll and the packages it brings
+             stay out of the output. -->
+        <ProjectReference Include="..\Shoko.Abstractions\Shoko.Abstractions.csproj" Private="false" ExcludeAssets="runtime" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- The plugin's thumbnail and icon, read by the server through the
+             plugin. -->
+        <EmbeddedResource Include="Assets\thumbnail.svg" LogicalName="Shoko.Plugin.WebAOM.Assets.thumbnail.svg" />
+        <EmbeddedResource Include="Assets\icon.svg" LogicalName="Shoko.Plugin.WebAOM.Assets.icon.svg" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Injects the embedded plugin identity metadata the server reads during
+             discovery. With no `manifest.json` beside this file, the ID, name and
+             description are read from the literals in `Plugin.cs`. -->
+        <PackageReference Include="Shoko.BuildTools.Targets" Version="0.3.0" PrivateAssets="All" ExcludeAssets="runtime" />
+    </ItemGroup>
+</Project>

@@ -85,7 +85,8 @@ public class ScheduledActionController(IScheduledActionService scheduleService, 
     /// The triggers. Each type takes only its own fields: <c>Interval</c> takes
     /// <c>Interval</c>, <c>Daily</c> takes <c>TimeOfDay</c>, <c>Weekly</c> takes
     /// <c>DaysOfWeek</c> and <c>TimeOfDay</c>, <c>Monthly</c> takes
-    /// <c>DaysOfMonth</c> and <c>TimeOfDay</c>, and <c>Startup</c> takes none.
+    /// <c>DaysOfMonth</c> and <c>TimeOfDay</c>, and <c>Startup</c> and
+    /// <c>QueueCleared</c> take none.
     /// A time of day is whole minutes in the server's time zone; an interval is
     /// whole minutes, no shorter than the scheduled action's minimum.
     /// </param>

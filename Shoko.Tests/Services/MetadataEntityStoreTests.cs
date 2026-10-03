@@ -18,12 +18,10 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
-using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
@@ -107,8 +105,6 @@ public class MetadataEntityStoreTests
                 CachedRepo.Build<AnimeSeriesRepository, int, AnimeSeries>(series => series.AnimeSeriesID),
                 CachedRepo.Build<AniDB_AnimeRepository, int, AniDB_Anime>(anime => anime.AnimeID),
                 CachedRepo.Build<AniDB_EpisodeRepository, int, AniDB_Episode>(episode => episode.EpisodeID),
-                CachedRepo.Build<TMDB_ShowRepository, int, TMDB_Show>(show => show.TmdbShowID),
-                CachedRepo.Build<TMDB_EpisodeRepository, int, TMDB_Episode>(episode => episode.TmdbEpisodeID),
                 new Lazy<MetadataSeriesStore>(() => store!)
             );
             var orderingService = OrderingService = Orderings.Build(() => metadata.Object, rowState);
@@ -330,6 +326,33 @@ public class MetadataEntityStoreTests
 
         Assert.Equal(writtenAt, tables.Series.GetByProviderID(TestSources.Plugin, "s1")!.LastUpdatedAt);
         Assert.Empty(events.Series);
+    }
+
+    [Fact]
+    public void ASpecialsAiringPlaceIsKeptInSeasonZeroOnlyAndAChangeToItUpdatesIt()
+    {
+        var tables = new Tables();
+        using var scope = tables.Scope();
+        var store = tables.SeriesStore();
+        MetadataSeriesData Data(int airsBefore) => Series("s1",
+            Episode("e1", "s1-1", 1) with { AirsBeforeSeasonNumber = 1, AirsBeforeEpisodeNumber = 1, AirsAfterSeasonNumber = 1 },
+            Episode("sp", null, 1) with { Type = EpisodeType.Special, SeasonNumber = 0, AirsBeforeSeasonNumber = 1, AirsBeforeEpisodeNumber = airsBefore },
+            Episode("sp2", null, 2) with { Type = EpisodeType.Special, SeasonNumber = 0, AirsAfterSeasonNumber = 1 },
+            Episode("sp3", null, 3) with { Type = EpisodeType.Special, SeasonNumber = 0 }
+        );
+
+        store.SaveSeries(Data(1));
+
+        Assert.Null(tables.Episodes.GetByProviderID(TestSources.Plugin, "e1")!.ExtraData);
+        var special = tables.Episodes.GetByProviderID(TestSources.Plugin, "sp")!;
+        Assert.Equal((1, 1, null), (special.AirsBeforeSeasonNumber, special.AirsBeforeEpisodeNumber, special.AirsAfterSeasonNumber));
+        var after = tables.Episodes.GetByProviderID(TestSources.Plugin, "sp2")!;
+        Assert.Equal((null, null, 1), (after.AirsBeforeSeasonNumber, after.AirsBeforeEpisodeNumber, after.AirsAfterSeasonNumber));
+        Assert.Null(tables.Episodes.GetByProviderID(TestSources.Plugin, "sp3")!.ExtraData);
+
+        Assert.Equal(0, store.SaveSeries(Data(1)));
+        Assert.Equal(1, store.SaveSeries(Data(2)));
+        Assert.Equal(2, tables.Episodes.GetByProviderID(TestSources.Plugin, "sp")!.AirsBeforeEpisodeNumber);
     }
 
     [Fact]
@@ -559,7 +582,7 @@ public class MetadataEntityStoreTests
     }
 
     [Fact]
-    public void ASeriesKeepsOneContentRatingPerCountryAndAChangeToThemUpdatesIt()
+    public void ASeriesKeepsEveryContentRatingButExactRepeatsAndAChangeToThemUpdatesIt()
     {
         var tables = new Tables();
         using var scope = tables.Scope();
@@ -571,13 +594,14 @@ public class MetadataEntityStoreTests
                 new() { CountryCode = "US", Rating = "TV-14" },
                 new() { CountryCode = "JP", Rating = "G", LanguageCode = "ja" },
                 new() { CountryCode = "us", Rating = "TV-MA" },
+                new() { CountryCode = "us", Rating = "TV-14" },
             ],
         };
         store.SaveSeries(data);
 
         var series = store.GetSeries(data.ID)!;
         Assert.Equal(
-            [("US", "TV-14", "EN-US"), ("JP", "G", "ja")],
+            [("US", "TV-14", "EN-US"), ("JP", "G", "ja"), ("us", "TV-MA", "EN-US")],
             series.ContentRatings.Select(rating => (rating.CountryCode, rating.Value, rating.LanguageCode))
         );
         Assert.All(series.ContentRatings, rating => Assert.Equal(TestSources.Plugin, rating.Source));
@@ -590,6 +614,29 @@ public class MetadataEntityStoreTests
 
         store.RemoveSeries(data.ID);
         Assert.Empty(tables.ContentRatings.GetAll());
+    }
+
+    [Fact]
+    public void TheDefaultImagesStayUntilASaveGivesOthers()
+    {
+        var tables = new Tables();
+        using var scope = tables.Scope();
+        var store = tables.SeriesStore();
+        var both = new Dictionary<ImageEntityType, string> { [ImageEntityType.Primary] = "poster.jpg", [ImageEntityType.Backdrop] = "still.jpg" };
+        var data = Series("s1", Episode("e1", "s1-1", 1) with { DefaultImageResourceIDs = both }) with { DefaultImageResourceIDs = both };
+        IMetadataDefaultImageSource Stored(MetadataEntityType entityType, string id)
+            => entityType == MetadataEntityType.Series ? tables.Series.GetByProviderID(TestSources.Plugin, id)! : tables.Episodes.GetByProviderID(TestSources.Plugin, id)!;
+
+        store.SaveSeries(data);
+        // An episode has no poster, so only its still is kept.
+        Assert.Equal((null, "still.jpg"), (Stored(MetadataEntityType.Episode, "e1").GetDefaultResourceID(ImageEntityType.Primary),
+            Stored(MetadataEntityType.Episode, "e1").GetDefaultResourceID(ImageEntityType.Backdrop)));
+
+        Assert.Equal(0, store.SaveSeries(data with { DefaultImageResourceIDs = null }));
+        Assert.Equal("poster.jpg", Stored(MetadataEntityType.Series, "s1").GetDefaultResourceID(ImageEntityType.Primary));
+
+        store.SaveSeries(data with { DefaultImageResourceIDs = new Dictionary<ImageEntityType, string>() });
+        Assert.Null(Stored(MetadataEntityType.Series, "s1").GetDefaultResourceID(ImageEntityType.Primary));
     }
 
     [Fact]

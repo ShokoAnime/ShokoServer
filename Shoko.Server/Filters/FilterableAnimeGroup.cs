@@ -6,7 +6,6 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Extensions;
 using Shoko.Server.MediaInfo;
 using Shoko.Server.Models;
@@ -87,7 +86,7 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now, AnimeGr
             result.UnionWith(AncestorNames);
             result.UnionWith(AllSeries.SelectMany(a =>
                 a.Titles
-                    .Where(t => langs.Contains(t.Language) && (t.Source != MetadataSource.TMDB || t.Language != TitleLanguage.Unknown))
+                    .Where(t => langs.Contains(t.Language) && (t.Language != TitleLanguage.Unknown || t.Source.IsCore))
                     .Select(t => t.Value)));
             return result;
         });
@@ -252,7 +251,6 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now, AnimeGr
     public int GetSuggestions(MetadataSource source) => source switch
     {
         _ when source == MetadataSource.AniDB => AnidbSuggestions,
-        _ when source == MetadataSource.TMDB => TmdbSuggestions,
         _ => FilterableSuggestions.CountOther(SuggestionSources, source),
     };
 
@@ -261,19 +259,14 @@ public sealed class FilterableAnimeGroup(AnimeGroup group, DateTime now, AnimeGr
     private SuggestionSources? _suggestionSources;
     private SuggestionSources SuggestionSources => _suggestionSources ??= new(
         [.. AllSeries.Select(a => a.AniDB_ID).Distinct()],
-        [.. AllSeries.SelectMany(a => a.TmdbShowCrossReferences).Select(xref => xref.TmdbShowID).Distinct()],
-        [.. AllSeries.SelectMany(a => a.TmdbMovieCrossReferences).Select(xref => xref.TmdbMovieID).Distinct()],
-        [.. AllSeries.SelectMany(FilterableSources.OtherLinkedSeries).DistinctBy(entry => entry.ID)]
+        [.. AllSeries.SelectMany(FilterableSources.OtherLinkedEntries).Distinct()]
     );
 
     private int? _anidbSuggestions;
     public int AnidbSuggestions => _anidbSuggestions ??= FilterableSuggestions.CountAnidb(SuggestionSources);
 
-    private int? _tmdbSuggestions;
-    public int TmdbSuggestions => _tmdbSuggestions ??= FilterableSuggestions.CountTmdb(SuggestionSources);
-
     private int? _otherSuggestions;
-    public int TotalSuggestions => AnidbSuggestions + TmdbSuggestions + (_otherSuggestions ??= FilterableSuggestions.CountOthers(SuggestionSources));
+    public int TotalSuggestions => AnidbSuggestions + (_otherSuggestions ??= FilterableSuggestions.CountOthers(SuggestionSources));
 
     private int? _localSuggestions;
     public int LocalSuggestions => _localSuggestions ??= FilterableSuggestions.CountLocal(SuggestionSources);

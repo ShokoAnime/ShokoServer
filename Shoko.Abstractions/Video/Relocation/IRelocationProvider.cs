@@ -71,8 +71,7 @@ public interface IRelocationProvider
     /// <returns>
     ///   A relocation result. See <see cref="RelocationResult"/> for details.
     /// </returns>
-    RelocationResult GetPath(RelocationContext context)
-        => RelocationResult.FromError(new NotImplementedException());
+    RelocationResult GetPath(RelocationContext context);
 }
 
 /// <summary>
@@ -87,4 +86,11 @@ public interface IRelocationProvider<TConfig> : IRelocationProvider where TConfi
     /// <param name="context"></param>
     /// <returns></returns>
     RelocationResult GetPath(RelocationContext<TConfig> context);
+
+    RelocationResult IRelocationProvider.GetPath(RelocationContext context)
+        => context is RelocationContext<TConfig> configuredContext
+            ? GetPath(configuredContext)
+            : RelocationResult.FromError(
+                new ArgumentException($"The relocation provider needs a context with its {typeof(TConfig).Name} configuration.", nameof(context))
+            );
 }

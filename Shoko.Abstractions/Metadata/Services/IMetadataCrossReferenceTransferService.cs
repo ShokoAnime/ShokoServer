@@ -28,8 +28,7 @@ public interface IMetadataCrossReferenceTransferService
     /// <returns>
     ///   The file's text, empty when nothing matched. A provider ID is the
     ///   source's own ID, quoted when it holds a comma or a quote; a link to
-    ///   nothing is an empty ID, or <c>0</c> for TMDB so older TMDB files stay
-    ///   readable.
+    ///   nothing is an empty ID, and a <c>0</c> is read as one too.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
     string Export(MetadataSource source, MetadataCrossReferenceExportOptions? options = null);
@@ -47,8 +46,8 @@ public interface IMetadataCrossReferenceTransferService
     /// <param name="source">The source.</param>
     /// <param name="reader">
     ///   The file's text. Only an episode can be linked to nothing: a series
-    ///   line naming no series is skipped (older TMDB files hold them), and a
-    ///   film line naming no film cannot be read.
+    ///   line naming no series is skipped (older files hold them), and a film
+    ///   line naming no film cannot be read.
     /// </param>
     /// <param name="options">How to read it, or <see langword="null"/> for the defaults.</param>
     /// <param name="cancellationToken">Cancels the work.</param>

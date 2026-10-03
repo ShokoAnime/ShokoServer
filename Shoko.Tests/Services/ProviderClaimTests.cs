@@ -2,22 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
-using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Matching;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Search;
-using Shoko.Abstractions.Plugin;
 using Shoko.Server.Services;
-using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -64,36 +57,16 @@ public sealed class ProviderClaimTests : IDisposable
         );
 
     /// <summary>
-    /// A manager over a configuration service reading and writing the fixture's folder, standing
-    /// in for one start of the server.
+    /// A manager over the fixture's folder, standing in for one start of the server.
     /// </summary>
     private MetadataProviderManager Boot()
-    {
-        var applicationPaths = new Mock<IApplicationPaths>(MockBehavior.Loose);
-        applicationPaths.SetupGet(paths => paths.DataPath).Returns(_dataPath);
-        applicationPaths.SetupGet(paths => paths.ConfigurationsPath).Returns(Path.Join(_dataPath, "configurations"));
-        var pluginManager = new Mock<IPluginManager>(MockBehavior.Loose);
-        var pluginInfo = PluginTestDoubles.InstalledPluginInfo(typeof(PluginTestDoubles.TestPlugin), Guid.Parse("55555555-5555-5555-5555-555555555555"));
-        pluginManager.Setup(manager => manager.GetPluginInfo(It.IsAny<System.Reflection.Assembly>())).Returns(pluginInfo);
+        => TestProviderManagers.Boot(_dataPath);
 
-        // The real service keeps the file, so a new boot on the same path
-        // reads back what an earlier one saved, as a restart would.
-        var real = new ConfigurationService(NullLoggerFactory.Instance, applicationPaths.Object, new Mock<IPluginManager>(MockBehavior.Loose).Object);
-        var configurationInfo = (ConfigurationInfo)RuntimeHelpers.GetUninitializedObject(typeof(ConfigurationInfo));
-        var configurationService = new Mock<IConfigurationService>();
-        configurationService.Setup(service => service.GetConfigurationInfo<MetadataServiceSettings>()).Returns(configurationInfo);
-        configurationService.Setup(service => service.Load(It.IsAny<ConfigurationInfo>(), It.IsAny<bool>()))
-            .Returns(() => real.Load<MetadataServiceSettings>());
-        configurationService.Setup(service => service.Save(It.IsAny<MetadataServiceSettings>()))
-            .Returns((MetadataServiceSettings settings) => real.Save(settings));
-        return new(
-            applicationPaths.Object,
-            pluginManager.Object,
-            configurationService.Object,
-            new ConfigurationProvider<MetadataServiceSettings>(configurationService.Object),
-            NullLogger<MetadataProviderManager>.Instance
-        );
-    }
+    /// <summary>
+    /// The provider answering an entity type: the first enabled one in its order.
+    /// </summary>
+    private static Guid? Answering(MetadataSourceSettings decisions, MetadataEntityType entityType)
+        => decisions.Providers[entityType].FirstOrDefault(slot => slot.IsEnabled)?.ProviderID;
 
     /// <summary>
     /// A provider that links series on the plugin source and auto-links it, doing nothing else.
@@ -170,8 +143,8 @@ public sealed class ProviderClaimTests : IDisposable
 
         Assert.True(seeded);
         var decisions = settings.Sources[TestSources.Plugin];
-        Assert.Equal(s_plugin, decisions.Enabled[MetadataEntityType.Series]);
-        Assert.Equal(s_plugin, decisions.Enabled[MetadataEntityType.Episode]);
+        Assert.Equal(s_plugin, Answering(decisions, MetadataEntityType.Series));
+        Assert.Equal(s_plugin, Answering(decisions, MetadataEntityType.Episode));
         Assert.Equal(s_plugin, decisions.AutoLinker);
         Assert.True(decisions.AutoLink);
         Assert.False(decisions.AutoLinkRestricted);
@@ -190,13 +163,13 @@ public sealed class ProviderClaimTests : IDisposable
     }
 
     [Fact]
-    public void TheFirstOfTwoProvidersAbleToLinkTakesTheSource()
+    public void TheFirstOfTwoProvidersAbleToLinkTakesTheSourceAndTheOtherStandsBy()
     {
         var settings = new MetadataServiceSettings();
 
         MetadataProviderManager.SeedDecisions(settings, [Claim(s_core, TestSources.Plugin), Claim(s_plugin, TestSources.Plugin)], s_nothingCarried, out _);
 
-        Assert.Equal(s_core, settings.Sources[TestSources.Plugin].Enabled[MetadataEntityType.Series]);
+        Assert.Equal([new(s_core, true), new(s_plugin, true)], settings.Sources[TestSources.Plugin].Providers[MetadataEntityType.Series]);
         Assert.Equal(s_core, settings.Sources[TestSources.Plugin].AutoLinker);
     }
 
@@ -207,23 +180,31 @@ public sealed class ProviderClaimTests : IDisposable
 
         MetadataProviderManager.SeedDecisions(settings, [Claim(s_core, TestSources.Plugin, links: false), Claim(s_plugin, TestSources.Plugin)], s_nothingCarried, out _);
 
-        Assert.Equal(s_core, settings.Sources[TestSources.Plugin].Enabled[MetadataEntityType.Series]);
+        Assert.Equal(s_core, Answering(settings.Sources[TestSources.Plugin], MetadataEntityType.Series));
         Assert.Equal(s_plugin, settings.Sources[TestSources.Plugin].AutoLinker);
     }
 
     [Fact]
-    public void AProviderRegisteredLaterNeverTakesOverByItself()
+    public void AProviderRegisteredLaterJoinsTheEndOfEachOrderAndNeverTakesOverByItself()
     {
         var settings = new MetadataServiceSettings();
         MetadataProviderManager.SeedDecisions(settings, [Claim(s_plugin, TestSources.Plugin)], s_nothingCarried, out _);
+        settings.Sources[TestSources.Plugin].Providers[MetadataEntityType.Episode] = [new(s_plugin, false)];
 
         // Even registered ahead of the first, as a name sorting first would.
-        var seeded = MetadataProviderManager.SeedDecisions(settings, [Claim(s_later, TestSources.Plugin), Claim(s_plugin, TestSources.Plugin)], s_nothingCarried, out var autoLinkers);
+        MetadataProviderManager.SeedDecisions(
+            settings,
+            [Claim(s_later, TestSources.Plugin), Claim(s_plugin, TestSources.Plugin)],
+            s_nothingCarried,
+            out var autoLinkers
+        );
 
-        Assert.False(seeded);
+        // It stands by where something answers, and stays off where nothing was to.
+        var decisions = settings.Sources[TestSources.Plugin];
         Assert.Empty(autoLinkers);
-        Assert.Equal(s_plugin, settings.Sources[TestSources.Plugin].Enabled[MetadataEntityType.Series]);
-        Assert.Equal(s_plugin, settings.Sources[TestSources.Plugin].AutoLinker);
+        Assert.Equal([new(s_plugin, true), new(s_later, true)], decisions.Providers[MetadataEntityType.Series]);
+        Assert.Equal([new(s_plugin, false), new(s_later, false)], decisions.Providers[MetadataEntityType.Episode]);
+        Assert.Equal(s_plugin, decisions.AutoLinker);
     }
 
     [Fact]
@@ -249,7 +230,7 @@ public sealed class ProviderClaimTests : IDisposable
     }
 
     [Fact]
-    public void AnAdminsDecisionsAreKept_AndOnlyWhatWasNeverDecidedIsFilled()
+    public void OlderSettingsAreReadIn_AndOnlyWhatWasNeverDecidedIsFilled()
     {
         var settings = new MetadataServiceSettings
         {
@@ -258,7 +239,7 @@ public sealed class ProviderClaimTests : IDisposable
                 [TestSources.Plugin] = new()
                 {
                     // Turned off, and nobody set to auto-link.
-                    Enabled = { [MetadataEntityType.Series] = null },
+                    Enabled = new() { [MetadataEntityType.Series] = null },
                     AutoLinker = null,
                     AutoLink = false,
                 },
@@ -268,8 +249,9 @@ public sealed class ProviderClaimTests : IDisposable
         MetadataProviderManager.SeedDecisions(settings, [Claim(s_plugin, TestSources.Plugin)], s_nothingCarried, out var autoLinkers);
 
         var decisions = settings.Sources[TestSources.Plugin];
-        Assert.Null(decisions.Enabled[MetadataEntityType.Series]);
-        Assert.Equal(s_plugin, decisions.Enabled[MetadataEntityType.Episode]);
+        Assert.Equal([new(s_plugin, false)], decisions.Providers[MetadataEntityType.Series]);
+        Assert.Equal([new(s_plugin, true)], decisions.Providers[MetadataEntityType.Episode]);
+        Assert.Null(decisions.Enabled);
         Assert.Null(decisions.AutoLinker);
         Assert.False(decisions.AutoLink);
         Assert.Empty(autoLinkers);
@@ -370,6 +352,93 @@ public sealed class ProviderClaimTests : IDisposable
         boot.AddParts([refresher, linker]);
         boot.SetProviderEnabled(boot.GetProviderInfo(linker).ID, true);
         Assert.False(boot.GetProviderInfo(linker).IsAutoLinker);
+    }
+
+    #endregion
+
+    #region Order
+
+    /// <summary>
+    /// Boots with the first linker alone, then with the later one too, so the first claimed the source.
+    /// </summary>
+    private (MetadataProviderManager Boot, FirstLinker First, LaterLinker Later, Guid FirstID, Guid LaterID) BootFirstThenLater()
+    {
+        FirstLinker first = new();
+        LaterLinker later = new();
+        Boot().AddParts([first]);
+        var boot = Boot();
+        boot.AddParts([first, later]);
+        return (boot, first, later, boot.GetProviderInfo(first).ID, boot.GetProviderInfo(later).ID);
+    }
+
+    [Fact]
+    public void TheNextEnabledProviderTakesOverWhenTheOneAnsweringIsTurnedOffOrRemoved()
+    {
+        var (boot, first, later, firstID, laterID) = BootFirstThenLater();
+        Assert.Equal([new(firstID, true), new(laterID, true)], boot.GetProviderOrder(TestSources.Plugin, MetadataEntityType.Series));
+
+        boot.SetProviderEnabled(firstID, false);
+        Assert.Empty(boot.GetProviderInfo(first).EnabledEntityTypes);
+        Assert.Equal(boot.GetProviderInfo(later).AvailableEntityTypes.Order(), boot.GetProviderInfo(later).EnabledEntityTypes.Order());
+
+        // Put back first for series alone, then removed: the one standing by answers again.
+        boot.SetProviderOrder(TestSources.Plugin, new Dictionary<MetadataEntityType, IReadOnlyList<MetadataProviderAssignment>>
+        {
+            [MetadataEntityType.Series] = [new(firstID, true)],
+        });
+        Assert.Equal([MetadataEntityType.Series], boot.GetProviderInfo(first).EnabledEntityTypes);
+        Assert.DoesNotContain(MetadataEntityType.Series, boot.GetProviderInfo(later).EnabledEntityTypes);
+        boot = Boot();
+        boot.AddParts([later]);
+        Assert.Contains(MetadataEntityType.Series, boot.GetProviderInfo(later).EnabledEntityTypes);
+
+        // Back again, it joins the end.
+        boot = Boot();
+        boot.AddParts([first, later]);
+        Assert.Equal([new(laterID, true), new(firstID, true)], boot.GetProviderOrder(TestSources.Plugin, MetadataEntityType.Series));
+    }
+
+    [Fact]
+    public void AnOrderIsSetForEachKindGivenAndRefusedWhole()
+    {
+        var (boot, first, later, firstID, laterID) = BootFirstThenLater();
+        var before = boot.GetProviderOrder(TestSources.Plugin, MetadataEntityType.Series);
+
+        var strangerKind = new Dictionary<MetadataEntityType, IReadOnlyList<MetadataProviderAssignment>>
+        {
+            [MetadataEntityType.Series] = [new(laterID, true)],
+            [MetadataEntityType.Movie] = [new(laterID, true)],
+        };
+        var twice = new Dictionary<MetadataEntityType, IReadOnlyList<MetadataProviderAssignment>>
+        {
+            [MetadataEntityType.Series] = [new(laterID, true), new(laterID, false)],
+        };
+        Assert.Throws<ArgumentException>(() => boot.SetProviderOrder(TestSources.Plugin, strangerKind));
+        Assert.Throws<ArgumentException>(() => boot.SetProviderOrder(TestSources.Plugin, twice));
+        Assert.Equal(before, boot.GetProviderOrder(TestSources.Plugin, MetadataEntityType.Series));
+
+        // One left out keeps its switch, after those given.
+        boot.SetProviderOrder(TestSources.Plugin, new Dictionary<MetadataEntityType, IReadOnlyList<MetadataProviderAssignment>>
+        {
+            [MetadataEntityType.Series] = [new(laterID, false)],
+            [MetadataEntityType.Episode] = [new(laterID, true), new(firstID, false)],
+        });
+        boot = Boot();
+        boot.AddParts([first, later]);
+        Assert.Equal([new(laterID, false), new(firstID, true)], boot.GetProviderOrder(TestSources.Plugin, MetadataEntityType.Series));
+        Assert.Equal([MetadataEntityType.Series, MetadataEntityType.Season], boot.GetProviderInfo(first).EnabledEntityTypes.Order());
+        Assert.Equal([MetadataEntityType.Episode], boot.GetProviderInfo(later).EnabledEntityTypes);
+    }
+
+    [Fact]
+    public void TurningAProviderOnMovesItToTheFrontAndTurnsItOffForTheRest()
+    {
+        var (boot, first, later, firstID, laterID) = BootFirstThenLater();
+
+        boot.SetProviderEnabled(laterID, new HashSet<MetadataEntityType> { MetadataEntityType.Series });
+
+        Assert.Equal([new(laterID, true), new(firstID, true)], boot.GetProviderOrder(TestSources.Plugin, MetadataEntityType.Series));
+        Assert.Equal([new(firstID, true), new(laterID, false)], boot.GetProviderOrder(TestSources.Plugin, MetadataEntityType.Episode));
     }
 
     #endregion

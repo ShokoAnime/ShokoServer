@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Newtonsoft.Json;
@@ -49,10 +50,41 @@ public class MetadataCreator : MetadataEntry
     public FuzzyDateOnly? DeathDay { get; init; }
 
     /// <summary>
+    /// Where the person was born, as free text the way the source gives it,
+    /// such as "Tokyo, Japan", or <c>null</c> when it does not say.
+    /// </summary>
+    public string? PlaceOfBirth { get; init; }
+
+    /// <summary>
+    /// Whether the source marks the person as known for adult content only.
+    /// </summary>
+    [Required]
+    public bool IsRestricted { get; init; }
+
+    /// <summary>
+    /// Whether the person is a stub: only what a credit named, kept until its
+    /// source is asked for the rest.
+    /// </summary>
+    [Required]
+    public bool IsStub { get; init; }
+
+    /// <summary>
     /// Other names the person is known by.
     /// </summary>
     [Required]
     public IReadOnlyList<string> AlternativeNames { get; init; } = [];
+
+    /// <summary>
+    /// When the person was first stored locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime CreatedAt { get; init; }
+
+    /// <summary>
+    /// When the person was last updated locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime LastUpdatedAt { get; init; }
 
     /// <summary>
     /// The external resources, when asked for.
@@ -96,10 +128,29 @@ public class MetadataCharacter : MetadataEntry
     public FuzzyDateOnly? BirthDay { get; init; }
 
     /// <summary>
+    /// Whether the character is a stub: only what a credit named, kept until its
+    /// source is asked for the rest.
+    /// </summary>
+    [Required]
+    public bool IsStub { get; init; }
+
+    /// <summary>
     /// Other names the character is known by.
     /// </summary>
     [Required]
     public IReadOnlyList<string> AlternativeNames { get; init; } = [];
+
+    /// <summary>
+    /// When the character was first stored locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime CreatedAt { get; init; }
+
+    /// <summary>
+    /// When the character was last updated locally, in UTC.
+    /// </summary>
+    [Required]
+    public DateTime LastUpdatedAt { get; init; }
 
     /// <summary>
     /// The external resources, when asked for.

@@ -30,8 +30,10 @@ namespace Shoko.Tests.Services;
 /// service on in-memory tables and an image manager kept in memory: the file
 /// format and its two containers, the translation of series and episodes to
 /// and from AniDB IDs, what an import does with an ordering of the same name,
-/// and where it restores each image from.
+/// and where it restores each image from. An ordering's networks read
+/// themselves through <c>RepoFactory</c>, so these tests share its collection.
 /// </summary>
+[Collection(nameof(RepoFactoryCollection))]
 public class MetadataOrderingTransferServiceTests
 {
     #region Harness
@@ -155,7 +157,7 @@ public class MetadataOrderingTransferServiceTests
                 Channel = ReleaseChannel.Debug,
                 ReleasedAt = DateTime.UnixEpoch,
             });
-            Service = new(Orderings, Metadata.Object, Images.Object, Files.Object, system.Object, NullLogger<MetadataOrderingTransferService>.Instance);
+            Service = new(Orderings, Metadata.Object, Images.Object, Files.Object, Tables.StudioStore, system.Object, NullLogger<MetadataOrderingTransferService>.Instance);
         }
 
         private void SetUpImages()
@@ -590,6 +592,59 @@ public class MetadataOrderingTransferServiceTests
 
         Assert.False(result.Succeeded);
         Assert.Single(result.Errors);
+    }
+
+    #endregion
+
+    #region Networks
+
+    [Fact]
+    public async Task AnOrderingsNetworksGoByTheirIDsAndComeBackAsStubsUntilTheirSourceSavesThem()
+    {
+        var tokyoMX = new MetadataGuid(TestSources.Plugin, MetadataEntityType.Network, "n1");
+        var fujiTV = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Network, "82");
+        var source = new World();
+        source.Tables.StudioStore.SaveNetworks([new() { ID = tokyoMX, Name = "Tokyo MX" }]);
+        source.Orderings.CreateLocalOrdering(new() { SeriesID = AddAnime100(source).ID, Name = "Broadcast", Networks = [tokyoMX, fujiTV] });
+        byte[] content;
+        using (new RepoFactoryScope().Set(source.Tables.Networks))
+            (content, _) = await source.Export();
+
+        Assert.Equal(["test-plugin://network/n1", "tmdb://network/82"], Assert.Single(ReadJson(content).Orderings).Networks);
+
+        // A dry run reports both as stubs and writes none.
+        var target = new World();
+        AddAnime100(target, offset: 50);
+        using var scope = new RepoFactoryScope().Set(target.Tables.Networks);
+        var planned = Assert.Single((await target.Import(content, new() { DryRun = true })).Orderings);
+        Assert.Equal([tokyoMX, fujiTV], planned.Networks);
+        Assert.Equal([tokyoMX, fujiTV], planned.StubbedNetworks);
+        Assert.Empty(target.Tables.Networks.GetAll());
+
+        var entry = Assert.Single((await target.Import(content)).Orderings);
+        Assert.Equal([tokyoMX, fujiTV], entry.StubbedNetworks);
+        var imported = target.Orderings.GetOrdering(entry.OrderingID!)!;
+        Assert.Equal([tokyoMX, fujiTV], imported.Networks.Select(network => network.ID));
+        Assert.Equal(["", ""], imported.Networks.Select(network => network.Name));
+
+        // The provider's next save fills the stub in.
+        target.Tables.StudioStore.SaveNetworks([new() { ID = tokyoMX, Name = "Tokyo MX" }]);
+        Assert.Equal("Tokyo MX", target.Orderings.GetOrdering(entry.OrderingID!)!.Networks[0].Name);
+    }
+
+    [Fact]
+    public void ANetworkThatIsNotOneOrIsOnASourceThisServerDoesNotKnowIsLeftOutWithANote()
+    {
+        var notes = new List<string>();
+
+        var networks = MetadataOrderingTransferService.ResolveNetworks(
+            new() { Networks = ["tmdb://network/82", "not an ID", "tmdb://studio/1", "not-installed-here://network/1", "tmdb://network/82"] },
+            notes
+        );
+
+        Assert.Equal([new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Network, "82")], networks);
+        Assert.Equal(3, notes.Count);
+        Assert.Null(MetadataOrderingTransferService.ResolveNetworks(new(), notes));
     }
 
     #endregion

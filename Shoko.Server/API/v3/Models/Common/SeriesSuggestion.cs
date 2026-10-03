@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -132,13 +133,13 @@ public class SeriesSuggestion
 
                 case var _ when source == MetadataSource.TMDB && entry.EntityType == MetadataEntityType.Movie:
                     ids.TmdbMovie = entry.GetNumericID<int>();
-                    ids.AniDB = RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByTmdbMovieID(ids.TmdbMovie.Value)
+                    ids.AniDB = TmdbCompatibility.GetMovieLinksTo(ids.TmdbMovie.Value)
                         .FirstOrDefault()?.AnidbAnimeID;
                     break;
 
                 case var _ when source == MetadataSource.TMDB:
                     ids.TmdbShow = entry.GetNumericID<int>();
-                    ids.AniDB = RepoFactory.CrossRef_AniDB_TMDB_Show.GetByTmdbShowID(ids.TmdbShow.Value)
+                    ids.AniDB = TmdbCompatibility.GetShowLinksTo(ids.TmdbShow.Value)
                         .FirstOrDefault()?.AnidbAnimeID;
                     break;
 

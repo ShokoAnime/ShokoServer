@@ -89,8 +89,8 @@ pass. The guard is per entity instance, so reading another entity's
 ## Mistakes that are easy to make
 
 - **Forgetting kinds.** `IWithResources` is carried by `ISeries`, `IEpisode`,
-  `IMovie`, `ICreator` and `ICharacter`. The AniDB, TMDB, Shoko and stored
-  plugin entities of those kinds all reach a resolver.
+  `IMovie`, `ICreator` and `ICharacter`. The AniDB, Shoko and stored plugin
+  entities of those kinds all reach a resolver.
 - **Handling only `IShokoSeries`.** The APIv3 series `Links` are built from
   the AniDB anime's `Resources`, so handle `IAnidbAnime` as well.
 - **Not expecting duplicates.** A Shoko series' list concatenates its linked

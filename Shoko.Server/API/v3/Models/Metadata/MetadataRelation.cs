@@ -141,6 +141,37 @@ public class MetadataEpisodeOrdering
     public EpisodeType EpisodeType { get; init; }
 
     /// <summary>
+    /// The season of the regular episode a placed special airs before, when
+    /// one of the group it airs in follows it. Set only on a placed special's
+    /// place, which is in the special group.
+    /// </summary>
+    public int? AirsBeforeSeasonNumber { get; init; }
+
+    /// <summary>
+    /// The number of the regular episode a placed special airs before,
+    /// within <see cref="AirsBeforeSeasonNumber"/>.
+    /// </summary>
+    public int? AirsBeforeEpisodeNumber { get; init; }
+
+    /// <summary>
+    /// The season a placed special airs after, when no regular episode of
+    /// that season follows it.
+    /// </summary>
+    public int? AirsAfterSeasonNumber { get; init; }
+
+    /// <summary>
+    /// The full identifier of the regular episode a placed special airs right
+    /// after, in any group.
+    /// </summary>
+    public string? AirsAfterEpisodeID { get; init; }
+
+    /// <summary>
+    /// The full identifier of the regular episode a placed special airs right
+    /// before, in any group.
+    /// </summary>
+    public string? AirsBeforeEpisodeID { get; init; }
+
+    /// <summary>
     /// Whether the ordering is the source's own.
     /// </summary>
     [Required]

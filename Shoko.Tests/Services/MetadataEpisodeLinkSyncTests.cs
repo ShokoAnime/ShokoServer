@@ -159,7 +159,7 @@ public class MetadataEpisodeLinkSyncTests
     }
 
     [Fact]
-    public async Task ACoreSourcesLinkKeepsNoSeasonOrNumbers()
+    public async Task ATmdbLinkKeepsItsSeasonAndNumbersLikeAPluginSourcesOne()
     {
         var tables = new Tables([]);
 
@@ -182,9 +182,9 @@ public class MetadataEpisodeLinkSyncTests
 
         var row = Assert.Single(tables.Links.Object.GetAll());
         Assert.Equal("7", row.ProviderParentID);
-        Assert.Null(row.ProviderSeasonID);
-        Assert.Null(row.SeasonNumber);
-        Assert.Null(row.EpisodeNumber);
+        Assert.Equal("700", row.ProviderSeasonID);
+        Assert.Equal(1, row.SeasonNumber);
+        Assert.Equal(3, row.EpisodeNumber);
     }
 
     #endregion

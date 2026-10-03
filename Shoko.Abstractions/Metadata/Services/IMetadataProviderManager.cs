@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.Plugin.Models;
 
 namespace Shoko.Abstractions.Metadata.Services;
 
@@ -81,6 +82,16 @@ public interface IMetadataProviderManager
     IEnumerable<MetadataProviderInfo> GetAvailableProviders(bool enabledForSeries = false, bool enabledForMovies = false);
 
     /// <summary>
+    ///   Gets the icon of a source: its series provider's, else its movie
+    ///   provider's, in registration order, enabled or not. The core gives
+    ///   AniDB's.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>The icon, or <see langword="null"/> when the source has none.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    PackageImageInfo? GetSourceIcon(MetadataSource source);
+
+    /// <summary>
     ///   A flat list of the sources switched on.
     /// </summary>
     IReadOnlySet<MetadataSource> EnabledProviders { get; }
@@ -128,8 +139,10 @@ public interface IMetadataProviderManager
     /// </summary>
     /// <remarks>
     ///   A provider starts on for every entity type no earlier provider on its
-    ///   source took. The change takes effect at once for what is fetched or
-    ///   refreshed next; a disabled provider's stored data still reads.
+    ///   source took, and stands by for the rest. On makes it answer for every
+    ///   type it can; off stops it answering or standing by for any. The change
+    ///   takes effect at once for what is fetched or refreshed next; a disabled
+    ///   provider's stored data still reads.
     /// </remarks>
     /// <param name="provider">The provider.</param>
     /// <param name="enabled">Whether it should answer.</param>
@@ -153,16 +166,51 @@ public interface IMetadataProviderManager
     ///   saves the decision.
     /// </summary>
     /// <remarks>
-    ///   An entity type the provider cannot answer for is
-    ///   dropped; an empty set turns it off. One provider answers for a
-    ///   source and entity type at a time, so turning this one on for a type
-    ///   takes the type off whichever provider had it. Does nothing when
-    ///   nothing goes by that ID.
+    ///   An entity type the provider cannot answer for is dropped; an empty
+    ///   set turns it off. One provider answers for a source and entity type
+    ///   at a time, so turning this one on for a type moves it to the front of
+    ///   the type's order, ahead of whichever provider had it. A type left out
+    ///   is turned off for it, standing by included. Does nothing when nothing
+    ///   goes by that ID.
     /// </remarks>
     /// <param name="providerID">The provider's ID.</param>
     /// <param name="enabled">The entity types to answer for.</param>
     /// <exception cref="ArgumentNullException"><paramref name="enabled"/> is <see langword="null"/>.</exception>
     void SetProviderEnabled(Guid providerID, IReadOnlySet<MetadataEntityType> enabled);
+
+    /// <summary>
+    ///   The providers claiming an entity type on a source, in the order they
+    ///   are tried.
+    /// </summary>
+    /// <remarks>
+    ///   The first enabled one answers, and only its
+    ///   <see cref="MetadataProviderInfo.EnabledEntityTypes"/> lists the type.
+    ///   The rest stand by and take over, in order, when it is turned off or
+    ///   removed. A provider paused or not configured is not skipped.
+    /// </remarks>
+    /// <param name="source">The source.</param>
+    /// <param name="entityType">The entity type.</param>
+    /// <returns>Every registered provider claiming it, in order; none when nothing does.</returns>
+    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    IReadOnlyList<MetadataProviderAssignment> GetProviderOrder(MetadataSource source, MetadataEntityType entityType);
+
+    /// <summary>
+    ///   Sets the order of the providers claiming entity types on a source,
+    ///   and which of them are enabled, and saves the decision.
+    /// </summary>
+    /// <remarks>
+    ///   The providers given come first, in the order given; those left out
+    ///   keep their place and switch after them. Nothing is changed unless
+    ///   every type and provider given is accepted.
+    /// </remarks>
+    /// <param name="source">The source.</param>
+    /// <param name="orders">The order for each entity type to change.</param>
+    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    ///   A provider is given twice for a type, or does not claim the type on
+    ///   the source.
+    /// </exception>
+    void SetProviderOrder(MetadataSource source, IReadOnlyDictionary<MetadataEntityType, IReadOnlyList<MetadataProviderAssignment>> orders);
 
     /// <summary>
     ///   Sets which provider auto-links a source, and saves the decision.

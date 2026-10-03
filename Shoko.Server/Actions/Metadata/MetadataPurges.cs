@@ -21,8 +21,8 @@ internal static class MetadataPurges
     #region Sources
 
     /// <summary>
-    ///   The sources a metadata provider serves, TMDB among them, which keep
-    ///   the series, films and collections the core may purge.
+    ///   The sources a metadata provider serves, which keep the series,
+    ///   films and collections the core may purge.
     /// </summary>
     /// <param name="providerManager">Lists the metadata providers.</param>
     /// <returns>The sources.</returns>
@@ -73,6 +73,18 @@ internal static class MetadataPurges
             _ when !keeps(source) => new($"{source.Name} keeps no {what}."),
             _ => null,
         };
+
+    /// <summary>
+    ///   Refuses a kind a person named that is not a series, a movie or a
+    ///   collection, the kinds stored whole.
+    /// </summary>
+    /// <param name="entityType">The kind, or <see langword="null"/> for all three.</param>
+    /// <returns>Why the kind is refused, or <see langword="null"/> to allow it.</returns>
+    public static ActionValidationResult? CheckKind(MetadataEntityType? entityType)
+        => entityType is null || entityType == MetadataEntityType.Series || entityType == MetadataEntityType.Movie ||
+            entityType == MetadataEntityType.Collection
+            ? null
+            : new($"\"{entityType}\" is not a series, a movie or a collection.");
 
     #endregion
 

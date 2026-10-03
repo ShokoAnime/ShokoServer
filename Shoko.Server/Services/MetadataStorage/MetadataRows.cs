@@ -134,6 +134,65 @@ internal static class MetadataRows
     }
 
     /// <summary>
+    ///   The entries among those given that are not stored, each once, with
+    ///   the first name given for it that is not blank.
+    /// </summary>
+    /// <param name="entries">The entries and the names given for them.</param>
+    /// <param name="isMissing">Whether an entry is not stored.</param>
+    /// <returns>The missing entries, in the order given.</returns>
+    internal static List<(MetadataGuid ID, string Name)> Missing(IEnumerable<(MetadataGuid ID, string? Name)> entries, Func<MetadataGuid, bool> isMissing)
+    {
+        var names = new Dictionary<MetadataGuid, string?>();
+        var order = new List<MetadataGuid>();
+        foreach (var (id, name) in entries)
+        {
+            if (names.TryGetValue(id, out var known))
+            {
+                if (string.IsNullOrWhiteSpace(known) && !string.IsNullOrWhiteSpace(name))
+                    names[id] = name;
+                continue;
+            }
+
+            if (!isMissing(id))
+                continue;
+
+            names[id] = name;
+            order.Add(id);
+        }
+
+        return [.. order.Select(id => (id, string.IsNullOrWhiteSpace(names[id]) ? string.Empty : names[id]!.Trim()))];
+    }
+
+    /// <summary>
+    ///   Copies of the stored stubs among the entries given that have no name,
+    ///   each given the first name given for it that is not blank, trimmed.
+    ///   A row its source saved is never renamed here.
+    /// </summary>
+    /// <typeparam name="TRow">The kind of row.</typeparam>
+    /// <param name="entries">The entries and the names given for them.</param>
+    /// <param name="find">Finds an entry's stored row.</param>
+    /// <returns>The renamed copies, to write.</returns>
+    internal static List<TRow> Named<TRow>(IEnumerable<(MetadataGuid ID, string? Name)> entries, Func<MetadataGuid, TRow?> find)
+        where TRow : class, IMetadataStoreRow<TRow>, IMetadataStubRow
+    {
+        var named = new Dictionary<MetadataGuid, TRow>();
+        foreach (var (id, name) in entries)
+        {
+            if (string.IsNullOrWhiteSpace(name) || named.ContainsKey(id))
+                continue;
+
+            if (find(id) is not { IsStub: true } stored || !string.IsNullOrWhiteSpace(stored.Name))
+                continue;
+
+            var copy = stored.Clone();
+            copy.Name = name.Trim();
+            named[id] = copy;
+        }
+
+        return [.. named.Values];
+    }
+
+    /// <summary>
     ///   A detached copy of a stored row, to change without touching the
     ///   cached one until the change has been written.
     /// </summary>

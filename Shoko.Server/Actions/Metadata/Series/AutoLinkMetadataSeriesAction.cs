@@ -10,8 +10,7 @@ namespace Shoko.Server.Actions;
 
 /// <summary>
 ///   Ask a source's auto-linker to work out what the series is and link it,
-///   for one source or for every source with an enabled auto-linker, TMDB
-///   included.
+///   for one source or for every source with an enabled auto-linker.
 /// </summary>
 /// <remarks>
 ///   A person asks for it, so an auto-linker counts even while it does not
@@ -37,7 +36,7 @@ public sealed class AutoLinkMetadataSeriesAction(IMetadataProviderManager provid
 
     public override string Name => "Auto-Search Metadata Links";
 
-    public override string? Description => "Searches one metadata source, or every source with an auto-linker, TMDB included, for the series and links what it finds. "
+    public override string? Description => "Searches one metadata source, or every source with an auto-linker, for the series and links what it finds. "
         + "Skips the sources the series is left alone on or already linked on; forced, searches those too and replaces every link the series has there, verified ones included.";
 
     public override ActionPermission Permission => ActionPermission.User;

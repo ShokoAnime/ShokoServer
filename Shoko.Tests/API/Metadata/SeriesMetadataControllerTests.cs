@@ -161,7 +161,7 @@ public class SeriesMetadataControllerTests
         }
 
         private MetadataModelBuilder Models
-            => new(Metadata.Object, Mock.Of<IMetadataTextManager>(), Mock.Of<IImageManager>(), Refresh.Object, Mock.Of<IMetadataStudioStore>());
+            => new(Metadata.Object, Mock.Of<IMetadataTextManager>(), Mock.Of<IImageManager>(), Mock.Of<IMetadataStudioStore>());
 
         private static ControllerContext Context()
             => new() { HttpContext = new DefaultHttpContext { RequestServices = new ServiceCollection().AddLogging().AddMvcCore().Services.BuildServiceProvider() } };

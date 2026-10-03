@@ -7,6 +7,7 @@ using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Server.Extensions;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 
@@ -16,7 +17,7 @@ namespace Shoko.Server.Models.Metadata;
 ///   A season a plugin source keeps in the series store, as part of its
 ///   series.
 /// </summary>
-public class Metadata_Season : ISeason, IMetadataStoreRow<Metadata_Season>
+public class Metadata_Season : ISeason<ISeries, IEpisode>, IMetadataStoreRow<Metadata_Season>, IMetadataDefaultImageSource
 {
     #region Database Columns
 
@@ -46,9 +47,20 @@ public class Metadata_Season : ISeason, IMetadataStoreRow<Metadata_Season>
     public int SeasonNumber { get; set; }
 
     /// <summary>
+    ///   When the store first wrote the season. Set once and never changed.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
     ///   When the source last wrote the season.
     /// </summary>
     public DateTime LastUpdatedAt { get; set; }
+
+    /// <summary>
+    ///   What the source said of the season that needs no column of its
+    ///   own, or <c>null</c> when it said none of it.
+    /// </summary>
+    public Metadata_SeasonExtra? ExtraData { get; set; }
 
     #endregion
 
@@ -69,7 +81,8 @@ public class Metadata_Season : ISeason, IMetadataStoreRow<Metadata_Season>
         => Source == other.Source &&
             ProviderID == other.ProviderID &&
             SeriesID == other.SeriesID &&
-            SeasonNumber == other.SeasonNumber;
+            SeasonNumber == other.SeasonNumber &&
+            Equals(ExtraData, other.ExtraData);
 
     /// <summary>
     ///   The season's episodes, by type and number.
@@ -96,9 +109,9 @@ public class Metadata_Season : ISeason, IMetadataStoreRow<Metadata_Season>
 
     string IWithTitles.Title => ((IWithTitles)this).PreferredTitle?.Value ?? ((IWithTitles)this).DefaultTitle.Value;
 
-    ITitle IWithTitles.DefaultTitle => MetadataStoredEntry.DefaultTitle(this);
+    ITitle IWithTitles.DefaultTitle => MetadataStoredEntry.DefaultTitle(this, synthesize: true);
 
-    ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
+    ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this) ?? TextAccess.Manager.SynthesizedTitleFor(this);
 
     IReadOnlyList<ITitle> IWithTitles.Titles => MetadataStoredEntry.Titles(this);
 
@@ -111,6 +124,13 @@ public class Metadata_Season : ISeason, IMetadataStoreRow<Metadata_Season>
     IText? IWithOverviews.PreferredOverview => MetadataStoredEntry.PreferredOverview(this);
 
     IReadOnlyList<IText> IWithOverviews.Overviews => MetadataStoredEntry.Overviews(this);
+
+    #endregion
+
+    #region IMetadataDefaultImageSource Implementation
+
+    string? IMetadataDefaultImageSource.GetDefaultResourceID(ImageEntityType imageType)
+        => ExtraData?.GetDefaultResourceID(imageType);
 
     #endregion
 
@@ -151,12 +171,16 @@ public class Metadata_Season : ISeason, IMetadataStoreRow<Metadata_Season>
 
     #region ISeason Implementation
 
+    DateTime? ISeason.LastRefreshedAt => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID)?.LastRefreshedAt?.ToUniversalTime();
+
     MetadataGuid ISeason.SeriesID => new(Source, MetadataEntityType.Series, SeriesID);
 
-    ISeries ISeason.Series => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID) ??
+    ISeries ISeason<ISeries, IEpisode>.Series => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID) ??
         throw new NullReferenceException($"Unable to find {Source.Name} series {SeriesID} for its season {ProviderID}");
 
-    IReadOnlyList<IEpisode> ISeason.Episodes => StoredEpisodes;
+    IReadOnlyList<IEpisode> ISeason<ISeries, IEpisode>.Episodes => StoredEpisodes;
+
+    IOrdering<ISeries, IEpisode> ISeason<ISeries, IEpisode>.Ordering => OrderingLookup.DefaultFor<ISeries, IEpisode>(((ISeason<ISeries, IEpisode>)this).Series);
 
     IReadOnlyList<IMetadataSeasonCrossReference> ISeason.MetadataSeasonCrossReferences
         => MetadataService.GetSeasonCrossReferences(this, ((ISeason)this).MetadataEpisodeCrossReferences);

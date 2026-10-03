@@ -33,7 +33,11 @@ public sealed class MetadataSuggestion<TBase, TSuggested>(Metadata_Suggestion ro
     public int? Order => row.Ranking;
 
     /// <inheritdoc />
-    public double? ApprovalRating => row.ApprovalRating;
+    public double? ApprovalRating => row.ApprovalRating
+        ?? (row.ApprovalVotes is { } approval && row.Votes is { } total && total > 0 ? approval / (double)total * 100 : null);
+
+    /// <inheritdoc />
+    public int? ApprovalVotes => row.ApprovalVotes;
 
     /// <inheritdoc />
     public int? Votes => row.Votes;

@@ -1,0 +1,8 @@
+{
+  "page": 1,
+  "results": [
+    { "adult": false, "backdrop_path": null, "genre_ids": [16, 14], "id": 7001, "original_language": "ja", "original_title": "旅の終わり 劇場版", "overview": "", "popularity": 30.5, "poster_path": "/movie-poster.jpg", "release_date": "2025-03-01", "title": "Journey's End: The Movie", "video": false, "vote_average": 7.9, "vote_count": 120 }
+  ],
+  "total_pages": 1,
+  "total_results": 1
+}

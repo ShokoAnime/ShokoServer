@@ -39,7 +39,7 @@ namespace Shoko.Server.Services.Airing;
 ///     This is an <see cref="IHostedService"/> rather than a recurring queue
 ///     job because the dispatch has to land within a minute of the slot. A
 ///     recurring job is dispatched through the worker pool, where it queues
-///     behind hashing, AniDB and TMDB work and can be held back by an
+///     behind hashing, AniDB and metadata work and can be held back by an
 ///     acquisition filter for as long as that filter says no — fine for a daily
 ///     sweep, useless for a clock. It also owns in-memory state (the horizon
 ///     and the watermark), which a job, being constructed per execution, has

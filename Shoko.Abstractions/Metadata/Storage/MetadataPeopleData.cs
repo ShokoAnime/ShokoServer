@@ -59,9 +59,30 @@ public sealed record MetadataCreatorData
     public FuzzyDateOnly? DeathDay { get; init; }
 
     /// <summary>
+    ///   Where the creator was born, as free text the way the source gives
+    ///   it, such as <c>Tokyo, Japan</c>. A blank one is stored as none.
+    /// </summary>
+    public string? PlaceOfBirth { get; init; }
+
+    /// <summary>
+    ///   Whether the source marks the creator as known for adult content
+    ///   only.
+    /// </summary>
+    public bool IsRestricted { get; init; }
+
+    /// <summary>
     ///   Links to the creator elsewhere, such as a homepage or a wiki page.
     /// </summary>
     public IReadOnlyList<Resource> Resources { get; init; } = [];
+
+    /// <summary>
+    ///   The source's resource ID of the creator's default image of each type,
+    ///   which becomes its pinned default and is always the first downloaded
+    ///   within the type's limit. <c>null</c> leaves the stored defaults as
+    ///   they are, and an empty map clears them. A type the creator has no
+    ///   images of is ignored.
+    /// </summary>
+    public IReadOnlyDictionary<ImageEntityType, string>? DefaultImageResourceIDs { get; init; }
 }
 
 /// <summary>
@@ -117,6 +138,15 @@ public sealed record MetadataCharacterData
     ///   Links to the character elsewhere, such as a wiki page.
     /// </summary>
     public IReadOnlyList<Resource> Resources { get; init; } = [];
+
+    /// <summary>
+    ///   The source's resource ID of the character's default image of each type,
+    ///   which becomes its pinned default and is always the first downloaded
+    ///   within the type's limit. <c>null</c> leaves the stored defaults as
+    ///   they are, and an empty map clears them. A type the character has no
+    ///   images of is ignored.
+    /// </summary>
+    public IReadOnlyDictionary<ImageEntityType, string>? DefaultImageResourceIDs { get; init; }
 }
 
 /// <summary>
@@ -138,7 +168,8 @@ public sealed record MetadataNameData
 
 /// <summary>
 ///   One cast credit on an entry: a character, who voiced or played it, or
-///   both. It is known by its character, its creator and its language.
+///   both. It is known by its character, its creator and its language. A
+///   character or creator not stored yet is kept as a stub.
 /// </summary>
 public sealed record MetadataCastData
 {
@@ -148,9 +179,21 @@ public sealed record MetadataCastData
     public MetadataGuid? CharacterID { get; init; }
 
     /// <summary>
+    ///   The character's name, kept on the stub the core makes when the
+    ///   character is not stored yet. <see cref="Name"/> is used when unset.
+    /// </summary>
+    public string? CharacterName { get; init; }
+
+    /// <summary>
     ///   The creator who voiced or played it, when known.
     /// </summary>
     public MetadataGuid? CreatorID { get; init; }
+
+    /// <summary>
+    ///   The creator's name, kept on the stub the core makes when the creator
+    ///   is not stored yet.
+    /// </summary>
+    public string? CreatorName { get; init; }
 
     /// <summary>
     ///   The name the role is credited under.
@@ -182,7 +225,8 @@ public sealed record MetadataCastData
 }
 
 /// <summary>
-///   One crew credit on an entry. It is known by its creator and its job.
+///   One crew credit on an entry. It is known by its creator and its job. A
+///   creator not stored yet is kept as a stub.
 /// </summary>
 public sealed record MetadataCrewData
 {
@@ -190,6 +234,12 @@ public sealed record MetadataCrewData
     ///   The creator credited.
     /// </summary>
     public required MetadataGuid CreatorID { get; init; }
+
+    /// <summary>
+    ///   The creator's name, kept on the stub the core makes when the creator
+    ///   is not stored yet.
+    /// </summary>
+    public string? CreatorName { get; init; }
 
     /// <summary>
     ///   The job, as the source writes it.

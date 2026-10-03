@@ -88,7 +88,8 @@ resolving every entity.
 
 `ImageFilteringOptions.LinkedEntityImages` defaults to `false` for a plugin
 entity, and `true` adds nothing either: the link walk only covers
-`IShokoGroup`, `IShokoSeries`, `IShokoSeason` and `IShokoEpisode`.
+`IShokoGroup`, `IShokoSeries`, a Shoko series' seasons
+(`ISeason<IShokoSeries, IShokoEpisode>`) and `IShokoEpisode`.
 
 ## Mistakes that are easy to make
 

@@ -19,20 +19,22 @@ namespace Shoko.Server.Services;
 ///   purges, one job type per provider.
 /// </summary>
 /// <remarks>
-///   TMDB, the provider the core ships, runs through the same jobs as any
-///   plugin provider, so every caller asks here whatever the source.
+///   Every provider runs through the same jobs, so every caller asks here
+///   whatever the source.
 /// </remarks>
 /// <param name="providerManager">The registered providers.</param>
 /// <param name="crossReferences">The links, to tell which sources an anime is linked on.</param>
 /// <param name="scheduler">The queue.</param>
 /// <param name="jobFactory">Runs a job at once, for a caller that waits for it.</param>
 /// <param name="logger">Where skipped requests are reported.</param>
+/// <param name="entityScheduler">Routes the refresh of a creator, character, studio or network.</param>
 public class MetadataProviderScheduler(
     IMetadataProviderManager providerManager,
     IMetadataCrossReferenceStore crossReferences,
     IQueueScheduler scheduler,
     IJobFactory jobFactory,
-    ILogger<MetadataProviderScheduler> logger
+    ILogger<MetadataProviderScheduler> logger,
+    MetadataEntityRefreshScheduler? entityScheduler = null
 )
 {
     private static readonly MethodInfo _executeNow = typeof(MetadataProviderScheduler)
@@ -160,7 +162,8 @@ public class MetadataProviderScheduler(
 
     /// <summary>
     ///   Queue a refresh of one series, film or collection from the provider
-    ///   refreshing its kind on its source.
+    ///   refreshing its kind on its source, or of one creator, character,
+    ///   studio or network from the provider taking its kind.
     /// </summary>
     /// <remarks>
     ///   The refresh job still refreshes a series or film only while
@@ -168,9 +171,10 @@ public class MetadataProviderScheduler(
     ///   unless the caller's options say it was
     ///   <see cref="MetadataRefreshReason.Requested"/>. A forced refresh made
     ///   <see cref="MetadataRefreshReason.Requested"/> by the force alone
-    ///   still needs the link.
+    ///   still needs the link. The options mean nothing to a creator,
+    ///   character, studio or network, which is refreshed whenever asked.
     /// </remarks>
-    /// <param name="entryID">The series, film or collection.</param>
+    /// <param name="entryID">The series, film, collection, creator, character, studio or network.</param>
     /// <param name="force">Whether to refresh it however recently it was refreshed.</param>
     /// <param name="options">What to fetch and why, or <see langword="null"/> for <see cref="FullRefresh"/>.</param>
     /// <param name="immediate">Whether to run the refresh now and wait for it rather than queue it.</param>
@@ -192,6 +196,9 @@ public class MetadataProviderScheduler(
     )
     {
         ArgumentNullException.ThrowIfNull(entryID);
+        if (MetadataEntityRefreshScheduler.EntityKinds.Contains(entryID.EntityType))
+            return entityScheduler?.ScheduleRefresh(entryID, force, immediate, prioritize) ?? Task.FromResult(false);
+
         var info = providerManager.MetadataProviders.FirstOrDefault(info =>
             info.Source == entryID.Source &&
             Refreshes(info.Provider, entryID.EntityType) &&
@@ -238,7 +245,7 @@ public class MetadataProviderScheduler(
     ///   Queue the image job of one provider for a stored entry.
     /// </summary>
     /// <param name="info">The provider.</param>
-    /// <param name="entryID">The series, film or collection, on the provider's source.</param>
+    /// <param name="entryID">The series, film, collection, creator, character, studio or network, on the provider's source.</param>
     /// <param name="force">Whether to download the desired images again even when they are there.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <param name="immediate">Whether to run the job now and wait for it rather than queue it.</param>
@@ -487,7 +494,36 @@ public class MetadataProviderScheduler(
     ///   <see langword="false"/> when it was to run now but the provider is
     ///   paused or the queue holds its jobs back.
     /// </returns>
-    private async Task<bool> Dispatch(MetadataProviderInfo info, Type jobType, Action<IQueueJob> configure, bool prioritize, bool immediate)
+    private Task<bool> Dispatch(MetadataProviderInfo info, Type jobType, Action<IQueueJob> configure, bool prioritize, bool immediate)
+        => Dispatch(scheduler, jobFactory, logger, info, jobType, configure, prioritize, immediate);
+
+    /// <summary>
+    ///   Queues a provider's job through a queue, or runs it now through a
+    ///   job factory and waits for it.
+    /// </summary>
+    /// <param name="scheduler">The queue.</param>
+    /// <param name="jobFactory">Runs the job now.</param>
+    /// <param name="logger">Where a refused run is reported.</param>
+    /// <param name="info">The provider the job is for.</param>
+    /// <param name="jobType">The job type.</param>
+    /// <param name="configure">Sets the job up.</param>
+    /// <param name="prioritize">Whether to queue it ahead of the rest.</param>
+    /// <param name="immediate">Whether to run it now and wait for it.</param>
+    /// <returns>
+    ///   <see langword="true"/> once it is queued or has run, or
+    ///   <see langword="false"/> when it was to run now but the provider is
+    ///   paused or the queue holds its jobs back.
+    /// </returns>
+    internal static async Task<bool> Dispatch(
+        IQueueScheduler scheduler,
+        IJobFactory jobFactory,
+        ILogger logger,
+        MetadataProviderInfo info,
+        Type jobType,
+        Action<IQueueJob> configure,
+        bool prioritize,
+        bool immediate
+    )
     {
         if (!immediate)
         {
@@ -530,8 +566,7 @@ public class MetadataProviderScheduler(
 
     /// <summary>
     ///   Whether the core's purge job purges a source's entries: a plugin
-    ///   source, or a source the core keeps in tables of its own that a
-    ///   provider claims, which is TMDB.
+    ///   source, or a core source a provider claims.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns><see langword="true"/> when it does.</returns>

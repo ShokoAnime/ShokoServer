@@ -186,7 +186,8 @@ public partial class MetadataEntryController
     }
 
     /// <summary>
-    /// Get the episodes of a stored season.
+    /// Get the episodes of a stored season, by number, or of a group of
+    /// another ordering, in the group's order.
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="id">The source's ID for the season.</param>
@@ -207,7 +208,12 @@ public partial class MetadataEntryController
         CancellationToken cancellationToken = default
     )
         => await Get<ISeason>(source, MetadataEntityType.Season, id, cancellationToken).ConfigureAwait(false) is { } season
-            ? Page(InOrder(season.Episodes).Select(episode => _models.Episode(episode, include, language)), page, pageSize)
+            ? Page(
+                (season.OrderingID == IOrdering.DefaultOrderingID(season.SeriesID) ? InOrder(season.Episodes) : season.Episodes)
+                    .Select(episode => _models.Episode(episode, include, language)),
+                page,
+                pageSize
+            )
             : NotFound(SeasonNotFound);
 
     /// <summary>
@@ -452,7 +458,7 @@ public partial class MetadataEntryController
     [HttpGet("Episode/{id}/CrossReferences")]
     public async Task<ActionResult<IReadOnlyList<MetadataCrossReference>>> GetEpisodeCrossReferences([FromRoute] MetadataSource source, [FromRoute] string id, CancellationToken cancellationToken = default)
         => await Get<IEpisode>(source, MetadataEntityType.Episode, id, cancellationToken).ConfigureAwait(false) is { } episode
-            ? Ok(MetadataModelBuilder.CrossReferences(episode.MetadataEpisodeCrossReferences))
+            ? Ok(MetadataModelBuilder.CrossReferences(episode.MetadataEpisodeCrossReferences, _metadataService))
             : NotFound(EpisodeNotFound);
 
     #endregion

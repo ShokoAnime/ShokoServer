@@ -4,9 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
-using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -264,19 +264,28 @@ public class MetadataLinkChangeTrackerTests
         );
     }
 
-    // A bulk write through TMDB's repositories, as an AniDB refresh dropping
-    // episodes makes, is one change per call.
+    // A bulk write in one batch, as an AniDB refresh dropping episodes
+    // makes, is one change per batch.
     [Fact]
-    public void ATmdbRepositoryBulkWriteIsOneChange()
+    public void ABatchedBulkWriteIsOneChange()
     {
         var tracker = new MetadataLinkChangeTracker();
         var links = new WritableLinkStore(tracker);
-        var episodes = new CrossRef_AniDB_TMDB_EpisodeRepository(links.Episodes, links.Store);
-        links.Store.AddSeriesLink(MetadataSource.TMDB, 1, new(MetadataSource.TMDB, MetadataEntityType.Series, "5"), MatchRating.TitleMatches);
+        var show = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Series, "5");
+        links.Store.AddSeriesLink(MetadataSource.TMDB, 1, show, MatchRating.TitleMatches);
         var raised = Listen(tracker);
 
-        episodes.Save([new(10, 1, 55, 5), new(11, 1, 56, 5), new(12, 1, 57, 5)]);
-        episodes.Delete(episodes.GetByAnidbAnimeID(1));
+        using (links.Store.BeginChanges())
+        {
+            foreach (var (anidbEpisodeID, episodeID) in (ReadOnlySpan<(int, string)>)[(10, "55"), (11, "56"), (12, "57")])
+                links.Store.AddEpisodeLink(MetadataSource.TMDB, 1, anidbEpisodeID, new(MetadataSource.TMDB, MetadataEntityType.Episode, episodeID), show, MatchRating.UserVerified);
+        }
+
+        using (links.Store.BeginChanges())
+        {
+            foreach (var link in links.Episodes.GetByAnidbAnimeID(1).ToList())
+                links.Store.RemoveEpisodeLink(link.Source, link.AnidbAnimeID, link.AnidbEpisodeID, ((IMetadataCrossReference)link).ProviderID);
+        }
 
         Assert.Equal(
             [

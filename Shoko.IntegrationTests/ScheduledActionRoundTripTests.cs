@@ -38,7 +38,7 @@ public class ScheduledActionRoundTripTests(DatabaseMigrationFixture fixture)
         var repository = fixture.Services.GetRequiredService<ScheduledActionRepository>();
         var actionID = Guid.NewGuid();
         var lastRunAt = new DateTime(2026, 9, 28, 12, 30, 15, DateTimeKind.Utc);
-        var triggers = ScheduledActionService.SerializeTriggers([ActionTrigger.AtStartup, ActionTrigger.WeeklyOn(DayOfWeek.Monday, new TimeOnly(9, 0))]);
+        var triggers = ScheduledActionService.SerializeTriggers([ActionTrigger.AtStartup, ActionTrigger.WeeklyOn(DayOfWeek.Monday, new TimeOnly(9, 0)), ActionTrigger.OnQueueCleared]);
 
         repository.Save(new ScheduledAction { ActionID = actionID, CreatedAt = lastRunAt.AddDays(-1), Triggers = triggers });
         repository.Populate(displayName: false, cancellationToken: TestContext.Current.CancellationToken);

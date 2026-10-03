@@ -48,8 +48,8 @@ public static class ActionTriggerSchedule
     /// </param>
     /// <exception cref="ArgumentException">A trigger is invalid.</exception>
     /// <returns>
-    /// The time in UTC, or <c>null</c> when only a start-up trigger, or none,
-    /// is set. It may lie in the past, when a run was missed.
+    /// The time in UTC, or <c>null</c> when only start-up and queue-cleared
+    /// triggers, or none, are set. It may lie in the past, when a run was missed.
     /// </returns>
     public static DateTime? GetNextRun(IEnumerable<ActionTrigger> triggers, DateTime lastRunAt, TimeZoneInfo timeZone, DateTime? notBefore = null)
         => triggers
@@ -80,8 +80,8 @@ public static class ActionTriggerSchedule
     /// <exception cref="ArgumentException">The trigger is invalid.</exception>
     /// <returns>
     /// The time in UTC, always after <paramref name="lastRunAt"/> and not
-    /// before <paramref name="notBefore"/>, or <c>null</c> for a start-up
-    /// trigger.
+    /// before <paramref name="notBefore"/>, or <c>null</c> for a start-up or
+    /// queue-cleared trigger.
     /// </returns>
     public static DateTime? GetNextRun(ActionTrigger trigger, DateTime lastRunAt, TimeZoneInfo timeZone, DateTime? notBefore = null)
     {
@@ -163,7 +163,7 @@ public static class ActionTriggerSchedule
     /// <param name="trigger">The trigger, a valid one.</param>
     /// <param name="lastRunAt">When the action last ran, in UTC.</param>
     /// <param name="timeZone">The time zone the times of day are in.</param>
-    /// <returns>The time in UTC, or <c>null</c> for a start-up trigger.</returns>
+    /// <returns>The time in UTC, or <c>null</c> for a start-up or queue-cleared trigger.</returns>
     private static DateTime? GetFirstRun(ActionTrigger trigger, DateTime lastRunAt, TimeZoneInfo timeZone)
         => trigger.Type switch
         {

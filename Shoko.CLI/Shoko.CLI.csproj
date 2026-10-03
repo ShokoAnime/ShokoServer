@@ -36,4 +36,5 @@
       <Link>db.ico</Link>
     </Resource>
   </ItemGroup>
+  <Import Project="..\BundledPlugins.targets" />
 </Project>

@@ -22,14 +22,7 @@ public class TextChooserTests
 
     private static readonly MetadataSource _tmdb = MetadataSource.TMDB;
 
-    private sealed class Candidate : TitleStub, ITitle
-    {
-        public TextPreference Preference { get; init; }
-
-        public bool IsEnabled { get; init; } = true;
-    }
-
-    private static Candidate Title(string value, MetadataSource source, TitleLanguage language, TitleType type = TitleType.Official,
+    private static TitleStub Title(string value, MetadataSource source, TitleLanguage language, TitleType type = TitleType.Official,
         TextPreference preference = TextPreference.None, bool enabled = true)
         => new()
         {

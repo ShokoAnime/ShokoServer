@@ -9,6 +9,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.Interfaces;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
@@ -18,7 +19,7 @@ namespace Shoko.Server.Models.Metadata;
 ///   A creator a source keeps in the people store: a person or company
 ///   credited on its entries.
 /// </summary>
-public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, IInlineTextSource
+public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, IInlineTextSource, IMetadataStubRow, IMetadataDefaultImageSource
 {
     #region Database Columns
 
@@ -80,15 +81,52 @@ public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, I
     public List<Resource> Resources { get; set; } = [];
 
     /// <summary>
-    ///   When the source last wrote the creator.
+    ///   Whether the source marks the creator as known for adult content
+    ///   only.
     /// </summary>
-    public DateTime LastUpdatedAt { get; set; }
+    public bool IsRestricted { get; set; }
+
+    /// <summary>
+    ///   What the source said of the creator that needs no column of its
+    ///   own, or <c>null</c> when it said none of it.
+    /// </summary>
+    public Metadata_CreatorExtra? ExtraData { get; set; }
+
+    /// <summary>
+    ///   When the store first wrote the creator, stub or not. Set once and never
+    ///   changed.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+
+    /// <summary>
+    ///   When the source last wrote the creator, or <c>null</c> for a stub
+    ///   the core made for a credit before the source wrote it.
+    /// </summary>
+    public DateTime? LastUpdatedAt { get; set; }
 
     /// <summary>
     ///   Since when nothing has credited the creator, or <c>null</c> while
     ///   something does. The purge of orphaned metadata goes by it.
     /// </summary>
     public DateTime? LastOrphanedAt { get; set; }
+
+    /// <summary>
+    ///   When the core last asked the source to refresh the creator, found or
+    ///   not, in local time, or <c>null</c> when it never did. Kept by the
+    ///   entity refresh job alone; a save of the creator keeps it.
+    /// </summary>
+    public DateTime? LastRefreshedAt { get; set; }
+
+    #endregion
+
+    #region Helpers
+
+    /// <summary>
+    ///   Whether the creator is a stub: a row the core made, with only the
+    ///   name a credit carried, before its source wrote it. The source's
+    ///   next save of the creator fills it in.
+    /// </summary>
+    public bool IsStub => LastUpdatedAt is null;
 
     #endregion
 
@@ -111,6 +149,13 @@ public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, I
 
     #endregion
 
+    #region IWithUpdateDate Implementation
+
+    // A stub was never written by its source.
+    DateTime IWithUpdateDate.LastUpdatedAt => LastUpdatedAt ?? DateTime.UnixEpoch;
+
+    #endregion
+
     #region IInlineTextSource Implementation
 
     ITitle? IInlineTextSource.InlineTitle => InlineText.Title(Source, Name, TitleLanguage.Unknown, "unk");
@@ -129,13 +174,21 @@ public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, I
 
     #endregion
 
+    #region IMetadataDefaultImageSource Implementation
+
+    string? IMetadataDefaultImageSource.GetDefaultResourceID(ImageEntityType imageType)
+        => ExtraData?.GetDefaultResourceID(imageType);
+
+    #endregion
+
     #region IWithImages Implementation
 
     /// <summary>
-    ///   The first primary image the creator's own source gave it.
+    ///   The primary image the creator's own source pins as its default,
+    ///   else the first one it gave it.
     /// </summary>
     public IImageCrossReference? DefaultPrimaryImageCrossReference
-        => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = Source, ImageType = ImageEntityType.Primary }).FirstOrDefault();
+        => MetadataStoredEntry.DefaultImage(this, ImageEntityType.Primary);
 
     #endregion
 
@@ -148,7 +201,11 @@ public class Metadata_Creator : ICreator, IMetadataStoreRow<Metadata_Creator>, I
 
     #region ICreator Implementation
 
+    DateTime? ICreator.LastRefreshedAt => LastRefreshedAt?.ToUniversalTime();
+
     IReadOnlyList<ITitle> ICreator.AlternativeNames => TextAccess.Manager.AlternativeNamesOf(this);
+
+    string? ICreator.PlaceOfBirth => ExtraData?.PlaceOfBirth;
 
     IEnumerable<ICast<IEpisode>> ICreator.EpisodeCastRoles => CastRoles(MetadataEntityType.Episode);
 

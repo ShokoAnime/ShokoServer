@@ -3,6 +3,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 
 namespace Shoko.Server.Mappings;
 
@@ -24,7 +25,10 @@ public class Metadata_CharacterMap : ClassMap<Metadata_Character>
         Map(x => x.Gender).CustomType<PersonGender>().Not.Nullable();
         Map(x => x.BirthDay).CustomType<FuzzyDateOnlyConverter>().Nullable();
         Map(x => x.Resources).CustomType<JsonListConverter<Resource>>().Nullable();
-        Map(x => x.LastUpdatedAt).Not.Nullable();
+        Map(x => x.CreatedAt).Not.Nullable();
+        Map(x => x.LastUpdatedAt).Nullable();
         Map(x => x.LastOrphanedAt).Nullable();
+        Map(x => x.LastRefreshedAt).Nullable();
+        Map(x => x.ExtraData).CustomType<JsonObjectConverter<Metadata_CharacterExtra>>().Nullable();
     }
 }

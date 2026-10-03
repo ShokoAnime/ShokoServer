@@ -110,13 +110,13 @@ public class ImageEntityResolutionTests
         var harness = new Harness();
         var orderingID = new MetadataGuid(MetadataSource.User, MetadataEntityType.Ordering, "mine");
         var groupID = new MetadataGuid(MetadataSource.User, MetadataEntityType.Season, "part");
-        var tmdbOrderingID = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Ordering, "5f0c1a2b3c4d5e6f7a8b9c0d");
+        var anidbOrderingID = new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Ordering, "30");
         var ordering = new Mock<IOrdering>();
         var group = new Mock<ISeason>();
-        var tmdbOrdering = new Mock<IOrdering>();
+        var anidbOrdering = new Mock<IOrdering>();
         harness.MetadataService.Setup(s => s.GetEntry(orderingID)).Returns(ordering.Object);
         harness.MetadataService.Setup(s => s.GetEntry(groupID)).Returns(group.Object);
-        harness.MetadataService.Setup(s => s.GetEntry(tmdbOrderingID)).Returns(tmdbOrdering.Object);
+        harness.MetadataService.Setup(s => s.GetEntry(anidbOrderingID)).Returns(anidbOrdering.Object);
 
         Assert.Same(ordering.Object, harness.Manager.GetEntityForImage(orderingID));
         Assert.Same(group.Object, harness.Manager.GetEntityForImage(groupID));
@@ -124,7 +124,7 @@ public class ImageEntityResolutionTests
 
         // The orderings of the core's other sources keep what their source
         // gives them.
-        Assert.Null(harness.Manager.GetEntityForImage(tmdbOrderingID));
+        Assert.Null(harness.Manager.GetEntityForImage(anidbOrderingID));
     }
 
     [Fact]

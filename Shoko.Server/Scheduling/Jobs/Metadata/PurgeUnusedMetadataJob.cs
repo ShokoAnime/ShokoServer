@@ -17,8 +17,8 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 
 /// <summary>
 ///   Queues the purge of the series, films and collections nothing has linked
-///   to since before the admin's cutoff, for TMDB and every plugin source.
-///   Runs daily.
+///   to since before the admin's cutoff, for every plugin source. Runs
+///   daily.
 /// </summary>
 /// <param name="settingsProvider">Holds how long an unused entry may stay.</param>
 /// <param name="providerManager">The registered providers, which decide which core sources are purged.</param>
@@ -120,8 +120,7 @@ public class PurgeUnusedMetadataJob(
 
     /// <summary>
     ///   The sources whose unused entries the job purges: every registered
-    ///   plugin source, and each of the core's sources a provider claims,
-    ///   which is TMDB.
+    ///   plugin source, and each of the core's sources a provider claims.
     /// </summary>
     /// <param name="sources">The registered sources.</param>
     /// <param name="providers">The registered providers.</param>

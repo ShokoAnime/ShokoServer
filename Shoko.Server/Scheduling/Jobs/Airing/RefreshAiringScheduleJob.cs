@@ -72,7 +72,9 @@ public class RefreshAiringScheduleJob(IAiringScheduleService airingScheduleServi
         => new()
         {
             ["Provider"] = _providerInfo?.Name ?? ProviderID.ToString(),
-            ["Entity"] = $"{EntitySource} {EntityType} {EntityID}",
+            ["Source"] = EntitySource?.Name ?? string.Empty,
+            ["Kind"] = EntityType?.Name ?? string.Empty,
+            ["ID"] = EntityID,
         };
 
     /// <inheritdoc/>

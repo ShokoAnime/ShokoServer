@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Shoko.Abstractions.Metadata.Storage;
 
 namespace Shoko.Abstractions.Metadata.Services;
@@ -10,8 +11,9 @@ namespace Shoko.Abstractions.Metadata.Services;
 /// </summary>
 /// <remarks>
 ///   Every series has an unstored default ordering from its own seasons: its
-///   ID is the series' ID for a core source (<c>tmdb://ordering/1</c>), or
-///   <c>default/</c> plus the series' ID for a plugin's. Global orderings are
+///   ID is the series' ID for a core source (<c>anidb://ordering/1</c>), or
+///   <c>default/</c> plus the series' ID for any other
+///   (<c>tmdb://ordering/default/1</c>). Global orderings are
 ///   saved whole by a plugin under its source; local ones are users', under
 ///   <c>user</c>. Purging a series removes every ordering of it.
 /// </remarks>
@@ -77,7 +79,7 @@ public interface IMetadataOrderingService
 
     /// <summary>
     ///   Stores a global ordering whole under its own source, replacing what
-    ///   was stored for it, groups and all.
+    ///   was stored for it, groups and networks and all.
     /// </summary>
     /// <param name="ordering">The ordering.</param>
     /// <returns>The stored ordering.</returns>
@@ -86,14 +88,14 @@ public interface IMetadataOrderingService
     ///   The ordering is on a source the core keeps itself, an ID names the
     ///   wrong kind or source, an ID is reserved or taken by another ordering,
     ///   the type is kept by the core, the series is not available, a group
-    ///   holds an episode that is not the series', or more than one group is
-    ///   special.
+    ///   holds an episode that is not the series', more than one group is
+    ///   special, or a network is not stored or is on another source.
     /// </exception>
     IOrdering SaveOrdering(MetadataOrderingData ordering);
 
     /// <summary>
-    ///   Removes a global ordering with its groups, and the choice of it for
-    ///   its series.
+    ///   Removes a global ordering with its groups and networks, and the
+    ///   choice of it for its series.
     /// </summary>
     /// <param name="orderingID">The ordering.</param>
     /// <returns><c>true</c> if it was stored.</returns>
@@ -103,25 +105,42 @@ public interface IMetadataOrderingService
     /// </exception>
     bool RemoveOrdering(MetadataGuid orderingID);
 
+    /// <summary>
+    ///   Removes every global ordering of a source, with its groups, networks
+    ///   and the choices of them. The users' own orderings are kept.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="progress">Told how far the removal is, from 0 to 100.</param>
+    /// <param name="cancellationToken">Stops the removal between two orderings.</param>
+    /// <returns>How many orderings were removed.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">The source keeps no global orderings.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    int RemoveOrderings(MetadataSource source, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Local Orderings
 
     /// <summary>
-    ///   Makes a user's ordering of a series, under the <c>user</c> source.
+    ///   Makes a user's ordering of a series, under the <c>user</c> source,
+    ///   linked to its networks, with a stub for each network not stored yet.
     /// </summary>
     /// <param name="ordering">The ordering.</param>
     /// <returns>The new ordering, with the IDs it was given.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="ordering"/> is or holds <c>null</c>.</exception>
     /// <exception cref="ArgumentException">
     ///   A group names an ID, the series is not available, a group holds an
-    ///   episode that is not the series', or more than one group is special.
+    ///   episode that is not the series', more than one group is special, or
+    ///   a network names another kind or a source this server does not know.
     /// </exception>
     IOrdering CreateLocalOrdering(MetadataLocalOrderingData ordering);
 
     /// <summary>
     ///   Replaces a user's ordering whole. A group naming one of the
-    ///   ordering's groups keeps its ID; the others get new ones.
+    ///   ordering's groups keeps its ID; the others get new ones. The
+    ///   networks are replaced when given, with a stub for each one not
+    ///   stored yet, and kept when left out.
     /// </summary>
     /// <param name="orderingID">The ordering, under the <c>user</c> source.</param>
     /// <param name="ordering">What it is to be.</param>
@@ -130,7 +149,8 @@ public interface IMetadataOrderingService
     /// <exception cref="ArgumentException">
     ///   The ID does not name a user's ordering, the series is another one, a
     ///   group names an ID the ordering does not have, a group holds an
-    ///   episode that is not the series', or more than one group is special.
+    ///   episode that is not the series', more than one group is special, or
+    ///   a network names another kind or a source this server does not know.
     /// </exception>
     IOrdering? UpdateLocalOrdering(MetadataGuid orderingID, MetadataLocalOrderingData ordering);
 

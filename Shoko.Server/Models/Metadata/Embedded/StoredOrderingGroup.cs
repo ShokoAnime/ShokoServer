@@ -14,26 +14,30 @@ namespace Shoko.Server.Models.Metadata.Embedded;
 /// <summary>
 ///   One group of a stored ordering, read back as a season of the ordering.
 /// </summary>
+/// <typeparam name="TSeries">The series' type.</typeparam>
+/// <typeparam name="TEpisode">The episodes' type.</typeparam>
 /// <param name="ordering">The ordering the group is in.</param>
 /// <param name="row">The group's row.</param>
 /// <param name="seasonNumber">The group's season number: <c>0</c> for the special group, else its place among the others, from 1.</param>
 /// <param name="places">The episodes' places in the group, in order, with each episode.</param>
-public sealed class StoredOrderingGroup(
-    StoredOrdering ordering,
+public sealed class StoredOrderingGroup<TSeries, TEpisode>(
+    StoredOrdering<TSeries, TEpisode> ordering,
     Metadata_Ordering_Group row,
     int seasonNumber,
-    IReadOnlyList<(Metadata_Ordering_Entry Entry, IEpisode Episode)> places
-) : ISeason, IInlineTextSource
+    IReadOnlyList<(Metadata_Ordering_Entry Entry, TEpisode Episode)> places
+) : ISeason<TSeries, TEpisode>, IInlineTextSource
+    where TSeries : class, ISeries
+    where TEpisode : class, IEpisode
 {
     /// <summary>
     ///   The ordering the group is in.
     /// </summary>
-    public StoredOrdering Ordering => ordering;
+    public StoredOrdering<TSeries, TEpisode> Ordering => ordering;
 
     /// <summary>
     ///   The episodes' places in the group, in order, with each episode.
     /// </summary>
-    internal IReadOnlyList<(Metadata_Ordering_Entry Entry, IEpisode Episode)> Places => places;
+    internal IReadOnlyList<(Metadata_Ordering_Entry Entry, TEpisode Episode)> Places => places;
 
     #region IMetadata Implementation
 
@@ -42,7 +46,7 @@ public sealed class StoredOrderingGroup(
 
     #endregion
 
-    #region ISeason Implementation
+    #region ISeason<TSeries, TEpisode> Implementation
 
     /// <inheritdoc />
     public MetadataGuid SeriesID => ordering.SeriesID;
@@ -54,14 +58,20 @@ public sealed class StoredOrderingGroup(
     public bool IsSpecial => row.IsSpecial;
 
     /// <inheritdoc />
-    public MetadataGuid? OrderingID => ordering.ID;
+    public MetadataGuid OrderingID => ordering.ID;
 
     /// <inheritdoc />
-    public ISeries Series => ordering.Series ??
-        throw new NullReferenceException($"Unable to find series {ordering.SeriesID} for ordering {ordering.ID}");
+    public TSeries Series => ordering.Series;
 
     /// <inheritdoc />
-    public IReadOnlyList<IEpisode> Episodes => [.. places.Select(place => place.Episode)];
+    /// <remarks>
+    ///   Only the episodes at home in the group: a placed special is left out
+    ///   of a regular group, where it only airs.
+    /// </remarks>
+    public IReadOnlyList<TEpisode> Episodes => [.. ordering.Placement.HomeEpisodes(ID).Select(ordering.EpisodeByID).OfType<TEpisode>()];
+
+    /// <inheritdoc />
+    IOrdering<TSeries, TEpisode> ISeason<TSeries, TEpisode>.Ordering => ordering;
 
     /// <inheritdoc />
     public IReadOnlyList<IMetadataSeasonCrossReference> MetadataSeasonCrossReferences => MetadataService.GetSeasonCrossReferences(this, MetadataEpisodeCrossReferences);
@@ -135,6 +145,20 @@ public sealed class StoredOrderingGroup(
 
     /// <inheritdoc />
     public IReadOnlyList<ICrew> Crew => [];
+
+    #endregion
+
+    #region IWithCreationDate Implementation
+
+    /// <inheritdoc />
+    public DateTime CreatedAt => ordering.CreatedAt;
+
+    #endregion
+
+    #region IWithUpdateDate Implementation
+
+    /// <inheritdoc />
+    public DateTime LastUpdatedAt => ordering.LastUpdatedAt;
 
     #endregion
 

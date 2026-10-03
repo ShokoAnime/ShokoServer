@@ -37,4 +37,11 @@ public enum ActionTriggerType
     ///   the month, at a time of day, in the server's time zone.
     /// </summary>
     Monthly,
+
+    /// <summary>
+    ///   Runs every time the job queue is cleared, by an admin, a plugin or
+    ///   other code. Not when the queue runs out of jobs, nor when it is paused
+    ///   or resumed.
+    /// </summary>
+    QueueCleared,
 }

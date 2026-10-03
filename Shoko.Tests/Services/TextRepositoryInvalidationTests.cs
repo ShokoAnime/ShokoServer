@@ -5,11 +5,9 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Metadata;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
-using Shoko.Server.Repositories.Cached.TMDB;
 using Shoko.Server.Services;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -18,7 +16,7 @@ namespace Shoko.Tests.Services;
 
 /// <summary>
 /// Covers that a row saved or removed through its repository outdates what the text manager
-/// worked out from it, with no write path telling the manager itself: plugin, TMDB and AniDB rows
+/// worked out from it, with no write path telling the manager itself: plugin and AniDB rows
 /// read by their IDs, and the collection rows a series may be named by.
 /// </summary>
 [Collection(nameof(RepoFactoryCollection))]
@@ -28,13 +26,7 @@ public class TextRepositoryInvalidationTests
 
     private static readonly MetadataGuid _person = new(TestSources.Plugin, MetadataEntityType.Creator, "p5");
 
-    private static readonly MetadataGuid _show = new(MetadataSource.TMDB, MetadataEntityType.Series, "5");
-
     private static readonly MetadataGuid _character = new(MetadataSource.AniDB, MetadataEntityType.Character, "7");
-
-    private static readonly MetadataGuid _movie = new(MetadataSource.TMDB, MetadataEntityType.Movie, "8");
-
-    private static readonly MetadataGuid _collection = new(MetadataSource.TMDB, MetadataEntityType.Collection, "9");
 
     /// <summary>
     /// A text manager put in place for the repositories to tell, over a cache-only store, and the
@@ -122,21 +114,6 @@ public class TextRepositoryInvalidationTests
     }
 
     [Fact]
-    public void ATmdbRowSavedThroughItsRepositoryOutdatesItsTitle()
-    {
-        using var harness = new Harness();
-        var show = new TMDB_Show(5) { EnglishTitle = "Old Show" };
-        var shows = CachedRepo.Build<TMDB_ShowRepository, int, TMDB_Show>(row => row.Id, show);
-        harness.Holds(_show, show);
-        Assert.Equal("Old Show", harness.Manager.GetPreferredTitle(_show)?.Value);
-
-        show.EnglishTitle = "New Show";
-        AfterSave(shows, show);
-
-        Assert.Equal("New Show", harness.Manager.GetPreferredTitle(_show)?.Value);
-    }
-
-    [Fact]
     public void AnAnidbRowSavedThroughItsRepositoryOutdatesItsOverview()
     {
         using var harness = new Harness();
@@ -173,18 +150,5 @@ public class TextRepositoryInvalidationTests
         AfterRemove(members, member);
         Assert.Contains(new MetadataGuid(TestSources.Plugin, MetadataEntityType.Movie, "film"), harness.Forgotten);
         Assert.Contains(new MetadataGuid(TestSources.Plugin, MetadataEntityType.Collection, "franchise"), harness.Forgotten);
-    }
-
-    [Fact]
-    public void AStoredTmdbCollectionForgetsTheMoviesNamingIt()
-    {
-        var movie = new TMDB_Movie(8) { TmdbCollectionID = 9 };
-        using var harness = new Harness(scope => scope.With<TMDB_MovieRepository, int, TMDB_Movie>(row => row.Id, [movie]));
-        var collections = CachedRepo.Build<TMDB_CollectionRepository, int, TMDB_Collection>(row => row.TMDB_CollectionID);
-
-        AfterSave(collections, new TMDB_Collection(9) { TMDB_CollectionID = 1 });
-
-        Assert.Contains(_collection, harness.Forgotten);
-        Assert.Contains(_movie, harness.Forgotten);
     }
 }

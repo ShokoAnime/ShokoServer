@@ -21,7 +21,7 @@ public interface ITitle : IText, IEquatable<ITitle>
     /// <value>
     ///   <c>true</c> for a made-up title; otherwise <c>false</c>.
     /// </value>
-    bool IsSynthesized { get => false; }
+    bool IsSynthesized { get; }
 
     /// <summary>
     ///   Checks if two title objects are equal.

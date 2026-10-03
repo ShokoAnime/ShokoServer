@@ -60,8 +60,8 @@ public interface IImageManager
     /// </remarks>
     /// <param name="imageSource">
     ///   The image source. Must not be a core source, such as
-    ///   <see cref="MetadataSource.AniDB"/> or <see cref="MetadataSource.TMDB"/>,
-    ///   whose defaults the core keeps itself.
+    ///   <see cref="MetadataSource.AniDB"/>, whose default the core keeps
+    ///   itself.
     /// </param>
     /// <param name="templateUrl">
     ///   The default template URL. Must be a valid URL starting with
@@ -252,8 +252,8 @@ public interface IImageManager
     ///   Add a new image from provider data.
     /// </summary>
     /// <remarks>
-    ///   The image's source needs a template URL: the core keeps AniDB's and
-    ///   TMDB's, and a plugin registers its own with
+    ///   The image's source needs a template URL: the core keeps AniDB's, and
+    ///   a source's provider registers its own with
     ///   <see cref="RegisterTemplateUrl"/>. The image's
     ///   <see cref="IImage.ResourceID"/> completes that template, so it is the
     ///   rest of the remote URL and fits in 128 characters.

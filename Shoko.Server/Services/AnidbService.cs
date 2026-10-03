@@ -1278,7 +1278,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         public bool CreateSeriesEntry { get; set; }
 
         /// <summary>
-        /// Skip updating related TMDB entities after update.
+        /// Skip updating the supplementary metadata sources after update.
         /// </summary>
         public bool SkipSupplementaryUpdate { get; set; }
 

@@ -27,6 +27,7 @@ using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.v2.Models.common;
 using Shoko.Server.API.v2.Models.core;
 using Shoko.Server.API.v2.Models.legacy;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Shoko.Embedded;

@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Services.MetadataStorage;
 
@@ -96,6 +97,7 @@ public class MetadataCollectionStore(
             var row = MetadataRows.Copy(stored) ?? new Metadata_Collection();
             row.Source = source;
             row.ProviderID = collection.ID.ID;
+            row.ExtraData = MetadataDefaultImages.Apply(row.ExtraData ?? new(), collection.DefaultImageResourceIDs).NullIfEmpty();
 
             var storedMembers = memberRepository.GetByCollectionID(source, collection.ID.ID);
             var (membersSaving, membersDeleting) = MetadataRows.Replace(
@@ -118,11 +120,14 @@ public class MetadataCollectionStore(
             // or texts changed, and only then is it said to have changed.
             textStore.WriteWithTexts([(collection.ID, collection.Titles ?? [], collection.Overviews ?? [])], [], changedTexts =>
             {
-                changed = stored is null || membersSaving.Count + membersDeleting.Count > 0 || changedTexts.Contains(collection.ID);
+                changed = stored is null || membersSaving.Count + membersDeleting.Count > 0 || changedTexts.Contains(collection.ID) ||
+                    !Equals(stored.ExtraData, row.ExtraData);
                 if (!changed)
                     return [];
 
                 row.LastUpdatedAt = DateTime.Now;
+                if (stored is null)
+                    row.CreatedAt = row.LastUpdatedAt;
                 return
                 [
                     new MetadataRowChanges<Metadata_Collection>(collectionRepository, [row], []),
@@ -159,6 +164,32 @@ public class MetadataCollectionStore(
         // Outside the lock, since the other stores take their own.
         cleanup.Remove([id]);
         return count;
+    }
+
+    #endregion
+
+    #region Refresh State
+
+    /// <summary>
+    ///   Stamps when the core last refreshed a stored collection, on the collection's
+    ///   own row, leaving the rest of it as it is.
+    /// </summary>
+    /// <param name="collectionID">The collection.</param>
+    /// <param name="refreshedAt">When the refresh finished, in local time.</param>
+    /// <returns><c>true</c> if the collection is stored.</returns>
+    internal bool SetLastRefreshedAt(MetadataGuid collectionID, DateTime refreshedAt)
+    {
+        lock (_writeLock)
+        {
+            if (collectionRepository.GetByProviderID(collectionID.Source, collectionID.ID) is not { } stored)
+                return false;
+
+            // A copy, so the cached row stays as it was until the write has committed.
+            var row = MetadataRows.Copy(stored)!;
+            row.LastRefreshedAt = refreshedAt;
+            textStore.WriteWithoutEntries([], new MetadataRowChanges<Metadata_Collection>(collectionRepository, [row], []));
+            return true;
+        }
     }
 
     #endregion

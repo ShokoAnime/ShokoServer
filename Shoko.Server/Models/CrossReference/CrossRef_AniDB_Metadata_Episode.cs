@@ -56,22 +56,21 @@ public class CrossRef_AniDB_Metadata_Episode : CrossRef_AniDB_Metadata, IMetadat
 
     /// <inheritdoc />
     MetadataGuid? IMetadataEpisodeCrossReference.SeasonID
-        => ToProviderID(Source, MetadataEntityType.Season, ProviderSeasonID) ?? TmdbEpisode?.SeasonID;
+        => ToProviderID(Source, MetadataEntityType.Season, ProviderSeasonID) ?? StoredEpisode?.SeasonID;
 
     /// <inheritdoc />
-    int? IMetadataEpisodeCrossReference.SeasonNumber => SeasonNumber ?? TmdbEpisode?.SeasonNumber;
+    int? IMetadataEpisodeCrossReference.SeasonNumber => SeasonNumber ?? StoredEpisode?.SeasonNumber;
 
     /// <inheritdoc />
-    int? IMetadataEpisodeCrossReference.EpisodeNumber => EpisodeNumber ?? TmdbEpisode?.EpisodeNumber;
+    int? IMetadataEpisodeCrossReference.EpisodeNumber => EpisodeNumber ?? StoredEpisode?.EpisodeNumber;
 
     /// <summary>
-    /// The TMDB episode a TMDB link names, which fills in what the link does
-    /// not record. TMDB keeps its own tables, which stay current where a copy
-    /// on the link would not, so its links are written without the numbers.
+    /// The stored episode a link names, which fills in the numbers a link
+    /// written before they were recorded does not have.
     /// </summary>
-    private IEpisode? TmdbEpisode
-        => Source == MetadataSource.TMDB && int.TryParse(ProviderID, out var episodeID) && episodeID > 0
-            ? RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episodeID)
+    private IEpisode? StoredEpisode
+        => !Source.IsCore && !string.IsNullOrEmpty(ProviderID)
+            ? RepoFactory.Metadata_Episode?.GetByProviderID(Source, ProviderID)
             : null;
 
     #endregion

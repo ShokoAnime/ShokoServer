@@ -62,7 +62,7 @@ public sealed record MetadataRefreshOptions
     public MetadataRefreshReason Reason { get; init; } = MetadataRefreshReason.Scheduled;
 
     /// <summary>
-    ///   When the entry was last refreshed without failing, or
+    ///   When the entry was last refreshed without failing, in UTC, or
     ///   <see langword="null"/> when this is its first refresh, such as for
     ///   an entry that was just linked, or when the refresh was forced, which
     ///   vouches for nothing fetched before. Filled in by the core.

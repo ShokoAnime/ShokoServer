@@ -79,13 +79,29 @@ public abstract class MetadataRowChanges
 }
 
 /// <summary>
+///   A table the typed metadata stores write through
+///   <see cref="MetadataRowWriter"/>.
+/// </summary>
+/// <typeparam name="T">The table's row.</typeparam>
+public interface IMetadataRowTable<in T>
+{
+    /// <summary>
+    ///   Brings what the table keeps in memory in line with a write that has
+    ///   been committed. A table read from the database keeps nothing.
+    /// </summary>
+    /// <param name="saved">The rows written, each with its ID.</param>
+    /// <param name="deleted">The rows removed.</param>
+    void OnCommitted(IEnumerable<T> saved, IEnumerable<T> deleted);
+}
+
+/// <summary>
 ///   The rows one write saves and removes in one table.
 /// </summary>
 /// <typeparam name="T">The table's row.</typeparam>
 /// <param name="repository">The table.</param>
 /// <param name="saving">The rows to insert or update.</param>
 /// <param name="deleting">The rows to remove.</param>
-public sealed class MetadataRowChanges<T>(MetadataStoreRepository<T> repository, IReadOnlyCollection<T> saving, IReadOnlyCollection<T> deleting)
+public sealed class MetadataRowChanges<T>(IMetadataRowTable<T> repository, IReadOnlyCollection<T> saving, IReadOnlyCollection<T> deleting)
     : MetadataRowChanges
     where T : class, IMetadataStoreRow<T>, new()
 {
@@ -106,7 +122,7 @@ public sealed class MetadataRowChanges<T>(MetadataStoreRepository<T> repository,
 
     /// <inheritdoc />
     internal override void Apply()
-        => repository.ApplyToCache(saving, deleting);
+        => repository.OnCommitted(saving, deleting);
 
     /// <inheritdoc />
     internal override void AssignID(object row, int id)

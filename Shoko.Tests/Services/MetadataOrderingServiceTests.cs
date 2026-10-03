@@ -38,12 +38,12 @@ public class MetadataOrderingServiceTests
 
         public MetadataOrderingService Service { get; }
 
-        public World(ICoreOrderingSource[]? coreSources = null, params AnimeEpisode[] shokoEpisodes)
+        public World(params AnimeEpisode[] shokoEpisodes)
         {
             Tables = new(shokoEpisodes);
             Metadata.Setup(metadata => metadata.GetSeries(It.IsAny<MetadataGuid>())).Returns((MetadataGuid id) => _entries.GetValueOrDefault(id) as ISeries);
             Metadata.Setup(metadata => metadata.GetEpisode(It.IsAny<MetadataGuid>())).Returns((MetadataGuid id) => _entries.GetValueOrDefault(id) as IEpisode);
-            Service = Tables.Build(() => Metadata.Object, coreSources ?? []);
+            Service = Tables.Build(() => Metadata.Object);
         }
 
         /// <summary>
@@ -237,7 +237,7 @@ public class MetadataOrderingServiceTests
         var local = world.Service.CreateLocalOrdering(Local(series.ID, (null, ["s-e2"])));
 
         Assert.Equal([TestSources.Plugin], world.Service.GetGlobalOrderingSources());
-        Assert.Equal(1, world.Service.RemoveGlobalOrderings(TestSources.Plugin, token: TestContext.Current.CancellationToken));
+        Assert.Equal(1, world.Service.RemoveOrderings(TestSources.Plugin, cancellationToken: TestContext.Current.CancellationToken));
         Assert.Empty(world.Service.GetStoredOrderings(TestSources.Plugin));
         Assert.Equal(local.ID, Assert.Single(world.Service.GetStoredOrderings(MetadataSource.User)).ID);
     }
@@ -565,27 +565,6 @@ public class MetadataOrderingServiceTests
         Assert.True(preferred.IsPreferred);
     }
 
-    [Fact]
-    public void ACoreSourcesOwnOrderingsAreReadAndCanBeChosen()
-    {
-        var coreOrdering = new Mock<IOrdering>();
-        var source = new Mock<ICoreOrderingSource>();
-        var world = new World([source.Object]);
-        var series = world.AddSeries(MetadataSource.TMDB, "10", 1);
-        var orderingID = Ordering(MetadataSource.TMDB, "5f1a2b3c4d5e6f7a8b9c0d1e");
-        coreOrdering.SetupGet(ordering => ordering.ID).Returns(orderingID);
-        coreOrdering.SetupGet(ordering => ordering.SeriesID).Returns(series.ID);
-        source.SetupGet(core => core.Source).Returns(MetadataSource.TMDB);
-        source.Setup(core => core.GetOrderings(series)).Returns([coreOrdering.Object]);
-        source.Setup(core => core.GetOrdering(orderingID)).Returns(coreOrdering.Object);
-        source.Setup(core => core.GetEpisodeOrderings(It.IsAny<IEpisode>())).Returns([]);
-
-        Assert.Equal([MetadataOrderingService.DefaultOrderingID(series.ID), orderingID], world.Service.GetOrderings(series).Select(ordering => ordering.ID));
-        Assert.True(world.Service.SetPreferredOrdering(series.ID, orderingID));
-        Assert.Same(coreOrdering.Object, world.Service.GetPreferredOrdering(series));
-        Assert.Same(coreOrdering.Object, world.Service.GetOrdering(orderingID));
-    }
-
     #endregion
 
     #region Episode Orderings
@@ -708,7 +687,7 @@ public class MetadataOrderingServiceTests
     [Fact]
     public void AShokoEpisodeIsHiddenByItsOwnFlag()
     {
-        var world = new World(null, new AnimeEpisode { AnimeEpisodeID = 4, IsHidden = true }, new AnimeEpisode { AnimeEpisodeID = 5 });
+        var world = new World(new AnimeEpisode { AnimeEpisodeID = 4, IsHidden = true }, new AnimeEpisode { AnimeEpisodeID = 5 });
 
         Assert.True(world.Service.IsEpisodeHidden(Episode(MetadataSource.Shoko, "4")));
         Assert.False(world.Service.IsEpisodeHidden(Episode(MetadataSource.Shoko, "5")));
@@ -778,7 +757,7 @@ public class MetadataOrderingServiceTests
     [Fact]
     public void RemovingASeriesWithoutOrderingsRemovesNothingAndRefusesAnotherKind()
     {
-        var world = new World(null, new AnimeEpisode { AnimeEpisodeID = 4, IsHidden = true });
+        var world = new World(new AnimeEpisode { AnimeEpisodeID = 4, IsHidden = true });
 
         Assert.Equal(0, world.Service.RemoveForSeries(new(MetadataSource.Shoko, MetadataEntityType.Series, "1")));
         Assert.True(world.Service.IsEpisodeHidden(Episode(MetadataSource.Shoko, "4")));

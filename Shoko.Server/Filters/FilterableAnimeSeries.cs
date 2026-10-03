@@ -74,7 +74,7 @@ public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IF
         {
             var langs = BuildPreferredLanguageSet();
             var titles = series.Titles
-                .Where(t => langs.Contains(t.Language) && (t.Source != MetadataSource.TMDB || t.Language != TitleLanguage.Unknown))
+                .Where(t => langs.Contains(t.Language) && (t.Language != TitleLanguage.Unknown || t.Source.IsCore))
                 .Select(t => t.Value)
                 .ToHashSet();
             foreach (var group in series.AllGroupsAbove)
@@ -216,26 +216,20 @@ public sealed class FilterableAnimeSeries(AnimeSeries series, DateTime now) : IF
     public int GetSuggestions(MetadataSource source) => source switch
     {
         _ when source == MetadataSource.AniDB => AnidbSuggestions,
-        _ when source == MetadataSource.TMDB => TmdbSuggestions,
         _ => FilterableSuggestions.CountOther(SuggestionSources, source),
     };
 
     private SuggestionSources? _suggestionSources;
     private SuggestionSources SuggestionSources => _suggestionSources ??= new(
         [series.AniDB_ID],
-        [.. series.TmdbShowCrossReferences.Select(xref => xref.TmdbShowID).Distinct()],
-        [.. series.TmdbMovieCrossReferences.Select(xref => xref.TmdbMovieID).Distinct()],
-        [.. FilterableSources.OtherLinkedSeries(series)]
+        [.. FilterableSources.OtherLinkedEntries(series)]
     );
 
     private int? _anidbSuggestions;
     public int AnidbSuggestions => _anidbSuggestions ??= FilterableSuggestions.CountAnidb(SuggestionSources);
 
-    private int? _tmdbSuggestions;
-    public int TmdbSuggestions => _tmdbSuggestions ??= FilterableSuggestions.CountTmdb(SuggestionSources);
-
     private int? _otherSuggestions;
-    public int TotalSuggestions => AnidbSuggestions + TmdbSuggestions + (_otherSuggestions ??= FilterableSuggestions.CountOthers(SuggestionSources));
+    public int TotalSuggestions => AnidbSuggestions + (_otherSuggestions ??= FilterableSuggestions.CountOthers(SuggestionSources));
 
     private int? _localSuggestions;
     public int LocalSuggestions => _localSuggestions ??= FilterableSuggestions.CountLocal(SuggestionSources);

@@ -1,0 +1,15 @@
+{
+  "air_date": "2023-10-06", "episode_number": 2, "id": 3002, "name": "Episode 2", "overview": "", "runtime": 24, "season_number": 1, "still_path": null, "vote_average": 8.0, "vote_count": 15,
+  "credits": {
+    "cast": [
+      { "id": 5002, "name": "Kana Ichinose", "character": "Fern (voice)", "credit_id": "c-3002-2", "order": 0, "gender": 1, "adult": false, "known_for_department": "Acting", "original_name": "市ノ瀬加那", "popularity": 8.0, "profile_path": null },
+      { "id": 5001, "name": "Atsumi Tanezaki", "character": "Frieren (voice)", "credit_id": "c-3002-1", "order": 1, "gender": 1, "adult": false, "known_for_department": "Acting", "original_name": "種崎敦美", "popularity": 10.0, "profile_path": "/p-5001.jpg" }
+    ],
+    "crew": [
+      { "id": 6001, "name": "Keiichiro Saito", "job": "Director", "department": "Directing", "credit_id": "c-3002-3", "gender": 2, "adult": false, "known_for_department": "Directing", "original_name": "斎藤圭一郎", "popularity": 2.0, "profile_path": null }
+    ],
+    "guest_stars": []
+  },
+  "external_ids": { "imdb_id": null, "tvdb_id": null },
+  "translations": { "translations": [] }
+}

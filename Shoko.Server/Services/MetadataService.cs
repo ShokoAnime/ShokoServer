@@ -25,14 +25,10 @@ using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Shoko.Embedded;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Repositories;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.Airing;
 using Shoko.Server.Repositories.Cached.AniDB;
-using Shoko.Server.Repositories.Cached.TMDB;
-using Shoko.Server.Repositories.Direct.TMDB;
-using Shoko.Server.Repositories.Direct.TMDB.Optional;
 
 namespace Shoko.Server.Services;
 
@@ -74,23 +70,14 @@ public class MetadataService : IMetadataService
 
     private readonly AniDB_TagRepository _anidbTagRepository;
 
-    private readonly TMDB_ShowRepository _tmdbShowRepository;
 
-    private readonly TMDB_SeasonRepository _tmdbSeasonRepository;
 
-    private readonly TMDB_AlternateOrdering_SeasonRepository _tmdbAlternateSeasonRepository;
 
-    private readonly TMDB_EpisodeRepository _tmdbEpisodeRepository;
 
-    private readonly TMDB_MovieRepository _tmdbMovieRepository;
 
-    private readonly TMDB_CollectionRepository _tmdbCollectionRepository;
 
-    private readonly TMDB_PersonRepository _tmdbPersonRepository;
 
-    private readonly TMDB_CompanyRepository _tmdbCompanyRepository;
 
-    private readonly TMDB_NetworkRepository _tmdbNetworkRepository;
 
     private readonly IMetadataSeriesStore _seriesStore;
 
@@ -106,6 +93,8 @@ public class MetadataService : IMetadataService
 
     private readonly MetadataOrderingService _orderings;
 
+    private readonly Lazy<IMetadataProviderManager> _providerManager;
+
     public MetadataService(
         AnimeGroupRepository groupRepository,
         AnimeSeriesRepository seriesRepository,
@@ -119,15 +108,6 @@ public class MetadataService : IMetadataService
         AniDB_CreatorRepository anidbCreatorRepository,
         AniDB_CharacterRepository anidbCharacterRepository,
         AniDB_TagRepository anidbTagRepository,
-        TMDB_ShowRepository tmdbShowRepository,
-        TMDB_SeasonRepository tmdbSeasonRepository,
-        TMDB_AlternateOrdering_SeasonRepository tmdbAlternateSeasonRepository,
-        TMDB_EpisodeRepository tmdbEpisodeRepository,
-        TMDB_MovieRepository tmdbMovieRepository,
-        TMDB_CollectionRepository tmdbCollectionRepository,
-        TMDB_PersonRepository tmdbPersonRepository,
-        TMDB_CompanyRepository tmdbCompanyRepository,
-        TMDB_NetworkRepository tmdbNetworkRepository,
         IMetadataSeriesStore seriesStore,
         IMetadataMovieStore movieStore,
         IMetadataCollectionStore collectionStore,
@@ -138,6 +118,7 @@ public class MetadataService : IMetadataService
         CustomTagRepository customTagRepository,
         CrossRef_CustomTagRepository xrefCustomTagRepository,
         IMetadataCrossReferenceStore crossReferences,
+        Lazy<IMetadataProviderManager> providerManager,
         ILogger<MetadataService> logger
     )
     {
@@ -153,15 +134,6 @@ public class MetadataService : IMetadataService
         _anidbCreatorRepository = anidbCreatorRepository;
         _anidbCharacterRepository = anidbCharacterRepository;
         _anidbTagRepository = anidbTagRepository;
-        _tmdbShowRepository = tmdbShowRepository;
-        _tmdbSeasonRepository = tmdbSeasonRepository;
-        _tmdbAlternateSeasonRepository = tmdbAlternateSeasonRepository;
-        _tmdbEpisodeRepository = tmdbEpisodeRepository;
-        _tmdbMovieRepository = tmdbMovieRepository;
-        _tmdbCollectionRepository = tmdbCollectionRepository;
-        _tmdbPersonRepository = tmdbPersonRepository;
-        _tmdbCompanyRepository = tmdbCompanyRepository;
-        _tmdbNetworkRepository = tmdbNetworkRepository;
         _seriesStore = seriesStore;
         _movieStore = movieStore;
         _collectionStore = collectionStore;
@@ -172,6 +144,7 @@ public class MetadataService : IMetadataService
         _customTagRepository = customTagRepository;
         _customTagXrefRepository = xrefCustomTagRepository;
         _crossReferences = crossReferences;
+        _providerManager = providerManager;
         _logger = logger;
         (_coreLookups, _storedLookups) = BuildLookups();
 
@@ -230,7 +203,7 @@ public class MetadataService : IMetadataService
             var took = false;
             foreach (var (source, entityType) in scope)
             {
-                if (source.IsCore)
+                if (source.IsCore || MetadataProviderManager.CoreReservedSources.Contains(source))
                 {
                     _logger.LogError(
                         "Refusing metadata resolver {Resolver} for {Source}://{EntityType}: the core resolves every {Source} entry itself.",
@@ -373,13 +346,6 @@ public class MetadataService : IMetadataService
             return groupID is { } id && _groupRepository.GetByID(id) is { } group ? [group] : [];
         }
 
-        if (member.Source == MetadataSource.TMDB)
-            return member.EntityType == MetadataEntityType.Movie && member.TryGetNumericID<int>(out var tmdbID) && tmdbID > 0 &&
-                _tmdbMovieRepository.GetByTmdbMovieID(tmdbID)?.TmdbCollectionID is { } collectionID &&
-                _tmdbCollectionRepository.GetByTmdbCollectionID(collectionID) is { } collection
-                    ? [collection]
-                    : [];
-
         return member.Source.IsCore ? [] : _collectionStore.GetCollectionsWith(member);
     }
 
@@ -458,20 +424,6 @@ public class MetadataService : IMetadataService
             [MetadataEntityType.Ordering] = id => _orderings.GetOrdering(id),
         };
 
-        var tmdb = new Dictionary<MetadataEntityType, EntryLookup>
-        {
-            [MetadataEntityType.Series] = id => TryNumber(id, out var number) ? _tmdbShowRepository.GetByTmdbShowID(number) : null,
-            [MetadataEntityType.Season] = GetTmdbSeason,
-            [MetadataEntityType.Episode] = id => TryNumber(id, out var number) ? _tmdbEpisodeRepository.GetByTmdbEpisodeID(number) : null,
-            [MetadataEntityType.Movie] = id => TryNumber(id, out var number) ? _tmdbMovieRepository.GetByTmdbMovieID(number) : null,
-            [MetadataEntityType.Collection] = id => TryNumber(id, out var number) ? _tmdbCollectionRepository.GetByTmdbCollectionID(number) : null,
-            [MetadataEntityType.Creator] = id => TryNumber(id, out var number) ? _tmdbPersonRepository.GetByTmdbPersonID(number) : null,
-            [MetadataEntityType.Studio] = id => TryNumber(id, out var number) ? _tmdbCompanyRepository.GetByTmdbCompanyID(number) : null,
-            [MetadataEntityType.Network] = id => TryNumber(id, out var number) ? _tmdbNetworkRepository.GetByTmdbNetworkID(number) : null,
-            [MetadataEntityType.Tag] = GetTmdbTag,
-            [MetadataEntityType.Ordering] = id => _orderings.GetOrdering(id),
-        };
-
         // Every other source keeps its entries in the stores, and its
         // orderings and their groups with the ordering service.
         var stored = new Dictionary<MetadataEntityType, EntryLookup>
@@ -494,14 +446,13 @@ public class MetadataService : IMetadataService
             [MetadataSource.Shoko] = shoko.ToFrozenDictionary(),
             [MetadataSource.User] = user.ToFrozenDictionary(),
             [MetadataSource.AniDB] = anidb.ToFrozenDictionary(),
-            [MetadataSource.TMDB] = tmdb.ToFrozenDictionary(),
         };
         return (core.ToFrozenDictionary(), stored.ToFrozenDictionary());
     }
 
     /// <summary>
     ///   Reads the positive number an entry is keyed by, such as a Shoko row's
-    ///   local ID or an AniDB or TMDB ID.
+    ///   local ID or an AniDB ID.
     /// </summary>
     /// <param name="id">The entry.</param>
     /// <param name="number">The number, when the ID is one.</param>
@@ -528,37 +479,6 @@ public class MetadataService : IMetadataService
         => ParseSeasonID(id.ID) is { } season && _anidbSeriesRepository.GetByAnimeID(season.ID) is { } anime
             ? new AniDB_Season(anime, season.Type, season.Number)
             : null;
-
-    /// <summary>
-    ///   A TMDB season: one of TMDB's own, numbered, or one from an alternate
-    ///   ordering, whose ID is a hex string.
-    /// </summary>
-    /// <param name="id">The season.</param>
-    /// <returns>The season, or <see langword="null"/> when there is none.</returns>
-    private IMetadata? GetTmdbSeason(MetadataGuid id)
-        => id.TryGetNumericID<int>(out var tmdbID)
-            ? tmdbID > 0 ? _tmdbSeasonRepository.GetByTmdbSeasonID(tmdbID) : null
-            : _tmdbAlternateSeasonRepository.GetByTmdbEpisodeGroupID(id.ID) is { } season && HasTmdbShow(season.TmdbShowID) ? season : null;
-
-    /// <summary>
-    ///   Whether a TMDB show is stored, which its seasons and episodes need to
-    ///   be handed out.
-    /// </summary>
-    /// <param name="showID">The TMDB show ID.</param>
-    /// <returns><see langword="true"/> when the show has its row.</returns>
-    private bool HasTmdbShow(int showID)
-        => _tmdbShowRepository.GetByTmdbShowID(showID) is not null;
-
-    /// <summary>
-    ///   A TMDB genre or keyword, which TMDB's tables keep only as names on
-    ///   the shows and movies, so it is found when one of them has it.
-    /// </summary>
-    /// <param name="id">The tag, e.g. <c>tmdb://tag/genre/Drama</c>.</param>
-    /// <returns>The tag, or <see langword="null"/> when no show or movie has it.</returns>
-    private TMDB_Tag? GetTmdbTag(MetadataGuid id)
-        => TMDB_Tag.Find(id.ID, kind => kind is TagKind.Genre
-            ? _tmdbShowRepository.GetAll().SelectMany(show => show.Genres).Concat(_tmdbMovieRepository.GetAll().SelectMany(movie => movie.Genres))
-            : _tmdbShowRepository.GetAll().SelectMany(show => show.Keywords).Concat(_tmdbMovieRepository.GetAll().SelectMany(movie => movie.Keywords)));
 
     /// <summary>
     ///   A video by its own ID, <c>&lt;ED2K&gt;+&lt;file size&gt;</c>, or by
@@ -663,6 +583,146 @@ public class MetadataService : IMetadataService
 
     #endregion
 
+    #region Site URLs
+
+    /// <summary>
+    ///   The core's own answers for the pairs a plugin's resolver would answer
+    ///   on any other source, since no resolver may take a core source.
+    /// </summary>
+    private static readonly FrozenDictionary<(MetadataSource Source, MetadataEntityType EntityType), Func<IMetadata, string?>> _coreSiteUrls =
+        new Dictionary<(MetadataSource Source, MetadataEntityType EntityType), Func<IMetadata, string?>>
+        {
+            [(MetadataSource.AniDB, MetadataEntityType.Series)] = AnidbSiteUrls.ForEntry,
+            [(MetadataSource.AniDB, MetadataEntityType.Episode)] = AnidbSiteUrls.ForEntry,
+            [(MetadataSource.AniDB, MetadataEntityType.Creator)] = AnidbSiteUrls.ForEntry,
+            [(MetadataSource.AniDB, MetadataEntityType.Character)] = AnidbSiteUrls.ForEntry,
+            [(MetadataSource.AniDB, MetadataEntityType.Studio)] = AnidbSiteUrls.ForEntry,
+        }.ToFrozenDictionary();
+
+    /// <summary>
+    ///   The registered providers, kept once there are any; their enabled
+    ///   kinds are updated in place.
+    /// </summary>
+    private IReadOnlyList<MetadataProviderInfo>? _siteUrlProviders;
+
+    /// <inheritdoc />
+    public string? GetSiteUrl(IMetadata entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+
+        // The core's answers and a resolver's go first; one answering nothing
+        // leaves the entry to the provider, as a lookup leaves it to the stores.
+        var id = entry.ID;
+        var pair = (id.Source, id.EntityType);
+        if (_coreSiteUrls.TryGetValue(pair, out var core) && AskSiteUrl("The core", id, () => core(entry)) is { } coreUrl)
+            return coreUrl;
+
+        if (_metadataResolversByKind.TryGetValue(pair, out var resolver) && AskSiteUrl(resolver.Name, id, () => resolver.GetSiteUrl(entry)) is { } resolvedUrl)
+            return resolvedUrl;
+
+        foreach (var (provider, ask) in SiteUrlOwners(id))
+            if (AskSiteUrl(provider.Name, id, () => ask(entry)) is { } url)
+                return url;
+
+        return null;
+    }
+
+    /// <inheritdoc />
+    public string? GetSiteUrl(MetadataGuid id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return GetSiteUrl(GetEntry(id) ?? new BareEntry(id));
+    }
+
+    /// <summary>
+    ///   The providers owning an entry's page, in the order to ask them: the
+    ///   source's series providers for a series, season or episode, its movie
+    ///   providers for a movie or collection, and for a creator, character,
+    ///   studio or network its entity providers, then its series and movie
+    ///   providers. Within each, the one assigned the kind comes first.
+    /// </summary>
+    /// <param name="id">The entry.</param>
+    /// <returns>Each provider once, with how to ask it.</returns>
+    private IEnumerable<(IMetadataProvider Provider, Func<IMetadata, string?> Ask)> SiteUrlOwners(MetadataGuid id)
+    {
+        var kind = id.EntityType;
+        var isEntity = kind == MetadataEntityType.Creator || kind == MetadataEntityType.Character ||
+            kind == MetadataEntityType.Studio || kind == MetadataEntityType.Network;
+        var isMovie = kind == MetadataEntityType.Movie || kind == MetadataEntityType.Collection;
+        var isSeries = kind == MetadataEntityType.Series || kind == MetadataEntityType.Season || kind == MetadataEntityType.Episode;
+        if (!isEntity && !isMovie && !isSeries)
+            yield break;
+
+        var providers = _siteUrlProviders;
+        if (providers is null)
+        {
+            providers = _providerManager.Value.MetadataProviders;
+            if (providers.Count > 0)
+                _siteUrlProviders = providers;
+        }
+
+        var asked = new HashSet<IMetadataProvider>(ReferenceEqualityComparer.Instance);
+        if (isEntity)
+            foreach (var provider in Owners<IMetadataEntityProvider>(providers, id, kind))
+                if (asked.Add(provider))
+                    yield return (provider, provider.GetSiteUrl);
+
+        if (isSeries || isEntity)
+            foreach (var provider in Owners<IMetadataSeriesProvider>(providers, id, kind))
+                if (asked.Add(provider))
+                    yield return (provider, provider.GetSiteUrl);
+
+        if (isMovie || isEntity)
+            foreach (var provider in Owners<IMetadataMovieProvider>(providers, id, kind))
+                if (asked.Add(provider))
+                    yield return (provider, provider.GetSiteUrl);
+    }
+
+    /// <summary>
+    ///   The providers of one capability on an entry's source, the one
+    ///   assigned the entry's kind first.
+    /// </summary>
+    /// <typeparam name="TProvider">The capability.</typeparam>
+    /// <param name="providers">The registered providers.</param>
+    /// <param name="id">The entry.</param>
+    /// <param name="kind">The entry's kind.</param>
+    /// <returns>The providers, in the order to ask them.</returns>
+    private static IEnumerable<TProvider> Owners<TProvider>(IReadOnlyList<MetadataProviderInfo> providers, MetadataGuid id, MetadataEntityType kind)
+        where TProvider : class, IMetadataProvider
+        => providers
+            .Where(info => info.Source == id.Source && info.Provider is TProvider)
+            .OrderBy(info => info.EnabledEntityTypes.Contains(kind) ? 0 : 1)
+            .Select(info => (TProvider)info.Provider);
+
+    /// <summary>
+    ///   Asks one owner for a page, logging and answering nothing when it
+    ///   throws.
+    /// </summary>
+    /// <param name="owner">The owner's name, for the log.</param>
+    /// <param name="id">The entry, for the log.</param>
+    /// <param name="ask">Asks the owner.</param>
+    /// <returns>The URL, or <see langword="null"/>.</returns>
+    private string? AskSiteUrl(string owner, MetadataGuid id, Func<string?> ask)
+    {
+        try
+        {
+            return ask() is { Length: > 0 } url ? url : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "{Owner} failed to give the site URL of {ID}.", owner, id);
+            return null;
+        }
+    }
+
+    /// <summary>
+    ///   An entry nothing holds, standing in for itself by its ID alone.
+    /// </summary>
+    /// <param name="ID">The entry's ID.</param>
+    private sealed record BareEntry(MetadataGuid ID) : IMetadata;
+
+    #endregion
+
     #region Movie
 
     /// <inheritdoc />
@@ -695,7 +755,6 @@ public class MetadataService : IMetadataService
     public IEnumerable<IMovie> GetAllMoviesForSource(MetadataSource source)
         => source switch
         {
-            _ when source == MetadataSource.TMDB => _tmdbMovieRepository.GetAll(),
             _ when source.IsCore => [],
             _ => _movieStore.GetAllMovies(source),
         };
@@ -735,7 +794,6 @@ public class MetadataService : IMetadataService
         {
             _ when source == MetadataSource.Shoko => _episodeRepository.GetAll(),
             _ when source == MetadataSource.AniDB => _anidbEpisodeRepository.GetAll(),
-            _ when source == MetadataSource.TMDB => _tmdbEpisodeRepository.GetAll().Where(episode => HasTmdbShow(episode.TmdbShowID)),
             _ when source.IsCore => [],
             _ => _seriesStore.GetAllEpisodes(source),
         };
@@ -785,13 +843,8 @@ public class MetadataService : IMetadataService
     public IEnumerable<ISeason> GetAllSeasonsForSource(MetadataSource source, bool includeAlternateSeasons = false)
         => source switch
         {
-            _ when source == MetadataSource.TMDB => includeAlternateSeasons
-                ? [
-                    .. _tmdbSeasonRepository.GetAll().Where(season => HasTmdbShow(season.TmdbShowID)),
-                    .. _tmdbAlternateSeasonRepository.GetAll().Where(season => HasTmdbShow(season.TmdbShowID)),
-                ]
-                : _tmdbSeasonRepository.GetAll().Where(season => HasTmdbShow(season.TmdbShowID)),
             _ when source.IsCore => [],
+            _ when includeAlternateSeasons => [.. _seriesStore.GetAllSeasons(source), .. _orderings.GetStoredOrderings(source).SelectMany(ordering => ordering.Seasons)],
             _ => _seriesStore.GetAllSeasons(source),
         };
 
@@ -830,7 +883,6 @@ public class MetadataService : IMetadataService
         {
             _ when source == MetadataSource.Shoko => _seriesRepository.GetAll(),
             _ when source == MetadataSource.AniDB => _anidbSeriesRepository.GetAll(),
-            _ when source == MetadataSource.TMDB => _tmdbShowRepository.GetAll(),
             _ when source.IsCore => [],
             _ => _seriesStore.GetAllSeries(source),
         };
@@ -1023,15 +1075,6 @@ public class MetadataService : IMetadataService
         => [.. GetMovieCrossReferences(anidbEpisodeID).Select(xref => xref.Provider).OfType<IMovie>()];
 
     /// <summary>
-    ///   The seasons a Shoko season's episodes are linked into, projected from
-    ///   the episode links.
-    /// </summary>
-    /// <param name="season">The Shoko season.</param>
-    /// <returns>The linked seasons, from every source.</returns>
-    internal IReadOnlyList<ISeason> GetLinkedSeasons(IShokoSeason season)
-        => [.. GetSeasonCrossReferences(season).Select(xref => xref.Provider).OfType<ISeason>()];
-
-    /// <summary>
     ///   The seasons an anime's episodes are linked into, projected from the
     ///   episode links.
     /// </summary>
@@ -1039,24 +1082,6 @@ public class MetadataService : IMetadataService
     /// <returns>The linked seasons, from every source.</returns>
     internal IReadOnlyList<ISeason> GetLinkedSeasons(int anidbAnimeID)
         => [.. GetSeasonCrossReferences(anidbAnimeID).Select(xref => xref.Provider).OfType<ISeason>()];
-
-    /// <summary>
-    ///   The movies a Shoko season's episodes are linked to, read off the
-    ///   links themselves.
-    /// </summary>
-    /// <param name="season">The Shoko season.</param>
-    /// <returns>The linked movies, from every source.</returns>
-    internal IReadOnlyList<IMovie> GetLinkedMovies(IShokoSeason season)
-        => [.. GetMovieCrossReferences(season).Select(xref => xref.Provider).OfType<IMovie>()];
-
-    /// <summary>
-    ///   The provider seasons a Shoko season's episodes point into.
-    /// </summary>
-    /// <param name="season">The Shoko season.</param>
-    /// <param name="source">Limit the result to one source, or every source when omitted.</param>
-    /// <returns>One link per provider season reached.</returns>
-    internal IReadOnlyList<IMetadataSeasonCrossReference> GetSeasonCrossReferences(IShokoSeason season, MetadataSource? source = null)
-        => WithTmdbViews(MetadataSeasonCrossReference.Project(season.Series.AnidbAnimeID, GetEpisodeCrossReferences(season, source)));
 
     /// <summary>
     ///   The season links of a season, worked out from its episodes' links:
@@ -1072,26 +1097,8 @@ public class MetadataService : IMetadataService
             .GroupBy(link => link.AnidbAnimeID)
             .SelectMany(group => MetadataSeasonCrossReference.Project(group.Key, group));
         var anidbSide = season.SeriesID.Source == MetadataSource.AniDB || season.SeriesID.Source == MetadataSource.Shoko;
-        return WithTmdbViews([.. anidbSide ? projected : projected.Where(link => link.ProviderID == season.ID)]);
+        return [.. anidbSide ? projected : projected.Where(link => link.ProviderID == season.ID)];
     }
-
-    /// <summary>
-    ///   The episode-level links of a Shoko season's episodes.
-    /// </summary>
-    /// <param name="season">The Shoko season.</param>
-    /// <param name="source">Limit the result to one source, or every source when omitted.</param>
-    /// <returns>The links, by episode.</returns>
-    internal IReadOnlyList<IMetadataEpisodeCrossReference> GetEpisodeCrossReferences(IShokoSeason season, MetadataSource? source = null)
-        => [.. season.Episodes.SelectMany(episode => GetEpisodeCrossReferences(episode.AnidbEpisodeID, source))];
-
-    /// <summary>
-    ///   The film links held for a Shoko season's episodes.
-    /// </summary>
-    /// <param name="season">The Shoko season.</param>
-    /// <param name="source">Limit the result to one source, or every source when omitted.</param>
-    /// <returns>The links, by episode.</returns>
-    internal IReadOnlyList<IMetadataMovieCrossReference> GetMovieCrossReferences(IShokoSeason season, MetadataSource? source = null)
-        => [.. season.Episodes.SelectMany(episode => GetMovieCrossReferences(episode.AnidbEpisodeID, source))];
 
     #endregion
 
@@ -1099,23 +1106,23 @@ public class MetadataService : IMetadataService
 
     /// <inheritdoc />
     public IReadOnlyList<IMetadataSeriesCrossReference> GetSeriesCrossReferences(int anidbAnimeID, MetadataSource? source = null)
-        => anidbAnimeID <= 0 ? [] : WithTmdbViews(_crossReferences.GetSeriesLinks(anidbAnimeID, source));
+        => anidbAnimeID <= 0 ? [] : _crossReferences.GetSeriesLinks(anidbAnimeID, source);
 
     /// <inheritdoc />
     public IReadOnlyList<IMetadataMovieCrossReference> GetMovieCrossReferences(int anidbEpisodeID, MetadataSource? source = null)
-        => anidbEpisodeID <= 0 ? [] : WithTmdbViews(_crossReferences.GetMovieLinks(anidbEpisodeID, source));
+        => anidbEpisodeID <= 0 ? [] : _crossReferences.GetMovieLinks(anidbEpisodeID, source);
 
     /// <inheritdoc />
     public IReadOnlyList<IMetadataMovieCrossReference> GetMovieCrossReferencesForSeries(int anidbAnimeID, MetadataSource? source = null)
-        => anidbAnimeID <= 0 ? [] : WithTmdbViews(_crossReferences.GetMovieLinksForSeries(anidbAnimeID, source));
+        => anidbAnimeID <= 0 ? [] : _crossReferences.GetMovieLinksForSeries(anidbAnimeID, source);
 
     /// <inheritdoc />
     public IReadOnlyList<IMetadataEpisodeCrossReference> GetEpisodeCrossReferences(int anidbEpisodeID, MetadataSource? source = null)
-        => anidbEpisodeID <= 0 ? [] : WithTmdbViews(_crossReferences.GetEpisodeLinks(anidbEpisodeID, source));
+        => anidbEpisodeID <= 0 ? [] : _crossReferences.GetEpisodeLinks(anidbEpisodeID, source);
 
     /// <inheritdoc />
     public IReadOnlyList<IMetadataEpisodeCrossReference> GetEpisodeCrossReferencesForSeries(int anidbAnimeID, MetadataSource? source = null)
-        => anidbAnimeID <= 0 ? [] : WithTmdbViews(_crossReferences.GetEpisodeLinksForSeries(anidbAnimeID, source));
+        => anidbAnimeID <= 0 ? [] : _crossReferences.GetEpisodeLinksForSeries(anidbAnimeID, source);
 
     /// <inheritdoc />
     /// <remarks>
@@ -1124,7 +1131,7 @@ public class MetadataService : IMetadataService
     ///   ones its episodes point into.
     /// </remarks>
     public IReadOnlyList<IMetadataSeasonCrossReference> GetSeasonCrossReferences(int anidbAnimeID, MetadataSource? source = null)
-        => anidbAnimeID <= 0 ? [] : WithTmdbViews(MetadataSeasonCrossReference.Project(anidbAnimeID, _crossReferences.GetEpisodeLinksForSeries(anidbAnimeID, source)));
+        => anidbAnimeID <= 0 ? [] : MetadataSeasonCrossReference.Project(anidbAnimeID, _crossReferences.GetEpisodeLinksForSeries(anidbAnimeID, source));
 
     /// <inheritdoc />
     public IReadOnlyList<IMetadataCrossReference> GetCrossReferencesForProviderEntry(MetadataGuid entry)
@@ -1132,80 +1139,21 @@ public class MetadataService : IMetadataService
         ArgumentNullException.ThrowIfNull(entry);
 
         // A season has no links of its own, so they are projected from the episode
-        // links recording it; TMDB keeps its own season link type, read apart.
+        // links recording it.
         var (source, entityType, providerID) = (entry.Source, entry.EntityType, entry.ID);
         if (entityType == MetadataEntityType.Season)
-            return source != MetadataSource.TMDB
-                ? [
-                    .. _crossReferences.GetAllEpisodeLinks(source)
-                        .Where(xref => xref.SeasonID is { } seasonID && seasonID.ID == providerID)
-                        .GroupBy(xref => xref.AnidbAnimeID)
-                        .SelectMany(group => MetadataSeasonCrossReference.Project(group.Key, group)),
-                ]
-                : [.. RepoFactory.CrossRef_AniDB_TMDB_Episode.GetAll()
-                    .Select(xref => xref.TmdbSeasonCrossReference)
-                    .WhereNotNull()
-                    .Where(xref => xref.TmdbSeasonID == providerID)
-                    .DistinctBy(xref => xref.AnidbAnimeID)];
-
-        // TMDB keeps its links in its own tables, which its entries read back.
-        if (source == MetadataSource.TMDB)
-            return GetEntry(entry) switch
-            {
-                IMovie movie when entityType == MetadataEntityType.Movie => [.. movie.MetadataMovieCrossReferences],
-                ISeries series when entityType == MetadataEntityType.Series => [.. series.MetadataSeriesCrossReferences],
-                IEpisode episode when entityType == MetadataEntityType.Episode => [.. episode.MetadataEpisodeCrossReferences],
-                _ => [],
-            };
+            return
+            [
+                .. _crossReferences.GetAllEpisodeLinks(source)
+                    .Where(xref => xref.SeasonID is { } seasonID && seasonID.ID == providerID)
+                    .GroupBy(xref => xref.AnidbAnimeID)
+                    .SelectMany(group => MetadataSeasonCrossReference.Project(group.Key, group)),
+            ];
 
         // Nothing links to the core's other sources, and every plugin source's
         // links are in the shared tables, whether its entries are stored or not.
         return source.IsCore ? [] : _crossReferences.GetLinksTo(entry);
     }
-
-    #endregion
-
-    #region TMDB Views
-
-    /// <summary>
-    ///   Series links with TMDB's shows read through TMDB's view, so they come
-    ///   typed to TMDB's entries. Every other link is kept as it is.
-    /// </summary>
-    /// <param name="links">The links.</param>
-    /// <returns>The links, in the same order.</returns>
-    private static IReadOnlyList<IMetadataSeriesCrossReference> WithTmdbViews(IReadOnlyList<IMetadataSeriesCrossReference> links)
-        => [
-            .. links.Select(link => link is CrossRef_AniDB_Metadata_Series row && row.Source == MetadataSource.TMDB && row.ProviderEntityType == MetadataEntityType.Series
-                ? new CrossRef_AniDB_TMDB_Show(row)
-                : link),
-        ];
-
-    /// <summary>
-    ///   Film links with TMDB's read through TMDB's view, so they come typed
-    ///   to TMDB's entries. Every other link is kept as it is.
-    /// </summary>
-    /// <param name="links">The links.</param>
-    /// <returns>The links, in the same order.</returns>
-    private static IReadOnlyList<IMetadataMovieCrossReference> WithTmdbViews(IReadOnlyList<IMetadataMovieCrossReference> links)
-        => [.. links.Select(link => link is CrossRef_AniDB_Metadata_Movie row && row.Source == MetadataSource.TMDB ? new CrossRef_AniDB_TMDB_Movie(row) : link)];
-
-    /// <summary>
-    ///   Episode links with TMDB's read through TMDB's view, so they come
-    ///   typed to TMDB's entries. Every other link is kept as it is.
-    /// </summary>
-    /// <param name="links">The links.</param>
-    /// <returns>The links, in the same order.</returns>
-    private static IReadOnlyList<IMetadataEpisodeCrossReference> WithTmdbViews(IReadOnlyList<IMetadataEpisodeCrossReference> links)
-        => [.. links.Select(link => link is CrossRef_AniDB_Metadata_Episode row && row.Source == MetadataSource.TMDB ? new CrossRef_AniDB_TMDB_Episode(row) : link)];
-
-    /// <summary>
-    ///   Season links with TMDB's read through TMDB's view, so they come typed
-    ///   to TMDB's entries. Every other link is kept as it is.
-    /// </summary>
-    /// <param name="links">The links.</param>
-    /// <returns>The links, in the same order.</returns>
-    private static IReadOnlyList<IMetadataSeasonCrossReference> WithTmdbViews(IReadOnlyList<IMetadataSeasonCrossReference> links)
-        => [.. links.Select(link => link is MetadataSeasonCrossReference season && season.Source == MetadataSource.TMDB ? new CrossRef_AniDB_TMDB_Season(season) : link)];
 
     #endregion
 
@@ -1216,7 +1164,6 @@ public class MetadataService : IMetadataService
         => source switch
         {
             _ when source == MetadataSource.Shoko => _groupRepository.GetAll(),
-            _ when source == MetadataSource.TMDB => _tmdbCollectionRepository.GetAll(),
             _ when source.IsCore => [],
             _ => _collectionStore.GetAllCollections(source),
         };

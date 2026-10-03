@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Server.Repositories;
@@ -72,10 +71,11 @@ public class Metadata_Studio_Entry : MetadataEntryRow, IStudio<ISeries>, IStudio
     #region IWithImages Implementation
 
     /// <summary>
-    ///   The first primary image the studio's own source gave it.
+    ///   The primary image the studio's own source pins as its default, else
+    ///   the first one it gave it.
     /// </summary>
     public IImageCrossReference? DefaultPrimaryImageCrossReference
-        => ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = Source, ImageType = ImageEntityType.Primary }).FirstOrDefault();
+        => Studio is { } studio ? MetadataStoredEntry.DefaultImage(studio, ImageEntityType.Primary) : null;
 
     #endregion
 
@@ -84,6 +84,10 @@ public class Metadata_Studio_Entry : MetadataEntryRow, IStudio<ISeries>, IStudio
     string IStudio.Name => Studio?.Name ?? string.Empty;
 
     string? IStudio.OriginalName => Studio?.OriginalName;
+
+    string? IStudio.CountryOfOrigin => Studio?.CountryOfOrigin;
+
+    DateTime? IStudio.LastRefreshedAt => (Studio as IStudio)?.LastRefreshedAt;
 
     IEnumerable<IMovie> IStudio.MovieWorks => Studio?.GetWorks().OfType<IMovie>() ?? [];
 

@@ -484,7 +484,7 @@ public partial class AiringScheduleService
         {
             AiringEntityAnchor.Raw => AiringEntityAnchor.Raw,
             AiringEntityAnchor.Shoko => AiringEntityAnchor.Shoko,
-            _ => entity is IShokoSeries or IShokoSeason or IShokoEpisode ? AiringEntityAnchor.Shoko : AiringEntityAnchor.Raw,
+            _ => entity is IShokoSeries or ISeason<IShokoSeries, IShokoEpisode> or IShokoEpisode ? AiringEntityAnchor.Shoko : AiringEntityAnchor.Raw,
         };
         return alreadySatisfied && resolved is AiringEntityAnchor.Shoko ? AiringEntityAnchor.Raw : resolved;
     }
@@ -833,8 +833,8 @@ public partial class AiringScheduleService
         else
             InvalidateProfilesForSeries(season.Source, season.SeriesID.ID);
 
-        if (season is IShokoSeason shokoSeason)
-            foreach (var linked in shokoSeason.LinkedSeasons)
+        if (season.Series is IShokoSeries)
+            foreach (var linked in season.LinkedSeasons)
                 InvalidateProfilesForSeries(linked.Source, linked.SeriesID.ID);
     }
 

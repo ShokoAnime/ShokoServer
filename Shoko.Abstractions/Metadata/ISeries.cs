@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
@@ -10,8 +11,15 @@ namespace Shoko.Abstractions.Metadata;
 /// <summary>
 /// Series metadata.
 /// </summary>
-public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IWithResources, IWithCrossSources, IWithTags, IMetadata
+public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithLogoImage, IWithBackdropImage, IWithBannerImage, IWithDiscImage, IWithCastAndCrew, IWithStudios, IWithContentRatings, IWithYearlySeasons, IWithResources, IWithCrossSources, IWithTags, IWithCreationDate, IWithUpdateDate, IMetadata
 {
+    /// <summary>
+    ///   When the core last refreshed the series in full from its source
+    ///   without failing, whether or not anything changed, in UTC. Set by the
+    ///   core alone; <see langword="null"/> when it never was.
+    /// </summary>
+    DateTime? LastRefreshedAt { get; }
+
     /// <summary>
     /// The shoko series ID, if we have any.
     /// </summary>
@@ -50,30 +58,30 @@ public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     /// <summary>
     /// Where the series is in its release.
     /// </summary>
-    ReleaseStatus ReleaseStatus { get => ReleaseStatus.Unknown; }
+    ReleaseStatus ReleaseStatus { get; }
 
     /// <summary>
     /// What the series was adapted from.
     /// </summary>
-    SourceMaterial SourceMaterial { get => SourceMaterial.Unknown; }
+    SourceMaterial SourceMaterial { get; }
 
     /// <summary>
     /// The language the series was first made in, as a language code, when
     /// the source says.
     /// </summary>
-    string? OriginalLanguageCode { get => null; }
+    string? OriginalLanguageCode { get; }
 
     /// <summary>
     /// How popular the series is on its source, on the source's own scale,
     /// when the source measures it. Only comparable within one source.
     /// </summary>
-    double? Popularity { get => null; }
+    double? Popularity { get; }
 
     /// <summary>
     /// How many of the source's users marked the series a favorite, when the
     /// source counts them.
     /// </summary>
-    int? FavoriteCount { get => null; }
+    int? FavoriteCount { get; }
 
     /// <summary>
     /// All shoko series linked to this entity.
@@ -84,7 +92,13 @@ public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     ///   The networks the series aired or streamed on, when the source lists
     ///   them.
     /// </summary>
-    IReadOnlyList<INetwork> Networks { get => []; }
+    IReadOnlyList<INetwork> Networks { get; }
+
+    /// <summary>
+    ///   The countries the series was made in, as ISO 3166-1 codes when the
+    ///   source gives them.
+    /// </summary>
+    IReadOnlyList<string> ProductionCountries { get; }
 
     /// <summary>
     /// Related series.
@@ -99,7 +113,7 @@ public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     /// <summary>
     /// The series a provider's users suggest to someone looking at this one,
     /// best first within each source. Most of them are not in the collection,
-    /// so their <see cref="ISuggestedMetadata{TBase,TSuggested}.Suggested"/> is
+    /// so their <see cref="ISuggestedMetadata.Suggested"/> is
     /// usually <see langword="null"/>.
     /// </summary>
     IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> Suggestions { get; }
@@ -175,4 +189,58 @@ public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     /// The number of total episodes in the series.
     /// </summary>
     EpisodeCounts EpisodeCounts { get; }
+}
+
+/// <summary>
+///   A series with its seasons, episodes and orderings typed.
+/// </summary>
+/// <typeparam name="TSeries">The series' type.</typeparam>
+/// <typeparam name="TEpisode">The episodes' type.</typeparam>
+public interface ISeries<out TSeries, out TEpisode> : ISeries
+    where TSeries : class, ISeries
+    where TEpisode : class, IEpisode
+{
+    /// <summary>
+    ///   All known seasons for the series.
+    /// </summary>
+    new IReadOnlyList<ISeason<TSeries, TEpisode>> Seasons { get; }
+
+    IReadOnlyList<ISeason> ISeries.Seasons { get => Seasons; }
+
+    /// <summary>
+    ///   All known episodes for the series.
+    /// </summary>
+    new IReadOnlyList<TEpisode> Episodes { get; }
+
+    IReadOnlyList<IEpisode> ISeries.Episodes { get => Episodes; }
+
+    /// <summary>
+    ///   Every ordering of the series: the default one, made from its
+    ///   <see cref="Seasons"/>, first, then the ones sources and users made.
+    /// </summary>
+    new IReadOnlyList<IOrdering<TSeries, TEpisode>> Orderings { get; }
+
+    IReadOnlyList<IOrdering> ISeries.Orderings { get => Orderings; }
+
+    /// <summary>
+    ///   The ordering chosen for the series, or the default one when none is.
+    /// </summary>
+    new IOrdering<TSeries, TEpisode> PreferredOrdering { get; }
+
+    IOrdering ISeries.PreferredOrdering { get => PreferredOrdering; }
+
+    /// <summary>
+    ///   The series a provider's users suggest to someone looking at this
+    ///   one, best first within each source, with this series as the base.
+    /// </summary>
+    new IReadOnlyList<ISuggestedMetadata<TSeries, ISeries>> Suggestions { get; }
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions { get => Suggestions; }
+
+    /// <summary>
+    ///   The series in the collection that suggest this one.
+    /// </summary>
+    new IReadOnlyList<ISuggestedMetadata<TSeries, ISeries>> SuggestedBy { get; }
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy { get => SuggestedBy; }
 }

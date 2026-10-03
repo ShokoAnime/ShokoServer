@@ -47,14 +47,13 @@ public interface IMetadataPurgeService
     /// <summary>
     ///   Queue a purge of every stored series and film of a source that
     ///   nothing links to, and for a plugin source of every stored collection
-    ///   none of whose members anything links to. A TMDB collection goes with
-    ///   the last movie it holds instead.
+    ///   none of whose members anything links to.
     /// </summary>
     /// <remarks>
     ///   The core runs this daily for every source, taking the entries not
     ///   refreshed within the admin's setting (two weeks unless changed).
     /// </remarks>
-    /// <param name="source">The source: TMDB or a plugin source.</param>
+    /// <param name="source">The source, a plugin source.</param>
     /// <param name="olderThan">
     ///   Purge only the entries last refreshed before this time, or never
     ///   refreshed at all; left out, every unused entry is purged.
@@ -84,7 +83,7 @@ public interface IMetadataPurgeService
     ///   Nothing links a collection, so this loses no link: a collection is
     ///   stored again when the provider refreshes a series or film it holds.
     /// </remarks>
-    /// <param name="source">The source: TMDB or a plugin source.</param>
+    /// <param name="source">The source, a plugin source.</param>
     /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many purges were queued.</returns>
@@ -107,9 +106,7 @@ public interface IMetadataPurgeService
     ///   or studio just before naming it, so keep the cutoff a day or more back.
     /// </remarks>
     /// <param name="source">
-    ///   One plugin source or TMDB, or all of them when left out. TMDB purges
-    ///   its people and networks from its own tables by the same cutoff; its
-    ///   companies go with the last entry naming them.
+    ///   One plugin source, or all of them when left out.
     /// </param>
     /// <param name="orphanedBefore">
     ///   Remove only the ones orphaned before this time, which should be a day

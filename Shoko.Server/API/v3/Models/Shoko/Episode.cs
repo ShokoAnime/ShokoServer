@@ -18,7 +18,6 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 
 using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.TmdbEpisode;
@@ -222,14 +221,16 @@ public class Episode : BaseModel
         if (LinkedMetadataHelper.GenericSources(includeDataFrom) is { Count: > 0 } sources)
             Sources = LinkedMetadataHelper.ForEpisode(ISystemService.StaticServices.GetRequiredService<IMetadataService>(), episode.AniDB_EpisodeID, sources);
         if (includeDataFrom.Contains(MetadataSource.TMDB))
+        {
+            var refreshService = ISystemService.StaticServices.GetRequiredService<IMetadataRefreshService>();
             TMDB = new()
             {
                 Episodes = tmdbEpisodeXRefs
                     .Select(tmdbEpisodeXref =>
                     {
                         var episode = tmdbEpisodeXref.TmdbEpisode;
-                        if (episode is not null && (TmdbMetadataService.Instance?.WaitForShowUpdate(episode.TmdbShowID) ?? false))
-                            episode = RepoFactory.TMDB_Episode.GetByTmdbEpisodeID(episode.TmdbEpisodeID);
+                        if (episode is not null && refreshService.WaitForRefresh(((IEpisode)episode).SeriesID).GetAwaiter().GetResult())
+                            episode = TmdbCompatibility.GetEpisode(episode.TmdbEpisodeID);
                         return episode;
                     })
                     .WhereNotNull()
@@ -237,10 +238,13 @@ public class Episode : BaseModel
                     .Select(groupBy => (TmdbShow: groupBy.First().TmdbShow!, TmdbEpisodes: groupBy.ToList()))
                     .Where(tuple => tuple.TmdbShow is not null)
                     .SelectMany(tuple0 =>
-                        string.IsNullOrEmpty(tuple0.TmdbShow.PreferredAlternateOrderingID)
+                        tuple0.TmdbShow.PreferredAlternateOrderingID is not { Length: > 0 } preferredOrderingID
                             ? tuple0.TmdbEpisodes.Select(tmdbEpisode => new TmdbEpisode(tuple0.TmdbShow, tmdbEpisode))
                             : tuple0.TmdbEpisodes
-                                .Select(tmdbEpisode => (TmdbEpisode: tmdbEpisode, TmdbAlternateOrdering: tmdbEpisode.GetTmdbAlternateOrderingEpisodeById(tuple0.TmdbShow.PreferredAlternateOrderingID)))
+                                .Select(tmdbEpisode => (
+                                    TmdbEpisode: tmdbEpisode,
+                                    TmdbAlternateOrdering: tmdbEpisode.GetTmdbAlternateOrderingEpisodeById(preferredOrderingID)
+                                ))
                                 .Where(tuple1 => tuple1.TmdbAlternateOrdering is not null)
                                 .Select(tuple1 => new TmdbEpisode(tuple0.TmdbShow, tuple1.TmdbEpisode, tuple1.TmdbAlternateOrdering)
                     ))
@@ -249,14 +253,16 @@ public class Episode : BaseModel
                     .Select(tmdbMovieXref =>
                     {
                         var movie = tmdbMovieXref.TmdbMovie;
-                        if (movie is not null && (TmdbMetadataService.Instance?.WaitForMovieUpdate(movie.TmdbMovieID) ?? false))
-                            movie = RepoFactory.TMDB_Movie.GetByTmdbMovieID(movie.TmdbMovieID);
+                        if (movie is not null && refreshService.WaitForRefresh(movie.ID).GetAwaiter().GetResult())
+                            movie = TmdbCompatibility.GetMovie(movie.TmdbMovieID);
                         return movie;
                     })
                     .WhereNotNull()
                     .Select(tmdbMovie => new TmdbMovie(tmdbMovie))
                     .ToList(),
             };
+        }
+
         if (includeFiles)
             Files = files
                 .Select(f => new File(context, f, false, includeReleaseInfo, includeMediaInfo, includeAbsolutePaths))

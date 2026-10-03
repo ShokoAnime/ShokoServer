@@ -4,6 +4,7 @@ using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Metadata;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -105,6 +106,43 @@ public static class AnidbResourceLinks
             ResourceLinkType.Marumegane when first is not null
                 => new() { Type = ResourceType.CrossReference, Name = "Marumegane", Url = string.Empty, ID = first },
             _ => Raw(row),
+        };
+    }
+
+    #endregion
+
+    #region Cross-Source IDs
+
+    /// <summary>
+    ///   The IDs other sources gave an anime, as its AniDB resources name
+    ///   them: TMDB's show or movie, and IMDb's title.
+    /// </summary>
+    /// <remarks>
+    ///   An IMDb title counts as a movie for a movie anime, else as a series.
+    /// </remarks>
+    /// <param name="rows">The anime's stored resources.</param>
+    /// <param name="isMovie">Whether the anime is a movie.</param>
+    /// <returns>The IDs, in the resources' order, without repeats.</returns>
+    public static List<MetadataGuid> ToCrossSourceIDs(IEnumerable<AniDB_Resource> rows, bool isMovie)
+        => [.. rows.Select(row => ToCrossSourceID(row, isMovie)).OfType<MetadataGuid>().Distinct()];
+
+    /// <summary>
+    ///   The ID another source gave an anime, as one AniDB resource names it.
+    /// </summary>
+    /// <param name="row">The stored resource.</param>
+    /// <param name="isMovie">Whether the anime is a movie.</param>
+    /// <returns>The ID, or <see langword="null"/> when the resource names none.</returns>
+    private static MetadataGuid? ToCrossSourceID(AniDB_Resource row, bool isMovie)
+    {
+        var ids = row.Identifiers;
+        var first = ids.Count > 0 ? ids[0] : null;
+        var second = ids.Count > 1 ? ids[1] : null;
+        return row.ResourceType switch
+        {
+            ResourceLinkType.TMDB when second is "tv" => CrossSourceID.For("tmdb", MetadataEntityType.Series, first),
+            ResourceLinkType.TMDB when second is "movie" => CrossSourceID.For("tmdb", MetadataEntityType.Movie, first),
+            ResourceLinkType.IMDb => CrossSourceID.For("imdb", isMovie ? MetadataEntityType.Movie : MetadataEntityType.Series, first),
+            _ => null,
         };
     }
 

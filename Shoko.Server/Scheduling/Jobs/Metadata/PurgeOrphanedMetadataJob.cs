@@ -5,14 +5,13 @@ using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
 using Shoko.QueueProcessor.Workers;
-using Shoko.Server.Services;
 
 namespace Shoko.Server.Scheduling.Jobs.Metadata;
 
 /// <summary>
 ///   Removes the creators, characters, studios and networks of the plugin
-///   sources, and the people and networks of TMDB, that nothing has used for
-///   longer than the settings allow. Runs daily.
+///   sources that nothing has used for longer than the settings allow. Runs
+///   daily.
 /// </summary>
 /// <param name="purgeService">Does the purge.</param>
 /// <param name="cancellationAccessor">Cancels the work.</param>
@@ -42,7 +41,7 @@ public class PurgeOrphanedMetadataJob(
     public override async Task Execute()
     {
         var removed = await purgeService.PurgeOrphaned(null, null, progressAccessor.Progress, cancellationAccessor.Token).ConfigureAwait(false);
-        _logger.LogDebug("Purged {Count} orphaned people, studios and networks of the plugin sources and TMDB.", removed);
+        _logger.LogDebug("Purged {Count} orphaned people, studios and networks of the plugin sources.", removed);
     }
 
     #endregion

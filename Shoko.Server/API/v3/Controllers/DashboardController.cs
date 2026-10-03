@@ -40,8 +40,6 @@ public class DashboardController(
     AniDB_TagRepository _anidbTags,
     AnimeSeriesRepository _animeSeries,
     AnimeEpisodeRepository _animeEpisodes,
-    CrossRef_AniDB_TMDB_MovieRepository _crossRefAnidbTmdbMovies,
-    CrossRef_AniDB_TMDB_ShowRepository _crossRefAnidbTmdbShows,
     CrossRef_File_EpisodeRepository _crossRefFileEpisodes,
     VideoLocalRepository _videoLocals,
     VideoLocal_PlaceRepository _videoLocalPlaces,
@@ -143,8 +141,8 @@ public class DashboardController(
         var anidbAnimeById = _anidbAnimes.GetAll()
             .Where(a => allowedAnimeIDs.Contains(a.AnimeID))
             .ToDictionary(a => a.AnimeID);
-        var tmdbMovieAnimeIDs = _crossRefAnidbTmdbMovies.GetAll().Select(x => x.AnidbAnimeID).ToHashSet();
-        var tmdbShowAnimeIDs = _crossRefAnidbTmdbShows.GetAll().Select(x => x.AnidbAnimeID).ToHashSet();
+        var tmdbMovieAnimeIDs = TmdbCompatibility.GetAllMovieLinks().Select(x => x.AnidbAnimeID).ToHashSet();
+        var tmdbShowAnimeIDs = TmdbCompatibility.GetAllShowLinks().Select(x => x.AnidbAnimeID).ToHashSet();
 
         var userSeriesIDs = _seriesUser.GetByUserID(userId).Select(r => r.AnimeSeriesID).ToHashSet();
         var watchedNormalCountBySeries = watchedEpisodeRecords
@@ -180,7 +178,7 @@ public class DashboardController(
             if (series.IsAutoLinkingDisabled(MetadataSource.TMDB))
                 return false;
             var animeType = anidbAnimeById.TryGetValue(series.AniDB_ID, out var a) ? a.AnimeType : AnimeType.Unknown;
-            if (MissingTmdbLinkExpression.AnimeTypes.Contains(animeType))
+            if (MissingSourceLinkExpression.AnimeTypes.Contains(animeType))
                 return false;
             return !tmdbMovieAnimeIDs.Contains(series.AniDB_ID) && !tmdbShowAnimeIDs.Contains(series.AniDB_ID);
         });

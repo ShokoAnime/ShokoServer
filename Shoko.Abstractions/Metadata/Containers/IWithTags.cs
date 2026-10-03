@@ -11,5 +11,5 @@ public interface IWithTags
     /// The entity's tags, genres included, each with the weight and spoiler
     /// flag it has on this entity.
     /// </summary>
-    IReadOnlyList<ITag> Tags { get => []; }
+    IReadOnlyList<ITag> Tags { get; }
 }

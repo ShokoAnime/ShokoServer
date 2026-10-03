@@ -16,11 +16,8 @@ using Shoko.Abstractions.User;
 using Shoko.Abstractions.Video;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko.Embedded;
-using Shoko.Server.Models.TMDB;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
 
@@ -153,28 +150,6 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
 
     #endregion
 
-    #region TMDB
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> TmdbMovieCrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbEpisodeID(AniDB_EpisodeID);
-
-    public IReadOnlyList<TMDB_Movie> TmdbMovies =>
-        TmdbMovieCrossReferences
-            .Select(xref => xref.TmdbMovie)
-            .WhereNotNull()
-            .ToList();
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences =>
-        RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbEpisodeID(AniDB_EpisodeID);
-
-    public IReadOnlyList<TMDB_Episode> TmdbEpisodes =>
-        TmdbEpisodeCrossReferences
-            .Select(xref => xref.TmdbEpisode)
-            .WhereNotNull()
-            .ToList();
-
-    #endregion
-
     public bool Equals(AnimeEpisode? other)
         => other is not null &&
             AnimeEpisodeID == other.AnimeEpisodeID &&
@@ -276,9 +251,9 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
 
     #region IEpisode Implementation
 
-    IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings => OrderingLookup.For(this);
+    IReadOnlyList<IEpisodeOrderingInformation<IShokoSeries, IShokoEpisode>> IEpisode<IShokoSeries, IShokoEpisode>.Orderings => OrderingLookup.PlacesOf<IShokoSeries, IShokoEpisode>(this);
 
-    IEpisodeOrderingInformation? IEpisode.PreferredOrdering => OrderingLookup.PreferredFor(this);
+    IEpisodeOrderingInformation<IShokoSeries, IShokoEpisode>? IEpisode<IShokoSeries, IShokoEpisode>.PreferredOrdering => OrderingLookup.PreferredPlaceOf<IShokoSeries, IShokoEpisode>(this);
 
     IReadOnlyList<IMetadataEpisodeCrossReference> IEpisode.MetadataEpisodeCrossReferences => ((IShokoEpisode)this).GetMetadataEpisodeCrossReferences();
 
@@ -329,17 +304,18 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
             if (AniDB_Episode is { } anidbEpisode && anidbEpisode.GetAirDateAsDate() is { } airDate)
                 return airDate;
 
-            foreach (var xref in TmdbEpisodeCrossReferences)
+            // Else the first date a linked episode of another source gives, the
+            // sources in their usual order.
+            foreach (var xref in RepoFactory.CrossRef_AniDB_Metadata_Episode.GetByAnidbEpisodeID(AniDB_EpisodeID).OrderBy(xref => xref.Source).ThenBy(xref => xref.Ordering))
             {
-                if (xref.TmdbEpisode?.AiredAt is { } tmdbAirDate)
-                    return tmdbAirDate.ToDateTime().Date;
+                if (!xref.Source.IsCore && !string.IsNullOrEmpty(xref.ProviderID) &&
+                    RepoFactory.Metadata_Episode.GetByProviderID(xref.Source, xref.ProviderID)?.AirDate is { } linkedAirDate)
+                    return linkedAirDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             }
 
             return null;
         }
     }
-
-    ISeries IEpisode.Series => ((IShokoEpisode)this).Series;
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => [this];
 
@@ -359,7 +335,12 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
 
     int IShokoEpisode.AnidbEpisodeID => AniDB_EpisodeID;
 
-    IShokoSeries IShokoEpisode.Series => AnimeSeries ??
+    ISeason<IShokoSeries, IShokoEpisode>? IEpisode<IShokoSeries, IShokoEpisode>.Season
+        => ((IEpisode)this).SeasonID is { } seasonID && AnimeSeries is { } series
+            ? series.AnimeSeasons.FirstOrDefault(season => ((IMetadata)season).ID == seasonID)
+            : null;
+
+    IShokoSeries IEpisode<IShokoSeries, IShokoEpisode>.Series => AnimeSeries ??
         throw new NullReferenceException($"Unable to find Shoko Series {AnimeSeriesID} for AnimeEpisode {AnimeEpisodeID}");
 
     IAnidbEpisode IShokoEpisode.AnidbEpisode => AniDB_Episode ??

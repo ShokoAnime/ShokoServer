@@ -19,12 +19,10 @@ using Shoko.Abstractions.Video;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.CrossReference;
-using Shoko.Server.Models.CrossReference.Embedded;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Models.TMDB;
 using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
@@ -94,6 +92,11 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
     public int AvgReviewRating { get; set; }
 
     public int ReviewCount { get; set; }
+
+    /// <summary>
+    ///   When the anime was first stored locally. Set once and never changed.
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
 
     /// <summary>
     ///   When we last tried to update the metadata.
@@ -493,53 +496,6 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
 
     #endregion
 
-    #region TMDB
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Show> TmdbShowCrossReferences
-        => RepoFactory.CrossRef_AniDB_TMDB_Show.GetByAnidbAnimeID(AnimeID);
-
-    public IReadOnlyList<TMDB_Show> TmdbShows
-        => TmdbShowCrossReferences
-            .Select(xref => RepoFactory.TMDB_Show.GetByTmdbShowID(xref.TmdbShowID))
-            .WhereNotNull()
-            .ToList();
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> TmdbEpisodeCrossReferences => RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AnimeID);
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Episode> GetTmdbEpisodeCrossReferences(int? tmdbShowId = null) => tmdbShowId.HasValue
-        ? RepoFactory.CrossRef_AniDB_TMDB_Episode.GetOnlyByAnidbAnimeAndTmdbShowIDs(AnimeID, tmdbShowId.Value)
-        : RepoFactory.CrossRef_AniDB_TMDB_Episode.GetByAnidbAnimeID(AnimeID);
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Season> TmdbSeasonCrossReferences =>
-        TmdbEpisodeCrossReferences
-            .Select(xref => xref.TmdbSeasonCrossReference)
-            .WhereNotNull()
-            .DistinctBy(xref => xref.TmdbSeasonID)
-            .ToList();
-
-    public IReadOnlyList<TMDB_Season> TmdbSeasons => TmdbSeasonCrossReferences
-        .Select(xref => xref.TmdbSeason)
-        .WhereNotNull()
-        .ToList();
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Season> GetTmdbSeasonCrossReferences(int? tmdbShowId = null) =>
-        GetTmdbEpisodeCrossReferences(tmdbShowId)
-            .Select(xref => xref.TmdbSeasonCrossReference)
-            .WhereNotNull()
-            .Distinct()
-            .ToList();
-
-    public IReadOnlyList<CrossRef_AniDB_TMDB_Movie> TmdbMovieCrossReferences
-        => RepoFactory.CrossRef_AniDB_TMDB_Movie.GetByAnidbAnimeID(AnimeID);
-
-    public IReadOnlyList<TMDB_Movie> TmdbMovies
-        => TmdbMovieCrossReferences
-            .Select(xref => RepoFactory.TMDB_Movie.GetByTmdbMovieID(xref.TmdbMovieID))
-            .WhereNotNull()
-            .ToList();
-
-    #endregion
-
     #region MAL
 
     public IReadOnlyList<CrossRef_AniDB_MAL> MalCrossReferences
@@ -575,7 +531,7 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
 
     #endregion
 
-    #region IWithDescription Implementation
+    #region IWithOverviews Implementation
 
     IText? IWithOverviews.DefaultOverview => TextAccess.Manager.DefaultOverviewFor(this);
 
@@ -599,6 +555,12 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
     public IImageCrossReference? DefaultPrimaryImageCrossReference => !string.IsNullOrEmpty(Picname) && IImageManager.GetIDForImageSourceAndResourceID(MetadataSource.AniDB, Picname) is { } imageID
         ? ((IWithImages)this).GetImageCrossReferences(new() { ImageSource = MetadataSource.AniDB, ImageType = ImageEntityType.Primary }).FirstOrDefault(xref => xref.ImageID == imageID)
         : null;
+
+    #endregion
+
+    #region IWithCreationDate Implementation
+
+    DateTime IWithCreationDate.CreatedAt => CreatedAt.ToUniversalTime();
 
     #endregion
 
@@ -670,15 +632,22 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
     #region IWithCrossSources Implementation
 
     IReadOnlyList<MetadataGuid> IWithCrossSources.CrossSourceIDs
-        => [.. ((IAnidbAnime)this).MalIDs.Select(malID => CrossSourceID.For("mal", MetadataEntityType.Series, malID)).WhereNotNull()];
+        =>
+        [
+            .. ((IAnidbAnime)this).MalIDs.Select(malID => CrossSourceID.For("mal", MetadataEntityType.Series, malID)).WhereNotNull(),
+            .. AnidbResourceLinks.ToCrossSourceIDs(RepoFactory.AniDB_Resource.GetByAnimeID(AnimeID), AnimeType is AnimeType.Movie),
+        ];
 
     #endregion
 
     #region ISeries Implementation
 
-    IReadOnlyList<IOrdering> ISeries.Orderings => OrderingLookup.For(this);
+    // Set on every fetch the anime is processed from, whether or not anything changed.
+    DateTime? ISeries.LastRefreshedAt => DateTimeUpdated.ToUniversalTime();
 
-    IOrdering ISeries.PreferredOrdering => OrderingLookup.PreferredFor(this);
+    IReadOnlyList<IOrdering<IAnidbAnime, IAnidbEpisode>> ISeries<IAnidbAnime, IAnidbEpisode>.Orderings => OrderingLookup.For<IAnidbAnime, IAnidbEpisode>(this);
+
+    IOrdering<IAnidbAnime, IAnidbEpisode> ISeries<IAnidbAnime, IAnidbEpisode>.PreferredOrdering => OrderingLookup.PreferredFor<IAnidbAnime, IAnidbEpisode>(this);
 
     IReadOnlyList<IMetadataSeriesCrossReference> ISeries.MetadataSeriesCrossReferences =>
         ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeriesCrossReferences(AnimeID) ?? [];
@@ -706,6 +675,18 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
 
     SourceMaterial ISeries.SourceMaterial => SourceMaterial;
 
+    // AniDB keeps no original language, popularity, favorite count, networks
+    // or production countries for an anime.
+    string? ISeries.OriginalLanguageCode => null;
+
+    double? ISeries.Popularity => null;
+
+    int? ISeries.FavoriteCount => null;
+
+    IReadOnlyList<INetwork> ISeries.Networks => [];
+
+    IReadOnlyList<string> ISeries.ProductionCountries => [];
+
     IReadOnlyList<IShokoSeries> ISeries.ShokoSeries => RepoFactory.AnimeSeries.GetByAnimeID(AnimeID) is { } series ? [series] : [];
 
     IReadOnlyList<IRelatedMetadata<ISeries, ISeries>> ISeries.RelatedSeries =>
@@ -721,13 +702,6 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
 
     IReadOnlyList<IVideoCrossReference> ISeries.VideoCrossReferences =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID);
-
-    IReadOnlyList<ISeason> ISeries.Seasons => AniDBSeasons;
-
-    IReadOnlyList<IEpisode> ISeries.Episodes => AniDBEpisodes
-        .OrderBy(a => a.EpisodeType)
-        .ThenBy(a => a.EpisodeNumber)
-        .ToList();
 
     IReadOnlyList<IVideo> ISeries.Videos =>
         RepoFactory.CrossRef_File_Episode.GetByAnimeID(AnimeID)
@@ -769,22 +743,19 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
         .Select(tuple => new AniDB_Anime_Tag_Abstract(tuple.tag, tuple.xref))
         .ToList();
 
-    IReadOnlyList<IAnidbSuggestion> IAnidbAnime.Suggestions => SimilarAnime;
-
-    IReadOnlyList<IAnidbSuggestion> IAnidbAnime.SuggestedBy => RepoFactory.AniDB_Anime_Similar.GetBySimilarAnimeID(AnimeID);
-
-    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions => SimilarAnime;
-
-    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy => RepoFactory.AniDB_Anime_Similar.GetBySimilarAnimeID(AnimeID);
-
     IReadOnlyList<IAnidbReleaseGroupStatus> IAnidbAnime.ReleaseGroupStatuses => ReleaseGroupStatuses;
 
-    IReadOnlyList<IAnidbSeason> IAnidbAnime.Seasons => AniDBSeasons;
+    IReadOnlyList<ISeason<IAnidbAnime, IAnidbEpisode>> ISeries<IAnidbAnime, IAnidbEpisode>.Seasons => AniDBSeasons;
 
-    IReadOnlyList<IAnidbEpisode> IAnidbAnime.Episodes => AniDBEpisodes
+    IReadOnlyList<IAnidbEpisode> ISeries<IAnidbAnime, IAnidbEpisode>.Episodes => AniDBEpisodes
         .OrderBy(a => a.EpisodeType)
         .ThenBy(a => a.EpisodeNumber)
         .ToList();
+
+    IReadOnlyList<ISuggestedMetadata<IAnidbAnime, ISeries>> ISeries<IAnidbAnime, IAnidbEpisode>.Suggestions => SimilarAnime;
+
+    IReadOnlyList<ISuggestedMetadata<IAnidbAnime, ISeries>> ISeries<IAnidbAnime, IAnidbEpisode>.SuggestedBy
+        => RepoFactory.AniDB_Anime_Similar.GetBySimilarAnimeID(AnimeID);
 
     #endregion
 }

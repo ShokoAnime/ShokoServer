@@ -122,7 +122,7 @@ public class MetadataStudioStoreTests
     }
 
     [Fact]
-    public void ANetworkThatIsNotStoredOrOfAnotherKindIsRefused()
+    public void ANetworkOfAnotherKindIsRefused()
     {
         var tables = new Tables();
         using var scope = tables.Scope();
@@ -130,9 +130,9 @@ public class MetadataStudioStoreTests
         store.SaveNetworks([new() { ID = NetworkID("n1"), Name = "Tokyo MX" }]);
         store.SetNetworks(_series, [NetworkID("n1")]);
 
-        Assert.Throws<ArgumentException>(() => store.SetNetworks(_series, [NetworkID("n1"), NetworkID("missing")]));
-        Assert.Throws<ArgumentException>(() => store.SetNetworks(_series, [StudioID("n1")]));
+        Assert.Throws<ArgumentException>(() => store.SetNetworks(_series, [NetworkID("missing"), StudioID("n1")]));
         Assert.Equal([NetworkID("n1")], store.GetNetworks(_series).Select(network => network.ID));
+        Assert.Null(store.GetNetwork(NetworkID("missing")));
     }
 
     #endregion

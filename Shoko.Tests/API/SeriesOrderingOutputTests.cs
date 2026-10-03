@@ -6,6 +6,10 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Image.Options;
+using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Server.API.v3.Helpers;
+using Shoko.Server.API.v3.Models.Metadata;
 using Shoko.Server.API.v3.Models.Ordering;
 using Xunit;
 
@@ -13,11 +17,29 @@ namespace Shoko.Tests.API;
 
 /// <summary>
 /// Pins the APIv3 shape of a series' ordering: its full and local IDs, its
-/// type by name, whether a user made it, its own and its groups' images, and
-/// its groups only when asked for.
+/// type by name, whether a user made it, its own and its groups' images, its
+/// networks, and its groups only when asked for.
 /// </summary>
 public class SeriesOrderingOutputTests
 {
+    private static MetadataModelBuilder Models()
+    {
+        var metadata = new Mock<IMetadataService>();
+        metadata.Setup(service => service.GetSiteUrl(It.IsAny<IMetadata>())).Returns("https://example.org/network/7");
+        var images = new Mock<IImageManager>();
+        images.Setup(manager => manager.GetImagesForEntity(It.IsAny<IWithImages>(), It.IsAny<ImageFilteringOptions?>())).Returns([]);
+        return new(metadata.Object, Mock.Of<IMetadataTextManager>(), images.Object, Mock.Of<IMetadataStudioStore>());
+    }
+
+    private static INetwork Network()
+    {
+        var network = new Mock<INetwork>();
+        network.SetupGet(value => value.ID).Returns(new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Network, "7"));
+        network.SetupGet(value => value.Name).Returns("Tokyo MX");
+        network.SetupGet(value => value.CountryOfOrigin).Returns("JP");
+        return network.Object;
+    }
+
     private static IImage Image(ImageEntityType type, bool preferred)
     {
         var image = new Mock<IImage>();
@@ -30,7 +52,7 @@ public class SeriesOrderingOutputTests
         return image.Object;
     }
 
-    private static IOrdering Ordering(MetadataSource source)
+    private static IOrdering Ordering(MetadataSource source, params INetwork[] networks)
     {
         var seriesID = new MetadataGuid(MetadataSource.Shoko, MetadataEntityType.Series, "3");
         var episode = new Mock<IEpisode>();
@@ -51,6 +73,7 @@ public class SeriesOrderingOutputTests
         ordering.SetupGet(value => value.IsPreferred).Returns(true);
         ordering.SetupGet(value => value.EpisodeCount).Returns(1);
         ordering.SetupGet(value => value.SeasonCount).Returns(1);
+        ordering.SetupGet(value => value.Networks).Returns(networks);
         ordering.SetupGet(value => value.Seasons).Returns([group.Object]);
         ordering.SetupGet(value => value.CreatedAt).Returns(new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc));
         ordering.SetupGet(value => value.LastUpdatedAt).Returns(new DateTime(2026, 9, 2, 0, 0, 0, DateTimeKind.Utc));
@@ -61,7 +84,7 @@ public class SeriesOrderingOutputTests
     [Fact]
     public void AUsersOrderingIsLocalAndNamedByBothIDs()
     {
-        var model = new SeriesOrdering(Ordering(MetadataSource.User), includeGroups: true);
+        var model = new SeriesOrdering(Ordering(MetadataSource.User), includeGroups: true, Models());
 
         Assert.Equal("user://ordering/o1", model.ID);
         Assert.Equal("o1", model.LocalID);
@@ -76,7 +99,7 @@ public class SeriesOrderingOutputTests
     [Fact]
     public void APluginsOrderingIsNotLocalAndItsGroupsAreLeftOutUnlessAskedFor()
     {
-        var model = new SeriesOrdering(Ordering(MetadataSource.TMDB), includeGroups: false);
+        var model = new SeriesOrdering(Ordering(MetadataSource.TMDB), includeGroups: false, Models());
         var json = JObject.FromObject(model);
 
         Assert.False(model.IsLocal);
@@ -84,4 +107,22 @@ public class SeriesOrderingOutputTests
         Assert.False(json.ContainsKey(nameof(SeriesOrdering.Groups)));
         Assert.Equal("DVD", json[nameof(SeriesOrdering.Type)]?.Value<string>());
     }
+
+    [Fact]
+    public void AnOrderingListsItsNetworks()
+    {
+        var model = new SeriesOrdering(Ordering(MetadataSource.TMDB, Network()), includeGroups: false, Models());
+        var json = JObject.FromObject(model);
+
+        var network = Assert.Single(model.Networks);
+        Assert.Equal("7", network.ID);
+        Assert.Equal(MetadataSource.TMDB, network.Source);
+        Assert.Equal("Tokyo MX", network.Name);
+        Assert.Equal("JP", network.CountryOfOrigin);
+        Assert.Equal("JP", json[nameof(SeriesOrdering.Networks)]?[0]?[nameof(MetadataNetwork.CountryOfOrigin)]?.Value<string>());
+    }
+
+    [Fact]
+    public void AnOrderingWithoutNetworksListsNone()
+        => Assert.Empty(new SeriesOrdering(Ordering(MetadataSource.User), includeGroups: false, Models()).Networks);
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Extensions;
@@ -57,6 +58,11 @@ public class AniDB_Studio : IStudio
     string? IStudio.OriginalName => null;
 
     StudioType IStudio.StudioType => StudioType.None;
+
+    // A view of an AniDB creator, which keeps no country and no last fetch.
+    string? IStudio.CountryOfOrigin => null;
+
+    DateTime? IStudio.LastRefreshedAt => null;
 
     IEnumerable<IMovie> IStudio.MovieWorks => [];
 

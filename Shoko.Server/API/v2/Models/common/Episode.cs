@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
-using Shoko.Server.Providers.TMDB;
 using Shoko.Server.Repositories;
 
 #pragma warning disable CS0618
@@ -134,14 +134,14 @@ public class Episode : BaseDirectory
 
             var zeroPadding = tmdbEpisode.EpisodeNumber.ToString().Length;
             var episodeNumber = tmdbEpisode.EpisodeNumber.ToString().PadLeft(zeroPadding, '0');
-            zeroPadding = tmdbEpisode.SeasonNumber.ToString().Length;
-            var seasonNumber = tmdbEpisode.SeasonNumber.ToString().PadLeft(zeroPadding, '0');
+            zeroPadding = tmdbEpisode.TmdbSeasonNumber.ToString().Length;
+            var seasonNumber = tmdbEpisode.TmdbSeasonNumber.ToString().PadLeft(zeroPadding, '0');
 
             ep.season = $"{seasonNumber}x{episodeNumber}";
             var airdate = tmdbEpisode.AiredAt;
             if (airdate != null)
             {
-                ep.air = airdate.Value.ToDateTime().ToISO8601Date();
+                ep.air = airdate.Value.ToDateTime(new TimeOnly(12, 0), DateTimeKind.Utc).ToISO8601Date();
                 ep.year = airdate.Value.Year.ToString(CultureInfo.InvariantCulture);
             }
         }

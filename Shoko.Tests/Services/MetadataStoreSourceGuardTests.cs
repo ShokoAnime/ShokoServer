@@ -58,8 +58,8 @@ public class MetadataStoreSourceGuardTests
             People = new(
                 CachedRepo.Build<Metadata_CreatorRepository, int, Metadata_Creator>(row => row.Metadata_CreatorID),
                 CachedRepo.Build<Metadata_CharacterRepository, int, Metadata_Character>(row => row.Metadata_CharacterID),
-                CachedRepo.Build<Metadata_CastRepository, int, Metadata_Cast>(row => row.Metadata_CastID),
-                CachedRepo.Build<Metadata_CrewRepository, int, Metadata_Crew>(row => row.Metadata_CrewID),
+                new InMemoryCastRepository(),
+                new InMemoryCrewRepository(),
                 texts,
                 Writer
             );
@@ -127,7 +127,7 @@ public class MetadataStoreSourceGuardTests
                 ("SetStudios", () => Studios.SetStudios(series, [])),
                 ("RemoveStudios", () => Studios.RemoveStudios(series)),
                 ("SaveNetworks", () => Studios.SaveNetworks([new() { ID = new(source, MetadataEntityType.Network, "1"), Name = "Tokyo MX" }])),
-                ("SetNetworks", () => Studios.SetNetworks(series, [])),
+                ("SetNetworks", () => Studios.SetNetworks(series, Array.Empty<MetadataGuid>())),
                 ("RemoveNetworks", () => Studios.RemoveNetworks(series)),
                 ("RemoveOrphanedStudios", () => Studios.RemoveOrphaned(source, DateTime.Now)),
                 ("SetRelations", () => Relations.SetRelations(series, [])),

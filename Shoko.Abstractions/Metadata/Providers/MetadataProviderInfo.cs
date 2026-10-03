@@ -50,6 +50,12 @@ public class MetadataProviderInfo
     public required LocalPluginInfo PluginInfo { get; init; }
 
     /// <summary>
+    ///   The source icon the provider declared, extracted beside its plugin,
+    ///   or <see langword="null"/> when it has none.
+    /// </summary>
+    public PackageImageInfo? Icon { get; init; }
+
+    /// <summary>
     ///   Whether the provider supplies series, seasons and episodes.
     /// </summary>
     /// <remarks>
@@ -144,9 +150,14 @@ public class MetadataProviderInfo
     /// <remarks>
     ///   A provider starts on for every type it can serve that no earlier
     ///   provider on the source was given; an admin decides from then on.
+    ///   A type lists here only for the first enabled provider in its order
+    ///   (<see cref="Services.IMetadataProviderManager.GetProviderOrder"/>).
     ///   <c>series</c>, <c>season</c> and <c>episode</c> each let it take links
     ///   at that level and refresh the series they point into (whole).
     ///   <c>movie</c> and <c>collection</c> let it link and refresh those.
+    ///   <c>creator</c>, <c>character</c>, <c>studio</c> and <c>network</c>
+    ///   let an <see cref="IMetadataEntityProvider"/> refresh those one at a
+    ///   time.
     /// </remarks>
     public required IReadOnlySet<MetadataEntityType> EnabledEntityTypes { get; set; }
 

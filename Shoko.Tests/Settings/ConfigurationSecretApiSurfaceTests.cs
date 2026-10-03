@@ -30,15 +30,13 @@ public sealed class ConfigurationSecretApiSurfaceTests : IDisposable
 
     private const string DatabasePassword = "database-password-g7h8i9";
 
-    private const string TmdbApiKey = "tmdb-api-key-j1k2l3";
-
     private const string PlexToken = "plex-token-m4n5o6";
 
     /// <summary>
     /// Every credential this fixture writes into the settings. A masked document
     /// must not contain any of them anywhere.
     /// </summary>
-    private static readonly string[] _secrets = [AnidbPassword, AvdumpKey, DatabasePassword, TmdbApiKey];
+    private static readonly string[] _secrets = [AnidbPassword, AvdumpKey, DatabasePassword];
 
     private readonly string _dataPath = Path.Join(Path.GetTempPath(), $"shoko-secret-tests-{Guid.NewGuid():N}");
 
@@ -61,7 +59,6 @@ public sealed class ConfigurationSecretApiSurfaceTests : IDisposable
         settings.AniDb.Password = AnidbPassword;
         settings.AniDb.AVDumpKey = AvdumpKey;
         settings.Database.Password = DatabasePassword;
-        settings.TMDB.UserApiKey = TmdbApiKey;
         // Not a marked secret; it is here to prove masking replaces the marked
         // properties rather than every string that looks sensitive.
         settings.Plex.Server = PlexToken;
@@ -104,7 +101,6 @@ public sealed class ConfigurationSecretApiSurfaceTests : IDisposable
         Assert.True(ConfigurationSecrets.IsMasked(masked["AniDb"]!["Password"]!.Value<string>()));
         Assert.True(ConfigurationSecrets.IsMasked(masked["AniDb"]!["AVDumpKey"]!.Value<string>()));
         Assert.True(ConfigurationSecrets.IsMasked(masked["Database"]!["Password"]!.Value<string>()));
-        Assert.True(ConfigurationSecrets.IsMasked(masked["TMDB"]!["UserApiKey"]!.Value<string>()));
     }
 
     [Fact]
@@ -136,7 +132,6 @@ public sealed class ConfigurationSecretApiSurfaceTests : IDisposable
         Assert.Equal(AnidbPassword, settings.AniDb.Password);
         Assert.Equal(AvdumpKey, settings.AniDb.AVDumpKey);
         Assert.Equal(DatabasePassword, settings.Database.Password);
-        Assert.Equal(TmdbApiKey, settings.TMDB.UserApiKey);
     }
 
     [Fact]
@@ -163,7 +158,6 @@ public sealed class ConfigurationSecretApiSurfaceTests : IDisposable
         Assert.Equal(AnidbPassword, settings.AniDb.Password);
         Assert.Equal(AvdumpKey, settings.AniDb.AVDumpKey);
         Assert.Equal(DatabasePassword, settings.Database.Password);
-        Assert.Equal(TmdbApiKey, settings.TMDB.UserApiKey);
         Assert.Contains(AnidbPassword, File.ReadAllText(_info.Path!), StringComparison.Ordinal);
     }
 

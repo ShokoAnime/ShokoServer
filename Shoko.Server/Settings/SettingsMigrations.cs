@@ -27,7 +27,7 @@ public static partial class SettingsMigrations
     /// Perform migrations on the settings json, pre-init
     /// </summary>
     /// <param name="settings">unparsed json settings</param>
-    /// <param name="applicationPaths"></param>
+    /// <param name="applicationPaths">The server's paths, for the migrations that write files beside the settings.</param>
     /// <returns>migrated still-unparsed settings</returns>
     public static string MigrateSettings(string settings, IApplicationPaths applicationPaths)
     {
@@ -36,19 +36,10 @@ public static partial class SettingsMigrations
         var versionString = versionRegex.Matches(settings).FirstOrDefault()?.Groups.Values.Skip(2).FirstOrDefault()?.Value;
         if (!int.TryParse(versionString, out var version)) version = 0;
 
-        var dataPath = applicationPaths.DataPath;
         var migrationsToApply = _migrations
-            .Where(a => a.Key > version)
-            .Select(a => (a.Key, Fn: a.Key switch
-            {
-                15 => s => MigrateQuartzToQueue(s, dataPath),
-                20 => s => MigrateAutoLinkToMetadataService(s, dataPath),
-                25 => s => MigrateUpdateFrequenciesToScheduledActions(s, dataPath),
-                _ => a.Value,
-            }))
-            .Where(a => a.Fn is not null)
+            .Where(a => a.Key > version && a.Value is not null)
             .OrderBy(a => a.Key)
-            .Select(a => a.Fn!)
+            .Select(a => a.Value!)
             .ToList();
         if (migrationsToApply.Count == 0 && version == Version)
             return settings;
@@ -60,7 +51,7 @@ public static partial class SettingsMigrations
         var backupFile = Path.Combine(backupDir, fileName);
         File.WriteAllText(backupFile, settings);
 
-        var result = migrationsToApply.Aggregate(settings, (current, migration) => migration(current));
+        var result = migrationsToApply.Aggregate(settings, (current, migration) => migration(current, applicationPaths));
 
         // update version, if exists. If it doesn't, it'll be updated with the default value from above in the next step
         result = versionRegex.Replace(result, $"${{1}}{Version}$3");
@@ -68,41 +59,40 @@ public static partial class SettingsMigrations
         return result;
     }
 
-    // Settings in, settings out
-    private static readonly Dictionary<int, Func<string, string>?> _migrations = new()
+    // Settings and the application paths in, settings out
+    private static readonly Dictionary<int, Func<string, IApplicationPaths, string>?> _migrations = new()
     {
-        { 1, MigrateTvDBLanguageEnum },
-        { 2, MigrateEpisodeLanguagePreference },
-        { 3, MigrateAutoGroupRelations },
-        { 4, MigrateHostnameToHost },
-        { 5, MigrateAutoGroupRelationsAlternateToAlternative },
-        { 6, MigrateAniDBServerAddresses },
-        { 7, MigrateLanguageSettings },
-        { 8, MigrateRenamerFromImportToPluginsSettings },
-        { 9, MigrateFixDefaultRenamer },
-        { 10, MigrateLanguageSourceOrders },
-        { 11, MigrateServerPortToWebPort },
+        { 1, (settings, _) => MigrateTvDBLanguageEnum(settings) },
+        { 2, (settings, _) => MigrateEpisodeLanguagePreference(settings) },
+        { 3, (settings, _) => MigrateAutoGroupRelations(settings) },
+        { 4, (settings, _) => MigrateHostnameToHost(settings) },
+        { 5, (settings, _) => MigrateAutoGroupRelationsAlternateToAlternative(settings) },
+        { 6, (settings, _) => MigrateAniDBServerAddresses(settings) },
+        { 7, (settings, _) => MigrateLanguageSettings(settings) },
+        { 8, (settings, _) => MigrateRenamerFromImportToPluginsSettings(settings) },
+        { 9, (settings, _) => MigrateFixDefaultRenamer(settings) },
+        { 10, (settings, _) => MigrateLanguageSourceOrders(settings) },
+        { 11, (settings, _) => MigrateServerPortToWebPort(settings) },
         // Note: there are changes to how some of the settings store their values
         // in the file which are not backwards compatible, so add a no-op so the
         // settings file gets backed up in case the user wants to downgrade their
         // install.
         { 12, null },
-        { 13, MigrateLogRotatorToLogging },
-        { 14, MigrateTraceLogToLogging },
-        // Note: path-dependent migration — the real function is injected in MigrateSettings
-        // using applicationPaths.DataPath. The null tombstone here ensures Version == 15.
-        { 15, null },
-        { 16, MigrateDefaultRenamerToStatic },
-        { 17, MigrateReleaseSignalTypeNames },
-        { 18, MigrateTmdbIncrementalChangesWindow },
-        { 19, MigrateAniDbMyListToOwnObject },
-        // Note: path-dependent migration, injected in MigrateSettings like 15.
-        { 20, null },
-        { 21, MigrateSourceNamesToValues },
-        { 22, MigrateDropPluginImageTemplateUrls },
-        { 23, MigrateTmdbImageSettingsToMetadataSource },
-        { 24, MigrateTmdbAutoPurgeToMetadata },
-        { 25, null },
+        { 13, (settings, _) => MigrateLogRotatorToLogging(settings) },
+        { 14, (settings, _) => MigrateTraceLogToLogging(settings) },
+        { 15, (settings, paths) => MigrateQuartzToQueue(settings, paths.DataPath) },
+        { 16, (settings, _) => MigrateDefaultRenamerToStatic(settings) },
+        { 17, (settings, _) => MigrateReleaseSignalTypeNames(settings) },
+        { 18, (settings, _) => MigrateTmdbIncrementalChangesWindow(settings) },
+        { 19, (settings, _) => MigrateAniDbMyListToOwnObject(settings) },
+        { 20, (settings, paths) => MigrateAutoLinkToMetadataService(settings, paths.DataPath) },
+        { 21, (settings, _) => MigrateSourceNamesToValues(settings) },
+        { 22, (settings, _) => MigrateDropPluginImageTemplateUrls(settings) },
+        { 23, (settings, _) => MigrateTmdbImageSettingsToMetadataSource(settings) },
+        { 24, (settings, _) => MigrateTmdbAutoPurgeToMetadata(settings) },
+        { 25, (settings, paths) => MigrateUpdateFrequenciesToScheduledActions(settings, paths.DataPath) },
+        { 26, MigrateTmdbSettingsToPlugin },
+        { 27, (settings, paths) => MigrateStartupSettingsToTriggers(settings, paths.DataPath) },
     };
 
     /// <summary>
@@ -247,30 +237,7 @@ public static partial class SettingsMigrations
     ///   because it was already applied, or when it cannot be read.
     /// </returns>
     internal static IReadOnlyDictionary<string, int> ReadUpdateFrequencyCarryOver(string dataPath, ILogger? logger = null)
-    {
-        var path = UpdateFrequencyCarryOverPath(dataPath);
-        if (!File.Exists(path))
-            return new Dictionary<string, int>();
-
-        try
-        {
-            return JsonConvert.DeserializeObject<Dictionary<string, int>>(File.ReadAllText(path)) ?? [];
-        }
-        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
-        {
-            logger?.LogWarning(ex, "Could not read the carried-over update frequencies in {Path}; the scheduled actions keep their default triggers", path);
-            try
-            {
-                File.Move(path, path + ".unreadable", true);
-            }
-            catch (Exception moveEx) when (moveEx is IOException or UnauthorizedAccessException)
-            {
-                logger?.LogWarning(moveEx, "Could not move the unreadable carry-over {Path} aside", path);
-            }
-
-            return new Dictionary<string, int>();
-        }
-    }
+        => ReadCarryOver<Dictionary<string, int>>(UpdateFrequencyCarryOverPath(dataPath), "update frequencies", logger) ?? [];
 
     /// <summary>
     ///   Removes the update frequency carry-over once it has been applied and
@@ -342,6 +309,248 @@ public static partial class SettingsMigrations
                 ScheduledUpdateFrequency.Never => 0,
                 { } known => known.Hours,
             };
+        }
+    }
+
+    /// <summary>
+    ///   Reads a carry-over file. One that cannot be read is renamed aside, so
+    ///   it is not read on every start.
+    /// </summary>
+    /// <typeparam name="T">What the file holds.</typeparam>
+    /// <param name="path">The file.</param>
+    /// <param name="what">What it holds, for the log.</param>
+    /// <param name="logger">Told when the file cannot be read, or <c>null</c>.</param>
+    /// <returns>What it holds, or <c>null</c> when there is no file or it cannot be read.</returns>
+    private static T? ReadCarryOver<T>(string path, string what, ILogger? logger) where T : class
+    {
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            return JsonConvert.DeserializeObject<T>(File.ReadAllText(path));
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            logger?.LogWarning(ex, "Could not read the carried-over {What} in {Path}; the scheduled actions keep their triggers", what, path);
+            try
+            {
+                File.Move(path, path + ".unreadable", true);
+            }
+            catch (Exception moveEx) when (moveEx is IOException or UnauthorizedAccessException)
+            {
+                logger?.LogWarning(moveEx, "Could not move the unreadable carry-over {Path} aside", path);
+            }
+
+            return null;
+        }
+    }
+
+    #endregion
+
+    #region TMDB Plugin
+
+    /// <summary>
+    ///   The TMDB plugin's ID, the same as its <c>Plugin.ID</c>.
+    /// </summary>
+    internal static readonly Guid TmdbPluginID = new("85d0c34f-240f-4da3-8512-d0b45118a9f4");
+
+    /// <summary>
+    ///   The keys of the <c>TMDB</c> section that the TMDB plugin's
+    ///   configuration reads, spelled the same in both.
+    /// </summary>
+    internal static readonly string[] TmdbPluginConfigurationKeys =
+    [
+        "ConsiderExistingOtherLinks",
+        "DownloadAllTitles",
+        "DownloadAllOverviews",
+        "DownloadAllContentRatings",
+        "AutoDownloadCrewAndCast",
+        "AutoDownloadCollections",
+        "AutoDownloadAlternateOrdering",
+        "AutoDownloadNetworks",
+        "UserApiKey",
+        "IncrementalChangesWindowDays",
+        "AutoSearchShowCandidateCount",
+        "AutoSearchMovieCandidateCount",
+        "RateLimit",
+    ];
+
+    /// <summary>
+    ///   Where the TMDB plugin keeps its configuration.
+    /// </summary>
+    /// <param name="applicationPaths">The application paths.</param>
+    /// <returns>The file, <c>tmdb.json</c> in the plugin's configuration folder.</returns>
+    internal static string TmdbPluginConfigurationPath(IApplicationPaths applicationPaths)
+        => Path.Join(PluginPathRules.GetConfigurationsPath(applicationPaths, TmdbPluginID), "tmdb.json");
+
+    /// <summary>
+    ///   Moves the <c>TMDB</c> section to the TMDB plugin's configuration file,
+    ///   and its <c>ImageCdnUrl</c> to the image template URL for TMDB, as
+    ///   migration 26. The user's API key moves as it is, without being logged.
+    /// </summary>
+    /// <remarks>
+    ///   An existing plugin file is kept, and a section with nothing to carry
+    ///   writes none. With the section gone, a second run changes nothing.
+    /// </remarks>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <param name="applicationPaths">The application paths, for the plugin's file.</param>
+    /// <returns>The settings JSON without the <c>TMDB</c> section.</returns>
+    internal static string MigrateTmdbSettingsToPlugin(string settings, IApplicationPaths applicationPaths)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings.Property("TMDB") is not { } section)
+            return settings;
+
+        section.Remove();
+        if (section.Value is not JObject tmdb)
+            return currentSettings.ToString();
+
+        if (tmdb.Property("ImageCdnUrl") is { } imageCdnUrl && ToTmdbImageTemplate(imageCdnUrl.Value) is { } template)
+            AddTmdbImageTemplate(currentSettings, template);
+
+        var configuration = new JObject();
+        foreach (var key in TmdbPluginConfigurationKeys)
+        {
+            if (tmdb.Property(key) is { } property)
+                configuration[key] = property.Value.DeepClone();
+        }
+
+        var path = TmdbPluginConfigurationPath(applicationPaths);
+        if (configuration.Count > 0 && !File.Exists(path))
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, configuration.ToString());
+        }
+
+        return currentSettings.ToString();
+    }
+
+    /// <summary>
+    ///   Turns TMDB's image CDN URL into a template, as the image manager
+    ///   reads it: a URL with a <c>{0}</c> as it is, else a base URL for the
+    ///   original size.
+    /// </summary>
+    /// <param name="value">The <c>ImageCdnUrl</c> value.</param>
+    /// <returns>The template, or <c>null</c> when the value is not an http or https URL.</returns>
+    private static string? ToTmdbImageTemplate(JToken value)
+    {
+        if (value.Type is not JTokenType.String || value.Value<string>()?.Trim() is not { Length: > 0 } url)
+            return null;
+
+        var template = url.Contains("{0}") ? url : url.EndsWith('/') ? $"{url}original/{{0}}" : $"{url}/original/{{0}}";
+        return Uri.TryCreate(template, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+            ? template
+            : null;
+    }
+
+    /// <summary>
+    ///   Adds a TMDB entry to the image template URLs, unless one is there,
+    ///   which already took precedence over the CDN URL.
+    /// </summary>
+    /// <param name="settings">The settings being migrated.</param>
+    /// <param name="template">The template URL.</param>
+    private static void AddTmdbImageTemplate(JObject settings, string template)
+    {
+        if (settings["Image"] is not JObject image)
+            settings["Image"] = image = new JObject();
+        if (image["ImageTemplateUrls"] is not JArray templates)
+            image["ImageTemplateUrls"] = templates = new JArray();
+
+        var exists = templates.OfType<JObject>().Any(entry =>
+            entry["ImageSource"]?.Type is JTokenType.String &&
+            string.Equals(entry["ImageSource"]!.Value<string>(), MetadataSource.TMDB.Value, StringComparison.OrdinalIgnoreCase)
+        );
+        if (!exists)
+            templates.Add(new JObject { ["ImageSource"] = MetadataSource.TMDB.Value, ["TemplateUrl"] = template });
+    }
+
+    #endregion
+
+    #region Start-up Triggers
+
+    /// <summary>
+    ///   The carry-over key of <c>Import.RunOnStart</c>.
+    /// </summary>
+    internal const string RunImportOnStart = "Import.RunOnStart";
+
+    /// <summary>
+    ///   The carry-over key of <c>Import.ScanDropFoldersOnStart</c>.
+    /// </summary>
+    internal const string ScanDropFoldersOnStart = "Import.ScanDropFoldersOnStart";
+
+    /// <summary>
+    ///   Where migration 27 leaves the start-up settings that were on, until
+    ///   the action scheduler has made them start-up triggers.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <returns>The carry-over file's path.</returns>
+    internal static string StartupTriggerCarryOverPath(string dataPath)
+        => Path.Combine(dataPath, "SettingsBackup", "startup-triggers.v26.json");
+
+    /// <summary>
+    ///   Reads the start-up settings migration 27 carried over. A file that
+    ///   cannot be read is renamed aside, so it is not read on every start.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    /// <param name="logger">Told when the file cannot be read, or <c>null</c>.</param>
+    /// <returns>
+    ///   The carry-over keys of the settings that were on, or an empty set when
+    ///   there is no file, either because nothing was migrated or because it
+    ///   was already applied, or when it cannot be read.
+    /// </returns>
+    internal static IReadOnlySet<string> ReadStartupTriggerCarryOver(string dataPath, ILogger? logger = null)
+        => ReadCarryOver<HashSet<string>>(StartupTriggerCarryOverPath(dataPath), "start-up settings", logger) ?? [];
+
+    /// <summary>
+    ///   Removes the start-up trigger carry-over once it has been applied and
+    ///   saved.
+    /// </summary>
+    /// <param name="dataPath">The server's data path.</param>
+    internal static void ClearStartupTriggerCarryOver(string dataPath)
+    {
+        var path = StartupTriggerCarryOverPath(dataPath);
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
+    /// <summary>
+    ///   Takes <c>Import.RunOnStart</c> and <c>Import.ScanDropFoldersOnStart</c>
+    ///   out of the settings and writes the ones that were on to the carry-over
+    ///   file, for the action scheduler to give the actions they ran start-up
+    ///   triggers, since the schedule lives in the database, which cannot be
+    ///   written yet.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <param name="dataPath">
+    ///   The server's data path. The carry-over stays until the scheduler has
+    ///   applied and saved it, so a boot that fails before then keeps it.
+    /// </param>
+    /// <returns>The settings JSON without the two settings.</returns>
+    private static string MigrateStartupSettingsToTriggers(string settings, string dataPath)
+    {
+        var currentSettings = JObject.Parse(settings);
+        var import = currentSettings["Import"] as JObject;
+        var taken = new List<string>(2);
+        Take("RunOnStart", RunImportOnStart);
+        Take("ScanDropFoldersOnStart", ScanDropFoldersOnStart);
+        if (taken.Count > 0)
+        {
+            var path = StartupTriggerCarryOverPath(dataPath);
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, JsonConvert.SerializeObject(taken, Formatting.Indented));
+        }
+
+        return currentSettings.ToString();
+
+        void Take(string name, string key)
+        {
+            if (import?.Property(name) is not { } property)
+                return;
+
+            property.Remove();
+            if (property.Value.Type is JTokenType.Boolean && property.Value.Value<bool>())
+                taken.Add(key);
         }
     }
 

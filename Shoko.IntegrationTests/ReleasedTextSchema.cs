@@ -92,7 +92,8 @@ internal static class ReleasedTextSchema
                 continue;
             }
 
-            if (!schema.Tables[table].ContainsKey(column))
+            // A column of a table that is gone itself is put back with its table, if at all.
+            if (schema.Tables.TryGetValue(table, out var columns) && !columns.ContainsKey(column))
                 Sql.Execute(connection, $"ALTER TABLE {table} {addColumn} {column} {(column is "IsManuallyNamed" or "OverrideDescription" ? number : text)} NULL");
         }
     }

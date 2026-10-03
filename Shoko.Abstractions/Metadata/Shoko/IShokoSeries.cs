@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Metadata.Anidb;
-using Shoko.Abstractions.Metadata.Containers;
-using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Metadata.Shoko;
@@ -10,13 +8,19 @@ namespace Shoko.Abstractions.Metadata.Shoko;
 /// <summary>
 /// Shoko series metadata.
 /// </summary>
-public interface IShokoSeries : ISeries, IWithCreationDate, IWithUpdateDate
+public interface IShokoSeries : ISeries<IShokoSeries, IShokoEpisode>
 {
     /// <summary>
     ///   The Shoko series ID, the same ID <see cref="IMetadata.ID"/> holds as
     ///   text.
     /// </summary>
     int LocalID { get; }
+
+    /// <summary>
+    ///   Always <see langword="null"/>: a Shoko series is never refreshed from
+    ///   a source, and does not take its AniDB anime's time.
+    /// </summary>
+    DateTime? ISeries.LastRefreshedAt { get => null; }
 
     /// <summary>
     /// AniDB anime id linked to the Shoko series.
@@ -128,16 +132,6 @@ public interface IShokoSeries : ISeries, IWithCreationDate, IWithUpdateDate
     /// Provider names are split by '+' before counting.
     /// </summary>
     IReadOnlyDictionary<string, int> ReleaseProviderCounts { get; }
-
-    /// <summary>
-    /// All known fake "seasons" for the Shoko series.
-    /// </summary>
-    new IReadOnlyList<IShokoSeason> Seasons { get; }
-
-    /// <summary>
-    /// All episodes for the Shoko series.
-    /// </summary>
-    new IReadOnlyList<IShokoEpisode> Episodes { get; }
 
     /// <summary>
     ///   Gets the user-specific data for the Shoko series and user.
