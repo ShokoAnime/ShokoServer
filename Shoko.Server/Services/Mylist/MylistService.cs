@@ -93,6 +93,8 @@ public class MylistService(
     /// </summary>
     private readonly SemaphoreSlim _fetchLock = new(1, 1);
 
+    private DateTime _httpRetryAfter = DateTime.MinValue;
+
     public MylistFetchMode FetchMode
     {
         get => settingsProvider.GetSettings().AniDb.MyList.FetchMode;
@@ -345,11 +347,14 @@ public class MylistService(
     /// Refreshes the cache over HTTP when the fetch mode allows it and the
     /// cache is stale, or the time check is ignored. Failures are logged
     /// and swallowed, so the caller can continue with the cache and UDP.
+    /// After a failure the time check also gates retries for one cache
+    /// lifetime, since a failed fetch never freshens the cache and AniDB
+    /// bans repeated requests for the same dataset.
     /// </summary>
     private async Task RefreshCacheIfAllowedAsync(MylistFetchMode fetchMode, CancellationToken cancellationToken)
     {
         if (!fetchMode.HasFlag(MylistFetchMode.Http)) return;
-        if (!fetchMode.HasFlag(MylistFetchMode.IgnoreTimeCheck) && IsCacheFresh()) return;
+        if (!fetchMode.HasFlag(MylistFetchMode.IgnoreTimeCheck) && (IsCacheFresh() || DateTime.UtcNow < _httpRetryAfter)) return;
 
         try
         {
@@ -357,10 +362,12 @@ public class MylistService(
         }
         catch (AnidbHttpBannedException ex)
         {
+            _httpRetryAfter = DateTime.UtcNow + CacheLifetime;
             _logger.LogWarning("Got an AniDB HTTP ban while refreshing the MyList cache. Expires: {ExpiresAt}", ex.ExpiresAt);
         }
         catch (Exception ex)
         {
+            _httpRetryAfter = DateTime.UtcNow + CacheLifetime;
             _logger.LogWarning(ex, "Failed to refresh the MyList cache over HTTP");
         }
     }
