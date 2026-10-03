@@ -58,6 +58,14 @@
       "type": "boolean",
       "description": "Use the score algorithm for auto grouping."
     },
+    "CompletionThresholdPercent": {
+      "title": "Completion Threshold (%)",
+      "type": "integer",
+      "description": "How far into a video, in percent of its runtime, a position counts as finished when playback ends or a user saves it: the video is marked watched and its position cleared. A save can opt out of the rule.",
+      "format": "int32",
+      "maximum": 100.0,
+      "minimum": 50.0
+    },
     "Image": {
       "title": "Image",
       "description": "Configure the image settings for Shoko.",
@@ -100,11 +108,6 @@
       "title": "AniDB",
       "description": "Configure the information Shoko retrieves from AniDB for the series in your collection, and set your preferences for the general updating of AniDB data.",
       "$ref": "#/definitions/AniDb"
-    },
-    "TMDB": {
-      "title": "TMDB",
-      "description": "Configure the information Shoko retrieves from TMDB for the series in your collection.",
-      "$ref": "#/definitions/TMDB"
     },
     "Metadata": {
       "title": "Metadata",
@@ -216,7 +219,7 @@
         "MetadataSources": {
           "title": "Metadata Source Images",
           "type": "array",
-          "description": "Which images to download for TMDB and each plugin metadata source, keyed by source, in place of MetadataSourceDefaults.",
+          "description": "Which images to download for each plugin metadata source, keyed by source, in place of MetadataSourceDefaults.",
           "items": {
             "$ref": "#/definitions/MetadataSourceImage"
           }
@@ -355,7 +358,7 @@
     },
     "MetadataSourceImage": {
       "type": "object",
-      "description": "Which images to download for one metadata source with a provider, TMDB or a plugin source, in place of the shared defaults.",
+      "description": "Which images to download for one metadata source with a provider, in place of the shared defaults.",
       "required": [
         "Source"
       ],
@@ -494,16 +497,6 @@
           "items": {
             "type": "string"
           }
-        },
-        "RunOnStart": {
-          "title": "Run Import on Startup",
-          "type": "boolean",
-          "description": "Queue the import's scheduled actions on startup, as the legacy Run Import route does."
-        },
-        "ScanDropFoldersOnStart": {
-          "title": "Scan Source Managed Folders on Startup",
-          "type": "boolean",
-          "description": "Scan all source managed folders on server startup."
         },
         "CleanUpStructure": {
           "title": "Clean Up Structure on Managed Folder Scan",
@@ -1205,158 +1198,14 @@
         "Auto"
       ]
     },
-    "TMDB": {
-      "type": "object",
-      "properties": {
-        "ConsiderExistingOtherLinks": {
-          "title": "Consider Existing Other Links",
-          "type": "boolean",
-          "description": "Determines whether to consider existing cross-reference links to other AniDB anime when linking an AniDB anime to a TMDB show."
-        },
-        "DownloadAllTitles": {
-          "title": "Download All Titles",
-          "type": "boolean",
-          "description": "Indicates that all titles should be stored locally for the TMDB entity, otherwise it will use or depending on the entity type to determine which titles to store locally."
-        },
-        "DownloadAllOverviews": {
-          "title": "Download All Overviews",
-          "type": "boolean",
-          "description": "Indicates that all overviews should be stored locally for the TMDB entity, otherwise it will use to determine which overviews should be stored locally."
-        },
-        "DownloadAllContentRatings": {
-          "title": "Download All Content Ratings",
-          "type": "boolean",
-          "description": "Indicates that all content-ratings should be stored locally for the TMDB entity, otherwise it will use or depending on the entity type to determine which content-ratings to store locally."
-        },
-        "AutoDownloadCrewAndCast": {
-          "title": "Auto Download Crew And Cast",
-          "type": "boolean",
-          "description": "Automagically download crew and cast for movies and tv shows in the local collection."
-        },
-        "AutoDownloadCollections": {
-          "title": "Auto Download Collections",
-          "type": "boolean",
-          "description": "Automagically download collections for movies and tv shows in the local collection."
-        },
-        "AutoDownloadAlternateOrdering": {
-          "title": "Auto Download Alternate Ordering",
-          "type": "boolean",
-          "description": "Automagically download episode groups to use with alternate ordering for tv shows."
-        },
-        "AutoDownloadNetworks": {
-          "title": "Auto Download Networks",
-          "type": "boolean",
-          "description": "Automagically download networks for tv shows in the local collection."
-        },
-        "UserApiKey": {
-          "title": "User Api Key",
-          "type": [
-            "null",
-            "string"
-          ],
-          "description": "Optional. User provided TMDB API key to use.",
-          "x-uiDefinition": {
-            "elementType": "password",
-            "requiresRestart": true,
-            "envVar": "TMDB_API_KEY",
-            "envVarOverridable": false
-          }
-        },
-        "ImageCdnUrl": {
-          "title": "Image CDN URL",
-          "type": [
-            "null",
-            "string"
-          ],
-          "description": "The base URL or URL template for the image CDN to use.",
-          "format": "uri",
-          "x-uiDefinition": {
-            "elementType": "auto",
-            "requiresRestart": false,
-            "envVar": "TMDB_IMAGE_CDN_URL",
-            "envVarOverridable": false
-          }
-        },
-        "IncrementalChangesWindowDays": {
-          "title": "Incremental Changes Window Days",
-          "type": "integer",
-          "description": "The number of days to check for incremental changes. Set to `0` to disable incremental changes.",
-          "format": "int32",
-          "default": 1,
-          "maximum": 14.0,
-          "minimum": 0.0,
-          "x-uiDefinition": {
-            "elementType": "auto",
-            "requiresRestart": false,
-            "envVar": "TMDB_CHANGES_WINDOW_DAYS",
-            "envVarOverridable": false
-          }
-        },
-        "AutoSearchShowCandidateCount": {
-          "title": "Auto Search Show Candidate Count",
-          "type": "integer",
-          "description": "The maximum number of TMDB search candidates to evaluate per auto-search attempt for shows. Each candidate that passes the animation filter is fetched in full (title translations + episode count) and scored; the highest-scoring result is used. Higher values improve accuracy at the cost of more TMDB API calls. All calls are paced by `TmdbRateLimiter` (sliding-window, ~40 req/sec) with automatic 429 backoff, so increasing this value slows searches but will not trigger rate-limit errors.\nThe year-free candidate pool cap is `2 × this value`. At the minimum of 1, year-free searches collect at most 2 candidates total — sufficient for most titles, but edge cases may benefit from a higher value.",
-          "format": "int32",
-          "maximum": 10.0,
-          "minimum": 1.0
-        },
-        "AutoSearchMovieCandidateCount": {
-          "title": "Auto Search Movie Candidate Count",
-          "type": "integer",
-          "description": "The maximum number of TMDB search candidates to evaluate per auto-search attempt for movies. Each candidate that passes the animation filter is fetched in full (title translations + release dates) and scored; the highest-scoring result is used. Higher values improve accuracy at the cost of more TMDB API calls. All calls are paced by `TmdbRateLimiter` (sliding-window, ~40 req/sec) with automatic 429 backoff, so increasing this value slows searches but will not trigger rate-limit errors.\nThe year-free candidate pool cap is `2 × this value`. At the minimum of 1, year-free searches collect at most 2 candidates total — sufficient for most titles, but edge cases may benefit from a higher value.",
-          "format": "int32",
-          "maximum": 10.0,
-          "minimum": 1.0
-        },
-        "RateLimit": {
-          "title": "Rate Limit",
-          "description": "Rate limit settings for the TMDB API.",
-          "$ref": "#/definitions/TmdbRateLimit"
-        }
-      }
-    },
-    "TmdbRateLimit": {
-      "type": "object",
-      "description": "Settings for rate limiting the TMDB provider.",
-      "properties": {
-        "MaxRequestsPerWindow": {
-          "title": "Max Requests Per Window",
-          "type": "integer",
-          "description": "Maximum number of requests allowed within the rate limit window. TMDB enforces a maximum of 40 requests per second; this defaults to 10 to avoid overwhelming end-user hardware with API requests and the data processing that follows each one.",
-          "format": "int32",
-          "maximum": 40.0,
-          "minimum": 1.0,
-          "x-uiDefinition": {
-            "elementType": "auto",
-            "requiresRestart": false,
-            "envVar": "TMDB_RATE_LIMIT_MAX_REQUESTS_PER_WINDOW",
-            "envVarOverridable": false
-          }
-        },
-        "WindowDurationMs": {
-          "title": "Window Duration (ms)",
-          "type": "integer",
-          "description": "Duration of the sliding rate limit window in milliseconds.",
-          "format": "int32",
-          "maximum": 10000.0,
-          "minimum": 100.0,
-          "x-uiDefinition": {
-            "elementType": "auto",
-            "requiresRestart": false,
-            "envVar": "TMDB_RATE_LIMIT_WINDOW_DURATION_MS",
-            "envVarOverridable": false
-          }
-        }
-      }
-    },
     "Metadata": {
       "type": "object",
-      "description": "Settings for the metadata the plugin providers keep in the core's stores.",
+      "description": "Settings for the metadata kept in the core's stores.",
       "properties": {
         "PurgeOrphanedAfterDays": {
           "title": "Purge Orphaned Metadata After (days)",
           "type": "integer",
-          "description": "Number of days a creator, character, studio or network of a plugin source, or a person or network of TMDB, may go unused before it is purged. Purged daily, and when the purge action is run.",
+          "description": "Number of days a creator, character, studio or network of a plugin source may go unused before it is purged. Purged daily, and when the purge action is run.",
           "format": "int32",
           "default": 7,
           "maximum": 365.0,
@@ -1371,7 +1220,7 @@
         "AutoPurgeUnlinkedAfterDays": {
           "title": "Purge Unlinked Metadata After (days)",
           "type": "integer",
-          "description": "Number of days a series, movie or collection of TMDB or a plugin source may stay stored with nothing linking to it before it is purged, counted from its last refresh. Purged daily. Set to `0` to never purge them on their own. `TMDB_AUTO_PURGE_UNLINKED_AFTER_DAYS` is still honoured, with a warning, while `METADATA_AUTO_PURGE_UNLINKED_AFTER_DAYS` is unset.",
+          "description": "Number of days a series, movie or collection of a plugin source may stay stored with nothing linking to it before it is purged, counted from its last refresh. Purged daily. Set to `0` to never purge them on their own. `TMDB_AUTO_PURGE_UNLINKED_AFTER_DAYS` is still honoured, with a warning, while `METADATA_AUTO_PURGE_UNLINKED_AFTER_DAYS` is unset.",
           "format": "int32",
           "default": 14,
           "maximum": 365.0,

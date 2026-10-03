@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Elements;
+using Shoko.Plugin.Tmdb;
+using Shoko.Plugin.WebAOM;
 using Shoko.Server.Services.Configuration;
 using Shoko.Server.Settings;
 using Xunit;
@@ -13,7 +16,8 @@ namespace Shoko.Tests.Services;
 
 /// <summary>
 ///   Generates a schema and a UI definition for every configuration the server
-///   ships, so a change to the generator cannot break one of them at startup.
+///   and its bundled plugins ship, so a change to the generator cannot break
+///   one of them at startup.
 /// </summary>
 /// <remarks>
 ///   The unit tests above drive `ServerSettings` and a handful of fixtures; the
@@ -27,7 +31,8 @@ public class AllConfigurationTypesTests
         get
         {
             var data = new TheoryData<Type>();
-            foreach (var type in typeof(ServerSettings).Assembly.GetTypes()
+            Assembly[] assemblies = [typeof(ServerSettings).Assembly, typeof(TmdbConfiguration).Assembly, typeof(WebAOMSettings).Assembly];
+            foreach (var type in assemblies.SelectMany(x => x.GetTypes())
                 .Where(x => x is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false } && x.IsAssignableTo(typeof(IConfiguration)))
                 .Where(x => x.GetConstructor(Type.EmptyTypes) is not null)
                 .OrderBy(x => x.FullName, StringComparer.Ordinal))

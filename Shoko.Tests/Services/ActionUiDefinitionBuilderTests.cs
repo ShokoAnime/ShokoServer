@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.UI;
 using Shoko.Abstractions.UI.Elements;
 using Shoko.Abstractions.UI.Enums;
+using Shoko.Plugin.Tmdb;
+using Shoko.Plugin.WebAOM;
 using Shoko.Server.Actions;
 using Shoko.Server.Services.Configuration;
 using Xunit;
@@ -232,7 +236,8 @@ public class ActionUiDefinitionBuilderTests
     public void RealInTreeActions_AreDescribedWithoutTheirMetadata()
     {
         // Between them, the in-tree actions that declare parameters cover plain
-        // bools, bools initialised to `true` and a nullable metadata source.
+        // bools, bools initialised to `true`, and a nullable metadata source and
+        // entity type.
         var group = RootOf(typeof(DeleteGroupAction));
         Assert.Equal(["DeleteSeries", "DeleteFiles"], group.Items.Keys);
         Assert.All(group.Items.Values, x => Assert.False(Assert.IsType<UiBooleanElement>(x).IsNullable));
@@ -244,10 +249,38 @@ public class ActionUiDefinitionBuilderTests
         // though both initialise to `true`.
         Assert.All(video.Items.Values, x => Assert.Null(Assert.IsType<UiBooleanElement>(x).Default));
 
-        // A metadata source is written as its string form.
+        // A metadata source or entity type is written as its string form.
         var refresh = RootOf(typeof(RefreshLinkedMetadataSeriesAction));
         Assert.Equal(["Source"], refresh.Items.Keys);
         Assert.True(Assert.IsType<UiStringElement>(refresh.Items["Source"]).IsNullable);
+
+        var refreshAll = RootOf(typeof(RefreshLinkedMetadataAction));
+        Assert.Equal(["Source", "EntityType", "Force", "DownloadImages"], refreshAll.Items.Keys);
+        Assert.True(Assert.IsType<UiStringElement>(refreshAll.Items["EntityType"]).IsNullable);
+    }
+
+    /// <summary>
+    ///   Every executable action the server and its bundled plugins ship.
+    /// </summary>
+    public static TheoryData<Type> InTreeActionTypes()
+    {
+        var data = new TheoryData<Type>();
+        Assembly[] assemblies = [typeof(DeleteGroupAction).Assembly, typeof(TmdbConfiguration).Assembly, typeof(WebAOMSettings).Assembly];
+        foreach (var type in assemblies.SelectMany(x => x.GetTypes())
+            .Where(x => x is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false } && x.IsAssignableTo(typeof(IExecutableAction)))
+            .OrderBy(x => x.FullName, StringComparer.Ordinal))
+            data.Add(type);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(InTreeActionTypes))]
+    public void EveryInTreeAction_IsDescribedWholeOrHasNoParameters(Type actionType)
+    {
+        if (_builder.Build(Guid.Empty, actionType.Name, null, actionType) is not { } described)
+            return;
+
+        Assert.All(Flatten(described.Definition.Root), x => Assert.NotEqual(UiElementKind.Unknown, x.Kind));
     }
 
     private static IEnumerable<string> TopLevelKeys(string json)
