@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
+using Shoko.Abstractions.Metadata.Anidb.Models;
 
 namespace Shoko.Abstractions.Metadata.Anidb.Services;
 
@@ -95,6 +96,30 @@ public interface IAnidbService
     /// <param name="anidbID">AniDB ID to search for.</param>
     /// <returns>Search result, if found by ID.</returns>
     IAnidbAnimeSearchResult? SearchAnimeByID(int anidbID);
+
+    #endregion
+
+    #region Cached Anime
+
+    /// <summary>
+    ///   Lists the AniDB anime in the local cache, in the collection or not,
+    ///   filtered and ordered by <paramref name="options"/>.
+    /// </summary>
+    /// <param name="options">The filters and order, or <c>null</c> for every anime by title.</param>
+    /// <returns>The matching anime.</returns>
+    IReadOnlyList<IAnidbAnime> GetCachedAnime(AnidbAnimeListOptions? options = null);
+
+    /// <summary>
+    ///   Lists the seasons the regular episodes of the cached AniDB anime air
+    ///   in, with how many anime are in each, newest first, up to the season
+    ///   after the one under way. The season under way is always listed. A
+    ///   season's images come from its best anime by weighted rating among
+    ///   those starting in it that have a poster.
+    /// </summary>
+    /// <param name="options">The filters on the anime counted; the seasons and order are ignored.</param>
+    /// <param name="includeImages">Whether to pick a poster and a backdrop for each season.</param>
+    /// <returns>The seasons.</returns>
+    IReadOnlyList<AnidbAnimeSeasonCount> GetCachedAnimeSeasons(AnidbAnimeListOptions? options = null, bool includeImages = false);
 
     #endregion
 

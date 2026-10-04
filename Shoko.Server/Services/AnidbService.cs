@@ -14,6 +14,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
+using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.Enums;
@@ -355,6 +356,24 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
         => _titleHelper.SearchAnimeID(anidbID) is { } result
             ? new AbstractAnidbAnimeSearchResult(new() { Result = result, Match = result.DefaultTitle.Value, ExactMatch = true }, _anidbAnimeRepository, _seriesRepository)
             : null;
+
+    #endregion
+
+    #region Cached Anime
+
+    /// <inheritdoc/>
+    public IReadOnlyList<IAnidbAnime> GetCachedAnime(AnidbAnimeListOptions? options = null)
+        => [.. Catalog.GetAnime(options).Select(entry => entry.Anime)];
+
+    /// <inheritdoc/>
+    public IReadOnlyList<AnidbAnimeSeasonCount> GetCachedAnimeSeasons(AnidbAnimeListOptions? options = null, bool includeImages = false)
+        => Catalog.GetSeasons(options, includeImages);
+
+    // Lazy init. to prevent circular dependency.
+    private AnidbAnimeCatalog Catalog
+        => _catalog ??= _serviceProvider.GetRequiredService<AnidbAnimeCatalog>();
+
+    private AnidbAnimeCatalog? _catalog;
 
     #endregion
 

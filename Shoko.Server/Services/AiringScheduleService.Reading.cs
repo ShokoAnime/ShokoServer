@@ -825,17 +825,9 @@ public partial class AiringScheduleService
         if (options.User is { } user && state.AnidbAnime is { } anime && !user.IsAllowedToSee(anime))
             return false;
 
-        return Passes(options.IncludeRestricted, state.IsRestricted) &&
-            Passes(options.InCollection, state.IsInCollection) &&
-            Passes(options.IncludeMissing, state.IsMissing);
-
-        static bool Passes(InclusionFilter filter, bool meetsCondition)
-            => filter switch
-            {
-                InclusionFilter.True => true,
-                InclusionFilter.Only => meetsCondition,
-                _ => !meetsCondition,
-            };
+        return options.IncludeRestricted.Passes(state.IsRestricted) &&
+            options.InCollection.Passes(state.IsInCollection) &&
+            options.IncludeMissing.Passes(state.IsMissing);
     }
 
     /// <summary>

@@ -631,6 +631,7 @@ public class SystemService : ISystemService
                 });
             services.AddAniDB();
             services.AddSingleton<AnidbService>();
+            services.AddSingleton<AnidbAnimeCatalog>();
             services.AddSingleton<IAnidbService>(sp => sp.GetRequiredService<AnidbService>());
             services.AddSingleton<IAnidbAvdumpService>(sp => sp.GetRequiredService<AnidbService>());
             services.AddSingleton<MylistCache>();

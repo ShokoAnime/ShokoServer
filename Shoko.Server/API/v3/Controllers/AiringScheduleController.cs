@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Config;
-using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -162,9 +161,9 @@ public class AiringScheduleController(
             Languages = language is { Count: > 0 } ? language : null,
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
             EpisodeTypes = type is { Count: > 0 } ? type : null,
-            InCollection = ToInclusion(inCollection),
-            IncludeMissing = ToInclusion(includeMissing),
-            IncludeRestricted = ToInclusion(includeRestricted),
+            InCollection = inCollection.InclusionFilter,
+            IncludeMissing = includeMissing.InclusionFilter,
+            IncludeRestricted = includeRestricted.InclusionFilter,
             User = HttpContext.GetUser(),
             IncludeEstimates = includeEstimates,
             IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
@@ -591,9 +590,9 @@ public class AiringScheduleController(
             Kinds = kind is { Count: > 0 } ? kind : null,
             ChannelIDs = new HashSet<Guid> { channelID },
             EpisodeTypes = type is { Count: > 0 } ? type : null,
-            InCollection = ToInclusion(inCollection),
-            IncludeMissing = ToInclusion(includeMissing),
-            IncludeRestricted = ToInclusion(includeRestricted),
+            InCollection = inCollection.InclusionFilter,
+            IncludeMissing = includeMissing.InclusionFilter,
+            IncludeRestricted = includeRestricted.InclusionFilter,
             User = HttpContext.GetUser(),
             IncludeEstimates = includeEstimates,
             IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
@@ -1049,19 +1048,6 @@ public class AiringScheduleController(
             return DateTimeOffset.MaxValue;
         }
     }
-
-    /// <summary>
-    /// The service's counterpart of an APIv3 include filter.
-    /// </summary>
-    /// <param name="filter">The APIv3 filter.</param>
-    /// <returns>The same filter, for the service.</returns>
-    private static InclusionFilter ToInclusion(IncludeOnlyFilter filter)
-        => filter switch
-        {
-            IncludeOnlyFilter.True => InclusionFilter.True,
-            IncludeOnlyFilter.Only => InclusionFilter.Only,
-            _ => InclusionFilter.False,
-        };
 
     /// <summary>
     /// The series behind an airing: the shoko series where there is one, else

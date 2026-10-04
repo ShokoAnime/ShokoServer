@@ -136,38 +136,11 @@ public static class Models
 
     private static bool IsInSeason(DateOnly startDate, DateOnly? endDate, YearlySeason season, int year)
     {
-        DateOnly seasonStart;
-        DateOnly seasonStartBegin;
-        DateOnly seasonStartEnd;
-        switch (season)
-        {
-            case YearlySeason.Winter:
-                // January (starts 1w early), runs until Spring's own buffered start
-                seasonStart = new(year - 1, 12, 25);
-                seasonStartBegin = seasonStart.AddDays(-BufferDays);
-                seasonStartEnd = new DateOnly(year, 3, 25).AddDays(-BufferDays);
-                break;
-            case YearlySeason.Spring:
-                // April (starts 1w early), runs until Summer's own buffered start
-                seasonStart = new(year, 3, 25);
-                seasonStartBegin = seasonStart.AddDays(-BufferDays);
-                seasonStartEnd = new DateOnly(year, 6, 24).AddDays(-BufferDays);
-                break;
-            case YearlySeason.Summer:
-                // July (starts 1w early), runs until Fall's own buffered start
-                seasonStart = new(year, 6, 24);
-                seasonStartBegin = seasonStart.AddDays(-BufferDays);
-                seasonStartEnd = new DateOnly(year, 9, 24).AddDays(-BufferDays);
-                break;
-            case YearlySeason.Fall:
-                // October (starts 1w early), runs until next year's Winter's own buffered start
-                seasonStart = new(year, 9, 24);
-                seasonStartBegin = seasonStart.AddDays(-BufferDays);
-                seasonStartEnd = new DateOnly(year, 12, 25).AddDays(-BufferDays);
-                break;
-            default:
-                return false;
-        }
+        if (GetSeasonWindow(season, year) is not { } window)
+            return false;
+
+        var (seasonStart, seasonStartBegin, seasonStartEnd) = window;
+
         // Don't even count seasons that haven't happened yet
         if (seasonStartBegin > DateTime.Today.ToDateOnly()) return false;
 
@@ -184,6 +157,79 @@ public static class Models
 
         return false;
     }
+
+    /// <summary>
+    ///   The dates behind a season: its nominal start, and the window an
+    ///   anime must start in to belong to it.
+    /// </summary>
+    /// <param name="season">The season.</param>
+    /// <param name="year">The year.</param>
+    /// <returns>The dates, or <c>null</c> for an unknown season.</returns>
+    private static (DateOnly Start, DateOnly Begin, DateOnly End)? GetSeasonWindow(YearlySeason season, int year)
+    {
+        DateOnly seasonStart;
+        DateOnly seasonStartEnd;
+        switch (season)
+        {
+            case YearlySeason.Winter:
+                // January (starts 1w early), runs until Spring's own buffered start
+                seasonStart = new(year - 1, 12, 25);
+                seasonStartEnd = new DateOnly(year, 3, 25).AddDays(-BufferDays);
+                break;
+            case YearlySeason.Spring:
+                // April (starts 1w early), runs until Summer's own buffered start
+                seasonStart = new(year, 3, 25);
+                seasonStartEnd = new DateOnly(year, 6, 24).AddDays(-BufferDays);
+                break;
+            case YearlySeason.Summer:
+                // July (starts 1w early), runs until Fall's own buffered start
+                seasonStart = new(year, 6, 24);
+                seasonStartEnd = new DateOnly(year, 9, 24).AddDays(-BufferDays);
+                break;
+            case YearlySeason.Fall:
+                // October (starts 1w early), runs until next year's Winter's own buffered start
+                seasonStart = new(year, 9, 24);
+                seasonStartEnd = new DateOnly(year, 12, 25).AddDays(-BufferDays);
+                break;
+            default:
+                return null;
+        }
+
+        return (seasonStart, seasonStart.AddDays(-BufferDays), seasonStartEnd);
+    }
+
+    /// <summary>
+    ///   The season a day falls in: the last one whose buffered start has
+    ///   passed, by the windows <see cref="AniDB_Anime.YearlySeasons"/> uses.
+    ///   For today, it is the season under way.
+    /// </summary>
+    /// <param name="date">The day.</param>
+    /// <returns>The season.</returns>
+    public static (int Year, YearlySeason Season) GetYearlySeason(DateOnly date)
+    {
+        (int Year, YearlySeason Season)[] candidates =
+        [
+            (date.Year + 1, YearlySeason.Winter),
+            (date.Year, YearlySeason.Fall),
+            (date.Year, YearlySeason.Summer),
+            (date.Year, YearlySeason.Spring),
+        ];
+        foreach (var (year, season) in candidates)
+            if (GetSeasonWindow(season, year) is { } window && window.Begin <= date)
+                return (year, season);
+
+        return (date.Year, YearlySeason.Winter);
+    }
+
+    /// <summary>
+    ///   The season following another.
+    /// </summary>
+    /// <param name="season">The season.</param>
+    /// <returns>The next season, in the next year after Fall.</returns>
+    public static (int Year, YearlySeason Season) GetNextYearlySeason((int Year, YearlySeason Season) season)
+        => season.Season is YearlySeason.Fall
+            ? (season.Year + 1, YearlySeason.Winter)
+            : (season.Year, season.Season + 1);
 
     public static HashSet<string> GetAllTags(this AniDB_Anime anime)
         => anime.GetAllTagsSet();

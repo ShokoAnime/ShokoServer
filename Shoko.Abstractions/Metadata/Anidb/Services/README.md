@@ -13,7 +13,7 @@ public class MyJob(IAnidbService anidbService, IMylistService mylistService)
 
 | Interface | What it is for |
 |---|---|
-| `IAnidbService` | Ban state, the local title search, refreshing an anime, tags, images, purging. |
+| `IAnidbService` | Ban state, the local title search, the cached anime list, refreshing an anime, tags, images, purging. |
 | `IMylistService` | Everything to do with the user's AniDB MyList: read, add, update, remove, sync. |
 | `IAnidbAvdumpService` | Driving AVDump over local files. The same object as `IAnidbService`. |
 
@@ -88,6 +88,42 @@ IAnidbAnimeSearchResult? exact = anidbService.SearchAnimeByID(23);
 
 Both search the locally cached AniDB title dump, not AniDB, so they make no
 request and cannot get you banned.
+
+### Listing the cached anime
+
+`GetCachedAnime(options)` lists the AniDB anime already in the local cache,
+in the collection or not, which is what a season view is built from:
+
+```csharp
+var fall = anidbService.GetCachedAnime(new AnidbAnimeListOptions
+{
+    Seasons = [(2026, YearlySeason.Fall)],
+    Types = [AnimeType.TVSeries],
+    InCollection = InclusionFilter.False,       // only anime without a Shoko series
+    IncludeRestricted = InclusionFilter.False,  // leave out restricted anime
+    User = user,                                // and what this user may not see
+});
+```
+
+Every filter left unset lets everything through. An anime is in a season
+when one of its regular episodes airs in it, so a long-running show is in
+every season it airs in, and one without dated episodes is in none. AniDB
+sends no episode air dates before 1970, so an anime starting earlier goes by
+its own start date up to its first dated episode, or to its end date. Seasons
+after the one following the season under way are yet to be decided and match
+nothing. The list comes by air date with a season filter, else by preferred
+title, unless `OrderBy` says otherwise.
+
+`GetCachedAnimeSeasons(options, includeImages)` gives the seasons those anime
+air in by the same rule, newest first, with a count each and the season under
+way always listed and flagged, ignoring the season filter and the order. With
+`includeImages`, each season also carries a `Poster` and a `Backdrop`, both
+from one anime: among those starting in the season, the best by Bayesian
+weighted rating that has a poster. The weighted rating is
+`(v * R + m * C) / (v + m)`, with `R` and `v` the anime's AniDB rating and
+votes, `C` the mean rating of the season's rated starters and `m` the median
+of their votes, at least 50. Ties go to the earlier first episode, then the
+lower AniDB ID, so a season yet to air shows its earliest starter.
 
 ### Refreshing an anime
 
