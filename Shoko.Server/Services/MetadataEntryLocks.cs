@@ -17,8 +17,10 @@ namespace Shoko.Server.Services;
 ///   waits for it, so only the entries in use take memory. It is not
 ///   re-entrant. Locks are always taken in the same order: an entry's lock,
 ///   then its image lock, then a shared creator's, character's, studio's or
-///   network's lock, which is the entry lock of that entity. Nothing takes
-///   an earlier one under a later one, so no two holders wait on each other.
+///   network's lock, which is the entry lock of that entity. When the entry
+///   is itself such an entity, its entry lock is that lock and is not taken
+///   again. Nothing takes an earlier one under a later one, so no two
+///   holders wait on each other.
 /// </remarks>
 public sealed class MetadataEntryLocks
 {

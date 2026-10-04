@@ -161,7 +161,7 @@ public class MetadataImageReconcilerTests
             Poster("ja.jpg", "ja"),
             Poster("en.jpg", "en"),
             Poster("en-2.jpg", "en"),
-        ], settings);
+        ], settings, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(4, linked);
         Assert.Equal(0, images.Of("en.jpg").Ordering);
@@ -185,7 +185,7 @@ public class MetadataImageReconcilerTests
             Poster("en.jpg", "en"),
             Poster("en-2.jpg", "en"),
             Poster("de.jpg", "de"),
-        ], settings);
+        ], settings, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal([true, true, false], new[] { "de.jpg", "en.jpg", "en-2.jpg" }.Select(image => images.Of(image).IsDesired));
     }
@@ -200,7 +200,7 @@ public class MetadataImageReconcilerTests
             Poster("fr.jpg", "fr"),
             Poster("de.jpg", "de"),
             Poster("en.jpg", "en"),
-        ], settings);
+        ], settings, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal([0, 1, 2], new[] { "en.jpg", "fr.jpg", "de.jpg" }.Select(image => images.Of(image).Ordering));
     }
@@ -211,7 +211,14 @@ public class MetadataImageReconcilerTests
         var images = new FakeImages();
         var settings = new MetadataImageSettings { MaxAutoPosters = 1, InternalImageLanguageOrder = ["x-main", "en"] };
 
-        await Reconciler(images).Reconcile(Entity(MetadataEntityType.Series), Source, [Poster("en.jpg", "en"), Poster("ja.jpg", "ja")], settings, originalLanguageCode: "ja");
+        await Reconciler(images).Reconcile(
+            Entity(MetadataEntityType.Series),
+            Source,
+            [Poster("en.jpg", "en"), Poster("ja.jpg", "ja")],
+            settings,
+            originalLanguageCode: "ja",
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.True(images.Of("ja.jpg").IsDesired);
         Assert.False(images.Of("en.jpg").IsDesired);
@@ -230,7 +237,7 @@ public class MetadataImageReconcilerTests
         await Reconciler(images).Reconcile(Entity(MetadataEntityType.Episode), Source, [
             new() { ResourceID = "a.jpg", ImageType = ImageEntityType.Backdrop },
             new() { ResourceID = "b.jpg", ImageType = ImageEntityType.Backdrop },
-        ], settings);
+        ], settings, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(images.Of("a.jpg", ImageEntityType.Backdrop).IsDesired);
         Assert.False(images.Of("b.jpg", ImageEntityType.Backdrop).IsDesired);
@@ -246,7 +253,8 @@ public class MetadataImageReconcilerTests
             Entity(MetadataEntityType.Creator),
             Source,
             [Poster("ja.jpg", "ja"), Poster("fr.jpg", "fr"), Poster("de.jpg", "de")],
-            settings
+            settings,
+            cancellationToken: TestContext.Current.CancellationToken
         );
 
         Assert.True(images.Of("ja.jpg").IsDesired);
@@ -268,7 +276,13 @@ public class MetadataImageReconcilerTests
                 Entity = entity,
             });
 
-        var linked = await Reconciler(images).Reconcile(Entity(MetadataEntityType.Character), Source, [Poster("a.jpg")], settings);
+        var linked = await Reconciler(images).Reconcile(
+            Entity(MetadataEntityType.Character),
+            Source,
+            [Poster("a.jpg")],
+            settings,
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(1, linked);
         Assert.Equal(0, images.Of("a.jpg").Ordering);
@@ -279,11 +293,23 @@ public class MetadataImageReconcilerTests
     public async Task ASecondLinkToTheSameImageIsRemoved()
     {
         var images = new FakeImages();
-        await Reconciler(images).Reconcile(Entity(MetadataEntityType.Studio), Source, [Poster("a.jpg")], new());
+        await Reconciler(images).Reconcile(
+            Entity(MetadataEntityType.Studio),
+            Source,
+            [Poster("a.jpg")],
+            new(),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
         var imageID = images.Of("a.jpg").ImageID;
         images.Add(new() { ImageID = imageID, ImageType = ImageEntityType.Primary, Source = Source, Ordering = 1 });
 
-        await Reconciler(images).Reconcile(Entity(MetadataEntityType.Studio), Source, [Poster("a.jpg")], new());
+        await Reconciler(images).Reconcile(
+            Entity(MetadataEntityType.Studio),
+            Source,
+            [Poster("a.jpg")],
+            new(),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Single(images.Xrefs, xref => xref.ImageID == imageID);
     }
@@ -300,7 +326,7 @@ public class MetadataImageReconcilerTests
         using (await locks.Acquire(creator.ID, TestContext.Current.CancellationToken))
         {
             // Unblocked, the reconcile would finish before it returns.
-            reconciling = reconciler.Reconcile(creator, Source, [Poster("a.jpg")], new());
+            reconciling = reconciler.Reconcile(creator, Source, [Poster("a.jpg")], new(), cancellationToken: TestContext.Current.CancellationToken);
             Assert.False(reconciling.IsCompleted);
             Assert.Empty(images.Xrefs);
         }
@@ -309,11 +335,40 @@ public class MetadataImageReconcilerTests
     }
 
     [Fact]
+    public async Task ASharedEntityLockedByTheCallerIsReconciledWithoutWaiting()
+    {
+        var images = new FakeImages();
+        var locks = new MetadataEntryLocks();
+        var reconciler = new MetadataImageReconciler(images.Manager.Object, locks, NullLogger<MetadataImageReconciler>.Instance);
+        var creator = Entity(MetadataEntityType.Creator);
+
+        using (await locks.Acquire(creator.ID, TestContext.Current.CancellationToken))
+        {
+            var reconciling = reconciler.Reconcile(
+                creator,
+                Source,
+                [Poster("a.jpg")],
+                new(),
+                entityLocked: true,
+                cancellationToken: TestContext.Current.CancellationToken
+            );
+            var linked = await reconciling.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+            Assert.Equal(1, linked);
+        }
+    }
+
+    [Fact]
     public async Task TheRatingIsKeptWhenInRange()
     {
         var images = new FakeImages();
 
-        await Reconciler(images).Reconcile(Entity(MetadataEntityType.Series), Source, [Poster("a.jpg", rating: 7.5), Poster("b.jpg", rating: 0.5)], new());
+        await Reconciler(images).Reconcile(
+            Entity(MetadataEntityType.Series),
+            Source,
+            [Poster("a.jpg", rating: 7.5), Poster("b.jpg", rating: 0.5)],
+            new(),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(7.5, images.Of("a.jpg").Rating);
         Assert.Null(images.Of("b.jpg").Rating);
@@ -334,7 +389,7 @@ public class MetadataImageReconcilerTests
 
         var linked = await Reconciler(images).Reconcile(Entity(MetadataEntityType.Series), Source, [
             new() { ResourceID = "new.jpg", ImageType = type },
-        ], settings);
+        ], settings, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(0, linked);
         Assert.Equal([existing], images.Xrefs);
@@ -348,7 +403,7 @@ public class MetadataImageReconcilerTests
 
         await Reconciler(images).Reconcile(Entity(MetadataEntityType.Series), Source, [
             new() { ResourceID = "disc.png", ImageType = ImageEntityType.Disc },
-        ], new());
+        ], new(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(images.Of("disc.png", ImageEntityType.Disc).IsDesired);
     }
@@ -359,10 +414,16 @@ public class MetadataImageReconcilerTests
         var images = new FakeImages();
         var reconciler = Reconciler(images);
         var entity = Entity(MetadataEntityType.Series);
-        await reconciler.Reconcile(entity, Source, [Poster("a.jpg"), Poster("b.jpg"), new() { ResourceID = "logo.png", ImageType = ImageEntityType.Logo }], new());
+        await reconciler.Reconcile(
+            entity,
+            Source,
+            [Poster("a.jpg"), Poster("b.jpg"), new() { ResourceID = "logo.png", ImageType = ImageEntityType.Logo }],
+            new(),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
         var other = images.Add(new() { ImageID = Guid.NewGuid(), ImageType = ImageEntityType.Primary, Source = MetadataSource.User });
 
-        await reconciler.Reconcile(entity, Source, [Poster("b.jpg")], new());
+        await reconciler.Reconcile(entity, Source, [Poster("b.jpg")], new(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(0, images.Of("b.jpg").Ordering);
         Assert.DoesNotContain(images.Xrefs, xref => xref.ImageID == IImageManager.GetIDForImageSourceAndResourceID(Source, "a.jpg"));
@@ -379,7 +440,7 @@ public class MetadataImageReconcilerTests
             Poster(new string('a', MetadataImageReconciler.MaxResourceIDLength + 1)),
             Poster(" "),
             Poster("ok.jpg", language: "toolong-code"),
-        ], new());
+        ], new(), cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(1, linked);
         Assert.Null(Assert.Single(images.Added).LanguageCode);
@@ -390,7 +451,13 @@ public class MetadataImageReconcilerTests
     {
         var images = new FakeImages { Template = null };
 
-        var linked = await Reconciler(images).Reconcile(Entity(MetadataEntityType.Series), Source, [Poster("a.jpg")], new());
+        var linked = await Reconciler(images).Reconcile(
+            Entity(MetadataEntityType.Series),
+            Source,
+            [Poster("a.jpg")],
+            new(),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(0, linked);
         Assert.Empty(images.Xrefs);

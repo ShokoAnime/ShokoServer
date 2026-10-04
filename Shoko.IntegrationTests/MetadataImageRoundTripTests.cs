@@ -57,7 +57,7 @@ public class MetadataImageRoundTripTests(DatabaseMigrationFixture fixture)
             new() { ResourceID = "posters/en.jpg", ImageType = ImageEntityType.Primary, LanguageCode = "en", Width = 600, Height = 900 },
             new() { ResourceID = "posters/ja.jpg", ImageType = ImageEntityType.Primary, LanguageCode = "ja", Rating = 8, RatingVotes = 12 },
             new() { ResourceID = "banners/a.jpg", ImageType = ImageEntityType.Banner },
-        ], settings, "ja");
+        ], settings, "ja", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(3, linked);
         Reload();
@@ -72,7 +72,7 @@ public class MetadataImageRoundTripTests(DatabaseMigrationFixture fixture)
 
         await reconciler.Reconcile(series, _plugin, [
             new() { ResourceID = "posters/en.jpg", ImageType = ImageEntityType.Primary, LanguageCode = "en" },
-        ], settings, "ja");
+        ], settings, "ja", cancellationToken: TestContext.Current.CancellationToken);
         Reload();
 
         var kept = Assert.Single(images.GetImageCrossReferencesForEntity(series, new() { ImageSource = _plugin, XrefSource = _plugin, LinkedEntityImages = false }));

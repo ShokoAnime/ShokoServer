@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
@@ -64,6 +65,11 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
     ///   language order stands for, or <c>null</c> when unknown.
     /// </param>
     /// <param name="force">Whether to download the desired images again even when they are there.</param>
+    /// <param name="entityLocked">
+    ///   Whether the caller already holds the entity's entry lock, as an image
+    ///   job for a shared entry does, so it is not taken again.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the wait for the entity's lock.</param>
     /// <returns>How many images are linked from the source afterwards, over the types handled.</returns>
     /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     public async Task<int> Reconcile(
@@ -72,7 +78,9 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
         IReadOnlyList<ImageCandidate> candidates,
         MetadataImageSettings settings,
         string? originalLanguageCode = null,
-        bool force = false
+        bool force = false,
+        bool entityLocked = false,
+        CancellationToken cancellationToken = default
     )
     {
         ArgumentNullException.ThrowIfNull(entity);
@@ -90,7 +98,7 @@ public class MetadataImageReconciler(IImageManager imageManager, MetadataEntryLo
         var languages = shared ? Array.Empty<TitleLanguage>() : GetLanguages(settings, originalLanguageCode);
         var valid = candidates.Where(candidate => IsValid(entity, candidate)).ToList();
         var linked = 0;
-        using (shared ? await entityLocks.Acquire(entity.ID).ConfigureAwait(false) : null)
+        using (shared && !entityLocked ? await entityLocks.Acquire(entity.ID, cancellationToken).ConfigureAwait(false) : null)
         {
             var types = valid.Select(candidate => candidate.ImageType)
                 .Concat(imageManager.GetImageCrossReferencesForEntity(entity, Filter(source, null)).Select(xref => xref.ImageType))

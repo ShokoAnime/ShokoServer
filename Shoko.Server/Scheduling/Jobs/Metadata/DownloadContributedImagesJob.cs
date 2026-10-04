@@ -128,7 +128,16 @@ public class DownloadContributedImagesJob<TContributor>(
                 if (candidates is null)
                     continue;
 
-                var linked = await reconciler.Reconcile(entity, info.Source, candidates, settings, originalLanguage, Force).ConfigureAwait(false);
+                var linked = await reconciler.Reconcile(
+                    entity,
+                    info.Source,
+                    candidates,
+                    settings,
+                    originalLanguage,
+                    Force,
+                    entityLocked: entryLock is not null && entity.ID == entry,
+                    cancellationToken: token
+                ).ConfigureAwait(false);
                 _logger.LogTrace("Linked {Count} images from {Contributor} to {Entity}.", linked, info.Name, entity.ID);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
