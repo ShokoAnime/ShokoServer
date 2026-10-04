@@ -113,6 +113,15 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     IEpisodeOrderingInformation? PreferredOrdering { get; }
 
     /// <summary>
+    ///   The place the episode is presented in. A source's own episode
+    ///   answers with its place in the default ordering; the episode a place
+    ///   in another ordering gives through
+    ///   <see cref="IEpisodeOrderingInformation.Episode"/> answers with that
+    ///   place.
+    /// </summary>
+    IEpisodeOrderingInformation CurrentOrdering { get; }
+
+    /// <summary>
     /// All shoko episodes linked to this episode.
     /// </summary>
     IReadOnlyList<IShokoEpisode> ShokoEpisodes { get; }
@@ -190,4 +199,12 @@ public interface IEpisode<out TSeries, out TEpisode> : IEpisode
     new IEpisodeOrderingInformation<TSeries, TEpisode>? PreferredOrdering { get; }
 
     IEpisodeOrderingInformation? IEpisode.PreferredOrdering { get => PreferredOrdering; }
+
+    /// <summary>
+    ///   The place the episode is presented in. A source's own episode
+    ///   answers with its place in the default ordering.
+    /// </summary>
+    new IEpisodeOrderingInformation<TSeries, TEpisode> CurrentOrdering { get; }
+
+    IEpisodeOrderingInformation IEpisode.CurrentOrdering { get => CurrentOrdering; }
 }

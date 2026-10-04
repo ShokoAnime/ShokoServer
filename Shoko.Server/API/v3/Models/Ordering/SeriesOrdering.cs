@@ -139,8 +139,8 @@ public class SeriesOrdering
         ID = ordering.ID.ToString();
         LocalID = ordering.ID.ID;
         Source = LegacyMetadataSpellings.Of(ordering.ID.Source);
-        Name = ordering.Name;
-        Description = ordering.Overview;
+        Name = ordering.Title;
+        Description = ordering.PreferredOverview?.Value ?? string.Empty;
         Type = ordering.Type;
         IsDefault = ordering.IsDefault;
         IsPreferred = ordering.IsPreferred;
@@ -359,10 +359,11 @@ public class SeriesOrdering
             public string? ID { get; set; }
 
             /// <summary>
-            /// The group's name.
+            /// The group's name. Left out or empty, the group has no title of
+            /// its own and is named by its generic season name, such as
+            /// <c>Season 2</c> or <c>Specials</c>.
             /// </summary>
-            [Required, MinLength(1)]
-            public string Name { get; set; } = string.Empty;
+            public string? Name { get; set; }
 
             /// <summary>
             /// What the group is about, if anything.

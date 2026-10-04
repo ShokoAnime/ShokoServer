@@ -19,8 +19,6 @@ public class Metadata_OrderingMap : ClassMap<Metadata_Ordering>
         Map(x => x.SeriesSource).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.SeriesID).Not.Nullable();
         Map(x => x.Type).CustomType<OrderingType>().Not.Nullable();
-        Map(x => x.Name).Not.Nullable().CustomType("StringClob");
-        Map(x => x.Description).Nullable().CustomType("StringClob");
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();
     }

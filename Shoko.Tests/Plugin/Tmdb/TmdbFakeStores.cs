@@ -338,7 +338,7 @@ internal sealed class TmdbFakeStores
     }
 
     private static IOrdering ReadOrdering(MetadataOrderingData data)
-        => Mock.Of<IOrdering>(ordering => ordering.ID == data.ID && ordering.SeriesID == data.SeriesID && ordering.Name == data.Name);
+        => Mock.Of<IOrdering>(ordering => ordering.ID == data.ID && ordering.SeriesID == data.SeriesID && ordering.DefaultTitle == DefaultTitle(data.Titles));
 
     private static ITitle DefaultTitle(IReadOnlyList<ITitle> titles)
         => titles.FirstOrDefault(title => title.Type is TitleType.Main) ?? titles.FirstOrDefault()

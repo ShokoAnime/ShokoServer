@@ -6,7 +6,8 @@ namespace Shoko.Server.Models.Metadata;
 
 /// <summary>
 ///   A stored ordering of a series: a plugin's global one, or a user's own
-///   under the <c>user</c> source.
+///   under the <c>user</c> source. Its titles and overviews are in the text
+///   store, under its <see cref="ID"/>.
 /// </summary>
 public class Metadata_Ordering : IMetadataStoreRow<Metadata_Ordering>
 {
@@ -43,16 +44,6 @@ public class Metadata_Ordering : IMetadataStoreRow<Metadata_Ordering>
     public OrderingType Type { get; set; }
 
     /// <summary>
-    ///   The ordering's name.
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    ///   What the ordering is about, if anything.
-    /// </summary>
-    public string? Description { get; set; }
-
-    /// <summary>
     ///   When the ordering was first stored.
     /// </summary>
     public DateTime CreatedAt { get; set; }
@@ -87,9 +78,7 @@ public class Metadata_Ordering : IMetadataStoreRow<Metadata_Ordering>
             ProviderID == other.ProviderID &&
             SeriesSource == other.SeriesSource &&
             SeriesID == other.SeriesID &&
-            Type == other.Type &&
-            Name == other.Name &&
-            Description == other.Description;
+            Type == other.Type;
 
     #endregion
 

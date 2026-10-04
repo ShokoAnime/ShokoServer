@@ -98,6 +98,20 @@ public interface IMetadataService
     ISeries? GetSeries(MetadataGuid id);
 
     /// <summary>
+    ///   Looks up a series as one of its orderings presents it: the
+    ///   ordering's <see cref="IOrdering.Series"/>, whose seasons are the
+    ///   ordering's groups and whose episodes are numbered there.
+    /// </summary>
+    /// <param name="id">The series.</param>
+    /// <param name="orderingID">The ordering; the series' default ordering gives the series itself.</param>
+    /// <returns>
+    ///   The series in the ordering, or <c>null</c> when the series or the
+    ///   ordering is not found, or the ordering orders another series.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> or <paramref name="orderingID"/> is <c>null</c>.</exception>
+    ISeries? GetSeries(MetadataGuid id, MetadataGuid orderingID);
+
+    /// <summary>
     ///   Looks up a season by its identifier, as
     ///   <see cref="GetEntry{TMetadata}(MetadataGuid)"/> does: one of a
     ///   series' own seasons, or a group of a stored ordering.
@@ -115,6 +129,22 @@ public interface IMetadataService
     /// <returns>The episode, or <c>null</c> when nothing holds it or the ID names another kind.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     IEpisode? GetEpisode(MetadataGuid id);
+
+    /// <summary>
+    ///   Looks up an episode as one of its series' orderings presents it:
+    ///   the untyped <see cref="IEpisodeOrderingInformation.Episode"/> of its
+    ///   first place there, numbered and typed by that place, with synthesized
+    ///   titles in that numbering.
+    /// </summary>
+    /// <param name="id">The episode.</param>
+    /// <param name="orderingID">The ordering; the series' default ordering gives the episode itself.</param>
+    /// <returns>
+    ///   The episode in the ordering, or <c>null</c> when the episode or the
+    ///   ordering is not found, the ordering orders another series, or the
+    ///   episode has no place in it.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> or <paramref name="orderingID"/> is <c>null</c>.</exception>
+    IEpisode? GetEpisode(MetadataGuid id, MetadataGuid orderingID);
 
     /// <summary>
     ///   Looks up a movie by its identifier, as

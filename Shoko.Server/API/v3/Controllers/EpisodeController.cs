@@ -129,6 +129,8 @@ public class EpisodeController(
     /// <param name="includeReleaseInfo">Include release info data.</param>
     /// <param name="search">An optional search query to filter episodes based on their titles.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
+    /// <param name="include">Extra details to include: <c>Placement</c> adds <c>Placements</c>, where each source places a special among the regular episodes, by Shoko episode IDs.</param>
+    /// <param name="placementSource">Limits <c>Placements</c> to one source, such as <c>anidb</c> or a linked plugin source.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet]
     public ActionResult<ListResult<Episode>> GetAllEpisodes(
@@ -146,8 +148,11 @@ public class EpisodeController(
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
-        [FromQuery] string? search = null, [FromQuery] bool fuzzy = true)
+        [FromQuery] string? search = null, [FromQuery] bool fuzzy = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Episode.IncludeDetails>? include = null,
+        [FromQuery] MetadataSource? placementSource = null)
     {
+        var placements = Episode.PlacementResolver(HttpContext, include);
         var user = User;
         var allowedSeriesDict = new ConcurrentDictionary<int, bool>();
         var episodes = _animeEpisodes.GetAll()
@@ -245,7 +250,7 @@ public class EpisodeController(
                         .ToList(),
                     fuzzy
                 )
-                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo), page, pageSize);
+                .ToListResult(a => new Episode(HttpContext, a.Result.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo, placements, placementSource), page, pageSize);
         }
 
         // Order the episodes since we're not using the search ordering.
@@ -253,7 +258,7 @@ public class EpisodeController(
             .OrderBy(episode => episode.Shoko.AnimeSeriesID)
             .ThenBy(episode => episode.AniDB!.EpisodeType)
             .ThenBy(episode => episode.AniDB!.EpisodeNumber)
-            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo), page, pageSize);
+            .ToListResult(a => new Episode(HttpContext, a.Shoko, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo, placements, placementSource), page, pageSize);
     }
 
     /// <summary>
@@ -313,6 +318,8 @@ public class EpisodeController(
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeReleaseInfo">Include release info data.</param>
     /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
+    /// <param name="include">Extra details to include: <c>Placement</c> adds <c>Placements</c>, where each source places a special among the regular episodes, by Shoko episode IDs.</param>
+    /// <param name="placementSource">Limits <c>Placements</c> to one source, such as <c>anidb</c> or a linked plugin source.</param>
     /// <returns></returns>
     [HttpGet("{episodeID}")]
     public ActionResult<Episode> GetEpisodeByEpisodeID(
@@ -322,7 +329,9 @@ public class EpisodeController(
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
-        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Episode.IncludeDetails>? include = null,
+        [FromQuery] MetadataSource? placementSource = null)
     {
         var episode = _animeEpisodes.GetByID(episodeID);
         if (episode == null)
@@ -335,7 +344,7 @@ public class EpisodeController(
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo);
+        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo, Episode.PlacementResolver(HttpContext, include), placementSource);
     }
 
     /// <summary>
@@ -360,8 +369,15 @@ public class EpisodeController(
         if (!User.AllowedSeries(series))
             return Forbid(EpisodeForbiddenForUser);
 
-        if (((MetadataTextManager)_textManager).SetCustomTitle(((IMetadata)episode).ID, body.Title))
-            ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Updated);
+        try
+        {
+            if (((MetadataTextManager)_textManager).SetCustomTitle(((IMetadata)episode).ID, body.Title))
+                ShokoEventHandler.Instance.OnEpisodeUpdated(series, episode, UpdateReason.Updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return ValidationProblem(ex.Message, nameof(body.Title));
+        }
 
         return Ok();
     }
@@ -454,6 +470,8 @@ public class EpisodeController(
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeReleaseInfo">Include release info data.</param>
     /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
+    /// <param name="include">Extra details to include: <c>Placement</c> adds <c>Placements</c>, where each source places a special among the regular episodes, by Shoko episode IDs.</param>
+    /// <param name="placementSource">Limits <c>Placements</c> to one source, such as <c>anidb</c> or a linked plugin source.</param>
     /// <returns></returns>
     [HttpGet("AniDB/{anidbEpisodeID}/Episode")]
     public ActionResult<Episode> GetEpisode(
@@ -463,7 +481,9 @@ public class EpisodeController(
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool includeReleaseInfo = false,
-        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Episode.IncludeDetails>? include = null,
+        [FromQuery] MetadataSource? placementSource = null)
     {
         var anidb = _anidbEpisodes.GetByEpisodeID(anidbEpisodeID);
         if (anidb == null)
@@ -473,7 +493,7 @@ public class EpisodeController(
         if (episode == null)
             return NotFound(EpisodeNotFoundForAnidbEpisodeID);
 
-        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo);
+        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, includeReleaseInfo, Episode.PlacementResolver(HttpContext, include), placementSource);
     }
 
     /// <summary>

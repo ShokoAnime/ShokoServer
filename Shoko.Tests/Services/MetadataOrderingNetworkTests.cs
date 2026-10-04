@@ -77,14 +77,13 @@ public class MetadataOrderingNetworkTests
     }
 
     private static MetadataLocalOrderingData Local(ISeries series, IReadOnlyList<MetadataGuid>? networks)
-        => new() { SeriesID = series.ID, Name = "My Order", Networks = networks };
+        => new() { SeriesID = series.ID, Networks = networks };
 
     private static MetadataOrderingData Global(ISeries series, params MetadataGuid[] networks)
         => new()
         {
             ID = new(TestSources.Plugin, MetadataEntityType.Ordering, "dvd"),
             SeriesID = series.ID,
-            Name = "DVD Order",
             Type = OrderingType.DVD,
             Networks = networks,
         };

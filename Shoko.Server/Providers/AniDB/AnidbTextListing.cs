@@ -45,8 +45,8 @@ internal static class AnidbTextListing
     /// </summary>
     /// <remarks>
     ///   A title is one language and value; repeats are left out, and so is
-    ///   a generic title with the episode's own type and number, such as
-    ///   <c>Episode 5</c>, which is made up when read instead.
+    ///   the generic title synthesized for the episode, such as <c>Episode 5</c>
+    ///   or <c>第5話</c> on episode 5 or <c>Episode S1</c> on special 1.
     /// </remarks>
     /// <param name="stored">The episode's stored titles from AniDB, whose language codes are kept.</param>
     /// <param name="listed">What AniDB lists now, in its order. Their types are ignored.</param>
@@ -57,21 +57,10 @@ internal static class AnidbTextListing
         => Plan(
             stored,
             listed
-                .Where(title => !IsGeneric(title.Value, type, number))
+                .Where(title => !GenericEpisodeTitles.IsGenericForEpisode(title.Value, type, number, anidbForms: true))
                 .Select(title => title with { Type = AnidbText.EpisodeTitleType(title.Language) }),
             title => (TitleType.None, title.Language, title.Value)
         );
-
-    /// <summary>
-    ///   Whether an episode title is left out of the stored ones: the generic
-    ///   title of the episode's own type and number.
-    /// </summary>
-    /// <param name="value">The title.</param>
-    /// <param name="type">The episode's type.</param>
-    /// <param name="number">The episode's number.</param>
-    /// <returns><c>true</c> when it is not stored.</returns>
-    internal static bool IsGeneric(string? value, EpisodeType type, int number)
-        => GenericEpisodeTitles.IsGeneric(value, type, number);
 
     /// <summary>
     ///   Lists the titles AniDB lists now in its order, each stored one with

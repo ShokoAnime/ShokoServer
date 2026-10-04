@@ -337,7 +337,7 @@ public partial class MetadataEntryController
     /// <param name="source">The source.</param>
     /// <param name="id">The source's ID for the episode.</param>
     /// <param name="language">The languages to keep.</param>
-    /// <param name="includeSynthesized">Add the title made up for an episode with no title of its own, when that is its preferred title.</param>
+    /// <param name="includeSynthesized">Add the title synthesized for an episode with no title of its own, when that is its preferred title.</param>
     /// <param name="cancellationToken">Stops the wait for a running refresh.</param>
     /// <returns>The titles, the preferred one first.</returns>
     [HttpGet("Episode/{id}/Titles")]

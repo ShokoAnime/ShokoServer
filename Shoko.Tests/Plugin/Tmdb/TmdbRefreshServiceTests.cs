@@ -78,10 +78,10 @@ public sealed class TmdbRefreshServiceTests : IDisposable
         );
         Assert.Equal(["en", "de"], series.Overviews.Select(overview => overview.LanguageCode));
 
-        // A generic episode title is never stored; the special has nothing else.
-        Assert.Empty(series.Episodes[0].Titles);
+        // Generic episode titles are passed on as they are; the core drops them.
+        Assert.Equal(["Episode 1"], series.Episodes[0].Titles.Select(title => title.Value));
         Assert.Equal(["en", "de"], series.Episodes[1].Titles.Select(title => title.LanguageCode));
-        Assert.Empty(series.Episodes[2].Titles);
+        Assert.Equal(["Episode 2"], series.Episodes[2].Titles.Select(title => title.Value));
     }
 
     [Fact]
@@ -208,7 +208,11 @@ public sealed class TmdbRefreshServiceTests : IDisposable
         Assert.Equal(_show, ordering.SeriesID);
         Assert.Equal(OrderingType.Production, ordering.Type);
         Assert.Equal([TmdbIds.Network(98)], ordering.Networks);
-        Assert.Equal([("Specials", true), ("Part 1", false)], ordering.Groups.Select(group => (group.Name, group.IsSpecial)));
+        Assert.Equal([("Specials", true), ("Part 1", false)], ordering.Groups.Select(group => (Assert.Single(group.Titles).Value, group.IsSpecial)));
+        Assert.All(
+            ordering.Groups.Select(group => group.Titles[0]),
+            title => Assert.Equal(("en", "US", TitleType.Main), (title.LanguageCode, title.CountryCode, title.Type))
+        );
 
         // In the group's order, without the episode the show does not have.
         Assert.Equal([TmdbIds.Episode(3002), TmdbIds.Episode(3001)], ordering.Groups[1].Episodes);
@@ -219,7 +223,7 @@ public sealed class TmdbRefreshServiceTests : IDisposable
     {
         _harness.RouteShow();
         var gone = TmdbIds.Ordering("gone");
-        _harness.StoreData.Orderings[gone] = new() { ID = gone, SeriesID = _show, Name = "Gone" };
+        _harness.StoreData.Orderings[gone] = new() { ID = gone, SeriesID = _show };
 
         await _harness.Refresh.RefreshShow(1001, new(), TestContext.Current.CancellationToken);
 

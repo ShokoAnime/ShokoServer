@@ -87,15 +87,13 @@ public class MetadataPurgeRoundTripTests(DatabaseMigrationFixture fixture)
         {
             ID = ID(MetadataEntityType.Ordering, $"{key}-ordering"),
             SeriesID = series,
-            Name = "DVD Order",
             Type = OrderingType.DVD,
-            Groups = [new() { ID = ID(MetadataEntityType.Season, $"{key}-group"), Name = "Disc 1", Episodes = [episode] }],
+            Groups = [new() { ID = ID(MetadataEntityType.Season, $"{key}-group"), Episodes = [episode] }],
         });
         var local = orderings.CreateLocalOrdering(new()
         {
             SeriesID = series,
-            Name = "Mine",
-            Groups = [new() { Name = "All", Episodes = [episode] }],
+            Groups = [new() { Episodes = [episode] }],
         });
         Assert.True(orderings.SetPreferredOrdering(series, local.ID));
         Assert.True(orderings.SetEpisodeHidden(episode, true));
@@ -208,8 +206,7 @@ public class MetadataPurgeRoundTripTests(DatabaseMigrationFixture fixture)
         var shokoLocal = orderings.CreateLocalOrdering(new()
         {
             SeriesID = shokoSeriesID,
-            Name = "Mine",
-            Groups = [new() { Name = "All", Episodes = [shokoEpisodeID] }],
+            Groups = [new() { Episodes = [shokoEpisodeID] }],
         });
         Assert.True(orderings.SetPreferredOrdering(shokoSeriesID, shokoLocal.ID));
 

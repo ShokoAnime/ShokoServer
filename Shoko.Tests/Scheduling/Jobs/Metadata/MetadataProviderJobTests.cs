@@ -1890,7 +1890,6 @@ public class MetadataProviderJobTests
             SeriesSource = seriesID.Source,
             SeriesID = seriesID.ID,
             Type = OrderingType.User,
-            Name = "Mine",
         });
     }
 

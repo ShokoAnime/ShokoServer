@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.Metadata;
@@ -21,7 +22,8 @@ namespace Shoko.Server.Services;
 /// </remarks>
 /// <param name="cache">The text cache, which the reads are served from.</param>
 /// <param name="writer">Writes the changes.</param>
-public class MetadataTextStore(TextCache cache, MetadataRowWriter writer)
+/// <param name="logger">Logs the generic titles a write leaves out, or <c>null</c> to log nothing.</param>
+public class MetadataTextStore(TextCache cache, MetadataRowWriter writer, ILogger<MetadataTextStore>? logger = null)
 {
     /// <summary>
     ///   The longest script code a text may have.
@@ -79,9 +81,26 @@ public class MetadataTextStore(TextCache cache, MetadataRowWriter writer)
     /// </exception>
     /// <exception cref="ArgumentException">A language, country or script code is too long.</exception>
     public bool SetTitles(MetadataGuid entry, MetadataSource source, IEnumerable<ITitle> titles)
+        => SetTitles(entry, source, titles, null);
+
+    /// <summary>
+    ///   Sets a source's titles on an entry, replacing the ones it gave
+    ///   before, leaving out the generic ones for the entry's number.
+    /// </summary>
+    /// <param name="entry">The entry.</param>
+    /// <param name="source">The source the titles are from.</param>
+    /// <param name="titles">The titles, in order. Empty removes the source's titles.</param>
+    /// <param name="number">The entry's number, which its generic titles carry, or <c>null</c> when unknown.</param>
+    /// <returns>Whether anything changed.</returns>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="entry"/>, <paramref name="source"/> or
+    ///   <paramref name="titles"/> is or holds <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">A language, country or script code is too long.</exception>
+    internal bool SetTitles(MetadataGuid entry, MetadataSource source, IEnumerable<ITitle> titles, GenericEpisodeTitles.EntryNumber? number)
     {
         ArgumentNullException.ThrowIfNull(titles);
-        return Set(entry, source, TextKind.Title, titles, nameof(titles));
+        return Set(entry, source, TextKind.Title, titles, nameof(titles), number);
     }
 
     /// <summary>
@@ -313,13 +332,18 @@ public class MetadataTextStore(TextCache cache, MetadataRowWriter writer)
     ///   Works out the other rows to write, given the kept entries whose
     ///   texts changed. Called with the write lock held.
     /// </param>
+    /// <param name="numberOf">
+    ///   Optional. The number of each season or episode, which its generic
+    ///   titles carry, or <c>null</c> when unknown.
+    /// </param>
     /// <returns>The kept entries whose texts changed.</returns>
     /// <exception cref="ArgumentNullException">A text, or its value, is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">A language, country or script code is too long.</exception>
     internal IReadOnlySet<MetadataGuid> WriteWithTexts(
         IReadOnlyList<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles, IReadOnlyList<IText> Overviews)> texts,
         IReadOnlyCollection<MetadataGuid> removing,
-        Func<IReadOnlySet<MetadataGuid>, IReadOnlyList<MetadataRowChanges>> changesFor
+        Func<IReadOnlySet<MetadataGuid>, IReadOnlyList<MetadataRowChanges>> changesFor,
+        Func<MetadataGuid, GenericEpisodeTitles.EntryNumber?>? numberOf = null
     )
     {
         // Every text is checked before anything is written.
@@ -339,7 +363,7 @@ public class MetadataTextStore(TextCache cache, MetadataRowWriter writer)
             foreach (var (entry, titles, overviews) in items)
             {
                 var before = saving.Count + deleting.Count;
-                Plan(entry, entry.Source, TextKind.Title, titles, saving, deleting);
+                Plan(entry, entry.Source, TextKind.Title, titles, saving, deleting, number: numberOf?.Invoke(entry));
                 Plan(entry, entry.Source, TextKind.Overview, overviews, saving, deleting);
                 if (saving.Count + deleting.Count > before)
                     changed.Add(entry);
@@ -441,13 +465,21 @@ public class MetadataTextStore(TextCache cache, MetadataRowWriter writer)
     /// <param name="kind">Titles or overviews.</param>
     /// <param name="texts">The texts, in order.</param>
     /// <param name="paramName">The argument the texts came in through.</param>
+    /// <param name="number">Optional. The entry's number, which its generic titles carry, or <c>null</c> when unknown.</param>
     /// <returns>Whether anything changed.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="entry"/> or <paramref name="source"/> is, or
     ///   <paramref name="texts"/> holds, <c>null</c>.
     /// </exception>
     /// <exception cref="ArgumentException">A language, country or script code is too long.</exception>
-    private bool Set(MetadataGuid entry, MetadataSource source, TextKind kind, IEnumerable<IText> texts, string paramName)
+    private bool Set(
+        MetadataGuid entry,
+        MetadataSource source,
+        TextKind kind,
+        IEnumerable<IText> texts,
+        string paramName,
+        GenericEpisodeTitles.EntryNumber? number = null
+    )
     {
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentNullException.ThrowIfNull(source);
@@ -460,7 +492,7 @@ public class MetadataTextStore(TextCache cache, MetadataRowWriter writer)
         {
             var saving = new List<MetadataTextRow>();
             var deleting = new List<MetadataTextRow>();
-            Plan(entry, source, kind, items, saving, deleting);
+            Plan(entry, source, kind, items, saving, deleting, number: number);
             changes = Write([], saving, WithPicks(deleting));
         }
 
@@ -484,8 +516,21 @@ public class MetadataTextStore(TextCache cache, MetadataRowWriter writer)
     /// <param name="saving">Collects the rows to save.</param>
     /// <param name="deleting">Collects the rows to remove.</param>
     /// <param name="gap">Optional. The position left free for the default the entry keeps on its row.</param>
-    private void Plan(MetadataGuid entry, MetadataSource source, TextKind kind, IReadOnlyList<CheckedText> items, List<MetadataTextRow> saving, List<MetadataTextRow> deleting, int? gap = null)
+    /// <param name="number">Optional. The entry's number, which its generic titles carry, or <c>null</c> when unknown.</param>
+    private void Plan(
+        MetadataGuid entry,
+        MetadataSource source,
+        TextKind kind,
+        IReadOnlyList<CheckedText> items,
+        List<MetadataTextRow> saving,
+        List<MetadataTextRow> deleting,
+        int? gap = null,
+        GenericEpisodeTitles.EntryNumber? number = null
+    )
     {
+        if (kind is TextKind.Title)
+            items = WithoutGenericTitles(entry, number, items);
+
         // A user's picks of other texts stay as they are when the user
         // source's own texts are replaced, since they follow what they pick.
         var stored = RowsOf(entry, row => row.Kind == kind && cache.SourceOf(row) == source && row.ReferenceID is 0);
@@ -637,6 +682,36 @@ public class MetadataTextStore(TextCache cache, MetadataRowWriter writer)
     #endregion
 
     #region Checking
+
+    /// <summary>
+    ///   Whether a title is a generic one the core synthesizes for an episode
+    ///   or season of any source, AniDB's and the core's included, rather
+    ///   than stores: a generic form carrying the entry's own number.
+    /// </summary>
+    /// <param name="entry">The entry the title is for.</param>
+    /// <param name="value">The title's value.</param>
+    /// <param name="number">The entry's number, which its generic titles carry, or <c>null</c> when unknown.</param>
+    /// <returns><c>true</c> for a generic title that is never stored.</returns>
+    internal static bool IsGenericTitle(MetadataGuid entry, string? value, GenericEpisodeTitles.EntryNumber? number)
+        => GenericEpisodeTitles.IsGenericFor(entry.EntityType, value, number);
+
+    /// <summary>
+    ///   A write's titles without the generic ones the core synthesizes for the
+    ///   entry, logging the entry when any is left out.
+    /// </summary>
+    /// <param name="entry">The entry.</param>
+    /// <param name="number">The entry's number, which its generic titles carry, or <c>null</c> when unknown.</param>
+    /// <param name="items">The checked titles, in order.</param>
+    /// <returns>The titles to store, in order.</returns>
+    private IReadOnlyList<CheckedText> WithoutGenericTitles(MetadataGuid entry, GenericEpisodeTitles.EntryNumber? number, IReadOnlyList<CheckedText> items)
+    {
+        if (!items.Any(item => IsGenericTitle(entry, item.Value, number)))
+            return items;
+
+        var dropped = items.Where(item => IsGenericTitle(entry, item.Value, number)).Select(item => item.Value).ToList();
+        logger?.LogDebug("Left out {Count} generic title(s) of {Entry}, which are synthesized rather than stored: {Titles}", dropped.Count, entry, dropped);
+        return [.. items.Where(item => !IsGenericTitle(entry, item.Value, number))];
+    }
 
     /// <summary>
     ///   Checks a text before it is written, and reads it into the shape it

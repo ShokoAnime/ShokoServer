@@ -15,7 +15,7 @@ namespace Shoko.Server.Services;
 ///   In order: a user's overall pick; then, language by language, a user's
 ///   pick for that language and the sources in their order, real titles
 ///   before generic ones such as <c>Episode 5</c>; then the default; and for
-///   an episode with nothing at all, a made-up title.
+///   an episode with nothing at all, a synthesized title.
 /// </remarks>
 internal static class TextChooser
 {
@@ -24,7 +24,7 @@ internal static class TextChooser
     /// <summary>
     ///   Chooses a title out of candidates.
     /// </summary>
-    /// <param name="candidates">The candidates, in any order. Disabled and made-up ones are skipped.</param>
+    /// <param name="candidates">The candidates, in any order. Disabled and synthesized ones are skipped.</param>
     /// <param name="choice">The orders to walk and the fallbacks.</param>
     /// <returns>The title, or <c>null</c> when nothing qualifies and there is no fallback.</returns>
     internal static ITitle? ChooseTitle(IReadOnlyList<ITitle> candidates, TitleChoice choice)
@@ -33,7 +33,7 @@ internal static class TextChooser
     /// <summary>
     ///   Chooses a title out of candidates, reading every source alike.
     /// </summary>
-    /// <param name="candidates">The candidates, in any order. Disabled and made-up ones are skipped.</param>
+    /// <param name="candidates">The candidates, in any order. Disabled and synthesized ones are skipped.</param>
     /// <param name="choice">The orders to walk and the fallbacks.</param>
     /// <returns>The title, or <c>null</c> when nothing qualifies and there is no fallback.</returns>
     private static ITitle? ChooseTitleFor(IReadOnlyList<ITitle> candidates, TitleChoice choice)
@@ -143,9 +143,9 @@ internal static class TextChooser
     ///   ranked sources and before <c>user</c>. Real episode titles come
     ///   before generic ones.
     /// </remarks>
-    /// <param name="candidates">The candidates, in list order. Disabled and made-up ones are skipped.</param>
+    /// <param name="candidates">The candidates, in list order. Disabled and synthesized ones are skipped.</param>
     /// <param name="ownSource">The entry's own source.</param>
-    /// <param name="choice">The orders to walk. Its default and made-up title are not used.</param>
+    /// <param name="choice">The orders to walk. Its default and synthesized title are not used.</param>
     /// <returns>The title, or <c>null</c> when none is picked or in a preferred language.</returns>
     internal static ITitle? ChooseStoredTitle(IReadOnlyList<ITitle> candidates, MetadataSource ownSource, TitleChoice choice)
     {
@@ -348,7 +348,7 @@ internal static class TextChooser
 /// <param name="UseSynonyms">Whether a title other than a main, official or untyped one may answer for a language.</param>
 /// <param name="RankGeneric">Whether generic titles such as <c>Episode 5</c> come after every real one, as for episodes.</param>
 /// <param name="Default">The title to use when none qualifies, or <c>null</c>.</param>
-/// <param name="Synthesize">Makes up a title when there is not even a default, or <c>null</c> to go without.</param>
+/// <param name="Synthesize">Synthesizes a title when there is not even a default, or <c>null</c> to go without.</param>
 /// <param name="Main">
 ///   The entry's default title, which answers <c>x-main</c> for its source
 ///   when that source has no title of type main, and no other language; or

@@ -11,6 +11,7 @@ using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.Utilities;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Metadata.Embedded;
@@ -32,12 +33,13 @@ namespace Shoko.Server.Services;
 /// <param name="entryRepository">The episodes' places in the groups.</param>
 /// <param name="rowState">The ordering chosen for each series and the hidden flags of every source's episodes but Shoko's.</param>
 /// <param name="shokoEpisodeRepository">The Shoko episodes, whose hidden flag is set with their stats.</param>
-/// <param name="textStore">Writes an ordering's rows in one transaction, removing the texts of the orderings that go, and tells the text manager.</param>
+/// <param name="textStore">Writes an ordering's rows with its and its groups' texts in one transaction, removing what goes, and tells the text manager.</param>
 /// <param name="metadataService">Finds the series and episodes an ordering names.</param>
 /// <param name="seriesService">Updates a Shoko series' stats when one of its episodes is hidden or shown.</param>
 /// <param name="groupService">Updates a Shoko group's stats likewise.</param>
 /// <param name="cleanup">Removes the image links of the orderings and groups that go.</param>
 /// <param name="studioStore">Keeps the networks of the orderings, with stubs for the users' own.</param>
+/// <param name="crossReferenceStore">The episode links, which map the places other sources give a Shoko special back to its series.</param>
 /// <param name="logger">The logger.</param>
 public class MetadataOrderingService(
     Metadata_OrderingRepository orderingRepository,
@@ -51,6 +53,7 @@ public class MetadataOrderingService(
     Lazy<AnimeGroupService> groupService,
     Lazy<MetadataEntityCleanup> cleanup,
     MetadataStudioStore studioStore,
+    Lazy<IMetadataCrossReferenceStore> crossReferenceStore,
     ILogger<MetadataOrderingService> logger
 ) : IMetadataOrderingService, IDisposable
 {
@@ -229,10 +232,35 @@ public class MetadataOrderingService(
     internal IReadOnlyList<IEpisodeOrderingInformation<TSeries, TEpisode>> GetEpisodeOrderings<TSeries, TEpisode>(TEpisode episode)
         where TSeries : class, ISeries
         where TEpisode : class, IEpisode
+        => [GetDefaultEpisodeOrdering<TSeries, TEpisode>(episode), .. OtherPlaces<TSeries, TEpisode>(episode)];
+
+    /// <inheritdoc />
+    public IReadOnlyList<IEpisodePlacement> GetEpisodePlacements(IShokoEpisode episode, MetadataSource? source = null)
     {
-        var series = (episode.Series ?? GetSeries(episode.SeriesID)) as TSeries;
-        return [new DefaultEpisodeOrdering<TSeries, TEpisode>(episode, series, this), .. OtherPlaces<TSeries, TEpisode>(episode)];
+        ArgumentNullException.ThrowIfNull(episode);
+        return CreatePlacementResolver().GetPlacements(episode, source);
     }
+
+    /// <summary>
+    ///   Makes a resolver for the placements of Shoko specials that keeps the
+    ///   series and default orderings it reads, for a whole listing.
+    /// </summary>
+    /// <returns>The resolver.</returns>
+    internal EpisodePlacementResolver CreatePlacementResolver()
+        => new(this, crossReferenceStore.Value, shokoEpisodeRepository);
+
+    /// <summary>
+    ///   An episode's place in the default ordering of its series, holding
+    ///   the episode itself.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="episode">The episode, an <see cref="IEpisode{TSeries,TEpisode}"/>.</param>
+    /// <returns>The place.</returns>
+    internal IEpisodeOrderingInformation<TSeries, TEpisode> GetDefaultEpisodeOrdering<TSeries, TEpisode>(TEpisode episode)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => new DefaultEpisodeOrdering<TSeries, TEpisode>(episode, (episode.Series ?? GetSeries(episode.SeriesID)) as TSeries, this);
 
     /// <summary>
     ///   The places an episode has in its series' orderings other than the
@@ -257,17 +285,7 @@ public class MetadataOrderingService(
             .OfType<Metadata_Ordering>()
             .Where(row => row.SeriesGuid == episode.SeriesID);
         foreach (var ordering in InReadingOrder(orderings).Select(row => new StoredOrdering<TSeries, TEpisode>(row, this)))
-        {
-            if (ordering.EpisodeByID(episode.ID) is not { } typed)
-                continue;
-
-            var airing = ordering.Placement.AiringOf(episode.ID);
-            foreach (var place in ordering.Placement.PlacesOf(episode.ID))
-            {
-                if (ordering.Groups.FirstOrDefault(group => group.ID == place.GroupID) is { } group)
-                    places.Add(new StoredEpisodeOrdering<TSeries, TEpisode>(group, typed, place.EpisodeNumber, place.IsSpecial ? airing : null));
-            }
-        }
+            places.AddRange(ordering.PlacesOf(episode.ID));
 
         return places;
     }
@@ -338,6 +356,14 @@ public class MetadataOrderingService(
     /// <returns>The series, or <c>null</c> when it is not available.</returns>
     internal ISeries? GetSeries(MetadataGuid seriesID)
         => metadataService.Value.GetSeries(seriesID);
+
+    /// <summary>
+    ///   Looks up an episode on any source.
+    /// </summary>
+    /// <param name="episodeID">The episode.</param>
+    /// <returns>The episode, or <c>null</c> when it is not available.</returns>
+    internal IEpisode? GetEpisode(MetadataGuid episodeID)
+        => metadataService.Value.GetEpisode(episodeID);
 
     /// <summary>
     ///   Reads the networks of a stored ordering, each as its source serves
@@ -556,7 +582,7 @@ public class MetadataOrderingService(
             throw new ArgumentException($"The type {ordering.Type} is kept by the core for its own orderings.", nameof(ordering));
 
         var source = ordering.ID.Source;
-        var series = CheckSeries(ordering.SeriesID, ordering.Name, nameof(ordering));
+        var series = CheckSeries(ordering.SeriesID, nameof(ordering));
         var episodes = EpisodesOf(series);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var groups = new List<GroupToWrite>();
@@ -577,8 +603,8 @@ public class MetadataOrderingService(
 
             groups.Add(new(
                 group.ID.ID,
-                CheckName(group.Name, nameof(ordering)),
-                group.Overview,
+                group.Titles ?? [],
+                group.Overviews ?? [],
                 CheckEpisodes(group.Episodes, episodes, series, nameof(ordering)),
                 group.IsSpecial,
                 group.SeasonNumber
@@ -587,7 +613,7 @@ public class MetadataOrderingService(
 
         CheckSpecialGroups(groups, nameof(ordering));
         var networks = CheckNetworks(ordering.Networks ?? [], source, nameof(ordering));
-        var stored = Write(ordering.ID, series.ID, ordering.Type, ordering.Name, ordering.Overview, groups, false, nameof(ordering))!;
+        var stored = Write(ordering.ID, series.ID, ordering.Type, ordering.Titles ?? [], ordering.Overviews ?? [], groups, false, nameof(ordering))!;
         studioStore.SetNetworks(ordering.ID, networks);
         return stored;
     }
@@ -645,7 +671,7 @@ public class MetadataOrderingService(
     public IOrdering CreateLocalOrdering(MetadataLocalOrderingData ordering)
     {
         ArgumentNullException.ThrowIfNull(ordering);
-        var series = CheckSeries(ordering.SeriesID, ordering.Name, nameof(ordering));
+        var series = CheckSeries(ordering.SeriesID, nameof(ordering));
         var episodes = EpisodesOf(series);
         var groups = new List<GroupToWrite>();
         foreach (var group in ordering.Groups ?? [])
@@ -656,8 +682,8 @@ public class MetadataOrderingService(
 
             groups.Add(new(
                 NewLocalID(),
-                CheckName(group.Name, nameof(ordering)),
-                group.Overview,
+                group.Titles ?? [],
+                group.Overviews ?? [],
                 CheckEpisodes(group.Episodes, episodes, series, nameof(ordering)),
                 group.IsSpecial,
                 null
@@ -667,7 +693,7 @@ public class MetadataOrderingService(
         CheckSpecialGroups(groups, nameof(ordering));
         var networks = MetadataStudioStore.CheckUserOrderingNetworks(ordering.Networks ?? [], nameof(ordering));
         var orderingID = new MetadataGuid(MetadataSource.User, MetadataEntityType.Ordering, NewLocalID());
-        var stored = Write(orderingID, series.ID, OrderingType.User, ordering.Name, ordering.Overview, groups, false, nameof(ordering))!;
+        var stored = Write(orderingID, series.ID, OrderingType.User, ordering.Titles ?? [], ordering.Overviews ?? [], groups, false, nameof(ordering))!;
         if (networks.Count > 0)
             studioStore.SetUserOrderingNetworks(orderingID, networks);
         return stored;
@@ -683,7 +709,7 @@ public class MetadataOrderingService(
         if (ordering.SeriesID != stored.SeriesGuid)
             throw new ArgumentException($"The ordering \"{orderingID}\" orders \"{stored.SeriesGuid}\", not \"{ordering.SeriesID}\".", nameof(ordering));
 
-        var series = CheckSeries(ordering.SeriesID, ordering.Name, nameof(ordering));
+        var series = CheckSeries(ordering.SeriesID, nameof(ordering));
         var episodes = EpisodesOf(series);
         var existing = groupRepository.GetByOrderingID(MetadataSource.User, orderingID.ID).Select(group => group.ProviderID).ToHashSet(StringComparer.Ordinal);
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -707,8 +733,8 @@ public class MetadataOrderingService(
 
             groups.Add(new(
                 groupID,
-                CheckName(group.Name, nameof(ordering)),
-                group.Overview,
+                group.Titles ?? [],
+                group.Overviews ?? [],
                 CheckEpisodes(group.Episodes, episodes, series, nameof(ordering)),
                 group.IsSpecial,
                 null
@@ -717,7 +743,7 @@ public class MetadataOrderingService(
 
         CheckSpecialGroups(groups, nameof(ordering));
         var networks = ordering.Networks is { } given ? MetadataStudioStore.CheckUserOrderingNetworks(given, nameof(ordering)) : null;
-        var updated = Write(orderingID, series.ID, OrderingType.User, ordering.Name, ordering.Overview, groups, true, nameof(ordering));
+        var updated = Write(orderingID, series.ID, OrderingType.User, ordering.Titles ?? [], ordering.Overviews ?? [], groups, true, nameof(ordering));
         if (updated is not null && networks is not null)
             studioStore.SetUserOrderingNetworks(orderingID, networks);
         return updated;
@@ -738,12 +764,19 @@ public class MetadataOrderingService(
     ///   One group to write, checked.
     /// </summary>
     /// <param name="ID">The source's ID for the group.</param>
-    /// <param name="Name">The group's name.</param>
-    /// <param name="Description">What the group is about, if anything.</param>
+    /// <param name="Titles">The group's titles, in order.</param>
+    /// <param name="Overviews">The group's overviews, in order.</param>
     /// <param name="Episodes">The group's episodes, in order.</param>
     /// <param name="IsSpecial">Whether the group holds the ordering's specials.</param>
     /// <param name="SeasonNumber">The season number the source gave the group, if any.</param>
-    private sealed record GroupToWrite(string ID, string Name, string? Description, IReadOnlyList<MetadataGuid> Episodes, bool IsSpecial, int? SeasonNumber);
+    private sealed record GroupToWrite(
+        string ID,
+        IReadOnlyList<ITitle> Titles,
+        IReadOnlyList<IText> Overviews,
+        IReadOnlyList<MetadataGuid> Episodes,
+        bool IsSpecial,
+        int? SeasonNumber
+    );
 
     /// <summary>
     ///   Gives each group of a stored ordering its season number: <c>0</c>
@@ -782,34 +815,35 @@ public class MetadataOrderingService(
     }
 
     /// <summary>
-    ///   Writes an ordering whole, replacing its groups and places, and
-    ///   removes the image links of the groups that go. Nothing is written
+    ///   Writes an ordering whole, replacing its groups, places and texts,
+    ///   and removes the image links of the groups that go. Nothing is written
     ///   when nothing changed. What another writer could change meanwhile is
     ///   checked again under the write lock.
     /// </summary>
     /// <param name="orderingID">The ordering.</param>
     /// <param name="seriesID">The series it orders.</param>
     /// <param name="type">What it follows.</param>
-    /// <param name="name">Its name.</param>
-    /// <param name="description">What it is about, if anything.</param>
+    /// <param name="titles">Its titles, in order.</param>
+    /// <param name="overviews">Its overviews, in order.</param>
     /// <param name="groups">Its groups, checked, in order.</param>
     /// <param name="mustExist">Only update the ordering, writing nothing when it is gone.</param>
     /// <param name="paramName">The argument the ordering came in through.</param>
     /// <returns>The stored ordering, or <c>null</c> when <paramref name="mustExist"/> is set and it is gone.</returns>
-    /// <exception cref="ArgumentException">A group's ID is taken by another ordering of the source.</exception>
+    /// <exception cref="ArgumentNullException">A title or overview, or its value, is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">A group's ID is taken by another ordering of the source, or a text's code is too long.</exception>
     private StoredOrdering<ISeries, IEpisode>? Write(
         MetadataGuid orderingID,
         MetadataGuid seriesID,
         OrderingType type,
-        string name,
-        string? description,
+        IReadOnlyList<ITitle> titles,
+        IReadOnlyList<IText> overviews,
         IReadOnlyList<GroupToWrite> groups,
         bool mustExist,
         string paramName
     )
     {
         var removedGroups = new List<MetadataGuid>();
-        var stored = WriteLocked(orderingID, seriesID, type, name, description, groups, mustExist, paramName, removedGroups);
+        var stored = WriteLocked(orderingID, seriesID, type, titles, overviews, groups, mustExist, paramName, removedGroups);
         RemoveImageLinks(removedGroups);
         return stored;
     }
@@ -821,20 +855,21 @@ public class MetadataOrderingService(
     /// <param name="orderingID">The ordering.</param>
     /// <param name="seriesID">The series it orders.</param>
     /// <param name="type">What it follows.</param>
-    /// <param name="name">Its name.</param>
-    /// <param name="description">What it is about, if anything.</param>
+    /// <param name="titles">Its titles, in order.</param>
+    /// <param name="overviews">Its overviews, in order.</param>
     /// <param name="groups">Its groups, checked, in order.</param>
     /// <param name="mustExist">Only update the ordering, writing nothing when it is gone.</param>
     /// <param name="paramName">The argument the ordering came in through.</param>
     /// <param name="removedGroups">Gets the groups the write removed.</param>
     /// <returns>The stored ordering, or <c>null</c> when <paramref name="mustExist"/> is set and it is gone.</returns>
-    /// <exception cref="ArgumentException">A group's ID is taken by another ordering of the source.</exception>
+    /// <exception cref="ArgumentNullException">A title or overview, or its value, is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">A group's ID is taken by another ordering of the source, or a text's code is too long.</exception>
     private StoredOrdering<ISeries, IEpisode>? WriteLocked(
         MetadataGuid orderingID,
         MetadataGuid seriesID,
         OrderingType type,
-        string name,
-        string? description,
+        IReadOnlyList<ITitle> titles,
+        IReadOnlyList<IText> overviews,
         IReadOnlyList<GroupToWrite> groups,
         bool mustExist,
         string paramName,
@@ -863,8 +898,6 @@ public class MetadataOrderingService(
             row.SeriesSource = seriesID.Source;
             row.SeriesID = seriesID.ID;
             row.Type = type;
-            row.Name = name;
-            row.Description = string.IsNullOrEmpty(description) ? null : description;
 
             var (groupsSaving, groupsDeleting) = MetadataRows.Replace(
                 groupRepository.GetByOrderingID(source, orderingID.ID),
@@ -879,8 +912,6 @@ public class MetadataOrderingService(
                     groupRow.Position = position;
                     groupRow.IsSpecial = group.IsSpecial;
                     groupRow.SeasonNumber = group.SeasonNumber;
-                    groupRow.Name = group.Name;
-                    groupRow.Description = string.IsNullOrEmpty(group.Description) ? null : group.Description;
                 },
                 (before, after) => before.SameAs(after)
             );
@@ -904,22 +935,42 @@ public class MetadataOrderingService(
                 (before, after) => before.SameAs(after)
             );
 
-            var changed = stored is null || !stored.SameAs(row) ||
-                groupsSaving.Count > 0 || groupsDeleting.Count > 0 ||
-                entriesSaving.Count > 0 || entriesDeleting.Count > 0;
+            // The ordering and each group keep their texts in the store, under
+            // their own IDs; a group's generic name follows its season number.
+            var seasonNumbers = NumberGroups([.. groups.Select(group => (group.IsSpecial, group.SeasonNumber))]);
+            var numbers = groups
+                .Select((group, index) => (ID: new MetadataGuid(source, MetadataEntityType.Season, group.ID), Number: seasonNumbers[index]))
+                .ToDictionary(group => group.ID, group => new GenericEpisodeTitles.EntryNumber(group.Number));
+            List<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles, IReadOnlyList<IText> Overviews)> texts =
+            [
+                (orderingID, titles, overviews),
+                .. groups.Select(group => (new MetadataGuid(source, MetadataEntityType.Season, group.ID), group.Titles, group.Overviews)),
+            ];
+            var changed = false;
+            textStore.WriteWithTexts(
+                texts,
+                [.. groupsDeleting.Select(group => group.ID)],
+                changedTexts =>
+                {
+                    changed = stored is null || !stored.SameAs(row) || changedTexts.Count > 0 ||
+                        groupsSaving.Count > 0 || groupsDeleting.Count > 0 ||
+                        entriesSaving.Count > 0 || entriesDeleting.Count > 0;
+                    if (!changed)
+                        return [];
+
+                    row.LastUpdatedAt = now;
+                    return
+                    [
+                        new MetadataRowChanges<Metadata_Ordering>(orderingRepository, [row], []),
+                        new MetadataRowChanges<Metadata_Ordering_Group>(groupRepository, groupsSaving, groupsDeleting),
+                        new MetadataRowChanges<Metadata_Ordering_Entry>(entryRepository, entriesSaving, entriesDeleting),
+                    ];
+                },
+                entry => numbers.TryGetValue(entry, out var number) ? number : null
+            );
             if (!changed)
                 return new(stored!, this);
 
-            row.LastUpdatedAt = now;
-
-            // The groups' texts are never removed here: a group's ID is a
-            // season's under its source, which a stored season may share.
-            textStore.WriteWithoutEntries(
-                [],
-                new MetadataRowChanges<Metadata_Ordering>(orderingRepository, [row], []),
-                new MetadataRowChanges<Metadata_Ordering_Group>(groupRepository, groupsSaving, groupsDeleting),
-                new MetadataRowChanges<Metadata_Ordering_Entry>(entryRepository, entriesSaving, entriesDeleting)
-            );
             removedGroups.AddRange(groupsDeleting.Select(group => group.ID));
             logger.LogDebug("Stored the ordering {Ordering} of {Series} with {Count} groups.", orderingID, seriesID, groups.Count);
             return new(row, this);
@@ -942,7 +993,7 @@ public class MetadataOrderingService(
 
             var groups = groupRepository.GetByOrderingID(row.Source, row.ProviderID);
             textStore.WriteWithoutEntries(
-                [orderingID],
+                [orderingID, .. groups.Select(group => group.ID)],
                 new MetadataRowChanges<Metadata_Ordering>(orderingRepository, [], [row]),
                 new MetadataRowChanges<Metadata_Ordering_Group>(groupRepository, [], [.. groups]),
                 new MetadataRowChanges<Metadata_Ordering_Entry>(entryRepository, [], [.. entryRepository.GetByOrderingID(row.Source, row.ProviderID)])
@@ -986,41 +1037,58 @@ public class MetadataOrderingService(
 
     #endregion
 
+    #region User Texts
+
+    /// <summary>
+    ///   The titles of a user's name for an ordering or group, as typed: one
+    ///   main title in no known language, or none for a blank name.
+    /// </summary>
+    /// <param name="name">The name, or <c>null</c>.</param>
+    /// <returns>The titles.</returns>
+    internal static IReadOnlyList<ITitle> UserTitles(string? name)
+        => string.IsNullOrWhiteSpace(name)
+            ? []
+            : [
+                new TitleStub
+                {
+                    Source = MetadataSource.User,
+                    Language = TitleLanguage.Unknown,
+                    LanguageCode = "unk",
+                    Value = name.Trim(),
+                    Type = TitleType.Main,
+                },
+            ];
+
+    /// <summary>
+    ///   The overviews of a user's description of an ordering or group, as
+    ///   typed: one in no known language, or none for a blank description.
+    /// </summary>
+    /// <param name="description">The description, or <c>null</c>.</param>
+    /// <returns>The overviews.</returns>
+    internal static IReadOnlyList<IText> UserOverviews(string? description)
+        => string.IsNullOrWhiteSpace(description)
+            ? []
+            : [new TextStub { Source = MetadataSource.User, Language = TitleLanguage.Unknown, LanguageCode = "unk", Value = description }];
+
+    #endregion
+
     #region Validation
 
     /// <summary>
-    ///   Checks the series an ordering is for and the ordering's name.
+    ///   Checks the series an ordering is for.
     /// </summary>
     /// <param name="seriesID">The series.</param>
-    /// <param name="name">The ordering's name.</param>
-    /// <param name="paramName">The argument they came in through.</param>
+    /// <param name="paramName">The argument it came in through.</param>
     /// <returns>The series.</returns>
-    /// <exception cref="ArgumentNullException">The series or the name is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException">The ID does not name a series, it is not available, or the name is blank.</exception>
-    private ISeries CheckSeries(MetadataGuid seriesID, string name, string paramName)
+    /// <exception cref="ArgumentNullException">The series is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">The ID does not name a series, or it is not available.</exception>
+    private ISeries CheckSeries(MetadataGuid seriesID, string paramName)
     {
         ArgumentNullException.ThrowIfNull(seriesID, paramName);
-        CheckName(name, paramName);
         if (seriesID.EntityType != MetadataEntityType.Series)
             throw new ArgumentException($"\"{seriesID}\" does not name a series.", paramName);
 
         return GetSeries(seriesID) ?? throw new ArgumentException($"The series \"{seriesID}\" is not available.", paramName);
-    }
-
-    /// <summary>
-    ///   Checks a name.
-    /// </summary>
-    /// <param name="name">The name.</param>
-    /// <param name="paramName">The argument it came in through.</param>
-    /// <returns>The name.</returns>
-    /// <exception cref="ArgumentNullException">The name is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException">The name is blank.</exception>
-    private static string CheckName(string name, string paramName)
-    {
-        ArgumentNullException.ThrowIfNull(name, paramName);
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("An ordering and each of its groups need a name.", paramName);
-        return name;
     }
 
     /// <summary>

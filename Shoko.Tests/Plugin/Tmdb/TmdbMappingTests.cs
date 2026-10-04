@@ -19,15 +19,6 @@ public sealed class TmdbMappingTests
 {
     #region Texts
 
-    [Theory]
-    [InlineData("Episode 5", 5, true)]
-    [InlineData("第5話", 5, true)]
-    [InlineData("Folge 5", 5, true)]
-    [InlineData("Episode 5", 6, false)]
-    [InlineData("Episode 5: The Return", 5, false)]
-    public void AGenericEpisodeTitleIsKnownByItsNumber(string title, int episodeNumber, bool generic)
-        => Assert.Equal(generic, TmdbTexts.IsGenericEpisodeTitle(title, episodeNumber));
-
     [Fact]
     public void OnlyTheTranscriptionsAmongTheAlternativeTitlesAreKept()
     {
@@ -58,51 +49,45 @@ public sealed class TmdbMappingTests
     }
 
     [Theory]
-    [InlineData("化物語", null, "ja", null, null)]
-    [InlineData(".hack", ".hack", "ja", null, null)]
-    [InlineData("Another Movie", "Another Movie", "en", null, "Another Movie")]
-    [InlineData("Le Film", null, "fr", null, null)]
-    [InlineData("Season 1", null, null, 1, null)]
-    [InlineData("Specials", null, null, 0, null)]
-    [InlineData("Bleach", "BLEACH", "ja", null, "Bleach")]
-    public void TheEntrysOwnTextIsEnglishOnlyWhenItIsNoFallback(string own, string? original, string? originalLanguage, int? seasonNumber, string? expected)
+    [InlineData("化物語", null, "ja", null)]
+    [InlineData(".hack", ".hack", "ja", null)]
+    [InlineData("Another Movie", "Another Movie", "en", "Another Movie")]
+    [InlineData("Le Film", null, "fr", null)]
+    [InlineData("Bleach", "BLEACH", "ja", "Bleach")]
+    public void TheEntrysOwnTextIsEnglishOnlyWhenItIsNoFallback(string own, string? original, string? originalLanguage, string? expected)
     {
         var translations = new TranslationsContainer
         {
             Translations = [new() { Iso_639_1 = "fr", Iso_3166_1 = "FR", Data = new() { Name = "Le Film" } }],
         };
 
-        Assert.Equal(expected, TmdbTexts.English(translations, data => data.Name, own, original, originalLanguage, seasonNumber));
+        Assert.Equal(expected, TmdbTexts.English(translations, data => data.Name, own, original, originalLanguage));
     }
 
-    [Theory]
-    [InlineData(2, "Season 2")]
-    [InlineData(0, "Specials")]
-    [InlineData(0, "Season 0")]
-    public void ASeasonsGenericNameIsNeverStoredInEnglishEvenWhenListed(int number, string generic)
+    [Fact]
+    public void ASeasonsGenericNameIsPassedOnForTheCoreToDrop()
     {
         var season = new TvSeason
         {
             Id = 2001,
-            SeasonNumber = number,
-            Name = generic,
+            SeasonNumber = 2,
+            Name = "Season 2",
             Translations = new()
             {
                 Translations =
                 [
-                    new() { Iso_639_1 = "en", Iso_3166_1 = "US", Data = new() { Name = generic } },
-                    new() { Iso_639_1 = "en", Iso_3166_1 = "GB", Data = new() { Name = generic } },
-                    new() { Iso_639_1 = "fr", Iso_3166_1 = "FR", Data = new() { Name = generic } },
-                    new() { Iso_639_1 = "de", Iso_3166_1 = "DE", Data = new() { Name = "Staffel" } },
+                    new() { Iso_639_1 = "en", Iso_3166_1 = "US", Data = new() { Name = "Season 2" } },
+                    new() { Iso_639_1 = "de", Iso_3166_1 = "DE", Data = new() { Name = "Staffel 2" } },
                 ],
             },
         };
 
         var titles = TmdbEntityMapper.ToSeasonData(season, TmdbTextLanguages.All).Titles;
 
-        // Only the English generic name is the core's to make up.
-        Assert.Equal([("fr", generic), ("de", "Staffel")], titles.Select(title => (title.LanguageCode, title.Value)));
-        Assert.DoesNotContain(titles, title => title.Type is TitleType.Main);
+        Assert.Equal(
+            [("en", TitleType.Main, "Season 2"), ("de", TitleType.Official, "Staffel 2")],
+            titles.Select(title => (title.LanguageCode, title.Type, title.Value))
+        );
     }
 
     [Fact]

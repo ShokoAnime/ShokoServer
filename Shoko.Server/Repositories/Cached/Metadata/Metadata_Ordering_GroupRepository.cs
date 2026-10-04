@@ -25,7 +25,7 @@ public class Metadata_Ordering_GroupRepository(DatabaseFactory databaseFactory) 
 
     /// <inheritdoc />
     /// <remarks>
-    ///   The group keeps its default name on its row.
+    ///   The group's synthesized name follows the season number its row gives it.
     /// </remarks>
     protected override IEnumerable<MetadataGuid> TextEntriesOf(Metadata_Ordering_Group entity, bool removed)
         => [entity.ID];

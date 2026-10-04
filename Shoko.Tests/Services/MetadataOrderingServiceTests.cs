@@ -103,13 +103,13 @@ public class MetadataOrderingServiceTests
         {
             ID = Ordering(TestSources.Plugin, id),
             SeriesID = series,
-            Name = $"Ordering {id}",
-            Overview = "About it.",
+            Titles = TestTexts.Named($"Ordering {id}"),
+            Overviews = TestTexts.Described("About it."),
             Type = OrderingType.DVD,
             Groups = [.. groups.Select(group => new MetadataOrderingGroupData
             {
                 ID = Group(TestSources.Plugin, group.ID),
-                Name = $"Group {group.ID}",
+                Titles = TestTexts.Named($"Group {group.ID}"),
                 Episodes = [.. group.Episodes.Select(episode => Episode(series.Source, episode))],
             })],
         };
@@ -118,11 +118,11 @@ public class MetadataOrderingServiceTests
         => new()
         {
             SeriesID = series,
-            Name = "Mine",
+            Titles = MetadataOrderingService.UserTitles("Mine"),
             Groups = [.. groups.Select((group, index) => new MetadataLocalOrderingGroupData
             {
                 ID = group.ID,
-                Name = $"Part {index + 1}",
+                Titles = MetadataOrderingService.UserTitles($"Part {index + 1}"),
                 Episodes = [.. group.Episodes.Select(episode => Episode(series.Source, episode))],
             })],
         };
@@ -256,14 +256,13 @@ public class MetadataOrderingServiceTests
         Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(valid with { ID = Ordering(TestSources.Plugin, "default/s") }));
         Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(valid with { Type = OrderingType.Default }));
         Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(valid with { Type = OrderingType.User }));
-        Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(valid with { Name = " " }));
         Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(valid with { SeriesID = new(TestSources.AniList, MetadataEntityType.Series, "missing") }));
         Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(Global("o", series.ID, ("g2", ["t-e1"]))));
         Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(Global("o", series.ID, ("g1", ["s-e1"]))));
         Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(Global("o", series.ID, ("g2", ["s-e1"]), ("g2", ["s-e2"]))));
         Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(valid with
         {
-            Groups = [new() { ID = Group(TestSources.AniList, "g2"), Name = "Elsewhere" }],
+            Groups = [new() { ID = Group(TestSources.AniList, "g2") }],
         }));
         Assert.Single(world.Service.GetStoredOrderings(TestSources.Plugin));
     }
@@ -394,7 +393,7 @@ public class MetadataOrderingServiceTests
         Assert.Equal(MetadataSource.User, ordering.ID.Source);
         Assert.Equal(MetadataEntityType.Ordering, ordering.ID.EntityType);
         Assert.Equal(OrderingType.User, ordering.Type);
-        Assert.Equal(string.Empty, ordering.Overview);
+        Assert.Empty(world.Tables.TextStore.GetOverviews(ordering.ID));
         Assert.All(ordering.Seasons, group => Assert.Equal(MetadataSource.User, group.ID.Source));
         Assert.Equal(2, ordering.Seasons.Select(group => group.ID).Distinct().Count());
         Assert.Equal(["3-e3", "3-e1", "3-e2"], ordering.Episodes.Select(episode => episode.ID.ID));
@@ -617,7 +616,8 @@ public class MetadataOrderingServiceTests
             Assert.Equal(ordering.ID, place.OrderingID);
             Assert.True(place.IsPreferred);
             Assert.False(place.IsDefault);
-            Assert.Same(episode, place.Episode);
+            Assert.Same(episode, ((IEpisodeOrderingInformation<ISeries, IEpisode>)place).Episode);
+            Assert.Same(place, place.Episode.CurrentOrdering);
             Assert.Equal(place.SeasonID, place.Season?.ID);
         });
     }
@@ -765,9 +765,8 @@ public class MetadataOrderingServiceTests
             SeriesSource = series.Source,
             SeriesID = series.ID,
             Type = OrderingType.User,
-            Name = "Mine",
         });
-        world.Tables.Groups.Cache.Update(new Metadata_Ordering_Group { Metadata_Ordering_GroupID = 1, Source = MetadataSource.User, ProviderID = "part", OrderingID = "mine", Name = "Part" });
+        world.Tables.Groups.Cache.Update(new Metadata_Ordering_Group { Metadata_Ordering_GroupID = 1, Source = MetadataSource.User, ProviderID = "part", OrderingID = "mine" });
 
         Assert.Equal(1, world.Service.RemoveForSeries(series));
 

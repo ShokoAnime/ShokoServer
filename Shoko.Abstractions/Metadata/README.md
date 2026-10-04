@@ -162,10 +162,13 @@ any list of texts, such as a video chapter's names (`IChapterInfo` is an
 `IWithTitles`). `GetLanguageOrder` hands a provider the language order itself,
 for choosing which translations to store.
 
-An episode or season with no title at all is given a made-up one, such as
-`Episode 5`, `Season 2` or `Specials`, when it is read
-(`ITitle.IsSynthesized`). Those are never stored, so a provider leaves such
-generic names out of what it saves. The rules are in
+An entry's main title (`TitleType.Main`) is its default. A plugin source's
+entry stored without one gets a synthesized default, listed first in `Titles` and
+never stored (`ITitle.IsSynthesized`): an episode's or season's generic name,
+such as `Episode 5`, `Staffel 2` or `Specials`, or `<source> <kind> <id>` for
+any other kind. For an episode or season whose only name is generic, storing
+nothing is the better choice, as the core synthesizes it in the user's languages;
+the stores leave such titles out when they carry the entry's own number. The rules are in
 [`IMetadataTextManager`](Services/README.md#imetadatatextmanager) and
 [managing texts](Services/README.md#managing-texts).
 
@@ -183,12 +186,25 @@ such as TMDb's episode groups, and users keep local orderings under `user`.
 | Every ordering of a series, the default first | `ISeries.Orderings` |
 | The one it uses | `ISeries.PreferredOrdering`, set with `SetPreferredOrdering` |
 | An episode's places in them | `IEpisode.Orderings` and `IEpisode.PreferredOrdering` |
+| The ordering or place an entry is presented in | `ISeries.CurrentOrdering` and `IEpisode.CurrentOrdering` |
 | Whether a user hid an episode | `IEpisode.IsHidden`, set with `SetEpisodeHidden` |
 
-Each place in an ordering (`IEpisodeOrderingInformation`) has its season and
-episode number and type there. A special placed among the regular episodes
-stays a special and says where it airs (`AirsBefore…`, `AirsAfter…`), in the
-default ordering too. An ordering also lists the `Networks` it follows.
+A place in an ordering (`IEpisodeOrderingInformation`) says where an episode
+sits there: its group, season and episode number and type. A special placed
+among the regular episodes stays a special and says where it airs
+(`AirsBefore…`, `AirsAfter…`), in the default ordering too. An ordering also
+lists the `Networks` it follows.
+
+Any ordering but the default one presents its series and episodes in its own
+numbering. Read untyped, an ordering's `Series` has the ordering's groups as
+its `Seasons` and its episodes as its `Episodes`; those episodes, a group's
+`Episodes` and a place's `Episode` are numbered and typed by their place,
+with the episode's own ID, texts and images. An episode with no main title
+gets synthesized titles in that numbering, such as `Episode 7`. Their
+`CurrentOrdering` leads back to the ordering or the place, and a source's own
+series and episodes answer with the default ordering. The typed members, such
+as `IOrdering<TSeries, TEpisode>.Series` and the typed place's `Episode`,
+always give the source's own entries.
 
 See [`IMetadataOrderingService`](Services/README.md#imetadataorderingservice)
 and [`IMetadataOrderingTransferService`](Services/README.md#imetadataorderingtransferservice).

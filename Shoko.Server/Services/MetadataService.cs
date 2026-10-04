@@ -313,12 +313,45 @@ public class MetadataService : IMetadataService
         => GetEntryOfKind<ISeries>(id, MetadataEntityType.Series);
 
     /// <inheritdoc />
+    public ISeries? GetSeries(MetadataGuid id, MetadataGuid orderingID)
+    {
+        ArgumentNullException.ThrowIfNull(orderingID);
+        if (GetSeries(id) is not { } series)
+            return null;
+        if (orderingID == MetadataOrderingService.DefaultOrderingID(series.ID))
+            return series;
+
+        return OtherOrderingOf(series.ID, orderingID)?.Series;
+    }
+
+    /// <inheritdoc />
     public ISeason? GetSeason(MetadataGuid id)
         => GetEntryOfKind<ISeason>(id, MetadataEntityType.Season);
 
     /// <inheritdoc />
     public IEpisode? GetEpisode(MetadataGuid id)
         => GetEntryOfKind<IEpisode>(id, MetadataEntityType.Episode);
+
+    /// <inheritdoc />
+    public IEpisode? GetEpisode(MetadataGuid id, MetadataGuid orderingID)
+    {
+        ArgumentNullException.ThrowIfNull(orderingID);
+        if (GetEpisode(id) is not { } episode)
+            return null;
+        if (orderingID == MetadataOrderingService.DefaultOrderingID(episode.SeriesID))
+            return episode;
+
+        return OtherOrderingOf(episode.SeriesID, orderingID)?.Episodes.FirstOrDefault(placed => placed.ID == episode.ID);
+    }
+
+    /// <summary>
+    ///   Looks up an ordering of a series other than its default one.
+    /// </summary>
+    /// <param name="seriesID">The series.</param>
+    /// <param name="orderingID">The ordering.</param>
+    /// <returns>The ordering, or <c>null</c> when it is not found or orders another series.</returns>
+    private IOrdering? OtherOrderingOf(MetadataGuid seriesID, MetadataGuid orderingID)
+        => _orderings.GetOrdering(orderingID) is { IsDefault: false } ordering && ordering.SeriesID == seriesID ? ordering : null;
 
     /// <inheritdoc />
     public IMovie? GetMovie(MetadataGuid id)

@@ -15,7 +15,8 @@ namespace Shoko.Plugin.Tmdb.Mapping;
 ///   Each collection is an ordering and each of its groups a season of it,
 ///   in TMDb's order and numbered as TMDb orders it. The first group
 ///   numbered <c>0</c> holds the specials. Only the show's stored episodes
-///   are placed, as an ordering may name no other.
+///   are placed, as an ordering may name no other. TMDb gives the names and
+///   descriptions in American English.
 /// </remarks>
 public static class TmdbOrderings
 {
@@ -43,7 +44,7 @@ public static class TmdbOrderings
             groups.Add(new()
             {
                 ID = TmdbIds.OrderingGroup(group.Id!),
-                Name = TmdbTexts.Clean(group.Name) ?? string.Empty,
+                Titles = Titles(group.Name),
                 IsSpecial = isSpecial,
                 SeasonNumber = !isSpecial && group.Order > 0 ? group.Order : null,
                 Episodes =
@@ -65,13 +66,22 @@ public static class TmdbOrderings
         {
             ID = TmdbIds.Ordering(collection.Id),
             SeriesID = TmdbIds.Series(showID),
-            Name = TmdbTexts.Clean(collection.Name) ?? collection.Id,
-            Overview = TmdbTexts.Clean(collection.Description),
+            Titles = Titles(collection.Name),
+            Overviews = TmdbTexts.Clean(collection.Description) is { } description ? [TmdbTexts.Overview("en", "US", description)] : [],
             Type = TypeOf(collection.Type),
             Networks = collection.Network is { Id: > 0 } network ? [TmdbIds.Network(network.Id)] : [],
             Groups = groups,
         };
     }
+
+    /// <summary>
+    ///   The titles of a collection or group: its American English name as its
+    ///   main title, or none when it has no name.
+    /// </summary>
+    /// <param name="name">The name TMDb gave it.</param>
+    /// <returns>The titles.</returns>
+    private static IReadOnlyList<ITitle> Titles(string? name)
+        => TmdbTexts.Clean(name) is { } value ? [TmdbTexts.Title("en", "US", value, TitleType.Main)] : [];
 
     /// <summary>
     ///   What an ordering follows, from TMDb's kind of collection.

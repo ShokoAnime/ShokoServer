@@ -220,6 +220,7 @@ public sealed class TextFixture
             var episodeEntries = episodes[anime.AnimeID]
                 .Select(episode => (
                     ((IMetadata)episode).ID,
+                    new GenericEpisodeTitles.EntryNumber(episode.EpisodeNumber, episode.EpisodeType),
                     AnidbTextListing.PlanEpisodeTitles(
                         [],
                         episodeTitles[episode.EpisodeID].Select(title => new AnidbTextListing.ListedTitle(title.Language, title.Type, title.Value)),

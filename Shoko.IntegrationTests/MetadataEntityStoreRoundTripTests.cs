@@ -232,7 +232,8 @@ public class MetadataEntityStoreRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal(createdAt, Assert.IsType<Metadata_Series>(seriesStore.GetSeries(series)).CreatedAt);
         Assert.Equal(createdAt, ((IWithCreationDate)seriesStore.GetEpisode(ID(MetadataEntityType.Episode, "entity-episode-1"))!).CreatedAt);
         Assert.Null(seriesStore.GetSeason(ID(MetadataEntityType.Season, longID)));
-        Assert.Empty(seriesStore.GetSeries(series)!.Titles);
+        // Saved without titles, the series is only listed by its synthesized name.
+        Assert.True(Assert.Single(seriesStore.GetSeries(series)!.Titles).IsSynthesized);
         Assert.Empty(fixture.Services.GetRequiredService<TextCache>().GetRows(ID(MetadataEntityType.Season, "entity-season-1")));
 
         Assert.Equal(1, collectionStore.RemoveCollection(ID(MetadataEntityType.Collection, "entity-collection-1")));

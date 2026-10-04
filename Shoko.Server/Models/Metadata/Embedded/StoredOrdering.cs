@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Ordering;
 
@@ -12,11 +11,16 @@ namespace Shoko.Server.Models.Metadata.Embedded;
 /// <summary>
 ///   A stored ordering, read back with its groups.
 /// </summary>
+/// <remarks>
+///   Read untyped, its series and episodes are presented in the ordering:
+///   the series' seasons are the ordering's groups, and each episode is
+///   numbered by its first place here. Read typed, they are the source's own.
+/// </remarks>
 /// <typeparam name="TSeries">The series' type.</typeparam>
 /// <typeparam name="TEpisode">The episodes' type.</typeparam>
 /// <param name="row">The ordering's row.</param>
 /// <param name="service">The ordering service, which reads the groups and knows the choice and the hidden episodes.</param>
-public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, MetadataOrderingService service) : IOrdering<TSeries, TEpisode>, IInlineTextSource, IPlacedOrdering
+public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, MetadataOrderingService service) : IOrdering<TSeries, TEpisode>, IPlacedOrdering
     where TSeries : class, ISeries
     where TEpisode : class, IEpisode
 {
@@ -27,6 +31,10 @@ public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, Met
     private OrderingPlaces? _placement;
 
     private Dictionary<MetadataGuid, TEpisode>? _episodesByID;
+
+    private SeriesInOrdering? _presentedSeries;
+
+    private IReadOnlyList<IEpisode>? _presentedEpisodes;
 
     /// <summary>
     ///   The ordering's row.
@@ -56,6 +64,25 @@ public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, Met
         return _episodesByID.GetValueOrDefault(episodeID);
     }
 
+    /// <summary>
+    ///   Every place an episode has in the ordering: its special group place
+    ///   for a placed special, else one for each group that lists it.
+    /// </summary>
+    /// <param name="episodeID">The episode.</param>
+    /// <returns>The places, in the order of the groups.</returns>
+    internal IEnumerable<StoredEpisodeOrdering<TSeries, TEpisode>> PlacesOf(MetadataGuid episodeID)
+    {
+        if (EpisodeByID(episodeID) is not { } episode)
+            yield break;
+
+        var airing = Placement.AiringOf(episodeID);
+        foreach (var place in Placement.PlacesOf(episodeID))
+        {
+            if (Groups.FirstOrDefault(group => group.ID == place.GroupID) is { } group)
+                yield return new(group, episode, place.EpisodeNumber, place.IsSpecial ? airing : null);
+        }
+    }
+
     #region IMetadata Implementation
 
     /// <inheritdoc />
@@ -67,12 +94,6 @@ public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, Met
 
     /// <inheritdoc />
     public MetadataGuid SeriesID => row.SeriesGuid;
-
-    /// <inheritdoc />
-    public string Name => row.Name;
-
-    /// <inheritdoc />
-    public string Overview => row.Description ?? string.Empty;
 
     /// <inheritdoc />
     public OrderingType Type => row.Type;
@@ -107,17 +128,47 @@ public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, Met
 
     #endregion
 
+    #region IOrdering Implementation
+
+    ISeries IOrdering.Series => _presentedSeries ??= new(Series, this);
+
+    IReadOnlyList<IEpisode> IOrdering.Episodes
+        => _presentedEpisodes ??= [.. Placement.ViewingOrder.Select(episodeID => PlacesOf(episodeID).FirstOrDefault()).OfType<IEpisode>()];
+
+    #endregion
+
     #region IPlacedOrdering Implementation
 
     OrderingPlaces IPlacedOrdering.Placement => Placement;
 
     #endregion
 
-    #region IInlineTextSource Implementation
+    #region IWithTitles Implementation
 
-    ITitle? IInlineTextSource.InlineTitle => InlineText.Title(row.Source, row.Name, TitleLanguage.Unknown, "unk");
+    /// <inheritdoc />
+    public string Title => PreferredTitle?.Value ?? DefaultTitle.Value;
 
-    IText? IInlineTextSource.InlineOverview => InlineText.Overview(row.Source, row.Description, TitleLanguage.Unknown, "unk");
+    /// <inheritdoc />
+    public ITitle DefaultTitle => MetadataStoredEntry.DefaultTitle(this);
+
+    /// <inheritdoc />
+    public ITitle? PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
+
+    /// <inheritdoc />
+    public IReadOnlyList<ITitle> Titles => MetadataStoredEntry.Titles(this);
+
+    #endregion
+
+    #region IWithOverviews Implementation
+
+    /// <inheritdoc />
+    public IText? DefaultOverview => MetadataStoredEntry.DefaultOverview(this);
+
+    /// <inheritdoc />
+    public IText? PreferredOverview => MetadataStoredEntry.PreferredOverview(this);
+
+    /// <inheritdoc />
+    public IReadOnlyList<IText> Overviews => MetadataStoredEntry.Overviews(this);
 
     #endregion
 

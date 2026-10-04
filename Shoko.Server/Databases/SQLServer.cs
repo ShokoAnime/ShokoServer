@@ -1561,6 +1561,13 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(192, 291, "UPDATE Metadata_Creator SET CreatedAt = LastUpdatedAt WHERE CreatedAt = '1970-01-01 00:00:00' AND LastUpdatedAt IS NOT NULL;"),
         new(192, 292, DatabaseFixes.RemoveTmdbGenericSeasonTitles),
         new(192, 293, DatabaseFixes.AddOrderingGroupSeasonNumber),
+        new(192, 294, DatabaseFixes.FixAnidbTitleLanguageCodeCasing),
+        new(192, 295, DatabaseFixes.RemoveGenericTitles),
+        new(192, 296, DatabaseFixes.CopyOrderingTexts),
+        new(192, 297, "ALTER TABLE Metadata_Ordering DROP COLUMN Name;"),
+        new(192, 298, "ALTER TABLE Metadata_Ordering DROP COLUMN Description;"),
+        new(192, 299, "ALTER TABLE Metadata_Ordering_Group DROP COLUMN Name;"),
+        new(192, 300, "ALTER TABLE Metadata_Ordering_Group DROP COLUMN Description;"),
     ];
 
     #endregion

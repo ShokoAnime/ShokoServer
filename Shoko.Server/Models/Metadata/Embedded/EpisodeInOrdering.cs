@@ -6,34 +6,92 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
+using Shoko.Server.Models.Interfaces;
 
 namespace Shoko.Server.Models.Metadata.Embedded;
 
 /// <summary>
-///   An episode numbered as it sits in one ordering of its series, for the
-///   matching engine, which numbers candidates by their season and episode.
-///   Everything but the numbering is the episode's own.
+///   An episode's place in one ordering of its series, which is also the
+///   episode as that ordering presents it: numbered and typed by the place,
+///   with everything else, its ID included, from the linked episode.
 /// </summary>
-/// <param name="episode">The episode.</param>
-/// <param name="place">Its place in the ordering.</param>
-internal sealed class EpisodeInOrdering(IEpisode episode, IEpisodeOrderingInformation place) : IEpisode
+/// <remarks>
+///   The place and the episode stay separate contracts. The place's untyped
+///   <see cref="IEpisodeOrderingInformation.Episode"/> gives the linked
+///   episode in the default ordering and this object in any other, so an
+///   episode with no main title gets synthesized titles in that ordering's
+///   numbering. The typed one always gives the linked episode.
+/// </remarks>
+public abstract class EpisodeInOrdering(IEpisode episode) : IEpisodeOrderingInformation, IEpisode, IInlineTextSource
 {
-    #region Numbering
+    #region Place
 
     /// <inheritdoc />
-    public MetadataGuid? SeasonID => place.SeasonID;
+    public abstract MetadataGuid OrderingID { get; }
 
     /// <inheritdoc />
-    public int? SeasonNumber => place.SeasonNumber;
+    public abstract MetadataGuid? SeasonID { get; }
 
     /// <inheritdoc />
-    public int EpisodeNumber => place.EpisodeNumber;
+    public abstract int? SeasonNumber { get; }
 
     /// <inheritdoc />
-    public EpisodeType Type => place.EpisodeType;
+    public abstract int EpisodeNumber { get; }
 
     /// <inheritdoc />
-    public ISeason? Season => place.Season;
+    public abstract EpisodeType EpisodeType { get; }
+
+    /// <inheritdoc />
+    public abstract bool IsDefault { get; }
+
+    /// <inheritdoc />
+    public abstract bool IsPreferred { get; }
+
+    /// <inheritdoc />
+    public abstract int? AirsBeforeSeasonNumber { get; }
+
+    /// <inheritdoc />
+    public abstract int? AirsBeforeEpisodeNumber { get; }
+
+    /// <inheritdoc />
+    public abstract int? AirsAfterSeasonNumber { get; }
+
+    /// <inheritdoc />
+    public abstract MetadataGuid? AirsAfterEpisodeID { get; }
+
+    /// <inheritdoc />
+    public abstract MetadataGuid? AirsBeforeEpisodeID { get; }
+
+    /// <inheritdoc />
+    public abstract ISeries Series { get; }
+
+    /// <inheritdoc />
+    public abstract ISeason? Season { get; }
+
+    /// <inheritdoc />
+    public abstract DateTime CreatedAt { get; }
+
+    /// <inheritdoc />
+    public abstract DateTime LastUpdatedAt { get; }
+
+    /// <inheritdoc />
+    public MetadataGuid SeriesID => episode.SeriesID;
+
+    /// <inheritdoc />
+    public MetadataGuid EpisodeID => episode.ID;
+
+    /// <summary>
+    ///   The linked episode, numbered by its own source.
+    /// </summary>
+    public IEpisode LinkedEpisode => episode;
+
+    IEpisode IEpisodeOrderingInformation.Episode => IsDefault ? episode : this;
+
+    /// <summary>
+    ///   Whether the ordering numbers the episode other than its own source
+    ///   does, by type or number.
+    /// </summary>
+    internal bool IsRenumbered => EpisodeType != episode.Type || EpisodeNumber != episode.EpisodeNumber;
 
     #endregion
 
@@ -42,8 +100,7 @@ internal sealed class EpisodeInOrdering(IEpisode episode, IEpisodeOrderingInform
     /// <inheritdoc />
     public MetadataGuid ID => episode.ID;
 
-    /// <inheritdoc />
-    public MetadataGuid SeriesID => episode.SeriesID;
+    EpisodeType IEpisode.Type => EpisodeType;
 
     /// <inheritdoc />
     public IReadOnlyList<int> ShokoEpisodeIDs => episode.ShokoEpisodeIDs;
@@ -67,13 +124,13 @@ internal sealed class EpisodeInOrdering(IEpisode episode, IEpisodeOrderingInform
     public DateTime? AirDateWithTime => episode.AirDateWithTime;
 
     /// <inheritdoc />
-    public ISeries Series => episode.Series;
+    public DateTime? LastRefreshedAt => episode.LastRefreshedAt;
 
-    /// <inheritdoc />
-    public IReadOnlyList<IEpisodeOrderingInformation> Orderings => episode.Orderings;
+    IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings => episode.Orderings;
 
-    /// <inheritdoc />
-    public IEpisodeOrderingInformation? PreferredOrdering => episode.PreferredOrdering;
+    IEpisodeOrderingInformation? IEpisode.PreferredOrdering => episode.PreferredOrdering;
+
+    IEpisodeOrderingInformation IEpisode.CurrentOrdering => this;
 
     /// <inheritdoc />
     public IReadOnlyList<IShokoEpisode> ShokoEpisodes => episode.ShokoEpisodes;
@@ -95,19 +152,23 @@ internal sealed class EpisodeInOrdering(IEpisode episode, IEpisodeOrderingInform
 
     #endregion
 
-    #region Containers
+    #region IWithTitles Implementation
 
     /// <inheritdoc />
-    public string Title => episode.Title;
+    public string Title => (PreferredTitle ?? DefaultTitle).Value;
 
     /// <inheritdoc />
-    public ITitle DefaultTitle => episode.DefaultTitle;
+    public ITitle DefaultTitle => IsRenumbered ? TextAccess.Manager.DefaultTitleInOrdering(this) : episode.DefaultTitle;
 
     /// <inheritdoc />
-    public ITitle? PreferredTitle => episode.PreferredTitle;
+    public ITitle? PreferredTitle => IsRenumbered ? TextAccess.Manager.PreferredTitleInOrdering(this) : episode.PreferredTitle;
 
     /// <inheritdoc />
-    public IReadOnlyList<ITitle> Titles => episode.Titles;
+    public IReadOnlyList<ITitle> Titles => IsRenumbered ? TextAccess.Manager.TitlesInOrdering(this) : episode.Titles;
+
+    #endregion
+
+    #region IWithOverviews Implementation
 
     /// <inheritdoc />
     public IText? DefaultOverview => episode.DefaultOverview;
@@ -117,6 +178,10 @@ internal sealed class EpisodeInOrdering(IEpisode episode, IEpisodeOrderingInform
 
     /// <inheritdoc />
     public IReadOnlyList<IText> Overviews => episode.Overviews;
+
+    #endregion
+
+    #region Other Containers
 
     /// <inheritdoc />
     public IImageCrossReference? DefaultBackdropImageCrossReference => episode.DefaultBackdropImageCrossReference;
@@ -133,14 +198,17 @@ internal sealed class EpisodeInOrdering(IEpisode episode, IEpisodeOrderingInform
     /// <inheritdoc />
     public IReadOnlyList<MetadataGuid> CrossSourceIDs => episode.CrossSourceIDs;
 
-    /// <inheritdoc />
-    public DateTime CreatedAt => episode.CreatedAt;
+    #endregion
 
-    /// <inheritdoc />
-    public DateTime LastUpdatedAt => episode.LastUpdatedAt;
+    #region IInlineTextSource Implementation
 
-    /// <inheritdoc />
-    public DateTime? LastRefreshedAt => episode.LastRefreshedAt;
+    ITitle? IInlineTextSource.InlineTitle => (episode as IInlineTextSource)?.InlineTitle;
+
+    IText? IInlineTextSource.InlineOverview => (episode as IInlineTextSource)?.InlineOverview;
+
+    InlineTextPlacement IInlineTextSource.InlineTitlePlacement => (episode as IInlineTextSource)?.InlineTitlePlacement ?? InlineTextPlacement.First;
+
+    InlineTextPlacement IInlineTextSource.InlineOverviewPlacement => (episode as IInlineTextSource)?.InlineOverviewPlacement ?? InlineTextPlacement.First;
 
     #endregion
 }

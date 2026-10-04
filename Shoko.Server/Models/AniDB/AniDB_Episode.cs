@@ -76,17 +76,19 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
     public string Title => (PreferredTitle ?? DefaultTitle).Value;
 
     /// <summary>
-    ///   The episode's default title: its first English title, else AniDB's
-    ///   generic one, <c>Episode {prefix}{number}</c>, which is not stored.
+    ///   The episode's default title: its first English title, else a generic
+    ///   one synthesized in the episode naming languages, as generic titles are
+    ///   not stored.
     /// </summary>
     public ITitle DefaultTitle
-        => GetTitles(TitleLanguage.English).FirstOrDefault() ?? AnidbText.GenericEnglishTitle(EpisodeType, EpisodeNumber);
+        => GetTitles(TitleLanguage.English).FirstOrDefault() ?? AnidbText.SynthesizedTitle(EpisodeType, EpisodeNumber);
 
     /// <summary>
     ///   The episode's English title, as AniDB names it: its first English
-    ///   title, else AniDB's generic one.
+    ///   title, else AniDB's generic one, <c>Episode {prefix}{number}</c>.
     /// </summary>
-    public string EnglishTitle => DefaultTitle.Value;
+    public string EnglishTitle
+        => GetTitles(TitleLanguage.English).FirstOrDefault()?.Value ?? AnidbText.GenericEnglishValue(EpisodeType, EpisodeNumber);
 
     /// <summary>
     ///   The title the user's picks and language settings choose for the
@@ -130,8 +132,8 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
     }
 
     /// <summary>
-    ///   The titles AniDB gave the episode, in AniDB's own order,
-    ///   without its generic title with its own number.
+    ///   The titles AniDB gave the episode, in AniDB's own order, without
+    ///   generic ones such as <c>Episode 5</c>, which are not stored.
     /// </summary>
     /// <param name="language">Optional. Only the titles in this language.</param>
     /// <returns>The titles.</returns>
@@ -268,6 +270,8 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
     IReadOnlyList<IEpisodeOrderingInformation<IAnidbAnime, IAnidbEpisode>> IEpisode<IAnidbAnime, IAnidbEpisode>.Orderings => OrderingLookup.PlacesOf<IAnidbAnime, IAnidbEpisode>(this);
 
     IEpisodeOrderingInformation<IAnidbAnime, IAnidbEpisode>? IEpisode<IAnidbAnime, IAnidbEpisode>.PreferredOrdering => OrderingLookup.PreferredPlaceOf<IAnidbAnime, IAnidbEpisode>(this);
+
+    IEpisodeOrderingInformation<IAnidbAnime, IAnidbEpisode> IEpisode<IAnidbAnime, IAnidbEpisode>.CurrentOrdering => OrderingLookup.DefaultPlaceOf<IAnidbAnime, IAnidbEpisode>(this);
 
     IReadOnlyList<IMetadataEpisodeCrossReference> IEpisode.MetadataEpisodeCrossReferences =>
         ISystemService.StaticServices.GetService<IMetadataService>()?.GetEpisodeCrossReferences(EpisodeID) ?? [];

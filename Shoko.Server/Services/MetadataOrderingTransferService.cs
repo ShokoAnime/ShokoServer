@@ -19,6 +19,7 @@ using Shoko.Abstractions.Metadata.Orderings;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Services.Ordering;
 using Shoko.Server.Services.OrderingTransfer;
 
@@ -208,7 +209,7 @@ public class MetadataOrderingTransferService(
     /// <returns>The ordering as written, or <c>null</c> when its series has no AniDB anime.</returns>
     private async Task<OrderingDocumentOrdering?> ExportOrdering(IOrdering ordering, ExportContext context, CancellationToken cancellationToken)
     {
-        var series = ordering.Series ?? metadataService.GetSeries(ordering.SeriesID);
+        var series = (ordering.Series is SeriesInOrdering presented ? presented.LinkedSeries : ordering.Series) ?? metadataService.GetSeries(ordering.SeriesID);
         if (series is null)
         {
             context.Warnings.Add($"The ordering \"{ordering.ID}\" was left out: its series \"{ordering.SeriesID}\" is not available.");
@@ -217,13 +218,13 @@ public class MetadataOrderingTransferService(
 
         // A placed special is written where it airs too, so it is placed again on import.
         var placement = (ordering as IPlacedOrdering)?.Placement;
-        var byID = ordering.Episodes.DistinctBy(episode => episode.ID).ToDictionary(episode => episode.ID);
+        var byID = ordering.Episodes.Select(Linked).DistinctBy(episode => episode.ID).ToDictionary(episode => episode.ID);
         var groups = new List<(ISeason Season, List<AnidbPlace> Episodes)>();
         foreach (var season in ordering.Seasons)
         {
             var episodes = new List<AnidbPlace>();
             var listed = placement is null
-                ? season.Episodes
+                ? season.Episodes.Select(Linked).ToList()
                 : [.. placement.Listed(season.ID).Select(place => byID.GetValueOrDefault(place.EpisodeID)).OfType<IEpisode>()];
             foreach (var episode in listed)
             {
@@ -246,8 +247,8 @@ public class MetadataOrderingTransferService(
         {
             Series = new() { AnidbAnimeId = animeID, Title = metadataService.GetShokoSeriesByAnidbID(animeID)?.Title ?? series.Title },
             Origin = ordering.ID.ToString(),
-            Name = ordering.Name,
-            Description = string.IsNullOrEmpty(ordering.Overview) ? null : ordering.Overview,
+            Name = ordering.Title,
+            Description = ordering.DefaultOverview?.Value is { Length: > 0 } overview ? overview : null,
             Type = ordering.Type,
             IsPreferred = context.Options.IncludePreferred ? ordering.IsPreferred : null,
             Networks = [.. ordering.Networks.Select(network => network.ID.ToString())],
@@ -282,6 +283,15 @@ public class MetadataOrderingTransferService(
     /// <param name="Number">Its number among the anime's episodes of its type.</param>
     /// <param name="AnimeID">Its AniDB anime, when known.</param>
     internal sealed record AnidbPlace(int EpisodeID, EpisodeType Type, int Number, int? AnimeID);
+
+    /// <summary>
+    ///   An episode as its own source numbers it, for one an ordering
+    ///   presents in its numbering.
+    /// </summary>
+    /// <param name="episode">The episode.</param>
+    /// <returns>The linked episode, or the episode itself.</returns>
+    private static IEpisode Linked(IEpisode episode)
+        => episode is EpisodeInOrdering placed ? placed.LinkedEpisode : episode;
 
     /// <summary>
     ///   The AniDB episodes an episode of any source stands for: its own for a
@@ -659,7 +669,7 @@ public class MetadataOrderingTransferService(
         // A local ordering of the series by the same name, or one this import named so.
         var existing = orderingService.GetOrderings(series).Where(stored => stored.ID.Source == MetadataSource.User).ToList();
         var named = context.Named.TryGetValue(series.ID, out var list) ? list : context.Named[series.ID] = [];
-        var match = existing.FirstOrDefault(stored => SameName(stored.Name, name));
+        var match = existing.FirstOrDefault(stored => SameName(stored.Title, name));
         var replace = false;
         var storedName = name;
         if (match is not null || named.Any(taken => SameName(taken, name)))
@@ -670,7 +680,7 @@ public class MetadataOrderingTransferService(
                     replace = true;
                     break;
                 case MetadataOrderingConflictMode.KeepBoth:
-                    storedName = FreeName(name, [.. existing.Select(stored => stored.Name), .. named]);
+                    storedName = FreeName(name, [.. existing.Select(stored => stored.Title), .. named]);
                     match = null;
                     break;
                 default:
@@ -681,8 +691,8 @@ public class MetadataOrderingTransferService(
         var data = new MetadataLocalOrderingData
         {
             SeriesID = series.ID,
-            Name = storedName,
-            Overview = string.IsNullOrWhiteSpace(ordering.Description) ? null : ordering.Description,
+            Titles = MetadataOrderingService.UserTitles(storedName),
+            Overviews = MetadataOrderingService.UserOverviews(ordering.Description),
             Networks = networks,
             Groups = groups,
         };
@@ -784,9 +794,8 @@ public class MetadataOrderingTransferService(
         for (var groupIndex = 0; groupIndex < ordering.Groups.Count; groupIndex++)
         {
             var group = ordering.Groups[groupIndex];
+            // An unnamed group stays untitled, named by its generic season name; this only labels the notes.
             var name = string.IsNullOrWhiteSpace(group.Name) ? $"Group {groupIndex + 1}" : group.Name.Trim();
-            if (string.IsNullOrWhiteSpace(group.Name))
-                notes.Add($"The group {groupIndex + 1} has no name, so it is named \"{name}\".");
 
             var found = new List<MetadataGuid>();
             foreach (var episode in group.Episodes)
@@ -813,8 +822,8 @@ public class MetadataOrderingTransferService(
             special |= isSpecial;
             groups.Add(new()
             {
-                Name = name,
-                Overview = string.IsNullOrWhiteSpace(group.Description) ? null : group.Description,
+                Titles = MetadataOrderingService.UserTitles(group.Name),
+                Overviews = MetadataOrderingService.UserOverviews(group.Description),
                 IsSpecial = isSpecial,
                 Episodes = found,
             });

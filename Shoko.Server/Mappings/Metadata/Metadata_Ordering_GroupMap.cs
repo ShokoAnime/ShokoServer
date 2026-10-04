@@ -19,7 +19,5 @@ public class Metadata_Ordering_GroupMap : ClassMap<Metadata_Ordering_Group>
         Map(x => x.Position).Not.Nullable();
         Map(x => x.IsSpecial).Not.Nullable();
         Map(x => x.SeasonNumber).Nullable();
-        Map(x => x.Name).Not.Nullable().CustomType("StringClob");
-        Map(x => x.Description).Nullable().CustomType("StringClob");
     }
 }

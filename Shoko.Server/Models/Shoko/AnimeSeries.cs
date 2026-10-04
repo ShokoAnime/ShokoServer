@@ -440,6 +440,8 @@ public class AnimeSeries : IShokoSeries
 
     IOrdering<IShokoSeries, IShokoEpisode> ISeries<IShokoSeries, IShokoEpisode>.PreferredOrdering => OrderingLookup.PreferredFor<IShokoSeries, IShokoEpisode>(this);
 
+    IOrdering<IShokoSeries, IShokoEpisode> ISeries<IShokoSeries, IShokoEpisode>.CurrentOrdering => OrderingLookup.DefaultFor<IShokoSeries, IShokoEpisode>(this);
+
     IReadOnlyList<IMetadataSeriesCrossReference> ISeries.MetadataSeriesCrossReferences
         => ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeriesCrossReferences(AniDB_ID, null) ?? [];
 

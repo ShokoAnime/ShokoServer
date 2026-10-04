@@ -10,6 +10,7 @@ using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
+using Shoko.Abstractions.Metadata.Text;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Shoko;
@@ -200,7 +201,7 @@ public class MetadataTextManagerStoreTests
     }
 
     [Fact]
-    public void AnEpisodeWithNoTitleAtAllGetsAMadeUpOne()
+    public void AnEpisodeWithNoTitleAtAllGetsASynthesizedOne()
     {
         var harness = new Harness();
         var episode = new Mock<IEpisode>();
@@ -218,7 +219,7 @@ public class MetadataTextManagerStoreTests
     }
 
     [Fact]
-    public void AnAnidbEpisodeIsReadThroughItsOwnModelAndNeverGetsAMadeUpTitle()
+    public void AnAnidbEpisodeIsReadThroughItsOwnModelAndNeverGetsASynthesizedTitle()
     {
         var harness = new Harness();
         var real = new TitleStub { Source = MetadataSource.AniDB, Value = "The Real One", Language = TitleLanguage.English, LanguageCode = "en" };
@@ -241,7 +242,7 @@ public class MetadataTextManagerStoreTests
     }
 
     [Fact]
-    public void AShokoEpisodeListsWhatItsModelHoldsOnceAndOnlyAnEpisodeWithNoTitlesIsMadeUp()
+    public void AShokoEpisodeListsWhatItsModelHoldsOnceAndOnlyAnEpisodeWithNoTitlesIsSynthesized()
     {
         var harness = new Harness();
         var real = new TitleStub { Source = MetadataSource.AniDB, Value = "Its Name", Language = TitleLanguage.English, LanguageCode = "en" };
@@ -258,12 +259,12 @@ public class MetadataTextManagerStoreTests
         Assert.Equal(["Its Name", "Contributed"], harness.Manager.GetTitles(_shokoEpisode).Select(title => title.Value));
         Assert.Equal("Its Name", harness.Manager.GetPreferredTitle(_shokoEpisode)?.Value);
 
-        // Only an episode with no titles of its own gets a made-up one.
+        // Only an episode with no titles of its own gets a synthesized one.
         var bare = new MetadataGuid(MetadataSource.Shoko, MetadataEntityType.Episode, "35");
         harness.Holds(bare, ModelEpisode<IShokoEpisode>(bare, 4, () => [], null).Object);
-        var madeUp = harness.Manager.GetPreferredTitle(bare);
-        Assert.True(madeUp?.IsSynthesized);
-        Assert.Contains("4", madeUp?.Value);
+        var synthesized = harness.Manager.GetPreferredTitle(bare);
+        Assert.True(synthesized?.IsSynthesized);
+        Assert.Contains("4", synthesized?.Value);
     }
 
     [Fact]
@@ -299,6 +300,66 @@ public class MetadataTextManagerStoreTests
 
         harness.Manager.SetTitles(_series, TestSources.Plugin, [Title("Second", TitleLanguage.Main, "x-main", TitleType.Main)]);
         Assert.Equal("Second", harness.Manager.GetPreferredTitle(_series)?.Value);
+    }
+
+    [Fact]
+    public void AnUnrankedOwnSourcesOverviewIsStillChosen()
+    {
+        var harness = new Harness();
+        harness.Manager.SetOverviews(_series, TestSources.Plugin, [Overview("Its own.")]);
+
+        Assert.Equal("Its own.", harness.Manager.GetPreferredOverview(_series)?.Value);
+    }
+
+    #endregion
+
+    #region Generic Titles
+
+    private static IEpisode NumberedEpisode(MetadataGuid id, EpisodeType type, int number)
+        => Mock.Of<IEpisode>(episode => episode.ID == id && episode.Type == type && episode.EpisodeNumber == number);
+
+    private static ISeason NumberedSeason(MetadataGuid id, int number)
+        => Mock.Of<ISeason>(season => season.ID == id && season.SeasonNumber == number);
+
+    [Fact]
+    public void AWriteLeavesOutOnlyTheGenericTitlesCarryingTheEntrysOwnNumber()
+    {
+        var harness = new Harness();
+        var season = new MetadataGuid(TestSources.Plugin, MetadataEntityType.Season, "text-s1");
+        var unknown = new MetadataGuid(TestSources.Plugin, MetadataEntityType.Episode, "text-e9");
+        harness.Holds(_episode, NumberedEpisode(_episode, EpisodeType.Episode, 12));
+        harness.Holds(season, NumberedSeason(season, 8));
+        harness.Holds(_anidbEpisode, NumberedEpisode(_anidbEpisode, EpisodeType.Special, 5));
+        harness.Manager.SetTitles(
+            _episode,
+            TestSources.Plugin,
+            [Title("Episode 12"), Title("Folge 12"), Title("TBA"), Title("Episode 13"), Title("Episode S12"), Title("Opening 2")]
+        );
+        harness.Manager.SetTitles(season, TestSources.AniList, [Title("Staffel 8"), Title("Season 11"), Title("Specials")]);
+        harness.Manager.SetTitles(_anidbEpisode, MetadataSource.AniDB, [Title("Episode S5"), Title("Episode S2"), Title("Special 5")]);
+        harness.Manager.SetTitles(unknown, TestSources.Plugin, [Title("TBD"), Title("Episode 3")]);
+
+        Assert.Equal(["Episode 13", "Episode S12", "Opening 2"], harness.Store.GetTitles(_episode).Select(title => title.Value));
+        Assert.Equal(["Season 11", "Specials"], harness.Store.GetTitles(season).Select(title => title.Value));
+        Assert.Equal(["Episode S2", "Special 5"], harness.Store.GetTitles(_anidbEpisode).Select(title => title.Value));
+        Assert.Equal(["Episode 3"], harness.Store.GetTitles(unknown).Select(title => title.Value));
+    }
+
+    [Fact]
+    public void AddingOrPickingAGenericTitleOfAnyEpisodeThrows()
+    {
+        var harness = new Harness();
+        harness.Holds(_episode, NumberedEpisode(_episode, EpisodeType.Episode, 5));
+        harness.Holds(_anidbEpisode, NumberedEpisode(_anidbEpisode, EpisodeType.Episode, 5));
+        harness.Manager.SetTitles(_episode, TestSources.Plugin, [Title("Real")]);
+
+        var generic = new TextData { Kind = TextKind.Title, Value = "Episode 5", LanguageCode = "en" };
+        Assert.Throws<ArgumentException>(() => harness.Manager.AddText(_anidbEpisode, generic));
+        Assert.Throws<ArgumentException>(() => harness.Manager.AddText(_episode, new() { Kind = TextKind.Title, Value = "第5話", LanguageCode = "ja" }));
+        Assert.Throws<ArgumentException>(() => harness.Manager.SetPreferredTitle(_episode, Title("Episode 5")));
+        var mine = harness.Manager.AddText(_episode, new() { Kind = TextKind.Title, Value = "Mine", LanguageCode = "en" });
+        Assert.Throws<ArgumentException>(() => harness.Manager.UpdateText(mine, new() { Value = "Episode 5" }));
+        Assert.Equal("Episode 13", harness.Manager.UpdateText(mine, new() { Value = "Episode 13" }).Value);
     }
 
     #endregion

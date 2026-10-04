@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Ordering;
 
@@ -15,8 +16,18 @@ namespace Shoko.Server.Models.Metadata.Embedded;
 /// </summary>
 /// <param name="series">The series.</param>
 /// <param name="service">The ordering service, which knows the choice, the hidden episodes and the placed specials, if there is one.</param>
-public class DefaultOrdering(ISeries series, MetadataOrderingService? service) : IOrdering, IPlacedOrdering
+public class DefaultOrdering(ISeries series, MetadataOrderingService? service) : IOrdering, IPlacedOrdering, IInlineTextSource
 {
+    /// <summary>
+    ///   The default ordering's name, kept as its default title.
+    /// </summary>
+    internal const string DefaultName = "Seasons";
+
+    /// <summary>
+    ///   The default ordering's overview, kept as its default overview.
+    /// </summary>
+    internal const string DefaultOverviewText = "Default ordering for the series.";
+
     private IReadOnlyList<IEpisode>? _episodes;
 
     private OrderingPlaces? _placement;
@@ -38,12 +49,6 @@ public class DefaultOrdering(ISeries series, MetadataOrderingService? service) :
 
     /// <inheritdoc />
     public MetadataGuid SeriesID => series.ID;
-
-    /// <inheritdoc />
-    public string Name => "Seasons";
-
-    /// <inheritdoc />
-    public string Overview => "Default ordering for the series.";
 
     /// <inheritdoc />
     public OrderingType Type => OrderingType.Default;
@@ -94,6 +99,43 @@ public class DefaultOrdering(ISeries series, MetadataOrderingService? service) :
     #region IPlacedOrdering Implementation
 
     OrderingPlaces IPlacedOrdering.Placement => Placement;
+
+    #endregion
+
+    #region IWithTitles Implementation
+
+    /// <inheritdoc />
+    public string Title => PreferredTitle?.Value ?? DefaultTitle.Value;
+
+    /// <inheritdoc />
+    public ITitle DefaultTitle => MetadataStoredEntry.DefaultTitle(this);
+
+    /// <inheritdoc />
+    public ITitle? PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
+
+    /// <inheritdoc />
+    public IReadOnlyList<ITitle> Titles => MetadataStoredEntry.Titles(this);
+
+    #endregion
+
+    #region IWithOverviews Implementation
+
+    /// <inheritdoc />
+    public IText? DefaultOverview => MetadataStoredEntry.DefaultOverview(this);
+
+    /// <inheritdoc />
+    public IText? PreferredOverview => MetadataStoredEntry.PreferredOverview(this);
+
+    /// <inheritdoc />
+    public IReadOnlyList<IText> Overviews => MetadataStoredEntry.Overviews(this);
+
+    #endregion
+
+    #region IInlineTextSource Implementation
+
+    ITitle? IInlineTextSource.InlineTitle => InlineText.Title(ID.Source, DefaultName, TitleLanguage.English, "en");
+
+    IText? IInlineTextSource.InlineOverview => InlineText.Overview(ID.Source, DefaultOverviewText, TitleLanguage.English, "en");
 
     #endregion
 

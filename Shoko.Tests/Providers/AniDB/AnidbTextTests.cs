@@ -23,7 +23,7 @@ namespace Shoko.Tests.Providers.AniDB;
 /// <summary>
 /// Covers how AniDB's anime and episode titles are stored through the text store, read back
 /// through AniDB's models as they always were, and how an episode's generic title is left out
-/// and made up again when read.
+/// and synthesized again when read.
 /// </summary>
 [Collection(nameof(RepoFactoryCollection))]
 public class AnidbTextTests
@@ -111,12 +111,17 @@ public class AnidbTextTests
     }
 
     [Theory]
-    [InlineData(EpisodeType.Episode, 5, "Episode 5", false)]
-    [InlineData(EpisodeType.Episode, 1, "Episode 17", true)]
-    [InlineData(EpisodeType.Special, 1, "Episode S1", false)]
-    [InlineData(EpisodeType.Special, 1, "Episode 1", true)]
-    [InlineData(EpisodeType.Episode, 3, "The Real Title", true)]
-    public void AnEpisodesGenericTitleWithItsOwnNumberIsNotStored(EpisodeType type, int number, string value, bool stored)
+    [InlineData("Episode 5", EpisodeType.Episode, 5, false)]
+    [InlineData("总第5集", EpisodeType.Episode, 5, false)]
+    [InlineData("Episode S3", EpisodeType.Special, 3, false)]
+    [InlineData("TBA", EpisodeType.Episode, 5, false)]
+    [InlineData("Episode 13", EpisodeType.Episode, 1, true)]
+    [InlineData("Episode S2", EpisodeType.Special, 3, true)]
+    [InlineData("Episode S3", EpisodeType.Episode, 3, true)]
+    [InlineData("Episode 3", EpisodeType.Special, 3, true)]
+    [InlineData("Special 2", EpisodeType.Special, 2, true)]
+    [InlineData("Opening 1", EpisodeType.Credits, 1, true)]
+    public void AnEpisodesGenericTitlesAreNotStoredOnlyWithItsOwnTypeAndNumber(string value, EpisodeType type, int number, bool stored)
     {
         var titles = AnidbTextListing.PlanEpisodeTitles([], [Listed(TitleLanguage.English, TitleType.None, value)], type, number);
 
@@ -166,6 +171,72 @@ public class AnidbTextTests
         );
 
         Assert.Equal(["本当の題名"], Values(titles));
+    }
+
+    [Fact]
+    public void AnEpisodeWhoseTitlesWereAllGenericIsNamedBySynthesis()
+    {
+        const string Xml = """
+            <anime id="1" restricted="false">
+              <type>TV Series</type>
+              <episodecount>1</episodecount>
+              <titles><title xml:lang="x-jat" type="main">Main Title</title></titles>
+              <episodes>
+                <episode id="1001" update="2020-01-05">
+                  <epno>2</epno>
+                  <length>24</length>
+                  <title xml:lang="en">Episode 2</title>
+                  <title xml:lang="ja">第二話</title>
+                  <title xml:lang="zh-Hans">总第2集</title>
+                </episode>
+              </episodes>
+            </anime>
+            """;
+        using var world = new World();
+        var parsed = Assert.Single(new HttpAnimeParser(NullLogger<HttpAnimeParser>.Instance).Parse(1, Xml)!.Episodes);
+        var titles = AnidbTextListing.PlanEpisodeTitles(
+            [],
+            parsed.Titles.Select(title => Listed(title.Language, TitleType.None, title.Title)),
+            (EpisodeType)parsed.EpisodeType,
+            parsed.EpisodeNumber
+        );
+        AnimeCreator.StoreTitles(world.Store, null, new AniDB_Anime { AnimeID = 1 }, [(EpisodeID(1001), new(parsed.EpisodeNumber), titles)], []);
+        var episode = new AniDB_Episode { EpisodeID = 1001, AnimeID = 1, EpisodeType = EpisodeType.Episode, EpisodeNumber = 2 };
+
+        Assert.Empty(world.Store.GetTitles(EpisodeID(1001)));
+        Assert.Empty(((IWithTitles)episode).Titles);
+        Assert.Equal(("Episode 2", true), (episode.DefaultTitle.Value, episode.DefaultTitle.IsSynthesized));
+        Assert.Equal("Episode 2", episode.Title);
+    }
+
+    [Fact]
+    public void TheStoreLeavesOutAnAniDBEpisodesGenericTitlesAndKeepsASpecialsName()
+    {
+        using var world = new World();
+        IReadOnlyList<(MetadataGuid, GenericEpisodeTitles.EntryNumber, IReadOnlyList<ITitle>)> episodes =
+        [
+            (
+                EpisodeID(100),
+                new(3),
+                [Stored(TitleLanguage.English, "en", TitleType.Main, "Special 3"), Stored(TitleLanguage.Japanese, "ja", TitleType.None, "第3話")]
+            ),
+        ];
+
+        AnimeCreator.StoreTitles(world.Store, null, new AniDB_Anime { AnimeID = 1 }, episodes, []);
+
+        Assert.Equal(["Special 3"], Values(world.Store.GetTitles(EpisodeID(100))));
+    }
+
+    [Theory]
+    [InlineData(EpisodeType.Special, 3, "Episode S3")]
+    [InlineData(EpisodeType.Credits, 1, "Episode C1")]
+    [InlineData(EpisodeType.Episode, 4, "Episode 4")]
+    public void AnUntitledAniDBEpisodeIsNamedInAniDBsForm(EpisodeType type, int number, string expected)
+    {
+        using var world = new World();
+        var episode = new AniDB_Episode { EpisodeID = 100, AnimeID = 1, EpisodeType = type, EpisodeNumber = number };
+
+        Assert.Equal((expected, true, MetadataSource.AniDB), (episode.DefaultTitle.Value, episode.DefaultTitle.IsSynthesized, episode.DefaultTitle.Source));
     }
 
     #endregion
@@ -285,7 +356,8 @@ public class AnidbTextTests
             new() { Language = TitleLanguage.Romaji, TitleType = TitleType.Main, Title = "Main" },
             new() { Language = TitleLanguage.English, TitleType = TitleType.Official, Title = "English" },
         ];
-        IReadOnlyList<(MetadataGuid, IReadOnlyList<ITitle>)> episodes = [(EpisodeID(100), [Stored(TitleLanguage.English, "en", TitleType.Main, "One")])];
+        IReadOnlyList<(MetadataGuid, GenericEpisodeTitles.EntryNumber, IReadOnlyList<ITitle>)> episodes =
+            [(EpisodeID(100), new(1), [Stored(TitleLanguage.English, "en", TitleType.Main, "One")])];
 
         Assert.True(AnimeCreator.StoreTitles(world.Store, titles, anime, episodes, []));
         var ids = world.Store.GetTitles(AnimeID(1)).Select(title => title.ID).ToList();
@@ -311,7 +383,7 @@ public class AnidbTextTests
                 <episode id="100" update="2020-01-05">
                   <epno>1</epno>
                   <length>24</length>
-                  <title xml:lang="ja">第一話</title>
+                  <title xml:lang="ja">始まりの話</title>
                   <title xml:lang="en">The First</title>
                 </episode>
               </episodes>
@@ -331,9 +403,9 @@ public class AnidbTextTests
                 <episode id="100" update="2020-01-06">
                   <epno>1</epno>
                   <length>24</length>
-                  <title xml:lang="x-jat">Dai Ichi Wa</title>
+                  <title xml:lang="x-jat">Hajimari no Hanashi</title>
                   <title xml:lang="en">The First</title>
-                  <title xml:lang="ja">第一話</title>
+                  <title xml:lang="ja">始まりの話</title>
                 </episode>
               </episodes>
             </anime>
@@ -351,13 +423,13 @@ public class AnidbTextTests
                 (EpisodeType)episode.EpisodeType,
                 episode.EpisodeNumber
             );
-            AnimeCreator.StoreTitles(world.Store, response.Titles, anime, [(EpisodeID(100), episodeTitles)], []);
+            AnimeCreator.StoreTitles(world.Store, response.Titles, anime, [(EpisodeID(100), new(episode.EpisodeNumber), episodeTitles)], []);
         }
 
         Import(FirstXml);
         var ids = world.Store.GetTitles(AnimeID(1)).ToDictionary(title => title.Value, title => title.ID);
         Assert.Equal(["Main Title", "日本語", "English"], Values(world.Store.GetTitles(AnimeID(1))));
-        Assert.Equal(["第一話", "The First"], Values(world.Store.GetTitles(EpisodeID(100))));
+        Assert.Equal(["始まりの話", "The First"], Values(world.Store.GetTitles(EpisodeID(100))));
 
         Import(SecondXml);
 
@@ -366,7 +438,7 @@ public class AnidbTextTests
         Assert.Equal([0, 1, 2, 3], titles.Select(title => title.Ordering));
         Assert.All(titles.Where(title => ids.ContainsKey(title.Value)), title => Assert.Equal(ids[title.Value], title.ID));
         Assert.Equal("English|Deutsch|Main Title|日本語", anime.AllTitles);
-        Assert.Equal(["Dai Ichi Wa", "The First", "第一話"], Values(world.Store.GetTitles(EpisodeID(100))));
+        Assert.Equal(["Hajimari no Hanashi", "The First", "始まりの話"], Values(world.Store.GetTitles(EpisodeID(100))));
         Assert.Equal([0, 1, 2], world.Store.GetTitles(EpisodeID(100)).Select(title => title.Ordering));
     }
 

@@ -109,9 +109,9 @@ public class Metadata_Season : ISeason<ISeries, IEpisode>, IMetadataStoreRow<Met
 
     string IWithTitles.Title => ((IWithTitles)this).PreferredTitle?.Value ?? ((IWithTitles)this).DefaultTitle.Value;
 
-    ITitle IWithTitles.DefaultTitle => MetadataStoredEntry.DefaultTitle(this, synthesize: true);
+    ITitle IWithTitles.DefaultTitle => MetadataStoredEntry.DefaultTitle(this);
 
-    ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this) ?? TextAccess.Manager.SynthesizedTitleFor(this);
+    ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
 
     IReadOnlyList<ITitle> IWithTitles.Titles => MetadataStoredEntry.Titles(this);
 

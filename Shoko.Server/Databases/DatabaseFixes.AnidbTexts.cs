@@ -7,7 +7,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.AniDB;
-using Shoko.Server.Providers.AniDB;
+using Shoko.Server.Services;
 
 namespace Shoko.Server.Databases;
 
@@ -112,7 +112,7 @@ public partial class DatabaseFixes
     /// <remarks>
     ///   The titles keep the order of their IDs until the anime is imported
     ///   again. The generic title (such as <c>Episode 5</c>) is not copied, as
-    ///   it is made up when read. Language codes are kept as spelled, and
+    ///   it is synthesized when read. Language codes are kept as spelled, and
     ///   English titles are stored as the main ones. Runs in one transaction,
     ///   first removing what an earlier run wrote.
     /// </remarks>
@@ -140,7 +140,7 @@ public partial class DatabaseFixes
                     return null;
 
                 var episodeID = Convert.ToInt32(row[0], CultureInfo.InvariantCulture);
-                if (numbers.TryGetValue(episodeID, out var number) && AnidbTextListing.IsGeneric(value, number.Type, number.Number))
+                if (numbers.TryGetValue(episodeID, out var number) && GenericEpisodeTitles.IsGeneric(value, number.Type, number.Number))
                     return null;
 
                 var languageCode = row[1] as string ?? string.Empty;

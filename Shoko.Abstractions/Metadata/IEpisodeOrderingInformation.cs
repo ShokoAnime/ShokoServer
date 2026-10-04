@@ -112,7 +112,9 @@ public interface IEpisodeOrderingInformation : IWithCreationDate, IWithUpdateDat
     ISeason? Season { get; }
 
     /// <summary>
-    ///   The episode.
+    ///   The episode as this ordering presents it: the episode itself in the
+    ///   default ordering, and in any other one numbered and typed by this
+    ///   place, with the episode's own ID, texts and images.
     /// </summary>
     IEpisode Episode { get; }
 }
@@ -143,7 +145,7 @@ public interface IEpisodeOrderingInformation<out TSeries, out TEpisode> : IEpiso
     ISeason? IEpisodeOrderingInformation.Season { get => Season; }
 
     /// <summary>
-    ///   The episode.
+    ///   The episode, as its source keeps it.
     /// </summary>
     new TEpisode Episode { get; }
 

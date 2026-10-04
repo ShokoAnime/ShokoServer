@@ -146,7 +146,7 @@ public class TmdbDtoCompatibilityTests(DatabaseMigrationFixture fixture)
     {
         // The English title and overview TMDB kept on each row are stored texts now, so they are listed,
         // the title as the default and main one. A generic episode title such as "Episode 1" is not
-        // stored but made up with the episode's number in the ordering the model is built for, and a
+        // stored but synthesized with the episode's number in the ordering the model is built for, and a
         // season's generic name, such as "Season 1", is not stored but synthesized and listed as its main title.
         foreach (var entry in golden.Properties().Select(property => property.Value).OfType<JObject>().Where(entry => entry.ContainsKey("Titles")))
         {

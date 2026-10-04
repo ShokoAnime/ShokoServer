@@ -39,6 +39,8 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
     /// <param name="collecting">Only show missing episodes from release groups we're collecting.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
+    /// <param name="include">Extra details to include: <c>Placement</c> adds <c>Placements</c>, where each source places a special among the regular episodes, by Shoko episode IDs.</param>
+    /// <param name="placementSource">Limits <c>Placements</c> to one source, such as <c>anidb</c> or a linked plugin source.</param>
     /// <returns></returns>
     [HttpGet("Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodes(
@@ -49,12 +51,15 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool collecting = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1)
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Episode.IncludeDetails>? include = null,
+        [FromQuery] MetadataSource? placementSource = null)
     {
+        var placements = Episode.PlacementResolver(HttpContext, include);
         var enumerable = _animeEpisodes.GetMissing(collecting).Where(a => a.AnimeSeries is { } series && User.AllowedSeries(series));
 
         return enumerable
-            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
+            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, placements: placements, placementSource: placementSource), page, pageSize);
     }
 
     /// <summary>
@@ -109,6 +114,8 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
     /// <param name="collecting">Only show missing episodes from release groups we're collecting.</param>
     /// <param name="pageSize">Limits the number of results per page. Set to 0 to disable the limit.</param>
     /// <param name="page">Page number.</param>
+    /// <param name="include">Extra details to include: <c>Placement</c> adds <c>Placements</c>, where each source places a special among the regular episodes, by Shoko episode IDs.</param>
+    /// <param name="placementSource">Limits <c>Placements</c> to one source, such as <c>anidb</c> or a linked plugin source.</param>
     /// <returns></returns>
     [HttpGet("Series/{seriesID}/Episodes")]
     public ActionResult<ListResult<Episode>> GetEpisodesForSeries(
@@ -120,8 +127,11 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] bool collecting = false,
         [FromQuery, Range(0, 1000)] int pageSize = 100,
-        [FromQuery, Range(1, int.MaxValue)] int page = 1)
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Episode.IncludeDetails>? include = null,
+        [FromQuery] MetadataSource? placementSource = null)
     {
+        var placements = Episode.PlacementResolver(HttpContext, include);
         var series = _animeSeries.GetByID(seriesID);
         if (series == null)
             return new ListResult<Episode>();
@@ -132,6 +142,6 @@ public class MissingEpisodesController(ISettingsProvider settingsProvider,
         var enumerable = _animeEpisodes.GetMissing(collecting, series.AniDB_ID);
 
         return enumerable
-            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
+            .ToListResult(episode => new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, placements: placements, placementSource: placementSource), page, pageSize);
     }
 }

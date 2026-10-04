@@ -345,7 +345,7 @@ public partial class DatabaseFixes
             var position = 0;
             foreach (var text in entry)
             {
-                // A season's English generic name is made up, not stored, so it leaves no gap.
+                // A season's English generic name is synthesized, not stored, so it leaves no gap.
                 var genericSeason = seasonNumber is { } season && text.LanguageCode.Trim().Equals("en", StringComparison.OrdinalIgnoreCase) &&
                     GenericEpisodeTitles.IsGenericSeasonName(text.Value, season);
                 if (gap is null && hasRow && IsTmdbEnglishDefault(text.LanguageCode, text.CountryCode, text.Value, row.Text))

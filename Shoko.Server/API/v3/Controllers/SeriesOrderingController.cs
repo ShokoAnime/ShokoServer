@@ -15,6 +15,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Ordering;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -371,8 +372,8 @@ public class SeriesOrderingController(
             groups.Add(new()
             {
                 ID = groupID,
-                Name = group.Name,
-                Overview = group.Description,
+                Titles = MetadataOrderingService.UserTitles(group.Name),
+                Overviews = MetadataOrderingService.UserOverviews(group.Description),
                 IsSpecial = group.IsSpecial,
                 Episodes = [.. group.EpisodeIDs.Select(episodeID => new MetadataGuid(MetadataSource.Shoko, MetadataEntityType.Episode, episodeID.ToString()))],
             });
@@ -381,8 +382,8 @@ public class SeriesOrderingController(
         return new()
         {
             SeriesID = ((ISeries)series).ID,
-            Name = body.Name,
-            Overview = body.Description,
+            Titles = MetadataOrderingService.UserTitles(body.Name),
+            Overviews = MetadataOrderingService.UserOverviews(body.Description),
             Groups = groups,
         };
     }

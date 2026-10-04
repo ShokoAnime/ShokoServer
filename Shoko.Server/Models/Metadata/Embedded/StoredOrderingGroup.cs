@@ -4,9 +4,7 @@ using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Extensions;
-using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Services;
 
 namespace Shoko.Server.Models.Metadata.Embedded;
@@ -14,6 +12,10 @@ namespace Shoko.Server.Models.Metadata.Embedded;
 /// <summary>
 ///   One group of a stored ordering, read back as a season of the ordering.
 /// </summary>
+/// <remarks>
+///   Read untyped, its series and episodes are presented in the ordering,
+///   numbered by their places here. Read typed, they are the source's own.
+/// </remarks>
 /// <typeparam name="TSeries">The series' type.</typeparam>
 /// <typeparam name="TEpisode">The episodes' type.</typeparam>
 /// <param name="ordering">The ordering the group is in.</param>
@@ -25,7 +27,7 @@ public sealed class StoredOrderingGroup<TSeries, TEpisode>(
     Metadata_Ordering_Group row,
     int seasonNumber,
     IReadOnlyList<(Metadata_Ordering_Entry Entry, TEpisode Episode)> places
-) : ISeason<TSeries, TEpisode>, IInlineTextSource
+) : ISeason<TSeries, TEpisode>
     where TSeries : class, ISeries
     where TEpisode : class, IEpisode
 {
@@ -73,6 +75,11 @@ public sealed class StoredOrderingGroup<TSeries, TEpisode>(
     /// <inheritdoc />
     IOrdering<TSeries, TEpisode> ISeason<TSeries, TEpisode>.Ordering => ordering;
 
+    ISeries ISeason.Series => ((IOrdering)ordering).Series;
+
+    IReadOnlyList<IEpisode> ISeason.Episodes
+        => [.. ordering.Placement.HomeEpisodes(ID).Select(episodeID => ordering.PlacesOf(episodeID).FirstOrDefault(place => place.SeasonID == ID)).OfType<IEpisode>()];
+
     /// <inheritdoc />
     public IReadOnlyList<IMetadataSeasonCrossReference> MetadataSeasonCrossReferences => MetadataService.GetSeasonCrossReferences(this, MetadataEpisodeCrossReferences);
 
@@ -86,55 +93,32 @@ public sealed class StoredOrderingGroup<TSeries, TEpisode>(
 
     #endregion
 
-    #region IInlineTextSource Implementation
-
-    ITitle? IInlineTextSource.InlineTitle => InlineText.Title(row.Source, row.Name, TitleLanguage.Unknown, "unk");
-
-    IText? IInlineTextSource.InlineOverview => InlineText.Overview(row.Source, row.Description, TitleLanguage.Unknown, "unk");
-
-    #endregion
-
     #region IWithTitles Implementation
 
     /// <inheritdoc />
-    public string Title => row.Name;
+    public string Title => PreferredTitle?.Value ?? DefaultTitle.Value;
 
     /// <inheritdoc />
-    public ITitle DefaultTitle => new TitleStub
-    {
-        Source = row.Source,
-        Language = TitleLanguage.Unknown,
-        LanguageCode = "unk",
-        Value = row.Name,
-        Type = TitleType.Main,
-    };
+    public ITitle DefaultTitle => MetadataStoredEntry.DefaultTitle(this);
 
     /// <inheritdoc />
-    public ITitle? PreferredTitle => DefaultTitle;
+    public ITitle? PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
 
     /// <inheritdoc />
-    public IReadOnlyList<ITitle> Titles => [DefaultTitle];
+    public IReadOnlyList<ITitle> Titles => MetadataStoredEntry.Titles(this);
 
     #endregion
 
     #region IWithOverviews Implementation
 
     /// <inheritdoc />
-    public IText? DefaultOverview => string.IsNullOrEmpty(row.Description)
-        ? null
-        : new TextStub
-        {
-            Source = row.Source,
-            Language = TitleLanguage.Unknown,
-            LanguageCode = "unk",
-            Value = row.Description,
-        };
+    public IText? DefaultOverview => MetadataStoredEntry.DefaultOverview(this);
 
     /// <inheritdoc />
-    public IText? PreferredOverview => DefaultOverview;
+    public IText? PreferredOverview => MetadataStoredEntry.PreferredOverview(this);
 
     /// <inheritdoc />
-    public IReadOnlyList<IText> Overviews => DefaultOverview is { } overview ? [overview] : [];
+    public IReadOnlyList<IText> Overviews => MetadataStoredEntry.Overviews(this);
 
     #endregion
 

@@ -150,6 +150,11 @@ public class MetadataSeriesStore(
             .. seasons.Values.Select(season => (season.ID, season.Titles ?? [], season.Overviews ?? [])),
             .. episodes.Values.Select(episode => (episode.ID, episode.Titles ?? [], episode.Overviews ?? [])),
         ];
+        var numbers = new Dictionary<MetadataGuid, GenericEpisodeTitles.EntryNumber>();
+        foreach (var season in seasons.Values)
+            numbers[season.ID] = new(season.SeasonNumber);
+        foreach (var episode in episodes.Values)
+            numbers[episode.ID] = new(episode.EpisodeNumber, episode.Type, episode.ID.Source.IsCore);
 
         var removed = new List<MetadataGuid>();
         int count;
@@ -261,7 +266,7 @@ public class MetadataSeriesStore(
                         removedEpisodes
                     ),
                 ];
-            });
+            }, entry => numbers.TryGetValue(entry, out var number) ? number : null);
 
             count = (seriesChange is UpdateReason.None ? 0 : 1) + seasonChanges.Count + episodeChanges.Count;
             if (count is 0)

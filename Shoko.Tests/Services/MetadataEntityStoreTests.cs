@@ -517,14 +517,12 @@ public class MetadataEntityStoreTests
         var local = orderings.CreateLocalOrdering(new()
         {
             SeriesID = removed,
-            Name = "Mine",
-            Groups = [new() { Name = "All", Episodes = [ID(MetadataEntityType.Episode, "e2"), ID(MetadataEntityType.Episode, "e1")] }],
+            Groups = [new() { Episodes = [ID(MetadataEntityType.Episode, "e2"), ID(MetadataEntityType.Episode, "e1")] }],
         });
         var kept = orderings.CreateLocalOrdering(new()
         {
             SeriesID = other,
-            Name = "Mine",
-            Groups = [new() { Name = "All", Episodes = [ID(MetadataEntityType.Episode, "e3")] }],
+            Groups = [new() { Episodes = [ID(MetadataEntityType.Episode, "e3")] }],
         });
         Assert.True(orderings.SetPreferredOrdering(removed, local.ID));
         Assert.True(orderings.SetEpisodeHidden(ID(MetadataEntityType.Episode, "e1"), true));
@@ -556,8 +554,7 @@ public class MetadataEntityStoreTests
         var local = orderings.CreateLocalOrdering(new()
         {
             SeriesID = seriesID,
-            Name = "Mine",
-            Groups = [new() { Name = "All", Episodes = [ID(MetadataEntityType.Episode, "e2"), ID(MetadataEntityType.Episode, "e1")] }],
+            Groups = [new() { Episodes = [ID(MetadataEntityType.Episode, "e2"), ID(MetadataEntityType.Episode, "e1")] }],
         });
         var cached = tables.Series.GetByProviderID(TestSources.Plugin, "s1")!;
 

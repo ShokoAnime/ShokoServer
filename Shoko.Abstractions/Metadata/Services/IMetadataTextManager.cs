@@ -183,10 +183,15 @@ public interface IMetadataTextManager
     /// <summary>
     ///   The title the entry's own source calls it by.
     /// </summary>
+    /// <remarks>
+    ///   A plugin source's entry with no default on its row and no main title
+    ///   gets a synthesized one, never stored: an episode's or season's generic
+    ///   name, or its source, kind and ID, such as <c>TMDb Series 46195</c>.
+    /// </remarks>
     /// <param name="entityID">The entry.</param>
     /// <returns>
     ///   The default on the entry's row, else the source's first stored main
-    ///   title, else its first stored title, or <c>null</c> when there is none.
+    ///   title, else the synthesized one, or <c>null</c> when there is none.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
     ITitle? GetDefaultTitle(MetadataGuid entityID);
@@ -207,11 +212,10 @@ public interface IMetadataTextManager
     ///   kept for it.
     /// </summary>
     /// <remarks>
-    ///   The entry's own source is read first whatever the source order says,
-    ///   then the ranked sources. With nothing in a preferred language the
-    ///   default is used, and an episode or season with no title at all gets a
-    ///   made-up one such as <c>Episode 5</c>, <c>Season 2</c>, or
-    ///   <c>Specials</c> for season 0.
+    ///   A user's pick wins. Then every real title in a preferred language,
+    ///   the entry's own source read whatever the source order says. With
+    ///   none, the default is used, which may be a synthesized one such as
+    ///   <c>Episode 5</c>, <c>Season 2</c> or <c>Specials</c>.
     /// </remarks>
     /// <param name="entityID">The entry.</param>
     /// <returns>The title, or <c>null</c> when the entry has none.</returns>
@@ -281,7 +285,12 @@ public interface IMetadataTextManager
     /// </remarks>
     /// <param name="entry">The entry, which may be any source's.</param>
     /// <param name="source">The source the titles are from: the entry's own, or any other.</param>
-    /// <param name="titles">The titles, in order. Empty removes the source's titles.</param>
+    /// <param name="titles">
+    ///   The titles, in order. Empty removes the source's titles. Generic
+    ///   titles carrying the episode's or season's own number, such as
+    ///   <c>Episode 5</c> on episode 5 or <c>Staffel 2</c> on season 2, are
+    ///   left out.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="entry"/>, <paramref name="source"/> or
     ///   <paramref name="titles"/> is or holds <c>null</c>.
@@ -295,7 +304,10 @@ public interface IMetadataTextManager
     /// </summary>
     /// <param name="entityID">The entry, which may be any source's.</param>
     /// <param name="source">The source the titles are from: the entry's own, or any other.</param>
-    /// <param name="titles">The titles, in order. Empty removes the source's titles.</param>
+    /// <param name="titles">
+    ///   The titles, in order. Empty removes the source's titles. Generic
+    ///   titles carrying the episode's or season's own number are left out.
+    /// </param>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="entityID"/>, <paramref name="source"/> or
     ///   <paramref name="titles"/> is or holds <c>null</c>.
@@ -366,7 +378,11 @@ public interface IMetadataTextManager
     /// <param name="data">The text.</param>
     /// <returns>The stored text, with its ID.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entityID"/> or <paramref name="data"/> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException">The value is blank, or a language, country or script code is too long.</exception>
+    /// <exception cref="ArgumentException">
+    ///   The value is blank, a language, country or script code is too long,
+    ///   or the title is a generic one carrying the episode's or season's own
+    ///   number, which is synthesized rather than stored.
+    /// </exception>
     IText AddText(MetadataGuid entityID, TextData data);
 
     /// <summary>
@@ -376,7 +392,10 @@ public interface IMetadataTextManager
     /// <param name="data">What to change; anything left <c>null</c> stays.</param>
     /// <returns>The text as it is now.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> or <paramref name="data"/> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="text"/> is not stored, or a new value is blank.</exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="text"/> is not stored, or a new value is blank or a
+    ///   generic title carrying the episode's or season's own number.
+    /// </exception>
     /// <exception cref="InvalidOperationException">A new value was given for a text that is not the user's own.</exception>
     IText UpdateText(IText text, TextUpdateData data);
 
@@ -409,7 +428,10 @@ public interface IMetadataTextManager
     /// </param>
     /// <returns>The stored title that now carries the preference.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entityID"/> or <paramref name="title"/> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException">The title's value is blank.</exception>
+    /// <exception cref="ArgumentException">
+    ///   The title's value is blank, or a copy would store a generic title
+    ///   carrying the episode's or season's own number.
+    /// </exception>
     ITitle SetPreferredTitle(MetadataGuid entityID, ITitle title, bool forLanguageOnly = false);
 
     /// <summary>

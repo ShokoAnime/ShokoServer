@@ -91,7 +91,7 @@ public enum TextChoiceStep
     Default = 5,
 
     /// <summary>
-    ///   A made-up generic title, for an episode no source named.
+    ///   A synthesized generic title, for an episode no source named.
     /// </summary>
     Synthesized = 6,
 }

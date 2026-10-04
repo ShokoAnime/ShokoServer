@@ -2263,6 +2263,8 @@ public class SeriesController(
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="search">An optional search query to filter episodes based on their titles.</param>
     /// <param name="fuzzy">Indicates that fuzzy-matching should be used for the search query.</param>
+    /// <param name="include">Extra details to include: <c>Placement</c> adds <c>Placements</c>, where each source places a special among the regular episodes, by Shoko episode IDs.</param>
+    /// <param name="placementSource">Limits <c>Placements</c> to one source, such as <c>anidb</c> or a linked plugin source.</param>
     /// <returns>A list of episodes based on the specified filters.</returns>
     [HttpGet("{seriesID}/Episode")]
     public ActionResult<ListResult<Episode>> GetEpisodes(
@@ -2282,9 +2284,12 @@ public class SeriesController(
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
         [FromQuery] string? search = null,
-        [FromQuery] bool fuzzy = true
+        [FromQuery] bool fuzzy = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Episode.IncludeDetails>? include = null,
+        [FromQuery] MetadataSource? placementSource = null
     )
     {
+        var placements = Episode.PlacementResolver(HttpContext, include);
         var series = _animeSeries.GetByID(seriesID);
         if (series == null)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2293,7 +2298,7 @@ public class SeriesController(
             return Forbid(SeriesForbiddenForUser);
 
         return GetEpisodesInternal(series, includeMissing, includeUnaired, includeHidden, includeVoted, includeWatched, includeManuallyLinked, type, search, fuzzy)
-            .ToListResult(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs), page, pageSize);
+            .ToListResult(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, placements: placements, placementSource: placementSource), page, pageSize);
     }
 
     /// <summary>
@@ -2610,6 +2615,8 @@ public class SeriesController(
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
+    /// <param name="include">Extra details to include: <c>Placement</c> adds <c>Placements</c>, where each source places a special among the regular episodes, by Shoko episode IDs.</param>
+    /// <param name="placementSource">Limits <c>Placements</c> to one source, such as <c>anidb</c> or a linked plugin source.</param>
     /// <returns></returns>
     [HttpGet("{seriesID}/NextUpEpisode")]
     public ActionResult<Episode> GetNextUnwatchedEpisode([FromRoute, Range(1, int.MaxValue)] int seriesID,
@@ -2623,7 +2630,9 @@ public class SeriesController(
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Episode.IncludeDetails>? include = null,
+        [FromQuery] MetadataSource? placementSource = null)
     {
         if (_animeSeries.GetByID(seriesID) is not { } series)
             return NotFound(SeriesNotFoundWithSeriesID);
@@ -2644,7 +2653,7 @@ public class SeriesController(
         if (episode is null)
             return NoContent();
 
-        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs);
+        return new Episode(HttpContext, episode, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, placements: Episode.PlacementResolver(HttpContext, include), placementSource: placementSource);
     }
 
     #endregion

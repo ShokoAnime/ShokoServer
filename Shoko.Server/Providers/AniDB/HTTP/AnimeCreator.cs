@@ -457,17 +457,18 @@ public class AnimeCreator
                 episode = NewEpisode(rawEpisode, DateTime.Now);
             }
 
-            // Work out the titles to store, leaving out the generic one with
-            // the episode's own number, which is made up when read.
+            // Work out the titles to store, leaving out the generic ones,
+            // which are synthesized when read.
             var episodeID = new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Episode, rawEpisode.EpisodeID.ToString(CultureInfo.InvariantCulture));
             var currentTitles = _textStore.GetTitles(episodeID, MetadataSource.AniDB);
+            var number = new GenericEpisodeTitles.EntryNumber(rawEpisode.EpisodeNumber, (AbstractEpisodeType)rawEpisode.EpisodeType, AnidbForms: true);
             var newTitles = AnidbTextListing.PlanEpisodeTitles(
                 currentTitles,
                 rawEpisode.Titles.Select(rawtitle => new AnidbTextListing.ListedTitle(rawtitle.Language, TitleType.None, rawtitle.Title)),
-                (AbstractEpisodeType)rawEpisode.EpisodeType,
-                rawEpisode.EpisodeNumber
+                number.Type,
+                number.Number
             );
-            texts.Episodes.Add((episodeID, newTitles));
+            texts.Episodes.Add((episodeID, number, newTitles));
             if (newTitles.Any(title => !currentTitles.Any(current => current.Language == title.Language && current.Value == title.Value)) && !episodeEventsToEmit.ContainsKey(episode))
                 episodeEventsToEmit[episode] = UpdateReason.Updated;
 
@@ -644,14 +645,14 @@ public class AnimeCreator
     /// <param name="textStore">The text store.</param>
     /// <param name="titles">The anime's titles, as AniDB lists them, or <c>null</c> to leave them alone.</param>
     /// <param name="anime">The anime.</param>
-    /// <param name="episodes">The episodes AniDB lists, and the titles to store for each.</param>
+    /// <param name="episodes">The episodes AniDB lists, with their numbers, and the titles to store for each.</param>
     /// <param name="removedEpisodes">The episodes that went.</param>
     /// <returns>Whether the anime's titles changed.</returns>
     internal static bool StoreTitles(
         MetadataTextStore textStore,
         List<ResponseTitle>? titles,
         AniDB_Anime anime,
-        IReadOnlyList<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles)> episodes,
+        IReadOnlyList<(MetadataGuid Entry, GenericEpisodeTitles.EntryNumber Number, IReadOnlyList<ITitle> Titles)> episodes,
         IReadOnlyCollection<MetadataGuid> removedEpisodes
     )
     {
@@ -670,7 +671,8 @@ public class AnimeCreator
         if (entries.Count is 0 && removedEpisodes.Count is 0)
             return false;
 
-        var changed = textStore.WriteWithTexts(entries, removedEpisodes, _ => []);
+        var numbers = episodes.DistinctBy(episode => episode.Entry).ToDictionary(episode => episode.Entry, episode => episode.Number);
+        var changed = textStore.WriteWithTexts(entries, removedEpisodes, _ => [], entry => numbers.TryGetValue(entry, out var number) ? number : null);
         return titles is not null && changed.Contains(animeID);
     }
 
@@ -681,9 +683,10 @@ public class AnimeCreator
     private sealed class AnimeTexts
     {
         /// <summary>
-        ///   The episodes AniDB lists, and the titles to store for each.
+        ///   The episodes AniDB lists, with their numbers, and the titles to
+        ///   store for each.
         /// </summary>
-        public List<(MetadataGuid Entry, IReadOnlyList<ITitle> Titles)> Episodes { get; } = [];
+        public List<(MetadataGuid Entry, GenericEpisodeTitles.EntryNumber Number, IReadOnlyList<ITitle> Titles)> Episodes { get; } = [];
 
         /// <summary>
         ///   The episodes that went, whose texts go with them.

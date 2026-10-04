@@ -4,6 +4,7 @@ namespace Shoko.Server.Models.Metadata;
 
 /// <summary>
 ///   One group of a stored ordering, read back as a season of the ordering.
+///   Its titles and overviews are in the text store, under its <see cref="ID"/>.
 /// </summary>
 public class Metadata_Ordering_Group : IMetadataStoreRow<Metadata_Ordering_Group>
 {
@@ -46,16 +47,6 @@ public class Metadata_Ordering_Group : IMetadataStoreRow<Metadata_Ordering_Group
     /// </summary>
     public int? SeasonNumber { get; set; }
 
-    /// <summary>
-    ///   The group's name.
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
-    /// <summary>
-    ///   What the group is about, if anything.
-    /// </summary>
-    public string? Description { get; set; }
-
     #endregion
 
     #region Helpers
@@ -82,9 +73,7 @@ public class Metadata_Ordering_Group : IMetadataStoreRow<Metadata_Ordering_Group
             OrderingID == other.OrderingID &&
             Position == other.Position &&
             IsSpecial == other.IsSpecial &&
-            SeasonNumber == other.SeasonNumber &&
-            Name == other.Name &&
-            Description == other.Description;
+            SeasonNumber == other.SeasonNumber;
 
     #endregion
 

@@ -25,7 +25,7 @@ public class TmdbOrderingOutputTests
         var ordering = new Mock<IOrdering>();
         ordering.SetupGet(o => o.ID).Returns(new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Ordering, "5f0c1a2b3c4d5e6f7a8b9c0d"));
         ordering.SetupGet(o => o.SeriesID).Returns(new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Series, "5"));
-        ordering.SetupGet(o => o.Name).Returns("DVD Order");
+        ordering.SetupGet(o => o.DefaultTitle).Returns(TestTexts.Named("DVD Order")[0]);
         ordering.SetupGet(o => o.Type).Returns(OrderingType.DVD);
         ordering.SetupGet(o => o.Seasons).Returns(Array.Empty<ISeason>());
         return TmdbCompatibility.AlternateOrdering.From(ordering.Object)!;
@@ -96,12 +96,11 @@ public class TmdbOrderingOutputTests
         {
             ID = new(MetadataSource.TMDB, MetadataEntityType.Ordering, "5f0c1a2b3c4d5e6f7a8b9c0d"),
             SeriesID = seriesID,
-            Name = "Air Date",
             Type = OrderingType.OriginalAirDate,
             Groups =
             [
-                new() { ID = new(MetadataSource.TMDB, MetadataEntityType.Season, "g0"), Name = "Specials", IsSpecial = true, Episodes = [Episode(103)] },
-                new() { ID = new(MetadataSource.TMDB, MetadataEntityType.Season, "g3"), Name = "Season 3", SeasonNumber = 3, Episodes = [.. episodes.Keys] },
+                new() { ID = new(MetadataSource.TMDB, MetadataEntityType.Season, "g0"), IsSpecial = true, Episodes = [Episode(103)] },
+                new() { ID = new(MetadataSource.TMDB, MetadataEntityType.Season, "g3"), SeasonNumber = 3, Episodes = [.. episodes.Keys] },
             ],
         });
 

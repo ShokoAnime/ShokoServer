@@ -79,7 +79,7 @@ internal sealed class StoredTitle : StoredText, ITitle
     /// <inheritdoc />
     public override TextKind Kind => TextKind.Title;
 
-    // A stored title was never made up on the spot.
+    // A stored title was never synthesized on the spot.
     bool ITitle.IsSynthesized => false;
 
     /// <inheritdoc />

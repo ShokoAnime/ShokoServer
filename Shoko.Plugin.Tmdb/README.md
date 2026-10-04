@@ -31,8 +31,8 @@ back from them. Up to four TMDb jobs of each kind run at once.
   `MatchEpisodes` lines up AniDB's episodes with the show's.
 - **Site URLs.** Pages on `www.themoviedb.org` for every kind with one. TMDb
   has no character pages.
-- **Seasons.** TMDb's English "Season N" (and "Specials" for season 0) is
-  not stored as a title: the core makes up a season's generic name itself.
+- **Generic titles.** Passed on as TMDb gives them, such as "Season N" or
+  "Episode N". The core drops them on write and synthesizes its own.
 - **Purging images.** The "Purge Unused TMDb Images" scheduled action removes
   every TMDb image nothing links to.
 

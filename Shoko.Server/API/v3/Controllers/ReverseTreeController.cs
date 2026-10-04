@@ -185,6 +185,8 @@ public class ReverseTreeController : BaseController
     /// <param name="includeAbsolutePaths">Include absolute paths for the file locations.</param>
     /// <param name="includeXRefs">Include file/episode cross-references with the episodes.</param>
     /// <param name="includeDataFrom">Include data from the selected sources: AniDB, TMDB, or any metadata source a plugin registered, by value, alias or old spelling, whose linked entries are added under <c>Sources</c>.</param>
+    /// <param name="include">Extra details to include: <c>Placement</c> adds <c>Placements</c>, where each source places a special among the regular episodes, by Shoko episode IDs.</param>
+    /// <param name="placementSource">Limits <c>Placements</c> to one source, such as <c>anidb</c> or a linked plugin source.</param>
     /// <returns></returns>
     [HttpGet("File/{fileID}/Episode"), Tags("File")]
     public ActionResult<List<Episode>> GetEpisodeFromFile(
@@ -193,8 +195,11 @@ public class ReverseTreeController : BaseController
         [FromQuery] bool includeMediaInfo = false,
         [FromQuery] bool includeAbsolutePaths = false,
         [FromQuery] bool includeXRefs = false,
-        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null)
+        [FromQuery, ModelBinder(typeof(MetadataSourceSetModelBinder))] HashSet<MetadataSource>? includeDataFrom = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Episode.IncludeDetails>? include = null,
+        [FromQuery] MetadataSource? placementSource = null)
     {
+        var placements = Episode.PlacementResolver(HttpContext, include);
         var file = _videoLocals.GetByID(fileID);
         if (file == null)
         {
@@ -208,7 +213,7 @@ public class ReverseTreeController : BaseController
         }
 
         return episodes
-            .Select(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs))
+            .Select(a => new Episode(HttpContext, a, includeDataFrom, includeFiles, includeMediaInfo, includeAbsolutePaths, includeXRefs, placements: placements, placementSource: placementSource))
             .ToList();
     }
 

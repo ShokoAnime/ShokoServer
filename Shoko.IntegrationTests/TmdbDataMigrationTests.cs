@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Databases;
 using Xunit;
@@ -61,10 +62,12 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
     internal static readonly (int LocalID, string ResourceID)[] Posters = [(9_870_901, "p1.jpg"), (9_870_902, "p2.jpg")];
 
     /// <summary>
-    /// Every copy step, in the order the migration runs them.
+    /// Every copy step, in the order the migration runs them, between putting back and dropping again
+    /// the ordering columns the copy writes and a later step moves into the text store.
     /// </summary>
     internal static readonly Func<object, Tuple<bool, string?>>[] Steps =
     [
+        ReleasedOrderingSchema.Restore,
         DatabaseFixes.CopyTmdbShows,
         DatabaseFixes.CopyTmdbSeasons,
         DatabaseFixes.CopyTmdbEpisodes,
@@ -94,6 +97,8 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
         DatabaseFixes.RewriteTmdbDefaultOrderingIDs,
         DatabaseFixes.FillTmdbEpisodeLinkNumbers,
         DatabaseFixes.CopyTmdbDefaultImages,
+        DatabaseFixes.CopyOrderingTexts,
+        ReleasedOrderingSchema.Drop,
     ];
 
     /// <summary>
@@ -264,6 +269,7 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
         foreach (var table in ReleasedTmdbSchema.Present(connection, backend).Except(restored))
             Execute(connection, $"DELETE FROM {table}");
         ReleasedTmdbSchema.Drop(connection, restored);
+        ReleasedOrderingSchema.Drop(connection);
     }
 
     #endregion
@@ -396,10 +402,22 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
                 Read(connection, $"SELECT DISTINCT Name, RoleType FROM Metadata_Crew {Where()} ORDER BY Name"));
 
             // The alternate ordering, its groups in order with one specials group and TMDB's numbers, and its places.
-            Assert.Equal([$"{OrderingID}|{tmdb}|{ShowID}|2|Absolute|NULL"], Read(connection, $"SELECT ProviderID, SeriesSource, SeriesID, Type, Name, Description FROM Metadata_Ordering {Where()}"));
+            Assert.Equal([$"{OrderingID}|{tmdb}|{ShowID}|2"], Read(connection, $"SELECT ProviderID, SeriesSource, SeriesID, Type FROM Metadata_Ordering {Where()}"));
             Assert.Equal(
-                ["bb00000000000000000000b0|0|Extras|1|NULL", "bb00000000000000000000b2|1|More|0|NULL", "bb00000000000000000000b1|2|Part A|0|1"],
-                Read(connection, $"SELECT ProviderID, Position, Name, IsSpecial, SeasonNumber FROM Metadata_Ordering_Group {Where()} ORDER BY Position"));
+                ["bb00000000000000000000b0|0|1|NULL", "bb00000000000000000000b2|1|0|NULL", "bb00000000000000000000b1|2|0|1"],
+                Read(connection, $"SELECT ProviderID, Position, IsSpecial, SeasonNumber FROM Metadata_Ordering_Group {Where()} ORDER BY Position"));
+            Assert.Equal(
+                [
+                    $"{OrderingID}|unk|{(int)TitleType.Main}|Absolute",
+                    $"bb00000000000000000000b0|unk|{(int)TitleType.Main}|Extras",
+                    $"bb00000000000000000000b1|unk|{(int)TitleType.Main}|Part A",
+                    $"bb00000000000000000000b2|unk|{(int)TitleType.Main}|More",
+                ],
+                Read(
+                    connection,
+                    $"SELECT EntityID, LanguageCode, TitleType, Value FROM Metadata_Title {Where("EntitySource")} AND EntityType IN ({Kind(MetadataEntityType.Ordering)}, " +
+                    $"{Kind(MetadataEntityType.Season)}) AND EntityID IN ('{OrderingID}', 'bb00000000000000000000b0', 'bb00000000000000000000b1', 'bb00000000000000000000b2') ORDER BY EntityID"
+                ));
             Assert.Equal(
                 [$"bb00000000000000000000b0|0|{SpecialID}", $"bb00000000000000000000b1|0|{SecondEpisodeID}", $"bb00000000000000000000b1|1|{FirstEpisodeID}"],
                 Read(connection, $"SELECT GroupID, Position, EpisodeID FROM Metadata_Ordering_Entry {Where()} ORDER BY GroupID, Position"));

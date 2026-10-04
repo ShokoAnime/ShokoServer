@@ -43,6 +43,7 @@ internal static class MetadataStoredEntry
 
     /// <summary>
     ///   The titles an entry lists: its own source's, then what others added.
+    ///   An entry with no default title gets a synthesized one first.
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <returns>The enabled titles, each source's in the order given.</returns>
@@ -59,25 +60,23 @@ internal static class MetadataStoredEntry
         => TextAccess.Manager.ListOverviews(entry);
 
     /// <summary>
-    ///   The title the source calls the entry by: its main title, else its
-    ///   first, else the made-up one when asked for, else an empty one.
+    ///   The title the source calls the entry by: its main title, else the
+    ///   synthesized one, else an empty one.
     /// </summary>
     /// <param name="entry">The entry.</param>
-    /// <param name="synthesize">Whether an entry with no title at all gets its made-up one.</param>
     /// <returns>The title.</returns>
-    internal static ITitle DefaultTitle(IMetadata entry, bool synthesize = false)
+    internal static ITitle DefaultTitle(IMetadata entry)
         => TextAccess.Manager.DefaultTitleFor(entry)
-            ?? (synthesize ? TextAccess.Manager.SynthesizedTitleFor(entry) : null)
             ?? new TitleStub { Source = entry.ID.Source, Language = TitleLanguage.Unknown, LanguageCode = "unk", Value = string.Empty, Type = TitleType.Main };
 
     /// <summary>
-    ///   The title a user picked for the entry, or else the one the language
-    ///   settings choose.
+    ///   The title a user picked for the entry, else the one the language
+    ///   settings choose, else the synthesized default of an entry with none.
     /// </summary>
     /// <param name="entry">The entry.</param>
-    /// <returns>The title, or <c>null</c> when none is picked or in a preferred language.</returns>
+    /// <returns>The title, or <c>null</c> when none is picked or in a preferred language and the entry has a default.</returns>
     internal static ITitle? PreferredTitle(IMetadata entry)
-        => TextAccess.Manager.PreferredTitleFor(entry);
+        => TextAccess.Manager.PreferredTitleFor(entry) ?? TextAccess.Manager.SynthesizedTitleFor(entry);
 
     /// <summary>
     ///   The overview the source gives the entry: its first one.

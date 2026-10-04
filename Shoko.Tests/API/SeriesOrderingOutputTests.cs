@@ -67,8 +67,7 @@ public class SeriesOrderingOutputTests
         var ordering = new Mock<IOrdering>();
         ordering.SetupGet(value => value.ID).Returns(new MetadataGuid(source, MetadataEntityType.Ordering, "o1"));
         ordering.SetupGet(value => value.SeriesID).Returns(seriesID);
-        ordering.SetupGet(value => value.Name).Returns("Mine");
-        ordering.SetupGet(value => value.Overview).Returns(string.Empty);
+        ordering.SetupGet(value => value.Title).Returns("Mine");
         ordering.SetupGet(value => value.Type).Returns(source == MetadataSource.User ? OrderingType.User : OrderingType.DVD);
         ordering.SetupGet(value => value.IsPreferred).Returns(true);
         ordering.SetupGet(value => value.EpisodeCount).Returns(1);

@@ -20,6 +20,11 @@ public sealed record MetadataMovieData
     ///   The movie's titles, in order. They are stored under the movie's
     ///   source, whatever source each title names.
     /// </summary>
+    /// <remarks>
+    ///   The main title (<see cref="TitleType.Main"/>) is the movie's default.
+    ///   Without one, the movie gets a synthesized default such as
+    ///   <c>TMDb Movie 129</c>, never stored.
+    /// </remarks>
     public IReadOnlyList<ITitle> Titles { get; init; } = [];
 
     /// <summary>

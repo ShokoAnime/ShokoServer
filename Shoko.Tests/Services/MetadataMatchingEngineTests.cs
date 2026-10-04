@@ -759,6 +759,34 @@ public class MetadataMatchingEngineTests
         Assert.Equal(MatchRating.FirstAvailable, Assert.Single(matches).Rating);
     }
 
+    // AniDB's generic English titles are no longer stored; the episodes pair as they did with them.
+    [Fact]
+    public void AnidbEpisodesWithoutTheirGenericTitles_PairAsBefore()
+    {
+        IReadOnlyList<IAnidbEpisode> Anidb(bool withGenericTitles)
+        {
+            return
+            [
+                AnidbEpisode(1, 1, _firstAired, title: withGenericTitles ? "Episode 1" : null),
+                AnidbEpisode(2, 2, _firstAired.AddDays(7), title: withGenericTitles ? "Episode 2" : null),
+                AnidbEpisode(3, 1, _firstAired.AddDays(14), EpisodeType.Special, withGenericTitles ? "Episode S1" : null),
+            ];
+        }
+        var provider = new List<IEpisode>
+        {
+            ProviderEpisode(101, 1, 1, _firstAired, "Alpha"),
+            ProviderEpisode(102, 2, 1, _firstAired.AddDays(7), "Beta"),
+            ProviderEpisode(103, 1, 0, _firstAired.AddDays(14), "Gamma"),
+        };
+        var options = new EpisodeMatchOptions { Strategy = EpisodeMatchStrategy.DateAndTitleWithinSeasons };
+
+        var before = Matcher().MatchEpisodes(Anidb(true), provider, options: options);
+        var after = Matcher().MatchEpisodes(Anidb(false), provider, options: options);
+
+        Assert.Equal(["101", "102", "103"], after.Select(match => match.Candidate?.ID.ID));
+        Assert.Equal(before.Select(match => (match.Candidate?.ID.ID, match.Rating)), after.Select(match => (match.Candidate?.ID.ID, match.Rating)));
+    }
+
     // A title another source put on the AniDB entry cannot vouch for a match with itself.
     [Fact]
     public void OnlyTheTitlesAnidbGave_AreSearchedWith()

@@ -21,6 +21,11 @@ public sealed record MetadataSeriesData
     ///   The series' titles, in order. They are stored under the series'
     ///   source, whatever source each title names.
     /// </summary>
+    /// <remarks>
+    ///   The main title (<see cref="TitleType.Main"/>) is the series's default.
+    ///   Without one, the series gets a synthesized default such as
+    ///   <c>TMDb Series 46195</c>, never stored.
+    /// </remarks>
     public IReadOnlyList<ITitle> Titles { get; init; } = [];
 
     /// <summary>
@@ -150,6 +155,12 @@ public sealed record MetadataSeasonData
     /// <summary>
     ///   The season's titles, in order, stored under the season's source.
     /// </summary>
+    /// <remarks>
+    ///   The main title (<see cref="TitleType.Main"/>) is the season's default.
+    ///   Without one, the season gets its generic name, such as
+    ///   <c>Season 2</c>, synthesized in the user's languages. Generic names are
+    ///   left out, so a season named only by one is better saved without.
+    /// </remarks>
     public IReadOnlyList<ITitle> Titles { get; init; } = [];
 
     /// <summary>
@@ -263,6 +274,12 @@ public sealed record MetadataEpisodeData
     /// <summary>
     ///   The episode's titles, in order, stored under the episode's source.
     /// </summary>
+    /// <remarks>
+    ///   The main title (<see cref="TitleType.Main"/>) is the episode's
+    ///   default. Without one, the episode gets its generic title, such as
+    ///   <c>Episode 5</c>, synthesized in the user's languages. Generic titles are
+    ///   left out, so an episode named only by one is better saved without.
+    /// </remarks>
     public IReadOnlyList<ITitle> Titles { get; init; } = [];
 
     /// <summary>

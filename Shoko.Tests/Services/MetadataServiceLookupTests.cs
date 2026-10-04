@@ -398,8 +398,7 @@ public class MetadataServiceLookupTests
         var local = tables.OrderingService.CreateLocalOrdering(new()
         {
             SeriesID = seriesID,
-            Name = "Mine",
-            Groups = [new() { Name = "All", Episodes = [ID(TestSources.Plugin, MetadataEntityType.Episode, "e1")] }],
+            Groups = [new() { Episodes = [ID(TestSources.Plugin, MetadataEntityType.Episode, "e1")] }],
         });
         var globalID = ID(TestSources.Plugin, MetadataEntityType.Ordering, "o1");
         var service = tables.Service;

@@ -18,6 +18,7 @@ using Shoko.Abstractions.Metadata.Text.Options;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Providers.AniDB.Titles;
@@ -296,7 +297,7 @@ public class MetadataTextManager : IMetadataTextManager
         if (OwnListOf(entityID) is IWithTitles own)
             return NonEmpty(own.DefaultTitle);
 
-        return StoredDefaultTitle(entityID, InlineOf(entityID));
+        return StoredDefaultTitle(entityID, ResolveQuietly(entityID));
     }
 
     /// <inheritdoc />
@@ -321,9 +322,7 @@ public class MetadataTextManager : IMetadataTextManager
             return OverallPick(entityID, TextKind.Title) as ITitle ?? own.PreferredTitle ?? NonEmpty(own.DefaultTitle) ?? Synthesized(entityID, own);
 
         var entry = ResolveQuietly(entityID);
-        return ChooseStoredTitle(entityID, entry as IInlineTextSource)
-            ?? StoredDefaultTitle(entityID, entry as IInlineTextSource)
-            ?? Synthesized(entityID, entry as IWithTitles);
+        return ChooseStoredTitle(entityID, entry as IInlineTextSource) ?? StoredDefaultTitle(entityID, entry);
     }
 
     /// <inheritdoc />
@@ -438,22 +437,74 @@ public class MetadataTextManager : IMetadataTextManager
         => string.IsNullOrEmpty(text?.Value) ? null : text;
 
     /// <summary>
-    ///   A made-up title for an episode or season with no title of its own at
-    ///   all, such as <c>Episode 5</c> or <c>Season 2</c>.
+    ///   A synthesized title for a core episode or season with no title of its
+    ///   own at all, such as <c>Episode 5</c> or <c>Season 2</c>.
+    /// </summary>
+    /// <param name="entityID">The entry.</param>
+    /// <param name="entry">The entry, whose model keeps its own titles.</param>
+    /// <returns>The title, or <c>null</c> when the entry is neither an episode nor a season, or has titles.</returns>
+    private static ITitle? Synthesized(MetadataGuid entityID, IWithTitles entry)
+        => entry.Titles is { Count: > 0 } ? null : GenericTitles(entityID, entry, TitleType.None).FirstOrDefault();
+
+    /// <summary>
+    ///   The default title synthesized for a stored entry with none: no default
+    ///   on its row and no main title from its own source.
     /// </summary>
     /// <param name="entityID">The entry.</param>
     /// <param name="entry">The entry, when it was found.</param>
-    /// <returns>The title, or <c>null</c> when the entry is neither an episode nor a season, or has titles.</returns>
-    private static ITitle? Synthesized(MetadataGuid entityID, IWithTitles? entry)
+    /// <returns>The title, or <c>null</c> when the entry is a core one, has a default or has no titles to list.</returns>
+    private ITitle? SynthesizedDefaultTitle(MetadataGuid entityID, object? entry)
+        => SynthesizedTitles(entityID, entry).FirstOrDefault();
+
+    /// <summary>
+    ///   The titles synthesized for a stored entry with no default title: no
+    ///   default on its row and no main title from its own source.
+    /// </summary>
+    /// <remarks>
+    ///   An episode gets its generic title and a season its generic name, in
+    ///   each language episodes are named in that has a form, then in
+    ///   English. Any other entry gets its source, kind and ID. The first is
+    ///   listed as the main title and none is stored.
+    /// </remarks>
+    /// <param name="entityID">The entry.</param>
+    /// <param name="entry">The entry, when it was found.</param>
+    /// <returns>The titles, or none when the entry is a core one, has a default or has no titles to list.</returns>
+    private IReadOnlyList<ITitle> SynthesizedTitles(MetadataGuid entityID, object? entry)
     {
-        if (entityID.EntityType == MetadataEntityType.Season && entry is ISeason season && season.Titles is not { Count: > 0 })
-            return GenericEpisodeTitles.SynthesizeSeason(season.SeasonNumber);
+        // The users' own orderings and groups keep their texts in the store like a plugin's.
+        var core = entityID.Source.IsCore && entityID.Source != MetadataSource.User;
+        if (core || entry is not IWithTitles || (entry as IInlineTextSource)?.InlineTitle is not null || OwnMainTitle(entityID) is not null)
+            return [];
 
-        if (entityID.EntityType != MetadataEntityType.Episode || entry is not IEpisode episode || episode.Titles is { Count: > 0 })
-            return null;
+        var generic = GenericTitles(entityID, entry, TitleType.Main);
+        return generic.Count is 0 ? [GenericEpisodeTitles.SynthesizeName(entityID)] : generic;
+    }
 
+    /// <summary>
+    ///   Synthesizes the generic titles of an episode or the generic names of a
+    ///   season, in each language episodes are named in that has a form, then
+    ///   in English.
+    /// </summary>
+    /// <param name="entityID">The entry.</param>
+    /// <param name="entry">The entry, when it was found.</param>
+    /// <param name="firstType">The type the first title is listed with.</param>
+    /// <returns>The titles, or none when the entry is neither an episode nor a season.</returns>
+    private static IReadOnlyList<ITitle> GenericTitles(MetadataGuid entityID, object? entry, TitleType firstType)
+    {
         var languages = Languages.PreferredEpisodeNamingLanguages.Select(language => language.Language).Where(language => language is not TitleLanguage.Main);
-        return GenericEpisodeTitles.Synthesize(episode.Type, episode.EpisodeNumber, languages.Append(TitleLanguage.English));
+        if (entityID.EntityType == MetadataEntityType.Season && entry is ISeason season)
+            return GenericEpisodeTitles.SynthesizeSeasonAll(season.SeasonNumber, languages, firstType);
+
+        if (entityID.EntityType == MetadataEntityType.Episode && entry is IEpisode episode)
+            return GenericEpisodeTitles.SynthesizeAll(
+                episode.Type,
+                episode.EpisodeNumber,
+                entityID.Source.IsCore,
+                languages,
+                firstType
+            );
+
+        return [];
     }
 
     /// <summary>
@@ -566,9 +617,16 @@ public class MetadataTextManager : IMetadataTextManager
     ///   The titles a stored entry lists, for its model.
     /// </summary>
     /// <param name="entry">The entry, which may keep a default title on its row.</param>
-    /// <returns>The default on its row, then the enabled stored titles, its own source's first.</returns>
+    /// <returns>
+    ///   The default on its row, or the ones synthesized when it has no default,
+    ///   then the enabled stored titles, its own source's first.
+    /// </returns>
     internal IReadOnlyList<ITitle> ListTitles(IMetadata entry)
-        => StoredTitles(entry.ID, entry as IInlineTextSource, _listing);
+    {
+        var titles = StoredTitles(entry.ID, entry as IInlineTextSource, _listing);
+        titles.InsertRange(0, SynthesizedTitles(entry.ID, entry));
+        return titles;
+    }
 
     /// <summary>
     ///   The overviews a stored entry lists, for its model.
@@ -602,18 +660,18 @@ public class MetadataTextManager : IMetadataTextManager
     ///   The title a stored entry's own source calls it by, for its model.
     /// </summary>
     /// <param name="entry">The entry, which may keep a default title on its row.</param>
-    /// <returns>The default on its row, else its source's main title, else its first, or <c>null</c> when it has none.</returns>
+    /// <returns>The default on its row, else its source's main title, else the synthesized one, or <c>null</c> when it keeps no titles.</returns>
     internal ITitle? DefaultTitleFor(IMetadata entry)
-        => StoredDefaultTitle(entry.ID, entry as IInlineTextSource);
+        => StoredDefaultTitle(entry.ID, entry);
 
     /// <summary>
-    ///   The generic title made up for a stored episode or season with no
-    ///   title at all, for its model.
+    ///   The default title synthesized for a stored entry with no default of its
+    ///   own, for its model.
     /// </summary>
     /// <param name="entry">The entry.</param>
-    /// <returns>The title, or <c>null</c> when the entry is neither an episode nor a season, or has titles.</returns>
+    /// <returns>The title, or <c>null</c> when the entry has a default or keeps no titles.</returns>
     internal ITitle? SynthesizedTitleFor(IMetadata entry)
-        => Synthesized(entry.ID, entry as IWithTitles);
+        => SynthesizedDefaultTitle(entry.ID, entry);
 
     /// <summary>
     ///   The overview a stored entry's own source gives it, for its model.
@@ -720,17 +778,30 @@ public class MetadataTextManager : IMetadataTextManager
     ///   The default title of an entry whose texts the store keeps.
     /// </summary>
     /// <param name="entityID">The entry.</param>
-    /// <param name="inline">The entry, when it keeps a default title on its row.</param>
-    /// <returns>The default on its row, else its source's enabled main title, else its first, or <c>null</c>.</returns>
-    private ITitle? StoredDefaultTitle(MetadataGuid entityID, IInlineTextSource? inline)
+    /// <param name="entry">The entry, when it was found.</param>
+    /// <returns>
+    ///   The default on its row, else its source's enabled main title, else
+    ///   the one synthesized for an entry with titles, else its first, or
+    ///   <c>null</c>.
+    /// </returns>
+    private ITitle? StoredDefaultTitle(MetadataGuid entityID, object? entry)
     {
         _memos.Record(entityID);
-        if (inline?.InlineTitle is { } title)
+        if ((entry as IInlineTextSource)?.InlineTitle is { } title)
             return title;
 
-        var stored = _textStore.GetTitles(entityID, entityID.Source).Where(stored => stored.IsEnabled).ToList();
-        return stored.FirstOrDefault(stored => stored.Type is TitleType.Main) ?? stored.FirstOrDefault();
+        return OwnMainTitle(entityID)
+            ?? SynthesizedDefaultTitle(entityID, entry)
+            ?? _textStore.GetTitles(entityID, entityID.Source).FirstOrDefault(stored => stored.IsEnabled);
     }
+
+    /// <summary>
+    ///   The first enabled main title an entry's own source stored for it.
+    /// </summary>
+    /// <param name="entityID">The entry.</param>
+    /// <returns>The title, or <c>null</c> when its source stored none.</returns>
+    private ITitle? OwnMainTitle(MetadataGuid entityID)
+        => _textStore.GetTitles(entityID, entityID.Source).FirstOrDefault(stored => stored.IsEnabled && stored.Type is TitleType.Main);
 
     /// <summary>
     ///   The default overview of an entry whose texts the store keeps.
@@ -814,6 +885,75 @@ public class MetadataTextManager : IMetadataTextManager
 
     #endregion
 
+    #region Reading in an Ordering
+
+    /// <summary>
+    ///   The titles of an episode as an ordering presents it.
+    /// </summary>
+    /// <remarks>
+    ///   An episode whose texts the store keeps lists the titles synthesized for
+    ///   the ordering's type and number. A core episode lists its own.
+    /// </remarks>
+    /// <param name="episode">The episode in the ordering.</param>
+    /// <returns>The titles.</returns>
+    internal IReadOnlyList<ITitle> TitlesInOrdering(EpisodeInOrdering episode)
+        => episode.ID.Source.IsCore ? episode.LinkedEpisode.Titles : ListTitles(episode);
+
+    /// <summary>
+    ///   The default title of an episode as an ordering presents it.
+    /// </summary>
+    /// <param name="episode">The episode in the ordering.</param>
+    /// <returns>
+    ///   The episode's real default, else the one synthesized for the ordering's
+    ///   type and number, else an empty title.
+    /// </returns>
+    internal ITitle DefaultTitleInOrdering(EpisodeInOrdering episode)
+    {
+        if (episode.ID.Source.IsCore)
+            return InOrdering(episode.LinkedEpisode.DefaultTitle, episode);
+
+        return DefaultTitleFor(episode) ?? new TitleStub
+        {
+            Source = episode.ID.Source,
+            Language = TitleLanguage.Unknown,
+            LanguageCode = "unk",
+            Value = string.Empty,
+            Type = TitleType.Main,
+        };
+    }
+
+    /// <summary>
+    ///   The preferred title of an episode as an ordering presents it.
+    /// </summary>
+    /// <remarks>
+    ///   A user's pick and every real title in a preferred language win as
+    ///   anywhere else; only the synthesized fallback follows the ordering.
+    /// </remarks>
+    /// <param name="episode">The episode in the ordering.</param>
+    /// <returns>The title, or <c>null</c> when none is picked or in a preferred language and the episode has a default.</returns>
+    internal ITitle? PreferredTitleInOrdering(EpisodeInOrdering episode)
+    {
+        if (episode.ID.Source.IsCore)
+            return episode.LinkedEpisode.PreferredTitle is { } preferred ? InOrdering(preferred, episode) : null;
+
+        return PreferredTitleFor(episode) ?? SynthesizedTitleFor(episode);
+    }
+
+    /// <summary>
+    ///   A core episode's title as an ordering presents it: AniDB's synthesized
+    ///   generic title gets the ordering's type and number, as in
+    ///   <c>Episode 7</c> or <c>Episode S2</c>.
+    /// </summary>
+    /// <param name="title">The title the episode itself gives.</param>
+    /// <param name="episode">The episode in the ordering.</param>
+    /// <returns>The title.</returns>
+    private static ITitle InOrdering(ITitle title, EpisodeInOrdering episode)
+        => title is { IsSynthesized: true } && title.Source == MetadataSource.AniDB
+            ? AnidbText.SynthesizedTitle(episode.EpisodeType, episode.EpisodeNumber)
+            : title;
+
+    #endregion
+
     #region Source Writes
 
     /// <inheritdoc />
@@ -851,7 +991,7 @@ public class MetadataTextManager : IMetadataTextManager
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(titles);
 
-        _textStore.SetTitles(entityID, source, titles);
+        _textStore.SetTitles(entityID, source, titles, NumberOf(entityID));
     }
 
     /// <inheritdoc />
@@ -919,6 +1059,8 @@ public class MetadataTextManager : IMetadataTextManager
         ArgumentNullException.ThrowIfNull(data);
         if (string.IsNullOrWhiteSpace(data.Value))
             throw new ArgumentException("A text must have a value.", nameof(data));
+        if (data.Kind is TextKind.Title)
+            RefuseGenericTitle(entityID, data.Value, nameof(data));
 
         var source = data.Source ?? MetadataSource.User;
         var languageCode = string.IsNullOrWhiteSpace(data.LanguageCode) ? "unk" : data.LanguageCode.Trim();
@@ -975,10 +1117,13 @@ public class MetadataTextManager : IMetadataTextManager
     /// <param name="text">The stored text.</param>
     /// <param name="data">What to change.</param>
     /// <returns>The text as it is stored now.</returns>
+    /// <exception cref="ArgumentException">The new value is a generic title the core synthesizes for the entry.</exception>
     /// <exception cref="InvalidOperationException">A new value is given to a text a user did not add themselves.</exception>
     private IText ChangeText(IText text, TextUpdateData data)
     {
         var (entityID, kind, id) = Identify(text);
+        if (kind is TextKind.Title && data.Value is { } newValue)
+            RefuseGenericTitle(entityID, newValue, nameof(data));
         var changed = _textStore.Change<bool>(() =>
         {
             var row = StoredRow(entityID, kind, id);
@@ -1136,7 +1281,11 @@ public class MetadataTextManager : IMetadataTextManager
     /// <param name="allowBlank">Whether a blank value is taken as it is, as for an overview a user cleared on purpose.</param>
     /// <returns>The stored text carrying the preference.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entityID"/> or <paramref name="text"/> is <c>null</c>.</exception>
-    /// <exception cref="ArgumentException">The text's value is blank and <paramref name="allowBlank"/> is <c>false</c>.</exception>
+    /// <exception cref="ArgumentException">
+    ///   The text's value is blank and <paramref name="allowBlank"/> is
+    ///   <c>false</c>, or a new pick is a generic title the core synthesizes for
+    ///   the entry.
+    /// </exception>
     private IText SetPreferred(MetadataGuid entityID, TextKind kind, IText text, bool forLanguageOnly, bool allowBlank)
     {
         ArgumentNullException.ThrowIfNull(entityID);
@@ -1150,6 +1299,8 @@ public class MetadataTextManager : IMetadataTextManager
         // A stored text of the other kind, such as a title given as an
         // overview, is taken by its value alone, as its ID names another row.
         var sameKind = (text is ITitle) == (kind is TextKind.Title);
+        if (kind is TextKind.Title && !(sameKind && text.ID is not null && text.EntityID == entityID))
+            RefuseGenericTitle(entityID, text.Value, nameof(text));
         if (!sameKind)
             checkedText = checkedText with { TitleType = TitleType.None };
         var (row, added) = _textStore.Change<(MetadataTextRow, bool)>(() =>
@@ -1218,6 +1369,33 @@ public class MetadataTextManager : IMetadataTextManager
 
         return cleared;
     }
+
+    /// <summary>
+    ///   Refuses a generic title the core synthesizes for the entry rather than stores,
+    ///   such as <c>Episode 5</c> on episode 5 of any source.
+    /// </summary>
+    /// <param name="entityID">The entry.</param>
+    /// <param name="value">The title's value.</param>
+    /// <param name="paramName">The argument the title came in through.</param>
+    /// <exception cref="ArgumentException">The title is a generic one for the entry.</exception>
+    private void RefuseGenericTitle(MetadataGuid entityID, string? value, string paramName)
+    {
+        if (MetadataTextStore.IsGenericTitle(entityID, value, NumberOf(entityID)))
+            throw new ArgumentException(
+                $"'{value}' is a generic {entityID.EntityType.Name.ToLowerInvariant()} title, which is synthesized rather than stored.",
+                paramName
+            );
+    }
+
+    /// <summary>
+    ///   The number a season's or an episode's generic titles carry.
+    /// </summary>
+    /// <param name="entityID">The entry.</param>
+    /// <returns>The number, or <c>null</c> for another kind of entry or one that is not found.</returns>
+    private GenericEpisodeTitles.EntryNumber? NumberOf(MetadataGuid entityID)
+        => entityID.EntityType == MetadataEntityType.Season || entityID.EntityType == MetadataEntityType.Episode
+            ? GenericEpisodeTitles.EntryNumber.Of(ResolveQuietly(entityID))
+            : null;
 
     /// <summary>
     ///   The entry, kind and ID of a stored text.

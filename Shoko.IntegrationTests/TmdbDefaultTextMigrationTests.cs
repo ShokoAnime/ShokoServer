@@ -74,7 +74,7 @@ public class TmdbDefaultTextMigrationTests(DatabaseMigrationFixture fixture)
         Insert(connection, "TMDB_Season", ("TmdbShowID", ListedShowID), ("TmdbSeasonID", SeasonID), ("EnglishTitle", "Season 1"), ("EnglishOverview", string.Empty), ("EpisodeCount", 0),
             ("SeasonNumber", 1), ("CreatedAt", _created), ("LastUpdatedAt", _created));
 
-        // A season whose generic name TMDB listed as its English one, which is made up rather than stored.
+        // A season whose generic name TMDB listed as its English one, which is synthesized rather than stored.
         Insert(connection, "TMDB_Season", ("TmdbShowID", ListedShowID), ("TmdbSeasonID", ListedSpecialsID), ("EnglishTitle", "Specials"), ("EnglishOverview", string.Empty),
             ("EpisodeCount", 0), ("SeasonNumber", 0), ("CreatedAt", _created), ("LastUpdatedAt", _created), ("EnglishTitleListed", true));
 

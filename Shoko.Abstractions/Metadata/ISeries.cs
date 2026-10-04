@@ -176,6 +176,13 @@ public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     IOrdering PreferredOrdering { get; }
 
     /// <summary>
+    ///   The ordering the series is presented in. A source's own series
+    ///   answers with its default ordering; the series an ordering's
+    ///   <see cref="IOrdering.Series"/> gives answers with that ordering.
+    /// </summary>
+    IOrdering CurrentOrdering { get; }
+
+    /// <summary>
     /// All known episodes for the series.
     /// </summary>
     IReadOnlyList<IEpisode> Episodes { get; }
@@ -228,6 +235,14 @@ public interface ISeries<out TSeries, out TEpisode> : ISeries
     new IOrdering<TSeries, TEpisode> PreferredOrdering { get; }
 
     IOrdering ISeries.PreferredOrdering { get => PreferredOrdering; }
+
+    /// <summary>
+    ///   The ordering the series is presented in. A source's own series
+    ///   answers with its default ordering.
+    /// </summary>
+    new IOrdering<TSeries, TEpisode> CurrentOrdering { get; }
+
+    IOrdering ISeries.CurrentOrdering { get => CurrentOrdering; }
 
     /// <summary>
     ///   The series a provider's users suggest to someone looking at this

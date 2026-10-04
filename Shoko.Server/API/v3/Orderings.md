@@ -43,11 +43,40 @@ a group numbered 0 as the special group. `GET
 /api/v3/Series/{seriesID}/Ordering/preferred` returns the ordering the series
 uses, next to `default`.
 
+### Where each source places a special
+
+The Shoko episode routes (`GET /api/v3/Series/{seriesID}/Episode`, `GET
+/api/v3/Episode/{episodeID}` and the others taking `includeFiles`) take
+`include=Placement`, which adds `Placements` to each episode: where each
+source places a special among the regular episodes of its series, by Shoko
+episode IDs, so a client can pick the source it trusts.
+
+```json
+"Placements": [
+  { "Source": "anidb", "AirsAfterEpisodeID": 11, "AirsBeforeEpisodeID": 12 },
+  { "Source": "tmdb", "AirsAfterEpisodeID": 12, "AirsBeforeEpisodeID": 13 }
+]
+```
+
+AniDB places a special by its titles. A linked source places it where its
+linked episode airs in the default ordering of that episode's series; the
+regular episodes around it are followed back through the episode links to
+the special's own series. A source is left out when one of them leads
+nowhere in the series, and of two linked episodes of one source placing
+it the first in link order counts. A `null` neighbour means the special airs first or
+last. Regular episodes and specials no source places get an empty list.
+`placementSource` keeps one source. Without the include, `Placements` is left
+out and nothing is worked out.
+
 ## Generic titles
 
 Generic titles such as `Episode 6` or `Season 2` are not stored: AniDB's
-generic episode titles and TMDB's generic episode titles and season names
-are left out when they are saved. An episode or season with no title left
+generic episode titles, TMDB's generic episode titles and season names, and
+the generic names of an ordering's groups are left out when they are saved,
+when they carry the entry's own number (`Season 11` on season 8 is a real
+title). An ordering's and its groups' names are their titles, kept in the
+text store: a user's ordering takes `Name` and `Description` as one `user`
+title and overview each. An episode, season or group with no title left
 gets one synthesized when it is read, with the source `generated`: `Episode 6`
 for an episode (in the first preferred episode naming language that has a
 form for it, and `Special 1` and the like for the other types), and `Season

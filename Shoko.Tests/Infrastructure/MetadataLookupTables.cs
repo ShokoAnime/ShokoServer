@@ -266,8 +266,8 @@ public sealed class MetadataLookupTables
         {
             ID = ID(MetadataEntityType.Ordering, "o1"),
             SeriesID = seriesID,
-            Name = "Theirs",
-            Groups = [new() { ID = ID(MetadataEntityType.Season, "g1"), Name = "All", Episodes = [ID(MetadataEntityType.Episode, "e1")] }],
+            Titles = TestTexts.Named("Theirs"),
+            Groups = [new() { ID = ID(MetadataEntityType.Season, "g1"), Titles = TestTexts.Named("All"), Episodes = [ID(MetadataEntityType.Episode, "e1")] }],
         });
         StorePeopleTagsStudiosAndCollections(TestSources.Plugin);
     }

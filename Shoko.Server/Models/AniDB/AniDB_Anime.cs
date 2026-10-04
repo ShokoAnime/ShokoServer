@@ -649,6 +649,8 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
 
     IOrdering<IAnidbAnime, IAnidbEpisode> ISeries<IAnidbAnime, IAnidbEpisode>.PreferredOrdering => OrderingLookup.PreferredFor<IAnidbAnime, IAnidbEpisode>(this);
 
+    IOrdering<IAnidbAnime, IAnidbEpisode> ISeries<IAnidbAnime, IAnidbEpisode>.CurrentOrdering => OrderingLookup.DefaultFor<IAnidbAnime, IAnidbEpisode>(this);
+
     IReadOnlyList<IMetadataSeriesCrossReference> ISeries.MetadataSeriesCrossReferences =>
         ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeriesCrossReferences(AnimeID) ?? [];
 

@@ -36,7 +36,8 @@ public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
 
     /// <summary>
     /// Get the series info for the season. A season always belongs to a
-    /// series.
+    /// series. For a group of an ordering, it is the series as that ordering
+    /// presents it, see <see cref="IOrdering.Series"/>.
     /// </summary>
     /// <exception cref="NullReferenceException">The series is missing.</exception>
     ISeries Series { get; }
@@ -45,6 +46,8 @@ public interface ISeason : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     ///   The season's episodes. For a regular group of an ordering, only the
     ///   episodes at home there: a placed special belongs to the special
     ///   group, and its place in a regular group only says where it airs.
+    ///   For a group of any ordering but the default, each is numbered and
+    ///   typed by its place in the group.
     /// </summary>
     IReadOnlyList<IEpisode> Episodes { get; }
 
@@ -109,7 +112,7 @@ public interface ISeason<out TSeries, out TEpisode> : ISeason
     where TEpisode : class, IEpisode
 {
     /// <summary>
-    ///   The series the season belongs to.
+    ///   The series the season belongs to, as its source keeps it.
     /// </summary>
     /// <exception cref="NullReferenceException">The series is missing.</exception>
     new TSeries Series { get; }
@@ -118,7 +121,8 @@ public interface ISeason<out TSeries, out TEpisode> : ISeason
 
     /// <summary>
     ///   The season's episodes. For a regular group of an ordering, only the
-    ///   episodes at home there, placed specials left out.
+    ///   episodes at home there, placed specials left out. Each as its source
+    ///   keeps it.
     /// </summary>
     new IReadOnlyList<TEpisode> Episodes { get; }
 

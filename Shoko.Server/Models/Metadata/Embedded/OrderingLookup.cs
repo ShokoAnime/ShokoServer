@@ -58,6 +58,20 @@ internal static class OrderingLookup
         => Service?.GetDefaultOrdering<TSeries, TEpisode>(series) ?? new DefaultOrdering<TSeries, TEpisode>(series, null);
 
     /// <summary>
+    ///   An episode's place in the default ordering of its series, holding
+    ///   the episode itself.
+    /// </summary>
+    /// <typeparam name="TSeries">The series' type.</typeparam>
+    /// <typeparam name="TEpisode">The episodes' type.</typeparam>
+    /// <param name="episode">The episode, an <see cref="IEpisode{TSeries,TEpisode}"/>.</param>
+    /// <returns>The place.</returns>
+    internal static IEpisodeOrderingInformation<TSeries, TEpisode> DefaultPlaceOf<TSeries, TEpisode>(TEpisode episode)
+        where TSeries : class, ISeries
+        where TEpisode : class, IEpisode
+        => Service?.GetDefaultEpisodeOrdering<TSeries, TEpisode>(episode) ??
+            new DefaultEpisodeOrdering<TSeries, TEpisode>(episode, ((IEpisode<TSeries, TEpisode>)episode).Series, null);
+
+    /// <summary>
     ///   Every place an episode has in its series' orderings.
     /// </summary>
     /// <typeparam name="TSeries">The series' type.</typeparam>

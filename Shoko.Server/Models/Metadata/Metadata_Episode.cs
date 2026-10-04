@@ -216,7 +216,7 @@ public class Metadata_Episode : IEpisode<ISeries, IEpisode>, IMetadataStoreRow<M
 
     ITitle IWithTitles.DefaultTitle => MetadataStoredEntry.DefaultTitle(this);
 
-    ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this) ?? TextAccess.Manager.SynthesizedTitleFor(this);
+    ITitle? IWithTitles.PreferredTitle => MetadataStoredEntry.PreferredTitle(this);
 
     IReadOnlyList<ITitle> IWithTitles.Titles => MetadataStoredEntry.Titles(this);
 
@@ -275,6 +275,8 @@ public class Metadata_Episode : IEpisode<ISeries, IEpisode>, IMetadataStoreRow<M
     IReadOnlyList<IEpisodeOrderingInformation<ISeries, IEpisode>> IEpisode<ISeries, IEpisode>.Orderings => OrderingLookup.PlacesOf<ISeries, IEpisode>(this);
 
     IEpisodeOrderingInformation<ISeries, IEpisode>? IEpisode<ISeries, IEpisode>.PreferredOrdering => OrderingLookup.PreferredPlaceOf<ISeries, IEpisode>(this);
+
+    IEpisodeOrderingInformation<ISeries, IEpisode> IEpisode<ISeries, IEpisode>.CurrentOrdering => OrderingLookup.DefaultPlaceOf<ISeries, IEpisode>(this);
 
     MetadataGuid IEpisode.SeriesID => new(Source, MetadataEntityType.Series, SeriesID);
 

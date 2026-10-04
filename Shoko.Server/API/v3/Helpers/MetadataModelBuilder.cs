@@ -371,7 +371,7 @@ public sealed class MetadataModelBuilder(
     /// <param name="id">The entry.</param>
     /// <param name="language">The languages to keep, or <c>null</c> for all.</param>
     /// <param name="includeSynthesized">
-    /// Whether to add the made-up title of an untitled episode, when that is
+    /// Whether to add the synthesized title of an untitled episode, when that is
     /// what the preferred title is.
     /// </param>
     /// <returns>The titles.</returns>

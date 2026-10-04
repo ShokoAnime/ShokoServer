@@ -23,14 +23,19 @@ public sealed record MetadataOrderingData
     public required MetadataGuid SeriesID { get; init; }
 
     /// <summary>
-    ///   The ordering's name.
+    ///   The ordering's titles, in order, stored under the ordering's source.
     /// </summary>
-    public required string Name { get; init; }
+    /// <remarks>
+    ///   The main title (<see cref="TitleType.Main"/>) is the ordering's
+    ///   default. Without one, the ordering gets a synthesized default such as
+    ///   <c>TMDb Ordering 5f0c…</c>, never stored.
+    /// </remarks>
+    public IReadOnlyList<ITitle> Titles { get; init; } = [];
 
     /// <summary>
-    ///   What the ordering is about, if anything.
+    ///   The ordering's overviews, in order, stored like the titles.
     /// </summary>
-    public string? Overview { get; init; }
+    public IReadOnlyList<IText> Overviews { get; init; } = [];
 
     /// <summary>
     ///   What the ordering follows. Neither <see cref="OrderingType.Default"/>
@@ -65,14 +70,20 @@ public sealed record MetadataOrderingGroupData
     public required MetadataGuid ID { get; init; }
 
     /// <summary>
-    ///   The group's name.
+    ///   The group's titles, in order, stored under the ordering's source.
     /// </summary>
-    public required string Name { get; init; }
+    /// <remarks>
+    ///   The main title (<see cref="TitleType.Main"/>) is the group's default.
+    ///   Without one, the group gets its generic season name, such as
+    ///   <c>Season 2</c>, synthesized in the user's languages. Generic names
+    ///   for the group's own season number are left out.
+    /// </remarks>
+    public IReadOnlyList<ITitle> Titles { get; init; } = [];
 
     /// <summary>
-    ///   What the group is about, if anything.
+    ///   The group's overviews, in order, stored like the titles.
     /// </summary>
-    public string? Overview { get; init; }
+    public IReadOnlyList<IText> Overviews { get; init; } = [];
 
     /// <summary>
     ///   Whether the group holds the ordering's specials. It reads back as
@@ -112,14 +123,19 @@ public sealed record MetadataLocalOrderingData
     public required MetadataGuid SeriesID { get; init; }
 
     /// <summary>
-    ///   The ordering's name.
+    ///   The ordering's titles, in order, stored under the <c>user</c> source.
     /// </summary>
-    public required string Name { get; init; }
+    /// <remarks>
+    ///   The main title (<see cref="TitleType.Main"/>) is the ordering's
+    ///   default. Without one, the ordering gets a synthesized default such as
+    ///   <c>User Ordering 1f0c…</c>, never stored.
+    /// </remarks>
+    public IReadOnlyList<ITitle> Titles { get; init; } = [];
 
     /// <summary>
-    ///   What the ordering is about, if anything.
+    ///   The ordering's overviews, in order, stored like the titles.
     /// </summary>
-    public string? Overview { get; init; }
+    public IReadOnlyList<IText> Overviews { get; init; } = [];
 
     /// <summary>
     ///   The networks the ordering follows, in order, on any source this
@@ -147,14 +163,20 @@ public sealed record MetadataLocalOrderingGroupData
     public MetadataGuid? ID { get; init; }
 
     /// <summary>
-    ///   The group's name.
+    ///   The group's titles, in order, stored under the <c>user</c> source.
     /// </summary>
-    public required string Name { get; init; }
+    /// <remarks>
+    ///   The main title (<see cref="TitleType.Main"/>) is the group's default.
+    ///   Without one, the group gets its generic season name, such as
+    ///   <c>Season 2</c>, synthesized in the user's languages. Generic names
+    ///   for the group's own season number are left out.
+    /// </remarks>
+    public IReadOnlyList<ITitle> Titles { get; init; } = [];
 
     /// <summary>
-    ///   What the group is about, if anything.
+    ///   The group's overviews, in order, stored like the titles.
     /// </summary>
-    public string? Overview { get; init; }
+    public IReadOnlyList<IText> Overviews { get; init; } = [];
 
     /// <summary>
     ///   Whether the group holds the ordering's specials. It reads back as

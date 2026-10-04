@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
 
 namespace Shoko.Abstractions.Metadata.Services;
@@ -73,6 +74,18 @@ public interface IMetadataOrderingService
     /// <exception cref="ArgumentNullException"><paramref name="episode"/> is <c>null</c>.</exception>
     IReadOnlyList<IEpisodeOrderingInformation> GetEpisodeOrderings(IEpisode episode);
 
+    /// <summary>
+    ///   Where each source places a Shoko special among the regular episodes
+    ///   of its series: AniDB by its titles, and each linked plugin source by
+    ///   its linked episode's place in its series' default ordering. Of two
+    ///   linked episodes of one source placing it, the first in link order wins.
+    /// </summary>
+    /// <param name="episode">The Shoko episode.</param>
+    /// <param name="source">One source, or every source when left out.</param>
+    /// <returns>The placements, AniDB's first; none for a regular episode, or from a source whose neighbours are not in the series.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="episode"/> is <c>null</c>.</exception>
+    IReadOnlyList<IEpisodePlacement> GetEpisodePlacements(IShokoEpisode episode, MetadataSource? source = null);
+
     #endregion
 
     #region Global Orderings
@@ -90,8 +103,8 @@ public interface IMetadataOrderingService
     ///   the type is kept by the core, the series is not available, a group
     ///   holds an episode that is not the series', more than one group is
     ///   special, a group's own season number is below <c>1</c> or set on
-    ///   the special group, or a network is not stored or is on another
-    ///   source.
+    ///   the special group, a network is not stored or is on another source,
+    ///   or a title's or overview's code is too long.
     /// </exception>
     IOrdering SaveOrdering(MetadataOrderingData ordering);
 
@@ -133,8 +146,9 @@ public interface IMetadataOrderingService
     /// <exception cref="ArgumentNullException"><paramref name="ordering"/> is or holds <c>null</c>.</exception>
     /// <exception cref="ArgumentException">
     ///   A group names an ID, the series is not available, a group holds an
-    ///   episode that is not the series', more than one group is special, or
-    ///   a network names another kind or a source this server does not know.
+    ///   episode that is not the series', more than one group is special, a
+    ///   network names another kind or a source this server does not know, or
+    ///   a title's or overview's code is too long.
     /// </exception>
     IOrdering CreateLocalOrdering(MetadataLocalOrderingData ordering);
 
@@ -151,8 +165,9 @@ public interface IMetadataOrderingService
     /// <exception cref="ArgumentException">
     ///   The ID does not name a user's ordering, the series is another one, a
     ///   group names an ID the ordering does not have, a group holds an
-    ///   episode that is not the series', more than one group is special, or
-    ///   a network names another kind or a source this server does not know.
+    ///   episode that is not the series', more than one group is special, a
+    ///   network names another kind or a source this server does not know, or
+    ///   a title's or overview's code is too long.
     /// </exception>
     IOrdering? UpdateLocalOrdering(MetadataGuid orderingID, MetadataLocalOrderingData ordering);
 

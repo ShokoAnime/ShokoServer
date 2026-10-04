@@ -14,12 +14,12 @@ public interface ITitle : IText, IEquatable<ITitle>
     TitleType Type { get; }
 
     /// <summary>
-    ///   Whether the title was made up on the spot, such as <c>Episode 5</c>
-    ///   for an episode no source named. A made-up title is never stored and
+    ///   Whether the title was synthesized on the spot, such as <c>Episode 5</c>
+    ///   for an episode no source named. A synthesized title is never stored and
     ///   is only chosen when nothing else is left.
     /// </summary>
     /// <value>
-    ///   <c>true</c> for a made-up title; otherwise <c>false</c>.
+    ///   <c>true</c> for a synthesized title; otherwise <c>false</c>.
     /// </value>
     bool IsSynthesized { get; }
 

@@ -17,6 +17,7 @@ using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached.Metadata;
@@ -683,9 +684,7 @@ public static class TmdbCompatibility
         ///   The season's English title, as TMDB gave it, or its generic name.
         /// </summary>
         /// <returns>The title.</returns>
-        public ITitle GetEnglishTitle()
-            => ((IWithTitles)season).Titles.FirstOrDefault(title => title.Source == MetadataSource.TMDB && title.Type is TitleType.Main)
-                ?? GroupTitle(GenericEpisodeTitles.SeasonName(season.SeasonNumber));
+        public ITitle GetEnglishTitle() => season.AsTmdbTitle(((IWithTitles)season).DefaultTitle);
 
         /// <summary>
         ///   The season's English overview, as TMDB gave it.
@@ -733,18 +732,23 @@ public static class TmdbCompatibility
         ///   else its English title.
         /// </summary>
         /// <returns>The title.</returns>
-        public ITitle GetPreferredTitle() => MetadataStoredEntry.PreferredTitle(season) ?? season.GetEnglishTitle();
+        public ITitle GetPreferredTitle() => season.AsTmdbTitle(PreferredTitle(season));
 
         /// <summary>
         ///   Every title of the season, its generic name first when TMDB gave
         ///   it no English title.
         /// </summary>
         /// <returns>The titles.</returns>
-        public IReadOnlyList<ITitle> GetAllTitles()
-        {
-            var titles = ((IWithTitles)season).Titles;
-            return titles.Any(title => title.Source == MetadataSource.TMDB && title.Type is TitleType.Main) ? titles : [season.GetEnglishTitle(), .. titles];
-        }
+        public IReadOnlyList<ITitle> GetAllTitles() => WithTmdbGeneric(((IWithTitles)season).Titles, season.AsTmdbTitle);
+
+        /// <summary>
+        ///   A title of the season as the TMDB routes show it: a generic name
+        ///   the core synthesized becomes the English one, as a title of TMDB's.
+        /// </summary>
+        /// <param name="title">The title.</param>
+        /// <returns>The title.</returns>
+        private ITitle AsTmdbTitle(ITitle title)
+            => title.IsSynthesized ? GroupTitle(GenericEpisodeTitles.SeasonName(season.SeasonNumber)) : title;
 
         /// <summary>
         ///   The overview to show for the season.
@@ -789,13 +793,7 @@ public static class TmdbCompatibility
         ///   The episode's English title, as TMDB gave it, or an empty string
         ///   for a title such as <c>Episode 5</c>, which is never stored.
         /// </summary>
-        public string EnglishTitle => episode.StoredEnglishTitle?.Value ?? string.Empty;
-
-        /// <summary>
-        ///   The English title TMDB gave the episode, or <c>null</c>.
-        /// </summary>
-        public ITitle? StoredEnglishTitle
-            => ((IWithTitles)episode).Titles.FirstOrDefault(title => title.Source == MetadataSource.TMDB && title.Language is TitleLanguage.EnglishAmerican);
+        public string EnglishTitle => ((IWithTitles)episode).DefaultTitle is { IsSynthesized: false } title ? title.Value : string.Empty;
 
         /// <summary>
         ///   The episode's English overview, as TMDB gave it.
@@ -888,12 +886,15 @@ public static class TmdbCompatibility
 
         /// <summary>
         ///   The episode's English title in an ordering: the one TMDB gave it,
-        ///   else <c>Episode {number}</c> with its number in that ordering.
+        ///   else the core's synthesized one for its number in that ordering.
         /// </summary>
         /// <param name="place">Where an alternate ordering places the episode, or <c>null</c> for the default ordering.</param>
         /// <returns>The title.</returns>
         public ITitle GetEnglishTitle(AlternateOrderingEpisode? place = null)
-            => episode.StoredEnglishTitle ?? GenericEpisodeTitle(place?.PlacedEpisodeNumber ?? episode.EpisodeNumber);
+        {
+            var shown = episode.InOrdering(place);
+            return AsTmdbEpisodeTitle(shown.DefaultTitle, shown);
+        }
 
         /// <summary>
         ///   The title to show for the episode in an ordering: the one picked
@@ -902,7 +903,10 @@ public static class TmdbCompatibility
         /// <param name="place">Where an alternate ordering places the episode, or <c>null</c> for the default ordering.</param>
         /// <returns>The title.</returns>
         public ITitle GetPreferredTitle(AlternateOrderingEpisode? place = null)
-            => MetadataStoredEntry.PreferredTitle(episode) ?? episode.GetEnglishTitle(place);
+        {
+            var shown = episode.InOrdering(place);
+            return AsTmdbEpisodeTitle(PreferredTitle(shown), shown);
+        }
 
         /// <summary>
         ///   Every title of the episode in an ordering, its English title there
@@ -912,9 +916,18 @@ public static class TmdbCompatibility
         /// <returns>The titles.</returns>
         public IReadOnlyList<ITitle> GetAllTitles(AlternateOrderingEpisode? place = null)
         {
-            var titles = ((IWithTitles)episode).Titles;
-            return episode.StoredEnglishTitle is not null ? titles : [episode.GetEnglishTitle(place), .. titles];
+            var shown = episode.InOrdering(place);
+            return WithTmdbGeneric(shown.Titles, title => AsTmdbEpisodeTitle(title, shown));
         }
+
+        /// <summary>
+        ///   The episode as an ordering presents it, numbered by its place
+        ///   there.
+        /// </summary>
+        /// <param name="place">Where an alternate ordering places the episode, or <c>null</c> for the default ordering.</param>
+        /// <returns>The episode in the alternate ordering, or the episode itself.</returns>
+        private IEpisode InOrdering(AlternateOrderingEpisode? place)
+            => place?.Present(episode) ?? episode;
 
         /// <summary>
         ///   The episode's titles in an ordering, in the languages episodes are
@@ -1391,6 +1404,27 @@ public static class TmdbCompatibility
         => GroupTitle(string.Create(CultureInfo.InvariantCulture, $"Episode {number}"));
 
     /// <summary>
+    ///   An episode's title as the TMDB routes show it: a title the core made
+    ///   up becomes <c>Episode {number}</c> in English, with the number the
+    ///   episode has in the ordering shown.
+    /// </summary>
+    /// <param name="title">The title.</param>
+    /// <param name="shown">The episode as the ordering shown presents it.</param>
+    /// <returns>The title.</returns>
+    private static ITitle AsTmdbEpisodeTitle(ITitle title, IEpisode shown)
+        => title.IsSynthesized ? GenericEpisodeTitle(shown.EpisodeNumber) : title;
+
+    /// <summary>
+    ///   An entry's titles as the TMDB routes list them: the generic titles
+    ///   the core synthesized in each language become one English title.
+    /// </summary>
+    /// <param name="titles">The entry's titles, the synthesized ones first.</param>
+    /// <param name="asTmdbTitle">Shows one title as the TMDB routes do.</param>
+    /// <returns>The titles.</returns>
+    private static IReadOnlyList<ITitle> WithTmdbGeneric(IReadOnlyList<ITitle> titles, Func<ITitle, ITitle> asTmdbTitle)
+        => [.. titles.Where((title, index) => index is 0 || !title.IsSynthesized).Select(asTmdbTitle)];
+
+    /// <summary>
     ///   The title of a group of one of TMDB's alternate orderings: its name,
     ///   which TMDB gives in English.
     /// </summary>
@@ -1619,14 +1653,14 @@ public static class TmdbCompatibility
         public int TmdbShowID => Number(Ordering.SeriesID.ID);
 
         /// <summary>
-        ///   The ordering's English name.
+        ///   The ordering's English name: the default title TMDB gave it.
         /// </summary>
-        public string EnglishTitle => Ordering.Name;
+        public string EnglishTitle => Ordering.DefaultTitle.Value;
 
         /// <summary>
-        ///   The ordering's English overview.
+        ///   The ordering's English overview: the default overview TMDB gave it.
         /// </summary>
-        public string EnglishOverview => Ordering.Overview;
+        public string EnglishOverview => Ordering.DefaultOverview?.Value ?? string.Empty;
 
         /// <summary>
         ///   What the ordering follows.
@@ -1833,9 +1867,11 @@ public static class TmdbCompatibility
         public int TmdbShowID => TmdbAlternateOrdering.TmdbShowID;
 
         /// <summary>
-        ///   The group's English name.
+        ///   The group's English name: its default title, else its generic
+        ///   season name in English.
         /// </summary>
-        public string EnglishTitle => Season.DefaultTitle.Value;
+        public string EnglishTitle
+            => Season.DefaultTitle is { IsSynthesized: true } ? GenericEpisodeTitles.SeasonName(SeasonNumber) : Season.DefaultTitle.Value;
 
         /// <summary>
         ///   The group's number among the ordering's seasons.
@@ -1925,6 +1961,8 @@ public static class TmdbCompatibility
     {
         private readonly ISeason _season;
 
+        private readonly OrderingAiring? _airing;
+
         /// <summary>
         ///   A place of an episode in a group of an ordering.
         /// </summary>
@@ -1939,6 +1977,7 @@ public static class TmdbCompatibility
             _season = season;
             EpisodeID = episodeID;
             PlacedEpisodeNumber = episodeNumber;
+            _airing = airing;
             AirsBeforeSeasonNumber = airing?.AirsBeforeSeasonNumber;
             AirsBeforeEpisodeNumber = airing?.AirsBeforeEpisodeNumber;
             AirsAfterSeasonNumber = airing?.AirsAfterSeasonNumber;
@@ -2022,6 +2061,15 @@ public static class TmdbCompatibility
         /// </summary>
         public AlternateOrderingSeason? TmdbAlternateOrderingSeason
             => TmdbAlternateOrdering.Seasons.FirstOrDefault(season => season.TmdbEpisodeGroupID == TmdbEpisodeGroupID);
+
+        /// <summary>
+        ///   The episode as the ordering presents it here, numbered as the
+        ///   group lists it, so its synthesized titles carry that number.
+        /// </summary>
+        /// <param name="episode">The episode placed here.</param>
+        /// <returns>The episode in the ordering.</returns>
+        internal IEpisode Present(Metadata_Episode episode)
+            => new StoredEpisodeOrdering(TmdbAlternateOrdering.Ordering, _season, episode, PlacedEpisodeNumber, _airing);
 
         /// <summary>
         ///   The place, airing before another number of its episode.

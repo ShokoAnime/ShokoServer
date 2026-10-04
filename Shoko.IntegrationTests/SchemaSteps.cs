@@ -40,6 +40,21 @@ internal static class SchemaSteps
     }
 
     /// <summary>
+    /// The backend's plain step of the release in the works with this SQL, written without the
+    /// backticks MySQL quotes names with.
+    /// </summary>
+    /// <param name="fixture">The started server.</param>
+    /// <param name="sql">The step's SQL, without backticks.</param>
+    /// <returns>The step.</returns>
+    public static DatabaseCommand Find(DatabaseMigrationFixture fixture, string sql)
+    {
+        var database = fixture.Services.GetRequiredService<DatabaseFactory>().Instance!;
+        var field = database.GetType().GetField("_patchCommands", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var commands = (IEnumerable<DatabaseCommand>)field.GetValue(database)!;
+        return Assert.Single(commands, command => command.Command?.Replace("`", string.Empty, StringComparison.Ordinal) == sql);
+    }
+
+    /// <summary>
     /// The SQL of the backend's plain step of the release in the works with this revision.
     /// </summary>
     /// <param name="fixture">The started server.</param>

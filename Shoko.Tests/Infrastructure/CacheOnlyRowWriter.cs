@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Shoko.Server.Repositories.Cached.Metadata;
 
 namespace Shoko.Tests.Infrastructure;
@@ -27,6 +28,10 @@ public sealed class CacheOnlyRowWriter() : MetadataRowWriter(null!)
     {
         if (Fail)
             throw new InvalidOperationException("The write was refused.");
+
+        // Like the real writer, nothing is written when nothing changed.
+        if (changes.All(change => change.IsEmpty))
+            return;
 
         Writes++;
         foreach (var change in changes)

@@ -259,9 +259,14 @@ titles and overviews, and every season and episode. It replaces what was
 stored, so a season or episode left out is removed, with what the other stores
 hold for it and the episode links naming it; do not save an empty episode list
 when your source briefly answers none. An episode names its season by
-`MetadataGuid`, one of the series' own. Leave out generic titles such as
-`Episode 5` or `Season 2`: the core makes those up when an entry has none,
-and never stores them. `SaveMovie` and `SaveCollection`
+`MetadataGuid`, one of the series' own. An entry's main title
+(`TitleType.Main`) is its default; one saved without it gets a synthesized
+default, the generic name of an episode or season or `<source> <kind> <id>`
+for any other kind. For an episode or season whose only name is generic, such
+as `Episode 5` or `Season 2`, saving no title is the better choice: the core
+synthesizes it in the user's languages, and the stores leave out the generic
+titles carrying the entry's own number.
+`SaveMovie` and `SaveCollection`
 work the same way. Each returns how many entries it added, changed or
 removed, and raises the `IMetadataService` events only for what changed.
 `RemoveSeries`, `RemoveMovie` and `RemoveCollection` take an entry out with
@@ -319,7 +324,10 @@ ordering of any source's series whole, under your source, with the IDs you
 give it and its groups. A group reads back as `<source>://season/<group ID>`,
 so keep group IDs apart from season IDs, and set `IsSpecial` on at most one
 group. A regular group is numbered by its place unless you give it a
-`SeasonNumber` of its own. IDs may not start with `default/`. See
+`SeasonNumber` of its own. The ordering's and each group's `Titles` and
+`Overviews` are stored like a series'; a group with no title of its own is
+named by its generic season name, such as `Season 2`. IDs may not start with
+`default/`. See
 [`IMetadataOrderingService`](../Services/README.md#imetadataorderingservice).
 
 **Text on other entries** goes through `IMetadataTextManager.SetTitles` and

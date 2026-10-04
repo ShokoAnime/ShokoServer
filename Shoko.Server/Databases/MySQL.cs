@@ -1680,6 +1680,13 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 287, "UPDATE `Metadata_Creator` SET `CreatedAt` = `LastUpdatedAt` WHERE `CreatedAt` = '1970-01-01 00:00:00' AND `LastUpdatedAt` IS NOT NULL;"),
         new(194, 288, DatabaseFixes.RemoveTmdbGenericSeasonTitles),
         new(194, 289, DatabaseFixes.AddOrderingGroupSeasonNumber),
+        new(194, 290, DatabaseFixes.FixAnidbTitleLanguageCodeCasing),
+        new(194, 291, DatabaseFixes.RemoveGenericTitles),
+        new(194, 292, DatabaseFixes.CopyOrderingTexts),
+        new(194, 293, "ALTER TABLE `Metadata_Ordering` DROP COLUMN `Name`;"),
+        new(194, 294, "ALTER TABLE `Metadata_Ordering` DROP COLUMN `Description`;"),
+        new(194, 295, "ALTER TABLE `Metadata_Ordering_Group` DROP COLUMN `Name`;"),
+        new(194, 296, "ALTER TABLE `Metadata_Ordering_Group` DROP COLUMN `Description`;"),
     ];
 
     #endregion

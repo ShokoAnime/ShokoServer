@@ -48,7 +48,7 @@ public class Title
     public string Source { get; init; }
 
     /// <summary>
-    /// Set when the title was made up for an episode with no title of its
+    /// Set when the title was synthesized for an episode with no title of its
     /// own, rather than given by a source. Left out otherwise.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

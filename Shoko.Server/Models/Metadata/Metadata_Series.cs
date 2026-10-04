@@ -294,6 +294,8 @@ public class Metadata_Series : ISeries<ISeries, IEpisode>, IMetadataStoreRow<Met
 
     IOrdering<ISeries, IEpisode> ISeries<ISeries, IEpisode>.PreferredOrdering => OrderingLookup.PreferredFor<ISeries, IEpisode>(this);
 
+    IOrdering<ISeries, IEpisode> ISeries<ISeries, IEpisode>.CurrentOrdering => OrderingLookup.DefaultFor<ISeries, IEpisode>(this);
+
     IReadOnlyList<int> ISeries.ShokoSeriesIDs => [.. ((ISeries)this).ShokoSeries.Select(series => series.LocalID)];
 
     bool ISeries.Restricted => IsRestricted;

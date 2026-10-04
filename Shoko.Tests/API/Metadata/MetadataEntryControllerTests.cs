@@ -480,7 +480,7 @@ public class MetadataEntryControllerTests
     }
 
     [Fact]
-    public void AMadeUpEpisodeTitleIsOnlyListedWhenAskedFor()
+    public void ASynthesizedEpisodeTitleIsOnlyListedWhenAskedFor()
     {
         var fixture = new Fixture();
         var id = ID(MetadataEntityType.Episode, "e1");

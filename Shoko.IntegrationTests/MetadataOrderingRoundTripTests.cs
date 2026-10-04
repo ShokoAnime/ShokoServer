@@ -7,9 +7,12 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.Databases;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached.Metadata;
+using Shoko.Server.Repositories.Cached.Metadata.Text;
+using Shoko.Server.Services;
 using Xunit;
 using static Shoko.IntegrationTests.Sql;
 
@@ -33,9 +36,15 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
     private static MetadataGuid ID(MetadataEntityType entityType, string id)
         => new(_plugin, entityType, id);
 
+    private static IReadOnlyList<ITitle> Named(string name)
+        => [new TitleStub { Source = _plugin, Language = TitleLanguage.English, LanguageCode = "en", Value = name, Type = TitleType.Main }];
+
+    private static IReadOnlyList<IText> Described(string overview)
+        => [new TextStub { Source = _plugin, Language = TitleLanguage.English, LanguageCode = "en", Value = overview }];
+
     /// <summary>
-    /// Throws the caches away and reads every ordering table again from the
-    /// database.
+    /// Throws the caches away and reads every ordering table and the texts
+    /// again from the database.
     /// </summary>
     private void Reload()
     {
@@ -51,6 +60,7 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
             services.GetRequiredService<Metadata_Network_EntryRepository>(),
         })
             repository.Populate(displayName: false);
+        services.GetRequiredService<TextCache>().Populate(false, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -82,23 +92,29 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
         {
             ID = ID(MetadataEntityType.Ordering, longID),
             SeriesID = seriesID,
-            Name = "DVD Order",
-            Overview = longText,
+            Titles = Named("DVD Order"),
+            Overviews = Described(longText),
             Type = OrderingType.DVD,
             Groups =
             [
-                new() { ID = ID(MetadataEntityType.Season, "ordering-group-1"), Name = "Disc 1", Overview = "The first disc.", Episodes = [episode(2), episode(1)] },
-                new() { ID = ID(MetadataEntityType.Season, longID), Name = longText, Episodes = [episode(4), episode(1)] },
+                new()
+                {
+                    ID = ID(MetadataEntityType.Season, "ordering-group-1"),
+                    Titles = Named("Disc 1"),
+                    Overviews = Described("The first disc."),
+                    Episodes = [episode(2), episode(1)],
+                },
+                new() { ID = ID(MetadataEntityType.Season, longID), Titles = Named(longText), Episodes = [episode(4), episode(1)] },
             ],
         });
         var local = orderings.CreateLocalOrdering(new()
         {
             SeriesID = seriesID,
-            Name = "Mine",
+            Titles = MetadataOrderingService.UserTitles("Mine"),
             Groups =
             [
-                new() { Name = "Extras", IsSpecial = true, Episodes = [episode(4)] },
-                new() { Name = "All", Episodes = [episode(3), episode(2), episode(1)] },
+                new() { Titles = MetadataOrderingService.UserTitles("Extras"), IsSpecial = true, Episodes = [episode(4)] },
+                new() { Titles = MetadataOrderingService.UserTitles("All"), Episodes = [episode(3), episode(2), episode(1)] },
             ],
         });
         // Replacing the global ordering updates its rows in place and drops the ones left out.
@@ -106,13 +122,20 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
         {
             ID = global.ID,
             SeriesID = seriesID,
-            Name = "DVD Order",
-            Overview = longText,
+            Titles = Named("DVD Order"),
+            Overviews = Described(longText),
             Type = OrderingType.DVD,
             Groups =
             [
-                new() { ID = ID(MetadataEntityType.Season, longID), Name = longText, Episodes = [episode(1), episode(4)] },
-                new() { ID = ID(MetadataEntityType.Season, "ordering-group-1"), Name = "Disc 1", Overview = "The first disc.", IsSpecial = true, Episodes = [episode(2)] },
+                new() { ID = ID(MetadataEntityType.Season, longID), Titles = Named(longText), Episodes = [episode(1), episode(4)] },
+                new()
+                {
+                    ID = ID(MetadataEntityType.Season, "ordering-group-1"),
+                    Titles = Named("Disc 1"),
+                    Overviews = Described("The first disc."),
+                    IsSpecial = true,
+                    Episodes = [episode(2)],
+                },
             ],
         });
         // The longest ordering ID fits the chosen ordering's column.
@@ -134,8 +157,8 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
 
         var readGlobal = orderings.GetOrdering(global.ID);
         Assert.NotNull(readGlobal);
-        Assert.Equal("DVD Order", readGlobal.Name);
-        Assert.Equal(longText, readGlobal.Overview);
+        Assert.Equal("DVD Order", readGlobal.Title);
+        Assert.Equal(longText, readGlobal.DefaultOverview?.Value);
         Assert.Equal(OrderingType.DVD, readGlobal.Type);
         Assert.Equal(seriesID, readGlobal.SeriesID);
         Assert.Equal([longID, "ordering-group-1"], readGlobal.Seasons.Select(group => group.ID.ID));
@@ -156,6 +179,9 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.Equal([episode(4), episode(3), episode(2), episode(1)], readLocal.Episodes.Select(item => item.ID));
         Assert.Equal([0, 1], readLocal.Seasons.Select(group => group.SeasonNumber));
         Assert.Equal([true, false], readLocal.Seasons.Select(group => group.IsSpecial));
+        Assert.Equal("Mine", readLocal.Title);
+        Assert.Equal(["Extras", "All"], readLocal.Seasons.Select(group => group.Title));
+        Assert.All(readLocal.Titles, title => Assert.Equal(MetadataSource.User, title.Source));
 
         Assert.True(orderings.IsEpisodeHidden(episode(4)));
         Assert.False(orderings.IsEpisodeHidden(episode(3)));
@@ -173,6 +199,8 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
         Assert.True(orderings.GetPreferredOrdering(series).IsDefault);
         Assert.Empty(fixture.Services.GetRequiredService<Metadata_Ordering_GroupRepository>().GetBySource(_plugin));
         Assert.Empty(fixture.Services.GetRequiredService<Metadata_Ordering_EntryRepository>().GetByOrderingID(_plugin, longID));
+        var texts = fixture.Services.GetRequiredService<TextCache>();
+        Assert.All(new[] { global.ID, local.ID, ID(MetadataEntityType.Season, longID) }, entry => Assert.Empty(texts.GetRows(entry)));
         Assert.Null(fixture.Services.GetRequiredService<Metadata_SeriesRepository>().GetByProviderID(_plugin, seriesID.ID)?.PreferredOrderingID);
         Assert.All(episodeRows.GetBySeriesID(_plugin, seriesID.ID), row => Assert.False(row.IsHidden));
         seriesStore.RemoveSeries(seriesID);
@@ -194,7 +222,6 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
         {
             ID = ID(MetadataEntityType.Ordering, "ordering-networks"),
             SeriesID = seriesID,
-            Name = "Broadcast Order",
             Type = OrderingType.OriginalAirDate,
             Networks = [bs11, tokyoMX],
         });
@@ -230,8 +257,8 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
         var fujiTV = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Network, "987654");
         seriesStore.SaveSeries(new() { ID = seriesID });
         studios.SaveNetworks([new() { ID = tokyoMX, Name = "Tokyo MX" }]);
-        var local = orderings.CreateLocalOrdering(new() { SeriesID = seriesID, Name = "My Broadcast Order", Networks = [atx, tokyoMX, gone, fujiTV] });
-        orderings.UpdateLocalOrdering(local.ID, new() { SeriesID = seriesID, Name = "My Broadcast Order", Networks = [atx, tokyoMX, fujiTV] });
+        var local = orderings.CreateLocalOrdering(new() { SeriesID = seriesID, Networks = [atx, tokyoMX, gone, fujiTV] });
+        orderings.UpdateLocalOrdering(local.ID, new() { SeriesID = seriesID, Networks = [atx, tokyoMX, fujiTV] });
 
         Reload();
 
@@ -274,7 +301,7 @@ public class MetadataOrderingRoundTripTests(DatabaseMigrationFixture fixture)
         var atx = ID(MetadataEntityType.Network, "ordering-network-7");
         seriesStore.SaveSeries(new() { ID = seriesID });
         studios.SaveNetworks([new() { ID = tokyoMX, Name = "Tokyo MX", CountryOfOrigin = "JP" }]);
-        var local = orderings.CreateLocalOrdering(new() { SeriesID = seriesID, Name = "Stubbed", Networks = [atx, tokyoMX] });
+        var local = orderings.CreateLocalOrdering(new() { SeriesID = seriesID, Networks = [atx, tokyoMX] });
         const string networks = "SELECT Metadata_NetworkID, Source, ProviderID, Name, LastUpdatedAt, LastOrphanedAt, CountryOfOrigin FROM Metadata_Network ORDER BY Metadata_NetworkID";
 
         // SQLite rebuilds the table to let a network be a stub, which drops the refresh time and the

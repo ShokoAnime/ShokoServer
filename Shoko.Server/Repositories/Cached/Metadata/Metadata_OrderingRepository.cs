@@ -23,13 +23,6 @@ public class Metadata_OrderingRepository(DatabaseFactory databaseFactory) : Meta
         => row.ProviderID;
 
     /// <inheritdoc />
-    /// <remarks>
-    ///   The ordering keeps its default name on its row.
-    /// </remarks>
-    protected override IEnumerable<MetadataGuid> TextEntriesOf(Metadata_Ordering entity, bool removed)
-        => [entity.ID];
-
-    /// <inheritdoc />
     public override void PopulateIndexes()
     {
         base.PopulateIndexes();

@@ -5,6 +5,7 @@ using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
+using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Tests.Infrastructure;
 
 namespace Shoko.Tests.API.Metadata;
@@ -166,6 +167,8 @@ public static class FakeMetadataEntries
 
         public IOrdering PreferredOrdering => null!;
 
+        public IOrdering CurrentOrdering => new DefaultOrdering(this, null);
+
         public IReadOnlyList<IEpisode> Episodes { get; set; } = [];
 
         public IReadOnlyList<IVideo> Videos { get; set; } = [];
@@ -234,6 +237,8 @@ public static class FakeMetadataEntries
         public IReadOnlyList<IEpisodeOrderingInformation> Orderings { get; set; } = [];
 
         public IEpisodeOrderingInformation? PreferredOrdering => null;
+
+        public IEpisodeOrderingInformation CurrentOrdering => new DefaultEpisodeOrdering(this, Series, null);
 
         public IReadOnlyList<IShokoEpisode> ShokoEpisodes { get; set; } = [];
 

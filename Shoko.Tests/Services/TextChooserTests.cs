@@ -12,7 +12,7 @@ namespace Shoko.Tests.Services;
 /// <summary>
 /// Covers <see cref="TextChooser"/>, the one way titles and overviews are
 /// chosen: a user's overall and per-language picks, the language and source
-/// walk, real titles before generic ones, the default and the made-up title.
+/// walk, real titles before generic ones, the default and the synthesized title.
 /// </summary>
 public class TextChooserTests
 {
@@ -42,7 +42,7 @@ public class TextChooserTests
             synonyms,
             episode,
             fallback,
-            synthesize ? () => GenericEpisodeTitles.Synthesize(EpisodeType.Episode, 5, languages) : null
+            synthesize ? () => GenericEpisodeTitles.Synthesize(EpisodeType.Episode, 5, false, languages) : null
         );
 
     #endregion
@@ -175,25 +175,38 @@ public class TextChooserTests
     }
 
     [Fact]
-    public void TheDefaultComesBeforeAMadeUpTitle()
+    public void TheDefaultComesBeforeASynthesizedTitle()
     {
         var fallback = Title("Default", _anidb, TitleLanguage.Japanese);
 
         Assert.Equal("Default", TextChooser.ChooseTitle([], Choice([TitleLanguage.English], episode: true, fallback: fallback, synthesize: true))?.Value);
 
-        var madeUp = TextChooser.ChooseTitle([], Choice([TitleLanguage.German, TitleLanguage.English], episode: true, synthesize: true));
-        Assert.NotNull(madeUp);
-        Assert.True(madeUp.IsSynthesized);
-        Assert.Equal("Folge 5", madeUp.Value);
-        Assert.Equal(MetadataSource.Generated, madeUp.Source);
+        var synthesized = TextChooser.ChooseTitle([], Choice([TitleLanguage.German, TitleLanguage.English], episode: true, synthesize: true));
+        Assert.NotNull(synthesized);
+        Assert.True(synthesized.IsSynthesized);
+        Assert.Equal("Folge 5", synthesized.Value);
+        Assert.Equal(MetadataSource.Generated, synthesized.Source);
     }
 
     [Fact]
-    public void AMadeUpCandidateIsNeverChosenFromTheCandidates()
+    public void ASynthesizedCandidateIsNeverChosenFromTheCandidates()
     {
-        var madeUp = GenericEpisodeTitles.Synthesize(EpisodeType.Episode, 1, [TitleLanguage.English]);
+        var synthesized = GenericEpisodeTitles.Synthesize(EpisodeType.Episode, 1, false, [TitleLanguage.English]);
 
-        Assert.Null(TextChooser.ChooseTitle([madeUp], Choice([TitleLanguage.English], episode: true)));
+        Assert.Null(TextChooser.ChooseTitle([synthesized], Choice([TitleLanguage.English], episode: true)));
+    }
+
+    [Fact]
+    public void ASynthesizedMainTitleInTheTopLanguageNeverBeatsARealTitleInALowerOne()
+    {
+        IReadOnlyList<ITitle> titles =
+        [
+            .. GenericEpisodeTitles.SynthesizeAll(EpisodeType.Episode, 1, false, [TitleLanguage.Japanese]),
+            Title("Echt", _tmdb, TitleLanguage.German),
+        ];
+
+        var chosen = TextChooser.ChooseStoredTitle(titles, _tmdb, new([TitleLanguage.Main, TitleLanguage.Japanese, TitleLanguage.German], [_anidb], false, true));
+        Assert.Equal("Echt", chosen?.Value);
     }
 
     #endregion

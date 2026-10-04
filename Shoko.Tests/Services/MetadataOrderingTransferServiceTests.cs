@@ -110,11 +110,14 @@ public class MetadataOrderingTransferServiceTests
 
     /// <summary>
     /// A server: Shoko series and episodes, the real ordering service over
-    /// in-memory tables, a fake image manager and the transfer service.
+    /// in-memory tables, a fake image manager and the transfer service, with
+    /// a text manager over its text store put in place for the models.
     /// </summary>
-    private sealed class World
+    private sealed class World : IDisposable
     {
         private readonly Dictionary<MetadataGuid, IMetadata> _entries = [];
+
+        private readonly RepoFactoryScope _scope;
 
         private readonly Dictionary<int, IShokoSeries> _seriesByAnime = [];
 
@@ -138,14 +141,18 @@ public class MetadataOrderingTransferServiceTests
 
         public MetadataOrderingTransferService Service { get; }
 
-        public World()
+        /// <param name="texts">Optional. The text store to share with another server, whose texts the models then read too.</param>
+        public World(MetadataTextStore? texts = null)
         {
+            if (texts is not null)
+                Tables.TextStore = texts;
             Metadata.Setup(metadata => metadata.GetSeries(It.IsAny<MetadataGuid>())).Returns((MetadataGuid id) => _entries.GetValueOrDefault(id) as ISeries);
             Metadata.Setup(metadata => metadata.GetEpisode(It.IsAny<MetadataGuid>())).Returns((MetadataGuid id) => _entries.GetValueOrDefault(id) as IEpisode);
             Metadata.Setup(metadata => metadata.GetShokoSeriesByAnidbID(It.IsAny<int>())).Returns((int id) => _seriesByAnime.GetValueOrDefault(id));
             Metadata.Setup(metadata => metadata.GetShokoEpisodeByAnidbID(It.IsAny<int>())).Returns((int id) => _episodesByAnidb.GetValueOrDefault(id));
             SetUpImages();
             Orderings = Tables.Build(() => Metadata.Object);
+            _scope = new RepoFactoryScope().Set(TestTextManager.Build(Tables.TextStore));
             var system = new Mock<ISystemService>();
             system.SetupGet(value => value.Version).Returns(new VersionInformation
             {
@@ -159,6 +166,9 @@ public class MetadataOrderingTransferServiceTests
             });
             Service = new(Orderings, Metadata.Object, Images.Object, Files.Object, Tables.StudioStore, system.Object, NullLogger<MetadataOrderingTransferService>.Instance);
         }
+
+        public void Dispose()
+            => _scope.Dispose();
 
         private void SetUpImages()
         {
@@ -347,13 +357,18 @@ public class MetadataOrderingTransferServiceTests
         var ordering = world.Orderings.CreateLocalOrdering(new()
         {
             SeriesID = series.ID,
-            Name = "DVD Order",
-            Overview = "As on the discs.",
+            Titles = MetadataOrderingService.UserTitles("DVD Order"),
+            Overviews = MetadataOrderingService.UserOverviews("As on the discs."),
             Groups =
             [
-                new() { Name = "Disc 1", Overview = "The first disc.", Episodes = [series.Episodes[1].ID, series.Episodes[0].ID] },
-                new() { Name = "Extras", IsSpecial = true, Episodes = [series.Episodes[3].ID] },
-                new() { Name = "Disc 2", Episodes = [series.Episodes[2].ID] },
+                new()
+                {
+                    Titles = MetadataOrderingService.UserTitles("Disc 1"),
+                    Overviews = MetadataOrderingService.UserOverviews("The first disc."),
+                    Episodes = [series.Episodes[1].ID, series.Episodes[0].ID],
+                },
+                new() { Titles = MetadataOrderingService.UserTitles("Extras"), IsSpecial = true, Episodes = [series.Episodes[3].ID] },
+                new() { Titles = MetadataOrderingService.UserTitles("Disc 2"), Episodes = [series.Episodes[2].ID] },
             ],
         });
         var poster = world.Images.Object.UploadImage(_posterFile);
@@ -392,7 +407,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AJsonExportHoldsTheOrderingByAnidbIDsWithItsImages()
     {
-        var world = new World();
+        using var world = new World();
         var series = AddAnime100(world);
         var ordering = AddDvdOrdering(world, series);
         world.Orderings.SetPreferredOrdering(series.ID, ordering.ID);
@@ -438,7 +453,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AZipExportHoldsTheManifestAndEachEmbeddedFileByItsHash()
     {
-        var world = new World();
+        using var world = new World();
         var series = AddAnime100(world);
         var ordering = AddDvdOrdering(world, series);
         var disc = world.Store(new() { ID = Guid.NewGuid(), Source = MetadataSource.TMDB, ResourceID = "/disc.jpg", File = _discFile, ContentType = "image/jpeg" });
@@ -499,7 +514,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AZipExportIsWrittenForwardsWithEachFileOnce()
     {
-        var world = new World();
+        using var world = new World();
         var series = AddAnime100(world);
         var ordering = AddDvdOrdering(world, series);
         var poster = Assert.Single(world.LinksOf(ordering.ID));
@@ -526,12 +541,12 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AnExportImportedIntoAnotherServerComesBackWhole()
     {
-        var source = new World();
+        using var source = new World();
         var ordering = AddDvdOrdering(source, AddAnime100(source));
         var (content, _) = await source.Export(new() { ImageMode = MetadataOrderingImageExportMode.EmbedMissingRemote });
 
         // The other server has the same anime under other Shoko IDs.
-        var target = new World();
+        using var target = new World(source.Tables.TextStore);
         var series = AddAnime100(target, offset: 50);
         var result = await target.Import(content);
 
@@ -542,7 +557,7 @@ public class MetadataOrderingTransferServiceTests
         Assert.Empty(entry.UnresolvedEpisodes);
         var imported = target.Orderings.GetOrdering(entry.OrderingID!)!;
         Assert.Equal(MetadataSource.User, imported.ID.Source);
-        Assert.Equal(("DVD Order", "As on the discs."), (imported.Name, imported.Overview));
+        Assert.Equal(("DVD Order", "As on the discs."), (imported.Title, imported.DefaultOverview?.Value));
         Assert.Equal(ordering.Seasons.Select(group => group.Title), imported.Seasons.Select(group => group.Title));
         Assert.Equal([false, true, false], imported.Seasons.Select(group => group.IsSpecial));
         Assert.Equal([World.Episode(61), World.Episode(60)], imported.Seasons[0].Episodes.Select(episode => episode.ID));
@@ -570,7 +585,7 @@ public class MetadataOrderingTransferServiceTests
     [InlineData("{ \"format\": \"shoko-orderings\", \"orderings\": [] }")]
     public async Task APayloadThatIsNotAnExportThisServerReadsChangesNothing(string payload)
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
 
         var result = await world.Import(Encoding.UTF8.GetBytes(payload));
@@ -583,7 +598,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AZipWithoutAManifestIsRefused()
     {
-        var world = new World();
+        using var world = new World();
         using var buffer = new MemoryStream();
         using (var archive = new ZipArchive(buffer, ZipArchiveMode.Create, leaveOpen: true))
             archive.CreateEntry("images/readme.txt");
@@ -603,17 +618,24 @@ public class MetadataOrderingTransferServiceTests
     {
         var tokyoMX = new MetadataGuid(TestSources.Plugin, MetadataEntityType.Network, "n1");
         var fujiTV = new MetadataGuid(MetadataSource.TMDB, MetadataEntityType.Network, "82");
-        var source = new World();
-        source.Tables.StudioStore.SaveNetworks([new() { ID = tokyoMX, Name = "Tokyo MX" }]);
-        source.Orderings.CreateLocalOrdering(new() { SeriesID = AddAnime100(source).ID, Name = "Broadcast", Networks = [tokyoMX, fujiTV] });
+        using var source = new World();
         byte[] content;
         using (new RepoFactoryScope().Set(source.Tables.Networks))
+        {
+            source.Tables.StudioStore.SaveNetworks([new() { ID = tokyoMX, Name = "Tokyo MX" }]);
+            source.Orderings.CreateLocalOrdering(new()
+            {
+                SeriesID = AddAnime100(source).ID,
+                Titles = MetadataOrderingService.UserTitles("Broadcast"),
+                Networks = [tokyoMX, fujiTV],
+            });
             (content, _) = await source.Export();
+        }
 
         Assert.Equal(["test-plugin://network/n1", "tmdb://network/82"], Assert.Single(ReadJson(content).Orderings).Networks);
 
         // A dry run reports both as stubs and writes none.
-        var target = new World();
+        using var target = new World(source.Tables.TextStore);
         AddAnime100(target, offset: 50);
         using var scope = new RepoFactoryScope().Set(target.Tables.Networks);
         var planned = Assert.Single((await target.Import(content, new() { DryRun = true })).Orderings);
@@ -654,7 +676,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AnOrderingOfAnotherSourceIsWrittenByTheAnidbEpisodesItsEpisodesAreLinkedTo()
     {
-        var world = new World();
+        using var world = new World();
         var series = AddAnime100(world);
         var other = world.AddSeries(2, 200, "Anime 200", (20, 2001, EpisodeType.Episode, 1));
         var linked = world.AddLinkedSeries(
@@ -669,14 +691,14 @@ public class MetadataOrderingTransferServiceTests
         {
             ID = new(TestSources.Plugin, MetadataEntityType.Ordering, "arc"),
             SeriesID = linked.ID,
-            Name = "Arcs",
+            Titles = TestTexts.Named("Arcs"),
             Type = OrderingType.StoryArc,
             Groups =
             [
                 new()
                 {
                     ID = new(TestSources.Plugin, MetadataEntityType.Season, "arc-1"),
-                    Name = "Arc 1",
+                    Titles = TestTexts.Named("Arc 1"),
                     Episodes = [.. linked.Episodes.Select(episode => episode.ID)],
                 },
             ],
@@ -708,7 +730,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AnEpisodeOfAnotherAnimeIsNeverTakenForOneOfTheOrderingsAnimeByItsTypeAndNumber()
     {
-        var source = new World();
+        using var source = new World();
         var series = AddAnime100(source);
         var other = source.AddSeries(2, 200, "Anime 200", (20, 2001, EpisodeType.Episode, 1));
         var linked = source.AddLinkedSeries(
@@ -723,12 +745,22 @@ public class MetadataOrderingTransferServiceTests
         {
             ID = new(TestSources.Plugin, MetadataEntityType.Ordering, "arc"),
             SeriesID = linked.ID,
-            Name = "Arcs",
+            Titles = TestTexts.Named("Arcs"),
             Type = OrderingType.StoryArc,
             Groups =
             [
-                new() { ID = new(TestSources.Plugin, MetadataEntityType.Season, "arc-1"), Name = "Arc 1", Episodes = [linked.Episodes[0].ID, linked.Episodes[1].ID] },
-                new() { ID = new(TestSources.Plugin, MetadataEntityType.Season, "arc-2"), Name = "Arc 2", Episodes = [linked.Episodes[2].ID, linked.Episodes[3].ID] },
+                new()
+                {
+                    ID = new(TestSources.Plugin, MetadataEntityType.Season, "arc-1"),
+                    Titles = TestTexts.Named("Arc 1"),
+                    Episodes = [linked.Episodes[0].ID, linked.Episodes[1].ID],
+                },
+                new()
+                {
+                    ID = new(TestSources.Plugin, MetadataEntityType.Season, "arc-2"),
+                    Titles = TestTexts.Named("Arc 2"),
+                    Episodes = [linked.Episodes[2].ID, linked.Episodes[3].ID],
+                },
             ],
         });
         var (content, _) = await source.Export(new() { OrderingIDs = [fork.ID] });
@@ -737,7 +769,7 @@ public class MetadataOrderingTransferServiceTests
 
         // The other server has anime 100 only, so anime 200's first episode
         // must not stand in for anime 100's.
-        var target = new World();
+        using var target = new World(source.Tables.TextStore);
         AddAnime100(target, offset: 50);
         var result = await target.Import(content);
 
@@ -754,7 +786,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AnEpisodeThisServerDoesNotKnowIsFoundByItsTypeAndNumberOrDropped()
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
         var group = Group("All", 1001);
         group.Episodes.Add(new() { AnidbEpisodeId = 9999, Type = EpisodeType.Special, Number = 1 });
@@ -785,7 +817,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AnImportKeepsOneSpecialGroupAndNamesWhatHasNoName()
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
         var first = Group("", 1004);
         first.IsSpecial = true;
@@ -797,7 +829,8 @@ public class MetadataOrderingTransferServiceTests
         var entry = Assert.Single(result.Orderings);
         Assert.Equal(MetadataOrderingTransferService.UnnamedOrdering, entry.StoredName);
         var imported = world.Orderings.GetOrdering(entry.OrderingID!)!;
-        Assert.Equal(["Group 1", "More"], imported.Seasons.Select(group => group.Title));
+        Assert.True(imported.Seasons[0].DefaultTitle.IsSynthesized);
+        Assert.Equal("More", imported.Seasons[1].Title);
         Assert.Equal([true, false], imported.Seasons.Select(group => group.IsSpecial));
         Assert.Equal([World.Episode(10)], imported.Seasons[1].Episodes.Select(episode => episode.ID));
     }
@@ -809,9 +842,14 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AnOrderingOfTheSameNameIsSkippedByDefault()
     {
-        var world = new World();
+        using var world = new World();
         var series = AddAnime100(world);
-        var existing = world.Orderings.CreateLocalOrdering(new() { SeriesID = series.ID, Name = "dvd order", Groups = [new() { Name = "All", Episodes = [World.Episode(10)] }] });
+        var existing = world.Orderings.CreateLocalOrdering(new()
+        {
+            SeriesID = series.ID,
+            Titles = MetadataOrderingService.UserTitles("dvd order"),
+            Groups = [new() { Titles = MetadataOrderingService.UserTitles("All"), Episodes = [World.Episode(10)] }],
+        });
 
         var result = await world.Import(Json(Document(Ordering(100, "DVD Order", Group("Disc 1", 1002)))));
 
@@ -824,9 +862,14 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task ReplacingKeepsTheOrderingsIDAndChoiceAndReplacesItsGroupsAndImages()
     {
-        var world = new World();
+        using var world = new World();
         var series = AddAnime100(world);
-        var existing = world.Orderings.CreateLocalOrdering(new() { SeriesID = series.ID, Name = "DVD Order", Groups = [new() { Name = "Old", Episodes = [World.Episode(10)] }] });
+        var existing = world.Orderings.CreateLocalOrdering(new()
+        {
+            SeriesID = series.ID,
+            Titles = MetadataOrderingService.UserTitles("DVD Order"),
+            Groups = [new() { Titles = MetadataOrderingService.UserTitles("Old"), Episodes = [World.Episode(10)] }],
+        });
         world.Orderings.SetPreferredOrdering(series.ID, existing.ID);
         var oldPoster = world.Images.Object.UploadImage(_discFile);
         world.Link(existing, oldPoster, ImageEntityType.Primary, preferred: true);
@@ -851,10 +894,10 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task KeepingBothGivesTheImportedOrderingAFreeName()
     {
-        var world = new World();
+        using var world = new World();
         var series = AddAnime100(world);
-        world.Orderings.CreateLocalOrdering(new() { SeriesID = series.ID, Name = "DVD Order", Groups = [] });
-        world.Orderings.CreateLocalOrdering(new() { SeriesID = series.ID, Name = "DVD Order (2)", Groups = [] });
+        world.Orderings.CreateLocalOrdering(new() { SeriesID = series.ID, Titles = MetadataOrderingService.UserTitles("DVD Order"), Groups = [] });
+        world.Orderings.CreateLocalOrdering(new() { SeriesID = series.ID, Titles = MetadataOrderingService.UserTitles("DVD Order (2)"), Groups = [] });
         var payload = Json(Document(Ordering(100, "DVD Order", Group("Disc 1", 1001)), Ordering(100, "DVD Order", Group("Disc 1", 1002))));
 
         var result = await world.Import(payload, new() { ConflictMode = MetadataOrderingConflictMode.KeepBoth });
@@ -866,9 +909,9 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task ADryRunReportsWhatWouldBeDoneAndWritesNothing()
     {
-        var world = new World();
+        using var world = new World();
         var series = AddAnime100(world);
-        var existing = world.Orderings.CreateLocalOrdering(new() { SeriesID = series.ID, Name = "Kept", Groups = [] });
+        var existing = world.Orderings.CreateLocalOrdering(new() { SeriesID = series.ID, Titles = MetadataOrderingService.UserTitles("Kept"), Groups = [] });
         var fresh = Ordering(100, "Fresh", Group("All", 1001, 9999));
         fresh.IsPreferred = true;
         fresh.Images.Add(new() { ImageType = ImageEntityType.Primary, Data = Convert.ToBase64String(_posterFile) });
@@ -896,7 +939,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task ThePreferredChoiceIsOnlyAppliedWhenAskedFor()
     {
-        var world = new World();
+        using var world = new World();
         var series = AddAnime100(world);
         var ordering = Ordering(100, "Chosen", Group("All", 1001));
         ordering.IsPreferred = true;
@@ -943,7 +986,7 @@ public class MetadataOrderingTransferServiceTests
     [InlineData(MetadataOrderingImageImportMode.None, MetadataOrderingImageImportStatus.Skipped)]
     public async Task TheImageModeChoosesWhereAnImageComesFrom(MetadataOrderingImageImportMode mode, MetadataOrderingImageImportStatus expected)
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
 
         var result = await world.Import(PayloadWithPoster(), new() { ImageMode = mode });
@@ -971,7 +1014,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AFileOfARemoteImageAlreadyHeldIsNotWrittenAgain()
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
         var held = world.Store(new() { ID = Guid.NewGuid(), Source = MetadataSource.TMDB, ResourceID = "/poster.jpg", File = [1, 2, 3] });
 
@@ -985,7 +1028,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AFileOfASourceThisServerCannotFetchFromBecomesAUsersImage()
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
         var ordering = Ordering(100, "Sources", Group("All", 1001));
         ordering.Images.Add(new()
@@ -1008,7 +1051,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AFileTheImageManagerRefusesFailsThePayload()
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
         world.Files.Setup(files => files.StoreFile(It.IsAny<IImage>(), It.IsAny<byte[]>())).Throws(new ArgumentException("Not an image."));
 
@@ -1023,7 +1066,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AFileWhoseHashDoesNotMatchIsRefusedAndTheUrlIsTriedInstead()
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
         var wrongHash = new string('0', 64);
 
@@ -1046,7 +1089,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AnImageWithoutAUrlCanOnlyComeFromThePayload()
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
 
         var urlOnly = await world.Import(PayloadWithPoster(withUrl: false), new() { ImageMode = MetadataOrderingImageImportMode.UrlOnly });
@@ -1070,7 +1113,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AnImageOfASourceThisServerCannotFetchFromFailsByUrl()
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
         var ordering = Ordering(100, "Sources", Group("All", 1001));
         ordering.Images.Add(new() { ImageType = ImageEntityType.Primary, Source = "anidb", ResourceId = "1.jpg" });
@@ -1090,7 +1133,7 @@ public class MetadataOrderingTransferServiceTests
     [Fact]
     public async Task AnImageAlreadyHeldIsLinkedWithoutADownload()
     {
-        var world = new World();
+        using var world = new World();
         AddAnime100(world);
         var held = world.Store(new() { ID = Guid.NewGuid(), Source = MetadataSource.TMDB, ResourceID = "/poster.jpg", File = _posterFile });
 

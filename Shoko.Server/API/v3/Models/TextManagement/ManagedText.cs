@@ -15,7 +15,7 @@ public class ManagedText
 {
     /// <summary>
     ///   The stored text's ID, unique among texts of its kind. <c>null</c> for
-    ///   a default kept on the entry's row, or a made-up episode title.
+    ///   a default kept on the entry's row, or a synthesized episode title.
     /// </summary>
     public int? ID { get; set; }
 
@@ -119,7 +119,7 @@ public class ManagedText
     public bool Inline { get; set; }
 
     /// <summary>
-    ///   Set when the title was made up for an episode no source named. Left
+    ///   Set when the title was synthesized for an episode no source named. Left
     ///   out otherwise.
     /// </summary>
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]

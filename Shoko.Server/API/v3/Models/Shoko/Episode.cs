@@ -19,6 +19,8 @@ using Shoko.Server.API.v3.Models.AniDB;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
+using Shoko.Server.Services;
+using Shoko.Server.Services.Ordering;
 
 using TmdbEpisode = Shoko.Server.API.v3.Models.TMDB.TmdbEpisode;
 using TmdbMovie = Shoko.Server.API.v3.Models.TMDB.TmdbMovie;
@@ -146,7 +148,28 @@ public class Episode : BaseModel
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public IEnumerable<FileCrossReference.EpisodeCrossReferenceIDs>? CrossReferences { get; set; }
 
-    public Episode(HttpContext context, AnimeEpisode episode, IReadOnlySet<MetadataSource>? includeDataFrom = null, bool includeFiles = false, bool includeMediaInfo = false, bool includeAbsolutePaths = false, bool withXRefs = false, bool includeReleaseInfo = false)
+    /// <summary>
+    /// Where each source places the special among the regular episodes of
+    /// its series, by Shoko episode IDs, if <see cref="IncludeDetails.Placement"/>
+    /// was asked for: AniDB by its titles first, then each linked source by
+    /// its linked episode's place in its series' default ordering. Empty for
+    /// a regular episode or a special no source places.
+    /// </summary>
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public List<Placement>? Placements { get; set; }
+
+    public Episode(
+        HttpContext context,
+        AnimeEpisode episode,
+        IReadOnlySet<MetadataSource>? includeDataFrom = null,
+        bool includeFiles = false,
+        bool includeMediaInfo = false,
+        bool includeAbsolutePaths = false,
+        bool withXRefs = false,
+        bool includeReleaseInfo = false,
+        EpisodePlacementResolver? placements = null,
+        MetadataSource? placementSource = null
+    )
     {
         includeDataFrom ??= new HashSet<MetadataSource>();
         var userID = context.GetUser()?.JMMUserID ?? 0;
@@ -269,6 +292,84 @@ public class Episode : BaseModel
                 .ToList();
         if (withXRefs)
             CrossReferences = FileCrossReference.From(episode.FileCrossReferences).FirstOrDefault()?.EpisodeIDs ?? [];
+        if (placements is not null)
+            Placements = Placement.From(placements, episode, placementSource);
+    }
+
+    /// <summary>
+    /// Makes what a request needs for <see cref="Placements"/>, once for
+    /// every episode it sends, or nothing when it did not ask for them.
+    /// </summary>
+    /// <param name="context">The request.</param>
+    /// <param name="include">The extra details asked for.</param>
+    /// <returns>The resolver, or <c>null</c> when <see cref="IncludeDetails.Placement"/> was not asked for.</returns>
+    public static EpisodePlacementResolver? PlacementResolver(HttpContext context, IReadOnlySet<IncludeDetails>? include)
+        => include?.Contains(IncludeDetails.Placement) is true
+            ? context.RequestServices.GetRequiredService<MetadataOrderingService>().CreatePlacementResolver()
+            : null;
+
+    /// <summary>
+    /// The extra details a Shoko episode can be sent with.
+    /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum IncludeDetails
+    {
+        /// <summary>
+        /// Where each source places a special, in <see cref="Placements"/>.
+        /// </summary>
+        Placement,
+    }
+
+    /// <summary>
+    /// Where one source places a special among the regular episodes of its
+    /// series.
+    /// </summary>
+    public class Placement
+    {
+        /// <summary>
+        /// The source placing it: <c>anidb</c> for its AniDB titles, or a
+        /// linked source.
+        /// </summary>
+        [Required]
+        public required MetadataSource Source { get; init; }
+
+        /// <summary>
+        /// The Shoko episode it airs right after, or <c>null</c> when it
+        /// airs first.
+        /// </summary>
+        public int? AirsAfterEpisodeID { get; init; }
+
+        /// <summary>
+        /// The Shoko episode it airs right before, or <c>null</c> when it
+        /// airs last.
+        /// </summary>
+        public int? AirsBeforeEpisodeID { get; init; }
+
+        /// <summary>
+        /// Lists where each source places an episode.
+        /// </summary>
+        /// <param name="resolver">The request's resolver.</param>
+        /// <param name="episode">The episode.</param>
+        /// <param name="source">One source, or every source when <c>null</c>.</param>
+        /// <returns>The placements.</returns>
+        public static List<Placement> From(EpisodePlacementResolver resolver, IShokoEpisode episode, MetadataSource? source)
+            =>
+            [
+                .. resolver.GetPlacements(episode, source).Select(placement => new Placement
+                {
+                    Source = placement.Source,
+                    AirsAfterEpisodeID = ShokoID(placement.AirsAfterEpisodeID),
+                    AirsBeforeEpisodeID = ShokoID(placement.AirsBeforeEpisodeID),
+                }),
+            ];
+
+        /// <summary>
+        /// The local ID of a Shoko episode.
+        /// </summary>
+        /// <param name="episodeID">The episode.</param>
+        /// <returns>The ID, or <c>null</c>.</returns>
+        private static int? ShokoID(MetadataGuid? episodeID)
+            => episodeID is { } id && id.Source == MetadataSource.Shoko && int.TryParse(id.ID, out var local) ? local : null;
     }
 
     public class EpisodeIDs : IDs

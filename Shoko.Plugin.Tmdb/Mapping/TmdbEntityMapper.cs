@@ -72,13 +72,12 @@ public static class TmdbEntityMapper
     {
         ArgumentNullException.ThrowIfNull(season);
 
-        var english = TmdbTexts.English(season.Translations, data => data.Name, season.Name, seasonNumber: season.SeasonNumber);
-        var ownName = TmdbTexts.IsGenericSeasonName(season.Name ?? string.Empty, season.SeasonNumber) ? null : season.Name;
+        var english = TmdbTexts.English(season.Translations, data => data.Name, season.Name);
         return new()
         {
             ID = TmdbIds.Season(season.Id ?? 0),
             SeasonNumber = season.SeasonNumber,
-            Titles = TmdbTexts.Titles(english, null, null, season.Translations, null, languages.Titles, ownName: ownName, seasonNumber: season.SeasonNumber),
+            Titles = TmdbTexts.Titles(english, null, null, season.Translations, null, languages.Titles, ownName: season.Name),
             Overviews = TmdbTexts.Overviews(TmdbTexts.English(season.Translations, data => data.Overview, season.Overview), season.Translations, languages.Overviews),
             DefaultImageResourceIDs = TmdbImages.Defaults((ImageEntityType.Primary, season.PosterPath)),
         };
@@ -97,21 +96,20 @@ public static class TmdbEntityMapper
     {
         ArgumentNullException.ThrowIfNull(listed);
 
-        var episodeNumber = (int)listed.EpisodeNumber;
         var english = TmdbTexts.English(details?.Translations, data => data.Name, listed.Name);
         return new()
         {
             ID = TmdbIds.Episode(listed.Id),
             SeasonID = TmdbIds.Season(seasonID),
             SeasonNumber = listed.SeasonNumber,
-            EpisodeNumber = episodeNumber,
+            EpisodeNumber = (int)listed.EpisodeNumber,
             Type = listed.SeasonNumber is 0 ? EpisodeType.Special : EpisodeType.Episode,
             Rating = listed.VoteAverage,
             RatingVotes = listed.VoteCount,
             Runtime = listed.Runtime is > 0 ? TimeSpan.FromMinutes(listed.Runtime.Value) : TimeSpan.Zero,
             AirDate = listed.AirDate is { } airDate ? DateOnly.FromDateTime(airDate) : null,
             CrossSourceIDs = CrossSourceIDs(MetadataEntityType.Episode, details?.ExternalIds?.ImdbId, details?.ExternalIds?.TvdbId),
-            Titles = TmdbTexts.Titles(english, null, null, details?.Translations, null, languages.EpisodeTitles, episodeNumber),
+            Titles = TmdbTexts.Titles(english, null, null, details?.Translations, null, languages.EpisodeTitles),
             Overviews = TmdbTexts.Overviews(TmdbTexts.English(details?.Translations, data => data.Overview, listed.Overview), details?.Translations, languages.Overviews),
             DefaultImageResourceIDs = TmdbImages.Defaults((ImageEntityType.Backdrop, listed.StillPath ?? details?.StillPath)),
         };

@@ -76,6 +76,11 @@ public sealed class OrderingTables
     public Mock<AnimeEpisodeRepository> ShokoEpisodes { get; }
 
     /// <summary>
+    /// The episode links the placements of Shoko specials follow.
+    /// </summary>
+    public Mock<IMetadataCrossReferenceStore> CrossReferences { get; } = new();
+
+    /// <summary>
     /// The image links the image manager holds, by entity.
     /// </summary>
     public List<IImageCrossReference> ImageLinks { get; } = [];
@@ -167,6 +172,7 @@ public sealed class OrderingTables
                 Images.Object
             )),
             StudioStore,
+            new Lazy<IMetadataCrossReferenceStore>(() => CrossReferences.Object),
             NullLogger<MetadataOrderingService>.Instance
         );
 }

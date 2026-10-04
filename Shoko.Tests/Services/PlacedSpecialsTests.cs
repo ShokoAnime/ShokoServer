@@ -144,10 +144,8 @@ public class PlacedSpecialsTests
         => new()
         {
             SeriesID = series.ID,
-            Name = "Mine",
             Groups = [.. groups.Select((group, index) => new MetadataLocalOrderingGroupData
             {
-                Name = $"Part {index + 1}",
                 IsSpecial = group.IsSpecial,
                 Episodes = [.. group.Episodes.Select(name => EpisodeID(series, name))],
             })],
@@ -173,7 +171,7 @@ public class PlacedSpecialsTests
     {
         var season = new Mock<ISeason>();
         season.SetupGet(value => value.ID).Returns(group.ID);
-        season.SetupGet(value => value.Title).Returns(group.Title);
+        season.SetupGet(value => value.Title).Returns("Group");
         season.SetupGet(value => value.SeasonNumber).Returns(group.SeasonNumber);
         season.SetupGet(value => value.IsSpecial).Returns(group.IsSpecial);
         season.As<IWithImages>().Setup(value => value.GetImages(It.IsAny<ImageFilteringOptions?>())).Returns([]);
@@ -226,13 +224,12 @@ public class PlacedSpecialsTests
         {
             ID = new(TestSources.Plugin, MetadataEntityType.Ordering, "dvd"),
             SeriesID = series.ID,
-            Name = "DVD",
             Type = OrderingType.DVD,
             Groups =
             [
-                new() { ID = new(TestSources.Plugin, MetadataEntityType.Season, "g0"), Name = "Specials", IsSpecial = true, Episodes = [EpisodeID(series, "x"), EpisodeID(series, "sp")] },
-                new() { ID = new(TestSources.Plugin, MetadataEntityType.Season, "g1"), Name = "One", Episodes = [EpisodeID(series, "e1"), EpisodeID(series, "e2"), EpisodeID(series, "sp")] },
-                new() { ID = new(TestSources.Plugin, MetadataEntityType.Season, "g2"), Name = "Two", Episodes = [EpisodeID(series, "e3")] },
+                new() { ID = new(TestSources.Plugin, MetadataEntityType.Season, "g0"), IsSpecial = true, Episodes = [EpisodeID(series, "x"), EpisodeID(series, "sp")] },
+                new() { ID = new(TestSources.Plugin, MetadataEntityType.Season, "g1"), Episodes = [EpisodeID(series, "e1"), EpisodeID(series, "e2"), EpisodeID(series, "sp")] },
+                new() { ID = new(TestSources.Plugin, MetadataEntityType.Season, "g2"), Episodes = [EpisodeID(series, "e3")] },
             ],
         });
 
@@ -283,8 +280,7 @@ public class PlacedSpecialsTests
         var updated = world.Service.UpdateLocalOrdering(ordering.ID, new()
         {
             SeriesID = series.ID,
-            Name = ordering.Name,
-            Groups = [.. listed.Select(group => new MetadataLocalOrderingGroupData { ID = group.ID, Name = "Part", IsSpecial = group.IsSpecial, Episodes = group.Episodes })],
+            Groups = [.. listed.Select(group => new MetadataLocalOrderingGroupData { ID = group.ID, IsSpecial = group.IsSpecial, Episodes = group.Episodes })],
         });
 
         Assert.NotNull(updated);

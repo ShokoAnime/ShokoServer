@@ -13,25 +13,16 @@ namespace Shoko.Abstractions.Metadata;
 ///   default ordering, made from its own seasons; the others are kept by the
 ///   core through <c>IMetadataOrderingService</c>. An ordering and each of
 ///   its groups can carry images of their own, linked through the image
-///   manager like any other entry's.
+///   manager like any other entry's, and their titles and overviews come from
+///   the text manager like any other entry's.
 /// </summary>
-public interface IOrdering : IMetadata, IWithCreationDate, IWithUpdateDate, IWithPrimaryImage, IWithBackdropImage, IWithBannerImage, IWithLogoImage
+public interface IOrdering : IMetadata, IWithTitles, IWithOverviews, IWithCreationDate, IWithUpdateDate, IWithPrimaryImage, IWithBackdropImage, IWithBannerImage, IWithLogoImage
 {
     /// <summary>
     ///   The series the ordering orders, on any source. The ordering's own
     ///   source need not be the series' source.
     /// </summary>
     MetadataGuid SeriesID { get; }
-
-    /// <summary>
-    ///   The ordering's name, e.g. <c>DVD Order</c>.
-    /// </summary>
-    string Name { get; }
-
-    /// <summary>
-    ///   What the ordering is about, or an empty string when nothing was said.
-    /// </summary>
-    string Overview { get; }
 
     /// <summary>
     ///   What the ordering follows. <see cref="OrderingType.Default"/> for the
@@ -74,7 +65,10 @@ public interface IOrdering : IMetadata, IWithCreationDate, IWithUpdateDate, IWit
     IReadOnlyList<INetwork> Networks { get; }
 
     /// <summary>
-    ///   The series the ordering orders.
+    ///   The series the ordering orders, as it presents it: the series itself
+    ///   for the default ordering, and for any other one with the ordering's
+    ///   groups as its seasons and its episodes numbered here. Its
+    ///   <see cref="ISeries.CurrentOrdering"/> is this ordering.
     /// </summary>
     /// <exception cref="NullReferenceException">The series is missing.</exception>
     ISeries Series { get; }
@@ -90,7 +84,8 @@ public interface IOrdering : IMetadata, IWithCreationDate, IWithUpdateDate, IWit
     /// <summary>
     ///   The ordering's episodes in viewing order, each once: a placed
     ///   special (in the special group and a regular one) where it airs, and
-    ///   any other episode where it first comes.
+    ///   any other episode where it first comes. For any ordering but the
+    ///   default, each is numbered and typed by its first place here.
     /// </summary>
     IReadOnlyList<IEpisode> Episodes { get; }
 
@@ -137,7 +132,7 @@ public interface IOrdering<out TSeries, out TEpisode> : IOrdering
     where TEpisode : class, IEpisode
 {
     /// <summary>
-    ///   The series the ordering orders.
+    ///   The series the ordering orders, as its source keeps it.
     /// </summary>
     /// <exception cref="NullReferenceException">The series is missing.</exception>
     new TSeries Series { get; }
@@ -153,7 +148,8 @@ public interface IOrdering<out TSeries, out TEpisode> : IOrdering
 
     /// <summary>
     ///   The ordering's episodes in viewing order, each once: a placed
-    ///   special where it airs, and any other episode where it first comes.
+    ///   special where it airs, and any other episode where it first comes,
+    ///   each as its source keeps it.
     /// </summary>
     new IReadOnlyList<TEpisode> Episodes { get; }
 

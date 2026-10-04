@@ -255,6 +255,8 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
 
     IEpisodeOrderingInformation<IShokoSeries, IShokoEpisode>? IEpisode<IShokoSeries, IShokoEpisode>.PreferredOrdering => OrderingLookup.PreferredPlaceOf<IShokoSeries, IShokoEpisode>(this);
 
+    IEpisodeOrderingInformation<IShokoSeries, IShokoEpisode> IEpisode<IShokoSeries, IShokoEpisode>.CurrentOrdering => OrderingLookup.DefaultPlaceOf<IShokoSeries, IShokoEpisode>(this);
+
     IReadOnlyList<IMetadataEpisodeCrossReference> IEpisode.MetadataEpisodeCrossReferences => ((IShokoEpisode)this).GetMetadataEpisodeCrossReferences();
 
     IReadOnlyList<IMetadataSeriesCrossReference> IEpisode.MetadataSeriesCrossReferences => ((IShokoEpisode)this).GetMetadataSeriesCrossReferences();

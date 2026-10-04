@@ -503,7 +503,7 @@ public class TextManagementControllerTests
     }
 
     [Fact]
-    public void AnEpisodesGenericAndMadeUpTitlesHaveTheirOwnSteps()
+    public void AnEpisodesGenericAndSynthesizedTitlesHaveTheirOwnSteps()
     {
         var generic = Title(2, "Episode 5", source: MetadataSource.User, entity: _episode);
         var anidbGeneric = Title(3, "Episode 5", entity: _episode);

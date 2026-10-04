@@ -18,6 +18,7 @@ using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
+using Shoko.Server.Services;
 using Xunit;
 
 namespace Shoko.IntegrationTests;
@@ -113,13 +114,18 @@ public class MetadataOrderingTransferRoundTripTests(DatabaseMigrationFixture fix
         var ordering = orderings.CreateLocalOrdering(new()
         {
             SeriesID = seriesID,
-            Name = "Transfer Order",
-            Overview = "Moved between servers.",
+            Titles = MetadataOrderingService.UserTitles("Transfer Order"),
+            Overviews = MetadataOrderingService.UserOverviews("Moved between servers."),
             Groups =
             [
-                new() { Name = "Part 1", Overview = "The start.", Episodes = [episodes[1], episodes[0]] },
-                new() { Name = "Extras", IsSpecial = true, Episodes = [episodes[3]] },
-                new() { Name = "Part 2", Episodes = [episodes[2]] },
+                new()
+                {
+                    Titles = MetadataOrderingService.UserTitles("Part 1"),
+                    Overviews = MetadataOrderingService.UserOverviews("The start."),
+                    Episodes = [episodes[1], episodes[0]],
+                },
+                new() { Titles = MetadataOrderingService.UserTitles("Extras"), IsSpecial = true, Episodes = [episodes[3]] },
+                new() { Titles = MetadataOrderingService.UserTitles("Part 2"), Episodes = [episodes[2]] },
             ],
         });
         Assert.True(orderings.SetPreferredOrdering(seriesID, ordering.ID));
@@ -170,7 +176,7 @@ public class MetadataOrderingTransferRoundTripTests(DatabaseMigrationFixture fix
         Reload();
 
         var imported = orderings.GetOrdering(entry.OrderingID!)!;
-        Assert.Equal(("Transfer Order", "Moved between servers.", OrderingType.User), (imported.Name, imported.Overview, imported.Type));
+        Assert.Equal(("Transfer Order", "Moved between servers.", OrderingType.User), (imported.Title, imported.DefaultOverview?.Value, imported.Type));
         Assert.True(imported.IsPreferred);
         Assert.Equal(["Part 1", "Extras", "Part 2"], imported.Seasons.Select(season => season.Title));
         Assert.Equal([false, true, false], imported.Seasons.Select(season => season.IsSpecial));

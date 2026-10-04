@@ -142,7 +142,7 @@ public class PluginEntryTextTests
     }
 
     [Fact]
-    public void TagsStudiosNetworksAndOrderingsKeepTheirNamesOnTheirRows()
+    public void TagsStudiosAndNetworksKeepTheirNamesOnTheirRowsAndOrderingsInTheStore()
     {
         using var world = new World();
         var tables = world.Tables;
@@ -152,29 +152,27 @@ public class PluginEntryTextTests
         Assert.Equal("Tag", tables.TagStore.GetTag(ID(MetadataEntityType.Tag, "1"))!.Name);
         Assert.Equal("Studio", tables.StudioStore.GetStudio(ID(MetadataEntityType.Studio, "1"))!.Name);
         Assert.Equal("Network", tables.StudioStore.GetNetwork(ID(MetadataEntityType.Network, "1"))!.Name);
-        Assert.Equal("Theirs", ordering.Name);
+        Assert.Equal("Theirs", ordering.Title);
         Assert.Equal("All", Assert.Single(ordering.Seasons).Title);
 
-        // The manager lists each name as the default kept on the row.
-        foreach (var (id, name) in new[]
+        // The manager lists each name, kept on the row or stored.
+        foreach (var (id, name, inline) in new[]
         {
-            (ID(MetadataEntityType.Tag, "1"), "Tag"),
-            (ID(MetadataEntityType.Studio, "1"), "Studio"),
-            (ID(MetadataEntityType.Network, "1"), "Network"),
-            (ordering.ID, "Theirs"),
-            (ID(MetadataEntityType.Season, "g1"), "All"),
+            (ID(MetadataEntityType.Tag, "1"), "Tag", true),
+            (ID(MetadataEntityType.Studio, "1"), "Studio", true),
+            (ID(MetadataEntityType.Network, "1"), "Network", true),
+            (ordering.ID, "Theirs", false),
+            (ID(MetadataEntityType.Season, "g1"), "All", false),
         })
         {
             var title = Assert.Single(world.Manager.GetTitles(id));
-            Assert.Equal(name, title.Value);
-            Assert.True(title.IsInlineDefault);
+            Assert.Equal((name, inline), (title.Value, title.IsInlineDefault));
             Assert.Equal(name, world.Manager.GetPreferredTitle(id)?.Value);
         }
 
-        // A series' default ordering is made up from its seasons, so it has no
-        // name stored or kept anywhere.
+        // A series' default ordering is built from its seasons, so its name is
+        // never stored.
         var defaultOrdering = MetadataOrderingService.DefaultOrderingID(ID(MetadataEntityType.Series, "s1"));
-        Assert.Empty(world.Manager.GetTitles(defaultOrdering));
         Assert.Empty(tables.Texts.GetRows(defaultOrdering));
     }
 
@@ -206,12 +204,14 @@ public class PluginEntryTextTests
         Assert.Equal(pick.ID, series.PreferredTitle?.ID);
         Assert.Equal("Added", series.Title);
 
-        // A disabled title is neither listed nor the default.
+        // A disabled title is neither listed nor the default, so the synthesized
+        // default stands in for the main title.
         world.Manager.UnsetPreferredText(pick);
         world.Manager.EnableText(series.Titles[0], false);
         Assert.DoesNotContain(series.Titles, title => title.Value == "Main");
-        Assert.Equal("English", series.DefaultTitle.Value);
-        Assert.Equal("English", series.Title);
+        Assert.Equal(["TestPlugin Series s1", "English", "Added"], series.Titles.Select(title => title.Value));
+        Assert.True(series.DefaultTitle.IsSynthesized);
+        Assert.Equal("TestPlugin Series s1", series.Title);
 
         var overview = world.Manager.SetPreferredOverview(seriesID, Overview("Mine.", TitleLanguage.English, "en", MetadataSource.User));
         Assert.Equal(overview.ID, series.PreferredOverview?.ID);
@@ -265,8 +265,8 @@ public class PluginEntryTextTests
         {
             ID = ordering,
             SeriesID = ID(MetadataEntityType.Series, "s1"),
-            Name = "Renamed Ordering",
-            Groups = [new() { ID = group, Name = "Renamed Group", Episodes = [ID(MetadataEntityType.Episode, "e1")] }],
+            Titles = TestTexts.Named("Renamed Ordering"),
+            Groups = [new() { ID = group, Titles = TestTexts.Named("Renamed Group"), Episodes = [ID(MetadataEntityType.Episode, "e1")] }],
         });
 
         Assert.Equal("Renamed Tag", world.Manager.GetPreferredTitle(tag)?.Value);
@@ -278,7 +278,7 @@ public class PluginEntryTextTests
     }
 
     [Fact]
-    public void RemovingStudiosNetworksAndOrderingsTakesTheirTextsButNotAGroupsSharedSeasonTexts()
+    public void RemovingStudiosNetworksAndOrderingsTakesTheirTexts()
     {
         using var world = new World();
         var tables = world.Tables;
@@ -298,10 +298,7 @@ public class PluginEntryTextTests
         Assert.Empty(tables.Texts.GetRows(studio));
         Assert.Empty(tables.Texts.GetRows(network));
         Assert.Empty(tables.Texts.GetRows(ordering));
-        // A group's ID is a season's under its source, which a stored season
-        // may share, so its texts are left for the orphan purge.
-        Assert.Single(tables.Texts.GetRows(group));
-        Assert.Contains(group, world.Manager.GetOrphanedEntries(_plugin));
+        Assert.Empty(tables.Texts.GetRows(group));
     }
 
     #endregion

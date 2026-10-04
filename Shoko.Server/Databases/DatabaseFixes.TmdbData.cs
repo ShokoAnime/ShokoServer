@@ -1259,7 +1259,7 @@ public partial class DatabaseFixes
             if (english is not null && table.EntityType == MetadataEntityType.Episode && isTitle && GenericEpisodeTitles.IsGeneric(english, EpisodeType.Episode, AsInt(row[3])))
                 english = null;
 
-            // A season's generic name TMDB listed is made up, not stored; one it did not list is its fallback, told below.
+            // A season's generic name TMDB listed is synthesized, not stored; one it did not list is its fallback, told below.
             if (english is not null && table.EntityType == MetadataEntityType.Season && isTitle && AsBool(row[2]) &&
                 GenericEpisodeTitles.IsGenericSeasonName(english, AsInt(row[3])))
                 english = null;

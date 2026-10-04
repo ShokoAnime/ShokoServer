@@ -48,8 +48,10 @@ Everything else takes a `MetadataGuid`. `GetEntry(id)` answers any kind;
 `GetEntry<TMetadata>(id)` only when the entry is a `TMetadata`. `GetSeries`,
 `GetSeason`, `GetEpisode`, `GetMovie` and `GetCollection` are the typed forms,
 and `MetadataServiceExtensions` adds overloads taking a source and an `int`
-(`metadataService.GetEpisode(MetadataSource.AniDB, 1)`). What each source
-answers, by kind:
+(`metadataService.GetEpisode(MetadataSource.AniDB, 1)`). `GetSeries` and
+`GetEpisode` also take an ordering's ID, for the entry as that ordering
+presents it, and give `null` when the ordering is another series' or leaves
+the episode out. What each source answers, by kind:
 
 | Kind | `shoko` | `user` | `anidb` | Any plugin source, `tmdb` included |
 |---|---|---|---|---|
@@ -257,6 +259,29 @@ The manager checks no source; the conventions are:
   `EnableText`, `SetPreferredTitle`, `SetPreferredOverview` and the unsetting
   members); `shoko` is for text the core makes.
 
+## Main titles and synthesized ones
+
+An entry's main title from its own source (`TitleType.Main`) is its default.
+A plugin source's entry stored without one gets a synthesized default instead,
+listed first in `Titles` as its main title and never stored
+(`ITitle.IsSynthesized`): an episode's generic title and a season's generic
+name (`Season 2`, `Staffel 2`, `Specials`) in each episode language the user
+picked that has a form, then in English, or `<source> <kind> <id>` for any
+other kind, such as `TMDb Series 46195`.
+
+An episode as an ordering other than the default presents it, such as a
+place's untyped `Episode`, is numbered by its place there, so its synthesized
+titles are too, as in `Episode 7` or AniDB's `Episode S2`. Its real titles and
+a user's pick are the episode's own, as it keeps the episode's ID.
+
+For an episode or season whose only name is a generic one, storing nothing is
+the better choice: the core synthesizes it in the user's languages and in the
+numbering of each ordering. A write leaves out the generic titles of every
+source's episodes and seasons, in every language the core knows, and adding
+or picking one by hand throws `ArgumentException`. A title is generic only when
+it carries the entry's own number: `Season 11` on season 8 or `Episode 13` on
+episode 1 is a real title and stays.
+
 ## A user's picks
 
 A disabled text is kept, so a refresh does not bring it back, but it is not
@@ -276,16 +301,16 @@ One chooser serves every entry and `ChoosePreferredTitle`:
    their order. `x-main` reads each source's main title. For an entry whose
    texts the store keeps, `user` texts come after the ranked sources, and an
    unranked own source is read between the two. A text in a lower language
-   never beats the entry's own in a higher one.
+   never beats the entry's own in a higher one. Synthesized titles are never
+   chosen here, so every real title in a preferred language beats them.
 3. For episodes, real titles in every preferred language before generic ones
    such as `Episode 5` or `第5話`.
 4. When the own source is ranked and nothing was found, its own titles by the
    rule in step 2.
-5. The entry's default.
-6. For an episode with no title at all, a generic title made up in the first
-   preferred language that has a form for it (`ITitle.IsSynthesized`), never
-   stored. A season with no title at all gets `Season 2`, or `Specials` for
-   season 0, the same way. Sources don't store these generic season names.
+5. The entry's default, which is the synthesized one, in the first preferred
+   language that has a form, for a plugin source's entry with no main title.
+6. For an AniDB or Shoko episode or season with no title at all, a generic
+   title synthesized the same way, never stored.
 
 Overviews follow steps 1, 2, 4 and 5.
 
@@ -293,11 +318,14 @@ Overviews follow steps 1, 2, 4 and 5.
 
 - **Plugin sources.** Series, seasons, episodes, films, collections, creators
   and characters read their texts through the manager. `PreferredTitle` is
-  steps 1 to 4, else `null`, so `Title` falls back on the default. A person's
-  `AlternativeNames` are the titles its source stored. Tags, studios, networks
-  and orderings keep their name on their own rows.
+  steps 1 to 4, else the synthesized default when there is one, else `null`, so
+  `Title` falls back on the default. A person's
+  `AlternativeNames` are the titles its source stored. Orderings and their
+  groups read theirs the same way, the users' own under `user`; a group with
+  no title is named by its generic season name. Tags, studios and networks
+  keep their name on their own rows.
 - **AniDB.** An anime's and episode's titles are stored under `anidb`; an
-  episode with no English title is named by its generic title, made up when
+  episode with no English title is named by its generic title, synthesized when
   read. Descriptions and the names of characters, creators and tags stay on
   their rows. The names the core gives the tags it renames are `shoko` titles.
 - **Shoko.** A name a user gives a series, episode or group is its `user`
@@ -396,6 +424,20 @@ airs. The default ordering places specials too, without moving them out of
 season 0: a plugin's series by the `AirsBefore*`/`AirsAfter*` its provider
 gave each season 0 episode, and an AniDB anime or a Shoko series by titles
 such as `Episode 17.5`.
+
+**Placements by source.** `GetEpisodePlacements` tells where each source
+places a Shoko special among the regular episodes of its series, as one
+`IEpisodePlacement` per source, AniDB's first. AniDB places it by its titles,
+in the anime's default ordering. Every linked plugin source places it where
+its linked episode airs in the default ordering of that episode's series, and
+the regular episodes around it are followed back through the episode links
+to the Shoko episodes of the special's series. A source whose neighbours
+lead outside the series is left out; of two linked episodes of one source
+placing it, the first in link order counts. Only default orderings are read,
+never a stored one such as a TMDb episode group. `AirsAfterEpisodeID` and
+`AirsBeforeEpisodeID` are `shoko://episode/<id>` IDs, `null` when the special
+airs first or last. A regular episode has none. The optional `source` keeps
+one source.
 
 `SaveOrdering` replaces a global ordering whole and is refused under a core
 source, for a `default/` ID, for a group ID another ordering holds, for an
