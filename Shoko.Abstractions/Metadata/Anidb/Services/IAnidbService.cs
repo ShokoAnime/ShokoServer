@@ -110,11 +110,12 @@ public interface IAnidbService
     IReadOnlyList<IAnidbAnime> GetCachedAnime(AnidbAnimeListOptions? options = null);
 
     /// <summary>
-    ///   Lists the seasons the regular episodes of the cached AniDB anime air
-    ///   in, with how many anime are in each, newest first, up to the season
-    ///   after the one under way. The season under way is always listed. A
-    ///   season's images come from its best anime by weighted rating among
-    ///   those starting in it that have a poster.
+    ///   Lists the seasons the cached AniDB anime are in, by the rule on
+    ///   <see cref="Containers.IWithYearlySeasons"/>, with how many anime are
+    ///   in each, newest first, up to the season after the one under way. The
+    ///   season under way is always listed. A season's images come from its
+    ///   best anime by weighted rating among those starting in it that have a
+    ///   poster.
     /// </summary>
     /// <param name="options">The filters on the anime counted; the seasons and order are ignored.</param>
     /// <param name="includeImages">Whether to pick a poster and a backdrop for each season.</param>

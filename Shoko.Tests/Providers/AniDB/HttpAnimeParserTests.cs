@@ -205,13 +205,13 @@ public class HttpAnimeParserTests
 
     #region Episodes
 
-    private static string EpisodeXml(string epno, string id = "1001", string extra = "")
+    private static string EpisodeXml(string epno, string id = "1001", string extra = "", string? airDate = "2020-01-05")
         => $"""
             <episodes>
               <episode id="{id}" update="2020-01-05">
                 <epno>{epno}</epno>
                 <length>24</length>
-                <airdate>2020-01-05</airdate>
+                {(airDate is null ? string.Empty : $"<airdate>{airDate}</airdate>")}
                 <title xml:lang="en">Episode Title</title>
                 {extra}
               </episode>
@@ -268,6 +268,17 @@ public class HttpAnimeParserTests
 
         Assert.Equal(5150, episode.EpisodeID);
         Assert.Equal(77, episode.AnimeID);
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("1970-01-01", 0)]
+    [InlineData("2020-01-05", 1578182400)]
+    public void TheEpisodeAirDateKeepsAMissingDateApartFromThePlaceholder(string? airDate, int? expected)
+    {
+        var episode = Assert.Single(ParseOrFail(Xml(extra: EpisodeXml("1", airDate: airDate))).Episodes);
+
+        Assert.Equal(expected, AnimeCreator.NewEpisode(episode, DateTime.Now).AirDate);
     }
 
     [Fact]

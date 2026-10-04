@@ -150,9 +150,11 @@ public class AnidbAnime
     public AnimeFiles? Files { get; set; }
 
     /// <summary>
-    /// The yearly season the first regular episode airs in. Only sent with
-    /// <see cref="IncludeDetails.StartSeason"/>, and <c>null</c> when no
-    /// regular episode has an air date.
+    /// The yearly season the anime starts in: the one its first regular
+    /// episode airs in, after an early premiere or a batch drop, else the
+    /// one of its start date. Only sent with
+    /// <see cref="IncludeDetails.StartSeason"/>, and <c>null</c> when it has
+    /// no dates to go by.
     /// </summary>
     public SeasonWithYear? StartSeason
     {

@@ -106,24 +106,30 @@ var fall = anidbService.GetCachedAnime(new AnidbAnimeListOptions
 ```
 
 Every filter left unset lets everything through. An anime is in a season
-when one of its regular episodes airs in it, so a long-running show is in
-every season it airs in, and one without dated episodes is in none. AniDB
-sends no episode air dates before 1970, so an anime starting earlier goes by
-its own start date up to its first dated episode, or to its end date. Seasons
-after the one following the season under way are yet to be decided and match
-nothing. The list comes by air date with a season filter, else by preferred
+by the rule `IWithYearlySeasons` describes, on the regular broadcast dates of
+its episodes: it starts in the season of its first regular episode, with the
+type's lead-in, an early premiere moving it to the next season and a batch
+drop taking no lead-in, then is in every calendar quarter holding one of its
+regular episodes up to the fourth from the end. Without dated regular
+episodes it runs from its start date to the quarter three weeks before its
+end date. AniDB sends no episode air dates before 1970, so an anime starting
+earlier starts on its own date, and without dated episodes or an end date
+stays in its first season. Seasons after the one following the
+season under way are yet to be decided and match nothing. The list comes by air date with a season filter, else by preferred
 title, unless `OrderBy` says otherwise.
 
 `GetCachedAnimeSeasons(options, includeImages)` gives the seasons those anime
-air in by the same rule, newest first, with a count each and the season under
+are in by the same rule, newest first, with a count each and the season under
 way always listed and flagged, ignoring the season filter and the order. With
 `includeImages`, each season also carries a `Poster` and a `Backdrop`, both
 from one anime: among those starting in the season, the best by Bayesian
-weighted rating that has a poster. The weighted rating is
+weighted rating that has a poster. When none has one, the anime carried over
+from the latest season before it are ranked the same way, then the season
+before those, and so on. The weighted rating is
 `(v * R + m * C) / (v + m)`, with `R` and `v` the anime's AniDB rating and
-votes, `C` the mean rating of the season's rated starters and `m` the median
-of their votes, at least 50. Ties go to the earlier first episode, then the
-lower AniDB ID, so a season yet to air shows its earliest starter.
+votes, `C` the mean rating of the rated anime starting in the same season and
+`m` the median of their votes, at least 50. Ties go to the earlier start, then the lower
+AniDB ID, so a season yet to air shows its earliest starter.
 
 ### Refreshing an anime
 

@@ -139,7 +139,7 @@ public interface IFilterableInfo
     IReadOnlySet<int> Years { get; }
 
     /// <summary>
-    /// The seasons this aired in
+    /// The seasons this aired in, by the rule on <see cref="Metadata.Containers.IWithYearlySeasons"/>
     /// </summary>
     IReadOnlySet<(int year, YearlySeason season)> Seasons { get; }
 

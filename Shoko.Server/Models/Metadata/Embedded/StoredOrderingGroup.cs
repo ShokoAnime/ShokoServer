@@ -4,8 +4,8 @@ using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
-using Shoko.Server.Extensions;
 using Shoko.Server.Services;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Models.Metadata.Embedded;
 
@@ -153,8 +153,8 @@ public sealed class StoredOrderingGroup<TSeries, TEpisode>(
     {
         get
         {
-            var aired = places.Select(place => place.Episode.AirDate).OfType<DateOnly>().ToList();
-            return aired.Count is 0 ? [] : [.. ((DateOnly?)aired.Min()).GetYearlySeasons(aired.Max())];
+            var aired = places.Select(place => place.Episode.AirDate).OfType<DateOnly>();
+            return SeasonCalendar.GetSeasons(SeasonCalendar.GetSpan(((ISeason)this).Series.Type, aired, null, null));
         }
     }
 

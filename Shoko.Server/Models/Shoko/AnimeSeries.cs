@@ -222,7 +222,7 @@ public class AnimeSeries : IShokoSeries
 
             // This will be slower, but hopefully more accurate
             var ep = RepoFactory.AniDB_Episode.GetByAnimeID(AniDB_ID)
-                .Where(a => a.EpisodeType is EpisodeType.Episode && a.LengthSeconds > 0 && a.AirDate != 0)
+                .Where(a => a.EpisodeType is EpisodeType.Episode && a.LengthSeconds > 0 && a.AirDate is not (null or 0))
                 .MinBy(a => a.AirDate);
             return _airDate = ep?.GetAirDateAsPartialDateOnly();
         }
@@ -401,7 +401,7 @@ public class AnimeSeries : IShokoSeries
     #region IWithYearlySeasons Implementation
 
     IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons
-        => [.. AirDate.GetYearlySeasons(AniDB_Anime?.EffectiveEndDateForSeasons)];
+        => AniDB_Anime?.YearlySeasons ?? [];
 
     #endregion
 

@@ -89,11 +89,12 @@ date-only entry for each AniDB episode whose air date falls in the window and
 that no provider has an airing for at all (counting estimates when
 `includeEstimates` is on), whatever the other filters leave of its airings.
 
-AniDB gives no air date before 1970: it dates those episodes with a 1970-01-01
-placeholder, stored like a missing date. For a regular episode carrying it, in
-an anime that started before 1970, the entry takes the earliest pre-1970 air
-date among the episodes linked to it from any other source, such as TMDb. With
-no such date there is no entry.
+AniDB gives no air date before 1970: it leaves those episodes undated, or
+rarely gives them a 1970-01-01 placeholder. The only regular episode of an
+anime that started on a known day by 1970-01-01 takes the anime's start date.
+Any other undated regular episode of an anime starting by 1970-01-01 takes the
+earliest pre-1970 air date among the episodes linked to it from any other
+source, such as TMDb. With no such date there is no entry.
 
 A date-only entry has `IsDateOnly: true` and `AirDate` set to that date, a
 calendar date in no particular time zone. It has no time, so `AiredAt`,

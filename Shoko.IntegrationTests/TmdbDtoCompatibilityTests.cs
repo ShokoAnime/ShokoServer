@@ -220,6 +220,12 @@ public class TmdbDtoCompatibilityTests(DatabaseMigrationFixture fixture)
 
         // The search model's images come from the stored images; the backdrop TMDB named was never stored.
         Set(golden, "['search-show'].Backdrop", null);
+
+        // A show with dated regular episodes goes by the quarters they aired in, not its first and last dates, so the
+        // show stays in Winter; seasons start in whole weeks, so a movie released in early March is Winter.
+        foreach (var key in (string[])["show", "show-ordering"])
+            ((JArray)golden[key]!["YearlySeasons"]!).RemoveAt(1);
+        Set(golden, "['movie-9870141'].YearlySeasons[0].AnimeSeason", "Winter");
     }
 
     #endregion

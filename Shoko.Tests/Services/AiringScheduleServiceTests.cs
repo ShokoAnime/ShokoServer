@@ -2160,11 +2160,13 @@ public class AiringScheduleServiceTests
         Assert.Equal(included, airings.Any(airing => airing.IsDateOnly && airing.EpisodeID.ID == "5000"));
     }
 
-    [Fact]
-    public void IncludeDateOnly_DatesAPre1970EpisodeByTheEarliestLinkedEpisode()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(null)]
+    public void IncludeDateOnly_DatesAPre1970EpisodeByTheEarliestLinkedEpisode(int? airDate)
     {
         using var harness = new Harness();
-        var episode = harness.UseUndatedAnidbEpisode(new PartialDateOnly(1965, 4));
+        var episode = harness.UseUndatedAnidbEpisode(new PartialDateOnly(1965, 4), airDate);
         harness.UseEpisodeLinks(
             harness.EpisodeLink(TestSources.Plugin, "7101", () => new DateOnly(1965, 4, 10)),
             harness.EpisodeLink(TestSources.AniList, "7201", () => new DateOnly(1965, 4, 3))
@@ -2209,6 +2211,24 @@ public class AiringScheduleServiceTests
         );
 
         Assert.Equal(included, airings.Any(airing => airing.IsDateOnly && airing.EpisodeID.ID == Harness.UndatedEpisodeID.ToString()));
+    }
+
+    [Fact]
+    public void IncludeDateOnly_APlaceholderTheAnimesDateStandsInForIsNotLinked()
+    {
+        using var harness = new Harness();
+        harness.UseUndatedAnidbEpisode(new PartialDateOnly(1965, 4, 3));
+        harness.UseEpisodeLinks(harness.EpisodeLink(TestSources.Plugin, "7101", () => new DateOnly(1965, 4, 10)));
+
+        var airings = harness.Service.GetAiringsInRange(
+            new DateTimeOffset(1965, 4, 1, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(1965, 5, 1, 0, 0, 0, TimeSpan.Zero),
+            new EpisodeAiringFilteringOptions() { IncludeDateOnly = true }
+        );
+
+        var entry = Assert.Single(airings, airing => airing.IsDateOnly && airing.EpisodeID.ID == Harness.UndatedEpisodeID.ToString());
+        Assert.Equal(new DateOnly(1965, 4, 3), entry.AirDate);
+        harness.CrossReferences.Verify(store => store.GetEpisodeLinksForSeries(It.IsAny<int>(), It.IsAny<MetadataSource?>()), Times.Never());
     }
 
     [Fact]
@@ -2828,10 +2848,10 @@ public class AiringScheduleServiceTests
         public const int UndatedEpisodeID = 7000;
 
         /// <summary>
-        ///   Installs one anime starting on the given date with one regular episode AniDB has no
-        ///   air date for, and returns the episode.
+        ///   Installs one anime starting on the given date with one regular episode carrying AniDB's
+        ///   1970-01-01 placeholder, or no date at all, and returns the episode.
         /// </summary>
-        public AniDB_Episode UseUndatedAnidbEpisode(PartialDateOnly animeAirDate)
+        public AniDB_Episode UseUndatedAnidbEpisode(PartialDateOnly animeAirDate, int? airDate = 0)
         {
             var episode = new AniDB_Episode
             {
@@ -2840,7 +2860,7 @@ public class AiringScheduleServiceTests
                 AnimeID = UndatedAnimeID,
                 EpisodeNumber = 1,
                 EpisodeType = EpisodeType.Episode,
-                AirDate = 0,
+                AirDate = airDate,
             };
             _scope
                 .With<AniDB_EpisodeRepository, int, AniDB_Episode>(entry => entry.AniDB_EpisodeID, [episode])

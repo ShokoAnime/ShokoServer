@@ -103,6 +103,7 @@ public class GetAniDBCalendarJob(
                 anime.AirDate = releaseDate;
                 anime.ResetReleaseStatus();
                 anime.ResetRegularAirDates();
+                anime.ResetYearlySeasons();
                 anidbAnime.Save(anime);
                 var ser = animeSeries.GetByAnimeID(anime.AnimeID);
                 if (ser is not null) animeSeries.Save(ser, true);

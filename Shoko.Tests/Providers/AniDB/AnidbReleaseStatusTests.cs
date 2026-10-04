@@ -133,7 +133,7 @@ public class AnidbReleaseStatusTests
         AnimeID = AnimeID,
         EpisodeType = EpisodeType.Episode,
         EpisodeNumber = id,
-        AirDate = airDate is { } date ? (int)(date - DateTime.UnixEpoch).TotalSeconds : 0,
+        AirDate = airDate is { } date ? (int)(date - DateTime.UnixEpoch).TotalSeconds : null,
     };
 
     private static RepoFactoryScope Scope(AniDB_Anime anime, params AniDB_Episode[] episodes)

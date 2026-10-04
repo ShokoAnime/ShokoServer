@@ -23,7 +23,7 @@ internal sealed class EpisodeAirDateView : IEpisodeAiring
     /// </summary>
     /// <param name="anidbEpisode">The AniDB episode.</param>
     /// <param name="shokoEpisode">The shoko episode it belongs to, if any.</param>
-    /// <param name="airDate">The AniDB air date, or the linked one standing in for AniDB's pre-1970 placeholder.</param>
+    /// <param name="airDate">The AniDB air date, or the linked one standing in for an undated episode before 1970.</param>
     /// <exception cref="ArgumentNullException"><paramref name="anidbEpisode"/> is <c>null</c>.</exception>
     public EpisodeAirDateView(IAnidbEpisode anidbEpisode, IShokoEpisode? shokoEpisode, DateOnly airDate)
     {

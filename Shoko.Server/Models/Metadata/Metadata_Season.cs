@@ -6,10 +6,10 @@ using Shoko.Abstractions.Metadata.Containers;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image.CrossReferences;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
 using Shoko.Server.Services;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Models.Metadata;
 
@@ -162,8 +162,9 @@ public class Metadata_Season : ISeason<ISeries, IEpisode>, IMetadataStoreRow<Met
     {
         get
         {
-            var aired = StoredEpisodes.Select(episode => episode.AirDate).OfType<DateOnly>().ToList();
-            return aired.Count is 0 ? [] : [.. ((DateOnly?)aired.Min()).GetYearlySeasons(aired.Max())];
+            var aired = StoredEpisodes.Select(episode => episode.AirDate).OfType<DateOnly>();
+            var type = RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID)?.Type ?? AnimeType.TV;
+            return SeasonCalendar.GetSeasons(SeasonCalendar.GetSpan(type, aired, null, null));
         }
     }
 

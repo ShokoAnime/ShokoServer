@@ -21,9 +21,10 @@ public record AnidbAnimeListOptions
     public string? TitlePrefix { get; init; }
 
     /// <summary>
-    ///   Optional. Only anime with a regular episode airing in any of these
-    ///   seasons. Seasons after the one following the season under way are
-    ///   yet to be decided and match nothing.
+    ///   Optional. Only anime in any of these seasons, by the rule on
+    ///   <see cref="Containers.IWithYearlySeasons"/>. Seasons after the one
+    ///   following the season under way are yet to be decided and match
+    ///   nothing.
     /// </summary>
     public IReadOnlyCollection<(int Year, YearlySeason Season)>? Seasons { get; init; }
 

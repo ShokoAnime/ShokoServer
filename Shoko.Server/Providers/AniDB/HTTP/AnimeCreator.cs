@@ -170,6 +170,7 @@ public class AnimeCreator
             // The dates, type and episodes may all have changed.
             anime.ResetReleaseStatus();
             anime.ResetRegularAirDates();
+            anime.ResetYearlySeasons();
             Monitor.Exit(lockObj);
             _updatingIDs.TryRemove(response.Anime.AnimeID, out _);
         }
@@ -345,7 +346,7 @@ public class AnimeCreator
     /// <returns>The new row.</returns>
     internal static AniDB_Episode NewEpisode(ResponseEpisode rawEpisode, DateTime createdAt) => new()
     {
-        AirDate = AniDBExtensions.GetAniDBDateAsSeconds(rawEpisode.AirDate),
+        AirDate = AniDBExtensions.GetAniDBAirDateAsSeconds(rawEpisode.AirDate),
         AnimeID = rawEpisode.AnimeID,
         CreatedAt = createdAt,
         DateTimeUpdated = rawEpisode.LastUpdated,
@@ -398,7 +399,7 @@ public class AnimeCreator
                 if (episode.DateTimeUpdated >= rawEpisode.LastUpdated && episode.AnimeID != rawEpisode.AnimeID)
                     continue;
 
-                var airDate = AniDBExtensions.GetAniDBDateAsSeconds(rawEpisode.AirDate);
+                var airDate = AniDBExtensions.GetAniDBAirDateAsSeconds(rawEpisode.AirDate);
                 var rating = rawEpisode.Rating.ToString(CultureInfo.InvariantCulture);
                 var votes = rawEpisode.Votes.ToString(CultureInfo.InvariantCulture);
                 var description = rawEpisode.Description ?? string.Empty;

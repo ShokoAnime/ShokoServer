@@ -166,6 +166,15 @@ public static partial class AnidbRegularAirDates
     }
 
     /// <summary>
+    ///   A part of an early showing the note lists by episode and date
+    ///   ("episodes 5-8 on 23 August 2024").
+    /// </summary>
+    /// <param name="First">The part's first episode.</param>
+    /// <param name="Last">The part's last episode.</param>
+    /// <param name="Date">When the part was shown.</param>
+    public sealed record NotePart(int First, int Last, NoteDate Date);
+
+    /// <summary>
     ///   What a description's note says.
     /// </summary>
     public sealed class Note
@@ -192,6 +201,12 @@ public static partial class AnidbRegularAirDates
         public bool Each { get; internal set; }
 
         /// <summary>
+        ///   The parts of the early showing the note lists by episode and
+        ///   date, in the order it lists them.
+        /// </summary>
+        public List<NotePart> Parts { get; } = [];
+
+        /// <summary>
         ///   The lines of the description the note was read from.
         /// </summary>
         public List<string> Lines { get; } = [];
@@ -208,9 +223,11 @@ public static partial class AnidbRegularAirDates
     /// <remarks>
     ///   Rule 1 paces the episodes dated more than a day before the regular
     ///   start the note names, by the cadence of the rest, at most three
-    ///   unless the note counts more. Rule 2, for a TV series whose note names
-    ///   no start but counts at most three early episodes, paces those back
-    ///   from the first regularly dated one.
+    ///   unless the note counts more, or every one when they are exactly the
+    ///   parts of the showing the note lists by date, the whole run included.
+    ///   Rule 2, for a TV series whose note names no start but counts at most
+    ///   three early episodes, paces those back from the first regularly
+    ///   dated one.
     /// </remarks>
     /// <param name="description">The anime's description, AniDB markup included.</param>
     /// <param name="type">The anime's type.</param>
@@ -267,19 +284,49 @@ public static partial class AnidbRegularAirDates
             return new(Outcome.NoEarlyEpisodes, start, []);
 
         var limit = Math.Max(3, note.Count ?? 0);
-        if (early > limit || early == episodes.Count || note.Each || (note.Count ?? 0) >= episodes.Count)
+        if (note.Each || (!InParts(note, episodes, early) && (early > limit || early == episodes.Count || (note.Count ?? 0) >= episodes.Count)))
             return new(Outcome.TooManyEarly, start, []);
 
         // The first later episode must be a step after the start (or the step
         // before, for a double premiere), else it carries the early dates too.
         var rest = episodes.Skip(early).Select(episode => episode.AirDate).ToList();
         var (step, perDay) = Cadence(rest);
-        if (rest[0].DayNumber - start.DayNumber < Math.Max(early - 1, 1) * Math.Min(step, 7) - 1 && perDay == 1)
+        if (rest.Count > 0 && rest[0].DayNumber - start.DayNumber < Math.Max(early - 1, 1) * Math.Min(step, 7) - 1 && perDay == 1)
             return new(Outcome.LaterEpisodesEarlyToo, start, []);
 
-        var paced = Pace(start, rest[0], early, step, perDay);
+        var paced = Pace(start, rest.Count > 0 ? rest[0] : null, early, step, perDay);
         var moved = episodes.Take(early).Select((episode, index) => new MovedEpisode(episode.Number, episode.AirDate, paced[index])).ToList();
         return new(Outcome.Corrected, start, moved);
+    }
+
+    /// <summary>
+    ///   Whether the parts the note lists hold exactly the early episodes:
+    ///   one after another from the first, each dated as its part.
+    /// </summary>
+    /// <param name="note">The note.</param>
+    /// <param name="episodes">The dated normal episodes, by number.</param>
+    /// <param name="early">How many leading episodes are dated before the regular start.</param>
+    /// <returns>Whether the parts hold every early episode and no other.</returns>
+    private static bool InParts(Note note, List<(int Number, DateOnly AirDate)> episodes, int early)
+    {
+        if (note.Parts.Count == 0)
+            return false;
+
+        var next = 1;
+        foreach (var part in note.Parts)
+        {
+            if (part.First != next)
+                return false;
+
+            InferYear(part.Date, episodes[0].AirDate, forward: true);
+            for (; next <= part.Last; next++)
+            {
+                if (next > early || episodes[next - 1].Number != next || episodes[next - 1].AirDate != part.Date.Value)
+                    return false;
+            }
+        }
+
+        return next == early + 1;
     }
 
     /// <summary>
@@ -341,12 +388,15 @@ public static partial class AnidbRegularAirDates
     ///   extra ones share the premiere slot, a double premiere.
     /// </summary>
     /// <param name="start">The regular start.</param>
-    /// <param name="firstRegular">The first regularly dated episode's date.</param>
+    /// <param name="firstRegular">
+    ///   The first regularly dated episode's date, or <c>null</c> when every
+    ///   episode was shown early.
+    /// </param>
     /// <param name="count">The early episodes.</param>
     /// <param name="step">The days between air days.</param>
     /// <param name="perDay">The episodes an air day.</param>
     /// <returns>A date for each early episode.</returns>
-    private static List<DateOnly> Pace(DateOnly start, DateOnly firstRegular, int count, int step, int perDay)
+    private static List<DateOnly> Pace(DateOnly start, DateOnly? firstRegular, int count, int step, int perDay)
     {
         // A slot within a day of the first regular episode reaches it: the
         // note may give the broadcast day while AniDB gives the calendar date.
@@ -354,7 +404,7 @@ public static partial class AnidbRegularAirDates
         while (slots.Count * perDay < count)
         {
             var next = slots[^1].AddDays(step);
-            if (next >= firstRegular.AddDays(-1))
+            if (firstRegular is { } regular && next >= regular.AddDays(-1))
                 break;
 
             slots.Add(next);
@@ -478,6 +528,7 @@ public static partial class AnidbRegularAirDates
                     note.Regular = before;
             }
 
+            note.Parts.AddRange(FindParts(line, dates));
             if (each)
                 note.Each = true;
 
@@ -486,6 +537,30 @@ public static partial class AnidbRegularAirDates
         }
 
         return note;
+    }
+
+    /// <summary>
+    ///   The parts of an early showing a line lists: each episode range with
+    ///   the first date after it, before the next range or sentence.
+    /// </summary>
+    /// <param name="line">The line.</param>
+    /// <param name="dates">The dates in the line.</param>
+    /// <returns>The parts, in the order the line lists them.</returns>
+    private static IEnumerable<NotePart> FindParts(string line, IReadOnlyList<NoteDate> dates)
+    {
+        var ranges = EpisodeRange().Matches(line);
+        for (var index = 0; index < ranges.Count; index++)
+        {
+            var range = ranges[index];
+            var rangeEnd = range.Index + range.Length;
+            var stop = SentenceStop().Match(line, rangeEnd);
+            var limit = Math.Min(stop.Success ? stop.Index : line.Length, index + 1 < ranges.Count ? ranges[index + 1].Index : line.Length);
+            var date = dates.FirstOrDefault(candidate => rangeEnd <= candidate.Start && candidate.Start < limit);
+            var first = ParseDigits(range.Groups["first"].Value);
+            var last = range.Groups["last"].Success ? ParseDigits(range.Groups["last"].Value) : first;
+            if (date is not null && first is { } from && last is { } to && from <= to)
+                yield return new(from, to, date);
+        }
     }
 
     /// <summary>
@@ -602,6 +677,15 @@ public static partial class AnidbRegularAirDates
         @"|\bepisode\s+(?:1|one)\b(?<e1>)|\b(?<both>both)\s+episodes\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex FirstEpisodes();
+
+    /// <summary>
+    ///   An episode or a range of them: "episode 3", "episodes 5-8",
+    ///   "episodes 2 and 3".
+    /// </summary>
+    [GeneratedRegex(
+        @"\bepisodes?\s+(?<first>\d{1,4})(?:\s*(?:-|–|to|through|and)\s*(?<last>\d{1,4}))?\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex EpisodeRange();
 
     /// <summary>
     ///   Every episode came out ahead, weekly: the whole run is early, not

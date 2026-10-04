@@ -1397,6 +1397,9 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(173, 293, "ALTER TABLE Metadata_Ordering DROP COLUMN Description;"),
         new(173, 294, "ALTER TABLE Metadata_Ordering_Group DROP COLUMN Name;"),
         new(173, 295, "ALTER TABLE Metadata_Ordering_Group DROP COLUMN Description;"),
+        new(173, 296, MakeAniDB_EpisodeAirDateNullable),
+        new(173, 297, "UPDATE AniDB_Episode SET AirDate = NULL WHERE AirDate = 0;"),
+        new(173, 298, DatabaseFixes.RestoreAnidbPlaceholderAirDates),
     ];
 
     #endregion
@@ -1608,6 +1611,9 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
 
     private static Tuple<bool, string?> MakeMetadata_StudioLastUpdatedAtNullable(object connection)
         => MakeColumnNullable(connection, "Metadata_Studio", "LastUpdatedAt");
+
+    private static Tuple<bool, string?> MakeAniDB_EpisodeAirDateNullable(object connection)
+        => MakeColumnNullable(connection, "AniDB_Episode", "AirDate");
 
     private static Tuple<bool, string?> MakeColumnNullable(object connection, string tableName, string columnName)
     {

@@ -847,12 +847,21 @@ public class HttpAnimeParser
         return node.Attributes?[attName]?.Value ?? string.Empty;
     }
 
+    /// <summary>
+    ///   Reads a date AniDB wrote in full or in part, such as <c>2008-12-31</c>,
+    ///   <c>2008-12</c> or <c>2008</c>, filling the missing parts from the
+    ///   start or end of the period.
+    /// </summary>
+    /// <param name="dateXml">The date, or <c>null</c> or empty when AniDB gave none.</param>
+    /// <param name="isStartDate">Whether to fill the missing parts from the start of the period.</param>
+    /// <returns>The date, or <c>null</c> when there is none.</returns>
+    /// <exception cref="FormatException">A part of the date is not a number.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A part of the date is out of range.</exception>
     private static DateTime? GetDate(string? dateXml, bool isStartDate)
     {
-        // eg "2008-12-31" or "2008-12" or "2008"
         if (dateXml == null || dateXml.Trim().Length < 4)
         {
-            return DateTime.UnixEpoch;
+            return null;
         }
 
         var year = int.Parse(dateXml.Trim()[..4]);

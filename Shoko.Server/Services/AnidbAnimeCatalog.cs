@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Filtering;
-using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Containers;
@@ -15,6 +14,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Utilities;
 
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
 
@@ -41,9 +41,6 @@ public class AnidbAnimeCatalog(
     // The least prior weight, in votes, the season ranking gives the mean.
     private const int MinimumPriorVotes = 50;
 
-    // AniDB sends no episode air dates before this day.
-    private static readonly DateOnly UndatedEpisodesBefore = new(1970, 1, 1);
-
     #region Listing
 
     /// <summary>
@@ -58,12 +55,11 @@ public class AnidbAnimeCatalog(
         if (options.Seasons is { Count: > 0 })
         {
             var (_, last) = GetListedSeasons();
-            var seasons = options.Seasons.Where(season => Ordinal(season) <= Ordinal(last)).ToHashSet();
+            var seasons = options.Seasons.Where(season => season.CompareTo(last) <= 0).ToHashSet();
             if (seasons.Count == 0)
                 return [];
 
-            var episodes = GetRegularEpisodesByAnime();
-            inSeasons = anime => GetAiring(anime, episodes, last) is { } airing && airing.Seasons.Overlaps(seasons);
+            inSeasons = anime => anime.SeasonSpan is { } span && span.Seasons.Any(season => season.CompareTo(last) <= 0 && seasons.Contains(season));
         }
 
         var entries = Filter(options, inSeasons)
@@ -88,13 +84,14 @@ public class AnidbAnimeCatalog(
     }
 
     /// <summary>
-    ///   Lists the seasons the regular episodes of the cached anime matching
-    ///   the options air in, with how many anime are in each, newest first,
-    ///   up to the season after the one under way.
+    ///   Lists the seasons the cached anime matching the options are in, by
+    ///   the rule in <see cref="SeasonCalendar"/>, with how many anime are in
+    ///   each, newest first, up to the season after the one under way.
     /// </summary>
     /// <remarks>
     ///   A season's images are those of its best ranked anime with a poster,
-    ///   among those starting in it, as <see cref="PickImages"/> ranks them.
+    ///   among those starting in it, or else among the newest carried over,
+    ///   as <see cref="PickImages"/> ranks them.
     /// </remarks>
     /// <param name="options">The filters; the seasons and order are ignored.</param>
     /// <param name="includeImages">Whether to pick a poster and a backdrop for each season.</param>
@@ -102,15 +99,14 @@ public class AnidbAnimeCatalog(
     public IReadOnlyList<AnidbAnimeSeasonCount> GetSeasons(AnidbAnimeListOptions? options = null, bool includeImages = false)
     {
         var (current, last) = GetListedSeasons();
-        var episodes = GetRegularEpisodesByAnime();
         var members = new Dictionary<(int Year, YearlySeason Season), List<Member>>();
         foreach (var (anime, series, _) in Filter(options ?? new(), inSeasons: null))
         {
-            if (GetAiring(anime, episodes, last) is not { } airing)
+            if (anime.SeasonSpan is not { } span)
                 continue;
 
-            var member = new Member(anime, series, airing);
-            foreach (var season in airing.Seasons)
+            var member = new Member(anime, series, span);
+            foreach (var season in SeasonCalendar.GetSeasons(span, last))
             {
                 if (!members.TryGetValue(season, out var list))
                     members[season] = list = [];
@@ -123,10 +119,10 @@ public class AnidbAnimeCatalog(
         return
         [
             .. members
-                .OrderByDescending(pair => Ordinal(pair.Key))
+                .OrderByDescending(pair => pair.Key)
                 .Select(pair =>
                 {
-                    var (poster, backdrop) = includeImages ? PickImages(pair.Key, pair.Value) : (null, null);
+                    var (poster, backdrop) = includeImages ? PickImages(pair.Value) : (null, null);
                     return new AnidbAnimeSeasonCount(
                         pair.Key.Year,
                         pair.Key.Season,
@@ -141,36 +137,52 @@ public class AnidbAnimeCatalog(
 
     /// <summary>
     ///   The images standing for a season: the poster and backdrop of its
-    ///   best ranked anime with a poster, among those starting in it. The
-    ///   backdrop is <c>null</c> when that anime has none.
+    ///   best ranked anime with a poster, among those starting in it, or
+    ///   else among those carried over from the latest season before it
+    ///   with one. The backdrop is <c>null</c> when that anime has none.
     /// </summary>
     /// <remarks>
-    ///   The rank is a Bayesian weighted rating, (v·R + m·C) / (v + m): R and
-    ///   v are the anime's rating and votes, C the mean rating of the rated
-    ///   starters, and m the median of their votes, at least
-    ///   <see cref="MinimumPriorVotes"/>. Ties go to the earlier start, then
-    ///   the lower ID.
+    ///   The anime are ranked by start season, newest first, and then by a
+    ///   Bayesian weighted rating, (v·R + m·C) / (v + m): R and v are the
+    ///   anime's rating and votes, C the mean rating of the rated anime
+    ///   starting in the same season, and m the median of their votes, at
+    ///   least <see cref="MinimumPriorVotes"/>. Ties go to the earlier
+    ///   start, then the lower ID.
     /// </remarks>
-    /// <param name="season">The season.</param>
     /// <param name="members">The season's anime.</param>
     /// <returns>The poster and backdrop, each <c>null</c> when not found.</returns>
-    private (IImage? Poster, IImage? Backdrop) PickImages((int Year, YearlySeason Season) season, IReadOnlyList<Member> members)
+    private (IImage? Poster, IImage? Backdrop) PickImages(IReadOnlyList<Member> members)
     {
-        var starters = members.Where(member => member.Airing.FirstSeason == season).ToList();
-        var rated = starters.Where(member => member.Anime.VoteCount > 0).ToList();
-        var mean = rated.Count > 0 ? rated.Average(member => (double)member.Anime.Rating) : 0d;
-        var prior = Math.Max(MinimumPriorVotes, Median(rated.Select(member => member.Anime.VoteCount)));
-        var ranked = starters
-            .OrderByDescending(member => (member.Anime.VoteCount * (double)member.Anime.Rating + prior * mean) / (member.Anime.VoteCount + prior))
-            .ThenBy(member => member.Airing.First)
-            .ThenBy(member => member.Anime.AnimeID);
-        foreach (var member in ranked)
+        var groups = members
+            .GroupBy(member => member.Span.StartSeason)
+            .OrderByDescending(group => group.Key);
+        foreach (var group in groups)
         {
-            if (GetImage(member.Anime, member.Series, ImageEntityType.Primary) is { } poster)
-                return (poster, GetImage(member.Anime, member.Series, ImageEntityType.Backdrop));
+            foreach (var member in Rank([.. group]))
+            {
+                if (GetImage(member.Anime, member.Series, ImageEntityType.Primary) is { } poster)
+                    return (poster, GetImage(member.Anime, member.Series, ImageEntityType.Backdrop));
+            }
         }
 
         return (null, null);
+    }
+
+    /// <summary>
+    ///   Ranks anime starting in the same season by their Bayesian weighted
+    ///   rating, then the earlier start, then the lower ID.
+    /// </summary>
+    /// <param name="starters">The anime.</param>
+    /// <returns>The anime, best first.</returns>
+    private static IEnumerable<Member> Rank(IReadOnlyList<Member> starters)
+    {
+        var rated = starters.Where(member => member.Anime.VoteCount > 0).ToList();
+        var mean = rated.Count > 0 ? rated.Average(member => (double)member.Anime.Rating) : 0d;
+        var prior = Math.Max(MinimumPriorVotes, Median(rated.Select(member => member.Anime.VoteCount)));
+        return starters
+            .OrderByDescending(member => (member.Anime.VoteCount * (double)member.Anime.Rating + prior * mean) / (member.Anime.VoteCount + prior))
+            .ThenBy(member => member.Span.First)
+            .ThenBy(member => member.Anime.AnimeID);
     }
 
     /// <summary>
@@ -209,118 +221,17 @@ public class AnidbAnimeCatalog(
     /// <returns>The current and last listed seasons.</returns>
     private static ((int Year, YearlySeason Season) Current, (int Year, YearlySeason Season) Last) GetListedSeasons()
     {
-        var current = Extensions.Models.GetYearlySeason(DateTime.Today.ToDateOnly());
-        return (current, Extensions.Models.GetNextYearlySeason(current));
+        var current = SeasonCalendar.GetCurrentYearlySeason();
+        return (current, SeasonCalendar.GetNextYearlySeason(current));
     }
-
-    /// <summary>
-    ///   A season's place in time, for comparing seasons.
-    /// </summary>
-    /// <param name="season">The season.</param>
-    /// <returns>A number growing with each season.</returns>
-    private static int Ordinal((int Year, YearlySeason Season) season)
-        => season.Year * 4 + (int)season.Season;
-
-    /// <summary>
-    ///   The regular episodes with an air date of every cached anime, in one
-    ///   pass over the cached episodes.
-    /// </summary>
-    /// <returns>The episodes by AniDB anime ID.</returns>
-    private Dictionary<int, List<AniDB_Episode>> GetRegularEpisodesByAnime()
-    {
-        var episodes = new Dictionary<int, List<AniDB_Episode>>();
-        foreach (var episode in episodeRepository.GetAll())
-        {
-            if (!IsDatedRegular(episode))
-                continue;
-
-            if (!episodes.TryGetValue(episode.AnimeID, out var list))
-                episodes[episode.AnimeID] = list = [];
-
-            list.Add(episode);
-        }
-
-        return episodes;
-    }
-
-    /// <summary>
-    ///   Whether an episode counts towards the seasons: a regular episode
-    ///   with an air date.
-    /// </summary>
-    /// <param name="episode">The episode.</param>
-    /// <returns><c>true</c> when it counts.</returns>
-    private static bool IsDatedRegular(AniDB_Episode episode)
-        => episode.EpisodeType is EpisodeType.Episode && episode.AirDate != 0;
-
-    /// <summary>
-    ///   When an anime's regular episodes air, looked up in the episodes of
-    ///   every anime.
-    /// </summary>
-    /// <param name="anime">The anime.</param>
-    /// <param name="episodes">The regular episodes by anime, from <see cref="GetRegularEpisodesByAnime"/>.</param>
-    /// <param name="last">The last listed season.</param>
-    /// <returns>The airing, or <c>null</c> when it has no air dates to go by.</returns>
-    private static Airing? GetAiring(AniDB_Anime anime, Dictionary<int, List<AniDB_Episode>> episodes, (int Year, YearlySeason Season) last)
-        => GetAiring(anime, episodes.TryGetValue(anime.AnimeID, out var list) ? list : [], last);
-
-    /// <summary>
-    ///   When an anime's regular episodes air, by their regular broadcast
-    ///   dates, and the listed seasons that puts it in. AniDB sends no
-    ///   episode air dates before 1970, so an anime starting before then
-    ///   covers the seasons from its own start date up to its first dated
-    ///   episode, or to its end date when no episode is dated.
-    /// </summary>
-    /// <param name="anime">The anime.</param>
-    /// <param name="episodes">The anime's dated regular episodes.</param>
-    /// <param name="last">The last listed season.</param>
-    /// <returns>The airing, or <c>null</c> when it has no air dates to go by.</returns>
-    private static Airing? GetAiring(AniDB_Anime anime, IEnumerable<AniDB_Episode> episodes, (int Year, YearlySeason Season) last)
-    {
-        DateOnly? first = null;
-        var seasons = new HashSet<(int Year, YearlySeason Season)>();
-        foreach (var episode in episodes)
-        {
-            if ((anime.GetRegularAirDate(episode) ?? episode.GetAirDateAsDateOnly()) is not { } date)
-                continue;
-
-            if (first is null || date < first)
-                first = date;
-
-            var season = Extensions.Models.GetYearlySeason(date);
-            if (Ordinal(season) <= Ordinal(last))
-                seasons.Add(season);
-        }
-
-        if (anime.AirDate?.ToDateOnly() is { } animeStart && animeStart < UndatedEpisodesBefore && (first is null || animeStart < first))
-        {
-            var startSeason = Extensions.Models.GetYearlySeason(animeStart);
-            var until = first is { } dated
-                ? Extensions.Models.GetYearlySeason(dated)
-                : anime.EndDate?.ToDateOnly() is { } end && end >= animeStart ? Extensions.Models.GetYearlySeason(end) : startSeason;
-            for (var season = startSeason; Ordinal(season) <= Ordinal(until) && Ordinal(season) <= Ordinal(last); season = Extensions.Models.GetNextYearlySeason(season))
-                seasons.Add(season);
-
-            first = animeStart;
-        }
-
-        return first is { } start ? new(start, Extensions.Models.GetYearlySeason(start), seasons) : null;
-    }
-
-    /// <summary>
-    ///   When an anime's regular episodes air.
-    /// </summary>
-    /// <param name="First">The first regular episode's air date.</param>
-    /// <param name="FirstSeason">The season the anime starts in.</param>
-    /// <param name="Seasons">The listed seasons a regular episode airs in.</param>
-    private sealed record Airing(DateOnly First, (int Year, YearlySeason Season) FirstSeason, IReadOnlySet<(int Year, YearlySeason Season)> Seasons);
 
     /// <summary>
     ///   An anime counted in a season.
     /// </summary>
     /// <param name="Anime">The anime.</param>
     /// <param name="Series">Its Shoko series, if any.</param>
-    /// <param name="Airing">When its regular episodes air.</param>
-    private sealed record Member(AniDB_Anime Anime, AnimeSeries? Series, Airing Airing);
+    /// <param name="Span">Where it is placed in the seasons.</param>
+    private sealed record Member(AniDB_Anime Anime, AnimeSeries? Series, SeasonCalendar.SeasonSpan Span);
 
     /// <summary>
     ///   Every cached anime passing the filters, the cheap ones first, so a
@@ -456,13 +367,15 @@ public class AnidbAnimeCatalog(
     }
 
     /// <summary>
-    ///   The season an anime starts in: the one its first regular episode
-    ///   airs in, by the rule the seasons are listed with.
+    ///   The season an anime starts in, by the rule the seasons are listed
+    ///   with: the one its first regular episode airs in, after an early
+    ///   premiere or a batch drop is accounted for, or the one of its start
+    ///   date without dated regular episodes.
     /// </summary>
     /// <param name="anime">The anime.</param>
-    /// <returns>The season, or <c>null</c> when it has no air dates to go by.</returns>
+    /// <returns>The season, or <c>null</c> when it has no dates to go by.</returns>
     public (int Year, YearlySeason Season)? GetStartSeason(AniDB_Anime anime)
-        => GetAiring(anime, episodeRepository.GetByAnimeID(anime.AnimeID).Where(IsDatedRegular), GetListedSeasons().Last)?.FirstSeason;
+        => anime.SeasonSpan?.StartSeason;
 
     /// <summary>
     ///   The usual length of an anime's regular episodes: the median of

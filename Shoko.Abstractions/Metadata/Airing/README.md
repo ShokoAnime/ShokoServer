@@ -397,7 +397,7 @@ filters (`ProviderIDs`, `Kinds`, `Languages`, `ChannelIDs`) it carries:
 | `IncludeMissing` | An `InclusionFilter` on series in the collection with no local files. |
 | `IncludeRestricted` | An `InclusionFilter` on restricted (H) series. |
 | `User` | Leaves out the series the user may not see. |
-| `IncludeDateOnly` | Adds a date-only entry for each AniDB episode with an air date and no airing at all. A regular episode carrying AniDB's 1970-01-01 placeholder for episodes before 1970, in an anime that started before 1970, takes the earliest pre-1970 date of the episodes linked to it instead. |
+| `IncludeDateOnly` | Adds a date-only entry for each AniDB episode with an air date and no airing at all. An undated regular episode of an anime starting by 1970-01-01 (AniDB gives episodes before 1970 no date, or rarely a 1970-01-01 placeholder), which its anime's start date does not stand in for, takes the earliest pre-1970 date of the episodes linked to it instead. |
 | `NextOnly`, `NextPer` | Keeps the next airing per series, channel and/or kind. |
 
 `GetAiringsInRange` takes a `DateTimeOffset` range, start inclusive and end

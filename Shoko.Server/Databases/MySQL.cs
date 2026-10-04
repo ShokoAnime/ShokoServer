@@ -1687,6 +1687,9 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 294, "ALTER TABLE `Metadata_Ordering` DROP COLUMN `Description`;"),
         new(194, 295, "ALTER TABLE `Metadata_Ordering_Group` DROP COLUMN `Name`;"),
         new(194, 296, "ALTER TABLE `Metadata_Ordering_Group` DROP COLUMN `Description`;"),
+        new(194, 297, "ALTER TABLE `AniDB_Episode` MODIFY `AirDate` INT NULL;"),
+        new(194, 298, "UPDATE `AniDB_Episode` SET `AirDate` = NULL WHERE `AirDate` = 0;"),
+        new(194, 299, DatabaseFixes.RestoreAnidbPlaceholderAirDates),
     ];
 
     #endregion

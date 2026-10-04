@@ -1022,20 +1022,22 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// The date linked to a regular AniDB episode carrying AniDB's 1970-01-01
-    /// placeholder for episodes before 1970, which is stored like a missing
-    /// date: the earliest air date of the episodes linked to it.
+    /// The date linked to an undated regular AniDB episode of an anime
+    /// starting by 1970-01-01, which AniDB gives no date or its 1970-01-01
+    /// placeholder, when its anime's own date does not stand in: the
+    /// earliest pre-1970 air date of the episodes linked to it.
     /// </summary>
     /// <param name="anidbEpisode">The AniDB episode, which has no air date.</param>
-    /// <returns>The date, or <c>null</c> when the anime started in 1970 or later or nothing linked has one.</returns>
+    /// <returns>
+    /// The date, or <c>null</c> when the episode is dated, the anime is not
+    /// known to start by 1970-01-01, or nothing linked has one.
+    /// </returns>
     private DateOnly? GetLinkedAirDate(IAnidbEpisode anidbEpisode)
     {
-        if (anidbEpisode.Type is not EpisodeType.Episode)
-            return null;
-        if (!AnidbLinkedAirDateCache.IsCovered(RepoFactory.AniDB_Anime.GetByAnimeID(anidbEpisode.AnidbAnimeID)?.AirDate))
+        if (RepoFactory.AniDB_Episode.GetByEpisodeID(anidbEpisode.AnidbID) is not { } episode || !AnidbLinkedAirDateCache.IsUndatedPre1970(episode))
             return null;
 
-        return _linkedAirDates.GetAirDate(anidbEpisode.AnidbID);
+        return _linkedAirDates.GetAirDate(episode.EpisodeID);
     }
 
     /// <summary>

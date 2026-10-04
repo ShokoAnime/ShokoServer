@@ -1568,6 +1568,11 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(192, 298, "ALTER TABLE Metadata_Ordering DROP COLUMN Description;"),
         new(192, 299, "ALTER TABLE Metadata_Ordering_Group DROP COLUMN Name;"),
         new(192, 300, "ALTER TABLE Metadata_Ordering_Group DROP COLUMN Description;"),
+        new(192, 301, "DROP INDEX IX_AniDB_Episode_EpisodeType_AirDate ON AniDB_Episode;"),
+        new(192, 302, "ALTER TABLE AniDB_Episode ALTER COLUMN AirDate INT NULL;"),
+        new(192, 303, "CREATE INDEX IX_AniDB_Episode_EpisodeType_AirDate ON AniDB_Episode(EpisodeType, AirDate);"),
+        new(192, 304, "UPDATE AniDB_Episode SET AirDate = NULL WHERE AirDate = 0;"),
+        new(192, 305, DatabaseFixes.RestoreAnidbPlaceholderAirDates),
     ];
 
     #endregion

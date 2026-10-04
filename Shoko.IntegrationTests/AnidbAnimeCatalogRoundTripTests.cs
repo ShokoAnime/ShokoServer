@@ -3,6 +3,7 @@ using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -12,7 +13,7 @@ using Shoko.Server.Services;
 using Xunit;
 
 using AniDBExtensions = Shoko.Server.Providers.AniDB.AniDBExtensions;
-using SeasonRules = Shoko.Server.Extensions.Models;
+using SeasonRules = Shoko.Server.Utilities.SeasonCalendar;
 
 namespace Shoko.IntegrationTests;
 
@@ -85,6 +86,29 @@ public class AnidbAnimeCatalogRoundTripTests(DatabaseMigrationFixture fixture)
         }
     }
 
+    [Fact]
+    public void AMissingEpisodeAirDateIsStoredApartFromThePlaceholder()
+    {
+        Assert.True(fixture.Success, fixture.FailureMessage);
+        var staff = fixture.Services.GetRequiredService<AniDB_Anime_StaffRepository>();
+        var episodes = fixture.Services.GetRequiredService<AniDB_EpisodeRepository>();
+        Clean(staff, null, episodes);
+        try
+        {
+            var undated = Episode(FirstAnimeID, null);
+            var placeholder = Episode(LastAnimeID, new(1970, 1, 1));
+            episodes.Save([undated, placeholder]);
+
+            using var session = fixture.Services.GetRequiredService<DatabaseFactory>().SessionFactory.OpenStatelessSession();
+            Assert.Null(session.Get<AniDB_Episode>(undated.AniDB_EpisodeID).AirDate);
+            Assert.Equal(0, session.Get<AniDB_Episode>(placeholder.AniDB_EpisodeID).AirDate);
+        }
+        finally
+        {
+            Clean(staff, null, episodes);
+        }
+    }
+
     private static bool IsOurs(int animeID)
         => animeID is FirstAnimeID or LastAnimeID;
 
@@ -104,14 +128,14 @@ public class AnidbAnimeCatalogRoundTripTests(DatabaseMigrationFixture fixture)
         };
 #pragma warning restore CS0618
 
-    private static AniDB_Episode Episode(int animeID, DateOnly airDate)
+    private static AniDB_Episode Episode(int animeID, DateOnly? airDate)
         => new()
         {
             EpisodeID = animeID * 10 + 1,
             AnimeID = animeID,
             EpisodeNumber = 1,
             EpisodeType = EpisodeType.Episode,
-            AirDate = AniDBExtensions.GetAniDBDateAsSeconds(airDate.ToDateTime(TimeOnly.MinValue)),
+            AirDate = AniDBExtensions.GetAniDBAirDateAsSeconds(airDate?.ToDateTime(TimeOnly.MinValue)),
             CreatedAt = DateTime.Now,
             DateTimeUpdated = DateTime.Now,
         };

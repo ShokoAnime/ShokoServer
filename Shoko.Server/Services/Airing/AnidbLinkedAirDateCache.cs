@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Events;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Repositories;
 
 #nullable enable
@@ -15,8 +16,9 @@ namespace Shoko.Server.Services.Airing;
 
 /// <summary>
 /// The air dates the date-only entries borrow from linked episodes for the
-/// regular AniDB episodes of anime that started before 1970. AniDB dates
-/// those episodes with its 1970-01-01 placeholder, stored like a missing date.
+/// undated regular AniDB episodes of anime starting by 1970-01-01, which
+/// AniDB gives no date or its 1970-01-01 placeholder, when their anime's
+/// own date does not stand in.
 /// </summary>
 /// <remarks>
 /// Built on the first read that needs it, then kept. A change to an anime's
@@ -75,9 +77,21 @@ internal sealed class AnidbLinkedAirDateCache
     /// Whether an anime starting on a date is one the cache covers.
     /// </summary>
     /// <param name="airDate">The anime's start date, if any.</param>
-    /// <returns><c>true</c> when it started before 1970.</returns>
+    /// <returns><c>true</c> when it is known to start on or before <see cref="Cutoff"/>.</returns>
     public static bool IsCovered(PartialDateOnly? airDate)
-        => airDate is { Year: < 1970 };
+        => airDate is { } date && date.ToDateOnly() <= Cutoff;
+
+    /// <summary>
+    /// Whether an AniDB episode is one the cache dates: a regular episode
+    /// with no date or AniDB's placeholder, of an anime the cache covers,
+    /// that its anime's own date does not date.
+    /// </summary>
+    /// <param name="episode">The AniDB episode.</param>
+    /// <returns><c>true</c> when the cache dates it.</returns>
+    public static bool IsUndatedPre1970(AniDB_Episode episode)
+        => episode is { EpisodeType: EpisodeType.Episode, AirDate: null or 0 } &&
+            IsCovered(episode.AniDB_Anime?.AirDate) &&
+            episode.GetPre1970AirDateFromAnime() is null;
 
     /// <summary>
     /// The earliest date linked to a regular AniDB episode, for an episode
@@ -150,10 +164,14 @@ internal sealed class AnidbLinkedAirDateCache
             else
             {
                 anime = [];
-                foreach (var row in RepoFactory.AniDB_Anime.GetAll())
+                var animeIDs = RepoFactory.AniDB_Episode.GetAll()
+                    .Where(IsUndatedPre1970)
+                    .Select(episode => episode.AnimeID)
+                    .ToHashSet();
+                foreach (var animeID in animeIDs)
                 {
-                    if (IsCovered(row.AirDate) && BuildAnime(row.AnimeID) is { } dates)
-                        anime[row.AnimeID] = dates;
+                    if (BuildAnime(animeID) is { } dates)
+                        anime[animeID] = dates;
                 }
             }
 
@@ -173,7 +191,7 @@ internal sealed class AnidbLinkedAirDateCache
             return null;
 
         var undated = RepoFactory.AniDB_Episode.GetByAnimeID(animeID)
-            .Where(episode => episode.EpisodeType is EpisodeType.Episode && episode.AirDate is 0)
+            .Where(IsUndatedPre1970)
             .Select(episode => episode.EpisodeID)
             .ToHashSet();
         if (undated.Count is 0)
@@ -186,7 +204,7 @@ internal sealed class AnidbLinkedAirDateCache
             if (!undated.Contains(link.AnidbEpisodeID) || link.ProviderID is not { } providerID)
                 continue;
 
-            // A later date is not what the placeholder stands for, and no
+            // A later date is not what the missing date stands for, and no
             // range read starting in 1970 or later looks here.
             linked.Add(providerID);
             if (link.Provider is not IEpisode { AirDate: { } date } || date >= Cutoff)

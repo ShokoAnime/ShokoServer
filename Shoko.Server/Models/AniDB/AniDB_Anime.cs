@@ -27,6 +27,7 @@ using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
+using Shoko.Server.Utilities;
 
 using AnidbRegularAirDates = Shoko.Server.Providers.AniDB.AnidbRegularAirDates;
 using AnidbReleaseStatus = Shoko.Server.Providers.AniDB.AnidbReleaseStatus;
@@ -186,8 +187,56 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
         return result;
     }
 
+    private sealed record YearlySeasonsEntry(
+        DateOnly Today,
+        PartialDateOnly? ReadWith,
+        SeasonCalendar.SeasonSpan? Span,
+        IReadOnlyList<(int Year, YearlySeason Season)> Seasons
+    );
+
+    private YearlySeasonsEntry? _yearlySeasons;
+
+    /// <summary>
+    ///   Where the anime is placed in the yearly seasons, by the rule in
+    ///   <see cref="SeasonCalendar"/>. Cached for the day, or until the anime
+    ///   is imported again or its <see cref="AirDate"/> changes.
+    /// </summary>
+    public SeasonCalendar.SeasonSpan? SeasonSpan
+        => GetYearlySeasonsEntry().Span;
+
+    /// <summary>
+    ///   The yearly seasons the anime aired in, oldest first, up to the
+    ///   season under way, by the rule in <see cref="SeasonCalendar"/>.
+    ///   Cached like <see cref="SeasonSpan"/>.
+    /// </summary>
     public IReadOnlyList<(int Year, YearlySeason Season)> YearlySeasons
-        => [.. AirDate.GetYearlySeasons(this.EffectiveEndDateForSeasons)];
+        => GetYearlySeasonsEntry().Seasons;
+
+    /// <summary>
+    ///   The cached season span and seasons, worked out again on a new day
+    ///   or after a reset.
+    /// </summary>
+    /// <returns>The entry.</returns>
+    private YearlySeasonsEntry GetYearlySeasonsEntry()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var airDate = AirDate;
+        if (Volatile.Read(ref _yearlySeasons) is { } cached && cached.Today == today && cached.ReadWith == airDate)
+            return cached;
+
+        var span = SeasonCalendar.GetSpan(this, AniDBEpisodes, today);
+        var value = new YearlySeasonsEntry(today, airDate, span, SeasonCalendar.GetSeasons(span, SeasonCalendar.GetYearlySeason(today, AnimeType)));
+        Volatile.Write(ref _yearlySeasons, value);
+        return value;
+    }
+
+    /// <summary>
+    ///   Clears the cached <see cref="SeasonSpan"/> and
+    ///   <see cref="YearlySeasons"/>, for after the anime or its episodes
+    ///   were imported again.
+    /// </summary>
+    public void ResetYearlySeasons()
+        => Volatile.Write(ref _yearlySeasons, null);
 
     public List<CustomTag> CustomTags
         => RepoFactory.CustomTag.GetByAnimeID(AnimeID);
@@ -316,10 +365,16 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
                 episodes.Select(tuple => (tuple.Episode.EpisodeNumber, tuple.AirDate!.Value)),
                 airDate is { IsComplete: true } complete ? complete.ToDateOnly() : null
             );
-            var byNumber = episodes
-                .GroupBy(tuple => tuple.Episode.EpisodeNumber)
-                .ToDictionary(group => group.Key, group => group.First().Episode.EpisodeID);
-            var moved = reading.Episodes.ToDictionary(episode => byNumber[episode.EpisodeNumber], episode => (episode.Stored, episode.Regular));
+            var moved = new Dictionary<int, (DateOnly Stored, DateOnly Regular)>();
+            if (reading.Episodes.Count > 0)
+            {
+                var byNumber = episodes
+                    .GroupBy(tuple => tuple.Episode.EpisodeNumber)
+                    .ToDictionary(group => group.Key, group => group.First().Episode.EpisodeID);
+                foreach (var episode in reading.Episodes)
+                    moved.Add(byNumber[episode.EpisodeNumber], (episode.Stored, episode.Regular));
+            }
+
             var value = new RegularAirDatesEntry(airDate, moved);
             Volatile.Write(ref _regularAirDates, value);
             return value;

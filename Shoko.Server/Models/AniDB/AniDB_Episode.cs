@@ -54,7 +54,11 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 
     public string Description { get; set; } = string.Empty;
 
-    public int AirDate { get; set; }
+    /// <summary>
+    ///   When the episode aired, in seconds since 1970-01-01: <c>null</c> when
+    ///   AniDB gave no date, and <c>0</c> for AniDB's 1970-01-01 placeholder.
+    /// </summary>
+    public int? AirDate { get; set; }
 
     /// <summary>
     ///   When the episode was first stored locally. Set once and never changed.
@@ -105,11 +109,56 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
     public ITitle? GetPreferredTitle(bool useFallback)
         => AnidbText.Present(TextAccess.Manager.PreferredTitleFor(this)) ?? (useFallback ? DefaultTitle : null);
 
-    public DateTime? GetAirDateAsDate() => AniDBExtensions.GetAniDBDateAsDate(AirDate);
+    /// <summary>
+    ///   Whether the episode carries AniDB's 1970-01-01 placeholder, which AniDB
+    ///   gives episodes that aired before 1970, rather than a real date.
+    /// </summary>
+    public bool HasPlaceholderAirDate => AirDate == 0;
 
-    public DateOnly? GetAirDateAsDateOnly() => AniDBExtensions.GetAniDBDateAsDateOnly(AirDate);
+    /// <summary>
+    ///   The date of an undated episode before 1970, from the anime's own
+    ///   date. AniDB gives episodes before 1970 no date, or rarely its
+    ///   1970-01-01 placeholder, so the only regular episode of an anime that
+    ///   started on a known day by 1970-01-01 aired that day. Every air date
+    ///   reader goes through this.
+    /// </summary>
+    /// <returns>
+    ///   The anime's start date, or <c>null</c> when the episode has a real
+    ///   date, or is not its anime's only regular episode, or the anime's
+    ///   date is partial or after 1970-01-01.
+    /// </returns>
+    public DateOnly? GetPre1970AirDateFromAnime()
+        => EpisodeType is EpisodeType.Episode &&
+            AirDate is null or <= 0 &&
+            AniDB_Anime is { AirDate: { IsComplete: true } animeDate } anime &&
+            animeDate.ToDateOnly() <= DateOnly.FromDateTime(DateTime.UnixEpoch) &&
+            anime.AniDBEpisodes.Count(episode => episode.EpisodeType is EpisodeType.Episode) is 1
+                ? animeDate.ToDateOnly()
+                : null;
 
-    public PartialDateOnly? GetAirDateAsPartialDateOnly() => AniDBExtensions.GetAniDBDateAsPartialDateOnly(AirDate);
+    /// <summary>
+    ///   When the episode aired, an undated episode before 1970 dated by
+    ///   <see cref="GetPre1970AirDateFromAnime"/>.
+    /// </summary>
+    /// <returns>The date, or <c>null</c> when the episode is undated.</returns>
+    public DateTime? GetAirDateAsDate()
+        => GetPre1970AirDateFromAnime() is { } animeDate ? animeDate.ToDateTime(TimeOnly.MinValue) : AniDBExtensions.GetAniDBDateAsDate(AirDate);
+
+    /// <summary>
+    ///   The day the episode aired, an undated episode before 1970 dated by
+    ///   <see cref="GetPre1970AirDateFromAnime"/>.
+    /// </summary>
+    /// <returns>The day, or <c>null</c> when the episode is undated.</returns>
+    public DateOnly? GetAirDateAsDateOnly()
+        => GetAirDateAsDate() is { } date ? DateOnly.FromDateTime(date) : null;
+
+    /// <summary>
+    ///   The day the episode aired as a partial date, an undated episode
+    ///   before 1970 dated by <see cref="GetPre1970AirDateFromAnime"/>.
+    /// </summary>
+    /// <returns>The date, or <c>null</c> when the episode is undated.</returns>
+    public PartialDateOnly? GetAirDateAsPartialDateOnly()
+        => GetAirDateAsDate() is { } date ? PartialDateOnly.FromDateTime(date) : null;
 
     /// <summary>
     ///   When the episode was regularly broadcast: the stored date, unless the

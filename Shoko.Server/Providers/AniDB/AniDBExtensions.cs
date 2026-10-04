@@ -1,23 +1,22 @@
 using System;
-using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Providers.AniDB;
 
 public static class AniDBExtensions
 {
-    public static DateTime? GetAniDBDateAsDate(int secs)
+    /// <summary>
+    ///   Converts AniDB's unix seconds to a date. <c>0</c> is AniDB's
+    ///   1970-01-01 placeholder for a date before 1970, so it gives no date.
+    /// </summary>
+    /// <param name="secs">The seconds, or <c>null</c> when there is no date.</param>
+    /// <returns>The date, or <c>null</c> for no date and for the placeholder.</returns>
+    public static DateTime? GetAniDBDateAsDate(int? secs)
     {
-        if (secs == 0) return null;
+        if (secs is not { } seconds || seconds == 0) return null;
         var thisDate = new DateTime(1970, 1, 1, 0, 0, 0);
-        thisDate = thisDate.AddSeconds(secs);
+        thisDate = thisDate.AddSeconds(seconds);
         return thisDate;
     }
-
-    public static DateOnly? GetAniDBDateAsDateOnly(int secs)
-        => GetAniDBDateAsDate(secs) is { } date ? DateOnly.FromDateTime(date) : null;
-
-    public static PartialDateOnly? GetAniDBDateAsPartialDateOnly(int secs)
-        => GetAniDBDateAsDate(secs) is { Year: > 0, Month: > 0, Day: > 0 } date ? PartialDateOnly.FromDateTime(date) : null;
 
     /// <summary>
     /// Drops sub-second precision, which the AniDB wire format — unix seconds —
@@ -50,4 +49,14 @@ public static class AniDBExtensions
 
         return (int)(date - DateTime.UnixEpoch).TotalSeconds;
     }
+
+    /// <summary>
+    ///   Converts an episode's air date to the unix seconds it is stored as,
+    ///   as <see cref="GetAniDBDateAsSeconds"/> does, but keeps a missing date
+    ///   apart from AniDB's 1970-01-01 placeholder.
+    /// </summary>
+    /// <param name="airDate">The air date, or <c>null</c> when AniDB gave none.</param>
+    /// <returns>The seconds, <c>0</c> for the placeholder, or <c>null</c> when there is no date.</returns>
+    public static int? GetAniDBAirDateAsSeconds(DateTime? airDate)
+        => airDate is { } date ? GetAniDBDateAsSeconds(date) : null;
 }

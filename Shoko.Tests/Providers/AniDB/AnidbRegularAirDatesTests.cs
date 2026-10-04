@@ -218,6 +218,56 @@ public class AnidbRegularAirDatesTests
         AssertMoved(reading, (1, "2012-04-08"), (2, "2012-04-15"));
     }
 
+    private const string ShinyColors2 =
+        "Note: It received an advance screening in theatres in three parts with episodes 1-4 having aired on 5 July 2024, " +
+        "episodes 5-8 on 23 August 2024, and episodes 9-12 on 20 September 2024. The regular TV broadcast started on 5 October 2024.";
+
+    private static List<(int, DateOnly)> InParts(params string[] dates)
+        => [.. Enumerable.Range(0, 12).Select(index => (index + 1, DateOnly.Parse(dates[index * dates.Length / 12])))];
+
+    // The Idolmaster Shiny Colors 2nd Season (18523) and Million Live! (15625):
+    // the whole run was screened in three parts before the TV broadcast.
+    [Theory]
+    [InlineData(
+        ShinyColors2,
+        "2024-07-05",
+        "2024-08-23",
+        "2024-09-20",
+        "2024-10-05"
+    )]
+    [InlineData(
+        "Note: It received an advance screening in theatres in three parts with episodes 1-4 having aired on August 18, 2023, " +
+        "episodes 5-8 on September 8, 2023, and episodes 9-12 on September 29, 2023. The regular TV broadcast started on October 8, 2023.",
+        "2023-08-18",
+        "2023-09-08",
+        "2023-09-29",
+        "2023-10-08"
+    )]
+    public void Rule1_PacesEveryEpisodeOfAScreeningInParts(string note, string first, string second, string third, string regular)
+    {
+        var reading = AnidbRegularAirDates.Read(note, AnimeType.TVSeries, InParts(first, second, third));
+        Assert.Equal(Outcome.Corrected, reading.Outcome);
+        Assert.Equal(Weekly(DateOnly.Parse(regular), 12), reading.Episodes.Select(episode => (episode.EpisodeNumber, episode.Regular)));
+    }
+
+    [Fact]
+    public void Rule1_PacesEveryEpisodeOfASingleScreening()
+    {
+        var reading = AnidbRegularAirDates.Read(
+            "Note: Episodes 1-12 received an advance screening on 5 July 2024. The regular TV broadcast started on 5 October 2024.",
+            AnimeType.TVSeries,
+            InParts("2024-07-05")
+        );
+        Assert.Equal(Weekly(new(2024, 10, 5), 12), reading.Episodes.Select(episode => (episode.EpisodeNumber, episode.Regular)));
+    }
+
+    [Fact]
+    public void Rule1_SkipsPartsTheStoredDatesDisagreeWith()
+    {
+        var reading = AnidbRegularAirDates.Read(ShinyColors2, AnimeType.TVSeries, InParts("2024-07-05", "2024-08-30", "2024-09-20"));
+        Assert.Equal(Outcome.TooManyEarly, reading.Outcome);
+    }
+
     // Spider Riders (4242): no regular start named, three counted early
     // episodes set apart from the weekly run by a month.
     [Fact]

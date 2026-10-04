@@ -75,7 +75,7 @@ public class AnimeSeriesStatsTests
                     AnimeID = AnimeID,
                     EpisodeNumber = spec.Number,
                     EpisodeType = spec.Type,
-                    AirDate = spec.UnknownAirDate ? 0 : (int)((spec.AirsAt ?? s_aired) - new DateTime(1970, 1, 1)).TotalSeconds,
+                    AirDate = spec.UnknownAirDate ? null : (int)((spec.AirsAt ?? s_aired) - new DateTime(1970, 1, 1)).TotalSeconds,
                 });
                 shokoEpisodes.Add(new AnimeEpisode
                 {

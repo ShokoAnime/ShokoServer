@@ -11,9 +11,9 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.Metadata;
@@ -261,7 +261,22 @@ public class Metadata_Series : ISeries<ISeries, IEpisode>, IMetadataStoreRow<Met
 
     #region IWithYearlySeasons Implementation
 
-    IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons => [.. AirDate.GetYearlySeasons(EndDate)];
+    IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons
+    {
+        get
+        {
+            var episodes = RepoFactory.Metadata_Episode.GetBySeriesID(Source, ProviderID);
+            var dated = episodes.Where(episode => episode.AirDate.HasValue).ToList();
+            var span = SeasonCalendar.GetSpan(
+                Type,
+                dated.Where(episode => episode.Type is EpisodeType.Episode).Select(episode => episode.AirDate!.Value),
+                AirDate,
+                EndDate,
+                dated.Select(episode => episode.AirDate!.Value)
+            );
+            return SeasonCalendar.GetSeasons(span);
+        }
+    }
 
     #endregion
 

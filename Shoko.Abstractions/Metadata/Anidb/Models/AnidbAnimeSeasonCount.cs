@@ -8,7 +8,7 @@ namespace Shoko.Abstractions.Metadata.Anidb.Models;
 /// </summary>
 /// <param name="Year">The year.</param>
 /// <param name="Season">The season.</param>
-/// <param name="Count">How many cached anime have a regular episode airing in the season.</param>
+/// <param name="Count">How many cached anime are in the season.</param>
 /// <param name="IsCurrent">Whether the season is the one under way today.</param>
 /// <param name="Poster">
 ///   The poster of the best ranked anime starting in the season that has

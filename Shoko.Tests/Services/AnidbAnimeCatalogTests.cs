@@ -31,7 +31,7 @@ using Xunit;
 
 using AniDBExtensions = Shoko.Server.Providers.AniDB.AniDBExtensions;
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
-using SeasonRules = Shoko.Server.Extensions.Models;
+using SeasonRules = Shoko.Server.Utilities.SeasonCalendar;
 
 namespace Shoko.Tests.Services;
 
@@ -52,7 +52,8 @@ public class AnidbAnimeCatalogTests
         AnimeType type = AnimeType.TVSeries,
         bool restricted = false,
         int rating = 0,
-        int votes = 0
+        int votes = 0,
+        PartialDateOnly? endDate = null
     )
         => new()
         {
@@ -60,6 +61,7 @@ public class AnidbAnimeCatalogTests
             AnimeID = id,
             MainTitle = title,
             AirDate = airDate,
+            EndDate = endDate,
             AnimeType = type,
             IsRestricted = restricted,
             Rating = rating,
@@ -81,7 +83,7 @@ public class AnidbAnimeCatalogTests
             AnimeID = animeID,
             EpisodeNumber = number,
             EpisodeType = type,
-            AirDate = date is { } day ? AniDBExtensions.GetAniDBDateAsSeconds(day.ToDateTime(TimeOnly.MinValue)) : 0,
+            AirDate = date is { } day ? AniDBExtensions.GetAniDBDateAsSeconds(day.ToDateTime(TimeOnly.MinValue)) : null,
         };
 
     private static DateOnly Day(int year, int month, int day)
@@ -121,9 +123,10 @@ public class AnidbAnimeCatalogTests
         {
             var animeTagRepository = CachedRepo.Build<AniDB_Anime_TagRepository, int, AniDB_Anime_Tag>(xref => xref.AniDB_Anime_TagID, animeTags);
             var tagRepository = CachedRepo.Build<AniDB_TagRepository, int, AniDB_Tag>(tag => tag.AniDB_TagID, tags);
-            // The anime read their episodes through it for their regular air dates.
+            // The anime read their episodes through it for their regular air dates, and the episodes their anime.
             var episodeRepository = CachedRepo.Build<AniDB_EpisodeRepository, int, AniDB_Episode>(episode => episode.AniDB_EpisodeID, episodes);
-            _scope.Set(animeTagRepository).Set(tagRepository).Set(episodeRepository);
+            var animeRepository = CachedRepo.Build<AniDB_AnimeRepository, int, AniDB_Anime>(entry => entry.AniDB_AnimeID, anime);
+            _scope.Set(animeTagRepository).Set(tagRepository).Set(episodeRepository).Set(animeRepository);
 
             var staffList = staff?.ToList() ?? [];
             var staffRepository = new Mock<AniDB_Anime_StaffRepository>(new object[1]);
@@ -159,7 +162,7 @@ public class AnidbAnimeCatalogTests
             Catalog = new ImageCatalog(
                 withPosters ?? new HashSet<int>(),
                 withBackdrops ?? new HashSet<int>(),
-                CachedRepo.Build<AniDB_AnimeRepository, int, AniDB_Anime>(entry => entry.AniDB_AnimeID, anime),
+                animeRepository,
                 episodeRepository,
                 CachedRepo.Build<AnimeSeriesRepository, int, AnimeSeries>(entry => entry.AnimeSeriesID, series),
                 staffRepository.Object,
@@ -228,7 +231,7 @@ public class AnidbAnimeCatalogTests
             // Its own date says Spring, its episodes say Summer.
             Anime(5, "Echo", Date(2015, 4, 1)),
             // Dated, but its episodes are not.
-            Anime(6, "Foxtrot", Date(2015, 6, 2)),
+            Anime(6, "Foxtrot", Date(2015, 5, 12), endDate: Date(2015, 5, 30)),
             Anime(7, "Golf", null),
         ];
 
@@ -238,7 +241,7 @@ public class AnidbAnimeCatalogTests
             // Spring 2015 only.
             .. Episodes(1, Day(2015, 4, 10), Day(2015, 5, 10), Day(2015, 5, 24)),
             // Summer and Fall 2015, a show running across both.
-            .. Episodes(2, Day(2015, 7, 5), Day(2015, 8, 10), Day(2015, 10, 20), Day(2015, 12, 1)),
+            .. Episodes(2, Day(2015, 7, 5), Day(2015, 8, 10), Day(2015, 10, 20)),
             // Fall 2015.
             .. Episodes(3, Day(2015, 10, 10)),
             // Winter 2016.
@@ -246,9 +249,9 @@ public class AnidbAnimeCatalogTests
             // Summer 2015, its Spring special left out.
             .. Episodes(5, Day(2015, 7, 10)),
             Episode(5, 1, Day(2015, 4, 1), EpisodeType.Special),
-            // Undated regular episodes and a dated special: in no season.
+            // Undated regular episodes and a dated special: by its own dates, Spring 2015.
             .. Episodes(6, null, null),
-            Episode(6, 1, Day(2015, 6, 2), EpisodeType.Special),
+            Episode(6, 1, Day(2015, 5, 12), EpisodeType.Special),
         ];
 
     private static Harness PastHarness(IReadOnlySet<int>? withPosters = null)
@@ -265,12 +268,12 @@ public class AnidbAnimeCatalogTests
     #region Seasons Filter
 
     [Theory]
-    [InlineData(2015, YearlySeason.Spring, new[] { 1 })]
+    [InlineData(2015, YearlySeason.Spring, new[] { 1, 6 })]
     [InlineData(2015, YearlySeason.Summer, new[] { 2, 5 })]
     [InlineData(2015, YearlySeason.Fall, new[] { 2, 3 })]
     [InlineData(2016, YearlySeason.Winter, new[] { 4 })]
     [InlineData(2014, YearlySeason.Fall, new int[0])]
-    public void Seasons_OneSeason_TakesTheAnimeWithARegularEpisodeAiringInIt(int year, YearlySeason season, int[] expected)
+    public void Seasons_OneSeason_TakesTheAnimeInIt(int year, YearlySeason season, int[] expected)
     {
         using var harness = PastHarness();
 
@@ -284,7 +287,7 @@ public class AnidbAnimeCatalogTests
 
         var ids = harness.IDs(InSeasons((2015, YearlySeason.Spring), (2016, YearlySeason.Winter)));
 
-        Assert.Equal([1, 4], ids.Order());
+        Assert.Equal([1, 4, 6], ids.Order());
     }
 
     [Fact]
@@ -436,7 +439,7 @@ public class AnidbAnimeCatalogTests
                 (2016, YearlySeason.Winter, 1),
                 (2015, YearlySeason.Fall, 2),
                 (2015, YearlySeason.Summer, 2),
-                (2015, YearlySeason.Spring, 1),
+                (2015, YearlySeason.Spring, 2),
             ],
             seasons
         );
@@ -445,13 +448,13 @@ public class AnidbAnimeCatalogTests
     }
 
     [Fact]
-    public void GetSeasons_AnimeWithoutDatedRegularEpisodes_IsInNoSeason()
+    public void GetSeasons_AnimeWithoutDatedRegularEpisodes_GoesByItsOwnDates()
     {
         using var harness = new Harness([PastAnime()[5], PastAnime()[6]], PastEpisodes().Where(episode => episode.AnimeID == 6));
 
-        var season = Assert.Single(harness.Catalog.GetSeasons());
+        var seasons = harness.Catalog.GetSeasons().Where(season => season.Count > 0).Select(season => (season.Year, season.Season, season.Count));
 
-        Assert.Equal(new AnidbAnimeSeasonCount(CurrentSeason().Year, CurrentSeason().Season, 0, true), season);
+        Assert.Equal([(2015, YearlySeason.Spring, 1)], seasons);
     }
 
     [Fact]
@@ -464,6 +467,17 @@ public class AnidbAnimeCatalogTests
         var seasons = harness.Catalog.GetSeasons().Where(season => season.Count > 0).Select(season => (season.Year, season.Season));
 
         Assert.Equal([(1965, YearlySeason.Summer), (1965, YearlySeason.Spring)], seasons);
+    }
+
+    [Fact]
+    public void GetSeasons_APlaceholderTheAnimesDateStandsIn_CountsAsDated()
+    {
+        // A single episode on 1970-01-01 is stored as AniDB's placeholder, 0.
+        using var harness = new Harness([Anime(1, "Epoch", Date(1970, 1, 1))], Episodes(1, Day(1970, 1, 1)));
+
+        var seasons = harness.Catalog.GetSeasons().Where(season => season.Count > 0).Select(season => (season.Year, season.Season));
+
+        Assert.Equal([SeasonRules.GetYearlySeason(Day(1970, 1, 1))], seasons);
     }
 
     [Fact]
@@ -492,15 +506,6 @@ public class AnidbAnimeCatalogTests
         Assert.Equal([(2015, YearlySeason.Fall)], seasons.Select(season => (season.Year, season.Season)));
     }
 
-    [Theory]
-    [InlineData(2026, 10, 4, 2026, YearlySeason.Fall)]
-    [InlineData(2026, 12, 1, 2026, YearlySeason.Fall)]
-    [InlineData(2026, 12, 2, 2027, YearlySeason.Winter)]
-    [InlineData(2026, 3, 1, 2026, YearlySeason.Winter)]
-    [InlineData(2026, 3, 2, 2026, YearlySeason.Spring)]
-    public void GetYearlySeason_SwitchesAtEachBufferedStart(int year, int month, int day, int expectedYear, YearlySeason expectedSeason)
-        => Assert.Equal((expectedYear, expectedSeason), SeasonRules.GetYearlySeason(new DateOnly(year, month, day)));
-
     #endregion
 
     #region Season Images
@@ -526,17 +531,27 @@ public class AnidbAnimeCatalogTests
         Assert.All(harness.Catalog.GetSeasons(includeImages: true).Where(season => season.Count > 0), season => Assert.NotNull(season.Poster));
     }
 
-    [Fact]
-    public void GetSeasons_Images_OnlyFromAnimeStartingInTheSeason()
+    [Theory]
+    [InlineData(new[] { 1, 2, 3 }, 2)]
+    [InlineData(new[] { 1, 3 }, 1)]
+    [InlineData(new[] { 3 }, 3)]
+    public void GetSeasons_Images_FromStartersFirst_ThenTheNewestCarryOvers(int[] withPosters, int expected)
     {
-        AniDB_Anime[] anime = [Anime(1, "Carried Over", null, rating: 900, votes: 10_000), Anime(2, "New", null, rating: 500, votes: 10)];
-        AniDB_Episode[] episodes = [.. Episodes(1, Day(2015, 7, 5), Day(2015, 10, 20)), .. Episodes(2, Day(2015, 10, 10))];
+        AniDB_Anime[] anime =
+        [
+            Anime(1, "Carried Over", null, rating: 700, votes: 1_000),
+            Anime(2, "New", null, rating: 500, votes: 10),
+            Anime(3, "Carried Over Longer", null, rating: 900, votes: 10_000),
+        ];
+        AniDB_Episode[] episodes =
+        [
+            .. Episodes(1, Day(2015, 7, 5), Day(2015, 10, 20)),
+            .. Episodes(2, Day(2015, 10, 10)),
+            .. Episodes(3, Day(2015, 4, 10), Day(2015, 7, 10), Day(2015, 10, 15)),
+        ];
+        using var harness = new Harness(anime, episodes, withPosters: withPosters.ToHashSet());
 
-        using (var harness = new Harness(anime, episodes, withPosters: new HashSet<int> { 1, 2 }))
-            Assert.Equal(PosterID(2), ImagesOf(harness, (2015, YearlySeason.Fall)).Poster);
-
-        using (var harness = new Harness(anime, episodes, withPosters: new HashSet<int> { 1 }))
-            Assert.Null(ImagesOf(harness, (2015, YearlySeason.Fall)).Poster);
+        Assert.Equal(PosterID(expected), ImagesOf(harness, (2015, YearlySeason.Fall)).Poster);
     }
 
     [Fact]
@@ -740,11 +755,12 @@ public class AnidbAnimeCatalogTests
     }
 
     [Fact]
-    public void Details_StartSeason_SentAsNullWithoutEpisodeDates_AndOnlyWhenAsked()
+    public void Details_StartSeason_SentAsNullWithoutDates_AndOnlyWhenAsked()
     {
-        using var harness = DetailsHarness();
+        using (var undated = new Harness([Anime(1, "Alpha", null)]))
+            Assert.Contains("\"StartSeason\":null", JsonConvert.SerializeObject(Apply(undated, 1, 5, AnidbAnime.IncludeDetails.StartSeason)));
 
-        Assert.Contains("\"StartSeason\":null", JsonConvert.SerializeObject(Apply(harness, 2, 5, AnidbAnime.IncludeDetails.StartSeason)));
+        using var harness = DetailsHarness();
         Assert.DoesNotContain("StartSeason", JsonConvert.SerializeObject(Apply(harness, 1, 5)));
     }
 

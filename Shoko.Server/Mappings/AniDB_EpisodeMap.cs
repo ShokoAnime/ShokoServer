@@ -13,7 +13,7 @@ public class AniDB_EpisodeMap : ClassMap<AniDB_Episode>
         Not.LazyLoad();
         Id(x => x.AniDB_EpisodeID);
 
-        Map(x => x.AirDate).Not.Nullable();
+        Map(x => x.AirDate);
         Map(x => x.AnimeID).Not.Nullable();
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.DateTimeUpdated).Not.Nullable();

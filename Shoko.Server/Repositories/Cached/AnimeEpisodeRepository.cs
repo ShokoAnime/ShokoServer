@@ -229,7 +229,7 @@ FROM AnimeEpisode AE
 INNER JOIN AniDB_Episode ADBE ON AE.AniDB_EpisodeID = ADBE.EpisodeID
 WHERE AE.IsHidden = 0
   AND ADBE.EpisodeType = 1
-  AND (ADBE.AirDate = 0 OR ADBE.AirDate < :currentTime)
+  AND (ADBE.AirDate IS NULL OR ADBE.AirDate < :currentTime)
   AND NOT EXISTS (SELECT 1 FROM CrossRef_File_Episode CFE WHERE CFE.EpisodeID = ADBE.EpisodeID)
   AND EXISTS (
       SELECT 1 FROM AniDB_GroupStatus GS
@@ -254,7 +254,7 @@ FROM AnimeEpisode AE
 INNER JOIN AniDB_Episode ADBE ON AE.AniDB_EpisodeID = ADBE.EpisodeID
 WHERE AE.IsHidden = 0
   AND ADBE.EpisodeType = 1
-  AND (ADBE.AirDate = 0 OR ADBE.AirDate < :currentTime)
+  AND (ADBE.AirDate IS NULL OR ADBE.AirDate < :currentTime)
   AND ADBE.AnimeID = :animeID
   AND NOT EXISTS (SELECT 1 FROM CrossRef_File_Episode CFE WHERE CFE.EpisodeID = ADBE.EpisodeID)
   AND EXISTS (
@@ -302,7 +302,7 @@ WHERE AE.IsHidden = 0
         // Load AniDB episodes from cache for the non-collecting path
         var anidbEpisodes = RepoFactory.AniDB_Episode.GetAll()
             .Where(a => a.EpisodeType == EpisodeType.Episode)
-            .Where(a => a.AirDate == 0 || a.AirDate < currentTime)
+            .Where(a => a.AirDate is null || a.AirDate < currentTime)
             .ToDictionary(a => a.EpisodeID);
 
         // Filter Shoko episodes by valid AniDB episode and optional anime ID

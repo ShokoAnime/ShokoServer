@@ -110,9 +110,9 @@ public sealed class EpisodeAiringFilteringOptions
     ///   <see cref="AiringKind.Original"/> showing in no particular language,
     ///   so a <see cref="ProviderIDs"/>, <see cref="ChannelIDs"/> or
     ///   <see cref="Languages"/> filter leaves it out. Schedule reads never
-    ///   return one. A regular episode carrying AniDB's 1970-01-01 placeholder
-    ///   for episodes before 1970, in an anime that started before 1970, takes
-    ///   the earliest pre-1970 air date of the episodes linked to it.
+    ///   return one. An undated regular episode of an anime starting by
+    ///   1970-01-01, which its anime's start date does not stand in for,
+    ///   takes the earliest pre-1970 air date of its linked episodes.
     /// </remarks>
     public bool IncludeDateOnly { get; set; }
 

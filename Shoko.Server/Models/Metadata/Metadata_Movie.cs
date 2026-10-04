@@ -11,9 +11,9 @@ using Shoko.Abstractions.Metadata.Image.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Video;
-using Shoko.Server.Extensions;
 using Shoko.Server.Models.Metadata.Embedded;
 using Shoko.Server.Repositories;
+using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
 namespace Shoko.Server.Models.Metadata;
@@ -230,7 +230,14 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>, IMetada
 
     #region IWithYearlySeasons Implementation
 
-    IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons => [.. ReleasedAt.GetYearlySeasons(ReleasedAt)];
+    IReadOnlyList<(int Year, YearlySeason Season)> IWithYearlySeasons.YearlySeasons
+    {
+        get
+        {
+            var released = PartialDateOnly.FromDateOnly(ReleasedAt);
+            return SeasonCalendar.GetSeasons(SeasonCalendar.GetSpan(AnimeType.Movie, [], released, released));
+        }
+    }
 
     #endregion
 

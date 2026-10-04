@@ -47,8 +47,8 @@ public class EpisodeAiring
 
     /// <summary>
     /// The AniDB air date of a date-only entry, or the linked one standing in
-    /// for AniDB's pre-1970 placeholder, a calendar date in no particular time
-    /// zone, or <c>null</c> for an airing with a time.
+    /// for an undated episode before 1970, a calendar date in no particular
+    /// time zone, or <c>null</c> for an airing with a time.
     /// </summary>
     public DateOnly? AirDate { get; init; }
 

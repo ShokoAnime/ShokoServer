@@ -85,7 +85,10 @@ public class Series : BaseModel
     public List<DayOfWeek> AirsOn { get; set; }
 
     /// <summary>
-    /// The yearly seasons this series belongs to.
+    /// The yearly seasons this series belongs to: the season it starts in,
+    /// then every calendar quarter holding one of its regular episodes up
+    /// to the fourth from the end, or, without dated episodes, every season
+    /// to the quarter three weeks before its end date.
     /// </summary>
     [Required]
     public List<SeasonWithYear> YearlySeasons { get; set; }
