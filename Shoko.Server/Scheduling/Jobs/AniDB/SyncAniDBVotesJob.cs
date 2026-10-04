@@ -23,6 +23,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBHttpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+[JobPriority(Default = 0, Prioritized = 50)]
 public class SyncAniDBVotesJob(IRequestFactory requestFactory, IQueueScheduler scheduler, IUserDataService userDataService, ISettingsProvider settingsProvider, AnimeEpisodeRepository animeEpisodes, AnimeEpisode_UserRepository animeEpisodeUsers, AnimeSeriesRepository animeSeries, AnimeSeries_UserRepository animeSeriesUsers, JMMUserRepository jmmUsers) : BaseJob
 {
     public override string TypeName => "Import AniDB Votes";

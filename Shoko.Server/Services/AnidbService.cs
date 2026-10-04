@@ -653,7 +653,7 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
             // Request an image download
             await UpsertAndScheduleImageForEntity(anime, anime.Picname!, isDesired: true, forceDownload: false).ConfigureAwait(false);
             if (series is not null)
-                await _scheduler.RunAfterCurrent<GetAniDBImagesJob>(c => c.AnimeID = job.AnimeID).ConfigureAwait(false);
+                await _scheduler.RunAfterCurrent<GetAniDBImagesJob>(c => (c.AnimeID, c.IsNew) = (job.AnimeID, isNew || seriesIsNew)).ConfigureAwait(false);
 
             // Emit anidb anime updated event.
             if (isNew || isUpdated || animeEpisodeChanges.Count > 0)

@@ -144,9 +144,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             pool.TryRegisterExecuting = TryRegisterExecuting;
             pool.IsDetached = job => _detachedJobIds.TryRemove(job.Id, out _);
 
-            // Capture pool reference for the closure. Skip the check for highest-priority pools.
             var capturedPool = pool;
-            pool.ShouldAttemptAcquisition = () => ShouldPoolAttemptAcquisition(capturedPool);
+            pool.AcquisitionFloor = () => GetAcquisitionFloor(capturedPool);
         }
 
         var activeCount = 0;
@@ -359,10 +358,26 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
             if (mergedJson != null)
                 _persistenceBuffer.OnUpdate(existingId, mergedJson);
-            if (context.Job.Priority > 0 && pool.TryPromotePriority(context.Job.JobKey, context.Job.Priority))
-                if (!_paused) pool.Signal();
+            RaiseWaiting(pool, existingId, context.Job.Priority);
             break;
         }
+    }
+
+    /// <summary>
+    /// Raises a waiting job to <paramref name="priority"/> when that is higher, saves the raise
+    /// through the persistence buffer and wakes the pool. Runs outside <see cref="_gate"/>: a
+    /// job acquired meanwhile has left the pool, so it is never touched.
+    /// </summary>
+    /// <param name="pool">The pool the job waits in.</param>
+    /// <param name="id">The ID of the job.</param>
+    /// <param name="priority">The priority to raise it to.</param>
+    private void RaiseWaiting(WorkerPool pool, Guid id, int priority)
+    {
+        if (pool.TryRaisePriority(id, priority) is not { } raised)
+            return;
+
+        _persistenceBuffer.OnRaisePriority(raised.Id, raised.Priority, raised.ScheduledAt);
+        if (!_paused) pool.Signal();
     }
 
     /// <summary>
@@ -382,6 +397,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
         var isExisting = false;
         var shouldUpgrade = false;
+        var shouldRaise = false;
         var upgradeId = Guid.Empty;
         lock (_gate)
         {
@@ -396,6 +412,12 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                         upgradeId = existingId;
                     }
                 }
+                else if (!_executingSet.ContainsKey(existingId))
+                {
+                    // A deferred job is held outside the pools and released at Immediate, so only its pool is tried.
+                    shouldRaise = true;
+                    upgradeId = existingId;
+                }
             }
             else
             {
@@ -409,6 +431,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
         {
             if (shouldUpgrade)
                 TryUpgradeWaiting(upgradeId, context);
+            else if (shouldRaise)
+                RaiseWaiting(pool, upgradeId, job.Priority);
             return Task.CompletedTask;
         }
 
@@ -510,6 +534,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
 
         TaskCompletionSource<bool> tcs;
         var action = ImmediateAction.Enqueue;
+        var promoteId = Guid.Empty;
 
         lock (_gate)
         {
@@ -531,6 +556,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
             else
             {
                 action = ImmediateAction.Promote;
+                promoteId = existingId;
             }
         }
 
@@ -547,14 +573,8 @@ public sealed class QueueOrchestrator : IAsyncDisposable
                 break;
 
             case ImmediateAction.Promote:
-                foreach (var p in _allPools)
-                {
-                    if (p.TryPromotePriority(job.JobKey, int.MaxValue))
-                    {
-                        p.Signal();
-                        break;
-                    }
-                }
+                // A job with the same key is of the same type, so it waits in this pool.
+                RaiseWaiting(pool, promoteId, QueuePriority.Immediate);
                 break;
 
                 // ImmediateAction.Wait: job is executing — the TCS is registered, nothing else needed
@@ -1695,6 +1715,22 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     }
 
     // ── Pool priority ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the lowest job priority <paramref name="pool"/> may acquire now, or <c>null</c>
+    /// when it should stay idle. A pool yielding to higher tiers may still take its jobs at
+    /// <see cref="QueuePriority.Immediate"/>, which callers may be awaiting.
+    /// </summary>
+    /// <param name="pool">The pool about to acquire.</param>
+    /// <returns>The priority floor, or <c>null</c> to stay idle.</returns>
+    private int? GetAcquisitionFloor(WorkerPool pool)
+    {
+        if (ShouldPoolAttemptAcquisition(pool))
+            return int.MinValue;
+
+        // The global cap, the pool's workers and its filters still apply to these.
+        return pool.HasRunnableImmediateJob ? QueuePriority.Immediate : null;
+    }
 
     /// <summary>
     /// Returns true if <paramref name="pool"/> should attempt job acquisition.

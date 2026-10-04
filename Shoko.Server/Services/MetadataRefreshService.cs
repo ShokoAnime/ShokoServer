@@ -182,7 +182,7 @@ public class MetadataRefreshService : IMetadataRefreshService
         if (_providerScheduler.HasImageJobFor(entryID))
             return await _providerScheduler.ScheduleImagesForEntry(entryID, force, immediate, prioritize, cancellationToken).ConfigureAwait(false);
 
-        return await _contributorScheduler.ScheduleForEntry(entryID, force, prioritize, cancellationToken).ConfigureAwait(false) > 0;
+        return await _contributorScheduler.ScheduleForEntry(entryID, force, prioritize, cancellationToken: cancellationToken).ConfigureAwait(false) > 0;
     }
 
     /// <inheritdoc />

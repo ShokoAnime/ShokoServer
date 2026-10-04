@@ -34,6 +34,7 @@ using Shoko.Server.Models.Shoko.Embedded;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Actions;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -406,9 +407,9 @@ public class Common : BaseController
         {
             return NotFound("videolocal_place not found");
         }
-        await _scheduler.StartJob<HashFileJob>(
+        await _scheduler.EnqueueWithPriority<HashFileJob>(
             c => (c.FilePath, c.ForceHash) = (pl.Path, true),
-            prioritize: true
+            JobPriorities.ForFileSize(vl.FileSize, isNew: false, prioritize: true)
         ).ConfigureAwait(false);
 
         return Ok();
@@ -432,9 +433,9 @@ public class Common : BaseController
                     continue;
                 }
 
-                await _scheduler.StartJob<HashFileJob>(
+                await _scheduler.EnqueueWithPriority<HashFileJob>(
                     c => (c.FilePath, c.ForceHash) = (pl.Path, true),
-                    prioritize: true
+                    JobPriorities.ForFileSize(vl.FileSize, isNew: false, prioritize: true)
                 ).ConfigureAwait(false);
             }
         }
@@ -464,9 +465,9 @@ public class Common : BaseController
                     continue;
                 }
 
-                await _scheduler.StartJob<HashFileJob>(
+                await _scheduler.EnqueueWithPriority<HashFileJob>(
                     c => (c.FilePath, c.ForceHash) = (pl.Path, true),
-                    prioritize: true
+                    JobPriorities.ForFileSize(vl.FileSize, isNew: false, prioritize: true)
                 ).ConfigureAwait(false);
             }
         }

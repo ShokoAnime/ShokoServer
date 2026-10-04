@@ -18,6 +18,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [DisallowConcurrentExecution]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+[JobPriority(Default = 0, Prioritized = 50)]
 public class SyncAniDBMylistJob(IMylistService mylistService) : BaseJob, IJobMerge
 {
     [JobKeyIgnore]

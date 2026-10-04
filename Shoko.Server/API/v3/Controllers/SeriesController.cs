@@ -24,7 +24,6 @@ using Shoko.Abstractions.User.Enums;
 using Shoko.Abstractions.User.Services;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
 using Shoko.Server.API.v3.Helpers;
@@ -41,6 +40,7 @@ using Shoko.Server.Providers.AniDB.Titles;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
@@ -2707,9 +2707,9 @@ public class SeriesController(
             if (string.IsNullOrEmpty(filePath))
                 continue;
 
-            await _scheduler.StartJob<HashFileJob>(
+            await _scheduler.EnqueueWithPriority<HashFileJob>(
                 c => (c.FilePath, c.ForceHash) = (filePath, true),
-                prioritize: true
+                JobPriorities.ForFileSize(file.FileSize, isNew: false, prioritize: true)
             ).ConfigureAwait(false);
         }
 

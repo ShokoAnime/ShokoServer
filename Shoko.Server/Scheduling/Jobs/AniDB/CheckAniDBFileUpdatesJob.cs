@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Utilities;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -23,6 +24,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [JobKeyMember("CheckAniDBFileUpdates")]
 [JobKeyGroup(JobKeyGroup.AniDB)]
 [DisallowConcurrentExecution]
+[JobPriority(Default = 10, Prioritized = 60)]
 public class CheckAniDBFileUpdatesJob(
     ISettingsProvider settingsProvider,
     IVideoReleaseService videoReleaseService,

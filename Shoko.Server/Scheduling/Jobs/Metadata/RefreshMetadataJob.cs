@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -35,6 +36,7 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 [MetadataProviderJob]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.Metadata)]
+[JobPriority(Default = 10, Prioritized = 60)]
 public class RefreshMetadataJob<TProvider>(
     IMetadataProviderManager providerManager,
     IMetadataCrossReferenceStore crossReferences,
@@ -169,11 +171,12 @@ public class RefreshMetadataJob<TProvider>(
         var token = cancellationAccessor.Token;
         var failures = new List<Exception>();
         var refreshed = new List<MetadataGuid>();
+        var firstRefreshed = new HashSet<MetadataGuid>();
         foreach (var entry in entries)
-            if (await Refresh(info, provider, entry, failures, token).ConfigureAwait(false))
+            if (await Refresh(info, provider, entry, failures, firstRefreshed, token).ConfigureAwait(false))
                 refreshed.Add(entry);
 
-        await ScheduleFollowUps(info, refreshed, token).ConfigureAwait(false);
+        await ScheduleFollowUps(info, refreshed, firstRefreshed, token).ConfigureAwait(false);
 
         if (failures.Count is 1)
             throw failures[0];
@@ -215,10 +218,18 @@ public class RefreshMetadataJob<TProvider>(
     /// <param name="provider">The provider.</param>
     /// <param name="entry">The entry.</param>
     /// <param name="failures">Where a failure is collected.</param>
+    /// <param name="firstRefreshed">Where an entry refreshed for the first time is collected.</param>
     /// <param name="token">Cancels the work.</param>
     /// <returns>Whether the provider refreshed the entry.</returns>
     /// <exception cref="OperationCanceledException">The job was cancelled.</exception>
-    private async Task<bool> Refresh(MetadataProviderInfo info, TProvider provider, MetadataGuid entry, List<Exception> failures, CancellationToken token)
+    private async Task<bool> Refresh(
+        MetadataProviderInfo info,
+        TProvider provider,
+        MetadataGuid entry,
+        List<Exception> failures,
+        HashSet<MetadataGuid> firstRefreshed,
+        CancellationToken token
+    )
     {
         token.ThrowIfCancellationRequested();
         var kind = entry.EntityType;
@@ -285,6 +296,9 @@ public class RefreshMetadataJob<TProvider>(
         if (!QuickRefresh)
             refreshState.RecordRefresh(entry, DateTime.UtcNow);
 
+        if (lastRefreshedAt is null)
+            firstRefreshed.Add(entry);
+
         _logger.LogDebug("{Provider} refreshed {Entry}.", info.Name, entry);
         return true;
     }
@@ -310,9 +324,10 @@ public class RefreshMetadataJob<TProvider>(
     /// </summary>
     /// <param name="info">The provider's info.</param>
     /// <param name="refreshed">The entries the provider refreshed.</param>
+    /// <param name="firstRefreshed">The entries refreshed for the first time, whose images are new.</param>
     /// <param name="token">Cancels the work.</param>
     /// <returns>A task that completes once the jobs are queued.</returns>
-    private async Task ScheduleFollowUps(MetadataProviderInfo info, List<MetadataGuid> refreshed, CancellationToken token)
+    private async Task ScheduleFollowUps(MetadataProviderInfo info, List<MetadataGuid> refreshed, HashSet<MetadataGuid> firstRefreshed, CancellationToken token)
     {
         if (refreshed.Count is 0)
             return;
@@ -337,10 +352,11 @@ public class RefreshMetadataJob<TProvider>(
             .ToList();
         foreach (var entry in withImages)
         {
+            var isNew = firstRefreshed.Contains(entry);
             await Queue("the images", entry, async () =>
             {
-                if (!ownerImages || !await providerScheduler.ScheduleImages(info, entry, cancellationToken: token).ConfigureAwait(false))
-                    await contributorScheduler.ScheduleForEntry(entry, cancellationToken: token).ConfigureAwait(false);
+                if (!ownerImages || !await providerScheduler.ScheduleImages(info, entry, cancellationToken: token, isNew: isNew).ConfigureAwait(false))
+                    await contributorScheduler.ScheduleForEntry(entry, isNew: isNew, cancellationToken: token).ConfigureAwait(false);
             }).ConfigureAwait(false);
         }
     }

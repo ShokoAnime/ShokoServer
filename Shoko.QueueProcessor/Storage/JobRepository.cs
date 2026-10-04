@@ -122,6 +122,19 @@ public class JobRepository : IJobRepository
                 .ExecuteUpdateAsync(s => s.SetProperty(j => j.JobDataJson, newJson), ct);
     }
 
+    public async Task UpdatePriorityBatchAsync(
+        IReadOnlyCollection<(Guid Id, int Priority, DateTimeOffset? ScheduledAt)> updates,
+        CancellationToken ct = default
+    )
+    {
+        if (updates.Count == 0) return;
+        await using var db = await _factory.CreateDbContextAsync(ct);
+        foreach (var (id, priority, scheduledAt) in updates)
+            await db.Jobs
+                .Where(j => j.Id == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(j => j.Priority, priority).SetProperty(j => j.ScheduledAt, scheduledAt), ct);
+    }
+
     public async Task UpdateKeyBatchAsync(IReadOnlyCollection<(Guid Id, string NewKey)> updates, CancellationToken ct = default)
     {
         if (updates.Count == 0) return;

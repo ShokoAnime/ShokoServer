@@ -9,6 +9,7 @@ using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Services;
 
 #nullable enable
+using Shoko.QueueProcessor.Abstractions;
 namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 /// <summary>
@@ -25,6 +26,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [DatabaseRequired]
 [JobKeyMember("ScheduledAction")]
 [JobKeyGroup(JobKeyGroup.Actions)]
+[JobPriority(Default = 100, Prioritized = 150)]
 public class ScheduledActionJob(
     IServiceProvider services,
     ScheduledActionRegistry registry,

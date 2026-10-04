@@ -10,6 +10,7 @@ using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 
 namespace Shoko.Server.Services;
@@ -250,6 +251,7 @@ public class MetadataProviderScheduler(
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <param name="immediate">Whether to run the job now and wait for it rather than queue it.</param>
     /// <param name="prioritize">Whether to queue it ahead of the rest even though it is not forced.</param>
+    /// <param name="isNew">Whether this is the entry's first image run, after it was just linked or created.</param>
     /// <returns>
     ///   <c>true</c> when the job was queued or ran, or
     ///   <c>false</c> when the provider supplies no images, the
@@ -263,7 +265,8 @@ public class MetadataProviderScheduler(
         bool force = false,
         CancellationToken cancellationToken = default,
         bool immediate = false,
-        bool prioritize = false
+        bool prioritize = false,
+        bool isNew = false
     )
     {
         ArgumentNullException.ThrowIfNull(info);
@@ -277,12 +280,20 @@ public class MetadataProviderScheduler(
             return false;
         }
 
-        return await Dispatch(info, jobType, job =>
-        {
-            var images = (IMetadataImagesJob)job;
-            images.EntryID = entryID.ToString();
-            images.Force = force;
-        }, force || prioritize, immediate).ConfigureAwait(false);
+        return await Dispatch(
+            info,
+            jobType,
+            job =>
+            {
+                var images = (IMetadataImagesJob)job;
+                images.EntryID = entryID.ToString();
+                images.Force = force;
+                images.IsNew = isNew;
+            },
+            force || prioritize,
+            immediate,
+            JobPriorities.ForMetadataEntry(entryID.EntityType, isNew, force || prioritize)
+        ).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -489,13 +500,14 @@ public class MetadataProviderScheduler(
     /// <param name="configure">Sets the job up.</param>
     /// <param name="prioritize">Whether to queue it ahead of the rest.</param>
     /// <param name="immediate">Whether to run it now and wait for it.</param>
+    /// <param name="priority">The priority to queue it at in place of the type's own, or <c>null</c> for the type's own.</param>
     /// <returns>
     ///   <c>true</c> once it is queued or has run, or
     ///   <c>false</c> when it was to run now but the provider is
     ///   paused or the queue holds its jobs back.
     /// </returns>
-    private Task<bool> Dispatch(MetadataProviderInfo info, Type jobType, Action<IQueueJob> configure, bool prioritize, bool immediate)
-        => Dispatch(scheduler, jobFactory, logger, info, jobType, configure, prioritize, immediate);
+    private Task<bool> Dispatch(MetadataProviderInfo info, Type jobType, Action<IQueueJob> configure, bool prioritize, bool immediate, int? priority = null)
+        => Dispatch(scheduler, jobFactory, logger, info, jobType, configure, prioritize, immediate, priority);
 
     /// <summary>
     ///   Queues a provider's job through a queue, or runs it now through a
@@ -509,6 +521,7 @@ public class MetadataProviderScheduler(
     /// <param name="configure">Sets the job up.</param>
     /// <param name="prioritize">Whether to queue it ahead of the rest.</param>
     /// <param name="immediate">Whether to run it now and wait for it.</param>
+    /// <param name="priority">The priority to queue it at in place of the type's own, or <c>null</c> for the type's own.</param>
     /// <returns>
     ///   <c>true</c> once it is queued or has run, or
     ///   <c>false</c> when it was to run now but the provider is
@@ -522,12 +535,16 @@ public class MetadataProviderScheduler(
         Type jobType,
         Action<IQueueJob> configure,
         bool prioritize,
-        bool immediate
+        bool immediate,
+        int? priority = null
     )
     {
         if (!immediate)
         {
-            await scheduler.Enqueue(jobType, configure, prioritize).ConfigureAwait(false);
+            if (priority is { } value)
+                await scheduler.EnqueueWithPriority(jobType, configure, value).ConfigureAwait(false);
+            else
+                await scheduler.Enqueue(jobType, configure, prioritize).ConfigureAwait(false);
             return true;
         }
 

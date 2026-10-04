@@ -66,6 +66,8 @@ public class PoolDiscovery
     /// Asked for the limit of a type with no concurrency attribute; a type one of them limits gets
     /// a pool of its own, as <see cref="LimitConcurrencyAttribute"/> would give it.
     /// </param>
+    /// <returns>The pools, the <c>"Default"</c> pool always among them.</returns>
+    /// <exception cref="InvalidOperationException">A type's <see cref="JobPriorityAttribute"/> is invalid.</exception>
     public IReadOnlyList<WorkerPool> Discover(
         IEnumerable<Type> jobTypes,
         IEnumerable<IAcquisitionFilter> acquisitionFilters,
@@ -79,6 +81,9 @@ public class PoolDiscovery
 
         foreach (var type in jobTypes)
         {
+            // Throws for an invalid attribute now, rather than on the type's first enqueue.
+            QueuePriority.For(type, prioritize: false);
+
             var groupAttr = type.GetCustomAttribute<DisallowConcurrencyGroupAttribute>();
             var limitAttr = type.GetCustomAttribute<LimitConcurrencyAttribute>();
             var disallowAttr = type.GetCustomAttribute<DisallowConcurrentExecutionAttribute>();

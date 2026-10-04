@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Repositories.Cached.AniDB;
@@ -10,6 +11,8 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+// Not default + 50: a prioritized cleanup only moves ahead of other cleanup.
+[JobPriority(Default = 0, Prioritized = 10)]
 public class PurgeAniDBAnimeJob(IAnidbService anidbService, AniDB_AnimeRepository anidbAnimeRepository) : BaseJob
 {
     private string? _title;

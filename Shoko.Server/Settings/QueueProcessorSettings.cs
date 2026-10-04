@@ -68,6 +68,17 @@ public class QueueProcessorSettings
     public int MaxTotalWorkers { get; set; }
 
     /// <summary>
+    /// Maximum concurrent workers in the catch-all Default pool, for the jobs without a pool of
+    /// their own. 0 matches the max total workers, and a higher value is capped to it.
+    /// </summary>
+    [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
+    [Visibility(Advanced = true)]
+    [RequiresRestart]
+    [EnvironmentVariable("QUEUE_DEFAULT_POOL_MAX_WORKERS")]
+    [Range(0, int.MaxValue)]
+    public int DefaultPoolMaxWorkers { get; set; }
+
+    /// <summary>
     /// Milliseconds between coalesced DB flush operations.
     /// </summary>
     [Badge("Advanced", Theme = DisplayColorTheme.Primary)]
@@ -100,4 +111,23 @@ public class QueueProcessorSettings
     {
         { nameof(HashFileJob), 2 },
     };
+
+    /// <summary>
+    /// Gets the effective maximum of concurrent workers across all pools:
+    /// <see cref="MaxTotalWorkers"/>, or the processor count plus four when it is not set.
+    /// </summary>
+    /// <returns>The effective maximum.</returns>
+    public int GetEffectiveMaxTotalWorkers()
+        => MaxTotalWorkers > 0 ? MaxTotalWorkers : Environment.ProcessorCount + 4;
+
+    /// <summary>
+    /// Gets the effective worker cap of the Default pool: <see cref="DefaultPoolMaxWorkers"/>,
+    /// capped to <see cref="GetEffectiveMaxTotalWorkers"/>, which it matches when not set.
+    /// </summary>
+    /// <returns>The effective cap.</returns>
+    public int GetEffectiveDefaultPoolMaxWorkers()
+    {
+        var maxTotalWorkers = GetEffectiveMaxTotalWorkers();
+        return DefaultPoolMaxWorkers > 0 ? Math.Min(DefaultPoolMaxWorkers, maxTotalWorkers) : maxTotalWorkers;
+    }
 }

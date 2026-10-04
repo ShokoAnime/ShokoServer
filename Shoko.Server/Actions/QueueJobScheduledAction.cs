@@ -53,7 +53,9 @@ public abstract class QueueJobScheduledAction<TJob>(IQueueScheduler scheduler) :
     public virtual bool ScheduleCountsManualRuns => false;
 
     /// <summary>
-    /// Whether a run queues the job ahead of the jobs waiting. Not by default.
+    /// Whether a run queues the job at its type's prioritized priority. Not by
+    /// default: a run takes the higher of <see cref="QueuePriority.Scheduled"/>
+    /// and the type's default priority.
     /// </summary>
     protected virtual bool Prioritize => false;
 
@@ -76,7 +78,7 @@ public abstract class QueueJobScheduledAction<TJob>(IQueueScheduler scheduler) :
     /// <param name="token">Cancels the queuing.</param>
     /// <returns>A task that completes once the job is queued.</returns>
     public Task EnqueueJob(CancellationToken token)
-        => scheduler.Enqueue<TJob>(Configure, Prioritize, ct: token);
+        => scheduler.EnqueueWithPriority<TJob>(Configure, QueuePriority.ScheduledFor(typeof(TJob), Prioritize), ct: token);
 
     /// <summary>
     /// Queues the job, as a run does.

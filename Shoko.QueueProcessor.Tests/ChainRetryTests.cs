@@ -261,7 +261,7 @@ public class ChainRetryTests
     }
 
     [Fact]
-    public void TryPromotePriority_KeepsTheChainAndActor()
+    public void TryRaisePriority_ToImmediate_KeepsTheChainAndActor()
     {
         var pool = new WorkerPool("PromotePool", maxWorkers: 1, AcquisitionAttribute.LowestPriority, [typeof(StepJob)], []);
         var job = new QueuedJob
@@ -278,7 +278,7 @@ public class ChainRetryTests
         };
         pool.AddToQueue(job);
 
-        Assert.True(pool.TryPromotePriority(job.JobKey, int.MaxValue));
+        Assert.NotNull(pool.TryRaisePriority(job.Id, QueuePriority.Immediate));
 
         Assert.True(pool.RemoveFromQueue(job.Id, out var promoted));
         Assert.NotNull(promoted);

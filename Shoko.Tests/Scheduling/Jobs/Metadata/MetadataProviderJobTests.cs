@@ -33,6 +33,7 @@ using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Repositories.Cached.Metadata.Text;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Acquisition.Attributes;
 using Shoko.Server.Scheduling.Acquisition.Filters;
 using Shoko.Server.Scheduling.Concurrency;
@@ -738,6 +739,7 @@ public class MetadataProviderJobTests
         Assert.Equal([series.ToString(), movie.ToString(), collection.ToString()], images.Select(queued => ((IMetadataImagesJob)queued.Job).EntryID));
         Assert.All(images, queued => Assert.False(((IMetadataImagesJob)queued.Job).Force));
         Assert.All(images, queued => Assert.False(queued.Prioritized));
+        Assert.Equal([true, true, false], images.Select(queued => ((IMetadataImagesJob)queued.Job).IsNew));
     }
 
     [Fact]
@@ -905,8 +907,8 @@ public class MetadataProviderJobTests
     private static MetadataImageContributorScheduler ContributorScheduler(Mock<IMetadataImageContributorManager> contributors, List<(Type JobType, string EntryID)> jobs)
     {
         var queue = new Mock<IQueueScheduler>();
-        queue.Setup(q => q.Enqueue(It.IsAny<Type>(), It.IsAny<Action<IQueueJob>?>(), It.IsAny<bool>()))
-            .Returns((Type type, Action<IQueueJob>? configure, bool _) =>
+        queue.Setup(q => q.EnqueueWithPriority(It.IsAny<Type>(), It.IsAny<Action<IQueueJob>?>(), It.IsAny<int>()))
+            .Returns((Type type, Action<IQueueJob>? configure, int _) =>
             {
                 var job = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
                 configure?.Invoke(job);
@@ -1955,6 +1957,16 @@ public class MetadataProviderJobTests
                     var job = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
                     configure?.Invoke(job);
                     Queued.Add((type, job, prioritize));
+                    return Task.CompletedTask;
+                });
+            queue.Setup(q => q.EnqueueWithPriority(It.IsAny<Type>(), It.IsAny<Action<IQueueJob>?>(), It.IsAny<int>()))
+                .Returns((Type type, Action<IQueueJob>? configure, int priority) =>
+                {
+                    var job = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
+                    configure?.Invoke(job);
+                    var images = (IMetadataImagesJob)job;
+                    var unprioritized = JobPriorities.ForMetadataEntry(MetadataGuid.Parse(images.EntryID).EntityType, images.IsNew, prioritize: false);
+                    Queued.Add((type, job, priority > unprioritized));
                     return Task.CompletedTask;
                 });
             queue.Setup(q => q.Enqueue(It.IsAny<Action<SyncEpisodeLinksJob>?>(), It.IsAny<bool>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()))

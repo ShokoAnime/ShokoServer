@@ -13,9 +13,25 @@ public interface IQueueScheduler
 {
     /// <summary>
     /// Enqueue a single job of type <typeparamref name="T"/>. A no-op if a job with the same
-    /// key is already waiting or executing (dedup is O(1) in-memory).
+    /// key is already waiting or executing (dedup is O(1) in-memory), but a waiting one is raised
+    /// to the priority if it was lower. It is queued at the type's
+    /// <see cref="JobPriorityAttribute"/> priorities, picked by <c>prioritize</c>.
     /// </summary>
     Task Enqueue<T>(Action<T>? configure = null, bool prioritize = false, DateTimeOffset? scheduledAt = null, CancellationToken ct = default)
+        where T : class, IQueueJob;
+
+    /// <summary>
+    /// Enqueue a single job of type <typeparamref name="T"/> with the given priority, such as
+    /// <see cref="QueuePriority.Scheduled"/>, in place of the type's own priorities. A no-op
+    /// if a job with the same key is already waiting or executing, but a waiting one is raised
+    /// to the priority if it was lower.
+    /// </summary>
+    /// <param name="configure">Configures the job's data properties.</param>
+    /// <param name="priority">The priority; a higher one runs first.</param>
+    /// <param name="scheduledAt">Optional. When the job may run, at the earliest.</param>
+    /// <param name="ct">Cancels the queuing.</param>
+    /// <returns>A task that completes once the job is queued.</returns>
+    Task EnqueueWithPriority<T>(Action<T>? configure, int priority, DateTimeOffset? scheduledAt = null, CancellationToken ct = default)
         where T : class, IQueueJob;
 
     /// <summary>
@@ -46,8 +62,8 @@ public interface IQueueScheduler
     /// completes. If a job with the same key is already waiting in the queue it is pulled and
     /// held until the parent finishes, preventing it from running with stale data. If called
     /// outside a worker job context, falls back to <see cref="Enqueue{T}"/> with
-    /// <c>prioritize: true</c>. Multiple calls for the same key within one parent execution
-    /// are deduplicated.
+    /// <c>prioritize: true</c>, at the type's prioritized priority. Multiple calls for the
+    /// same key within one parent execution are deduplicated.
     /// </summary>
     Task RunAfterCurrent<T>(Action<T>? configure = null, CancellationToken ct = default)
         where T : class, IQueueJob;
@@ -120,10 +136,22 @@ public interface IQueueScheduler
     bool IsJobTypeBlocked(Type jobType);
 
     /// <summary>
-    /// Enqueue a job whose type is known only at runtime.
+    /// Enqueue a job whose type is known only at runtime, at the type's
+    /// <see cref="JobPriorityAttribute"/> priorities.
     /// Provider-agnostic general-purpose overload of <see cref="Enqueue{T}"/>.
     /// </summary>
     Task Enqueue(Type jobType, Action<IQueueJob>? configure = null, bool prioritize = false);
+
+    /// <summary>
+    /// Enqueue a job whose type is known only at runtime with the given priority, in place of
+    /// the type's own priorities. A no-op if a job with the same key is already waiting or
+    /// executing, but a waiting one is raised to the priority if it was lower.
+    /// </summary>
+    /// <param name="jobType">The job type.</param>
+    /// <param name="configure">Configures the job's data properties.</param>
+    /// <param name="priority">The priority; a higher one runs first.</param>
+    /// <returns>A task that completes once the job is queued.</returns>
+    Task EnqueueWithPriority(Type jobType, Action<IQueueJob>? configure, int priority);
 
     /// <summary>
     /// Register a job (by runtime type) to run after the currently-executing job.

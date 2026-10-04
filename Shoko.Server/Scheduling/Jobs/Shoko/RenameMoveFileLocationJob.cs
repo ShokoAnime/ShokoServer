@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Models.Shoko;
@@ -12,6 +13,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
+[JobPriority(Default = 20, Prioritized = 70)]
 public class RenameMoveFileLocationJob(IVideoRelocationService relocationService, VideoLocal_PlaceRepository videoLocalPlaces) : BaseJob
 {
 

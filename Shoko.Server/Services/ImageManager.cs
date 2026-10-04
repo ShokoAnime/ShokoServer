@@ -35,6 +35,7 @@ using Shoko.Server.Extensions;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.UDP;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Image;
 using Shoko.Server.Server;
 using Shoko.Server.Settings;
@@ -914,7 +915,10 @@ public class ImageManager(
     {
         if (!force && image.IsAvailable)
             return;
-        await schedulerFactory.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
+        await schedulerFactory.EnqueueWithPriority<DownloadImageJob>(
+            c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force),
+            JobPriorities.ForImage(image.CrossReference?.EntityID.EntityType, image.Type, isNew: !force && image.DownloadAttempts is 0, prioritize: false)
+        ).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -986,7 +990,10 @@ public class ImageManager(
             if (!force && (image.IsAvailable || image.DownloadAttempts > 3))
                 continue;
 
-            await schedulerFactory.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force)).ConfigureAwait(false);
+            await schedulerFactory.EnqueueWithPriority<DownloadImageJob>(
+                c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force),
+                JobPriorities.ForImage(entity.EntityType, image.Type, isNew: !force && image.DownloadAttempts is 0, prioritize: false)
+            ).ConfigureAwait(false);
         }
     }
 
@@ -1016,8 +1023,10 @@ public class ImageManager(
             cancellationToken.ThrowIfCancellationRequested();
             if (force || (!image.IsAvailable && image.DownloadAttempts <= 3))
             {
-                await schedulerFactory.StartJob<DownloadImageJob>(c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force))
-                    .ConfigureAwait(false);
+                await schedulerFactory.EnqueueWithPriority<DownloadImageJob>(
+                    c => (c.Source, c.ResourceID, c.ForceDownload) = (image.Source, image.ResourceID, force),
+                    JobPriorities.ForImage(image.CrossReference?.EntityID.EntityType, image.Type, isNew: false, prioritize: false)
+                ).ConfigureAwait(false);
             }
 
             items.Increment();

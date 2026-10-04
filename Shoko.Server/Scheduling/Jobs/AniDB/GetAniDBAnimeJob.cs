@@ -18,6 +18,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [DatabaseRequired]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+[JobPriority(Default = 10, Prioritized = 60)]
 public class GetAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbService anidbService, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimes) : BaseJob<AniDB_Anime?>, IJobMerge
 {
     private string? _animeName;

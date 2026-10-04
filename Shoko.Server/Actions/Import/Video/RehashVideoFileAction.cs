@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Shoko.Abstractions.Actions;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 
 namespace Shoko.Server.Actions;
@@ -27,10 +28,15 @@ public sealed class RehashVideoFileAction(IQueueScheduler scheduler) : VideoActi
 
     public override async Task Execute(CancellationToken token = default)
     {
-        var filePath = ((VideoLocal)Video).FirstResolvedPlace?.Path;
+        var video = (VideoLocal)Video;
+        var filePath = video.FirstResolvedPlace?.Path;
         if (string.IsNullOrEmpty(filePath))
             return;
 
-        await scheduler.Enqueue<HashFileJob>(c => (c.FilePath, c.ForceHash) = (filePath, true), prioritize: true, ct: token);
+        await scheduler.EnqueueWithPriority<HashFileJob>(
+            c => (c.FilePath, c.ForceHash) = (filePath, true),
+            JobPriorities.ForFileSize(video.FileSize, isNew: false, prioritize: true),
+            ct: token
+        );
     }
 }

@@ -6,6 +6,7 @@ using Shoko.Abstractions.ScheduledActions;
 using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Repositories.Cached;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 
 namespace Shoko.Server.Actions;
@@ -37,7 +38,11 @@ public sealed class HashUnhashedFilesAction(IQueueScheduler scheduler, VideoLoca
         {
             token.ThrowIfCancellationRequested();
             if (video.FirstResolvedPlace?.Path is { } path)
-                await scheduler.Enqueue<HashFileJob>(job => job.FilePath = path, ct: token);
+                await scheduler.EnqueueWithPriority<HashFileJob>(
+                    job => job.FilePath = path,
+                    JobPriorities.ForFileSize(video.FileSize, isNew: false, prioritize: false),
+                    ct: token
+                );
 
             items.Increment();
         }

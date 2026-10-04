@@ -15,6 +15,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [DatabaseRequired]
 [LimitConcurrency(2)]
 [JobKeyGroup(JobKeyGroup.Import)]
+// Ranked as queued by JobPriorities.ForFileSize: a new file adds 50 on top of prioritized = default + 50.
 public class MediaInfoJob(IVideoService videoService, VideoLocalRepository videoLocals) : BaseJob
 {
     private VideoLocal? _vlocal;

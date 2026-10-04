@@ -26,6 +26,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+[JobPriority(Default = 10, Prioritized = 60)]
 public class GetAniDBReleaseGroupStatusJob(IRequestFactory requestFactory, IAnidbService anidbService, ISettingsProvider settingsProvider, AniDBTitleHelper titleHelper, IQueueScheduler scheduler, AniDB_AnimeRepository anidbAnimes, AniDB_EpisodeRepository anidbEpisodes, AniDB_GroupStatusRepository anidbGroupStatuses, AnimeSeriesRepository animeSeries) : BaseJob
 {
     private AniDB_Anime? _anime;

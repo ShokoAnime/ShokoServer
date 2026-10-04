@@ -26,6 +26,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.Import)]
+[JobPriority(Default = 20, Prioritized = 70)]
 public class AnidbProcessFileJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob, IVideoReleaseProviderJob<AnidbReleaseProvider>
 {
     private readonly VideoReleaseService _videoReleaseService = (VideoReleaseService)videoReleaseService;

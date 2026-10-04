@@ -14,6 +14,7 @@ namespace Shoko.Server.Scheduling.Jobs.Image;
 [NetworkRequired]
 [LimitConcurrency(4)]
 [JobKeyGroup(JobKeyGroup.Image)]
+// Ranked as queued by JobPriorities.ForImage: a new image adds 50 on top of prioritized = default + 50.
 public class DownloadImageJob(IImageManager imageManager) : BaseJob
 {
     public MetadataSource Source { get; set; } = null!;

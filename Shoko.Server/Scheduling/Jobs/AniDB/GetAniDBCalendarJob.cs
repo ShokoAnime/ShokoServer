@@ -6,6 +6,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Services;
 using Shoko.Abstractions.Utilities;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -26,6 +27,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+[JobPriority(Default = 30, Prioritized = 80)]
 public class GetAniDBCalendarJob(
     IRequestFactory requestFactory,
     IAnidbService anidbService,

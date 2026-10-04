@@ -17,4 +17,10 @@ internal interface IMetadataImagesJob
     ///   there.
     /// </summary>
     bool Force { get; set; }
+
+    /// <summary>
+    ///   Whether this is the entry's first image run, after it was just linked
+    ///   or created, which its contributors' jobs are ranked by.
+    /// </summary>
+    bool IsNew { get; set; }
 }

@@ -24,6 +24,7 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Workers;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Concurrency;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 using Shoko.Server.Services;
@@ -157,6 +158,8 @@ public sealed class MetadataImageContributorTests : IDisposable
             pluginManager.Setup(manager => manager.GetPluginInfo(It.IsAny<Assembly>())).Returns(pluginInfo);
             Queue.Setup(q => q.Enqueue(It.IsAny<Type>(), It.IsAny<Action<IQueueJob>?>(), It.IsAny<bool>()))
                 .Returns((Type type, Action<IQueueJob>? configure, bool prioritize) => Record(type, configure, prioritize));
+            Queue.Setup(q => q.EnqueueWithPriority(It.IsAny<Type>(), It.IsAny<Action<IQueueJob>?>(), It.IsAny<int>()))
+                .Returns((Type type, Action<IQueueJob>? configure, int priority) => Record(type, configure, priority >= JobPriorities.PrioritizedOffset));
             Queue.Setup(q => q.Enqueue(It.IsAny<Action<ClearContributedImagesJob>?>(), It.IsAny<bool>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()))
                 .Returns((Action<ClearContributedImagesJob>? configure, bool prioritize, DateTimeOffset? _, CancellationToken _) =>
                     Record(typeof(ClearContributedImagesJob), job => configure?.Invoke((ClearContributedImagesJob)job), prioritize));

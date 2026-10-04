@@ -111,9 +111,10 @@ internal sealed class Worker
 
             _pool.DecrementIdle();
 
-            if (_pool.ShouldAttemptAcquisition?.Invoke() == false) continue;
+            var floor = _pool.AcquisitionFloor is { } getFloor ? getFloor() : int.MinValue;
+            if (floor is null) continue;
 
-            var job = _pool.TryAcquire();
+            var job = _pool.TryAcquire(floor.Value);
             if (job == null) continue;
 
             _pool.IncrementActive();

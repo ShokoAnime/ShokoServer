@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -24,6 +25,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+[JobPriority(Default = 10, Prioritized = 60)]
 public class GetAniDBCreatorJob(IRequestFactory requestFactory, AnidbService anidbService, AniDB_AnimeRepository anidbAnimes, AniDB_Anime_CharacterRepository anidbAnimeCharacters, AniDB_Anime_Character_CreatorRepository anidbAnimeCharacterCreators, AniDB_Anime_StaffRepository anidbAnimeStaff, AniDB_CreatorRepository anidbCreators) : BaseJob
 {
     private string? _creatorName;

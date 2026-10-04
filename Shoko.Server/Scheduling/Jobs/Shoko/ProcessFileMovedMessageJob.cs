@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Providers.AniDB.Release;
@@ -12,6 +13,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
+[JobPriority(Default = 30, Prioritized = 80)]
 public class ProcessFileMovedMessageJob(IVideoReleaseService videoReleaseService, AniDB_MessageRepository anidbMessages, StoredReleaseInfoRepository storedReleaseInfos, VideoLocalRepository videoLocals) : BaseJob
 {
     public override string TypeName => "Handle Moved File Message";

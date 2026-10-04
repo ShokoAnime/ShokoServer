@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 
@@ -10,6 +11,8 @@ namespace Shoko.Server.Scheduling.Jobs.Image;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Image)]
+// Not default + 50: a prioritized cleanup only moves ahead of other cleanup.
+[JobPriority(Default = 0, Prioritized = 10)]
 public class PurgeOrphanedImagesJob(IImageManager imageManager) : BaseJob
 {
     public int DaysOld { get; set; }

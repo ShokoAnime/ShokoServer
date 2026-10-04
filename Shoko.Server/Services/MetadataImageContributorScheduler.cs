@@ -8,6 +8,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Metadata;
 
 namespace Shoko.Server.Services;
@@ -34,10 +35,17 @@ public class MetadataImageContributorScheduler(
     /// <param name="entryID">The series, film or collection.</param>
     /// <param name="force">Whether to download the desired images again even when they are there.</param>
     /// <param name="prioritize">Whether to queue them ahead of the rest even though they are not forced.</param>
+    /// <param name="isNew">Whether this is the entry's first image run, after it was just linked or created.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many jobs were queued.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
-    public async Task<int> ScheduleForEntry(MetadataGuid entryID, bool force = false, bool prioritize = false, CancellationToken cancellationToken = default)
+    public async Task<int> ScheduleForEntry(
+        MetadataGuid entryID,
+        bool force = false,
+        bool prioritize = false,
+        bool isNew = false,
+        CancellationToken cancellationToken = default
+    )
     {
         ArgumentNullException.ThrowIfNull(entryID);
         var queued = 0;
@@ -49,12 +57,16 @@ public class MetadataImageContributorScheduler(
 
             try
             {
-                await scheduler.Enqueue(jobType, job =>
-                {
-                    var images = (IContributedImagesJob)job;
-                    images.EntryID = entryID.ToString();
-                    images.Force = force;
-                }, force || prioritize).ConfigureAwait(false);
+                await scheduler.EnqueueWithPriority(
+                    jobType,
+                    job =>
+                    {
+                        var images = (IContributedImagesJob)job;
+                        images.EntryID = entryID.ToString();
+                        images.Force = force;
+                    },
+                    JobPriorities.ForMetadataEntry(entryID.EntityType, isNew, force || prioritize)
+                ).ConfigureAwait(false);
                 queued++;
             }
             catch (Exception ex)

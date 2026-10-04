@@ -22,13 +22,14 @@ public interface IJobChainBuilder
     /// <summary>
     /// Register the chain so entry[0] runs after the currently-executing job
     /// (<see cref="IQueueScheduler.RunAfterCurrent{T}"/> semantics), then each subsequent
-    /// entry runs after the previous. Falls back to <see cref="Enqueue"/> if called outside
-    /// a worker context.
+    /// entry runs after the previous. Outside a worker context, entry[0] is queued at its
+    /// type's prioritized priority instead.
     /// </summary>
     Task EnqueueAfterCurrent();
 
     /// <summary>
-    /// Enqueue entry[0] normally into the queue; register the rest as a chain following it.
+    /// Enqueue entry[0] normally into the queue, at its type's default priority; register the
+    /// rest as a chain following it.
     /// </summary>
     Task Enqueue();
 }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Chain;
@@ -23,6 +24,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 /// </summary>
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Import)]
+[JobPriority(Default = 20, Prioritized = 70)]
 public class ProcessReleaseProviderJob(IVideoReleaseService videoReleaseService, VideoLocalRepository videoLocals, StoredReleaseInfo_MatchAttemptRepository matchAttempts) : BaseJob
 {
     private readonly VideoReleaseService _videoReleaseService = (VideoReleaseService)videoReleaseService;

@@ -14,6 +14,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [LimitConcurrency(2)]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.Import)]
+// Ranked as queued by JobPriorities.ForFileSize: a new file adds 50 on top of prioritized = default + 50.
 public class HashFileJob(IVideoHashingService videoHashingService) : BaseJob
 {
     public required string FilePath { get; set; }

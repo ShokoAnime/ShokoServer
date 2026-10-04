@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -19,6 +20,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBHttpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_HTTP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+[JobPriority(Default = 20, Prioritized = 70)]
 public class GetRemoteAniDBAnimeJob(ISettingsProvider settingsProvider, AnidbService anidbService, AniDBTitleHelper titleHelper, AniDB_AnimeRepository anidbAnimes) : BaseJob<AniDB_Anime?>
 {
     private string? _animeName;

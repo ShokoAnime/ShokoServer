@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -13,6 +14,7 @@ namespace Shoko.Server.Scheduling.Jobs.Shoko;
 [JobKeyMember("ScanFolder")]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.Import)]
+[JobPriority(Default = 30, Prioritized = 80)]
 internal class ScanFolderJob(IVideoService videoService, IJobCancellationAccessor cancellation, IJobProgressAccessor progress) : BaseJob
 {
     private string? _managedFolder;

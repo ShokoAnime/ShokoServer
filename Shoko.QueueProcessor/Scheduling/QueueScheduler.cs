@@ -38,6 +38,10 @@ public sealed class QueueScheduler : IQueueScheduler
     public Task Enqueue<T>(Action<T>? configure = null, bool prioritize = false,
         DateTimeOffset? scheduledAt = null, CancellationToken ct = default)
         where T : class, IQueueJob
+        => EnqueueWithPriority(configure, QueuePriority.For(typeof(T), prioritize), scheduledAt, ct);
+
+    public Task EnqueueWithPriority<T>(Action<T>? configure, int priority, DateTimeOffset? scheduledAt = null, CancellationToken ct = default)
+        where T : class, IQueueJob
     {
         // Build key: uses [JobKeyMember] annotations or all primitive properties
         var keyBuilder = JobKeyBuilder<T>.Create();
@@ -53,7 +57,7 @@ public sealed class QueueScheduler : IQueueScheduler
         configure?.Invoke(instance);
 
         return _orchestrator.EnqueueAsync(
-            BuildContext(typeof(T), key, instance, prioritize ? 10 : 0, scheduledAt, _actorAccessor?.Capture()),
+            BuildContext(typeof(T), key, instance, priority, scheduledAt, _actorAccessor?.Capture()),
             ct);
     }
 
@@ -75,7 +79,7 @@ public sealed class QueueScheduler : IQueueScheduler
         configure?.Invoke(instance);
 
         var completionTask = _orchestrator.PrepareAndEnqueueImmediate(
-            BuildContext(typeof(T), key, instance, int.MaxValue, null, _actorAccessor?.Capture()));
+            BuildContext(typeof(T), key, instance, QueuePriority.Immediate, null, _actorAccessor?.Capture()));
 
         if (onComplete != null)
             completionTask = completionTask.ContinueWith(
@@ -99,9 +103,12 @@ public sealed class QueueScheduler : IQueueScheduler
         configure?.Invoke(instance);
 
         if (parentId == Guid.Empty)
-            return _orchestrator.EnqueueAsync(BuildContext(typeof(T), key, instance, 10, null, _actorAccessor?.Capture()), ct);
+            return _orchestrator.EnqueueAsync(
+                BuildContext(typeof(T), key, instance, QueuePriority.For(typeof(T), prioritize: true), null, _actorAccessor?.Capture()),
+                ct
+            );
 
-        _orchestrator.RegisterAfterParent(parentId, BuildContext(typeof(T), key, instance, int.MaxValue, null, _actorAccessor?.Capture()));
+        _orchestrator.RegisterAfterParent(parentId, BuildContext(typeof(T), key, instance, QueuePriority.Immediate, null, _actorAccessor?.Capture()));
         return Task.CompletedTask;
     }
 
@@ -168,6 +175,9 @@ public sealed class QueueScheduler : IQueueScheduler
     public bool IsJobTypeBlocked(Type jobType) => _orchestrator.IsJobTypeBlocked(jobType);
 
     public Task Enqueue(Type jobType, Action<IQueueJob>? configure = null, bool prioritize = false)
+        => EnqueueWithPriority(jobType, configure, QueuePriority.For(jobType, prioritize));
+
+    public Task EnqueueWithPriority(Type jobType, Action<IQueueJob>? configure, int priority)
     {
         var data = JobDataSerializer.DiffFromDefaultUntyped(jobType, configure);
         var key = JobKeyBuilder<IQueueJob>.BuildForType(jobType, data);
@@ -177,7 +187,7 @@ public sealed class QueueScheduler : IQueueScheduler
         configure?.Invoke(instance);
 
         return _orchestrator.EnqueueAsync(
-            BuildContext(jobType, key, instance, prioritize ? 10 : 0, null, _actorAccessor?.Capture()));
+            BuildContext(jobType, key, instance, priority, null, _actorAccessor?.Capture()));
     }
 
     public Task RunAfterCurrent(Type jobType, Action<IQueueJob>? configure = null)
@@ -192,9 +202,11 @@ public sealed class QueueScheduler : IQueueScheduler
         configure?.Invoke(instance);
 
         if (parentId == Guid.Empty)
-            return _orchestrator.EnqueueAsync(BuildContext(jobType, key, instance, 10, null, _actorAccessor?.Capture()));
+            return _orchestrator.EnqueueAsync(
+                BuildContext(jobType, key, instance, QueuePriority.For(jobType, prioritize: true), null, _actorAccessor?.Capture())
+            );
 
-        _orchestrator.RegisterAfterParent(parentId, BuildContext(jobType, key, instance, int.MaxValue, null, _actorAccessor?.Capture()));
+        _orchestrator.RegisterAfterParent(parentId, BuildContext(jobType, key, instance, QueuePriority.Immediate, null, _actorAccessor?.Capture()));
         return Task.CompletedTask;
     }
 
@@ -278,7 +290,7 @@ internal sealed class JobChainBuilder : IJobChainBuilder
         var instance = (T)scope.ServiceProvider.GetRequiredService(typeof(T));
         configure?.Invoke(instance);
 
-        var ctx = QueueScheduler.BuildContext(typeof(T), key, instance, int.MaxValue, null, _actor);
+        var ctx = QueueScheduler.BuildContext(typeof(T), key, instance, QueuePriority.Immediate, null, _actor);
         ctx.Job.ChainId = _chainId;
         ctx.Job.IsChainFinally = typeof(T).GetCustomAttribute<ChainFinallyAttribute>() != null;
         _entries.Add(ctx);
@@ -294,7 +306,7 @@ internal sealed class JobChainBuilder : IJobChainBuilder
         var instance = (IQueueJob)scope.ServiceProvider.GetRequiredService(jobType);
         configure?.Invoke(instance);
 
-        var ctx = QueueScheduler.BuildContext(jobType, key, instance, int.MaxValue, null, _actor);
+        var ctx = QueueScheduler.BuildContext(jobType, key, instance, QueuePriority.Immediate, null, _actor);
         ctx.Job.ChainId = _chainId;
         ctx.Job.IsChainFinally = jobType.GetCustomAttribute<ChainFinallyAttribute>() != null;
         _entries.Add(ctx);
@@ -310,7 +322,8 @@ internal sealed class JobChainBuilder : IJobChainBuilder
         var parentId = SubExecutionTracker.CurrentJobId.Value;
         if (parentId == Guid.Empty)
         {
-            await Enqueue();
+            // As RunAfterCurrent does outside a worker: the head is queued as prioritized.
+            await EnqueueHead(prioritize: true);
             return;
         }
 
@@ -325,7 +338,21 @@ internal sealed class JobChainBuilder : IJobChainBuilder
 
         SeedChainScope();
 
-        await _orchestrator.EnqueueAsync(_entries[0]);
+        await EnqueueHead(prioritize: false);
+    }
+
+    /// <summary>
+    /// Queues the head of the chain at its type's priority and registers the rest to follow
+    /// it, each at <see cref="QueuePriority.Immediate"/> once its parent completes.
+    /// </summary>
+    /// <param name="prioritize">Whether the head is queued with its prioritized priority.</param>
+    /// <returns>A task that completes once the chain is queued.</returns>
+    /// <exception cref="InvalidOperationException">The head type's <see cref="JobPriorityAttribute"/> is invalid.</exception>
+    private async Task EnqueueHead(bool prioritize)
+    {
+        var head = _entries[0];
+        head.Job.Priority = QueuePriority.For(head.Type, prioritize);
+        await _orchestrator.EnqueueAsync(head);
         for (var i = 1; i < _entries.Count; i++)
             _orchestrator.RegisterChainAfterJob(_entries[i - 1].Job.Id, _entries[i]);
     }

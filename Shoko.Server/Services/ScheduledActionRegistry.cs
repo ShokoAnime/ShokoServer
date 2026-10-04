@@ -178,7 +178,8 @@ public sealed class ScheduledActionRegistry(IQueueScheduler scheduler, IPluginMa
             return null;
         }
 
-        await scheduler.Enqueue(ConfigureJob(actionId), ct: token).ConfigureAwait(false);
+        var priority = QueuePriority.ScheduledFor(typeof(ScheduledActionJob), prioritize: false);
+        await scheduler.EnqueueWithPriority(ConfigureJob(actionId), priority, ct: token).ConfigureAwait(false);
         return null;
     }
 

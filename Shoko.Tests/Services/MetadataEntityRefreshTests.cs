@@ -166,6 +166,14 @@ public class MetadataEntityRefreshTests
                         QueuedOther.Add((type, job));
                     return Task.CompletedTask;
                 });
+            queue.Setup(q => q.EnqueueWithPriority(It.IsAny<Type>(), It.IsAny<Action<IQueueJob>?>(), It.IsAny<int>()))
+                .Returns((Type type, Action<IQueueJob>? configure, int _) =>
+                {
+                    var job = (IQueueJob)RuntimeHelpers.GetUninitializedObject(type);
+                    configure?.Invoke(job);
+                    QueuedOther.Add((type, job));
+                    return Task.CompletedTask;
+                });
             Scheduler = new(manager.Object, queue.Object, Mock.Of<IJobFactory>(), Creators, Characters, Studios, Networks,
                 NullLogger<MetadataEntityRefreshScheduler>.Instance);
             People = new(Creators, Characters, Cast, Crew, textStore, writer, Scheduler);

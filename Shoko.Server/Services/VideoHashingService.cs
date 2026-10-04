@@ -21,12 +21,12 @@ using Shoko.Abstractions.Video.Events;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Hashing;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Settings;
 
@@ -373,15 +373,18 @@ public class VideoHashingService(
             throw new FileNotFoundException($"File does not exist: {path}", path);
 
         var resolvedPath = File.ResolveLinkTarget(path, true)?.FullName;
+        FileInfo resolvedFile;
         if (string.IsNullOrEmpty(resolvedPath))
         {
             resolvedPath = path;
+            resolvedFile = new(path);
         }
         else
         {
             resolvedPath = PlatformUtility.EnsureUsablePath(resolvedPath);
             logger.LogTrace("File is a symbolic link. Resolved path: {ResolvedFilePath}", resolvedPath);
-            if (!File.Exists(resolvedPath))
+            resolvedFile = new(resolvedPath);
+            if (!resolvedFile.Exists)
                 throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
         }
 
@@ -390,9 +393,13 @@ public class VideoHashingService(
             throw new InvalidOperationException($"File is outside of any managed folders: {path}");
 
         // Verify that the _unknown_ file we're going to hash is, in fact, a video file.
-        if (locationRepository.GetByRelativePathAndManagedFolderID(relativePath, managedFolder.ID) is null && !IsVideoFile(resolvedPath))
+        var isNew = locationRepository.GetByRelativePathAndManagedFolderID(relativePath, managedFolder.ID) is null;
+        if (isNew && !IsVideoFile(resolvedPath))
             throw new InvalidOperationException($"File is not a known video file format: {resolvedPath}");
-        await schedulerFactory.StartJob<HashFileJob>(b => (b.FilePath, b.ForceHash, b.SkipFindRelease, b.SkipEvents) = (path, !useExistingHashes, skipFindRelease, skipEvents), prioritize: prioritize);
+        await schedulerFactory.EnqueueWithPriority<HashFileJob>(
+            b => (b.FilePath, b.ForceHash, b.SkipFindRelease, b.SkipEvents) = (path, !useExistingHashes, skipFindRelease, skipEvents),
+            JobPriorities.ForFileSize(resolvedFile.Length, isNew: isNew, prioritize: prioritize)
+        );
     }
 
     public async Task<HashingResult> GetHashesForFile(IVideoFile file, bool useExistingHashes = true, bool skipFindRelease = false, bool skipEvents = false, CancellationToken cancellationToken = default)
@@ -435,7 +442,10 @@ public class VideoHashingService(
             if (!File.Exists(resolvedPath))
                 throw new FileNotFoundException($"Symbolic link points to file that does not exist: {resolvedPath}", resolvedPath);
         }
-        await schedulerFactory.StartJob<HashFileJob>(b => (b.FilePath, b.ForceHash, b.SkipFindRelease, b.SkipEvents) = (path, !useExistingHashes, skipFindRelease, skipEvents), prioritize: prioritize);
+        await schedulerFactory.EnqueueWithPriority<HashFileJob>(
+            b => (b.FilePath, b.ForceHash, b.SkipFindRelease, b.SkipEvents) = (path, !useExistingHashes, skipFindRelease, skipEvents),
+            JobPriorities.ForFileSize(file.Size, isNew: false, prioritize: prioritize)
+        );
     }
 
     #region Internals

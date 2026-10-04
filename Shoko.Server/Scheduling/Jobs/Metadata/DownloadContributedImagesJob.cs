@@ -33,6 +33,7 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 [NetworkRequired]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.Metadata)]
+// Ranked as queued by JobPriorities.ForMetadataEntry: a new entry adds 50 on top of prioritized = default + 50.
 public class DownloadContributedImagesJob<TContributor>(
     IMetadataImageContributorManager contributorManager,
     IMetadataService metadataService,

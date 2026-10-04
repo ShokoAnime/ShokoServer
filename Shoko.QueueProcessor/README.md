@@ -49,7 +49,7 @@ flowchart LR
 **The short version:**
 
 1. You call `scheduler.Enqueue<MyJob>(j => j.FileId = 42)`.
-2. A **stable key** is built from `[JobKeyMember]` properties (or all primitive props). If a job with that key is already waiting or executing, the call is a no-op.
+2. A **stable key** is built from `[JobKeyMember]` properties (or all primitive props). If a job with that key is already waiting or executing, the call is a no-op, except that a waiting job is raised to the new priority when it is higher.
 3. The job is added to an in-memory waiting queue and queued for persistence via `PersistenceBuffer`. If it finishes within `FlushIntervalMs` (default 3s) it never touches the DB at all.
 4. The orchestrator routes the job to the **worker pool** that handles its type. Pools are built at startup by `PoolDiscovery` from your `[LimitConcurrency]` / `[DisallowConcurrencyGroup]` attributes.
 5. A worker calls **`IAcquisitionFilter.GetTypesToExclude()`** before picking a job. Network down? `NetworkRequired` jobs sit blocked without consuming the worker.
@@ -61,7 +61,7 @@ flowchart LR
 ```mermaid
 flowchart TD
     subgraph Callers["Entry Points"]
-        ENQ["Enqueue&lt;T&gt;(configure)<br/>priority: 0 (normal) or 10 (prioritize: true)<br/>scheduledAt: optional future dispatch"]
+        ENQ["Enqueue&lt;T&gt;(configure)<br/>priority: the type's [JobPriority] default or prioritized value<br/>(0 or 10 without one) · scheduledAt: optional future dispatch"]
         RAC["RunAfterCurrent&lt;T&gt;(configure)<br/>int.MaxValue priority · held until parent completes"]
         ENQI["EnqueueImmediate&lt;T&gt;(configure, onComplete)<br/>int.MaxValue priority · returns awaitable Task"]
         REC["RecurringJobRegistry<br/>Register&lt;T&gt;(interval, configure)"]
@@ -124,7 +124,7 @@ flowchart TD
     end
 
     subgraph Pools["Worker Pools  (PoolDiscovery from [LimitConcurrency] + [DisallowConcurrencyGroup])"]
-        PP["Pool priority slot reservation<br/>higher-priority pools claim RunnableCount slots first<br/>lower-priority pools proceed only when available &gt; reserved"]
+        PP["Pool priority slot reservation<br/>higher-priority pools claim RunnableCount slots first<br/>lower-priority pools proceed only when available &gt; reserved<br/>(their int.MaxValue jobs skip the reservation)"]
         PA["Pool A  e.g. AniDB-HTTP<br/>workers = 1 · priority = 10"]
         PB["Pool B  e.g. Import<br/>workers = 4 · priority = 20"]
         PC["Pool Default  catch-all<br/>workers = N · priority = 999"]
@@ -275,6 +275,7 @@ public class HashFileJob : IQueueJob
 | `[DisallowConcurrentExecution]` | Shorthand for `[LimitConcurrency(1)]`. |
 | `[Acquisition(priority: N)]` | Sets the pool's dispatch priority. Lower `N` = higher priority. Subclass to bundle priority with domain semantics (e.g. `[AniDBHttpRateLimited]`). Defaults to `AcquisitionAttribute.LowestPriority` (999) if absent. |
 | `[RetryPolicy(MaxRetries = …, BaseDelaySeconds = …, MaxDelaySeconds = …)]` | Per-type override of the global retry backoff. |
+| `[JobPriority(Default = …, Prioritized = …)]` | The priorities `Enqueue` and a chain's first job use, picked by `prioritize`; 0 and 10 when unset. They only order jobs within the type's pool. `Prioritized` may not be below `Default`, nor reach `QueuePriority.Immediate`; pool discovery throws otherwise. |
 | `[LongRunning]` | Exempts this job from the deadlock watchdog. Apply to jobs that are expected to run for a long time (e.g. hashing a large file, full-library scans). A job with a deadline of its own registers an `IJobWatchdogThreshold` instead and stays watched. |
 | `[DatabaseRequired]` | Job won't run while the database is unavailable. The host supplies the filter that knows when it is (see [Acquisition filters](#acquisition-filters)). |
 | `[NetworkRequired]` | Job won't run while the network is offline. Subclass to make custom gates (e.g. AniDB rate limit). |
@@ -311,8 +312,14 @@ Inject `IQueueScheduler` (or `QueueHandler` for state queries) and call:
 // Fire and forget
 await scheduler.Enqueue<HashFileJob>(j => j.FilePath = "/movies/foo.mkv");
 
-// Prioritise (runs before priority 0 jobs)
+// Prioritise (the type's [JobPriority] Prioritized value, 10 without one)
 await scheduler.Enqueue<HashFileJob>(j => j.FilePath = path, prioritize: true);
+
+// An explicit priority, in place of the type's own
+await scheduler.EnqueueWithPriority<HashFileJob>(j => j.FilePath = path, QueuePriority.Scheduled);
+
+// The same for a type known only at runtime
+await scheduler.EnqueueWithPriority(jobType, j => ((HashFileJob)j).FilePath = path, 30);
 
 // Defer
 await scheduler.Enqueue<CleanupJob>(scheduledAt: DateTimeOffset.UtcNow.AddHours(1));
@@ -410,7 +417,7 @@ await scheduler.RunAfterCurrent<IndexAnimeJob>(j => j.AnimeID = animeID);
 | Child key already executing | No-op — the running instance is left alone |
 | Parent fails (real failure / discard) | Child registrations discarded; dedup keys freed |
 | Parent re-queues (`RequeueJobException`) | Child registrations preserved and fire on eventual success |
-| Called outside a job context | Falls back to `Enqueue` at priority 10 |
+| Called outside a job context | Falls back to `Enqueue` with `prioritize: true` (the type's prioritized priority) |
 
 `SubExecutionTracker` (internal) propagates the current job's ID via `AsyncLocal<Guid>` through
 the full async call chain, so `RunAfterCurrent` works correctly when called from a helper
@@ -431,6 +438,8 @@ await scheduler.CreateJobChain()
     .Then<SummarizeChainJob>(j => j.AnimeID = animeID)  // [ChainFinally]
     .EnqueueAfterCurrent();  // or .Enqueue() to start independently
 ```
+
+`.Enqueue()` queues the first job at its type's default priority, and `.EnqueueAfterCurrent()` outside a job context at its prioritized one. Every later job is released at `int.MaxValue` once the job before it completes.
 
 ```mermaid
 flowchart TD
@@ -640,6 +649,8 @@ Example — 10 `MaxTotalWorkers`, `AniDB_HTTP` (max 1), `AniDB_UDP` (max 4), `De
 | HTTP=0, UDP=0 | 0 | 10 | 10 |
 
 The pool priority is the **minimum** `WorkerPriority` across all job types in the pool. Types without `[Acquisition]` default to `LowestPriority` (999).
+
+**Immediate jobs skip the reservation.** A pool whose next runnable job is at `QueuePriority.Immediate` (from `EnqueueImmediate`, `RunAfterCurrent` or a chain step) may acquire that job even while higher-priority pools reserve the free slots, since a caller may be awaiting it. Only its jobs at that priority skip the reservation. The global cap, the pool's own `MaxWorkers` and its acquisition filters still apply. Pools of the same priority are not ordered by the priority of their next job.
 
 ---
 

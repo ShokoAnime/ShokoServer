@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Workers;
@@ -25,6 +26,8 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 /// <param name="cancellationAccessor">Cancels the work.</param>
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Metadata)]
+// Not default + 50: a prioritized cleanup only moves ahead of other cleanup.
+[JobPriority(Default = 0, Prioritized = 10)]
 public class ClearContributedImagesJob(
     IMetadataImageContributorManager contributorManager,
     IImageManager imageManager,

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Workers;
@@ -28,6 +29,7 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 [DatabaseRequired]
 [MetadataProviderJob]
 [JobKeyGroup(JobKeyGroup.Metadata)]
+[JobPriority(Default = 10, Prioritized = 60)]
 public class SearchMetadataJob<TProvider>(
     IMetadataProviderManager providerManager,
     IMetadataCrossReferenceStore crossReferences,

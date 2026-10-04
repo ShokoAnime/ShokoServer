@@ -584,13 +584,12 @@ public class SystemService : ISystemService
             services.AddSentryConfig(settingsProvider);
             // Wire the new queue processor
             var queueSettings = ISettingsProvider.Instance.GetSettings().Queue;
-            var maxWorkers = queueSettings.MaxTotalWorkers > 0 ? queueSettings.MaxTotalWorkers : Environment.ProcessorCount + 4;
             services.AddQueueProcessor(opts =>
             {
                 opts.Provider = queueSettings.Provider;
                 opts.ConnectionString = GetQueueConnectionString(queueSettings);
-                opts.MaxTotalWorkers = maxWorkers;
-                opts.DefaultPoolMaxWorkers = maxWorkers;
+                opts.MaxTotalWorkers = queueSettings.GetEffectiveMaxTotalWorkers();
+                opts.DefaultPoolMaxWorkers = queueSettings.GetEffectiveDefaultPoolMaxWorkers();
                 opts.FlushIntervalMs = queueSettings.FlushIntervalMs;
                 opts.MaxFlushBatch = queueSettings.MaxFlushBatch;
                 opts.LimitedConcurrencyOverrides = queueSettings.LimitedConcurrencyOverrides;

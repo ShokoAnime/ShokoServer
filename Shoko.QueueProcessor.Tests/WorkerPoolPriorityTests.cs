@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -18,7 +19,7 @@ namespace Shoko.QueueProcessor.Tests;
 
 /// <summary>
 /// Tests for pool-priority slot reservation:
-/// <see cref="QueueOrchestrator"/> wires <see cref="WorkerPool.ShouldAttemptAcquisition"/>
+/// <see cref="QueueOrchestrator"/> wires <see cref="WorkerPool.AcquisitionFloor"/>
 /// so that higher-priority pools claim their runnable slots before lower-priority pools proceed.
 /// </summary>
 public class WorkerPoolPriorityTests
@@ -78,14 +79,42 @@ public class WorkerPoolPriorityTests
     private static WorkerPool MakePool(string name, int maxWorkers, int priority, Type jobType) =>
         new(name, maxWorkers, priority, [jobType], []);
 
-    private static QueuedJob MakeJob(Type jobType) => new()
+    private static QueuedJob MakeJob(Type jobType, int priority = QueuePriority.Default) => new()
     {
         Id = Guid.NewGuid(),
         JobType = jobType.FullName + ", " + jobType.Assembly.GetName().Name,
         JobKey = $"key_{Guid.NewGuid()}",
-        Priority = 0,
+        Priority = priority,
         QueuedAt = DateTimeOffset.UtcNow,
     };
+
+    private static bool MayAcquireAny(WorkerPool pool) => pool.AcquisitionFloor?.Invoke() == int.MinValue;
+
+    private static bool StaysIdle(WorkerPool pool) => pool.AcquisitionFloor?.Invoke() is null;
+
+    /// <summary>
+    /// Sets up a full high tier that reserves every slot, and a low tier holding
+    /// <paramref name="lowJobs"/>, all loaded as persisted jobs so they own their keys.
+    /// </summary>
+    private static (QueueOrchestrator Orchestrator, WorkerPool High, WorkerPool Low) MakeReservedTiers(
+        IAcquisitionFilter? lowFilter,
+        params QueuedJob[] lowJobs
+    )
+    {
+        const int maxWorkers = 2;
+        var orchestrator = MakeOrchestrator(maxWorkers);
+        var highPool = MakePool("High", maxWorkers, priority: 1, typeof(HighPriorityJob));
+        var lowPool = new WorkerPool(
+            "Low",
+            maxWorkers,
+            AcquisitionAttribute.LowestPriority,
+            [typeof(LowPriorityJob)],
+            lowFilter is null ? [] : [lowFilter]
+        );
+        var highJobs = Enumerable.Range(0, maxWorkers).Select(_ => MakeJob(typeof(HighPriorityJob)));
+        orchestrator.Initialize([.. highJobs, .. lowJobs], [highPool, lowPool]);
+        return (orchestrator, highPool, lowPool);
+    }
 
     // ── Tests ─────────────────────────────────────────────────────────────────
 
@@ -96,7 +125,7 @@ public class WorkerPoolPriorityTests
         var pool = MakePool("High", 1, priority: 1, typeof(HighPriorityJob));
         orchestrator.Initialize([], [pool]);
 
-        Assert.True(pool.ShouldAttemptAcquisition?.Invoke());
+        Assert.True(MayAcquireAny(pool));
     }
 
     [Fact]
@@ -108,7 +137,7 @@ public class WorkerPoolPriorityTests
         orchestrator.Initialize([], [highPool, lowPool]);
 
         // High pool is empty → reserved = 0, available = 10 → low pool proceeds
-        Assert.True(lowPool.ShouldAttemptAcquisition?.Invoke());
+        Assert.True(MayAcquireAny(lowPool));
     }
 
     [Fact]
@@ -123,7 +152,7 @@ public class WorkerPoolPriorityTests
         highPool.AddToQueue(MakeJob(typeof(HighPriorityJob)));
 
         // reserved = 1, available = 10 → 10 > 1 → low pool proceeds
-        Assert.True(lowPool.ShouldAttemptAcquisition?.Invoke());
+        Assert.True(MayAcquireAny(lowPool));
     }
 
     [Fact]
@@ -139,7 +168,7 @@ public class WorkerPoolPriorityTests
         highPool.AddToQueue(MakeJob(typeof(HighPriorityJob)));
 
         // reserved = 2, available = 2 → 2 > 2 is false → low pool blocked
-        Assert.False(lowPool.ShouldAttemptAcquisition?.Invoke());
+        Assert.True(StaysIdle(lowPool));
     }
 
     [Fact]
@@ -155,7 +184,7 @@ public class WorkerPoolPriorityTests
             highPool.AddToQueue(MakeJob(typeof(HighPriorityJob)));
 
         // reserved = min(5, 1) = 1, available = 3 → 3 > 1 → low pool proceeds
-        Assert.True(lowPool.ShouldAttemptAcquisition?.Invoke());
+        Assert.True(MayAcquireAny(lowPool));
     }
 
     [Fact]
@@ -169,19 +198,19 @@ public class WorkerPoolPriorityTests
 
         // Note: both HighPriorityJob and LowPriorityJob used across pools here, so register
         // them independently without going through the orchestrator's type routing.
-        // Instead re-wire TryRegisterExecuting manually to test ShouldAttemptAcquisition only.
+        // Instead re-wire TryRegisterExecuting manually to test AcquisitionFloor only.
         httpPool.TryRegisterExecuting = _ => false;
         udpPool.TryRegisterExecuting = _ => false;
         defaultPool.TryRegisterExecuting = _ => false;
 
-        // Manually wire ShouldAttemptAcquisition using real pools at known priorities
+        // Manually wire AcquisitionFloor using real pools at known priorities
         orchestrator.Initialize([], [httpPool, udpPool, defaultPool]);
 
         httpPool.AddToQueue(MakeJob(typeof(HighPriorityJob)));
         udpPool.AddToQueue(MakeJob(typeof(LowPriorityJob)));
 
         // From defaultPool's perspective: reserved = 1 (HTTP) + 1 (UDP) = 2, available = 2 → blocked
-        Assert.False(defaultPool.ShouldAttemptAcquisition?.Invoke());
+        Assert.True(StaysIdle(defaultPool));
     }
 
     [Fact]
@@ -202,6 +231,51 @@ public class WorkerPoolPriorityTests
         httpPool.AddToQueue(MakeJob(typeof(HighPriorityJob)));
 
         // UDP: reserved = 1 (HTTP only), available = 3 → 3 > 1 → proceeds
-        Assert.True(udpPool.ShouldAttemptAcquisition?.Invoke());
+        Assert.True(MayAcquireAny(udpPool));
+    }
+
+    [Fact]
+    public void ImmediateJob_LowTierPool_SkipsHigherTierReservation()
+    {
+        var immediate = MakeJob(typeof(LowPriorityJob), QueuePriority.Immediate);
+        var (_, _, lowPool) = MakeReservedTiers(null, immediate, MakeJob(typeof(LowPriorityJob)));
+
+        var floor = lowPool.AcquisitionFloor?.Invoke();
+
+        Assert.Equal(QueuePriority.Immediate, floor);
+        Assert.Equal(immediate.Id, lowPool.TryAcquire(floor!.Value)?.Id);
+        // The normal job behind it still yields to the high tier.
+        Assert.Null(lowPool.TryAcquire(floor.Value));
+        Assert.True(StaysIdle(lowPool));
+    }
+
+    [Fact]
+    public void ImmediateJob_LowTierPool_RespectsGlobalCap()
+    {
+        var (_, highPool, lowPool) = MakeReservedTiers(null, MakeJob(typeof(LowPriorityJob), QueuePriority.Immediate));
+        while (highPool.TryAcquire() is not null) { }
+
+        var floor = lowPool.AcquisitionFloor?.Invoke();
+
+        Assert.NotNull(floor);
+        Assert.Null(lowPool.TryAcquire(floor.Value));
+    }
+
+    [Fact]
+    public void ImmediateJob_LowTierPool_RespectsAcquisitionFilter()
+    {
+        var filter = new Mock<IAcquisitionFilter>();
+        filter.Setup(f => f.GetTypesToExclude()).Returns([typeof(LowPriorityJob)]);
+        var (_, _, lowPool) = MakeReservedTiers(filter.Object, MakeJob(typeof(LowPriorityJob), QueuePriority.Immediate));
+
+        Assert.True(StaysIdle(lowPool));
+    }
+
+    [Fact]
+    public void NormalJob_LowTierPool_StillYieldsToHigherTier()
+    {
+        var (_, _, lowPool) = MakeReservedTiers(null, MakeJob(typeof(LowPriorityJob), QueuePriority.Prioritized));
+
+        Assert.True(StaysIdle(lowPool));
     }
 }

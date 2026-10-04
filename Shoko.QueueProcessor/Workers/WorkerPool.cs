@@ -61,6 +61,10 @@ public sealed class WorkerPool : IWorkerPool
     // Same invalidation triggers as _cachedRunnableCount.
     private volatile int _cachedBlockedCount = -1;
 
+    // Cached result of HasRunnableImmediateJob: -1 = dirty, 0 = no, 1 = yes.
+    // Same invalidation triggers as _cachedRunnableCount.
+    private volatile int _cachedHasRunnableImmediate = -1;
+
     // Mirror of _subQueue.Count for lock-free reads (WaitingCount).
     // All mutations happen under _subQueueLock; volatile provides visibility outside it.
     private volatile int _waitingCount;
@@ -81,11 +85,12 @@ public sealed class WorkerPool : IWorkerPool
     public IReadOnlyList<IAcquisitionFilter> AcquisitionFilters { get; }
 
     /// <summary>
-    /// Set by the orchestrator after pool construction. When non-null, workers call this before
-    /// <see cref="TryAcquire"/> and skip acquisition (staying idle) if it returns <c>false</c>.
-    /// Used to enforce pool priority: lower-priority pools yield when higher-priority pools have runnable jobs.
+    /// Set by the orchestrator after pool construction. Workers call it before
+    /// <see cref="TryAcquire"/>: <c>null</c> keeps them idle, and a number is the lowest job
+    /// priority they may acquire. It enforces pool tiers: a lower tier yields to higher tiers
+    /// with runnable jobs, except for its jobs at <see cref="QueuePriority.Immediate"/>.
     /// </summary>
-    public Func<bool>? ShouldAttemptAcquisition { get; set; }
+    public Func<int?>? AcquisitionFloor { get; set; }
 
     int IWorkerPool.IdleWorkers => _idleWorkers;
     int IWorkerPool.ActiveWorkers => _activeWorkers;
@@ -147,8 +152,7 @@ public sealed class WorkerPool : IWorkerPool
             _subQueueByKey[job.JobKey] = job;
             _waitingCount++;
         }
-        _cachedRunnableCount = -1;
-        _cachedBlockedCount = -1;
+        InvalidateCounts();
     }
 
     /// <summary>
@@ -167,8 +171,7 @@ public sealed class WorkerPool : IWorkerPool
             }
             _waitingCount += jobs.Count;
         }
-        _cachedRunnableCount = -1;
-        _cachedBlockedCount = -1;
+        InvalidateCounts();
     }
 
     /// <summary>Removes <paramref name="id"/> from the sub-queue (called on forced discard).</summary>
@@ -199,8 +202,7 @@ public sealed class WorkerPool : IWorkerPool
         }
         if (removed)
         {
-            _cachedRunnableCount = -1;
-            _cachedBlockedCount = -1;
+            InvalidateCounts();
         }
         return removed;
     }
@@ -229,8 +231,7 @@ public sealed class WorkerPool : IWorkerPool
         }
         if (removed > 0)
         {
-            _cachedRunnableCount = -1;
-            _cachedBlockedCount = -1;
+            InvalidateCounts();
         }
         return removed;
     }
@@ -260,36 +261,47 @@ public sealed class WorkerPool : IWorkerPool
     }
 
     /// <summary>
-    /// Promotes a waiting job to <paramref name="newPriority"/>, resets its queue time so it
-    /// sorts before other jobs at the same priority, and clears any scheduled delay so it is
-    /// eligible for immediate acquisition. Returns <c>false</c> if the job is not
-    /// found in this pool's sub-queue (it may already be executing or belong to another pool).
+    /// Raises a waiting job to <paramref name="priority"/> when that is higher than its own. It
+    /// never lowers a priority and keeps the job's queue time. Only a raise to
+    /// <see cref="QueuePriority.Immediate"/> clears a scheduled delay, as it asks to run the job now.
     /// </summary>
-    public bool TryPromotePriority(string jobKey, int newPriority)
+    /// <param name="id">The ID of the waiting job.</param>
+    /// <param name="priority">The priority to raise it to.</param>
+    /// <returns>
+    /// The changed job, or <c>null</c> when it is not waiting in this pool or nothing changed.
+    /// </returns>
+    public QueuedJob? TryRaisePriority(Guid id, int priority)
     {
         lock (_subQueueLock)
         {
-            if (!_subQueueByKey.TryGetValue(jobKey, out var job)) return false;
+            if (!_subQueueById.TryGetValue(id, out var job))
+                return null;
+
+            var runNow = priority == QueuePriority.Immediate && job.ScheduledAt.HasValue;
+            if (job.Priority >= priority && !runNow)
+                return null;
+
             _subQueue.Remove(job);
-            var promoted = new QueuedJob
+            var raised = new QueuedJob
             {
                 Id = job.Id,
                 JobType = job.JobType,
                 JobKey = job.JobKey,
                 JobDataJson = job.JobDataJson,
-                Priority = newPriority,
-                QueuedAt = DateTimeOffset.UtcNow,
-                ScheduledAt = null,
+                Priority = Math.Max(job.Priority, priority),
+                QueuedAt = job.QueuedAt,
+                ScheduledAt = runNow ? null : job.ScheduledAt,
                 RetryCount = job.RetryCount,
                 ChainId = job.ChainId,
                 IsChainFinally = job.IsChainFinally,
                 ParentJobId = job.ParentJobId,
                 Actor = job.Actor,
             };
-            _subQueue.Add(promoted);
-            _subQueueById[promoted.Id] = promoted;
-            _subQueueByKey[promoted.JobKey] = promoted;
-            return true;
+            _subQueue.Add(raised);
+            _subQueueById[raised.Id] = raised;
+            _subQueueByKey[raised.JobKey] = raised;
+            InvalidateCounts();
+            return raised;
         }
     }
 
@@ -345,8 +357,7 @@ public sealed class WorkerPool : IWorkerPool
             _subQueueByKey.Clear();
             _waitingCount = 0;
         }
-        _cachedRunnableCount = -1;
-        _cachedBlockedCount = -1;
+        InvalidateCounts();
     }
 
     /// <summary>Number of waiting jobs with <c>RetryCount &gt; 0</c>.</summary>
@@ -457,10 +468,44 @@ public sealed class WorkerPool : IWorkerPool
     }
 
     /// <summary>
-    /// Scans the sub-queue for the next eligible job and attempts to register it with the orchestrator.
-    /// Returns the claimed job or <c>null</c> if nothing is eligible right now.
+    /// Whether a job at <see cref="QueuePriority.Immediate"/> is waiting that is neither held
+    /// back nor scheduled in the future. Only the head of the sub-queue is scanned, as it sorts
+    /// those jobs first. Cached and invalidated on any queue or filter mutation.
     /// </summary>
-    public QueuedJob? TryAcquire()
+    public bool HasRunnableImmediateJob
+    {
+        get
+        {
+            var cached = _cachedHasRunnableImmediate;
+            if (cached >= 0) return cached == 1;
+            var exclusions = _filterExclusions;
+            var holdActorJobs = _holdActorJobs;
+            var now = DateTimeOffset.UtcNow;
+            var found = false;
+            lock (_subQueueLock)
+            {
+                foreach (var job in _subQueue)
+                {
+                    if (job.Priority < QueuePriority.Immediate) break;
+                    if (job.ScheduledAt.HasValue && job.ScheduledAt.Value > now) continue;
+                    if (IsHeld(job, exclusions, holdActorJobs)) continue;
+                    found = true;
+                    break;
+                }
+            }
+            _cachedHasRunnableImmediate = found ? 1 : 0;
+            return found;
+        }
+    }
+
+    /// <summary>
+    /// Scans the sub-queue for the next eligible job and attempts to register it with the orchestrator.
+    /// </summary>
+    /// <param name="minimumPriority">
+    /// The lowest priority a job may have to be acquired; the scan stops at the first job below it.
+    /// </param>
+    /// <returns>The claimed job, or <c>null</c> if nothing is eligible right now.</returns>
+    public QueuedJob? TryAcquire(int minimumPriority = int.MinValue)
     {
         var exclusions = _filterExclusions;
         var holdActorJobs = _holdActorJobs;
@@ -472,6 +517,8 @@ public sealed class WorkerPool : IWorkerPool
             List<QueuedJob>? detached = null;
             foreach (var job in _subQueue)
             {
+                if (job.Priority < minimumPriority) break;
+
                 if (job.ScheduledAt.HasValue && job.ScheduledAt.Value > now) continue;
 
                 if (IsHeld(job, exclusions, holdActorJobs)) continue;
@@ -508,8 +555,7 @@ public sealed class WorkerPool : IWorkerPool
         if (_subQueueByKey.TryGetValue(job.JobKey, out var byKey) && ReferenceEquals(byKey, job))
             _subQueueByKey.Remove(job.JobKey);
         _waitingCount--;
-        _cachedRunnableCount = -1;
-        _cachedBlockedCount = -1;
+        InvalidateCounts();
     }
 
     /// <summary>
@@ -611,11 +657,20 @@ public sealed class WorkerPool : IWorkerPool
 
     private void OnFilterStateChanged(object? sender, EventArgs e) => RebuildExclusions();
 
+    /// <summary>
+    /// Marks every cached count of the sub-queue as dirty, to be recomputed on its next read.
+    /// </summary>
+    private void InvalidateCounts()
+    {
+        _cachedRunnableCount = -1;
+        _cachedBlockedCount = -1;
+        _cachedHasRunnableImmediate = -1;
+    }
+
     private void OnActorRestoreChanged(object? sender, EventArgs e)
     {
         _holdActorJobs = _actorAccessor?.CanRestore is false;
-        _cachedRunnableCount = -1;
-        _cachedBlockedCount = -1;
+        InvalidateCounts();
         Signal();
     }
 
@@ -626,8 +681,7 @@ public sealed class WorkerPool : IWorkerPool
             foreach (var t in filter.GetTypesToExclude())
                 set.Add(t);
         _filterExclusions = set;
-        _cachedRunnableCount = -1;
-        _cachedBlockedCount = -1;
+        InvalidateCounts();
         Signal(); // wake workers to retry acquisition with updated exclusions
     }
 

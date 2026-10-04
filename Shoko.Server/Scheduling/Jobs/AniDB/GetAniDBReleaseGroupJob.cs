@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Video.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -21,6 +22,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+[JobPriority(Default = 20, Prioritized = 70)]
 public class GetAniDBReleaseGroupJob(IRequestFactory requestFactory, IVideoReleaseService videoReleaseService, CrossRef_File_EpisodeRepository crossRefFileEpisodes, StoredReleaseInfoRepository storedReleaseInfos, VideoLocalRepository videoLocals) : BaseJob
 {
     internal static HashSet<string?> InvalidReleaseGroupNames = new(StringComparer.InvariantCultureIgnoreCase)

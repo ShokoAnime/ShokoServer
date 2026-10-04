@@ -64,6 +64,15 @@ public interface IJobRepository
     Task UpdateDataBatchAsync(IReadOnlyCollection<(Guid Id, string? NewJson)> updates, CancellationToken ct = default);
 
     /// <summary>
+    /// Updates <see cref="QueuedJob.Priority"/> and <see cref="QueuedJob.ScheduledAt"/> for each
+    /// raised waiting job. Called by <see cref="Orchestration.PersistenceBuffer"/> on flush.
+    /// </summary>
+    /// <param name="updates">The jobs, their new priorities and their scheduled times.</param>
+    /// <param name="ct">Cancels the update.</param>
+    /// <returns>A task that completes once the rows are updated.</returns>
+    Task UpdatePriorityBatchAsync(IReadOnlyCollection<(Guid Id, int Priority, DateTimeOffset? ScheduledAt)> updates, CancellationToken ct = default);
+
+    /// <summary>
     /// Updates <see cref="QueuedJob.JobKey"/> for each (Id, NewKey) pair. Called once at startup
     /// to upgrade keys stored in an older format.
     /// </summary>

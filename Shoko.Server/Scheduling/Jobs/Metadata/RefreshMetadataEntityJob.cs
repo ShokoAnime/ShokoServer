@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Workers;
@@ -30,6 +31,7 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 [DatabaseRequired]
 [MetadataProviderJob]
 [JobKeyGroup(JobKeyGroup.Metadata)]
+[JobPriority(Default = 10, Prioritized = 60)]
 public class RefreshMetadataEntityJob<TProvider>(
     IMetadataProviderManager providerManager,
     MetadataEntityRefreshScheduler entityScheduler,
@@ -99,11 +101,15 @@ public class RefreshMetadataEntityJob<TProvider>(
 
         // Checked under the lock, as another job may have refreshed it first.
         var now = DateTime.Now;
-        if (!Force && entityScheduler.GetRow(entity) is { } stored && !entityScheduler.IsDue(stored, provider, now))
+        var stored = Force ? null : entityScheduler.GetRow(entity);
+        if (stored is not null && !entityScheduler.IsDue(stored, provider, now))
         {
             _logger.LogDebug("Not refreshing {Entity}, which {Provider} refreshed recently.", entity, info.Name);
             return;
         }
+
+        // A forced run is a re-run, so only a run that read the row may call it new.
+        var isNew = !Force && stored is null or { LastRefreshedAt: null, LastUpdatedAt: null };
 
         bool found;
         using (entryLocks.MarkUpdating(entity))
@@ -120,7 +126,7 @@ public class RefreshMetadataEntityJob<TProvider>(
         }
 
         _logger.LogDebug("{Provider} refreshed {Entity}.", info.Name, entity);
-        await ScheduleImages(info, entity).ConfigureAwait(false);
+        await ScheduleImages(info, entity, isNew).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -130,16 +136,17 @@ public class RefreshMetadataEntityJob<TProvider>(
     /// </summary>
     /// <param name="info">The provider's info.</param>
     /// <param name="entity">The entry.</param>
+    /// <param name="isNew">Whether the entry was never refreshed before, so its images are new.</param>
     /// <returns>A task that completes once the jobs are queued.</returns>
-    private async Task ScheduleImages(MetadataProviderInfo info, MetadataGuid entity)
+    private async Task ScheduleImages(MetadataProviderInfo info, MetadataGuid entity, bool isNew)
     {
         var token = cancellationAccessor.Token;
         var ownerImages = info.Provider is IMetadataImageProvider &&
             settingsProvider.GetSettings().Image.GetMetadataSourceSettings(info.Source).AnyEnabled;
         try
         {
-            if (!ownerImages || !await providerScheduler.ScheduleImages(info, entity, cancellationToken: token).ConfigureAwait(false))
-                await contributorScheduler.ScheduleForEntry(entity, cancellationToken: token).ConfigureAwait(false);
+            if (!ownerImages || !await providerScheduler.ScheduleImages(info, entity, cancellationToken: token, isNew: isNew).ConfigureAwait(false))
+                await contributorScheduler.ScheduleForEntry(entity, isNew: isNew, cancellationToken: token).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

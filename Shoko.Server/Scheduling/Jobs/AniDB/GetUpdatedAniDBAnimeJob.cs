@@ -29,6 +29,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+[JobPriority(Default = 30, Prioritized = 80)]
 public class GetUpdatedAniDBAnimeJob(
     IRequestFactory requestFactory,
     IAnidbService anidbService,

@@ -42,6 +42,8 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     private readonly Dictionary<Guid, Guid> _pendingReparents = new();
     // Pending data updates: last-write-wins per Id, for upgraded waiting jobs
     private readonly Dictionary<Guid, string?> _pendingUpdates = new();
+    // Pending priority raises: last-write-wins per Id, with the scheduled time they leave
+    private readonly Dictionary<Guid, (int Priority, DateTimeOffset? ScheduledAt)> _pendingRaises = new();
     private readonly object _bufferLock = new();
 
     private readonly SemaphoreSlim _flushGate = new(1, 1);
@@ -119,6 +121,35 @@ public sealed class PersistenceBuffer : IAsyncDisposable
     }
 
     /// <summary>
+    /// Buffers the raised priority of a waiting job, and the scheduled time the raise left it,
+    /// as <see cref="OnUpdate"/> buffers data: in place for a pending insert, dropped for a
+    /// pending delete, and otherwise batched as an UPDATE on the next flush.
+    /// </summary>
+    /// <param name="id">The ID of the job.</param>
+    /// <param name="priority">Its new priority.</param>
+    /// <param name="scheduledAt">Its scheduled time after the raise.</param>
+    public void OnRaisePriority(Guid id, int priority, DateTimeOffset? scheduledAt)
+    {
+        bool shouldFlush;
+        lock (_bufferLock)
+        {
+            if (_pendingInserts.TryGetValue(id, out var pendingJob))
+            {
+                pendingJob.Priority = priority;
+                pendingJob.ScheduledAt = scheduledAt;
+                return;
+            }
+            if (_pendingDeletes.Contains(id)) return;
+
+            _pendingRaises[id] = (priority, scheduledAt);
+            shouldFlush = _pendingInserts.Count + _pendingDeletes.Count + _pendingActivations.Count +
+                          _pendingUpdates.Count + _pendingRaises.Count >= _maxFlushBatch;
+            if (!shouldFlush) ArmTimerLocked();
+        }
+        if (shouldFlush) _ = FlushNowAsync(CancellationToken.None);
+    }
+
+    /// <summary>
     /// Marks a completed job for deletion. If the job was still in the insert buffer
     /// (completed before the flush fired), it is cancelled out and never written to the DB.
     /// </summary>
@@ -138,6 +169,7 @@ public sealed class PersistenceBuffer : IAsyncDisposable
             _pendingReparents.Remove(id);
             // If the job was pending a data UPDATE, drop it — DELETE supersedes.
             _pendingUpdates.Remove(id);
+            _pendingRaises.Remove(id);
 
             _pendingDeletes.Add(id);
             shouldFlush = _pendingDeletes.Count >= _maxFlushBatch;
@@ -216,6 +248,7 @@ public sealed class PersistenceBuffer : IAsyncDisposable
         Guid[] activations;
         (Guid Id, Guid ParentJobId)[] reparents;
         (Guid Id, string? NewJson)[] updates;
+        (Guid Id, int Priority, DateTimeOffset? ScheduledAt)[] raises;
 
         lock (_bufferLock)
         {
@@ -227,14 +260,17 @@ public sealed class PersistenceBuffer : IAsyncDisposable
             activations = [.. _pendingActivations];
             reparents = [.. _pendingReparents.Select(kv => (kv.Key, kv.Value))];
             updates = [.. _pendingUpdates.Select(kv => (kv.Key, kv.Value))];
+            raises = [.. _pendingRaises.Select(kv => (kv.Key, kv.Value.Priority, kv.Value.ScheduledAt))];
             _pendingInserts.Clear();
             _pendingDeletes.Clear();
             _pendingActivations.Clear();
             _pendingReparents.Clear();
             _pendingUpdates.Clear();
+            _pendingRaises.Clear();
         }
 
-        if (inserts.Length == 0 && deletes.Length == 0 && activations.Length == 0 && reparents.Length == 0 && updates.Length == 0) return;
+        if (inserts.Length == 0 && deletes.Length == 0 && activations.Length == 0 && reparents.Length == 0 && updates.Length == 0 &&
+            raises.Length == 0) return;
 
         await _flushGate.WaitAsync(ct);
         try
@@ -260,6 +296,11 @@ public sealed class PersistenceBuffer : IAsyncDisposable
             {
                 _logger.LogDebug("PersistenceBuffer: flushing {UpdateCount} data updates", updates.Length);
                 await repo.UpdateDataBatchAsync(updates, ct);
+            }
+            if (raises.Length > 0)
+            {
+                _logger.LogDebug("PersistenceBuffer: flushing {RaiseCount} priority raises", raises.Length);
+                await repo.UpdatePriorityBatchAsync(raises, ct);
             }
             if (inserts.Length > 0)
             {

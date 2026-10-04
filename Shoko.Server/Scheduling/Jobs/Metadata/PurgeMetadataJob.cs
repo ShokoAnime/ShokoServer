@@ -9,6 +9,7 @@ using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Workers;
@@ -30,6 +31,8 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 /// </remarks>
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Metadata)]
+// Not default + 50: a prioritized cleanup only moves ahead of other cleanup.
+[JobPriority(Default = 0, Prioritized = 10)]
 public class PurgeMetadataJob(
     IMetadataProviderManager providerManager,
     IMetadataCrossReferenceStore crossReferences,

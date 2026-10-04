@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.Server.Repositories.Cached;
@@ -11,6 +12,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 
 [DatabaseRequired]
 [JobKeyGroup(JobKeyGroup.Actions)]
+[JobPriority(Default = 20, Prioritized = 70)]
 public class RefreshAnimeStatsJob(
     AnimeSeriesService seriesService,
     AniDB_AnimeRepository animeRepo,

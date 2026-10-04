@@ -8,13 +8,13 @@ using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Services;
 using Shoko.QueueProcessor.Abstractions;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.Server.Databases;
 using Shoko.Server.Exceptions;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
 using Shoko.Server.Utilities;
@@ -73,7 +73,10 @@ public class VideoLocalRepository(DatabaseFactory databaseFactory) : BaseCachedR
             list.ForEach(
                 a =>
                 {
-                    scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = a.VideoLocalID).GetAwaiter().GetResult();
+                    scheduler.EnqueueWithPriority<MediaInfoJob>(
+                        c => c.VideoLocalID = a.VideoLocalID,
+                        JobPriorities.ForFileSize(a.FileSize, isNew: false, prioritize: false)
+                    ).GetAwaiter().GetResult();
                     count++;
                     SystemService.StartupMessage = $"Database - Validating - {nameof(VideoLocal)} Queuing Media Info Commands - {count}/{max}...";
                 }

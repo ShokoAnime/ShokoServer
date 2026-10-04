@@ -3,7 +3,6 @@ using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
-using Shoko.QueueProcessor.Scheduling;
 using Shoko.QueueProcessor.Workers;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Scheduling.Jobs.Shoko;
@@ -34,7 +33,10 @@ public class MediaInfoAllFilesJob(
         foreach (var vl in filesAll)
         {
             cancellation.Token.ThrowIfCancellationRequested();
-            await scheduler.StartJob<MediaInfoJob>(c => c.VideoLocalID = vl.VideoLocalID);
+            await scheduler.EnqueueWithPriority<MediaInfoJob>(
+                c => c.VideoLocalID = vl.VideoLocalID,
+                JobPriorities.ForFileSize(vl.FileSize, isNew: false, prioritize: false)
+            );
             progress.Progress.Report(100m * ++scheduled / filesAll.Count);
         }
         progress.Progress.Report(100);

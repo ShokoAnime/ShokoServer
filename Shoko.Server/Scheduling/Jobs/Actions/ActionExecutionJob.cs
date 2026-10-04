@@ -24,6 +24,7 @@ namespace Shoko.Server.Scheduling.Jobs.Actions;
 [DatabaseRequired]
 [JobKeyMember("Action")]
 [JobKeyGroup(JobKeyGroup.Actions)]
+[JobPriority(Default = 100, Prioritized = 150)]
 public class ActionExecutionJob(
     IServiceProvider services,
     ActionService actionService,

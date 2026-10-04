@@ -21,6 +21,7 @@ namespace Shoko.Server.Scheduling.Jobs.AniDB;
 [AniDBUdpRateLimited]
 [DisallowConcurrencyGroup(ConcurrencyGroups.AniDB_UDP)]
 [JobKeyGroup(JobKeyGroup.AniDB)]
+[JobPriority(Default = 30, Prioritized = 80)]
 public class GetAniDBMessageJob(IRequestFactory requestFactory, IQueueScheduler scheduler, ISettingsProvider settingsProvider, AniDB_MessageRepository anidbMessages, AniDB_NotifyQueueRepository anidbNotifyQueues) : BaseJob
 {
     public int MessageID { get; set; }

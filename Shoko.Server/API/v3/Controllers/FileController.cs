@@ -35,6 +35,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Providers.AniDB.Release;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Scheduling;
 using Shoko.Server.Scheduling.Jobs.AniDB;
 using Shoko.Server.Scheduling.Jobs.Shoko;
 using Shoko.Server.Services;
@@ -1706,9 +1707,9 @@ public class FileController(
         var filePath = file.FirstResolvedPlace?.Path;
         if (string.IsNullOrEmpty(filePath))
             return ValidationProblem(FileNoPath, "File");
-        await _schedulerFactory.StartJob<HashFileJob>(
+        await _schedulerFactory.EnqueueWithPriority<HashFileJob>(
             c => (c.FilePath, c.ForceHash) = (filePath, true),
-            prioritize: priority
+            JobPriorities.ForFileSize(file.FileSize, isNew: false, prioritize: priority)
         ).ConfigureAwait(false);
 
         return Ok();

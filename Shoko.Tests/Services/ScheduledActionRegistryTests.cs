@@ -117,6 +117,25 @@ public class ScheduledActionRegistryTests
         public Task Execute(IProgress<decimal> progress, CancellationToken token) => Task.CompletedTask;
     }
 
+    [JobPriority(Default = QueuePriority.Prioritized, Prioritized = QueuePriority.Prioritized + 10)]
+    public sealed class RankedJob : IQueueJob
+    {
+        public string TypeName => nameof(RankedJob);
+
+        public string Title => string.Empty;
+
+        public Dictionary<string, object> Details => [];
+
+        public void PostInit() { }
+
+        public Task Process() => Task.CompletedTask;
+    }
+
+    public sealed class RankedJobAction(IQueueScheduler scheduler) : QueueJobScheduledAction<RankedJob>(scheduler)
+    {
+        public override string Name => "Ranked Job";
+    }
+
     #endregion
 
     #region Fixture
@@ -189,14 +208,16 @@ public class ScheduledActionRegistryTests
         var harness = new Harness(typeof(PlainAction));
         var id = harness.IDOf<PlainAction>();
         Action<ScheduledActionJob>? configure = null;
+        int? priority = null;
         harness.Scheduler
-            .Setup(scheduler => scheduler.Enqueue(It.IsAny<Action<ScheduledActionJob>?>(), It.IsAny<bool>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()))
-            .Callback<Action<ScheduledActionJob>?, bool, DateTimeOffset?, CancellationToken>((job, _, _, _) => configure = job)
+            .Setup(scheduler => scheduler.EnqueueWithPriority(It.IsAny<Action<ScheduledActionJob>?>(), It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()))
+            .Callback<Action<ScheduledActionJob>?, int, DateTimeOffset?, CancellationToken>((job, jobPriority, _, _) => (configure, priority) = (job, jobPriority))
             .Returns(Task.CompletedTask);
 
         Assert.Null(await harness.Registry.InvokeAsync(id, TestContext.Current.CancellationToken));
 
         Assert.NotNull(configure);
+        Assert.Equal(QueuePriority.ScheduledFor(typeof(ScheduledActionJob), false), priority);
         var key = JobKeyBuilder<ScheduledActionJob>.Create().UsingJobData(configure).Build();
         Assert.Equal(harness.Registry.GetAction(id)!.JobKey, key);
     }
@@ -207,14 +228,48 @@ public class ScheduledActionRegistryTests
         var harness = new Harness(typeof(CheckNetworkAvailabilityAction));
         var id = harness.IDOf<CheckNetworkAvailabilityAction>();
         harness.Scheduler
-            .Setup(scheduler => scheduler.Enqueue(It.IsAny<Action<CheckNetworkAvailabilityJob>?>(), It.IsAny<bool>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()))
+            .Setup(scheduler => scheduler.EnqueueWithPriority(It.IsAny<Action<CheckNetworkAvailabilityJob>?>(), It.IsAny<int>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         Assert.Null(await harness.Registry.InvokeAsync(id, TestContext.Current.CancellationToken));
 
-        harness.Scheduler.Verify(scheduler => scheduler.Enqueue(It.IsAny<Action<CheckNetworkAvailabilityJob>?>(), It.IsAny<bool>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()), Times.Once);
-        harness.Scheduler.Verify(scheduler => scheduler.Enqueue(It.IsAny<Action<ScheduledActionJob>?>(), It.IsAny<bool>(), It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()), Times.Never);
+        harness.Scheduler.Verify(
+            scheduler => scheduler.EnqueueWithPriority(
+                It.IsAny<Action<CheckNetworkAvailabilityJob>?>(),
+                QueuePriority.Scheduled,
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<CancellationToken>()
+            ),
+            Times.Once
+        );
+        harness.Scheduler.Verify(
+            scheduler => scheduler.EnqueueWithPriority(
+                It.IsAny<Action<ScheduledActionJob>?>(),
+                It.IsAny<int>(),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<CancellationToken>()
+            ),
+            Times.Never
+        );
         Assert.Equal(JobKeyBuilder<CheckNetworkAvailabilityJob>.Create().Build(), harness.Registry.GetAction(id)!.JobKey);
+    }
+
+    [Fact]
+    public async Task ARun_OfAJobAction_TakesTheJobTypesDefaultWhenAboveScheduled()
+    {
+        var scheduler = new Mock<IQueueScheduler>();
+
+        await new RankedJobAction(scheduler.Object).EnqueueJob(TestContext.Current.CancellationToken);
+
+        scheduler.Verify(
+            queue => queue.EnqueueWithPriority(
+                It.IsAny<Action<RankedJob>?>(),
+                QueuePriority.For(typeof(RankedJob), prioritize: false),
+                It.IsAny<DateTimeOffset?>(),
+                It.IsAny<CancellationToken>()
+            ),
+            Times.Once
+        );
     }
 
     [Fact]

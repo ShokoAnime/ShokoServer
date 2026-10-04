@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Attributes;
 using Shoko.QueueProcessor.Builder;
 using Shoko.QueueProcessor.Concurrency;
@@ -31,6 +32,8 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 [MetadataProviderJob]
 [LongRunning]
 [JobKeyGroup(JobKeyGroup.Metadata)]
+[JobPriority(Default = 10, Prioritized = 60)]
+// Ranked as queued by JobPriorities.ForMetadataEntry: a new entry adds 50 on top of prioritized = default + 50.
 public class DownloadMetadataImagesJob<TProvider>(
     IMetadataProviderManager providerManager,
     IMetadataService metadataService,
@@ -56,6 +59,14 @@ public class DownloadMetadataImagesJob<TProvider>(
     ///   there.
     /// </summary>
     public bool Force { get; set; }
+
+    /// <summary>
+    ///   Whether this is the entry's first image run, after it was just linked
+    ///   or created, which its contributors' jobs are ranked by. Left out of
+    ///   the job's key.
+    /// </summary>
+    [JobKeyIgnore]
+    public bool IsNew { get; set; }
 
     /// <inheritdoc />
     public override string TypeName => "Download Metadata Images";
@@ -124,7 +135,7 @@ public class DownloadMetadataImagesJob<TProvider>(
 
         if (!ownerAsked)
         {
-            await contributorScheduler.ScheduleForEntry(entry, Force, cancellationToken: token).ConfigureAwait(false);
+            await contributorScheduler.ScheduleForEntry(entry, Force, isNew: IsNew, cancellationToken: token).ConfigureAwait(false);
             return;
         }
 
@@ -166,7 +177,7 @@ public class DownloadMetadataImagesJob<TProvider>(
 
         // The contributors add theirs once the owner's are linked, whether or
         // not every entity got its images.
-        await contributorScheduler.ScheduleForEntry(entry, Force, cancellationToken: token).ConfigureAwait(false);
+        await contributorScheduler.ScheduleForEntry(entry, Force, isNew: IsNew, cancellationToken: token).ConfigureAwait(false);
 
         if (failures.Count is 1)
             throw failures[0];
