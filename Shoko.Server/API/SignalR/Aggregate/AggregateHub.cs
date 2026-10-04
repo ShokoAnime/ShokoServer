@@ -3,6 +3,7 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Shoko.Abstractions.Web.SignalR;
 using Shoko.QueueProcessor;
@@ -135,6 +136,11 @@ public class AggregateHub : Hub
         return updated;
     }
 
+    /// <summary>
+    /// Pauses or resumes the queue, for admins only, as the REST routes do.
+    /// </summary>
+    /// <param name="paused">Whether to pause the queue rather than resume it.</param>
+    [Authorize("admin")]
     [HubMethodName("queue.pause")]
     public void ChangeQueueProcessingState(bool paused)
     {

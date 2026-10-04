@@ -639,7 +639,7 @@ public class VideoReleaseService(
     public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, bool saveRelease = true, bool skipEvents = false, bool isAutomatic = true, CancellationToken cancellationToken = default)
          => await FindReleaseForVideo(video, GetAvailableProviders(onlyEnabled: true), saveRelease, skipEvents, isAutomatic, cancellationToken);
 
-    public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = true, bool skipEvents = false, bool isAutomatic = true, CancellationToken cancellationToken = default)
+    public async Task<IReleaseInfo?> FindReleaseForVideo(IVideo video, IEnumerable<ReleaseProviderInfo> providers, bool saveRelease = false, bool skipEvents = false, bool isAutomatic = true, CancellationToken cancellationToken = default)
     {
         var startedAt = DateTime.Now;
         var completedAt = startedAt;

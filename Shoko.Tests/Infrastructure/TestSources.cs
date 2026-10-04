@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Tests.Infrastructure;
@@ -19,6 +20,14 @@ public static class TestSources
         AniList = MetadataSource.Register("AniList", "anilist");
         LocalPlugin = MetadataSource.Register("TestLocalPlugin", "test-local-plugin", local: true);
     }
+
+    /// <summary>
+    /// Registers the sources when the test assembly loads, so a test that names one by its text
+    /// alone finds it whatever ran before it.
+    /// </summary>
+    [ModuleInitializer]
+    internal static void RegisterOnLoad()
+        => RuntimeHelpers.RunClassConstructor(typeof(TestSources).TypeHandle);
 
     /// <summary>
     /// A generic plugin source.

@@ -37,6 +37,6 @@
         <!-- Injects the embedded plugin identity metadata the server reads during
              discovery. With no `manifest.json` beside this file, the ID, name and
              description are read from the literals in `Plugin.cs`. -->
-        <PackageReference Include="Shoko.BuildTools.Targets" Version="0.3.0" PrivateAssets="All" ExcludeAssets="runtime" />
+        <PackageReference Include="Shoko.BuildTools.Targets" Version="0.3.2" PrivateAssets="All" ExcludeAssets="runtime" />
     </ItemGroup>
 </Project>
