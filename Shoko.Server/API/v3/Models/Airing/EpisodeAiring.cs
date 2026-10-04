@@ -46,8 +46,9 @@ public class EpisodeAiring
     public bool IsDateOnly { get; init; }
 
     /// <summary>
-    /// The AniDB air date of a date-only entry, a calendar date in no
-    /// particular time zone, or <c>null</c> for an airing with a time.
+    /// The AniDB air date of a date-only entry, or the linked one standing in
+    /// for AniDB's pre-1970 placeholder, a calendar date in no particular time
+    /// zone, or <c>null</c> for an airing with a time.
     /// </summary>
     public DateOnly? AirDate { get; init; }
 
@@ -80,8 +81,19 @@ public class EpisodeAiring
     public bool IsEstimated { get; init; }
 
     /// <summary>
+    /// Whether this is the airing of its episode that <c>preferredOnly=true</c>
+    /// would keep in the same read, by the server's preference within the
+    /// read's window and filters. At most one airing per episode in a list is
+    /// flagged, and a date-only entry always is. A lookup by ID and a link set
+    /// leave it <c>false</c>.
+    /// </summary>
+    [Required]
+    public bool IsPreferred { get; init; }
+
+    /// <summary>
     /// What kind of showing the airing is: the regular one, an advance
-    /// screening or a rerun. Estimates are always <see cref="EpisodeAiringKind.Normal"/>.
+    /// screening, a rerun the provider marked, or a rerun the server detected
+    /// from the schedule's pattern. Estimates take their schedule's kind.
     /// </summary>
     [Required]
     public EpisodeAiringKind Kind { get; init; }
@@ -206,6 +218,7 @@ public class EpisodeAiring
         IsDelayed = airing.IsDelayed;
         Kind = airing.Kind;
         IsEstimated = airing.IsEstimated;
+        IsPreferred = airing.IsPreferred;
         OffsetFromOriginal = airing.OffsetFromOriginal;
         LinkID = airing.LinkID;
         Url = airing.Url;

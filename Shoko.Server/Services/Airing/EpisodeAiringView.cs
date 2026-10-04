@@ -27,6 +27,8 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
 
     private readonly IEpisode? _resolvedFor;
 
+    private readonly EpisodeAiringKind _providerKind;
+
     private bool _episodeResolved;
 
     private IEpisode? _episode;
@@ -44,6 +46,8 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     private bool _offsetResolved;
 
     private TimeSpan? _offsetFromOriginal;
+
+    private EpisodeAiringKind? _kind;
 
     /// <summary>
     /// The stored row behind this view, or <c>null</c> when the view
@@ -91,7 +95,7 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
         AiredAt = row.AiredAt;
         OriginalAiredAt = row.OriginalAiredAt;
         IsDelayed = row.IsDelayed;
-        Kind = row.Kind;
+        _providerKind = row.Kind;
     }
 
     /// <summary>
@@ -133,7 +137,7 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
         OriginalAiredAt = originalAiredAt;
         IsDelayed = false;
         IsEstimated = true;
-        Kind = EpisodeAiringKind.Normal;
+        _providerKind = EpisodeAiringKind.Normal;
     }
 
     /// <inheritdoc/>
@@ -229,8 +233,15 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     /// <inheritdoc/>
     public bool IsEstimated { get; }
 
+    /// <summary>
+    /// Whether this is the airing of its episode that a preferred-only read
+    /// with the same filters and window would keep. The list reads set it
+    /// once they have ordered and windowed the episode's airings.
+    /// </summary>
+    public bool IsPreferred { get; set; }
+
     /// <inheritdoc/>
-    public EpisodeAiringKind Kind { get; }
+    public EpisodeAiringKind Kind => _kind ??= _context.GetEffectiveKind(_schedule.Row, _providerKind);
 
     /// <inheritdoc/>
     public TimeSpan? OffsetFromOriginal

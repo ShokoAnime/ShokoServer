@@ -15,6 +15,7 @@ using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.Abstractions.Utilities;
@@ -52,7 +53,9 @@ public partial class AiringScheduleService(
     IApplicationPaths applicationPaths,
     IQueueScheduler schedulerFactory,
     ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider,
-    Lazy<IMetadataService> metadataService
+    Lazy<IMetadataService> metadataService,
+    Lazy<IMetadataCrossReferenceStore> crossReferenceStore,
+    Lazy<IMetadataLinkingService> linkingService
 ) : IAiringScheduleService
 {
     /// <summary>
@@ -82,6 +85,8 @@ public partial class AiringScheduleService(
 
     private bool _loaded;
 
+    private readonly AnidbLinkedAirDateCache _linkedAirDates = new(crossReferenceStore, metadataService, linkingService);
+
     /// <summary>
     /// Resolves an entry through the metadata service's lookup: the core's
     /// tables for its own sources, and for any other a plugin's own metadata
@@ -93,6 +98,13 @@ public partial class AiringScheduleService(
     /// <returns>The entry, or <c>null</c> when the core holds none.</returns>
     internal IMetadata? GetStoredEntity(MetadataSource source, MetadataEntityType entityType, string id)
         => MetadataEntries.ToGuid(source, entityType, id) is { } guid ? metadataService.Value.GetEntry(guid) : null;
+
+    /// <summary>
+    /// The store the links between AniDB entries and every other source's are
+    /// read from, for the estimates of episodes a schedule's source does not
+    /// list yet.
+    /// </summary>
+    internal IMetadataCrossReferenceStore CrossReferences => crossReferenceStore.Value;
 
     /// <inheritdoc/>
     public ConfigurationInfo ConfigurationInfo => configurationProvider.ConfigurationInfo;
@@ -181,6 +193,9 @@ public partial class AiringScheduleService(
             IncludeDelayedOriginalSlots = false,
             IncludeEstimates = false,
             IncludeDisabled = false,
+            // Each subscriber's own filter leaves the hidden channels out again,
+            // and one naming a hidden channel still needs it in the horizon.
+            IncludeHiddenChannels = true,
             // Preference only ever orders a read, and a dispatch is in slot
             // order, so the widest value is also the only sensible one.
             PreferredOnly = false,

@@ -11,8 +11,9 @@ namespace Shoko.Server.API.v3.Models.Airing;
 /// the providers that use them, so everything here is read-only over REST.
 /// </summary>
 /// <param name="channel">The channel.</param>
+/// <param name="isHidden">Whether the server hides the channel from airing reads.</param>
 /// <exception cref="ArgumentNullException"><paramref name="channel"/> is <c>null</c>.</exception>
-public class AiringChannel(IAiringChannel channel)
+public class AiringChannel(IAiringChannel channel, bool isHidden = false)
 {
     /// <summary>
     /// The ID of the channel, derived from its <see cref="Type"/> and its
@@ -42,6 +43,13 @@ public class AiringChannel(IAiringChannel channel)
     /// </summary>
     [Required]
     public IReadOnlyList<string> Aliases { get; init; } = [.. channel.Aliases];
+
+    /// <summary>
+    /// Whether the server hides the channel: airing reads leave it out unless
+    /// they name it or ask for hidden channels.
+    /// </summary>
+    [Required]
+    public bool IsHidden { get; init; } = isHidden;
 
     /// <summary>
     /// When the channel was first registered.

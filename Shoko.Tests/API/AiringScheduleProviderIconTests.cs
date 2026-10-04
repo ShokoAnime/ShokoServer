@@ -15,6 +15,7 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
 using Shoko.QueueProcessor.Abstractions;
@@ -71,7 +72,9 @@ public class AiringScheduleProviderIconTests
             _paths,
             new Mock<IQueueScheduler>().Object,
             new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
-            new(() => new Mock<IMetadataService>().Object)
+            new(() => new Mock<IMetadataService>().Object),
+            new(() => new Mock<IMetadataCrossReferenceStore>().Object),
+            new(() => new Mock<IMetadataLinkingService>().Object)
         );
         service.AddParts([new Provider()]);
         return service;

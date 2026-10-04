@@ -731,6 +731,24 @@ public class AiringScheduleUtilityTests
     }
 
     [Fact]
+    public void LearnProfile_EstimatesNothing_WhenTheAiringsDisagreeWithTheAnidbDates()
+    {
+        // A stream of four parts released years apart, all shown in one week, has no slot to keep.
+        var samples = new[]
+        {
+            Sample(1, new DateTime(2026, 10, 1, 12, 0, 0, DateTimeKind.Utc), anidbAirDate: new DateTime(2017, 12, 9)),
+            Sample(2, new DateTime(2026, 10, 2, 12, 0, 0, DateTimeKind.Utc), anidbAirDate: new DateTime(2019, 6, 15)),
+            Sample(3, new DateTime(2026, 10, 3, 12, 0, 0, DateTimeKind.Utc), anidbAirDate: new DateTime(2021, 3, 26)),
+            Sample(4, new DateTime(2026, 10, 4, 12, 0, 0, DateTimeKind.Utc), anidbAirDate: new DateTime(2023, 10, 6)),
+        };
+
+        var profile = AiringScheduleUtility.LearnProfile(samples);
+
+        Assert.Null(profile.Offset);
+        Assert.Null(AiringScheduleUtility.EstimateAiring(profile, Target(5, anidbAirDate: new DateTime(2026, 10, 9))));
+    }
+
+    [Fact]
     public void LearnProfile_NeedsTwoSamplesBeforeItEstimatesAnything()
     {
         var profile = AiringScheduleUtility.LearnProfile([Sample(1, Week(0), anidbAirDate: Week(0).Date)]);

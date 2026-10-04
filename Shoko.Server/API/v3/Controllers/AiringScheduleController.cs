@@ -117,11 +117,13 @@ public class AiringScheduleController(
     /// <param name="channel">Only include airings on one of these channels.</param>
     /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
     /// <param name="type">Only include airings of episodes of these episode types.</param>
+    /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
     /// <param name="inCollection">Filter on whether the series is in the collection, which means it has a shoko series. Defaults to only those in it.</param>
     /// <param name="includeMissing">Include airings of series in the collection with no local files.</param>
     /// <param name="includeRestricted">Include airings of restricted (H) series.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
     /// <param name="includeDelayedOriginalSlots">Also match a delayed airing by the slot it was moved out of.</param>
+    /// <param name="includeHiddenChannels">Include airings on hidden channels. One named in <paramref name="channel"/> is included either way.</param>
     /// <param name="includeDateOnly">Include a date-only entry for each AniDB episode with an air date in the range and no airing at all.</param>
     /// <param name="preferredOnly">Only return one airing per episode, using the server's preference.</param>
     /// <param name="nextOnly">Only return the next airing at or after the start of the range, per <paramref name="nextPer"/>.</param>
@@ -138,11 +140,13 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.Only,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeDelayedOriginalSlots = true,
+        [FromQuery] bool includeHiddenChannels = false,
         [FromQuery] bool includeDateOnly = false,
         [FromQuery] bool preferredOnly = false,
         [FromQuery] bool nextOnly = false,
@@ -161,12 +165,14 @@ public class AiringScheduleController(
             Languages = language is { Count: > 0 } ? language : null,
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
             EpisodeTypes = type is { Count: > 0 } ? type : null,
+            EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
             InCollection = inCollection.InclusionFilter,
             IncludeMissing = includeMissing.InclusionFilter,
             IncludeRestricted = includeRestricted.InclusionFilter,
             User = HttpContext.GetUser(),
             IncludeEstimates = includeEstimates,
             IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
+            IncludeHiddenChannels = includeHiddenChannels,
             IncludeDateOnly = includeDateOnly,
             PreferredOnly = preferredOnly,
             NextOnly = nextOnly,
@@ -479,9 +485,12 @@ public class AiringScheduleController(
     /// <returns>The channels, by name.</returns>
     [HttpGet("Channel")]
     public ActionResult<List<AiringChannel>> GetChannels([FromQuery] AiringChannelType? type = null)
-        => airingScheduleService.GetAllChannels(type)
-            .Select(channel => new AiringChannel(channel))
+    {
+        var hiddenChannels = GetHiddenChannels();
+        return airingScheduleService.GetAllChannels(type)
+            .Select(channel => new AiringChannel(channel, hiddenChannels.Contains(channel.ChannelID)))
             .ToList();
+    }
 
     /// <summary>
     /// Get a channel by one of its names.
@@ -507,7 +516,7 @@ public class AiringScheduleController(
         var types = type.HasValue ? new[] { type.Value } : Enum.GetValues<AiringChannelType>();
         foreach (var channelType in types)
             if (airingScheduleService.GetChannelByName(name, channelType, useAliases) is { } channel)
-                return new AiringChannel(channel);
+                return new AiringChannel(channel, GetHiddenChannels().Contains(channel.ChannelID));
 
         return NotFound(ChannelNotFoundWithName);
     }
@@ -525,8 +534,15 @@ public class AiringScheduleController(
         if (airingScheduleService.GetChannelByID(channelID) is not { } channel)
             return NotFound(ChannelNotFoundWithChannelID);
 
-        return new AiringChannel(channel);
+        return new AiringChannel(channel, GetHiddenChannels().Contains(channel.ChannelID));
     }
+
+    /// <summary>
+    /// The channels the server hides from airing reads.
+    /// </summary>
+    /// <returns>The hidden channels' IDs.</returns>
+    private HashSet<Guid> GetHiddenChannels()
+        => configurationProvider.Load().HiddenChannels.ToHashSet();
 
     /// <summary>
     /// Get what airs on a channel in the given time-frame.
@@ -545,6 +561,7 @@ public class AiringScheduleController(
     /// <param name="kind">Only include airings whose schedule has a track of these kinds. Defaults to every kind.</param>
     /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
     /// <param name="type">Only include airings of episodes of these episode types.</param>
+    /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
     /// <param name="inCollection">Filter on whether the series is in the collection, which means it has a shoko series. Defaults to only those in it.</param>
     /// <param name="includeMissing">Include airings of series in the collection with no local files.</param>
     /// <param name="includeRestricted">Include airings of restricted (H) series.</param>
@@ -566,6 +583,7 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.Only,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
@@ -590,6 +608,7 @@ public class AiringScheduleController(
             Kinds = kind is { Count: > 0 } ? kind : null,
             ChannelIDs = new HashSet<Guid> { channelID },
             EpisodeTypes = type is { Count: > 0 } ? type : null,
+            EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
             InCollection = inCollection.InclusionFilter,
             IncludeMissing = includeMissing.InclusionFilter,
             IncludeRestricted = includeRestricted.InclusionFilter,
@@ -756,6 +775,8 @@ public class AiringScheduleController(
     /// <param name="language">Only include airings whose schedule has a track in one of these languages.</param>
     /// <param name="channel">Only include airings on one of these channels.</param>
     /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
+    /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
+    /// <param name="includeHiddenChannels">Include airings on hidden channels. One named in <paramref name="channel"/> is included either way.</param>
     /// <param name="includeDateOnly">Include a date-only entry for each AniDB episode with an air date and no airing at all.</param>
     /// <param name="nextOnly">Only return the next airing from now, per <paramref name="nextPer"/>.</param>
     /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
@@ -775,6 +796,8 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
+        [FromQuery] bool includeHiddenChannels = false,
         [FromQuery] bool includeDateOnly = false,
         [FromQuery] bool nextOnly = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
@@ -795,6 +818,8 @@ public class AiringScheduleController(
             Kinds = kind is { Count: > 0 } ? kind : null,
             Languages = language is { Count: > 0 } ? language : null,
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
+            EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
+            IncludeHiddenChannels = includeHiddenChannels,
             IncludeDateOnly = includeDateOnly,
             NextOnly = nextOnly,
             NextPer = nextPer is { Count: > 0 } ? nextPer : null,
@@ -861,6 +886,8 @@ public class AiringScheduleController(
     /// <param name="language">Only include airings whose schedule has a track in one of these languages.</param>
     /// <param name="channel">Only include airings on one of these channels.</param>
     /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
+    /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
+    /// <param name="includeHiddenChannels">Include airings on hidden channels. One named in <paramref name="channel"/> is included either way.</param>
     /// <param name="includeDateOnly">Include a date-only entry when the episode has an AniDB air date and no airing at all.</param>
     /// <param name="nextOnly">Only return the next airing from now, per <paramref name="nextPer"/>.</param>
     /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
@@ -883,6 +910,8 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
+        [FromQuery] bool includeHiddenChannels = false,
         [FromQuery] bool includeDateOnly = false,
         [FromQuery] bool nextOnly = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
@@ -907,7 +936,9 @@ public class AiringScheduleController(
             Kinds = kind is { Count: > 0 } ? kind : null,
             Languages = language is { Count: > 0 } ? language : null,
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
+            EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
             IncludeDisabled = includeDisabled,
+            IncludeHiddenChannels = includeHiddenChannels,
             IncludeDateOnly = includeDateOnly,
             NextOnly = nextOnly,
             NextPer = nextPer is { Count: > 0 } ? nextPer : null,

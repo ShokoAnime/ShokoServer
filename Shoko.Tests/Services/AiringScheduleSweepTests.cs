@@ -12,6 +12,7 @@ using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Plugin;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Models.Airing;
@@ -609,7 +610,9 @@ public class AiringScheduleSweepTests
                 Mock.Of<IApplicationPaths>(),
                 Scheduler.Object,
                 new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
-                new(() => new Mock<IMetadataService>().Object)
+                new(() => new Mock<IMetadataService>().Object),
+                new(() => new Mock<IMetadataCrossReferenceStore>().Object),
+                new(() => new Mock<IMetadataLinkingService>().Object)
             );
             Service.AddParts(providers);
         }

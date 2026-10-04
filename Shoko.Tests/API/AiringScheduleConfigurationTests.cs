@@ -10,6 +10,7 @@ using NJsonSchema;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Plugin;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.API.v3.Controllers;
@@ -51,7 +52,9 @@ public class AiringScheduleConfigurationTests
             _paths,
             new Mock<IQueueScheduler>().Object,
             new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
-            new(() => new Mock<IMetadataService>().Object)
+            new(() => new Mock<IMetadataService>().Object),
+            new(() => new Mock<IMetadataCrossReferenceStore>().Object),
+            new(() => new Mock<IMetadataLinkingService>().Object)
         );
     }
 

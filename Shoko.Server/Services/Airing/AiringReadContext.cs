@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Models.Airing;
@@ -54,7 +55,23 @@ internal sealed class AiringReadContext
 
     private readonly Dictionary<MetadataGuid, AiringSeriesState> _seriesStates = [];
 
+    private readonly Dictionary<(MetadataSource Source, string ID), IReadOnlyList<(AiringSchedule Schedule, DateTime AiredAt)>> _firstNormalAirings = [];
+
+    private readonly Dictionary<int, bool> _detectedReruns = [];
+
+    private readonly Dictionary<(int One, int Other), bool> _sharedTracks = [];
+
+    private readonly Dictionary<int, IReadOnlyList<IMetadataSeriesCrossReference>> _seriesLinks = [];
+
+    private readonly Dictionary<int, IReadOnlyList<IMetadataEpisodeCrossReference>> _episodeLinks = [];
+
+    private readonly Dictionary<(MetadataSource Source, string ID), IReadOnlyList<int>> _linkedAnimeIDs = [];
+
+    private readonly Dictionary<(int AnimeID, int ScheduleID), AiringEpisodeOffset?> _episodeOffsets = [];
+
     private AiringScheduleServiceSettings? _settings;
+
+    private IReadOnlySet<Guid>? _hiddenChannels;
 
     /// <summary>
     /// Whether schedules whose provider is gone or disabled, and tracks of a
@@ -84,6 +101,11 @@ internal sealed class AiringReadContext
     /// which is far too much to pay per ordered element.
     /// </summary>
     public AiringScheduleServiceSettings Settings => _settings ??= _service.LoadSettings();
+
+    /// <summary>
+    /// The channels the server hides from reads, as a set built once per read.
+    /// </summary>
+    public IReadOnlySet<Guid> HiddenChannels => _hiddenChannels ??= Settings.HiddenChannels.ToHashSet();
 
     #endregion
 
@@ -347,6 +369,67 @@ internal sealed class AiringReadContext
         return _linkedEpisodeKeys[key] = visited;
     }
 
+    /// <summary>
+    /// The series links of an AniDB anime, on every source, read once per read.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime.</param>
+    /// <returns>The links.</returns>
+    public IReadOnlyList<IMetadataSeriesCrossReference> GetSeriesLinks(int anidbAnimeID)
+    {
+        if (_seriesLinks.TryGetValue(anidbAnimeID, out var links))
+            return links;
+
+        return _seriesLinks[anidbAnimeID] = _service.CrossReferences.GetSeriesLinks(anidbAnimeID);
+    }
+
+    /// <summary>
+    /// The episode links of an AniDB anime, on every source, read once per read.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime.</param>
+    /// <returns>The links.</returns>
+    public IReadOnlyList<IMetadataEpisodeCrossReference> GetEpisodeLinks(int anidbAnimeID)
+    {
+        if (_episodeLinks.TryGetValue(anidbAnimeID, out var links))
+            return links;
+
+        return _episodeLinks[anidbAnimeID] = _service.CrossReferences.GetEpisodeLinksForSeries(anidbAnimeID);
+    }
+
+    /// <summary>
+    /// The AniDB anime linked to a series of a plugin source, read once per read.
+    /// </summary>
+    /// <param name="source">The source of the series.</param>
+    /// <param name="id">The ID of the series within its source.</param>
+    /// <returns>The AniDB anime IDs, or none for a core source.</returns>
+    public IReadOnlyList<int> GetLinkedAnimeIDs(MetadataSource source, string id)
+    {
+        if (_linkedAnimeIDs.TryGetValue((source, id), out var animeIDs))
+            return animeIDs;
+
+        return _linkedAnimeIDs[(source, id)] = source.IsCore || string.IsNullOrEmpty(id)
+            ? []
+            : [.. _service.CrossReferences.GetLinksTo(new(source, MetadataEntityType.Series, id)).Select(link => link.AnidbAnimeID).Distinct()];
+    }
+
+    /// <summary>
+    /// How an AniDB anime's episodes number on a schedule, learned once per
+    /// anime, schedule and read.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime.</param>
+    /// <param name="row">The schedule.</param>
+    /// <returns>The offset, or <c>null</c> when the links give no consistent one.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="row"/> is <c>null</c>.</exception>
+    public AiringEpisodeOffset? GetEpisodeOffset(int anidbAnimeID, AiringSchedule row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        var key = (anidbAnimeID, row.AiringScheduleID);
+        if (_episodeOffsets.TryGetValue(key, out var offset))
+            return offset;
+
+        return _episodeOffsets[key] = AiringScheduleService.LearnEpisodeOffset(this, anidbAnimeID, row);
+    }
+
     #endregion
 
     #region Collection
@@ -438,6 +521,39 @@ internal sealed class AiringReadContext
     }
 
     /// <summary>
+    /// The earliest stored <see cref="EpisodeAiringKind.Normal"/> airing of an
+    /// episode on each schedule, across every entity linked to it, whatever
+    /// the schedule's provider, channel or tracks.
+    /// </summary>
+    /// <param name="source">The source of the episode.</param>
+    /// <param name="id">The ID of the episode within its source.</param>
+    /// <returns>One entry per schedule with a normal airing of the episode.</returns>
+    public IReadOnlyList<(AiringSchedule Schedule, DateTime AiredAt)> GetFirstNormalAirings(MetadataSource source, string id)
+    {
+        if (_firstNormalAirings.TryGetValue((source, id), out var known))
+            return known;
+
+        var keys = GetEpisode(source, id) is { } episode ? GetLinkedEpisodeKeys(episode) : [(source, id)];
+        var earliest = new Dictionary<int, (AiringSchedule Schedule, DateTime AiredAt)>();
+        foreach (var (keySource, keyID) in keys)
+        {
+            foreach (var row in RepoFactory.EpisodeAiring.GetByEpisodeID(keySource, keyID))
+            {
+                if (row.Kind is not EpisodeAiringKind.Normal || row.AiredAt is not { } airedAt)
+                    continue;
+                if (earliest.TryGetValue(row.AiringScheduleID, out var current) && current.AiredAt <= airedAt)
+                    continue;
+                if (RepoFactory.AiringSchedule.GetByID(row.AiringScheduleID) is not { } schedule)
+                    continue;
+
+                earliest[row.AiringScheduleID] = (schedule, airedAt);
+            }
+        }
+
+        return _firstNormalAirings[(source, id)] = [.. earliest.Values];
+    }
+
+    /// <summary>
     /// The AniDB air date an episode's estimates are measured from, which is
     /// the episode's own when it is an AniDB episode and its shoko episode's
     /// otherwise.
@@ -490,6 +606,66 @@ internal sealed class AiringReadContext
 
         var shokoEpisode = episode as IShokoEpisode ?? episode.ShokoEpisodes.FirstOrDefault();
         return (shokoEpisode?.AnidbEpisode, shokoEpisode);
+    }
+
+    #endregion
+
+    #region Reruns
+
+    /// <summary>
+    /// The kind an airing is read as: the provider's own, or
+    /// <see cref="EpisodeAiringKind.DetectedRerun"/> for a
+    /// <see cref="EpisodeAiringKind.Normal"/> airing on a schedule detected as
+    /// a rerun.
+    /// </summary>
+    /// <param name="row">The airing's schedule.</param>
+    /// <param name="kind">The kind the provider gave the airing.</param>
+    /// <returns>The effective kind.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="row"/> is <c>null</c>.</exception>
+    public EpisodeAiringKind GetEffectiveKind(AiringSchedule row, EpisodeAiringKind kind)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        return kind is EpisodeAiringKind.Normal && IsDetectedRerun(row) ? EpisodeAiringKind.DetectedRerun : kind;
+    }
+
+    /// <summary>
+    /// Whether a schedule is detected as a rerun of an earlier run, worked out
+    /// once per schedule and read.
+    /// </summary>
+    /// <param name="row">The schedule.</param>
+    /// <returns><c>true</c> when the schedule's normal airings are reruns.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="row"/> is <c>null</c>.</exception>
+    public bool IsDetectedRerun(AiringSchedule row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        if (_detectedReruns.TryGetValue(row.AiringScheduleID, out var detected))
+            return detected;
+
+        return _detectedReruns[row.AiringScheduleID] = AiringScheduleService.DetectRerun(this, row);
+    }
+
+    /// <summary>
+    /// Whether two schedules release anything in common, worked out once per
+    /// pair and read.
+    /// </summary>
+    /// <param name="one">One schedule.</param>
+    /// <param name="other">The other schedule.</param>
+    /// <returns><c>true</c> when the two share a track.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="one"/> or <paramref name="other"/> is <c>null</c>.</exception>
+    public bool SharesTrack(AiringSchedule one, AiringSchedule other)
+    {
+        ArgumentNullException.ThrowIfNull(one);
+        ArgumentNullException.ThrowIfNull(other);
+
+        var key = one.AiringScheduleID < other.AiringScheduleID
+            ? (one.AiringScheduleID, other.AiringScheduleID)
+            : (other.AiringScheduleID, one.AiringScheduleID);
+        if (_sharedTracks.TryGetValue(key, out var shared))
+            return shared;
+
+        return _sharedTracks[key] = AiringScheduleService.HasMatchingTrack(one.Tracks, other.Tracks);
     }
 
     #endregion

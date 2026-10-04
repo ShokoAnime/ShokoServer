@@ -444,6 +444,17 @@ public partial class AiringScheduleService
                 if (Estimate(context, row, context.GetSchedule(row), episode, key) is { } estimate)
                     return estimate;
             }
+
+            foreach (var (episode, number) in GetUnlinkedEpisodes(context, row))
+            {
+                var key = GetEntityKey(episode);
+                if (covered.Contains(key))
+                    continue;
+                if (AiringScheduleUtility.GetEpisodeAiringID(row.ID, AiringScheduleUtility.GetDerivedAiringKey(key.Source, key.ID)) != airingID)
+                    continue;
+                if (Estimate(context, row, context.GetSchedule(row), episode, key, scheduleEpisodeNumber: number) is { } estimate)
+                    return estimate;
+            }
         }
 
         return null;
@@ -603,6 +614,8 @@ public partial class AiringScheduleService
 
             if (!Enum.IsDefined(airing.Kind))
                 problems.Add($"\"{airing.Kind}\" is not a kind of airing.");
+            else if (airing.Kind is EpisodeAiringKind.DetectedRerun)
+                problems.Add($"\"{airing.Kind}\" is set by the core, never by a provider.");
 
             var (source, id) = GetEntityKey(episode);
             var key = string.IsNullOrWhiteSpace(airing.Key) ? AiringScheduleUtility.GetDerivedAiringKey(source, id) : airing.Key.Trim();
@@ -740,7 +753,7 @@ public partial class AiringScheduleService
     /// <param name="left">One schedule's tracks.</param>
     /// <param name="right">The other schedule's tracks.</param>
     /// <returns><c>true</c> when the two share a track.</returns>
-    private static bool HasMatchingTrack(IReadOnlyList<AiringTrackData> left, IReadOnlyList<AiringTrackData> right)
+    internal static bool HasMatchingTrack(IReadOnlyList<AiringTrackData> left, IReadOnlyList<AiringTrackData> right)
     {
         var ours = left.Select(track => new AiringTrack(track)).ToList();
         var theirs = right.Select(track => new AiringTrack(track)).ToList();

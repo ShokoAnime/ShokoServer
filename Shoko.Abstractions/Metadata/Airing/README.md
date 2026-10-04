@@ -25,13 +25,25 @@ Channel ──< Schedule >── Episode Airing
 | **Channel** | Where something airs, from a registry every provider shares: "TOKYO MX" (`Television`), "Crunchyroll" (`Streaming`). Regional services carry the region, e.g. `Amazon (US)`. |
 | **Schedule** | One provider's run of a series, optionally narrowed to a season, on one channel (or none), releasing a fixed set of tracks. Owned by the provider that created it. |
 | **Track** | A `Kind` (`Original`, `Subtitled`, `Dubbed`) plus a language code and an optional country code. A language released at another time is another schedule. |
-| **Episode airing** | One episode on one schedule: a time, the slot it was first scheduled for, a delay flag, a kind (`Normal`, `Advance` or `Rerun`) and an optional link. |
+| **Episode airing** | One episode on one schedule: a time, the slot it was first scheduled for, a delay flag, a kind (`Normal`, `Advance` or `Rerun`, or `DetectedRerun` when the core detects one) and an optional link. |
 | **Coverage** | Which episodes a schedule is for: an optional range, and whether the run is finished. Estimates never go past it. |
 | **Link** | Ties airings on one schedule into one unit: a double episode, or a season released at once. |
 | **Estimate** | An airing computed from a schedule's own line for an episode with no reported time. Never stored. |
 
 Delays, hiatuses and learned time slots belong to one schedule's line, never
 to the series: a series on three channels has three independent schedules.
+
+A schedule estimates the episodes of its own series, and the AniDB episodes
+its source does not list yet. When an anime is linked to the schedule's series
+but some of its regular episodes have no episode link on that source, the
+episodes that are linked into the series (into the schedule's season when it
+narrows to one) give the offset between the two numberings. Only a single
+offset over a run of linked episodes with no gaps counts, and only an episode
+past the last linked one is placed, at its own number plus the offset. No
+episode on the schedule's source has to exist for that: the schedule's
+numbering and cadence place the estimate, and it is keyed to the AniDB episode
+itself, so any read that reaches that episode sees it. An anime with no linked
+episodes on the source gets no such estimate.
 
 ---
 
@@ -379,11 +391,13 @@ filters (`ProviderIDs`, `Kinds`, `Languages`, `ChannelIDs`) it carries:
 | Option | Meaning |
 |---|---|
 | `EpisodeTypes` | Only airings of episodes of these types. |
+| `EpisodeKinds` | Only airings of these kinds of showing. Leave out both `Rerun` and `DetectedRerun` for no reruns. |
+| `IncludeHiddenChannels` | Also returns the channels the server hides. A hidden channel named in `ChannelIDs` is returned either way, and so is a schedule read. |
 | `InCollection` | An `InclusionFilter` on whether the series has a shoko series. `Only` keeps the collection, `False` keeps what is not in it. |
 | `IncludeMissing` | An `InclusionFilter` on series in the collection with no local files. |
 | `IncludeRestricted` | An `InclusionFilter` on restricted (H) series. |
 | `User` | Leaves out the series the user may not see. |
-| `IncludeDateOnly` | Adds a date-only entry for each AniDB episode with an air date and no airing at all. |
+| `IncludeDateOnly` | Adds a date-only entry for each AniDB episode with an air date and no airing at all. A regular episode carrying AniDB's 1970-01-01 placeholder for episodes before 1970, in an anime that started before 1970, takes the earliest pre-1970 date of the episodes linked to it instead. |
 | `NextOnly`, `NextPer` | Keeps the next airing per series, channel and/or kind. |
 
 `GetAiringsInRange` takes a `DateTimeOffset` range, start inclusive and end
@@ -395,6 +409,12 @@ offset, so a caller in Tokyo asking for its own day gets that day's entries.
 A next-only read keeps, per group, the earliest episode at or after the
 range's start (or now, for an entity read) and answers with that episode's
 best airing by preference.
+
+Every list read sets `IEpisodeAiring.IsPreferred` on the airing of each
+episode that the same read with `PreferredOnly` would keep, window and filters
+included, so a caller reading every airing still knows which one the server
+picks. A date-only entry is always preferred, while `GetAiringByID` and
+`GetLinkedAirings` leave it `false`.
 
 ---
 
@@ -410,7 +430,11 @@ best airing by preference.
 - **Mark advance screenings and reruns** with `EpisodeAiringData.Kind`. They
   are stored and read like any other airing but left out of everything the
   service learns from the line, and need a `Key` of their own when the
-  regular showing is on the same schedule.
+  regular showing is on the same schedule. A run you leave `Normal` may still
+  be read as `DetectedRerun`: when its first episodes already aired on another
+  schedule sharing a track, a schedule starting 8 weeks or more after that, or
+  a marathon starting a day or more after it, is detected at read time.
+  `DetectedRerun` is the core's own, and a write carrying it is refused.
 - **Name regional channels with `GetRegionalChannelName`**
   (`GetRegionalChannelName("Amazon", "US")` → `"Amazon (US)"`), never by hand,
   and never add a region to a broadcast station.

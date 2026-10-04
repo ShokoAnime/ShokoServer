@@ -58,7 +58,8 @@ public interface IEpisodeAiring
     bool IsDateOnly { get; }
 
     /// <summary>
-    ///   The AniDB air date of a date-only entry, a calendar date in no
+    ///   The AniDB air date of a date-only entry, or the linked one standing
+    ///   in for AniDB's pre-1970 placeholder, a calendar date in no
     ///   particular time zone, or <c>null</c> for an airing with a time.
     /// </summary>
     DateOnly? AirDate { get; }
@@ -130,8 +131,19 @@ public interface IEpisodeAiring
     bool IsEstimated { get; }
 
     /// <summary>
-    ///   What kind of showing the airing is. Estimates are always
-    ///   <see cref="EpisodeAiringKind.Normal"/>.
+    ///   Whether this is the airing of its episode that a
+    ///   <see cref="EpisodeAiringFilteringOptions.PreferredOnly"/> read with
+    ///   the same filters and window would keep. A date-only entry always is.
+    ///   Only the list reads set it: a lookup by ID and a link set leave it
+    ///   <c>false</c>.
+    /// </summary>
+    bool IsPreferred { get; }
+
+    /// <summary>
+    ///   What kind of showing the airing is: the provider's own kind, or
+    ///   <see cref="EpisodeAiringKind.DetectedRerun"/> for an airing the
+    ///   provider left <see cref="EpisodeAiringKind.Normal"/> on a schedule the
+    ///   core detected as a rerun. Estimates take their schedule's kind.
     /// </summary>
     EpisodeAiringKind Kind { get; }
 

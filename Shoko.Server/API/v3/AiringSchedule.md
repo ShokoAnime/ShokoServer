@@ -54,6 +54,11 @@ response are always UTC.
 - `provider`: comma-delimited airing schedule provider IDs, from `GET
   /api/v3/AiringSchedule/Provider`.
 - `type`: comma-delimited episode types. Omit it for every type.
+- `episodeKind`: comma-delimited kinds of showing, matched against each
+  airing's `Kind`. Omit it for every kind. See *Advance screenings and
+  reruns*, below.
+- `includeHiddenChannels`: include the channels the server hides. See *Hidden
+  channels*, below.
 - `inCollection`: the three-state filter on whether the series is in the
   collection, which means it has a shoko series. `only` (the default) keeps the
   series in the collection, `false` keeps the anime not in it, and `true` keeps
@@ -84,7 +89,13 @@ date-only entry for each AniDB episode whose air date falls in the window and
 that no provider has an airing for at all (counting estimates when
 `includeEstimates` is on), whatever the other filters leave of its airings.
 
-A date-only entry has `IsDateOnly: true` and `AirDate` set to the AniDB date, a
+AniDB gives no air date before 1970: it dates those episodes with a 1970-01-01
+placeholder, stored like a missing date. For a regular episode carrying it, in
+an anime that started before 1970, the entry takes the earliest pre-1970 air
+date among the episodes linked to it from any other source, such as TMDb. With
+no such date there is no entry.
+
+A date-only entry has `IsDateOnly: true` and `AirDate` set to that date, a
 calendar date in no particular time zone. It has no time, so `AiredAt`,
 `OriginalAiredAt`, `ScheduleID`, `Source`, `Channel`, `TimeZone` and `LinkID`
 are `null`, and `Tracks` is empty. `ID` is derived from the episode and is
@@ -97,11 +108,11 @@ An entry is in the window when its date falls between the calendar date of
 A client sending its local midnights therefore gets exactly the dates of its
 own days. The entry sorts at the start of its day in `from`'s offset.
 
-A date-only entry counts as an `Original` showing in no particular language on
-no channel by no provider: `provider`, `channel` and `language` leave it out,
-and so does a `kind` without `Original`. `type`, `inCollection`,
-`includeMissing`, `includeRestricted` and `entityAnchor` apply as to any
-airing.
+A date-only entry counts as a `Normal` `Original` showing in no particular
+language on no channel by no provider: `provider`, `channel` and `language`
+leave it out, and so do a `kind` without `Original` and an `episodeKind`
+without `Normal`. `type`, `inCollection`, `includeMissing`,
+`includeRestricted` and `entityAnchor` apply as to any airing.
 
 ### Next only
 
@@ -158,9 +169,10 @@ resolved.
 narrowed to one channel, and filters the same way: `from`, `to`, `provider`,
 `type`, `inCollection`, `includeMissing`, `includeRestricted`,
 `includeEstimates`, `includeDelayedOriginalSlots`, `preferredOnly`, `nextOnly`,
-`nextPer` and `entityAnchor` all mean what they mean on `/Airing`, with the same
-defaults. It has no `includeDateOnly`, since a date-only entry is on no
-channel.
+`nextPer`, `episodeKind` and `entityAnchor` all mean what they mean on
+`/Airing`, with the same defaults. It has no `includeDateOnly`, since a
+date-only entry is on no channel, and no `includeHiddenChannels`, since naming
+a hidden channel already includes it.
 
 `kind` is the one deliberate difference: it defaults to every kind rather than
 to `Original`, because naming a channel has already narrowed the read and a
@@ -169,8 +181,9 @@ would answer nothing for one.
 
 `GET /api/v3/AiringSchedule/{scheduleID}/Airing` is one provider's whole line
 for one run: every episode it covers, in airing order, with no window and no
-channel filter of its own, since a schedule has exactly one channel.
-`nextOnly` and `nextPer` work there too, counting from now.
+channel filter of its own, since a schedule has exactly one channel. It answers
+for a schedule on a hidden channel too. `nextOnly` and `nextPer` work there
+too, counting from now.
 
 ## Preference
 
@@ -190,6 +203,14 @@ window* rather than dropping an episode whose best airing is somewhere else.
 An episode airing on AT-X on the 5th and on TBS on the 3rd is on the 5th's
 calendar as its AT-X airing, not missing from it.
 
+Without `preferredOnly`, each airing still says whether it is that one:
+`IsPreferred` is `true` on the airing `preferredOnly=true` would keep for its
+episode in the same read, window and filters included, and `false` on the
+episode's other airings, so a client grouping a read by episode can lead each
+group with the server's pick. A date-only entry is always preferred, and
+`GET /Airing/{airingID}` and `/Airing/{airingID}/Linked` answer `false`, since
+they rank no episode's airings.
+
 The server's preference is two ordered lists, both under
 `/api/v3/AiringSchedule`:
 
@@ -203,6 +224,15 @@ estimated one, which beats the earlier time. Provider priority only ranks
 sources; it is not where someone would rather watch, which is why these two
 lists exist.
 
+## Hidden channels
+
+The server can hide channels nobody watches: every airing read leaves out the
+airings on them. `includeHiddenChannels=true` brings them back, and a read that
+names a hidden channel, through `channel` or the channel and schedule routes,
+returns it either way. `GET /api/v3/AiringSchedule/Channel` and the other
+channel routes say whether a channel is hidden with `IsHidden`. The list itself
+is `HiddenChannels` in the service's configuration, below.
+
 ## Estimates
 
 When a schedule has a steady cadence, the server fills in the episodes the
@@ -210,6 +240,19 @@ provider has not reported yet. An estimate carries `IsEstimated: true` and is
 otherwise shaped like a real airing, with an ID of its own. Nothing is estimated
 past a schedule's last covered episode, on a finished schedule, or while the
 schedule is on hiatus. Pass `includeEstimates=false` to leave them out.
+
+An episode the schedule's source does not list yet is estimated too, when its
+anime is linked to the schedule's series and the anime's episodes linked into
+that series agree on one numbering. AniDB episodes 1 and 2 linked to a show's
+S1E1 and S1E2 give an offset of 0, so AniDB episode 3 is the schedule's episode
+3 and gets its slot. The linked episodes have to form a run with no gaps and a
+single offset, a schedule narrowed to a season only learns from the episodes
+linked into that season, and only an episode past the last linked one is
+placed. No episode on the schedule's source has to exist for this: the
+schedule's own numbering and cadence place the estimate, and the AniDB episode
+receives it. Its `IDs` name the AniDB and Shoko episodes, so it is ordered,
+marked `IsPreferred` and picked as the next airing like any other airing of the
+episode. An anime with no linked episodes on that source gets no such estimate.
 
 An estimate's ID is derived from its schedule's and its episode's exactly as a
 stored airing's is, so `GET /Airing/{airingID}` resolves it and
@@ -237,17 +280,38 @@ since every airing belongs to exactly one schedule.
 ## Advance screenings and reruns
 
 `Kind` on an airing says what kind of showing it is: `Normal` for the regular
-airing, `Advance` for an advance screening ahead of it, and `Rerun` for a
-repeat after it. Estimates are always `Normal`. This is a property of the
-airing, not of the schedule, so it has nothing to do with the `kind` query
-filter, which matches the schedule's track kind (`Original`, `Subtitled`,
-`Dubbed`). There is no filter on it: a calendar that only wants the regular
-showings drops the other two itself.
+airing, `Advance` for an advance screening ahead of it, `Rerun` for a repeat
+after it that the provider marked, and `DetectedRerun` for one the server
+detected itself. This is a property of the airing, not of the schedule's
+tracks, so it has nothing to do with the `kind` query filter, which matches the
+schedule's track kind (`Original`, `Subtitled`, `Dubbed`). `episodeKind`
+filters on it instead, and defaults to every kind: a calendar without reruns
+sends `episodeKind=Normal,Advance`, leaving out both `Rerun` and
+`DetectedRerun`.
 
-The server learns a schedule's line from its `Normal` airings only. Advance
-screenings and reruns are returned like any other airing, but they are never
-counted towards the cadence estimates are drawn from, never flagged as delays
-or kept as a hiatus, and never taken as the airing a simulpub is measured from.
+Few providers mark reruns, so the server looks at each schedule as a whole and
+reads its `Normal` airings as `DetectedRerun` when the same episodes, matched
+through their links, already had a `Normal` airing on another schedule sharing
+one of its tracks:
+
+- **Late run.** The schedule's first airing comes 8 weeks or more after the
+  earliest of those airings. A regional channel a few weeks behind stays
+  `Normal`.
+- **Marathon.** One local day of the schedule, in its time zone, holds at
+  least 3 of its airings and at least half of them, and the schedule starts at
+  least a day after the earliest of those airings. A batch release with no
+  earlier showing, such as a streaming drop, stays `Normal`.
+
+Only the schedule's first three episodes are looked up elsewhere. The
+provider's own `Advance` and `Rerun` are never changed, and an estimate takes
+its schedule's kind. Nothing is stored: the detection runs on every read, so
+it follows the schedules as they change.
+
+The server learns a schedule's line from the airings the provider left
+`Normal`, detected reruns included. Advance screenings and the provider's
+reruns are returned like any other airing, but they are never counted towards
+the cadence estimates are drawn from, never flagged as delays or kept as a
+hiatus, and never taken as the airing a simulpub is measured from.
 
 ## Linked airings
 
@@ -261,9 +325,10 @@ airing, and changes if the head is removed.
 
 `OffsetFromOriginal` is this airing's time minus the episode's earliest known
 real `Original` airing, which is what a client labels as a simulcast ("+1 h") or
-a lag ("+14 d"). Advance screenings and reruns are left out when that airing is
-picked, so an early preview never becomes the anchor. It is `null` when this
-*is* that airing, or when there is none. A negative offset is valid.
+a lag ("+14 d"). Advance screenings and the provider's reruns are left out when
+that airing is picked, so an early preview never becomes the anchor. It is
+`null` when this *is* that airing, or when there is none. A negative offset is
+valid.
 
 ## Entity anchor
 
@@ -299,10 +364,12 @@ that `linkedEntityAirings` uses: a bool has no room for a third name.
   shoko series, including its seasons' own unless `includeSeasonSchedules=false`.
 - `GET /api/v3/Series/{seriesID}/AiringSchedule/Airing` and `GET
   /api/v3/Episode/{episodeID}/AiringSchedule/Airing`: the airings, best first
-  for the episode route. Both take `provider`, `includeDateOnly`, `nextOnly`
-  and `nextPer` as `/Airing` does. A date-only entry is added for an episode
-  with an AniDB air date and no airing at all, and next counts from now, so
-  `nextOnly=true` on the series route is a season card's countdown.
+  for the episode route. Both take `provider`, `episodeKind`,
+  `includeHiddenChannels`, `includeDateOnly`, `nextOnly` and `nextPer` as
+  `/Airing` does. A date-only entry is added for an episode with an AniDB air
+  date, or a linked one before 1970, and no airing at all, and next counts
+  from now, so `nextOnly=true` on the series route is a season card's
+  countdown.
 - `POST …/AiringSchedule/Refresh`: asks every enabled provider to refresh.
   `wait=false` (the default) queues the work and answers `202 Accepted`;
   `wait=true` waits up to `timeout` seconds (60 by default, capped at 300) and
@@ -396,10 +463,11 @@ keeps it.
 
 ## The service's configuration
 
-The preference lists, the cleanup (`AutoCleanup`, `RetentionMonths`) and the
-sweep budget (`SweepBudgetSeconds`) are the airing schedule service's own
-configuration. `GET /api/v3/AiringSchedule/Configuration` (admin) answers with
-its `ConfigurationInfo`, and its `ID` is what the generic
+The preference lists, the hidden channels (`HiddenChannels`), the cleanup
+(`AutoCleanup`, `RetentionMonths`) and the sweep budget (`SweepBudgetSeconds`)
+are the airing schedule service's own configuration.
+`GET /api/v3/AiringSchedule/Configuration` (admin) answers with its
+`ConfigurationInfo`, and its `ID` is what the generic
 `/api/v3/Configuration/{configID}` routes take: `GET` it, read its `/Schema`,
 `PUT` or `PATCH` it. A client never needs to know the ID up front. The schema
 carries each number's limits as `minimum` and `maximum`.

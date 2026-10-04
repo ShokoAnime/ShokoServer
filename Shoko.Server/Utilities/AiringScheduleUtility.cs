@@ -235,7 +235,7 @@ public static class AiringScheduleUtility
     /// <param name="samples">Pairs of the anchor (UTC) and the precise air time (UTC) for the same episode.</param>
     /// <param name="window">How many of the most recent samples to consider.</param>
     /// <param name="minimumSamples">How many samples are needed before an offset is trusted.</param>
-    /// <returns>The median offset, or <c>null</c> with too few samples.</returns>
+    /// <returns>The median offset, or <c>null</c> with too few samples or when most of them disagree with it.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <c>null</c>.</exception>
     public static TimeSpan? LearnOffset(IEnumerable<(DateTime AnchorUtc, DateTime AiredAtUtc)> samples, int window = DefaultWindow, int minimumSamples = 2)
     {
@@ -249,9 +249,17 @@ public static class AiringScheduleUtility
         if (offsets.Count < minimumSamples)
             return null;
 
-        // The median, so a special aired in another slot or a one-off delay doesn't skew it.
-        return GetMedian(offsets);
+        // The median, so a special aired in another slot or a one-off delay doesn't skew it,
+        // but only when most samples agree on it: a rerun of years-old episodes has no slot.
+        var median = GetMedian(offsets);
+        var agreeing = offsets.Count(offset => (offset - median).Duration() <= OffsetAgreement);
+        return agreeing >= minimumSamples && agreeing * 2 >= offsets.Count ? median : null;
     }
+
+    /// <summary>
+    /// How far a sample's offset may sit from the median and still agree with it.
+    /// </summary>
+    private static readonly TimeSpan OffsetAgreement = TimeSpan.FromDays(2);
 
     /// <summary>
     /// Apply a learned offset to an AniDB air date.

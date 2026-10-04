@@ -46,6 +46,8 @@ public sealed record EpisodeAiringData
     ///   Optional. What kind of showing the airing is. An advance screening or
     ///   a rerun of an episode that also has its regular showing on the same
     ///   schedule needs a <see cref="Key"/> of its own.
+    ///   <see cref="EpisodeAiringKind.DetectedRerun"/> is the core's own, and
+    ///   a write carrying it is refused.
     /// </summary>
     public EpisodeAiringKind Kind { get; init; } = EpisodeAiringKind.Normal;
 }

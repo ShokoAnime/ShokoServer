@@ -46,6 +46,18 @@ public sealed class EpisodeAiringFilteringOptions
     public IReadOnlySet<EpisodeType>? EpisodeTypes { get; set; }
 
     /// <summary>
+    ///   Optional. If set, will restrict the returned list to only containing
+    ///   airings whose <see cref="IEpisodeAiring.Kind"/> is one of the given
+    ///   kinds of showing. A read that wants no reruns leaves out both
+    ///   <see cref="EpisodeAiringKind.Rerun"/> and
+    ///   <see cref="EpisodeAiringKind.DetectedRerun"/>.
+    /// </summary>
+    /// <remarks>
+    ///   A date-only entry counts as <see cref="EpisodeAiringKind.Normal"/>.
+    /// </remarks>
+    public IReadOnlySet<EpisodeAiringKind>? EpisodeKinds { get; set; }
+
+    /// <summary>
     ///   Optional. Filters on whether the airing's series is in the
     ///   collection, which means it has a shoko series. Defaults to
     ///   <see cref="InclusionFilter.True"/>, keeping everything.
@@ -98,7 +110,9 @@ public sealed class EpisodeAiringFilteringOptions
     ///   <see cref="AiringKind.Original"/> showing in no particular language,
     ///   so a <see cref="ProviderIDs"/>, <see cref="ChannelIDs"/> or
     ///   <see cref="Languages"/> filter leaves it out. Schedule reads never
-    ///   return one.
+    ///   return one. A regular episode carrying AniDB's 1970-01-01 placeholder
+    ///   for episodes before 1970, in an anime that started before 1970, takes
+    ///   the earliest pre-1970 air date of the episodes linked to it.
     /// </remarks>
     public bool IncludeDateOnly { get; set; }
 
@@ -108,6 +122,16 @@ public sealed class EpisodeAiringFilteringOptions
     ///   Defaults to <c>false</c>.
     /// </summary>
     public bool IncludeDisabled { get; set; }
+
+    /// <summary>
+    ///   Optional. Whether to also return the airings on the channels the
+    ///   server hides. Defaults to <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    ///   A hidden channel named in <see cref="ChannelIDs"/> is returned either
+    ///   way, and so is every airing of a schedule read.
+    /// </remarks>
+    public bool IncludeHiddenChannels { get; set; }
 
     /// <summary>
     ///   Optional. Whether a range read also matches a delayed airing by its
