@@ -681,7 +681,9 @@ public class ShokoJsonSchemaGenerator(JsonSerializerSettings newtonsoftJsonSeria
                 var knownSetters = new Dictionary<string, int>();
                 var knownMethods = new Dictionary<string, int>();
                 var ignoredProperties = new HashSet<string>();
-                var members = contextualType.Type.GetMembers()
+                // Only instance members are settings: a constant or a static
+                // member is never serialised, so it has no place in the structure.
+                var members = contextualType.Type.GetMembers(BindingFlags.Public | BindingFlags.Instance)
                     .OrderBy(x => x.GetCustomAttribute<DisplayAttribute>(false)?.GetOrder() ?? int.MaxValue)
                     .ToList();
                 foreach (var member in members)

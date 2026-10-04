@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
@@ -23,6 +24,13 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration, IHidd
     /// before the run itself is over.
     /// </summary>
     public const int MinimumRetentionMonths = 3;
+
+    /// <summary>
+    /// The largest retention window the service accepts, a century. Anything
+    /// above it is clamped on load. Turn <see cref="AutoCleanup"/> off to keep
+    /// everything.
+    /// </summary>
+    public const int MaximumRetentionMonths = 1200;
 
     /// <summary>
     /// The shortest sweep interval the service accepts. A sweep walks a whole
@@ -92,6 +100,7 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration, IHidd
     /// against a threshold above it, so a chunk that runs its budget out is not
     /// mistaken for a stuck worker while one that overruns it is still reported.
     /// </remarks>
+    [Range(MinimumSweepBudgetSeconds, MaximumSweepBudgetSeconds)]
     public int SweepBudgetSeconds { get; set; } = 60;
 
     /// <summary>
@@ -114,7 +123,9 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration, IHidd
 
     /// <summary>
     /// How long after a run ends its schedules and airings are kept, in months.
-    /// Values below <see cref="MinimumRetentionMonths"/> are clamped on load.
+    /// Values outside <see cref="MinimumRetentionMonths"/> and
+    /// <see cref="MaximumRetentionMonths"/> are clamped on load.
     /// </summary>
+    [Range(MinimumRetentionMonths, MaximumRetentionMonths)]
     public int RetentionMonths { get; set; } = 12;
 }

@@ -914,9 +914,11 @@ public partial class AiringScheduleService
     internal AiringScheduleServiceSettings LoadSettings()
     {
         var settings = configurationProvider.Load();
-        if (settings.RetentionMonths < AiringScheduleServiceSettings.MinimumRetentionMonths)
-            settings.RetentionMonths = AiringScheduleServiceSettings.MinimumRetentionMonths;
-
+        settings.RetentionMonths = Math.Clamp(
+            settings.RetentionMonths,
+            AiringScheduleServiceSettings.MinimumRetentionMonths,
+            AiringScheduleServiceSettings.MaximumRetentionMonths
+        );
         return settings;
     }
 
