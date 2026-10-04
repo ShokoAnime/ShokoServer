@@ -39,7 +39,7 @@ public class Image(IImageManager imageManager, ISettingsProvider settingsProvide
         if (metadata is null || metadata.GetStream() is not { } stream)
             return APIStatus.NotFound();
 
-        return File(stream, metadata.ContentType);
+        return ImageFile(stream, metadata.ContentType);
     }
 
     /// <summary>
@@ -118,7 +118,7 @@ public class Image(IImageManager imageManager, ISettingsProvider settingsProvide
                 ? imageManager.GetRandomImageCrossReference(imageSource, imageType.ToServerType(), new() { IsAvailable = true })?.GetImage()
                 : null;
             if (metadata is not null && metadata.GetStream() is { } stream)
-                return File(stream, metadata.ContentType);
+                return ImageFile(stream, metadata.ContentType);
         }
 
         return APIStatus.NotFound();

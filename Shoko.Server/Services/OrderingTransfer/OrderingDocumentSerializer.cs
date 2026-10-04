@@ -82,6 +82,7 @@ internal static partial class OrderingDocumentSerializer
             "image/gif" => "gif",
             "image/bmp" => "bmp",
             "image/tiff" => "tiff",
+            "image/svg+xml" => "svg",
             _ => "bin",
         };
 

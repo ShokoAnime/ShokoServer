@@ -36,7 +36,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
             return NotFound(ImageNotFound);
 
         Response.Headers["Cache-Control"] = "public, max-age=3600";
-        return File(stream, metadata.ContentType);
+        return ImageFile(stream, metadata.ContentType);
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ public class ImageController(IImageManager imageManager, ISettingsProvider setti
             if (metadata.GetStream() is not { } stream)
                 continue;
 
-            return File(stream, metadata.ContentType);
+            return ImageFile(stream, metadata.ContentType);
         } while (tries++ < 5);
 
         return NotFound("Unable to find a random image to send.");

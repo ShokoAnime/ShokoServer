@@ -436,7 +436,16 @@ public class ImageManager(
 
     #region Images | Add
 
-    public IReadOnlyList<string> AllowedMimeTypes { get; private set; } = ["image/jpeg", "image/png", "image/bmp", "image/gif", "image/tiff", "image/webp"];
+    public IReadOnlyList<string> AllowedMimeTypes { get; private set; } =
+    [
+        "image/jpeg",
+        "image/png",
+        "image/bmp",
+        "image/gif",
+        "image/tiff",
+        "image/webp",
+        "image/svg+xml",
+    ];
 
     /// <inheritdoc/>
     public IImage AddImage(ImageData imageData)
@@ -531,17 +540,11 @@ public class ImageManager(
             return existingImage;
         }
 
-        MagickImageInfo info;
-        try
-        {
-            info = new(imageByteArray);
-        }
-        catch (Exception ex)
-        {
-            throw new ArgumentException("The provided image data is not valid.", nameof(imageByteArray), ex);
-        }
+        // Only data recognized as a known image format reaches a decoder.
+        if (GetImageMimeType(imageByteArray) is not { } expectedContentType
+            || !TryReadImage(imageByteArray, out var width, out var height))
+            throw new ArgumentException("The provided image data is not valid.", nameof(imageByteArray));
 
-        var expectedContentType = "image/" + info.Format.ToString().ToLower().Replace("jpg", "jpeg");
         if (contentType is not null && expectedContentType != contentType)
             throw new ArgumentException("The provided content-type does not match the actual image format.", nameof(contentType));
 
@@ -560,8 +563,8 @@ public class ImageManager(
             PrimaryID = id,
             Source = source,
             ResourceID = md5,
-            Height = (int)info.Height,
-            Width = (int)info.Width,
+            Height = height,
+            Width = width,
             ContentType = expectedContentType,
             CreatedAt = DateTime.UtcNow,
             LastUpdatedAt = DateTime.UtcNow,
@@ -790,10 +793,10 @@ public class ImageManager(
         {
             using var client = httpClientFactory.CreateClient("Default");
             using var stream = await _retryPolicy.ExecuteAsync(async () => await client.GetStreamAsync(remoteUrl)).ConfigureAwait(false);
-            var bytes = new byte[12];
-            stream.ReadExactly(bytes);
+            var bytes = new byte[SniffLength];
+            var read = await stream.ReadAtLeastAsync(bytes, bytes.Length, throwOnEndOfStream: false).ConfigureAwait(false);
             stream.Close();
-            return GetImageFormat(bytes) is not null;
+            return GetImageMimeType(bytes.AsSpan(0, read)) is not null;
         }
         catch (Exception ex)
         {
@@ -841,7 +844,7 @@ public class ImageManager(
         {
             using var client = httpClientFactory.CreateClient("Default");
             var byteArray = await _retryPolicy.ExecuteAsync(async () => await client.GetByteArrayAsync(remoteUrl)).ConfigureAwait(false);
-            if (GetImageFormat(byteArray) is not { } imageFormat)
+            if (GetImageMimeType(byteArray) is not { } mimeType)
                 throw new UnsupportedImageTypeException()
                 {
                     ImageSource = image.Source,
@@ -850,18 +853,15 @@ public class ImageManager(
                     DetectedMimeType = "unknown",
                 };
 
-            MagickImageInfo info;
-            try
-            {
-                info = new(byteArray);
-            }
-            catch (MagickException e)
-            {
-                throw new HttpRequestException($"Invalid or disallowed image data format at remote resource: {remoteUrl}", e, HttpStatusCode.ExpectationFailed);
-            }
+            if (!TryReadImage(byteArray, out var width, out var height))
+                throw new HttpRequestException(
+                    $"Invalid or disallowed image data format at remote resource: {remoteUrl}",
+                    null,
+                    HttpStatusCode.ExpectationFailed
+                );
 
             // Set the content type _before_ accessing the local path, so the local path will have the correct extension.
-            shokoImage.ContentType = $"image/{imageFormat}";
+            shokoImage.ContentType = mimeType;
 
             Directory.CreateDirectory(Path.GetDirectoryName(image.LocalPath)!);
             if (File.Exists(image.LocalPath))
@@ -871,8 +871,8 @@ public class ImageManager(
             logger.LogInformation("Image downloaded to cache: {DownloadUrl} (Image={ImageID})", remoteUrl, image.ID);
 
             // Update metadata after successfully storing the file.
-            shokoImage.Width = (int)info.Width;
-            shokoImage.Height = (int)info.Height;
+            shokoImage.Width = width;
+            shokoImage.Height = height;
             shokoImage.IsAvailable = true;
 
             return downloaded = true;
@@ -929,7 +929,7 @@ public class ImageManager(
         if (imageRepository.GetByID(image.ID) is not { } shokoImage)
             throw new ArgumentException("The image is not stored.", nameof(image));
 
-        if (GetImageFormat(file) is not { } imageFormat || !AllowedMimeTypes.Contains($"image/{imageFormat}"))
+        if (GetImageMimeType(file) is not { } mimeType || !AllowedMimeTypes.Contains(mimeType))
             throw new UnsupportedImageTypeException()
             {
                 ImageSource = image.Source,
@@ -938,20 +938,13 @@ public class ImageManager(
                 DetectedMimeType = "unknown",
             };
 
-        MagickImageInfo info;
-        try
-        {
-            info = new(file);
-        }
-        catch (MagickException ex)
-        {
-            throw new ArgumentException("The provided image data is not valid.", nameof(file), ex);
-        }
+        if (!TryReadImage(file, out var width, out var height))
+            throw new ArgumentException("The provided image data is not valid.", nameof(file));
 
         // Set the content type _before_ reading the local path, so the path gets the right extension.
         var previouslyHeld = shokoImage.RefreshAvailability();
         var originalContentType = shokoImage.ContentType;
-        shokoImage.ContentType = $"image/{imageFormat}";
+        shokoImage.ContentType = mimeType;
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(shokoImage.LocalPath)!);
@@ -963,8 +956,8 @@ public class ImageManager(
             throw;
         }
 
-        shokoImage.Width = (int)info.Width;
-        shokoImage.Height = (int)info.Height;
+        shokoImage.Width = width;
+        shokoImage.Height = height;
         shokoImage.IsAvailable = true;
         shokoImage.LastUpdatedAt = DateTime.UtcNow;
         imageRepository.Save(shokoImage);
@@ -1240,7 +1233,9 @@ public class ImageManager(
             {
                 try
                 {
-                    new MagickImageInfo(shokoImage.LocalPath);
+                    // Only files recognized as a known image format are read by ImageMagick.
+                    _ = GetImageMimeType(shokoImage.LocalPath) ?? throw new InvalidDataException("The file is not a known image.");
+                    _ = new MagickImageInfo(shokoImage.LocalPath);
                 }
                 catch
                 {
@@ -1701,11 +1696,7 @@ public class ImageManager(
 
         try
         {
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
-            var bytes = new byte[12];
-            if (fs.Length < 12) return false;
-            fs.ReadExactly(bytes);
-            return GetImageFormat(bytes) != null;
+            return GetImageMimeType(path) is not null;
         }
         catch
         {
@@ -1751,51 +1742,74 @@ public class ImageManager(
         }
     }
 
-    private static string? GetImageFormat(byte[] bytes)
+    /// <summary>
+    ///   How many bytes from the start of a file are enough to recognize its
+    ///   image format.
+    /// </summary>
+    private const int SniffLength = 4096;
+
+    /// <summary>
+    ///   Finds an image's media type from the start of its file, by the format
+    ///   ImageMagick recognizes from its signature.
+    /// </summary>
+    /// <param name="data">
+    ///   The start of the file; <see cref="SniffLength"/> bytes are enough.
+    /// </param>
+    /// <returns>
+    ///   The media type, or <c>null</c> when the data is not a known image.
+    /// </returns>
+    public static string? GetImageMimeType(ReadOnlySpan<byte> data)
+        => data.IsEmpty ? null : MagickFormatInfo.Create(data.ToArray())?.Format switch
+        {
+            MagickFormat.Png or MagickFormat.Png00 or MagickFormat.Png8 or MagickFormat.Png24 or MagickFormat.Png32 or MagickFormat.Png48 or MagickFormat.Png64 => "image/png",
+            MagickFormat.Jpg or MagickFormat.Jpeg => "image/jpeg",
+            MagickFormat.WebP => "image/webp",
+            MagickFormat.Gif or MagickFormat.Gif87 => "image/gif",
+            MagickFormat.Bmp or MagickFormat.Bmp2 or MagickFormat.Bmp3 => "image/bmp",
+            MagickFormat.Tif or MagickFormat.Tiff or MagickFormat.Tiff64 => "image/tiff",
+            MagickFormat.Svg or MagickFormat.Svgz => "image/svg+xml",
+            _ => null,
+        };
+
+    /// <summary>
+    ///   Finds the media type of an image file from its first bytes.
+    /// </summary>
+    /// <param name="path">The file's path.</param>
+    /// <returns>
+    ///   The media type, or <c>null</c> when the file is not a known image.
+    /// </returns>
+    /// <exception cref="IOException">The file could not be read.</exception>
+    /// <exception cref="UnauthorizedAccessException">The file may not be read.</exception>
+    private static string? GetImageMimeType(string path)
     {
-        if (bytes.Length < 12) return null;
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read);
+        Span<byte> buffer = stackalloc byte[SniffLength];
+        var read = stream.ReadAtLeast(buffer, buffer.Length, throwOnEndOfStream: false);
+        return GetImageMimeType(buffer[..read]);
+    }
+
+    /// <summary>
+    ///   Checks an image's data and reads its size through ImageMagick.
+    /// </summary>
+    /// <param name="data">The image's data.</param>
+    /// <param name="width">The width in pixels, if known.</param>
+    /// <param name="height">The height in pixels, if known.</param>
+    /// <returns><c>true</c> if the data is a valid image.</returns>
+    internal static bool TryReadImage(byte[] data, out int? width, out int? height)
+    {
         try
         {
-            // https://en.wikipedia.org/wiki/BMP_file_format#File_structure
-            var bmp = new byte[] { 66, 77 };
-            // https://en.wikipedia.org/wiki/GIF#File_format
-            var gif = new byte[] { 71, 73, 70 };
-            // https://en.wikipedia.org/wiki/JPEG#Syntax_and_structure
-            var jpeg = new byte[] { 255, 216 };
-            // https://en.wikipedia.org/wiki/Portable_Network_Graphics#File_header
-            var png = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
-            // https://en.wikipedia.org/wiki/TIFF#Byte_order
-            var tiff1 = new byte[] { 73, 73, 42, 0 };
-            var tiff2 = new byte[] { 77, 77, 42, 0 };
-            // https://developers.google.com/speed/webp/docs/riff_container#webp_file_header
-            var webp1 = new byte[] { 82, 73, 70, 70 };
-            var webp2 = new byte[] { 87, 69, 66, 80 };
-
-            if (png.SequenceEqual(bytes.Take(png.Length)))
-                return "png";
-
-            if (jpeg.SequenceEqual(bytes.Take(jpeg.Length)))
-                return "jpeg";
-
-            if (webp1.SequenceEqual(bytes.Take(webp1.Length)) &&
-                webp2.SequenceEqual(bytes.Skip(8).Take(webp2.Length)))
-                return "webp";
-
-            if (gif.SequenceEqual(bytes.Take(gif.Length)))
-                return "gif";
-
-            if (bmp.SequenceEqual(bytes.Take(bmp.Length)))
-                return "bmp";
-
-            if (tiff1.SequenceEqual(bytes.Take(tiff1.Length)) ||
-                tiff2.SequenceEqual(bytes.Take(tiff2.Length)))
-                return "tiff";
+            var info = new MagickImageInfo(data);
+            width = (int)info.Width;
+            height = (int)info.Height;
+            return true;
         }
-        catch
+        catch (MagickException)
         {
-            // ignored
+            width = null;
+            height = null;
+            return false;
         }
-        return null;
     }
 
     private static readonly string[] _dataUrlSeparators = [":", ";", ","];

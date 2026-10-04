@@ -287,7 +287,7 @@ public class ImageManagementController(IImageManager imageManager, ISettingsProv
     /// <returns>The created image.</returns>
     [Authorize("admin")]
     [HttpPost("Upload/Raw")]
-    [Consumes(ContentTypeHelper.UnknownMimeType, "image/jpeg", "image/png", "image/bmp", "image/gif", "image/tiff", "image/webp")]
+    [Consumes(ContentTypeHelper.UnknownMimeType, "image/jpeg", "image/png", "image/bmp", "image/gif", "image/tiff", "image/webp", "image/svg+xml")]
     public async Task<ActionResult<ImageSlim>> UploadImageRaw(
         [FromQuery] string? contentType = null,
         [FromQuery] bool userSubmitted = true,

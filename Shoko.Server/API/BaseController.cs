@@ -79,12 +79,35 @@ public class BaseController(ISettingsProvider settingsProvider) : Controller
         }
 
         // The file result answers a matching If-None-Match with 304 by itself.
-        var headers = Response.Headers;
-        headers.CacheControl = "private, max-age=86400";
-        headers.XContentTypeOptions = "nosniff";
-        headers.ContentSecurityPolicy = "sandbox";
+        Response.Headers.CacheControl = "private, max-age=86400";
+        SetSandboxHeaders();
         var etag = new EntityTagHeaderValue($"\"{Convert.ToHexStringLower(SHA256.HashData(bytes), 0, 8)}\"");
         return File(bytes, icon.MimeType, null, etag);
+    }
+
+    /// <summary>
+    /// Sends a stored image's file, so that an SVG opened on its own runs no
+    /// script.
+    /// </summary>
+    /// <param name="stream">The image's file.</param>
+    /// <param name="contentType">The image's media type.</param>
+    /// <returns>The file.</returns>
+    [NonAction]
+    protected FileStreamResult ImageFile(Stream stream, string contentType)
+    {
+        SetSandboxHeaders();
+        return File(stream, contentType);
+    }
+
+    /// <summary>
+    /// Keeps the browser from guessing the response's type and runs a
+    /// document opened from it, an SVG among them, in a sandbox.
+    /// </summary>
+    private void SetSandboxHeaders()
+    {
+        var headers = Response.Headers;
+        headers.XContentTypeOptions = "nosniff";
+        headers.ContentSecurityPolicy = "sandbox";
     }
 
     [NonAction]
