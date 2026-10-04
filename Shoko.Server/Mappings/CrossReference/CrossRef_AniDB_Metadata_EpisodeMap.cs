@@ -18,8 +18,8 @@ public class CrossRef_AniDB_Metadata_EpisodeMap : ClassMap<CrossRef_AniDB_Metada
         Map(x => x.AnidbAnimeID).Not.Nullable();
         Map(x => x.AnidbEpisodeID).Not.Nullable();
         Map(x => x.ProviderID).Not.Nullable();
-        Map(x => x.ProviderParentID).Not.Nullable();
-        Map(x => x.ProviderSeasonID).Nullable();
+        Map(x => x.ProviderParentID).CustomType<PooledStringType>().Not.Nullable();
+        Map(x => x.ProviderSeasonID).CustomType<PooledStringType>().Nullable();
         Map(x => x.SeasonNumber).Nullable();
         Map(x => x.EpisodeNumber).Nullable();
         Map(x => x.MatchRating).CustomType<MatchRating>().Not.Nullable();

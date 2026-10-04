@@ -16,7 +16,7 @@ public class Metadata_SeasonMap : ClassMap<Metadata_Season>
 
         Map(x => x.Source).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.ProviderID).Not.Nullable();
-        Map(x => x.SeriesID).Not.Nullable();
+        Map(x => x.SeriesID).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.SeasonNumber).Not.Nullable();
         Map(x => x.CreatedAt).Not.Nullable();
         Map(x => x.LastUpdatedAt).Not.Nullable();

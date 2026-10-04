@@ -17,11 +17,11 @@ public class ShokoImageMap : ClassMap<ShokoImage>
         Map(x => x.PrimaryID).Not.Nullable();
         Map(x => x.Source).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.ResourceID).Not.Nullable();
-        Map(x => x.LanguageCode).Nullable();
-        Map(x => x.CountryCode).Nullable();
+        Map(x => x.LanguageCode).CustomType<PooledStringType>().Nullable();
+        Map(x => x.CountryCode).CustomType<PooledStringType>().Nullable();
         Map(x => x.Width).Nullable();
         Map(x => x.Height).Nullable();
-        Map(x => x.ContentType).Not.Nullable();
+        Map(x => x.ContentType).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.IsAvailable).Not.Nullable();
         Map(x => x.DownloadAttempts).Not.Nullable();
         Map(x => x.CreatedAt).Not.Nullable();

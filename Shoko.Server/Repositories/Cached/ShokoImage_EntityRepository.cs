@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Databases;
@@ -12,13 +13,10 @@ public class ShokoImage_EntityRepository(DatabaseFactory databaseFactory) : Base
 {
     private PocoIndex<int, ShokoImage_Entity, Guid>? _imageID;
 
-    private PocoIndex<int, ShokoImage_Entity, Guid>? _primaryImageID;
-
-    private PocoIndex<int, ShokoImage_Entity, (MetadataSource, MetadataEntityType)>? _entities;
+    // Only the cross-references of images linked to another primary image, which few are.
+    private PocoIndex<int, ShokoImage_Entity, Guid>? _linkedPrimaryImageID;
 
     private PocoIndex<int, ShokoImage_Entity, (MetadataSource, MetadataEntityType, string)>? _entitiesByID;
-
-    private PocoIndex<int, ShokoImage_Entity, (MetadataSource, MetadataEntityType, string, ImageEntityType)>? _entitiesByIDWithType;
 
     protected override int SelectKey(ShokoImage_Entity entity)
         => entity.ID;
@@ -26,20 +24,22 @@ public class ShokoImage_EntityRepository(DatabaseFactory databaseFactory) : Base
     public override void PopulateIndexes()
     {
         _imageID = Cache.CreateIndex(a => a.ImageID);
-        _primaryImageID = Cache.CreateIndex(a => a.PrimaryImageID);
-        _entities = Cache.CreateIndex(a => (a.EntitySource, a.EntityType));
+        _linkedPrimaryImageID = Cache.CreateIndex(a => a.PrimaryImageID == a.ImageID ? [] : (IReadOnlyList<Guid>)[a.PrimaryImageID]);
         _entitiesByID = Cache.CreateIndex(a => (a.EntitySource, a.EntityType, a.EntityID));
-        _entitiesByIDWithType = Cache.CreateIndex(a => (a.EntitySource, a.EntityType, a.EntityID, a.ImageType));
     }
 
     public IReadOnlyList<ShokoImage_Entity> GetByImageID(Guid imageId)
         => _imageID!.GetMultiple(imageId);
 
     public IReadOnlyList<ShokoImage_Entity> GetByPrimaryImageID(Guid imageId)
-        => _primaryImageID!.GetMultiple(imageId);
+    {
+        var xrefs = _imageID!.GetMultiple(imageId).Where(xref => xref.PrimaryImageID == imageId).ToList();
+        xrefs.AddRange(_linkedPrimaryImageID!.GetMultiple(imageId));
+        return xrefs;
+    }
 
     public IReadOnlyList<ShokoImage_Entity> GetByEntity(MetadataSource entitySource, MetadataEntityType entityType)
-        => _entities!.GetMultiple((entitySource, entityType));
+        => GetAll().Where(xref => xref.EntitySource == entitySource && xref.EntityType == entityType).ToList();
 
     public IReadOnlyList<ShokoImage_Entity> GetByEntity(MetadataSource entitySource, MetadataEntityType entityType, string entityID)
         => _entitiesByID!.GetMultiple((entitySource, entityType, entityID));
@@ -48,5 +48,5 @@ public class ShokoImage_EntityRepository(DatabaseFactory databaseFactory) : Base
         => _entitiesByID!.GetMultiple((entityID.Source, entityID.EntityType, entityID.ID));
 
     public IReadOnlyList<ShokoImage_Entity> GetByEntityForType(MetadataSource entitySource, MetadataEntityType entityType, string entityId, ImageEntityType imageType)
-        => _entitiesByIDWithType!.GetMultiple((entitySource, entityType, entityId, imageType));
+        => _entitiesByID!.GetMultiple((entitySource, entityType, entityId)).Where(xref => xref.ImageType == imageType).ToList();
 }

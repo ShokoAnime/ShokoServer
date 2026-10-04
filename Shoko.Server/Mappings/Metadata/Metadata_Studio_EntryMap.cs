@@ -16,7 +16,7 @@ public class Metadata_Studio_EntryMap : ClassMap<Metadata_Studio_Entry>
 
         Map(x => x.Source).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.EntityType).CustomType<MetadataEntityTypeType>().Not.Nullable();
-        Map(x => x.EntityID).Not.Nullable();
+        Map(x => x.EntityID).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.StudioID).Not.Nullable();
         Map(x => x.StudioType).CustomType<StudioType>().Not.Nullable();
         Map(x => x.Ordering).Not.Nullable();

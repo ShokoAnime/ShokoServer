@@ -6,7 +6,7 @@ namespace Shoko.Server.Models.Release;
 public class EmbeddedCrossReference : IReleaseVideoCrossReference
 {
     /// <inheritdoc/>
-    public Dictionary<string, string> ProviderIDs { get; set; } = [];
+    public ProviderIDDictionary ProviderIDs { get; set; } = [];
 
     /// <inheritdoc/>
     public int PercentageStart { get; set; }
@@ -18,7 +18,7 @@ public class EmbeddedCrossReference : IReleaseVideoCrossReference
 
     public EmbeddedCrossReference(IReleaseVideoCrossReference crossReference)
     {
-        ProviderIDs = new Dictionary<string, string>(crossReference.ProviderIDs);
+        ProviderIDs = new ProviderIDDictionary(crossReference.ProviderIDs);
         PercentageStart = crossReference.PercentageStart;
         PercentageEnd = crossReference.PercentageEnd;
     }

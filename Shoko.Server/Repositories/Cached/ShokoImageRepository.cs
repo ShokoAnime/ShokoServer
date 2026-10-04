@@ -14,7 +14,8 @@ public class ShokoImageRepository(DatabaseFactory databaseFactory) : BaseCachedR
 
     private PocoIndex<Guid, ShokoImage, int>? _localImageID;
 
-    private PocoIndex<Guid, ShokoImage, Guid>? _primaryImageID;
+    // Only the images linked to another primary image, which few are.
+    private PocoIndex<Guid, ShokoImage, Guid>? _linkedPrimaryImageID;
 
     protected override void OnBeginSave(ShokoImage obj)
     {
@@ -29,14 +30,20 @@ public class ShokoImageRepository(DatabaseFactory databaseFactory) : BaseCachedR
     {
         _lastLocalID = Cache.GetAll().Select(a => a.LocalID).DefaultIfEmpty(0).Max();
         _localImageID = Cache.CreateIndex(a => a.LocalID);
-        _primaryImageID = Cache.CreateIndex(a => a.PrimaryID);
+        _linkedPrimaryImageID = Cache.CreateIndex(a => a.PrimaryID == a.ID ? [] : (IReadOnlyList<Guid>)[a.PrimaryID]);
     }
 
     public ShokoImage? GetByLocalID(int localID)
         => _localImageID!.GetOne(localID);
 
     public IReadOnlyList<ShokoImage> GetByPrimaryImageID(Guid imageId)
-        => _primaryImageID!.GetMultiple(imageId);
+    {
+        var images = _linkedPrimaryImageID!.GetMultiple(imageId);
+        if (GetByIDUnsafe(imageId) is not { } primaryImage || primaryImage.PrimaryID != imageId)
+            return images;
+
+        return [primaryImage, .. images];
+    }
 
     public IReadOnlyList<ShokoImage> GetOrphanedImages(DateTime threshold)
         => GetAll()

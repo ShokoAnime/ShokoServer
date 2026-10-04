@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Video.Release;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Models.Release;
 
@@ -86,7 +87,14 @@ public class StoredReleaseInfo_MatchAttempt : IReleaseMatchAttempt
     /// </summary>
     public IReadOnlyList<string> AttemptedProviderNames
     {
-        get => EmbeddedAttemptProviderNames.Split(',');
+        get
+        {
+            // The cache's index keeps the names of every attempt, so pool them.
+            var names = EmbeddedAttemptProviderNames.Split(',');
+            for (var index = 0; index < names.Length; index++)
+                names[index] = StringPool.Get(names[index]);
+            return names;
+        }
         set => EmbeddedAttemptProviderNames = value.Join(',');
     }
 }

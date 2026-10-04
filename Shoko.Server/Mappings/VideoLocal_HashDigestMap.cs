@@ -1,4 +1,5 @@
 using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.Shoko;
 
 namespace Shoko.Server.Mappings;
@@ -12,7 +13,7 @@ public class VideoLocal_HashDigestMap : ClassMap<VideoLocal_HashDigest>
         Id(x => x.VideoLocal_HashDigestID);
 
         Map(x => x.VideoLocalID).Not.Nullable();
-        Map(x => x.Type).Not.Nullable();
+        Map(x => x.Type).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.Value).Not.Nullable();
         Map(x => x.Metadata);
     }

@@ -14,10 +14,10 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Not.LazyLoad();
         Id(x => x.StoredReleaseInfoID);
 
-        Map(x => x.ED2K).Not.Nullable();
+        Map(x => x.ED2K).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.FileSize).Not.Nullable();
         Map(x => x.ID);
-        Map(x => x.ProviderName).Not.Nullable();
+        Map(x => x.ProviderName).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.ReleaseURI);
         Map(x => x.Version).Not.Nullable();
         Map(x => x.ProvidedFileSize);
@@ -29,13 +29,13 @@ public class StoredReleaseInfoMap : ClassMap<StoredReleaseInfo>
         Map(x => x.IsCorrupted).Not.Nullable();
         Map(x => x.IsDeprecated).Not.Nullable();
         Map(x => x.Source).CustomType<ReleaseSource>().Not.Nullable();
-        Map(x => x.GroupID);
-        Map(x => x.GroupSource);
-        Map(x => x.GroupName);
-        Map(x => x.GroupShortName);
+        Map(x => x.GroupID).CustomType<PooledStringType>();
+        Map(x => x.GroupSource).CustomType<PooledStringType>();
+        Map(x => x.GroupName).CustomType<PooledStringType>();
+        Map(x => x.GroupShortName).CustomType<PooledStringType>();
         Map(x => x.EmbeddedHashes).Column("Hashes");
-        Map(x => x.EmbeddedAudioLanguages).Column("AudioLanguages");
-        Map(x => x.EmbeddedSubtitleLanguages).Column("SubtitleLanguages");
+        Map(x => x.EmbeddedAudioLanguages).CustomType<PooledStringType>().Column("AudioLanguages");
+        Map(x => x.EmbeddedSubtitleLanguages).CustomType<PooledStringType>().Column("SubtitleLanguages");
         Map(x => x.EmbeddedCrossReferences).Column("CrossReferences").Not.Nullable();
         Map(x => x.ReleasedAt).CustomType<DateOnlyConverter>();
         Map(x => x.LastUpdatedAt).Not.Nullable();

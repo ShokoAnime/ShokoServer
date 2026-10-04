@@ -1,4 +1,5 @@
 using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.CrossReference;
 
 namespace Shoko.Server.Mappings;
@@ -14,7 +15,7 @@ public class CrossRef_File_EpisodeMap : ClassMap<CrossRef_File_Episode>
 
         Map(x => x.EpisodeID).Not.Nullable();
         Map(x => x.EpisodeOrder).Not.Nullable();
-        Map(x => x.Hash).Not.Nullable();
+        Map(x => x.Hash).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.Percentage).Not.Nullable();
         Map(x => x.FileSize).Not.Nullable();
         Map(x => x.AnimeID).Not.Nullable();

@@ -14,10 +14,10 @@ public class Metadata_Ordering_EntryMap : ClassMap<Metadata_Ordering_Entry>
         Id(x => x.Metadata_Ordering_EntryID);
 
         Map(x => x.Source).CustomType<MetadataSourceType>().Not.Nullable();
-        Map(x => x.OrderingID).Not.Nullable();
-        Map(x => x.GroupID).Not.Nullable();
+        Map(x => x.OrderingID).CustomType<PooledStringType>().Not.Nullable();
+        Map(x => x.GroupID).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.Position).Not.Nullable();
         Map(x => x.EpisodeSource).CustomType<MetadataSourceType>().Not.Nullable();
-        Map(x => x.EpisodeID).Not.Nullable();
+        Map(x => x.EpisodeID).CustomType<PooledStringType>().Not.Nullable();
     }
 }

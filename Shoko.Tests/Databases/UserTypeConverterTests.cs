@@ -80,6 +80,7 @@ public class UserTypeConverterTests
         { typeof(PartialDateOnlyConverter).FullName!, new PartialDateOnly(2024, 5, 1), new PartialDateOnly(2024, 5, 1) },
         { typeof(FuzzyDateOnlyConverter).FullName!, new FuzzyDateOnly(null, 5, 1), new FuzzyDateOnly(null, 5, 1) },
         { typeof(DateOnlyConverter).FullName!, new DateOnly(2024, 5, 1), new DateOnly(2024, 5, 1) },
+        { typeof(PooledStringType).FullName!, "image/jpeg", new string("image/jpeg".AsSpan()) },
         {
             typeof(JTokenDictionaryConverter).FullName!,
             new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },
@@ -114,6 +115,7 @@ public class UserTypeConverterTests
         { typeof(PartialDateOnlyConverter).FullName!, new PartialDateOnly(2024, 5, 1), new PartialDateOnly(2024, 5, 2) },
         { typeof(FuzzyDateOnlyConverter).FullName!, new FuzzyDateOnly(null, 5, 1), new FuzzyDateOnly(2024, 5, 1) },
         { typeof(DateOnlyConverter).FullName!, new DateOnly(2024, 5, 1), new DateOnly(2024, 5, 2) },
+        { typeof(PooledStringType).FullName!, "image/jpeg", "image/png" },
         {
             typeof(JTokenDictionaryConverter).FullName!,
             new Dictionary<string, JToken?> { ["a"] = JToken.FromObject(1) },

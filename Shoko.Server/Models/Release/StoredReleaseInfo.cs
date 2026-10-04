@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Newtonsoft.Json;
 using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata.Enums;
@@ -8,6 +9,7 @@ using Shoko.Abstractions.Video;
 using Shoko.Abstractions.Video.Enums;
 using Shoko.Abstractions.Video.Hashing;
 using Shoko.Abstractions.Video.Release;
+using Shoko.Server.Utilities;
 
 namespace Shoko.Server.Models.Release;
 
@@ -112,13 +114,44 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
         _ => "unk",
     };
 
-    // Stored as  a serialized JSON list so each hash can be queried later when
-    // we drop NHibernate and the current in-memory cache.
-    public string? EmbeddedHashes { get; set; }
+    /// <summary>
+    ///   The hashes as stored, a JSON list. Held as text until
+    ///   <see cref="Hashes"/> is first read, then written from the list, or
+    ///   kept as text when the list would write it differently.
+    /// </summary>
+    /// <remarks>
+    ///   A JSON list so each hash can be queried once NHibernate and the
+    ///   in-memory cache are gone.
+    /// </remarks>
+    public string? EmbeddedHashes
+    {
+        get => _hashes is { } read ? read.Text ?? JsonConvert.SerializeObject(read.List) : _hashesText;
+        set
+        {
+            _hashesText = value;
+            _hashes = null;
+        }
+    }
 
-    // Stored as  a serialized JSON list so each xref can be queried later when
-    // we drop NHibernate and the current in-memory cache.
-    public string EmbeddedCrossReferences { get; set; } = "[]";
+    /// <summary>
+    ///   The cross-references as stored, a JSON list. Read into
+    ///   <see cref="CrossReferences"/> when set and written from it, or kept as
+    ///   text when the list would write it differently.
+    /// </summary>
+    /// <remarks>
+    ///   A JSON list so each cross-reference can be queried once NHibernate
+    ///   and the in-memory cache are gone.
+    /// </remarks>
+    public string EmbeddedCrossReferences
+    {
+        get => _crossReferencesText ?? JsonConvert.SerializeObject(_crossReferences);
+        set
+        {
+            var crossReferences = JsonConvert.DeserializeObject<List<EmbeddedCrossReference>>(value) ?? [];
+            _crossReferences = crossReferences;
+            _crossReferencesText = JsonConvert.SerializeObject(crossReferences) == value ? null : value;
+        }
+    }
 
     public string? Metadata { get; set; }
 
@@ -139,32 +172,64 @@ public class StoredReleaseInfo : IReleaseInfo, IReleaseGroup, IReleaseMediaInfo,
     /// </summary>
     public bool DeferToNext { get; set; }
 
-    private IReadOnlyList<EmbeddedCrossReference>? _embeddedCrossReferences;
+    private IReadOnlyList<EmbeddedCrossReference> _crossReferences = [];
+
+    private string? _crossReferencesText;
 
     public IReadOnlyList<IReleaseVideoCrossReference> CrossReferences
     {
-        get => _embeddedCrossReferences ??= JsonConvert.DeserializeObject<List<EmbeddedCrossReference>>(EmbeddedCrossReferences) ?? [];
-        set => EmbeddedCrossReferences = JsonConvert.SerializeObject(_embeddedCrossReferences = value.Select(x => new EmbeddedCrossReference(x)).ToList());
+        get => _crossReferences;
+        set
+        {
+            _crossReferences = value.Select(x => new EmbeddedCrossReference(x)).ToList();
+            _crossReferencesText = null;
+        }
     }
 
-    private List<HashDigest>? _embeddedHashes;
+    private string? _hashesText;
+
+    private ReadHashes? _hashes;
 
     public List<HashDigest>? Hashes
     {
-        get => string.IsNullOrEmpty(EmbeddedHashes) ? null : _embeddedHashes ??= JsonConvert.DeserializeObject<List<HashDigest>>(EmbeddedHashes);
+        get
+        {
+            if (_hashes is { } read)
+                return read.List;
+
+            var text = _hashesText;
+            if (string.IsNullOrEmpty(text))
+                return null;
+
+            var hashes = JsonConvert.DeserializeObject<List<HashDigest>>(text);
+            foreach (var hash in hashes ?? [])
+            {
+                hash.Type = StringPool.Get(hash.Type);
+                if (string.Equals(hash.Value, ED2K))
+                    hash.Value = ED2K;
+            }
+
+            // The first reader's list is the one kept, so every caller sees the same list.
+            var parsed = new ReadHashes(hashes, JsonConvert.SerializeObject(hashes) == text ? null : text);
+            var current = Interlocked.CompareExchange(ref _hashes, parsed, null) ?? parsed;
+            if (ReferenceEquals(current, parsed))
+                _hashesText = null;
+
+            return current.List;
+        }
         set
         {
-            if (value is null)
-            {
-                EmbeddedHashes = null;
-                _embeddedHashes = null;
-            }
-            else
-            {
-                EmbeddedHashes = JsonConvert.SerializeObject(_embeddedHashes = value);
-            }
+            _hashesText = null;
+            _hashes = value is null ? null : new(value, null);
         }
     }
+
+    /// <summary>
+    ///   The hashes read from <see cref="EmbeddedHashes"/>.
+    /// </summary>
+    /// <param name="List">The hashes.</param>
+    /// <param name="Text">The stored text, when the list would write it differently.</param>
+    private sealed record ReadHashes(List<HashDigest>? List, string? Text);
 
     long? IReleaseInfo.FileSize => ProvidedFileSize;
 

@@ -261,5 +261,230 @@ public class PocoCacheTests
         Assert.Equal([1], cache.GetAllKeys());
     }
 
+    [Fact]
+    public void MultiValuedIndex_IndexesARepeatedValueOnce()
+    {
+        var cache = Cache(new Item(1, "a", "x", "x", "y", "x"));
+        var index = cache.CreateIndex(i => i.Tags);
+
+        Assert.Single(index.GetMultiple("x"));
+        Assert.True(index.TryGetIndexedKeys(1, out var keys));
+        Assert.Equal(["x", "y"], keys);
+    }
+
+    [Fact]
+    public void MultiValuedIndex_KeepsItsKeysWhenTheSelectorsListChangesAfterwards()
+    {
+        var tags = new List<string> { "x" };
+        var cache = Cache();
+        var index = cache.CreateIndex(i => (IReadOnlyList<string>)tags);
+
+        cache.Update(new Item(1, "a"));
+        tags[0] = "y";
+
+        Assert.Equal(1, index.GetOne("x")!.Id);
+        Assert.Null(index.GetOne("y"));
+    }
+
+    #endregion
+
+    #region Rows per key
+
+    // Crosses every change of layout: one row, a growing array, a set, and back down.
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(PocoRowSet<int>.MaxArrayLength)]
+    [InlineData(PocoRowSet<int>.MaxArrayLength + 1)]
+    [InlineData(200)]
+    public void Index_KeepsEveryRowOfAKeyWhileRowsAreRemovedOneByOne(int count)
+    {
+        var items = Enumerable.Range(1, count).Select(id => new Item(id, "a")).ToArray();
+        var cache = Cache(items);
+        var index = cache.CreateIndex(i => i.Category);
+
+        for (var removed = 0; removed < count; removed++)
+        {
+            var expected = Enumerable.Range(removed + 1, count - removed).ToArray();
+            Assert.Equal(expected, index.GetMultiple("a").Select(i => i.Id).Order());
+            Assert.Contains(index.GetOne("a")!.Id, expected);
+
+            cache.Remove(items[removed]);
+        }
+
+        Assert.Null(index.GetOne("a"));
+        Assert.Empty(index.GetMultiple("a"));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(PocoRowSet<int>.MaxArrayLength + 1)]
+    public void Index_KeepsEveryRowOfAKeyWhileRowsAreAddedOneByOne(int count)
+    {
+        var cache = Cache();
+        var index = cache.CreateIndex(i => i.Category);
+
+        for (var id = 1; id <= count; id++)
+        {
+            cache.Update(new Item(id, "a"));
+            Assert.Equal(Enumerable.Range(1, id), index.GetMultiple("a").Select(i => i.Id).Order());
+        }
+    }
+
+    [Fact]
+    public void Index_PreservesTheOrderRowsWereLoadedIn()
+    {
+        var cache = Cache(new Item(3, "a"), new Item(1, "a"), new Item(2, "a"));
+        var index = cache.CreateIndex(i => i.Category);
+
+        Assert.Equal([3, 1, 2], index.GetMultiple("a").Select(i => i.Id));
+        Assert.Equal(3, index.GetOne("a")!.Id);
+    }
+
+    [Fact]
+    public void Index_MovesOneRowOutOfAShrunkenSetWithoutDisturbingTheRest()
+    {
+        var count = PocoRowSet<int>.MaxArrayLength * 2;
+        var items = Enumerable.Range(1, count).Select(id => new Item(id, "a")).ToArray();
+        var cache = Cache(items);
+        var index = cache.CreateIndex(i => i.Category);
+
+        // Down to half the array limit, where the set turns back into an array.
+        foreach (var item in items.Skip(PocoRowSet<int>.MaxArrayLength / 2))
+            cache.Remove(item);
+        cache.Update(new Item(1, "b"));
+        cache.Update(new Item(count + 1, "a"));
+
+        Assert.Equal([.. Enumerable.Range(2, PocoRowSet<int>.MaxArrayLength / 2 - 1), count + 1], index.GetMultiple("a").Select(i => i.Id).Order());
+        Assert.Equal([1], index.GetMultiple("b").Select(i => i.Id));
+    }
+
+    [Fact]
+    public void Index_KeepsAKeyWhoseLastRowLeftAndCameBack()
+    {
+        var cache = Cache(new Item(1, "a"), new Item(2, "a"));
+        var index = cache.CreateIndex(i => i.Category);
+
+        cache.Update(new Item(1, "b"));
+        cache.Update(new Item(2, "b"));
+        cache.Update(new Item(2, "a"));
+
+        Assert.Equal([2], index.GetMultiple("a").Select(i => i.Id));
+        Assert.Equal([1], index.GetMultiple("b").Select(i => i.Id));
+    }
+
+    [Fact]
+    public void Index_LeavesTheRowInPlaceWhenAnUpdateKeepsItsKey()
+    {
+        var cache = Cache(new Item(1, "a"), new Item(2, "a"));
+        var index = cache.CreateIndex(i => i.Category);
+        var replacement = new Item(1, "a");
+
+        cache.Update(replacement);
+
+        Assert.Equal([1, 2], index.GetMultiple("a").Select(i => i.Id));
+        Assert.Same(replacement, index.GetOne("a"));
+    }
+
+    [Fact]
+    public void Index_TracksAnEntityMutatedInPlace()
+    {
+        var item = new Item(1, "a");
+        var cache = Cache(item, new Item(2, "a"));
+        var index = cache.CreateIndex(i => i.Category);
+
+        item.Category = "b";
+        cache.Update(item);
+
+        Assert.Equal([2], index.GetMultiple("a").Select(i => i.Id));
+        Assert.Same(item, index.GetOne("b"));
+    }
+
+    [Fact]
+    public void Index_GetMultiple_ReturnsAListTheCallerMayChange()
+    {
+        var cache = Cache(new Item(1, "a"), new Item(2, "a"));
+        var index = cache.CreateIndex(i => i.Category);
+
+        index.GetMultiple("a").Clear();
+
+        Assert.Equal(2, index.GetMultiple("a").Count);
+    }
+
+    [Fact]
+    public void Index_IsRebuiltFromScratchAfterAClear()
+    {
+        var cache = Cache(new Item(1, "a"), new Item(2, "a"));
+        var index = cache.CreateIndex(i => i.Category);
+
+        cache.Clear();
+        cache.Update(new Item(3, "a"));
+
+        Assert.Equal([3], index.GetMultiple("a").Select(i => i.Id));
+    }
+
+    #endregion
+
+    #region Null keys
+
+    [Fact]
+    public void Index_FindsTheEntitiesIndexedUnderNull()
+    {
+        var cache = Cache(new Item(1, "a"), new Item(2, "b"), new Item(3, "c"));
+        var index = cache.CreateIndex(i => i.Id is 3 ? 30 : (int?)null);
+
+        Assert.Equal([1, 2], index.GetMultiple(null).Select(i => i.Id).Order());
+        Assert.Equal(3, index.GetOne(30)!.Id);
+    }
+
+    [Fact]
+    public void Index_MovesAnEntityOffNull()
+    {
+        var parents = new Dictionary<int, int?> { [1] = null, [2] = null };
+        var cache = Cache(new Item(1, "a"), new Item(2, "b"));
+        var index = cache.CreateIndex(i => parents[i.Id]);
+
+        parents[1] = 10;
+        cache.Update(new Item(1, "a"));
+
+        Assert.Equal([2], index.GetMultiple(null).Select(i => i.Id));
+        Assert.Equal(1, index.GetOne(10)!.Id);
+    }
+
+    [Fact]
+    public void Index_AnswersNullWithNothingWhenNoEntityIsIndexedUnderIt()
+    {
+        var index = Cache(new Item(1, "a")).CreateIndex(i => i.Category);
+
+        Assert.Null(index.GetOne(null!));
+        Assert.Empty(index.GetMultiple(null!));
+    }
+
+    #endregion
+
+    #region Indexed keys
+
+    [Fact]
+    public void TryGetIndexedKeys_ReturnsTheKeyTheEntityWasLastIndexedUnder()
+    {
+        var item = new Item(1, "a");
+        var cache = Cache(item);
+        var index = cache.CreateIndex(i => i.Category);
+
+        item.Category = "b";
+
+        Assert.True(index.TryGetIndexedKeys(1, out var keys));
+        Assert.Equal(["a"], keys);
+    }
+
+    [Fact]
+    public void TryGetIndexedKeys_ReturnsFalseForAnEntityNotInTheCache()
+    {
+        var index = Cache(new Item(1, "a")).CreateIndex(i => i.Category);
+
+        Assert.False(index.TryGetIndexedKeys(2, out var keys));
+        Assert.Null(keys);
+    }
+
     #endregion
 }

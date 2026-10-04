@@ -18,8 +18,8 @@ public class Metadata_EpisodeMap : ClassMap<Metadata_Episode>
 
         Map(x => x.Source).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.ProviderID).Not.Nullable();
-        Map(x => x.SeriesID).Not.Nullable();
-        Map(x => x.SeasonID).Nullable();
+        Map(x => x.SeriesID).CustomType<PooledStringType>().Not.Nullable();
+        Map(x => x.SeasonID).CustomType<PooledStringType>().Nullable();
         Map(x => x.SeasonNumber).Nullable();
         Map(x => x.EpisodeNumber).Not.Nullable();
         Map(x => x.Type).CustomType<EpisodeType>().Not.Nullable();

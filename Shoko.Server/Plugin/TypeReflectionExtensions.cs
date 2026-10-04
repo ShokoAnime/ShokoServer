@@ -18,6 +18,17 @@ public static partial class TypeReflectionExtensions
     internal static readonly object XmlDocsLock = new();
 
     /// <summary>
+    /// Drops the XML docs Namotion.Reflection keeps parsed for every assembly
+    /// it has read, about 28 MB with the bundled plugins. A later read parses
+    /// the file again.
+    /// </summary>
+    internal static void ReleaseXmlDocs()
+    {
+        lock (XmlDocsLock)
+            XmlDocs.ClearCache();
+    }
+
+    /// <summary>
     /// Gets the display name for a type.
     /// </summary>
     /// <param name="type">The type.</param>

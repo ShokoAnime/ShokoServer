@@ -1,3 +1,4 @@
+using System;
 using Shoko.Server.Models.Release;
 using Xunit;
 
@@ -120,6 +121,20 @@ public class MatchAttemptTests
     {
         var attempt = new StoredReleaseInfo_MatchAttempt { EmbeddedAttemptProviderNames = "AniDB,TMDB,MyPlugin" };
         Assert.Equal(["AniDB", "TMDB", "MyPlugin"], attempt.AttemptedProviderNames);
+    }
+
+    [Fact]
+    public void AttemptedProviderNames_EqualNamesShareOneInstance()
+    {
+        var first = new StoredReleaseInfo_MatchAttempt { EmbeddedAttemptProviderNames = new string("Release Importer,AniDB".AsSpan()) };
+        var second = new StoredReleaseInfo_MatchAttempt { EmbeddedAttemptProviderNames = new string("AniDB,Release Importer".AsSpan()) };
+
+        var firstNames = first.AttemptedProviderNames;
+        var secondNames = second.AttemptedProviderNames;
+
+        Assert.Equal(["AniDB", "Release Importer"], secondNames);
+        Assert.Same(firstNames[0], secondNames[1]);
+        Assert.Same(firstNames[1], secondNames[0]);
     }
 
     // ── StoredReleaseInfo.DeferToNext ─────────────────────────────────────────

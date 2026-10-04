@@ -795,6 +795,8 @@ public class SystemService : ISystemService
             // The caches and an upgrade's data fixes fragment the heap by gigabytes on a large library;
             // compacting once and returning the C allocator's free memory keeps that off the resident size.
             StartupMessage = "Compacting memory...";
+            // Start-up is done with the parsed XML docs; a later read loads them again.
+            TypeReflectionExtensions.ReleaseXmlDocs();
             GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
             NativeAllocator.Trim();
 

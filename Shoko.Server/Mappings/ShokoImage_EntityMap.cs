@@ -20,7 +20,7 @@ public class ShokoImage_EntityMap : ClassMap<ShokoImage_Entity>
         Map(x => x.ImageSource).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.EntityType).CustomType<MetadataEntityTypeType>().Not.Nullable();
         Map(x => x.EntitySource).CustomType<MetadataSourceType>().Not.Nullable();
-        Map(x => x.EntityID).Not.Nullable();
+        Map(x => x.EntityID).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.EntitySeasonNumber).Nullable();
         Map(x => x.EntityEpisodeNumber).Nullable();
         Map(x => x.EntityReleasedAt).CustomType<DateOnlyConverter>().Nullable();

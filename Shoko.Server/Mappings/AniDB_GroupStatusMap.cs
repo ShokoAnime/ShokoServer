@@ -1,4 +1,5 @@
 using FluentNHibernate.Mapping;
+using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Mappings;
@@ -13,9 +14,9 @@ public class AniDB_GroupStatusMap : ClassMap<AniDB_GroupStatus>
 
         Map(x => x.AnimeID).Not.Nullable();
         Map(x => x.CompletionState).Not.Nullable();
-        Map(x => x.EpisodeRange);
+        Map(x => x.EpisodeRange).CustomType<PooledStringType>();
         Map(x => x.GroupID).Not.Nullable();
-        Map(x => x.GroupName);
+        Map(x => x.GroupName).CustomType<PooledStringType>();
         Map(x => x.LastEpisodeNumber).Not.Nullable();
         Map(x => x.Rating).Not.Nullable();
         Map(x => x.Votes).Not.Nullable();

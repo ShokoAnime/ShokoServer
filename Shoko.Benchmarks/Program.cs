@@ -13,6 +13,7 @@ var switcher = BenchmarkSwitcher.FromTypes(
 [
     typeof(AniDB_AnimeBenchmarks),
     typeof(TagFilterBenchmarks),
+    typeof(PocoCacheIndexBenchmarks),
     typeof(TextCacheLoadBenchmarks),
     typeof(ChooseTitleBenchmarks),
     typeof(FilterNamesBenchmarks),

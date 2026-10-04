@@ -36,7 +36,8 @@ public class MessagePackConverter<T> : TypeConverter, IUserType where T : class
         try
         {
             if (typeof(T) == typeof(object)) return MessagePackSerializer.Typeless.Deserialize(s);
-            return MessagePackSerializer.Deserialize<T>(s);
+            // Equal strings across the cached rows share one instance.
+            return MessagePackSerializer.Deserialize<T>(s, MessagePackSerializer.DefaultOptions.WithResolver(PooledStringResolver.Instance));
         }
         catch (Exception ex)
         {

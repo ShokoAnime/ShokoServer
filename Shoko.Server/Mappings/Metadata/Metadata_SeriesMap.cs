@@ -26,7 +26,7 @@ public class Metadata_SeriesMap : ClassMap<Metadata_Series>
         Map(x => x.IsRestricted).Not.Nullable();
         Map(x => x.ReleaseStatus).CustomType<ReleaseStatus>().Not.Nullable();
         Map(x => x.SourceMaterial).CustomType<SourceMaterial>().Not.Nullable();
-        Map(x => x.OriginalLanguageCode).Nullable();
+        Map(x => x.OriginalLanguageCode).CustomType<PooledStringType>().Nullable();
         Map(x => x.Popularity).Nullable();
         Map(x => x.FavoriteCount).Nullable();
         Map(x => x.Resources).CustomType<JsonListConverter<Resource>>().Nullable();

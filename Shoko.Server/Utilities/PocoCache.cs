@@ -28,8 +28,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
-using Shoko.Abstractions.Extensions;
 
 namespace Shoko.Server.Utilities;
 
@@ -146,6 +147,23 @@ public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
     }
 
     /// <summary>
+    ///   Returns a snapshot of every cached key with its entity, for building an index.
+    /// </summary>
+    /// <returns>The pairs, in the cache's enumeration order.</returns>
+    internal KeyValuePair<TKey, TEntity>[] GetAllPairs()
+    {
+        SyncRoot.EnterReadLock();
+        try
+        {
+            return [.. _dict];
+        }
+        finally
+        {
+            SyncRoot.ExitReadLock();
+        }
+    }
+
+    /// <summary>
     /// Updates an entity in the cache.
     /// </summary>
     /// <param name="entity">The entity to update in the cache.</param>
@@ -230,6 +248,18 @@ public interface IPocoCacheObserver<in TKey, in TEntity> where TKey : notnull wh
     void Clear();
 }
 
+#pragma warning disable CS8714
+
+/// <summary>
+///   A secondary index over a <see cref="PocoCache{TKey, TEntity}"/>, finding entities by keys taken from each one.
+/// </summary>
+/// <remarks>
+///   A single-valued index keeps one key per row, a multi-valued one a small array of keys. The rows under each key are
+///   kept as one row, a small array or a set (<see cref="PocoRowSet{TKey}"/>). Reads and writes share the cache's lock.
+/// </remarks>
+/// <typeparam name="TKey">The primary key type.</typeparam>
+/// <typeparam name="TEntity">The entity type.</typeparam>
+/// <typeparam name="TInverseKey">The type of the keys the index finds entities by.</typeparam>
 public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TEntity>
     where TEntity : class where TKey : notnull
 {
@@ -237,40 +267,98 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
 
     private readonly PocoCache<TKey, TEntity> _cache;
 
-    private readonly BiDictionaryManyToMany<TKey, TInverseKey> _dict;
-
-    private readonly Func<TEntity, IEnumerable<TInverseKey>> _func;
-
     private readonly ReaderWriterLockSlim _lock;
 
-    private PocoIndex(PocoCache<TKey, TEntity> cache, Func<TEntity, TInverseKey> func) : this(cache, a => [func(a)]) { }
+    private readonly Func<TEntity, TInverseKey>? _selector;
 
-    private PocoIndex(PocoCache<TKey, TEntity> cache, Func<TEntity, IEnumerable<TInverseKey>> func)
+    private readonly Func<TEntity, IEnumerable<TInverseKey>>? _multiSelector;
+
+    // Set for a single-valued index: the one key each row is indexed under.
+    private readonly Dictionary<TKey, TInverseKey>? _keys;
+
+    // Set for a multi-valued index: the distinct keys each row is indexed under.
+    private readonly Dictionary<TKey, TInverseKey[]>? _multiKeys;
+
+    private readonly Dictionary<TInverseKey, PocoRowSet<TKey>> _rows;
+
+    // Dictionaries cannot hold a null key, so the rows indexed under null live here.
+    private PocoRowSet<TKey> _nullRows;
+
+    private PocoIndex(PocoCache<TKey, TEntity> cache, Func<TEntity, TInverseKey> selector)
     {
         _cache = cache;
         _lock = cache.SyncRoot;
-        // Startup is single-threaded; read keys directly from the internal dict via GetAllKeys (locked snapshot)
-        _dict = new BiDictionaryManyToMany<TKey, TInverseKey>(
-            cache.GetAllKeys().ToDictionary(a => a, a => func(cache.GetUnsafe(a)!).ToHashSet()));
-        _func = func;
+        _selector = selector;
+
+        var pairs = cache.GetAllPairs();
+        _keys = new(pairs.Length);
+        _rows = [];
+        foreach (var (key, entity) in pairs)
+        {
+            var value = selector(entity);
+            _keys.Add(key, value);
+            AddRow(value, key);
+        }
+
+        _rows.TrimExcess();
         cache.AddObserver(this);
     }
 
+    private PocoIndex(PocoCache<TKey, TEntity> cache, Func<TEntity, IEnumerable<TInverseKey>> selector)
+    {
+        _cache = cache;
+        _lock = cache.SyncRoot;
+        _multiSelector = selector;
+
+        var pairs = cache.GetAllPairs();
+        _multiKeys = new(pairs.Length);
+        _rows = [];
+        foreach (var (key, entity) in pairs)
+        {
+            var values = Distinct(selector(entity));
+            _multiKeys.Add(key, values);
+            foreach (var value in values)
+                AddRow(value, key);
+        }
+
+        _rows.TrimExcess();
+        cache.AddObserver(this);
+    }
+
+    /// <summary>
+    ///   Creates an index with one key per entity.
+    /// </summary>
+    /// <param name="cache">The cache to index.</param>
+    /// <param name="func">The function to get the key from each entity.</param>
+    /// <returns>The new index.</returns>
     public static PocoIndex<TKey, TEntity, TInverseKey> Create(PocoCache<TKey, TEntity> cache, Func<TEntity, TInverseKey> func)
         => new(cache, func);
 
+    /// <summary>
+    ///   Creates an index with any number of keys per entity.
+    /// </summary>
+    /// <param name="cache">The cache to index.</param>
+    /// <param name="func">The function to get the keys from each entity.</param>
+    /// <returns>The new index.</returns>
     public static PocoIndex<TKey, TEntity, TInverseKey> Create(PocoCache<TKey, TEntity> cache, Func<TEntity, IEnumerable<TInverseKey>> func)
         => new(cache, func);
 
+    #region Lookups
+
+    /// <summary>
+    ///   Gets the first entity indexed under <paramref name="key"/>.
+    /// </summary>
+    /// <param name="key">The key to look up.</param>
+    /// <returns>The entity, or <c>null</c> when none is indexed under the key.</returns>
     public TEntity? GetOne(TInverseKey key)
     {
         _lock.EnterReadLock();
         try
         {
-            if (_cache == null || !_dict.TryGetInverse(key, out var results))
-                return null;
+            if (key is null)
+                return _nullRows.Count > 0 ? _cache.GetUnsafe(_nullRows.First) : null;
 
-            return results is { Count: > 0 } ? _cache.GetUnsafe(results.First()) : null;
+            return _rows.TryGetValue(key, out var rows) ? _cache.GetUnsafe(rows.First) : null;
         }
         finally
         {
@@ -278,15 +366,20 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
         }
     }
 
+    /// <summary>
+    ///   Gets every entity indexed under <paramref name="key"/>.
+    /// </summary>
+    /// <param name="key">The key to look up.</param>
+    /// <returns>A new list of the entities, or a shared empty list when none is indexed under a non-null key.</returns>
     public List<TEntity> GetMultiple(TInverseKey key)
     {
         _lock.EnterReadLock();
         try
         {
-            if (_cache == null || !_dict.TryGetInverse(key, out var results))
-                return _emptyList;
+            if (key is null)
+                return Resolve(_nullRows);
 
-            return results.Select(a => _cache.GetUnsafe(a)!).ToList();
+            return _rows.TryGetValue(key, out var rows) ? Resolve(rows) : _emptyList;
         }
         finally
         {
@@ -306,7 +399,10 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
         _lock.EnterReadLock();
         try
         {
-            indexed = _dict.TryGetValue(key, out var keys) ? [.. keys] : null;
+            if (_keys is not null)
+                indexed = _keys.TryGetValue(key, out var value) ? [value] : null;
+            else
+                indexed = _multiKeys!.TryGetValue(key, out var values) ? [.. values] : null;
             return indexed is not null;
         }
         finally
@@ -315,152 +411,347 @@ public class PocoIndex<TKey, TEntity, TInverseKey> : IPocoCacheObserver<TKey, TE
         }
     }
 
+    #endregion
+
     #region IPocoCacheObserver implementation
 
     void IPocoCacheObserver<TKey, TEntity>.Update(TKey key, TEntity obj)
-        => _dict[key] = _func(obj).ToHashSet();
+    {
+        if (_keys is not null)
+        {
+            var value = _selector!(obj);
+            ref var slot = ref CollectionsMarshal.GetValueRefOrAddDefault(_keys, key, out var exists);
+            if (exists)
+            {
+                if (EqualityComparer<TInverseKey>.Default.Equals(slot, value))
+                    return;
+
+                RemoveRow(slot!, key);
+            }
+
+            slot = value;
+            AddRow(value, key);
+            return;
+        }
+
+        var values = Distinct(_multiSelector!(obj));
+        if (_multiKeys!.TryGetValue(key, out var previousValues))
+        {
+            if (SetEquals(previousValues, values))
+                return;
+
+            foreach (var previousValue in previousValues)
+                RemoveRow(previousValue, key);
+        }
+
+        _multiKeys[key] = values;
+        foreach (var value in values)
+            AddRow(value, key);
+    }
 
     void IPocoCacheObserver<TKey, TEntity>.Remove(TKey key)
-        => _dict.Remove(key);
+    {
+        if (_keys is not null)
+        {
+            if (_keys.Remove(key, out var value))
+                RemoveRow(value, key);
+            return;
+        }
+
+        if (!_multiKeys!.Remove(key, out var values))
+            return;
+
+        foreach (var value in values)
+            RemoveRow(value, key);
+    }
 
     void IPocoCacheObserver<TKey, TEntity>.Clear()
-        => _dict.Clear();
+    {
+        _keys?.Clear();
+        _multiKeys?.Clear();
+        _rows.Clear();
+        _nullRows = default;
+    }
+
+    #endregion
+
+    #region Helpers
+
+    private List<TEntity> Resolve(in PocoRowSet<TKey> rows)
+    {
+        var list = new List<TEntity>(rows.Count);
+        foreach (var row in rows)
+            list.Add(_cache.GetUnsafe(row)!);
+        return list;
+    }
+
+    private void AddRow(TInverseKey value, TKey row)
+    {
+        if (value is null)
+        {
+            _nullRows.Add(row);
+            return;
+        }
+
+        CollectionsMarshal.GetValueRefOrAddDefault(_rows, value, out _).Add(row);
+    }
+
+    private void RemoveRow(TInverseKey value, TKey row)
+    {
+        if (value is null)
+        {
+            _nullRows.Remove(row);
+            return;
+        }
+
+        ref var rows = ref CollectionsMarshal.GetValueRefOrNullRef(_rows, value);
+        if (Unsafe.IsNullRef(ref rows) || !rows.Remove(row) || rows.Count > 0)
+            return;
+
+        _rows.Remove(value);
+    }
+
+    /// <summary>
+    ///   Copies the keys a multi-valued selector returned, dropping repeats and keeping the first of each.
+    /// </summary>
+    /// <param name="values">The keys.</param>
+    /// <returns>A new array of the distinct keys.</returns>
+    private static TInverseKey[] Distinct(IEnumerable<TInverseKey> values)
+    {
+        TInverseKey[] array = [.. values];
+        if (array.Length < 2)
+            return array;
+        if (array.Length > 16)
+            return [.. array.Distinct()];
+
+        var count = 1;
+        for (var index = 1; index < array.Length; index++)
+        {
+            if (Array.IndexOf(array, array[index], 0, count) < 0)
+                array[count++] = array[index];
+        }
+
+        return count == array.Length ? array : array[..count];
+    }
+
+    private static bool SetEquals(TInverseKey[] left, TInverseKey[] right)
+    {
+        if (left.Length != right.Length)
+            return false;
+        if (left.Length > 16)
+            return new HashSet<TInverseKey>(left).SetEquals(right);
+
+        foreach (var value in right)
+        {
+            if (Array.IndexOf(left, value) < 0)
+                return false;
+        }
+
+        return true;
+    }
 
     #endregion
 }
 
-#pragma warning disable CS8714
-
-public class BiDictionaryManyToMany<TKey, TInverseKey> where TKey : notnull
+/// <summary>
+///   The rows indexed under one key: a single row inline, a few in an array, and many in a set.
+/// </summary>
+/// <remarks>
+///   Two rows move to an array, which grows up to <see cref="MaxArrayLength"/> before turning into a set. A set shrinks
+///   back to an array at half that, and an array back to the single row at one. Arrays keep the order rows were added in.
+/// </remarks>
+/// <typeparam name="TKey">The primary key type.</typeparam>
+internal struct PocoRowSet<TKey> where TKey : notnull
 {
-    private readonly Dictionary<TKey, HashSet<TInverseKey>> _direct = [];
+    /// <summary>
+    ///   The most rows kept in an array before they move to a set.
+    /// </summary>
+    internal const int MaxArrayLength = 32;
 
-    private readonly Dictionary<TInverseKey, HashSet<TKey>> _inverse = [];
+    private TKey _one;
 
-    private readonly bool _valueIsNullable;
+    // Null for zero or one row, else a TKey[] or a HashSet<TKey>.
+    private object? _many;
 
-    private HashSet<TKey> _inverseNullValueSet;
+    private int _count;
 
-    public BiDictionaryManyToMany(Dictionary<TKey, HashSet<TInverseKey>> input)
+    /// <summary>
+    ///   The number of rows.
+    /// </summary>
+    public readonly int Count => _count;
+
+    /// <summary>
+    ///   The first row, only meaningful when <see cref="Count"/> is above zero.
+    /// </summary>
+    public readonly TKey First
     {
-        _valueIsNullable = Nullable.GetUnderlyingType(typeof(TInverseKey)) is not null || typeof(string).IsAssignableFrom(typeof(TInverseKey));
-        _direct = input;
-        _inverse = [];
-        if (_valueIsNullable)
+        get
         {
-            // Only set the hash-set if the input contained a null value. See `ContainsInverseKey` as to why.
-            _inverseNullValueSet = input
-                .Where(a => a.Value.Any(b => b is null))
-                .Select(a => a.Key)
-                .ToHashSet();
-            _inverse = input
-                .Where(a => !a.Value.Any(b => b is null))
-                .SelectMany(a => a.Value.WhereNotNull().Select(b => (b, a.Key)))
-                .GroupBy(a => a.b)
-                .ToDictionary(a => a.Key, a => a.Select(b => b.Key).ToHashSet());
-        }
-        else
-        {
-            _inverseNullValueSet = [];
-            _inverse = input
-                .SelectMany(a => a.Value.Select(b => (b, a.Key)))
-                .GroupBy(a => a.b)
-                .ToDictionary(a => a.Key, a => a.Select(b => b.Key).ToHashSet());
+            switch (_many)
+            {
+                case null:
+                    return _one;
+                case TKey[] array:
+                    return array[0];
+                default:
+                    foreach (var row in (HashSet<TKey>)_many)
+                        return row;
+                    return default!;
+            }
         }
     }
 
-    public HashSet<TInverseKey> this[TKey key]
+    /// <summary>
+    ///   Adds a row.
+    /// </summary>
+    /// <param name="row">The row to add.</param>
+    /// <returns><c>true</c> when the row was added, <c>false</c> when it was already there.</returns>
+    public bool Add(TKey row)
     {
-        get => _direct[key];
-        set
+        switch (_many)
         {
-            // Unset the previous value unless it's the same as the current value.
-            if (_direct.TryGetValue(key, out var oldValue))
-            {
-                if (oldValue.SetEquals(value))
-                    return;
+            case null when _count is 0:
+                _one = row;
+                _count = 1;
+                return true;
 
-                foreach (var s in oldValue)
+            case null:
+                if (EqualityComparer<TKey>.Default.Equals(_one, row))
+                    return false;
+
+                _many = new[] { _one, row };
+                _one = default!;
+                _count = 2;
+                return true;
+
+            case TKey[] array:
+                if (Array.IndexOf(array, row, 0, _count) >= 0)
+                    return false;
+
+                if (_count == array.Length)
                 {
-                    if (_valueIsNullable && s is null)
+                    if (_count >= MaxArrayLength)
                     {
-                        _inverseNullValueSet.Remove(key);
-                        continue;
+                        var set = new HashSet<TKey>(array) { row };
+                        _many = set;
+                        _count++;
+                        return true;
                     }
 
-                    if (!_inverse.TryGetValue(s, out var inverseValue))
-                        continue;
-
-                    inverseValue.Remove(key);
-                    if (inverseValue.Count == 0)
-                        _inverse.Remove(s);
-                }
-            }
-
-            foreach (var s in value)
-            {
-                if (_valueIsNullable && s is null)
-                {
-                    _inverseNullValueSet.Add(key);
-                    continue;
+                    Array.Resize(ref array, array.Length * 2);
+                    _many = array;
                 }
 
-                if (_inverse.TryGetValue(s, out var inverseValue))
-                    inverseValue.Add(key);
-                else
-                    _inverse.Add(s, [key]);
-            }
+                array[_count++] = row;
+                return true;
 
-            _direct[key] = value is HashSet<TInverseKey> set ? set : [.. value];
+            default:
+                if (!((HashSet<TKey>)_many).Add(row))
+                    return false;
+
+                _count++;
+                return true;
         }
     }
 
-    public bool ContainsKey(TKey key)
-        => _direct.ContainsKey(key);
-
-    public bool ContainsInverseKey(TInverseKey key)
-        => _valueIsNullable && key is null
-            ? _inverseNullValueSet is not null
-            : _inverse.ContainsKey(key);
-
-    public bool TryGetValue(TKey key, [NotNullWhen(true)] out HashSet<TInverseKey>? value)
-        => _direct.TryGetValue(key, out value);
-
-    public bool TryGetInverse(TInverseKey key, [NotNullWhen(true)] out HashSet<TKey>? value)
-        => key is null
-            ? (value = _inverseNullValueSet) is not null
-            : _inverse.TryGetValue(key, out value);
-
-    public HashSet<TKey> FindInverse(TInverseKey k)
-        => k is null ? _inverseNullValueSet : _inverse.TryGetValue(k, out var value) ? value : [];
-
-    public void Remove(TKey key)
+    /// <summary>
+    ///   Removes a row.
+    /// </summary>
+    /// <param name="row">The row to remove.</param>
+    /// <returns><c>true</c> when the row was removed, <c>false</c> when it was not there.</returns>
+    public bool Remove(TKey row)
     {
-        if (!_direct.TryGetValue(key, out var oldValue))
-            return;
-
-        foreach (var s in oldValue)
+        switch (_many)
         {
-            if (_valueIsNullable && s is null)
-            {
-                _inverseNullValueSet.Remove(key);
-                continue;
-            }
+            case null:
+                if (_count is 0 || !EqualityComparer<TKey>.Default.Equals(_one, row))
+                    return false;
 
-            if (!_inverse.TryGetValue(s, out var inverseValue))
-                continue;
+                _one = default!;
+                _count = 0;
+                return true;
 
-            inverseValue.Remove(key);
-            if (inverseValue.Count == 0)
-                _inverse.Remove(s);
+            case TKey[] array:
+                var index = Array.IndexOf(array, row, 0, _count);
+                if (index < 0)
+                    return false;
+
+                _count--;
+                Array.Copy(array, index + 1, array, index, _count - index);
+                array[_count] = default!;
+                if (_count is 1)
+                {
+                    _one = array[0];
+                    _many = null;
+                }
+
+                return true;
+
+            default:
+                var set = (HashSet<TKey>)_many;
+                if (!set.Remove(row))
+                    return false;
+
+                _count--;
+                if (_count <= MaxArrayLength / 2)
+                {
+                    var smaller = new TKey[MaxArrayLength / 2];
+                    set.CopyTo(smaller);
+                    _many = smaller;
+                }
+
+                return true;
         }
-        _direct.Remove(key);
     }
 
-    public void Clear()
+    /// <summary>
+    ///   Gets an enumerator over the rows.
+    /// </summary>
+    /// <returns>The enumerator.</returns>
+    public readonly Enumerator GetEnumerator()
+        => new(_one, _many, _count);
+
+    /// <summary>
+    ///   Enumerates the rows of a <see cref="PocoRowSet{TKey}"/> without allocating.
+    /// </summary>
+    /// <param name="one">The single row, when there is one.</param>
+    /// <param name="many">The array or set of rows, when there are more.</param>
+    /// <param name="count">The number of rows.</param>
+    public struct Enumerator(TKey one, object? many, int count)
     {
-        _direct.Clear();
-        _inverse.Clear();
-        _inverseNullValueSet = [];
+        private readonly TKey[]? _array = many as TKey[];
+
+        private readonly bool _isSet = many is HashSet<TKey>;
+
+        private HashSet<TKey>.Enumerator _set = many is HashSet<TKey> set ? set.GetEnumerator() : default;
+
+        private int _index = -1;
+
+        /// <summary>
+        ///   The current row.
+        /// </summary>
+        public TKey Current { get; private set; } = default!;
+
+        /// <summary>
+        ///   Moves to the next row.
+        /// </summary>
+        /// <returns><c>true</c> when there is a next row.</returns>
+        public bool MoveNext()
+        {
+            if (_isSet)
+            {
+                if (!_set.MoveNext())
+                    return false;
+
+                Current = _set.Current;
+                return true;
+            }
+
+            if (++_index >= count)
+                return false;
+
+            Current = _array is null ? one : _array[_index];
+            return true;
+        }
     }
 }

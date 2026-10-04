@@ -15,10 +15,10 @@ public class Metadata_ContentRatingMap : ClassMap<Metadata_ContentRating>
 
         Map(x => x.Source).CustomType<MetadataSourceType>().Not.Nullable();
         Map(x => x.EntityType).CustomType<MetadataEntityTypeType>().Not.Nullable();
-        Map(x => x.EntityID).Not.Nullable();
-        Map(x => x.CountryCode).Not.Nullable();
-        Map(x => x.LanguageCode).Not.Nullable();
-        Map(x => x.Rating).Not.Nullable();
+        Map(x => x.EntityID).CustomType<PooledStringType>().Not.Nullable();
+        Map(x => x.CountryCode).CustomType<PooledStringType>().Not.Nullable();
+        Map(x => x.LanguageCode).CustomType<PooledStringType>().Not.Nullable();
+        Map(x => x.Rating).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.Ordering).Not.Nullable();
     }
 }

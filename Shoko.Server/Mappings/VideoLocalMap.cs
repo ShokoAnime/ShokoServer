@@ -19,7 +19,7 @@ public class VideoLocalMap : ClassMap<VideoLocal>
         Map(x => x.FileName).Not.Nullable();
 #pragma warning restore CS0618
         Map(x => x.FileSize).Not.Nullable();
-        Map(x => x.Hash).Not.Nullable();
+        Map(x => x.Hash).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.HashSource).Not.Nullable();
         Map(x => x.IsIgnored).Not.Nullable();
         Map(x => x.IsVariation).Not.Nullable();

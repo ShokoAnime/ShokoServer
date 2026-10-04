@@ -21,7 +21,7 @@ public class Metadata_MovieMap : ClassMap<Metadata_Movie>
         Map(x => x.IsRestricted).Not.Nullable();
         Map(x => x.IsVideo).Not.Nullable();
         Map(x => x.RuntimeSeconds).Column("Runtime").Nullable();
-        Map(x => x.OriginalLanguageCode).Nullable();
+        Map(x => x.OriginalLanguageCode).CustomType<PooledStringType>().Nullable();
         Map(x => x.Rating).Not.Nullable();
         Map(x => x.RatingVotes).Not.Nullable();
         Map(x => x.Resources).CustomType<JsonListConverter<Resource>>().Nullable();

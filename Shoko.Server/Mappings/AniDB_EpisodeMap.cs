@@ -1,5 +1,6 @@
 using FluentNHibernate.Mapping;
 using Shoko.Abstractions.Metadata.Enums;
+using Shoko.Server.Databases.NHibernate;
 using Shoko.Server.Models.AniDB;
 
 namespace Shoko.Server.Mappings;
@@ -21,8 +22,8 @@ public class AniDB_EpisodeMap : ClassMap<AniDB_Episode>
         Map(x => x.EpisodeNumber).Not.Nullable();
         Map(x => x.EpisodeType).Not.Nullable().CustomType<EpisodeType>();
         Map(x => x.LengthSeconds).Not.Nullable();
-        Map(x => x.Rating).Not.Nullable();
-        Map(x => x.Votes).Not.Nullable();
+        Map(x => x.Rating).CustomType<PooledStringType>().Not.Nullable();
+        Map(x => x.Votes).CustomType<PooledStringType>().Not.Nullable();
         Map(x => x.IsHidden).Not.Nullable();
     }
 }
