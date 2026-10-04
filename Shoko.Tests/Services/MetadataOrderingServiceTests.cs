@@ -308,13 +308,34 @@ public class MetadataOrderingServiceTests
     }
 
     [Theory]
-    [InlineData(new bool[0], new int[0])]
-    [InlineData(new[] { false, false, false }, new[] { 1, 2, 3 })]
-    [InlineData(new[] { true, false, false }, new[] { 0, 1, 2 })]
-    [InlineData(new[] { false, true, false }, new[] { 1, 0, 2 })]
-    [InlineData(new[] { false, false, true }, new[] { 1, 2, 0 })]
-    public void TheSpecialGroupIsZeroAndTheOthersAreNumberedByTheirPlaceAmongThemselves(bool[] isSpecial, int[] expected)
-        => Assert.Equal(expected, MetadataOrderingService.NumberGroups(isSpecial));
+    [InlineData(new bool[0], new int[0], new int[0])]
+    [InlineData(new[] { false, false, false }, new[] { 0, 0, 0 }, new[] { 1, 2, 3 })]
+    [InlineData(new[] { true, false, false }, new[] { 0, 0, 0 }, new[] { 0, 1, 2 })]
+    [InlineData(new[] { false, true, false }, new[] { 0, 0, 0 }, new[] { 1, 0, 2 })]
+    [InlineData(new[] { false, false, true }, new[] { 0, 0, 0 }, new[] { 1, 2, 0 })]
+    [InlineData(new[] { false }, new[] { 3 }, new[] { 3 })]
+    [InlineData(new[] { true, false, false }, new[] { 0, 5, 0 }, new[] { 0, 5, 2 })]
+    public void TheSpecialGroupIsZeroAndTheOthersTakeTheirOwnNumberElseTheirPlace(bool[] isSpecial, int[] ownNumbers, int[] expected)
+        => Assert.Equal(expected, MetadataOrderingService.NumberGroups([.. isSpecial.Zip(ownNumbers, (special, own) => (special, own > 0 ? own : (int?)null))]));
+
+    [Fact]
+    public void AGroupKeepsTheSeasonNumberItsSourceGaveIt()
+    {
+        var world = new World();
+        var series = world.AddSeries(TestSources.AniList, "s", 3);
+        var data = Global("o", series.ID, ("specials", ["s-e3"]), ("g3", ["s-e1", "s-e3", "s-e2"]));
+        data = data with { Groups = [data.Groups[0] with { IsSpecial = true }, data.Groups[1] with { SeasonNumber = 3 }] };
+
+        var stored = world.Service.SaveOrdering(data);
+
+        Assert.Equal([0, 3], stored.Seasons.Select(group => group.SeasonNumber));
+        var place = world.Service.GetEpisodeOrderings(series.Episodes.Single(item => item.ID.ID == "s-e2")).Skip(1).Single();
+        Assert.Equal((3, 2), (place.SeasonNumber, place.EpisodeNumber));
+        var special = world.Service.GetEpisodeOrderings(series.Episodes.Single(item => item.ID.ID == "s-e3")).Skip(1).Single();
+        Assert.Equal((3, 2), (special.AirsBeforeSeasonNumber, special.AirsBeforeEpisodeNumber));
+        Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(data with { Groups = [data.Groups[0], data.Groups[1] with { SeasonNumber = 0 }] }));
+        Assert.Throws<ArgumentException>(() => world.Service.SaveOrdering(data with { Groups = [data.Groups[0] with { SeasonNumber = 1 }, data.Groups[1]] }));
+    }
 
     [Fact]
     public void AGroupTakenWhileAGlobalOrderingIsCheckedIsStillRefused()

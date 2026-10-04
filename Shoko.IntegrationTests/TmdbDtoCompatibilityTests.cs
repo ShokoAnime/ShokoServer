@@ -66,7 +66,7 @@ public class TmdbDtoCompatibilityTests(DatabaseMigrationFixture fixture)
         {
             var episode = TmdbCompatibility.GetEpisode(episodeID)!;
             output[$"episode-{episodeID}"] = new TmdbEpisode(show, episode, All<TmdbEpisode.IncludeDetails>());
-            foreach (var place in episode.TmdbAlternateOrderingEpisodes.OrderBy(place => place.TmdbEpisodeGroupID))
+            foreach (var place in episode.GetTmdbAlternateOrderingEpisodes().OrderBy(place => place.TmdbEpisodeGroupID))
                 output[$"episode-{episodeID}-{place.TmdbEpisodeGroupID}"] = new TmdbEpisode(show, episode, place, All<TmdbEpisode.IncludeDetails>());
         }
 
@@ -147,9 +147,8 @@ public class TmdbDtoCompatibilityTests(DatabaseMigrationFixture fixture)
         // The English title and overview TMDB kept on each row are stored texts now, so they are listed,
         // the title as the default and main one. A generic episode title such as "Episode 1" is not
         // stored but made up with the episode's number in the ordering the model is built for, and a
-        // season's generic name TMDB did not list, such as "Season 1", is not stored either.
-        foreach (var (name, entry) in golden.Properties().Where(property => property.Value is JObject { } entry && entry.ContainsKey("Titles"))
-            .Select(property => (property.Name, (JObject)property.Value)))
+        // season's generic name, such as "Season 1", is not stored but synthesized and listed as its main title.
+        foreach (var entry in golden.Properties().Select(property => property.Value).OfType<JObject>().Where(entry => entry.ContainsKey("Titles")))
         {
             var titles = (JArray)entry["Titles"]!;
             foreach (var listed in titles.Where(listed => listed.Value<bool>("Default")))
@@ -157,8 +156,7 @@ public class TmdbDtoCompatibilityTests(DatabaseMigrationFixture fixture)
             if (entry.Value<string>("Title") is "Episode 1")
                 entry["Title"] = $"Episode {entry.Value<int>("EpisodeNumber")}";
             var title = entry.Value<string>("Title")!;
-            var genericSeason = name.StartsWith("season", StringComparison.Ordinal) && title is "Season 1" or "Specials";
-            if (!genericSeason && !titles.Any(other => other.Value<string>("Name") == title))
+            if (!titles.Any(other => other.Value<string>("Name") == title))
                 titles.Insert(0, Text("TMDB", title, "en-US", true, true, true));
             var overview = entry.Value<string>("Overview");
             if (entry["Overviews"] is JArray overviews && !string.IsNullOrEmpty(overview) && !overviews.Any(other => other.Value<string>("Value") == overview))
@@ -190,17 +188,19 @@ public class TmdbDtoCompatibilityTests(DatabaseMigrationFixture fixture)
         Set(golden, "['group-bb00000000000000000000b1'].HiddenEpisodeCount", 1);
         Set(golden, "['group-bb00000000000000000000b2'].EpisodeCount", 0);
 
-        // The groups of an alternate ordering are numbered by the core: the special group 0, the others
-        // from 1 in their order.
-        Set(golden, "['group-bb00000000000000000000b1'].SeasonNumber", 2);
+        // The groups of an alternate ordering keep TMDB's numbers, but only the first group numbered 0 is
+        // the special group, season 0 for its episodes too: a second one is numbered by its place.
         Set(golden, "['group-bb00000000000000000000b2'].SeasonNumber", 1);
-        foreach (var episode in Entries(golden, "episode-987012"))
+        foreach (var episode in Entries(golden, $"episode-{T.SpecialID}"))
         {
-            var number = episode.Value<int>("ID") is T.SpecialID ? 0 : 2;
-            Set(episode, "Ordering[1].SeasonNumber", number);
+            Set(episode, "Ordering[1].SeasonNumber", 0);
             if (episode.Value<string>("AlternateOrderingID") == T.OrderingID)
-                episode["SeasonNumber"] = number;
+                episode["SeasonNumber"] = 0;
         }
+
+        // Content ratings come out by country code, as TMDB's refresh wrote them, whatever order they were stored in.
+        foreach (var entry in golden.Properties().Select(property => property.Value).OfType<JObject>().Where(entry => entry["ContentRatings"] is JArray))
+            entry["ContentRatings"] = new JArray(((JArray)entry["ContentRatings"]!).OrderBy(rating => rating.Value<string>("Country"), StringComparer.Ordinal));
 
         // Whether TMDB locked a season or group is not kept, so a season no longer says.
         foreach (var season in Entries(golden, "season").Concat(Entries(golden, "group-")))
@@ -217,9 +217,6 @@ public class TmdbDtoCompatibilityTests(DatabaseMigrationFixture fixture)
         foreach (var season in Entries(golden, "season"))
             foreach (var role in season["Cast"]!.Concat(season["Crew"]!))
                 role["Language"] = "ja";
-
-        // A movie's collection is read from the collection's members, which list this movie.
-        Set(golden, "['movie-9870142'].CollectionID", T.CollectionID);
 
         // The search model's images come from the stored images; the backdrop TMDB named was never stored.
         Set(golden, "['search-show'].Backdrop", null);

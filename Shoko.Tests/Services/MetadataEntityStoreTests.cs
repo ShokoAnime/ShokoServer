@@ -723,6 +723,27 @@ public class MetadataEntityStoreTests
         Assert.Throws<ArgumentException>(() => store.SaveMovie(data with { OriginalLanguageCode = new string('x', 33) }));
     }
 
+    [Fact]
+    public void AMovieKnowsItsCollectionBeforeTheCollectionIsStored()
+    {
+        var tables = new Tables();
+        using var scope = tables.Scope();
+        var store = tables.MovieStore();
+        var collection = ID(MetadataEntityType.Collection, "c1");
+        var data = new MetadataMovieData { ID = ID(MetadataEntityType.Movie, "m1"), CollectionID = collection };
+
+        Assert.Equal(1, store.SaveMovie(data));
+        var movie = store.GetMovie(data.ID)!;
+        Assert.Equal(collection, movie.CollectionID);
+        Assert.Null(movie.Collection);
+
+        tables.CollectionStore().SaveCollection(new() { ID = collection, Titles = [Title("Franchise")] });
+        Assert.Equal(collection, store.GetMovie(data.ID)!.Collection?.ID);
+        Assert.Equal(1, store.SaveMovie(data with { CollectionID = null }));
+        Assert.Null(store.GetMovie(data.ID)!.CollectionID);
+        Assert.Throws<ArgumentException>(() => store.SaveMovie(data with { CollectionID = ID(MetadataEntityType.Series, "c1") }));
+    }
+
     #endregion
 
     #region Collections

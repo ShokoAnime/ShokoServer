@@ -15,7 +15,8 @@ back from them. Up to four TMDb jobs of each kind run at once.
 - **Series and movies.** A refresh stores the show with its seasons and
   episodes, or the movie, with their titles, overviews, credits, genres and
   keywords, content ratings, studios, networks, suggestions and episode
-  groups (as global orderings).
+  groups (as global orderings, each group with TMDb's number). A movie keeps
+  its collection's ID even when the collection is not downloaded.
 - **Collections, people, companies and networks.** Stored on refresh, and
   refreshed one at a time through the entity provider when a credit or link
   names one the stores lack.

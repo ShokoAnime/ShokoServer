@@ -41,6 +41,12 @@ public class Metadata_Ordering_Group : IMetadataStoreRow<Metadata_Ordering_Group
     public bool IsSpecial { get; set; }
 
     /// <summary>
+    ///   The season number the source gave the group, or <c>null</c> to
+    ///   number it by its place among the ordering's regular groups.
+    /// </summary>
+    public int? SeasonNumber { get; set; }
+
+    /// <summary>
     ///   The group's name.
     /// </summary>
     public string Name { get; set; } = string.Empty;
@@ -76,6 +82,7 @@ public class Metadata_Ordering_Group : IMetadataStoreRow<Metadata_Ordering_Group
             OrderingID == other.OrderingID &&
             Position == other.Position &&
             IsSpecial == other.IsSpecial &&
+            SeasonNumber == other.SeasonNumber &&
             Name == other.Name &&
             Description == other.Description;
 

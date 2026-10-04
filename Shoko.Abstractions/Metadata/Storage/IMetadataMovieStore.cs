@@ -47,7 +47,8 @@ public interface IMetadataMovieStore
     /// <exception cref="ArgumentNullException"><paramref name="movie"/> is or holds <c>null</c>.</exception>
     /// <exception cref="ArgumentException">
     ///   The ID does not name a movie or is on a source the core keeps
-    ///   itself, or a code is too long.
+    ///   itself, the collection is not a collection on the movie's source,
+    ///   or a code is too long.
     /// </exception>
     int SaveMovie(MetadataMovieData movie);
 

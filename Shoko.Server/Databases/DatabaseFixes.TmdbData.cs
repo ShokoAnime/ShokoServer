@@ -204,7 +204,8 @@ public partial class DatabaseFixes
     /// <summary>
     ///   Copies TMDB's movies from <c>TMDB_Movie</c> into <c>Metadata_Movie</c>,
     ///   with their IMDb IDs as cross-source IDs, their runtimes, production
-    ///   countries and the time each was last refreshed.
+    ///   countries, collections, stored or not, and the time each was last
+    ///   refreshed.
     /// </summary>
     /// <param name="connection">The open connection to the database.</param>
     /// <returns>Whether it ran, and the error when it did not.</returns>
@@ -214,7 +215,8 @@ public partial class DatabaseFixes
             Execute(transaction, $"DELETE FROM Metadata_Movie WHERE Source = {TmdbNumber}");
             var seen = new HashSet<int>();
             var rows = new List<object?[]>();
-            var columns = "TmdbMovieID, OriginalLanguageCode, IsRestricted, IsVideo, Runtime, UserRating, UserVotes, ReleasedAt, CreatedAt, LastUpdatedAt, ImdbMovieID, ProductionCountries";
+            var columns = "TmdbMovieID, OriginalLanguageCode, IsRestricted, IsVideo, Runtime, UserRating, UserVotes, ReleasedAt, CreatedAt, LastUpdatedAt, " +
+                "ImdbMovieID, ProductionCountries, TmdbCollectionID";
             foreach (var row in Read(transaction, $"SELECT {columns} FROM TMDB_Movie ORDER BY TMDB_MovieID"))
             {
                 var movieID = AsInt(row[0]);
@@ -233,7 +235,11 @@ public partial class DatabaseFixes
                     ToJson(crossSourceIDs),
                     row[9],
                     NullIfEmpty(row[1]),
-                    ToExtraJson(new Metadata_MovieExtra { ProductionCountries = CountryCodes(row[11]) }.NullIfEmpty()),
+                    ToExtraJson(new Metadata_MovieExtra
+                    {
+                        ProductionCountries = CountryCodes(row[11]),
+                        CollectionID = AsInt(row[12]) is > 0 and var collectionID ? Text(collectionID) : null,
+                    }.NullIfEmpty()),
                     row[8],
                     row[4] is null ? null : AsInt(row[4]) * 60,
                     RefreshedAt(row[8], row[9]),
@@ -919,13 +925,19 @@ public partial class DatabaseFixes
     ///   Copies the groups of TMDB's alternate orderings from
     ///   <c>TMDB_AlternateOrdering_Season</c> into
     ///   <c>Metadata_Ordering_Group</c>, in their order, with the first group
-    ///   numbered 0 as the ordering's specials. Whether a group was locked is
-    ///   not kept.
+    ///   numbered 0 as the ordering's specials and the others keeping TMDB's
+    ///   number above 0 as their own. Whether a group was locked is not kept.
     /// </summary>
+    /// <remarks>
+    ///   A table made before it had the season number column gets it first,
+    ///   outside the copy's transaction.
+    /// </remarks>
     /// <param name="connection">The open connection to the database.</param>
     /// <returns>Whether it ran, and the error when it did not.</returns>
     public static Tuple<bool, string?> CopyTmdbOrderingGroups(object connection)
-        => RunTmdbDataCopy(connection, "alternate ordering groups", "Metadata_Ordering_Group", (transaction, report) =>
+    {
+        var added = AddOrderingGroupSeasonNumber(connection);
+        return !added.Item1 ? added : RunTmdbDataCopy(connection, "alternate ordering groups", "Metadata_Ordering_Group", (transaction, report) =>
         {
             Execute(transaction, $"DELETE FROM Metadata_Ordering_Group WHERE Source = {TmdbNumber}");
             var orderings = ReadTmdbProviderIDs(transaction, "Metadata_Ordering");
@@ -943,14 +955,66 @@ public partial class DatabaseFixes
                     if (NullIfEmpty(row[1]) is not { } groupID || !seen.Add(groupID))
                         continue;
 
-                    var isSpecial = AsInt(row[2]) is 0 && !hasSpecials;
+                    var number = AsInt(row[2]);
+                    var isSpecial = number is 0 && !hasSpecials;
                     hasSpecials |= isSpecial;
-                    rows.Add([TmdbNumber, groupID, ordering.Key, position++, row[3] as string ?? string.Empty, isSpecial ? 1 : 0]);
+                    rows.Add([TmdbNumber, groupID, ordering.Key, position++, row[3] as string ?? string.Empty, isSpecial ? 1 : 0, number > 0 ? number : null]);
                 }
             }
 
-            return TmdbInsert(transaction, "Metadata_Ordering_Group", ["Source", "ProviderID", "OrderingID", "Position", "Name", "IsSpecial"], rows);
+            return TmdbInsert(transaction, "Metadata_Ordering_Group", ["Source", "ProviderID", "OrderingID", "Position", "Name", "IsSpecial", "SeasonNumber"],
+                rows);
         });
+    }
+
+    /// <summary>
+    ///   Adds the season number column to <c>Metadata_Ordering_Group</c> when
+    ///   the table does not have it yet, as a table made before the column
+    ///   was added does not.
+    /// </summary>
+    /// <param name="connection">The open connection to the database.</param>
+    /// <returns>Whether it ran, and the error when it did not.</returns>
+    public static Tuple<bool, string?> AddOrderingGroupSeasonNumber(object connection)
+    {
+        try
+        {
+            var dbConnection = (DbConnection)connection;
+            if (dbConnection.State is not System.Data.ConnectionState.Open)
+                dbConnection.Open();
+
+            var (exists, add) = dbConnection switch
+            {
+                SqliteConnection => (
+                    "SELECT COUNT(*) FROM pragma_table_info('Metadata_Ordering_Group') WHERE name = 'SeasonNumber';",
+                    "ALTER TABLE Metadata_Ordering_Group ADD COLUMN SeasonNumber INTEGER NULL;"
+                ),
+                MySqlConnection => (
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Metadata_Ordering_Group' AND COLUMN_NAME = 'SeasonNumber';",
+                    "ALTER TABLE `Metadata_Ordering_Group` ADD COLUMN `SeasonNumber` INT NULL;"
+                ),
+                _ => (
+                    "SELECT COUNT(*) FROM sys.columns WHERE object_id = OBJECT_ID(N'Metadata_Ordering_Group') AND name = N'SeasonNumber';",
+                    "ALTER TABLE Metadata_Ordering_Group ADD SeasonNumber INT NULL;"
+                ),
+            };
+
+            using var check = dbConnection.CreateCommand();
+            check.CommandText = exists;
+            if (Convert.ToInt64(check.ExecuteScalar()) is 0)
+            {
+                using var alter = dbConnection.CreateCommand();
+                alter.CommandText = add;
+                alter.ExecuteNonQuery();
+            }
+        }
+        catch (Exception ex)
+        {
+            return new(false, ex.ToString());
+        }
+
+        return new(true, null);
+    }
 
     /// <summary>
     ///   Copies the episodes of TMDB's alternate orderings from

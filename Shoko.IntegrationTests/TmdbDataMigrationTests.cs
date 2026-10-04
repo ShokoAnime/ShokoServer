@@ -313,7 +313,7 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
                 ],
                 Read(connection, $"SELECT ProviderID, SeriesID, SeasonID, SeasonNumber, EpisodeNumber, Type, Runtime, CrossSourceIDs, IsHidden FROM Metadata_Episode {Where()} ORDER BY ProviderID"));
             Assert.Equal(
-                [$"{MovieID}|1|5700|[\"imdb://movie/tt0000001\"]|{{\"ProductionCountries\":[\"JP\"]}}|0", $"{MemberMovieID}|0|NULL|NULL|NULL|1"],
+                [$"{MovieID}|1|5700|[\"imdb://movie/tt0000001\"]|{{\"ProductionCountries\":[\"JP\"],\"CollectionID\":\"{CollectionID}\"}}|0", $"{MemberMovieID}|0|NULL|NULL|NULL|1"],
                 Read(connection, $"SELECT ProviderID, IsVideo, Runtime, CrossSourceIDs, ExtraData, CASE WHEN LastRefreshedAt IS NULL THEN 0 ELSE 1 END FROM Metadata_Movie {Where()} ORDER BY ProviderID"));
             Assert.Equal([$"{CollectionID}"], Read(connection, $"SELECT ProviderID FROM Metadata_Collection {Where()}"));
             Assert.Equal(
@@ -395,11 +395,11 @@ public class TmdbDataMigrationTests(DatabaseMigrationFixture fixture)
                 [$"Directing, Director|{(int)Shoko.Abstractions.Metadata.Enums.CrewRoleType.Director}", $"Writing, Screenplay|{(int)Shoko.Abstractions.Metadata.Enums.CrewRoleType.None}", $"Writing, Writer|{(int)Shoko.Abstractions.Metadata.Enums.CrewRoleType.None}"],
                 Read(connection, $"SELECT DISTINCT Name, RoleType FROM Metadata_Crew {Where()} ORDER BY Name"));
 
-            // The alternate ordering, its groups in order with one specials group, and its places.
+            // The alternate ordering, its groups in order with one specials group and TMDB's numbers, and its places.
             Assert.Equal([$"{OrderingID}|{tmdb}|{ShowID}|2|Absolute|NULL"], Read(connection, $"SELECT ProviderID, SeriesSource, SeriesID, Type, Name, Description FROM Metadata_Ordering {Where()}"));
             Assert.Equal(
-                ["bb00000000000000000000b0|0|Extras|1", "bb00000000000000000000b2|1|More|0", "bb00000000000000000000b1|2|Part A|0"],
-                Read(connection, $"SELECT ProviderID, Position, Name, IsSpecial FROM Metadata_Ordering_Group {Where()} ORDER BY Position"));
+                ["bb00000000000000000000b0|0|Extras|1|NULL", "bb00000000000000000000b2|1|More|0|NULL", "bb00000000000000000000b1|2|Part A|0|1"],
+                Read(connection, $"SELECT ProviderID, Position, Name, IsSpecial, SeasonNumber FROM Metadata_Ordering_Group {Where()} ORDER BY Position"));
             Assert.Equal(
                 [$"bb00000000000000000000b0|0|{SpecialID}", $"bb00000000000000000000b1|0|{SecondEpisodeID}", $"bb00000000000000000000b1|1|{FirstEpisodeID}"],
                 Read(connection, $"SELECT GroupID, Position, EpisodeID FROM Metadata_Ordering_Entry {Where()} ORDER BY GroupID, Position"));

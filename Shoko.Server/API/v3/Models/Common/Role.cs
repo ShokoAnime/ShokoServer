@@ -146,7 +146,7 @@ public class Role
             ID = TmdbCompatibility.TmdbID(person),
             Name = person.Name,
             AlternateName = aliases.Count == 0 ? string.Empty : aliases[0].Value.Split("/").Last().Trim(),
-            Description = person.DefaultOverview?.Value ?? string.Empty,
+            Description = TmdbCompatibility.Biography(person),
             Image = person.PrimaryImage is { } staffImage ? new Image(staffImage) : null,
         };
     }

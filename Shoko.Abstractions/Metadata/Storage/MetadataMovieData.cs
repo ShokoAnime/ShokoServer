@@ -89,6 +89,13 @@ public sealed record MetadataMovieData
     public IReadOnlyList<MetadataContentRatingData> ContentRatings { get; init; } = [];
 
     /// <summary>
+    ///   The collection the movie is part of, on the movie's own source, or
+    ///   <c>null</c> when it is part of none. Kept whether or not the
+    ///   collection itself is stored.
+    /// </summary>
+    public MetadataGuid? CollectionID { get; init; }
+
+    /// <summary>
     ///   The source's resource ID of the movie's default image of each type,
     ///   which becomes its pinned default and is always the first downloaded
     ///   within the type's limit. <c>null</c> leaves the stored defaults as

@@ -372,13 +372,14 @@ Every season names the ordering it is a group of in `OrderingID`: the
 default one for a series' own seasons, and the stored or source ordering for
 the others. Group IDs
 share the season namespace of their source; keep them apart from season IDs.
-At most one group is special (`IsSpecial`). Nobody sets numbers; an episode's
-place is an `IEpisodeOrderingInformation`:
+At most one group is special (`IsSpecial`). A global ordering's source may give
+a regular group its own season number (`MetadataOrderingGroupData.SeasonNumber`);
+no other number is set. An episode's place is an `IEpisodeOrderingInformation`:
 
 | Ordering | `SeasonNumber` | `EpisodeNumber` | `EpisodeType` |
 |---|---|---|---|
 | Default | the episode's own season | the episode's own number | the episode's own type |
-| Stored | `0` for the special group, else the group's place, from 1 | the place among the group's home episodes, from 1 | `Special` in the special group, else `Episode` |
+| Stored | `0` for the special group, else the group's own number or its place, from 1 | the place among the group's home episodes, from 1 | `Special` in the special group, else `Episode` |
 
 So read `EpisodeType` on the place, not `IEpisode.Type`, when an ordering is
 in use. An episode in two regular groups has two places.
@@ -411,7 +412,8 @@ plugin's in the series store, whose saves keep them), so an entry only a
 resolver serves can have neither.
 
 The TMDb plugin stores its episode groups as global orderings of its shows,
-`tmdb://ordering/<collection ID>`, whose groups keep their season IDs. An
+`tmdb://ordering/<collection ID>`, whose groups keep their season IDs and
+TMDb's numbers. An
 ordering carries images like
 any entry, but `IImageManager` links images only to users' and plugins'
 stored orderings and their groups, never to a default ordering or one a core

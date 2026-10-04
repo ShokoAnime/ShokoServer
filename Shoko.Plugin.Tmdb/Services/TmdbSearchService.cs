@@ -232,7 +232,7 @@ public sealed partial class TmdbSearchService
     /// <param name="fetch">Fetches one of TMDb's pages.</param>
     /// <param name="read">Reads a page's hits and totals.</param>
     /// <param name="page">The page wanted, from one.</param>
-    /// <param name="pageSize">How many hits the page wanted holds.</param>
+    /// <param name="pageSize">How many hits the page wanted holds, or <c>0</c> for only the total.</param>
     /// <returns>The hits, and how many there are in total.</returns>
     private static async Task<(List<THit> Page, int TotalCount)> Page<TContainer, THit>(
         Func<int, Task<TContainer>> fetch,
@@ -242,9 +242,9 @@ public sealed partial class TmdbSearchService
     )
     {
         page = Math.Max(1, page);
-        pageSize = Math.Max(1, pageSize);
+        pageSize = Math.Max(0, pageSize);
         var (firstResults, total, lastPage) = read(await fetch(1).ConfigureAwait(false));
-        if (total is 0 || firstResults.Count is 0)
+        if (total is 0 || firstResults.Count is 0 || pageSize is 0)
             return ([], total);
 
         var actualPageSize = firstResults.Count;

@@ -77,9 +77,17 @@ public sealed record MetadataOrderingGroupData
     /// <summary>
     ///   Whether the group holds the ordering's specials. It reads back as
     ///   season <c>0</c> wherever it sits, and the other groups are numbered
-    ///   by their place from <c>1</c>. At most one group of an ordering.
+    ///   by their place from <c>1</c>, unless they carry their own
+    ///   <see cref="SeasonNumber"/>. At most one group of an ordering.
     /// </summary>
     public bool IsSpecial { get; init; }
+
+    /// <summary>
+    ///   The season number the group reads back with, when the source gives
+    ///   its groups numbers of their own. At least <c>1</c>, and never set on
+    ///   the special group. Left out, the group is numbered by its place.
+    /// </summary>
+    public int? SeasonNumber { get; init; }
 
     /// <summary>
     ///   The group's episodes, in viewing order. Each must be an episode of

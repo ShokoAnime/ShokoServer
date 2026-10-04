@@ -63,7 +63,8 @@ public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithL
     IReadOnlyList<string> ProductionCountries { get; }
 
     /// <summary>
-    ///   The movie collection the movie is part of, or <see langword="null"/>
+    ///   The movie collection the movie is part of: the one its source names,
+    ///   stored or not, else a stored collection listing it. <c>null</c>
     ///   when it is part of none or the source does not say.
     /// </summary>
     MetadataGuid? CollectionID { get; }

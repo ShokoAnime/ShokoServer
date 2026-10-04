@@ -89,7 +89,9 @@ public interface IMetadataOrderingService
     ///   wrong kind or source, an ID is reserved or taken by another ordering,
     ///   the type is kept by the core, the series is not available, a group
     ///   holds an episode that is not the series', more than one group is
-    ///   special, or a network is not stored or is on another source.
+    ///   special, a group's own season number is below <c>1</c> or set on
+    ///   the special group, or a network is not stored or is on another
+    ///   source.
     /// </exception>
     IOrdering SaveOrdering(MetadataOrderingData ordering);
 

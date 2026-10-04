@@ -156,16 +156,40 @@ public class TmdbEpisode
     [Required]
     public DateTime LastUpdatedAt { get; init; }
 
-    public TmdbEpisode(Metadata_Series show, Metadata_Episode episode, IncludeDetails? includeDetails = null, IReadOnlySet<TitleLanguage>? language = null) :
-        this(show, episode, null, includeDetails, language)
+    /// <summary>
+    /// Builds the model of an episode, in its show's own ordering.
+    /// </summary>
+    /// <param name="show">The episode's show.</param>
+    /// <param name="episode">The episode.</param>
+    /// <param name="includeDetails">What to include.</param>
+    /// <param name="language">The languages to list texts in.</param>
+    /// <param name="includeSpecialsInSeasons">Whether the alternate orderings place a special in the regular group holding it too.</param>
+    public TmdbEpisode(
+        Metadata_Series show,
+        Metadata_Episode episode,
+        IncludeDetails? includeDetails = null,
+        IReadOnlySet<TitleLanguage>? language = null,
+        bool includeSpecialsInSeasons = true
+    ) :
+        this(show, episode, null, includeDetails, language, includeSpecialsInSeasons)
     { }
 
+    /// <summary>
+    /// Builds the model of an episode, in an alternate ordering or in its show's own.
+    /// </summary>
+    /// <param name="show">The episode's show.</param>
+    /// <param name="episode">The episode.</param>
+    /// <param name="alternateOrderingEpisode">The episode's place in the alternate ordering it is read in, if any.</param>
+    /// <param name="includeDetails">What to include.</param>
+    /// <param name="language">The languages to list texts in.</param>
+    /// <param name="includeSpecialsInSeasons">Whether the alternate orderings place a special in the regular group holding it too.</param>
     public TmdbEpisode(
         Metadata_Series show,
         Metadata_Episode episode,
         TmdbCompatibility.AlternateOrderingEpisode? alternateOrderingEpisode,
         IncludeDetails? includeDetails = null,
-        IReadOnlySet<TitleLanguage>? language = null
+        IReadOnlySet<TitleLanguage>? language = null,
+        bool includeSpecialsInSeasons = true
     )
     {
         var include = includeDetails ?? default;
@@ -228,7 +252,7 @@ public class TmdbEpisode
             {
                 new(episode, preferredOrderingID is null, alternateOrderingEpisode),
             };
-            foreach (var altOrderEp in episode.TmdbAlternateOrderingEpisodes)
+            foreach (var altOrderEp in episode.GetTmdbAlternateOrderingEpisodes(includeSpecialsInSeasons))
                 ordering.Add(new(altOrderEp, preferredOrderingID, alternateOrderingEpisode));
             Ordering = ordering
                 .OrderByDescending(o => o.IsDefault)
@@ -373,9 +397,9 @@ public class TmdbEpisode
             SeasonName = season?.EnglishTitle ?? "<unknown name>";
             SeasonNumber = episode.SeasonNumber;
             EpisodeNumber = episode.PlacedEpisodeNumber;
-            AirsBeforeSeasonNumber = episode.Place.AirsBeforeSeasonNumber;
-            AirsBeforeEpisodeNumber = episode.Place.AirsBeforeEpisodeNumber;
-            AirsAfterSeasonNumber = episode.Place.AirsAfterSeasonNumber;
+            AirsBeforeSeasonNumber = episode.AirsBeforeSeasonNumber;
+            AirsBeforeEpisodeNumber = episode.AirsBeforeEpisodeNumber;
+            AirsAfterSeasonNumber = episode.AirsAfterSeasonNumber;
             IsDefault = false;
             IsPreferred = string.Equals(preferredOrderingID, episode.TmdbEpisodeGroupCollectionID);
             InUse = alternateOrderingEpisodeInUse != null &&

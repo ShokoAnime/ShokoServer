@@ -15,11 +15,13 @@ using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Server.API.v3.Models.TMDB;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
+using Shoko.Server.Models.Interfaces;
 using Shoko.Server.Models.Metadata;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories;
 using Shoko.Server.Repositories.Cached.Metadata;
 using Shoko.Server.Services;
+using Shoko.Server.Services.Ordering;
 using Shoko.Server.Utilities;
 
 #pragma warning disable CS0618
@@ -50,6 +52,11 @@ public static class TmdbCompatibility
     ///   The name the API gives a show's own ordering of its seasons.
     /// </summary>
     internal const string DefaultOrderingName = "Seasons";
+
+    /// <summary>
+    ///   The notes on a guest star's credit.
+    /// </summary>
+    internal const string GuestStarNotes = "Guest star";
 
     #endregion
 
@@ -191,11 +198,13 @@ public static class TmdbCompatibility
     /// </summary>
     /// <param name="orderingID">TMDB's ID for the episode group collection.</param>
     /// <param name="episodeID">TMDB's ID for the episode.</param>
+    /// <param name="includeSpecialsInSeasons">
+    ///   Whether a regular group lists the specials it holds too, see
+    ///   <see cref="AlternateOrdering.GetEpisodes"/>.
+    /// </param>
     /// <returns>The place, or <c>null</c> when the ordering does not place the episode.</returns>
-    public static AlternateOrderingEpisode? GetAlternateOrderingEpisode(string? orderingID, int episodeID)
-        => string.IsNullOrEmpty(orderingID) || GetEpisode(episodeID) is not { } episode
-            ? null
-            : episode.TmdbAlternateOrderingEpisodes.FirstOrDefault(place => place.TmdbEpisodeGroupCollectionID == orderingID);
+    public static AlternateOrderingEpisode? GetAlternateOrderingEpisode(string? orderingID, int episodeID, bool includeSpecialsInSeasons = true)
+        => GetEpisode(episodeID)?.GetTmdbAlternateOrderingEpisodeById(orderingID, includeSpecialsInSeasons);
 
     #endregion
 
@@ -521,9 +530,9 @@ public static class TmdbCompatibility
         public IReadOnlyList<string> Keywords => KeywordsOf(show);
 
         /// <summary>
-        ///   The show's content ratings, in TMDB's order.
+        ///   The show's content ratings, by country.
         /// </summary>
-        public IReadOnlyList<IContentRating> TmdbContentRatings => ((IWithContentRatings)show).ContentRatings;
+        public IReadOnlyList<IContentRating> TmdbContentRatings => ByCountry(((IWithContentRatings)show).ContentRatings);
 
         /// <summary>
         ///   The countries the show was made in, by code, with their English
@@ -720,16 +729,22 @@ public static class TmdbCompatibility
         public IReadOnlyList<(int Year, YearlySeason Season)> YearlySeasons => ((IWithYearlySeasons)season).YearlySeasons;
 
         /// <summary>
-        ///   The title to show for the season.
+        ///   The title to show for the season: the one picked or preferred,
+        ///   else its English title.
         /// </summary>
         /// <returns>The title.</returns>
-        public ITitle GetPreferredTitle() => ((IWithTitles)season).PreferredTitle ?? season.GetEnglishTitle();
+        public ITitle GetPreferredTitle() => MetadataStoredEntry.PreferredTitle(season) ?? season.GetEnglishTitle();
 
         /// <summary>
-        ///   Every title of the season.
+        ///   Every title of the season, its generic name first when TMDB gave
+        ///   it no English title.
         /// </summary>
         /// <returns>The titles.</returns>
-        public IReadOnlyList<ITitle> GetAllTitles() => ((IWithTitles)season).Titles;
+        public IReadOnlyList<ITitle> GetAllTitles()
+        {
+            var titles = ((IWithTitles)season).Titles;
+            return titles.Any(title => title.Source == MetadataSource.TMDB && title.Type is TitleType.Main) ? titles : [season.GetEnglishTitle(), .. titles];
+        }
 
         /// <summary>
         ///   The overview to show for the season.
@@ -825,10 +840,24 @@ public static class TmdbCompatibility
 
         /// <summary>
         ///   Where TMDB's alternate orderings of the show place the episode,
-        ///   in the groups it is at home in.
+        ///   by group ID.
         /// </summary>
-        public IReadOnlyList<AlternateOrderingEpisode> TmdbAlternateOrderingEpisodes
-            => [.. Service<IMetadataOrderingService>().GetEpisodeOrderings(episode).Select(AlternateOrderingEpisode.From).WhereNotNull()];
+        /// <param name="includeSpecialsInSeasons">
+        ///   Whether a special is placed in the regular group holding it too,
+        ///   see <see cref="AlternateOrdering.GetEpisodes"/>.
+        /// </param>
+        /// <returns>The places.</returns>
+        public IReadOnlyList<AlternateOrderingEpisode> GetTmdbAlternateOrderingEpisodes(bool includeSpecialsInSeasons = true)
+            => [
+                .. Service<Metadata_Ordering_EntryRepository>().GetByEpisode(episode.ID)
+                    .Where(entry => entry.Source == MetadataSource.TMDB)
+                    .Select(entry => entry.OrderingID)
+                    .Distinct(StringComparer.Ordinal)
+                    .Select(GetAlternateOrdering)
+                    .WhereNotNull()
+                    .SelectMany(ordering => ordering.GetPlaces(includeSpecialsInSeasons).Where(place => place.EpisodeID == episode.ID))
+                    .OrderBy(place => place.TmdbEpisodeGroupID, StringComparer.Ordinal),
+            ];
 
         /// <summary>
         ///   The links from AniDB episodes to the episode.
@@ -842,14 +871,20 @@ public static class TmdbCompatibility
             => FileCrossReferencesOf(episode.CrossReferences.Select(xref => xref.AnidbEpisodeID));
 
         /// <summary>
-        ///   Where one of TMDB's alternate orderings places the episode.
+        ///   Where one of TMDB's alternate orderings places the episode: in
+        ///   the group with the lowest number holding it, so a special keeps
+        ///   its number in the special group.
         /// </summary>
         /// <param name="orderingID">TMDB's ID for the episode group collection, or <c>null</c>.</param>
+        /// <param name="includeSpecialsInSeasons">
+        ///   Whether a regular group lists the specials it holds too, see
+        ///   <see cref="AlternateOrdering.GetEpisodes"/>.
+        /// </param>
         /// <returns>The place, or <c>null</c>.</returns>
-        public AlternateOrderingEpisode? GetTmdbAlternateOrderingEpisodeById(string? orderingID)
-            => string.IsNullOrEmpty(orderingID)
-                ? null
-                : episode.TmdbAlternateOrderingEpisodes.FirstOrDefault(place => place.TmdbEpisodeGroupCollectionID == orderingID);
+        public AlternateOrderingEpisode? GetTmdbAlternateOrderingEpisodeById(string? orderingID, bool includeSpecialsInSeasons = true)
+            => GetAlternateOrdering(orderingID)?.GetPlaces(includeSpecialsInSeasons)
+                .Where(place => place.EpisodeID == episode.ID)
+                .MinBy(place => place.SeasonNumber);
 
         /// <summary>
         ///   The episode's English title in an ordering: the one TMDB gave it,
@@ -964,9 +999,9 @@ public static class TmdbCompatibility
         public IReadOnlyList<string> Keywords => KeywordsOf(movie);
 
         /// <summary>
-        ///   The movie's content ratings, in TMDB's order.
+        ///   The movie's content ratings, by country.
         /// </summary>
-        public IReadOnlyList<IContentRating> TmdbContentRatings => ((IWithContentRatings)movie).ContentRatings;
+        public IReadOnlyList<IContentRating> TmdbContentRatings => ByCountry(((IWithContentRatings)movie).ContentRatings);
 
         /// <summary>
         ///   The countries the movie was made in, by code, with their English
@@ -995,18 +1030,15 @@ public static class TmdbCompatibility
         public IReadOnlyList<(int Year, YearlySeason Season)> YearlySeasons => ((IWithYearlySeasons)movie).YearlySeasons;
 
         /// <summary>
-        ///   The collection the movie is in.
+        ///   The collection the movie is in, when it is stored.
         /// </summary>
         public Metadata_Collection? TmdbCollection
-            => RepoFactory.Metadata_Collection_Member.GetByMember(movie.ID)
-                .Where(member => member.Source == movie.Source)
-                .Select(member => RepoFactory.Metadata_Collection.GetByProviderID(member.Source, member.CollectionID))
-                .FirstOrDefault(collection => collection is not null);
+            => movie.ExtraData?.CollectionID is { } collectionID ? RepoFactory.Metadata_Collection.GetByProviderID(movie.Source, collectionID) : null;
 
         /// <summary>
-        ///   TMDB's ID for the collection the movie is in.
+        ///   TMDB's ID for the collection the movie is in, stored or not.
         /// </summary>
-        public int? TmdbCollectionID => movie.TmdbCollection is { } collection ? Number(collection.ProviderID) : null;
+        public int? TmdbCollectionID => movie.ExtraData?.CollectionID is { } collectionID ? Number(collectionID) : null;
 
         /// <summary>
         ///   The links from AniDB episodes to the movie.
@@ -1076,7 +1108,7 @@ public static class TmdbCompatibility
         public int MovieCount => collection.Members.Count;
 
         /// <summary>
-        ///   The stored movies of the collection, in order.
+        ///   The stored movies of the collection, by English title.
         /// </summary>
         /// <returns>The movies.</returns>
         public IReadOnlyList<Metadata_Movie> GetTmdbMovies()
@@ -1084,7 +1116,9 @@ public static class TmdbCompatibility
                 .. collection.Members
                     .Where(member => member.EntityType == MetadataEntityType.Movie)
                     .Select(member => RepoFactory.Metadata_Movie.GetByProviderID(member.Source, member.ID))
-                    .WhereNotNull(),
+                    .WhereNotNull()
+                    .OrderBy(movie => movie.EnglishTitle)
+                    .ThenBy(movie => movie.TmdbMovieID),
             ];
 
         /// <summary>
@@ -1164,7 +1198,7 @@ public static class TmdbCompatibility
     /// <summary>
     ///   What TMDB suggests for a show or movie, or the suggestions TMDB made
     ///   that point at it, each with its place among the suggestions of its
-    ///   kind in the list it is in.
+    ///   kind in the list it is in, by kind and then place.
     /// </summary>
     /// <param name="entry">The show or movie.</param>
     /// <param name="reverse">Read the suggestions pointing at the entry instead.</param>
@@ -1177,7 +1211,9 @@ public static class TmdbCompatibility
         [
             .. suggestions
                 .Where(suggestion => suggestion.Source == MetadataSource.TMDB)
-                .Select(suggestion => ((ISuggestedMetadata)suggestion, suggestion.Order ?? PlaceAmongKind(store, suggestion))),
+                .Select(suggestion => (Suggestion: (ISuggestedMetadata)suggestion, Order: suggestion.Order ?? PlaceAmongKind(store, suggestion)))
+                .OrderBy(item => item.Suggestion.Kind)
+                .ThenBy(item => item.Order ?? int.MaxValue),
         ];
     }
 
@@ -1216,24 +1252,36 @@ public static class TmdbCompatibility
         };
 
     /// <summary>
+    ///   A person's English biography, as TMDB gave it, never one in another
+    ///   language.
+    /// </summary>
+    /// <param name="person">The person.</param>
+    /// <returns>The biography, or an empty string.</returns>
+    public static string Biography(ICreator person)
+        => (person as IInlineTextSource)?.InlineOverview?.Value ?? string.Empty;
+
+    /// <summary>
     ///   Gathers the cast of some episodes as a show's or a season's: one
-    ///   credit per person and character, by TMDB's ID for the person.
+    ///   credit per person, character and guest role, by TMDB's ID for the
+    ///   person, then by the credit's place in its episode.
     /// </summary>
     /// <param name="episodes">The episodes.</param>
-    /// <returns>The first credit of each person and character.</returns>
+    /// <returns>The first credit of each person, character and guest role.</returns>
     public static IReadOnlyList<ICast> GatherCast(IEnumerable<Metadata_Episode> episodes)
         => [
             .. episodes
                 .SelectMany(episode => episode.TmdbCast)
                 .Where(cast => CreditedPerson(cast.Creator) is not null)
-                .GroupBy(cast => (Person: cast.Creator!.ID, cast.Name))
+                .GroupBy(cast => (Person: cast.Creator!.ID, cast.Name, Guest: (cast as Metadata_Cast)?.RoleNotes == GuestStarNotes))
                 .Select(group => group.First())
-                .OrderBy(cast => Number(cast.Creator!.ID.ID)),
+                .OrderBy(cast => Number(cast.Creator!.ID.ID))
+                .ThenBy(cast => (cast as Metadata_Cast)?.Ordering ?? 0),
         ];
 
     /// <summary>
     ///   Gathers the crew of some episodes as a show's or a season's: one
-    ///   credit per person, department and job, by TMDB's ID for the person.
+    ///   credit per person, department and job, by TMDB's ID for the person,
+    ///   then by job and department.
     /// </summary>
     /// <param name="episodes">The episodes.</param>
     /// <returns>The first credit of each person, department and job.</returns>
@@ -1244,7 +1292,9 @@ public static class TmdbCompatibility
                 .Where(crew => CreditedPerson(crew.Creator) is not null)
                 .GroupBy(crew => (Person: crew.Creator!.ID, crew.Name))
                 .Select(group => group.First())
-                .OrderBy(crew => Number(crew.Creator!.ID.ID)),
+                .OrderBy(crew => Number(crew.Creator!.ID.ID))
+                .ThenBy(crew => DepartmentAndJob(crew).Job)
+                .ThenBy(crew => DepartmentAndJob(crew).Department),
         ];
 
     /// <summary>
@@ -1432,6 +1482,14 @@ public static class TmdbCompatibility
         => [.. entry.Tags.Where(tag => tag.Kind is TagKind.Keyword).Select(tag => tag.Name)];
 
     /// <summary>
+    ///   Content ratings by country, those of one country in their order.
+    /// </summary>
+    /// <param name="contentRatings">The content ratings.</param>
+    /// <returns>The content ratings, by country.</returns>
+    internal static IReadOnlyList<IContentRating> ByCountry(IEnumerable<IContentRating> contentRatings)
+        => [.. contentRatings.OrderBy(rating => rating.CountryCode, StringComparer.Ordinal)];
+
+    /// <summary>
     ///   The English names of some countries, by code.
     /// </summary>
     /// <param name="countryCodes">The countries' codes.</param>
@@ -1538,6 +1596,10 @@ public static class TmdbCompatibility
     {
         private IReadOnlyList<AlternateOrderingSeason>? _seasons;
 
+        private IReadOnlyList<AlternateOrderingEpisode>? _listedPlaces;
+
+        private IReadOnlyList<AlternateOrderingEpisode>? _placedPlaces;
+
         private AlternateOrdering(IOrdering ordering)
             => Ordering = ordering;
 
@@ -1577,32 +1639,120 @@ public static class TmdbCompatibility
         public Metadata_Series? TmdbShow => GetShow(TmdbShowID);
 
         /// <summary>
-        ///   The ordering's groups, as seasons.
+        ///   The ordering's groups, as seasons, the specials last.
         /// </summary>
         public IReadOnlyList<AlternateOrderingSeason> Seasons
-            => _seasons ??= [.. Ordering.Seasons.Select(season => new AlternateOrderingSeason(this, season))];
-
-        /// <summary>
-        ///   Every episode's place in the groups it is at home in.
-        /// </summary>
-        public IReadOnlyList<AlternateOrderingEpisode> Episodes
-            => [
-                .. Ordering.Episodes
-                    .Select(episode => GetEpisode(episode.ID))
-                    .WhereNotNull()
-                    .SelectMany(episode => episode.TmdbAlternateOrderingEpisodes)
-                    .Where(place => place.TmdbEpisodeGroupCollectionID == TmdbEpisodeGroupCollectionID),
+            => _seasons ??= [
+                .. Ordering.Seasons
+                    .Select(season => new AlternateOrderingSeason(this, season))
+                    .OrderBy(season => season.SeasonNumber == 0)
+                    .ThenBy(season => season.SeasonNumber),
             ];
 
         /// <summary>
-        ///   How many of the episodes the ordering places are shown.
+        ///   Every episode's place in the ordering's groups, by season and
+        ///   number, the specials last.
         /// </summary>
-        public int EpisodeCount => PlacedEpisodes.Count(episode => !episode.IsHidden);
+        /// <param name="includeSpecialsInSeasons">
+        ///   List a special that the special group and a regular group both
+        ///   hold in the regular group too, as TMDB does, every episode of
+        ///   that group numbered by its place there. Else it is listed in the
+        ///   special group only, and the regular group numbers its other
+        ///   episodes without it.
+        /// </param>
+        /// <returns>The places.</returns>
+        public IReadOnlyList<AlternateOrderingEpisode> GetEpisodes(bool includeSpecialsInSeasons = true)
+            => [
+                .. GetPlaces(includeSpecialsInSeasons)
+                    .OrderBy(place => place.SeasonNumber == 0)
+                    .ThenBy(place => place.SeasonNumber)
+                    .ThenBy(place => place.PlacedEpisodeNumber),
+            ];
 
         /// <summary>
-        ///   How many of the episodes the ordering places are hidden.
+        ///   Every episode's place in the ordering's groups, in the order of
+        ///   the groups and of each group's episodes.
         /// </summary>
-        public int HiddenEpisodeCount => PlacedEpisodes.Count(episode => episode.IsHidden);
+        /// <param name="includeSpecialsInSeasons">
+        ///   Whether a special is listed in the regular group holding it too,
+        ///   see <see cref="GetEpisodes"/>.
+        /// </param>
+        /// <returns>The places.</returns>
+        internal IReadOnlyList<AlternateOrderingEpisode> GetPlaces(bool includeSpecialsInSeasons)
+            => includeSpecialsInSeasons
+                ? _listedPlaces ??= BuildPlaces(true)
+                : _placedPlaces ??= BuildPlaces(false);
+
+        /// <summary>
+        ///   Builds every episode's place in the ordering's groups. A placed
+        ///   special's place in the special group says where it airs, in the
+        ///   numbers the regular groups are listed with.
+        /// </summary>
+        /// <param name="includeSpecialsInSeasons">Whether a special is listed in the regular group holding it too.</param>
+        /// <returns>The places, in the order of the groups and of each group's episodes.</returns>
+        private List<AlternateOrderingEpisode> BuildPlaces(bool includeSpecialsInSeasons)
+        {
+            var places = new List<AlternateOrderingEpisode>();
+            if (Ordering is not IPlacedOrdering { Placement: var placement })
+            {
+                foreach (var season in Ordering.Seasons)
+                    places.AddRange(season.Episodes.Select((episode, index) => new AlternateOrderingEpisode(this, season, episode.ID, index + 1, null)));
+                return places;
+            }
+
+            var listedNumbers = new Dictionary<(MetadataGuid GroupID, MetadataGuid EpisodeID), int>();
+            foreach (var season in Ordering.Seasons)
+            {
+                var listed = placement.Listed(season.ID);
+                if (season.IsSpecial)
+                {
+                    places.AddRange(listed.Select(place => new AlternateOrderingEpisode(this, season, place.EpisodeID, place.EpisodeNumber, place.Airing)));
+                }
+                else if (!includeSpecialsInSeasons)
+                {
+                    places.AddRange(listed
+                        .Where(place => !place.IsSpecial)
+                        .Select(place => new AlternateOrderingEpisode(this, season, place.EpisodeID, place.EpisodeNumber, null)));
+                }
+                else
+                {
+                    foreach (var (index, place) in listed.Index())
+                    {
+                        listedNumbers.TryAdd((season.ID, place.EpisodeID), index + 1);
+                        places.Add(new AlternateOrderingEpisode(this, season, place.EpisodeID, index + 1, null));
+                    }
+                }
+            }
+
+            if (!includeSpecialsInSeasons)
+                return places;
+
+            // A special airs in the first regular group listing it, before the episode of that group that follows it.
+            for (var index = 0; index < places.Count; index++)
+            {
+                var special = places[index];
+                var group = Ordering.Seasons.FirstOrDefault(season => !season.IsSpecial && listedNumbers.ContainsKey((season.ID, special.EpisodeID)));
+                if (special.AirsBeforeEpisodeNumber is null || special.AirsBeforeEpisodeID is not { } nextID || group is null ||
+                    !listedNumbers.TryGetValue((group.ID, nextID), out var nextNumber))
+                    continue;
+
+                places[index] = special.WithAirsBeforeEpisodeNumber(nextNumber);
+            }
+
+            return places;
+        }
+
+        /// <summary>
+        ///   How many shown episodes the ordering's groups list, an episode
+        ///   counted once for each group listing it.
+        /// </summary>
+        public int EpisodeCount => Seasons.Sum(season => season.EpisodeCount);
+
+        /// <summary>
+        ///   How many hidden episodes the ordering's groups list, an episode
+        ///   counted once for each group listing it.
+        /// </summary>
+        public int HiddenEpisodeCount => Seasons.Sum(season => season.HiddenEpisodeCount);
 
         /// <summary>
         ///   How many groups the ordering has.
@@ -1710,16 +1860,15 @@ public static class TmdbCompatibility
             ];
 
         /// <summary>
-        ///   Where the episodes at home in the group are placed.
+        ///   The places of the episodes the group lists, in order.
         /// </summary>
-        public IReadOnlyList<AlternateOrderingEpisode> HomeEpisodes
-            => [
-                .. Season.Episodes
-                    .Select(episode => GetEpisode(episode.ID))
-                    .WhereNotNull()
-                    .Select(episode => episode.TmdbAlternateOrderingEpisodes.FirstOrDefault(place => place.TmdbEpisodeGroupID == TmdbEpisodeGroupID))
-                    .WhereNotNull(),
-            ];
+        /// <param name="includeSpecialsInSeasons">
+        ///   Whether a regular group lists the specials it holds too, see
+        ///   <see cref="AlternateOrdering.GetEpisodes"/>.
+        /// </param>
+        /// <returns>The places.</returns>
+        public IReadOnlyList<AlternateOrderingEpisode> GetEpisodes(bool includeSpecialsInSeasons = true)
+            => [.. TmdbAlternateOrdering.GetPlaces(includeSpecialsInSeasons).Where(place => place.TmdbEpisodeGroupID == TmdbEpisodeGroupID)];
 
         /// <summary>
         ///   How many of the episodes the group lists are shown.
@@ -1774,50 +1923,89 @@ public static class TmdbCompatibility
     /// </summary>
     public sealed class AlternateOrderingEpisode
     {
-        private AlternateOrdering? _ordering;
-
-        private AlternateOrderingEpisode(IEpisodeOrderingInformation place)
-            => Place = place;
+        private readonly ISeason _season;
 
         /// <summary>
-        ///   The place as the core serves it.
+        ///   A place of an episode in a group of an ordering.
         /// </summary>
-        public IEpisodeOrderingInformation Place { get; }
+        /// <param name="ordering">The ordering.</param>
+        /// <param name="season">The group, as a season of the ordering.</param>
+        /// <param name="episodeID">The episode.</param>
+        /// <param name="episodeNumber">The episode's number in the group.</param>
+        /// <param name="airing">Where a placed special airs, on its place in the special group only.</param>
+        internal AlternateOrderingEpisode(AlternateOrdering ordering, ISeason season, MetadataGuid episodeID, int episodeNumber, OrderingAiring? airing)
+        {
+            TmdbAlternateOrdering = ordering;
+            _season = season;
+            EpisodeID = episodeID;
+            PlacedEpisodeNumber = episodeNumber;
+            AirsBeforeSeasonNumber = airing?.AirsBeforeSeasonNumber;
+            AirsBeforeEpisodeNumber = airing?.AirsBeforeEpisodeNumber;
+            AirsAfterSeasonNumber = airing?.AirsAfterSeasonNumber;
+            AirsBeforeEpisodeID = airing?.AirsBeforeEpisodeID;
+        }
+
+        /// <summary>
+        ///   The episode.
+        /// </summary>
+        internal MetadataGuid EpisodeID { get; }
+
+        /// <summary>
+        ///   The regular episode right after a placed special, in any group.
+        /// </summary>
+        internal MetadataGuid? AirsBeforeEpisodeID { get; }
 
         /// <summary>
         ///   TMDB's ID for the episode group collection.
         /// </summary>
-        public string TmdbEpisodeGroupCollectionID => Place.OrderingID.ID;
+        public string TmdbEpisodeGroupCollectionID => TmdbAlternateOrdering.TmdbEpisodeGroupCollectionID;
 
         /// <summary>
         ///   TMDB's ID for the episode group the episode is placed in.
         /// </summary>
-        public string TmdbEpisodeGroupID => Place.SeasonID?.ID ?? string.Empty;
+        public string TmdbEpisodeGroupID => _season.ID.ID;
 
         /// <summary>
         ///   TMDB's ID for the episode.
         /// </summary>
-        public int TmdbEpisodeID => Number(Place.EpisodeID.ID);
+        public int TmdbEpisodeID => Number(EpisodeID.ID);
 
         /// <summary>
         ///   TMDB's ID for the show.
         /// </summary>
-        public int TmdbShowID => Number(Place.SeriesID.ID);
+        public int TmdbShowID => TmdbAlternateOrdering.TmdbShowID;
 
         /// <summary>
         ///   The number of the group the episode is placed in.
         /// </summary>
-        public int SeasonNumber => Place.SeasonNumber ?? 0;
+        public int SeasonNumber => _season.SeasonNumber;
 
         /// <summary>
         ///   The episode's number in the group.
         /// </summary>
-        public int PlacedEpisodeNumber => Place.EpisodeNumber;
+        public int PlacedEpisodeNumber { get; }
+
+        /// <summary>
+        ///   The season of the regular episode a placed special airs before,
+        ///   on its place in the special group.
+        /// </summary>
+        public int? AirsBeforeSeasonNumber { get; }
+
+        /// <summary>
+        ///   The number of the regular episode a placed special airs before.
+        /// </summary>
+        public int? AirsBeforeEpisodeNumber { get; private set; }
+
+        /// <summary>
+        ///   The season a placed special airs after, when no episode of it
+        ///   follows the special.
+        /// </summary>
+        public int? AirsAfterSeasonNumber { get; }
 
         /// <summary>
         ///   Whether the ordering is the one chosen for the show.
         /// </summary>
-        public bool IsPreferred => Place.IsPreferred;
+        public bool IsPreferred => TmdbAlternateOrdering.Ordering.IsPreferred;
 
         /// <summary>
         ///   The episode.
@@ -1827,23 +2015,25 @@ public static class TmdbCompatibility
         /// <summary>
         ///   The ordering.
         /// </summary>
-        public AlternateOrdering? TmdbAlternateOrdering => _ordering ??= GetAlternateOrdering(TmdbEpisodeGroupCollectionID);
+        public AlternateOrdering TmdbAlternateOrdering { get; }
 
         /// <summary>
         ///   The group the episode is placed in.
         /// </summary>
         public AlternateOrderingSeason? TmdbAlternateOrderingSeason
-            => TmdbAlternateOrdering?.Seasons.FirstOrDefault(season => season.TmdbEpisodeGroupID == TmdbEpisodeGroupID);
+            => TmdbAlternateOrdering.Seasons.FirstOrDefault(season => season.TmdbEpisodeGroupID == TmdbEpisodeGroupID);
 
         /// <summary>
-        ///   A place as one in TMDB's alternate orderings.
+        ///   The place, airing before another number of its episode.
         /// </summary>
-        /// <param name="place">The place.</param>
-        /// <returns>The place, or <c>null</c> when it is not in one of TMDB's stored orderings.</returns>
-        internal static AlternateOrderingEpisode? From(IEpisodeOrderingInformation place)
-            => place is { IsDefault: false } && place.OrderingID.Source == MetadataSource.TMDB && place.SeriesID.Source == MetadataSource.TMDB
-                ? new(place)
-                : null;
+        /// <param name="episodeNumber">The number of the regular episode the special airs before.</param>
+        /// <returns>The place.</returns>
+        internal AlternateOrderingEpisode WithAirsBeforeEpisodeNumber(int episodeNumber)
+        {
+            var place = (AlternateOrderingEpisode)MemberwiseClone();
+            place.AirsBeforeEpisodeNumber = episodeNumber;
+            return place;
+        }
     }
 
     #endregion

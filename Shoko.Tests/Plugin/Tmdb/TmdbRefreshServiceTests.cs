@@ -323,6 +323,17 @@ public sealed class TmdbRefreshServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task AMovieKeepsItsCollectionIDWhenTheCollectionIsNotDownloaded()
+    {
+        _harness.RouteMovie();
+
+        Assert.True(await _harness.Refresh.RefreshMovie(7001, new() { DownloadCollections = false }, TestContext.Current.CancellationToken));
+
+        Assert.Equal(TmdbIds.Collection(8001), _harness.StoreData.Movies[TmdbIds.Movie(7001)].CollectionID);
+        Assert.Empty(_harness.StoreData.Collections);
+    }
+
+    [Fact]
     public async Task AMovieThatDidNotChangeIsNotFetched()
     {
         _harness.RouteMovie();

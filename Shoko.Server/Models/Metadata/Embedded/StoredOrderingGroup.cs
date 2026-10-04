@@ -18,7 +18,7 @@ namespace Shoko.Server.Models.Metadata.Embedded;
 /// <typeparam name="TEpisode">The episodes' type.</typeparam>
 /// <param name="ordering">The ordering the group is in.</param>
 /// <param name="row">The group's row.</param>
-/// <param name="seasonNumber">The group's season number: <c>0</c> for the special group, else its place among the others, from 1.</param>
+/// <param name="seasonNumber">The group's season number: <c>0</c> for the special group, else its source's number or its place among the others.</param>
 /// <param name="places">The episodes' places in the group, in order, with each episode.</param>
 public sealed class StoredOrderingGroup<TSeries, TEpisode>(
     StoredOrdering<TSeries, TEpisode> ordering,

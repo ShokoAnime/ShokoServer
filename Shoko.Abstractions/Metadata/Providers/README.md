@@ -318,7 +318,8 @@ for one source; pass a cutoff a day or more in the past.
 ordering of any source's series whole, under your source, with the IDs you
 give it and its groups. A group reads back as `<source>://season/<group ID>`,
 so keep group IDs apart from season IDs, and set `IsSpecial` on at most one
-group; you never number anything. IDs may not start with `default/`. See
+group. A regular group is numbered by its place unless you give it a
+`SeasonNumber` of its own. IDs may not start with `default/`. See
 [`IMetadataOrderingService`](../Services/README.md#imetadataorderingservice).
 
 **Text on other entries** goes through `IMetadataTextManager.SetTitles` and
@@ -342,7 +343,8 @@ The core writes nothing of yours for you: fetch, then write the entry, its
 cast and crew, and its tags, studios, networks, relations and suggestions.
 When your source no longer has an entry, keeping or removing it is up to you.
 A collection enters the store when you save it during a series or film
-refresh.
+refresh. A film names its collection in `MetadataMovieData.CollectionID`
+whether or not you save the collection.
 
 `MetadataRefreshOptions` carries the refresh switches (`DownloadImages`,
 `DownloadCrewAndCast`, `DownloadAlternateOrdering`, `DownloadNetworks`,

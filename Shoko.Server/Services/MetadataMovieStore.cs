@@ -62,6 +62,8 @@ public class MetadataMovieStore(
         var crossSourceIDs = MetadataEntries.CheckCrossSourceIDs(movie.CrossSourceIDs, nameof(movie));
         var countries = MetadataEntries.CheckCountries(movie.ProductionCountries, nameof(movie));
         var contentRatings = MetadataContentRatings.Check(movie.ContentRatings, nameof(movie));
+        if (movie.CollectionID is { } collectionID)
+            MetadataEntries.CheckReference(collectionID, movie.ID.Source, MetadataEntityType.Collection, nameof(movie));
         lock (_writeLock)
         {
             var stored = movieRepository.GetByProviderID(movie.ID.Source, movie.ID.ID);
@@ -78,7 +80,10 @@ public class MetadataMovieStore(
             row.RatingVotes = movie.RatingVotes;
             row.Resources = resources;
             row.CrossSourceIDs = crossSourceIDs;
-            row.ExtraData = MetadataDefaultImages.Apply((row.ExtraData ?? new()) with { ProductionCountries = countries }, movie.DefaultImageResourceIDs).NullIfEmpty();
+            row.ExtraData = MetadataDefaultImages.Apply(
+                (row.ExtraData ?? new()) with { ProductionCountries = countries, CollectionID = movie.CollectionID?.ID },
+                movie.DefaultImageResourceIDs
+            ).NullIfEmpty();
             var (ratingsSaving, ratingsDeleting) = MetadataContentRatings.Plan(contentRatingRepository, movie.ID, contentRatings);
 
             // Written, and reported as changed, only when new or when its

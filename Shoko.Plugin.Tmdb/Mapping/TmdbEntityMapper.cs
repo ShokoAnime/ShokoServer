@@ -137,7 +137,8 @@ public static class TmdbEntityMapper
     #region Movies & Collections
 
     /// <summary>
-    ///   A movie.
+    ///   A movie, with the collection TMDb puts it in, whether or not the
+    ///   collection is downloaded.
     /// </summary>
     /// <param name="movie">The movie, with its translations, alternative titles, release dates and external IDs.</param>
     /// <param name="languages">The languages to keep.</param>
@@ -167,6 +168,7 @@ public static class TmdbEntityMapper
                     .SelectMany(country => (country.ReleaseDates ?? []).Select(release => (country.Iso_3166_1, release.Certification))),
                 languages.ContentRatings
             ),
+            CollectionID = movie.BelongsToCollection is { Id: > 0 } collection ? TmdbIds.Collection(collection.Id) : null,
             DefaultImageResourceIDs = TmdbImages.Defaults((ImageEntityType.Primary, movie.PosterPath), (ImageEntityType.Backdrop, movie.BackdropPath)),
         };
     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Shoko.Abstractions.Metadata.Enums;
@@ -248,7 +249,7 @@ public static class Search
                 Type = "User",
                 Votes = movie.UserVotes ?? 0,
             };
-            Genres = movie.Genres;
+            Genres = [.. movie.Genres.OrderBy(genre => genre)];
         }
     }
 
@@ -353,7 +354,7 @@ public static class Search
                 Type = "User",
                 Votes = show.UserVotes ?? 0,
             };
-            Genres = show.Genres;
+            Genres = [.. show.Genres.OrderBy(genre => genre)];
         }
     }
 }

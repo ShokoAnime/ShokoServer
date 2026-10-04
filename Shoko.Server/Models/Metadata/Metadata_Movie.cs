@@ -283,13 +283,18 @@ public class Metadata_Movie : IMovie, IMetadataStoreRow<Metadata_Movie>, IMetada
 
     IReadOnlyList<string> IMovie.ProductionCountries => ExtraData?.ProductionCountries ?? [];
 
-    MetadataGuid? IMovie.CollectionID => CollectionMembership is { } member ? new(member.Source, MetadataEntityType.Collection, member.CollectionID) : null;
+    MetadataGuid? IMovie.CollectionID => CollectionProviderID is { } collectionID ? new(Source, MetadataEntityType.Collection, collectionID) : null;
 
     IMovieCollection? IMovie.Collection
-        => CollectionMembership is { } member ? RepoFactory.Metadata_Collection.GetByProviderID(member.Source, member.CollectionID) : null;
+        => CollectionProviderID is { } collectionID ? RepoFactory.Metadata_Collection.GetByProviderID(Source, collectionID) : null;
 
-    private Metadata_Collection_Member? CollectionMembership
-        => RepoFactory.Metadata_Collection_Member.GetByMember(ID).FirstOrDefault(member => member.Source == Source);
+    /// <summary>
+    ///   The source's own ID for the movie's collection: the one the source
+    ///   named, else the first collection listing the movie.
+    /// </summary>
+    private string? CollectionProviderID
+        => ExtraData?.CollectionID ??
+            RepoFactory.Metadata_Collection_Member.GetByMember(ID).FirstOrDefault(member => member.Source == Source)?.CollectionID;
 
     IReadOnlyList<IVideoCrossReference> IMovie.VideoCrossReferences => MetadataStoredEntry.VideoLinksForEpisodes(LinkedEpisodeIDs);
 

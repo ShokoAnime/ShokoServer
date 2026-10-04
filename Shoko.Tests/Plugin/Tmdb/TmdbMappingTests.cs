@@ -218,6 +218,26 @@ public sealed class TmdbMappingTests
         Assert.Equal([true, false], ordering!.Groups.Select(group => group.IsSpecial));
     }
 
+    [Fact]
+    public void AGroupKeepsTmdbsNumberAsItsSeasonNumber()
+    {
+        var collection = new TvGroupCollection
+        {
+            Id = "c1",
+            Name = "Air Date (US)",
+            Groups =
+            [
+                new() { Id = "g3", Name = "Season 3", Order = 3, Episodes = [new() { Id = 3, Order = 0 }] },
+                new() { Id = "g0", Name = "Specials", Order = 0, Episodes = [new() { Id = 1, Order = 0 }] },
+                new() { Id = "g0b", Name = "Extras", Order = 0, Episodes = [new() { Id = 2, Order = 0 }] },
+            ],
+        };
+
+        var ordering = TmdbOrderings.ToOrderingData(1001, collection, new HashSet<MetadataGuid> { TmdbIds.Episode(1), TmdbIds.Episode(2), TmdbIds.Episode(3) });
+
+        Assert.Equal([null, null, 3], ordering!.Groups.Select(group => group.SeasonNumber));
+    }
+
     #endregion
 
     #region Site URLs

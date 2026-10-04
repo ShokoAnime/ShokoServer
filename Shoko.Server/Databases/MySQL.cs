@@ -1679,6 +1679,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 286, "UPDATE `Metadata_Character` SET `CreatedAt` = `LastUpdatedAt` WHERE `CreatedAt` = '1970-01-01 00:00:00' AND `LastUpdatedAt` IS NOT NULL;"),
         new(194, 287, "UPDATE `Metadata_Creator` SET `CreatedAt` = `LastUpdatedAt` WHERE `CreatedAt` = '1970-01-01 00:00:00' AND `LastUpdatedAt` IS NOT NULL;"),
         new(194, 288, DatabaseFixes.RemoveTmdbGenericSeasonTitles),
+        new(194, 289, DatabaseFixes.AddOrderingGroupSeasonNumber),
     ];
 
     #endregion

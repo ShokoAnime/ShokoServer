@@ -307,7 +307,7 @@ public class MetadataOrderingService(
             .ToDictionary(group => group.Key, group => group.OrderBy(entry => entry.Position).ToList(), StringComparer.Ordinal);
         var episodes = new Dictionary<MetadataGuid, TEpisode?>();
         var groups = groupRepository.GetByOrderingID(row.Source, row.ProviderID);
-        var seasonNumbers = NumberGroups([.. groups.Select(group => group.IsSpecial)]);
+        var seasonNumbers = NumberGroups([.. groups.Select(group => (group.IsSpecial, group.SeasonNumber))]);
         return
         [
             .. groups.Select((group, index) => new StoredOrderingGroup<TSeries, TEpisode>(
@@ -567,12 +567,21 @@ public class MetadataOrderingService(
             if (!seen.Add(group.ID.ID))
                 throw new ArgumentException($"The group \"{group.ID}\" is given twice.", nameof(ordering));
 
+            if (group.SeasonNumber is { } seasonNumber && (seasonNumber < 1 || group.IsSpecial))
+            {
+                throw new ArgumentException(
+                    $"The group \"{group.ID}\" may not be numbered {seasonNumber}: a group's own number is at least 1, and the special group takes none.",
+                    nameof(ordering)
+                );
+            }
+
             groups.Add(new(
                 group.ID.ID,
                 CheckName(group.Name, nameof(ordering)),
                 group.Overview,
                 CheckEpisodes(group.Episodes, episodes, series, nameof(ordering)),
-                group.IsSpecial
+                group.IsSpecial,
+                group.SeasonNumber
             ));
         }
 
@@ -650,7 +659,8 @@ public class MetadataOrderingService(
                 CheckName(group.Name, nameof(ordering)),
                 group.Overview,
                 CheckEpisodes(group.Episodes, episodes, series, nameof(ordering)),
-                group.IsSpecial
+                group.IsSpecial,
+                null
             ));
         }
 
@@ -700,7 +710,8 @@ public class MetadataOrderingService(
                 CheckName(group.Name, nameof(ordering)),
                 group.Overview,
                 CheckEpisodes(group.Episodes, episodes, series, nameof(ordering)),
-                group.IsSpecial
+                group.IsSpecial,
+                null
             ));
         }
 
@@ -731,21 +742,29 @@ public class MetadataOrderingService(
     /// <param name="Description">What the group is about, if anything.</param>
     /// <param name="Episodes">The group's episodes, in order.</param>
     /// <param name="IsSpecial">Whether the group holds the ordering's specials.</param>
-    private sealed record GroupToWrite(string ID, string Name, string? Description, IReadOnlyList<MetadataGuid> Episodes, bool IsSpecial);
+    /// <param name="SeasonNumber">The season number the source gave the group, if any.</param>
+    private sealed record GroupToWrite(string ID, string Name, string? Description, IReadOnlyList<MetadataGuid> Episodes, bool IsSpecial, int? SeasonNumber);
 
     /// <summary>
     ///   Gives each group of a stored ordering its season number: <c>0</c>
-    ///   for the special group, and the others their place among themselves,
-    ///   from <c>1</c>.
+    ///   for the special group, the number the source gave a group when it
+    ///   gave one, and else the group's place among the regular groups.
     /// </summary>
-    /// <param name="isSpecial">Whether each group is special, in viewing order.</param>
+    /// <param name="groups">Whether each group is special, and the number its source gave it, in viewing order.</param>
     /// <returns>The season numbers, in the same order.</returns>
-    internal static int[] NumberGroups(IReadOnlyList<bool> isSpecial)
+    internal static int[] NumberGroups(IReadOnlyList<(bool IsSpecial, int? SeasonNumber)> groups)
     {
-        var numbers = new int[isSpecial.Count];
+        var numbers = new int[groups.Count];
         var next = 1;
         for (var index = 0; index < numbers.Length; index++)
-            numbers[index] = isSpecial[index] ? 0 : next++;
+        {
+            if (groups[index].IsSpecial)
+                continue;
+
+            numbers[index] = groups[index].SeasonNumber ?? next;
+            next++;
+        }
+
         return numbers;
     }
 
@@ -859,6 +878,7 @@ public class MetadataOrderingService(
                     groupRow.OrderingID = orderingID.ID;
                     groupRow.Position = position;
                     groupRow.IsSpecial = group.IsSpecial;
+                    groupRow.SeasonNumber = group.SeasonNumber;
                     groupRow.Name = group.Name;
                     groupRow.Description = string.IsNullOrEmpty(group.Description) ? null : group.Description;
                 },

@@ -1560,6 +1560,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(192, 290, "UPDATE Metadata_Character SET CreatedAt = LastUpdatedAt WHERE CreatedAt = '1970-01-01 00:00:00' AND LastUpdatedAt IS NOT NULL;"),
         new(192, 291, "UPDATE Metadata_Creator SET CreatedAt = LastUpdatedAt WHERE CreatedAt = '1970-01-01 00:00:00' AND LastUpdatedAt IS NOT NULL;"),
         new(192, 292, DatabaseFixes.RemoveTmdbGenericSeasonTitles),
+        new(192, 293, DatabaseFixes.AddOrderingGroupSeasonNumber),
     ];
 
     #endregion

@@ -48,6 +48,17 @@ public sealed class TmdbSearchServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task APageSizeOfZeroGivesOnlyTheTotal()
+    {
+        _harness.Routes.Fixture("search/tv", "search-tv.json");
+
+        var (page, total) = await _harness.Provider.SearchSeries(new() { Query = "Journey's End", PageSize = 0 }, TestContext.Current.CancellationToken);
+
+        Assert.Empty(page);
+        Assert.Equal(2, total);
+    }
+
+    [Fact]
     public async Task TheGenresAreFetchedOnceWhileTheStoreKnowsThem()
     {
         _harness.Routes.Fixture("search/tv", "search-tv.json");

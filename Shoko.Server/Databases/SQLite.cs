@@ -1389,6 +1389,7 @@ public class SQLite(SystemService systemService) : BaseDatabase<SqliteConnection
         new(173, 285, "UPDATE Metadata_Character SET CreatedAt = LastUpdatedAt WHERE CreatedAt = '1970-01-01 00:00:00' AND LastUpdatedAt IS NOT NULL;"),
         new(173, 286, "UPDATE Metadata_Creator SET CreatedAt = LastUpdatedAt WHERE CreatedAt = '1970-01-01 00:00:00' AND LastUpdatedAt IS NOT NULL;"),
         new(173, 287, DatabaseFixes.RemoveTmdbGenericSeasonTitles),
+        new(173, 288, DatabaseFixes.AddOrderingGroupSeasonNumber),
     ];
 
     #endregion

@@ -13,8 +13,9 @@ namespace Shoko.Plugin.Tmdb.Mapping;
 /// </summary>
 /// <remarks>
 ///   Each collection is an ordering and each of its groups a season of it,
-///   in TMDb's order. A group numbered <c>0</c> holds the specials. Only the
-///   show's stored episodes are placed, as an ordering may name no other.
+///   in TMDb's order and numbered as TMDb orders it. The first group
+///   numbered <c>0</c> holds the specials. Only the show's stored episodes
+///   are placed, as an ordering may name no other.
 /// </remarks>
 public static class TmdbOrderings
 {
@@ -44,6 +45,7 @@ public static class TmdbOrderings
                 ID = TmdbIds.OrderingGroup(group.Id!),
                 Name = TmdbTexts.Clean(group.Name) ?? string.Empty,
                 IsSpecial = isSpecial,
+                SeasonNumber = !isSpecial && group.Order > 0 ? group.Order : null,
                 Episodes =
                 [
                     .. (group.Episodes ?? [])

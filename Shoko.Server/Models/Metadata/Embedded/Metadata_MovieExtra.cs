@@ -34,6 +34,12 @@ public sealed record Metadata_MovieExtra : IMetadataDefaultImages<Metadata_Movie
     public IReadOnlyList<string> ProductionCountries { get; init; } = [];
 
     /// <summary>
+    ///   The source's own ID for the collection the movie is part of, as the
+    ///   movie's source gave it, or <c>null</c> for none.
+    /// </summary>
+    public string? CollectionID { get; init; }
+
+    /// <summary>
     ///   The resource ID of the primary image the movie's source pins as its
     ///   default, or <c>null</c> for none.
     /// </summary>
@@ -113,6 +119,7 @@ public sealed record Metadata_MovieExtra : IMetadataDefaultImages<Metadata_Movie
     public bool Equals(Metadata_MovieExtra? other)
         => other is not null &&
             (ProductionCountries ?? []).SequenceEqual(other.ProductionCountries ?? [], StringComparer.Ordinal) &&
+            CollectionID == other.CollectionID &&
             PrimaryResourceID == other.PrimaryResourceID &&
             BackdropResourceID == other.BackdropResourceID &&
             LogoResourceID == other.LogoResourceID &&
@@ -123,7 +130,7 @@ public sealed record Metadata_MovieExtra : IMetadataDefaultImages<Metadata_Movie
     public override int GetHashCode()
         => HashCode.Combine(
             (ProductionCountries ?? []).Aggregate(0, (hash, country) => HashCode.Combine(hash, StringComparer.Ordinal.GetHashCode(country))),
-            PrimaryResourceID, BackdropResourceID, LogoResourceID, BannerResourceID, DiscResourceID
+            CollectionID, PrimaryResourceID, BackdropResourceID, LogoResourceID, BannerResourceID, DiscResourceID
         );
 
     #endregion
