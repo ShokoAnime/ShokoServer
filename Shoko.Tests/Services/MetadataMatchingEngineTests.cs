@@ -1395,7 +1395,6 @@ public class MetadataMatchingEngineTests
         mock.SetupGet(episode => episode.EpisodeNumber).Returns(episodeNumber);
         mock.SetupGet(episode => episode.SeasonNumber).Returns((int?)null);
         mock.SetupGet(episode => episode.AirDate).Returns((DateOnly?)null);
-        mock.SetupGet(episode => episode.RegularAirDate).Returns((DateOnly?)null);
         mock.SetupGet(episode => episode.Titles).Returns([]);
         mock.SetupGet(episode => episode.ShokoEpisodes).Returns([shoko.Object]);
         return mock.Object;
@@ -1424,7 +1423,6 @@ public class MetadataMatchingEngineTests
         mock.SetupGet(anime => anime.AnidbID).Returns(1);
         mock.SetupGet(anime => anime.Type).Returns(AnimeType.TV);
         mock.SetupGet(anime => anime.AirDate).Returns(new PartialDateOnly(airDate));
-        mock.SetupGet(anime => anime.RegularAirDate).Returns(new PartialDateOnly(regularAirDate ?? airDate));
         mock.SetupGet(anime => anime.EndDate).Returns(endDate is { } ended ? new PartialDateOnly(ended) : null);
         mock.SetupGet(anime => anime.Episodes).Returns(episodes);
         mock.SetupGet(anime => anime.EpisodeCounts).Returns(new EpisodeCounts { Episodes = episodeCount });
@@ -1441,7 +1439,6 @@ public class MetadataMatchingEngineTests
         mock.SetupGet(anime => anime.AnidbID).Returns(animeID);
         mock.SetupGet(anime => anime.Type).Returns(AnimeType.Movie);
         mock.SetupGet(anime => anime.AirDate).Returns(new PartialDateOnly(airDate));
-        mock.SetupGet(anime => anime.RegularAirDate).Returns(new PartialDateOnly(airDate));
         mock.SetupGet(anime => anime.Episodes).Returns(episodes);
         mock.SetupGet(anime => anime.Titles).Returns([]);
         return (mock.Object, episodes[^1]);
@@ -1455,7 +1452,6 @@ public class MetadataMatchingEngineTests
         mock.SetupGet(episode => episode.Type).Returns(EpisodeType.Episode);
         mock.SetupGet(episode => episode.EpisodeNumber).Returns(number);
         mock.SetupGet(episode => episode.AirDate).Returns(airDate);
-        mock.SetupGet(episode => episode.RegularAirDate).Returns(airDate);
         mock.SetupGet(episode => episode.Titles).Returns([Title($"Part {number}", MetadataSource.AniDB)]);
         return mock.Object;
     }
@@ -1488,7 +1484,6 @@ public class MetadataMatchingEngineTests
         mock.SetupGet(anime => anime.AnidbID).Returns(1);
         mock.SetupGet(anime => anime.Type).Returns(AnimeType.TV);
         mock.SetupGet(anime => anime.AirDate).Returns(new PartialDateOnly(dates[0].Date));
-        mock.SetupGet(anime => anime.RegularAirDate).Returns(new PartialDateOnly(dates[0].Date));
         mock.SetupGet(anime => anime.Episodes).Returns(episodes);
         mock.SetupGet(anime => anime.EpisodeCounts).Returns(new EpisodeCounts { Episodes = dates.Count });
         mock.SetupGet(anime => anime.Titles).Returns([]);
@@ -1531,8 +1526,9 @@ public class MetadataMatchingEngineTests
         mock.SetupGet(episode => episode.Type).Returns(type);
         mock.SetupGet(episode => episode.EpisodeNumber).Returns(episodeNumber);
         mock.SetupGet(episode => episode.SeasonNumber).Returns((int?)null);
-        mock.SetupGet(episode => episode.AirDate).Returns(airDate);
-        mock.SetupGet(episode => episode.RegularAirDate).Returns(regularAirDate ?? airDate);
+        // The air date is the regular broadcast; AniDB's own date is the early one when they differ.
+        mock.SetupGet(episode => episode.AirDate).Returns(regularAirDate ?? airDate);
+        mock.SetupGet(episode => episode.EarlyAirDate).Returns(regularAirDate is not null && regularAirDate != airDate ? airDate : null);
         mock.SetupGet(episode => episode.Titles).Returns(titles ?? (title is null ? [] : [Title(title, MetadataSource.AniDB)]));
         mock.SetupGet(episode => episode.ShokoEpisodes).Returns([]);
         mock.SetupGet(episode => episode.MetadataEpisodeCrossReferences).Returns([]);

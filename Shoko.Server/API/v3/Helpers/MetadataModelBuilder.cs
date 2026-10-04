@@ -178,6 +178,7 @@ public sealed class MetadataModelBuilder(
             Runtime = episode.Runtime,
             AirDate = episode.AirDate,
             AiredAt = episode.AirDateWithTime is { } airedAt ? AsUtc(airedAt) : null,
+            EarlyAirDate = episode.EarlyAirDate,
             Rating = Rating(episode.Source, episode.Rating, episode.RatingVotes),
             ShokoEpisodeIDs = episode.ShokoEpisodeIDs,
             CreatedAt = episode.CreatedAt.ToUniversalTime(),

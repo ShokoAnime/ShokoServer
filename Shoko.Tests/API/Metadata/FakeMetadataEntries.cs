@@ -232,6 +232,8 @@ public static class FakeMetadataEntries
 
         public DateTime? AirDateWithTime { get; set; }
 
+        public DateOnly? EarlyAirDate { get; set; }
+
         public ISeries Series { get; set; } = null!;
 
         public IReadOnlyList<IEpisodeOrderingInformation> Orderings { get; set; } = [];

@@ -296,6 +296,8 @@ public class Metadata_Episode : IEpisode<ISeries, IEpisode>, IMetadataStoreRow<M
 
     TimeSpan IEpisode.Runtime => TimeSpan.FromSeconds(RuntimeSeconds);
 
+    DateOnly? IEpisode.EarlyAirDate => null;
+
     ISeries IEpisode<ISeries, IEpisode>.Series => RepoFactory.Metadata_Series.GetByProviderID(Source, SeriesID) ??
         throw new NullReferenceException($"Unable to find {Source.Name} series {SeriesID} for its episode {ProviderID}");
 

@@ -19,15 +19,6 @@ public interface IAnidbAnime : ISeries<IAnidbAnime, IAnidbEpisode>
     IReadOnlyList<int> MalIDs { get; }
 
     /// <summary>
-    ///   When the anime's regular broadcast started, for matching it against
-    ///   other sources. The same as <see cref="ISeries.AirDate"/>, unless the
-    ///   first episode was shown early and its
-    ///   <see cref="IAnidbEpisode.RegularAirDate"/> falls after it, which it
-    ///   then is. <see cref="ISeries.AirDate"/> keeps AniDB's own date.
-    /// </summary>
-    PartialDateOnly? RegularAirDate { get; }
-
-    /// <summary>
     /// All tags for the AniDB anime.
     /// </summary>
     new IReadOnlyList<IAnidbTagForAnime> Tags { get; }

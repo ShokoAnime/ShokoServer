@@ -16,6 +16,8 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Providers;
 using Shoko.Server.Utilities;
 
+using AnidbRegularAirDates = Shoko.Server.Providers.AniDB.AnidbRegularAirDates;
+
 namespace Shoko.Server.Services;
 
 /// <summary>
@@ -631,23 +633,21 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     /// </returns>
     private static (int? Year, string Text) SeriesDateOf(IAnidbAnime anime)
     {
-        var secondEpisode = SafeEpisodes(anime)
+        var episodes = SafeEpisodes(anime);
+        if (AnidbRegularAirDates.RegularStartOf(anime.AirDate, episodes) is { } regular)
+            return (regular.Year, regular != anime.AirDate
+                ? $"the anime's regular broadcast from {regular}" + (anime.AirDate is { } stored ? $" (stored as {stored})" : string.Empty)
+                : $"the anime's start on {regular}");
+
+        var secondEpisode = episodes
             .Where(episode => episode.Type is EpisodeType.Episode)
             .OrderBy(episode => episode.EpisodeNumber)
             .Take(2)
             .LastOrDefault();
-        if (anime.RegularAirDate is { } regular)
-            return (regular.Year, anime.AirDate is { } stored && stored != regular
-                ? $"the anime's regular broadcast from {regular} (stored as {stored})"
-                : $"the anime's start on {regular}");
-        if (secondEpisode?.RegularAirDate is { } episodeRegular)
-            return (episodeRegular.Year, secondEpisode.AirDate is { } episodeStored && episodeStored != episodeRegular
-                ? $"the regular broadcast of episode {secondEpisode.EpisodeNumber} on {episodeRegular:yyyy-MM-dd} (stored as {episodeStored:yyyy-MM-dd})"
-                : $"episode {secondEpisode.EpisodeNumber} airing on {episodeRegular:yyyy-MM-dd}");
-        if (anime.AirDate is { } airDate)
-            return (airDate.Year, $"the anime's start on {airDate}");
         if (secondEpisode?.AirDate is { } episodeAirDate)
-            return (episodeAirDate.Year, $"episode {secondEpisode.EpisodeNumber} airing on {episodeAirDate:yyyy-MM-dd}");
+            return (episodeAirDate.Year, secondEpisode.EarlyAirDate is { } early
+                ? $"the regular broadcast of episode {secondEpisode.EpisodeNumber} on {episodeAirDate:yyyy-MM-dd} (stored as {early:yyyy-MM-dd})"
+                : $"episode {secondEpisode.EpisodeNumber} airing on {episodeAirDate:yyyy-MM-dd}");
         return (null, "the anime, undated,");
     }
 
@@ -709,7 +709,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     private static DateOnly? FirstEpisodeDateOf(IAnidbAnime anime)
         => SafeEpisodes(anime)
             .Where(episode => episode.Type is EpisodeType.Episode && episode.EpisodeNumber is 1)
-            .Select(episode => episode.RegularAirDate)
+            .Select(episode => episode.AirDate)
             .FirstOrDefault();
 
     /// <summary>
@@ -734,27 +734,20 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
         var isAnimeWide = films.Count is 1 ||
             SafeTitles(episode).Any(title => title.Value.Contains("Complete Movie", StringComparison.InvariantCultureIgnoreCase));
         (int? Year, string From) found = (null, string.Empty);
+        var animeStart = AnidbRegularAirDates.RegularStartOf(anime.AirDate, films);
         if (isAnimeWide)
         {
-            if (anime.RegularAirDate is { } regular)
-                found = (regular.Year, anime.AirDate is { } stored && stored != regular ? "the anime's regular broadcast" : "the anime's start");
-            else if (first?.RegularAirDate is { } firstRegular)
-                found = (firstRegular.Year, "its first episode's regular broadcast");
-            else if (anime.AirDate is { } stored)
-                found = (stored.Year, "the anime's stored start");
-            else if (first?.AirDate is { } firstStored)
-                found = (firstStored.Year, "its first episode's stored air date");
+            if (animeStart is { } regular)
+                found = (regular.Year, regular != anime.AirDate ? "the anime's regular broadcast" : "the anime's start");
+            else if (first?.AirDate is { } firstAirDate)
+                found = (firstAirDate.Year, first.EarlyAirDate is not null ? "its first episode's regular broadcast" : "its first episode's air date");
         }
         else
         {
-            if (episode.RegularAirDate is { } regular)
-                found = (regular.Year, episode.AirDate is { } stored && stored != regular ? "the episode's regular broadcast" : "the episode's air date");
-            else if (anime.RegularAirDate is { } animeRegular)
-                found = (animeRegular.Year, "the anime's regular broadcast");
-            else if (episode.AirDate is { } stored)
-                found = (stored.Year, "the episode's stored air date");
-            else if (anime.AirDate is { } animeStored)
-                found = (animeStored.Year, "the anime's stored start");
+            if (episode.AirDate is { } airDate)
+                found = (airDate.Year, episode.EarlyAirDate is not null ? "the episode's regular broadcast" : "the episode's air date");
+            else if (animeStart is { } regular)
+                found = (regular.Year, regular != anime.AirDate ? "the anime's regular broadcast" : "the anime's stored start");
         }
 
         var (year, from) = found;
@@ -793,9 +786,9 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     private static IReadOnlyList<DatedEpisode> DatedRegularEpisodes(IAnidbAnime anime)
         => [
             .. SafeEpisodes(anime)
-                .Where(episode => episode.Type is EpisodeType.Episode && episode.RegularAirDate is not null)
+                .Where(episode => episode.Type is EpisodeType.Episode && episode.AirDate is not null)
                 .GroupBy(episode => episode.EpisodeNumber)
-                .Select(group => new DatedEpisode(group.Key, group.First().RegularAirDate!.Value))
+                .Select(group => new DatedEpisode(group.Key, group.First().AirDate!.Value))
                 .OrderBy(episode => episode.Number),
         ];
 
@@ -1416,7 +1409,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
 
         // A season boundary sits between the neighbours: the closer air date wins,
         // so a new season's first episode anchors to the new season.
-        var anidbDate = episode.RegularAirDate;
+        var anidbDate = episode.AirDate;
         if (anidbDate is null)
             return previous.Value.Season;
 
@@ -1445,15 +1438,15 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
         if (isExcludedTitle)
             return MatchResult.Miss;
 
-        // An episode shown early is out already, so the stored date decides
+        // An episode shown early is out already, so its earliest date decides
         // what is still to come; the regular date is what the source has.
-        if (episode.AirDate is { } storedDate && storedDate > DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))
+        if ((episode.EarlyAirDate ?? episode.AirDate) is { } shownOn && shownOn > DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))
         {
             _logger.LogTrace("Skipping future episode {AnidbEpisodeID}", episode.AnidbID);
             return MatchResult.Miss;
         }
 
-        var anidbDate = episode.RegularAirDate;
+        var anidbDate = episode.AirDate;
 
         var airdateProbability = pool
             .Select(candidate => (episode: candidate, probability: EpisodeMatchingUtility.CalculateAirDateProbability(anidbDate, candidate.AirDate)))
@@ -1561,15 +1554,15 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
         var pool = context.GetPool(episode);
         var isSpecial = IsSpecialEpisode(episode, context);
 
-        // An episode shown early is out already, so the stored date decides
+        // An episode shown early is out already, so its earliest date decides
         // what is still to come; the regular date is what the source has.
-        if (episode.AirDate is { } storedDate && storedDate > DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))
+        if ((episode.EarlyAirDate ?? episode.AirDate) is { } shownOn && shownOn > DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))
         {
             _logger.LogTrace("Skipping future episode {AnidbEpisodeID}", episode.AnidbID);
             return MatchResult.Miss;
         }
 
-        var anidbDate = episode.RegularAirDate;
+        var anidbDate = episode.AirDate;
 
         var airdateProbability = pool
             .Select(candidate => (episode: candidate, probability: EpisodeMatchingUtility.CalculateAirDateProbability(anidbDate, candidate.AirDate)))

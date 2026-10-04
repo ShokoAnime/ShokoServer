@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Moq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.Models.AniDB;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.TestData;
 using Shoko.Tests.Infrastructure;
@@ -322,33 +324,78 @@ public class AnidbRegularAirDatesTests
     }
 
     [Fact]
-    public void Episode_ReadsItsRegularDate_AndKeepsItsStoredOne()
+    public void Episode_ShownEarly_IsDatedByItsRegularBroadcast()
     {
         var (_, episodes, scope) = IdInvaded();
         using (scope)
         {
-            var first = (IAnidbEpisode)episodes[0];
-            Assert.Equal(new DateOnly(2020, 1, 5), first.RegularAirDate);
-            Assert.Equal(new DateOnly(2019, 12, 15), first.AirDate);
-            Assert.Equal(new DateOnly(2020, 1, 5), ((IAnidbEpisode)episodes[1]).RegularAirDate);
-            Assert.Equal(new DateOnly(2020, 1, 13), ((IAnidbEpisode)episodes[2]).RegularAirDate);
-            Assert.Equal(new DateOnly(2019, 12, 1), ((IAnidbEpisode)episodes[^1]).RegularAirDate);
+            var first = (IEpisode)episodes[0];
+            Assert.Equal(new DateOnly(2020, 1, 5), first.AirDate);
+            Assert.Equal(new DateTime(2020, 1, 5), first.AirDateWithTime);
+            Assert.Equal(new DateOnly(2019, 12, 15), first.EarlyAirDate);
+            Assert.Equal(new DateOnly(2020, 1, 5), ((IEpisode)episodes[1]).AirDate);
+            Assert.Equal(new DateOnly(2019, 12, 15), ((IEpisode)episodes[1]).EarlyAirDate);
+
+            // The stored column keeps AniDB's own date.
+            Assert.Equal(new DateOnly(2019, 12, 15), episodes[0].GetAirDateAsDateOnly());
         }
     }
 
     [Fact]
-    public void Anime_TakesTheFirstEpisodesRegularDate()
+    public void Episode_NotShownEarly_HasNoEarlyAirDate()
+    {
+        var (_, episodes, scope) = IdInvaded();
+        using (scope)
+        {
+            var third = (IEpisode)episodes[2];
+            Assert.Equal(new DateOnly(2020, 1, 13), third.AirDate);
+            Assert.Null(third.EarlyAirDate);
+
+            var special = (IEpisode)episodes[^1];
+            Assert.Equal(new DateOnly(2019, 12, 1), special.AirDate);
+            Assert.Null(special.EarlyAirDate);
+        }
+    }
+
+    [Fact]
+    public void Episode_WithoutANote_KeepsAniDBsDate()
+    {
+        var (anime, episodes, scope) = IdInvaded();
+        using (scope)
+        {
+            anime.Description = string.Empty;
+            anime.ResetRegularAirDates();
+
+            var first = (IEpisode)episodes[0];
+            Assert.Equal(new DateOnly(2019, 12, 15), first.AirDate);
+            Assert.Equal(new DateTime(2019, 12, 15), first.AirDateWithTime);
+            Assert.Null(first.EarlyAirDate);
+        }
+    }
+
+    [Fact]
+    public void ShokoEpisode_TakesItsAnidbEpisodesDates()
+    {
+        var (_, episodes, scope) = IdInvaded();
+        using (scope)
+        {
+            var shokoEpisode = (IEpisode)new AnimeEpisode { AniDB_EpisodeID = episodes[0].EpisodeID };
+            Assert.Equal(new DateOnly(2020, 1, 5), shokoEpisode.AirDate);
+            Assert.Equal(new DateOnly(2019, 12, 15), shokoEpisode.EarlyAirDate);
+        }
+    }
+
+    [Fact]
+    public void Anime_StartsWithTheFirstEpisodesRegularDate()
     {
         var (anime, _, scope) = IdInvaded();
         using (scope)
         {
-            Assert.Equal(new PartialDateOnly(2020, 1, 5), ((IAnidbAnime)anime).RegularAirDate);
-            Assert.Equal(new PartialDateOnly(2019, 12, 15), ((IAnidbAnime)anime).AirDate);
+            var anidbAnime = (IAnidbAnime)anime;
+            Assert.Equal(new PartialDateOnly(2020, 1, 5), AnidbRegularAirDates.RegularStartOf(anidbAnime.AirDate, anidbAnime.Episodes));
 
-            // An anime already dated by the regular run keeps its date.
-            anime.AirDate = new PartialDateOnly(2020, 1, 5);
-            anime.ResetRegularAirDates();
-            Assert.Equal(new PartialDateOnly(2020, 1, 5), anime.RegularAirDate);
+            // The anime's own date stays AniDB's.
+            Assert.Equal(new PartialDateOnly(2019, 12, 15), anidbAnime.AirDate);
         }
     }
 
@@ -358,32 +405,31 @@ public class AnidbRegularAirDatesTests
         var (anime, episodes, scope) = IdInvaded();
         using (scope)
         {
-            Assert.Equal(new DateOnly(2020, 1, 5), episodes[0].RegularAirDate);
+            Assert.Equal(new DateOnly(2020, 1, 5), ((IEpisode)episodes[0]).AirDate);
 
             anime.Description = string.Empty;
-            Assert.Equal(new DateOnly(2020, 1, 5), episodes[0].RegularAirDate);
+            Assert.Equal(new DateOnly(2020, 1, 5), ((IEpisode)episodes[0]).AirDate);
 
             anime.ResetRegularAirDates();
-            Assert.Equal(new DateOnly(2019, 12, 15), episodes[0].RegularAirDate);
-            Assert.Equal(new PartialDateOnly(2019, 12, 15), anime.RegularAirDate);
+            Assert.Equal(new DateOnly(2019, 12, 15), ((IEpisode)episodes[0]).AirDate);
+            Assert.Null(((IEpisode)episodes[0]).EarlyAirDate);
         }
     }
 
     // The calendar moves an upcoming anime's date without importing it again,
-    // so the reading follows the new date at once.
+    // so the note is read again at once.
     [Fact]
-    public void Anime_FollowsANewAirDate_WithoutAnImport()
+    public void Anime_ReadsAgainOnANewAirDate_WithoutAnImport()
     {
-        var (anime, _, scope) = IdInvaded();
+        var (anime, episodes, scope) = IdInvaded();
         using (scope)
         {
-            Assert.Equal(new PartialDateOnly(2020, 1, 5), anime.RegularAirDate);
+            Assert.Equal(new DateOnly(2020, 1, 5), ((IEpisode)episodes[0]).AirDate);
 
+            anime.Description = string.Empty;
             anime.AirDate = new PartialDateOnly(2020, 4, 5);
-            Assert.Equal(new PartialDateOnly(2020, 4, 5), anime.RegularAirDate);
-
-            anime.AirDate = null;
-            Assert.Null(anime.RegularAirDate);
+            Assert.Equal(new DateOnly(2019, 12, 15), ((IEpisode)episodes[0]).AirDate);
+            Assert.Null(((IEpisode)episodes[0]).EarlyAirDate);
         }
     }
 
@@ -393,10 +439,71 @@ public class AnidbRegularAirDatesTests
         var (_, episodes, scope) = IdInvaded();
         using (scope)
         {
-            Assert.Equal(new DateOnly(2020, 1, 5), episodes[0].RegularAirDate);
+            Assert.Equal(new DateOnly(2020, 1, 5), ((IEpisode)episodes[0]).AirDate);
             episodes[0].AirDate = (int)(new DateTime(2020, 1, 4) - DateTime.UnixEpoch).TotalSeconds;
-            Assert.Equal(new DateOnly(2020, 1, 4), episodes[0].RegularAirDate);
+            Assert.Equal(new DateOnly(2020, 1, 4), ((IEpisode)episodes[0]).AirDate);
+            Assert.Null(((IEpisode)episodes[0]).EarlyAirDate);
         }
+    }
+
+    #endregion
+
+    #region Regular Start
+
+    private static IEpisode DatedEpisode(int number, DateOnly airDate, DateOnly? earlyAirDate = null, EpisodeType type = EpisodeType.Episode)
+    {
+        var mock = new Mock<IEpisode>();
+        mock.SetupGet(episode => episode.Type).Returns(type);
+        mock.SetupGet(episode => episode.EpisodeNumber).Returns(number);
+        mock.SetupGet(episode => episode.AirDate).Returns(airDate);
+        mock.SetupGet(episode => episode.EarlyAirDate).Returns(earlyAirDate);
+        return mock.Object;
+    }
+
+    [Fact]
+    public void RegularStart_OfAnEarlyFirstEpisode_IsItsRegularDate()
+        => Assert.Equal(
+            new PartialDateOnly(2020, 1, 5),
+            AnidbRegularAirDates.RegularStartOf(
+                new PartialDateOnly(2019, 12, 15),
+                [DatedEpisode(1, new(2020, 1, 5), new(2019, 12, 15)), DatedEpisode(2, new(2020, 1, 12))]
+            )
+        );
+
+    // Only the first normal episode counts, not a special numbered one.
+    [Fact]
+    public void RegularStart_WithoutAnEarlyFirstEpisode_IsTheAnimesDate()
+        => Assert.Equal(
+            new PartialDateOnly(2016, 4, 1),
+            AnidbRegularAirDates.RegularStartOf(
+                new PartialDateOnly(2016, 4, 1),
+                [
+                    DatedEpisode(1, new(2016, 4, 7), new(2016, 3, 1), EpisodeType.Special),
+                    DatedEpisode(1, new(2016, 4, 7)),
+                    DatedEpisode(2, new(2016, 4, 14), new(2016, 3, 1)),
+                ]
+            )
+        );
+
+    [Fact]
+    public void RegularStart_WithoutEpisodes_IsTheAnimesDate()
+    {
+        Assert.Equal(new PartialDateOnly(2016, 4, 7), AnidbRegularAirDates.RegularStartOf(new PartialDateOnly(2016, 4, 7), []));
+        Assert.Null(AnidbRegularAirDates.RegularStartOf(null, []));
+    }
+
+    [Fact]
+    public void RegularStart_OfAPartiallyDatedAnime_StaysPartial()
+    {
+        var start = AnidbRegularAirDates.RegularStartOf(new PartialDateOnly(2020, 1), [DatedEpisode(1, new(2020, 1, 5))]);
+        Assert.Equal(new PartialDateOnly(2020, 1), start);
+        Assert.False(start!.Value.IsComplete);
+
+        // An early first episode still dates it to the day.
+        Assert.Equal(
+            new PartialDateOnly(2020, 1, 5),
+            AnidbRegularAirDates.RegularStartOf(new PartialDateOnly(2020, 1), [DatedEpisode(1, new(2020, 1, 5), new(2019, 12, 15))])
+        );
     }
 
     #endregion

@@ -74,17 +74,26 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     bool IsHidden { get; }
 
     /// <summary>
-    /// The day the episode aired, if available. When a precise air time is
-    /// known this is the UTC calendar day of <see cref="AirDateWithTime"/>, so
-    /// the two never disagree. Broadcast schedules are served by
-    /// <c>IAiringScheduleService</c> and never change this date.
+    ///   The day of the episode's regular broadcast, if available. When a
+    ///   precise air time is known this is the UTC calendar day of
+    ///   <see cref="AirDateWithTime"/>, so the two never disagree. Broadcast
+    ///   schedules are served by <c>IAiringScheduleService</c> and never
+    ///   change this date.
     /// </summary>
     DateOnly? AirDate { get; }
 
     /// <summary>
-    ///   The precise day and time the episode aired in UTC, if available.
+    ///   The precise day and time of the episode's regular broadcast in UTC,
+    ///   if available.
     /// </summary>
     DateTime? AirDateWithTime { get; }
+
+    /// <summary>
+    ///   The day the episode was shown before its regular broadcast (at an
+    ///   event, on a stream or on one channel), when the source says so, or
+    ///   <c>null</c> otherwise.
+    /// </summary>
+    DateOnly? EarlyAirDate { get; }
 
     /// <summary>
     /// Get the series info for the episode. An episode always belongs to a

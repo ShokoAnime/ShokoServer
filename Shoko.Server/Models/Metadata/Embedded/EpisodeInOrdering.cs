@@ -124,6 +124,9 @@ public abstract class EpisodeInOrdering(IEpisode episode) : IEpisodeOrderingInfo
     public DateTime? AirDateWithTime => episode.AirDateWithTime;
 
     /// <inheritdoc />
+    public DateOnly? EarlyAirDate => episode.EarlyAirDate;
+
+    /// <inheritdoc />
     public DateTime? LastRefreshedAt => episode.LastRefreshedAt;
 
     IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings => episode.Orderings;

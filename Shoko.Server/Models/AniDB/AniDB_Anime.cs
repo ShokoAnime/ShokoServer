@@ -287,15 +287,15 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
     public void ResetReleaseStatus()
         => Volatile.Write(ref _releaseStatus, null);
 
-    private sealed record RegularAirDatesEntry(PartialDateOnly? ReadWith, IReadOnlyDictionary<int, (DateOnly Stored, DateOnly Regular)> Episodes, PartialDateOnly? AnimeDate);
+    private sealed record RegularAirDatesEntry(PartialDateOnly? ReadWith, IReadOnlyDictionary<int, (DateOnly Stored, DateOnly Regular)> Episodes);
 
     private RegularAirDatesEntry? _regularAirDates;
 
     /// <summary>
     ///   The normal episodes the note in the description moves from an early
-    ///   showing onto the regular run, by episode ID, and the anime's own
-    ///   regular date. Cached until the anime is imported again or its
-    ///   <see cref="AirDate"/> changes, as the calendar changes it.
+    ///   showing onto the regular run, by episode ID. Cached until the anime
+    ///   is imported again or its <see cref="AirDate"/> changes, as the
+    ///   calendar changes it.
     /// </summary>
     private RegularAirDatesEntry RegularAirDates
     {
@@ -320,26 +320,11 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
                 .GroupBy(tuple => tuple.Episode.EpisodeNumber)
                 .ToDictionary(group => group.Key, group => group.First().Episode.EpisodeID);
             var moved = reading.Episodes.ToDictionary(episode => byNumber[episode.EpisodeNumber], episode => (episode.Stored, episode.Regular));
-
-            // The first moved episode's regular date starts the regular run;
-            // an anime dated before it is dated by the early showing too.
-            var animeDate = airDate;
-            if (reading.Episodes is [var first, ..] && airDate is { IsComplete: true } date && date.ToDateOnly() < first.Regular)
-                animeDate = new PartialDateOnly(first.Regular);
-
-            var value = new RegularAirDatesEntry(airDate, moved, animeDate);
+            var value = new RegularAirDatesEntry(airDate, moved);
             Volatile.Write(ref _regularAirDates, value);
             return value;
         }
     }
-
-    /// <summary>
-    ///   When the anime's regular broadcast started, for matching it against
-    ///   other sources: <see cref="AirDate"/>, unless the first episode was
-    ///   shown early and its regular date falls after it.
-    /// </summary>
-    public PartialDateOnly? RegularAirDate
-        => RegularAirDates.AnimeDate;
 
     /// <summary>
     ///   The regular broadcast date the note in the description moves one of

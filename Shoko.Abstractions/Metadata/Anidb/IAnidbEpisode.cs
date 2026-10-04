@@ -1,5 +1,3 @@
-using System;
-
 namespace Shoko.Abstractions.Metadata.Anidb;
 
 /// <summary>
@@ -20,15 +18,4 @@ public interface IAnidbEpisode : IEpisode<IAnidbAnime, IAnidbEpisode>
     ///   text.
     /// </summary>
     int AnidbID { get; }
-
-    /// <summary>
-    ///   The date of the episode's regular broadcast, for matching it against
-    ///   other sources. <see cref="IEpisode.AirDate"/> keeps AniDB's own date.
-    /// </summary>
-    /// <remarks>
-    ///   The same as <see cref="IEpisode.AirDate"/>, unless the anime's
-    ///   description notes the episode was shown early (at an event, on a
-    ///   stream or on one channel) and when the regular run started.
-    /// </remarks>
-    DateOnly? RegularAirDate { get; }
 }

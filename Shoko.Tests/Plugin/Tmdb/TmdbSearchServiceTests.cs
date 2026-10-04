@@ -274,6 +274,20 @@ public sealed class TmdbSearchServiceTests : IDisposable
         );
 
     [Fact]
+    public void AShowStartsWithTheFirstEpisodesRegularBroadcast_NotItsEarlyShowing()
+    {
+        var episode = new Mock<IAnidbEpisode> { DefaultValue = DefaultValue.Empty };
+        episode.SetupGet(mock => mock.Type).Returns(EpisodeType.Episode);
+        episode.SetupGet(mock => mock.EpisodeNumber).Returns(1);
+        episode.SetupGet(mock => mock.AirDate).Returns(new DateOnly(2020, 1, 5));
+        episode.SetupGet(mock => mock.EarlyAirDate).Returns(new DateOnly(2019, 12, 15));
+        var anime = new Mock<IAnidbAnime> { DefaultValue = DefaultValue.Empty };
+        anime.SetupGet(mock => mock.Episodes).Returns([episode.Object]);
+
+        Assert.Equal(new DateOnly(2020, 1, 5), TmdbSearchService.StartOf(anime.Object));
+    }
+
+    [Fact]
     public void SeveralTiedEpisodesAiredWithTheMovieLeaveItUnplaced()
     {
         var day = new DateOnly(1990, 1, 25);
@@ -359,7 +373,6 @@ public sealed class TmdbSearchServiceTests : IDisposable
                 episode.SetupGet(mock => mock.Type).Returns(EpisodeType.Episode);
                 episode.SetupGet(mock => mock.EpisodeNumber).Returns(number);
                 episode.SetupGet(mock => mock.AirDate).Returns(airedOn.AddDays(7 * (number - 1)));
-                episode.SetupGet(mock => mock.RegularAirDate).Returns(airedOn.AddDays(7 * (number - 1)));
                 episode.SetupGet(mock => mock.Titles).Returns([Title($"Episode {number}", TitleLanguage.English, TitleType.Main)]);
                 return episode.Object;
             })
@@ -370,7 +383,6 @@ public sealed class TmdbSearchServiceTests : IDisposable
         anime.SetupGet(mock => mock.Type).Returns(type);
         anime.SetupGet(mock => mock.Restricted).Returns(restricted);
         anime.SetupGet(mock => mock.AirDate).Returns(PartialDateOnly.FromDateOnly(airedOn));
-        anime.SetupGet(mock => mock.RegularAirDate).Returns(PartialDateOnly.FromDateOnly(airedOn));
         anime.SetupGet(mock => mock.Episodes).Returns(episodes);
         anime.SetupGet(mock => mock.EpisodeCounts).Returns(new EpisodeCounts { Episodes = episodeCount });
         anime.SetupGet(mock => mock.CrossSourceIDs).Returns(crossSourceIDs ?? []);

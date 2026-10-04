@@ -141,14 +141,27 @@ public sealed partial class TmdbSearchService
     private static DateTime? AirDateOf(IAnidbAnime anime)
         => anime.AirDate?.ToDateTime();
 
+    // The first showing, early or regular, which decides whether the episode is out.
     private static DateTime? AirDateOf(IAnidbEpisode episode)
-        => episode.AirDate?.ToDateTime(TimeOnly.MinValue);
+        => (episode.EarlyAirDate ?? episode.AirDate)?.ToDateTime(TimeOnly.MinValue);
 
     private static DateTime? RegularAirDateOf(IAnidbAnime anime)
-        => anime.RegularAirDate?.ToDateTime();
+        => RegularStartOf(anime)?.ToDateTime();
+
+    /// <summary>
+    ///   When the anime's regular broadcast started: its first normal
+    ///   episode's <see cref="IEpisode.AirDate"/> when that episode was shown
+    ///   early, and the anime's own date otherwise.
+    /// </summary>
+    /// <param name="anime">The anime.</param>
+    /// <returns>The date, or <c>null</c> when neither is dated.</returns>
+    private static PartialDateOnly? RegularStartOf(IAnidbAnime anime)
+        => anime.Episodes.FirstOrDefault(episode => episode is { Type: EpisodeType.Episode, EpisodeNumber: 1 }) is { EarlyAirDate: not null, AirDate: { } regular }
+            ? new PartialDateOnly(regular)
+            : anime.AirDate;
 
     private static DateTime? RegularAirDateOf(IAnidbEpisode episode)
-        => episode.RegularAirDate?.ToDateTime(TimeOnly.MinValue);
+        => episode.AirDate?.ToDateTime(TimeOnly.MinValue);
 
     /// <summary>
     ///   The language a transcription of a title is a transcription of.
@@ -289,7 +302,7 @@ public sealed partial class TmdbSearchService
         ISet<int>? alignedShows = null
     )
     {
-        var hasFirstEpisodeDate = anime.Episodes.Any(episode => episode is { Type: EpisodeType.Episode, EpisodeNumber: 1, RegularAirDate: not null });
+        var hasFirstEpisodeDate = anime.Episodes.Any(episode => episode is { Type: EpisodeType.Episode, EpisodeNumber: 1, AirDate: not null });
         var startedOn = StartOf(anime);
         alignedShows ??= new HashSet<int>();
         var fetched = new List<MetadataSeriesSearchResult>();
@@ -339,10 +352,10 @@ public sealed partial class TmdbSearchService
     /// <returns>The date, or <c>null</c> when nothing is dated.</returns>
     internal static DateOnly? StartOf(IAnidbAnime anime)
         => anime.Episodes
-            .Where(episode => episode is { Type: EpisodeType.Episode, RegularAirDate: not null })
+            .Where(episode => episode is { Type: EpisodeType.Episode, AirDate: not null })
             .OrderBy(episode => episode.EpisodeNumber)
-            .Select(episode => episode.RegularAirDate)
-            .FirstOrDefault() ?? (anime.RegularAirDate is { IsComplete: true } regular ? regular.ToDateOnly() : null);
+            .Select(episode => episode.AirDate)
+            .FirstOrDefault() ?? (anime.AirDate is { IsComplete: true } airDate ? airDate.ToDateOnly() : null);
 
     /// <summary>
     ///   The season a date falls in: the last one begun by it, give or take
@@ -406,7 +419,7 @@ public sealed partial class TmdbSearchService
     }
 
     private static IReadOnlyList<DateOnly> AiredOn(IAnidbEpisode episode)
-        => [.. new[] { episode.AirDate, episode.RegularAirDate }.OfType<DateOnly>().Distinct()];
+        => [.. new[] { episode.EarlyAirDate, episode.AirDate }.OfType<DateOnly>().Distinct()];
 
     private static IReadOnlyList<IAnidbEpisode> FilmEpisodes(IAnidbAnime anime, TmdbHint hint)
     {

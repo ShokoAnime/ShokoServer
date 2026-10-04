@@ -313,7 +313,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     {
         get
         {
-            if (AniDB_Episode is { } anidbEpisode && anidbEpisode.GetAirDateAsDate() is { } airDate)
+            if (AniDB_Episode is { } anidbEpisode && anidbEpisode.GetRegularAirDateAsDate() is { } airDate)
                 return airDate;
 
             // Else the first date a linked episode of another source gives, the
@@ -328,6 +328,8 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
             return null;
         }
     }
+
+    DateOnly? IEpisode.EarlyAirDate => AniDB_Episode?.GetEarlyAirDate();
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => [this];
 

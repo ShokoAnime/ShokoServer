@@ -84,7 +84,7 @@ public class Episode : BaseDirectory
 
         if (aep.AniDB_Episode is { } anidb)
         {
-            var airDate = anidb.GetAirDateAsDate();
+            var airDate = anidb.GetRegularAirDateAsDate();
             var watchedDate = RepoFactory.AnimeEpisode_User.GetByUserAndEpisodeID(uid, aep.AnimeEpisodeID)?.WatchedDate;
             ep.name = anidb.EnglishTitle;
             ep.summary = anidb.Description;

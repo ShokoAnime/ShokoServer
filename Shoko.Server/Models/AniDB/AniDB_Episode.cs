@@ -112,12 +112,22 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
     public PartialDateOnly? GetAirDateAsPartialDateOnly() => AniDBExtensions.GetAniDBDateAsPartialDateOnly(AirDate);
 
     /// <summary>
-    ///   The date of the episode's regular broadcast, for matching it against
-    ///   other sources: the stored date, unless the note in the anime's
-    ///   description moves the episode from an early showing onto the regular
-    ///   run.
+    ///   When the episode was regularly broadcast: the stored date, unless the
+    ///   note in the anime's description moves the episode from an early
+    ///   showing onto the regular run.
     /// </summary>
-    public DateOnly? RegularAirDate => AniDB_Anime?.GetRegularAirDate(this) ?? GetAirDateAsDateOnly();
+    /// <returns>The date, or <c>null</c> when the episode is undated.</returns>
+    public DateTime? GetRegularAirDateAsDate()
+        => AniDB_Anime?.GetRegularAirDate(this) is { } regular ? regular.ToDateTime(TimeOnly.MinValue) : GetAirDateAsDate();
+
+    /// <summary>
+    ///   When the episode was shown before its regular broadcast: the stored
+    ///   date, when the note in the anime's description moves the episode
+    ///   onto a later regular run.
+    /// </summary>
+    /// <returns>The date, or <c>null</c> when the episode was not shown early.</returns>
+    public DateOnly? GetEarlyAirDate()
+        => AniDB_Anime?.GetRegularAirDate(this) is { } regular && GetAirDateAsDateOnly() is { } stored && stored != regular ? stored : null;
 
     public bool HasAired
     {
@@ -306,9 +316,11 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 
     int IEpisode.RatingVotes => VotesInt;
 
-    DateOnly? IEpisode.AirDate => GetAirDateAsDateOnly();
+    DateOnly? IEpisode.AirDate => GetRegularAirDateAsDate() is { } airDate ? DateOnly.FromDateTime(airDate) : null;
 
-    DateTime? IEpisode.AirDateWithTime => GetAirDateAsDate();
+    DateTime? IEpisode.AirDateWithTime => GetRegularAirDateAsDate();
+
+    DateOnly? IEpisode.EarlyAirDate => GetEarlyAirDate();
 
     IReadOnlyList<IShokoEpisode> IEpisode.ShokoEpisodes => AnimeEpisode is IShokoEpisode shokoEpisode ? [shokoEpisode] : [];
 

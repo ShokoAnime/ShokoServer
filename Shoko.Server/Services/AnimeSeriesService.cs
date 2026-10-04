@@ -318,15 +318,18 @@ public class AnimeSeriesService
             // air date, nor on the anime air date. luckily, as of 2024-07-09, no such case exists.
             if (aniEp.HasAired && airdate is not null)
             {
+                // The weekday is the regular broadcast's, not an early showing's.
+                var broadcast = aniEp.GetRegularAirDateAsDate() ?? airdate.Value;
+
                 // Only convert if we have time info
                 DateTime airdateLocal;
-                if (airdate.Value.Hour == 0 && airdate.Value.Minute == 0 && airdate.Value.Second == 0)
+                if (broadcast.Hour == 0 && broadcast.Minute == 0 && broadcast.Second == 0)
                 {
-                    airdateLocal = airdate.Value;
+                    airdateLocal = broadcast;
                 }
                 else
                 {
-                    airdateLocal = DateTime.SpecifyKind(airdate.Value, DateTimeKind.Unspecified);
+                    airdateLocal = DateTime.SpecifyKind(broadcast, DateTimeKind.Unspecified);
                     airdateLocal = TimeZoneInfo.ConvertTime(airdateLocal,
                         TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time"), TimeZoneInfo.Local);
                 }

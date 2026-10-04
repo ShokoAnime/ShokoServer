@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Enums;
 
 namespace Shoko.Server.Providers.AniDB;
 
@@ -384,6 +386,23 @@ public static partial class AnidbRegularAirDates
         var number = (long)date.DayNumber + days;
         return number >= DateOnly.MinValue.DayNumber && number <= DateOnly.MaxValue.DayNumber ? DateOnly.FromDayNumber((int)number) : null;
     }
+
+    #endregion
+
+    #region Regular Start
+
+    /// <summary>
+    ///   When an anime's regular broadcast started, for matching it against
+    ///   other sources: its first normal episode's <see cref="IEpisode.AirDate"/>
+    ///   when that episode was shown early, and the anime's own date otherwise.
+    /// </summary>
+    /// <param name="airDate">The anime's own air date, partial or not.</param>
+    /// <param name="episodes">The anime's episodes.</param>
+    /// <returns>The date, or <c>null</c> when neither is dated.</returns>
+    public static PartialDateOnly? RegularStartOf(PartialDateOnly? airDate, IEnumerable<IEpisode> episodes)
+        => episodes.FirstOrDefault(episode => episode is { Type: EpisodeType.Episode, EpisodeNumber: 1 }) is { EarlyAirDate: not null, AirDate: { } regular }
+            ? new PartialDateOnly(regular)
+            : airDate;
 
     #endregion
 

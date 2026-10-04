@@ -279,14 +279,21 @@ public class MetadataEpisode : MetadataEntry
     public TimeSpan Runtime { get; init; }
 
     /// <summary>
-    /// The day the episode first aired, if known.
+    /// The day of the episode's regular broadcast, if known.
     /// </summary>
     public DateOnly? AirDate { get; init; }
 
     /// <summary>
-    /// When the episode first aired, with the time of day, if known.
+    /// When the episode's regular broadcast was, with the time of day, if
+    /// known.
     /// </summary>
     public DateTime? AiredAt { get; init; }
+
+    /// <summary>
+    /// The day the episode was shown before its regular broadcast (at an
+    /// event, on a stream or on one channel), if the source says so.
+    /// </summary>
+    public DateOnly? EarlyAirDate { get; init; }
 
     /// <summary>
     /// The rating the source's users give the episode, on a scale of 1 to 10,
