@@ -9,8 +9,10 @@ using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models;
 using Shoko.Server.Models.Shoko;
+using Shoko.Server.Services;
 using Shoko.Server.Utilities;
 
+using AnimeType = Shoko.Abstractions.Metadata.Enums.AnimeType;
 using EpisodeType = Shoko.Abstractions.Metadata.Enums.EpisodeType;
 
 namespace Shoko.Server.Repositories.Cached;
@@ -291,9 +293,7 @@ WHERE AE.IsHidden = 0
                     .SetParameter("currentTime", currentTime)
                     .List<int>();
 
-            return ids
-                .Select(GetByID)
-                .WhereNotNull()
+            return WithoutCoveredParts(ids.Select(GetByID).WhereNotNull())
                 .OrderBy(e => e.AniDB_Episode?.AnimeID)
                 .ThenBy(e => e.AniDB_Episode?.EpisodeType)
                 .ThenBy(e => e.AniDB_Episode?.EpisodeNumber);
@@ -321,12 +321,42 @@ WHERE AE.IsHidden = 0
             .ToHashSet();
 
         // Apply the shared missing-episode predicate
-        return episodes
+        var missing = episodes
             .Where(e => !episodeIDsWithFiles.Contains(e.AniDB_EpisodeID) &&
-                e.IsMissingEpisode(groupStatusesByAnime.GetValueOrDefault(anidbEpisodes[e.AniDB_EpisodeID].AnimeID) ?? []))
+                e.IsMissingEpisode(groupStatusesByAnime.GetValueOrDefault(anidbEpisodes[e.AniDB_EpisodeID].AnimeID) ?? []));
+        return WithoutCoveredParts(missing)
             .OrderBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.AnimeID)
             .ThenBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.EpisodeType)
             .ThenBy(e => anidbEpisodes[e.AniDB_EpisodeID]?.EpisodeNumber);
+    }
+
+    /// <summary>
+    ///   Leaves out the missing episodes of a movie or OVA that another
+    ///   layout of the same work covers, such as the parts of a split film
+    ///   when its <c>Complete Movie</c> episode has a file, as the series'
+    ///   missing episode counts already do. An episode has a file when a file
+    ///   is linked to it, as for the rest of the missing list.
+    /// </summary>
+    /// <param name="missing">The missing episodes.</param>
+    /// <returns>The missing episodes no available layout covers.</returns>
+    private static List<AnimeEpisode> WithoutCoveredParts(IEnumerable<AnimeEpisode> missing)
+    {
+        var list = missing.ToList();
+        var covered = new HashSet<int>();
+        foreach (var series in list.Select(episode => episode.AnimeSeries).WhereNotNull().DistinctBy(series => series.AnimeSeriesID))
+        {
+            if (series.AniDB_Anime?.AnimeType is not { } animeType || animeType is not (AnimeType.OVA or AnimeType.Movie))
+                continue;
+
+            var layouts = new AnimeSeriesService.EpisodeList(animeType);
+            foreach (var episode in series.AllAnimeEpisodes.Where(episode => episode.EpisodeType is EpisodeType.Episode))
+                layouts.Add(episode, RepoFactory.CrossRef_File_Episode.GetByEpisodeID(episode.AniDB_EpisodeID).Count > 0);
+
+            foreach (var layout in layouts.Where(layout => layout.Available))
+                covered.UnionWith(layout.Select(stat => stat.Episode.AnimeEpisodeID));
+        }
+
+        return covered.Count is 0 ? list : list.Where(episode => !covered.Contains(episode.AnimeEpisodeID)).ToList();
     }
 
     public IReadOnlyList<AnimeEpisode> GetAllWatchedEpisodes(int userid, DateTime? after_date)
