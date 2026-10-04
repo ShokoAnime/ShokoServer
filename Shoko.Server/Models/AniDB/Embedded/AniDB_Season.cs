@@ -30,6 +30,10 @@ public class AniDB_Season(IAnidbAnime anime, EpisodeType episodeType, int season
 
     IReadOnlyList<IAnidbEpisode> ISeason<IAnidbAnime, IAnidbEpisode>.Episodes => [.. Episodes];
 
+    ISeries ISeason.Series => ((ISeason<IAnidbAnime, IAnidbEpisode>)this).Series;
+
+    IReadOnlyList<IEpisode> ISeason.Episodes => ((ISeason<IAnidbAnime, IAnidbEpisode>)this).Episodes;
+
     IOrdering<IAnidbAnime, IAnidbEpisode> ISeason<IAnidbAnime, IAnidbEpisode>.Ordering => OrderingLookup.DefaultFor<IAnidbAnime, IAnidbEpisode>(anime);
 
     /// <summary>

@@ -273,6 +273,16 @@ public class AniDB_Episode : IEpisode, IAnidbEpisode, IInlineTextSource
 
     IEpisodeOrderingInformation<IAnidbAnime, IAnidbEpisode> IEpisode<IAnidbAnime, IAnidbEpisode>.CurrentOrdering => OrderingLookup.DefaultPlaceOf<IAnidbAnime, IAnidbEpisode>(this);
 
+    ISeries IEpisode.Series => Series;
+
+    ISeason? IEpisode.Season => ((IEpisode<IAnidbAnime, IAnidbEpisode>)this).Season;
+
+    IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings => ((IEpisode<IAnidbAnime, IAnidbEpisode>)this).Orderings;
+
+    IEpisodeOrderingInformation? IEpisode.PreferredOrdering => ((IEpisode<IAnidbAnime, IAnidbEpisode>)this).PreferredOrdering;
+
+    IEpisodeOrderingInformation IEpisode.CurrentOrdering => ((IEpisode<IAnidbAnime, IAnidbEpisode>)this).CurrentOrdering;
+
     IReadOnlyList<IMetadataEpisodeCrossReference> IEpisode.MetadataEpisodeCrossReferences =>
         ISystemService.StaticServices.GetService<IMetadataService>()?.GetEpisodeCrossReferences(EpisodeID) ?? [];
 

@@ -24,6 +24,4 @@ public interface IMovieCollection<out TMovie> : IMovieCollection
     ///   The stored movies in the collection.
     /// </summary>
     new IReadOnlyList<TMovie> Movies { get; }
-
-    IReadOnlyList<IMovie> IMovieCollection.Movies { get => Movies; }
 }

@@ -99,6 +99,8 @@ public class AniDB_Tag : IAnidbTag
     // Read outside any anime, so it has no weight there.
     int? ITag.Weight => null;
 
+    bool ITag.IsSpoiler => ((IAnidbTag)this).IsSpoiler;
+
     #endregion
 
     #region IAnidbTag Implementation

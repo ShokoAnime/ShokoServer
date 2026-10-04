@@ -132,6 +132,8 @@ public sealed class StoredOrdering<TSeries, TEpisode>(Metadata_Ordering row, Met
 
     ISeries IOrdering.Series => _presentedSeries ??= new(Series, this);
 
+    IReadOnlyList<ISeason> IOrdering.Seasons => Seasons;
+
     IReadOnlyList<IEpisode> IOrdering.Episodes
         => _presentedEpisodes ??= [.. Placement.ViewingOrder.Select(episodeID => PlacesOf(episodeID).FirstOrDefault()).OfType<IEpisode>()];
 

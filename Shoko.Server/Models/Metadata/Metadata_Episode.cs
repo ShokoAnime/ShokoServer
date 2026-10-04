@@ -278,6 +278,16 @@ public class Metadata_Episode : IEpisode<ISeries, IEpisode>, IMetadataStoreRow<M
 
     IEpisodeOrderingInformation<ISeries, IEpisode> IEpisode<ISeries, IEpisode>.CurrentOrdering => OrderingLookup.DefaultPlaceOf<ISeries, IEpisode>(this);
 
+    ISeries IEpisode.Series => ((IEpisode<ISeries, IEpisode>)this).Series;
+
+    ISeason? IEpisode.Season => ((IEpisode<ISeries, IEpisode>)this).Season;
+
+    IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings => ((IEpisode<ISeries, IEpisode>)this).Orderings;
+
+    IEpisodeOrderingInformation? IEpisode.PreferredOrdering => ((IEpisode<ISeries, IEpisode>)this).PreferredOrdering;
+
+    IEpisodeOrderingInformation IEpisode.CurrentOrdering => ((IEpisode<ISeries, IEpisode>)this).CurrentOrdering;
+
     MetadataGuid IEpisode.SeriesID => new(Source, MetadataEntityType.Series, SeriesID);
 
     MetadataGuid? IEpisode.SeasonID => string.IsNullOrEmpty(SeasonID) ? null : new(Source, MetadataEntityType.Season, SeasonID);

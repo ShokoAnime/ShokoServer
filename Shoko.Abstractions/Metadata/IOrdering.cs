@@ -137,14 +137,10 @@ public interface IOrdering<out TSeries, out TEpisode> : IOrdering
     /// <exception cref="NullReferenceException">The series is missing.</exception>
     new TSeries Series { get; }
 
-    ISeries IOrdering.Series { get => Series; }
-
     /// <summary>
     ///   The ordering's groups in viewing order, each read as a season.
     /// </summary>
     new IReadOnlyList<ISeason<TSeries, TEpisode>> Seasons { get; }
-
-    IReadOnlyList<ISeason> IOrdering.Seasons { get => Seasons; }
 
     /// <summary>
     ///   The ordering's episodes in viewing order, each once: a placed
@@ -152,6 +148,4 @@ public interface IOrdering<out TSeries, out TEpisode> : IOrdering
     ///   each as its source keeps it.
     /// </summary>
     new IReadOnlyList<TEpisode> Episodes { get; }
-
-    IReadOnlyList<IEpisode> IOrdering.Episodes { get => Episodes; }
 }

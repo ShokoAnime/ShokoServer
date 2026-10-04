@@ -135,19 +135,13 @@ public interface IEpisodeOrderingInformation<out TSeries, out TEpisode> : IEpiso
     /// <exception cref="NullReferenceException">The series is missing.</exception>
     new TSeries Series { get; }
 
-    ISeries IEpisodeOrderingInformation.Series { get => Series; }
-
     /// <summary>
     ///   The group the episode is in, if it is available.
     /// </summary>
     new ISeason<TSeries, TEpisode>? Season { get; }
 
-    ISeason? IEpisodeOrderingInformation.Season { get => Season; }
-
     /// <summary>
     ///   The episode, as its source keeps it.
     /// </summary>
     new TEpisode Episode { get; }
-
-    IEpisode IEpisodeOrderingInformation.Episode { get => Episode; }
 }

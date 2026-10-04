@@ -117,16 +117,12 @@ public interface ISeason<out TSeries, out TEpisode> : ISeason
     /// <exception cref="NullReferenceException">The series is missing.</exception>
     new TSeries Series { get; }
 
-    ISeries ISeason.Series { get => Series; }
-
     /// <summary>
     ///   The season's episodes. For a regular group of an ordering, only the
     ///   episodes at home there, placed specials left out. Each as its source
     ///   keeps it.
     /// </summary>
     new IReadOnlyList<TEpisode> Episodes { get; }
-
-    IReadOnlyList<IEpisode> ISeason.Episodes { get => Episodes; }
 
     /// <summary>
     ///   The ordering the season is a group of, see

@@ -149,20 +149,14 @@ public interface IMovie<out TMovie> : IMovie
     /// </summary>
     new IReadOnlyList<ISuggestedMetadata<TMovie, IMovie>> Suggestions { get; }
 
-    IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> IMovie.Suggestions { get => Suggestions; }
-
     /// <summary>
     ///   The movies in the collection that suggest this one.
     /// </summary>
     new IReadOnlyList<ISuggestedMetadata<TMovie, IMovie>> SuggestedBy { get; }
-
-    IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> IMovie.SuggestedBy { get => SuggestedBy; }
 
     /// <summary>
     ///   The movie collection named by <see cref="IMovie.CollectionID"/>,
     ///   when it is stored.
     /// </summary>
     new IMovieCollection<TMovie>? Collection { get; }
-
-    IMovieCollection? IMovie.Collection { get => Collection; }
 }

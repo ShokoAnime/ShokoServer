@@ -35,8 +35,6 @@ public interface IAnidbTag : ITag, IWithUpdateDate
     /// </summary>
     new bool IsSpoiler { get; }
 
-    bool ITag.IsSpoiler { get => IsSpoiler; }
-
     /// <summary>
     /// The parent tag, if any.
     /// </summary>
@@ -67,8 +65,6 @@ public interface IAnidbTagForAnime : IAnidbTag
     /// How relevant is the tag is to the anime, or if it's weightless.
     /// </summary>
     new int Weight { get; }
-
-    int? ITag.Weight { get => Weight; }
 
     /// <summary>
     /// Indicates the tag is considered a spoiler for that particular anime

@@ -651,6 +651,20 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
 
     IOrdering<IAnidbAnime, IAnidbEpisode> ISeries<IAnidbAnime, IAnidbEpisode>.CurrentOrdering => OrderingLookup.DefaultFor<IAnidbAnime, IAnidbEpisode>(this);
 
+    IReadOnlyList<ISeason> ISeries.Seasons => ((ISeries<IAnidbAnime, IAnidbEpisode>)this).Seasons;
+
+    IReadOnlyList<IEpisode> ISeries.Episodes => ((ISeries<IAnidbAnime, IAnidbEpisode>)this).Episodes;
+
+    IReadOnlyList<IOrdering> ISeries.Orderings => ((ISeries<IAnidbAnime, IAnidbEpisode>)this).Orderings;
+
+    IOrdering ISeries.PreferredOrdering => ((ISeries<IAnidbAnime, IAnidbEpisode>)this).PreferredOrdering;
+
+    IOrdering ISeries.CurrentOrdering => ((ISeries<IAnidbAnime, IAnidbEpisode>)this).CurrentOrdering;
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions => ((ISeries<IAnidbAnime, IAnidbEpisode>)this).Suggestions;
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy => ((ISeries<IAnidbAnime, IAnidbEpisode>)this).SuggestedBy;
+
     IReadOnlyList<IMetadataSeriesCrossReference> ISeries.MetadataSeriesCrossReferences =>
         ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeriesCrossReferences(AnimeID) ?? [];
 
@@ -744,6 +758,8 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
         .Where(tuple => tuple.tag is not null)
         .Select(tuple => new AniDB_Anime_Tag_Abstract(tuple.tag, tuple.xref))
         .ToList();
+
+    IReadOnlyList<ITag> IWithTags.Tags => ((IAnidbAnime)this).Tags;
 
     IReadOnlyList<IAnidbReleaseGroupStatus> IAnidbAnime.ReleaseGroupStatuses => ReleaseGroupStatuses;
 

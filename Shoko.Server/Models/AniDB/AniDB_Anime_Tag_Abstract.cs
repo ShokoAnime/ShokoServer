@@ -38,6 +38,8 @@ public class AniDB_Anime_Tag_Abstract(AniDB_Tag tag, AniDB_Anime_Tag xref) : IAn
     // AniDB marks no tag as adult-only.
     bool ITag.IsRestricted => false;
 
+    int? ITag.Weight => ((IAnidbTagForAnime)this).Weight;
+
     #endregion
 
     #region IAnidbTag Implementation

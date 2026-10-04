@@ -173,15 +173,11 @@ public interface IEpisode<out TSeries, out TEpisode> : IEpisode
     /// <exception cref="NullReferenceException">The series is missing.</exception>
     new TSeries Series { get; }
 
-    ISeries IEpisode.Series { get => Series; }
-
     /// <summary>
     ///   The season the episode belongs to, or <c>null</c> when it is in none
     ///   or the season is not available.
     /// </summary>
     new ISeason<TSeries, TEpisode>? Season { get; }
-
-    ISeason? IEpisode.Season { get => Season; }
 
     /// <summary>
     ///   Every place the episode has in its series' orderings: its place in
@@ -190,21 +186,15 @@ public interface IEpisode<out TSeries, out TEpisode> : IEpisode
     /// </summary>
     new IReadOnlyList<IEpisodeOrderingInformation<TSeries, TEpisode>> Orderings { get; }
 
-    IReadOnlyList<IEpisodeOrderingInformation> IEpisode.Orderings { get => Orderings; }
-
     /// <summary>
     ///   The episode's first place in the ordering chosen for its series, or
     ///   <c>null</c> when that ordering leaves it out.
     /// </summary>
     new IEpisodeOrderingInformation<TSeries, TEpisode>? PreferredOrdering { get; }
 
-    IEpisodeOrderingInformation? IEpisode.PreferredOrdering { get => PreferredOrdering; }
-
     /// <summary>
     ///   The place the episode is presented in. A source's own episode
     ///   answers with its place in the default ordering.
     /// </summary>
     new IEpisodeOrderingInformation<TSeries, TEpisode> CurrentOrdering { get; }
-
-    IEpisodeOrderingInformation IEpisode.CurrentOrdering { get => CurrentOrdering; }
 }

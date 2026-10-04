@@ -296,6 +296,20 @@ public class Metadata_Series : ISeries<ISeries, IEpisode>, IMetadataStoreRow<Met
 
     IOrdering<ISeries, IEpisode> ISeries<ISeries, IEpisode>.CurrentOrdering => OrderingLookup.DefaultFor<ISeries, IEpisode>(this);
 
+    IReadOnlyList<ISeason> ISeries.Seasons => ((ISeries<ISeries, IEpisode>)this).Seasons;
+
+    IReadOnlyList<IEpisode> ISeries.Episodes => ((ISeries<ISeries, IEpisode>)this).Episodes;
+
+    IReadOnlyList<IOrdering> ISeries.Orderings => ((ISeries<ISeries, IEpisode>)this).Orderings;
+
+    IOrdering ISeries.PreferredOrdering => ((ISeries<ISeries, IEpisode>)this).PreferredOrdering;
+
+    IOrdering ISeries.CurrentOrdering => ((ISeries<ISeries, IEpisode>)this).CurrentOrdering;
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions => ((ISeries<ISeries, IEpisode>)this).Suggestions;
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy => ((ISeries<ISeries, IEpisode>)this).SuggestedBy;
+
     IReadOnlyList<int> ISeries.ShokoSeriesIDs => [.. ((ISeries)this).ShokoSeries.Select(series => series.LocalID)];
 
     bool ISeries.Restricted => IsRestricted;

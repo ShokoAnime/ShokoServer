@@ -212,14 +212,10 @@ public interface ISeries<out TSeries, out TEpisode> : ISeries
     /// </summary>
     new IReadOnlyList<ISeason<TSeries, TEpisode>> Seasons { get; }
 
-    IReadOnlyList<ISeason> ISeries.Seasons { get => Seasons; }
-
     /// <summary>
     ///   All known episodes for the series.
     /// </summary>
     new IReadOnlyList<TEpisode> Episodes { get; }
-
-    IReadOnlyList<IEpisode> ISeries.Episodes { get => Episodes; }
 
     /// <summary>
     ///   Every ordering of the series: the default one, made from its
@@ -227,14 +223,10 @@ public interface ISeries<out TSeries, out TEpisode> : ISeries
     /// </summary>
     new IReadOnlyList<IOrdering<TSeries, TEpisode>> Orderings { get; }
 
-    IReadOnlyList<IOrdering> ISeries.Orderings { get => Orderings; }
-
     /// <summary>
     ///   The ordering chosen for the series, or the default one when none is.
     /// </summary>
     new IOrdering<TSeries, TEpisode> PreferredOrdering { get; }
-
-    IOrdering ISeries.PreferredOrdering { get => PreferredOrdering; }
 
     /// <summary>
     ///   The ordering the series is presented in. A source's own series
@@ -242,20 +234,14 @@ public interface ISeries<out TSeries, out TEpisode> : ISeries
     /// </summary>
     new IOrdering<TSeries, TEpisode> CurrentOrdering { get; }
 
-    IOrdering ISeries.CurrentOrdering { get => CurrentOrdering; }
-
     /// <summary>
     ///   The series a provider's users suggest to someone looking at this
     ///   one, best first within each source, with this series as the base.
     /// </summary>
     new IReadOnlyList<ISuggestedMetadata<TSeries, ISeries>> Suggestions { get; }
 
-    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions { get => Suggestions; }
-
     /// <summary>
     ///   The series in the collection that suggest this one.
     /// </summary>
     new IReadOnlyList<ISuggestedMetadata<TSeries, ISeries>> SuggestedBy { get; }
-
-    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy { get => SuggestedBy; }
 }

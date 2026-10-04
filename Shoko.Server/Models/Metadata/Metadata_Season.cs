@@ -180,6 +180,10 @@ public class Metadata_Season : ISeason<ISeries, IEpisode>, IMetadataStoreRow<Met
 
     IReadOnlyList<IEpisode> ISeason<ISeries, IEpisode>.Episodes => StoredEpisodes;
 
+    ISeries ISeason.Series => ((ISeason<ISeries, IEpisode>)this).Series;
+
+    IReadOnlyList<IEpisode> ISeason.Episodes => ((ISeason<ISeries, IEpisode>)this).Episodes;
+
     IOrdering<ISeries, IEpisode> ISeason<ISeries, IEpisode>.Ordering => OrderingLookup.DefaultFor<ISeries, IEpisode>(((ISeason<ISeries, IEpisode>)this).Series);
 
     IReadOnlyList<IMetadataSeasonCrossReference> ISeason.MetadataSeasonCrossReferences

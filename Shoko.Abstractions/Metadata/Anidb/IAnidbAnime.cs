@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Shoko.Abstractions.Metadata.Containers;
 
 namespace Shoko.Abstractions.Metadata.Anidb;
 
@@ -32,8 +31,6 @@ public interface IAnidbAnime : ISeries<IAnidbAnime, IAnidbEpisode>
     /// All tags for the AniDB anime.
     /// </summary>
     new IReadOnlyList<IAnidbTagForAnime> Tags { get; }
-
-    IReadOnlyList<ITag> IWithTags.Tags { get => Tags; }
 
     /// <summary>
     ///   All release group statuses for the AniDB anime.

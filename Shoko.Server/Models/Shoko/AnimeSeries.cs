@@ -442,6 +442,20 @@ public class AnimeSeries : IShokoSeries
 
     IOrdering<IShokoSeries, IShokoEpisode> ISeries<IShokoSeries, IShokoEpisode>.CurrentOrdering => OrderingLookup.DefaultFor<IShokoSeries, IShokoEpisode>(this);
 
+    IReadOnlyList<ISeason> ISeries.Seasons => ((ISeries<IShokoSeries, IShokoEpisode>)this).Seasons;
+
+    IReadOnlyList<IEpisode> ISeries.Episodes => ((ISeries<IShokoSeries, IShokoEpisode>)this).Episodes;
+
+    IReadOnlyList<IOrdering> ISeries.Orderings => ((ISeries<IShokoSeries, IShokoEpisode>)this).Orderings;
+
+    IOrdering ISeries.PreferredOrdering => ((ISeries<IShokoSeries, IShokoEpisode>)this).PreferredOrdering;
+
+    IOrdering ISeries.CurrentOrdering => ((ISeries<IShokoSeries, IShokoEpisode>)this).CurrentOrdering;
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.Suggestions => ((ISeries<IShokoSeries, IShokoEpisode>)this).Suggestions;
+
+    IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> ISeries.SuggestedBy => ((ISeries<IShokoSeries, IShokoEpisode>)this).SuggestedBy;
+
     IReadOnlyList<IMetadataSeriesCrossReference> ISeries.MetadataSeriesCrossReferences
         => ISystemService.StaticServices.GetService<IMetadataService>()?.GetSeriesCrossReferences(AniDB_ID, null) ?? [];
 

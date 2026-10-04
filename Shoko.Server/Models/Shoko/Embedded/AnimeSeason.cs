@@ -40,6 +40,10 @@ public class AnimeSeason(IShokoSeries series, EpisodeType episodeType, int seaso
 
     IReadOnlyList<IShokoEpisode> ISeason<IShokoSeries, IShokoEpisode>.Episodes => [.. Episodes];
 
+    ISeries ISeason.Series => ((ISeason<IShokoSeries, IShokoEpisode>)this).Series;
+
+    IReadOnlyList<IEpisode> ISeason.Episodes => ((ISeason<IShokoSeries, IShokoEpisode>)this).Episodes;
+
     IOrdering<IShokoSeries, IShokoEpisode> ISeason<IShokoSeries, IShokoEpisode>.Ordering => OrderingLookup.DefaultFor<IShokoSeries, IShokoEpisode>(series);
 
     /// <summary>
