@@ -91,7 +91,7 @@ public class MetadataProviderControllerTests
             Images.Setup(i => i.GetImagesForEntity(It.IsAny<Abstractions.Metadata.Containers.IWithImages>(), It.IsAny<Abstractions.Metadata.Image.Options.ImageFilteringOptions?>())).Returns([]);
         }
 
-        public MetadataProviderInfo Register(bool lookup = true, bool enabled = true, bool autoLinker = true, bool linksSeries = true)
+        public MetadataProviderInfo Register(bool lookup = true, bool enabled = true, bool autoLinker = true, bool linksSeries = true, PackageImageInfo? icon = null)
         {
             IReadOnlySet<MetadataEntityType> linkable = linksSeries
                 ? new HashSet<MetadataEntityType> { MetadataEntityType.Series, MetadataEntityType.Episode }
@@ -114,6 +114,7 @@ public class MetadataProviderControllerTests
                 AvailableEntityTypes = new HashSet<MetadataEntityType> { MetadataEntityType.Series, MetadataEntityType.Episode },
                 EnabledEntityTypes = enabled ? new HashSet<MetadataEntityType> { MetadataEntityType.Series, MetadataEntityType.Episode } : new HashSet<MetadataEntityType>(),
                 IsAutoLinker = autoLinker,
+                Icon = icon,
             };
             Registered.Add(info);
             return info;
@@ -246,6 +247,49 @@ public class MetadataProviderControllerTests
         fixture.Register();
 
         Assert.IsType<NotFoundObjectResult>(fixture.Controller().GetSourceIcon(Source));
+    }
+
+    [Fact]
+    public void AProviderIconIsItsOwnElseItsSources()
+    {
+        var fixture = new Fixture();
+        var own = Path.GetTempFileName();
+        var source = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(own, "<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"own\"/>");
+            File.WriteAllBytes(source, [0x89, 0x50, 0x4E, 0x47]);
+            var withIcon = fixture.Register(icon: Icon(own, "image/svg+xml"));
+            var withoutIcon = fixture.Register();
+            fixture.Providers.Setup(p => p.GetSourceIcon(Source)).Returns(Icon(source, "image/png"));
+            var controller = fixture.Controller();
+
+            var ownResult = Assert.IsType<FileContentResult>(controller.GetProviderIcon(withIcon.ID));
+            var sourceResult = Assert.IsType<FileContentResult>(fixture.Controller().GetProviderIcon(withoutIcon.ID));
+
+            Assert.Equal(("image/svg+xml", "image/png"), (ownResult.ContentType, sourceResult.ContentType));
+            Assert.Equal(File.ReadAllBytes(own), ownResult.FileContents);
+            Assert.Equal(File.ReadAllBytes(source), sourceResult.FileContents);
+            Assert.NotNull(ownResult.EntityTag);
+            var headers = controller.Response.Headers;
+            Assert.Equal(("nosniff", "sandbox"), (headers.XContentTypeOptions.ToString(), headers.ContentSecurityPolicy.ToString()));
+            Assert.StartsWith("private", headers.CacheControl.ToString());
+        }
+        finally
+        {
+            File.Delete(own);
+            File.Delete(source);
+        }
+    }
+
+    [Fact]
+    public void AProviderWithoutAnIconOrAnUnknownOneAnswersNotFound()
+    {
+        var fixture = new Fixture();
+        var info = fixture.Register();
+
+        Assert.IsType<NotFoundObjectResult>(fixture.Controller().GetProviderIcon(info.ID));
+        Assert.IsType<NotFoundObjectResult>(fixture.Controller().GetProviderIcon(Guid.NewGuid()));
     }
 
     [Fact]

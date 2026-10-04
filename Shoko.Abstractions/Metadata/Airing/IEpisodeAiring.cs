@@ -14,13 +14,15 @@ namespace Shoko.Abstractions.Metadata.Airing;
 ///   one provider episode is linked to two AniDB episodes, the same stored
 ///   airing comes back twice, with a different
 ///   <see cref="AnidbEpisode"/> each time. Estimates are views too, and are
-///   never stored.
+///   never stored. So is a date-only entry, which a read only returns when it
+///   asks for one, and which has no schedule, provider, channel or time.
 /// </remarks>
 public interface IEpisodeAiring
 {
     /// <summary>
     ///   The ID of the airing, derived from the schedule ID and the airing key.
-    ///   Estimates get one too.
+    ///   Estimates get one too, and a date-only entry one derived from its
+    ///   episode.
     /// </summary>
     Guid ID { get; }
 
@@ -31,21 +33,35 @@ public interface IEpisodeAiring
     string Key { get; }
 
     /// <summary>
-    ///   The schedule the airing belongs to. Estimates belong to a schedule
-    ///   too.
+    ///   The schedule the airing belongs to, or <c>null</c> for a date-only
+    ///   entry. Estimates belong to a schedule too.
     /// </summary>
-    IAiringSchedule Schedule { get; }
+    IAiringSchedule? Schedule { get; }
 
     /// <summary>
-    ///   The ID of the provider that owns the airing.
+    ///   The ID of the provider that owns the airing, or <c>null</c> for a
+    ///   date-only entry.
     /// </summary>
-    Guid ProviderID { get; }
+    Guid? ProviderID { get; }
 
     /// <summary>
     ///   The name of the provider that owns the airing, kept after the plugin
-    ///   is uninstalled.
+    ///   is uninstalled, or <c>null</c> for a date-only entry.
     /// </summary>
-    string ProviderName { get; }
+    string? ProviderName { get; }
+
+    /// <summary>
+    ///   Whether this is a date-only entry: an AniDB episode known only by its
+    ///   air date, with no airing behind it. Its date is
+    ///   <see cref="AirDate"/>, and it has no time.
+    /// </summary>
+    bool IsDateOnly { get; }
+
+    /// <summary>
+    ///   The AniDB air date of a date-only entry, a calendar date in no
+    ///   particular time zone, or <c>null</c> for an airing with a time.
+    /// </summary>
+    DateOnly? AirDate { get; }
 
     /// <summary>
     ///   The episode the airing is for.

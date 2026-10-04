@@ -153,6 +153,21 @@ public static class AiringScheduleUtility
     }
 
     /// <summary>
+    /// Derive the public ID of a date-only entry from its key. It belongs to no
+    /// schedule, so the key alone names it.
+    /// </summary>
+    /// <param name="key">The entry's key, derived from its episode.</param>
+    /// <returns>The entry's public ID.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="key"/> is blank.</exception>
+    public static Guid GetDateOnlyAiringID(string key)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        return UuidUtility.GetV5($"DateOnly,Key={key}", AiringIdentifierNamespace);
+    }
+
+    /// <summary>
     /// Derive the ID of a channel from its type and its normalised name,
     /// without registering it, so lookups and filters can name a channel that
     /// may not exist yet.

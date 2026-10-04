@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -27,6 +28,7 @@ using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Settings;
 
 using AiringScheduleDto = Shoko.Server.API.v3.Models.Airing.AiringSchedule;
+using ConfigurationInfoDto = Shoko.Server.API.v3.Models.Configuration.ConfigurationInfo;
 using EpisodeAiringDto = Shoko.Server.API.v3.Models.Airing.EpisodeAiring;
 
 #nullable enable
@@ -49,6 +51,7 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="anidbAnimes">AniDB anime repository.</param>
 /// <param name="animeSeries">Shoko series repository.</param>
 /// <param name="animeEpisodes">Shoko episode repository.</param>
+/// <param name="applicationPaths">Finds the providers' icons on disk.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
@@ -60,7 +63,8 @@ public class AiringScheduleController(
     ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider,
     AniDB_AnimeRepository anidbAnimes,
     AnimeSeriesRepository animeSeries,
-    AnimeEpisodeRepository animeEpisodes
+    AnimeEpisodeRepository animeEpisodes,
+    IApplicationPaths applicationPaths
 ) : BaseController(settingsProvider)
 {
     #region Constants
@@ -72,6 +76,8 @@ public class AiringScheduleController(
     internal const string ScheduleNotFoundWithScheduleID = "No AiringSchedule entry for the given scheduleID";
 
     internal const string ProviderNotFoundWithProviderID = "No AiringScheduleProvider entry for the given providerID";
+
+    internal const string ProviderIconNotFound = "The airing schedule provider was not found or has no icon.";
 
     internal const string ChannelNotFoundWithChannelID = "No AiringChannel entry for the given channelID";
 
@@ -99,72 +105,78 @@ public class AiringScheduleController(
     /// Get the episode airings in the given time-frame, for a calendar.
     /// </summary>
     /// <remarks>
-    /// Only timed airings are returned; episodes known only by an AniDB date
-    /// stay on the dashboard calendars. An airing delayed out of the range is
-    /// still returned by its original slot unless
-    /// <paramref name="includeDelayedOriginalSlots"/> is turned off, so a
+    /// The range is compared as instants, <paramref name="from"/> inclusive and
+    /// <paramref name="to"/> exclusive, and both must name their offset. An
+    /// airing delayed out of the range is still returned by its original slot
+    /// unless <paramref name="includeDelayedOriginalSlots"/> is turned off, so a
     /// client can draw the gap it left behind.
     /// </remarks>
-    /// <param name="startDate">Start date. Defaults to today.</param>
-    /// <param name="endDate">End date. Defaults to a week after the start date.</param>
+    /// <param name="from">Start of the range, with an offset. Defaults to the start of today in UTC, or now for <paramref name="nextOnly"/>.</param>
+    /// <param name="to">End of the range, exclusive, with an offset. Defaults to a week after the start.</param>
     /// <param name="kind">Only include airings whose schedule has a track of these kinds. Defaults to <see cref="AiringKind.Original"/>.</param>
     /// <param name="language">Only include airings whose schedule has a track in one of these languages.</param>
     /// <param name="channel">Only include airings on one of these channels.</param>
-    /// <param name="type">Only include airings of episodes of these AniDB episode types.</param>
-    /// <param name="includeMissing">Include airings of series with no local files.</param>
+    /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
+    /// <param name="type">Only include airings of episodes of these episode types.</param>
+    /// <param name="inCollection">Filter on whether the series is in the collection, which means it has a shoko series. Defaults to only those in it.</param>
+    /// <param name="includeMissing">Include airings of series in the collection with no local files.</param>
     /// <param name="includeRestricted">Include airings of restricted (H) series.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
     /// <param name="includeDelayedOriginalSlots">Also match a delayed airing by the slot it was moved out of.</param>
+    /// <param name="includeDateOnly">Include a date-only entry for each AniDB episode with an air date in the range and no airing at all.</param>
     /// <param name="preferredOnly">Only return one airing per episode, using the server's preference.</param>
+    /// <param name="nextOnly">Only return the next airing at or after the start of the range, per <paramref name="nextPer"/>.</param>
+    /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
     /// <returns>The airings in the time-frame, in airing order.</returns>
     [HttpGet("Airing")]
     public ActionResult<List<EpisodeAiringDto>> GetAirings(
-        [FromQuery] DateOnly? startDate = null,
-        [FromQuery] DateOnly? endDate = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? from = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? to = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
+        [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.Only,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeDelayedOriginalSlots = true,
+        [FromQuery] bool includeDateOnly = false,
         [FromQuery] bool preferredOnly = false,
+        [FromQuery] bool nextOnly = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
     )
     {
-        var start = startDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var end = endDate ?? AddDaysClamped(start, 7);
-        if (end < start)
-        {
-            ModelState.AddModelError(nameof(endDate), "The end date is before the start date.");
+        if (!TryGetRange(from, to, nextOnly, out var start, out var end))
             return ValidationProblem(ModelState);
-        }
 
-        var fromUtc = start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var toUtc = end.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
         var options = new EpisodeAiringFilteringOptions
         {
+            ProviderIDs = provider is { Count: > 0 } ? provider : null,
             Kinds = kind is { Count: > 0 } ? kind : [AiringKind.Original],
             Languages = language is { Count: > 0 } ? language : null,
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
+            EpisodeTypes = type is { Count: > 0 } ? type : null,
+            InCollection = ToInclusion(inCollection),
+            IncludeMissing = ToInclusion(includeMissing),
+            IncludeRestricted = ToInclusion(includeRestricted),
+            User = HttpContext.GetUser(),
             IncludeEstimates = includeEstimates,
             IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
+            IncludeDateOnly = includeDateOnly,
             PreferredOnly = preferredOnly,
+            NextOnly = nextOnly,
+            NextPer = nextPer is { Count: > 0 } ? nextPer : null,
             EntityAnchor = entityAnchor,
         };
         var context = new AiringReadCache(this);
-        return airingScheduleService.GetAiringsInRange(fromUtc, toUtc, options)
-            .Select(airing => (airing, series: context.GetSeries(airing)))
-            .Where(tuple => IsVisible(tuple.series, type, includeMissing, includeRestricted, tuple.airing))
-            .OrderBy(tuple => GetSortTime(tuple.airing, fromUtc, toUtc))
-            .ThenBy(tuple => tuple.airing.LinkID)
-            .ThenBy(tuple => tuple.airing.Channel?.Name ?? string.Empty, StringComparer.Ordinal)
-            .ThenBy(tuple => tuple.airing.ID)
-            .Select(tuple => context.ToDto(tuple.airing, tuple.series, include))
+        return airingScheduleService.GetAiringsInRange(start, end, options)
+            .Select(airing => context.ToDto(airing, include))
             .ToList();
     }
 
@@ -186,11 +198,10 @@ public class AiringScheduleController(
             return NotFound(AiringNotFoundWithAiringID);
 
         var context = new AiringReadCache(this);
-        var series = context.GetSeries(airing);
-        if (!series.IsAllowed)
+        if (!context.IsAllowed(airing))
             return Forbid(AiringForbiddenForUser);
 
-        return context.ToDto(airing, series, include);
+        return context.ToDto(airing, include);
     }
 
     /// <summary>
@@ -215,13 +226,30 @@ public class AiringScheduleController(
             return NotFound(AiringNotFoundWithAiringID);
 
         var context = new AiringReadCache(this);
-        if (!context.GetSeries(airing).IsAllowed)
+        if (!context.IsAllowed(airing))
             return Forbid(AiringForbiddenForUser);
 
         return airingScheduleService.GetLinkedAirings(airingID)
-            .Select(member => context.ToDto(member, context.GetSeries(member), include))
+            .Select(member => context.ToDto(member, include))
             .ToList();
     }
+
+    #endregion
+
+    #region Configuration
+
+    /// <summary>
+    /// Get the airing schedule service's own configuration: the preference
+    /// lists, the cleanup and the sweep budget. Read and edit it through the
+    /// configuration endpoints by its ID.
+    /// </summary>
+    /// <returns>The configuration's info.</returns>
+    [Authorize(Roles = "admin,init")]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Configuration")]
+    public ActionResult<ConfigurationInfoDto> GetConfiguration()
+        => new ConfigurationInfoDto(airingScheduleService.ConfigurationInfo);
 
     #endregion
 
@@ -248,6 +276,8 @@ public class AiringScheduleController(
     /// </summary>
     /// <param name="scheduleID">The ID of the schedule.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedule's own line.</param>
+    /// <param name="nextOnly">Only return the next airing from now, per <paramref name="nextPer"/>.</param>
+    /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
     /// <returns>The schedule's airings, in airing order.</returns>
@@ -257,6 +287,8 @@ public class AiringScheduleController(
     public ActionResult<List<EpisodeAiringDto>> GetAiringsByScheduleID(
         [FromRoute] Guid scheduleID,
         [FromQuery] bool includeEstimates = true,
+        [FromQuery] bool nextOnly = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
     )
@@ -264,14 +296,19 @@ public class AiringScheduleController(
         if (airingScheduleService.GetScheduleByID(scheduleID) is null)
             return NotFound(ScheduleNotFoundWithScheduleID);
 
-        var options = new EpisodeAiringFilteringOptions { IncludeEstimates = includeEstimates, EntityAnchor = entityAnchor };
+        var options = new EpisodeAiringFilteringOptions
+        {
+            User = HttpContext.GetUser(),
+            IncludeEstimates = includeEstimates,
+            NextOnly = nextOnly,
+            NextPer = nextPer is { Count: > 0 } ? nextPer : null,
+            EntityAnchor = entityAnchor,
+        };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForSchedule(scheduleID, options)
-            .Select(airing => (airing, series: context.GetSeries(airing)))
-            .Where(tuple => tuple.series.IsAllowed)
-            .OrderBy(tuple => tuple.airing.AiredAt ?? tuple.airing.OriginalAiredAt ?? DateTime.MaxValue)
-            .ThenBy(tuple => tuple.airing.ID)
-            .Select(tuple => context.ToDto(tuple.airing, tuple.series, include))
+            .OrderBy(GetListSortTime)
+            .ThenBy(airing => airing.ID)
+            .Select(airing => context.ToDto(airing, include))
             .ToList();
     }
 
@@ -348,6 +385,24 @@ public class AiringScheduleController(
 
         return new AiringScheduleProvider(providerInfo);
     }
+
+    /// <summary>
+    /// Get an airing schedule provider's icon: its own, else its plugin's.
+    /// </summary>
+    /// <remarks>
+    /// An SVG or a PNG, sent so that an SVG opened on its own runs no script.
+    /// </remarks>
+    /// <param name="providerID">The ID of the provider.</param>
+    /// <returns>
+    /// The icon, <c>304 Not Modified</c> when the client's copy has the same
+    /// ETag, or <c>404 Not Found</c> when the provider is unknown or has none.
+    /// </returns>
+    [AllowAnonymous]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Provider/{providerID:guid}/Icon")]
+    public ActionResult GetProviderIcon([FromRoute] Guid providerID)
+        => PackageIcon(airingScheduleService.GetProviderInfo(providerID)?.Icon, applicationPaths, ProviderIconNotFound);
 
     /// <summary>
     /// Update the enabled kinds and/or priority of a specific airing schedule
@@ -479,25 +534,26 @@ public class AiringScheduleController(
     /// </summary>
     /// <remarks>
     /// The same read as <c>GET /api/v3/AiringSchedule/Airing</c>, narrowed to
-    /// one channel, and filtered the same way: a series nothing has been
-    /// downloaded for and a restricted (H) series are hidden unless they are
-    /// asked for. <paramref name="kind"/> is the one deliberate difference,
-    /// defaulting to every kind rather than to
+    /// one channel, and filtered the same way. <paramref name="kind"/> is the
+    /// one deliberate difference, defaulting to every kind rather than to
     /// <see cref="AiringKind.Original"/>: a caller that names a channel has
     /// already narrowed the read to it, and a streaming channel carries no
-    /// <see cref="AiringKind.Original"/> track at all, so the calendar's
-    /// default would answer nothing for one.
+    /// <see cref="AiringKind.Original"/> track at all.
     /// </remarks>
     /// <param name="channelID">The ID of the channel.</param>
-    /// <param name="startDate">Start date. Defaults to today.</param>
-    /// <param name="endDate">End date. Defaults to a week after the start date.</param>
+    /// <param name="from">Start of the range, with an offset. Defaults to the start of today in UTC, or now for <paramref name="nextOnly"/>.</param>
+    /// <param name="to">End of the range, exclusive, with an offset. Defaults to a week after the start.</param>
     /// <param name="kind">Only include airings whose schedule has a track of these kinds. Defaults to every kind.</param>
-    /// <param name="type">Only include airings of episodes of these AniDB episode types.</param>
-    /// <param name="includeMissing">Include airings of series with no local files.</param>
+    /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
+    /// <param name="type">Only include airings of episodes of these episode types.</param>
+    /// <param name="inCollection">Filter on whether the series is in the collection, which means it has a shoko series. Defaults to only those in it.</param>
+    /// <param name="includeMissing">Include airings of series in the collection with no local files.</param>
     /// <param name="includeRestricted">Include airings of restricted (H) series.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
     /// <param name="includeDelayedOriginalSlots">Also match a delayed airing by the slot it was moved out of.</param>
     /// <param name="preferredOnly">Only return one airing per episode, using the server's preference.</param>
+    /// <param name="nextOnly">Only return the next airing at or after the start of the range, per <paramref name="nextPer"/>.</param>
+    /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
     /// <returns>The channel's airings in the time-frame, in airing order.</returns>
@@ -506,15 +562,19 @@ public class AiringScheduleController(
     [HttpGet("Channel/{channelID:guid}/Airing")]
     public ActionResult<List<EpisodeAiringDto>> GetAiringsByChannelID(
         [FromRoute] Guid channelID,
-        [FromQuery] DateOnly? startDate = null,
-        [FromQuery] DateOnly? endDate = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? from = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? to = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
+        [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.Only,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeDelayedOriginalSlots = true,
         [FromQuery] bool preferredOnly = false,
+        [FromQuery] bool nextOnly = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
     )
@@ -522,33 +582,29 @@ public class AiringScheduleController(
         if (airingScheduleService.GetChannelByID(channelID) is null)
             return NotFound(ChannelNotFoundWithChannelID);
 
-        var start = startDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var end = endDate ?? AddDaysClamped(start, 7);
-        if (end < start)
-        {
-            ModelState.AddModelError(nameof(endDate), "The end date is before the start date.");
+        if (!TryGetRange(from, to, nextOnly, out var start, out var end))
             return ValidationProblem(ModelState);
-        }
 
-        var fromUtc = start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-        var toUtc = end.ToDateTime(TimeOnly.MaxValue, DateTimeKind.Utc);
         var options = new EpisodeAiringFilteringOptions
         {
+            ProviderIDs = provider is { Count: > 0 } ? provider : null,
             Kinds = kind is { Count: > 0 } ? kind : null,
             ChannelIDs = new HashSet<Guid> { channelID },
+            EpisodeTypes = type is { Count: > 0 } ? type : null,
+            InCollection = ToInclusion(inCollection),
+            IncludeMissing = ToInclusion(includeMissing),
+            IncludeRestricted = ToInclusion(includeRestricted),
+            User = HttpContext.GetUser(),
             IncludeEstimates = includeEstimates,
             IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
             PreferredOnly = preferredOnly,
+            NextOnly = nextOnly,
+            NextPer = nextPer is { Count: > 0 } ? nextPer : null,
             EntityAnchor = entityAnchor,
         };
         var context = new AiringReadCache(this);
-        return airingScheduleService.GetAiringsInRange(fromUtc, toUtc, options)
-            .Select(airing => (airing, series: context.GetSeries(airing)))
-            .Where(tuple => IsVisible(tuple.series, type, includeMissing, includeRestricted, tuple.airing))
-            .OrderBy(tuple => GetSortTime(tuple.airing, fromUtc, toUtc))
-            .ThenBy(tuple => tuple.airing.LinkID)
-            .ThenBy(tuple => tuple.airing.ID)
-            .Select(tuple => context.ToDto(tuple.airing, tuple.series, include))
+        return airingScheduleService.GetAiringsInRange(start, end, options)
+            .Select(airing => context.ToDto(airing, include))
             .ToList();
     }
 
@@ -700,6 +756,10 @@ public class AiringScheduleController(
     /// <param name="kind">Only include airings whose schedule has a track of these kinds.</param>
     /// <param name="language">Only include airings whose schedule has a track in one of these languages.</param>
     /// <param name="channel">Only include airings on one of these channels.</param>
+    /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
+    /// <param name="includeDateOnly">Include a date-only entry for each AniDB episode with an air date and no airing at all.</param>
+    /// <param name="nextOnly">Only return the next airing from now, per <paramref name="nextPer"/>.</param>
+    /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
     /// <param name="linkedEntityAirings">
     ///   Set to <c>false</c> for only the series' own airings, <c>true</c> to also walk its linked entities, or leave it out to let the server decide.
     /// </param>
@@ -715,6 +775,10 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
+        [FromQuery] bool includeDateOnly = false,
+        [FromQuery] bool nextOnly = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
         [FromQuery] bool? linkedEntityAirings = null,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
@@ -728,17 +792,21 @@ public class AiringScheduleController(
 
         var options = new EpisodeAiringFilteringOptions
         {
+            ProviderIDs = provider is { Count: > 0 } ? provider : null,
             Kinds = kind is { Count: > 0 } ? kind : null,
             Languages = language is { Count: > 0 } ? language : null,
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
+            IncludeDateOnly = includeDateOnly,
+            NextOnly = nextOnly,
+            NextPer = nextPer is { Count: > 0 } ? nextPer : null,
             LinkedEntityAirings = linkedEntityAirings,
             EntityAnchor = entityAnchor,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForSeries(series, options)
-            .OrderBy(airing => airing.AiredAt ?? airing.OriginalAiredAt ?? DateTime.MaxValue)
+            .OrderBy(GetListSortTime)
             .ThenBy(airing => airing.ID)
-            .Select(airing => context.ToDto(airing, context.GetSeries(airing), include))
+            .Select(airing => context.ToDto(airing, include))
             .ToList();
     }
 
@@ -793,6 +861,10 @@ public class AiringScheduleController(
     /// <param name="kind">Only include airings whose schedule has a track of these kinds.</param>
     /// <param name="language">Only include airings whose schedule has a track in one of these languages.</param>
     /// <param name="channel">Only include airings on one of these channels.</param>
+    /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
+    /// <param name="includeDateOnly">Include a date-only entry when the episode has an AniDB air date and no airing at all.</param>
+    /// <param name="nextOnly">Only return the next airing from now, per <paramref name="nextPer"/>.</param>
+    /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
     /// <param name="includeDisabled">
     ///   Include airings hidden because their provider is disabled, or because none of their schedule's tracks are of an enabled kind.
     /// </param>
@@ -811,6 +883,10 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
+        [FromQuery] bool includeDateOnly = false,
+        [FromQuery] bool nextOnly = false,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
         [FromQuery] bool includeDisabled = false,
         [FromQuery] bool? linkedEntityAirings = null,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
@@ -828,16 +904,20 @@ public class AiringScheduleController(
 
         var options = new EpisodeAiringFilteringOptions
         {
+            ProviderIDs = provider is { Count: > 0 } ? provider : null,
             Kinds = kind is { Count: > 0 } ? kind : null,
             Languages = language is { Count: > 0 } ? language : null,
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
             IncludeDisabled = includeDisabled,
+            IncludeDateOnly = includeDateOnly,
+            NextOnly = nextOnly,
+            NextPer = nextPer is { Count: > 0 } ? nextPer : null,
             LinkedEntityAirings = linkedEntityAirings,
             EntityAnchor = entityAnchor,
         };
         var context = new AiringReadCache(this);
         return airingScheduleService.GetAiringsForEpisode(episode, options)
-            .Select(airing => context.ToDto(airing, context.GetSeries(airing), include))
+            .Select(airing => context.ToDto(airing, include))
             .ToList();
     }
 
@@ -919,166 +999,115 @@ public class AiringScheduleController(
     }
 
     /// <summary>
-    /// Whether an airing passes the calendar's own filters, which sit on top of
-    /// the service's.
-    /// </summary>
-    /// <param name="series">The resolved series behind the airing.</param>
-    /// <param name="type">The wanted episode types, or <c>null</c> for every type.</param>
-    /// <param name="includeMissing">Whether series with no local files are wanted.</param>
-    /// <param name="includeRestricted">Whether restricted (H) series are wanted.</param>
-    /// <param name="airing">The airing.</param>
-    /// <returns>Whether the airing is wanted.</returns>
-    private static bool IsVisible(
-        AiringSeriesInfo series,
-        IReadOnlySet<EpisodeType>? type,
-        IncludeOnlyFilter includeMissing,
-        IncludeOnlyFilter includeRestricted,
-        IEpisodeAiring airing
-    )
-    {
-        if (!series.IsAllowed)
-            return false;
-
-        if (type is { Count: > 0 })
-        {
-            var episodeType = (airing.AnidbEpisode ?? airing.Episode)?.Type;
-            if (episodeType is null || !type.Contains(episodeType.Value))
-                return false;
-        }
-
-        if (includeRestricted is not IncludeOnlyFilter.True)
-        {
-            var onlyRestricted = includeRestricted is IncludeOnlyFilter.Only;
-            if (onlyRestricted != series.IsRestricted)
-                return false;
-        }
-
-        if (includeMissing is not IncludeOnlyFilter.True)
-        {
-            var shouldHideMissing = includeMissing is IncludeOnlyFilter.False;
-            if (shouldHideMissing == series.IsMissing)
-                return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// The time a range read orders an airing by: the earlier of its current
-    /// and its original slot that actually falls in the range, so a delayed
-    /// airing sorts where its gap is drawn.
+    /// The time an entity read orders an airing by: its slot, or the start of
+    /// a date-only entry's day in UTC.
     /// </summary>
     /// <param name="airing">The airing.</param>
-    /// <param name="fromUtc">The start of the range.</param>
-    /// <param name="toUtc">The end of the range.</param>
     /// <returns>The time to order by.</returns>
-    private static DateTime GetSortTime(IEpisodeAiring airing, DateTime fromUtc, DateTime toUtc)
-    {
-        var airedAt = airing.AiredAt is { } aired && aired >= fromUtc && aired <= toUtc ? aired : (DateTime?)null;
-        var originalAiredAt = airing.OriginalAiredAt is { } original && original >= fromUtc && original <= toUtc ? original : (DateTime?)null;
-        if (airedAt is { } first && originalAiredAt is { } second)
-            return first <= second ? first : second;
+    private static DateTime GetListSortTime(IEpisodeAiring airing)
+        => airing.AiredAt ?? airing.OriginalAiredAt ?? airing.AirDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) ?? DateTime.MaxValue;
 
-        return airedAt ?? originalAiredAt ?? airing.AiredAt ?? airing.OriginalAiredAt ?? DateTime.MaxValue;
+    /// <summary>
+    /// The range a range read runs over: the caller's, or the defaults, which
+    /// are the start of today in UTC, or now for a next-only read, and a week
+    /// after the start.
+    /// </summary>
+    /// <param name="from">The start the caller asked for.</param>
+    /// <param name="to">The end the caller asked for.</param>
+    /// <param name="nextOnly">Whether the read is next-only.</param>
+    /// <param name="start">The start of the range.</param>
+    /// <param name="end">The exclusive end of the range.</param>
+    /// <returns><c>false</c> with a model error when the end is before the start.</returns>
+    private bool TryGetRange(DateTimeOffset? from, DateTimeOffset? to, bool nextOnly, out DateTimeOffset start, out DateTimeOffset end)
+    {
+        var now = DateTimeOffset.UtcNow;
+        start = from ?? (nextOnly ? now : new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero));
+        end = to ?? AddClamped(start, TimeSpan.FromDays(7));
+        if (end >= start)
+            return true;
+
+        ModelState.AddModelError(nameof(to), "The end of the range is before its start.");
+        return false;
     }
 
     /// <summary>
-    /// Add <paramref name="days"/> to <paramref name="date"/>, clamped to the
-    /// bounds of <see cref="DateOnly"/> instead of throwing when the result
-    /// would fall outside them.
+    /// Add <paramref name="offset"/> to <paramref name="value"/>, clamped to
+    /// <see cref="DateTimeOffset.MaxValue"/> instead of throwing when the
+    /// result would fall outside it.
     /// </summary>
-    /// <param name="date">The date to add to.</param>
-    /// <param name="days">The number of days to add.</param>
-    /// <returns>The shifted date, clamped to <see cref="DateOnly.MinValue"/> and <see cref="DateOnly.MaxValue"/>.</returns>
-    private static DateOnly AddDaysClamped(DateOnly date, int days)
-        => date.AddDays(int.Clamp(days, DateOnly.MinValue.DayNumber - date.DayNumber, DateOnly.MaxValue.DayNumber - date.DayNumber));
-
-    /// <summary>
-    /// Resolve everything the calendar filters need to know about the series an
-    /// airing belongs to. An unresolvable AniDB anime is not fatal: the airing
-    /// still comes back, with nothing to hide it behind.
-    /// </summary>
-    /// <param name="series">The series the airing's episode belongs to.</param>
-    /// <returns>The resolved series.</returns>
-    private AiringSeriesInfo ResolveSeries(ISeries series)
+    /// <param name="value">The point in time to add to.</param>
+    /// <param name="offset">The time to add.</param>
+    /// <returns>The shifted point in time.</returns>
+    private static DateTimeOffset AddClamped(DateTimeOffset value, TimeSpan offset)
     {
-        var anidbAnimeID = series is IShokoSeries shokoSeries
-            ? shokoSeries.AnidbAnimeID
-            : series is IAnidbAnime anidbSeries ? anidbSeries.AnidbID : (int?)null;
-        var anidbAnime = anidbAnimeID is { } animeID ? anidbAnimes.GetByAnimeID(animeID) : null;
-        var localSeries = anidbAnimeID is { } seriesAnimeID ? animeSeries.GetByAnimeID(seriesAnimeID) : null;
-        return new AiringSeriesInfo
+        try
         {
-            Series = series,
-            IsAllowed = anidbAnime is null || User.AllowedAnime(anidbAnime),
-            IsRestricted = anidbAnime is not null && anidbAnime.IsRestricted,
-            IsMissing = localSeries is null || localSeries.VideoLocals.Count is 0,
-        };
+            return value + offset;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return DateTimeOffset.MaxValue;
+        }
     }
 
     /// <summary>
-    /// The series behind one or more airings, resolved once per read and reused
-    /// for every airing of the same series.
+    /// The service's counterpart of an APIv3 include filter.
     /// </summary>
-    private sealed class AiringSeriesInfo
-    {
-        /// <summary>
-        /// The series the airing's episode belongs to, or <c>null</c> when none
-        /// could be resolved.
-        /// </summary>
-        public ISeries? Series { get; init; }
-
-        /// <summary>
-        /// Whether the user is allowed to see the series. An unresolvable
-        /// series has nothing to hide behind, so it is always allowed.
-        /// </summary>
-        public bool IsAllowed { get; init; } = true;
-
-        /// <summary>
-        /// Whether the series is restricted (H).
-        /// </summary>
-        public bool IsRestricted { get; init; }
-
-        /// <summary>
-        /// Whether nothing of the series has been downloaded, which is what the
-        /// calendars mean by missing.
-        /// </summary>
-        public bool IsMissing { get; init; } = true;
-    }
+    /// <param name="filter">The APIv3 filter.</param>
+    /// <returns>The same filter, for the service.</returns>
+    private static InclusionFilter ToInclusion(IncludeOnlyFilter filter)
+        => filter switch
+        {
+            IncludeOnlyFilter.True => InclusionFilter.True,
+            IncludeOnlyFilter.Only => InclusionFilter.Only,
+            _ => InclusionFilter.False,
+        };
 
     /// <summary>
-    /// The per-request resolution cache behind an airing read. Series data is
+    /// The series behind an airing: the shoko series where there is one, else
+    /// whatever the airing or its schedule resolved to.
+    /// </summary>
+    /// <param name="airing">The airing.</param>
+    /// <returns>The series, or <c>null</c> when none could be resolved.</returns>
+    private static ISeries? GetSeriesFor(IEpisodeAiring airing)
+        => (ISeries?)airing.ShokoEpisode?.Series ?? airing.AnidbEpisode?.Series ?? airing.Episode?.Series ?? airing.Schedule?.Series;
+
+    /// <summary>
+    /// Whether the user may see an AniDB anime. An anime that is not cached
+    /// has nothing to hide behind.
+    /// </summary>
+    /// <param name="animeID">The ID of the AniDB anime.</param>
+    /// <returns><c>true</c> when the user may see it.</returns>
+    private bool IsAllowedAnime(int animeID)
+        => anidbAnimes.GetByAnimeID(animeID) is not { } anime || User.AllowedAnime(anime);
+
+    /// <summary>
+    /// The per-request resolution cache behind an airing read. Display data is
     /// resolved once per distinct series, since a calendar week is many
     /// episodes of few series.
     /// </summary>
     /// <param name="controller">The controller running the read.</param>
     private sealed class AiringReadCache(AiringScheduleController controller)
     {
-        private readonly Dictionary<MetadataGuid, AiringSeriesInfo> _series = [];
-
         private readonly Dictionary<MetadataGuid, AiringSeries> _seriesDtos = [];
 
         private readonly Dictionary<MetadataGuid, Image?> _posters = [];
 
-        private static readonly AiringSeriesInfo _unknownSeries = new();
-
         /// <summary>
-        /// The series behind an airing, with everything the filters need.
+        /// Whether the user may see the series behind an airing. An airing
+        /// whose series resolves to no AniDB anime has nothing to hide behind.
         /// </summary>
         /// <param name="airing">The airing.</param>
-        /// <returns>The resolved series, which carries a <c>null</c> series when nothing could be resolved.</returns>
-        public AiringSeriesInfo GetSeries(IEpisodeAiring airing)
+        /// <returns><c>true</c> when the user may see it.</returns>
+        public bool IsAllowed(IEpisodeAiring airing)
         {
-            if (GetSeriesFor(airing) is not { } series)
-                return _unknownSeries;
-
-            var key = series.ID;
-            if (_series.TryGetValue(key, out var info))
-                return info;
-
-            info = controller.ResolveSeries(series);
-            _series[key] = info;
-            return info;
+            var anidbAnimeID = GetSeriesFor(airing) switch
+            {
+                IShokoSeries shokoSeries => shokoSeries.AnidbAnimeID,
+                IAnidbAnime anidbSeries => anidbSeries.AnidbID,
+                _ => (int?)null,
+            };
+            return anidbAnimeID is not { } animeID || controller.IsAllowedAnime(animeID);
         }
 
         /// <summary>
@@ -1086,69 +1115,54 @@ public class AiringScheduleController(
         /// the caller asked for.
         /// </summary>
         /// <param name="airing">The airing.</param>
-        /// <param name="series">The resolved series behind the airing.</param>
         /// <param name="include">The display data to resolve.</param>
         /// <returns>The airing.</returns>
-        public EpisodeAiringDto ToDto(IEpisodeAiring airing, AiringSeriesInfo series, IReadOnlySet<AiringDataToInclude>? include)
+        public EpisodeAiringDto ToDto(IEpisodeAiring airing, IReadOnlySet<AiringDataToInclude>? include)
         {
             if (include is not { Count: > 0 })
                 return new(airing);
 
+            var series = GetSeriesFor(airing);
             var episode = (IEpisode?)airing.ShokoEpisode ?? airing.AnidbEpisode ?? airing.Episode;
             var title = include.Contains(AiringDataToInclude.EpisodeTitle) ? episode?.Title : null;
             var seriesDto = include.Contains(AiringDataToInclude.Series) ? GetSeriesDto(series) : null;
             var poster = include.Contains(AiringDataToInclude.Poster) ? GetPoster(series) : null;
             var thumbnail = include.Contains(AiringDataToInclude.Thumbnail)
-                ? (episode?.BackdropImage ?? series.Series?.BackdropImage) is { } image ? new Image(image) : null
+                ? (episode?.BackdropImage ?? series?.BackdropImage) is { } image ? new Image(image) : null
                 : null;
             return new(airing, seriesDto, title, poster, thumbnail);
         }
 
         /// <summary>
-        /// The series behind an airing: the shoko series where there is one,
-        /// else whatever the airing or its schedule resolved to.
+        /// The wire model for a series, built once per read.
         /// </summary>
-        /// <param name="airing">The airing.</param>
+        /// <param name="series">The series.</param>
         /// <returns>The series, or <c>null</c> when none could be resolved.</returns>
-        private static ISeries? GetSeriesFor(IEpisodeAiring airing)
-            => (ISeries?)airing.ShokoEpisode?.Series ?? airing.AnidbEpisode?.Series ?? airing.Episode?.Series ?? airing.Schedule.Series;
-
-        /// <summary>
-        /// The wire model for a resolved series, built once per read.
-        /// </summary>
-        /// <param name="series">The resolved series.</param>
-        /// <returns>The series, or <c>null</c> when none could be resolved.</returns>
-        private AiringSeries? GetSeriesDto(AiringSeriesInfo series)
+        private AiringSeries? GetSeriesDto(ISeries? series)
         {
-            if (series.Series is not { } entity)
+            if (series is null)
                 return null;
 
-            var key = entity.ID;
-            if (_seriesDtos.TryGetValue(key, out var dto))
+            if (_seriesDtos.TryGetValue(series.ID, out var dto))
                 return dto;
 
-            dto = new AiringSeries(entity);
-            _seriesDtos[key] = dto;
-            return dto;
+            return _seriesDtos[series.ID] = new AiringSeries(series);
         }
 
         /// <summary>
         /// The series' primary image, resolved once per read.
         /// </summary>
-        /// <param name="series">The resolved series.</param>
+        /// <param name="series">The series.</param>
         /// <returns>The poster, or <c>null</c> when the series has none.</returns>
-        private Image? GetPoster(AiringSeriesInfo series)
+        private Image? GetPoster(ISeries? series)
         {
-            if (series.Series is not { } entity)
+            if (series is null)
                 return null;
 
-            var key = entity.ID;
-            if (_posters.TryGetValue(key, out var poster))
+            if (_posters.TryGetValue(series.ID, out var poster))
                 return poster;
 
-            poster = entity.PrimaryImage is { } image ? new Image(image) : null;
-            _posters[key] = poster;
-            return poster;
+            return _posters[series.ID] = series.PrimaryImage is { } image ? new Image(image) : null;
         }
     }
 

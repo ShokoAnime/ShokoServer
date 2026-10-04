@@ -52,6 +52,8 @@ internal sealed class AiringReadContext
 
     private readonly Dictionary<(MetadataSource Source, string ID), DateTime?> _anidbAirDates = [];
 
+    private readonly Dictionary<MetadataGuid, AiringSeriesState> _seriesStates = [];
+
     private AiringScheduleServiceSettings? _settings;
 
     /// <summary>
@@ -344,6 +346,52 @@ internal sealed class AiringReadContext
 
         return _linkedEpisodeKeys[key] = visited;
     }
+
+    #endregion
+
+    #region Collection
+
+    /// <summary>
+    /// What the collection filters need to know about the series behind an
+    /// airing, resolved once per series and read. An unresolvable series is
+    /// not fatal: it is simply not in the collection.
+    /// </summary>
+    /// <param name="airing">The airing.</param>
+    /// <returns>The series' state.</returns>
+    public AiringSeriesState GetSeriesState(IEpisodeAiring airing)
+    {
+        if (GetSeriesFor(airing) is not { } series)
+            return AiringSeriesState.Unknown;
+
+        if (_seriesStates.TryGetValue(series.ID, out var state))
+            return state;
+
+        var anidbAnimeID = series switch
+        {
+            IShokoSeries shokoSeries => shokoSeries.AnidbAnimeID,
+            IAnidbAnime anidbAnime => anidbAnime.AnidbID,
+            _ => (int?)null,
+        };
+        var anime = anidbAnimeID is { } animeID ? RepoFactory.AniDB_Anime.GetByAnimeID(animeID) : null;
+        var localSeries = anidbAnimeID is { } seriesAnimeID ? RepoFactory.AnimeSeries.GetByAnimeID(seriesAnimeID) : null;
+        return _seriesStates[series.ID] = new AiringSeriesState
+        {
+            Series = series,
+            AnidbAnime = anime,
+            IsRestricted = anime?.IsRestricted ?? series.Restricted,
+            IsInCollection = localSeries is not null,
+            IsMissing = localSeries is not null && localSeries.VideoLocals.Count is 0,
+        };
+    }
+
+    /// <summary>
+    /// The series behind an airing: the shoko series where there is one, else
+    /// whatever the airing or its schedule resolved to.
+    /// </summary>
+    /// <param name="airing">The airing.</param>
+    /// <returns>The series, or <c>null</c> when none could be resolved.</returns>
+    public static ISeries? GetSeriesFor(IEpisodeAiring airing)
+        => (ISeries?)airing.ShokoEpisode?.Series ?? airing.AnidbEpisode?.Series ?? airing.Episode?.Series ?? airing.Schedule?.Series;
 
     #endregion
 

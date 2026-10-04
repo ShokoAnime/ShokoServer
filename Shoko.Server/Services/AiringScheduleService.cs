@@ -49,6 +49,7 @@ public partial class AiringScheduleService(
     ILogger<AiringScheduleService> logger,
     IConfigurationService configurationService,
     IPluginManager pluginManager,
+    IApplicationPaths applicationPaths,
     IQueueScheduler schedulerFactory,
     ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider,
     Lazy<IMetadataService> metadataService
@@ -92,6 +93,9 @@ public partial class AiringScheduleService(
     /// <returns>The entry, or <c>null</c> when the core holds none.</returns>
     internal IMetadata? GetStoredEntity(MetadataSource source, MetadataEntityType entityType, string id)
         => MetadataEntries.ToGuid(source, entityType, id) is { } guid ? metadataService.Value.GetEntry(guid) : null;
+
+    /// <inheritdoc/>
+    public ConfigurationInfo ConfigurationInfo => configurationProvider.ConfigurationInfo;
 
     /// <inheritdoc/>
     public event EventHandler? ProvidersUpdated;
@@ -208,8 +212,8 @@ public partial class AiringScheduleService(
 
             union.IncludeEstimates |= options.IncludeEstimates;
             union.IncludeDisabled |= options.IncludeDisabled;
-            if (options.ProviderID is { } providerID)
-                providerIDs.Add(providerID);
+            if (options.ProviderIDs is { } subscriberProviderIDs)
+                providerIDs.UnionWith(subscriberProviderIDs);
             else
                 anyProviderID = true;
             if (options.Kinds is { } subscriberKinds)
@@ -226,9 +230,7 @@ public partial class AiringScheduleService(
                 anyChannelIDs = true;
         }
 
-        // A single provider is all the stored filter can name, so it only
-        // survives the union when every subscriber named the same one.
-        union.ProviderID = !anyProviderID && providerIDs.Count is 1 ? providerIDs.First() : null;
+        union.ProviderIDs = anyProviderID ? null : providerIDs;
         union.Kinds = anyKinds ? null : kinds;
         union.Languages = anyLanguages ? null : languages;
         union.ChannelIDs = anyChannelIDs ? null : channelIDs;
@@ -309,6 +311,8 @@ public partial class AiringScheduleService(
             if (anchor is AiringEntityAnchor.Shoko && view.ShokoEpisode is null)
                 continue;
             if (!MatchesFilters(context, context.GetSchedule(view.ScheduleView.Row), options))
+                continue;
+            if (!PassesAiringFilters(context, view, options))
                 continue;
 
             matched.Add(airing);
@@ -399,6 +403,17 @@ public partial class AiringScheduleService(
                         Provider = provider,
                         ConfigurationInfo = configurationInfo,
                         PluginInfo = pluginInfo,
+                        Icon = ChooseIcon(
+                            PackageImageLoader.LoadIcon(
+                                pluginInfo,
+                                providerType.Assembly,
+                                provider.EmbeddedIconResourceName,
+                                IconKind(providerType),
+                                applicationPaths,
+                                logger
+                            ),
+                            pluginInfo.Icon
+                        ),
                         Priority = -1,
                         EnabledKinds = enabledKinds,
                         SweepInterval = sweepInterval,
@@ -597,6 +612,7 @@ public partial class AiringScheduleService(
             Provider = info.Provider,
             ConfigurationInfo = info.ConfigurationInfo,
             PluginInfo = info.PluginInfo,
+            Icon = info.Icon,
             Priority = info.Priority,
             EnabledKinds = info.EnabledKinds.ToHashSet(),
             SweepInterval = info.SweepInterval,
@@ -631,6 +647,28 @@ public partial class AiringScheduleService(
     /// <returns>The provider's ID.</returns>
     private static Guid GetID(Type type, LocalPluginInfo pluginInfo)
         => UuidUtility.GetV5($"AiringScheduleProvider={type.FullName!}", pluginInfo.ID);
+
+    /// <summary>
+    /// The image kind a provider's icon is stored under beside its plugin,
+    /// named after the provider's type.
+    /// </summary>
+    /// <remarks>
+    /// The dot keeps it apart from the plugin's icon and every source icon.
+    /// </remarks>
+    /// <param name="providerType">The provider's type.</param>
+    /// <returns>The kind, e.g. <c>ExampleProvider.airing-icon</c>.</returns>
+    internal static string IconKind(Type providerType)
+        => $"{providerType.Name}.airing-icon";
+
+    /// <summary>
+    /// Chooses a provider's icon: the one it declared, else its plugin's when
+    /// that is an SVG or a PNG, as every other icon is.
+    /// </summary>
+    /// <param name="declared">The icon the provider declared, if any.</param>
+    /// <param name="pluginIcon">The plugin's icon, if any.</param>
+    /// <returns>The icon, or <c>null</c> when there is none to show.</returns>
+    internal static PackageImageInfo? ChooseIcon(PackageImageInfo? declared, PackageImageInfo? pluginIcon)
+        => declared ?? (pluginIcon is { MimeType: "image/svg+xml" or "image/png" } ? pluginIcon : null);
 
     #endregion
 

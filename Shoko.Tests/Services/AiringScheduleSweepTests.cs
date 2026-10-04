@@ -606,6 +606,7 @@ public class AiringScheduleSweepTests
                 NullLogger<AiringScheduleService>.Instance,
                 configurationService.Object,
                 pluginManager.Object,
+                Mock.Of<IApplicationPaths>(),
                 Scheduler.Object,
                 new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
                 new(() => new Mock<IMetadataService>().Object)

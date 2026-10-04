@@ -25,10 +25,11 @@ public static class PluginTestDoubles
 
     /// <summary>
     ///   A plugin entry for an ordinary plugin that can be uninstalled, holding
-    ///   <paramref name="plugin"/> as its instance if given.
+    ///   <paramref name="plugin"/> as its instance and <paramref name="icon"/> as
+    ///   its icon, if given.
     /// </summary>
-    public static LocalPluginInfo InstalledPluginInfo(Type pluginType, Guid id, string dllName = "SomePlugin.dll", IPlugin? plugin = null)
-        => LocalPlugin(pluginType, id, dllName, canUninstall: true, name: "Some Plugin", plugin);
+    public static LocalPluginInfo InstalledPluginInfo(Type pluginType, Guid id, string dllName = "SomePlugin.dll", IPlugin? plugin = null, PackageImageInfo? icon = null)
+        => LocalPlugin(pluginType, id, dllName, canUninstall: true, name: "Some Plugin", plugin, icon: icon);
 
     /// <summary>
     ///   A plugin entry for an ordinary plugin installed in a folder of its own.
@@ -78,7 +79,8 @@ public static class PluginTestDoubles
         string? containingDirectory = null,
         string description = "",
         IReadOnlyList<string>? tags = null,
-        string? authors = null
+        string? authors = null,
+        PackageImageInfo? icon = null
     )
         => new()
         {
@@ -91,7 +93,7 @@ public static class PluginTestDoubles
             HomepageUrl = null,
             Tags = tags ?? [],
             Thumbnail = null,
-            Icon = null,
+            Icon = icon,
             InstalledAt = DateTime.UnixEpoch,
             // An entry that is loaded is enabled; the tests asking about a toggle need to see
             // the toggle actually refused rather than a default they never set.

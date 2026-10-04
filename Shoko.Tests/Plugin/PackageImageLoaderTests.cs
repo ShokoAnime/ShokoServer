@@ -131,4 +131,22 @@ public sealed class PackageImageLoaderTests : IDisposable
     }
 
     #endregion
+
+    #region Airing Provider Icons
+
+    [Fact]
+    public void AnAiringProviderIconIsNamedAfterItsType_ApartFromThePluginIcon()
+    {
+        var directory = PluginDirectory();
+        var dll = Path.Combine(directory, "Example.dll");
+        File.WriteAllBytes(Path.Combine(directory, "icon.png"), Png());
+
+        var icon = PackageImageLoader.Load(directory, dll, Png(), AiringScheduleService.IconKind(typeof(PackageImageLoaderTests)), _paths);
+
+        Assert.Equal("%PluginsPath%/Example/PackageImageLoaderTests.airing-icon.png", icon?.FilePath.Replace('\\', '/'));
+        // The plugin's own icon is not taken for it; the service falls back to that one itself.
+        Assert.Null(PackageImageLoader.Load(directory, dll, null, AiringScheduleService.IconKind(typeof(MagickImage)), _paths));
+    }
+
+    #endregion
 }

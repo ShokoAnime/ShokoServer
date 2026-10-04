@@ -74,6 +74,14 @@ every write throws `ArgumentException`. Inside the provider, pass `this`.
 - **Configuration**: implement `IAiringScheduleProvider<TConfiguration>` to
   get a settings page, as for a release provider.
 - **`MaxConcurrentRefreshes`** caps your parallel refreshes (default one).
+- **Icon**: name it with `EmbeddedIconResourceName`, the way a plugin names
+  its own: an absolute resource name in your assembly, SVG preferred, PNG
+  accepted. The core extracts it beside your plugin as
+  `<type>.airing-icon.<ext>` (`<dll>.<type>.airing-icon.<ext>` beside a lone
+  dll), named after your provider's type, and uses a file already there by
+  that name instead. Without either, your plugin's icon stands in. It is kept
+  on `AiringScheduleProviderInfo.Icon` and served at
+  `GET /api/v3/AiringSchedule/Provider/{providerID}/Icon`.
 
 Two values on `AiringScheduleProviderInfo` (`GetProviderInfo(this)`) belong
 to the user:
@@ -361,6 +369,32 @@ The same dispatch reaches SignalR clients as `airing:episode.aired`; see
 The linked-entity options (`LinkedEntityAirings`, `LinkedEntitySchedules`)
 decide what a read finds, and the anchor decides what survives, so `Auto`
 never changes what an existing caller gets.
+
+### Querying airings
+
+Every airing read takes one `EpisodeAiringFilteringOptions`. A new options
+object filters nothing beyond the disabled providers. Besides the schedule
+filters (`ProviderIDs`, `Kinds`, `Languages`, `ChannelIDs`) it carries:
+
+| Option | Meaning |
+|---|---|
+| `EpisodeTypes` | Only airings of episodes of these types. |
+| `InCollection` | An `InclusionFilter` on whether the series has a shoko series. `Only` keeps the collection, `False` keeps what is not in it. |
+| `IncludeMissing` | An `InclusionFilter` on series in the collection with no local files. |
+| `IncludeRestricted` | An `InclusionFilter` on restricted (H) series. |
+| `User` | Leaves out the series the user may not see. |
+| `IncludeDateOnly` | Adds a date-only entry for each AniDB episode with an air date and no airing at all. |
+| `NextOnly`, `NextPer` | Keeps the next airing per series, channel and/or kind. |
+
+`GetAiringsInRange` takes a `DateTimeOffset` range, start inclusive and end
+exclusive, compared as instants. A date-only entry (`IsDateOnly`, with
+`AirDate` set and no schedule, provider, channel or time) is in the range when
+its date falls between the calendar dates of the two ends, each read in its own
+offset, so a caller in Tokyo asking for its own day gets that day's entries.
+
+A next-only read keeps, per group, the earliest episode at or after the
+range's start (or now, for an entity read) and answers with that episode's
+best airing by preference.
 
 ---
 

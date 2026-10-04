@@ -18,22 +18,38 @@ namespace Shoko.Server.API.v3.Models.Airing;
 /// The default shape is slim on purpose: a calendar week is many episodes of
 /// few series, so titles and images are opt-in through the <c>include</c>
 /// query. An estimate is the same shape as a real airing, told apart by
-/// <see cref="IsEstimated"/>.
+/// <see cref="IsEstimated"/>, and so is a date-only entry, told apart by
+/// <see cref="IsDateOnly"/>.
 /// </remarks>
 public class EpisodeAiring
 {
     /// <summary>
     /// The ID of the airing. Estimates get one too, derived the same way, so it
-    /// is stable for as long as the estimate is.
+    /// is stable for as long as the estimate is. A date-only entry's is derived
+    /// from its episode, and does not resolve as an airing.
     /// </summary>
     [Required]
     public Guid ID { get; init; }
 
     /// <summary>
-    /// The ID of the schedule the airing is on.
+    /// The ID of the schedule the airing is on, or <c>null</c> for a date-only
+    /// entry.
+    /// </summary>
+    public Guid? ScheduleID { get; init; }
+
+    /// <summary>
+    /// Whether this is a date-only entry: an AniDB episode known only by its
+    /// air date, with no airing behind it. It has no time, schedule, source,
+    /// channel or tracks, and its date is <see cref="AirDate"/>.
     /// </summary>
     [Required]
-    public Guid ScheduleID { get; init; }
+    public bool IsDateOnly { get; init; }
+
+    /// <summary>
+    /// The AniDB air date of a date-only entry, a calendar date in no
+    /// particular time zone, or <c>null</c> for an airing with a time.
+    /// </summary>
+    public DateOnly? AirDate { get; init; }
 
     /// <summary>
     /// When the episode airs, in UTC, or <c>null</c> when the airing has no
@@ -92,10 +108,10 @@ public class EpisodeAiring
     public string? Url { get; init; }
 
     /// <summary>
-    /// The provider that owns the airing.
+    /// The provider that owns the airing, or <c>null</c> for a date-only
+    /// entry.
     /// </summary>
-    [Required]
-    public AiringSource Source { get; init; }
+    public AiringSource? Source { get; init; }
 
     /// <summary>
     /// The channel the episode airs on, or <c>null</c> when the schedule names
@@ -182,7 +198,9 @@ public class EpisodeAiring
 
         var episode = airing.AnidbEpisode ?? airing.ShokoEpisode?.AnidbEpisode ?? airing.Episode;
         ID = airing.ID;
-        ScheduleID = airing.Schedule.ID;
+        ScheduleID = airing.Schedule?.ID;
+        IsDateOnly = airing.IsDateOnly;
+        AirDate = airing.AirDate;
         AiredAt = airing.AiredAt.ToUtc();
         OriginalAiredAt = airing.OriginalAiredAt.ToUtc();
         IsDelayed = airing.IsDelayed;
@@ -191,9 +209,9 @@ public class EpisodeAiring
         OffsetFromOriginal = airing.OffsetFromOriginal;
         LinkID = airing.LinkID;
         Url = airing.Url;
-        Source = new(airing.ProviderID, airing.ProviderName);
+        Source = airing.ProviderID is { } providerID ? new(providerID, airing.ProviderName ?? string.Empty) : null;
         Channel = airing.Channel is { } channel ? new(channel) : null;
-        TimeZone = airing.Schedule.TimeZoneID is { } timeZoneID ? new(timeZoneID, airing.Schedule.TimeZone) : null;
+        TimeZone = airing.Schedule is { TimeZoneID: { } timeZoneID } schedule ? new(timeZoneID, schedule.TimeZone) : null;
         Tracks = [.. airing.Tracks.Select(track => new AiringTrack(track))];
         IDs = new()
         {

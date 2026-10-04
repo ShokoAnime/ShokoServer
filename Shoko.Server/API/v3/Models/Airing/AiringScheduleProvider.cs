@@ -41,6 +41,13 @@ public class AiringScheduleProvider(AiringScheduleProviderInfo info)
     public string Description { get; init; } = string.IsNullOrEmpty(info.Description) ? string.Empty : info.Description;
 
     /// <summary>
+    /// Whether the provider has an icon, its own or its plugin's, served at
+    /// <c>AiringSchedule/Provider/{providerID}/Icon</c>.
+    /// </summary>
+    [Required]
+    public bool HasIcon { get; init; } = info.Icon is not null;
+
+    /// <summary>
     /// The source order of the provider. It decides whose airing wins when two
     /// providers report the same channel for an episode, and breaks ties during
     /// selection. It is not a ranking of results.

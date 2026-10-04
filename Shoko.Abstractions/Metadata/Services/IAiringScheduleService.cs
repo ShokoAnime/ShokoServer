@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Utilities;
@@ -29,6 +30,17 @@ namespace Shoko.Abstractions.Metadata.Services;
 /// </remarks>
 public interface IAiringScheduleService
 {
+    #region Configuration
+
+    /// <summary>
+    ///   The service's own configuration: the preference lists, the cleanup
+    ///   and the sweep budget. A client edits it through the configuration
+    ///   service by this info, without knowing the server's settings type.
+    /// </summary>
+    ConfigurationInfo ConfigurationInfo { get; }
+
+    #endregion
+
     #region Providers
 
     /// <summary>
@@ -814,22 +826,31 @@ public interface IAiringScheduleService
     ///   <see cref="IEpisodeAiring.AiredAt"/> and, unless turned off, by
     ///   <see cref="IEpisodeAiring.OriginalAiredAt"/> for delayed airings, so a
     ///   week an episode was delayed out of still has something to draw its gap
-    ///   from.
+    ///   from. They are ordered by the slot they occupy in the range.
     /// </summary>
     /// <remarks>
-    ///   This is the <em>pull</em> side of the same filtering
-    ///   <see cref="SubscribeToAirings"/> pushes: it takes the same
-    ///   <see cref="EpisodeAiringFilteringOptions"/> and answers the same
-    ///   airings, so a consumer that would rather poll a window than subscribe
-    ///   has no reason to re-implement any of it on top. It is also how a
-    ///   subscriber reads back the gap left by downtime, since nothing is
-    ///   replayed.
+    ///   <para>
+    ///     This is the <em>pull</em> side of the same filtering
+    ///     <see cref="SubscribeToAirings"/> pushes: it takes the same
+    ///     <see cref="EpisodeAiringFilteringOptions"/> and answers the same
+    ///     airings, so a consumer that would rather poll a window than
+    ///     subscribe has no reason to re-implement any of it on top. It is also
+    ///     how a subscriber reads back the gap left by downtime, since nothing
+    ///     is replayed.
+    ///   </para>
+    ///   <para>
+    ///     The range is compared as instants. The offsets only matter to
+    ///     date-only entries, which carry a calendar date rather than an
+    ///     instant: one is in the range when its date falls between the
+    ///     calendar dates of <paramref name="from"/> and of the last instant
+    ///     before <paramref name="to"/>, each read in its own offset.
+    ///   </para>
     /// </remarks>
-    /// <param name="fromUtc">
-    ///   The inclusive start of the range, in UTC.
+    /// <param name="from">
+    ///   The inclusive start of the range.
     /// </param>
-    /// <param name="toUtc">
-    ///   The exclusive end of the range, in UTC.
+    /// <param name="to">
+    ///   The exclusive end of the range.
     /// </param>
     /// <param name="options">
     ///   Optional. How to filter and order the airings.
@@ -838,12 +859,12 @@ public interface IAiringScheduleService
     ///   Parts have not been added yet.
     /// </exception>
     /// <exception cref="ArgumentException">
-    ///   <paramref name="toUtc"/> is before <paramref name="fromUtc"/>.
+    ///   <paramref name="to"/> is before <paramref name="from"/>.
     /// </exception>
     /// <returns>
     ///   The airings.
     /// </returns>
-    IReadOnlyList<IEpisodeAiring> GetAiringsInRange(DateTime fromUtc, DateTime toUtc, EpisodeAiringFilteringOptions? options = null);
+    IReadOnlyList<IEpisodeAiring> GetAiringsInRange(DateTimeOffset from, DateTimeOffset to, EpisodeAiringFilteringOptions? options = null);
 
     #endregion
 

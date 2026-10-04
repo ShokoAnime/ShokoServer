@@ -145,11 +145,22 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     /// <inheritdoc/>
     public IAiringSchedule Schedule => _schedule;
 
-    /// <inheritdoc/>
+    /// <summary>
+    ///   The ID of the provider that owns the airing's schedule.
+    /// </summary>
     public Guid ProviderID => _schedule.ProviderID;
 
     /// <inheritdoc/>
+    Guid? IEpisodeAiring.ProviderID => _schedule.ProviderID;
+
+    /// <inheritdoc/>
     public string ProviderName => _schedule.ProviderName;
+
+    /// <inheritdoc/>
+    public bool IsDateOnly => false;
+
+    /// <inheritdoc/>
+    public DateOnly? AirDate => null;
 
     /// <summary>
     ///   The source of the episode the airing is for.

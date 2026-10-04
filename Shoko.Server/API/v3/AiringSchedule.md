@@ -19,11 +19,25 @@ declared names (`Original`, `Subtitled`, `Poster`). Query parameter names stay
 
 ## Reading the airings endpoint
 
-`GET /api/v3/AiringSchedule/Airing?startDate=…&endDate=…` returns the airings in
-a window, ordered by the time they occupy in it. The window defaults to the next
-seven days.
+`GET /api/v3/AiringSchedule/Airing?from=…&to=…` returns the airings in a
+window, ordered by the time they occupy in it.
 
-The hard filters:
+### The window
+
+`from` and `to` are date-times that name their offset, in ISO 8601:
+`2026-10-04T00:00:00Z` or `2026-10-04T00:00:00+09:00`. They are compared as
+instants, `from` inclusive and `to` exclusive, so a client asks for its own
+local week by sending its local midnights with its own offset, and the next
+week starts where this one ended. A value without a time or an offset, such as
+`2026-10-04` or `2026-10-04T00:00:00`, is refused with `400 Bad Request` rather
+than read in the server's time zone. A `+` must be sent as `%2B` in a query
+string; an unencoded one arrives as a space, which is read as a `+` too.
+
+`from` defaults to the start of today in UTC (to now with `nextOnly`), and `to`
+to a week after `from`. A `to` before `from` is `400 Bad Request`. Times in the
+response are always UTC.
+
+### The filters
 
 - `kind`: comma-delimited, defaults to `Original`. `Original` is the broadcast
   or the platform's own first release, `Subtitled` and `Dubbed` are localised
@@ -37,19 +51,78 @@ The hard filters:
   while `Portuguese` and `BrazilianPortuguese` are two languages.
 - `channel`: comma-delimited channel IDs, from `GET
   /api/v3/AiringSchedule/Channel`.
-- `type`: comma-delimited AniDB episode types. Omit it for every type.
-- `includeMissing` / `includeRestricted`: the same three-state filters the rest
-  of v3 uses. By default a series nothing has been downloaded for is hidden, and
-  restricted (H) series are hidden.
+- `provider`: comma-delimited airing schedule provider IDs, from `GET
+  /api/v3/AiringSchedule/Provider`.
+- `type`: comma-delimited episode types. Omit it for every type.
+- `inCollection`: the three-state filter on whether the series is in the
+  collection, which means it has a shoko series. `only` (the default) keeps the
+  series in the collection, `false` keeps the anime not in it, and `true` keeps
+  both. An airing whose series resolves to nothing counts as not in the
+  collection.
+- `includeMissing`: the three-state filter on series in the collection with no
+  local files. `false` (the default) hides them, `only` keeps nothing else. A
+  series not in the collection is never missing, so `only` also drops every
+  airing `inCollection` let through for not being in the collection.
+- `includeRestricted`: the three-state filter on restricted (H) series, hidden
+  by default.
 - `entityAnchor`: whose entities the answer is about. See *Entity anchor*,
   below.
+
+So the defaults answer with the series you have files for, `includeMissing=true`
+adds the ones you have none for yet, and `inCollection=true` adds every anime
+the providers know about whether or not it is in the collection.
 
 An item's `Tracks` are the schedule's, repeated on every airing so a row can be
 labelled without a second request. A global release is one item listing every
 track it matches, not one item per language.
 
-Only timed airings are returned. An episode known solely by an AniDB date has no
-airing and stays on the dashboard calendars.
+### Date-only entries
+
+AniDB knows many episodes only by their air date. Such an episode has no airing,
+so by default it is not on the calendar. `includeDateOnly=true` adds one
+date-only entry for each AniDB episode whose air date falls in the window and
+that no provider has an airing for at all (counting estimates when
+`includeEstimates` is on), whatever the other filters leave of its airings.
+
+A date-only entry has `IsDateOnly: true` and `AirDate` set to the AniDB date, a
+calendar date in no particular time zone. It has no time, so `AiredAt`,
+`OriginalAiredAt`, `ScheduleID`, `Source`, `Channel`, `TimeZone` and `LinkID`
+are `null`, and `Tracks` is empty. `ID` is derived from the episode and is
+stable, but `GET /Airing/{airingID}` does not resolve it. `IDs`, `Type`,
+`Number`, `VideoCount` and the opt-in display data are filled in as for any
+airing.
+
+An entry is in the window when its date falls between the calendar date of
+`from` and that of the last instant before `to`, each read in its own offset.
+A client sending its local midnights therefore gets exactly the dates of its
+own days. The entry sorts at the start of its day in `from`'s offset.
+
+A date-only entry counts as an `Original` showing in no particular language on
+no channel by no provider: `provider`, `channel` and `language` leave it out,
+and so does a `kind` without `Original`. `type`, `inCollection`,
+`includeMissing`, `includeRestricted` and `entityAnchor` apply as to any
+airing.
+
+### Next only
+
+`nextOnly=true` reduces the answer to the next airing at or after `from` (now,
+by default), per group. `nextPer` says what a group is, comma-delimited and
+combinable:
+
+- `Series` (the default): one airing per series.
+- `Channel`: one per channel. Airings with no channel share one group.
+- `Kind`: one per track kind. An airing whose schedule releases several kinds
+  counts for each of them, and a date-only entry counts as `Original`.
+
+`nextPer=Series,Channel` is the next airing of each series on each of its
+channels. In each group the earliest episode wins, and the group answers with
+that episode's best airing by the server's preference, so "Ep 5 airs in 19
+hours" shows the channel and track the server would pick, even when another
+channel airs it a little earlier. A delayed airing's original slot is never
+next, and `to` still bounds the read, so widen it for a show on hiatus.
+
+The series, episode and schedule airing routes take `nextOnly` and `nextPer`
+too, and count from now.
 
 ### Display data is opt-in
 
@@ -82,11 +155,12 @@ resolved.
 ### One channel, and one schedule
 
 `GET /api/v3/AiringSchedule/Channel/{channelID}/Airing` is the same range read
-narrowed to one channel, and filters the same way: `type`, `includeMissing`,
-`includeRestricted`, `includeEstimates`, `includeDelayedOriginalSlots`,
-`preferredOnly` and `entityAnchor` all mean what they mean on `/Airing`, and a
-series nothing has been downloaded for, or a restricted (H) one, is hidden
-unless it is asked for.
+narrowed to one channel, and filters the same way: `from`, `to`, `provider`,
+`type`, `inCollection`, `includeMissing`, `includeRestricted`,
+`includeEstimates`, `includeDelayedOriginalSlots`, `preferredOnly`, `nextOnly`,
+`nextPer` and `entityAnchor` all mean what they mean on `/Airing`, with the same
+defaults. It has no `includeDateOnly`, since a date-only entry is on no
+channel.
 
 `kind` is the one deliberate difference: it defaults to every kind rather than
 to `Original`, because naming a channel has already narrowed the read and a
@@ -96,6 +170,7 @@ would answer nothing for one.
 `GET /api/v3/AiringSchedule/{scheduleID}/Airing` is one provider's whole line
 for one run: every episode it covers, in airing order, with no window and no
 channel filter of its own, since a schedule has exactly one channel.
+`nextOnly` and `nextPer` work there too, counting from now.
 
 ## Preference
 
@@ -224,7 +299,10 @@ that `linkedEntityAirings` uses: a bool has no room for a third name.
   shoko series, including its seasons' own unless `includeSeasonSchedules=false`.
 - `GET /api/v3/Series/{seriesID}/AiringSchedule/Airing` and `GET
   /api/v3/Episode/{episodeID}/AiringSchedule/Airing`: the airings, best first
-  for the episode route.
+  for the episode route. Both take `provider`, `includeDateOnly`, `nextOnly`
+  and `nextPer` as `/Airing` does. A date-only entry is added for an episode
+  with an AniDB air date and no airing at all, and next counts from now, so
+  `nextOnly=true` on the series route is a season card's countdown.
 - `POST …/AiringSchedule/Refresh`: asks every enabled provider to refresh.
   `wait=false` (the default) queues the work and answers `202 Accepted`;
   `wait=true` waits up to `timeout` seconds (60 by default, capped at 300) and
@@ -288,6 +366,10 @@ Five things to build around:
 
 `GET /api/v3/AiringSchedule/Provider` lists the providers and their settings,
 `PUT /Provider/{providerID}` changes one and `POST /Provider` changes several.
+A provider with `HasIcon` serves its icon, its own or its plugin's, at
+`GET /Provider/{providerID}/Icon`, which needs no API key so an `<img>` can
+load it.
+
 Two fields concern sweeping, which is the server walking a provider's whole
 source a chunk at a time:
 
@@ -311,6 +393,28 @@ long source is several chunks and therefore several messages, and `IsFinished`
 is what says the last one has arrived. Nothing is stored server-side, so there
 is no endpoint to read a sweep's history back from: a client that wants one
 keeps it.
+
+## The service's configuration
+
+The preference lists, the cleanup (`AutoCleanup`, `RetentionMonths`) and the
+sweep budget (`SweepBudgetSeconds`) are the airing schedule service's own
+configuration. `GET /api/v3/AiringSchedule/Configuration` (admin) answers with
+its `ConfigurationInfo`, and its `ID` is what the generic
+`/api/v3/Configuration/{configID}` routes take: `GET` it, read its `/Schema`,
+`PUT` or `PATCH` it. A client never needs to know the ID up front. The schema
+carries each number's limits as `minimum` and `maximum`.
+
+## Knowing when to refetch
+
+The `airing` feed on the aggregate hub carries two events:
+
+- `airing:episode.aired`, once a minute with the airings whose slot passed.
+- `airing:provider.swept`, once per finished chunk of a provider's sweep;
+  `IsFinished` marks the last chunk of a sweep. A sweep is what writes most
+  schedules, so a calendar refetches its window when one finishes.
+
+A refresh asked for through `POST …/AiringSchedule/Refresh` sends no event of
+its own; `wait=true` answers when it is done.
 
 ## The dashboard calendars
 

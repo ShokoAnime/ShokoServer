@@ -243,7 +243,7 @@ own:
 | `/api/v3/Metadata/{source}/…` | A source's entries of every core kind, with their texts, images, credits, relations, suggestions, orderings and links; `PATCH …/CrossReferences` re-rates links (admins); `{kind}/{id}` answers any other kind but users and filters in a minimal form |
 | `/api/v3/Metadata/Entry?id=` | Any entry by its full ID |
 | `/api/v3/Metadata/Episode/Hidden` | Whether an episode of any source is hidden, and hiding one |
-| `/api/v3/Metadata/Provider`, `/api/v3/Metadata/{source}/…` | The providers and their settings, and a source's status, search, CSV transfer and actions |
+| `/api/v3/Metadata/Provider`, `/api/v3/Metadata/{source}/…` | The providers, their icons and settings, and a source's status, search, CSV transfer and actions |
 | `/api/v3/Metadata/Source` | The sources, each source's icon, and its provider order per kind (admins change it) |
 | `/api/v3/Metadata/ImageContributor` | The image contributors, their icons, and the pairs each one is on for |
 | `/api/v3/Series/{seriesID}/Metadata/{source}/…`, `/api/v3/Episode/{episodeID}/Metadata/{source}/…` | The links of one Shoko series or episode to a source, and linking and matching them |

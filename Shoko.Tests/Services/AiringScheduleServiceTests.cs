@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -10,8 +11,10 @@ using Moq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core.Services;
+using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
+using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
@@ -19,9 +22,13 @@ using Shoko.Abstractions.Plugin;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Databases;
 using Shoko.Server.Models.Airing;
+using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Internal;
+using Shoko.Server.Models.Shoko;
 using Shoko.Server.Plugin;
+using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.Airing;
+using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
@@ -1742,6 +1749,270 @@ public class AiringScheduleServiceTests
 
     #endregion
 
+    #region Queries
+
+    [Fact]
+    public void GetAiringsInRange_ProviderIDsKeepOnlyTheGivenProviders()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        var atx = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "tbs", tbs.ChannelID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(3, 22)));
+        harness.Schedule(harness.Secondary, "atx", atx.ChannelID, [new AiringTrackData(AiringKind.Original, "ja")], (1, harness.Air(3, 23)));
+        var secondaryID = harness.Service.GetProviderInfo(harness.Secondary).ID;
+
+        var airings = harness.Service.GetAiringsInRange(
+            harness.Air(3, 0),
+            harness.Air(4, 0),
+            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, ProviderIDs = new HashSet<Guid> { secondaryID } }
+        );
+
+        Assert.Equal(secondaryID, Assert.Single(airings).ProviderID);
+    }
+
+    [Fact]
+    public void GetAiringsInRange_ComparesInstantsInAnyOffsetWithTheEndExclusive()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        var airedAt = harness.Air(3, 15);
+        harness.Schedule(harness.Primary, "tbs", tbs.ChannelID, [new AiringTrackData(AiringKind.Original, "ja")], (0, airedAt));
+        var options = new EpisodeAiringFilteringOptions() { IncludeEstimates = false };
+        var tokyo = TimeSpan.FromHours(9);
+
+        // The same instant written in +09:00 starts the range, and the end is exclusive.
+        Assert.Single(harness.Service.GetAiringsInRange(new DateTimeOffset(airedAt).ToOffset(tokyo), new DateTimeOffset(airedAt.AddHours(1)), options));
+        Assert.Empty(harness.Service.GetAiringsInRange(new DateTimeOffset(airedAt.AddHours(-1)).ToOffset(tokyo), new DateTimeOffset(airedAt), options));
+    }
+
+    [Fact]
+    public void NextOnly_PerSeriesKeepsTheNextEpisodeOnTheReadersPreferredChannel()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        var atx = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television);
+        harness.Schedule(
+            harness.Primary,
+            "tbs",
+            tbs.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(3, 22)),
+            (1, harness.Air(10, 22))
+        );
+        harness.Schedule(
+            harness.Primary,
+            "atx",
+            atx.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(3, 23)),
+            (1, harness.Air(10, 23))
+        );
+
+        // The second episode is next, and AT-X shows it even though TBS airs it first.
+        var airing = Assert.Single(harness.Service.GetAiringsInRange(
+            harness.Air(5, 0),
+            harness.Air(20, 0),
+            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true, PreferredChannels = [atx.ChannelID] }
+        ));
+
+        Assert.Equal((harness.Episodes[1].ID, atx.ChannelID), (airing.EpisodeID, airing.Channel?.ChannelID));
+    }
+
+    [Fact]
+    public void NextOnly_PerChannelKeepsTheNextAiringOfEachChannel()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        var atx = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television);
+        harness.Schedule(
+            harness.Primary,
+            "tbs",
+            tbs.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(3, 22)),
+            (1, harness.Air(10, 22))
+        );
+        harness.Schedule(
+            harness.Primary,
+            "atx",
+            atx.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(4, 1)),
+            (1, harness.Air(11, 1))
+        );
+
+        var airings = harness.Service.GetAiringsInRange(
+            harness.Air(3, 23),
+            harness.Air(20, 0),
+            new EpisodeAiringFilteringOptions()
+            {
+                IncludeEstimates = false,
+                NextOnly = true,
+                NextPer = new HashSet<AiringNextGrouping> { AiringNextGrouping.Channel },
+            }
+        );
+
+        Assert.Equal(
+            [(harness.Episodes[0].ID, atx.ChannelID), (harness.Episodes[1].ID, tbs.ChannelID)],
+            airings.Select(airing => (airing.EpisodeID, airing.Channel!.ChannelID)).ToList()
+        );
+    }
+
+    [Fact]
+    public void NextOnly_PerSeriesAndKindKeepsTheNextAiringOfEachKind()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        var stream = harness.Service.FindOrRegisterChannel("Stream", AiringChannelType.Streaming);
+        harness.Schedule(
+            harness.Primary,
+            "tbs",
+            tbs.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(3, 22)),
+            (1, harness.Air(10, 22))
+        );
+        harness.Schedule(
+            harness.Primary,
+            "stream",
+            stream.ChannelID,
+            [new AiringTrackData(AiringKind.Subtitled, "en")],
+            (0, harness.Air(4, 1)),
+            (1, harness.Air(11, 1))
+        );
+
+        var airings = harness.Service.GetAiringsInRange(
+            harness.Air(3, 0),
+            harness.Air(20, 0),
+            new EpisodeAiringFilteringOptions()
+            {
+                IncludeEstimates = false,
+                NextOnly = true,
+                NextPer = new HashSet<AiringNextGrouping> { AiringNextGrouping.Series, AiringNextGrouping.Kind },
+            }
+        );
+
+        Assert.Equal(
+            [(harness.Episodes[0].ID, AiringKind.Original), (harness.Episodes[0].ID, AiringKind.Subtitled)],
+            airings.Select(airing => (airing.EpisodeID, Assert.Single(airing.Tracks).Kind)).ToList()
+        );
+    }
+
+    [Fact]
+    public void NextOnly_AnEntityReadKeepsTheNextAiringFromNow()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        harness.Schedule(
+            harness.Primary,
+            "tbs",
+            tbs.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(1, 22)),
+            (1, harness.Air(40, 22)),
+            (2, harness.Air(47, 22))
+        );
+
+        var airing = Assert.Single(harness.Service.GetAiringsForSeries(
+            harness.ProviderSeries,
+            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true }
+        ));
+
+        Assert.Equal(harness.Air(40, 22), airing.AiredAt);
+    }
+
+    [Fact]
+    public void IncludeDateOnly_AddsAnEntryForAnAnidbEpisodeNoProviderKnows()
+    {
+        using var harness = new Harness();
+        var anidbEpisode = harness.AnidbEpisode(new DateOnly(2026, 10, 4));
+
+        Assert.Empty(harness.Service.GetAiringsForEpisode(anidbEpisode, new EpisodeAiringFilteringOptions()));
+        var entry = Assert.Single(harness.Service.GetAiringsForEpisode(anidbEpisode, new EpisodeAiringFilteringOptions() { IncludeDateOnly = true }));
+
+        Assert.True(entry.IsDateOnly);
+        Assert.Equal(new DateOnly(2026, 10, 4), entry.AirDate);
+        Assert.Equal((null, null, null), (entry.AiredAt, entry.Schedule, entry.ProviderID));
+    }
+
+    [Fact]
+    public void IncludeDateOnly_LeavesOutAnEpisodeWithAnAiringOrAProviderFilter()
+    {
+        using var harness = new Harness();
+        var tbs = harness.Service.FindOrRegisterChannel("TBS", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "tbs", tbs.ChannelID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(3, 22)));
+        var known = harness.AnidbEpisode(new DateOnly(2026, 10, 4), harness.ShokoEpisodes[0]);
+        var unknown = harness.AnidbEpisode(new DateOnly(2026, 10, 4));
+        var providerID = harness.Service.GetProviderInfo(harness.Primary).ID;
+
+        // An airing on a linked episode is still an airing, even when the read does not walk the links.
+        Assert.Empty(harness.Service.GetAiringsForEpisode(known, new EpisodeAiringFilteringOptions()
+        {
+            IncludeDateOnly = true,
+            LinkedEntityAirings = false,
+        }));
+        Assert.Empty(harness.Service.GetAiringsForEpisode(unknown, new EpisodeAiringFilteringOptions()
+        {
+            IncludeDateOnly = true,
+            ProviderIDs = new HashSet<Guid> { providerID },
+        }));
+    }
+
+    [Theory]
+    [InlineData("2026-10-04T00:00:00+09:00", "2026-10-05T00:00:00+09:00", true)]
+    [InlineData("2026-10-03T00:00:00Z", "2026-10-04T00:00:00Z", false)]
+    [InlineData("2026-10-04T00:00:00Z", "2026-10-04T00:00:01Z", true)]
+    [InlineData("2026-10-05T00:00:00+09:00", "2026-10-06T00:00:00+09:00", false)]
+    public void IncludeDateOnly_RangeReadMatchesTheDateOnTheCallersCalendar(string from, string to, bool included)
+    {
+        using var harness = new Harness();
+        harness.UseAnidbEpisodes(new AniDB_Episode
+        {
+            AniDB_EpisodeID = 1,
+            EpisodeID = 5000,
+            AnimeID = 500,
+            EpisodeNumber = 1,
+            EpisodeType = EpisodeType.Episode,
+            AirDate = (int)new DateTimeOffset(2026, 10, 4, 0, 0, 0, TimeSpan.Zero).ToUnixTimeSeconds(),
+        });
+
+        var airings = harness.Service.GetAiringsInRange(
+            DateTimeOffset.Parse(from, CultureInfo.InvariantCulture),
+            DateTimeOffset.Parse(to, CultureInfo.InvariantCulture),
+            new EpisodeAiringFilteringOptions() { IncludeDateOnly = true }
+        );
+
+        Assert.Equal(included, airings.Any(airing => airing.IsDateOnly && airing.EpisodeID.ID == "5000"));
+    }
+
+    [Theory]
+    [InlineData(InclusionFilter.Only, InclusionFilter.False, true, false, false)]
+    [InlineData(InclusionFilter.Only, InclusionFilter.True, true, true, false)]
+    [InlineData(InclusionFilter.False, InclusionFilter.True, false, false, true)]
+    [InlineData(InclusionFilter.True, InclusionFilter.Only, false, true, false)]
+    [InlineData(InclusionFilter.True, InclusionFilter.False, true, false, true)]
+    public void SeriesFilters_SplitTheCollectionFromTheMissingFiles(
+        InclusionFilter inCollection,
+        InclusionFilter includeMissing,
+        bool withFiles,
+        bool missing,
+        bool notInCollection
+    )
+    {
+        var options = new EpisodeAiringFilteringOptions() { InCollection = inCollection, IncludeMissing = includeMissing };
+
+        Assert.Equal(
+            (withFiles, missing, notInCollection),
+            (
+                AiringScheduleService.PassesSeriesFilters(new AiringSeriesState { IsInCollection = true }, options),
+                AiringScheduleService.PassesSeriesFilters(new AiringSeriesState { IsInCollection = true, IsMissing = true }, options),
+                AiringScheduleService.PassesSeriesFilters(AiringSeriesState.Unknown, options)
+            )
+        );
+    }
+
+    #endregion
+
     #region Harness
 
     /// <summary>
@@ -1917,6 +2188,7 @@ public class AiringScheduleServiceTests
                 NullLogger<AiringScheduleService>.Instance,
                 configurationService.Object,
                 pluginManager.Object,
+                Mock.Of<IApplicationPaths>(),
                 new Mock<IQueueScheduler>().Object,
                 new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
                 new(() => metadataService.Object)
@@ -2048,6 +2320,34 @@ public class AiringScheduleServiceTests
                 (1, Air(8, 0, 0) + offset)
             );
         }
+
+        /// <summary>
+        ///   An AniDB episode with an air date and nothing else, linked to the given shoko
+        ///   episode when there is one.
+        /// </summary>
+        public IAnidbEpisode AnidbEpisode(DateOnly airDate, IShokoEpisode? shokoEpisode = null)
+        {
+            var episode = new Mock<IAnidbEpisode>();
+            episode.SetupGet(entry => entry.ID).Returns(new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Episode, "9000"));
+            episode.SetupGet(entry => entry.Source).Returns(MetadataSource.AniDB);
+            episode.SetupGet(entry => entry.EntityType).Returns(MetadataEntityType.Episode);
+            episode.SetupGet(entry => entry.SeriesID).Returns(new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Series, "900"));
+            episode.SetupGet(entry => entry.Type).Returns(EpisodeType.Episode);
+            episode.SetupGet(entry => entry.EpisodeNumber).Returns(1);
+            episode.SetupGet(entry => entry.AirDate).Returns(airDate);
+            episode.SetupGet(entry => entry.ShokoEpisodes).Returns(shokoEpisode is null ? [] : [shokoEpisode]);
+            return episode.Object;
+        }
+
+        /// <summary>
+        ///   Installs the AniDB episodes a range read looks date-only entries up in, with no
+        ///   anime and no shoko episodes behind them.
+        /// </summary>
+        public void UseAnidbEpisodes(params AniDB_Episode[] episodes)
+            => _scope
+                .With<AniDB_EpisodeRepository, int, AniDB_Episode>(entry => entry.AniDB_EpisodeID, episodes)
+                .With<AniDB_AnimeRepository, int, AniDB_Anime>(entry => entry.AniDB_AnimeID, [])
+                .With<AnimeEpisodeRepository, int, AnimeEpisode>(entry => entry.AnimeEpisodeID, []);
 
         public void Dispose()
         {

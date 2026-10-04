@@ -94,6 +94,26 @@ public interface IAiringScheduleProvider
     ///   provider. Defaults to one at a time.
     /// </summary>
     int MaxConcurrentRefreshes { get => 1; }
+
+    /// <summary>
+    ///   Optional. The embedded resource of your provider's icon, shown beside
+    ///   its name. Must be an absolute resource name, including the assembly
+    ///   name.
+    /// </summary>
+    /// <remarks>
+    ///   SVG is preferred, PNG is accepted; make it square and readable at 16
+    ///   pixels. It is extracted beside your plugin as
+    ///   <c>&lt;type&gt;.airing-icon.&lt;ext&gt;</c>, or
+    ///   <c>&lt;dll&gt;.&lt;type&gt;.airing-icon.&lt;ext&gt;</c> beside a lone
+    ///   dll, named after your provider's type name, and a file already there
+    ///   by that name is used instead. Without either, the provider shows your
+    ///   plugin's icon. Read once, at registration.
+    /// </remarks>
+    /// <example>
+    ///   <c>"Shoko.Plugin.Example.assets.schedule-icon.svg"</c>, or leave it
+    ///   <c>null</c> to show the plugin's icon.
+    /// </example>
+    string? EmbeddedIconResourceName { get => null; }
 }
 
 /// <summary>

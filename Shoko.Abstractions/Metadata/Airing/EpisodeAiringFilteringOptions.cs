@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.User;
 
 namespace Shoko.Abstractions.Metadata.Airing;
 
@@ -15,9 +17,9 @@ public sealed class EpisodeAiringFilteringOptions
 
     /// <summary>
     ///   Optional. If set, will restrict the returned list to only containing
-    ///   airings owned by the given provider.
+    ///   airings owned by one of the given providers.
     /// </summary>
-    public Guid? ProviderID { get; set; }
+    public IReadOnlySet<Guid>? ProviderIDs { get; set; }
 
     /// <summary>
     ///   Optional. If set, will restrict the returned list to only containing
@@ -38,10 +40,67 @@ public sealed class EpisodeAiringFilteringOptions
     public IReadOnlySet<Guid>? ChannelIDs { get; set; }
 
     /// <summary>
+    ///   Optional. If set, will restrict the returned list to only containing
+    ///   airings of episodes of one of the given types.
+    /// </summary>
+    public IReadOnlySet<EpisodeType>? EpisodeTypes { get; set; }
+
+    /// <summary>
+    ///   Optional. Filters on whether the airing's series is in the
+    ///   collection, which means it has a shoko series. Defaults to
+    ///   <see cref="InclusionFilter.True"/>, keeping everything.
+    /// </summary>
+    /// <remarks>
+    ///   <see cref="InclusionFilter.Only"/> keeps the airings of series in the
+    ///   collection, and <see cref="InclusionFilter.False"/> the airings of
+    ///   series not in it. An airing whose series resolves to nothing counts
+    ///   as not in the collection.
+    /// </remarks>
+    public InclusionFilter InCollection { get; set; } = InclusionFilter.True;
+
+    /// <summary>
+    ///   Optional. Filters on whether the airing's series is missing: in the
+    ///   collection, with no local files. Defaults to
+    ///   <see cref="InclusionFilter.True"/>, keeping everything.
+    /// </summary>
+    /// <remarks>
+    ///   A series not in the collection is never missing, so
+    ///   <see cref="InclusionFilter.Only"/> leaves none of its airings.
+    /// </remarks>
+    public InclusionFilter IncludeMissing { get; set; } = InclusionFilter.True;
+
+    /// <summary>
+    ///   Optional. Filters on whether the airing's series is restricted (H).
+    ///   Defaults to <see cref="InclusionFilter.True"/>, keeping everything.
+    /// </summary>
+    public InclusionFilter IncludeRestricted { get; set; } = InclusionFilter.True;
+
+    /// <summary>
+    ///   Optional. The user the read is for. If set, the airings of series the
+    ///   user is not allowed to see are left out.
+    /// </summary>
+    public IUser? User { get; set; }
+
+    /// <summary>
     ///   Optional. Whether to also return the estimated airings computed from
     ///   the surviving schedules. Defaults to <c>true</c>.
     /// </summary>
     public bool IncludeEstimates { get; set; } = true;
+
+    /// <summary>
+    ///   Optional. Whether to also return a date-only entry for each AniDB
+    ///   episode with an air date but no airing at all. Defaults to
+    ///   <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    ///   A date-only entry has <see cref="IEpisodeAiring.IsDateOnly"/> set and
+    ///   no schedule, provider, channel or time. It counts as an
+    ///   <see cref="AiringKind.Original"/> showing in no particular language,
+    ///   so a <see cref="ProviderIDs"/>, <see cref="ChannelIDs"/> or
+    ///   <see cref="Languages"/> filter leaves it out. Schedule reads never
+    ///   return one.
+    /// </remarks>
+    public bool IncludeDateOnly { get; set; }
 
     /// <summary>
     ///   Optional. Whether to also return airings hidden because their provider
@@ -113,6 +172,37 @@ public sealed class EpisodeAiringFilteringOptions
     ///   somewhere else.
     /// </remarks>
     public bool PreferredOnly { get; set; }
+
+    #endregion
+
+    #region Next
+
+    /// <summary>
+    ///   Optional. Whether a list read is reduced to the next airing of each
+    ///   group <see cref="NextPer"/> describes. Defaults to <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    ///   <para>
+    ///     The next airing is the first one at or after the start of a range
+    ///     read, or at or after now for any other read. In each group the
+    ///     earliest episode wins, and the group answers with that episode's
+    ///     best airing by preference, so the preferred channel and track still
+    ///     decide where it is shown.
+    ///   </para>
+    ///   <para>
+    ///     A delayed airing's original slot is no airing, so it is never
+    ///     next. A date-only entry is next from the start of its day, in the
+    ///     range's offset or in UTC. Subscriptions ignore this.
+    ///   </para>
+    /// </remarks>
+    public bool NextOnly { get; set; }
+
+    /// <summary>
+    ///   Optional. What <see cref="NextOnly"/> keeps one airing per. The parts
+    ///   combine. <c>null</c> means per <see cref="AiringNextGrouping.Series"/>,
+    ///   and an empty set keeps the single next airing of the whole read.
+    /// </summary>
+    public IReadOnlySet<AiringNextGrouping>? NextPer { get; set; }
 
     #endregion
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
@@ -33,6 +34,18 @@ public partial class AiringScheduleService
     /// </summary>
     private static readonly TimeSpan _dormantScheduleWindow = TimeSpan.FromDays(90);
 
+    /// <summary>
+    /// How far before a range a stored AniDB date is still looked at for a
+    /// date-only entry: the stored date is the earliest showing, and the air
+    /// date of an episode shown early lands up to this much later.
+    /// </summary>
+    private const int DateOnlyEarlyShowingSlackDays = 366;
+
+    /// <summary>
+    /// What a next-only read keeps one airing per when the caller says nothing.
+    /// </summary>
+    private static readonly IReadOnlySet<AiringNextGrouping> _defaultNextPer = new HashSet<AiringNextGrouping> { AiringNextGrouping.Series };
+
     #region Episode Airings | Reading
 
     /// <inheritdoc/>
@@ -45,7 +58,7 @@ public partial class AiringScheduleService
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
         context.Remember(episode);
-        return ReadAirings(context, episode, options, ResolveAnchor(options.EntityAnchor, episode));
+        return ReadEntityAirings(context, [episode], options, ResolveAnchor(options.EntityAnchor, episode));
     }
 
     /// <inheritdoc/>
@@ -62,7 +75,7 @@ public partial class AiringScheduleService
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
         var anchor = ResolveAnchor(options.EntityAnchor, series);
-        return series.Episodes.SelectMany(episode => ReadAirings(context, episode, options, anchor)).ToList();
+        return ReadEntityAirings(context, series.Episodes, options, anchor);
     }
 
     /// <inheritdoc/>
@@ -75,7 +88,7 @@ public partial class AiringScheduleService
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
         var anchor = ResolveAnchor(options.EntityAnchor, season);
-        return season.Episodes.SelectMany(episode => ReadAirings(context, episode, options, anchor)).ToList();
+        return ReadEntityAirings(context, season.Episodes, options, anchor);
     }
 
     /// <inheritdoc/>
@@ -115,23 +128,33 @@ public partial class AiringScheduleService
         }
 
         ApplyAnchor(views, anchor);
-        return Order(context, views, options).ToList();
+        views.RemoveAll(view => !PassesAiringFilters(context, view, options));
+        if (!options.NextOnly)
+            return Order(context, views, options).ToList();
+
+        var ordered = Order(context, views, options, preferredOnly: false)
+            .Where(airing => GetNextTime(airing, now, DateOnly.FromDateTime(now), TimeSpan.Zero) is not null);
+        return ReduceToNext(options.PreferredOnly ? TakePreferred(ordered) : ordered, options, now, DateOnly.FromDateTime(now), TimeSpan.Zero);
     }
 
     /// <inheritdoc/>
-    public IReadOnlyList<IEpisodeAiring> GetAiringsInRange(DateTime fromUtc, DateTime toUtc, EpisodeAiringFilteringOptions? options = null)
+    public IReadOnlyList<IEpisodeAiring> GetAiringsInRange(DateTimeOffset from, DateTimeOffset to, EpisodeAiringFilteringOptions? options = null)
     {
         if (!_loaded)
             throw new InvalidOperationException("Parts have not been added yet.");
-        if (toUtc < fromUtc)
-            throw new ArgumentException("The end of the range is before its start.", nameof(toUtc));
+        if (to < from)
+            throw new ArgumentException("The end of the range is before its start.", nameof(to));
 
         options ??= new EpisodeAiringFilteringOptions();
         var context = new AiringReadContext(this, options.IncludeDisabled);
         // No entity was passed in, so there is nothing to infer an anchor from.
         var anchor = ResolveAnchor(options.EntityAnchor, null);
-        var from = AddDaysClamped(DateOnly.FromDateTime(fromUtc), -RangeBucketSlackDays);
-        var to = AddDaysClamped(DateOnly.FromDateTime(toUtc), RangeBucketSlackDays);
+        var fromUtc = from.UtcDateTime;
+        var toUtc = to.UtcDateTime;
+        // A delayed airing's original slot is a gap, not an airing, so it is never next.
+        var includeGaps = options.IncludeDelayedOriginalSlots && !options.NextOnly;
+        var firstBucket = AddDaysClamped(DateOnly.FromDateTime(fromUtc), -RangeBucketSlackDays);
+        var lastBucket = AddDaysClamped(DateOnly.FromDateTime(toUtc), RangeBucketSlackDays);
         var scheduleMatches = new Dictionary<int, bool>();
         bool MatchesSchedule(int scheduleID)
         {
@@ -147,8 +170,8 @@ public partial class AiringScheduleService
         // hard filter is schedule-level, so a candidate whose only airings are
         // on schedules the read filtered out is dropped here rather than after
         // it has been through the whole per-episode pipeline.
-        var candidates = RepoFactory.EpisodeAiring.GetByDayRange(from, to)
-            .Concat(options.IncludeDelayedOriginalSlots ? RepoFactory.EpisodeAiring.GetDelayedByOriginalDayRange(from, to) : [])
+        var candidates = RepoFactory.EpisodeAiring.GetByDayRange(firstBucket, lastBucket)
+            .Concat(includeGaps ? RepoFactory.EpisodeAiring.GetDelayedByOriginalDayRange(firstBucket, lastBucket) : [])
             .Where(entry => MatchesSchedule(entry.AiringScheduleID))
             .Select(entry => (entry.EpisodeSource, entry.EpisodeID))
             .ToHashSet();
@@ -176,14 +199,27 @@ public partial class AiringScheduleService
         // episode is answered with the best airing it has in the window. The
         // other way round an episode whose best airing is elsewhere would drop
         // out of the day it actually airs on.
-        return targets.Values
+        var airings = targets.Values
             .SelectMany(episode =>
             {
-                var airings = ReadAirings(context, episode, options, anchor, preferredOnly: false)
-                    .Where(airing => IsInRange(airing, fromUtc, toUtc, options.IncludeDelayedOriginalSlots));
-                return options.PreferredOnly ? airings.Take(1) : airings;
+                var inRange = ReadAirings(context, episode, options, anchor, preferredOnly: false)
+                    .Where(airing => IsInRange(airing, fromUtc, toUtc, includeGaps));
+                return options.PreferredOnly ? inRange.Take(1) : inRange;
             })
-            .OrderBy(airing => airing.AiredAt ?? airing.OriginalAiredAt ?? DateTime.MaxValue)
+            .ToList();
+        if (AllowsDateOnly(options))
+        {
+            var firstDate = DateOnly.FromDateTime(from.DateTime);
+            var lastDate = DateOnly.FromDateTime(to > from ? to.AddTicks(-1).DateTime : from.DateTime);
+            airings.AddRange(GetDateOnlyEntriesInRange(context, firstDate, lastDate, options, anchor));
+        }
+
+        var reduced = options.NextOnly
+            ? ReduceToNext(airings, options, fromUtc, DateOnly.FromDateTime(from.DateTime), from.Offset)
+            : airings;
+        return reduced
+            .OrderBy(airing => GetRangeSortTime(airing, fromUtc, toUtc, from.Offset))
+            .ThenBy(airing => airing.LinkID)
             .ThenBy(airing => airing.Channel?.Name ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(airing => airing.Key, StringComparer.Ordinal)
             .ToList();
@@ -237,8 +273,9 @@ public partial class AiringScheduleService
             views.AddRange(GetEstimates(context, episode, keys, covered, options));
 
         // Before the ordering, so a preferred-only read is handed the best of
-        // what the anchor kept rather than nothing at all.
+        // what the anchor and the filters kept rather than nothing at all.
         ApplyAnchor(views, anchor);
+        views.RemoveAll(view => !PassesAiringFilters(context, view, options));
         return Order(context, views, options, preferredOnly).ToList();
     }
 
@@ -448,7 +485,7 @@ public partial class AiringScheduleService
     {
         if (!options.IncludeDisabled && (!context.IsProviderVisible(view.ProviderID) || !view.HasVisibleTracks))
             return false;
-        if (options.ProviderID is { } providerID && view.ProviderID != providerID)
+        if (options.ProviderIDs is { } providerIDs && !providerIDs.Contains(view.ProviderID))
             return false;
         if (options.ChannelIDs is { } channelIDs && (view.Row.ChannelID is not { } channelID || !channelIDs.Contains(channelID)))
             return false;
@@ -566,10 +603,33 @@ public partial class AiringScheduleService
     /// <returns><c>true</c> when the airing is part of the range.</returns>
     private static bool IsInRange(IEpisodeAiring airing, DateTime fromUtc, DateTime toUtc, bool includeDelayedOriginalSlots)
     {
-        if ((airing.AiredAt ?? airing.OriginalAiredAt) is { } slot && slot >= fromUtc && slot <= toUtc)
+        if ((airing.AiredAt ?? airing.OriginalAiredAt) is { } slot && slot >= fromUtc && slot < toUtc)
             return true;
 
-        return includeDelayedOriginalSlots && airing.IsDelayed && airing.OriginalAiredAt is { } original && original >= fromUtc && original <= toUtc;
+        return includeDelayedOriginalSlots && airing.IsDelayed && airing.OriginalAiredAt is { } original && original >= fromUtc && original < toUtc;
+    }
+
+    /// <summary>
+    /// The time a range read orders an airing by: the earlier of its current
+    /// and its original slot that falls in the range, so a delayed airing sorts
+    /// where its gap is drawn. A date-only entry sorts at the start of its day.
+    /// </summary>
+    /// <param name="airing">The airing.</param>
+    /// <param name="fromUtc">The inclusive start of the range.</param>
+    /// <param name="toUtc">The exclusive end of the range.</param>
+    /// <param name="offset">The offset a date-only entry's day is read in.</param>
+    /// <returns>The time to order by, in UTC.</returns>
+    private static DateTime GetRangeSortTime(IEpisodeAiring airing, DateTime fromUtc, DateTime toUtc, TimeSpan offset)
+    {
+        if (airing is EpisodeAirDateView dateOnly)
+            return dateOnly.GetDayStart(offset);
+
+        var airedAt = airing.AiredAt is { } aired && aired >= fromUtc && aired < toUtc ? aired : (DateTime?)null;
+        var originalAiredAt = airing.OriginalAiredAt is { } original && original >= fromUtc && original < toUtc ? original : (DateTime?)null;
+        if (airedAt is { } first && originalAiredAt is { } second)
+            return first <= second ? first : second;
+
+        return airedAt ?? originalAiredAt ?? airing.AiredAt ?? airing.OriginalAiredAt ?? DateTime.MaxValue;
     }
 
     /// <summary>
@@ -672,6 +732,326 @@ public partial class AiringScheduleService
             }
         }
     }
+
+    #endregion
+
+    #region Episode Airings | Filters, Date-Only and Next
+
+    /// <summary>
+    /// The read every entity read runs: each episode's airings, a date-only
+    /// entry for an episode with none when one was asked for, and the next
+    /// airing of each group when only that was asked for.
+    /// </summary>
+    /// <param name="context">The read the views belong to.</param>
+    /// <param name="episodes">The episodes the read is for.</param>
+    /// <param name="options">The filters and preference to read with.</param>
+    /// <param name="anchor">The resolved entity anchor.</param>
+    /// <returns>The airings, each episode's best first.</returns>
+    private List<IEpisodeAiring> ReadEntityAirings(
+        AiringReadContext context,
+        IEnumerable<IEpisode> episodes,
+        EpisodeAiringFilteringOptions options,
+        AiringEntityAnchor anchor
+    )
+    {
+        var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now);
+        var airings = new List<IEpisodeAiring>();
+        foreach (var episode in episodes)
+        {
+            // A next-only read reduces after it has dropped what already aired,
+            // so an episode keeps the best airing it has still to come.
+            IEnumerable<IEpisodeAiring> episodeAirings = options.NextOnly
+                ? ReadAirings(context, episode, options, anchor, preferredOnly: false)
+                    .Where(airing => GetNextTime(airing, now, today, TimeSpan.Zero) is not null)
+                : ReadAirings(context, episode, options, anchor);
+            if (options.NextOnly && options.PreferredOnly)
+                episodeAirings = episodeAirings.Take(1);
+
+            var count = airings.Count;
+            airings.AddRange(episodeAirings);
+            if (airings.Count == count && AllowsDateOnly(options) && GetDateOnlyEntry(context, episode, options, anchor, null, null) is { } entry)
+                airings.Add(entry);
+        }
+
+        return options.NextOnly ? ReduceToNext(airings, options, now, today, TimeSpan.Zero) : airings;
+    }
+
+    /// <summary>
+    /// Keep the first airing of each episode, the best by preference, out of a
+    /// list ordered by preference within each episode.
+    /// </summary>
+    /// <param name="airings">The airings, each episode's best first.</param>
+    /// <returns>One airing per episode.</returns>
+    private static IEnumerable<IEpisodeAiring> TakePreferred(IEnumerable<IEpisodeAiring> airings)
+    {
+        var seen = new HashSet<(MetadataSource Source, string ID)>();
+        return airings.Where(airing => seen.Add(GetEpisodeKeyFor(airing)));
+    }
+
+    /// <summary>
+    /// Whether an airing passes the filters on its episode and its series: the
+    /// episode types, the user, and the restricted, collection and missing
+    /// filters. The series is only resolved when one of them asks for it.
+    /// </summary>
+    /// <param name="context">The read the airing belongs to.</param>
+    /// <param name="airing">The airing.</param>
+    /// <param name="options">The filters to apply.</param>
+    /// <returns><c>true</c> when the airing passes every one of them.</returns>
+    internal static bool PassesAiringFilters(AiringReadContext context, IEpisodeAiring airing, EpisodeAiringFilteringOptions options)
+    {
+        if (options.EpisodeTypes is { } episodeTypes)
+        {
+            var episodeType = ((IEpisode?)airing.AnidbEpisode ?? (IEpisode?)airing.ShokoEpisode ?? airing.Episode)?.Type;
+            if (episodeType is not { } type || !episodeTypes.Contains(type))
+                return false;
+        }
+
+        if (options is { User: null, IncludeRestricted: InclusionFilter.True, InCollection: InclusionFilter.True, IncludeMissing: InclusionFilter.True })
+            return true;
+
+        return PassesSeriesFilters(context.GetSeriesState(airing), options);
+    }
+
+    /// <summary>
+    /// Whether a series passes the filters on it: the user, and the
+    /// restricted, collection and missing filters.
+    /// </summary>
+    /// <param name="state">The series' state.</param>
+    /// <param name="options">The filters to apply.</param>
+    /// <returns><c>true</c> when the series passes every one of them.</returns>
+    internal static bool PassesSeriesFilters(AiringSeriesState state, EpisodeAiringFilteringOptions options)
+    {
+        if (options.User is { } user && state.AnidbAnime is { } anime && !user.IsAllowedToSee(anime))
+            return false;
+
+        return Passes(options.IncludeRestricted, state.IsRestricted) &&
+            Passes(options.InCollection, state.IsInCollection) &&
+            Passes(options.IncludeMissing, state.IsMissing);
+
+        static bool Passes(InclusionFilter filter, bool meetsCondition)
+            => filter switch
+            {
+                InclusionFilter.True => true,
+                InclusionFilter.Only => meetsCondition,
+                _ => !meetsCondition,
+            };
+    }
+
+    /// <summary>
+    /// Whether a read can return date-only entries at all. One counts as an
+    /// <see cref="AiringKind.Original"/> showing in no particular language on
+    /// no channel by no provider, so a filter on any of those leaves it out.
+    /// </summary>
+    /// <param name="options">The read's options.</param>
+    /// <returns><c>true</c> when the read asked for date-only entries and can have them.</returns>
+    private static bool AllowsDateOnly(EpisodeAiringFilteringOptions options)
+        => options.IncludeDateOnly &&
+            options.ProviderIDs is null &&
+            options.ChannelIDs is null &&
+            options.Languages is null &&
+            (options.Kinds is null || options.Kinds.Contains(AiringKind.Original));
+
+    /// <summary>
+    /// The date-only entries of a range read: the AniDB episodes whose air
+    /// date falls between the two calendar dates and that have no airing.
+    /// </summary>
+    /// <param name="context">The read the entries belong to.</param>
+    /// <param name="firstDate">The first date of the range.</param>
+    /// <param name="lastDate">The last date of the range.</param>
+    /// <param name="options">The filters to apply.</param>
+    /// <param name="anchor">The resolved entity anchor.</param>
+    /// <returns>The entries.</returns>
+    private IEnumerable<IEpisodeAiring> GetDateOnlyEntriesInRange(
+        AiringReadContext context,
+        DateOnly firstDate,
+        DateOnly lastDate,
+        EpisodeAiringFilteringOptions options,
+        AiringEntityAnchor anchor
+    )
+    {
+        // The stored date is the earliest showing, which the air date never
+        // precedes, and an early showing is never as much as a year early.
+        var earliest = AddDaysClamped(firstDate, -DateOnlyEarlyShowingSlackDays);
+        var episodes = RepoFactory.AniDB_Episode.GetForDate(
+            earliest.ToDateTime(TimeOnly.MinValue),
+            lastDate.ToDateTime(TimeOnly.MaxValue)
+        );
+        foreach (var episode in episodes)
+        {
+            if (GetDateOnlyEntry(context, episode, options, anchor, firstDate, lastDate) is { } entry)
+                yield return entry;
+        }
+    }
+
+    /// <summary>
+    /// The date-only entry of an episode: its AniDB episode by its air date,
+    /// when no provider has an airing for it at all and it passes the read's
+    /// filters.
+    /// </summary>
+    /// <param name="context">The read the entry belongs to.</param>
+    /// <param name="episode">The episode.</param>
+    /// <param name="options">The filters to apply.</param>
+    /// <param name="anchor">The resolved entity anchor.</param>
+    /// <param name="firstDate">The first date the air date may fall on, or <c>null</c> for any.</param>
+    /// <param name="lastDate">The last date the air date may fall on, or <c>null</c> for any.</param>
+    /// <returns>The entry, or <c>null</c>.</returns>
+    private EpisodeAirDateView? GetDateOnlyEntry(
+        AiringReadContext context,
+        IEpisode episode,
+        EpisodeAiringFilteringOptions options,
+        AiringEntityAnchor anchor,
+        DateOnly? firstDate,
+        DateOnly? lastDate
+    )
+    {
+        var (anidbEpisode, shokoEpisode) = context.GetEpisodeViews(episode);
+        if (anidbEpisode?.AirDate is not { } airDate)
+            return null;
+        if (airDate < firstDate || airDate > lastDate)
+            return null;
+        if (anchor is AiringEntityAnchor.Shoko && shokoEpisode is null)
+            return null;
+
+        // Known only by its date means no provider knows the episode at all,
+        // whatever the read filters its airings by.
+        var known = ReadAirings(
+            context,
+            anidbEpisode,
+            new EpisodeAiringFilteringOptions
+            {
+                IncludeEstimates = options.IncludeEstimates,
+                IncludeDisabled = options.IncludeDisabled,
+                LinkedEntityAirings = true,
+            },
+            AiringEntityAnchor.Raw,
+            preferredOnly: true
+        );
+        if (known.Count > 0)
+            return null;
+
+        var entry = new EpisodeAirDateView(anidbEpisode, shokoEpisode, airDate);
+        return PassesAiringFilters(context, entry, options) ? entry : null;
+    }
+
+    /// <summary>
+    /// When an airing counts as being next: its current slot, or the start of
+    /// a date-only entry's day, when that is at or after the reference.
+    /// </summary>
+    /// <param name="airing">The airing.</param>
+    /// <param name="afterUtc">The reference instant.</param>
+    /// <param name="afterDate">The reference date, for date-only entries.</param>
+    /// <param name="offset">The offset a date-only entry's day is read in.</param>
+    /// <returns>The time, or <c>null</c> when the airing is not upcoming.</returns>
+    private static DateTime? GetNextTime(IEpisodeAiring airing, DateTime afterUtc, DateOnly afterDate, TimeSpan offset)
+    {
+        if (airing is EpisodeAirDateView dateOnly)
+            return dateOnly.AirDate >= afterDate ? dateOnly.GetDayStart(offset) : null;
+
+        return airing.AiredAt is { } airedAt && airedAt >= afterUtc ? airedAt : null;
+    }
+
+    /// <summary>
+    /// Reduce a read to the next airing of each group: the earliest episode
+    /// of the group, answered with its best airing by preference.
+    /// </summary>
+    /// <param name="airings">The airings, each episode's in preference order.</param>
+    /// <param name="options">The read's options, for the grouping and the kinds.</param>
+    /// <param name="afterUtc">The reference instant.</param>
+    /// <param name="afterDate">The reference date, for date-only entries.</param>
+    /// <param name="offset">The offset a date-only entry's day is read in.</param>
+    /// <returns>The next airings, ordered by time.</returns>
+    private static List<IEpisodeAiring> ReduceToNext(
+        IEnumerable<IEpisodeAiring> airings,
+        EpisodeAiringFilteringOptions options,
+        DateTime afterUtc,
+        DateOnly afterDate,
+        TimeSpan offset
+    )
+    {
+        var per = options.NextPer ?? _defaultNextPer;
+        var episodeBest = new Dictionary<(NextGroupKey Group, (MetadataSource Source, string ID) Episode), (DateTime Time, IEpisodeAiring Airing)>();
+        foreach (var airing in airings)
+        {
+            if (GetNextTime(airing, afterUtc, afterDate, offset) is not { } time)
+                continue;
+
+            // The first airing seen is the episode's best, and the earliest one
+            // is what the episode is next by.
+            var episodeKey = GetEpisodeKeyFor(airing);
+            foreach (var group in GetNextGroupKeys(airing, per, options.Kinds))
+            {
+                episodeBest[(group, episodeKey)] = episodeBest.TryGetValue((group, episodeKey), out var seen)
+                    ? (time < seen.Time ? time : seen.Time, seen.Airing)
+                    : (time, airing);
+            }
+        }
+
+        var groups = new Dictionary<NextGroupKey, (DateTime Time, int Number, IEpisodeAiring Airing)>();
+        foreach (var ((group, _), (time, airing)) in episodeBest)
+        {
+            var number = ((IEpisode?)airing.AnidbEpisode ?? (IEpisode?)airing.ShokoEpisode ?? airing.Episode)?.EpisodeNumber ?? int.MaxValue;
+            if (!groups.TryGetValue(group, out var current) ||
+                time < current.Time ||
+                (time == current.Time && (number < current.Number || (number == current.Number && airing.ID.CompareTo(current.Airing.ID) < 0))))
+                groups[group] = (time, number, airing);
+        }
+
+        return groups.Values
+            .OrderBy(entry => entry.Time)
+            .ThenBy(entry => entry.Number)
+            .Select(entry => entry.Airing)
+            .Distinct()
+            .ToList();
+    }
+
+    /// <summary>
+    /// The groups an airing counts for in a next-only read.
+    /// </summary>
+    /// <param name="airing">The airing.</param>
+    /// <param name="per">What to keep one airing per.</param>
+    /// <param name="kinds">The kinds the read filters by, or <c>null</c> for every kind.</param>
+    /// <returns>The groups.</returns>
+    private static IEnumerable<NextGroupKey> GetNextGroupKeys(IEpisodeAiring airing, IReadOnlySet<AiringNextGrouping> per, IReadOnlySet<AiringKind>? kinds)
+    {
+        var series = per.Contains(AiringNextGrouping.Series) ? AiringReadContext.GetSeriesFor(airing)?.ID : null;
+        var channel = per.Contains(AiringNextGrouping.Channel) ? airing.Channel?.ChannelID : null;
+        if (!per.Contains(AiringNextGrouping.Kind))
+        {
+            yield return new(series, channel, null);
+            yield break;
+        }
+
+        List<AiringKind> airingKinds = airing.IsDateOnly
+            ? [AiringKind.Original]
+            : [.. airing.Tracks.Select(track => track.Kind).Where(kind => kinds is null || kinds.Contains(kind)).Distinct()];
+        if (airingKinds.Count is 0)
+        {
+            yield return new(series, channel, null);
+            yield break;
+        }
+
+        foreach (var kind in airingKinds)
+            yield return new(series, channel, kind);
+    }
+
+    /// <summary>
+    /// Which episode an airing counts as: the one the read resolved it for, or
+    /// its own stored episode.
+    /// </summary>
+    /// <param name="airing">The airing.</param>
+    /// <returns>The episode's key.</returns>
+    private static (MetadataSource Source, string ID) GetEpisodeKeyFor(IEpisodeAiring airing)
+        => airing is EpisodeAiringView view ? GetDeduplicationKey(view) : (airing.EpisodeID.Source, airing.EpisodeID.ID);
+
+    /// <summary>
+    /// One group of a next-only read. A part the read does not group by is
+    /// <c>null</c>.
+    /// </summary>
+    /// <param name="Series">The series.</param>
+    /// <param name="Channel">The channel.</param>
+    /// <param name="Kind">The track kind.</param>
+    private readonly record struct NextGroupKey(MetadataGuid? Series, Guid? Channel, AiringKind? Kind);
 
     #endregion
 

@@ -103,7 +103,9 @@ public class MetadataProvider
 
     /// <summary>
     /// Whether the provider's source has an icon, served at
-    /// <c>Metadata/Source/{source}/Icon</c>.
+    /// <c>Metadata/Source/{source}/Icon</c>, and at
+    /// <c>Metadata/Provider/{providerID}/Icon</c> unless the provider has one
+    /// of its own.
     /// </summary>
     [Required]
     public bool HasIcon { get; init; }

@@ -75,6 +75,8 @@ public class MetadataProviderController(
 
     internal const string SourceIconNotFound = "The source has no icon.";
 
+    internal const string ProviderIconNotFound = "The metadata provider was not found or has no icon.";
+
     #endregion
 
     #region Providers
@@ -105,6 +107,28 @@ public class MetadataProviderController(
     [HttpGet("Provider/{providerID:guid}")]
     public ActionResult<MetadataProvider> GetProvider([FromRoute] Guid providerID)
         => providerManager.GetProviderInfo(providerID) is { } info ? ToModel(info) : NotFound(ProviderNotFound);
+
+    /// <summary>
+    /// Get a metadata provider's icon: its own, else its source's.
+    /// </summary>
+    /// <remarks>
+    /// An SVG or a PNG, sent so that an SVG opened on its own runs no script.
+    /// </remarks>
+    /// <param name="providerID">The provider's ID.</param>
+    /// <returns>
+    /// The icon, <c>304 Not Modified</c> when the client's copy has the same
+    /// ETag, or <c>404 Not Found</c> when the provider is unknown or has none.
+    /// </returns>
+    [AllowAnonymous]
+    [DatabaseBlockedExempt]
+    [InitFriendly]
+    [HttpGet("Provider/{providerID:guid}/Icon")]
+    public ActionResult GetProviderIcon([FromRoute] Guid providerID)
+        => PackageIcon(
+            providerManager.GetProviderInfo(providerID) is { } info ? info.Icon ?? providerManager.GetSourceIcon(info.Source) : null,
+            applicationPaths,
+            ProviderIconNotFound
+        );
 
     /// <summary>
     /// Get every source series or movies can be linked to, one row per

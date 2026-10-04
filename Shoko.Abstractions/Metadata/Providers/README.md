@@ -659,7 +659,8 @@ as `<source>-icon.<ext>` (`<dll>.<source>-icon.<ext>` beside a lone dll), uses
 a file already there by that name instead, and keeps it on the provider's
 `MetadataProviderInfo.Icon`. A source has one icon, the series provider's
 before the movie provider's, served at
-`GET /api/v3/Metadata/Source/{source}/Icon`.
+`GET /api/v3/Metadata/Source/{source}/Icon`. Each provider's own, else its
+source's, is served at `GET /api/v3/Metadata/Provider/{providerID}/Icon`.
 
 ## What clients see
 

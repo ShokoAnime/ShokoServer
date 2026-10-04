@@ -48,6 +48,12 @@ public class AiringScheduleProviderInfo
     public required LocalPluginInfo PluginInfo { get; init; }
 
     /// <summary>
+    ///   The icon the provider declared, extracted beside its plugin, else its
+    ///   plugin's icon, or <c>null</c> when neither has one.
+    /// </summary>
+    public PackageImageInfo? Icon { get; init; }
+
+    /// <summary>
     ///   The source order of the provider. It decides whose airing wins when
     ///   two providers report the same channel for an episode, and breaks ties
     ///   during selection. It is not a ranking of results, and never hides

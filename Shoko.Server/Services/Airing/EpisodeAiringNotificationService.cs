@@ -274,7 +274,12 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
         // ticks cannot drop an airing that has come due but not yet fired.
         var from = _watermark > DateTime.MinValue ? _watermark : minute;
         var to = minute + HorizonLength;
-        var airings = _service.GetAiringsInRange(from, to, options);
+        // The read's end is exclusive and the horizon's is not, so it reads one tick past it.
+        var airings = _service.GetAiringsInRange(
+            new DateTimeOffset(from.Ticks, TimeSpan.Zero),
+            new DateTimeOffset(to.Ticks + 1, TimeSpan.Zero),
+            options
+        );
 
         _horizon.Clear();
         foreach (var airing in airings)
