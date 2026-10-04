@@ -19,6 +19,6 @@ public interface IJobConcurrencyProvider
     /// The most jobs of a type that may run at once.
     /// </summary>
     /// <param name="jobType">The job type.</param>
-    /// <returns>The limit, or <see langword="null"/> when this provider has none for the type.</returns>
+    /// <returns>The limit, or <c>null</c> when this provider has none for the type.</returns>
     int? GetConcurrencyLimit(Type jobType);
 }

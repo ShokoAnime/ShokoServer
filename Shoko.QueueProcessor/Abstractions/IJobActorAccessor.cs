@@ -16,14 +16,14 @@ public interface IJobActorAccessor
     /// <summary>
     /// Captures the actor of the current flow, for a job about to be queued.
     /// </summary>
-    /// <returns>The actor to store with the job, or <see langword="null"/> for none.</returns>
+    /// <returns>The actor to store with the job, or <c>null</c> for none.</returns>
     JobActor? Capture();
 
     /// <summary>
     /// Makes the stored actor the actor of the current flow while the job runs.
     /// </summary>
     /// <param name="actor">
-    /// The actor stored with the job, or <see langword="null"/> when it was queued without one,
+    /// The actor stored with the job, or <c>null</c> when it was queued without one,
     /// in which case the job runs for no one, whatever the worker's flow held.
     /// </param>
     /// <returns>A scope that puts back the previous actor once disposed.</returns>

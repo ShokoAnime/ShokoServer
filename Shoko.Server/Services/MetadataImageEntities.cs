@@ -43,7 +43,7 @@ public static class MetadataImageEntities
     /// </summary>
     /// <param name="entryKind">The kind of entry: series, movie, collection, creator, character, studio or network.</param>
     /// <returns>The kinds, or none for any other kind of entry.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryKind"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entryKind"/> is <c>null</c>.</exception>
     public static IReadOnlySet<MetadataEntityType> GetReachableKinds(MetadataEntityType entryKind)
     {
         ArgumentNullException.ThrowIfNull(entryKind);
@@ -65,7 +65,7 @@ public static class MetadataImageEntities
     /// <param name="metadataService">Resolves the entry.</param>
     /// <param name="entry">The series, film, collection, creator, character, studio or network.</param>
     /// <returns>The entities, each once, or none when the entry is not stored.</returns>
-    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     public static (List<IWithImages> Entities, string? OriginalLanguage) Gather(IMetadataService metadataService, MetadataGuid entry)
     {
         ArgumentNullException.ThrowIfNull(metadataService);

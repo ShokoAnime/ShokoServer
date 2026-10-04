@@ -145,7 +145,7 @@ public static class ModelHelper
     /// <param name="getOrdering">Reads the ordering index off a cross-reference.</param>
     /// <param name="getRemoteEpisodeID">Reads the remote episode ID off a cross-reference.</param>
     /// <param name="getRemoteOrder">
-    /// Reads the season and episode number of the remote episode, or <see langword="null"/> when the remote episode is
+    /// Reads the season and episode number of the remote episode, or <c>null</c> when the remote episode is
     /// unavailable, in which case the cross-reference is dropped.
     /// </param>
     /// <returns>The grouped cross-references.</returns>

@@ -60,7 +60,7 @@ internal sealed class AiringScheduleView : IAiringSchedule
     /// </summary>
     /// <param name="context">The read the view belongs to.</param>
     /// <param name="row">The stored schedule.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="context"/> or <paramref name="row"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="context"/> or <paramref name="row"/> is <c>null</c>.</exception>
     public AiringScheduleView(AiringReadContext context, AiringSchedule row)
     {
         ArgumentNullException.ThrowIfNull(context);

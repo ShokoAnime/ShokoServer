@@ -58,7 +58,7 @@ public sealed class TmdbEntityRefreshService(
     /// <param name="entityID">The entry.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>Whether TMDb had it.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
     /// <exception cref="MetadataProviderNotConfiguredException">No API key is configured.</exception>
     public Task<bool> Refresh(MetadataGuid entityID, CancellationToken cancellationToken = default)
     {
@@ -153,7 +153,7 @@ public sealed class TmdbEntityRefreshService(
     ///   The photos fetched with a person within the last two hours.
     /// </summary>
     /// <param name="personID">The TMDb person ID.</param>
-    /// <returns>The photos, or <see langword="null"/> when none were fetched lately.</returns>
+    /// <returns>The photos, or <c>null</c> when none were fetched lately.</returns>
     public IReadOnlyList<TmdbImageData>? GetFetchedPersonImages(int personID)
     {
         if (_personImages.TryGetValue(personID, out var fetched) && apiClient.TimeProvider.GetUtcNow() - fetched.FetchedAt < _imagesFreshFor)
@@ -167,7 +167,7 @@ public sealed class TmdbEntityRefreshService(
     ///   The logo fetched with a company within the last two hours.
     /// </summary>
     /// <param name="companyID">The TMDb company ID.</param>
-    /// <param name="logoPath">TMDb's path for the logo, or <see langword="null"/> when it has none.</param>
+    /// <param name="logoPath">TMDb's path for the logo, or <c>null</c> when it has none.</param>
     /// <returns>Whether the company was fetched lately.</returns>
     public bool TryGetFetchedCompanyLogo(int companyID, out string? logoPath)
     {

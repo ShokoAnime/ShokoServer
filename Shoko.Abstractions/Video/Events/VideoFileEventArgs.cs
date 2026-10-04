@@ -137,7 +137,7 @@ public class VideoFileEventArgs : EventArgs
 
     /// <summary>
     ///   The API token of whoever caused the change to the file, or
-    ///   <see langword="null"/> when the system did it. Stamped when the event is
+    ///   <c>null</c> when the system did it. Stamped when the event is
     ///   raised.
     /// </summary>
     public ApiToken? Actor { get; init; }

@@ -34,9 +34,9 @@
 
 - Often things can be done with the endpoints that exist in a full-featured API.
   If a group of specialized endpoints are useful for a Utility, for example, then make a separate Controller for it.
-- Even though File Rename/Move might be logical to go in File, put it in utility/renamer, as we don't want to clutter
-  File
-- Such Controllers should have their own base route like `/apiv3/utility/multiplefiles/deletewithpreferences`
+- Even though File Rename/Move might be logical to go in File, it lives in `RelocationController`, as we don't want to
+  clutter File
+- Such Controllers should have their own base route like `/api/v3/Relocation` or `/api/v3/DuplicateFiles`
 - Another good example is Calendars. It's faster to build a clean response in the server, rather than to make a client
   build it.
 

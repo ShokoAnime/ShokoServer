@@ -30,14 +30,14 @@ public sealed class RefreshLinkedMetadataAction(
     private IProgress<decimal>? _progress;
 
     /// <summary>
-    ///   The source to refresh, or <see langword="null"/> for every source
+    ///   The source to refresh, or <c>null</c> for every source
     ///   with an enabled provider.
     /// </summary>
     public MetadataSource? Source { get; set; }
 
     /// <summary>
     ///   Refresh only series, only movies or only collections, or
-    ///   <see langword="null"/> for all three.
+    ///   <c>null</c> for all three.
     /// </summary>
     public MetadataEntityType? EntityType { get; set; }
 
@@ -93,7 +93,7 @@ public sealed class RefreshLinkedMetadataAction(
     /// <summary>
     ///   Refuses a source that is not known or has no enabled provider.
     /// </summary>
-    /// <returns>Why the source is refused, or <see langword="null"/> to allow it.</returns>
+    /// <returns>Why the source is refused, or <c>null</c> to allow it.</returns>
     private ActionValidationResult? CheckSource()
         => Source switch
         {

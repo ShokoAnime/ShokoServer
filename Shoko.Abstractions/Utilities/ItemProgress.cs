@@ -42,7 +42,7 @@ public sealed class ItemProgress
     ///   nothing until told to.
     /// </summary>
     /// <param name="parent">
-    ///   Takes the share done, or <see langword="null"/> to drop it.
+    ///   Takes the share done, or <c>null</c> to drop it.
     /// </param>
     /// <param name="total">How many items there are, zero or more.</param>
     /// <exception cref="ArgumentOutOfRangeException">

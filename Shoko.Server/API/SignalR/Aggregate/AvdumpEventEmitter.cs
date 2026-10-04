@@ -73,7 +73,7 @@ public class AvdumpEventEmitter : BaseEventEmitter, IDisposable
     /// Whether a user may see every video in a session. The videos are looked
     /// up once, and only for a user with restricted tags.
     /// </summary>
-    /// <param name="getVideoIDs">The session's videos, or <see langword="null"/> when the session is unknown.</param>
+    /// <param name="getVideoIDs">The session's videos, or <c>null</c> when the session is unknown.</param>
     /// <returns>The check.</returns>
     private Func<IUser, bool> MaySeeVideos(Func<IReadOnlyList<int>?> getVideoIDs)
     {
@@ -84,7 +84,7 @@ public class AvdumpEventEmitter : BaseEventEmitter, IDisposable
     /// <summary>
     /// Who may see each video of a session.
     /// </summary>
-    /// <param name="videoIDs">The session's videos, or <see langword="null"/> when the session is unknown.</param>
+    /// <param name="videoIDs">The session's videos, or <c>null</c> when the session is unknown.</param>
     /// <returns>The audience of each video.</returns>
     private EventAudience[] GetAudiences(IReadOnlyList<int>? videoIDs)
     {

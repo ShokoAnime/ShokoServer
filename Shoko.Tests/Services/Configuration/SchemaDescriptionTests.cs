@@ -18,7 +18,7 @@ public class SchemaDescriptionTests
             .GetSchemaForType(typeof(MetadataSourceSettings))
             .Schema;
 
-        // Documented as "<see langword="null"/> is decided as nobody."
+        // Documented as "<c>null</c> is decided as nobody."
         Assert.Contains("\n`null` is decided as nobody.", schema.Properties[nameof(MetadataSourceSettings.Enabled)].Description);
     }
 }

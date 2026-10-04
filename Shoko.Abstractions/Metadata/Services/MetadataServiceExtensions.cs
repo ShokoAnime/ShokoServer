@@ -20,10 +20,10 @@ public static class MetadataServiceExtensions
     /// <param name="source">The source, e.g. <see cref="MetadataSource.AniDB"/>.</param>
     /// <param name="entityType">The kind of entry, e.g. <see cref="MetadataEntityType.Series"/>.</param>
     /// <param name="id">The ID the source gave the entry.</param>
-    /// <returns>The entry, or <see langword="null"/> when nothing holds it.</returns>
+    /// <returns>The entry, or <c>null</c> when nothing holds it.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="service"/>, <paramref name="source"/> or
-    ///   <paramref name="entityType"/> is <see langword="null"/>.
+    ///   <paramref name="entityType"/> is <c>null</c>.
     /// </exception>
     public static IMetadata? GetEntry(this IMetadataService service, MetadataSource source, MetadataEntityType entityType, int id)
     {
@@ -42,12 +42,12 @@ public static class MetadataServiceExtensions
     /// <param name="entityType">The kind of entry, e.g. <see cref="MetadataEntityType.Studio"/>.</param>
     /// <param name="id">The ID the source gave the entry.</param>
     /// <returns>
-    ///   The entry, or <see langword="null"/> when nothing holds it or it is
+    ///   The entry, or <c>null</c> when nothing holds it or it is
     ///   not a <typeparamref name="TMetadata"/>.
     /// </returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="service"/>, <paramref name="source"/> or
-    ///   <paramref name="entityType"/> is <see langword="null"/>.
+    ///   <paramref name="entityType"/> is <c>null</c>.
     /// </exception>
     public static TMetadata? GetEntry<TMetadata>(this IMetadataService service, MetadataSource source, MetadataEntityType entityType, int id)
         where TMetadata : class, IMetadata
@@ -63,10 +63,10 @@ public static class MetadataServiceExtensions
     /// <param name="service">The metadata service.</param>
     /// <param name="source">The source, e.g. <see cref="MetadataSource.AniDB"/>.</param>
     /// <param name="id">The ID the source gave the series.</param>
-    /// <returns>The series, or <see langword="null"/> when nothing holds it.</returns>
+    /// <returns>The series, or <c>null</c> when nothing holds it.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="service"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static ISeries? GetSeries(this IMetadataService service, MetadataSource source, int id)
     {
@@ -81,10 +81,10 @@ public static class MetadataServiceExtensions
     /// <param name="service">The metadata service.</param>
     /// <param name="source">The source, e.g. <see cref="MetadataSource.TMDB"/>.</param>
     /// <param name="id">The ID the source gave the season.</param>
-    /// <returns>The season, or <see langword="null"/> when nothing holds it.</returns>
+    /// <returns>The season, or <c>null</c> when nothing holds it.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="service"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static ISeason? GetSeason(this IMetadataService service, MetadataSource source, int id)
     {
@@ -99,10 +99,10 @@ public static class MetadataServiceExtensions
     /// <param name="service">The metadata service.</param>
     /// <param name="source">The source, e.g. <see cref="MetadataSource.AniDB"/>.</param>
     /// <param name="id">The ID the source gave the episode.</param>
-    /// <returns>The episode, or <see langword="null"/> when nothing holds it.</returns>
+    /// <returns>The episode, or <c>null</c> when nothing holds it.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="service"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IEpisode? GetEpisode(this IMetadataService service, MetadataSource source, int id)
     {
@@ -117,10 +117,10 @@ public static class MetadataServiceExtensions
     /// <param name="service">The metadata service.</param>
     /// <param name="source">The source, e.g. <see cref="MetadataSource.TMDB"/>.</param>
     /// <param name="id">The ID the source gave the movie.</param>
-    /// <returns>The movie, or <see langword="null"/> when nothing holds it.</returns>
+    /// <returns>The movie, or <c>null</c> when nothing holds it.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="service"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IMovie? GetMovie(this IMetadataService service, MetadataSource source, int id)
     {
@@ -135,10 +135,10 @@ public static class MetadataServiceExtensions
     /// <param name="service">The metadata service.</param>
     /// <param name="source">The source, e.g. <see cref="MetadataSource.TMDB"/>.</param>
     /// <param name="id">The ID the source gave the collection.</param>
-    /// <returns>The collection, or <see langword="null"/> when nothing holds it.</returns>
+    /// <returns>The collection, or <c>null</c> when nothing holds it.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="service"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static ICollection? GetCollection(this IMetadataService service, MetadataSource source, int id)
     {
@@ -159,7 +159,7 @@ public static class MetadataServiceExtensions
     /// <returns>The identifier.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="source"/> or <paramref name="entityType"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     private static MetadataGuid ToGuid(MetadataSource source, MetadataEntityType entityType, int id)
         => new(source, entityType, id.ToString(CultureInfo.InvariantCulture));

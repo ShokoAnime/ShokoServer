@@ -53,15 +53,15 @@ public sealed class TmdbLinkingService(
     /// <param name="showID">The TMDb show ID.</param>
     /// <param name="seasonID">
     ///   One season of the show, whose specials come with it, or one group of
-    ///   one of its orderings; <see langword="null"/> for the whole show.
+    ///   one of its orderings; <c>null</c> for the whole show.
     /// </param>
-    /// <param name="existing">The links to honour, or <see langword="null"/>.</param>
-    /// <param name="considerOtherLinks">Whether to leave out the episodes other anime are linked to; <see langword="null"/> follows the settings.</param>
+    /// <param name="existing">The links to honour, or <c>null</c>.</param>
+    /// <param name="considerOtherLinks">Whether to leave out the episodes other anime are linked to; <c>null</c> follows the settings.</param>
     /// <returns>
     ///   The matches, or nothing when the show is not stored or the season
     ///   is not the show's, rather than widening the match to the whole show.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="anime"/> or <paramref name="anidbEpisodes"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="anime"/> or <paramref name="anidbEpisodes"/> is <c>null</c>.</exception>
     public IReadOnlyList<EpisodeMatch> Match(
         IAnidbAnime anime,
         IReadOnlyList<IAnidbEpisode> anidbEpisodes,
@@ -103,8 +103,8 @@ public sealed class TmdbLinkingService(
     ///   The episodes an anime's episodes may be matched to.
     /// </summary>
     /// <param name="series">The stored show.</param>
-    /// <param name="seasonID">A season of it, a group of one of its orderings, or <see langword="null"/>.</param>
-    /// <returns>The candidates, or <see langword="null"/> when the season is not the show's.</returns>
+    /// <param name="seasonID">A season of it, a group of one of its orderings, or <c>null</c>.</param>
+    /// <returns>The candidates, or <c>null</c> when the season is not the show's.</returns>
     private IReadOnlyList<IEpisode>? Candidates(ISeries series, MetadataGuid? seasonID)
     {
         if (seasonID is null)

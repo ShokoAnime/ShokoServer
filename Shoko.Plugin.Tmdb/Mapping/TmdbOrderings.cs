@@ -24,7 +24,7 @@ public static class TmdbOrderings
     /// <param name="showID">The TMDb show ID.</param>
     /// <param name="collection">The collection, with its groups and episodes.</param>
     /// <param name="storedEpisodes">The show's stored episodes.</param>
-    /// <returns>The ordering, or <see langword="null"/> when none of its episodes is stored.</returns>
+    /// <returns>The ordering, or <c>null</c> when none of its episodes is stored.</returns>
     public static MetadataOrderingData? ToOrderingData(int showID, TvGroupCollection collection, IReadOnlySet<MetadataGuid> storedEpisodes)
     {
         ArgumentNullException.ThrowIfNull(collection);

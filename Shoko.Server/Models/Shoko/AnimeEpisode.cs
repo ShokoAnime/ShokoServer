@@ -123,7 +123,7 @@ public class AnimeEpisode : IShokoEpisode, IEquatable<AnimeEpisode>
     /// based on the cached AniDB group release statuses for its anime.
     /// </summary>
     /// <param name="groupStatuses">Group statuses already scoped to this episode's anime. An empty list is treated as missing.</param>
-    /// <returns><see langword="true"/> if the episode is considered missing; otherwise, <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if the episode is considered missing; otherwise, <c>false</c>.</returns>
     /// <remarks>
     /// This predicate is intended for <see cref="EpisodeType.Episode"/> episodes only; callers must
     /// pre-filter by episode type AND file presence before calling it.

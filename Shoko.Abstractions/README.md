@@ -442,7 +442,9 @@ interfaces, secrets and the `[Required]` trap.
 The server scans two directories, in this order:
 
 1. `{ApplicationPath}/plugins`, next to the server executable, for plugins that
-   ship with the install.
+   ship with the install, such as the bundled TMDb plugin and the WebAOM
+   renamer. These are system plugins: the user can disable them but not
+   uninstall them.
 2. `{DataPath}/plugins` (`IApplicationPaths.PluginsPath`), the user's own
    plugin directory.
 

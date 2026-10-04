@@ -22,7 +22,7 @@ public class ScopeExpression : FilterExpression<bool>, IWithExpressionParameter,
     /// Creates a labelled scope around an expression.
     /// </summary>
     /// <param name="left">The expression in the parentheses.</param>
-    /// <param name="label">The group's label or comment, or <see langword="null"/> for none.</param>
+    /// <param name="label">The group's label or comment, or <c>null</c> for none.</param>
     public ScopeExpression(FilterExpression<bool> left, string? label)
     {
         Left = left;
@@ -40,7 +40,7 @@ public class ScopeExpression : FilterExpression<bool>, IWithExpressionParameter,
     public FilterExpression<bool>? Left { get; set; }
 
     /// <summary>
-    /// The group's label or comment, or <see langword="null"/> for none. It
+    /// The group's label or comment, or <c>null</c> for none. It
     /// does not change what the filter matches.
     /// </summary>
     public string? Parameter { get; set; }

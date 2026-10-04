@@ -601,7 +601,7 @@ public class MetadataOrderingService(
     ///   Whether a source keeps global orderings: any source outside the core.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns><see langword="true"/> when it does.</returns>
+    /// <returns><c>true</c> when it does.</returns>
     internal bool KeepsGlobalOrderings(MetadataSource source)
         => !source.IsCore;
 

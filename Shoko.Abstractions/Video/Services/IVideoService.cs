@@ -83,7 +83,7 @@ public interface IVideoService
     ///   The ID of the video file.
     /// </param>
     /// <returns>
-    ///   The video file if found, otherwise <see langword="null"/>.
+    ///   The video file if found, otherwise <c>null</c>.
     /// </returns>
     IVideoFile? GetVideoFileByID(int fileID);
 
@@ -94,7 +94,7 @@ public interface IVideoService
     ///   The absolute path of the video file.
     /// </param>
     /// <returns>
-    ///   The video file if found, otherwise <see langword="null"/>.
+    ///   The video file if found, otherwise <c>null</c>.
     /// </returns>
     IVideoFile? GetVideoFileByAbsolutePath(string absolutePath);
 
@@ -105,7 +105,7 @@ public interface IVideoService
     ///   The absolute path of the video file.
     /// </param>
     /// <returns>
-    ///   The video file if found, otherwise <see langword="null"/>.
+    ///   The video file if found, otherwise <c>null</c>.
     /// </returns>
     IReadOnlyList<IVideoFile> GetVideoFilesByAbsolutePath(string absolutePath);
 
@@ -121,14 +121,14 @@ public interface IVideoService
     ///   The managed folder.
     /// </param>
     /// <returns>
-    ///   The video file if found, otherwise <see langword="null"/>.
+    ///   The video file if found, otherwise <c>null</c>.
     /// </returns>
     IVideoFile? GetVideoFileByRelativePath(string relativePath, IManagedFolder? managedFolder = null);
 
     /// <summary>
     ///   Looks up all video files which start with the given relative path
     ///   within the given managed folder. If relativePath is
-    ///   <see langword="null"/>, all files in the managed folder are returned.
+    ///   <c>null</c>, all files in the managed folder are returned.
     /// </summary>
     /// <param name="managedFolder">
     ///   The managed folder.
@@ -137,7 +137,7 @@ public interface IVideoService
     ///   The relative path to filter by.
     /// </param>
     /// <returns>
-    ///   The video file if found, otherwise <see langword="null"/>.
+    ///   The video file if found, otherwise <c>null</c>.
     /// </returns>
     IReadOnlyList<IVideoFile> GetVideoFilesInManagedFolder(IManagedFolder managedFolder, string? relativePath = null);
 
@@ -196,7 +196,7 @@ public interface IVideoService
     ///   has exceeded the max allowed auto-scan attempts.
     /// </param>
     /// <exception cref="ArgumentException">
-    ///   <paramref name="absolutePath"/> is <see langword="null"/> or empty.
+    ///   <paramref name="absolutePath"/> is <c>null</c> or empty.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     ///   The path is outside of any managed folders.
@@ -223,7 +223,7 @@ public interface IVideoService
     ///   has exceeded the max allowed auto-scan attempts.
     /// </param>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="managedFolder"/> is <see langword="null"/>.
+    ///   <paramref name="managedFolder"/> is <c>null</c>.
     /// </exception>
     Task NotifyVideoFileChangeDetected(IManagedFolder managedFolder, string? relativePath = null, bool updateMylist = true, bool forceScan = false);
 
@@ -246,7 +246,7 @@ public interface IVideoService
     ///   The ID of the video.
     /// </param>
     /// <returns>
-    ///   The video if found, otherwise <see langword="null"/>.
+    ///   The video if found, otherwise <c>null</c>.
     /// </returns>
     IVideo? GetVideoByID(int videoID);
 
@@ -257,7 +257,7 @@ public interface IVideoService
     /// </summary>
     /// <param name="hash">The hash to look up the video by.</param>
     /// <param name="algorithm">The algorithm used to create the hash. Defaults to <c>"ED2K"</c>.</param>
-    /// <returns>The video if found, otherwise <see langword="null"/>.</returns>
+    /// <returns>The video if found, otherwise <c>null</c>.</returns>
     IVideo? GetVideoByHash(string hash, string algorithm = "ED2K");
 
     /// <summary>
@@ -278,7 +278,7 @@ public interface IVideoService
     ///   The algorithm used to create the hash. Defaults to <c>"ED2K"</c>.
     /// </param>
     /// <returns>
-    ///   The video if found, otherwise <see langword="null"/>.
+    ///   The video if found, otherwise <c>null</c>.
     /// </returns>
     IVideo? GetVideoByHashAndSize(string hash, long fileSize, string algorithm = "ED2K");
 
@@ -388,7 +388,7 @@ public interface IVideoService
     ///   The ID of the managed folder.
     /// </param>
     /// <returns>
-    ///   The managed folder if found, otherwise <see langword="null"/>.
+    ///   The managed folder if found, otherwise <c>null</c>.
     /// </returns>
     IManagedFolder? GetManagedFolderByID(int folderID);
 
@@ -399,7 +399,7 @@ public interface IVideoService
     ///   The absolute path of the managed folder.
     /// </param>
     /// <returns>
-    ///   The managed folder if found, otherwise <see langword="null"/>.
+    ///   The managed folder if found, otherwise <c>null</c>.
     /// </returns>
     IManagedFolder? GetManagedFolderByPath(string path);
 
@@ -548,7 +548,7 @@ public interface IVideoService
     /// <param name="prioritize">
     ///   Whether to prioritize this job in the queue.
     /// </param>
-    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <c>null</c> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task ScheduleScanForManagedFolders(

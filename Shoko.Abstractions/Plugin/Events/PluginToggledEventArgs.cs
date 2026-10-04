@@ -24,7 +24,7 @@ public class PluginToggledEventArgs : EventArgs
 
     /// <summary>
     ///   The API token of whoever enabled or disabled the plugin, or
-    ///   <see langword="null"/> when the system did it. Stamped when the event is
+    ///   <c>null</c> when the system did it. Stamped when the event is
     ///   raised.
     /// </summary>
     public ApiToken? Actor { get; init; }

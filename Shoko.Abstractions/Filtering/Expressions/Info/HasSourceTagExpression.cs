@@ -41,7 +41,7 @@ public class HasSourceTagExpression : FilterExpression<bool>, IWithStringParamet
     /// Whether <paramref name="other"/> is the same condition with the same parameters.
     /// </summary>
     /// <param name="other">The condition to compare with.</param>
-    /// <returns><see langword="true"/> if both are equal.</returns>
+    /// <returns><c>true</c> if both are equal.</returns>
     protected bool Equals(HasSourceTagExpression other)
     {
         return base.Equals(other) && Parameter == other.Parameter && SecondParameter == other.SecondParameter;

@@ -282,7 +282,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     /// Registers a merge handler for <paramref name="jobType"/>. When a new enqueue collides
     /// with a waiting job of this type, <paramref name="handler"/> is invoked with the existing
     /// and incoming instances. The handler mutates the existing instance and returns
-    /// <see langword="true"/> if any parameter was upgraded.
+    /// <c>true</c> if any parameter was upgraded.
     /// Takes priority over <see cref="IJobMerge"/> if both are present on the same type.
     /// </summary>
     public void RegisterMergeHandler(Type jobType, Func<IQueueJob, IQueueJob, bool> handler)
@@ -294,7 +294,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     /// <summary>
     /// Creates uninitialized instances of <paramref name="type"/>, hydrates them from the provided
     /// JSON strings, and calls the registered handler (priority) or <see cref="IJobMerge.TryMerge"/>
-    /// (fallback). Returns the new serialized JSON if data changed, or <see langword="null"/> if not.
+    /// (fallback). Returns the new serialized JSON if data changed, or <c>null</c> if not.
     /// </summary>
     private string? ComputeMergedJson(Type type, string? existingJson, string? incomingJson)
     {
@@ -317,7 +317,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     /// <summary>
     /// Searches <see cref="_afterParentCallbacks"/> for a deferred job with the given key.
     /// If found and a merge handler is registered, merges the incoming data in-place and
-    /// buffers a persistence update. Returns <see langword="true"/> if the job was found
+    /// buffers a persistence update. Returns <c>true</c> if the job was found
     /// in the deferred map (regardless of whether data changed).
     /// <para>MUST be called under <see cref="_gate"/>.</para>
     /// </summary>
@@ -342,7 +342,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     /// Also promotes priority if the incoming request has a higher priority value.
     /// <para>
     /// Race safety: if the job is acquired by a worker between the gate-check and this call,
-    /// <see cref="WorkerPool.TryGetAndUpdateData"/> returns <see langword="false"/> for all
+    /// <see cref="WorkerPool.TryGetAndUpdateData"/> returns <c>false</c> for all
     /// pools — no upgrade applied, matching the "executing = no-op" contract.
     /// </para>
     /// </summary>
@@ -485,7 +485,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     }
 
     /// <summary>
-    /// Returns <see langword="true"/> if any acquisition filter on the pool that handles
+    /// Returns <c>true</c> if any acquisition filter on the pool that handles
     /// <paramref name="jobType"/> currently excludes that type from dispatch.
     /// </summary>
     public bool IsJobTypeBlocked(Type jobType)
@@ -635,7 +635,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     /// </summary>
     /// <param name="id">The ID of the executing job.</param>
     /// <param name="cancellation">The job's cancellation source, linked to the pool's and disposed by the worker.</param>
-    /// <returns>The job's execution state, or <see langword="null"/> if the job is not executing.</returns>
+    /// <returns>The job's execution state, or <c>null</c> if the job is not executing.</returns>
     internal async Task<JobExecutionState?> BeginExecutionAsync(Guid id, CancellationTokenSource cancellation)
     {
         JobExecutionState? state;
@@ -1018,7 +1018,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     /// it go.
     /// </summary>
     /// <param name="entry">The executing job.</param>
-    /// <param name="scheduledAt">When it may run again, or <see langword="null"/> for right away.</param>
+    /// <param name="scheduledAt">When it may run again, or <c>null</c> for right away.</param>
     /// <param name="retryCount">The retries it has used.</param>
     /// <returns>The job to put back in its pool.</returns>
     private static QueuedJob BuildRequeuedJob(ExecutingEntry entry, DateTimeOffset? scheduledAt, int retryCount) => new()
@@ -1647,7 +1647,7 @@ public sealed class QueueOrchestrator : IAsyncDisposable
     /// <paramref name="keepChainId"/> stay registered, descendants and all. Must be called under <see cref="_gate"/>.
     /// </summary>
     /// <param name="parentId">The job whose descendants to collect.</param>
-    /// <param name="keepChainId">The chain whose direct children of the parent stay, or <see langword="null"/> for none.</param>
+    /// <param name="keepChainId">The chain whose direct children of the parent stay, or <c>null</c> for none.</param>
     /// <returns>The finally jobs to activate and the jobs to drop.</returns>
     private (List<(EnqueueContext Ctx, WorkerPool Pool)> FinallyJobs, List<EnqueueContext> SkippedJobs)
         CollectChainDescendants_UnderLock(Guid parentId, Guid? keepChainId = null)

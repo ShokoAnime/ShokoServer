@@ -15,7 +15,7 @@ public static class ProgressExtensions
     ///   Creates a <see cref="RangeProgress"/> reporting into a slice of
     ///   <paramref name="progress"/>.
     /// </summary>
-    /// <param name="progress">The parent, or <see langword="null"/> to drop the values.</param>
+    /// <param name="progress">The parent, or <c>null</c> to drop the values.</param>
     /// <param name="start">Where 0 lands on the parent, from 0 to 100.</param>
     /// <param name="end">Where 100 lands on the parent, from <paramref name="start"/> to 100.</param>
     /// <returns>The slice.</returns>
@@ -30,10 +30,10 @@ public static class ProgressExtensions
     ///   Creates a <see cref="StagedProgress"/> splitting
     ///   <paramref name="progress"/> into stages by weight.
     /// </summary>
-    /// <param name="progress">The parent, or <see langword="null"/> to drop the values.</param>
+    /// <param name="progress">The parent, or <c>null</c> to drop the values.</param>
     /// <param name="weights">The stages' weights, none below zero and at least one above it.</param>
     /// <returns>The stages.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="weights"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="weights"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">
     ///   <paramref name="weights"/> is empty, has a negative weight, or adds
     ///   up to zero.
@@ -45,7 +45,7 @@ public static class ProgressExtensions
     ///   Creates an <see cref="ItemProgress"/> counting
     ///   <paramref name="total"/> items into <paramref name="progress"/>.
     /// </summary>
-    /// <param name="progress">The parent, or <see langword="null"/> to drop the values.</param>
+    /// <param name="progress">The parent, or <c>null</c> to drop the values.</param>
     /// <param name="total">How many items there are, zero or more.</param>
     /// <returns>The counter, which has reported nothing yet.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="total"/> is negative.</exception>
@@ -56,10 +56,10 @@ public static class ProgressExtensions
     ///   Creates a <see cref="ThrottledProgress"/> in front of
     ///   <paramref name="progress"/>.
     /// </summary>
-    /// <param name="progress">The parent, or <see langword="null"/> to drop the values.</param>
+    /// <param name="progress">The parent, or <c>null</c> to drop the values.</param>
     /// <param name="interval">
     ///   The least time between two values passed on, or
-    ///   <see langword="null"/> for <see cref="ThrottledProgress.DefaultInterval"/>.
+    ///   <c>null</c> for <see cref="ThrottledProgress.DefaultInterval"/>.
     /// </param>
     /// <returns>The throttle.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="interval"/> is negative.</exception>

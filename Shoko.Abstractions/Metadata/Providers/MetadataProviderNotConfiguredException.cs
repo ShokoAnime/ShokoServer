@@ -17,9 +17,9 @@ public class MetadataProviderNotConfiguredException : MetadataProviderUnavailabl
     ///   Creates the exception.
     /// </summary>
     /// <param name="source">The source whose provider is not configured.</param>
-    /// <param name="message">What is missing, or <see langword="null"/> for a default message.</param>
+    /// <param name="message">What is missing, or <c>null</c> for a default message.</param>
     /// <param name="innerException">The failure behind it, if any.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public MetadataProviderNotConfiguredException(MetadataSource source, string? message = null, Exception? innerException = null)
         : base(source, message ?? $"{source?.Name ?? "The metadata source"} is not configured.", null, innerException)
     {

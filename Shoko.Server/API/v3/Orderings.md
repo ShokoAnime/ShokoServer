@@ -43,6 +43,23 @@ a group numbered 0 as the special group. `GET
 /api/v3/Series/{seriesID}/Ordering/preferred` returns the ordering the series
 uses, next to `default`.
 
+## Generic titles
+
+Generic titles such as `Episode 6` or `Season 2` are not stored: AniDB's
+generic episode titles and TMDB's generic episode titles and season names
+are left out when they are saved. An episode or season with no title left
+gets one synthesized when it is read, with the source `generated`: `Episode 6`
+for an episode (in the first preferred episode naming language that has a
+form for it, and `Special 1` and the like for the other types), and `Season
+2`, or `Specials` for season 0, for a season. When an episode has real
+titles, the title choice prefers them over generic ones.
+
+The TMDB routes do the same for the ordering being shown: an episode TMDB
+gave no English title is `Episode {number}` with its number in that
+ordering, so it can differ between orderings. TMDB's English title, when it
+gives one, is the main title of its entries; the original title is the main
+one only when there is no English title.
+
 ## Images on an ordering and its groups
 
 `GET /api/v3/Series/{seriesID}/Ordering` returns `Images` on each ordering, and
@@ -63,9 +80,11 @@ themselves stay until the orphan purge.
 Every route here is admin-only.
 
 - `GET /api/v3/Ordering/Export` writes every local ordering on the server, or
-  the ones named by `orderingIDs` (full IDs, of any kind, so a plugin's or
-  TMDB's ordering can be forked) and the local ones of the Shoko series in
-  `seriesIDs`. `includeGlobal` adds those series' stored global orderings.
+  the ones named by `orderingIDs` (full IDs of any kind, so a plugin's or
+  TMDB's ordering can be forked, or a user's ordering's local ID) and the
+  local ones of the Shoko series in `seriesIDs`. `includeGlobal` adds those
+  series' stored global orderings, and `includePreferred` (on by default)
+  records which ordering each series uses.
 - `GET /api/v3/Series/{seriesID}/Ordering/Export` does the same for one
   series; `orderingIDs` there also takes a local ID or `default`.
 - `images` is `None`, `UrlOnly` (the default), `EmbedMissingRemote` (files

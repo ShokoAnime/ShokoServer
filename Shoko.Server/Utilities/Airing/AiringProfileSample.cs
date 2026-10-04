@@ -25,7 +25,7 @@ public sealed record AiringProfileSample
     public DateTime? AnidbAirDate { get; init; }
 
     /// <summary>
-    /// The airing's current slot, in UTC, or <see langword="null"/> when it has
+    /// The airing's current slot, in UTC, or <c>null</c> when it has
     /// none.
     /// </summary>
     public DateTime? AiredAt { get; init; }

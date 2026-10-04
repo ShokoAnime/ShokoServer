@@ -103,10 +103,10 @@ public interface IMetadataLinkingService
     /// <param name="seriesID">The series, of the <c>series</c> kind.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   The series, or <see langword="null"/> when the source has none by
+    ///   The series, or <c>null</c> when the source has none by
     ///   that ID.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException"><paramref name="seriesID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ArgumentNullException"><paramref name="seriesID"/> is <c>null</c>.</exception>
     /// <exception cref="System.NotSupportedException">
     ///   Thrown when no enabled provider links series on that source, or it
     ///   does not look them up.
@@ -125,10 +125,10 @@ public interface IMetadataLinkingService
     /// <param name="movieID">The film, of the <c>movie</c> kind.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   The film, or <see langword="null"/> when the source has none by that
+    ///   The film, or <c>null</c> when the source has none by that
     ///   ID.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException"><paramref name="movieID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ArgumentNullException"><paramref name="movieID"/> is <c>null</c>.</exception>
     /// <exception cref="System.NotSupportedException">
     ///   Thrown when no enabled provider links films on that source, or it
     ///   does not look them up.
@@ -163,7 +163,7 @@ public interface IMetadataLinkingService
     ///   <see cref="MatchRejectionReason.Outranked"/>. A tie keeps the search's
     ///   pick.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     /// <exception cref="System.NotSupportedException">
     ///   Thrown when no provider is set to auto-link that source.
     /// </exception>
@@ -187,7 +187,7 @@ public interface IMetadataLinkingService
     ///   The hints, each entry once with every link naming it, in the order
     ///   the anime's links were read; empty when none name the source.
     /// </returns>
-    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     IReadOnlyList<MetadataAutoLinkHint> GetCrossSourceHints(MetadataSource source, int anidbAnimeID);
 
     #endregion
@@ -208,7 +208,7 @@ public interface IMetadataLinkingService
     /// <param name="request">What to link, and how.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> if the link now exists.
+    ///   <c>true</c> if the link now exists.
     /// </returns>
     /// <exception cref="System.ArgumentException">
     ///   Thrown when the request names no entry, or one on another source or
@@ -229,7 +229,7 @@ public interface IMetadataLinkingService
     /// <param name="request">What to link, and how.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> if the link now exists.
+    ///   <c>true</c> if the link now exists.
     /// </returns>
     /// <exception cref="System.ArgumentException">
     ///   Thrown when the request names no film, or an entry on another source
@@ -258,7 +258,7 @@ public interface IMetadataLinkingService
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> if the link is gone, or <see langword="false"/>
+    ///   <c>true</c> if the link is gone, or <c>false</c>
     ///   if there was nothing to remove.
     /// </returns>
     /// <exception cref="System.ArgumentException">
@@ -281,7 +281,7 @@ public interface IMetadataLinkingService
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> if the link is gone.
+    ///   <c>true</c> if the link is gone.
     /// </returns>
     /// <exception cref="System.ArgumentException">
     ///   Thrown when the film named is on another source.
@@ -298,7 +298,7 @@ public interface IMetadataLinkingService
     /// <param name="series">The Shoko series.</param>
     /// <param name="source">The source being asked about.</param>
     /// <returns>
-    ///   <see langword="true"/> when that source must not link this anime on
+    ///   <c>true</c> when that source must not link this anime on
     ///   its own.
     /// </returns>
     bool IsAutoLinkingDisabled(IShokoSeries series, MetadataSource source);
@@ -309,7 +309,7 @@ public interface IMetadataLinkingService
     /// <param name="series">The Shoko series.</param>
     /// <param name="source">The source being told.</param>
     /// <param name="disabled">
-    ///   <see langword="true"/> to stop it linking this anime on its own.
+    ///   <c>true</c> to stop it linking this anime on its own.
     /// </param>
     /// <exception cref="System.NotSupportedException">
     ///   Thrown when the decision cannot be recorded for that source.
@@ -330,8 +330,8 @@ public interface IMetadataLinkingService
     /// <param name="anidbAnimeID">The AniDB anime ID.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> once the search is queued, which says nothing
-    ///   of what it will link, if anything; <see langword="false"/> when it
+    ///   <c>true</c> once the search is queued, which says nothing
+    ///   of what it will link, if anything; <c>false</c> when it
     ///   was not queued, as for an anime ID of <c>0</c> or less or while the
     ///   auto-linker is not configured.
     /// </returns>
@@ -346,11 +346,11 @@ public interface IMetadataLinkingService
     /// </summary>
     /// <param name="source">The source being told.</param>
     /// <param name="disabled">
-    ///   <see langword="true"/> to stop it linking any anime on its own;
-    ///   <see langword="false"/> to lift every veto.
+    ///   <c>true</c> to stop it linking any anime on its own;
+    ///   <c>false</c> to lift every veto.
     /// </param>
     /// <returns>How many anime changed.</returns>
-    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     int ResetAutoLinkingState(MetadataSource source, bool disabled = false);
 
     #endregion
@@ -382,7 +382,7 @@ public interface IMetadataLinkingService
     ///   The links found, as stored now, whether or not their rating changed.
     /// </returns>
     /// <exception cref="System.ArgumentNullException">
-    ///   <paramref name="links"/> is or holds <see langword="null"/>.
+    ///   <paramref name="links"/> is or holds <c>null</c>.
     /// </exception>
     /// <exception cref="System.ArgumentOutOfRangeException">
     ///   <paramref name="matchRating"/> is not a defined rating.
@@ -417,10 +417,10 @@ public interface IMetadataLinkingService
     ///   Whether to also queue a purge of every series and film the removed
     ///   links pointed at, which goes ahead once nothing links to it.
     /// </param>
-    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <c>null</c> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many links were removed.</returns>
-    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<int> RemoveAllLinks(
         MetadataSource source,
@@ -444,7 +444,7 @@ public interface IMetadataLinkingService
     /// <param name="anidbAnimeID">The AniDB anime ID.</param>
     /// <param name="entityType">
     ///   <c>series</c>, <c>movie</c> or <c>episode</c> for one level, or
-    ///   <see langword="null"/> for every link the anime has on the source.
+    ///   <c>null</c> for every link the anime has on the source.
     /// </param>
     /// <param name="purge">
     ///   Whether to also queue a purge of every series and film the removed
@@ -453,7 +453,7 @@ public interface IMetadataLinkingService
     /// <param name="disableAutoLinking">Whether to also tell the source to leave the anime alone, when anything was removed.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many links were removed.</returns>
-    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     Task<int> RemoveLinksForAnime(
         MetadataSource source,
         int anidbAnimeID,
@@ -471,7 +471,7 @@ public interface IMetadataLinkingService
     /// <param name="anidbEpisodeID">The AniDB episode ID.</param>
     /// <param name="entityType">
     ///   <c>movie</c> or <c>episode</c> for one level, or
-    ///   <see langword="null"/> for both.
+    ///   <c>null</c> for both.
     /// </param>
     /// <param name="purge">
     ///   Whether to also queue a purge of every film the removed links named
@@ -481,7 +481,7 @@ public interface IMetadataLinkingService
     /// <param name="disableAutoLinking">Whether to also tell the source to leave the episode's anime alone, when anything was removed.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many links were removed.</returns>
-    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     Task<int> RemoveLinksForEpisode(
         MetadataSource source,
         int anidbEpisodeID,
@@ -506,7 +506,7 @@ public interface IMetadataLinkingService
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many links were removed.</returns>
-    /// <exception cref="System.ArgumentNullException"><paramref name="providerID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="System.ArgumentNullException"><paramref name="providerID"/> is <c>null</c>.</exception>
     Task<int> RemoveLinksTo(MetadataGuid providerID, bool purge = false, CancellationToken cancellationToken = default);
 
     #endregion
@@ -534,7 +534,7 @@ public interface IMetadataLinkingService
     ///   so ask <see cref="IMetadataRefreshService.RefreshEntry"/> for it.
     /// </param>
     /// <returns>
-    ///   <see langword="true"/> if the link now exists.
+    ///   <c>true</c> if the link now exists.
     /// </returns>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <exception cref="System.NotSupportedException">
@@ -564,7 +564,7 @@ public interface IMetadataLinkingService
     ///   series store does not hold yet, or <c>null</c>.
     /// </param>
     /// <returns>
-    ///   <see langword="true"/> if the link now exists.
+    ///   <c>true</c> if the link now exists.
     /// </returns>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <exception cref="System.NotSupportedException">
@@ -597,11 +597,11 @@ public interface IMetadataLinkingService
     /// <param name="source">The source to clear.</param>
     /// <param name="anidbAnimeID">The AniDB anime ID.</param>
     /// <param name="allowAutoMatch">
-    ///   Whether matching may fill them in again. <see langword="false"/> is a
+    ///   Whether matching may fill them in again. <c>false</c> is a
     ///   person saying no.
     /// </param>
     /// <returns>
-    ///   <see langword="true"/> if anything changed.
+    ///   <c>true</c> if anything changed.
     /// </returns>
     /// <param name="cancellationToken">Cancels the work.</param>
     Task<bool> ResetEpisodeLinks(MetadataSource source, int anidbAnimeID, bool allowAutoMatch, CancellationToken cancellationToken = default);
@@ -633,7 +633,7 @@ public interface IMetadataLinkingService
     /// </param>
     /// <param name="considerOtherLinks">
     ///   Whether to leave the source's episodes that other anime are already
-    ///   linked to out of the candidates, or <see langword="null"/> for the
+    ///   linked to out of the candidates, or <c>null</c> for the
     ///   source's own default.
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>

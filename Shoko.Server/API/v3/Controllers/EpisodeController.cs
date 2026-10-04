@@ -77,7 +77,7 @@ public class EpisodeController(
     ///   Wait out a running refresh or purge of a TMDB show.
     /// </summary>
     /// <param name="showID">The TMDB show ID.</param>
-    /// <returns><see langword="true"/> when there was one, so a copy read before may be stale.</returns>
+    /// <returns><c>true</c> when there was one, so a copy read before may be stale.</returns>
     private bool WaitForTmdbShow(int showID)
         => _metadataRefreshService.WaitForRefresh(TmdbShowEntry(showID)).GetAwaiter().GetResult();
 
@@ -85,7 +85,7 @@ public class EpisodeController(
     ///   Wait out a running refresh or purge of a TMDB movie.
     /// </summary>
     /// <param name="movieID">The TMDB movie ID.</param>
-    /// <returns><see langword="true"/> when there was one, so a copy read before may be stale.</returns>
+    /// <returns><c>true</c> when there was one, so a copy read before may be stale.</returns>
     private bool WaitForTmdbMovie(int movieID)
         => _metadataRefreshService.WaitForRefresh(TmdbMovieEntry(movieID)).GetAwaiter().GetResult();
 

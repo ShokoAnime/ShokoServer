@@ -69,7 +69,7 @@ public interface IEpisode : IWithTitles, IWithOverviews, IWithBackdropImage, IWi
     /// <summary>
     ///   Whether a user hid the episode. Set it through
     ///   <c>IMetadataOrderingService.SetEpisodeHidden</c>. An episode type
-    ///   that cannot be hidden gives <see langword="false"/>.
+    ///   that cannot be hidden gives <c>false</c>.
     /// </summary>
     bool IsHidden { get; }
 

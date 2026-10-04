@@ -33,7 +33,7 @@ public class MetadataLinksChangedEventArgs : EventArgs
     public IReadOnlySet<int> AnidbAnimeIDs => Changes.Select(change => change.AnidbAnimeID).ToHashSet();
 
     /// <summary>
-    ///   The API token of whoever changed the links, or <see langword="null"/>
+    ///   The API token of whoever changed the links, or <c>null</c>
     ///   when the system did it. Stamped when the event is raised.
     /// </summary>
     public ApiToken? Actor { get; init; }

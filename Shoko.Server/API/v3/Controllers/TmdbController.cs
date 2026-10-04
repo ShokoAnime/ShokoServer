@@ -154,7 +154,7 @@ public partial class TmdbController(
     ///   Wait out a running refresh or purge of a TMDB show.
     /// </summary>
     /// <param name="showID">The TMDB show ID.</param>
-    /// <returns><see langword="true"/> when there was one, so a copy read before may be stale.</returns>
+    /// <returns><c>true</c> when there was one, so a copy read before may be stale.</returns>
     private bool WaitForShowUpdate(int showID)
         => _metadataRefreshService.WaitForRefresh(ShowEntry(showID)).GetAwaiter().GetResult();
 
@@ -162,7 +162,7 @@ public partial class TmdbController(
     ///   Wait out a running refresh or purge of a TMDB movie.
     /// </summary>
     /// <param name="movieID">The TMDB movie ID.</param>
-    /// <returns><see langword="true"/> when there was one, so a copy read before may be stale.</returns>
+    /// <returns><c>true</c> when there was one, so a copy read before may be stale.</returns>
     private bool WaitForMovieUpdate(int movieID)
         => _metadataRefreshService.WaitForRefresh(MovieEntry(movieID)).GetAwaiter().GetResult();
 
@@ -170,7 +170,7 @@ public partial class TmdbController(
     ///   Wait out a running refresh or purge of a TMDB collection.
     /// </summary>
     /// <param name="collectionID">The TMDB collection ID.</param>
-    /// <returns><see langword="true"/> when there was one, so a copy read before may be stale.</returns>
+    /// <returns><c>true</c> when there was one, so a copy read before may be stale.</returns>
     private bool WaitForCollectionUpdate(int collectionID)
         => _metadataRefreshService.WaitForRefresh(new(MetadataSource.TMDB, MetadataEntityType.Collection, collectionID.ToString())).GetAwaiter().GetResult();
 
@@ -685,7 +685,7 @@ public partial class TmdbController(
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
     /// <returns>
-    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// If <paramref name="body.Immediate"/> is <c>true</c>, returns an <see cref="OkResult"/>,
     /// otherwise returns a <see cref="NoContentResult"/>.
     /// </returns>
     [Authorize("admin")]
@@ -723,7 +723,7 @@ public partial class TmdbController(
     /// <param name="movieID">TMDB Movie ID.</param>
     /// <param name="body">Body containing options for downloading images.</param>
     /// <returns>
-    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// If <paramref name="body.Immediate"/> is <c>true</c>, returns an <see cref="OkResult"/>,
     /// otherwise returns a <see cref="NoContentResult"/>.
     /// </returns>
     [Authorize("admin")]
@@ -1888,7 +1888,7 @@ public partial class TmdbController(
     /// <param name="showID">TMDB Show ID.</param>
     /// <param name="body">Body containing options for downloading images.</param>
     /// <returns>
-    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// If <paramref name="body.Immediate"/> is <c>true</c>, returns an <see cref="OkResult"/>,
     /// otherwise returns a <see cref="NoContentResult"/>.
     /// </returns>
     [Authorize("admin")]

@@ -96,7 +96,7 @@ public sealed class MetadataRouteParameterFilter : IOperationFilter
     /// </remarks>
     /// <param name="parameter">The parameter.</param>
     /// <param name="context">What the operation was described from.</param>
-    /// <returns>The type, or <see langword="null"/> when it cannot be told.</returns>
+    /// <returns>The type, or <c>null</c> when it cannot be told.</returns>
     private static Type? TypeOf(OpenApiParameter parameter, OperationFilterContext context)
     {
         if (context.MethodInfo?.GetParameters().FirstOrDefault(info => string.Equals(info.Name, parameter.Name, StringComparison.OrdinalIgnoreCase)) is { } info)

@@ -17,7 +17,7 @@ public static class EventEmitterExtensions
     /// <typeparam name="TEmitter">The feed.</typeparam>
     /// <param name="services">The service collection.</param>
     /// <returns>The service collection.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <c>null</c>.</exception>
     public static IServiceCollection AddEventEmitter<TEmitter>(this IServiceCollection services)
         where TEmitter : class, IEventEmitter
     {

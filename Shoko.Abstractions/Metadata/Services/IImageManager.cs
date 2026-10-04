@@ -587,7 +587,7 @@ public interface IImageManager
     ///   Optional. If set to <c>true</c>, will re-download even if the images
     ///   already exists locally.
     /// </param>
-    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <c>null</c> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task ScheduleAllAutoDownloads(
@@ -657,7 +657,7 @@ public interface IImageManager
     ///   Optional. Filter to a specific image source. If set to <c>null</c>,
     ///   purges all available images regardless of image source.
     /// </param>
-    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <c>null</c> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
     ///   The number of images that were purged.

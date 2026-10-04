@@ -29,7 +29,7 @@ namespace Shoko.Plugin.Tmdb.Api;
 /// <remarks>
 ///   A rate limit is waited out and retried ten times, a timeout three times;
 ///   a server error counts towards the pause and is thrown. TMDb having no
-///   such entry answers <see langword="null"/>.
+///   such entry answers <c>null</c>.
 /// </remarks>
 public sealed class TmdbApiClient : IDisposable
 {
@@ -143,7 +143,7 @@ public sealed class TmdbApiClient : IDisposable
     /// <param name="call">The call.</param>
     /// <param name="displayName">What the call is, for the logs.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>What TMDb answered, or <see langword="null"/> when it has no such entry.</returns>
+    /// <returns>What TMDb answered, or <c>null</c> when it has no such entry.</returns>
     /// <exception cref="MetadataProviderNotConfiguredException">No API key is available.</exception>
     /// <exception cref="RequestLimitExceededException">TMDb kept limiting the rate.</exception>
     /// <exception cref="GeneralHttpException">TMDb answered with an error.</exception>
@@ -208,7 +208,7 @@ public sealed class TmdbApiClient : IDisposable
     ///   error, a timeout, TMDb's rate limit or a server error.
     /// </summary>
     /// <param name="exception">The failure.</param>
-    /// <returns><see langword="true"/> for a failure worth retrying later.</returns>
+    /// <returns><c>true</c> for a failure worth retrying later.</returns>
     public static bool IsTransient(Exception exception)
         => exception switch
         {
@@ -248,7 +248,7 @@ public sealed class TmdbApiClient : IDisposable
     /// <param name="showID">The TMDb show ID.</param>
     /// <param name="methods">What to append.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The show, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The show, or <c>null</c> when TMDb has none.</returns>
     public Task<TvShow?> GetShow(int showID, TvShowMethods methods, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.GetTvShowAsync(showID, methods, "en-US", cancellationToken: token), $"Get show {showID}", cancellationToken);
 
@@ -259,7 +259,7 @@ public sealed class TmdbApiClient : IDisposable
     /// <param name="seasonNumber">The season number.</param>
     /// <param name="methods">What to append.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The season, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The season, or <c>null</c> when TMDb has none.</returns>
     public Task<TvSeason?> GetSeason(int showID, int seasonNumber, TvSeasonMethods methods, CancellationToken cancellationToken = default)
         => UseClient(
             (client, token) => client.GetTvSeasonAsync(showID, seasonNumber, methods, cancellationToken: token),
@@ -275,7 +275,7 @@ public sealed class TmdbApiClient : IDisposable
     /// <param name="episodeNumber">The episode number within the season.</param>
     /// <param name="methods">What to append.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The episode, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The episode, or <c>null</c> when TMDb has none.</returns>
     public Task<TvEpisode?> GetEpisode(int showID, int seasonNumber, int episodeNumber, TvEpisodeMethods methods, CancellationToken cancellationToken = default)
         => UseClient(
             (client, token) => client.GetTvEpisodeAsync(showID, seasonNumber, episodeNumber, methods, cancellationToken: token),
@@ -288,7 +288,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="collectionID">The episode group collection ID.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The collection, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The collection, or <c>null</c> when TMDb has none.</returns>
     public Task<TvGroupCollection?> GetEpisodeGroup(string collectionID, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.GetTvEpisodeGroupsAsync(collectionID, cancellationToken: token), $"Get episode group {collectionID}", cancellationToken);
 
@@ -300,7 +300,7 @@ public sealed class TmdbApiClient : IDisposable
     /// <param name="since">When the show was last refreshed, in UTC.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
     /// <returns>
-    ///   What changed, or <see langword="null"/> when the time is outside the
+    ///   What changed, or <c>null</c> when the time is outside the
     ///   changes window or the window is off, so everything is fetched.
     /// </returns>
     public async Task<TmdbShowChanges?> GetShowChanges(int showID, DateTime since, CancellationToken cancellationToken = default)
@@ -326,7 +326,7 @@ public sealed class TmdbApiClient : IDisposable
     /// <param name="movieID">The TMDb movie ID.</param>
     /// <param name="methods">What to append.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The movie, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The movie, or <c>null</c> when TMDb has none.</returns>
     public Task<Movie?> GetMovie(int movieID, MovieMethods methods, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.GetMovieAsync(movieID, "en-US", null, methods, token), $"Get movie {movieID}", cancellationToken);
 
@@ -337,7 +337,7 @@ public sealed class TmdbApiClient : IDisposable
     /// <param name="movieID">The TMDb movie ID.</param>
     /// <param name="since">When the movie was last refreshed, in UTC.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns><see langword="true"/> when the movie changed or has to be fetched anyway.</returns>
+    /// <returns><c>true</c> when the movie changed or has to be fetched anyway.</returns>
     public async Task<bool> HasMovieChanged(int movieID, DateTime since, CancellationToken cancellationToken = default)
     {
         if (!WithinChangesWindow(since))
@@ -356,7 +356,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="collectionID">The TMDb collection ID.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The collection, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The collection, or <c>null</c> when TMDb has none.</returns>
     public Task<Collection?> GetCollection(int collectionID, CancellationToken cancellationToken = default)
         => UseClient(
             (client, token) => client.GetCollectionAsync(collectionID, CollectionMethods.Translations, token),
@@ -373,7 +373,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="personID">The TMDb person ID.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The person, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The person, or <c>null</c> when TMDb has none.</returns>
     public Task<Person?> GetPerson(int personID, CancellationToken cancellationToken = default)
         => UseClient(
             (client, token) => client.GetPersonAsync(personID, PersonMethods.Translations | PersonMethods.ExternalIds | PersonMethods.Images, token),
@@ -386,7 +386,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="companyID">The TMDb company ID.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The company, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The company, or <c>null</c> when TMDb has none.</returns>
     public Task<Company?> GetCompany(int companyID, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.GetCompanyAsync(companyID, CompanyMethods.Undefined, token), $"Get company {companyID}", cancellationToken);
 
@@ -395,7 +395,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="networkID">The TMDb network ID.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The network, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The network, or <c>null</c> when TMDb has none.</returns>
     public Task<Network?> GetNetwork(int networkID, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.GetNetworkAsync(networkID, token), $"Get network {networkID}", cancellationToken);
 
@@ -408,7 +408,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="showID">The TMDb show ID.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The images, or <see langword="null"/> when TMDb has no such show.</returns>
+    /// <returns>The images, or <c>null</c> when TMDb has no such show.</returns>
     public Task<ImagesWithId?> GetShowImages(int showID, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.GetTvShowImagesAsync(showID, cancellationToken: token), $"Get images of show {showID}", cancellationToken);
 
@@ -418,7 +418,7 @@ public sealed class TmdbApiClient : IDisposable
     /// <param name="showID">The TMDb show ID.</param>
     /// <param name="seasonNumber">The season number.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The posters, or <see langword="null"/> when TMDb has no such season.</returns>
+    /// <returns>The posters, or <c>null</c> when TMDb has no such season.</returns>
     public Task<PosterImages?> GetSeasonImages(int showID, int seasonNumber, CancellationToken cancellationToken = default)
         => UseClient(
             (client, token) => client.GetTvSeasonImagesAsync(showID, seasonNumber, cancellationToken: token),
@@ -433,7 +433,7 @@ public sealed class TmdbApiClient : IDisposable
     /// <param name="seasonNumber">The season number.</param>
     /// <param name="episodeNumber">The episode number within the season.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The stills, or <see langword="null"/> when TMDb has no such episode.</returns>
+    /// <returns>The stills, or <c>null</c> when TMDb has no such episode.</returns>
     public Task<StillImages?> GetEpisodeImages(int showID, int seasonNumber, int episodeNumber, CancellationToken cancellationToken = default)
         => UseClient(
             (client, token) => client.GetTvEpisodeImagesAsync(showID, seasonNumber, episodeNumber, cancellationToken: token),
@@ -446,7 +446,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="movieID">The TMDb movie ID.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The images, or <see langword="null"/> when TMDb has no such movie.</returns>
+    /// <returns>The images, or <c>null</c> when TMDb has no such movie.</returns>
     public Task<ImagesWithId?> GetMovieImages(int movieID, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.GetMovieImagesAsync(movieID, token), $"Get images of movie {movieID}", cancellationToken);
 
@@ -455,7 +455,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="collectionID">The TMDb collection ID.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The images, or <see langword="null"/> when TMDb has no such collection.</returns>
+    /// <returns>The images, or <c>null</c> when TMDb has no such collection.</returns>
     public Task<ImagesWithId?> GetCollectionImages(int collectionID, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.GetCollectionImagesAsync(collectionID, cancellationToken: token), $"Get images of collection {collectionID}", cancellationToken);
 
@@ -464,7 +464,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="personID">The TMDb person ID.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The photos, or <see langword="null"/> when TMDb has no such person.</returns>
+    /// <returns>The photos, or <c>null</c> when TMDb has no such person.</returns>
     public Task<ProfileImages?> GetPersonImages(int personID, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.GetPersonImagesAsync(personID, token), $"Get images of person {personID}", cancellationToken);
 
@@ -473,7 +473,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="networkID">The TMDb network ID.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>The logos, or <see langword="null"/> when TMDb has no such network.</returns>
+    /// <returns>The logos, or <c>null</c> when TMDb has no such network.</returns>
     public Task<NetworkLogos?> GetNetworkImages(int networkID, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.GetNetworkImagesAsync(networkID, token), $"Get images of network {networkID}", cancellationToken);
 
@@ -545,7 +545,7 @@ public sealed class TmdbApiClient : IDisposable
     /// </summary>
     /// <param name="imdbID">The IMDb title ID, e.g. <c>tt0000001</c>.</param>
     /// <param name="cancellationToken">Cancels the call.</param>
-    /// <returns>What TMDb found, or <see langword="null"/>.</returns>
+    /// <returns>What TMDb found, or <c>null</c>.</returns>
     public Task<FindContainer?> FindByImdbID(string imdbID, CancellationToken cancellationToken = default)
         => UseClient((client, token) => client.FindAsync(FindExternalSource.Imdb, imdbID, token), $"Find the TMDb entries of IMDb title {imdbID}", cancellationToken);
 
@@ -578,7 +578,7 @@ public sealed class TmdbApiClient : IDisposable
     ///   time falls within it.
     /// </summary>
     /// <param name="since">The time, in UTC.</param>
-    /// <returns><see langword="true"/> when the changes since then can be asked for.</returns>
+    /// <returns><c>true</c> when the changes since then can be asked for.</returns>
     private bool WithinChangesWindow(DateTime since)
     {
         var days = _configurationProvider.Load().IncrementalChangesWindowDays;

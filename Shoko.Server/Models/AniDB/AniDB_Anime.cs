@@ -347,7 +347,7 @@ public class AniDB_Anime : IAnidbAnime, IInlineTextSource
     /// </summary>
     /// <param name="episode">The episode.</param>
     /// <returns>
-    ///   The regular date, or <see langword="null"/> when the episode was not
+    ///   The regular date, or <c>null</c> when the episode was not
     ///   moved or its stored date changed since.
     /// </returns>
     public DateOnly? GetRegularAirDate(AniDB_Episode episode)

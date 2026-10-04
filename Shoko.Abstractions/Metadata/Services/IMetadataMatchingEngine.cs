@@ -45,7 +45,7 @@ public interface IMetadataMatchingEngine
     /// </param>
     /// <exception cref="System.ArgumentNullException">
     ///   Thrown when <paramref name="anime"/> or
-    ///   <paramref name="candidates"/> is <see langword="null"/>.
+    ///   <paramref name="candidates"/> is <c>null</c>.
     /// </exception>
     /// <returns>
     ///   One entry per candidate, best first. At most the first is taken,
@@ -79,7 +79,7 @@ public interface IMetadataMatchingEngine
     /// </param>
     /// <exception cref="System.ArgumentNullException">
     ///   Thrown when <paramref name="anime"/>, <paramref name="episode"/> or
-    ///   <paramref name="candidates"/> is <see langword="null"/>.
+    ///   <paramref name="candidates"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="System.ArgumentException">
     ///   Thrown when the episode does not belong to the anime.

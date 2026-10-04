@@ -102,7 +102,7 @@ public sealed partial class TmdbSearchService
     /// <param name="options">What to search for.</param>
     /// <param name="cancellationToken">Cancels the search.</param>
     /// <returns>The page asked for, and how many hits there are in total.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
     public async Task<(IReadOnlyList<MetadataSeriesSearchResult> Page, int TotalCount)> SearchSeries(MetadataSearchOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -119,7 +119,7 @@ public sealed partial class TmdbSearchService
     /// <param name="options">What to search for.</param>
     /// <param name="cancellationToken">Cancels the search.</param>
     /// <returns>The page asked for, and how many hits there are in total.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
     public async Task<(IReadOnlyList<MetadataMovieSearchResult> Page, int TotalCount)> SearchMovies(MetadataSearchOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -136,7 +136,7 @@ public sealed partial class TmdbSearchService
     /// </summary>
     /// <param name="showID">The TMDb show ID.</param>
     /// <param name="cancellationToken">Cancels the lookup.</param>
-    /// <returns>The show, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The show, or <c>null</c> when TMDb has none.</returns>
     public async Task<MetadataSeriesSearchResult?> LookupSeries(int showID, CancellationToken cancellationToken = default)
     {
         var imageServer = await _apiClient.GetImageServerUrl(cancellationToken).ConfigureAwait(false);
@@ -154,7 +154,7 @@ public sealed partial class TmdbSearchService
     /// </summary>
     /// <param name="movieID">The TMDb movie ID.</param>
     /// <param name="cancellationToken">Cancels the lookup.</param>
-    /// <returns>The movie, or <see langword="null"/> when TMDb has none.</returns>
+    /// <returns>The movie, or <c>null</c> when TMDb has none.</returns>
     public async Task<MetadataMovieSearchResult?> LookupMovie(int movieID, CancellationToken cancellationToken = default)
     {
         var imageServer = await _apiClient.GetImageServerUrl(cancellationToken).ConfigureAwait(false);

@@ -533,7 +533,7 @@ public interface IAiringScheduleService
 
     /// <summary>
     ///   The oldest a schedule's latest airing may be and still be kept, in
-    ///   UTC, or <see langword="null"/> while automatic cleanup is off.
+    ///   UTC, or <c>null</c> while automatic cleanup is off.
     /// </summary>
     /// <remarks>
     ///   A schedule whose every airing slots before this (by

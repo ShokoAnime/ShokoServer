@@ -30,7 +30,7 @@ public sealed class MetadataProviderUnavailableAttribute : ExceptionFilterAttrib
     ///   <c>502</c> answer, or a <c>503</c> one for a source not configured.
     /// </summary>
     /// <param name="context">What the action threw.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="context"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="context"/> is <c>null</c>.</exception>
     public override void OnException(ExceptionContext context)
     {
         ArgumentNullException.ThrowIfNull(context);

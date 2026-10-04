@@ -57,7 +57,7 @@ public sealed partial class PluginFeature
     /// </summary>
     /// <param name="feature">The feature to check.</param>
     /// <param name="error">The reason the feature is invalid, if it is.</param>
-    /// <returns><see langword="true"/> if the feature is valid; otherwise <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if the feature is valid; otherwise <c>false</c>.</returns>
     public static bool IsValid(PluginFeature? feature, out string? error)
     {
         error = feature switch

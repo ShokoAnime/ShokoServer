@@ -90,7 +90,7 @@ public static class TmdbEntityMapper
     /// </summary>
     /// <param name="seasonID">The TMDb season ID.</param>
     /// <param name="listed">The episode as the season lists it.</param>
-    /// <param name="details">The episode fetched on its own, or <see langword="null"/>.</param>
+    /// <param name="details">The episode fetched on its own, or <c>null</c>.</param>
     /// <param name="languages">The languages to keep.</param>
     /// <returns>The episode to store.</returns>
     public static MetadataEpisodeData ToEpisodeData(int seasonID, TvSeasonEpisode listed, TvEpisode? details, TmdbTextLanguages languages)
@@ -177,7 +177,7 @@ public static class TmdbEntityMapper
     ///   gives the movie.
     /// </summary>
     /// <param name="movie">The movie, with its release dates.</param>
-    /// <returns>The date, or <see langword="null"/> when none is known.</returns>
+    /// <returns>The date, or <c>null</c> when none is known.</returns>
     public static DateTime? ReleaseDateOf(Movie movie)
     {
         var country = movie.ProductionCountries?.FirstOrDefault()?.Iso_3166_1;
@@ -247,7 +247,7 @@ public static class TmdbEntityMapper
     /// <param name="id">The TMDb company ID.</param>
     /// <param name="name">The company's name.</param>
     /// <param name="countryOfOrigin">The country the company is from.</param>
-    /// <param name="logoPath">TMDb's path for the company's logo, or <see langword="null"/> when it has none.</param>
+    /// <param name="logoPath">TMDb's path for the company's logo, or <c>null</c> when it has none.</param>
     /// <returns>The studio to store.</returns>
     public static MetadataStudioData ToStudioData(int id, string? name, string? countryOfOrigin, string? logoPath)
         => new()
@@ -436,7 +436,7 @@ public static class TmdbEntityMapper
     ///   each rating of it once.
     /// </summary>
     /// <param name="ratings">The ratings, by ISO country code.</param>
-    /// <param name="languages">The languages to keep ratings for, or <see langword="null"/> for all.</param>
+    /// <param name="languages">The languages to keep ratings for, or <c>null</c> for all.</param>
     /// <returns>The ratings.</returns>
     public static IReadOnlyList<MetadataContentRatingData> ContentRatings(IEnumerable<(string? Country, string? Rating)>? ratings, IReadOnlySet<TitleLanguage>? languages)
     {

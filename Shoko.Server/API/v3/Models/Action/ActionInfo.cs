@@ -61,14 +61,14 @@ public class ActionInfo
 
     /// <summary>
     ///   UI hint for destructive actions. WebUI is expected to prompt before
-    ///   invoking the action when this is <see langword="true"/>.
+    ///   invoking the action when this is <c>true</c>.
     /// </summary>
     [Required]
     public bool RequiresConfirmation { get; set; }
 
     /// <summary>
     ///   Optional custom message shown to the user when the WebUI prompts for
-    ///   confirmation. When <see langword="null"/>, the WebUI uses a generic
+    ///   confirmation. When <c>null</c>, the WebUI uses a generic
     ///   fallback prompt.
     /// </summary>
     public string? ConfirmationMessage { get; set; }

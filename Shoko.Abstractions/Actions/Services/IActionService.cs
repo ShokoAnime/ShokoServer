@@ -21,13 +21,13 @@ namespace Shoko.Abstractions.Actions.Services;
 ///   </para>
 ///   <para>
 ///     Invocation always goes through the job queue; <see cref="InvokeAsync(Guid,IReadOnlyDictionary{string,object},IUser,CancellationToken)"/>
-///     and its overloads return <see langword="null"/> when the action was
+///     and its overloads return <c>null</c> when the action was
 ///     accepted and enqueued, or a rejection reason when it was refused
 ///     without touching the queue (validation failure, permission denial, or
 ///     scope mismatch).
 ///   </para>
 ///   <para>
-///     When <c>caller</c> is <see langword="null"/>, the call is
+///     When <c>caller</c> is <c>null</c>, the call is
 ///     treated as a trusted programmatic invocation: the
 ///     <see cref="IExecutableAction.Permission"/> check is skipped. Actions
 ///     that implement <see cref="IActionCaller"/> require a non-null caller
@@ -62,7 +62,7 @@ public interface IActionService
     ///   The action type.
     /// </typeparam>
     /// <returns>
-    ///   The action's metadata, or <see langword="null"/> when the type is not
+    ///   The action's metadata, or <c>null</c> when the type is not
     ///   a registered action.
     /// </returns>
     ExecutableActionInfo? GetActionInfo<TAction>() where TAction : class, IExecutableAction;
@@ -75,10 +75,10 @@ public interface IActionService
     ///   The action type.
     /// </param>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="actionType"/> is <see langword="null"/>.
+    ///   <paramref name="actionType"/> is <c>null</c>.
     /// </exception>
     /// <returns>
-    ///   The action's metadata, or <see langword="null"/> when the type is not
+    ///   The action's metadata, or <c>null</c> when the type is not
     ///   a registered action.
     /// </returns>
     ExecutableActionInfo? GetActionInfo(Type actionType);
@@ -95,8 +95,15 @@ public interface IActionService
     ///   string lists; no nested objects. Entries with no matching property
     ///   are ignored.
     /// </param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <returns>
+    ///   <c>null</c> when the action was accepted and queued, or
+    ///   the reason it was refused.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -105,8 +112,15 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="group">The group to scope the action to.</param>
     /// <param name="parameters">Optional. The action's free-form invocation parameters. See the global overload for details.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <returns>
+    ///   <c>null</c> when the action was accepted and queued, or
+    ///   the reason it was refused.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoGroup group, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -115,8 +129,15 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="series">The series to scope the action to.</param>
     /// <param name="parameters">Optional. The action's free-form invocation parameters. See the global overload for details.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <returns>
+    ///   <c>null</c> when the action was accepted and queued, or
+    ///   the reason it was refused.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoSeries series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -125,8 +146,15 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="episode">The episode to scope the action to.</param>
     /// <param name="parameters">Optional. The action's free-form invocation parameters. See the global overload for details.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <returns>
+    ///   <c>null</c> when the action was accepted and queued, or
+    ///   the reason it was refused.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -135,8 +163,15 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="video">The video to scope the action to.</param>
     /// <param name="parameters">Optional. The action's free-form invocation parameters. See the global overload for details.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <returns>
+    ///   <c>null</c> when the action was accepted and queued, or
+    ///   the reason it was refused.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -160,12 +195,15 @@ public interface IActionService
     /// </remarks>
     /// <param name="actionId">Action ID.</param>
     /// <param name="parameters">Optional. The parameters the invocation would carry, since the action's own validation observes them.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
     /// <returns>
-    ///   <see langword="null"/> when the action would be accepted, or the
+    ///   <c>null</c> when the action would be accepted, or the
     ///   reason it would be refused.
     /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -176,8 +214,15 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="group">The group the action would be scoped to.</param>
     /// <param name="parameters">Optional. The parameters the invocation would carry.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <returns>
+    ///   <c>null</c> when the action would be accepted, or the
+    ///   reason it would be refused.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoGroup group, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -188,8 +233,15 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="series">The series the action would be scoped to.</param>
     /// <param name="parameters">Optional. The parameters the invocation would carry.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <returns>
+    ///   <c>null</c> when the action would be accepted, or the
+    ///   reason it would be refused.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoSeries series, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -200,8 +252,15 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="episode">The episode the action would be scoped to.</param>
     /// <param name="parameters">Optional. The parameters the invocation would carry.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <returns>
+    ///   <c>null</c> when the action would be accepted, or the
+    ///   reason it would be refused.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IShokoEpisode episode, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
 
     /// <summary>
@@ -212,13 +271,16 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="video">The video the action would be scoped to.</param>
     /// <param name="parameters">Optional. The parameters the invocation would carry.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <returns>
+    ///   <c>null</c> when the action would be accepted, or the
+    ///   reason it would be refused.
+    /// </returns>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     Task<ActionValidationResult?> ValidateAsync(Guid actionId, IVideo video, IReadOnlyDictionary<string, object?>? parameters = null, IUser? caller = null, CancellationToken token = default);
-
-
-
-
 
     /// <summary>
     ///   Invoke a group-scoped action across several groups at once, applying
@@ -232,8 +294,11 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="groups">The groups to scope the action to, in the caller's own order.</param>
     /// <param name="parameters">Optional. The action's free-form invocation parameters, applied to every entry. See the global overload for details.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
     ///   One or more entries were rejected. Nothing was queued.
     /// </exception>
@@ -266,8 +331,11 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="series">The series to scope the action to, in the caller's own order.</param>
     /// <param name="parameters">Optional. The action's free-form invocation parameters, applied to every entry. See the global overload for details.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
     ///   One or more entries were rejected, or the action itself was. Nothing
     ///   was queued. An entry's failure is keyed <c>IDs[i]</c>, where <c>i</c>
@@ -289,8 +357,11 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="episodes">The episodes to scope the action to, in the caller's own order.</param>
     /// <param name="parameters">Optional. The action's free-form invocation parameters, applied to every entry. See the global overload for details.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
     ///   One or more entries were rejected. Nothing was queued.
     /// </exception>
@@ -308,8 +379,11 @@ public interface IActionService
     /// <param name="actionId">Action ID.</param>
     /// <param name="videos">The videos to scope the action to, in the caller's own order.</param>
     /// <param name="parameters">Optional. The action's free-form invocation parameters, applied to every entry. See the global overload for details.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted programmatic call.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted programmatic call.</param>
     /// <param name="token">Cancellation token.</param>
+    /// <exception cref="KeyNotFoundException">
+    ///   No action is registered with <paramref name="actionId"/>.
+    /// </exception>
     /// <exception cref="Exceptions.GenericValidationException">
     ///   One or more entries were rejected. Nothing was queued.
     /// </exception>

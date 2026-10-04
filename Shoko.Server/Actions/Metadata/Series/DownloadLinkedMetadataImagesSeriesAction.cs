@@ -13,7 +13,7 @@ namespace Shoko.Server.Actions;
 public sealed class DownloadLinkedMetadataImagesSeriesAction(IMetadataRefreshService refreshService) : SeriesAction
 {
     /// <summary>
-    ///   The source to download from, or <see langword="null"/> for every
+    ///   The source to download from, or <c>null</c> for every
     ///   enabled provider that supplies images.
     /// </summary>
     public MetadataSource? Source { get; set; }

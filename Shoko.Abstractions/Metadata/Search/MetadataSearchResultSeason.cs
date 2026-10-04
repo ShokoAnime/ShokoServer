@@ -38,7 +38,7 @@ public sealed record MetadataSearchResultSeason
 
     /// <summary>
     ///   The season's regular episodes with their air dates, or
-    ///   <see langword="null"/> when the source did not send them.
+    ///   <c>null</c> when the source did not send them.
     /// </summary>
     /// <remarks>
     ///   Matching lines their dates up with the anime's, telling a split cour

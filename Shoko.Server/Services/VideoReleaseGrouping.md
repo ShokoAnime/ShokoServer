@@ -8,9 +8,10 @@ to belong to the same release.
 tie-breaker comparison, determines which is the primary, and identifies redundant
 secondaries that are safe to delete.
 
-`ReleaseAutoManagementService` is called at the end of the import pipeline
-(inside `FinalizeReleaseSearchJob`) and, when `AllowDeletion` is enabled, removes
-files from redundant candidates automatically.
+`ReleaseAutoManagementService` runs at the end of a release search
+(`FinalizeReleaseSearchJob`, through `IVideoReleaseService.FireSearchCompleted`)
+when `AutoDeleteOnImport` is enabled, and removes files from redundant candidates
+automatically when `AllowDeletion` is enabled too.
 
 The grouping is **deterministic** — given the same inputs it always produces the
 same buckets — but it is a **heuristic**, not a guaranteed truth. Provider
@@ -316,34 +317,54 @@ redundancy pipeline run against them at all.
 `ReleaseComparisonPreferences.SignalPriority` where the candidates differ decides
 the winner. Later signals are only consulted when all earlier ones are tied.
 
-A null or unknown value on either side is treated as a **skip** (not a loss) —
-the signal is ignored and the next one is tried. This means a candidate without
-source metadata cannot lose to one that has it on the `Source` signal alone.
+Under the default `EpisodeTypeScope.KeepTogether`, a structural rule comes first:
+a homogeneous candidate (every file from one release group) always ranks above a
+gap-fill composite, before any signal is consulted. That rule is reported as
+`GroupHomogeneity`, which is skipped if it appears in `SignalPriority`.
+
+Unknown values are handled per kind of signal:
+
+- **Counts, version and bit depth** (`AudioStreams`, `SubtitleStreams`, `Version`,
+  `BitDepth`): a zero on either side is a **skip**, and the next signal is tried.
+- **Flags** (`Chaptered`, `Censored`, `Creditless`): a null on either side is a
+  skip. `Corrupted` is always known.
+- **Ordered lists** (`Source`, `Resolution`, `VideoCodec`, `AudioCodec`): a known
+  value beats an unknown one, and a value in the list beats one that is not.
+  Two values both missing from the list tie.
+- **`SubGroup`**: a group in `SubGroupOrder` (by name or short name) beats one
+  that is not; an empty list always ties.
+- **Languages** (`AudioLanguage`, `SubtitleLanguage`): the first preferred
+  language that one candidate has and the other lacks decides; an empty list
+  always ties.
 
 ### Configurable signals
 
 | `ReleaseSignalType` | Default priority | Logic |
 |---------------------|-----------------|-------|
-| `Source` | 1 | Index in `SourceOrder` preference list; lower index = better; unknown = last |
-| `IsCorrupted` | 2 | Not corrupt beats corrupt |
+| `Source` | 1 | Index in `SourceOrder`; lower index = better |
+| `Corrupted` | 2 | Not corrupt beats corrupt |
 | `Resolution` | 3 | Index in `ResolutionOrder` |
-| `BitDepth` | 4 | Higher is better when `PreferHigherBitDepth = true` (default); 0 = skip |
+| `BitDepth` | 4 | Higher is better when `PreferHigherBitDepth = true` (default) |
 | `VideoCodec` | 5 | Index in `VideoCodecOrder` |
-| `Chapters` | 6 | Chaptered beats unchaptered; null = skip |
-| `AudioStreamCount` | 7 | Higher = better; 0 = skip |
-| `SubtitleStreamCount` | 8 | Higher = better; 0 = skip |
-| `AudioCodec` | 9 | Index in `AudioCodecOrder` |
-| `SubGroup` | 10 | Index in `SubGroupOrder`; empty list = always skip |
-| `Version` | 11 | Higher = better; 0 = skip |
-| `IsCensored` | 12 | Not censored beats censored; null = skip |
+| `Chaptered` | 6 | Chaptered beats unchaptered |
+| `AudioStreams` | 7 | Higher = better |
+| `SubtitleStreams` | 8 | Higher = better |
+| `AudioLanguage` | 9 | First language of `AudioLanguageOrder` present on one side only |
+| `SubtitleLanguage` | 10 | First language of `SubtitleLanguageOrder` present on one side only |
+| `AudioCodec` | 11 | Index in `AudioCodecOrder` |
+| `SubGroup` | 12 | Index in `SubGroupOrder` |
+| `Version` | 13 | Higher = better |
+| `Censored` | 14 | Not censored beats censored |
+| `Creditless` | not in the default list | Creditless beats not creditless |
 
 Default ordered preference lists (first = most preferred):
 
-- **Source**: `BluRay, DVD, TV, Web` (unknown is treated as last)
+- **Source**: `BluRay, DVD, TV, Web, Unknown` (an unknown source loses to any known one)
 - **Resolution**: `2160p, 1440p, 1080p, 720p, 480p`
 - **VideoCodec**: `HEVC, H264, AV1, MPEG4, VC1, MPEG2`
 - **AudioCodec**: `FLAC, DCA, AAC, AC3, MP3`
-- **SubGroup**: _(empty — subgroup comparison is always a tie unless explicitly configured)_
+- **AudioLanguage**, **SubtitleLanguage** and **SubGroup**: _(empty, so these
+  comparisons always tie unless configured)_
 
 ### Redundancy and deletion
 
@@ -361,7 +382,11 @@ handles airing series naturally without any end-date guard:
   missing eps 5–6). When eps 5 and 6 arrive for 1080p, the coverage check will
   pass and 720p becomes redundant.
 
-### `AllowDeletion`
+### `AutoDeleteOnImport` and `AllowDeletion`
+
+By default `AutoDeleteOnImport = false`, and nothing runs after a release search;
+the check can still be run through the API. With it on, the check runs at the end
+of every release search.
 
 By default `AllowDeletion = false`. In this mode the service logs which candidates
 (or files) it would delete but removes nothing. Set `AllowDeletion = true` to enable
@@ -399,9 +424,12 @@ rule applies regardless.
 `KeepTogether` (default): coverage is measured holistically across all episode
 types. A specials-only candidate is never superseded by a regular-episode candidate.
 
-`BestPerType`: coverage is evaluated independently for regular episodes and
-non-regular episodes, allowing the system to choose different primaries for each
-type. *(Not yet implemented in the current release.)*
+`BestPerType`: coverage and quality are evaluated per episode type, so the
+system can choose different primaries for regular episodes and specials. The
+signals are compared for each episode type both candidates have files of, in
+ascending type order (regular episodes first), before the aggregate comparison;
+`SubGroup` and `Version` have no per-type view and are compared on the aggregate
+only. The homogeneity rule above does not apply under this scope.
 
 ---
 
@@ -562,7 +590,7 @@ Air/[Doki] Air - 03 [bad].mkv   ← ep 3, v1, corrupt ┘
 Every episode has two files at the same version, but the files differ on quality.
 The grouper falls through to a **quality-tier split**: one candidate for the clean
 set, one for the corrupt set. The comparison service will rank A higher
-(`IsCorrupted` signal: clean beats corrupt) and mark B as redundant.
+(`Corrupted` signal: clean beats corrupt) and mark B as redundant.
 
 The quality tier is determined by `(IsCorrupted, IsChaptered)`. If both signals
 agree between the colliding files, the split is skipped and everything is kept
@@ -844,8 +872,9 @@ CompareDecision CompareWithDecision(VideoReleaseCandidate a, VideoReleaseCandida
 record CompareDecision(
     int Result,
     ReleaseSignalType? DecidingSignal,
-    string? PrimaryValue,   // winner's value for the deciding signal
-    string? RunnerUpValue); // loser's value for the deciding signal
+    EpisodeType? DecidingType, // the episode type that decided, under BestPerType
+    string? PrimaryValue,      // winner's value for the deciding signal
+    string? RunnerUpValue);    // loser's value for the deciding signal
 ```
 
 ### HTTP endpoint
@@ -866,17 +895,17 @@ required precisely because `EpisodeCoverage` holds numbers now; see
 
 | Field | Description |
 |-------|-------------|
-| `candidateCount` | Number of candidates covering this episode |
-| `primary` | `ReleaseCandidateSummary` — key quality fields of the winning candidate |
-| `reason` | `"OnlyRelease"` or `"Ranked"` |
-| `decidingSignal` | Name of the signal that broke the tie; null when `reason` is `OnlyRelease` or all signals tied |
-| `primaryValue` | Winner's value for `decidingSignal` (e.g. `"BluRay"`, `"1080p"`) |
-| `runnerUpValue` | Runner-up's value for `decidingSignal` |
+| `CandidateCount` | Number of candidates covering this episode |
+| `Primary` | `ReleaseCandidateSummary`: key quality fields of the winning candidate |
+| `Reason` | `"OnlyRelease"` or `"Ranked"` |
+| `DecidingSignal` | Name of the signal that broke the tie; null when `Reason` is `OnlyRelease` or all signals tied |
+| `PrimaryValue` | Winner's value for `DecidingSignal` (e.g. `"BluRay"`, `"1080p"`) |
+| `RunnerUpValue` | Runner-up's value for `DecidingSignal` |
 
-`ReleaseCandidateSummary` includes: `key`, `groupName`, `groupShortName`,
-`source`, `resolution`, `videoCodec`, `bitDepth`, `audioCodec`,
-`audioStreamCount`, `subtitleStreamCount`, `isChaptered`, `isCorrupted`,
-`isCensored`, `version`, `fileCount`, `episodeCoverage` (Shoko string format),
-`audioLanguages`, `subtitleLanguages`.
+`ReleaseCandidateSummary` includes: `Key`, `GroupName`, `GroupShortName`,
+`Source`, `Resolution`, `VideoCodec`, `BitDepth`, `AudioCodec`,
+`AudioStreamCount`, `SubtitleStreamCount`, `IsChaptered`, `IsCorrupted`,
+`IsCensored`, `Version`, `FileCount`, `EpisodeCoverage` (Shoko string format),
+`AudioLanguages`, `SubtitleLanguages`.
 
 Returns **404** when no release covers the episode.

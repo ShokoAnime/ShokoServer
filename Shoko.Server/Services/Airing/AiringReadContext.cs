@@ -65,7 +65,7 @@ internal sealed class AiringReadContext
     /// </summary>
     /// <param name="service">The service the read belongs to.</param>
     /// <param name="includeDisabled">Whether disabled providers and kinds are part of the read.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="service"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="service"/> is <c>null</c>.</exception>
     public AiringReadContext(AiringScheduleService service, bool includeDisabled = false)
     {
         ArgumentNullException.ThrowIfNull(service);
@@ -93,7 +93,7 @@ internal sealed class AiringReadContext
     /// </summary>
     /// <param name="row">The schedule row.</param>
     /// <returns>The schedule view.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="row"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="row"/> is <c>null</c>.</exception>
     public AiringScheduleView GetSchedule(AiringSchedule row)
     {
         ArgumentNullException.ThrowIfNull(row);
@@ -105,11 +105,11 @@ internal sealed class AiringReadContext
     }
 
     /// <summary>
-    /// The view over the schedule a row belongs to, or <see langword="null"/>
+    /// The view over the schedule a row belongs to, or <c>null</c>
     /// when the schedule is gone.
     /// </summary>
     /// <param name="scheduleID">The local ID of the schedule.</param>
-    /// <returns>The schedule view, or <see langword="null"/>.</returns>
+    /// <returns>The schedule view, or <c>null</c>.</returns>
     public AiringScheduleView? GetSchedule(int scheduleID)
         => RepoFactory.AiringSchedule.GetByID(scheduleID) is { } row ? GetSchedule(row) : null;
 
@@ -119,7 +119,7 @@ internal sealed class AiringReadContext
     /// </summary>
     /// <param name="row">The schedule row.</param>
     /// <returns>The schedule's profile.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="row"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="row"/> is <c>null</c>.</exception>
     public AiringScheduleProfile GetProfile(AiringSchedule row)
         => _service.GetProfile(row, this);
 
@@ -128,11 +128,11 @@ internal sealed class AiringReadContext
     #region Providers & Channels
 
     /// <summary>
-    /// The registered provider behind an ID, or <see langword="null"/> when the
+    /// The registered provider behind an ID, or <c>null</c> when the
     /// plugin that supplied it is gone.
     /// </summary>
     /// <param name="providerID">The ID of the provider.</param>
-    /// <returns>The provider info, or <see langword="null"/>.</returns>
+    /// <returns>The provider info, or <c>null</c>.</returns>
     public AiringScheduleProviderInfo? GetProvider(Guid providerID)
     {
         // The service hands back a fresh copy every time, so a read that asks
@@ -148,7 +148,7 @@ internal sealed class AiringReadContext
     /// enabled, unless the read asked for disabled ones too.
     /// </summary>
     /// <param name="providerID">The ID of the provider.</param>
-    /// <returns><see langword="true"/> when the provider's data is part of this read.</returns>
+    /// <returns><c>true</c> when the provider's data is part of this read.</returns>
     public bool IsProviderVisible(Guid providerID)
         => IncludeDisabled || GetProvider(providerID) is { Enabled: true };
 
@@ -165,7 +165,7 @@ internal sealed class AiringReadContext
     /// The channel behind an ID, resolved once per read.
     /// </summary>
     /// <param name="channelID">The ID of the channel.</param>
-    /// <returns>The channel, or <see langword="null"/> when it is unknown.</returns>
+    /// <returns>The channel, or <c>null</c> when it is unknown.</returns>
     public IAiringChannel? GetChannel(Guid channelID)
     {
         if (_channels.TryGetValue(channelID, out var channel))
@@ -183,7 +183,7 @@ internal sealed class AiringReadContext
     /// </summary>
     /// <param name="source">The source of the series.</param>
     /// <param name="id">The ID of the series within its source.</param>
-    /// <returns>The series, or <see langword="null"/> when it can't be resolved.</returns>
+    /// <returns>The series, or <c>null</c> when it can't be resolved.</returns>
     public ISeries? GetSeries(MetadataSource source, string id)
     {
         if (_series.TryGetValue((source, id), out var series))
@@ -197,7 +197,7 @@ internal sealed class AiringReadContext
     /// </summary>
     /// <param name="source">The source of the season.</param>
     /// <param name="id">The ID of the season within its source.</param>
-    /// <returns>The season, or <see langword="null"/> when it can't be resolved.</returns>
+    /// <returns>The season, or <c>null</c> when it can't be resolved.</returns>
     public ISeason? GetSeason(MetadataSource source, string id)
     {
         if (_seasons.TryGetValue((source, id), out var season))
@@ -230,7 +230,7 @@ internal sealed class AiringReadContext
     /// </summary>
     /// <param name="source">The source of the episode.</param>
     /// <param name="id">The ID of the episode within its source.</param>
-    /// <returns>The episode, or <see langword="null"/> when it can't be resolved.</returns>
+    /// <returns>The episode, or <c>null</c> when it can't be resolved.</returns>
     public IEpisode? GetEpisode(MetadataSource source, string id)
     {
         if (_episodes.TryGetValue((source, id), out var episode))
@@ -244,7 +244,7 @@ internal sealed class AiringReadContext
     /// episode never looks that episode up again.
     /// </summary>
     /// <param name="episode">The episode to remember.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="episode"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="episode"/> is <c>null</c>.</exception>
     public void Remember(IEpisode episode)
     {
         ArgumentNullException.ThrowIfNull(episode);
@@ -287,7 +287,7 @@ internal sealed class AiringReadContext
     /// <param name="source">The source.</param>
     /// <param name="type">The kind of entry.</param>
     /// <param name="id">The source's ID for it.</param>
-    /// <returns>The entry, or <see langword="null"/> when nothing holds it.</returns>
+    /// <returns>The entry, or <c>null</c> when nothing holds it.</returns>
     private IMetadata? ResolveThroughResolvers(MetadataSource source, MetadataEntityType type, string id)
         => _service.GetStoredEntity(source, type, id);
 
@@ -296,7 +296,7 @@ internal sealed class AiringReadContext
     /// is the series' ID, the episode type and the season number.
     /// </summary>
     /// <param name="id">The stored season ID.</param>
-    /// <returns>The parts, or <see langword="null"/> when the ID isn't one.</returns>
+    /// <returns>The parts, or <c>null</c> when the ID isn't one.</returns>
     private static (int ID, EpisodeType Type, int Number)? ParseEmbeddedSeasonID(string id)
         => id.Split(':') is not { Length: 3 } parts ||
             !int.TryParse(parts[0], out var seriesID) ||
@@ -316,7 +316,7 @@ internal sealed class AiringReadContext
     /// </summary>
     /// <param name="episode">The episode to collect keys for.</param>
     /// <returns>The keys, with the episode's own first.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="episode"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="episode"/> is <c>null</c>.</exception>
     public IReadOnlyList<(MetadataSource Source, string ID)> GetLinkedEpisodeKeys(IEpisode episode)
     {
         ArgumentNullException.ThrowIfNull(episode);
@@ -357,7 +357,7 @@ internal sealed class AiringReadContext
     /// </summary>
     /// <param name="source">The source of the episode.</param>
     /// <param name="id">The ID of the episode within its source.</param>
-    /// <returns>The earliest Original airing, or <see langword="null"/> when none is known.</returns>
+    /// <returns>The earliest Original airing, or <c>null</c> when none is known.</returns>
     public DateTime? GetFirstOriginalAiringAt(MetadataSource source, string id)
     {
         if (_firstOriginalAirings.TryGetValue((source, id), out var firstAiring))
@@ -395,7 +395,7 @@ internal sealed class AiringReadContext
     /// otherwise.
     /// </summary>
     /// <param name="episode">The episode, if it resolved at all.</param>
-    /// <returns>The AniDB air date, or <see langword="null"/> when there is none.</returns>
+    /// <returns>The AniDB air date, or <c>null</c> when there is none.</returns>
     public DateTime? GetAnidbAirDate(IEpisode? episode)
     {
         if (episode is null)
@@ -413,7 +413,7 @@ internal sealed class AiringReadContext
     /// which for anything but an AniDB episode means a cross-reference walk.
     /// </summary>
     /// <param name="episode">The episode.</param>
-    /// <returns>The AniDB air date, or <see langword="null"/> when there is none.</returns>
+    /// <returns>The AniDB air date, or <c>null</c> when there is none.</returns>
     private static DateTime? ResolveAnidbAirDate(IEpisode episode)
     {
         if (episode is IAnidbEpisode && episode.AirDate is { } ownAirDate)
@@ -432,7 +432,7 @@ internal sealed class AiringReadContext
     /// episode with the right one attached.
     /// </summary>
     /// <param name="episode">The episode the read ran for.</param>
-    /// <returns>The AniDB episode and the shoko episode, either of which can be <see langword="null"/>.</returns>
+    /// <returns>The AniDB episode and the shoko episode, either of which can be <c>null</c>.</returns>
     public (IAnidbEpisode? AnidbEpisode, IShokoEpisode? ShokoEpisode) GetEpisodeViews(IEpisode? episode)
     {
         if (episode is null)

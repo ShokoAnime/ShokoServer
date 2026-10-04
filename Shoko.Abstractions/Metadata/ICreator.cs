@@ -12,7 +12,7 @@ public interface ICreator : IMetadata, IWithOverviews, IWithPrimaryImage, IWithC
 {
     /// <summary>
     ///   When the core last asked the source to refresh the creator, found or
-    ///   not, in UTC. Set by the core alone; <see langword="null"/> when it
+    ///   not, in UTC. Set by the core alone; <c>null</c> when it
     ///   never did.
     /// </summary>
     DateTime? LastRefreshedAt { get; }

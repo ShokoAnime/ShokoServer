@@ -38,7 +38,7 @@ public class HasSourceSuggestionExpression : FilterExpression<bool>, IWithString
     /// Whether <paramref name="other"/> is the same condition with the same parameter.
     /// </summary>
     /// <param name="other">The condition to compare with.</param>
-    /// <returns><see langword="true"/> if both are equal.</returns>
+    /// <returns><c>true</c> if both are equal.</returns>
     protected bool Equals(HasSourceSuggestionExpression other)
     {
         return base.Equals(other) && Parameter == other.Parameter;

@@ -6,7 +6,7 @@ namespace Shoko.Abstractions.Actions;
 ///   <see cref="EpisodeAction"/>, <see cref="VideoAction"/>).
 /// </summary>
 /// <remarks>
-///   This interface is <see langword="internal"/> to this assembly so a
+///   This interface is internal to this assembly so a
 ///   plugin cannot implement it directly and bypass the four base classes.
 ///   Only the base classes in this assembly may implement it.
 /// </remarks>

@@ -28,7 +28,7 @@ public class VideoReleaseDeletedEventArgs : EventArgs
 
     /// <summary>
     ///   The API token of whoever caused the release to be deleted, or
-    ///   <see langword="null"/> when the system did it. Stamped when the event is
+    ///   <c>null</c> when the system did it. Stamped when the event is
     ///   raised.
     /// </summary>
     public ApiToken? Actor { get; init; }

@@ -38,7 +38,7 @@ public class SourceSuggestionCountSortingSelector : SortingExpression, IWithStri
     /// Whether <paramref name="other"/> is the same sorting selector with the same parameter.
     /// </summary>
     /// <param name="other">The sorting selector to compare with.</param>
-    /// <returns><see langword="true"/> if both are equal.</returns>
+    /// <returns><c>true</c> if both are equal.</returns>
     protected bool Equals(SourceSuggestionCountSortingSelector other)
     {
         return base.Equals(other) && Parameter == other.Parameter;

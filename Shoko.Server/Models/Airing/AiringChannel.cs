@@ -96,7 +96,7 @@ public class AiringChannel : IAiringChannel
     /// </summary>
     /// <param name="name">The display name of the channel.</param>
     /// <param name="type">The type of the channel.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public AiringChannel(string name, AiringChannelType type)
     {

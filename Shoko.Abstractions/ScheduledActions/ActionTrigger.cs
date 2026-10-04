@@ -222,12 +222,12 @@ public sealed record ActionTrigger
     #region Validation
 
     /// <summary>
-    ///   Why the trigger cannot be used, or <see langword="null"/> when it
+    ///   Why the trigger cannot be used, or <c>null</c> when it
     ///   can: it must set exactly the fields its <see cref="Type"/> takes, an
     ///   interval must be whole minutes and in range, a time of day whole
     ///   minutes, and each day set once and in range.
     /// </summary>
-    /// <returns>The reason, or <see langword="null"/>.</returns>
+    /// <returns>The reason, or <c>null</c>.</returns>
     public string? GetValidationError()
     {
         if (!Enum.IsDefined(Type))
@@ -293,7 +293,7 @@ public sealed record ActionTrigger
 
     /// <summary>
     ///   Why the trigger cannot be used for an action, or
-    ///   <see langword="null"/> when it can: as
+    ///   <c>null</c> when it can: as
     ///   <see cref="GetValidationError()"/>, and an interval must not be
     ///   under the action's minimum.
     /// </summary>
@@ -306,7 +306,7 @@ public sealed record ActionTrigger
     ///   The action's minimum interval, as
     ///   <see cref="ScheduledActionInfo.MinimumInterval"/> gives it.
     /// </param>
-    /// <returns>The reason, or <see langword="null"/>.</returns>
+    /// <returns>The reason, or <c>null</c>.</returns>
     public string? GetValidationError(TimeSpan minimumInterval)
         => GetValidationError() ?? (Type is ActionTriggerType.Interval && Interval < minimumInterval
             ? $"An interval must be at least {minimumInterval.ToDurationString()} for this action, which may not run more often."
@@ -493,8 +493,8 @@ public sealed record ActionTrigger
     ///   Whether two lists hold the same values, ignoring order and repeats.
     /// </summary>
     /// <typeparam name="T">The type of the values.</typeparam>
-    /// <param name="left">The one list, or <see langword="null"/>.</param>
-    /// <param name="right">The other list, or <see langword="null"/>.</param>
+    /// <param name="left">The one list, or <c>null</c>.</param>
+    /// <param name="right">The other list, or <c>null</c>.</param>
     /// <returns>Whether they do.</returns>
     private static bool SetEquals<T>(IReadOnlyList<T>? left, IReadOnlyList<T>? right)
         => left is null || right is null ? left is null && right is null : left.ToHashSet().SetEquals(right);
@@ -503,7 +503,7 @@ public sealed record ActionTrigger
     ///   A hash code of a list that ignores order and repeats.
     /// </summary>
     /// <typeparam name="T">The type of the values.</typeparam>
-    /// <param name="values">The list, or <see langword="null"/>.</param>
+    /// <param name="values">The list, or <c>null</c>.</param>
     /// <returns>The hash code.</returns>
     private static int SetHash<T>(IReadOnlyList<T>? values)
         => values is null ? 0 : values.Distinct().Aggregate(1, (hash, value) => hash ^ (value?.GetHashCode() ?? 0));

@@ -42,7 +42,7 @@ public class TypeStringConverter : TypeConverter, IUserType
     /// <returns>
     /// An <see cref="T:System.Object"/> that represents the converted value. The value will be 1 if <paramref name="value"/> is true, otherwise 0
     /// </returns>
-    /// <exception cref="T:System.ArgumentNullException">The <paramref name="destinationType"/> parameter is <see langword="null"/>.</exception>
+    /// <exception cref="T:System.ArgumentNullException">The <paramref name="destinationType"/> parameter is <c>null</c>.</exception>
     /// <exception cref="T:System.NotSupportedException">The conversion could not be performed.</exception>
     public override object? ConvertTo(ITypeDescriptorContext? context, CultureInfo? culture,
         object? value, Type destinationType)

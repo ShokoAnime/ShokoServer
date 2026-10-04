@@ -34,7 +34,7 @@ internal sealed class AiringTrack : IAiringTrack
     /// the data stored on the schedule.
     /// </summary>
     /// <param name="data">The stored track.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="data"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="data"/> is <c>null</c>.</exception>
     public AiringTrack(AiringTrackData data)
     {
         ArgumentNullException.ThrowIfNull(data);

@@ -11,7 +11,7 @@ namespace Shoko.Server.API.v3.Models.Action;
 
 /// <summary>
 /// When a scheduled action runs on its own. Each type sets only the fields
-/// whose docs name it; the others are left out or <see langword="null"/>.
+/// whose docs name it; the others are left out or <c>null</c>.
 /// </summary>
 public class ScheduledActionTrigger
 {

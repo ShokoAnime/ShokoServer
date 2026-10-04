@@ -16,7 +16,7 @@ public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     /// <summary>
     ///   When the core last refreshed the series in full from its source
     ///   without failing, whether or not anything changed, in UTC. Set by the
-    ///   core alone; <see langword="null"/> when it never was.
+    ///   core alone; <c>null</c> when it never was.
     /// </summary>
     DateTime? LastRefreshedAt { get; }
 
@@ -114,7 +114,7 @@ public interface ISeries : IWithTitles, IWithOverviews, IWithPrimaryImage, IWith
     /// The series a provider's users suggest to someone looking at this one,
     /// best first within each source. Most of them are not in the collection,
     /// so their <see cref="ISuggestedMetadata.Suggested"/> is
-    /// usually <see langword="null"/>.
+    /// usually <c>null</c>.
     /// </summary>
     IReadOnlyList<ISuggestedMetadata<ISeries, ISeries>> Suggestions { get; }
 

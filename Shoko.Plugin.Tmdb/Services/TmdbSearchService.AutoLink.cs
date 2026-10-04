@@ -40,7 +40,7 @@ public sealed partial class TmdbSearchService
     /// <param name="anime">The anime.</param>
     /// <param name="cancellationToken">Cancels the search.</param>
     /// <returns>The candidates, best first.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="anime"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="anime"/> is <c>null</c>.</exception>
     public async Task<IReadOnlyList<MetadataAutoLinkCandidate>> FindAutoLinks(IAnidbAnime anime, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(anime);

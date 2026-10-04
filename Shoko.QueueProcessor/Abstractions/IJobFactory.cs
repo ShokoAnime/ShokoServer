@@ -10,7 +10,7 @@ namespace Shoko.QueueProcessor.Abstractions;
 public interface IJobFactory
 {
     /// <summary>
-    /// Returns <see langword="true"/> if no acquisition filter currently blocks jobs of type
+    /// Returns <c>true</c> if no acquisition filter currently blocks jobs of type
     /// <typeparamref name="T"/>. This is a point-in-time check; filter state may change.
     /// </summary>
     bool CanRun<T>() where T : class, IQueueJob;

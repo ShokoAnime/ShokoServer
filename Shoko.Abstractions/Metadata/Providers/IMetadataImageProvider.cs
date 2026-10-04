@@ -32,7 +32,7 @@ public interface IMetadataImageProvider : IMetadataProvider
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   The images, or <see langword="null"/> when you have nothing to say
+    ///   The images, or <c>null</c> when you have nothing to say
     ///   about the entity, which leaves its linked images alone.
     /// </returns>
     Task<IReadOnlyList<ImageCandidate>?> GetImages(MetadataGuid entityID, CancellationToken cancellationToken = default);

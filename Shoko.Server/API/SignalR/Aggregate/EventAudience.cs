@@ -153,7 +153,7 @@ public sealed class EventAudience
     /// Whether a user has no restricted tags, and so may see everything.
     /// </summary>
     /// <param name="user">The user.</param>
-    /// <returns><see langword="true"/> when the user has no restricted tags.</returns>
+    /// <returns><c>true</c> when the user has no restricted tags.</returns>
     public static bool IsUnrestricted(IUser user)
         => user is JMMUser shokoUser ? !shokoUser.HasRestrictions() : user.RestrictedTags.Count is 0;
 
@@ -162,7 +162,7 @@ public sealed class EventAudience
     /// always may, and is checked without looking anything up.
     /// </summary>
     /// <param name="user">The user.</param>
-    /// <returns><see langword="true"/> when the user may receive the event.</returns>
+    /// <returns><c>true</c> when the user may receive the event.</returns>
     public bool IsVisibleTo(IUser user)
     {
         if (ReferenceEquals(this, Everyone) || IsUnrestricted(user))
@@ -213,7 +213,7 @@ public sealed class EventAudience
     /// The series of a Shoko episode, without throwing when it is gone.
     /// </summary>
     /// <param name="episode">The episode.</param>
-    /// <returns>The series, or <see langword="null"/> when it is gone.</returns>
+    /// <returns>The series, or <c>null</c> when it is gone.</returns>
     private static IShokoSeries? SeriesOf(IShokoEpisode episode)
         => episode is AnimeEpisode animeEpisode ? animeEpisode.AnimeSeries : episode.Series;
 

@@ -157,7 +157,7 @@ public class ScheduledActionController(IScheduledActionService scheduleService, 
     /// <param name="actionID">Scheduled action ID.</param>
     /// <param name="change">
     /// Makes the new triggers from the ones in effect, or returns
-    /// <see langword="null"/> to go back to the defaults.
+    /// <c>null</c> to go back to the defaults.
     /// </param>
     /// <returns>The scheduled action, a validation problem, or not found.</returns>
     private ActionResult<ScheduledAction> SetTriggersCore(Guid actionID, Func<IReadOnlyList<ActionTrigger>, IReadOnlyList<ActionTrigger>?> change)

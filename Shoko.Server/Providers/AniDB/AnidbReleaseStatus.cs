@@ -31,7 +31,7 @@ public static class AnidbReleaseStatus
     ///   normal episode is a single release, like a movie.
     /// </param>
     /// <param name="normalEpisodeAirDates">
-    ///   The air dates of the normal episodes AniDB lists, <see langword="null"/>
+    ///   The air dates of the normal episodes AniDB lists, <c>null</c>
     ///   for an episode without one. Only enumerated when the dates alone do
     ///   not decide.
     /// </param>
@@ -75,7 +75,7 @@ public static class AnidbReleaseStatus
     /// <param name="endDate">The end date, if known.</param>
     /// <param name="today">The local date to judge against.</param>
     /// <returns>
-    ///   <see langword="true"/> when the end date is known and falls on or
+    ///   <c>true</c> when the end date is known and falls on or
     ///   before <paramref name="today"/>, taking a partial date as the last
     ///   day it could mean.
     /// </returns>
@@ -90,7 +90,7 @@ public static class AnidbReleaseStatus
     /// <param name="date">The date to check.</param>
     /// <param name="today">The local date to judge against.</param>
     /// <returns>
-    ///   <see langword="true"/> when the last day <paramref name="date"/> could
+    ///   <c>true</c> when the last day <paramref name="date"/> could
     ///   mean is on or before <paramref name="today"/>.
     /// </returns>
     public static bool HasPassed(PartialDateOnly date, DateOnly today)

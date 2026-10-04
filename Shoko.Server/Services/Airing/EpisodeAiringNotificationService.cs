@@ -122,7 +122,7 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
     /// <param name="logger">The logger.</param>
     /// <param name="airingScheduleService">The airing schedule service that owns the subscriptions and the read path.</param>
     /// <param name="systemService">The system service, for the "is the server actually up" gate.</param>
-    /// <exception cref="ArgumentNullException">Any argument is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">Any argument is <c>null</c>.</exception>
     public EpisodeAiringNotificationService(
         ILogger<EpisodeAiringNotificationService> logger,
         IAiringScheduleService airingScheduleService,
@@ -265,7 +265,7 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
     /// <param name="minute">The minute being processed, in UTC.</param>
     /// <param name="options">The union of the live subscriptions' filters.</param>
     /// <param name="subscriptionVersion">The subscription version the horizon is being built for.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
     internal void RebuildHorizon(DateTime minute, EpisodeAiringFilteringOptions options, int subscriptionVersion)
     {
         ArgumentNullException.ThrowIfNull(options);

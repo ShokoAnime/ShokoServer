@@ -12,7 +12,7 @@ public interface ICharacter : IMetadata, IWithOverviews, IWithPrimaryImage, IWit
 {
     /// <summary>
     ///   When the core last asked the source to refresh the character, found or
-    ///   not, in UTC. Set by the core alone; <see langword="null"/> when it
+    ///   not, in UTC. Set by the core alone; <c>null</c> when it
     ///   never did.
     /// </summary>
     DateTime? LastRefreshedAt { get; }

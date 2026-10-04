@@ -206,7 +206,7 @@ public class MetadataCrossReferenceTransferService(
     /// </summary>
     /// <param name="link">The link.</param>
     /// <param name="options">The filter.</param>
-    /// <returns><see langword="true"/> when it is written.</returns>
+    /// <returns><c>true</c> when it is written.</returns>
     private static bool KeepAutomatic(IMetadataCrossReference link, MetadataCrossReferenceExportOptions options)
         => options.Automatic is not { } automatic || automatic == (link.MatchRating is not MatchRating.UserVerified);
 
@@ -248,7 +248,7 @@ public class MetadataCrossReferenceTransferService(
     /// <summary>
     ///   The default title of an entry, for a comment.
     /// </summary>
-    /// <param name="entryID">The entry, or <see langword="null"/> for none.</param>
+    /// <param name="entryID">The entry, or <c>null</c> for none.</param>
     /// <returns>The title.</returns>
     private string TitleOf(MetadataGuid? entryID)
         => entryID is not null && metadataService.GetEntry(entryID) is IWithTitles titled ? titled.DefaultTitle.Value : MissingTitle;
@@ -569,7 +569,7 @@ public class MetadataCrossReferenceTransferService(
     ///   the AniDB anime ID every link starts with is.
     /// </summary>
     /// <param name="fields">The line's fields.</param>
-    /// <returns><see langword="true"/> for a header.</returns>
+    /// <returns><c>true</c> for a header.</returns>
     private static bool IsHeader(List<string> fields)
         => fields.Count > 0 && !long.TryParse(fields[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out _);
 
@@ -578,7 +578,7 @@ public class MetadataCrossReferenceTransferService(
     /// </summary>
     /// <param name="text">The field.</param>
     /// <param name="id">The ID read.</param>
-    /// <returns><see langword="true"/> when the field holds one.</returns>
+    /// <returns><c>true</c> when the field holds one.</returns>
     private static bool TryReadAnidbID(string text, out int id)
         => int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out id) && id > 0;
 
@@ -587,7 +587,7 @@ public class MetadataCrossReferenceTransferService(
     /// </summary>
     /// <param name="text">The field.</param>
     /// <param name="rating">The rating read.</param>
-    /// <returns><see langword="true"/> when the field names one.</returns>
+    /// <returns><c>true</c> when the field names one.</returns>
     private static bool TryReadRating(string text, out MatchRating rating)
         => Enum.TryParse(text, true, out rating);
 
@@ -706,7 +706,7 @@ public class MetadataCrossReferenceTransferService(
         /// <summary>
         ///   How an entry is written.
         /// </summary>
-        /// <param name="id">The entry, or <see langword="null"/> for none.</param>
+        /// <param name="id">The entry, or <c>null</c> for none.</param>
         /// <returns>The source's own ID, or how the source writes none.</returns>
         public string Write(MetadataGuid? id)
             => id?.ID ?? string.Empty;
@@ -716,8 +716,8 @@ public class MetadataCrossReferenceTransferService(
         /// </summary>
         /// <param name="text">The field.</param>
         /// <param name="entityType">The kind of entry.</param>
-        /// <param name="id">The entry, or <see langword="null"/> for none.</param>
-        /// <returns><see langword="true"/> when the field names an entry or none.</returns>
+        /// <param name="id">The entry, or <c>null</c> for none.</param>
+        /// <returns><c>true</c> when the field names an entry or none.</returns>
         public bool TryRead(string text, MetadataEntityType entityType, out MetadataGuid? id)
         {
             id = null;
@@ -774,7 +774,7 @@ public class MetadataCrossReferenceTransferService(
     ///   A series link read from a file.
     /// </summary>
     /// <param name="AnimeID">The AniDB anime.</param>
-    /// <param name="SeriesID">The series, or <see langword="null"/> for none.</param>
+    /// <param name="SeriesID">The series, or <c>null</c> for none.</param>
     /// <param name="Rating">How the link was arrived at.</param>
     private sealed record SeriesLine(int AnimeID, MetadataGuid? SeriesID, MatchRating Rating);
 
@@ -783,8 +783,8 @@ public class MetadataCrossReferenceTransferService(
     /// </summary>
     /// <param name="AnimeID">The AniDB anime.</param>
     /// <param name="AnidbEpisodeID">The AniDB episode.</param>
-    /// <param name="SeriesID">The series the episode sits in, or <see langword="null"/> for none.</param>
-    /// <param name="EpisodeID">The episode, or <see langword="null"/> for none.</param>
+    /// <param name="SeriesID">The series the episode sits in, or <c>null</c> for none.</param>
+    /// <param name="EpisodeID">The episode, or <c>null</c> for none.</param>
     /// <param name="Rating">How the link was arrived at.</param>
     private sealed record EpisodeLine(int AnimeID, int AnidbEpisodeID, MetadataGuid? SeriesID, MetadataGuid? EpisodeID, MatchRating Rating);
 

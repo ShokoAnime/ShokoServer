@@ -31,8 +31,8 @@ public sealed class TmdbImageService(TmdbApiClient apiClient, TmdbStores stores,
     /// </summary>
     /// <param name="entityID">The entity.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>The images, in TMDb's order, or <see langword="null"/> to leave the entity's images alone.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <see langword="null"/>.</exception>
+    /// <returns>The images, in TMDb's order, or <c>null</c> to leave the entity's images alone.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entityID"/> is <c>null</c>.</exception>
     public async Task<IReadOnlyList<ImageCandidate>?> GetImages(MetadataGuid entityID, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entityID);

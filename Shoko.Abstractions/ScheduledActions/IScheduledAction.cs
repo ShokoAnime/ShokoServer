@@ -39,13 +39,13 @@ public interface IScheduledAction
 
     /// <summary>
     ///   Whether a client should ask before an admin runs it by hand. Defaults
-    ///   to <see langword="false"/>.
+    ///   to <c>false</c>.
     /// </summary>
     bool RequiresConfirmation { get => false; }
 
     /// <summary>
     ///   The question a client asks before a run by hand, or
-    ///   <see langword="null"/> for a generic one. Only read when
+    ///   <c>null</c> for a generic one. Only read when
     ///   <see cref="RequiresConfirmation"/> is set.
     /// </summary>
     string? ConfirmationMessage { get => null; }
@@ -63,7 +63,7 @@ public interface IScheduledAction
 
     /// <summary>
     ///   The shortest time after a run before it runs on its own again, or
-    ///   <see langword="null"/> for <see cref="ActionTrigger.MinimumInterval"/>,
+    ///   <c>null</c> for <see cref="ActionTrigger.MinimumInterval"/>,
     ///   a minute.
     /// </summary>
     /// <remarks>
@@ -78,7 +78,7 @@ public interface IScheduledAction
 
     /// <summary>
     ///   Whether a run by hand counts for the schedule like a run a trigger
-    ///   queued. Defaults to <see langword="false"/>.
+    ///   queued. Defaults to <c>false</c>.
     /// </summary>
     /// <remarks>
     ///   Left unset, a run by hand neither moves the next run nor opens a
@@ -105,7 +105,7 @@ public interface IScheduledAction
     ///   call, and to the queue job on the second.
     /// </param>
     /// <returns>
-    ///   A reason to refuse, or <see langword="null"/> to allow the run.
+    ///   A reason to refuse, or <c>null</c> to allow the run.
     /// </returns>
     Task<ActionValidationResult?> Validate(CancellationToken token)
         => Task.FromResult<ActionValidationResult?>(null);

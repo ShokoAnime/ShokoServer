@@ -42,16 +42,16 @@ public sealed record MetadataCrossReferenceExportOptions
     public string? ProviderMovieID { get; init; }
 
     /// <summary>
-    ///   <see langword="true"/> for only the links made automatically,
-    ///   <see langword="false"/> for only the ones a person verified, or
-    ///   <see langword="null"/> for both.
+    ///   <c>true</c> for only the links made automatically,
+    ///   <c>false</c> for only the ones a person verified, or
+    ///   <c>null</c> for both.
     /// </summary>
     public bool? Automatic { get; init; }
 
     /// <summary>
-    ///   <see langword="true"/> for only the series and episode links that
-    ///   reach an episode of the source, <see langword="false"/> for only the
-    ///   ones that do not, or <see langword="null"/> for both.
+    ///   <c>true</c> for only the series and episode links that
+    ///   reach an episode of the source, <c>false</c> for only the
+    ///   ones that do not, or <c>null</c> for both.
     /// </summary>
     public bool? WithEpisodes { get; init; }
 

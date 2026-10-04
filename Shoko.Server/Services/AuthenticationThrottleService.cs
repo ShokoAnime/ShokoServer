@@ -147,7 +147,7 @@ public class AuthenticationThrottleService : IAuthenticationThrottleService, IDi
     /// the username need not belong to an existing user.
     /// </summary>
     /// <param name="username">The username to check.</param>
-    /// <returns>The remaining lockout duration; otherwise <see langword="null"/> if not locked out.</returns>
+    /// <returns>The remaining lockout duration; otherwise <c>null</c> if not locked out.</returns>
     internal TimeSpan? GetRemainingLockout(string? username)
         => GetRemainingLockoutForKey(UserKey(username));
 
@@ -217,8 +217,8 @@ public class AuthenticationThrottleService : IAuthenticationThrottleService, IDi
     /// <summary>
     /// Charges a failed attempt to the key, starting or extending its lockout if needed.
     /// </summary>
-    /// <param name="key">The client or user key, or <see langword="null"/> for nothing to charge.</param>
-    /// <returns>What the failure did to the lockout, or <see langword="null"/> when nothing was charged.</returns>
+    /// <param name="key">The client or user key, or <c>null</c> for nothing to charge.</param>
+    /// <returns>What the failure did to the lockout, or <c>null</c> when nothing was charged.</returns>
     private FailureOutcome? RegisterFailureForKey(string? key)
     {
         if (string.IsNullOrWhiteSpace(key))

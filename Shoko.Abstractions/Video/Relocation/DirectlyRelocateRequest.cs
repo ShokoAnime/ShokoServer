@@ -37,8 +37,8 @@ public record DirectlyRelocateRequest
     public bool AllowRelocationInsideDestination { get; set; } = true;
 
     /// <summary>
-    ///   Indicates whether the new operation should be cancelled if an existing
-    ///   operation is already running for the same file.
+    ///   Not read. A relocation already running for the same file neither
+    ///   queues nor cancels a new one, which starts at once, alongside it.
     /// </summary>
     public bool CancelIfRunning { get; set; } = false;
 }

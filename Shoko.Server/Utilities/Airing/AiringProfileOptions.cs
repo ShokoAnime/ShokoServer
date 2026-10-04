@@ -7,7 +7,7 @@ public sealed record AiringProfileOptions
 {
     /// <summary>
     /// Whether the schedule may anchor on the episode's earliest known Original
-    /// airing: <see langword="true"/> when every one of its tracks is subtitled or
+    /// airing: <c>true</c> when every one of its tracks is subtitled or
     /// dubbed. It still falls back to the AniDB date without enough anchored
     /// samples.
     /// </summary>

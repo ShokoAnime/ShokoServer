@@ -41,15 +41,15 @@ public sealed class ThrottledProgress : IProgress<decimal>
     ///   Creates a throttle in front of <paramref name="parent"/>.
     /// </summary>
     /// <param name="parent">
-    ///   Takes the values let through, or <see langword="null"/> to drop
+    ///   Takes the values let through, or <c>null</c> to drop
     ///   them.
     /// </param>
     /// <param name="interval">
     ///   The least time between two values passed on, or
-    ///   <see langword="null"/> for <see cref="DefaultInterval"/>.
+    ///   <c>null</c> for <see cref="DefaultInterval"/>.
     /// </param>
     /// <param name="timeProvider">
-    ///   The clock, or <see langword="null"/> for the system's.
+    ///   The clock, or <c>null</c> for the system's.
     /// </param>
     /// <exception cref="ArgumentOutOfRangeException">
     ///   <paramref name="interval"/> is negative.

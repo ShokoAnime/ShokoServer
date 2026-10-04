@@ -46,7 +46,7 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     private TimeSpan? _offsetFromOriginal;
 
     /// <summary>
-    /// The stored row behind this view, or <see langword="null"/> when the view
+    /// The stored row behind this view, or <c>null</c> when the view
     /// is an estimate.
     /// </summary>
     public EpisodeAiring? Row => _row;
@@ -59,7 +59,7 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
 
     /// <summary>
     /// The episode the read this view belongs to ran for, or
-    /// <see langword="null"/> when the read named none and the view stands for
+    /// <c>null</c> when the read named none and the view stands for
     /// the airing's own episode. A read that resolved one is what says two
     /// views of different stored episodes are the same episode after the links
     /// were followed.
@@ -74,7 +74,7 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     /// <param name="schedule">The schedule the airing is on.</param>
     /// <param name="row">The stored airing.</param>
     /// <param name="resolvedFor">The episode the read ran for, when it isn't the airing's own.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="context"/>, <paramref name="schedule"/> or <paramref name="row"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="context"/>, <paramref name="schedule"/> or <paramref name="row"/> is <c>null</c>.</exception>
     public EpisodeAiringView(AiringReadContext context, AiringScheduleView schedule, EpisodeAiring row, IEpisode? resolvedFor = null)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -104,10 +104,10 @@ internal sealed class EpisodeAiringView : IEpisodeAiring
     /// <param name="episodeSource">The source of the episode being estimated.</param>
     /// <param name="episodeID">The ID of the episode within its source.</param>
     /// <param name="key">The key the estimate's ID is derived from.</param>
-    /// <param name="airedAt">The estimated air time, or <see langword="null"/> while the schedule is on hiatus.</param>
+    /// <param name="airedAt">The estimated air time, or <c>null</c> while the schedule is on hiatus.</param>
     /// <param name="originalAiredAt">The slot the episode would have had, when it differs from <paramref name="airedAt"/>.</param>
     /// <param name="resolvedFor">The episode the read ran for.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="context"/>, <paramref name="schedule"/> or <paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="context"/>, <paramref name="schedule"/> or <paramref name="key"/> is <c>null</c>.</exception>
     public EpisodeAiringView(
         AiringReadContext context,
         AiringScheduleView schedule,

@@ -136,7 +136,7 @@ public partial class AiringScheduleService
     /// hiatus, so nothing is kept behind.
     /// </summary>
     /// <param name="row">The schedule to remove.</param>
-    /// <returns><see langword="true"/> when the schedule was there to remove.</returns>
+    /// <returns><c>true</c> when the schedule was there to remove.</returns>
     private bool RemoveSchedule(AiringSchedule row)
     {
         var context = new AiringReadContext(this, includeDisabled: true);
@@ -362,7 +362,7 @@ public partial class AiringScheduleService
     /// <param name="schedule">The schedule the provider handed in.</param>
     /// <param name="paramName">The name of the argument the schedule arrived as.</param>
     /// <returns>The stored schedule.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="schedule"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="schedule"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">The schedule is unknown, or owned by another provider.</exception>
     private static AiringSchedule GetOwnedSchedule(AiringScheduleProviderInfo info, IAiringSchedule schedule, string paramName)
     {
@@ -423,7 +423,7 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="channelID">The submitted channel ID.</param>
     /// <param name="paramName">The name of the argument the channel arrived in.</param>
-    /// <returns>The channel ID, or <see langword="null"/> when the schedule has none.</returns>
+    /// <returns>The channel ID, or <c>null</c> when the schedule has none.</returns>
     /// <exception cref="ArgumentException">The channel isn't registered.</exception>
     private static Guid? ResolveChannelID(Guid? channelID, string paramName)
     {

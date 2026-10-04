@@ -29,7 +29,7 @@ public interface IMetadataImageContributorManager
     /// </summary>
     /// <param name="contributorID">The contributor's ID.</param>
     /// <returns>
-    ///   The info, or <see langword="null"/> if nothing goes by that ID.
+    ///   The info, or <c>null</c> if nothing goes by that ID.
     /// </returns>
     MetadataImageContributorInfo? GetImageContributorInfo(Guid contributorID);
 
@@ -39,7 +39,7 @@ public interface IMetadataImageContributorManager
     /// <param name="contributor">The contributor.</param>
     /// <returns>The info.</returns>
     /// <exception cref="ArgumentNullException">
-    ///   Thrown when <paramref name="contributor"/> is <see langword="null"/>.
+    ///   Thrown when <paramref name="contributor"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="ArgumentException">
     ///   Thrown when the contributor was never registered.
@@ -52,7 +52,7 @@ public interface IMetadataImageContributorManager
     /// <param name="plugin">The plugin.</param>
     /// <returns>One <see cref="MetadataImageContributorInfo"/> per contributor.</returns>
     /// <exception cref="ArgumentNullException">
-    ///   Thrown when <paramref name="plugin"/> is <see langword="null"/>.
+    ///   Thrown when <paramref name="plugin"/> is <c>null</c>.
     /// </exception>
     IReadOnlyList<MetadataImageContributorInfo> GetImageContributorInfo(IPlugin plugin);
 
@@ -62,7 +62,7 @@ public interface IMetadataImageContributorManager
     /// <param name="entityID">The entity.</param>
     /// <returns>The contributors, in plugin load order.</returns>
     /// <exception cref="ArgumentNullException">
-    ///   Thrown when <paramref name="entityID"/> is <see langword="null"/>.
+    ///   Thrown when <paramref name="entityID"/> is <c>null</c>.
     /// </exception>
     IReadOnlyList<MetadataImageContributorInfo> GetImageContributorsFor(MetadataGuid entityID);
 
@@ -85,7 +85,7 @@ public interface IMetadataImageContributorManager
     ///   scope turns it off.
     /// </param>
     /// <exception cref="ArgumentNullException">
-    ///   Thrown when <paramref name="enabled"/> is <see langword="null"/>.
+    ///   Thrown when <paramref name="enabled"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="ArgumentException">
     ///   Thrown when no contributor goes by <paramref name="contributorID"/>,

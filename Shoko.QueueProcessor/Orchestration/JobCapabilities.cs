@@ -18,7 +18,7 @@ internal static class JobCapabilities
     /// can see its cancellation token.
     /// </summary>
     /// <param name="jobType">The job type.</param>
-    /// <returns><see langword="true"/> when the job observes cancellation.</returns>
+    /// <returns><c>true</c> when the job observes cancellation.</returns>
     public static bool IsCancellable(Type jobType)
         => _cancellable.GetOrAdd(jobType, static type => type.GetConstructors()
             .Any(constructor => constructor.GetParameters()

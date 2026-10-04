@@ -54,7 +54,7 @@ public class AiringChannelRepository(DatabaseFactory databaseFactory) : BaseCach
     /// <param name="type">The type of the channel.</param>
     /// <param name="useAliases">Whether an alias may answer. When <c>false</c> only a channel's own name does.</param>
     /// <returns>The channel, or <c>null</c> when no channel answers to the name.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
     public AiringChannel? GetByName(string name, AiringChannelType type, bool useAliases = true)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -74,7 +74,7 @@ public class AiringChannelRepository(DatabaseFactory databaseFactory) : BaseCach
     /// <param name="name">The name of the channel, in any spelling.</param>
     /// <param name="type">The type of the channel.</param>
     /// <returns>The channels, ordered by their display name.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
     public IReadOnlyList<AiringChannel> GetAllByName(string name, AiringChannelType type)
     {
         ArgumentNullException.ThrowIfNull(name);

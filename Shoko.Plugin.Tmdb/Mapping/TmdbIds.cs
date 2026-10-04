@@ -159,7 +159,7 @@ public static class TmdbIds
     /// <param name="id">The entry.</param>
     /// <param name="entityType">The kind it must be.</param>
     /// <param name="tmdbID">TMDb's ID.</param>
-    /// <returns><see langword="true"/> for a TMDb entry of the kind with a positive ID.</returns>
+    /// <returns><c>true</c> for a TMDb entry of the kind with a positive ID.</returns>
     public static bool TryGetID(MetadataGuid? id, MetadataEntityType entityType, out int tmdbID)
     {
         tmdbID = 0;

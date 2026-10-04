@@ -49,7 +49,7 @@ public class PluginDependency
     public string VersionRange { get; init; }
 
     /// <summary>
-    ///   If <see langword="true" />, the dependency is optional. A missing
+    ///   If <c>true</c>, the dependency is optional. A missing
     ///   optional dependency produces a warning but does not block install or
     ///   enable.
     /// </summary>

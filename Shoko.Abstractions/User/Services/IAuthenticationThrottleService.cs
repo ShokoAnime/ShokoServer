@@ -76,28 +76,28 @@ public interface IAuthenticationThrottleService
     /// </remarks>
     /// <param name="context">The HTTP context of the request.</param>
     /// <param name="username">The username the authentication attempt is for.</param>
-    /// <returns>A <c>429 Too Many Requests</c> result if the attempt should be blocked; otherwise <see langword="null"/>.</returns>
+    /// <returns>A <c>429 Too Many Requests</c> result if the attempt should be blocked; otherwise <c>null</c>.</returns>
     StatusCodeResult? ThrottleAuthentication(HttpContext context, string username);
 
     /// <summary>
     /// Gets the remaining lockout for the client making the HTTP request, if any.
     /// </summary>
     /// <param name="context">The HTTP context of the request.</param>
-    /// <returns>The remaining lockout duration; otherwise <see langword="null"/> if not locked out.</returns>
+    /// <returns>The remaining lockout duration; otherwise <c>null</c> if not locked out.</returns>
     TimeSpan? GetRemainingLockout(HttpContext context);
 
     /// <summary>
     /// Gets the remaining lockout for the client behind the SignalR hub connection, if any.
     /// </summary>
     /// <param name="context">The hub caller context of the connection.</param>
-    /// <returns>The remaining lockout duration; otherwise <see langword="null"/> if not locked out.</returns>
+    /// <returns>The remaining lockout duration; otherwise <c>null</c> if not locked out.</returns>
     TimeSpan? GetRemainingLockout(HubCallerContext context);
 
     /// <summary>
     /// Gets the remaining lockout for the user, if any.
     /// </summary>
     /// <param name="user">The user to check.</param>
-    /// <returns>The remaining lockout duration; otherwise <see langword="null"/> if not locked out.</returns>
+    /// <returns>The remaining lockout duration; otherwise <c>null</c> if not locked out.</returns>
     TimeSpan? GetRemainingLockout(IUser user);
 
     /// <summary>

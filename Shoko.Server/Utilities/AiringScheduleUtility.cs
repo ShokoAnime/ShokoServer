@@ -26,10 +26,10 @@ public static class AiringScheduleUtility
     /// therefore makes a new schedule, which is why providers should pass a key
     /// of their own.
     /// </summary>
-    /// <param name="channelID">The schedule's channel, or <see langword="null"/> when it has none.</param>
+    /// <param name="channelID">The schedule's channel, or <c>null</c> when it has none.</param>
     /// <param name="tracks">The schedule's tracks. Duplicates collapse.</param>
     /// <returns>The derived key.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="tracks"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="tracks"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="tracks"/> is empty.</exception>
     public static string GetDerivedScheduleKey(Guid? channelID, IEnumerable<AiringTrackData> tracks)
     {
@@ -54,7 +54,7 @@ public static class AiringScheduleUtility
     /// <param name="episodeSource">The source of the episode.</param>
     /// <param name="episodeID">The ID of the episode within its source.</param>
     /// <returns>The derived key, <c>&lt;value&gt;:&lt;id&gt;</c>.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="episodeID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="episodeID"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="episodeID"/> is blank.</exception>
     public static string GetDerivedAiringKey(MetadataSource episodeSource, string episodeID)
     {
@@ -70,7 +70,7 @@ public static class AiringScheduleUtility
     /// <param name="slotKey">The provider's key for the slot.</param>
     /// <param name="episodeIndex">The episode's zero-based place in the slot.</param>
     /// <returns>The derived key.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="slotKey"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="slotKey"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="slotKey"/> is blank.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="episodeIndex"/> is negative.</exception>
     public static string GetDerivedSlotAiringKey(string slotKey, int episodeIndex)
@@ -120,10 +120,10 @@ public static class AiringScheduleUtility
     /// <param name="providerID">The ID of the provider owning the schedule.</param>
     /// <param name="seriesSource">The source of the series the schedule is for.</param>
     /// <param name="seriesID">The ID of the series within its source.</param>
-    /// <param name="seasonID">The ID of the season the schedule is narrowed to, or <see langword="null"/> when it covers the whole run.</param>
+    /// <param name="seasonID">The ID of the season the schedule is narrowed to, or <c>null</c> when it covers the whole run.</param>
     /// <param name="key">The schedule's key, from the provider or derived.</param>
     /// <returns>The schedule's public ID.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="seriesID"/> or <paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="seriesID"/> or <paramref name="key"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="seriesID"/> or <paramref name="key"/> is blank.</exception>
     public static Guid GetScheduleID(Guid providerID, MetadataSource seriesSource, string seriesID, string? seasonID, string key)
     {
@@ -143,7 +143,7 @@ public static class AiringScheduleUtility
     /// <param name="scheduleID">The public ID of the schedule the airing belongs to.</param>
     /// <param name="key">The airing's key, from the provider or derived.</param>
     /// <returns>The airing's public ID.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="key"/> is blank.</exception>
     public static Guid GetEpisodeAiringID(Guid scheduleID, string key)
     {
@@ -160,7 +160,7 @@ public static class AiringScheduleUtility
     /// <param name="name">The name of the channel, in any spelling.</param>
     /// <param name="type">The type of the channel.</param>
     /// <returns>The channel's ID.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
     public static Guid GetChannelID(string name, AiringChannelType type)
     {
@@ -175,7 +175,7 @@ public static class AiringScheduleUtility
     /// </summary>
     /// <param name="name">The name of the channel, in any spelling.</param>
     /// <returns>The normalised name.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is <c>null</c>.</exception>
     public static string NormalizeChannelName(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -202,8 +202,8 @@ public static class AiringScheduleUtility
     /// <param name="samples">Pairs of the AniDB air date and the precise air time (UTC) for the same episode.</param>
     /// <param name="window">How many of the most recent samples to consider.</param>
     /// <param name="minimumSamples">How many samples are needed before an offset is trusted.</param>
-    /// <returns>The median offset, or <see langword="null"/> with too few samples.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <returns>The median offset, or <c>null</c> with too few samples.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <c>null</c>.</exception>
     public static TimeSpan? LearnAirTimeOffset(IEnumerable<(DateTime AnidbAirDate, DateTime AiredAtUtc)> samples, int window = DefaultWindow, int minimumSamples = 2)
     {
         ArgumentNullException.ThrowIfNull(samples);
@@ -220,8 +220,8 @@ public static class AiringScheduleUtility
     /// <param name="samples">Pairs of the anchor (UTC) and the precise air time (UTC) for the same episode.</param>
     /// <param name="window">How many of the most recent samples to consider.</param>
     /// <param name="minimumSamples">How many samples are needed before an offset is trusted.</param>
-    /// <returns>The median offset, or <see langword="null"/> with too few samples.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <returns>The median offset, or <c>null</c> with too few samples.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <c>null</c>.</exception>
     public static TimeSpan? LearnOffset(IEnumerable<(DateTime AnchorUtc, DateTime AiredAtUtc)> samples, int window = DefaultWindow, int minimumSamples = 2)
     {
         ArgumentNullException.ThrowIfNull(samples);
@@ -286,7 +286,7 @@ public static class AiringScheduleUtility
     /// <param name="now">The current time, in UTC. It decides whether a removed airing is a hiatus or history, and when a slotless airing has expired.</param>
     /// <param name="options">Optional. The schedule's coverage and the thresholds to infer with. Defaults to the service's own.</param>
     /// <returns>The airings to store and the airings to remove.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="existingAirings"/> or <paramref name="submittedAirings"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="existingAirings"/> or <paramref name="submittedAirings"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">Two existing or two submitted airings share a key.</exception>
     public static AiringInferenceResult InferAirings(
         IEnumerable<ExistingAiring> existingAirings,
@@ -323,7 +323,7 @@ public static class AiringScheduleUtility
     /// <param name="now">The current time, in UTC. It decides whether a removed airing is a hiatus or history, and when a slotless airing has expired.</param>
     /// <param name="options">Optional. The schedule's coverage and the thresholds to infer with. Defaults to the service's own.</param>
     /// <returns>The airings to store and the airings to remove. An untouched airing the write did not change is in neither list.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="existingAirings"/>, <paramref name="submittedAirings"/> or <paramref name="removedKeys"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="existingAirings"/>, <paramref name="submittedAirings"/> or <paramref name="removedKeys"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">Two existing or two submitted airings share a key, a removed key names no existing airing, or a key is both submitted and removed.</exception>
     public static AiringInferenceResult MergeAirings(
         IEnumerable<ExistingAiring> existingAirings,
@@ -566,7 +566,7 @@ public static class AiringScheduleUtility
     /// </summary>
     /// <param name="existing">The airing as it is stored.</param>
     /// <param name="inferred">The airing as the inference resolved it.</param>
-    /// <returns><see langword="true"/> when the row has to be written.</returns>
+    /// <returns><c>true</c> when the row has to be written.</returns>
     private static bool HasChanged(ExistingAiring existing, InferredAiring inferred)
         => !string.Equals(inferred.ExistingKey, existing.Key, StringComparison.Ordinal) ||
             inferred.AiredAt != existing.AiredAt ||
@@ -582,7 +582,7 @@ public static class AiringScheduleUtility
     /// <param name="existing">The schedule's current airings.</param>
     /// <param name="submitted">The airings the provider submitted.</param>
     /// <param name="existingByKey">The current airings by key.</param>
-    /// <returns>The existing airing for every submitted key, or <see langword="null"/> where there is none.</returns>
+    /// <returns>The existing airing for every submitted key, or <c>null</c> where there is none.</returns>
     private static Dictionary<string, ExistingAiring?> PairAirings(
         IReadOnlyList<ExistingAiring> existing,
         IReadOnlyList<SubmittedAiring> submitted,
@@ -677,7 +677,7 @@ public static class AiringScheduleUtility
     /// cause of a move to be settled once the whole line is known.
     /// </summary>
     /// <param name="submitted">The submitted airing.</param>
-    /// <param name="existing">The existing airing it replaces, or <see langword="null"/> when it is new.</param>
+    /// <param name="existing">The existing airing it replaces, or <c>null</c> when it is new.</param>
     /// <param name="options">The thresholds to infer with.</param>
     /// <returns>The airing's state so far.</returns>
     private static PendingAiring CreatePending(SubmittedAiring submitted, ExistingAiring? existing, AiringInferenceOptions options)
@@ -885,7 +885,7 @@ public static class AiringScheduleUtility
     /// <param name="memberAiredAt">The member's slot after the write.</param>
     /// <param name="head">The head's existing state.</param>
     /// <param name="headAiredAt">The head's slot after the write.</param>
-    /// <returns><see langword="true"/> when the member should be unlinked.</returns>
+    /// <returns><c>true</c> when the member should be unlinked.</returns>
     private static bool HasDriftedFromHead(ExistingAiring member, DateTime? memberAiredAt, ExistingAiring head, DateTime? headAiredAt)
     {
         // One of them lost its slot while the other kept one.
@@ -905,7 +905,7 @@ public static class AiringScheduleUtility
     /// </summary>
     /// <param name="episodeNumber">The episode's number, if known.</param>
     /// <param name="options">The schedule's coverage.</param>
-    /// <returns><see langword="true"/> when the episode is covered.</returns>
+    /// <returns><c>true</c> when the episode is covered.</returns>
     private static bool IsWithinCoverage(int? episodeNumber, AiringInferenceOptions options)
     {
         if (episodeNumber is not { } number)
@@ -972,7 +972,7 @@ public static class AiringScheduleUtility
         public required string EpisodeKey { get; init; }
 
         /// <summary>
-        /// The row the airing updates, or <see langword="null"/> when it is new.
+        /// The row the airing updates, or <c>null</c> when it is new.
         /// </summary>
         public ExistingAiring? Existing { get; init; }
 
@@ -1045,8 +1045,8 @@ public static class AiringScheduleUtility
     /// </summary>
     /// <param name="samples">The schedule's own stored airings. Estimates are never samples, and an advance screening or a rerun is left out.</param>
     /// <param name="options">Optional. What the schedule's tracks and coverage say. Defaults to an open-ended Original schedule.</param>
-    /// <returns>The schedule's profile. Its offset is <see langword="null"/> when too few samples were known to trust one.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <see langword="null"/>.</exception>
+    /// <returns>The schedule's profile. Its offset is <c>null</c> when too few samples were known to trust one.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="samples"/> is <c>null</c>.</exception>
     public static AiringScheduleProfile LearnProfile(IEnumerable<AiringProfileSample> samples, AiringProfileOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(samples);
@@ -1101,8 +1101,8 @@ public static class AiringScheduleUtility
     /// </summary>
     /// <param name="profile">The schedule's profile.</param>
     /// <param name="target">The episode the schedule has no airing for.</param>
-    /// <returns>The estimate, or <see langword="null"/> when the schedule can't estimate that episode.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="profile"/> or <paramref name="target"/> is <see langword="null"/>.</exception>
+    /// <returns>The estimate, or <c>null</c> when the schedule can't estimate that episode.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="profile"/> or <paramref name="target"/> is <c>null</c>.</exception>
     public static AiringEstimate? EstimateAiring(AiringScheduleProfile profile, AiringEstimateTarget target)
     {
         ArgumentNullException.ThrowIfNull(profile);
@@ -1225,7 +1225,7 @@ public static class AiringScheduleUtility
     /// <param name="airings">One schedule's own airings.</param>
     /// <param name="options">Optional. The limits to measure within. Defaults to the service's own.</param>
     /// <returns>Every release that arrived after a gap of a whole skipped slot or more, oldest first.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="airings"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="airings"/> is <c>null</c>.</exception>
     public static IReadOnlyList<AiringCadenceBreak> FindCadenceBreaks(IEnumerable<AiringProfileSample> airings, AiringCadenceOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(airings);

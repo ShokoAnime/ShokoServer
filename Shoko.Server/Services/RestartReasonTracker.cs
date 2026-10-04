@@ -90,7 +90,7 @@ public sealed class RestartReasonTracker
     /// <param name="logger">The logger to report added and cleared reasons to.</param>
     /// <param name="configurationService">The configuration service to read pending members from.</param>
     /// <param name="pluginManager">The plugin manager to read plugin states and owners from.</param>
-    /// <param name="timeProvider">The clock to stamp reasons with, or <see langword="null"/> for the system clock.</param>
+    /// <param name="timeProvider">The clock to stamp reasons with, or <c>null</c> for the system clock.</param>
     public RestartReasonTracker(ILogger logger, IConfigurationService configurationService, IPluginManager pluginManager, TimeProvider? timeProvider = null)
     {
         _logger = logger;
@@ -113,7 +113,7 @@ public sealed class RestartReasonTracker
 
     /// <summary>
     ///   The sender <see cref="Changed"/> is raised with, or
-    ///   <see langword="null"/> for the tracker itself.
+    ///   <c>null</c> for the tracker itself.
     /// </summary>
     public object? Sender { get; init; }
 
@@ -250,7 +250,7 @@ public sealed class RestartReasonTracker
     /// <param name="configurationID">The configuration the members belong to.</param>
     /// <param name="members">The member paths the configuration service has pending.</param>
     /// <returns>
-    ///   <see langword="true"/> if the configuration is still known and has a
+    ///   <c>true</c> if the configuration is still known and has a
     ///   pending member other than the server's enabled plugins.
     /// </returns>
     private bool HasReasonMembers(Guid configurationID, IReadOnlySet<string> members)
@@ -313,7 +313,7 @@ public sealed class RestartReasonTracker
     /// </summary>
     /// <param name="versions">Every registered version of one plugin.</param>
     /// <returns>
-    ///   <see langword="true"/> if a restart would load another version, or
+    ///   <c>true</c> if a restart would load another version, or
     ///   none where one is loaded now, or one where none is.
     /// </returns>
     internal static bool HasPendingStateChange(IReadOnlyList<LocalPluginInfo> versions)
@@ -336,12 +336,12 @@ public sealed class RestartReasonTracker
     ///   service. A reason that already stands is kept as it is, so it keeps
     ///   its <see cref="RestartReason.RaisedAt"/>. Call it under the lock.
     /// </summary>
-    /// <param name="reason">The field holding the reason, or <see langword="null"/> while none stands.</param>
+    /// <param name="reason">The field holding the reason, or <c>null</c> while none stands.</param>
     /// <param name="stands">Whether the reason should stand.</param>
     /// <param name="source">The source of the reason.</param>
     /// <param name="key">The key of the reason.</param>
     /// <param name="description">The description of the reason.</param>
-    /// <returns><see langword="true"/> if the reason was raised or cleared, otherwise <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if the reason was raised or cleared, otherwise <c>false</c>.</returns>
     private bool UpdateServiceReason(ref RestartReason? reason, bool stands, RestartReasonSource source, string key, string description)
     {
         if (stands == reason is not null)
@@ -376,7 +376,7 @@ public sealed class RestartReasonTracker
     /// <param name="plugin">The active plugin raising the reason.</param>
     /// <param name="description">A short, human-readable description of the change.</param>
     /// <returns>The hold on the reason; disposing it clears the reason.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="plugin"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="plugin"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">
     ///   <paramref name="plugin"/> is not active, or <paramref name="description"/> is empty.
     /// </exception>
@@ -411,7 +411,7 @@ public sealed class RestartReasonTracker
     ///   Clears the reason a handle holds.
     /// </summary>
     /// <param name="holder">The handle being disposed.</param>
-    /// <returns><see langword="true"/> if the reason was cleared, otherwise <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if the reason was cleared, otherwise <c>false</c>.</returns>
     internal bool Release(RestartRequirement holder)
     {
         lock (_lock)

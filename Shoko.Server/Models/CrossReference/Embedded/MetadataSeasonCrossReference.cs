@@ -125,7 +125,7 @@ public class MetadataSeasonCrossReference : IMetadataSeasonCrossReference
     ///   holds them.
     /// </summary>
     /// <param name="seasonID">The season.</param>
-    /// <returns>The number and series, or <see langword="null"/> when the store lacks the season.</returns>
+    /// <returns>The number and series, or <c>null</c> when the store lacks the season.</returns>
     private static (int SeasonNumber, MetadataGuid SeriesID)? StoredSeason(MetadataGuid seasonID)
         => seasonID.Source.IsCore || RepoFactory.Metadata_Season?.GetByProviderID(seasonID.Source, seasonID.ID) is not ISeason season
             ? null

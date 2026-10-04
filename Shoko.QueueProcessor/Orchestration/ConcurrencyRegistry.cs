@@ -56,7 +56,7 @@ public class ConcurrencyRegistry
     /// </summary>
     /// <param name="limitProviders">The providers to ask, in order.</param>
     /// <param name="jobType">The job type.</param>
-    /// <returns>The limit, at least 1, or <see langword="null"/> when none gives one.</returns>
+    /// <returns>The limit, at least 1, or <c>null</c> when none gives one.</returns>
     internal static int? GetProvidedLimit(IEnumerable<IJobConcurrencyProvider> limitProviders, Type jobType)
     {
         foreach (var provider in limitProviders)

@@ -15,7 +15,7 @@ public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithL
     /// <summary>
     ///   When the core last refreshed the movie in full from its source
     ///   without failing, whether or not anything changed, in UTC. Set by the
-    ///   core alone; <see langword="null"/> when it never was.
+    ///   core alone; <c>null</c> when it never was.
     /// </summary>
     DateTime? LastRefreshedAt { get; }
 
@@ -35,7 +35,7 @@ public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithL
     DateTime? ReleaseDate { get; }
 
     /// <summary>
-    ///   How long the movie runs, or <see langword="null"/> when the source
+    ///   How long the movie runs, or <c>null</c> when the source
     ///   does not say.
     /// </summary>
     TimeSpan? Runtime { get; }
@@ -108,7 +108,7 @@ public interface IMovie : IWithTitles, IWithOverviews, IWithPrimaryImage, IWithL
     /// The movies a provider's users suggest to someone looking at this one,
     /// best first. Most of them are not in the collection, so their
     /// <see cref="ISuggestedMetadata.Suggested"/> is usually
-    /// <see langword="null"/>.
+    /// <c>null</c>.
     /// </summary>
     IReadOnlyList<ISuggestedMetadata<IMovie, IMovie>> Suggestions { get; }
 

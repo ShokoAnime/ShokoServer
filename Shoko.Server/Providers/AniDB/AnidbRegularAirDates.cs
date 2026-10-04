@@ -99,9 +99,9 @@ public static partial class AnidbRegularAirDates
     /// <summary>
     ///   A date found in a note.
     /// </summary>
-    /// <param name="year">The year, or <see langword="null"/> when the note leaves it out.</param>
+    /// <param name="year">The year, or <c>null</c> when the note leaves it out.</param>
     /// <param name="month">The month.</param>
-    /// <param name="day">The day, or <see langword="null"/> for a month and year.</param>
+    /// <param name="day">The day, or <c>null</c> for a month and year.</param>
     /// <param name="format">Which pattern matched, such as <c>mdy</c> or <c>dmy_dot</c>.</param>
     /// <param name="start">Where the date starts in the text.</param>
     /// <param name="end">Where the date ends in the text.</param>
@@ -119,7 +119,7 @@ public static partial class AnidbRegularAirDates
         public int Month { get; } = month;
 
         /// <summary>
-        ///   The day, or <see langword="null"/> for a month and year.
+        ///   The day, or <c>null</c> for a month and year.
         /// </summary>
         public int? Day { get; } = day;
 
@@ -149,7 +149,7 @@ public static partial class AnidbRegularAirDates
         public bool HasStatedYear { get; } = year.HasValue;
 
         /// <summary>
-        ///   The date, or <see langword="null"/> without a year or a day, or
+        ///   The date, or <c>null</c> without a year or a day, or
         ///   for a day the month does not have.
         /// </summary>
         public DateOnly? Value
@@ -287,7 +287,7 @@ public static partial class AnidbRegularAirDates
     /// <param name="note">The note.</param>
     /// <param name="type">The anime's type.</param>
     /// <param name="episodes">The dated normal episodes, by number.</param>
-    /// <returns>The moved episodes, or <see langword="null"/> when the rule does not apply.</returns>
+    /// <returns>The moved episodes, or <c>null</c> when the rule does not apply.</returns>
     private static Reading? FromCount(Note note, Abstractions.Metadata.Enums.AnimeType type, List<(int Number, DateOnly AirDate)> episodes)
     {
         if (type is not Abstractions.Metadata.Enums.AnimeType.TVSeries || note.Count is not { } count || count is 0 or > 3 || note.Each)
@@ -378,7 +378,7 @@ public static partial class AnidbRegularAirDates
     /// </summary>
     /// <param name="date">The date.</param>
     /// <param name="days">The days to add.</param>
-    /// <returns>The later date, or <see langword="null"/> past the last date.</returns>
+    /// <returns>The later date, or <c>null</c> past the last date.</returns>
     private static DateOnly? AddDays(DateOnly date, int days)
     {
         var number = (long)date.DayNumber + days;
@@ -473,7 +473,7 @@ public static partial class AnidbRegularAirDates
     ///   How many leading episodes a line says came out early.
     /// </summary>
     /// <param name="line">The line.</param>
-    /// <returns>The count, or <see langword="null"/> when the line states none.</returns>
+    /// <returns>The count, or <c>null</c> when the line states none.</returns>
     public static int? StatedCount(string line)
     {
         var match = FirstEpisodes().Match(line);
@@ -508,7 +508,7 @@ public static partial class AnidbRegularAirDates
     ///   Reads a count written in digits or words.
     /// </summary>
     /// <param name="value">The count, such as <c>3</c>, <c>three</c> or <c>a</c>.</param>
-    /// <returns>The count, or <see langword="null"/> when it is neither.</returns>
+    /// <returns>The count, or <c>null</c> when it is neither.</returns>
     private static int? ParseCount(string value)
     {
         var lower = value.ToLowerInvariant();
@@ -710,7 +710,7 @@ public static partial class AnidbRegularAirDates
     ///   Reads decimal digits of any script.
     /// </summary>
     /// <param name="digits">The digits.</param>
-    /// <returns>The number, or <see langword="null"/> for an empty, too long or non-digit value.</returns>
+    /// <returns>The number, or <c>null</c> for an empty, too long or non-digit value.</returns>
     private static int? ParseDigits(string digits)
     {
         if (digits.Length is 0 or > 9)

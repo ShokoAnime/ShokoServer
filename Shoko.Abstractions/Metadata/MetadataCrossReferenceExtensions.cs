@@ -24,7 +24,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeriesCrossReference> GetSeriesCrossReferences(this ISeries series, MetadataSource source)
     {
@@ -44,7 +44,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeriesCrossReference<TProvider>> GetSeriesCrossReferences<TProvider>(this ISeries series, MetadataSource source)
         where TProvider : ISeries
@@ -59,7 +59,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeasonCrossReference> GetSeasonCrossReferences(this ISeries series, MetadataSource source)
     {
@@ -79,7 +79,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeasonCrossReference<TProvider>> GetSeasonCrossReferences<TProvider>(this ISeries series, MetadataSource source)
         where TProvider : ISeason
@@ -94,7 +94,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataEpisodeCrossReference> GetEpisodeCrossReferences(this ISeries series, MetadataSource source)
     {
@@ -114,7 +114,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataEpisodeCrossReference<TProvider>> GetEpisodeCrossReferences<TProvider>(this ISeries series, MetadataSource source)
         where TProvider : IEpisode
@@ -129,7 +129,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataMovieCrossReference> GetMovieCrossReferences(this ISeries series, MetadataSource source)
     {
@@ -149,7 +149,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataMovieCrossReference<TProvider>> GetMovieCrossReferences<TProvider>(this ISeries series, MetadataSource source)
         where TProvider : IMovie
@@ -168,7 +168,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeasonCrossReference> GetSeasonCrossReferences(this ISeason season, MetadataSource source)
     {
@@ -188,7 +188,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeasonCrossReference<TProvider>> GetSeasonCrossReferences<TProvider>(this ISeason season, MetadataSource source)
         where TProvider : ISeason
@@ -203,7 +203,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataEpisodeCrossReference> GetEpisodeCrossReferences(this ISeason season, MetadataSource source)
     {
@@ -223,7 +223,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataEpisodeCrossReference<TProvider>> GetEpisodeCrossReferences<TProvider>(this ISeason season, MetadataSource source)
         where TProvider : IEpisode
@@ -238,7 +238,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataMovieCrossReference> GetMovieCrossReferences(this ISeason season, MetadataSource source)
     {
@@ -258,7 +258,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataMovieCrossReference<TProvider>> GetMovieCrossReferences<TProvider>(this ISeason season, MetadataSource source)
         where TProvider : IMovie
@@ -277,7 +277,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataEpisodeCrossReference> GetEpisodeCrossReferences(this IEpisode episode, MetadataSource source)
     {
@@ -297,7 +297,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataEpisodeCrossReference<TProvider>> GetEpisodeCrossReferences<TProvider>(this IEpisode episode, MetadataSource source)
         where TProvider : IEpisode
@@ -312,7 +312,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeriesCrossReference> GetSeriesCrossReferences(this IEpisode episode, MetadataSource source)
     {
@@ -332,7 +332,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeriesCrossReference<TProvider>> GetSeriesCrossReferences<TProvider>(this IEpisode episode, MetadataSource source)
         where TProvider : ISeries
@@ -347,7 +347,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataMovieCrossReference> GetMovieCrossReferences(this IEpisode episode, MetadataSource source)
     {
@@ -367,7 +367,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataMovieCrossReference<TProvider>> GetMovieCrossReferences<TProvider>(this IEpisode episode, MetadataSource source)
         where TProvider : IMovie
@@ -386,7 +386,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="movie"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataMovieCrossReference> GetMovieCrossReferences(this IMovie movie, MetadataSource source)
     {
@@ -406,7 +406,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="movie"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataMovieCrossReference<TProvider>> GetMovieCrossReferences<TProvider>(this IMovie movie, MetadataSource source)
         where TProvider : IMovie
@@ -425,7 +425,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="videoCrossReference"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeriesCrossReference> GetSeriesCrossReferences(this IVideoCrossReference videoCrossReference, MetadataSource source)
     {
@@ -445,7 +445,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="videoCrossReference"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeriesCrossReference<TProvider>> GetSeriesCrossReferences<TProvider>(
         this IVideoCrossReference videoCrossReference,
@@ -463,7 +463,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="videoCrossReference"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeasonCrossReference> GetSeasonCrossReferences(this IVideoCrossReference videoCrossReference, MetadataSource source)
     {
@@ -483,7 +483,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="videoCrossReference"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataSeasonCrossReference<TProvider>> GetSeasonCrossReferences<TProvider>(
         this IVideoCrossReference videoCrossReference,
@@ -501,7 +501,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="videoCrossReference"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataEpisodeCrossReference> GetEpisodeCrossReferences(this IVideoCrossReference videoCrossReference, MetadataSource source)
     {
@@ -521,7 +521,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="videoCrossReference"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataEpisodeCrossReference<TProvider>> GetEpisodeCrossReferences<TProvider>(
         this IVideoCrossReference videoCrossReference,
@@ -539,7 +539,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="videoCrossReference"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataMovieCrossReference> GetMovieCrossReferences(this IVideoCrossReference videoCrossReference, MetadataSource source)
     {
@@ -559,7 +559,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed links of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="videoCrossReference"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMetadataMovieCrossReference<TProvider>> GetMovieCrossReferences<TProvider>(
         this IVideoCrossReference videoCrossReference,
@@ -581,7 +581,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The series of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<ISeries> GetLinkedSeries(this IShokoSeries series, MetadataSource source)
     {
@@ -600,7 +600,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed series of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<TSeries> GetLinkedSeries<TSeries>(this IShokoSeries series, MetadataSource source) where TSeries : ISeries
         => [.. series.GetLinkedSeries(source).OfType<TSeries>()];
@@ -614,7 +614,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The seasons of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<ISeason> GetLinkedSeasons(this IShokoSeries series, MetadataSource source)
     {
@@ -633,7 +633,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed seasons of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<TSeason> GetLinkedSeasons<TSeason>(this IShokoSeries series, MetadataSource source) where TSeason : ISeason
         => [.. series.GetLinkedSeasons(source).OfType<TSeason>()];
@@ -647,7 +647,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The movies of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMovie> GetLinkedMovies(this IShokoSeries series, MetadataSource source)
     {
@@ -666,7 +666,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed movies of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="series"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<TMovie> GetLinkedMovies<TMovie>(this IShokoSeries series, MetadataSource source) where TMovie : IMovie
         => [.. series.GetLinkedMovies(source).OfType<TMovie>()];
@@ -684,7 +684,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The seasons of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<ISeason> GetLinkedSeasons(this ISeason season, MetadataSource source)
     {
@@ -703,7 +703,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed seasons of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<TSeason> GetLinkedSeasons<TSeason>(this ISeason season, MetadataSource source) where TSeason : ISeason
         => [.. season.GetLinkedSeasons(source).OfType<TSeason>()];
@@ -717,7 +717,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The movies of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMovie> GetLinkedMovies(this ISeason season, MetadataSource source)
     {
@@ -736,7 +736,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed movies of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="season"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<TMovie> GetLinkedMovies<TMovie>(this ISeason season, MetadataSource source) where TMovie : IMovie
         => [.. season.GetLinkedMovies(source).OfType<TMovie>()];
@@ -754,7 +754,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The episodes of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IEpisode> GetLinkedEpisodes(this IShokoEpisode episode, MetadataSource source)
     {
@@ -773,7 +773,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed episodes of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<TEpisode> GetLinkedEpisodes<TEpisode>(this IShokoEpisode episode, MetadataSource source) where TEpisode : IEpisode
         => [.. episode.GetLinkedEpisodes(source).OfType<TEpisode>()];
@@ -787,7 +787,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The movies of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<IMovie> GetLinkedMovies(this IShokoEpisode episode, MetadataSource source)
     {
@@ -806,7 +806,7 @@ public static class MetadataCrossReferenceExtensions
     /// <returns>The typed movies of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="episode"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<TMovie> GetLinkedMovies<TMovie>(this IShokoEpisode episode, MetadataSource source) where TMovie : IMovie
         => [.. episode.GetLinkedMovies(source).OfType<TMovie>()];
@@ -823,7 +823,7 @@ public static class MetadataCrossReferenceExtensions
     /// <param name="source">The source whose links to keep.</param>
     /// <returns>The links of that source, in order.</returns>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="source"/> is <see langword="null"/>.
+    ///   <paramref name="source"/> is <c>null</c>.
     /// </exception>
     private static List<TCrossReference> FromSource<TCrossReference>(IReadOnlyList<TCrossReference> links, MetadataSource source)
         where TCrossReference : IMetadataCrossReference
@@ -840,7 +840,7 @@ public static class MetadataCrossReferenceExtensions
     /// <param name="source">The source whose entries to keep.</param>
     /// <returns>The entries of that source, in order.</returns>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="source"/> is <see langword="null"/>.
+    ///   <paramref name="source"/> is <c>null</c>.
     /// </exception>
     private static List<TEntry> EntriesFromSource<TEntry>(IReadOnlyList<TEntry> entries, MetadataSource source) where TEntry : IMetadata
     {

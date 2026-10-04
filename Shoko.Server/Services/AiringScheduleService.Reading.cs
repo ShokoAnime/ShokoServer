@@ -282,7 +282,7 @@ public partial class AiringScheduleService
     }
 
     /// <summary>
-    /// The estimate one schedule makes for one episode, or <see langword="null"/>
+    /// The estimate one schedule makes for one episode, or <c>null</c>
     /// when its coverage, its season or its own hiatus says it makes none.
     /// </summary>
     /// <param name="context">The read the view belongs to.</param>
@@ -291,7 +291,7 @@ public partial class AiringScheduleService
     /// <param name="target">The episode being estimated.</param>
     /// <param name="key">The stored key of the episode being estimated.</param>
     /// <param name="resolvedFor">The episode the read ran for.</param>
-    /// <returns>The estimate, or <see langword="null"/>.</returns>
+    /// <returns>The estimate, or <c>null</c>.</returns>
     private static EpisodeAiringView? Estimate(
         AiringReadContext context,
         AiringSchedule row,
@@ -334,7 +334,7 @@ public partial class AiringScheduleService
     /// <param name="preferredOnly">
     /// Whether to reduce the answer to the best airing of each episode,
     /// overriding <see cref="EpisodeAiringFilteringOptions.PreferredOnly"/>. A
-    /// range read passes <see langword="false"/> here and reduces after it has
+    /// range read passes <c>false</c> here and reduces after it has
     /// narrowed the airings to its window, so an episode keeps the best airing
     /// it has <em>in the window</em> rather than dropping out of it over a
     /// better one somewhere else.
@@ -443,7 +443,7 @@ public partial class AiringScheduleService
     /// <param name="context">The read the view belongs to.</param>
     /// <param name="view">The schedule's view.</param>
     /// <param name="options">The filters to apply.</param>
-    /// <returns><see langword="true"/> when the schedule passes every hard filter.</returns>
+    /// <returns><c>true</c> when the schedule passes every hard filter.</returns>
     private static bool MatchesFilters(AiringReadContext context, AiringScheduleView view, EpisodeAiringFilteringOptions options)
     {
         if (!options.IncludeDisabled && (!context.IsProviderVisible(view.ProviderID) || !view.HasVisibleTracks))
@@ -467,7 +467,7 @@ public partial class AiringScheduleService
     /// before the anchor existed.
     /// </summary>
     /// <param name="anchor">The anchor the caller asked for.</param>
-    /// <param name="entity">The entity the read was given, or <see langword="null"/> when it takes none.</param>
+    /// <param name="entity">The entity the read was given, or <c>null</c> when it takes none.</param>
     /// <param name="alreadySatisfied">
     /// Whether everything this read can find is anchored to shoko by the way it
     /// was found, which collapses a shoko anchor back to
@@ -520,7 +520,7 @@ public partial class AiringScheduleService
     /// <param name="row">The airing's schedule.</param>
     /// <param name="entry">The stored airing.</param>
     /// <param name="now">The current time, in UTC.</param>
-    /// <returns><see langword="true"/> when the airing is hidden.</returns>
+    /// <returns><c>true</c> when the airing is hidden.</returns>
     private bool IsHidden(AiringSchedule row, EpisodeAiring entry, DateTime now)
         => entry.AiredAt is null && GetSupersededEpisodeKeys(row, [entry], now).Count > 0;
 
@@ -530,7 +530,7 @@ public partial class AiringScheduleService
     /// <param name="context">The read the resolution belongs to.</param>
     /// <param name="row">The schedule.</param>
     /// <param name="key">The stored key of the episode.</param>
-    /// <returns><see langword="true"/> when the episode is in the season, or the season can't be resolved.</returns>
+    /// <returns><c>true</c> when the episode is in the season, or the season can't be resolved.</returns>
     private static bool IsInSeason(AiringReadContext context, AiringSchedule row, (MetadataSource Source, string ID) key)
     {
         // An unresolvable season is not fatal, so an episode isn't dropped over it.
@@ -563,7 +563,7 @@ public partial class AiringScheduleService
     /// <param name="fromUtc">The start of the range.</param>
     /// <param name="toUtc">The end of the range.</param>
     /// <param name="includeDelayedOriginalSlots">Whether a delayed airing matches by its original slot too.</param>
-    /// <returns><see langword="true"/> when the airing is part of the range.</returns>
+    /// <returns><c>true</c> when the airing is part of the range.</returns>
     private static bool IsInRange(IEpisodeAiring airing, DateTime fromUtc, DateTime toUtc, bool includeDelayedOriginalSlots)
     {
         if ((airing.AiredAt ?? airing.OriginalAiredAt) is { } slot && slot >= fromUtc && slot <= toUtc)
@@ -718,7 +718,7 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="track">The track.</param>
     /// <param name="preference">The preference entry.</param>
-    /// <returns><see langword="true"/> when the track matches.</returns>
+    /// <returns><c>true</c> when the track matches.</returns>
     private static bool MatchesPreference(IAiringTrack track, AiringTrackPreference preference)
     {
         if (track.Kind != preference.Kind)
@@ -742,7 +742,7 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="one">One airing.</param>
     /// <param name="other">The other airing.</param>
-    /// <returns><see langword="true"/> when the two are the same release.</returns>
+    /// <returns><c>true</c> when the two are the same release.</returns>
     private static bool IsSameRelease(EpisodeAiringView one, EpisodeAiringView other)
     {
         // A schedule with no visible track has nothing to match on, and only
@@ -766,7 +766,7 @@ public partial class AiringScheduleService
     /// <param name="row">The schedule to learn from.</param>
     /// <param name="context">The read the resolutions belong to.</param>
     /// <returns>The schedule's profile.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="row"/> or <paramref name="context"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="row"/> or <paramref name="context"/> is <c>null</c>.</exception>
     internal AiringScheduleProfile GetProfile(AiringSchedule row, AiringReadContext context)
     {
         ArgumentNullException.ThrowIfNull(row);

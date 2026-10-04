@@ -51,7 +51,7 @@ public class MetadataProviderInfo
 
     /// <summary>
     ///   The source icon the provider declared, extracted beside its plugin,
-    ///   or <see langword="null"/> when it has none.
+    ///   or <c>null</c> when it has none.
     /// </summary>
     public PackageImageInfo? Icon { get; init; }
 
@@ -123,7 +123,7 @@ public class MetadataProviderInfo
 
     /// <summary>
     ///   How many of the core's jobs for the provider may run at once, or
-    ///   <see langword="null"/> for no limit of its own.
+    ///   <c>null</c> for no limit of its own.
     /// </summary>
     /// <remarks>
     ///   Read from <see cref="IMetadataProvider.MaxConcurrentJobs"/> once, at

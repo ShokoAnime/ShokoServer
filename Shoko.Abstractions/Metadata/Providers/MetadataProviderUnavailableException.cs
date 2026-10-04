@@ -18,10 +18,10 @@ public class MetadataProviderUnavailableException : Exception
     ///   Creates the exception.
     /// </summary>
     /// <param name="source">The source that could not be reached.</param>
-    /// <param name="message">What went wrong, or <see langword="null"/> for a default message.</param>
+    /// <param name="message">What went wrong, or <c>null</c> for a default message.</param>
     /// <param name="retryAfter">How long to wait before trying again, if known.</param>
     /// <param name="innerException">The failure behind it, if any.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public MetadataProviderUnavailableException(MetadataSource source, string? message = null, TimeSpan? retryAfter = null, Exception? innerException = null)
         : base(message ?? $"{source?.Name ?? "The metadata source"} cannot be reached right now.", innerException)
     {
@@ -38,7 +38,7 @@ public class MetadataProviderUnavailableException : Exception
     public MetadataSource MetadataSource { get; }
 
     /// <summary>
-    ///   How long to wait before trying again, or <see langword="null"/> when
+    ///   How long to wait before trying again, or <c>null</c> when
     ///   the provider does not know.
     /// </summary>
     public TimeSpan? RetryAfter { get; }

@@ -89,7 +89,7 @@ public partial class AiringScheduleService(
     /// <param name="source">The source.</param>
     /// <param name="entityType">The kind of entry.</param>
     /// <param name="id">The source's ID for it.</param>
-    /// <returns>The entry, or <see langword="null"/> when the core holds none.</returns>
+    /// <returns>The entry, or <c>null</c> when the core holds none.</returns>
     internal IMetadata? GetStoredEntity(MetadataSource source, MetadataEntityType entityType, string id)
         => MetadataEntries.ToGuid(source, entityType, id) is { } guid ? metadataService.Value.GetEntry(guid) : null;
 
@@ -153,7 +153,7 @@ public partial class AiringScheduleService(
 
     /// <summary>
     /// The filters the ticker builds its horizon with: the union of what every
-    /// live subscriber asked for, or <see langword="null"/> when nobody is
+    /// live subscriber asked for, or <c>null</c> when nobody is
     /// subscribed and there is therefore nothing to build.
     /// </summary>
     /// <remarks>
@@ -162,7 +162,7 @@ public partial class AiringScheduleService(
     /// in particular runs the estimate pipeline over the whole window, and it
     /// is only set here when a live subscriber actually wants estimates.
     /// </remarks>
-    /// <returns>The union of the live subscriptions' filters, or <see langword="null"/>.</returns>
+    /// <returns>The union of the live subscriptions' filters, or <c>null</c>.</returns>
     internal EpisodeAiringFilteringOptions? GetAiringHorizonOptions()
     {
         var subscriptions = _airingSubscriptions.Values.ToList();
@@ -249,7 +249,7 @@ public partial class AiringScheduleService(
     /// </remarks>
     /// <param name="minute">The minute that passed, in UTC.</param>
     /// <param name="airings">The airings whose slot passed, in slot order.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="airings"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="airings"/> is <c>null</c>.</exception>
     internal void DispatchEpisodesAired(DateTime minute, IReadOnlyList<IEpisodeAiring> airings)
     {
         ArgumentNullException.ThrowIfNull(airings);
@@ -287,7 +287,7 @@ public partial class AiringScheduleService(
     /// with the same hard filters a read applies.
     /// </summary>
     /// <param name="airings">The minute's airings.</param>
-    /// <param name="options">The subscriber's filters, or <see langword="null"/> for everything.</param>
+    /// <param name="options">The subscriber's filters, or <c>null</c> for everything.</param>
     /// <returns>The airings this subscriber gets, in the order they came in.</returns>
     private List<IEpisodeAiring> FilterAiringsForSubscriber(IReadOnlyList<IEpisodeAiring> airings, EpisodeAiringFilteringOptions? options)
     {
@@ -332,7 +332,7 @@ public partial class AiringScheduleService(
     /// </summary>
     /// <param name="ID">The subscription's own ID, which is also its key in the registry.</param>
     /// <param name="Handler">The handler to call.</param>
-    /// <param name="Options">The subscriber's filters, or <see langword="null"/> for everything.</param>
+    /// <param name="Options">The subscriber's filters, or <c>null</c> for everything.</param>
     /// <param name="Subscriber">Who subscribed, as far as it could be worked out, for logging.</param>
     private sealed record AiringSubscription(Guid ID, Action<EpisodeAiredEventArgs> Handler, EpisodeAiringFilteringOptions? Options, string Subscriber);
 
@@ -610,7 +610,7 @@ public partial class AiringScheduleService(
     /// <param name="provider">The provider instance.</param>
     /// <param name="paramName">The name of the argument the provider arrived as.</param>
     /// <returns>The registered provider info.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="provider"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="provider"/> is <c>null</c>.</exception>
     /// <exception cref="InvalidOperationException">Parts have not been added yet.</exception>
     /// <exception cref="ArgumentException">The provider isn't the registered instance.</exception>
     private AiringScheduleProviderInfo GetRegisteredProvider(IAiringScheduleProvider provider, string paramName)
@@ -831,7 +831,7 @@ public partial class AiringScheduleService(
     /// </summary>
     /// <param name="idOrOffset">The id or offset to resolve.</param>
     /// <param name="zone">The resolved zone.</param>
-    /// <returns><see langword="true"/> when the value names a zone this host can build.</returns>
+    /// <returns><c>true</c> when the value names a zone this host can build.</returns>
     internal static bool TryResolveTimeZone(string idOrOffset, [NotNullWhen(true)] out TimeZoneInfo? zone)
     {
         zone = null;
@@ -875,7 +875,7 @@ public partial class AiringScheduleService(
     /// custom zone built from one.
     /// </summary>
     /// <param name="zone">The zone the provider resolved.</param>
-    /// <returns>The id to store, or <see langword="null"/> when there is no zone.</returns>
+    /// <returns>The id to store, or <c>null</c> when there is no zone.</returns>
     /// <exception cref="TimeZoneNotFoundException">The zone can't be normalised to an IANA id or an offset.</exception>
     internal static string? NormalizeTimeZone(TimeZoneInfo? zone)
     {

@@ -58,7 +58,7 @@ public sealed class TmdbBackgroundService(
     ///   original size, or the one the environment names. A template the
     ///   user set in the server's settings goes before it.
     /// </summary>
-    /// <returns>The template registered, or <see langword="null"/> when the core refused it.</returns>
+    /// <returns>The template registered, or <c>null</c> when the core refused it.</returns>
     public string? RegisterTemplateUrl()
     {
         var template = DefaultTemplate(Environment.GetEnvironmentVariable(ImageCdnVariable));
@@ -77,7 +77,7 @@ public sealed class TmdbBackgroundService(
     /// <summary>
     ///   The default image template for a configured image server.
     /// </summary>
-    /// <param name="imageCdnUrl">An image server's base URL, or a template with a <c>{0}</c>, or <see langword="null"/> for TMDb's own.</param>
+    /// <param name="imageCdnUrl">An image server's base URL, or a template with a <c>{0}</c>, or <c>null</c> for TMDb's own.</param>
     /// <returns>The template.</returns>
     internal static string DefaultTemplate(string? imageCdnUrl)
     {

@@ -38,7 +38,7 @@ public interface IMetadataRefreshService
     ///   is queued ahead of the rest.
     /// </param>
     /// <param name="options">
-    ///   What to fetch, or <see langword="null"/> for a full refresh that goes
+    ///   What to fetch, or <c>null</c> for a full refresh that goes
     ///   by the settings and downloads the images.
     /// </param>
     /// <param name="immediate">
@@ -52,11 +52,11 @@ public interface IMetadataRefreshService
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> when the refresh was queued or ran;
-    ///   <see langword="false"/> when no enabled provider refreshes the entry,
+    ///   <c>true</c> when the refresh was queued or ran;
+    ///   <c>false</c> when no enabled provider refreshes the entry,
     ///   or it was asked to run at once while the provider is paused.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
     Task<bool> RefreshEntry(
         MetadataGuid entryID,
         bool force = false,
@@ -82,7 +82,7 @@ public interface IMetadataRefreshService
     ///   rest.
     /// </param>
     /// <param name="options">
-    ///   What to fetch, or <see langword="null"/> for a full refresh that goes
+    ///   What to fetch, or <c>null</c> for a full refresh that goes
     ///   by the settings and downloads the images.
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
@@ -107,17 +107,17 @@ public interface IMetadataRefreshService
     /// <param name="source">The source.</param>
     /// <param name="force">Whether to refresh every entry however recently it last was.</param>
     /// <param name="options">
-    ///   What to fetch, or <see langword="null"/> for a full refresh that goes
+    ///   What to fetch, or <c>null</c> for a full refresh that goes
     ///   by the settings and downloads the images.
     /// </param>
     /// <param name="entityType">
     ///   Refresh only series, only films or only collections; left out, all
     ///   three.
     /// </param>
-    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <c>null</c> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many refreshes were queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<int> RefreshAllLinked(
         MetadataSource source,
@@ -132,8 +132,8 @@ public interface IMetadataRefreshService
     ///   Whether an entry is being refreshed or purged right now.
     /// </summary>
     /// <param name="entryID">The series, film or collection.</param>
-    /// <returns><see langword="true"/> while its refresh or purge job runs.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> while its refresh or purge job runs.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
     bool IsRefreshing(MetadataGuid entryID);
 
     /// <summary>
@@ -147,10 +147,10 @@ public interface IMetadataRefreshService
     /// <param name="entryID">The series, film or collection.</param>
     /// <param name="cancellationToken">Stops the wait.</param>
     /// <returns>
-    ///   <see langword="true"/> when there was a refresh or purge to wait for,
+    ///   <c>true</c> when there was a refresh or purge to wait for,
     ///   so a copy read before the call may be stale.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled while waiting.</exception>
     Task<bool> WaitForRefresh(MetadataGuid entryID, CancellationToken cancellationToken = default);
 
@@ -163,8 +163,8 @@ public interface IMetadataRefreshService
     ///   has not been refreshed yet.
     /// </remarks>
     /// <param name="entryID">The series, film or collection.</param>
-    /// <returns>The time, in UTC, or <see langword="null"/> when it never was or the entry is not stored.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
+    /// <returns>The time, in UTC, or <c>null</c> when it never was or the entry is not stored.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
     DateTime? GetLastRefreshedAt(MetadataGuid entryID);
 
     #endregion
@@ -193,12 +193,12 @@ public interface IMetadataRefreshService
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> when the job was queued or ran, or a
-    ///   contributor's job was queued; <see langword="false"/> when no enabled
+    ///   <c>true</c> when the job was queued or ran, or a
+    ///   contributor's job was queued; <c>false</c> when no enabled
     ///   provider or contributor supplies images for the entry, or it was
     ///   asked to run at once while the provider is paused.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
     Task<bool> DownloadImages(
         MetadataGuid entryID,
         bool force = false,
@@ -224,10 +224,10 @@ public interface IMetadataRefreshService
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="force">Whether to download the wanted images again even when they are there.</param>
-    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <c>null</c> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many image jobs were queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<int> DownloadAllImages(MetadataSource source, bool force = false, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default);
 
@@ -253,11 +253,11 @@ public interface IMetadataRefreshService
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> when the search was queued;
-    ///   <see langword="false"/> when the source has no auto-linker or it is
+    ///   <c>true</c> when the search was queued;
+    ///   <c>false</c> when the source has no auto-linker or it is
     ///   not configured.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     Task<bool> AutoSearch(MetadataSource source, int anidbAnimeID, bool force = false, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -271,13 +271,13 @@ public interface IMetadataRefreshService
     ///   alone. Either way only the anime not linked on the source yet are
     ///   searched, and no link is replaced.
     /// </param>
-    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <c>null</c> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
     ///   How many searches were queued, none while the auto-linker is not
     ///   configured.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     Task<int> AutoSearchAll(MetadataSource source, bool force = false, IProgress<decimal>? progress = null, CancellationToken cancellationToken = default);
 
@@ -299,7 +299,7 @@ public interface IMetadataRefreshService
     ///   The status of the paused provider that expects to resume last, or
     ///   <see cref="MetadataProviderPauseStatus.NotPaused"/>.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     MetadataProviderPauseStatus GetPauseStatus(MetadataSource source);
 
     /// <summary>

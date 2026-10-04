@@ -32,14 +32,17 @@ public class ReleaseAutoManagementService(
     ILogger<ReleaseAutoManagementService> logger)
 {
     /// <summary>
-    /// Entry point called at the end of <c>FinalizeReleaseSearchJob</c>.
     /// Groups all files for each series the video belongs to, ranks the
     /// candidates, and removes redundant files according to configured preferences.
     /// No-ops when <see cref="ReleaseComparisonPreferences.AutoDeleteOnImport"/> is false.
+    /// Called by <see cref="VideoReleaseService"/> once a release is saved: from
+    /// <c>FireSearchCompleted</c> and <c>FindReleaseForVideo</c> after a successful
+    /// search, and from <c>SaveReleaseForVideo</c> for a release saved outside one.
     /// </summary>
+    /// <param name="video">The video whose release was just saved.</param>
     /// <returns>
-    /// <see langword="true"/> if the incoming <paramref name="video"/> was itself deleted
-    /// (i.e. it was the redundant candidate); <see langword="false"/> otherwise.
+    /// <c>true</c> if the incoming <paramref name="video"/> was itself deleted
+    /// (i.e. it was the redundant candidate); <c>false</c> otherwise.
     /// </returns>
     public async Task<bool> CheckAndAutoManage(IVideo video)
     {

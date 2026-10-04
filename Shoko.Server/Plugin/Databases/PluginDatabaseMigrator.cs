@@ -184,7 +184,7 @@ internal sealed class PluginDatabaseMigrator(
     /// </summary>
     /// <param name="database">The database.</param>
     /// <param name="reportProgress">Told of the copy before it is taken; optional.</param>
-    /// <returns>The copy, or <see langword="null"/> when none was taken.</returns>
+    /// <returns>The copy, or <c>null</c> when none was taken.</returns>
     private string? Backup(IPluginDatabase database, Action<string>? reportProgress)
     {
         var directory = Path.Join(BackupDirectory, database.PluginID.ToString());

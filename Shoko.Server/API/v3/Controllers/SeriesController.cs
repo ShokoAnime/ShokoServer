@@ -1346,8 +1346,8 @@ public class SeriesController(
     /// <summary>
     ///   The identifier of a TMDB season, if one is given.
     /// </summary>
-    /// <param name="seasonID">The TMDB season ID, or <see langword="null"/>.</param>
-    /// <returns>The identifier, or <see langword="null"/>.</returns>
+    /// <param name="seasonID">The TMDB season ID, or <c>null</c>.</param>
+    /// <returns>The identifier, or <c>null</c>.</returns>
     private static MetadataGuid? TmdbSeasonEntry(int? seasonID)
         => seasonID is { } id ? new(MetadataSource.TMDB, MetadataEntityType.Season, id.ToString()) : null;
 
@@ -1355,7 +1355,7 @@ public class SeriesController(
     ///   Wait out a running refresh or purge of a TMDB show.
     /// </summary>
     /// <param name="showID">The TMDB show ID.</param>
-    /// <returns><see langword="true"/> when there was one, so a copy read before may be stale.</returns>
+    /// <returns><c>true</c> when there was one, so a copy read before may be stale.</returns>
     private bool WaitForTmdbShow(int showID)
         => _metadataRefreshService.WaitForRefresh(TmdbShowEntry(showID)).GetAwaiter().GetResult();
 
@@ -1363,7 +1363,7 @@ public class SeriesController(
     ///   Wait out a running refresh or purge of a TMDB movie.
     /// </summary>
     /// <param name="movieID">The TMDB movie ID.</param>
-    /// <returns><see langword="true"/> when there was one, so a copy read before may be stale.</returns>
+    /// <returns><c>true</c> when there was one, so a copy read before may be stale.</returns>
     private bool WaitForTmdbMovie(int movieID)
         => _metadataRefreshService.WaitForRefresh(TmdbMovieEntry(movieID)).GetAwaiter().GetResult();
 
@@ -1541,7 +1541,7 @@ public class SeriesController(
     /// <param name="seriesID">Shoko Series ID.</param>
     /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
     /// <returns>
-    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// If <paramref name="body.Immediate"/> is <c>true</c>, returns an <see cref="OkResult"/>,
     /// otherwise returns a <see cref="NoContentResult"/>.
     /// </returns>
     [Authorize("admin")]
@@ -1580,7 +1580,7 @@ public class SeriesController(
     /// <param name="seriesID">Shoko Series ID.</param>
     /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
     /// <returns>
-    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// If <paramref name="body.Immediate"/> is <c>true</c>, returns an <see cref="OkResult"/>,
     /// otherwise returns a <see cref="NoContentResult"/>.
     /// </returns>
     [Authorize("admin")]
@@ -1749,7 +1749,7 @@ public class SeriesController(
     /// <param name="seriesID">Shoko Series ID.</param>
     /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
     /// <returns>
-    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// If <paramref name="body.Immediate"/> is <c>true</c>, returns an <see cref="OkResult"/>,
     /// otherwise returns a <see cref="NoContentResult"/>.
     /// </returns>
     [Authorize("admin")]
@@ -1789,7 +1789,7 @@ public class SeriesController(
     /// <param name="seriesID">Shoko Series ID.</param>
     /// <param name="body">Body containing options for refreshing or downloading metadata.</param>
     /// <returns>
-    /// If <paramref name="body.Immediate"/> is <see langword="true"/>, returns an <see cref="OkResult"/>,
+    /// If <paramref name="body.Immediate"/> is <c>true</c>, returns an <see cref="OkResult"/>,
     /// otherwise returns a <see cref="NoContentResult"/>.
     /// </returns>
     [Authorize("admin")]

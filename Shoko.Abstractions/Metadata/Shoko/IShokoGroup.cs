@@ -16,7 +16,7 @@ public interface IShokoGroup : ICollection
     int LocalID { get; }
 
     /// <summary>
-    ///   Always <see langword="null"/>: a Shoko group is never refreshed from
+    ///   Always <c>null</c>: a Shoko group is never refreshed from
     ///   a source.
     /// </summary>
     DateTime? ICollection.LastRefreshedAt { get => null; }

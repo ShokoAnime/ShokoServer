@@ -210,8 +210,7 @@ enum over this API:
   in the collection drops out, and on the series schedules route a schedule with
   no shoko series behind it does too.
 
-`Auto` is what every existing caller already gets, so leaving it off changes
-nothing. Reach for `Shoko` on a range read when you are building something that
+Leaving it off gives `Auto`. Reach for `Shoko` on a range read when you are building something that
 can only act on what the collection actually holds, and `Raw` when you want the
 provider's view of a run whether or not it has been matched yet.
 
@@ -263,7 +262,7 @@ connection.on("airing:episode.aired", ({ AiredAt, Airings }) => {
 data (`Series`, `EpisodeTitle`, `Poster` and `Thumbnail` are never filled in on
 a push), so the same rendering code handles both.
 
-Four things to build around:
+Five things to build around:
 
 - **One message per minute, not per airing.** A simulcast puts several airings
   on the same minute, say the same episode at 11:25 on both テレビ愛知 and
@@ -281,6 +280,9 @@ Four things to build around:
   the gap matters. The airings endpoint is the pull side of the same filtering,
   so nothing has to be re-implemented to do that.
 - **It fires within a minute of the slot**, never before it.
+- **Each user gets what they may see.** An airing of a series the user's
+  restrictions hide is left out of their copy of the message, and a minute
+  with nothing left for them sends them nothing.
 
 ## Providers and their sweeps
 
@@ -312,11 +314,8 @@ keeps it.
 
 ## The dashboard calendars
 
-`GET /api/v3/Dashboard/AniDBCalendar` is still there, and is still what the
-dashboard widget uses. It is the *AniDB* calendar: it selects and orders by the
+`GET /api/v3/Dashboard/AniDBCalendar` is what the dashboard widget uses. It is the *AniDB* calendar: it selects and orders by the
 AniDB air date, covers every episode type, and does not change when a
 broadcaster moves an episode to another day. Use it for "what airs this week
-according to AniDB", and the airings endpoint for what a channel actually does.
-
-`Dashboard/CalendarEpisodes` is gone. The airings endpoint replaces it with
-kinds, channels, tracks, estimates and delay gaps.
+according to AniDB", and the airings endpoint for what a channel actually does,
+with kinds, channels, tracks, estimates and delay gaps.

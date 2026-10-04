@@ -88,7 +88,7 @@ public class MetadataImageContributorManager(
     /// </summary>
     /// <param name="contributor">The contributor.</param>
     /// <param name="registered">The contributors taken before it.</param>
-    /// <returns>The registration, or <see langword="null"/> when it is refused.</returns>
+    /// <returns>The registration, or <c>null</c> when it is refused.</returns>
     private MetadataImageContributorInfo? Register(IMetadataImageContributor contributor, List<MetadataImageContributorInfo> registered)
     {
         var contributorType = contributor.GetType();

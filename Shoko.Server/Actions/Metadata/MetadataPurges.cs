@@ -49,7 +49,7 @@ internal static class MetadataPurges
     /// </summary>
     /// <param name="providerManager">Lists the metadata providers.</param>
     /// <param name="source">The source.</param>
-    /// <returns><see langword="true"/> when it does.</returns>
+    /// <returns><c>true</c> when it does.</returns>
     public static bool IsPurgeable(IMetadataProviderManager providerManager, MetadataSource source)
         => MetadataProviderScheduler.IsPurgeable(source, providerManager.MetadataProviders);
 
@@ -61,10 +61,10 @@ internal static class MetadataPurges
     ///   Refuses a source a person named that is not known or keeps nothing
     ///   of the kind purged.
     /// </summary>
-    /// <param name="source">The source, or <see langword="null"/> for every source.</param>
+    /// <param name="source">The source, or <c>null</c> for every source.</param>
     /// <param name="keeps">Whether a known source keeps what is purged.</param>
     /// <param name="what">What is purged, e.g. <c>alternate orderings</c>.</param>
-    /// <returns>Why the source is refused, or <see langword="null"/> to allow it.</returns>
+    /// <returns>Why the source is refused, or <c>null</c> to allow it.</returns>
     public static ActionValidationResult? Check(MetadataSource? source, Func<MetadataSource, bool> keeps, string what)
         => source switch
         {
@@ -78,8 +78,8 @@ internal static class MetadataPurges
     ///   Refuses a kind a person named that is not a series, a movie or a
     ///   collection, the kinds stored whole.
     /// </summary>
-    /// <param name="entityType">The kind, or <see langword="null"/> for all three.</param>
-    /// <returns>Why the kind is refused, or <see langword="null"/> to allow it.</returns>
+    /// <param name="entityType">The kind, or <c>null</c> for all three.</param>
+    /// <returns>Why the kind is refused, or <c>null</c> to allow it.</returns>
     public static ActionValidationResult? CheckKind(MetadataEntityType? entityType)
         => entityType is null || entityType == MetadataEntityType.Series || entityType == MetadataEntityType.Movie ||
             entityType == MetadataEntityType.Collection

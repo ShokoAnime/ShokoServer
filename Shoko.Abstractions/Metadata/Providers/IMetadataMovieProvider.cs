@@ -51,7 +51,7 @@ public interface IMetadataMovieProvider : IMetadataProvider
     ///   its ID.
     /// </param>
     /// <returns>
-    ///   The absolute URL, or <see langword="null"/> when the entry has no
+    ///   The absolute URL, or <c>null</c> when the entry has no
     ///   page.
     /// </returns>
     string? GetSiteUrl(IMetadata entry) => null;

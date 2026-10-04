@@ -259,7 +259,9 @@ titles and overviews, and every season and episode. It replaces what was
 stored, so a season or episode left out is removed, with what the other stores
 hold for it and the episode links naming it; do not save an empty episode list
 when your source briefly answers none. An episode names its season by
-`MetadataGuid`, one of the series' own. `SaveMovie` and `SaveCollection`
+`MetadataGuid`, one of the series' own. Leave out generic titles such as
+`Episode 5` or `Season 2`: the core makes those up when an entry has none,
+and never stores them. `SaveMovie` and `SaveCollection`
 work the same way. Each returns how many entries it added, changed or
 removed, and raises the `IMetadataService` events only for what changed.
 `RemoveSeries`, `RemoveMovie` and `RemoveCollection` take an entry out with
@@ -352,7 +354,7 @@ stored entry, read back as `LastRefreshedAt` on series, movies, collections,
 people, studios and networks; you never set it. A resolver's own entries
 answer it themselves, or `null`.
 
-There is no force flag. Before calling you the core:
+Your options carry no force flag. Before calling you the core:
 
 - skips an entry refreshed without failing within the last hour, unless
   forced;
@@ -654,7 +656,7 @@ before the movie provider's, served at
 A series or episode asked for with `includeDataFrom=<source>` gains a
 `Sources` object keyed by your source, with a generic view of each linked
 series, episode and movie read back through `IMetadataService`: ID, entity
-type, titles, description, dates, rating and preferred images. AniDB and TMDb
+type, titles, overview, dates, rating and preferred images. AniDB and TMDb
 keep their own blocks, TMDb's for the APIv3 TMDB routes and models. A link to
 nothing, or to an entry not stored yet, is left out.
 

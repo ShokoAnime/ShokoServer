@@ -139,7 +139,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     /// </summary>
     /// <param name="providers">The registered providers, in registration order.</param>
     /// <param name="source">The source.</param>
-    /// <returns>The icon, or <see langword="null"/> when no provider of the source has one.</returns>
+    /// <returns>The icon, or <c>null</c> when no provider of the source has one.</returns>
     internal static PackageImageInfo? ChooseSourceIcon(IEnumerable<MetadataProviderInfo> providers, MetadataSource source)
     {
         PackageImageInfo? movieIcon = null;
@@ -162,7 +162,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     ///   is both.
     /// </summary>
     /// <param name="provider">The provider.</param>
-    /// <returns>The embedded resource name, or <see langword="null"/> when it names none.</returns>
+    /// <returns>The embedded resource name, or <c>null</c> when it names none.</returns>
     private static string? DeclaredIcon(IMetadataProvider provider)
         => (provider as IMetadataSeriesProvider)?.EmbeddedIconResourceName ?? (provider as IMetadataMovieProvider)?.EmbeddedIconResourceName;
 
@@ -175,7 +175,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     /// <param name="assembly">The assembly holding the embedded image.</param>
     /// <param name="resourceName">The embedded resource, if one is named.</param>
     /// <param name="source">The source.</param>
-    /// <returns>The icon, or <see langword="null"/> when there is none or it is neither SVG nor PNG.</returns>
+    /// <returns>The icon, or <c>null</c> when there is none or it is neither SVG nor PNG.</returns>
     private PackageImageInfo? LoadSourceIcon(LocalPluginInfo pluginInfo, Assembly assembly, string? resourceName, MetadataSource source)
         => PackageImageLoader.LoadIcon(pluginInfo, assembly, resourceName, SourceIconKind(source), _applicationPaths, _logger);
 
@@ -203,7 +203,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     /// <param name="interfaceType">The interface declaring the member.</param>
     /// <param name="methodName">The member's name.</param>
     /// <returns>
-    ///   <see langword="true"/> when the type implements the interface and
+    ///   <c>true</c> when the type implements the interface and
     ///   its own code answers the member.
     /// </returns>
     internal static bool Overrides(Type providerType, Type interfaceType, string methodName)
@@ -646,7 +646,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     /// <param name="order">The order.</param>
     /// <param name="source">The source.</param>
     /// <param name="entityType">The entity type.</param>
-    /// <returns>The provider's ID, or <see langword="null"/> when none answers.</returns>
+    /// <returns>The provider's ID, or <c>null</c> when none answers.</returns>
     private Guid? Answering(IEnumerable<MetadataProviderAssignment> order, MetadataSource source, MetadataEntityType entityType)
         => order.FirstOrDefault(slot => slot.IsEnabled && Claims(slot.ProviderID, source, entityType))?.ProviderID;
 
@@ -656,7 +656,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     /// <param name="providerID">The provider's ID.</param>
     /// <param name="source">The source.</param>
     /// <param name="entityType">The entity type.</param>
-    /// <returns><see langword="true"/> when it does.</returns>
+    /// <returns><c>true</c> when it does.</returns>
     private bool Claims(Guid providerID, MetadataSource source, MetadataEntityType entityType)
         => Entry(providerID) is { } entry && entry.Sources.Contains(source) && entry.Info.AvailableEntityTypes.Contains(entityType);
 
@@ -671,7 +671,7 @@ public class MetadataProviderManager : IMetadataProviderManager, IMetadataProvid
     /// <param name="decisions">The decisions about the provider's source.</param>
     /// <param name="entry">The provider.</param>
     /// <param name="wanted">The entity types asked for.</param>
-    /// <returns><see langword="true"/> when anything changed.</returns>
+    /// <returns><c>true</c> when anything changed.</returns>
     private bool Reassign(MetadataSourceSettings decisions, ProviderEntry entry, IReadOnlySet<MetadataEntityType> wanted)
     {
         var (source, id) = (entry.Info.Source, entry.Info.ID);

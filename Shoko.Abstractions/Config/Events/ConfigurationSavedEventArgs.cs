@@ -25,7 +25,7 @@ public class ConfigurationSavedEventArgs : EventArgs
 
     /// <summary>
     ///   The API token of whoever saved the configuration, or
-    ///   <see langword="null"/> when the system did it. Stamped when the event
+    ///   <c>null</c> when the system did it. Stamped when the event
     ///   is raised.
     /// </summary>
     public ApiToken? Actor { get; init; }

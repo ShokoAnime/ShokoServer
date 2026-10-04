@@ -12,7 +12,7 @@ and what a plugin writes for its own entities. Reading and adding images is in
 `ShokoImage_Entity` stores the ID's three parts in `EntitySource`,
 `EntityType` and `EntityID` (`NVARCHAR(128)`, the most a `MetadataGuid` ID can
 hold). Nothing else of the entity is stored, which lets one image be shared by
-an AniDB anime, a TMDB show and a plugin's entity without a table each. The
+an AniDB anime, a TMDb show and a plugin's entity without a table each. The
 ID part is the source's own ID, as `IMetadata.ID` carries it; a video's is
 `<ED2K>+<file size>`.
 
@@ -85,6 +85,13 @@ A cross-reference also records `EntitySeasonNumber`, `EntityEpisodeNumber`
 and `EntityReleasedAt`, read off the entity when the row is created or
 `UpdateImageCrossReference` is passed the entity, so rows sort without
 resolving every entity.
+
+An entry's default image of each type (`Default…ImageCrossReference` on
+`IWithImages`) is the link to the image its source names as the default. A
+stored entry takes it from the resource IDs its provider pinned with
+`DefaultImageResourceIDs` on the store's data record; candidates carry no
+default flag. An entity a resolver serves answers those members itself, and
+`null` means it has none.
 
 `ImageFilteringOptions.LinkedEntityImages` defaults to `false` for a plugin
 entity, and `true` adds nothing either: the link walk only covers

@@ -9,7 +9,7 @@ Every interface here is implemented by the server and called by you.
 | `IImageManager` | Read, add, link and download images |
 | `IAiringScheduleService` | Read and write broadcast schedules ([`../Airing/README.md`](../Airing/README.md)) |
 | `IMetadataTextManager` | Keep, choose and gather the titles and overviews of any entry |
-| `IMetadataProviderManager` | See and set which provider answers for which source and kind, in what order the rest stand by, and which sources are reserved |
+| `IMetadataProviderManager` | See and set which provider answers for which source and kind, in what order the rest stand by, which sources are reserved, and each source's icon |
 | `IMetadataImageContributorManager` | List the image contributors and turn each one on or off per source and kind |
 | `IMetadataLinkingService` | Make, break and correct links between Shoko entries and a source's, one at a time or in bulk |
 | `IMetadataRefreshService` | Ask the providers to refresh entries, download their images and auto-search, and read why a source is paused |
@@ -162,7 +162,8 @@ does; see [`../Resources/README.md`](../Resources/README.md).
 `AutoSearchAll`). A force flag skips the hour-long freshness window, and
 `MetadataRefreshOptions` carries the refresh switches. `IsRefreshing` and
 `WaitForRefresh` let a reader avoid handing back a copy that is about to
-change. `GetPauseStatus` and `PauseStatusChanged` say why a source cannot take
+change, and `GetLastRefreshedAt` reads when a series, film or collection was
+last refreshed. `GetPauseStatus` and `PauseStatusChanged` say why a source cannot take
 work.
 
 `IMetadataPurgeService` queues the core's purge job: `PurgeEntry`,
@@ -393,7 +394,7 @@ special group, carrying `AirsBeforeSeasonNumber` and `AirsBeforeEpisodeNumber`
 airs. The default ordering places specials too, without moving them out of
 season 0: a plugin's series by the `AirsBefore*`/`AirsAfter*` its provider
 gave each season 0 episode, and an AniDB anime or a Shoko series by titles
-such as `Episode 17.5`, unless the admin turned that off.
+such as `Episode 17.5`.
 
 `SaveOrdering` replaces a global ordering whole and is refused under a core
 source, for a `default/` ID, for a group ID another ordering holds, for an
@@ -438,6 +439,7 @@ as local orderings; APIv3 exposes both to admins
       "name": "Arcs",
       "type": "user",
       "isPreferred": true,
+      "networks": ["tmdb://network/1"],
       "images": [],
       "groups": [
         {
@@ -466,8 +468,11 @@ as local orderings; APIv3 exposes both to admins
 Series and episodes are named by AniDB IDs, so a file reads the same on any
 server; an ordering of another source's series is written against the anime
 most of its episodes are linked to. The import falls back on an episode's type
-and number only within the ordering's own anime. An image is written by its
-remote source, resource ID and URL, and its file embedded as `ImageMode` asks.
+and number only within the ordering's own anime. An ordering's networks are
+written by their full IDs, and an import links them, keeping a network this
+server has not stored as a stub; one of a source the server does not know is
+left out. An image is written by its remote source, resource ID and URL, and
+its file embedded as `ImageMode` asks.
 
 The import reads the whole file before writing. `ConflictMode` decides what
 happens to a local ordering of the same name, `DryRun` writes nothing, and

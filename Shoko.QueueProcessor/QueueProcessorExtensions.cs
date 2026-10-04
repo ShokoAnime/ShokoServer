@@ -239,8 +239,8 @@ public static class QueueProcessorExtensions
     /// Whether a job type's stored name fits the queue's job type column.
     /// </summary>
     /// <param name="type">The job type.</param>
-    /// <returns><see langword="true"/> when its jobs can be queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> when its jobs can be queued.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <c>null</c>.</exception>
     public static bool FitsQueue(Type type)
         => JobTypeNames.Stored(type).Length <= QueuedJob.JobTypeMaxLength;
 

@@ -199,7 +199,7 @@ public partial class MetadataEntryController : BaseController
     /// but a Shoko user or filter, which are the users' own business.
     /// </summary>
     /// <param name="kind">The kind of entry.</param>
-    /// <returns><see langword="true"/> when the kind may be answered.</returns>
+    /// <returns><c>true</c> when the kind may be answered.</returns>
     internal static bool IsOpenKind(MetadataEntityType kind)
         => kind != MetadataEntityType.User && kind != MetadataEntityType.Filter;
 
@@ -214,7 +214,7 @@ public partial class MetadataEntryController : BaseController
     /// <param name="source">The source.</param>
     /// <param name="kind">The kind of entry.</param>
     /// <param name="id">The ID as the route holds it.</param>
-    /// <returns>The identifier, or <see langword="null"/> when the ID is not a valid one.</returns>
+    /// <returns>The identifier, or <c>null</c> when the ID is not a valid one.</returns>
     internal static MetadataGuid? ToGuid(MetadataSource source, MetadataEntityType kind, string? id)
     {
         if (string.IsNullOrEmpty(id))
@@ -240,7 +240,7 @@ public partial class MetadataEntryController : BaseController
     /// <param name="source">The source.</param>
     /// <param name="kind">The kind of entry.</param>
     /// <param name="text">The text.</param>
-    /// <returns>The identifier, or <see langword="null"/> when the text names no entry of the source and kind.</returns>
+    /// <returns>The identifier, or <c>null</c> when the text names no entry of the source and kind.</returns>
     internal static MetadataGuid? FromBody(MetadataSource source, MetadataEntityType kind, string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -268,7 +268,7 @@ public partial class MetadataEntryController : BaseController
     /// <param name="kind">The kind of entry.</param>
     /// <param name="id">The ID as the route holds it.</param>
     /// <param name="cancellationToken">Stops the wait.</param>
-    /// <returns>The entry, or <see langword="null"/> when it is not stored.</returns>
+    /// <returns>The entry, or <c>null</c> when it is not stored.</returns>
     private async Task<TMetadata?> Get<TMetadata>(MetadataSource source, MetadataEntityType kind, string id, CancellationToken cancellationToken)
         where TMetadata : class, IMetadata
         => ToGuid(source, kind, id) is { } guid ? await Get<TMetadata>(guid, cancellationToken).ConfigureAwait(false) : null;
@@ -280,7 +280,7 @@ public partial class MetadataEntryController : BaseController
     /// <typeparam name="TMetadata">The entry's type.</typeparam>
     /// <param name="guid">The entry.</param>
     /// <param name="cancellationToken">Stops the wait.</param>
-    /// <returns>The entry, or <see langword="null"/> when it is not stored.</returns>
+    /// <returns>The entry, or <c>null</c> when it is not stored.</returns>
     private async Task<TMetadata?> Get<TMetadata>(MetadataGuid guid, CancellationToken cancellationToken)
         where TMetadata : class, IMetadata
     {
@@ -297,7 +297,7 @@ public partial class MetadataEntryController : BaseController
     /// <typeparam name="TMetadata">The entry's type.</typeparam>
     /// <param name="entry">The entry, as read before.</param>
     /// <param name="cancellationToken">Stops the wait.</param>
-    /// <returns>The entry read again when there was something to wait for, or <see langword="null"/> when it is gone.</returns>
+    /// <returns>The entry read again when there was something to wait for, or <c>null</c> when it is gone.</returns>
     private async Task<TMetadata?> Fresh<TMetadata>(TMetadata entry, CancellationToken cancellationToken)
         where TMetadata : class, IMetadata
     {
@@ -312,7 +312,7 @@ public partial class MetadataEntryController : BaseController
     /// kept from users, by the same tag restrictions the other routes apply.
     /// </summary>
     /// <param name="entry">The entry.</param>
-    /// <returns><see langword="true"/> when the entry may be shown.</returns>
+    /// <returns><c>true</c> when the entry may be shown.</returns>
     private bool MaySee(IMetadata entry)
         => MaySee(entry, () => _viewer ??= User);
 
@@ -324,7 +324,7 @@ public partial class MetadataEntryController : BaseController
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <param name="user">Gives the user, only asked for when the entry is one the user may be kept from.</param>
-    /// <returns><see langword="true"/> when the entry may be shown.</returns>
+    /// <returns><c>true</c> when the entry may be shown.</returns>
     internal static bool MaySee(IMetadata entry, Func<IUser> user)
         => entry switch
         {
@@ -342,7 +342,7 @@ public partial class MetadataEntryController : BaseController
     /// The series, movie or collection an entry is refreshed with.
     /// </summary>
     /// <param name="entry">The entry.</param>
-    /// <returns>What is refreshed, or <see langword="null"/> when the entry is not refreshed on its own.</returns>
+    /// <returns>What is refreshed, or <c>null</c> when the entry is not refreshed on its own.</returns>
     private static MetadataGuid? RefreshedWith(IMetadata entry)
         => entry switch
         {
@@ -420,7 +420,7 @@ public partial class MetadataEntryController : BaseController
     /// </summary>
     /// <param name="isRestricted">Whether the entry is restricted.</param>
     /// <param name="restricted">The filter.</param>
-    /// <returns><see langword="true"/> when the entry is kept.</returns>
+    /// <returns><c>true</c> when the entry is kept.</returns>
     private static bool Keeps(bool isRestricted, IncludeOnlyFilter restricted)
         => restricted is IncludeOnlyFilter.True || isRestricted == (restricted is IncludeOnlyFilter.Only);
 
@@ -456,7 +456,7 @@ public partial class MetadataEntryController : BaseController
     /// <param name="search">The search.</param>
     /// <param name="entry">The entry.</param>
     /// <param name="fuzzy">Whether to match titles loosely.</param>
-    /// <returns>The score, or <see langword="null"/> when no title matches.</returns>
+    /// <returns>The score, or <c>null</c> when no title matches.</returns>
     private (bool IsNotExact, int Index, double Distance, int LengthDifference)? Score(string search, IWithTitles entry, bool fuzzy)
     {
         var names = entry.Titles
@@ -745,7 +745,7 @@ public partial class MetadataEntryController : BaseController
     /// own jobs.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns>A problem to answer with, or <see langword="null"/> to go ahead.</returns>
+    /// <returns>A problem to answer with, or <c>null</c> to go ahead.</returns>
     private ActionResult? RefuseCoreRefresh(MetadataSource source)
     {
         if (source != MetadataSource.AniDB && source != MetadataSource.Shoko && source != MetadataSource.User && source != MetadataSource.Generated)
@@ -764,7 +764,7 @@ public partial class MetadataEntryController : BaseController
     /// <param name="queue">Queues the work at the front.</param>
     /// <param name="description">What the work is, for the log.</param>
     /// <param name="immediate">Whether the caller wanted to wait for the work.</param>
-    /// <returns>The answer while paused, or <see langword="null"/> to go ahead.</returns>
+    /// <returns>The answer while paused, or <c>null</c> to go ahead.</returns>
     private async Task<ActionResult?> QueueWhenPaused(MetadataSource source, Func<Task> queue, string description, bool immediate)
     {
         var status = _refreshService.GetPauseStatus(source);

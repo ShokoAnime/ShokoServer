@@ -64,7 +64,7 @@ public class MissingSourceLinkExpression : FilterExpression<bool>, IWithStringPa
     /// Whether <paramref name="other"/> is the same condition with the same parameter.
     /// </summary>
     /// <param name="other">The condition to compare with.</param>
-    /// <returns><see langword="true"/> if both are equal.</returns>
+    /// <returns><c>true</c> if both are equal.</returns>
     protected bool Equals(MissingSourceLinkExpression other)
     {
         return base.Equals(other) && Parameter == other.Parameter;

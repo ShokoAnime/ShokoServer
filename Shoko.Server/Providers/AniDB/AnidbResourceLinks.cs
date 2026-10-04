@@ -131,7 +131,7 @@ public static class AnidbResourceLinks
     /// </summary>
     /// <param name="row">The stored resource.</param>
     /// <param name="isMovie">Whether the anime is a movie.</param>
-    /// <returns>The ID, or <see langword="null"/> when the resource names none.</returns>
+    /// <returns>The ID, or <c>null</c> when the resource names none.</returns>
     private static MetadataGuid? ToCrossSourceID(AniDB_Resource row, bool isMovie)
     {
         var ids = row.Identifiers;

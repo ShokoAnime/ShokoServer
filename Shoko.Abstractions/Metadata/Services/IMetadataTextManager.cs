@@ -210,7 +210,8 @@ public interface IMetadataTextManager
     ///   The entry's own source is read first whatever the source order says,
     ///   then the ranked sources. With nothing in a preferred language the
     ///   default is used, and an episode or season with no title at all gets a
-    ///   made-up one such as <c>Episode 5</c> or <c>Season 2</c>.
+    ///   made-up one such as <c>Episode 5</c>, <c>Season 2</c>, or
+    ///   <c>Specials</c> for season 0.
     /// </remarks>
     /// <param name="entityID">The entry.</param>
     /// <returns>The title, or <c>null</c> when the entry has none.</returns>

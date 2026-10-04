@@ -60,7 +60,7 @@ public sealed class TmdbRefreshService(
     /// <param name="options">What kind of refresh it is.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>Whether TMDb had the show.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
     /// <exception cref="MetadataProviderNotConfiguredException">No API key is configured.</exception>
     /// <exception cref="InvalidOperationException">TMDb listed a season it then did not give.</exception>
     public async Task<bool> RefreshShow(int showID, MetadataRefreshOptions options, CancellationToken cancellationToken = default)
@@ -198,12 +198,12 @@ public sealed class TmdbRefreshService(
 
     /// <summary>
     ///   What TMDb changed of a show since its last refresh, or
-    ///   <see langword="null"/> to fetch it whole, as when TMDb cannot say.
+    ///   <c>null</c> to fetch it whole, as when TMDb cannot say.
     /// </summary>
     /// <param name="showID">The TMDb show ID.</param>
     /// <param name="since">The last refresh, in UTC.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>What changed, or <see langword="null"/>.</returns>
+    /// <returns>What changed, or <c>null</c>.</returns>
     private async Task<TmdbShowChanges?> GetShowChanges(int showID, DateTime since, CancellationToken cancellationToken)
     {
         try
@@ -223,7 +223,7 @@ public sealed class TmdbRefreshService(
     ///   read back from the store.
     /// </summary>
     /// <param name="seriesID">The show.</param>
-    /// <param name="episodes">Each episode's credits, in order, <see langword="null"/> where they were not fetched.</param>
+    /// <param name="episodes">Each episode's credits, in order, <c>null</c> where they were not fetched.</param>
     private void WriteCredits(MetadataGuid seriesID, IReadOnlyList<EpisodeCredits> episodes)
     {
         var resolved = new List<(int EpisodeID, MetadataGuid SeasonID, IReadOnlyList<MetadataCastData> Cast, IReadOnlyList<MetadataCrewData> Crew)>(episodes.Count);
@@ -357,13 +357,13 @@ public sealed class TmdbRefreshService(
         => new() { Source = MetadataSource.TMDB, IsEnabled = null, IncludeInlineDefault = false };
 
     /// <summary>
-    ///   An episode's credits, or <see langword="null"/> ones when they were
+    ///   An episode's credits, or <c>null</c> ones when they were
     ///   not fetched and are read back from the store.
     /// </summary>
     /// <param name="SeasonID">The episode's season.</param>
     /// <param name="EpisodeID">The episode.</param>
-    /// <param name="Cast">The cast fetched, or <see langword="null"/>.</param>
-    /// <param name="Crew">The crew fetched, or <see langword="null"/>.</param>
+    /// <param name="Cast">The cast fetched, or <c>null</c>.</param>
+    /// <param name="Crew">The crew fetched, or <c>null</c>.</param>
     private sealed record EpisodeCredits(MetadataGuid SeasonID, MetadataGuid EpisodeID, IReadOnlyList<MetadataCastData>? Cast, IReadOnlyList<MetadataCrewData>? Crew);
 
     #endregion
@@ -384,7 +384,7 @@ public sealed class TmdbRefreshService(
     /// <param name="options">What kind of refresh it is.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>Whether the movie was written.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <c>null</c>.</exception>
     /// <exception cref="MetadataProviderNotConfiguredException">No API key is configured.</exception>
     public async Task<bool> RefreshMovie(int movieID, MetadataRefreshOptions options, CancellationToken cancellationToken = default)
     {

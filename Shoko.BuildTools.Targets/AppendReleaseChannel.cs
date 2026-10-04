@@ -47,7 +47,7 @@ public class AppendReleaseChannel : Microsoft.Build.Utilities.Task
         }
         catch (Exception ex)
         {
-            Log.LogError("Failed to stamp git metadata: {0}", ex.Message);
+            Log.LogError("Failed to stamp release channel metadata: {0}", ex.Message);
             return false;
         }
     }

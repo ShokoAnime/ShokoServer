@@ -67,13 +67,13 @@ internal sealed class JobExecutionState : IProgress<decimal>
     public string JobKey { get; }
 
     /// <summary>
-    /// The last progress the job reported, from 0 to 100, or <see langword="null"/> if it has not
+    /// The last progress the job reported, from 0 to 100, or <c>null</c> if it has not
     /// reported any.
     /// </summary>
     public decimal? Progress => Volatile.Read(ref _progress) as decimal?;
 
     /// <summary>
-    /// Whether a user asked for the job to be cancelled. Never goes back to <see langword="false"/>.
+    /// Whether a user asked for the job to be cancelled. Never goes back to <c>false</c>.
     /// </summary>
     public bool CancellationRequested => _cancellationRequested;
 
@@ -169,7 +169,7 @@ internal sealed class JobExecutionState : IProgress<decimal>
     /// requested before the worker got this far. Called by the worker under the orchestrator's lock.
     /// </summary>
     /// <param name="cancellation">The job's cancellation source, owned and disposed by the worker.</param>
-    /// <returns><see langword="true"/> when the cancellation was already requested.</returns>
+    /// <returns><c>true</c> when the cancellation was already requested.</returns>
     internal bool Attach(CancellationTokenSource cancellation)
     {
         _cancellation = cancellation;
@@ -179,7 +179,7 @@ internal sealed class JobExecutionState : IProgress<decimal>
     /// <summary>
     /// Marks the cancellation as requested. Called under the orchestrator's lock.
     /// </summary>
-    /// <returns><see langword="true"/> when it was not requested before.</returns>
+    /// <returns><c>true</c> when it was not requested before.</returns>
     internal bool MarkCancellationRequested()
     {
         if (_cancellationRequested)

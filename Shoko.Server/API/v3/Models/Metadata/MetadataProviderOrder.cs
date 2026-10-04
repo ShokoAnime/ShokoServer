@@ -19,7 +19,7 @@ public class MetadataProviderOrder
     /// </summary>
     /// <param name="entityType">The kind of entry.</param>
     /// <param name="providers">The providers, in order, with whether each is enabled.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="entityType"/> or <paramref name="providers"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entityType"/> or <paramref name="providers"/> is <c>null</c>.</exception>
     public MetadataProviderOrder(MetadataEntityType entityType, IEnumerable<(MetadataProviderInfo Info, bool IsEnabled)> providers)
     {
         ArgumentNullException.ThrowIfNull(entityType);
@@ -61,7 +61,7 @@ public class MetadataProviderOrderEntry
     /// <param name="priority">Its place, from <c>0</c> for the first.</param>
     /// <param name="isEnabled">Whether it may answer.</param>
     /// <param name="isActive">Whether it is the one answering.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <c>null</c>.</exception>
     public MetadataProviderOrderEntry(MetadataProviderInfo info, int priority, bool isEnabled, bool isActive)
     {
         ArgumentNullException.ThrowIfNull(info);

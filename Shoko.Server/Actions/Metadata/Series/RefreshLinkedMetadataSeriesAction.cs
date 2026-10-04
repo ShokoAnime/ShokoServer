@@ -13,7 +13,7 @@ namespace Shoko.Server.Actions;
 public sealed class RefreshLinkedMetadataSeriesAction(IMetadataRefreshService refreshService) : SeriesAction
 {
     /// <summary>
-    ///   The source to refresh from, or <see langword="null"/> for every
+    ///   The source to refresh from, or <c>null</c> for every
     ///   enabled provider.
     /// </summary>
     public MetadataSource? Source { get; set; }

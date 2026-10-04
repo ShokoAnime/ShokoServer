@@ -21,7 +21,7 @@ public class PluginInstallationEventArgs : EventArgs
 
     /// <summary>
     ///   The API token of whoever installed or uninstalled the plugin, or
-    ///   <see langword="null"/> when the system did it. Stamped when the event is
+    ///   <c>null</c> when the system did it. Stamped when the event is
     ///   raised.
     /// </summary>
     public ApiToken? Actor { get; init; }

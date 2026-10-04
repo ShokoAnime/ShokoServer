@@ -8,7 +8,7 @@ namespace Shoko.Plugin.Tmdb.Mapping;
 
 /// <summary>
 ///   The languages a refresh keeps TMDb's translations and content ratings
-///   in. A <see langword="null"/> set keeps them all.
+///   in. A <c>null</c> set keeps them all.
 /// </summary>
 /// <param name="Titles">The languages of the titles of anything but an episode.</param>
 /// <param name="EpisodeTitles">The languages of an episode's titles.</param>

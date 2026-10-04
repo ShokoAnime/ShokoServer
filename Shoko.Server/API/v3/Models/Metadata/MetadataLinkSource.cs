@@ -21,7 +21,7 @@ public class MetadataLinkSource
     /// <param name="status">Whether the source is configured and paused.</param>
     /// <param name="hasIcon">Whether the source has an icon.</param>
     /// <param name="pluginID">The plugin of the source's first registered provider.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="status"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="status"/> is <c>null</c>.</exception>
     public MetadataLinkSource(
         MetadataSource source,
         bool supportsSeries,

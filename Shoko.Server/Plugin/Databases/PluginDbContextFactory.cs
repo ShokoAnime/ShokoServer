@@ -16,7 +16,7 @@ namespace Shoko.Server.Plugin.Databases;
 /// </summary>
 /// <param name="Type">The backend: SQLite for a file of its own, otherwise the core's server.</param>
 /// <param name="ContextType">The context created, which carries the migrations for <paramref name="Type"/>.</param>
-/// <param name="Naming">How its tables are named in the core's database; <see langword="null"/> on SQLite.</param>
+/// <param name="Naming">How its tables are named in the core's database; <c>null</c> on SQLite.</param>
 internal sealed record PluginDatabaseTarget(Constants.DatabaseType Type, Type ContextType, PluginTableNaming? Naming);
 
 /// <summary>

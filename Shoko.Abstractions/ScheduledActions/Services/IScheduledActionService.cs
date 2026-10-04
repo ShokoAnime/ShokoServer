@@ -37,7 +37,7 @@ public interface IScheduledActionService
     ///   The server has not started yet.
     /// </exception>
     /// <returns>
-    ///   The scheduled action, or <see langword="null"/> when none has the ID.
+    ///   The scheduled action, or <c>null</c> when none has the ID.
     /// </returns>
     ScheduledActionInfo? GetScheduledAction(Guid actionId);
 
@@ -50,7 +50,7 @@ public interface IScheduledActionService
     ///   The server has not started yet.
     /// </exception>
     /// <returns>
-    ///   The scheduled action, or <see langword="null"/> when the type is not
+    ///   The scheduled action, or <c>null</c> when the type is not
     ///   a registered one.
     /// </returns>
     ScheduledActionInfo? GetScheduledAction<TAction>() where TAction : class, IScheduledAction;
@@ -62,7 +62,7 @@ public interface IScheduledActionService
     /// <param name="actionId">The scheduled action ID.</param>
     /// <param name="triggers">The new triggers, empty for none.</param>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="triggers"/> is <see langword="null"/>.
+    ///   <paramref name="triggers"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="KeyNotFoundException">
     ///   No scheduled action has the ID.
@@ -110,7 +110,7 @@ public interface IScheduledActionService
     ///   The server has not started yet.
     /// </exception>
     /// <returns>
-    ///   <see langword="null"/> when the run was queued, or already was, or
+    ///   <c>null</c> when the run was queued, or already was, or
     ///   the reason the scheduled action refused to run.
     /// </returns>
     Task<ActionValidationResult?> InvokeAsync(Guid actionId, CancellationToken token = default);

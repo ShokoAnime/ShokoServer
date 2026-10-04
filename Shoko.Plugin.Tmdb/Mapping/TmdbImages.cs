@@ -45,7 +45,7 @@ public static class TmdbImages
     /// </summary>
     /// <param name="imageServerUrl">The image server's base URL.</param>
     /// <param name="filePath">TMDb's path for the image, if any.</param>
-    /// <returns>The URL, or <see langword="null"/> without a path.</returns>
+    /// <returns>The URL, or <c>null</c> without a path.</returns>
     public static string? Url(string imageServerUrl, string? filePath)
         => string.IsNullOrEmpty(filePath) ? null : string.Format(Template(imageServerUrl), ResourceID(filePath));
 

@@ -19,7 +19,7 @@ public static class Models
     /// </summary>
     /// <param name="anime">The anime.</param>
     /// <returns>
-    ///   <see langword="true"/> when the end date is known and falls on or
+    ///   <c>true</c> when the end date is known and falls on or
     ///   before today, taking a partial date as the last day it could mean.
     /// </returns>
     public static bool GetFinishedAiring(this AniDB_Anime anime)
@@ -79,7 +79,7 @@ public static class Models
         /// <summary>
         /// Resolves the effective end date to use for year/season calculations: <see cref="AniDB_Anime.EndDate"/>
         /// if known, otherwise <see cref="AniDB_Anime.AirDate"/> for anime types that don't have an ongoing
-        /// broadcast (Movie, OVA, Web, Other, MusicVideo), otherwise <see langword="null"/> (still airing) for
+        /// broadcast (Movie, OVA, Web, Other, MusicVideo), otherwise <c>null</c> (still airing) for
         /// TV series/specials.
         /// </summary>
         public PartialDateOnly? EffectiveEndDateForSeasons

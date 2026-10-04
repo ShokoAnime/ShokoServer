@@ -259,7 +259,7 @@ public class MetadataService : IMetadataService
     ///   Finds one kind of entry of one source by its ID.
     /// </summary>
     /// <param name="id">The entry, always of the source and kind the lookup is kept under.</param>
-    /// <returns>The entry, or <see langword="null"/> when there is none.</returns>
+    /// <returns>The entry, or <c>null</c> when there is none.</returns>
     private delegate IMetadata? EntryLookup(MetadataGuid id);
 
     /// <summary>
@@ -356,7 +356,7 @@ public class MetadataService : IMetadataService
     /// <typeparam name="TMetadata">The type of entry.</typeparam>
     /// <param name="id">The entry.</param>
     /// <param name="entityType">The kind of entry.</param>
-    /// <returns>The entry, or <see langword="null"/> when nothing holds it or the ID names another kind.</returns>
+    /// <returns>The entry, or <c>null</c> when nothing holds it or the ID names another kind.</returns>
     private TMetadata? GetEntryOfKind<TMetadata>(MetadataGuid id, MetadataEntityType entityType) where TMetadata : class, IMetadata
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -369,7 +369,7 @@ public class MetadataService : IMetadataService
     /// </summary>
     /// <param name="resolver">The resolver for the entry's source and kind.</param>
     /// <param name="id">The entry.</param>
-    /// <returns>The entry, or <see langword="null"/> when the resolver has none.</returns>
+    /// <returns>The entry, or <c>null</c> when the resolver has none.</returns>
     private IMetadata? Resolve(IMetadataResolver resolver, MetadataGuid id)
     {
         try
@@ -456,7 +456,7 @@ public class MetadataService : IMetadataService
     /// </summary>
     /// <param name="id">The entry.</param>
     /// <param name="number">The number, when the ID is one.</param>
-    /// <returns><see langword="true"/> when the ID is a positive number.</returns>
+    /// <returns><c>true</c> when the ID is a positive number.</returns>
     private static bool TryNumber(MetadataGuid id, out int number)
         => id.TryGetNumericID(out number) && number > 0;
 
@@ -464,7 +464,7 @@ public class MetadataService : IMetadataService
     ///   A Shoko season, keyed by its series' local ID, episode type and number.
     /// </summary>
     /// <param name="id">The season.</param>
-    /// <returns>The season, or <see langword="null"/> when there is none.</returns>
+    /// <returns>The season, or <c>null</c> when there is none.</returns>
     private AnimeSeason? GetShokoSeason(MetadataGuid id)
         => ParseSeasonID(id.ID) is { } season && _seriesRepository.GetByID(season.ID) is { } series
             ? new AnimeSeason(series, season.Type, season.Number)
@@ -474,7 +474,7 @@ public class MetadataService : IMetadataService
     ///   An AniDB season, keyed by its anime's ID, episode type and number.
     /// </summary>
     /// <param name="id">The season.</param>
-    /// <returns>The season, or <see langword="null"/> when there is none.</returns>
+    /// <returns>The season, or <c>null</c> when there is none.</returns>
     private AniDB_Season? GetAnidbSeason(MetadataGuid id)
         => ParseSeasonID(id.ID) is { } season && _anidbSeriesRepository.GetByAnimeID(season.ID) is { } anime
             ? new AniDB_Season(anime, season.Type, season.Number)
@@ -485,7 +485,7 @@ public class MetadataService : IMetadataService
     ///   the local ID that named it before.
     /// </summary>
     /// <param name="id">The video.</param>
-    /// <returns>The video, or <see langword="null"/> when there is none.</returns>
+    /// <returns>The video, or <c>null</c> when there is none.</returns>
     private VideoLocal? GetVideo(MetadataGuid id)
     {
         var separator = id.ID.LastIndexOf('+');
@@ -503,7 +503,7 @@ public class MetadataService : IMetadataService
     ///   ID, the episode type and the season number, joined by colons.
     /// </summary>
     /// <param name="id">The season's ID.</param>
-    /// <returns>The parts, or <see langword="null"/> when the ID is not one.</returns>
+    /// <returns>The parts, or <c>null</c> when the ID is not one.</returns>
     private static (int ID, EpisodeType Type, int Number)? ParseSeasonID(string id)
         => id.Split(':') is not { Length: 3 } parts ||
             !int.TryParse(parts[0], out var seriesID) ||
@@ -525,7 +525,7 @@ public class MetadataService : IMetadataService
     private static class EntryKind<TMetadata> where TMetadata : class, IMetadata
     {
         /// <summary>
-        ///   The kind, or <see langword="null"/> when the type can be of any
+        ///   The kind, or <c>null</c> when the type can be of any
         ///   kind or of several.
         /// </summary>
         public static readonly MetadataEntityType? Value = KindOf(typeof(TMetadata));
@@ -563,7 +563,7 @@ public class MetadataService : IMetadataService
     ///   The one kind of entry a type stands for.
     /// </summary>
     /// <param name="type">The type of entry.</param>
-    /// <returns>The kind, or <see langword="null"/> when the type stands for none of them or for several.</returns>
+    /// <returns>The kind, or <c>null</c> when the type stands for none of them or for several.</returns>
     private static MetadataEntityType? KindOf(Type type)
     {
         MetadataEntityType? found = null;
@@ -701,7 +701,7 @@ public class MetadataService : IMetadataService
     /// <param name="owner">The owner's name, for the log.</param>
     /// <param name="id">The entry, for the log.</param>
     /// <param name="ask">Asks the owner.</param>
-    /// <returns>The URL, or <see langword="null"/>.</returns>
+    /// <returns>The URL, or <c>null</c>.</returns>
     private string? AskSiteUrl(string owner, MetadataGuid id, Func<string?> ask)
     {
         try

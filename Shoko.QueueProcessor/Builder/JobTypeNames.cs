@@ -23,7 +23,7 @@ public static partial class JobTypeNames
     /// </summary>
     /// <param name="type">The job type.</param>
     /// <returns>The stored name, e.g. <c>Namespace.Job`1[[Namespace.Provider, Plugin]], Server</c>.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <c>null</c>.</exception>
     public static string Stored(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -36,7 +36,7 @@ public static partial class JobTypeNames
     /// </summary>
     /// <param name="type">The job type.</param>
     /// <returns>The full name, without any assembly version.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <c>null</c>.</exception>
     public static string Full(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -60,7 +60,7 @@ public static partial class JobTypeNames
     /// The type's name, or for a closed generic type its name with the type arguments' short
     /// names, e.g. <c>RefreshMetadataJob&lt;MyProvider&gt;</c>.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <c>null</c>.</exception>
     public static string Short(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -85,7 +85,7 @@ public static partial class JobTypeNames
     /// name, e.g. <c>RefreshMetadataJob&lt;My.Plugin.MyProvider&gt;</c>, so two plugins' providers
     /// of the same simple name never share a pool.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="type"/> is <c>null</c>.</exception>
     public static string Key(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
@@ -110,7 +110,7 @@ public static partial class JobTypeNames
     /// </summary>
     /// <param name="storedName">A name as <see cref="Stored"/> writes it.</param>
     /// <returns>The assembly names, the defining assembly first.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="storedName"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="storedName"/> is <c>null</c>.</exception>
     public static IReadOnlyList<string> AssemblyNames(string storedName)
     {
         ArgumentNullException.ThrowIfNull(storedName);

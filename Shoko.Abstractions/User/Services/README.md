@@ -28,9 +28,10 @@ derived stats and are recomputed rather than written through.
 
 A file and an episode are not one-to-one, so the service adds up the
 percentage of every cross-reference whose video the user has watched, and flips
-the episode only once that total passes **95%**: two halves of one episode mark
-it watched only when both are watched. A file spanning three episodes marks all
-three. `noEpisodePropagation` and `noVideoPropagation` stop the propagation, as
+the episode only once that total passes **95%** (a fixed share of the episode,
+not the [completion threshold](#the-completion-rule) of a single video): two
+halves of one episode mark it watched only when both are watched. A file
+spanning three episodes marks all three. `noEpisodePropagation` and `noVideoPropagation` stop the propagation, as
 the service's own inner calls do.
 
 ---
@@ -99,6 +100,22 @@ await userDataService.SaveVideoUserData(video, user, update, VideoUserDataSaveRe
 
 `SetClientData(key, null)` removes a key; `ClearClientData` wipes every
 client's data for that video, not just yours.
+
+### The completion rule
+
+A saved `ProgressPosition` at or past the server's completion threshold counts
+as a finished playthrough: the position is cleared and the video is marked
+watched. The threshold is the admin's `CompletionThresholdPercent` setting, a
+share of the video's runtime from 50 to 100, and 95 by default.
+
+By default the rule applies only to saves whose reason is `PlaybackEnd`,
+`UserInteraction` or `None`. A progress, pause or resume save stores the
+position as given, so a player reporting progress near the end does not mark
+the video watched before playback has ended. Set
+`VideoUserDataUpdate.ApplyCompletionThreshold` to `true` or `false` to force
+the rule on or off for one save, for instance on a player that decides on its
+own when a playthrough is over. Saving past the threshold again with nothing
+played since does not count as a second watch.
 
 The other update classes cover their own levels: `EpisodeUserDataUpdate`,
 `SeriesUserDataUpdate`, `GroupUserDataUpdate` and `UserUpdate`, with the same

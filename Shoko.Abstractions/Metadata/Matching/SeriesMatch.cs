@@ -38,13 +38,13 @@ public sealed record SeriesMatch
     ///   What was compared, in words, for a candidate not taken: the anime's
     ///   date and episode count against the candidate's, how its episodes'
     ///   air dates lined up, and the one taken instead.
-    ///   <see langword="null"/> for the one taken.
+    ///   <c>null</c> for the one taken.
     /// </summary>
     public string? Details { get; init; }
 
     /// <summary>
     ///   The candidate's season the anime lines up with best, or
-    ///   <see langword="null"/> where the candidate carries no seasons. The
+    ///   <c>null</c> where the candidate carries no seasons. The
     ///   season of a conclusive <see cref="EpisodeAlignment"/> when there is
     ///   one.
     /// </summary>
@@ -52,7 +52,7 @@ public sealed record SeriesMatch
 
     /// <summary>
     ///   Where the candidate's episodes line up with the anime's by their air
-    ///   dates, or <see langword="null"/> when the source sent no dated
+    ///   dates, or <c>null</c> when the source sent no dated
     ///   episodes, the anime has none or none aired on the same days.
     /// </summary>
     public EpisodeAlignment? EpisodeAlignment { get; init; }

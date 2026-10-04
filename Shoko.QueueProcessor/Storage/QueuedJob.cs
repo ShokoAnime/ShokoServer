@@ -90,7 +90,7 @@ public class QueuedJob
     public string? ActorDeviceName { get; set; }
 
     /// <summary>
-    /// The actor the job was queued for, or <see langword="null"/> for none.
+    /// The actor the job was queued for, or <c>null</c> for none.
     /// </summary>
     internal Abstractions.JobActor? Actor
     {

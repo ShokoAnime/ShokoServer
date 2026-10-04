@@ -53,7 +53,7 @@ public class ScheduledAction
 
     /// <summary>
     /// The question to ask before running it by hand, or
-    /// <see langword="null"/> for a generic one.
+    /// <c>null</c> for a generic one.
     /// </summary>
     public string? ConfirmationMessage { get; set; }
 
@@ -98,7 +98,7 @@ public class ScheduledAction
 
     /// <summary>
     /// When the action was last queued, by a trigger or by hand, or its run's
-    /// queue job last started, whichever is later, or <see langword="null"/>
+    /// queue job last started, whichever is later, or <c>null</c>
     /// when it never was.
     /// </summary>
     public DateTime? LastRunAt { get; set; }
@@ -106,14 +106,14 @@ public class ScheduledAction
     /// <summary>
     /// When a trigger last queued the action, or the queue job of a run a
     /// trigger queued last started, whichever is later, or
-    /// <see langword="null"/> when no trigger ever did.
+    /// <c>null</c> when no trigger ever did.
     /// </summary>
     public DateTime? LastScheduledRunAt { get; set; }
 
     /// <summary>
     /// When a trigger queues the action next, never sooner than
     /// <see cref="MinimumInterval"/> after the last run the schedule counts,
-    /// or <see langword="null"/> when only start-up and queue-cleared triggers, or
+    /// or <c>null</c> when only start-up and queue-cleared triggers, or
     /// none, would.
     /// It lies in the past for a run that is due and about to be queued. A
     /// daily, weekly or monthly run is on its wall-clock minute, at 0 seconds.
@@ -128,7 +128,7 @@ public class ScheduledAction
 
     /// <summary>
     /// How far the running job is, as a percentage from 0 to 100, or
-    /// <see langword="null"/> when it is not running or does not report.
+    /// <c>null</c> when it is not running or does not report.
     /// </summary>
     public decimal? Progress { get; set; }
 

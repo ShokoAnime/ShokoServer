@@ -30,14 +30,14 @@ public interface IEventEmitter
     /// once, when it registers the feed, before any client can join.
     /// </summary>
     /// <param name="hub">The aggregate hub's context, for sending to the feed's connections and managing its group.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="hub"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="hub"/> is <c>null</c>.</exception>
     void Attach(IHubContext hub);
 
     /// <summary>
     /// Checks whether a connection has joined the feed.
     /// </summary>
     /// <param name="connectionId">The SignalR connection ID.</param>
-    /// <returns><see langword="true"/> if the connection has joined the feed; otherwise <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if the connection has joined the feed; otherwise <c>false</c>.</returns>
     bool IsListening(string connectionId);
 
     /// <summary>
@@ -47,7 +47,7 @@ public interface IEventEmitter
     /// <param name="connectionId">The SignalR connection ID.</param>
     /// <param name="user">The user the connection signed in as.</param>
     /// <param name="lastConnectedAt">When the client was last connected, if it said so when joining, so the feed can send only what changed since.</param>
-    /// <returns><see langword="true"/> if the connection joined; <see langword="false"/> if it had already joined or the user may not join the feed.</returns>
+    /// <returns><c>true</c> if the connection joined; <c>false</c> if it had already joined or the user may not join the feed.</returns>
     /// <exception cref="InvalidOperationException">The feed was not attached to a hub yet.</exception>
     Task<bool> ConnectAsync(string connectionId, IUser user, DateTime? lastConnectedAt = null);
 
@@ -56,7 +56,7 @@ public interface IEventEmitter
     /// leaves the feed or disconnects.
     /// </summary>
     /// <param name="connectionId">The SignalR connection ID.</param>
-    /// <returns><see langword="true"/> if the connection had joined the feed and left it; otherwise <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if the connection had joined the feed and left it; otherwise <c>false</c>.</returns>
     Task<bool> DisconnectAsync(string connectionId);
 
     /// <summary>

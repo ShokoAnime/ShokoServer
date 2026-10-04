@@ -30,7 +30,7 @@ internal static partial class TitleVariants
     /// <param name="title">The title.</param>
     /// <returns>
     ///   The title up to the suffix, trimmed, which is empty when the suffix
-    ///   was all there was; or <see langword="null"/> when it has none.
+    ///   was all there was; or <c>null</c> when it has none.
     /// </returns>
     public static string? WithoutSequelSuffix(string title)
         => SequelSuffixRegex().Match(title) is { Success: true } suffix ? title[..^suffix.Length].TrimEnd() : null;
@@ -48,7 +48,7 @@ internal static partial class TitleVariants
     /// </param>
     /// <param name="isJapanese">Whether the title is written in Japanese.</param>
     /// <returns>
-    ///   The title up to the subtitle, or <see langword="null"/> when it has
+    ///   The title up to the subtitle, or <c>null</c> when it has
     ///   none.
     /// </returns>
     public static string? WithoutSubtitle(string title, bool isJapanese)

@@ -37,25 +37,25 @@ internal interface IMetadataRefreshJob
     bool DownloadImages { get; set; }
 
     /// <summary>
-    ///   Whether to fetch the cast and crew, or <see langword="null"/> to go
+    ///   Whether to fetch the cast and crew, or <c>null</c> to go
     ///   by the settings.
     /// </summary>
     bool? DownloadCrewAndCast { get; set; }
 
     /// <summary>
-    ///   Whether to fetch the alternate orderings, or <see langword="null"/>
+    ///   Whether to fetch the alternate orderings, or <c>null</c>
     ///   to go by the settings.
     /// </summary>
     bool? DownloadAlternateOrdering { get; set; }
 
     /// <summary>
-    ///   Whether to fetch the networks, or <see langword="null"/> to go by the
+    ///   Whether to fetch the networks, or <c>null</c> to go by the
     ///   settings.
     /// </summary>
     bool? DownloadNetworks { get; set; }
 
     /// <summary>
-    ///   Whether to fetch the collections, or <see langword="null"/> to go by
+    ///   Whether to fetch the collections, or <c>null</c> to go by
     ///   the settings.
     /// </summary>
     bool? DownloadCollections { get; set; }

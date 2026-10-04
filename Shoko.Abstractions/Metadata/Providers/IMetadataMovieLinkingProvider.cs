@@ -39,7 +39,7 @@ public interface IMetadataMovieLinkingProvider : IMetadataMovieProvider
     /// <param name="movieID">The film, on your source and of the <c>movie</c> kind.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   The film, or <see langword="null"/> when your source has none by
+    ///   The film, or <c>null</c> when your source has none by
     ///   that ID.
     /// </returns>
     /// <exception cref="MetadataProviderUnavailableException">Your source cannot be reached for now.</exception>

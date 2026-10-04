@@ -52,9 +52,9 @@ public interface IMetadataProvider
     /// <remarks>
     ///   Only the starting position, read when you claim a source's
     ///   auto-linking; an admin's decision is kept and this is not consulted
-    ///   again. The default is <see langword="true"/>: only anime fetched or
+    ///   again. The default is <c>true</c>: only anime fetched or
     ///   refreshed from then on are searched, never the whole library at
-    ///   once. Return <see langword="false"/> to wait for a person to ask.
+    ///   once. Return <c>false</c> to wait for a person to ask.
     /// </remarks>
     bool AutoLinkByDefault { get => true; }
 
@@ -73,28 +73,28 @@ public interface IMetadataProvider
     /// </summary>
     /// <remarks>
     ///   Read every time the core is about to auto-link for you. While it is
-    ///   <see langword="false"/>, auto-linking is skipped quietly: no search
+    ///   <c>false</c>, auto-linking is skipped quietly: no search
     ///   is queued and a queued one does nothing, and it starts again for the
     ///   anime fetched or refreshed once you are configured. The default is
-    ///   <see langword="true"/>.
+    ///   <c>true</c>.
     /// </remarks>
     bool IsConfigured { get => true; }
 
     /// <summary>
     ///   What you are missing while <see cref="IsConfigured"/> is
-    ///   <see langword="false"/>, in words a person can read, such as "No API
-    ///   key is set.", or <see langword="null"/> to give no reason.
+    ///   <c>false</c>, in words a person can read, such as "No API
+    ///   key is set.", or <c>null</c> to give no reason.
     /// </summary>
     /// <remarks>
     ///   Shown in the source's status and in the answer to a search refused
     ///   while you are not configured. Not read while you are configured. The
-    ///   default is <see langword="null"/>.
+    ///   default is <c>null</c>.
     /// </remarks>
     string? NotConfiguredReason { get => null; }
 
     /// <summary>
     ///   How many of the core's jobs for you may run at once, or
-    ///   <see langword="null"/> for no limit of your own.
+    ///   <c>null</c> for no limit of your own.
     /// </summary>
     /// <remarks>
     ///   The core runs your refresh, search and image jobs as job types of

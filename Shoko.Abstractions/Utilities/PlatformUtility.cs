@@ -85,7 +85,7 @@ public static partial class PlatformUtility
     ///   Normalizes the path into an universal format which can be used on all
     ///   platforms and which is consistent across platforms, except if
     ///   <paramref name="platformFormat"/> is set to
-    ///   <see langword="true"/>, in which case it normalizes the path into an
+    ///   <c>true</c>, in which case it normalizes the path into an
     ///   universal format for the current platform.
     /// </summary>
     /// <param name="path">

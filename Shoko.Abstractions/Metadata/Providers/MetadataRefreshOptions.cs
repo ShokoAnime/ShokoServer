@@ -8,7 +8,7 @@ namespace Shoko.Abstractions.Metadata.Providers;
 /// <remarks>
 ///   Passed to <see cref="Services.IMetadataRefreshService"/> and handed on to
 ///   the provider for each entry refreshed. A switch left
-///   <see langword="null"/> means "as the provider's settings say". There is
+///   <c>null</c> means "as the provider's settings say". There is
 ///   no force flag: the core only asks for an entry that is due or forced.
 ///   <see cref="LastRefreshedAt"/> and <see cref="AnidbAnimeID"/> are set by
 ///   the core, replacing what a caller put there.
@@ -23,26 +23,26 @@ public sealed record MetadataRefreshOptions
     public bool DownloadImages { get; init; }
 
     /// <summary>
-    ///   Whether to fetch the cast and crew, or <see langword="null"/> to go by
+    ///   Whether to fetch the cast and crew, or <c>null</c> to go by
     ///   the settings.
     /// </summary>
     public bool? DownloadCrewAndCast { get; init; }
 
     /// <summary>
     ///   Whether to fetch a series' alternate orderings of its episodes, or
-    ///   <see langword="null"/> to go by the settings.
+    ///   <c>null</c> to go by the settings.
     /// </summary>
     public bool? DownloadAlternateOrdering { get; init; }
 
     /// <summary>
     ///   Whether to fetch the networks a series aired on, or
-    ///   <see langword="null"/> to go by the settings.
+    ///   <c>null</c> to go by the settings.
     /// </summary>
     public bool? DownloadNetworks { get; init; }
 
     /// <summary>
     ///   Whether to fetch the collections a film belongs to, or
-    ///   <see langword="null"/> to go by the settings.
+    ///   <c>null</c> to go by the settings.
     /// </summary>
     public bool? DownloadCollections { get; init; }
 
@@ -63,7 +63,7 @@ public sealed record MetadataRefreshOptions
 
     /// <summary>
     ///   When the entry was last refreshed without failing, in UTC, or
-    ///   <see langword="null"/> when this is its first refresh, such as for
+    ///   <c>null</c> when this is its first refresh, such as for
     ///   an entry that was just linked, or when the refresh was forced, which
     ///   vouches for nothing fetched before. Filled in by the core.
     /// </summary>
@@ -71,7 +71,7 @@ public sealed record MetadataRefreshOptions
 
     /// <summary>
     ///   The AniDB anime whose linked entries are being refreshed, or
-    ///   <see langword="null"/> when the entry was asked for on its own.
+    ///   <c>null</c> when the entry was asked for on its own.
     ///   Filled in by the core.
     /// </summary>
     public int? AnidbAnimeID { get; init; }

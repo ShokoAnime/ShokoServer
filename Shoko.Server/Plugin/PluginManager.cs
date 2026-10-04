@@ -58,7 +58,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
 
     /// <summary>
     ///   The ID of the plugin owning each assembly in the default load
-    ///   context, or <see langword="null"/> for one no plugin owns. Only
+    ///   context, or <c>null</c> for one no plugin owns. Only
     ///   filled once <see cref="ScanForPlugins"/> has loaded every plugin.
     /// </summary>
     private readonly ConcurrentDictionary<Assembly, Guid?> _assemblyOwners = new();
@@ -108,10 +108,6 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     #region Setup
 
     /// <summary>
-    ///   Basic information about a plugin, used during initial loading before
-    ///   the full <see cref="LocalPluginInfo"/> is available.
-    /// </summary>
-    /// <summary>
     ///   The plugin's wide image, shipped as <c>thumbnail.*</c> beside the
     ///   plugin or as <c>&lt;dll&gt;.thumbnail.*</c> when it has no directory.
     /// </summary>
@@ -130,6 +126,10 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     /// <param name="CannotLoadReason">Why the plugin cannot load, when known.</param>
     internal readonly record struct PluginLoadState(bool CanLoad, string? CannotLoadReason);
 
+    /// <summary>
+    ///   Basic information about a plugin, used during initial loading before
+    ///   the full <see cref="LocalPluginInfo"/> is available.
+    /// </summary>
     private sealed class InternalPluginInfo
     {
         /// <summary>
@@ -1660,7 +1660,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     /// </remarks>
     /// <param name="assembly">The assembly to look up.</param>
     /// <returns>
-    ///   The owning plugin, or <see langword="null"/> for shared assemblies:
+    ///   The owning plugin, or <c>null</c> for shared assemblies:
     ///   the runtime, the framework and the abstractions wherever they were
     ///   loaded from, and any library loaded from outside the plugins.
     /// </returns>
@@ -1694,7 +1694,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     /// <param name="pluginInfos">The known plugins, loaded or not.</param>
     /// <returns>
     ///   The plugin whose main assembly it is, or whose directory or DLLs it
-    ///   was loaded from, or <see langword="null"/> for an assembly passed
+    ///   was loaded from, or <c>null</c> for an assembly passed
     ///   owned by no plugin (see <see cref="IsPassThrough"/>) or loaded from elsewhere.
     /// </returns>
     private static LocalPluginInfo? FindLoadedPlugin(Assembly assembly, IReadOnlyList<LocalPluginInfo> pluginInfos)
@@ -1716,7 +1716,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     /// </summary>
     /// <param name="location">The path the assembly was loaded from. Empty for an assembly loaded from memory.</param>
     /// <param name="pluginInfos">The plugins to look in.</param>
-    /// <returns>The plugin, or <see langword="null"/> if none holds the file.</returns>
+    /// <returns>The plugin, or <c>null</c> if none holds the file.</returns>
     internal static LocalPluginInfo? FindPluginByLocation(string location, IEnumerable<LocalPluginInfo> pluginInfos)
     {
         if (string.IsNullOrEmpty(location))
@@ -1745,7 +1745,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     ///   the framework or the abstractions, wherever it was loaded from.
     /// </summary>
     /// <param name="assembly">The assembly.</param>
-    /// <returns><see langword="true"/> if no plugin owns it.</returns>
+    /// <returns><c>true</c> if no plugin owns it.</returns>
     internal static bool IsPassThrough(Assembly assembly)
     {
         if (assembly == typeof(IPlugin).Assembly)
@@ -2056,7 +2056,7 @@ public partial class PluginManager(ILogger<PluginManager> logger, ISystemService
     /// or SQL Server.
     /// </summary>
     /// <param name="pluginID">The plugin's ID.</param>
-    /// <returns><see langword="true"/> when nothing is left of the plugin in the core's database.</returns>
+    /// <returns><c>true</c> when nothing is left of the plugin in the core's database.</returns>
     private bool DropPluginTables(Guid pluginID)
     {
         var (type, connectionString) = PluginDatabaseServer.FromSettings(ISettingsProvider.Instance.GetSettings().Database);

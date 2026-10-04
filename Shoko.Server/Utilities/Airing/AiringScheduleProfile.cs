@@ -11,7 +11,7 @@ namespace Shoko.Server.Utilities.Airing;
 /// What <paramref name="Offset"/> is measured from.
 /// </param>
 /// <param name="Offset">
-/// The schedule's slot relative to the anchor, or <see langword="null"/> when too
+/// The schedule's slot relative to the anchor, or <c>null</c> when too
 /// few samples were known to trust one. Without it nothing is estimated.
 /// </param>
 /// <param name="TrailingShiftDays">
@@ -22,17 +22,17 @@ namespace Shoko.Server.Utilities.Airing;
 /// <param name="TrailingShiftFrom">
 /// The anchor the <paramref name="TrailingShiftDays"/> shift starts at, taken as
 /// midnight UTC of the AniDB air date of the earliest airing the shift covers, or
-/// <see langword="null"/> when no shift was learned. An episode anchored before it
+/// <c>null</c> when no shift was learned. An episode anchored before it
 /// sits inside the already-aired range and keeps the older slot, so a slip late in
 /// a run never moves an estimate that fills a gap before it.
 /// </param>
 /// <param name="HiatusFrom">
 /// The slot this schedule's first slotless, delayed airing would have had, or
-/// <see langword="null"/> when it has none. From there on this schedule estimates
+/// <c>null</c> when it has none. From there on this schedule estimates
 /// no slots, and nothing else is affected.
 /// </param>
 /// <param name="LastEstimableEpisode">
-/// The highest episode number this schedule may estimate: <see langword="null"/>
+/// The highest episode number this schedule may estimate: <c>null</c>
 /// when the coverage is open-ended, and <c>0</c> when the schedule is finished and
 /// nothing at all may be estimated.
 /// </param>

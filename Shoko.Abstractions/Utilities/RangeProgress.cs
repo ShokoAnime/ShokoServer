@@ -25,7 +25,7 @@ public sealed class RangeProgress : IProgress<decimal>
     ///   Creates a slice of <paramref name="parent"/>.
     /// </summary>
     /// <param name="parent">
-    ///   Takes the mapped values, or <see langword="null"/> to drop them.
+    ///   Takes the mapped values, or <c>null</c> to drop them.
     /// </param>
     /// <param name="start">Where 0 lands on the parent, from 0 to 100.</param>
     /// <param name="end">

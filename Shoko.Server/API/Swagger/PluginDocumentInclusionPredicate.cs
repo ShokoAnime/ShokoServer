@@ -99,7 +99,7 @@ public class PluginDocumentInclusionPredicate
     /// </summary>
     /// <param name="apiDesc">The API description of a mapped endpoint.</param>
     /// <returns>
-    /// The enabled plugin owning the endpoint, or <see langword="null"/> when
+    /// The enabled plugin owning the endpoint, or <c>null</c> when
     /// it belongs to the server or to no plugin.
     /// </returns>
     public LocalPluginInfo? GetEndpointOwner(ApiDescription apiDesc)

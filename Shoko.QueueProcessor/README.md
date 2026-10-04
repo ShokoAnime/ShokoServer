@@ -270,13 +270,13 @@ public class HashFileJob : IQueueJob
 
 | Attribute | Purpose |
 |---|---|
-| `[LimitConcurrency(n, maxAllowed: m)]` | Caps simultaneous workers for this type (or group). `m` is the hard ceiling for runtime overrides. |
+| `[LimitConcurrency(n, maxAllowedConcurrentJobs: m)]` | Caps simultaneous workers for this type (or group). `m` is the hard ceiling for runtime overrides. |
 | `[DisallowConcurrencyGroup("name")]` | Puts this job into a shared pool with all other types in the same group. |
 | `[DisallowConcurrentExecution]` | Shorthand for `[LimitConcurrency(1)]`. |
 | `[Acquisition(priority: N)]` | Sets the pool's dispatch priority. Lower `N` = higher priority. Subclass to bundle priority with domain semantics (e.g. `[AniDBHttpRateLimited]`). Defaults to `AcquisitionAttribute.LowestPriority` (999) if absent. |
 | `[RetryPolicy(MaxRetries = …, BaseDelaySeconds = …, MaxDelaySeconds = …)]` | Per-type override of the global retry backoff. |
 | `[LongRunning]` | Exempts this job from the deadlock watchdog. Apply to jobs that are expected to run for a long time (e.g. hashing a large file, full-library scans). A job with a deadline of its own registers an `IJobWatchdogThreshold` instead and stays watched. |
-| `[DatabaseRequired]` | Job won't run while the database is unavailable. |
+| `[DatabaseRequired]` | Job won't run while the database is unavailable. The host supplies the filter that knows when it is (see [Acquisition filters](#acquisition-filters)). |
 | `[NetworkRequired]` | Job won't run while the network is offline. Subclass to make custom gates (e.g. AniDB rate limit). |
 | `[JobKeyGroup("name")]` | Namespaces the dedup key (`Import/<full type name>_path:"…"`). |
 | `[JobKeyMember(id, index)]` | Explicit field in the dedup key. Falls back to all primitive props if absent. |
@@ -285,7 +285,7 @@ public class HashFileJob : IQueueJob
 
 `JobKeyBuilder<T>` builds a string like `Import/Shoko.Server.Scheduling.Jobs.Shoko.HashFileJob_path:"/movies/foo.mkv"`. Two `Enqueue` calls that produce the same key collapse to one. If you have no `[JobKeyMember]` annotations, **all public settable primitive properties** participate, so two jobs with identical inputs naturally dedup.
 
-The key starts with the job type's full name, so two plugins with a job class of the same name never dedup against each other. A class-level `[JobKeyMember("id")]` replaces that prefix with your own id, and then keeping it unique is up to you. Keys stored by an older version started with the short type name; they are rewritten to the full name once, when the queue loads at startup.
+The key starts with the job type's full name, so two plugins with a job class of the same name never dedup against each other. A class-level `[JobKeyMember("id")]` replaces that prefix with your own id, and then keeping it unique is up to you. A stored key that starts with the short type name is rewritten to the full name when the queue loads at startup.
 
 ### How job registration works
 
@@ -334,6 +334,7 @@ var result = await scheduler.Cancel(key); // Removed, CancellationRequested, Not
 await scheduler.Pause();
 await scheduler.Resume();
 await scheduler.Clear();    // wipes waiting (executing jobs run to completion)
+await scheduler.Halt("startup failed"); // pauses for good; Resume() no longer applies
 
 // Inspect
 var state = await scheduler.GetState();
@@ -384,7 +385,7 @@ public class ScanJob(IJobCancellationAccessor cancellation, IJobProgressAccessor
 
 ### Who a job runs for
 
-A host that tracks who asked for work registers an `IJobActorAccessor`. The scheduler calls `Capture()` when a job is queued and stores the returned `JobActor` (a user ID and a device name, never a credential) with the job; the worker calls `Restore(actor)` around `Process()`, with `null` for a job queued without one. A job queued from a job, directly, through `RunAfterCurrent` or as a chain, captures the restored actor and so inherits it; a chain captures once, when it is created. Without an accessor registered, jobs carry no actor. Shoko's own accessor looks the credentials up again at run time, so a job whose token was revoked in the meantime runs for the system.
+A host that tracks who asked for work registers an `IJobActorAccessor`. The scheduler calls `Capture()` when a job is queued and stores the returned `JobActor` (a user ID and a device name, never a credential) with the job; the worker calls `Restore(actor)` around `Process()`, with `null` for a job queued without one. A job queued from a job, directly, through `RunAfterCurrent` or as a chain, captures the restored actor and so inherits it; a chain captures once, when it is created. Without an accessor registered, jobs carry no actor. While the accessor's `CanRestore` is `false` (it raises `CanRestoreChanged` when that changes), the queue holds every job stored with an actor, without using a retry, rather than run it for no one; jobs without an actor are not held. Shoko's own accessor looks the credentials up again at run time, so a job whose token was revoked in the meantime runs for the system.
 
 Workers, the watchdog and the flush and recurring timers start from an empty execution context, so none of them keeps the ambient state of whoever started them.
 
@@ -427,7 +428,7 @@ scope so scoped services (including `IJobChainContextAccessor`) are naturally sh
 await scheduler.CreateJobChain()
     .Then<GetAniDBAnimeJob>(j => j.AnimeID = animeID)
     .Then<SearchMetadataJob<MyMetadataProvider>>(j => j.AnimeID = animeID)
-    .Then<FinalizeReleaseSearchJob>(j => j.AnimeID = animeID)  // [ChainFinally]
+    .Then<SummarizeChainJob>(j => j.AnimeID = animeID)  // [ChainFinally]
     .EnqueueAfterCurrent();  // or .Enqueue() to start independently
 ```
 
@@ -534,7 +535,7 @@ throw new ChainAbortException("Multiple providers failed", [ex1, ex2]);
 // Apply [ChainFinally] to a job that must always run, even after an abort.
 // Its own children also run normally after it completes.
 [ChainFinally]
-public class FinalizeReleaseSearchJob : BaseJob
+public class SummarizeChainJob : BaseJob
 {
     public override async Task Execute()
     {
@@ -566,7 +567,7 @@ Registration is safe before *or* after `StartAsync` — late registrations arm i
 
 Recurring jobs are the host's: their timers, and a registration made after start, run from an empty execution context, so they are never queued for whoever happened to register them.
 
-The interval is fixed by the code that registers it. Shoko itself no longer uses the registry: its recurring work runs as scheduled actions (`IScheduledAction.DefaultTriggers` in `Shoko.Abstractions`), whose triggers the admin sets.
+The interval is fixed by the code that registers it; `Reschedule<T>` and `Unschedule<T>` change or drop a registration. Shoko itself does not use the registry: its recurring work runs as scheduled actions (`IScheduledAction` in `Shoko.Abstractions`), whose triggers the admin sets. Besides intervals and times of day, week or month, a scheduled action can run at start-up and when the queue is cleared, so a plugin that wants its work to follow the admin's schedule should write a scheduled action rather than register a recurring job.
 
 ---
 
@@ -574,9 +575,11 @@ The interval is fixed by the code that registers it. Shoko itself no longer uses
 
 A filter says "while my condition holds, don't dispatch these job types." A worker that picks up a job whose type is excluded simply skips it — the slot is free for the next eligible job.
 
-Bundled filters:
+Bundled filter, which the host registers as an `IAcquisitionFilter` itself:
 
-- `NetworkRequiredAcquisitionFilter` — gates `[NetworkRequired]` (and subclasses) on `IConnectivityService.NetworkAvailability`.
+- `NetworkRequiredAcquisitionFilter` gates `[NetworkRequired]` (and subclasses) on `IConnectivityService.NetworkAvailability`.
+
+The library has no filter for `[DatabaseRequired]`: the host knows when its database is ready. Shoko Server registers its own filters for the database, the AniDB HTTP and UDP rate limits, and paused metadata providers (a provider implementing `IPausableMetadataProvider` holds back its own jobs while it reports itself paused, and every other provider's jobs keep running).
 
 Implement your own by registering an `IAcquisitionFilter` in DI:
 
@@ -642,7 +645,7 @@ The pool priority is the **minimum** `WorkerPriority` across all job types in th
 
 ## Events
 
-`QueueStateEventHandler` (singleton) exposes `QueueStarted`, `QueuePaused`, `QueueItemsAdded`, `QueueItemsRemoved`, `ExecutingJobsChanged`, `JobCancellationRequested` and `JobProgressChanged` (throttled per job). Subscribe from your SignalR hub, UI, or telemetry pipeline:
+`QueueStateEventHandler` (singleton) exposes `QueueStarted`, `QueuePaused`, `QueueItemsAdded`, `QueueItemsRemoved`, `ExecutingJobsChanged`, `JobCancellationRequested` and `JobProgressChanged` (throttled per job). `QueueItemsRemoved` carries the keys of the removed jobs, and none when the whole queue was cleared; Shoko's queue-cleared trigger for scheduled actions listens for that. Subscribe from your SignalR hub, UI, or telemetry pipeline:
 
 ```csharp
 public class QueueEventEmitter
@@ -655,7 +658,7 @@ public class QueueEventEmitter
 }
 ```
 
-For point-in-time inspection without events, use `QueueHandler.GetExecutingJobs()` / `GetJobs(maxCount, offset, excludeBlocked)`.
+For point-in-time inspection without events, use `QueueHandler.GetExecutingJobs()` / `GetJobs(maxCount, offset, includeScheduled, excludeBlocked)`.
 
 ---
 
@@ -768,7 +771,7 @@ include exactly where in the code that call originated.
 | Column | Notes |
 |---|---|
 | `Id` (Guid) | Unique instance ID, never changes. |
-| `JobType` | Assembly-qualified type name (interned in memory). |
+| `JobType` | Short assembly-qualified type name, `"TypeName, AssemblyShortName"`, without versions (interned in memory). |
 | `JobKey` | Unique dedup key (also unique-indexed). |
 | `JobDataJson` | Serialised public settable props (Newtonsoft.Json). |
 | `Priority` | Higher first; FIFO within priority. |

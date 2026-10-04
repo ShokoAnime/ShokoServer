@@ -40,7 +40,7 @@ public sealed record MetadataSeriesSearchResult : MetadataSearchResult
     public int? EpisodeCount { get; init; }
 
     /// <summary>
-    ///   Its regular seasons, specials left out, or <see langword="null"/>
+    ///   Its regular seasons, specials left out, or <c>null</c>
     ///   where the source does not group episodes into seasons or the search
     ///   did not say.
     /// </summary>

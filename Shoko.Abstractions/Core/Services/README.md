@@ -35,7 +35,7 @@ events mark when the database is safe to use:
 | `SetupRequired` | When the server boots into first-run setup instead of starting | Nothing. The server is waiting for the user. |
 | `AboutToStart` | After the database, the plugin databases, relocation presets, the AniDB UDP handler and the file watchers are all up, and before `Started` | Everything. This is the hook to initialise against. |
 | `SetupCompleted` | After `AboutToStart`, on the first run only | Same as `AboutToStart`. |
-| `Started` | Immediately after, once `StartedAt` is stamped | Same. It is raised before the startup scan and import jobs are queued, so do not expect them to be waiting yet. |
+| `Started` | Immediately after, once `StartedAt` is stamped | Same. Scheduled actions start from it, so the runs set to fire at start-up (such as a library scan) are queued after it is raised; do not expect them to be waiting yet. |
 
 `AboutToStart` is the one to use. Its `ServerAboutToStartEventArgs` carries the
 `IServiceProvider`. Subscribe from a hosted service or from `IPlugin.Setup`;

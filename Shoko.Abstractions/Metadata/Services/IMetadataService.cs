@@ -65,8 +65,8 @@ public interface IMetadataService
     ///   entries still resolve; a source that only links resolves to nothing.
     /// </remarks>
     /// <param name="id">The entry, e.g. <c>anidb://series/1</c>.</param>
-    /// <returns>The entry, or <see langword="null"/> when nothing holds it.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <returns>The entry, or <c>null</c> when nothing holds it.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     IMetadata? GetEntry(MetadataGuid id);
 
     /// <summary>
@@ -82,10 +82,10 @@ public interface IMetadataService
     /// </typeparam>
     /// <param name="id">The entry, e.g. <c>tmdb://studio/1</c>.</param>
     /// <returns>
-    ///   The entry, or <see langword="null"/> when nothing holds it or it is
+    ///   The entry, or <c>null</c> when nothing holds it or it is
     ///   not a <typeparamref name="TMetadata"/>.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     TMetadata? GetEntry<TMetadata>(MetadataGuid id) where TMetadata : class, IMetadata;
 
     /// <summary>
@@ -93,8 +93,8 @@ public interface IMetadataService
     ///   <see cref="GetEntry{TMetadata}(MetadataGuid)"/> does.
     /// </summary>
     /// <param name="id">The series, e.g. <c>tmdb://series/1</c>.</param>
-    /// <returns>The series, or <see langword="null"/> when nothing holds it or the ID names another kind.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <returns>The series, or <c>null</c> when nothing holds it or the ID names another kind.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     ISeries? GetSeries(MetadataGuid id);
 
     /// <summary>
@@ -103,8 +103,8 @@ public interface IMetadataService
     ///   series' own seasons, or a group of a stored ordering.
     /// </summary>
     /// <param name="id">The season.</param>
-    /// <returns>The season, or <see langword="null"/> when nothing holds it or the ID names another kind.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <returns>The season, or <c>null</c> when nothing holds it or the ID names another kind.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     ISeason? GetSeason(MetadataGuid id);
 
     /// <summary>
@@ -112,8 +112,8 @@ public interface IMetadataService
     ///   <see cref="GetEntry{TMetadata}(MetadataGuid)"/> does.
     /// </summary>
     /// <param name="id">The episode.</param>
-    /// <returns>The episode, or <see langword="null"/> when nothing holds it or the ID names another kind.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <returns>The episode, or <c>null</c> when nothing holds it or the ID names another kind.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     IEpisode? GetEpisode(MetadataGuid id);
 
     /// <summary>
@@ -121,8 +121,8 @@ public interface IMetadataService
     ///   <see cref="GetEntry{TMetadata}(MetadataGuid)"/> does.
     /// </summary>
     /// <param name="id">The movie.</param>
-    /// <returns>The movie, or <see langword="null"/> when nothing holds it or the ID names another kind.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <returns>The movie, or <c>null</c> when nothing holds it or the ID names another kind.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     IMovie? GetMovie(MetadataGuid id);
 
     /// <summary>
@@ -130,8 +130,8 @@ public interface IMetadataService
     ///   <see cref="GetEntry{TMetadata}(MetadataGuid)"/> does.
     /// </summary>
     /// <param name="id">The collection.</param>
-    /// <returns>The collection, or <see langword="null"/> when nothing holds it or the ID names another kind.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <returns>The collection, or <c>null</c> when nothing holds it or the ID names another kind.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     ICollection? GetCollection(MetadataGuid id);
 
     /// <summary>
@@ -146,7 +146,7 @@ public interface IMetadataService
     /// </remarks>
     /// <param name="member">The series, movie or group, e.g. <c>tmdb://movie/81</c>.</param>
     /// <returns>The collections, or an empty list when it is in none.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="member"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="member"/> is <c>null</c>.</exception>
     IReadOnlyList<ICollection> GetCollectionsWith(MetadataGuid member);
 
     #endregion
@@ -165,10 +165,10 @@ public interface IMetadataService
     /// </remarks>
     /// <param name="entry">The entry.</param>
     /// <returns>
-    ///   The absolute URL, or <see langword="null"/> when nobody owns the
+    ///   The absolute URL, or <c>null</c> when nobody owns the
     ///   entry's source and kind or the entry has no page.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <c>null</c>.</exception>
     string? GetSiteUrl(IMetadata entry);
 
     /// <summary>
@@ -181,10 +181,10 @@ public interface IMetadataService
     /// </remarks>
     /// <param name="id">The entry, e.g. <c>anidb://series/1</c>.</param>
     /// <returns>
-    ///   The absolute URL, or <see langword="null"/> when nobody owns the
+    ///   The absolute URL, or <c>null</c> when nobody owns the
     ///   entry's source and kind or the entry has no page.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     string? GetSiteUrl(MetadataGuid id);
 
     #endregion
@@ -249,14 +249,14 @@ public interface IMetadataService
     /// Looks up a shoko episode by its ID.
     /// </summary>
     /// <param name="episodeID">The ID of the episode.</param>
-    /// <returns>The episode if found, otherwise <see langword="null"/>.</returns>
+    /// <returns>The episode if found, otherwise <c>null</c>.</returns>
     IShokoEpisode? GetShokoEpisodeByID(int episodeID);
 
     /// <summary>
     /// Looks up a shoko episode by its AniDB ID.
     /// </summary>
     /// <param name="anidbEpisodeID">The AniDB ID of the episode.</param>
-    /// <returns>The episode if found, otherwise <see langword="null"/>.</returns>
+    /// <returns>The episode if found, otherwise <c>null</c>.</returns>
     IShokoEpisode? GetShokoEpisodeByAnidbID(int anidbEpisodeID);
 
     #endregion
@@ -322,14 +322,14 @@ public interface IMetadataService
     /// Looks up a shoko series by its ID.
     /// </summary>
     /// <param name="seriesID">The ID of the series.</param>
-    /// <returns>The series if found, otherwise <see langword="null"/>.</returns>
+    /// <returns>The series if found, otherwise <c>null</c>.</returns>
     IShokoSeries? GetShokoSeriesByID(int seriesID);
 
     /// <summary>
     /// Looks up a shoko series by its AniDB ID.
     /// </summary>
     /// <param name="anidbSeriesID">The AniDB ID of the series.</param>
-    /// <returns>The series if found, otherwise <see langword="null"/>.</returns>
+    /// <returns>The series if found, otherwise <c>null</c>.</returns>
     IShokoSeries? GetShokoSeriesByAnidbID(int anidbSeriesID);
 
     #region Series | Custom Tags
@@ -344,14 +344,14 @@ public interface IMetadataService
     /// Looks up a custom tag by its ID.
     /// </summary>
     /// <param name="tagID">The ID of the custom tag.</param>
-    /// <returns>The custom tag if found, otherwise <see langword="null"/>.</returns>
+    /// <returns>The custom tag if found, otherwise <c>null</c>.</returns>
     IShokoTag? GetCustomTagByID(int tagID);
 
     /// <summary>
     /// Creates a custom tag with the given name and optional overview.
     /// </summary>
     /// <param name="data">The custom tag data.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <see langword="null"/> or <see cref="CustomTagData.Name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <c>null</c> or <see cref="CustomTagData.Name"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">Thrown when <see cref="CustomTagData.Name"/> is empty.</exception>
     /// <exception cref="DuplicateNameException">Thrown when a tag with the same name already exists.</exception>
     /// <returns>The created custom tag.</returns>
@@ -376,7 +376,7 @@ public interface IMetadataService
     /// </summary>
     /// <param name="series">The series to add the custom tags to.</param>
     /// <param name="tags">The custom tags to add.</param>
-    /// <returns><see langword="true"/> if any custom tags were added, otherwise <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if any custom tags were added, otherwise <c>false</c>.</returns>
     bool AddCustomTagsToSeries(IShokoSeries series, IEnumerable<IShokoTag> tags);
 
     /// <summary>
@@ -384,14 +384,14 @@ public interface IMetadataService
     /// </summary>
     /// <param name="series">The series to remove the custom tags from.</param>
     /// <param name="tags">The custom tags to remove.</param>
-    /// <returns><see langword="true"/> if any custom tags were removed, otherwise <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if any custom tags were removed, otherwise <c>false</c>.</returns>
     bool RemoveCustomTagsFromSeries(IShokoSeries series, IEnumerable<IShokoTag> tags);
 
     /// <summary>
     /// Clears all custom tags for a series.
     /// </summary>
     /// <param name="series">The series to clear the custom tags for.</param>
-    /// <returns><see langword="true"/> if any custom tags were cleared, otherwise <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if any custom tags were cleared, otherwise <c>false</c>.</returns>
     bool ClearCustomTagsForSeries(IShokoSeries series);
 
     #endregion
@@ -481,7 +481,7 @@ public interface IMetadataService
     /// Looks up a shoko group by its ID.
     /// </summary>
     /// <param name="groupID">The ID of the group.</param>
-    /// <returns>The group if found, otherwise <see langword="null"/>.</returns>
+    /// <returns>The group if found, otherwise <c>null</c>.</returns>
     IShokoGroup? GetShokoGroupByID(int groupID);
 
     #endregion

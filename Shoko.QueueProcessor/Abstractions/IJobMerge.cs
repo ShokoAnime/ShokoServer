@@ -9,7 +9,7 @@ namespace Shoko.QueueProcessor.Abstractions;
 public interface IJobMerge
 {
     /// <summary>
-    /// Merges parameters from <paramref name="incoming"/> into <see langword="this"/> (the existing
+    /// Merges parameters from <paramref name="incoming"/> into this (the existing
     /// queued job). Called only when a waiting job collides with a new enqueue of the same key.
     /// </summary>
     /// <remarks>
@@ -21,8 +21,8 @@ public interface IJobMerge
     /// A freshly-deserialized copy of the incoming job with only data properties populated.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if any property was changed (upgrade occurred, triggers a DB write);
-    /// <see langword="false"/> if the existing job already covers the incoming request.
+    /// <c>true</c> if any property was changed (upgrade occurred, triggers a DB write);
+    /// <c>false</c> if the existing job already covers the incoming request.
     /// </returns>
     bool TryMerge(IQueueJob incoming);
 }

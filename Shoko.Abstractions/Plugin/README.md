@@ -479,8 +479,9 @@ active version (or the highest, when none is active):
 | `CanUninstall` | Removable by the user. |
 
 It also carries `Version`, `Authors`, `RepositoryUrl`, `HomepageUrl`, `Tags`,
-`Thumbnail`, `InstalledAt`/`UninstalledAt`, `LoadOrder` (dependencies always
-ahead of their dependents), the `DLLs` and `Types` of the assembly, the declared
+`Thumbnail` and `Icon`, `InstalledAt`/`UninstalledAt`, `LoadOrder`
+(dependencies always ahead of their dependents), the `ContainingDirectory`
+(`null` for a loose dll), the `DLLs` and `Types` of the assembly, the declared
 `Dependencies`, and the resolved `Plugin` instance with its `PluginType`,
 `ServiceRegistrationType` and `ApplicationRegistrationType`. `GetPages()` and
 `GetFeatures()` on it return the validated `LocalPluginPage` and
@@ -551,7 +552,7 @@ lists releases, and a release lists per-runtime archives.
 
 ```
 PackageRepositoryInfo  a feed, with its own StaleTime and LastFetchedAt
-   └─ PackageManifestInfo   one package: id, name, overview, authors, tags, thumbnail
+   └─ PackageManifestInfo   one package: id, name, overview, authors, tags, thumbnail, icon
         └─ PackageReleaseInfo   one version: channel, release notes, dependencies
              └─ PackageArchiveInfo   one build: runtime id, ABI version, url, checksum
 

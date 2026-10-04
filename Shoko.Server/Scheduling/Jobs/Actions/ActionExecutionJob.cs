@@ -161,7 +161,7 @@ public class ActionExecutionJob(
     ///   Looks up the entity the action was queued for.
     /// </summary>
     /// <remarks>
-    ///   Returns <see langword="null"/> when it is gone rather than throwing:
+    ///   Returns <c>null</c> when it is gone rather than throwing:
     ///   an entity deleted between enqueue and execution is permanent, and
     ///   throwing would spend the job's whole retry budget rediscovering that.
     /// </remarks>

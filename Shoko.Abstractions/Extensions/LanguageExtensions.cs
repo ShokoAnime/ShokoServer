@@ -45,7 +45,7 @@ public static class LanguageExtensions
     /// </summary>
     /// <param name="lang">Language code or name.</param>
     /// <param name="language">The resolved language.</param>
-    /// <returns><see langword="true"/> if the string names a language.</returns>
+    /// <returns><c>true</c> if the string names a language.</returns>
     public static bool TryGetTitleLanguage(this string lang, out TitleLanguage language)
     {
         language = GetTitleLanguage(lang, reportUnknown: false);

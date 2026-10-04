@@ -8,7 +8,7 @@ This has all files related to handling the AniDB User data. This includes MyList
 
 #### Architecture
 
-All MyList logic lives in `MylistService` (`Shoko.Server/Services/MylistService.cs`), exposed to plugins through
+All MyList logic lives in `MylistService` (`Shoko.Server/Services/Mylist/MylistService.cs`), exposed to plugins through
 `IMylistService` (`Shoko.Abstractions/Metadata/Anidb/Services/IMylistService.cs`). The queue jobs
 (`AddAniDBMylistEntryJob`, `UpdateAniDBMylistEntryJob`, `RemoveAniDBMylistEntryJob`, `SyncAniDBMylistJob`) are thin
 wrappers that forward to the service, so the rate-limit and concurrency attributes stay on the queue side while the
@@ -115,10 +115,10 @@ Entries that cannot be matched are treated as missing and disposed of per the co
 we know whether they are generic. An entry whose `IsGeneric` is `null` is left alone and counted in the sync summary:
 without that answer we do not know which tier should have matched it, so calling it missing is a guess, and acting on
 the guess would remove a generic entry from the user's AniDB MyList over a file state that never meant what we read
-into it. With `AniDb.MyList.UseGenericFileIndex` off this is every unmatched entry, so the sync stops disposing of anything
-— the safe reading of "we cannot tell", and the reason to consider turning the index on by default.
+into it. With `AniDb.MyList.UseGenericFileIndex` off this is every unmatched entry, so the sync stops disposing of anything:
+the safe reading of "we cannot tell", and the reason the index is on by default.
 
 The full MyList is backed up on every fetch to `<Data>/MyList/Backups/`, as dated gzipped JSON rotated by
-`AniDb.MyList.RetainedBackupCount`. The working cache is `<Data>/MyList/mylist.json.gz` and is deliberately *not* the same
-file — the two used to share a path, so each fetch overwrote the cache with a plain array moments after writing it,
-losing the fetch stamp and making the cache read as never-fetched on the next restart.
+`AniDb.MyList.RetainedBackupCount` (30 by default). The working cache is `<Data>/MyList/mylist.json.br`, Brotli
+compressed, and is deliberately kept apart from the backups, so writing a backup can never overwrite the cache and
+lose its fetch stamp.

@@ -172,10 +172,9 @@ public interface IVideoRelocationService
     ///   request.
     /// </summary>
     /// <remarks>
-    ///   If the video file is already being relocated then the current
-    ///   operation will be queued for when it finishes, unless
-    ///   <seealso cref="AutoRelocateRequest.CancelIfRunning"/> is set to
-    ///   <c>true</c>.
+    ///   Relocations of the same file are not coordinated: a call made while
+    ///   another one is running for the file starts at once, alongside it.
+    ///   <see cref="AutoRelocateRequest.CancelIfRunning"/> is not read.
     /// </remarks>
     /// <param name="file">
     ///   The video file to potentially relocate.
@@ -194,10 +193,9 @@ public interface IVideoRelocationService
     ///   request.
     /// </summary>
     /// <remarks>
-    ///   If the video file is already being relocated then the current
-    ///   operation will be queued for when it finishes, unless
-    ///   <seealso cref="DirectlyRelocateRequest.CancelIfRunning"/> is set to
-    ///   <c>true</c>.
+    ///   Relocations of the same file are not coordinated: a call made while
+    ///   another one is running for the file starts at once, alongside it.
+    ///   <see cref="DirectlyRelocateRequest.CancelIfRunning"/> is not read.
     /// </remarks>
     /// <param name="file">
     ///   The video file to potentially relocate.

@@ -502,7 +502,7 @@ public class MetadataProviderController(
     /// user may see it.
     /// </summary>
     /// <param name="guid">The entry.</param>
-    /// <returns>The result, or <see langword="null"/>.</returns>
+    /// <returns>The result, or <c>null</c>.</returns>
     private MetadataSearchResult? Stored(MetadataGuid guid)
     {
         var entry = metadataService.GetEntry(guid);
@@ -525,7 +525,7 @@ public class MetadataProviderController(
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="kind">Series or movies.</param>
-    /// <returns>The refusal, or <see langword="null"/> to go ahead.</returns>
+    /// <returns>The refusal, or <c>null</c> to go ahead.</returns>
     private ActionResult? RefuseLookup(MetadataSource source, MetadataEntityType kind)
     {
         if (LinkingProvider(source, kind) is not { SupportsLookup: true } provider)
@@ -541,7 +541,7 @@ public class MetadataProviderController(
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="kind">Series or movies.</param>
-    /// <returns>The provider, or <see langword="null"/> when none is enabled.</returns>
+    /// <returns>The provider, or <c>null</c> when none is enabled.</returns>
     private MetadataProviderInfo? LinkingProvider(MetadataSource source, MetadataEntityType kind)
         => providerManager.GetAvailableProviders(kind, source).FirstOrDefault(info => Links(info, kind));
 
@@ -820,7 +820,7 @@ public class MetadataProviderController(
     /// server's own.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns>A problem to answer with, or <see langword="null"/> to go ahead.</returns>
+    /// <returns>A problem to answer with, or <c>null</c> to go ahead.</returns>
     private ActionResult? RefuseNonTarget(MetadataSource source)
         => MetadataSourceActions.IsLinkTarget(source) ? null : ValidationProblem($"Nothing is linked to {source.Name}, so it has no such action.", "source");
 
@@ -828,7 +828,7 @@ public class MetadataProviderController(
     /// Refuses a source no enabled provider answers for.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns>A problem to answer with, or <see langword="null"/> to go ahead.</returns>
+    /// <returns>A problem to answer with, or <c>null</c> to go ahead.</returns>
     private ActionResult? RefuseWithoutProvider(MetadataSource source)
         => providerManager.MetadataProviders.Any(info => info.Source == source && info.Enabled)
             ? null
@@ -838,7 +838,7 @@ public class MetadataProviderController(
     /// Refuses a kind of entry other than series and movies.
     /// </summary>
     /// <param name="kind">The kind, if one was given.</param>
-    /// <returns>A problem to answer with, or <see langword="null"/> to go ahead.</returns>
+    /// <returns>A problem to answer with, or <c>null</c> to go ahead.</returns>
     private ActionResult? RefuseKind(MetadataEntityType? kind)
         => kind is null || kind == MetadataEntityType.Series || kind == MetadataEntityType.Movie
             ? null

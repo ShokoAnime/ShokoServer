@@ -27,7 +27,7 @@ internal static partial class TitleVariants
     /// </summary>
     /// <param name="title">The title.</param>
     /// <returns>
-    ///   The title up to the suffix, trimmed; or <see langword="null"/> when
+    ///   The title up to the suffix, trimmed; or <c>null</c> when
     ///   it has none.
     /// </returns>
     public static string? WithoutSequelSuffix(string title)
@@ -43,7 +43,7 @@ internal static partial class TitleVariants
     /// </summary>
     /// <param name="title">The title, already without its sequel suffix where it had one.</param>
     /// <param name="isJapanese">Whether the title is written in Japanese.</param>
-    /// <returns>The title up to the subtitle, or <see langword="null"/> when it has none.</returns>
+    /// <returns>The title up to the subtitle, or <c>null</c> when it has none.</returns>
     public static string? WithoutSubtitle(string title, bool isJapanese)
     {
         var index = title.IndexOf(isJapanese ? ' ' : ':');

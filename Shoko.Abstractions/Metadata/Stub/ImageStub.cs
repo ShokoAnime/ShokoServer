@@ -34,7 +34,7 @@ public class ImageStub(IImage image, IImageCrossReference? xref = null, bool lin
     /// </param>
     /// <param name="isPreferred">
     ///   Whether the image is preferred, overriding what the cross-reference
-    ///   says, or <see langword="null"/> to read it from there.
+    ///   says, or <c>null</c> to read it from there.
     /// </param>
     /// <returns>
     ///   A new instance of the <see cref="ImageStub"/> class.

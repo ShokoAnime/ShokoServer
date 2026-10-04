@@ -21,8 +21,7 @@ public interface IManagedFolderIgnoreRule
     ///   The managed folder we're checking in.
     /// </param>
     /// <param name="fileSystemInfo">
-    ///   The potential video file or folder which may potentially potentially
-    ///   contain video files.
+    ///   The potential video file, or a folder which may contain video files.
     /// </param>
     /// <returns>
     ///   True if the file or folder should be ignored.

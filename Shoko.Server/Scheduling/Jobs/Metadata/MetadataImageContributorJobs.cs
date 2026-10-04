@@ -17,11 +17,11 @@ public static class MetadataImageContributorJobs
     /// </summary>
     /// <param name="contributorType">The contributor's concrete type.</param>
     /// <returns>
-    ///   The closed job type, or <see langword="null"/> when the type is not a
+    ///   The closed job type, or <c>null</c> when the type is not a
     ///   concrete contributor or the job type's stored name is too long for
     ///   the queue; see <see cref="GetOverlongJobType"/>.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="contributorType"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="contributorType"/> is <c>null</c>.</exception>
     public static Type? GetJobType(Type contributorType)
         => GetCandidateJobType(contributorType) is { } jobType && QueueProcessorExtensions.FitsQueue(jobType) ? jobType : null;
 
@@ -30,8 +30,8 @@ public static class MetadataImageContributorJobs
     ///   stored name is longer than the queue keeps.
     /// </summary>
     /// <param name="contributorType">The contributor's concrete type.</param>
-    /// <returns>The closed job type left out, or <see langword="null"/>.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="contributorType"/> is <see langword="null"/>.</exception>
+    /// <returns>The closed job type left out, or <c>null</c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="contributorType"/> is <c>null</c>.</exception>
     public static Type? GetOverlongJobType(Type contributorType)
         => GetCandidateJobType(contributorType) is { } jobType && !QueueProcessorExtensions.FitsQueue(jobType) ? jobType : null;
 
@@ -40,7 +40,7 @@ public static class MetadataImageContributorJobs
     /// </summary>
     /// <param name="jobType">The job type.</param>
     /// <returns>
-    ///   The contributor type, or <see langword="null"/> when the job is not
+    ///   The contributor type, or <c>null</c> when the job is not
     ///   one of a contributor's.
     /// </returns>
     public static Type? GetContributorType(Type jobType)
@@ -54,8 +54,8 @@ public static class MetadataImageContributorJobs
     ///   can keep it.
     /// </summary>
     /// <param name="contributorType">The contributor's concrete type.</param>
-    /// <returns>The closed job type, or <see langword="null"/>.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="contributorType"/> is <see langword="null"/>.</exception>
+    /// <returns>The closed job type, or <c>null</c>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="contributorType"/> is <c>null</c>.</exception>
     private static Type? GetCandidateJobType(Type contributorType)
     {
         ArgumentNullException.ThrowIfNull(contributorType);

@@ -17,7 +17,7 @@ namespace Shoko.Tests.Settings;
 /// Round-trips <see cref="MetadataServiceSettings"/> through the real
 /// <see cref="ConfigurationService"/>, since the seeding tells "never decided"
 /// from "decided: nobody" by whether an entry is missing or
-/// <see langword="null"/>, and that only holds if the file keeps the
+/// <c>null</c>, and that only holds if the file keeps the
 /// difference.
 /// </summary>
 /// <remarks>

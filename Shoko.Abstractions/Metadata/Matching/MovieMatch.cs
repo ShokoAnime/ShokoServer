@@ -43,7 +43,7 @@ public sealed record MovieMatch
     /// <summary>
     ///   What was compared, in words, for a candidate not taken: the year
     ///   looked for against the film's, and the one taken instead.
-    ///   <see langword="null"/> for the one taken.
+    ///   <c>null</c> for the one taken.
     /// </summary>
     public string? Details { get; init; }
 }

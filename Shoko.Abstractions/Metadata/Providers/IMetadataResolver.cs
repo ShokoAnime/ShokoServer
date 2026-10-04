@@ -36,7 +36,7 @@ public interface IMetadataResolver
     ///   <see cref="Scope"/>.
     /// </param>
     /// <returns>
-    ///   The entry, or <see langword="null"/> to leave the ID to the metadata
+    ///   The entry, or <c>null</c> to leave the ID to the metadata
     ///   stores.
     /// </returns>
     IMetadata? GetEntry(MetadataGuid id);
@@ -57,7 +57,7 @@ public interface IMetadataResolver
     ///   stored yet, it is only an <see cref="IMetadata"/> carrying its ID.
     /// </param>
     /// <returns>
-    ///   The absolute URL, or <see langword="null"/> when the entry has no
+    ///   The absolute URL, or <c>null</c> when the entry has no
     ///   page.
     /// </returns>
     string? GetSiteUrl(IMetadata entry) => null;

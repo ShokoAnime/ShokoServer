@@ -100,7 +100,7 @@ public interface ISystemService
     /// </summary>
     /// <returns>
     ///   The <see cref="IHost"/> instance if the server was started
-    ///   successfully, otherwise <see langword="null" />.
+    ///   successfully, otherwise <c>null</c>.
     /// </returns>
     Task<IHost?> StartAsync();
 
@@ -137,8 +137,8 @@ public interface ISystemService
     ///   it can continue with the startup process.
     /// </summary>
     /// <returns>
-    ///   <see langword="true" /> if the server was in setup mode and the setup
-    ///   process was completed, otherwise <see langword="false" />.
+    ///   <c>true</c> if the server was in setup mode and the setup
+    ///   process was completed, otherwise <c>false</c>.
     /// </returns>
     bool CompleteSetup();
 
@@ -150,7 +150,7 @@ public interface ISystemService
     ///   Dispatched when the a shutdown or restart has been requested, and the
     ///   server is about to shut down. Event subscribers can cancel the
     ///   shutdown by setting the <see cref="CancelEventArgs.Cancel"/> property
-    ///   to <see langword="true" />.
+    ///   to <c>true</c>.
     /// </summary>
     event EventHandler<CancelEventArgs>? ShutdownOrRestartRequested;
 
@@ -176,8 +176,8 @@ public interface ISystemService
     ///   Request a shutdown of the server.
     /// </summary>
     /// <returns>
-    ///   <see langword="true" /> if the shutdown was permitted, otherwise
-    ///   <see langword="false" />.
+    ///   <c>true</c> if the shutdown was permitted, otherwise
+    ///   <c>false</c>.
     /// </returns>
     bool RequestShutdown();
 
@@ -203,8 +203,8 @@ public interface ISystemService
     ///   Request a restart of the server.
     /// </summary>
     /// <returns>
-    ///   <see langword="true" /> if the restart was permitted, otherwise
-    ///   <see langword="false" />.
+    ///   <c>true</c> if the restart was permitted, otherwise
+    ///   <c>false</c>.
     /// </returns>
     bool RequestRestart();
 

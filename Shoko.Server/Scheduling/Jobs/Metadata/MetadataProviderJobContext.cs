@@ -14,12 +14,12 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 internal static class MetadataProviderJobContext
 {
     /// <summary>
-    ///   The registered info of a provider type, or <see langword="null"/>
+    ///   The registered info of a provider type, or <c>null</c>
     ///   when no provider of the type is registered.
     /// </summary>
     /// <typeparam name="TProvider">The provider's type.</typeparam>
     /// <param name="providerManager">Where the providers are registered.</param>
-    /// <returns>The info, or <see langword="null"/>.</returns>
+    /// <returns>The info, or <c>null</c>.</returns>
     public static MetadataProviderInfo? Find<TProvider>(IMetadataProviderManager providerManager)
         where TProvider : class, IMetadataProvider
     {
@@ -66,7 +66,7 @@ internal static class MetadataProviderJobContext
     /// <param name="providerManager">Where the providers are registered.</param>
     /// <param name="logger">Where a missing provider is reported.</param>
     /// <returns>
-    ///   The info and the provider, or <see langword="null"/> when no provider
+    ///   The info and the provider, or <c>null</c> when no provider
     ///   of the type was registered, such as when its plugin refused a
     ///   reserved source.
     /// </returns>

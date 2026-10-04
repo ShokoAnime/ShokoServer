@@ -78,8 +78,8 @@ public sealed class EpisodeAiringFilteringOptions
     ///   <see cref="AiringEntityAnchor.Shoko"/> drops every airing that does
     ///   not resolve to an <see cref="IShokoEpisode"/>, and follows the entity
     ///   links needed to reach one whether or not
-    ///   <see cref="LinkedEntityAirings"/> asked for them — anchoring to shoko
-    ///   without walking the links would only ever answer nothing.
+    ///   <see cref="LinkedEntityAirings"/> asked for them, since anchoring to
+    ///   shoko without walking the links would only ever answer nothing.
     /// </remarks>
     public AiringEntityAnchor EntityAnchor { get; set; }
 

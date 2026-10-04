@@ -141,6 +141,12 @@ to the queue and is what you almost always want from a plugin. Either way the
 files found are pushed through the hashing and release pipeline, not processed
 by the scan itself.
 
+`ScheduleScanForManagedFolders` queues one scan per folder, drop sources first.
+Left at `null`, `onlyNewFiles` scans the drop sources in full and the other
+folders for new files only. It reports its progress over the queuing and
+honours a cancellation token, and it is what the "Scan Managed Folders"
+scheduled action runs. "Scan Drop Folders" scans the drop sources alone.
+
 `NotifyVideoFileChangeDetected` is the "something happened at this path" hook,
 for a plugin that has its own watcher or has just written a file. It throws
 `InvalidOperationException` when the path falls outside every managed folder,
@@ -363,10 +369,6 @@ once per completed search, whether or not anything was found, and carries the
 attempted providers, the selected one, and any exception. It is the right place
 for "the pipeline gave up on this file" logic.
 
-> The XML docs on this interface still describe a parallel mode that ran every
-> provider at once. That mode was removed; the search is sequential, and there
-> is no property to switch it.
-
 ---
 
 ## `IVideoRelocationService`
@@ -423,8 +425,9 @@ Two requests come back as failures rather than doing something surprising:
 `DeleteEmptyDirectories` and `AllowRelocationInsideDestination` are taken from
 the user's import settings. Pass a request and you get the record's own
 defaults, which enable moving and renaming regardless of what the user
-configured. `CancelIfRunning` decides what happens when the same file is already
-being relocated: queue behind it (the default) or give up.
+configured. `CancelIfRunning` is on both request types, but the service does
+not read it: two relocations of the same file are not queued behind each other
+or cancelled, so do not rely on it.
 
 ### Utilities
 
@@ -461,10 +464,9 @@ them. Every one hands back a `RelocationPresetInfo`, which implements
 provider is not currently loaded, which is the normal state for a preset left
 behind by an uninstalled plugin.
 
-> `GetStoredPresets(available:)` filters on exactly that: whether the preset's
-> provider info resolved. As implemented, the flag selects presets **without** a
-> loaded provider when you pass `true`, which is the opposite of what the name
-> suggests. Filter on `ProviderInfo is not null` yourself if it matters.
+`GetStoredPresets(available:)` filters on exactly that: `true` keeps the
+presets whose provider is loaded, `false` the ones whose provider is missing,
+and `null` keeps them all.
 
 ### Writing
 

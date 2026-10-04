@@ -2,7 +2,10 @@
 
 The API for deciding **where a video file should live and what it should be
 called**. Any plugin can add `IRelocationProvider` implementations (renamers),
-alongside the WebAOM renamer, which ships with the server as a bundled plugin.
+alongside the WebAOM renamer. That renamer lives in the bundled
+`Shoko.Plugin.WebAOM` plugin, and a server starting with no presets creates a
+"Default" preset for it, so it is the default provider until a user picks
+another.
 
 A provider never touches the file system. It is handed everything known about
 one file and answers with a destination; `IVideoRelocationService` does the
@@ -36,7 +39,8 @@ deserialised into `TConfig` and handed to you on the `RelocationContext<TConfig>
 
 | Trigger | Path |
 |---|---|
-| A release was saved for a video, or a release search finished or was skipped | `VideoReleaseService` and `FinalizeReleaseSearchJob` call `ScheduleAutoRelocationForVideo` / `ChainAutoRelocationForVideo` → `RenameMoveFileJob` |
+| A release was saved for a video, or a release search finished or was skipped | `VideoReleaseService` and `FinalizeReleaseSearchJob` call `ScheduleAutoRelocationForVideo` → `RenameMoveFileJob` |
+| An AniDB anime refresh added the anime or changed its episodes or series, and `RelocateOnImport` is on | `AnidbService` calls `ChainAutoRelocationForVideo` for the linked files, run right after the refresh |
 | An already-recognised file was force re-hashed and `RelocateOnImport` is on | `VideoHashingService` calls `ScheduleAutoRelocationForVideoFile` → `RenameMoveFileLocationJob` |
 | A series or group is relocated in bulk | `RelocateSeriesFilesAction` / `RelocateGroupFilesAction` |
 | A user or plugin asks directly | `IVideoRelocationService.AutoRelocateFile` |

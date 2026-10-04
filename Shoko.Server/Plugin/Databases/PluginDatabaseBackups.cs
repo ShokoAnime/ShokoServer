@@ -82,7 +82,7 @@ internal static class PluginDatabaseBackups
     /// <param name="applicationPaths">The server's directories.</param>
     /// <param name="backupName">The core backup's path without its extension.</param>
     /// <param name="logger">The logger, for files that could not be copied.</param>
-    /// <returns>The folder the plugin databases went in, or <see langword="null"/> when there were none.</returns>
+    /// <returns>The folder the plugin databases went in, or <c>null</c> when there were none.</returns>
     internal static string? CopyWithBackup(IApplicationPaths applicationPaths, string backupName, ILogger logger)
     {
         var root = applicationPaths.DatabasePath;

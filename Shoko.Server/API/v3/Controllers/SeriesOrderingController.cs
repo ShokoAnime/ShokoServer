@@ -320,7 +320,7 @@ public class SeriesOrderingController(
     /// </summary>
     /// <param name="text">The body's ordering ID.</param>
     /// <param name="orderingID">The ordering's full ID, or <c>null</c> for the default one.</param>
-    /// <returns><see langword="false"/> when the text is not a valid ID.</returns>
+    /// <returns><c>false</c> when the text is not a valid ID.</returns>
     internal static bool TryParsePreferredOrderingID(string? text, out MetadataGuid? orderingID)
     {
         orderingID = null;

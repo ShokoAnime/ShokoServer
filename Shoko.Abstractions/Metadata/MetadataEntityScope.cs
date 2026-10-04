@@ -55,7 +55,7 @@ public sealed class MetadataEntityScope : IReadOnlyCollection<(MetadataSource So
     /// <param name="source">The source.</param>
     /// <param name="entityType">The kind.</param>
     /// <returns>The scope.</returns>
-    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     public static MetadataEntityScope Single(MetadataSource source, MetadataEntityType entityType)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -69,7 +69,7 @@ public sealed class MetadataEntityScope : IReadOnlyCollection<(MetadataSource So
     /// <param name="source">The source.</param>
     /// <param name="entityTypes">The kinds; repeats are kept once.</param>
     /// <returns>The scope.</returns>
-    /// <exception cref="ArgumentNullException">An argument, or one of the kinds, is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">An argument, or one of the kinds, is <c>null</c>.</exception>
     public static MetadataEntityScope ForSource(MetadataSource source, params IEnumerable<MetadataEntityType> entityTypes)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -82,7 +82,7 @@ public sealed class MetadataEntityScope : IReadOnlyCollection<(MetadataSource So
     /// <param name="sources">The sources; repeats are kept once.</param>
     /// <param name="entityTypes">The kinds; repeats are kept once.</param>
     /// <returns>The scope.</returns>
-    /// <exception cref="ArgumentNullException">An argument, or one of the sources or kinds, is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">An argument, or one of the sources or kinds, is <c>null</c>.</exception>
     public static MetadataEntityScope ForSources(IEnumerable<MetadataSource> sources, IEnumerable<MetadataEntityType> entityTypes)
     {
         ArgumentNullException.ThrowIfNull(sources);
@@ -96,7 +96,7 @@ public sealed class MetadataEntityScope : IReadOnlyCollection<(MetadataSource So
     /// </summary>
     /// <param name="pairs">The pairs; repeats are kept once.</param>
     /// <returns>The scope.</returns>
-    /// <exception cref="ArgumentNullException">The pairs, or a source or kind in them, is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">The pairs, or a source or kind in them, is <c>null</c>.</exception>
     public static MetadataEntityScope FromPairs(IEnumerable<(MetadataSource Source, MetadataEntityType EntityType)> pairs)
     {
         ArgumentNullException.ThrowIfNull(pairs);
@@ -131,7 +131,7 @@ public sealed class MetadataEntityScope : IReadOnlyCollection<(MetadataSource So
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>The kinds, or none when the scope does not name the source.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public IReadOnlySet<MetadataEntityType> GetEntityTypes(MetadataSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -143,8 +143,8 @@ public sealed class MetadataEntityScope : IReadOnlyCollection<(MetadataSource So
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="entityType">The kind.</param>
-    /// <returns><see langword="true"/> when it does.</returns>
-    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> when it does.</returns>
+    /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     public bool Contains(MetadataSource source, MetadataEntityType entityType)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -156,8 +156,8 @@ public sealed class MetadataEntityScope : IReadOnlyCollection<(MetadataSource So
     ///   Whether the scope holds the source and kind of an entry.
     /// </summary>
     /// <param name="id">The entry.</param>
-    /// <returns><see langword="true"/> when it does.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> when it does.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     public bool Contains(MetadataGuid id)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -173,7 +173,7 @@ public sealed class MetadataEntityScope : IReadOnlyCollection<(MetadataSource So
     /// </summary>
     /// <param name="other">The other scope.</param>
     /// <returns>The union.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="other"/> is <c>null</c>.</exception>
     public MetadataEntityScope Union(MetadataEntityScope other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -185,7 +185,7 @@ public sealed class MetadataEntityScope : IReadOnlyCollection<(MetadataSource So
     /// </summary>
     /// <param name="other">The other scope.</param>
     /// <returns>The intersection.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="other"/> is <c>null</c>.</exception>
     public MetadataEntityScope Intersect(MetadataEntityScope other)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -197,7 +197,7 @@ public sealed class MetadataEntityScope : IReadOnlyCollection<(MetadataSource So
     /// </summary>
     /// <param name="other">The other scope.</param>
     /// <returns>The difference.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="other"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="other"/> is <c>null</c>.</exception>
     public MetadataEntityScope Except(MetadataEntityScope other)
     {
         ArgumentNullException.ThrowIfNull(other);

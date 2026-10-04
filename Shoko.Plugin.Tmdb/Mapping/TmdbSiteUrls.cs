@@ -95,7 +95,7 @@ public static class TmdbSiteUrls
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <returns>
-    ///   The URL, or <see langword="null"/> for an entry of another source, a
+    ///   The URL, or <c>null</c> for an entry of another source, a
     ///   kind without a page, a group of an ordering, a season or episode
     ///   known only by its ID, or an ID that is not a positive number.
     /// </returns>

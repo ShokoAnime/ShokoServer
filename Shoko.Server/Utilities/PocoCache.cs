@@ -90,10 +90,10 @@ public class PocoCache<TKey, TEntity> where TKey : notnull where TEntity : class
         => _observers.Add(observer);
 
     /// <summary>
-    /// Gets an entity for the given <paramref name="key"/> from the cache, or <see langword="null"/> if not found.
+    /// Gets an entity for the given <paramref name="key"/> from the cache, or <c>null</c> if not found.
     /// </summary>
     /// <param name="key">The key for the entity.</param>
-    /// <returns>The entity, or <see langword="null"/> if not found.</returns>
+    /// <returns>The entity, or <c>null</c> if not found.</returns>
     public TEntity? Get(TKey key)
     {
         SyncRoot.EnterReadLock();

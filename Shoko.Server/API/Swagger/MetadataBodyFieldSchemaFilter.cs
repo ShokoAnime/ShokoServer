@@ -26,7 +26,7 @@ public sealed class MetadataBodyFieldSchemaFilter : ISchemaFilter
     /// </summary>
     /// <param name="model">The schema of the type being described.</param>
     /// <param name="context">What the schema is described from.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="model"/> or <paramref name="context"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="model"/> or <paramref name="context"/> is <c>null</c>.</exception>
     public void Apply(IOpenApiSchema model, SchemaFilterContext context)
     {
         ArgumentNullException.ThrowIfNull(model);
@@ -57,7 +57,7 @@ public sealed class MetadataBodyFieldSchemaFilter : ISchemaFilter
     /// </summary>
     /// <param name="type">The field's type.</param>
     /// <param name="values">The registered values.</param>
-    /// <returns>The schema, or <see langword="null"/> for any other type.</returns>
+    /// <returns>The schema, or <c>null</c> for any other type.</returns>
     internal static OpenApiSchema? ValueSchema(Type type, MetadataRouteParameterFilter.RegisteredValues values)
     {
         if (type == typeof(MetadataSource))

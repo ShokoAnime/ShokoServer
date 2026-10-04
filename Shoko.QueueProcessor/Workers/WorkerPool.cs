@@ -82,7 +82,7 @@ public sealed class WorkerPool : IWorkerPool
 
     /// <summary>
     /// Set by the orchestrator after pool construction. When non-null, workers call this before
-    /// <see cref="TryAcquire"/> and skip acquisition (staying idle) if it returns <see langword="false"/>.
+    /// <see cref="TryAcquire"/> and skip acquisition (staying idle) if it returns <c>false</c>.
     /// Used to enforce pool priority: lower-priority pools yield when higher-priority pools have runnable jobs.
     /// </summary>
     public Func<bool>? ShouldAttemptAcquisition { get; set; }
@@ -102,7 +102,7 @@ public sealed class WorkerPool : IWorkerPool
 
     /// <summary>
     /// Set by <see cref="Orchestration.QueueOrchestrator.Initialize"/>. Asked about a job that
-    /// <see cref="TryRegisterExecuting"/> refused: <see langword="true"/> when the job has left
+    /// <see cref="TryRegisterExecuting"/> refused: <c>true</c> when the job has left
     /// the queue for good, such as one removed while its enqueue was still adding it here, so the
     /// pool drops it instead of keeping it forever.
     /// </summary>
@@ -178,8 +178,8 @@ public sealed class WorkerPool : IWorkerPool
     /// Removes <paramref name="id"/> from the sub-queue.
     /// </summary>
     /// <param name="id">The ID of the job to remove.</param>
-    /// <param name="job">The removed job, or <see langword="null"/> if it was not waiting in this pool.</param>
-    /// <returns><see langword="true"/> when the job was removed.</returns>
+    /// <param name="job">The removed job, or <c>null</c> if it was not waiting in this pool.</param>
+    /// <returns><c>true</c> when the job was removed.</returns>
     public bool RemoveFromQueue(Guid id, out QueuedJob? job)
     {
         bool removed;
@@ -242,7 +242,7 @@ public sealed class WorkerPool : IWorkerPool
     }
 
     /// <summary>
-    /// Resolves a waiting job's id to its job key, or returns <see langword="false"/> if no job
+    /// Resolves a waiting job's id to its job key, or returns <c>false</c> if no job
     /// with that id is currently waiting in this pool's sub-queue.
     /// </summary>
     public bool TryGetJobKey(Guid id, out string? jobKey)
@@ -262,7 +262,7 @@ public sealed class WorkerPool : IWorkerPool
     /// <summary>
     /// Promotes a waiting job to <paramref name="newPriority"/>, resets its queue time so it
     /// sorts before other jobs at the same priority, and clears any scheduled delay so it is
-    /// eligible for immediate acquisition. Returns <see langword="false"/> if the job is not
+    /// eligible for immediate acquisition. Returns <c>false</c> if the job is not
     /// found in this pool's sub-queue (it may already be executing or belong to another pool).
     /// </summary>
     public bool TryPromotePriority(string jobKey, int newPriority)
@@ -297,7 +297,7 @@ public sealed class WorkerPool : IWorkerPool
     /// Finds a waiting job by <paramref name="id"/>, calls <paramref name="updater"/> with its
     /// current <see cref="QueuedJob.JobDataJson"/>, and if the updater returns a non-null string,
     /// replaces the job in the sub-queue with an updated copy (sort position is preserved since
-    /// Priority/QueuedAt/Id are unchanged). Returns <see langword="true"/> if the job was found
+    /// Priority/QueuedAt/Id are unchanged). Returns <c>true</c> if the job was found
     /// in this pool (regardless of whether the updater returned non-null).
     /// </summary>
     public bool TryGetAndUpdateData(Guid id, Func<string?, string?> updater)
@@ -404,7 +404,7 @@ public sealed class WorkerPool : IWorkerPool
     /// acquisition filter, or it was queued with an actor the host cannot restore yet.
     /// </summary>
     /// <param name="job">A job waiting in this pool.</param>
-    /// <returns><see langword="true"/> when the job may not be acquired right now.</returns>
+    /// <returns><c>true</c> when the job may not be acquired right now.</returns>
     public bool IsJobBlocked(QueuedJob job) => IsHeld(job, _filterExclusions, _holdActorJobs);
 
     /// <summary>
@@ -413,7 +413,7 @@ public sealed class WorkerPool : IWorkerPool
     /// <param name="job">The job.</param>
     /// <param name="exclusions">The job types excluded by the acquisition filters.</param>
     /// <param name="holdActorJobs">Whether jobs stored with an actor are held.</param>
-    /// <returns><see langword="true"/> when the job may not be acquired right now.</returns>
+    /// <returns><c>true</c> when the job may not be acquired right now.</returns>
     private bool IsHeld(QueuedJob job, HashSet<Type> exclusions, bool holdActorJobs)
         => (holdActorJobs && job.ActorUserId.HasValue)
             || (_typeByName.TryGetValue(job.JobType, out var type) && exclusions.Contains(type));

@@ -150,7 +150,7 @@ public interface IShokoGroupManager
     ///   to the end, as stopping half way would leave the series without
     ///   groups.
     /// </remarks>
-    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <c>null</c> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work before it begins.</param>
     /// <returns>A task that completes once the groups are recreated.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled before the work began.</exception>

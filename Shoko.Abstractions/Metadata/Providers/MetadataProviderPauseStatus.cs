@@ -25,14 +25,14 @@ public sealed record MetadataProviderPauseStatus
 
     /// <summary>
     ///   Why the provider cannot take work, in words a person can read, such as
-    ///   "The source answered with server errors.", or <see langword="null"/>
+    ///   "The source answered with server errors.", or <c>null</c>
     ///   when it is not paused or gives no reason.
     /// </summary>
     public string? Reason { get; init; }
 
     /// <summary>
     ///   When the provider expects to take work again, in UTC, or
-    ///   <see langword="null"/> when it is not paused or does not know.
+    ///   <c>null</c> when it is not paused or does not know.
     /// </summary>
     public DateTime? ResumesAt { get; init; }
 
@@ -41,7 +41,7 @@ public sealed record MetadataProviderPauseStatus
     ///   below zero.
     /// </summary>
     /// <returns>
-    ///   The time left, or <see langword="null"/> when there is no
+    ///   The time left, or <c>null</c> when there is no
     ///   <see cref="ResumesAt"/>.
     /// </returns>
     public TimeSpan? GetRemainingPauseTime()

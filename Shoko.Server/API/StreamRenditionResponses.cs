@@ -48,7 +48,7 @@ public static class StreamRenditionResponses
     /// timeout, <c>404</c> for <c>null</c>, or the answer to a refusal.
     /// </returns>
     /// <exception cref="OperationCanceledException"><paramref name="requestAborted"/> was cancelled before the timeout.</exception>
-    /// <exception cref="ArgumentNullException"><paramref name="open"/> or <paramref name="response"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="open"/> or <paramref name="response"/> is <c>null</c>.</exception>
     public static async Task<Opened<T>> OpenAsync<T>(
         Func<CancellationToken, Task<T?>> open,
         HttpResponse response,
@@ -93,7 +93,7 @@ public static class StreamRenditionResponses
     /// <param name="response">The answer the <c>Retry-After</c> header is set on.</param>
     /// <param name="exception">The refusal.</param>
     /// <returns>The answer.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="response"/> or <paramref name="exception"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="response"/> or <paramref name="exception"/> is <c>null</c>.</exception>
     public static ObjectResult Refused(HttpResponse response, StreamResourceException exception)
     {
         ArgumentNullException.ThrowIfNull(response);

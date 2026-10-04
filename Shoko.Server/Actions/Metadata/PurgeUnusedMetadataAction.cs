@@ -27,13 +27,13 @@ public sealed class PurgeUnusedMetadataAction(
     private IProgress<decimal>? _progress;
 
     /// <summary>
-    ///   The source to purge, or <see langword="null"/> for every source.
+    ///   The source to purge, or <c>null</c> for every source.
     /// </summary>
     public MetadataSource? Source { get; set; }
 
     /// <summary>
     ///   Purge only series, only movies or only collections, or
-    ///   <see langword="null"/> for all three.
+    ///   <c>null</c> for all three.
     /// </summary>
     public MetadataEntityType? EntityType { get; set; }
 

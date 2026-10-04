@@ -18,21 +18,21 @@ public sealed record InferredAiring
     public required string EpisodeKey { get; init; }
 
     /// <summary>
-    /// The key of the existing airing this one updates, or <see langword="null"/>
+    /// The key of the existing airing this one updates, or <c>null</c>
     /// when it is a new row. It differs from <see cref="Key"/> when the provider
     /// re-keyed an airing, which keeps the row, and so its local ID and links.
     /// </summary>
     public string? ExistingKey { get; init; }
 
     /// <summary>
-    /// The resolved slot, in UTC, or <see langword="null"/> when the airing has
+    /// The resolved slot, in UTC, or <c>null</c> when the airing has
     /// no slot.
     /// </summary>
     public DateTime? AiredAt { get; init; }
 
     /// <summary>
     /// The first slot the airing was scheduled for, in UTC, or
-    /// <see langword="null"/> when it never moved.
+    /// <c>null</c> when it never moved.
     /// </summary>
     public DateTime? OriginalAiredAt { get; init; }
 
@@ -42,7 +42,7 @@ public sealed record InferredAiring
     public bool IsDelayed { get; init; }
 
     /// <summary>
-    /// The key of the link head this airing belongs to, or <see langword="null"/>
+    /// The key of the link head this airing belongs to, or <c>null</c>
     /// when it isn't linked, or was unlinked for having drifted from its head.
     /// </summary>
     public string? LinkKey { get; init; }

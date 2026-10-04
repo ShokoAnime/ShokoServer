@@ -81,7 +81,7 @@ public class PackageReleaseInfo(AbstractPackageReleaseInfo releaseInfo, IReadOnl
     public ReleaseChannel Channel { get; init; } = releaseInfo.Channel;
 
     /// <summary>
-    ///   Release notes, or <see langword="null"/> if not available for this
+    ///   Release notes, or <c>null</c> if not available for this
     ///   release.
     /// </summary>
     public string? ReleaseNotes { get; init; } = releaseInfo.ReleaseNotes;

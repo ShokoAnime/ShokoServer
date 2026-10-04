@@ -70,7 +70,7 @@ public class MyResourceResolver : IResourceResolver
 `Name` and `Url`, and may carry `LanguageCode` (ISO 639-1) and `ID`, the
 entry's bare ID on the linked site (such as `tt0123456` for IMDb); fill it
 whenever the site has IDs. `ResourceType` is `Website`, `Streaming`,
-`Metadata`, `CrossReference`, `Social` or `Trailer`.
+`Metadata`, `CrossReference`, `Social`, `Trailer` or `Other`.
 
 The core finds the resolver in your assembly
 (`PluginManager.GetExports<IResourceResolver>()`) and holds it for the life of

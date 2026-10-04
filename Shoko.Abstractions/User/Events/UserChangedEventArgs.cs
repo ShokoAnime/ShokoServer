@@ -21,7 +21,7 @@ public class UserChangedEventArgs : EventArgs
 
     /// <summary>
     ///   The API token of whoever added, updated or removed the user, or
-    ///   <see langword="null"/> when the system did it. Stamped when the event is
+    ///   <c>null</c> when the system did it. Stamped when the event is
     ///   raised.
     /// </summary>
     public ApiToken? Actor { get; init; }

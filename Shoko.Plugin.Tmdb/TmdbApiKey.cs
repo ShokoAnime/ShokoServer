@@ -20,7 +20,7 @@ internal static class TmdbApiKey
     /// official build was stamped with. An empty configured key is no key.
     /// </summary>
     /// <param name="configuration">The plugin's configuration.</param>
-    /// <returns>The key, or <see langword="null"/> when neither is available.</returns>
+    /// <returns>The key, or <c>null</c> when neither is available.</returns>
     public static string? Resolve(TmdbConfiguration configuration)
     {
         if (!string.IsNullOrWhiteSpace(configuration.UserApiKey))

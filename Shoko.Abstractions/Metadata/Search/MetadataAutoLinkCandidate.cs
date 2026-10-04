@@ -28,7 +28,7 @@ public sealed record MetadataAutoLinkCandidate
     public required int AnidbAnimeID { get; init; }
 
     /// <summary>
-    ///   The AniDB episode a film would stand for, or <see langword="null"/>
+    ///   The AniDB episode a film would stand for, or <c>null</c>
     ///   for a link to the whole anime.
     /// </summary>
     public int? AnidbEpisodeID { get; init; }
@@ -49,7 +49,7 @@ public sealed record MetadataAutoLinkCandidate
 
     /// <summary>
     ///   The rating of the stored link a candidate of another origin was
-    ///   listed from, shown for context only, or <see langword="null"/> for a
+    ///   listed from, shown for context only, or <c>null</c> for a
     ///   search result.
     /// </summary>
     public MatchRating? LinkMatchRating { get; init; }
@@ -57,7 +57,7 @@ public sealed record MetadataAutoLinkCandidate
     /// <summary>
     ///   The AniDB anime whose link a
     ///   <see cref="MetadataAutoLinkOrigin.PrequelLink"/> candidate is, or
-    ///   <see langword="null"/> for any other.
+    ///   <c>null</c> for any other.
     /// </summary>
     public int? PrequelAnidbAnimeID { get; init; }
 
@@ -72,7 +72,7 @@ public sealed record MetadataAutoLinkCandidate
     public bool IsRemote { get; init; }
 
     /// <summary>
-    ///   Why the candidate is not linked, or <see langword="null"/> for one
+    ///   Why the candidate is not linked, or <c>null</c> for one
     ///   that is.
     /// </summary>
     public MetadataAutoLinkRejection? Rejection { get; init; }

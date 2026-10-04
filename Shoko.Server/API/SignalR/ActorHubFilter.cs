@@ -39,7 +39,7 @@ public class ActorHubFilter(IActorContext actorContext, IUserService userService
     ///   Reads the API token the connection was authenticated with.
     /// </summary>
     /// <param name="context">The connection.</param>
-    /// <returns>The token, or <see langword="null"/> when there is none.</returns>
+    /// <returns>The token, or <c>null</c> when there is none.</returns>
     private ApiToken? GetToken(HubCallerContext context)
         => context.User?.Identity?.IsAuthenticated is true && context.GetHttpContext() is { } httpContext
             ? userService.GetApiTokenFromHttpContext(httpContext)

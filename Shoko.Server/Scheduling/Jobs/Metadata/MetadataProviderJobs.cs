@@ -29,7 +29,7 @@ public static class MetadataProviderJobs
     /// </remarks>
     /// <param name="providerType">The provider's concrete type.</param>
     /// <returns>The closed job types, or none.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="providerType"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="providerType"/> is <c>null</c>.</exception>
     public static IReadOnlyList<Type> GetJobTypes(Type providerType)
         => [.. GetCandidateJobTypes(providerType).Where(QueueProcessorExtensions.FitsQueue)];
 
@@ -39,7 +39,7 @@ public static class MetadataProviderJobs
     /// </summary>
     /// <param name="providerType">The provider's concrete type.</param>
     /// <returns>The closed job types left out, or none.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="providerType"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="providerType"/> is <c>null</c>.</exception>
     public static IReadOnlyList<Type> GetOverlongJobTypes(Type providerType)
         => [.. GetCandidateJobTypes(providerType).Where(type => !QueueProcessorExtensions.FitsQueue(type))];
 
@@ -49,7 +49,7 @@ public static class MetadataProviderJobs
     /// </summary>
     /// <param name="providerType">The provider's concrete type.</param>
     /// <returns>The closed job types, or none.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="providerType"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="providerType"/> is <c>null</c>.</exception>
     private static List<Type> GetCandidateJobTypes(Type providerType)
     {
         ArgumentNullException.ThrowIfNull(providerType);
@@ -76,7 +76,7 @@ public static class MetadataProviderJobs
     /// </summary>
     /// <param name="jobType">The job type.</param>
     /// <returns>
-    ///   The provider type, or <see langword="null"/> when the job is not one
+    ///   The provider type, or <c>null</c> when the job is not one
     ///   of a provider's.
     /// </returns>
     public static Type? GetProviderType(Type jobType)
@@ -90,7 +90,7 @@ public static class MetadataProviderJobs
     ///   The refresh job type for a provider type.
     /// </summary>
     /// <param name="providerType">The provider's concrete type.</param>
-    /// <returns>The closed job type, or <see langword="null"/> when it has none.</returns>
+    /// <returns>The closed job type, or <c>null</c> when it has none.</returns>
     public static Type? GetRefreshJobType(Type providerType)
         => GetJobTypes(providerType).FirstOrDefault(type => type.GetGenericTypeDefinition() == typeof(RefreshMetadataJob<>));
 
@@ -98,7 +98,7 @@ public static class MetadataProviderJobs
     ///   The search job type for a provider type.
     /// </summary>
     /// <param name="providerType">The provider's concrete type.</param>
-    /// <returns>The closed job type, or <see langword="null"/> when it has none.</returns>
+    /// <returns>The closed job type, or <c>null</c> when it has none.</returns>
     public static Type? GetSearchJobType(Type providerType)
         => GetJobTypes(providerType).FirstOrDefault(type => type.GetGenericTypeDefinition() == typeof(SearchMetadataJob<>));
 
@@ -106,7 +106,7 @@ public static class MetadataProviderJobs
     ///   The image job type for a provider type.
     /// </summary>
     /// <param name="providerType">The provider's concrete type.</param>
-    /// <returns>The closed job type, or <see langword="null"/> when it has none.</returns>
+    /// <returns>The closed job type, or <c>null</c> when it has none.</returns>
     public static Type? GetImagesJobType(Type providerType)
         => GetJobTypes(providerType).FirstOrDefault(type => type.GetGenericTypeDefinition() == typeof(DownloadMetadataImagesJob<>));
 
@@ -114,7 +114,7 @@ public static class MetadataProviderJobs
     ///   The entity refresh job type for a provider type.
     /// </summary>
     /// <param name="providerType">The provider's concrete type.</param>
-    /// <returns>The closed job type, or <see langword="null"/> when it has none.</returns>
+    /// <returns>The closed job type, or <c>null</c> when it has none.</returns>
     public static Type? GetEntityRefreshJobType(Type providerType)
         => GetJobTypes(providerType).FirstOrDefault(type => type.GetGenericTypeDefinition() == typeof(RefreshMetadataEntityJob<>));
 

@@ -126,7 +126,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     /// </param>
     /// <exception cref="ArgumentNullException">
     ///   Thrown when <paramref name="anime"/> or
-    ///   <paramref name="candidates"/> is <see langword="null"/>.
+    ///   <paramref name="candidates"/> is <c>null</c>.
     /// </exception>
     /// <returns>
     ///   One entry per candidate, best first, at most the first one taken.
@@ -263,7 +263,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     /// <param name="options">What the source searched with.</param>
     /// <exception cref="ArgumentNullException">
     ///   Thrown when <paramref name="anime"/>, <paramref name="episode"/> or
-    ///   <paramref name="candidates"/> is <see langword="null"/>.
+    ///   <paramref name="candidates"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="ArgumentException">
     ///   Thrown when the episode does not belong to the anime.
@@ -369,7 +369,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
         /// <summary>
         ///   When the candidate began and the anime ended, as a clause, when it
         ///   began too late to hold more than a special, or
-        ///   <see langword="null"/>.
+        ///   <c>null</c>.
         /// </summary>
         public string? StartedLate { get; init; }
 
@@ -437,7 +437,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     ///   two that begins, or is spelt nearly like, the name of another work.
     /// </summary>
     /// <param name="title">The title.</param>
-    /// <returns><see langword="true"/> when a close match of it counts for nothing.</returns>
+    /// <returns><c>true</c> when a close match of it counts for nothing.</returns>
     private static bool IsExactOnly(ITitle title)
         => title.Type is not (TitleType.Main or TitleType.Official or TitleType.None);
 
@@ -626,7 +626,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     /// </summary>
     /// <param name="anime">The anime.</param>
     /// <returns>
-    ///   The year, or <see langword="null"/> when nothing is dated, and the
+    ///   The year, or <c>null</c> when nothing is dated, and the
     ///   date it was read from, in words.
     /// </returns>
     private static (int? Year, string Text) SeriesDateOf(IAnidbAnime anime)
@@ -656,7 +656,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     ///   season's, where the day is known.
     /// </summary>
     /// <param name="candidate">The candidate.</param>
-    /// <returns>The date, or <see langword="null"/> when no full date is known.</returns>
+    /// <returns>The date, or <c>null</c> when no full date is known.</returns>
     private static DateOnly? StartOf(MetadataSeriesSearchResult candidate)
     {
         if (candidate.FirstAiredAt is { IsComplete: true } started)
@@ -705,7 +705,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     ///   When the anime's first normal episode was regularly broadcast.
     /// </summary>
     /// <param name="anime">The anime.</param>
-    /// <returns>The date, or <see langword="null"/> when it is not known.</returns>
+    /// <returns>The date, or <c>null</c> when it is not known.</returns>
     private static DateOnly? FirstEpisodeDateOf(IAnidbAnime anime)
         => SafeEpisodes(anime)
             .Where(episode => episode.Type is EpisodeType.Episode && episode.EpisodeNumber is 1)
@@ -720,7 +720,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     /// <param name="anime">The anime the film belongs to.</param>
     /// <param name="episode">The episode standing for the film.</param>
     /// <returns>
-    ///   The year, or <see langword="null"/> when nothing is dated, and where
+    ///   The year, or <c>null</c> when nothing is dated, and where
     ///   it was read from, in words.
     /// </returns>
     private static (int? Year, string Text) FilmDateOf(IAnidbAnime anime, IAnidbEpisode episode)
@@ -812,7 +812,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     /// </remarks>
     /// <param name="anidb">The anime's dated regular episodes.</param>
     /// <param name="seasons">The candidate's seasons.</param>
-    /// <returns>The best alignment, or <see langword="null"/> when no episode aired on one of the anime's days.</returns>
+    /// <returns>The best alignment, or <c>null</c> when no episode aired on one of the anime's days.</returns>
     private static EpisodeAlignment? AlignEpisodes(IReadOnlyList<DatedEpisode> anidb, IReadOnlyList<MetadataSearchResultSeason> seasons)
     {
         if (anidb.Count is 0)
@@ -904,7 +904,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
 
     /// <inheritdoc/>
     /// <exception cref="ArgumentNullException">
-    ///   Either list is <see langword="null"/>.
+    ///   Either list is <c>null</c>.
     /// </exception>
     public IReadOnlyList<EpisodeMatch> MatchEpisodes(
         IReadOnlyList<IAnidbEpisode> anidbEpisodes,
@@ -1145,7 +1145,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     /// </remarks>
     /// <param name="episode">The AniDB episode.</param>
     /// <param name="context">The run, which knows the anime's type.</param>
-    /// <returns><see langword="true"/> when the episode is matched from the specials pool.</returns>
+    /// <returns><c>true</c> when the episode is matched from the specials pool.</returns>
     private static bool IsSpecialEpisode(IAnidbEpisode episode, MatchContext context)
         => episode.Type is EpisodeType.Special ||
             (context.AnimeType is { } animeType &&
@@ -1666,7 +1666,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     /// <param name="episode">The source's episode.</param>
     /// <param name="originalLanguageCode">
     ///   The language code of the series' original language, or
-    ///   <see langword="null"/> when it is not known.
+    ///   <c>null</c> when it is not known.
     /// </param>
     /// <returns>The titles to search, each once.</returns>
     internal static IReadOnlyList<string> TitleCandidatesOf(IEpisode episode, string? originalLanguageCode)

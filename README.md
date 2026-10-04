@@ -27,6 +27,17 @@ Discord, and we'll be more than happy to provide guidance and assistance.
 
 **At this time, the Shoko team itself has no plans to integrate Shoko with any other media players.**
 
+# Bundled Plugins
+The server ships with two first-party plugins. They load as system plugins, are enabled by default and cannot be
+uninstalled:
+
+- **TMDb** (`Shoko.Plugin.Tmdb`) supplies The Movie Database metadata for the `tmdb` source: shows, seasons, episodes,
+  movies, collections, people, studios and networks, their titles, overviews and images, and alternate orderings. It is
+  configured from its plugin settings (`tmdb.json` in the plugin's configuration folder), not from the server settings.
+- **WebAOM** (`Shoko.Plugin.WebAOM`) holds the WebAOM renamer, the default relocation provider.
+
+Other plugins are installed into the `plugins` folder under `SHOKO_HOME`.
+
 # Docker
 
 | variable | default | what |
@@ -48,7 +59,7 @@ What lives under `SHOKO_HOME`:
 | `data` | the plugins' databases, one folder per plugin ID |
 | `configuration` | configuration files, one folder per plugin ID |
 | `cache` | the plugins' caches; safe to empty while the server is stopped |
-| `plugins` | installed plugins, nothing else |
+| `plugins` | installed plugins, nothing else; the bundled plugins live next to the server, not here |
 | `DatabaseBackup` | copies of the databases taken before an upgrade or a plugin migration |
 | `images`, `logs`, `themes`, `transcodes` | images, logs, Web UI themes and streaming renditions |
 
@@ -105,6 +116,9 @@ Install mediainfo and rhash. For apt, that would be:
 Build from CLI:
 
 `dotnet build -c=Release -r linux-x64 -f net10.0 Shoko.CLI/Shoko.CLI.csproj`
+
+Building `Shoko.CLI` or `Shoko.TrayService` also builds the bundled plugins (listed in `BundledPlugins.targets`) and
+copies each one to `plugins/<project name>/` in the output.
 
 If that doesn't work, this document may be out of date. Check the dockerfile for guaranteedly updated build steps.
 

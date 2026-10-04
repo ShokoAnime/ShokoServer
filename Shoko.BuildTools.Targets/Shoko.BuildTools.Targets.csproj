@@ -9,7 +9,7 @@
     <AssemblyName>Shoko.BuildTools.Tasks</AssemblyName>
     <RootNamespace>Shoko.BuildTools.Tasks</RootNamespace>
     <PackageId>Shoko.BuildTools.Targets</PackageId>
-    <Description>MSBuild props and targets for Shoko plugin builds. Injects assembly metadata and enables dynamic loading.</Description>
+    <Description>MSBuild targets and tasks for Shoko plugin builds. Stamps assembly metadata: the plugin's identity from its manifest.json or its source, the runtime identifier, the release channel, and the git revision, tag and date it was built from.</Description>
     <IncludeBuildOutput>true</IncludeBuildOutput>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>

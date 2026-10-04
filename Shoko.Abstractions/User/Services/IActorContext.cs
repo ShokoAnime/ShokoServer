@@ -4,7 +4,7 @@ namespace Shoko.Abstractions.User.Services;
 
 /// <summary>
 ///   Who the current flow of work is done for: the API token of the request,
-///   hub call or queued job it belongs to, or <see langword="null"/> for the
+///   hub call or queued job it belongs to, or <c>null</c> for the
 ///   system. Set by the core, and carried by the events that have an
 ///   <c>Actor</c>, stamped when they are raised.
 /// </summary>
@@ -16,7 +16,7 @@ namespace Shoko.Abstractions.User.Services;
 public interface IActorContext
 {
     /// <summary>
-    ///   The API token the current flow runs for, or <see langword="null"/>
+    ///   The API token the current flow runs for, or <c>null</c>
     ///   when it runs for the system or outside any scope.
     /// </summary>
     ApiToken? Current { get; }
@@ -26,7 +26,7 @@ public interface IActorContext
     ///   returned scope is disposed.
     /// </summary>
     /// <param name="token">
-    ///   The API token to act for, or <see langword="null"/> to act for the
+    ///   The API token to act for, or <c>null</c> to act for the
     ///   system, as a background loop started from a request should.
     /// </param>
     /// <returns>

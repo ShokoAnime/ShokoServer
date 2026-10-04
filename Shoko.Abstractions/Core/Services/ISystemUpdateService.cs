@@ -27,7 +27,7 @@ public interface ISystemUpdateService
     ///   Optional. Bypass the cache and search for a new version online.
     /// </param>
     /// <returns>
-    ///   The latest server version information, or <see langword="null"/> if not found.
+    ///   The latest server version information, or <c>null</c> if not found.
     /// </returns>
     Task<ReleaseVersionInformation?> GetLatestServerVersion(ReleaseChannel channel = ReleaseChannel.Auto, bool force = false);
 
@@ -66,14 +66,14 @@ public interface ISystemUpdateService
     ///   Load the web component version information from the version installed
     ///   into the user data directory.
     /// </summary>
-    /// <returns>The version info, or <see langword="null"/> if not found.</returns>
+    /// <returns>The version info, or <c>null</c> if not found.</returns>
     WebReleaseVersionInformation? LoadWebComponentVersionInformation();
 
     /// <summary>
     ///   Load the web component version information from the bundled version of
     ///   the web component, if any.
     /// </summary>
-    /// <returns>The version information, or <see langword="null"/> if not found.</returns>
+    /// <returns>The version information, or <c>null</c> if not found.</returns>
     WebReleaseVersionInformation? LoadIncludedWebComponentVersionInformation();
 
     /// <summary>
@@ -84,8 +84,8 @@ public interface ISystemUpdateService
     ///   The specific version to install.
     /// </param>
     /// <returns>
-    ///   <see langword="true" /> if the update was installed successfully;
-    ///   otherwise, <see langword="false" />.
+    ///   <c>true</c> if the update was installed successfully;
+    ///   otherwise, <c>false</c>.
     /// </returns>
     Task<bool> InstallWebComponentVersion(WebReleaseVersionInformation version);
 
@@ -103,8 +103,8 @@ public interface ISystemUpdateService
     ///   Optional. Allow incompatible updates of the web component.
     /// </param>
     /// <returns>
-    ///   <see langword="true" /> if the update was installed successfully;
-    ///   otherwise, <see langword="false" />.
+    ///   <c>true</c> if the update was installed successfully;
+    ///   otherwise, <c>false</c>.
     /// </returns>
     Task<bool> UpdateWebComponent(ReleaseChannel channel = ReleaseChannel.Auto, bool allowIncompatible = false);
 

@@ -20,7 +20,7 @@ namespace Shoko.Tests.Filters;
 /// </summary>
 /// <remarks>
 /// That makes the format quietly fragile in two directions, and both fail silently:
-/// <see cref="SimpleNameSerializationBinder.BindToType"/> returns <see langword="null"/> for a name
+/// <see cref="SimpleNameSerializationBinder.BindToType"/> returns <c>null</c> for a name
 /// it cannot resolve, and <see cref="FilterExpressionConverter.ConvertFrom"/> swallows the
 /// resulting error, so a renamed or removed expression turns a user's filter into a broken one with
 /// nothing logged at the call site. Where two types share a simple name the binder picks the first

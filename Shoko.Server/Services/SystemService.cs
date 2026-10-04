@@ -824,7 +824,7 @@ public class SystemService : ISystemService
     /// <param name="reportProgress">Told of each copy and each migration, one line apiece.</param>
     /// <returns>
     /// The start-up message and failure to record when a migration failed, which stops the start-up;
-    /// otherwise <see langword="null"/>.
+    /// otherwise <c>null</c>.
     /// </returns>
     internal static (string Message, StartupFailedException Exception)? MigratePluginDatabases(PluginDatabaseMigrator migrator, Action<string> reportProgress)
     {
@@ -852,7 +852,7 @@ public class SystemService : ISystemService
     /// corrected and retried. An unparseable or empty file is only reported and ignored, so a typo
     /// in the file can never take the server down.
     /// </summary>
-    /// <returns><see langword="true"/> if the startup sequence should stop here; otherwise, <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if the startup sequence should stop here; otherwise, <c>false</c>.</returns>
     private bool ProcessPasswordResetFile()
     {
         var filePath = Path.Combine(ApplicationPaths.StaticDataPath, "password-reset.json");
@@ -933,7 +933,7 @@ public class SystemService : ISystemService
     /// <param name="databaseFactory">The database factory.</param>
     /// <param name="repositoryFactory">The repository factory.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns><see langword="true"/> if the database and repositories were initialized successfully; otherwise, <see langword="false"/>.</returns>
+    /// <returns><c>true</c> if the database and repositories were initialized successfully; otherwise, <c>false</c>.</returns>
     private bool InitializeDatabase(DatabaseFactory databaseFactory, RepoFactory repositoryFactory, CancellationToken cancellationToken)
     {
         try

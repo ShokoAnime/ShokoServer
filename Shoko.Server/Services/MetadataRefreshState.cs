@@ -15,8 +15,8 @@ public interface IMetadataRefreshState
     ///   <c>LastRefreshedAt</c> of the entry it names.
     /// </summary>
     /// <param name="entry">The entry.</param>
-    /// <returns>The time, in UTC, or <see langword="null"/> when it never was or is not stored.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    /// <returns>The time, in UTC, or <c>null</c> when it never was or is not stored.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <c>null</c>.</exception>
     DateTime? GetLastRefreshedAt(MetadataGuid entry);
 
     /// <summary>
@@ -25,8 +25,8 @@ public interface IMetadataRefreshState
     /// </summary>
     /// <param name="entry">The series, movie or collection, or the creator, character, studio or network.</param>
     /// <param name="refreshedAt">When the refresh finished.</param>
-    /// <returns><see langword="true"/> if a stored row took it; <see langword="false"/> for an entry no store keeps.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> if a stored row took it; <c>false</c> for an entry no store keeps.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <c>null</c>.</exception>
     bool RecordRefresh(MetadataGuid entry, DateTime refreshedAt);
 }
 
@@ -64,8 +64,8 @@ public class MetadataRefreshState(
     /// <summary>
     ///   Reads when an entry was last refreshed off the entry itself.
     /// </summary>
-    /// <param name="entry">The entry, or <see langword="null"/>.</param>
-    /// <returns>The time, in UTC, or <see langword="null"/> when there is none.</returns>
+    /// <param name="entry">The entry, or <c>null</c>.</param>
+    /// <returns>The time, in UTC, or <c>null</c> when there is none.</returns>
     public static DateTime? LastRefreshedAt(IMetadata? entry)
         => entry switch
         {

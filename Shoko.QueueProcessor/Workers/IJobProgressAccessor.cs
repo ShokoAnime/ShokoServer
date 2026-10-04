@@ -18,7 +18,7 @@ public interface IJobProgressAccessor
 {
     /// <summary>
     /// The progress reporter for the currently-executing job, taking a percentage from 0 to 100.
-    /// Never <see langword="null"/>.
+    /// Never <c>null</c>.
     /// </summary>
     IProgress<decimal> Progress { get; }
 }

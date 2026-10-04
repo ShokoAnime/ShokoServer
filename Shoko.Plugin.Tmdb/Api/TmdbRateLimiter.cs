@@ -69,7 +69,7 @@ public sealed class TmdbRateLimiter : IDisposable
     /// <param name="timeProvider">The clock the pauses are measured by; the system's when left out.</param>
     /// <param name="logger">Where pauses are logged; nowhere when left out.</param>
     /// <param name="errorWindow">How close together the server errors that trip the pause must be; ten seconds when left out.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="settings"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="settings"/> is <c>null</c>.</exception>
     public TmdbRateLimiter(TmdbRateLimitConfiguration settings, TimeProvider? timeProvider = null, ILogger<TmdbRateLimiter>? logger = null, TimeSpan? errorWindow = null)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -89,7 +89,7 @@ public sealed class TmdbRateLimiter : IDisposable
     ///   on it, which is disposed of a while later.
     /// </summary>
     /// <param name="settings">The new settings.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="settings"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="settings"/> is <c>null</c>.</exception>
     public void Reconfigure(TmdbRateLimitConfiguration settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -107,7 +107,7 @@ public sealed class TmdbRateLimiter : IDisposable
     /// <param name="request">The request.</param>
     /// <param name="cancellationToken">Cancels the wait.</param>
     /// <returns>What the request answered.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <c>null</c>.</exception>
     /// <exception cref="OperationCanceledException">The wait was cancelled, or the limiter disposed of.</exception>
     public async Task<T> EnsureRateAsync<T>(Func<Task<T>> request, CancellationToken cancellationToken = default)
     {

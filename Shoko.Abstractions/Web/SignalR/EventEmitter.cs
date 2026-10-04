@@ -116,7 +116,7 @@ public abstract class EventEmitter : IEventEmitter
     /// added, and is sent nothing, not even the initial messages.
     /// </summary>
     /// <param name="user">The user asking to join.</param>
-    /// <returns><see langword="true"/> if the user may join; the default lets everyone join.</returns>
+    /// <returns><c>true</c> if the user may join; the default lets everyone join.</returns>
     protected virtual bool CanConnect(IUser user) => true;
 
     /// <summary>
@@ -166,7 +166,7 @@ public abstract class EventEmitter : IEventEmitter
     /// <param name="subject">The message's subject; clients receive it as <c>&lt;name&gt;:&lt;subject&gt;</c>.</param>
     /// <param name="args">The message's arguments, serialized for the client.</param>
     /// <returns>A task completing once the message was handed to the matching connections, of which there may be none.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="predicate"/> is <c>null</c>.</exception>
     protected Task SendWhereAsync(Func<IUser, bool> predicate, string subject, params object[] args)
     {
         ArgumentNullException.ThrowIfNull(predicate);
@@ -179,9 +179,9 @@ public abstract class EventEmitter : IEventEmitter
     /// before anything is sent; users given the same array share one send.
     /// </summary>
     /// <param name="subject">The message's subject; clients receive it as <c>&lt;name&gt;:&lt;subject&gt;</c>.</param>
-    /// <param name="getArgs">The message's arguments for a user, or <see langword="null"/> to send that user nothing.</param>
+    /// <param name="getArgs">The message's arguments for a user, or <c>null</c> to send that user nothing.</param>
     /// <returns>A task completing once the messages were handed to the connections, of which there may be none.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="getArgs"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="getArgs"/> is <c>null</c>.</exception>
     protected async Task SendPerUserAsync(string subject, Func<IUser, object[]?> getArgs)
     {
         ArgumentNullException.ThrowIfNull(getArgs);
@@ -229,7 +229,7 @@ public abstract class EventEmitter : IEventEmitter
     /// <param name="connectionId">The SignalR connection ID joining the feed.</param>
     /// <param name="user">The user the connection signed in as.</param>
     /// <param name="lastConnectedAt">When the client was last connected, if it said so when joining, so the feed can send only what changed since.</param>
-    /// <returns>The message's arguments, or <see langword="null"/> to send <see cref="GetInitialMessages"/> instead, which is the default.</returns>
+    /// <returns>The message's arguments, or <c>null</c> to send <see cref="GetInitialMessages"/> instead, which is the default.</returns>
     protected virtual object[]? GetInitialMessagesForUser(string connectionId, IUser user, DateTime? lastConnectedAt = null) => null;
 
     /// <summary>

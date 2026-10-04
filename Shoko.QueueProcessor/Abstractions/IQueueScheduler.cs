@@ -26,7 +26,7 @@ public interface IQueueScheduler
     /// </summary>
     /// <param name="configure">Configures the job's data properties.</param>
     /// <param name="onComplete">
-    /// Optional async callback invoked on completion. Receives <see langword="null"/> on success,
+    /// Optional async callback invoked on completion. Receives <c>null</c> on success,
     /// the faulting exception on failure, or an <see cref="OperationCanceledException"/> when the
     /// job was cancelled or removed. The returned <see cref="Task"/> also reflects the outcome, so
     /// callers can choose to await it or use the callback (or both).
@@ -113,7 +113,7 @@ public interface IQueueScheduler
     IJobChainBuilder CreateJobChain();
 
     /// <summary>
-    /// Returns <see langword="true"/> if any active acquisition filter currently blocks
+    /// Returns <c>true</c> if any active acquisition filter currently blocks
     /// <paramref name="jobType"/> from being dispatched to a worker. Uses the same filter
     /// evaluation as <see cref="EnqueueImmediate{T}"/>.
     /// </summary>
@@ -135,7 +135,7 @@ public interface IQueueScheduler
     /// Registers a merge handler for job type <typeparamref name="T"/>. When a new enqueue
     /// collides with an already-waiting job of the same key, <paramref name="handler"/> is
     /// invoked with (existing, incoming). The handler must mutate the existing instance and return
-    /// <see langword="true"/> if any property was upgraded.
+    /// <c>true</c> if any property was upgraded.
     /// Takes priority over <see cref="IJobMerge"/> if both are present on the same type.
     /// Intended for external callers (plugins) that cannot modify the job type directly.
     /// </summary>

@@ -249,7 +249,7 @@ public partial class PluginPackageManager(
 
     /// <summary>
     ///   Installs or upgrades a plugin. Returns installed
-    ///   <see cref="LocalPluginInfo"/> or <see langword="null"/> on failure.
+    ///   <see cref="LocalPluginInfo"/> or <c>null</c> on failure.
     /// </summary>
     /// <param name="packageInfo">
     ///   The package and version to install.
@@ -258,7 +258,7 @@ public partial class PluginPackageManager(
     ///   Optional. Cancellation token.
     /// </param>
     /// <returns>
-    ///   The installed see, or <see langword="null"/> if installation failed.
+    ///   The installed see, or <c>null</c> if installation failed.
     /// </returns>
     /// <exception cref="OperationCanceledException">
     ///   Thrown if the installation was cancelled by the
@@ -629,7 +629,7 @@ public partial class PluginPackageManager(
     /// </param>
     /// <param name="onlyCompatible">
     ///   Optional. Whether to return only ABI- and runtime-compatible packages.
-    ///   Defaults to <see langword="true"/>.
+    ///   Defaults to <c>true</c>.
     /// </param>
     /// <param name="onlyLatest">
     ///   Optional. Whether to return only the latest version of each package.
@@ -1032,7 +1032,7 @@ public partial class PluginPackageManager(
     /// <param name="packageId">The package, for the log line.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>
-    ///   The image, or <see langword="null"/> when there was no url, the
+    ///   The image, or <c>null</c> when there was no url, the
     ///   download failed, or what came back was not an image we serve.
     /// </returns>
     private async Task<PackageImageInfo?> DownloadAndCacheImageAsync(string? imageUrl, Guid packageId, CancellationToken cancellationToken)

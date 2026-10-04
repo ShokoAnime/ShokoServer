@@ -105,7 +105,7 @@ public sealed partial class MetadataSource : IEquatable<MetadataSource>, ICompar
         Shoko = RegisterCore("Shoko", "shoko", [], true, "Data the server makes or keeps on its own.");
         User = RegisterCore("User", "user", [], true, "Data a user of the server entered by hand.");
         Generated = RegisterCore("Locally Generated", "generated", ["locally-generated", "locallygenerated"], true,
-            "Images made on the server rather than entered by a person, such as thumbnails.");
+            "Data synthesized on the server rather than entered by a person, such as thumbnails and stand-in episode titles.");
         AniDB = RegisterCore("AniDB", "anidb", [], false, "The anime database at anidb.net, which every series in Shoko is built on.");
         // Pre-registered, but kept like any other source's: in the shared stores.
         TMDB = RegisterInternal("TMDb", "tmdb", ["themoviedb"], false, "The Movie Database at themoviedb.org, for shows, movies and their artwork.", core: false);
@@ -122,9 +122,10 @@ public sealed partial class MetadataSource : IEquatable<MetadataSource>, ICompar
     public static MetadataSource User { get; }
 
     /// <summary>
-    ///   Images made on the server rather than entered by a person, such as
-    ///   thumbnails a plugin uploads without a user. Shown as
-    ///   <c>Locally Generated</c>.
+    ///   Data synthesized on the server rather than entered by a person: images
+    ///   such as thumbnails a plugin uploads without a user, and the stand-in
+    ///   titles given to episodes and seasons no source named, such as
+    ///   <c>Episode 5</c> or <c>Specials</c>. Shown as <c>Locally Generated</c>.
     /// </summary>
     public static MetadataSource Generated { get; }
 

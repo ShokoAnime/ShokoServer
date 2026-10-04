@@ -7,9 +7,10 @@ subscription a client joins and leaves on the same connection. A plugin adds
 feeds of its own the same way, by registering an `IEventEmitter` in DI, and
 its clients need no second connection.
 
-The hub only goes one way. Clients join and leave feeds, and feeds send to
-clients; there are no calls from a client into a feed. Anything a client asks
-of your plugin goes through your API instead (see
+A feed only goes one way. Clients join and leave feeds, and feeds send to
+clients; there are no calls from a client into a feed. (The hub's only other
+methods, `queue.pause` and `queue.set_pool_info`, are the core queue's own.)
+Anything a client asks of your plugin goes through your API instead (see
 [Routes a plugin serves](../Services/README.md#routes-a-plugin-serves)).
 
 ---
@@ -63,7 +64,8 @@ What the base class does for you:
   to the users the predicate accepts, asked once per user on the feed. Use it
   for anything about a series, episode or file, as
   `SendWhereAsync(user => user.IsAllowedToSee(series), …)`, so users kept from
-  a series by their restricted tags hear nothing about it.
+  a series by their restricted tags hear nothing about it. The core's
+  `metadata`, `group`, `file`, `release` and `airing` feeds do the same.
   `SendPerUserAsync(subject, getArgs)` builds the arguments per user instead,
   for a message listing several entities: return `null` to skip a user, and
   the same array to users who get the same message.
@@ -97,7 +99,8 @@ connection.on("template:status.changed", status => { /* … */ });
 await connection.start();
 ```
 
-The hub's methods for feeds are `feed.list_all`, `feed.list_joined`,
+The `feeds` query parameter, comma-separated, joins those feeds as the
+connection opens. The hub's methods for feeds are `feed.list_all`, `feed.list_joined`,
 `feed.join_single(feed, lastConnectedAt?)`, `feed.join_many(feeds, lastConnectedAt?)`,
 `feed.leave_single(feed)`, `feed.leave_many(feeds)`,
 `feed.replace_all(feeds, lastConnectedAt?)` and `feed.clear_all`. A join

@@ -158,7 +158,7 @@ public static class SeriesSearch
     ///   (e.g. "~X~"/": X", "A | B"/"A / B").
     /// </remarks>
     /// <param name="c">The character, after NFKD.</param>
-    /// <returns><see langword="true"/> when it becomes a space.</returns>
+    /// <returns><c>true</c> when it becomes a space.</returns>
     private static bool IsSeparator(char c)
         => c is '-' or '_' or '.' or ':' or ',' or '!' or ';' or '/' or '\\' or '(' or ')' or '[' or ']' or '~' or '|'
             or '、' or '。' or '〜' or '〰' or '―' or (>= '\u3008' and <= '\u3011') or (>= '\u3014' and <= '\u301B');

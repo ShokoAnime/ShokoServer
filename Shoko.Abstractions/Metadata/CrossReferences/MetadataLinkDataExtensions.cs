@@ -20,7 +20,7 @@ public static class MetadataLinkDataExtensions
     /// <param name="crossReference">The link as it reads.</param>
     /// <returns>The same link, ready to write.</returns>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="crossReference" /> is <see langword="null" />.
+    ///   <paramref name="crossReference" /> is <c>null</c>.
     /// </exception>
     public static MetadataSeriesLinkData ToLinkData(this IMetadataSeriesCrossReference crossReference)
     {
@@ -41,7 +41,7 @@ public static class MetadataLinkDataExtensions
     /// <param name="crossReference">The link as it reads.</param>
     /// <returns>The same link, ready to write.</returns>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="crossReference" /> is <see langword="null" />.
+    ///   <paramref name="crossReference" /> is <c>null</c>.
     /// </exception>
     public static MetadataMovieLinkData ToLinkData(this IMetadataMovieCrossReference crossReference)
     {
@@ -63,7 +63,7 @@ public static class MetadataLinkDataExtensions
     /// <param name="crossReference">The link as it reads.</param>
     /// <returns>The same link, ready to write.</returns>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="crossReference" /> is <see langword="null" />.
+    ///   <paramref name="crossReference" /> is <c>null</c>.
     /// </exception>
     public static MetadataEpisodeLinkData ToLinkData(this IMetadataEpisodeCrossReference crossReference)
     {
@@ -97,7 +97,7 @@ public static class MetadataLinkDataExtensions
     /// </param>
     /// <returns>The link the match stands for.</returns>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="match" /> is <see langword="null" />.
+    ///   <paramref name="match" /> is <c>null</c>.
     /// </exception>
     public static MetadataEpisodeLinkData ToLinkData(this EpisodeMatch match, MetadataSource source)
     {

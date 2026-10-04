@@ -21,7 +21,7 @@ public static class JsonPathDiff
     ///   Gets the paths whose values differ between the two documents.
     /// </summary>
     /// <param name="previousJson">
-    ///   The document stored before, or <see langword="null"/> when there was
+    ///   The document stored before, or <c>null</c> when there was
     ///   none, in which case every leaf of <paramref name="currentJson"/> is
     ///   reported.
     /// </param>

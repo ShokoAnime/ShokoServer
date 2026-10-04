@@ -15,8 +15,8 @@ internal sealed class PluginDatabaseMigrationException : Exception
     /// Creates the exception for a database that failed.
     /// </summary>
     /// <param name="database">The database.</param>
-    /// <param name="migration">The migration that failed, or <see langword="null"/> when none had started.</param>
-    /// <param name="backupFile">The copy taken before migrating, or <see langword="null"/> when none was taken.</param>
+    /// <param name="migration">The migration that failed, or <c>null</c> when none had started.</param>
+    /// <param name="backupFile">The copy taken before migrating, or <c>null</c> when none was taken.</param>
     /// <param name="innerException">What went wrong.</param>
     public PluginDatabaseMigrationException(IPluginDatabase database, string? migration, string? backupFile, Exception innerException)
         : base(Describe(database, migration, backupFile, innerException), innerException)

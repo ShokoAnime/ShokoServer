@@ -63,7 +63,7 @@ public class MetadataLinkChangeTracker(ILogger<MetadataLinkChangeTracker>? logge
     ///   disposed.
     /// </summary>
     /// <param name="reason">
-    ///   Why the links are written, or <see langword="null"/> for the reason
+    ///   Why the links are written, or <c>null</c> for the reason
     ///   set for the flow.
     /// </param>
     /// <returns>
@@ -136,7 +136,7 @@ public class MetadataLinkChangeTracker(ILogger<MetadataLinkChangeTracker>? logge
     /// </summary>
     /// <param name="reason">Why the links were written.</param>
     /// <param name="changes">The rows changed, in the order they were written.</param>
-    /// <param name="actor">Who made the changes, or <see langword="null"/> for the system.</param>
+    /// <param name="actor">Who made the changes, or <c>null</c> for the system.</param>
     private void Raise(MetadataLinkChangeReason reason, IReadOnlyCollection<LinkRowChange> changes, ApiToken? actor)
     {
         var handlers = Changed;
@@ -231,10 +231,10 @@ public class MetadataLinkChangeTracker(ILogger<MetadataLinkChangeTracker>? logge
     /// <param name="EntityType">The level of the link.</param>
     /// <param name="Source">The source the link points at.</param>
     /// <param name="AnidbAnimeID">The AniDB anime.</param>
-    /// <param name="AnidbEpisodeID">The AniDB episode, or <see langword="null"/> at the series level.</param>
-    /// <param name="ProviderID">The entry the link names, or <see langword="null"/> for none.</param>
-    /// <param name="Before">The rating before the write, or <see langword="null"/> when the row is new.</param>
-    /// <param name="After">The rating after the write, or <see langword="null"/> when the row is gone.</param>
+    /// <param name="AnidbEpisodeID">The AniDB episode, or <c>null</c> at the series level.</param>
+    /// <param name="ProviderID">The entry the link names, or <c>null</c> for none.</param>
+    /// <param name="Before">The rating before the write, or <c>null</c> when the row is new.</param>
+    /// <param name="After">The rating after the write, or <c>null</c> when the row is gone.</param>
     internal sealed record LinkRowChange(
         MetadataEntityType EntityType,
         MetadataSource Source,
@@ -254,8 +254,8 @@ public class MetadataLinkChangeTracker(ILogger<MetadataLinkChangeTracker>? logge
         ///   A row as a store write left it.
         /// </summary>
         /// <param name="row">The row.</param>
-        /// <param name="before">Its rating before the write, or <see langword="null"/> when it is new.</param>
-        /// <param name="after">Its rating after the write, or <see langword="null"/> when it is gone.</param>
+        /// <param name="before">Its rating before the write, or <c>null</c> when it is new.</param>
+        /// <param name="after">Its rating after the write, or <c>null</c> when it is gone.</param>
         /// <returns>The change.</returns>
         public static LinkRowChange Of(CrossRef_AniDB_Metadata row, MatchRating? before, MatchRating? after)
             => new(
@@ -329,7 +329,7 @@ public class MetadataLinkChangeTracker(ILogger<MetadataLinkChangeTracker>? logge
         ///   Adds what a write changed, unless the operation has ended.
         /// </summary>
         /// <param name="changes">The rows changed.</param>
-        /// <returns><see langword="true"/> when they were added.</returns>
+        /// <returns><c>true</c> when they were added.</returns>
         public bool TryAdd(IReadOnlyCollection<LinkRowChange> changes)
         {
             lock (_changes)

@@ -22,7 +22,7 @@ public static class SchemaDumps
     /// <summary>The file a dump for <paramref name="backend"/> is written to and read from.</summary>
     public static string FileNameFor(string backend) => $"schema-{backend}.json";
 
-    /// <summary>Why the dumps cannot be compared, or <see langword="null"/> when they can.</summary>
+    /// <summary>Why the dumps cannot be compared, or <c>null</c> when they can.</summary>
     public static string? Unavailable()
     {
         if (Directory is not { } directory)

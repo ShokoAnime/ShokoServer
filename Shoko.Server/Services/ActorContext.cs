@@ -32,7 +32,7 @@ public sealed class ActorContext : IActorContext
 
     /// <summary>
     ///   The actor of the current flow: the token of the innermost scope that
-    ///   is still active, or <see langword="null"/> when there is none.
+    ///   is still active, or <c>null</c> when there is none.
     /// </summary>
     public static ApiToken? CurrentActor
     {
@@ -63,7 +63,7 @@ public sealed class ActorContext : IActorContext
     ///   Makes <paramref name="token"/> the actor of the current flow until the
     ///   returned scope is disposed.
     /// </summary>
-    /// <param name="token">The token to act for, or <see langword="null"/> for the system.</param>
+    /// <param name="token">The token to act for, or <c>null</c> for the system.</param>
     /// <returns>The scope, which puts back the previous actor once disposed.</returns>
     public static IDisposable Begin(ApiToken? token)
     {
@@ -110,7 +110,7 @@ public sealed class ActorContext : IActorContext
     /// <summary>
     ///   One actor set for a flow, until it is disposed.
     /// </summary>
-    /// <param name="token">The token, or <see langword="null"/> for the system.</param>
+    /// <param name="token">The token, or <c>null</c> for the system.</param>
     /// <param name="previous">The scope it was begun in.</param>
     private sealed class Scope(ApiToken? token, Scope? previous) : IDisposable
     {
@@ -118,7 +118,7 @@ public sealed class ActorContext : IActorContext
         private volatile bool _isActive = true;
 
         /// <summary>
-        ///   The token, or <see langword="null"/> for the system.
+        ///   The token, or <c>null</c> for the system.
         /// </summary>
         public ApiToken? Token => token;
 

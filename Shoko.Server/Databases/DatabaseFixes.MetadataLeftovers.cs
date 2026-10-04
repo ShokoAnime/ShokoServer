@@ -55,7 +55,7 @@ public partial class DatabaseFixes
     /// <param name="schedules">The schedule rows.</param>
     /// <param name="actionType">The scheduled action type.</param>
     /// <param name="now">The time now, in UTC.</param>
-    /// <returns><see langword="true"/> when the action is registered and its row was saved.</returns>
+    /// <returns><c>true</c> when the action is registered and its row was saved.</returns>
     internal static bool RunScheduledActionAtStart(IScheduledActionSource source, ScheduledActionRepository schedules, Type actionType, DateTime now)
     {
         if (source.GetAction(actionType) is not { } action)

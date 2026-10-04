@@ -21,7 +21,7 @@ namespace Shoko.Server.Actions;
 public sealed class AutoLinkMetadataSeriesAction(IMetadataProviderManager providerManager, MetadataProviderScheduler providerScheduler) : SeriesAction
 {
     /// <summary>
-    ///   The source to search, or <see langword="null"/> for every source
+    ///   The source to search, or <c>null</c> for every source
     ///   with an enabled auto-linker.
     /// </summary>
     public MetadataSource? Source { get; set; }

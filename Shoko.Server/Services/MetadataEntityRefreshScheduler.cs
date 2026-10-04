@@ -66,7 +66,7 @@ public class MetadataEntityRefreshScheduler(
     /// </summary>
     /// <param name="provider">The provider.</param>
     /// <returns>The kinds, and the pairs that were dropped.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="provider"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="provider"/> is <c>null</c>.</exception>
     public static (IReadOnlySet<MetadataEntityType> Kinds, IReadOnlyList<(MetadataSource Source, MetadataEntityType EntityType)> Dropped) GetKinds(
         IMetadataEntityProvider provider
     )
@@ -95,7 +95,7 @@ public class MetadataEntityRefreshScheduler(
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="entityType">The kind.</param>
-    /// <returns>The provider, or <see langword="null"/> when none does.</returns>
+    /// <returns>The provider, or <c>null</c> when none does.</returns>
     public MetadataProviderInfo? GetProvider(MetadataSource source, MetadataEntityType entityType)
         => EntityKinds.Contains(entityType)
             ? providerManager.MetadataProviders.FirstOrDefault(info =>
@@ -114,7 +114,7 @@ public class MetadataEntityRefreshScheduler(
     /// <param name="row">The entry's row.</param>
     /// <param name="provider">The provider refreshing it.</param>
     /// <param name="now">The time to measure from.</param>
-    /// <returns><see langword="true"/> when it is due.</returns>
+    /// <returns><c>true</c> when it is due.</returns>
     public bool IsDue(IMetadataStubRow row, IMetadataEntityProvider provider, DateTime now)
     {
         ArgumentNullException.ThrowIfNull(row);
@@ -195,11 +195,11 @@ public class MetadataEntityRefreshScheduler(
     /// <param name="immediate">Whether to run it now and wait for it.</param>
     /// <param name="prioritize">Whether to queue it ahead of the rest even though it is not forced.</param>
     /// <returns>
-    ///   <see langword="true"/> when it was queued or ran, or
-    ///   <see langword="false"/> when no enabled provider refreshes it, or it
+    ///   <c>true</c> when it was queued or ran, or
+    ///   <c>false</c> when no enabled provider refreshes it, or it
     ///   was asked to run at once while it cannot.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is <c>null</c>.</exception>
     public Task<bool> ScheduleRefresh(MetadataGuid id, bool force = false, bool immediate = false, bool prioritize = false)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -216,7 +216,7 @@ public class MetadataEntityRefreshScheduler(
     ///   Looks up the stored row of an entry.
     /// </summary>
     /// <param name="id">The creator, character, studio or network.</param>
-    /// <returns>The row, or <see langword="null"/> when it is not stored.</returns>
+    /// <returns>The row, or <c>null</c> when it is not stored.</returns>
     public IMetadataStubRow? GetRow(MetadataGuid id)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -303,8 +303,8 @@ public class MetadataEntityRefreshScheduler(
     /// <param name="prioritize">Whether to queue it ahead of the rest.</param>
     /// <param name="immediate">Whether to run it now and wait for it.</param>
     /// <returns>
-    ///   <see langword="true"/> once it is queued or has run, or
-    ///   <see langword="false"/> when the provider has no such job, or it was
+    ///   <c>true</c> once it is queued or has run, or
+    ///   <c>false</c> when the provider has no such job, or it was
     ///   to run now while the provider is paused.
     /// </returns>
     private async Task<bool> Dispatch(MetadataProviderInfo info, MetadataGuid id, bool force, bool prioritize, bool immediate)

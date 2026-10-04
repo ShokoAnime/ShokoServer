@@ -133,7 +133,7 @@ public partial class MetadataEntryController
     /// <param name="source">The source.</param>
     /// <param name="kind">The kind of entry the route names.</param>
     /// <param name="id">The ID as the route holds it.</param>
-    /// <param name="body">The rating, and which links, or <see langword="null"/> to verify every one.</param>
+    /// <param name="body">The rating, and which links, or <c>null</c> to verify every one.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The links changed, or <c>404 Not Found</c> when none matched.</returns>
     private async Task<ActionResult<IReadOnlyList<MetadataCrossReference>>> SetMatchRating(
@@ -192,7 +192,7 @@ public partial class MetadataEntryController
     /// </summary>
     /// <param name="link">The stored link.</param>
     /// <param name="id">The ID the body gives.</param>
-    /// <returns><see langword="true"/> when they name the same entry.</returns>
+    /// <returns><c>true</c> when they name the same entry.</returns>
     private static bool Names(IMetadataCrossReference link, string? id)
     {
         if (string.IsNullOrWhiteSpace(id))
@@ -210,7 +210,7 @@ public partial class MetadataEntryController
     /// The AniDB episode a link is made from, where its level has one.
     /// </summary>
     /// <param name="link">The link.</param>
-    /// <returns>The AniDB episode ID, or <see langword="null"/> at the series level.</returns>
+    /// <returns>The AniDB episode ID, or <c>null</c> at the series level.</returns>
     private static int? AnidbEpisodeOf(IMetadataCrossReference link)
         => link switch
         {

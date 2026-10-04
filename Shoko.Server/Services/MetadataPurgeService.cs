@@ -111,7 +111,7 @@ public class MetadataPurgeService(
     ///   one only quick-refreshed for a preview, when it was last stored.
     /// </summary>
     /// <param name="entry">The series, film or collection.</param>
-    /// <returns>The time, in local time, or <see langword="null"/> when there is none.</returns>
+    /// <returns>The time, in local time, or <c>null</c> when there is none.</returns>
     private DateTime? GetLastTouchedAt(IMetadata entry)
         => MetadataRefreshState.LastRefreshedAt(entry)?.ToLocalTime() ?? entry switch
         {
@@ -271,7 +271,7 @@ public class MetadataPurgeService(
     ///   Whether stored seasons or episodes name a series that has no row.
     /// </summary>
     /// <param name="series">The series.</param>
-    /// <returns><see langword="true"/> when only leftovers name it.</returns>
+    /// <returns><c>true</c> when only leftovers name it.</returns>
     private bool IsLeftoverSeries(MetadataGuid series)
         => seriesRows.GetByProviderID(series.Source, series.ID) is null &&
             (seasonRows.GetBySeriesID(series.Source, series.ID).Count > 0 || episodeRows.GetBySeriesID(series.Source, series.ID).Count > 0);

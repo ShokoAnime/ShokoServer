@@ -209,7 +209,7 @@ public sealed class TmdbMetadataProvider :
     ///   has none.
     /// </summary>
     /// <param name="entry">The entry, of the TMDb source.</param>
-    /// <returns>The URL, or <see langword="null"/>.</returns>
+    /// <returns>The URL, or <c>null</c>.</returns>
     public string? GetSiteUrl(IMetadata entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -383,7 +383,7 @@ public sealed class TmdbMetadataProvider :
     /// </summary>
     /// <param name="exception">What the call threw.</param>
     /// <param name="remainingPause">What is left of the pause, if any.</param>
-    /// <returns>The exception to throw instead, or <see langword="null"/> for a failure retrying would not mend.</returns>
+    /// <returns>The exception to throw instead, or <c>null</c> for a failure retrying would not mend.</returns>
     internal static MetadataProviderUnavailableException? ToUnavailable(Exception exception, TimeSpan? remainingPause)
     {
         ArgumentNullException.ThrowIfNull(exception);

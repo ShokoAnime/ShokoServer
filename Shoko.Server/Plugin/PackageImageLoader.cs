@@ -36,7 +36,7 @@ internal static class PackageImageLoader
     /// <param name="dllPath">The dll being read, for the log line.</param>
     /// <param name="logger">Logs a failed read.</param>
     /// <returns>
-    ///   The image bytes, or <see langword="null"/> when the plugin advertised
+    ///   The image bytes, or <c>null</c> when the plugin advertised
     ///   none, named something outside its own assembly, or the read failed.
     /// </returns>
     public static byte[]? ReadEmbedded(Assembly assembly, string assemblyName, string? resourceName, string kind, string dllPath, ILogger logger)
@@ -81,7 +81,7 @@ internal static class PackageImageLoader
     /// <param name="imageBytes">The embedded bytes, when the plugin supplied any.</param>
     /// <param name="kind">The image's kind, which is both the file name looked for and the one written.</param>
     /// <param name="applicationPaths">Gives the folders the path is recorded against.</param>
-    /// <returns>The image, or <see langword="null"/> when there is none.</returns>
+    /// <returns>The image, or <c>null</c> when there is none.</returns>
     /// <exception cref="IOException">
     ///   The embedded bytes could not be written beside the plugin.
     /// </exception>
@@ -130,7 +130,7 @@ internal static class PackageImageLoader
     /// <param name="kind">The image's kind, which is its file name.</param>
     /// <param name="applicationPaths">Gives the folders the path is recorded against.</param>
     /// <param name="logger">Logs an icon refused or failing to load.</param>
-    /// <returns>The icon, or <see langword="null"/> when there is none or it is neither SVG nor PNG.</returns>
+    /// <returns>The icon, or <c>null</c> when there is none or it is neither SVG nor PNG.</returns>
     public static PackageImageInfo? LoadIcon(
         LocalPluginInfo pluginInfo,
         Assembly assembly,
@@ -185,7 +185,7 @@ internal static class PackageImageLoader
     ///   The mime type of an image format a plugin may ship.
     /// </summary>
     /// <param name="imageInfo">The image.</param>
-    /// <returns>The mime type, or <see langword="null"/> for any other format.</returns>
+    /// <returns>The mime type, or <c>null</c> for any other format.</returns>
     public static string? GetMimeFromFormat(MagickImageInfo imageInfo)
         => imageInfo.Format switch
         {

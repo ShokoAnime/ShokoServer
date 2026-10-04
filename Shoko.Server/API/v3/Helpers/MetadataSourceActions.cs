@@ -37,8 +37,8 @@ public sealed class MetadataSourceActions(
     /// the hub everything is linked from, and the server's own.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns><see langword="true"/> for a source entries are linked to.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> for a source entries are linked to.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public static bool IsLinkTarget(MetadataSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -56,7 +56,7 @@ public sealed class MetadataSourceActions(
     /// <param name="description">What the action is, for the log.</param>
     /// <param name="action">The action.</param>
     /// <returns>The running action, which never throws.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="description"/> or <paramref name="action"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="description"/> or <paramref name="action"/> is <c>null</c>.</exception>
     public Task Start(string description, Func<Task> action)
     {
         ArgumentNullException.ThrowIfNull(description);
@@ -84,12 +84,12 @@ public sealed class MetadataSourceActions(
     /// Refreshes every entry of a source that is linked to an anime.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <param name="entityType">Only the series or only the movies, or <see langword="null"/> for both.</param>
+    /// <param name="entityType">Only the series or only the movies, or <c>null</c> for both.</param>
     /// <param name="force">Whether to refresh entries however recently they were.</param>
     /// <param name="downloadImages">Whether to download the images too.</param>
     /// <param name="cancellationToken">Cancels the queueing.</param>
     /// <returns>How many refreshes were queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public async Task<int> RefreshAllLinked(MetadataSource source, MetadataEntityType? entityType, bool force, bool downloadImages, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -107,7 +107,7 @@ public sealed class MetadataSourceActions(
     /// <param name="force">Whether to download images that are there already.</param>
     /// <param name="cancellationToken">Cancels the queueing.</param>
     /// <returns>How many downloads were queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public async Task<int> DownloadAllImages(MetadataSource source, bool force, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -124,7 +124,7 @@ public sealed class MetadataSourceActions(
     /// <param name="force">Whether to search the anime left alone too, and while the source does not auto-link; linked anime are never searched.</param>
     /// <param name="cancellationToken">Cancels the queueing.</param>
     /// <returns>How many searches were queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public async Task<int> AutoSearchAll(MetadataSource source, bool force, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -142,11 +142,11 @@ public sealed class MetadataSourceActions(
     /// Purges the stored series or movies of a source that nothing links to.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <param name="entityType">Only the series or only the movies, or <see langword="null"/> for both.</param>
-    /// <param name="olderThan">Only the ones last refreshed before this, or <see langword="null"/> for all.</param>
+    /// <param name="entityType">Only the series or only the movies, or <c>null</c> for both.</param>
+    /// <param name="olderThan">Only the ones last refreshed before this, or <c>null</c> for all.</param>
     /// <param name="cancellationToken">Cancels the queueing.</param>
     /// <returns>How many purges were queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public async Task<int> PurgeUnused(MetadataSource source, MetadataEntityType? entityType, DateTime? olderThan, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -162,7 +162,7 @@ public sealed class MetadataSourceActions(
     /// <param name="source">The source.</param>
     /// <param name="cancellationToken">Cancels the purge.</param>
     /// <returns>How many collections were purged.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public async Task<int> PurgeCollections(MetadataSource source, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -177,10 +177,10 @@ public sealed class MetadataSourceActions(
     /// as people, tags and studios.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <param name="orphanedBefore">Only what was orphaned before this, or <see langword="null"/> for all.</param>
+    /// <param name="orphanedBefore">Only what was orphaned before this, or <c>null</c> for all.</param>
     /// <param name="cancellationToken">Cancels the purge.</param>
     /// <returns>How many orphans were purged.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public async Task<int> PurgeOrphaned(MetadataSource source, DateTime? orphanedBefore, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -195,7 +195,7 @@ public sealed class MetadataSourceActions(
     /// </summary>
     /// <param name="source">The source.</param>
     /// <returns>A task that completes once the purge is queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public async Task PurgeUnusedImages(MetadataSource source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -217,13 +217,13 @@ public sealed class MetadataSourceActions(
     /// <param name="removeMovieLinks">Whether to remove the movie links.</param>
     /// <param name="purge">Whether to purge what the links pointed at.</param>
     /// <param name="resetAutoLinkingState">
-    /// <see langword="false"/> to let the source auto-link every anime again,
-    /// <see langword="true"/> to keep it from auto-linking any, or
-    /// <see langword="null"/> to leave that as it is.
+    /// <c>false</c> to let the source auto-link every anime again,
+    /// <c>true</c> to keep it from auto-linking any, or
+    /// <c>null</c> to leave that as it is.
     /// </param>
     /// <param name="cancellationToken">Cancels the removal.</param>
     /// <returns>How many links were removed.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public async Task<int> RemoveAllLinks(
         MetadataSource source,
         bool removeSeriesLinks,

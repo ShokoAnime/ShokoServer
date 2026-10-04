@@ -1,14 +1,12 @@
 An Expression is anything that transforms data: a method that takes zero or more arguments and returns a result.
-Expressions are stored with TPH discriminated on Type. Expressions should not have more than 5 Arguments of each type. If it would, then it
-should be redesigned. For example, `And(HasTag("comedy"),HasTag("action"))`. This is to keep the database schema
-reasonable and expressions simple. I considered a one-to-many map for arguments, and making that automatic for
-navigation properties seemed like a lot of work when we can design around it.
+The expression types live in `Shoko.Abstractions/Filtering/Expressions/`, and a filter preset stores its tree as JSON
+with the type of each node (`FilterExpressionConverter`). Expressions should not have more than 2 arguments of each
+type (the `IWith…Parameter` and `IWithSecond…Parameter` containers). If one would need more, it should be redesigned.
+For example, `And(HasTag("comedy"),HasTag("action"))`. This keeps expressions simple and their serialized form small.
 
-Acceptable database types (can be mapped to other CLR types like enums) for Arguments are:
-
-- String
-- Double (integers should be coerced to double for simplicity)
-- DateTime
+The argument types an expression can take are listed in `FilterExpressionParameterType`: other expressions, selectors
+(date, number, string and string set) and plain values (date, number, string, string set, time span and bool).
+Integers are numbers like any other, coerced to double for simplicity.
 
 FilterExpression is a single Expression, whether that's something like "Or" or "HasTag"
 in `And(Or(HasTag('comedy'), HasTag('action')), Not(HasTag('18 restricted')))`. Expressions should be the least amount

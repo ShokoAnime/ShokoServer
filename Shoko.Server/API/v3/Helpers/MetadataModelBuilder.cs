@@ -570,7 +570,7 @@ public sealed class MetadataModelBuilder(
     /// keeps until its source saves it, read through the entry it is on too.
     /// </summary>
     /// <param name="entity">The entity.</param>
-    /// <returns><see langword="true"/> for a stub.</returns>
+    /// <returns><c>true</c> for a stub.</returns>
     internal static bool IsStub(IMetadata entity)
         => entity switch
         {
@@ -871,7 +871,7 @@ public sealed class MetadataModelBuilder(
     /// </summary>
     /// <param name="series">The series.</param>
     /// <returns>The search result.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="series"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="series"/> is <c>null</c>.</exception>
     public MetadataSeriesSearchResult SearchResult(ISeries series)
     {
         ArgumentNullException.ThrowIfNull(series);
@@ -903,7 +903,7 @@ public sealed class MetadataModelBuilder(
     /// </summary>
     /// <param name="movie">The movie.</param>
     /// <returns>The search result.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="movie"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="movie"/> is <c>null</c>.</exception>
     public MetadataMovieSearchResult SearchResult(IMovie movie)
     {
         ArgumentNullException.ThrowIfNull(movie);

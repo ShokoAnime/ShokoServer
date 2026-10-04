@@ -23,7 +23,7 @@ public class MetadataProvider
     /// <param name="status">The pause status of the provider's source.</param>
     /// <param name="providers">Every registered provider, to tell whether the source is configured.</param>
     /// <param name="hasIcon">Whether the provider's source has an icon.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="info"/>, <paramref name="status"/> or <paramref name="providers"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="info"/>, <paramref name="status"/> or <paramref name="providers"/> is <c>null</c>.</exception>
     public MetadataProvider(MetadataProviderInfo info, MetadataProviderPauseStatus status, IEnumerable<MetadataProviderInfo> providers, bool hasIcon)
     {
         ArgumentNullException.ThrowIfNull(info);
@@ -241,7 +241,7 @@ public class MetadataSourceStatus
     /// <param name="source">The source.</param>
     /// <param name="status">Its pause status.</param>
     /// <param name="providers">Every registered provider, to tell whether the source's are configured.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/>, <paramref name="status"/> or <paramref name="providers"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/>, <paramref name="status"/> or <paramref name="providers"/> is <c>null</c>.</exception>
     public MetadataSourceStatus(MetadataSource source, MetadataProviderPauseStatus status, IEnumerable<MetadataProviderInfo> providers)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -308,7 +308,7 @@ public class MetadataImportSummary
     /// Describes what an import did.
     /// </summary>
     /// <param name="result">The import's result.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="result"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="result"/> is <c>null</c>.</exception>
     public MetadataImportSummary(MetadataCrossReferenceImportResult result)
     {
         ArgumentNullException.ThrowIfNull(result);

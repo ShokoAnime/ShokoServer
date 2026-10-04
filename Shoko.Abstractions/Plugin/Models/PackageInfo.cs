@@ -28,7 +28,7 @@ public sealed class PackageInfo
 
     /// <summary>
     ///   The installed plugin info if this package is installed locally,
-    ///   otherwise <see langword="null"/>.
+    ///   otherwise <c>null</c>.
     /// </summary>
     public required LocalPluginInfo? Plugin { get; init; }
 }

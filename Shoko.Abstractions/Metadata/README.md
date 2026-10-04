@@ -24,7 +24,7 @@ source of its own also implements the provider contracts.
 | Folder | Holds |
 |---|---|
 | (this one) | The entry interfaces, the identity types (`MetadataSource`, `MetadataEntityType`, `MetadataGuid`), `ITitle` and `IText`, relations and suggestions, `Resource`, `PartialDateOnly` and `FuzzyDateOnly` |
-| `Containers/` | The `IWith…` interfaces entries are built from: titles, overviews, images, cast and crew, studios, tags, content ratings, resources and dates |
+| `Containers/` | The `IWith…` interfaces entries are built from: titles, overviews, images, cast and crew, studios, tags, content ratings, resources, cross-source IDs, yearly seasons and dates |
 | `Shoko/` | Shoko's own entries: `IShokoSeries`, `IShokoEpisode`, `IShokoGroup` and `IShokoTag` |
 | `Anidb/` | AniDB's entries, the MyList and AVDump models, and the [AniDB services](Anidb/Services/README.md) |
 | `CrossReferences/` | The link contracts, the link data the link store takes, and the CSV transfer options |
@@ -99,7 +99,8 @@ A series, season, episode, ordering and place in an ordering also come typed:
 `IEpisodeOrderingInformation<TSeries, TEpisode>` hand back the series and
 episodes as their own types, and the base of a series' suggestions.
 `IShokoSeries` is an `ISeries<IShokoSeries, IShokoEpisode>`, `IAnidbAnime`
-the same, and a plugin source's stored entries use `ISeries` and `IEpisode`.
+an `ISeries<IAnidbAnime, IAnidbEpisode>`, and a plugin source's stored
+entries use `ISeries` and `IEpisode`.
 Films come typed the same way: `IMovie<TMovie>` types the base of a film's
 suggestions and its `Collection`, and `IMovieCollection<TMovie>` its
 `Movies`. There is no season type: a group of any ordering but the default
@@ -118,10 +119,14 @@ part of (`CollectionID`, `Collection`). Genres and keywords are tags, told
 apart by `ITag.Kind`. The IDs other sites give an entry, such as IMDb's, are
 in `CrossSourceIDs`, under each site's own source.
 
-Series, seasons, episodes, films, collections, creators and characters say
-when they were first stored (`CreatedAt`) and when their data last changed
-(`LastUpdatedAt`). Every implementer gives both; a season built from its
-series, such as an AniDB or Shoko season, takes the series' dates.
+Series, seasons, episodes, films, collections, orderings, creators and
+characters say when they were first stored (`CreatedAt`) and when their data
+last changed (`LastUpdatedAt`). Every implementer gives both; a season built
+from its series, such as an AniDB or Shoko season, takes the series' dates.
+Series, films, collections, people, studios and networks also carry
+`LastRefreshedAt`, when their provider last refreshed them: the core keeps it
+for every plugin source, seasons and episodes read their series', and Shoko's
+own entries have none.
 
 `IMetadataService.GetEntry` turns any `MetadataGuid` back into its entry, and
 everything holding an ID goes through it: the core's sources from the core's
@@ -155,7 +160,12 @@ and the language and source order in the settings.
 `ChoosePreferredTitle` and `ChoosePreferredOverview` apply the same rules to
 any list of texts, such as a video chapter's names (`IChapterInfo` is an
 `IWithTitles`). `GetLanguageOrder` hands a provider the language order itself,
-for choosing which translations to store. The rules are in
+for choosing which translations to store.
+
+An episode or season with no title at all is given a made-up one, such as
+`Episode 5`, `Season 2` or `Specials`, when it is read
+(`ITitle.IsSynthesized`). Those are never stored, so a provider leaves such
+generic names out of what it saves. The rules are in
 [`IMetadataTextManager`](Services/README.md#imetadatatextmanager) and
 [managing texts](Services/README.md#managing-texts).
 
@@ -174,6 +184,11 @@ such as TMDb's episode groups, and users keep local orderings under `user`.
 | The one it uses | `ISeries.PreferredOrdering`, set with `SetPreferredOrdering` |
 | An episode's places in them | `IEpisode.Orderings` and `IEpisode.PreferredOrdering` |
 | Whether a user hid an episode | `IEpisode.IsHidden`, set with `SetEpisodeHidden` |
+
+Each place in an ordering (`IEpisodeOrderingInformation`) has its season and
+episode number and type there. A special placed among the regular episodes
+stays a special and says where it airs (`AirsBefore…`, `AirsAfter…`), in the
+default ordering too. An ordering also lists the `Networks` it follows.
 
 See [`IMetadataOrderingService`](Services/README.md#imetadataorderingservice)
 and [`IMetadataOrderingTransferService`](Services/README.md#imetadataorderingtransferservice).
@@ -213,6 +228,8 @@ own:
 | `/api/v3/Metadata/Entry?id=` | Any entry by its full ID |
 | `/api/v3/Metadata/Episode/Hidden` | Whether an episode of any source is hidden, and hiding one |
 | `/api/v3/Metadata/Provider`, `/api/v3/Metadata/{source}/…` | The providers and their settings, and a source's status, search, CSV transfer and actions |
+| `/api/v3/Metadata/Source` | The sources, each source's icon, and its provider order per kind (admins change it) |
+| `/api/v3/Metadata/ImageContributor` | The image contributors, their icons, and the pairs each one is on for |
 | `/api/v3/Series/{seriesID}/Metadata/{source}/…`, `/api/v3/Episode/{episodeID}/Metadata/{source}/…` | The links of one Shoko series or episode to a source, and linking and matching them |
 
 A Shoko series or episode asked for with `includeDataFrom=<source>` gains a

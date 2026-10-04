@@ -27,7 +27,7 @@ public sealed class MetadataSourceRouteConstraint : IRouteConstraint
     /// <param name="routeKey">The name of the route value.</param>
     /// <param name="values">The route values.</param>
     /// <param name="routeDirection">Whether the route is matched or generated.</param>
-    /// <returns><see langword="true"/> when the value names a registered source.</returns>
+    /// <returns><c>true</c> when the value names a registered source.</returns>
     public bool Match(HttpContext? httpContext, IRouter? route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
     {
         ArgumentNullException.ThrowIfNull(routeKey);
@@ -59,7 +59,7 @@ public sealed class MetadataEntityTypeRouteConstraint : IRouteConstraint
     /// <param name="routeKey">The name of the route value.</param>
     /// <param name="values">The route values.</param>
     /// <param name="routeDirection">Whether the route is matched or generated.</param>
-    /// <returns><see langword="true"/> when the value names a registered entity type.</returns>
+    /// <returns><c>true</c> when the value names a registered entity type.</returns>
     public bool Match(HttpContext? httpContext, IRouter? route, string routeKey, RouteValueDictionary values, RouteDirection routeDirection)
     {
         ArgumentNullException.ThrowIfNull(routeKey);

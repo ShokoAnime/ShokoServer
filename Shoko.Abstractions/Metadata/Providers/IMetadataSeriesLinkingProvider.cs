@@ -52,7 +52,7 @@ public interface IMetadataSeriesLinkingProvider : IMetadataSeriesProvider
     /// <param name="seriesID">The series, on your source and of the <c>series</c> kind.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   The series, or <see langword="null"/> when your source has none by
+    ///   The series, or <c>null</c> when your source has none by
     ///   that ID.
     /// </returns>
     /// <exception cref="MetadataProviderUnavailableException">Your source cannot be reached for now.</exception>
@@ -92,7 +92,7 @@ public interface IMetadataSeriesLinkingProvider : IMetadataSeriesProvider
     /// </param>
     /// <param name="considerOtherLinks">
     ///   Whether to leave your episodes that other anime are already linked to
-    ///   out of the candidates, or <see langword="null"/> for your own default.
+    ///   out of the candidates, or <c>null</c> for your own default.
     ///   Ignore it if you have no such notion.
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>

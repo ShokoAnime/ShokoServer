@@ -57,7 +57,7 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="row">The schedule to write to, already checked against its owner.</param>
     /// <param name="airings">The airings to add or update.</param>
-    /// <param name="removalKeys">The keys of the airings to take away, or <see langword="null"/> to take away everything not submitted.</param>
+    /// <param name="removalKeys">The keys of the airings to take away, or <c>null</c> to take away everything not submitted.</param>
     /// <param name="options">How to write the airings.</param>
     /// <returns>The enriched airings the write wrote.</returns>
     /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, is both submitted and removed, or the write would leave the schedule without an airing inside the retention window.</exception>
@@ -426,7 +426,7 @@ public partial class AiringScheduleService
     /// </remarks>
     /// <param name="context">The read the view belongs to.</param>
     /// <param name="airingID">The airing's public ID.</param>
-    /// <returns>The estimate, or <see langword="null"/> when no schedule makes one under that ID.</returns>
+    /// <returns>The estimate, or <c>null</c> when no schedule makes one under that ID.</returns>
     private IEpisodeAiring? GetEstimateByID(AiringReadContext context, Guid airingID)
     {
         foreach (var row in RepoFactory.AiringSchedule.GetAll())
@@ -572,7 +572,7 @@ public partial class AiringScheduleService
     /// <param name="context">The read the resolutions belong to.</param>
     /// <param name="row">The schedule being written to.</param>
     /// <param name="airings">The submitted airings.</param>
-    /// <param name="removalKeys">The keys the same write takes away, which nothing it submits may name, or <see langword="null"/> when it names none.</param>
+    /// <param name="removalKeys">The keys the same write takes away, which nothing it submits may name, or <c>null</c> when it names none.</param>
     /// <returns>The accepted submissions, in submission order.</returns>
     /// <exception cref="AiringScheduleValidationException">An airing is outside the schedule's series, season or coverage, shares a key with another, or is also being removed.</exception>
     private List<AiringSubmission> ValidateAirings(
@@ -677,7 +677,7 @@ public partial class AiringScheduleService
     /// under. A schedule whose airings have no slot at all has no date to judge
     /// and is kept, there and here.
     /// </summary>
-    /// <param name="latest">The latest slot the schedule is left with, or <see langword="null"/> when none of its airings has one.</param>
+    /// <param name="latest">The latest slot the schedule is left with, or <c>null</c> when none of its airings has one.</param>
     /// <param name="now">The current time, in UTC.</param>
     /// <param name="settings">The service's settings, with the window already clamped.</param>
     /// <exception cref="AiringScheduleValidationException">The schedule would be left without an airing inside the retention window.</exception>
@@ -739,7 +739,7 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="left">One schedule's tracks.</param>
     /// <param name="right">The other schedule's tracks.</param>
-    /// <returns><see langword="true"/> when the two share a track.</returns>
+    /// <returns><c>true</c> when the two share a track.</returns>
     private static bool HasMatchingTrack(IReadOnlyList<AiringTrackData> left, IReadOnlyList<AiringTrackData> right)
     {
         var ours = left.Select(track => new AiringTrack(track)).ToList();
@@ -754,7 +754,7 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="one">One track.</param>
     /// <param name="other">The other track.</param>
-    /// <returns><see langword="true"/> when the two are the same release.</returns>
+    /// <returns><c>true</c> when the two are the same release.</returns>
     internal static bool TracksMatch(IAiringTrack one, IAiringTrack other)
     {
         if (one.Kind != other.Kind)
@@ -773,7 +773,7 @@ public partial class AiringScheduleService
     /// <param name="context">The read the resolution belongs to.</param>
     /// <param name="source">The source of the episode.</param>
     /// <param name="id">The ID of the episode within its source.</param>
-    /// <returns>The episode number, or <see langword="null"/>.</returns>
+    /// <returns>The episode number, or <c>null</c>.</returns>
     private static int? GetNormalEpisodeNumber(AiringReadContext context, MetadataSource source, string id)
         => context.GetEpisode(source, id) is { Type: EpisodeType.Episode } episode ? episode.EpisodeNumber : null;
 
@@ -808,7 +808,7 @@ public partial class AiringScheduleService
     /// </summary>
     /// <param name="info">The registered provider making the change.</param>
     /// <param name="row">The schedule being written to.</param>
-    /// <param name="removals">The airings the provider handed in, which may be <see langword="null"/> or empty.</param>
+    /// <param name="removals">The airings the provider handed in, which may be <c>null</c> or empty.</param>
     /// <returns>The keys to remove, which is empty when nothing was named.</returns>
     /// <exception cref="ArgumentException">An airing is estimated or unknown, is owned by another provider, or is on another schedule.</exception>
     private IReadOnlySet<string> ResolveRemovals(AiringScheduleProviderInfo info, AiringSchedule row, IEnumerable<IEpisodeAiring>? removals)
@@ -836,7 +836,7 @@ public partial class AiringScheduleService
     /// The stored airing behind a public ID.
     /// </summary>
     /// <param name="airingID">The airing's public ID.</param>
-    /// <returns>The stored airing, or <see langword="null"/> when it is unknown.</returns>
+    /// <returns>The stored airing, or <c>null</c> when it is unknown.</returns>
     private EpisodeAiring? GetAiringRow(Guid airingID)
         => GetAiringIDs().TryGetValue(airingID, out var id) ? RepoFactory.EpisodeAiring.GetByID(id) : null;
 

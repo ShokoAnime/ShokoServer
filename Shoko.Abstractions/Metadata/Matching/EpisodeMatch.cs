@@ -18,7 +18,7 @@ public sealed record EpisodeMatch
     public required IAnidbEpisode AnidbEpisode { get; init; }
 
     /// <summary>
-    ///   What the source lines it up with, or <see langword="null"/> when
+    ///   What the source lines it up with, or <c>null</c> when
     ///   nothing did.
     /// </summary>
     /// <remarks>

@@ -52,7 +52,8 @@ if (connectivityService.NetworkAvailability < NetworkAvailability.PartialInterne
 | `NetworkAvailabilityChanged` | Fires only on an actual change, carrying the new value and the timestamp. |
 
 The state is refreshed by the "Check Network Availability" scheduled action,
-by default at startup and every 30 minutes (the admin can change its triggers).
+by default at startup, every 30 minutes and whenever the queue is cleared (the
+admin can change its triggers).
 Between runs the property is the last answer.
 
 `CheckAvailability()` makes real HTTP requests, five seconds' timeout each, so

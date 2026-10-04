@@ -28,7 +28,7 @@ public interface IMetadataEntityProvider : IMetadataProvider
     MetadataEntityScope EntityScope { get; }
 
     /// <summary>
-    ///   How long a refreshed entry stays fresh, or <see langword="null"/> to
+    ///   How long a refreshed entry stays fresh, or <c>null</c> to
     ///   refresh stubs only. Thirty days by default.
     /// </summary>
     /// <remarks>
@@ -39,12 +39,12 @@ public interface IMetadataEntityProvider : IMetadataProvider
 
     /// <summary>
     ///   How long a stub you did not find waits before it is asked for again,
-    ///   or <see langword="null"/> to wait out <see cref="EntityStaleAfter"/>.
+    ///   or <c>null</c> to wait out <see cref="EntityStaleAfter"/>.
     ///   Seven days by default.
     /// </summary>
     /// <remarks>
     ///   A stub still a stub after a refresh counts as not found. Used even
-    ///   when <see cref="EntityStaleAfter"/> is <see langword="null"/>.
+    ///   when <see cref="EntityStaleAfter"/> is <c>null</c>.
     /// </remarks>
     TimeSpan? EntityMissRetryAfter { get => TimeSpan.FromDays(7); }
 
@@ -62,8 +62,8 @@ public interface IMetadataEntityProvider : IMetadataProvider
     /// <param name="entityID">The entry: on your source and of a kind in <see cref="EntityScope"/>.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> when you found and wrote the entry, or
-    ///   <see langword="false"/> when your source does not have it.
+    ///   <c>true</c> when you found and wrote the entry, or
+    ///   <c>false</c> when your source does not have it.
     /// </returns>
     Task<bool> RefreshEntity(MetadataGuid entityID, CancellationToken cancellationToken = default);
 
@@ -82,7 +82,7 @@ public interface IMetadataEntityProvider : IMetadataProvider
     ///   its ID.
     /// </param>
     /// <returns>
-    ///   The absolute URL, or <see langword="null"/> when the entry has no
+    ///   The absolute URL, or <c>null</c> when the entry has no
     ///   page.
     /// </returns>
     string? GetSiteUrl(IMetadata entry) => null;

@@ -198,7 +198,10 @@ and backwards. Treat it as an upper bound on progress. For HLS it is
 `segmentIndex * SegmentDuration`, or the segment's `StreamResource.Position`
 from an `IHlsPresentationRendition`; for progressive playback it is inferred
 from the requested byte range. A reliable position has to come from the client,
-which is what the dedicated `/Scrobble` endpoint is for.
+which is what the dedicated `/Scrobble` endpoint is for. An observer that saves
+a position through `IUserDataService` is subject to the
+[completion rule](../../User/Services/README.md#the-completion-rule) like any
+other save.
 
 ### Reading query parameters
 

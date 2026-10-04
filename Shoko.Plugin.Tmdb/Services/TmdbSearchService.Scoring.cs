@@ -84,7 +84,7 @@ public sealed partial class TmdbSearchService
     ///   it a movie on TMDb.
     /// </summary>
     /// <param name="anime">The anime.</param>
-    /// <returns><see langword="true"/> for a short-form anime.</returns>
+    /// <returns><c>true</c> for a short-form anime.</returns>
     internal static bool IsShortForm(IAnidbAnime anime)
         => IsShortFormByEpisodeCount(anime.Episodes.Count(episode => episode.Type is EpisodeType.Episode));
 
@@ -92,7 +92,7 @@ public sealed partial class TmdbSearchService
     ///   Whether so many regular episodes make a short-form anime.
     /// </summary>
     /// <param name="mainEpisodeCount">The number of regular episodes.</param>
-    /// <returns><see langword="true"/> for at most four.</returns>
+    /// <returns><c>true</c> for at most four.</returns>
     internal static bool IsShortFormByEpisodeCount(int mainEpisodeCount)
         => mainEpisodeCount <= 4;
 
@@ -100,10 +100,10 @@ public sealed partial class TmdbSearchService
     ///   Whether something dated so aired, or airs within the window, which
     ///   is when the auto-search looks for it.
     /// </summary>
-    /// <param name="airDate">When it airs, or <see langword="null"/> when that is not known.</param>
+    /// <param name="airDate">When it airs, or <c>null</c> when that is not known.</param>
     /// <param name="now">The time now.</param>
     /// <param name="window">How far ahead of its air date it is looked for.</param>
-    /// <returns><see langword="true"/> when it may be searched for.</returns>
+    /// <returns><c>true</c> when it may be searched for.</returns>
     internal static bool AiredWithin([NotNullWhen(true)] DateTime? airDate, DateTime now, TimeSpan window)
         => airDate is { } date && (date <= now || date - now <= window);
 
@@ -112,7 +112,7 @@ public sealed partial class TmdbSearchService
     ///   first or second regular episode's.
     /// </summary>
     /// <param name="anime">The anime.</param>
-    /// <returns>The date, or <see langword="null"/> when it is not known.</returns>
+    /// <returns>The date, or <c>null</c> when it is not known.</returns>
     internal static DateTime? ShowAirDate(IAnidbAnime anime)
         => AirDateOf(anime) ?? (SecondEpisode(anime) is { } episode ? AirDateOf(episode) : null);
 
@@ -123,7 +123,7 @@ public sealed partial class TmdbSearchService
     /// </summary>
     /// <param name="anime">The anime.</param>
     /// <param name="episode">The episode standing for the movie.</param>
-    /// <returns>The date, or <see langword="null"/> when it is not known.</returns>
+    /// <returns>The date, or <c>null</c> when it is not known.</returns>
     internal static DateTime? FilmAirDate(IAnidbAnime anime, IAnidbEpisode episode)
     {
         var films = anime.Episodes.Count(other => other.Type is EpisodeType.Episode or EpisodeType.Special or EpisodeType.Other);
@@ -171,7 +171,7 @@ public sealed partial class TmdbSearchService
     /// </summary>
     /// <param name="episode">The episode.</param>
     /// <param name="englishTitle">Its English title.</param>
-    /// <returns><see langword="true"/> for an extra.</returns>
+    /// <returns><c>true</c> for an extra.</returns>
     private static bool IsExtra(IAnidbEpisode episode, string? englishTitle)
     {
         if (episode.Type is not (EpisodeType.Special or EpisodeType.Other) || string.IsNullOrEmpty(englishTitle))
@@ -202,7 +202,7 @@ public sealed partial class TmdbSearchService
     /// <param name="subTitle">The episode's title in the same language.</param>
     /// <param name="episodeNumber">The episode's number.</param>
     /// <param name="isGenericTitle">Whether the episode is only called "Movie N".</param>
-    /// <returns>The title, or <see langword="null"/> when either part is missing.</returns>
+    /// <returns>The title, or <c>null</c> when either part is missing.</returns>
     internal static string? FullMovieTitle(string? animeTitle, string? subTitle, int episodeNumber, bool isGenericTitle)
         => string.IsNullOrWhiteSpace(animeTitle) || string.IsNullOrWhiteSpace(subTitle)
             ? null
@@ -233,7 +233,7 @@ public sealed partial class TmdbSearchService
     /// <param name="episode">The episode standing for the movie.</param>
     /// <param name="options">What was searched for.</param>
     /// <param name="candidateIDs">The movies the searches offered, in order.</param>
-    /// <param name="fetchMovie">Fetches a movie whole, or gives <see langword="null"/>.</param>
+    /// <param name="fetchMovie">Fetches a movie whole, or gives <c>null</c>.</param>
     /// <returns>The movies fetched, best first; empty when none could be fetched.</returns>
     internal static async Task<IReadOnlyList<MovieMatch>> PickMovie(
         IMetadataMatchingEngine engine,
@@ -273,10 +273,10 @@ public sealed partial class TmdbSearchService
     /// <param name="anime">The anime being matched.</param>
     /// <param name="options">What was searched for.</param>
     /// <param name="candidateIDs">The shows the searches offered, in order.</param>
-    /// <param name="fetchShow">Fetches a show whole, or gives <see langword="null"/>.</param>
-    /// <param name="fetchSeasonEpisodes">Fetches the episodes of a show's season, or gives <see langword="null"/>.</param>
+    /// <param name="fetchShow">Fetches a show whole, or gives <c>null</c>.</param>
+    /// <param name="fetchSeasonEpisodes">Fetches the episodes of a show's season, or gives <c>null</c>.</param>
     /// <param name="alignedCandidates">How many shows have a season fetched to line them up.</param>
-    /// <param name="alignedShows">The shows lined up so far, shared by one anime's searches; a new set when <see langword="null"/>.</param>
+    /// <param name="alignedShows">The shows lined up so far, shared by one anime's searches; a new set when <c>null</c>.</param>
     /// <returns>The shows fetched, best first; empty when none could be fetched.</returns>
     internal static async Task<IReadOnlyList<SeriesMatch>> PickShow(
         IMetadataMatchingEngine engine,
@@ -336,7 +336,7 @@ public sealed partial class TmdbSearchService
     ///   episode's regular date, or the anime's own.
     /// </summary>
     /// <param name="anime">The anime.</param>
-    /// <returns>The date, or <see langword="null"/> when nothing is dated.</returns>
+    /// <returns>The date, or <c>null</c> when nothing is dated.</returns>
     internal static DateOnly? StartOf(IAnidbAnime anime)
         => anime.Episodes
             .Where(episode => episode is { Type: EpisodeType.Episode, RegularAirDate: not null })
@@ -350,7 +350,7 @@ public sealed partial class TmdbSearchService
     /// </summary>
     /// <param name="seasons">The show's regular seasons.</param>
     /// <param name="date">The date.</param>
-    /// <returns>The season's number, or <see langword="null"/> when none began by then.</returns>
+    /// <returns>The season's number, or <c>null</c> when none began by then.</returns>
     internal static int? SeasonHolding(IReadOnlyList<MetadataSearchResultSeason> seasons, DateOnly date)
         => seasons
             .Where(season => season.FirstAiredAt is { IsComplete: true } began && began.ToDateOnly().DayNumber <= date.DayNumber + 3)
@@ -454,9 +454,9 @@ public sealed partial class TmdbSearchService
     /// </summary>
     /// <param name="TmdbID">The show's or movie's TMDb ID.</param>
     /// <param name="IsMovie">Whether it is a movie rather than a show.</param>
-    /// <param name="ImdbID">The IMDb title it was found through, or <see langword="null"/>.</param>
-    /// <param name="NamedBy">The linked entries of other sources naming it, or <see langword="null"/> for the anime's own cross-source IDs.</param>
-    /// <param name="AnidbEpisodeID">The AniDB episode a movie was named for, or <see langword="null"/>.</param>
+    /// <param name="ImdbID">The IMDb title it was found through, or <c>null</c>.</param>
+    /// <param name="NamedBy">The linked entries of other sources naming it, or <c>null</c> for the anime's own cross-source IDs.</param>
+    /// <param name="AnidbEpisodeID">The AniDB episode a movie was named for, or <c>null</c>.</param>
     internal readonly record struct TmdbHint(int TmdbID, bool IsMovie, string? ImdbID = null, IReadOnlyList<MetadataGuid>? NamedBy = null, int? AnidbEpisodeID = null)
     {
         /// <summary>
@@ -551,7 +551,7 @@ public sealed partial class TmdbSearchService
     };
 
     /// <summary>
-    ///   Why a hinted entry is not taken, or <see langword="null"/> when it
+    ///   Why a hinted entry is not taken, or <c>null</c> when it
     ///   may be.
     /// </summary>
     /// <param name="hint">The hint.</param>
@@ -561,8 +561,8 @@ public sealed partial class TmdbSearchService
     /// <param name="filter">The engine's reason for not taking it, if any.</param>
     /// <param name="details">What the engine compared, if it said.</param>
     /// <param name="unplaced">Whether it is a movie no single episode could be told to stand for.</param>
-    /// <param name="notAired">Why what it would be linked to is not searched for yet, or <see langword="null"/>.</param>
-    /// <returns>The rejection, or <see langword="null"/>.</returns>
+    /// <param name="notAired">Why what it would be linked to is not searched for yet, or <c>null</c>.</param>
+    /// <returns>The rejection, or <c>null</c>.</returns>
     internal static MetadataAutoLinkRejection? HintRejection(
         TmdbHint hint,
         AnimeType animeType,
@@ -612,11 +612,11 @@ public sealed partial class TmdbSearchService
     ///   Why an anime, or the movie one of its episodes stands for, is not
     ///   searched for yet, as a clause.
     /// </summary>
-    /// <param name="airDate">When it airs, or <see langword="null"/> when that is not known.</param>
+    /// <param name="airDate">When it airs, or <c>null</c> when that is not known.</param>
     /// <param name="isMovie">Whether it is a movie standing for one episode.</param>
     /// <param name="now">The time now.</param>
     /// <param name="window">How far ahead of its air date the search looks for it.</param>
-    /// <returns>The clause, or <see langword="null"/> when it is searched for.</returns>
+    /// <returns>The clause, or <c>null</c> when it is searched for.</returns>
     internal static string? NotAired(DateTime? airDate, bool isMovie, DateTime now, TimeSpan window)
     {
         if (AiredWithin(airDate, now, window))
@@ -710,7 +710,7 @@ public sealed partial class TmdbSearchService
     /// <param name="prequels">The show found through the prequel's titles.</param>
     /// <param name="airedOn">When the anime began.</param>
     /// <param name="episodeCount">How many regular episodes the anime has.</param>
-    /// <returns><see langword="true"/> when the anime's own wins.</returns>
+    /// <returns><c>true</c> when the anime's own wins.</returns>
     internal static bool OwnTitleWins(FoundShow own, FoundShow prequels, DateOnly airedOn, int episodeCount)
     {
         if (ShowMatchPriority(own.Rating) < ShowMatchPriority(prequels.Rating))
@@ -738,7 +738,7 @@ public sealed partial class TmdbSearchService
     /// <param name="reason">The engine's reason.</param>
     /// <param name="query">The title searched for.</param>
     /// <param name="details">What the engine compared, if it said.</param>
-    /// <returns>The rejection, or <see langword="null"/> for the candidate taken.</returns>
+    /// <returns>The rejection, or <c>null</c> for the candidate taken.</returns>
     internal static MetadataAutoLinkRejection? Rejected(MatchRejectionReason reason, string query, string? details)
         => reason is MatchRejectionReason.None
             ? null

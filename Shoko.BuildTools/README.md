@@ -52,6 +52,7 @@ shoko-build [options] [-- <msbuild-args>]
 | `--prune-method <method>` | | Pruning method: `channel` (default, per-channel) or `global` (all releases together). |
 | `--url <url>` | `-u` | **Required.** Download URL recorded for the archive in the manifest. Supports `{runtime}`, `{version}`, `{name}`, `{abstraction}` and `{tag}` templates. Recorded as given after substitution. |
 | `--output <path>` | `-o` | **Required.** Output path for the packed `.zip` archive. Supports `{runtime}`, `{version}`, `{name}`, `{abstraction}` and `{tag}` templates. Intermediate directories are created. |
+| `--tag <tag>` | `-t` | Release tag recorded in the assembly and the manifest entry, and used for `{tag}`. Defaults to the `v<major>.<minor>.<patch>` tag on `HEAD`, if there is one; `{tag}` then falls back to `v<version>`. |
 | `--channel <name>` | | Release channel for the manifest entry: `Stable`, `Dev` or `Debug`, case-insensitive. An unrecognised name is an error. See below for more info. |
 | `--release-notes <text>` | | Release notes recorded on the manifest entry. See below. |
 | `--release-notes-path <path>` | | Read the release notes from a file instead. Mutually exclusive with `--release-notes`. |
@@ -143,8 +144,7 @@ The targets package never writes the manifest and has no such check.
 - A dependency is required unless marked `:optional`.
 - Whitespace around `,`, `@` and `:` is ignored, and so are empty
   entries, so a list can span lines.
-- The legacy `<guid>:<range>[:true]` form, which `shoko-build` 0.4.0 and
-  `Shoko.BuildTools.Targets` 0.2.1 and earlier embedded, is still read.
+- The older `<guid>:<range>[:true]` form is still read.
 - An entry that does not parse, a range the server cannot evaluate, or a
   plugin listed twice stops the build. The manifest's `dependencies` are
   held to the same rules.
@@ -233,7 +233,8 @@ The source probe maps Shoko service interfaces to discovery tags:
 | `IHostedService` | `hosted-service` |
 | `IPluginServiceRegistration` | `service-registration` |
 | `IPluginApplicationRegistration` | `application-registration` |
-| `IXxxProvider` (generic) | `xxx-provider` |
+
+Only these interfaces add a tag; implementing any other adds none.
 
 ## Manifest format
 
@@ -269,6 +270,16 @@ See `manifest.schema.json` in this directory for the full JSON Schema.
   ]
 }
 ```
+
+Besides the fields above, a manifest may give `homepage_url`, a wide
+`thumbnail_url` and a square `icon_url` (readable at 16 pixels). The
+deprecated `image_url` is read as the thumbnail when there is no
+`thumbnail_url`. A manifest with `"type": "manifest"` and a `url` points at
+another manifest instead of describing a plugin. A release can also carry
+`source_revision`, `release_notes` and its own `dependencies`.
+
+A plugin can embed its thumbnail and icon in its assembly instead
+(`IPlugin.EmbeddedThumbnailResourceName` and `EmbeddedIconResourceName`).
 
 ### Examples
 
@@ -307,8 +318,8 @@ shoko-build -c Release --manifest manifest.json \
 
 ### Integration with plugin `.csproj`
 
-When using `shoko-build`, plugins no longer need the `PluginAssemblyVersion`
-MSBuild target, `EnableDynamicLoading`, or `IncludeSourceRevisionInInformationalVersion`
+When using `shoko-build`, plugins need no `PluginAssemblyVersion` MSBuild
+target, `EnableDynamicLoading` or `IncludeSourceRevisionInInformationalVersion`
 in their `.csproj`. The tool handles all of that. A minimal plugin `.csproj`:
 
 ```xml
@@ -338,3 +349,37 @@ summary for its description; without it those descriptions are empty. See the
 [configuration README](../Shoko.Abstractions/Config/Services/README.md#descriptions).
 It also warns about every undocumented public member (`CS1591`); add
 `<NoWarn>$(NoWarn);CS1591</NoWarn>` if you'd rather not see those.
+
+## Shoko.BuildTools.Targets
+
+The MSBuild half of the same metadata, for a plain `dotnet build` (and for
+local builds that never run `shoko-build`). Reference it as a development
+dependency:
+
+```xml
+<PackageReference Include="Shoko.BuildTools.Targets" Version="..." PrivateAssets="All" ExcludeAssets="runtime" />
+```
+
+Its targets run before `CoreGenerateAssemblyInfo` and stamp the assembly with:
+
+- `RuntimeIdentifier`: the build's runtime identifier, or `any` without one.
+- The plugin's identity, tags and dependencies (`PackageID`, `PackageName`,
+  `PackageOverview`, `PackageTags`, `PackageDependencies`). They come from
+  `manifest.json` in the project's directory or its parent. Without a
+  manifest, the ID, name and description are read from the plugin class's
+  source with Roslyn, following an ID derived from a type name through
+  `UuidUtility.GetV5`. Either way, the `PluginID`, `PluginName`,
+  `PluginOverview`, `PluginTags` and `PluginDependencies` properties win, as
+  described in [Plugin metadata](#plugin-metadata).
+- `ReleaseChannel`, only when the `ReleaseChannel` property is set. An
+  unrecognised name fails the build.
+- `ReleaseDate`, `SourceRevision` and `ReleaseTag` from the repository, the
+  tag being a `v<major>.<minor>.<patch>` tag on `HEAD`.
+
+It does not set `EnableDynamicLoading`, so a plugin built with `dotnet build`
+alone sets that in its `.csproj`. It never writes the manifest either.
+
+A build that imports the targets from source instead of the package, as the
+server does, points `ShokoBuildToolsTasksAssembly` at the tasks it built,
+names the targets that put them there in `ShokoBuildToolsPrepareTargets`, and
+sets `ShokoBuildToolsUseTaskHost` to `true` so the tasks run out of process.

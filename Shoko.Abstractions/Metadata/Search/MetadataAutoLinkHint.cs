@@ -26,7 +26,7 @@ public sealed record MetadataAutoLinkHint
 
     /// <summary>
     ///   The AniDB episode a named film stands for, when the link naming it
-    ///   was one for that episode, or <see langword="null"/> for the whole
+    ///   was one for that episode, or <c>null</c> for the whole
     ///   anime.
     /// </summary>
     public int? AnidbEpisodeID { get; init; }

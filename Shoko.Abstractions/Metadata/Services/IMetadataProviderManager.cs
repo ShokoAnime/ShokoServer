@@ -24,7 +24,7 @@ public interface IMetadataProviderManager
     /// </summary>
     /// <param name="providerID">The provider's ID.</param>
     /// <returns>
-    ///   The info, or <see langword="null"/> if nothing goes by that ID.
+    ///   The info, or <c>null</c> if nothing goes by that ID.
     /// </returns>
     MetadataProviderInfo? GetProviderInfo(Guid providerID);
 
@@ -34,7 +34,7 @@ public interface IMetadataProviderManager
     /// <param name="provider">The provider.</param>
     /// <returns>The info.</returns>
     /// <exception cref="System.ArgumentNullException">
-    ///   Thrown when <paramref name="provider"/> is <see langword="null"/>.
+    ///   Thrown when <paramref name="provider"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="System.ArgumentException">
     ///   Thrown when the provider was never registered.
@@ -57,7 +57,7 @@ public interface IMetadataProviderManager
     /// <param name="providerType">The provider's type.</param>
     /// <returns>The info.</returns>
     /// <exception cref="System.ArgumentNullException">
-    ///   Thrown when <paramref name="providerType"/> is <see langword="null"/>.
+    ///   Thrown when <paramref name="providerType"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="System.ArgumentException">
     ///   Thrown when no provider of that type was registered.
@@ -87,8 +87,8 @@ public interface IMetadataProviderManager
     ///   AniDB's.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns>The icon, or <see langword="null"/> when the source has none.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <returns>The icon, or <c>null</c> when the source has none.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     PackageImageInfo? GetSourceIcon(MetadataSource source);
 
     /// <summary>
@@ -119,7 +119,7 @@ public interface IMetadataProviderManager
     /// </summary>
     /// <param name="provider">The provider.</param>
     /// <returns>
-    ///   <see langword="true"/> if it is on, otherwise <see langword="false"/>,
+    ///   <c>true</c> if it is on, otherwise <c>false</c>,
     ///   including when it was never registered.
     /// </returns>
     bool IsProviderEnabled(IMetadataProvider provider);
@@ -129,7 +129,7 @@ public interface IMetadataProviderManager
     /// </summary>
     /// <param name="providerID">The provider's ID.</param>
     /// <returns>
-    ///   <see langword="true"/> if it is on, otherwise <see langword="false"/>,
+    ///   <c>true</c> if it is on, otherwise <c>false</c>,
     ///   including when nothing goes by that ID.
     /// </returns>
     bool IsProviderEnabled(Guid providerID);
@@ -147,7 +147,7 @@ public interface IMetadataProviderManager
     /// <param name="provider">The provider.</param>
     /// <param name="enabled">Whether it should answer.</param>
     /// <exception cref="System.ArgumentNullException">
-    ///   Thrown when <paramref name="provider"/> is <see langword="null"/>.
+    ///   Thrown when <paramref name="provider"/> is <c>null</c>.
     /// </exception>
     void SetProviderEnabled(IMetadataProvider provider, bool enabled);
 
@@ -175,7 +175,7 @@ public interface IMetadataProviderManager
     /// </remarks>
     /// <param name="providerID">The provider's ID.</param>
     /// <param name="enabled">The entity types to answer for.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="enabled"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="enabled"/> is <c>null</c>.</exception>
     void SetProviderEnabled(Guid providerID, IReadOnlySet<MetadataEntityType> enabled);
 
     /// <summary>
@@ -191,7 +191,7 @@ public interface IMetadataProviderManager
     /// <param name="source">The source.</param>
     /// <param name="entityType">The entity type.</param>
     /// <returns>Every registered provider claiming it, in order; none when nothing does.</returns>
-    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     IReadOnlyList<MetadataProviderAssignment> GetProviderOrder(MetadataSource source, MetadataEntityType entityType);
 
     /// <summary>
@@ -205,7 +205,7 @@ public interface IMetadataProviderManager
     /// </remarks>
     /// <param name="source">The source.</param>
     /// <param name="orders">The order for each entity type to change.</param>
-    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     /// <exception cref="ArgumentException">
     ///   A provider is given twice for a type, or does not claim the type on
     ///   the source.
@@ -225,7 +225,7 @@ public interface IMetadataProviderManager
     /// </param>
     /// <param name="providerID">
     ///   The provider to use, both when a person asks and when it links on its
-    ///   own, or <see langword="null"/> for nobody. It must implement
+    ///   own, or <c>null</c> for nobody. It must implement
     ///   <see cref="Providers.IMetadataAutoLinkingProvider"/> and claim the
     ///   source. It only hands back what it finds; the core links it.
     /// </param>
@@ -244,8 +244,8 @@ public interface IMetadataProviderManager
     ///   it has none.
     /// </param>
     /// <param name="autoLink">
-    ///   <see langword="true"/> to link when an anime is new and in the library
-    ///   sweep; <see langword="false"/> to link only when a person asks.
+    ///   <c>true</c> to link when an anime is new and in the library
+    ///   sweep; <c>false</c> to link only when a person asks.
     /// </param>
     void SetProviderAutoLink(MetadataSource source, bool autoLink);
 
@@ -258,8 +258,8 @@ public interface IMetadataProviderManager
     ///   this changes nothing while the source has no auto-linker.
     /// </param>
     /// <param name="autoLinkRestricted">
-    ///   <see langword="true"/> to let its auto-linker link restricted entries
-    ///   too; <see langword="false"/> to leave them to be linked by hand.
+    ///   <c>true</c> to let its auto-linker link restricted entries
+    ///   too; <c>false</c> to leave them to be linked by hand.
     /// </param>
     void SetProviderAutoLinkRestricted(MetadataSource source, bool autoLinkRestricted);
 

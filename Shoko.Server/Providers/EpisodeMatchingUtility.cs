@@ -42,7 +42,7 @@ public static class EpisodeMatchingUtility
 
     /// <summary>
     /// Unbounded companion to <see cref="CalculateAirDateProbability"/>. Returns
-    /// the raw day distance, or <see langword="null"/> if either date is unknown.
+    /// the raw day distance, or <c>null</c> if either date is unknown.
     /// </summary>
     public static int? CalculateAirDateDistance(DateOnly? firstDate, DateOnly? secondDate)
         => !firstDate.HasValue || !secondDate.HasValue ? null : Math.Abs(secondDate.Value.DayNumber - firstDate.Value.DayNumber);

@@ -42,7 +42,7 @@ internal static class StartupCompaction
     /// <param name="ranSchemaSteps">Whether this start ran schema steps, the same condition that backs the database up.</param>
     /// <param name="databaseSize">The database's size in bytes: its page count times its page size.</param>
     /// <param name="reclaimableBytes">The bytes its free pages hold: the free page count times the page size.</param>
-    /// <param name="availableDiskSpace">The free bytes on the database's drive, or <see langword="null"/> when they could not be read.</param>
+    /// <param name="availableDiskSpace">The free bytes on the database's drive, or <c>null</c> when they could not be read.</param>
     /// <returns>What the start-up does with the database.</returns>
     internal static StartupCompactionDecision Decide(bool ranSchemaSteps, long databaseSize, long reclaimableBytes, long? availableDiskSpace)
     {
@@ -141,7 +141,7 @@ internal static class StartupCompaction
     ///   Reads the free space on the drive holding a file.
     /// </summary>
     /// <param name="filePath">The file's path.</param>
-    /// <returns>The free bytes, or <see langword="null"/> when they could not be read.</returns>
+    /// <returns>The free bytes, or <c>null</c> when they could not be read.</returns>
     internal static long? GetAvailableDiskSpace(string filePath)
     {
         try

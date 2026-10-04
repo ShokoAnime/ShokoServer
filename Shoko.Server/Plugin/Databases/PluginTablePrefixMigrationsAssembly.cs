@@ -67,7 +67,7 @@ internal sealed class PluginTablePrefixMigrationsAssembly(ICurrentDbContext curr
     /// Finds a migration by its ID or name.
     /// </summary>
     /// <param name="nameOrId">The migration's ID, or its name without the timestamp.</param>
-    /// <returns>The migration's ID, or <see langword="null"/> when there is none.</returns>
+    /// <returns>The migration's ID, or <c>null</c> when there is none.</returns>
     public string? FindMigrationId(string nameOrId)
         => Migrations.Keys.FirstOrDefault(id => string.Equals(id, nameOrId, StringComparison.OrdinalIgnoreCase))
             ?? Migrations.Keys.FirstOrDefault(id => id.EndsWith("_" + nameOrId, StringComparison.OrdinalIgnoreCase));

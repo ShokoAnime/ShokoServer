@@ -22,7 +22,7 @@ namespace Shoko.Server.Actions;
 public sealed class AutoMatchMetadataEpisodesSeriesAction(IMetadataProviderManager providerManager, IMetadataLinkingService linkingService) : SeriesAction
 {
     /// <summary>
-    ///   The source to match against, or <see langword="null"/> for every
+    ///   The source to match against, or <c>null</c> for every
     ///   source that links episodes and has a series linked to this one.
     /// </summary>
     public MetadataSource? Source { get; set; }
@@ -69,7 +69,7 @@ public sealed class AutoMatchMetadataEpisodesSeriesAction(IMetadataProviderManag
     ///   Whether an enabled provider links episodes on a source.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns><see langword="true"/> when one does.</returns>
+    /// <returns><c>true</c> when one does.</returns>
     private bool LinksEpisodes(MetadataSource source)
         => providerManager.GetAvailableProviders(MetadataEntityType.Episode, source)
             .Select(info => info.Provider)
@@ -80,7 +80,7 @@ public sealed class AutoMatchMetadataEpisodesSeriesAction(IMetadataProviderManag
     ///   The first series of a source the series is linked to.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns>The series, or <see langword="null"/> when none is linked.</returns>
+    /// <returns>The series, or <c>null</c> when none is linked.</returns>
     private MetadataGuid? LinkedSeries(MetadataSource source)
         => Series.GetSeriesCrossReferences(source)
             .Select(link => link.ProviderID)

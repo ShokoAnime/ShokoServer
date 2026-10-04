@@ -19,7 +19,7 @@ public sealed record MetadataAutoLinkRejection
 
     /// <summary>
     ///   Anything more worth showing about it, such as the query that found
-    ///   it, or <see langword="null"/>.
+    ///   it, or <c>null</c>.
     /// </summary>
     public string? Details { get; init; }
 }

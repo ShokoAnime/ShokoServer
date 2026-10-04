@@ -60,7 +60,7 @@ public static class AnidbSiteUrls
     /// </summary>
     /// <param name="entry">The entry.</param>
     /// <returns>
-    ///   The URL, or <see langword="null"/> for an entry of another source,
+    ///   The URL, or <c>null</c> for an entry of another source,
     ///   a kind without a page or an ID that is not a positive number.
     /// </returns>
     public static string? ForEntry(IMetadata entry)

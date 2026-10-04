@@ -87,7 +87,7 @@ public static class Search
         public MetadataAutoLinkOrigin Origin { get; set; }
 
         /// <summary>
-        /// Why the match is not linked, or <see langword="null"/> when an
+        /// Why the match is not linked, or <c>null</c> when an
         /// automatic search links it. A match turned down can still be linked
         /// by hand.
         /// </summary>

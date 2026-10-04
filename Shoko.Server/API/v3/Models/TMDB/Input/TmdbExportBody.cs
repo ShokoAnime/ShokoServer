@@ -110,7 +110,7 @@ public class TmdbExportBody
     /// A three-way include filter as the transfer service takes it.
     /// </summary>
     /// <param name="filter">The filter.</param>
-    /// <returns><see langword="null"/> for both, <see langword="true"/> for only, <see langword="false"/> for none.</returns>
+    /// <returns><c>null</c> for both, <c>true</c> for only, <c>false</c> for none.</returns>
     private static bool? ToFilter(IncludeOnlyFilter filter)
         => filter switch
         {

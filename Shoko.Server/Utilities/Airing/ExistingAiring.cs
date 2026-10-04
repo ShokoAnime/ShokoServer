@@ -27,14 +27,14 @@ public sealed record ExistingAiring
     public int? EpisodeNumber { get; init; }
 
     /// <summary>
-    /// The current slot, in UTC. <see langword="null"/> means the airing has no
+    /// The current slot, in UTC. <c>null</c> means the airing has no
     /// slot, which is how an indefinite postponement is stored.
     /// </summary>
     public DateTime? AiredAt { get; init; }
 
     /// <summary>
     /// The first slot the airing was scheduled for, in UTC, or
-    /// <see langword="null"/> when it never moved.
+    /// <c>null</c> when it never moved.
     /// </summary>
     public DateTime? OriginalAiredAt { get; init; }
 
@@ -45,7 +45,7 @@ public sealed record ExistingAiring
 
     /// <summary>
     /// Optional. The key of the link head this airing belongs to, or
-    /// <see langword="null"/> when it isn't linked. The head carries its own key
+    /// <c>null</c> when it isn't linked. The head carries its own key
     /// here, so a whole link set shares one value.
     /// </summary>
     public string? LinkKey { get; init; }

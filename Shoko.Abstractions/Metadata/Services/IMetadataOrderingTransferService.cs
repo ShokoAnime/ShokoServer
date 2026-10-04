@@ -23,10 +23,10 @@ public interface IMetadataOrderingTransferService
     ///   Write orderings into an export file.
     /// </summary>
     /// <param name="destination">Where the file is written.</param>
-    /// <param name="options">Which orderings to write and how, or <see langword="null"/> for every local ordering with its images by URL.</param>
+    /// <param name="options">Which orderings to write and how, or <c>null</c> for every local ordering with its images by URL.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>What was written.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="destination"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="destination"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="destination"/> cannot be written.</exception>
     Task<MetadataOrderingExportResult> Export(
         Stream destination,
@@ -38,7 +38,7 @@ public interface IMetadataOrderingTransferService
     ///   Write orderings into an export file held in memory, embedded images
     ///   included; write a large one to a stream with <see cref="Export"/>.
     /// </summary>
-    /// <param name="options">Which orderings to write and how, or <see langword="null"/> for every local ordering with its images by URL.</param>
+    /// <param name="options">Which orderings to write and how, or <c>null</c> for every local ordering with its images by URL.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>The file and what was written.</returns>
     async Task<MetadataOrderingExportFile> ExportToBytes(
@@ -68,10 +68,10 @@ public interface IMetadataOrderingTransferService
     ///   has its download queued. Any other embedded file is uploaded as a
     ///   user's image.
     /// </param>
-    /// <param name="options">How to read it, or <see langword="null"/> for the defaults.</param>
+    /// <param name="options">How to read it, or <c>null</c> for the defaults.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>What was done with each ordering, or why the file could not be read.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     Task<MetadataOrderingImportResult> Import(
         Stream source,
         MetadataOrderingImportOptions? options = null,

@@ -28,7 +28,7 @@ public interface ISuggestedMetadata : IEquatable<ISuggestedMetadata>
     IMetadata? Base { get; }
 
     /// <summary>
-    /// Suggested entity, if available. Usually <see langword="null"/>, since
+    /// Suggested entity, if available. Usually <c>null</c>, since
     /// most suggestions point at entities that are not in the collection.
     /// </summary>
     IMetadata? Suggested { get; }
@@ -40,7 +40,7 @@ public interface ISuggestedMetadata : IEquatable<ISuggestedMetadata>
 
     /// <summary>
     /// The source's own ordering, best first, starting at <c>0</c>.
-    /// <see langword="null"/> when the source has no ordering of its own, and
+    /// <c>null</c> when the source has no ordering of its own, and
     /// <see cref="ApprovalRating"/> is what ranks the suggestions instead.
     /// </summary>
     int? Order { get; }
@@ -48,13 +48,13 @@ public interface ISuggestedMetadata : IEquatable<ISuggestedMetadata>
     /// <summary>
     /// Approval as a percentage, for a source that votes on its suggestions.
     /// Worked out from <see cref="ApprovalVotes"/> and <see cref="Votes"/>
-    /// unless the source gives a percentage of its own. <see langword="null"/>
+    /// unless the source gives a percentage of its own. <c>null</c>
     /// when the source only hands out an ordered list.
     /// </summary>
     double? ApprovalRating { get => HasVotes && Votes > 0 ? ApprovalVotes.Value / (double)Votes.Value * 100 : null; }
 
     /// <summary>
-    /// Whether <see cref="ApprovalRating"/> is known. <see langword="false"/>
+    /// Whether <see cref="ApprovalRating"/> is known. <c>false</c>
     /// when the source does not rate its suggestions that way; TMDB, for
     /// example, only ranks them through <see cref="Order"/>.
     /// </summary>
@@ -63,20 +63,20 @@ public interface ISuggestedMetadata : IEquatable<ISuggestedMetadata>
 
     /// <summary>
     /// The number of votes in favour of the suggestion, for a source that
-    /// votes on them. <see langword="null"/> when the source does not vote,
+    /// votes on them. <c>null</c> when the source does not vote,
     /// or does not say.
     /// </summary>
     int? ApprovalVotes { get; }
 
     /// <summary>
     /// The total number of votes on the suggestion, or
-    /// <see langword="null"/> when the source does not vote on them.
+    /// <c>null</c> when the source does not vote on them.
     /// </summary>
     int? Votes { get; }
 
     /// <summary>
     /// Whether both <see cref="ApprovalVotes"/> and <see cref="Votes"/> are
-    /// known. <see langword="false"/> when the source does not vote on its
+    /// known. <c>false</c> when the source does not vote on its
     /// suggestions, or does not give the counts.
     /// </summary>
     [MemberNotNullWhen(true, nameof(ApprovalVotes), nameof(Votes))]
@@ -89,7 +89,7 @@ public interface ISuggestedMetadata : IEquatable<ISuggestedMetadata>
     int? Score { get; }
 
     /// <summary>
-    /// Whether <see cref="Score"/> is known. <see langword="false"/> when the
+    /// Whether <see cref="Score"/> is known. <c>false</c> when the
     /// source does not score its suggestions; TMDB, for example, only ranks
     /// them through <see cref="Order"/>.
     /// </summary>

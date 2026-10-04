@@ -44,7 +44,7 @@ public sealed record ScheduledActionInfo
     public bool RequiresConfirmation { get; init; }
 
     /// <summary>
-    ///   The question to ask before a run by hand, or <see langword="null"/>
+    ///   The question to ask before a run by hand, or <c>null</c>
     ///   for a generic one.
     /// </summary>
     public string? ConfirmationMessage { get; init; }
@@ -95,19 +95,19 @@ public sealed record ScheduledActionInfo
     /// <summary>
     ///   When it was last queued, by a trigger or by hand, or its
     ///   run's queue job last started, whichever is later, in UTC, or
-    ///   <see langword="null"/> when it never was.
+    ///   <c>null</c> when it never was.
     /// </summary>
     public required DateTime? LastRunAt { get; init; }
 
     /// <summary>
     ///   When a trigger last queued it, or the queue job of a run a
     ///   trigger queued last started, whichever is later, in UTC, or
-    ///   <see langword="null"/> when no trigger ever did.
+    ///   <c>null</c> when no trigger ever did.
     /// </summary>
     public DateTime? LastScheduledRunAt { get; init; }
 
     /// <summary>
-    ///   When a trigger queues it next, in UTC, or <see langword="null"/> when
+    ///   When a trigger queues it next, in UTC, or <c>null</c> when
     ///   only start-up and queue-cleared triggers, or none, would.
     /// </summary>
     /// <remarks>
@@ -125,7 +125,7 @@ public sealed record ScheduledActionInfo
 
     /// <summary>
     ///   How far the running job is, as a percentage from 0 to 100, or
-    ///   <see langword="null"/> when it is not running or does not report.
+    ///   <c>null</c> when it is not running or does not report.
     /// </summary>
     public required decimal? Progress { get; init; }
 

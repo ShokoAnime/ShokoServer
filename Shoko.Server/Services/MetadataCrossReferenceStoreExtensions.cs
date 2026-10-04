@@ -19,7 +19,7 @@ internal static class MetadataCrossReferenceStoreExtensions
     /// </summary>
     /// <param name="store">The cross-reference store.</param>
     /// <param name="entry">The series or film.</param>
-    /// <returns><see langword="true"/> when something links to it.</returns>
+    /// <returns><c>true</c> when something links to it.</returns>
     public static bool IsLinked(this IMetadataCrossReferenceStore store, MetadataGuid entry)
         => store.GetLinksTo(entry).Count > 0 || store.GetEpisodeLinksInto(entry).Count > 0;
 
@@ -30,7 +30,7 @@ internal static class MetadataCrossReferenceStoreExtensions
     /// <param name="store">The cross-reference store.</param>
     /// <param name="collections">The collection store.</param>
     /// <param name="collection">The collection.</param>
-    /// <returns><see langword="true"/> when a member is linked.</returns>
+    /// <returns><c>true</c> when a member is linked.</returns>
     public static bool IsCollectionInUse(this IMetadataCrossReferenceStore store, IMetadataCollectionStore collections, MetadataGuid collection)
         => collections.GetMembers(collection).Any(member => store.IsLinked(member));
 

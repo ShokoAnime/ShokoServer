@@ -2060,7 +2060,7 @@ public class AiringScheduleServiceTests
         ///   plugin's own metadata resolver does for its entities.
         /// </summary>
         /// <param name="id">The ID of the entity.</param>
-        /// <returns>The entity, or <see langword="null"/> when the harness has none with that ID.</returns>
+        /// <returns>The entity, or <c>null</c> when the harness has none with that ID.</returns>
         private IMetadata? Resolve(MetadataGuid id)
             => id.EntityType switch
             {

@@ -258,7 +258,7 @@ A scheduled action, as "Import New Files", is not listed here; run it through
 | `GetActions(scope?, callerPermission?)` | `scope` is a filter, not a required partition: omit it to list everything. Passing `ActionPermission.User` narrows the list to actions a regular user may invoke. Ordered by category, then category name, then name. |
 | `GetActionInfo(Guid)` | `null` when the ID is not registered. |
 | `GetActionInfo<TAction>()` / `GetActionInfo(Type)` | The same, by action type. `null` when the type is not a registered action. |
-| `InvokeAsync(...)` | One overload per scope, each with a `parameters` variant. |
+| `InvokeAsync(...)` | One overload per scope, each taking optional `parameters`, a `caller` and a cancellation token. |
 
 **`null` means accepted and queued.** A non-null `ActionValidationResult`
 means refused, with `Reason` saying why. An **unregistered action ID throws
@@ -272,7 +272,7 @@ action type stays inside the server, so you invoke by ID.
 
 ### Invocation parameters
 
-The `parameters` overloads take a free-form dictionary that is populated onto
+The `parameters` argument is a free-form dictionary that is populated onto
 matching public settable properties of the action instance, the same way queue
 jobs are populated from their job data:
 
@@ -326,8 +326,9 @@ passed, so a caller can fix the selection and retry.
 
 A rejection throws `GenericValidationException`. Each entry's failure is keyed
 `IDs[i]`, by its position in the list you passed. Failures of the action itself
-(unknown, wrong scope, not permitted for this caller) are keyed by the empty
-string and fail the call as a whole.
+(wrong scope, not permitted for this caller) are keyed by the empty string and
+fail the call as a whole. An unregistered action ID throws
+`KeyNotFoundException`, as it does for `InvokeAsync`.
 
 All-or-none is a promise about the queue, not the work: each entry's job
 validates again when it runs, and one whose conditions changed skips while the

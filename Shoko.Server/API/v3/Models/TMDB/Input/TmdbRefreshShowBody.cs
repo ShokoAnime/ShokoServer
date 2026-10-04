@@ -39,8 +39,8 @@ public class TmdbRefreshShowBody
     public bool Immediate { get; set; } = false;
 
     /// <summary>
-    /// If set to <see langword="true"/> and <see cref="Immediate"/> is also set
-    /// to <see langword="true"/>, then the heavy operations will be postponed
+    /// If set to <c>true</c> and <see cref="Immediate"/> is also set
+    /// to <c>true</c>, then the heavy operations will be postponed
     /// to run later in the background while the essential data necessary for a
     /// preview will be downloaded immediately.
     /// </summary>

@@ -146,7 +146,7 @@ public class MetadataCrossReferenceStore(
     ///   holds in it.
     /// </summary>
     /// <param name="seasonID">The season.</param>
-    /// <returns>The number and series, or <see langword="null"/> when the store has no episode in it.</returns>
+    /// <returns>The number and series, or <c>null</c> when the store has no episode in it.</returns>
     private (int SeasonNumber, MetadataGuid SeriesID)? StoredSeason(MetadataGuid seasonID)
         => seasonID.Source.IsCore ||
             storedEpisodes.GetBySeasonID(seasonID.Source, seasonID.ID).FirstOrDefault(episode => episode.SeasonNumber is not null) is not { } episode
@@ -422,7 +422,7 @@ public class MetadataCrossReferenceStore(
     ///   is disposed as one change, for a caller writing several links.
     /// </summary>
     /// <returns>
-    ///   The operation, or <see langword="null"/> when changes are not
+    ///   The operation, or <c>null</c> when changes are not
     ///   tracked.
     /// </returns>
     internal IDisposable? BeginChanges()
@@ -453,7 +453,7 @@ public class MetadataCrossReferenceStore(
     /// <param name="source">The source the link belongs to.</param>
     /// <param name="anidbAnimeID">The AniDB anime ID.</param>
     /// <param name="providerID">The linked entry, or <c>null</c> for none.</param>
-    /// <returns>The removed link, or <see langword="null"/> when there was none.</returns>
+    /// <returns>The removed link, or <c>null</c> when there was none.</returns>
     internal CrossRef_AniDB_Metadata_Series? RemoveSeriesLink(MetadataSource source, int anidbAnimeID, MetadataGuid? providerID)
         => Recorded(changes => RemoveOne(seriesRepository, (source, anidbAnimeID, 0), providerID, changes));
 
@@ -508,7 +508,7 @@ public class MetadataCrossReferenceStore(
     /// <param name="anidbAnimeID">The AniDB anime ID.</param>
     /// <param name="anidbEpisodeID">The AniDB episode standing for the film.</param>
     /// <param name="providerID">The linked entry, or <c>null</c> for none.</param>
-    /// <returns>The removed link, or <see langword="null"/> when there was none.</returns>
+    /// <returns>The removed link, or <c>null</c> when there was none.</returns>
     internal CrossRef_AniDB_Metadata_Movie? RemoveMovieLink(MetadataSource source, int anidbAnimeID, int anidbEpisodeID, MetadataGuid? providerID)
         => Recorded(changes => RemoveOne(movieRepository, (source, anidbAnimeID, anidbEpisodeID), providerID, changes));
 
@@ -557,7 +557,7 @@ public class MetadataCrossReferenceStore(
     /// <param name="anidbAnimeID">The AniDB anime ID.</param>
     /// <param name="anidbEpisodeID">The AniDB episode ID.</param>
     /// <param name="providerID">The linked entry, or <c>null</c> for none.</param>
-    /// <returns>The removed link, or <see langword="null"/> when there was none.</returns>
+    /// <returns>The removed link, or <c>null</c> when there was none.</returns>
     internal CrossRef_AniDB_Metadata_Episode? RemoveEpisodeLink(MetadataSource source, int anidbAnimeID, int anidbEpisodeID, MetadataGuid? providerID)
         => Recorded(changes => RemoveOne(episodeRepository, (source, anidbAnimeID, anidbEpisodeID), providerID, changes));
 
@@ -670,7 +670,7 @@ public class MetadataCrossReferenceStore(
     /// <param name="slot">Where the link's position is counted.</param>
     /// <param name="providerID">The entry the link names, or <c>null</c> for a link to nothing.</param>
     /// <param name="changes">Where the change is recorded.</param>
-    /// <returns>The removed link, or <see langword="null"/> when there was none.</returns>
+    /// <returns>The removed link, or <c>null</c> when there was none.</returns>
     private TRow? RemoveOne<TRow>(
         BaseCrossRef_AniDB_MetadataRepository<TRow> repository,
         (MetadataSource, int, int) slot,

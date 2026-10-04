@@ -58,7 +58,7 @@ public interface IMetadataImageContributor
 
     /// <summary>
     ///   How many of your image jobs may run at once, or
-    ///   <see langword="null"/> for the core's default of two.
+    ///   <c>null</c> for the core's default of two.
     /// </summary>
     /// <remarks>
     ///   Your jobs run as a job type of your own, with a pool of this size.
@@ -100,7 +100,7 @@ public interface IMetadataImageContributor
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   The images, or <see langword="null"/> when you have nothing to say
+    ///   The images, or <c>null</c> when you have nothing to say
     ///   about the entity, which leaves your linked images alone.
     /// </returns>
     Task<IReadOnlyList<ImageCandidate>?> GetImages(IMetadata entity, CancellationToken cancellationToken = default);

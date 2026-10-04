@@ -32,7 +32,7 @@ public interface IShokoEpisode : IEpisode<IShokoSeries, IShokoEpisode>, IWithPri
     int LocalID { get; }
 
     /// <summary>
-    ///   Always <see langword="null"/>: a Shoko episode is never refreshed
+    ///   Always <c>null</c>: a Shoko episode is never refreshed
     ///   from a source, and does not take its AniDB episode's time.
     /// </summary>
     DateTime? IEpisode.LastRefreshedAt { get => null; }

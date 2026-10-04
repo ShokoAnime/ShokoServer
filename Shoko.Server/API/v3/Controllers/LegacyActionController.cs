@@ -396,7 +396,7 @@ public class LegacyActionController : BaseController
     /// <summary>
     /// Downloads all missing or partially missing AniDB creators over the UDP
     /// API. Will do nothing if downloading creator data is set to
-    /// <see langword="false" />.
+    /// <c>false</c>.
     /// </summary>
     /// <returns></returns>
     [HttpGet("DownloadMissingAniDBCreators")]

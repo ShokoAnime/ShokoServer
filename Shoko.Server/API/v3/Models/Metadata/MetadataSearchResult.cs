@@ -24,7 +24,7 @@ public class MetadataSearchResult
     /// <param name="result">The provider's answer.</param>
     /// <param name="isLocal">Whether the entry is stored already.</param>
     /// <param name="siteUrl">The entry's own page on its source's site, if it has one.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="result"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="result"/> is <c>null</c>.</exception>
     public MetadataSearchResult(AbstractSearchResult result, bool isLocal, string? siteUrl)
     {
         ArgumentNullException.ThrowIfNull(result);
@@ -217,7 +217,7 @@ public class MetadataAutoMatchResult
     /// <param name="candidate">The match.</param>
     /// <param name="isLocal">Whether the matched entry is stored already.</param>
     /// <param name="siteUrl">The matched entry's own page on its source's site, if it has one.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="candidate"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="candidate"/> is <c>null</c>.</exception>
     public MetadataAutoMatchResult(MetadataAutoLinkCandidate candidate, bool isLocal, string? siteUrl)
     {
         ArgumentNullException.ThrowIfNull(candidate);
@@ -303,7 +303,7 @@ public class MetadataAutoMatchResult
     public MetadataSearchResult Result { get; init; }
 
     /// <summary>
-    /// Why the candidate is not linked, or <see langword="null"/> when an
+    /// Why the candidate is not linked, or <c>null</c> when an
     /// automatic search links it. A candidate turned down can still be linked
     /// by hand.
     /// </summary>
@@ -319,7 +319,7 @@ public class MetadataAutoLinkRejectionResult
     /// Describes a rejection.
     /// </summary>
     /// <param name="rejection">The rejection.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="rejection"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="rejection"/> is <c>null</c>.</exception>
     public MetadataAutoLinkRejectionResult(MetadataAutoLinkRejection rejection)
     {
         ArgumentNullException.ThrowIfNull(rejection);

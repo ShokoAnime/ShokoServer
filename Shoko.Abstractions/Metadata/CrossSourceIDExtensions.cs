@@ -19,7 +19,7 @@ public static class CrossSourceIDExtensions
     /// <returns>The IDs of that source, or an empty list.</returns>
     /// <exception cref="ArgumentNullException">
     ///   <paramref name="entry"/> or <paramref name="source"/> is
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </exception>
     public static IReadOnlyList<MetadataGuid> GetCrossSourceIDs(this IWithCrossSources entry, MetadataSource source)
     {
@@ -34,7 +34,7 @@ public static class CrossSourceIDExtensions
     /// <param name="source">The source whose IDs to keep.</param>
     /// <returns>The IDs of that source, in order.</returns>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="source"/> is <see langword="null"/>.
+    ///   <paramref name="source"/> is <c>null</c>.
     /// </exception>
     private static List<MetadataGuid> FromSource(IReadOnlyList<MetadataGuid> ids, MetadataSource source)
     {

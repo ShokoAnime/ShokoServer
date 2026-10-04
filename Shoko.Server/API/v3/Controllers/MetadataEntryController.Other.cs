@@ -651,7 +651,7 @@ public partial class MetadataEntryController
     /// <param name="source">The source.</param>
     /// <param name="kind">The kind of entry.</param>
     /// <param name="id">The ID as the route holds it.</param>
-    /// <returns>The entry, or <see langword="null"/> when it is not stored.</returns>
+    /// <returns>The entry, or <c>null</c> when it is not stored.</returns>
     private TMetadata? Lookup<TMetadata>(MetadataSource source, MetadataEntityType kind, string id) where TMetadata : class, IMetadata
         => ToGuid(source, kind, id) is { } guid ? _metadataService.GetEntry<TMetadata>(guid) : null;
 

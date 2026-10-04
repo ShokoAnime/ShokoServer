@@ -32,15 +32,15 @@ public static partial class TmdbTexts
     /// <param name="englishTitle">The American English title, which TMDb falls back to the original for.</param>
     /// <param name="originalTitle">The title in the original language, if TMDb has one.</param>
     /// <param name="originalLanguageCode">The original language's code, if known.</param>
-    /// <param name="translations">The translations TMDb lists, or <see langword="null"/>.</param>
-    /// <param name="alternativeTitles">The alternative titles TMDb lists, for a show or a movie, or <see langword="null"/>.</param>
-    /// <param name="languages">The languages to keep translations in besides the English and original ones, or <see langword="null"/> for all.</param>
-    /// <param name="episodeNumber">The episode's number, for an episode's titles, or <see langword="null"/>.</param>
+    /// <param name="translations">The translations TMDb lists, or <c>null</c>.</param>
+    /// <param name="alternativeTitles">The alternative titles TMDb lists, for a show or a movie, or <c>null</c>.</param>
+    /// <param name="languages">The languages to keep translations in besides the English and original ones, or <c>null</c> for all.</param>
+    /// <param name="episodeNumber">The episode's number, for an episode's titles, or <c>null</c>.</param>
     /// <param name="ownName">
     ///   The name TMDb gives the entry itself, which, without an English title, marks the main one among the others, or is the main one
     ///   in no known language.
     /// </param>
-    /// <param name="seasonNumber">The season's number, for a season's titles, or <see langword="null"/>.</param>
+    /// <param name="seasonNumber">The season's number, for a season's titles, or <c>null</c>.</param>
     /// <returns>The titles, in order.</returns>
     public static IReadOnlyList<ITitle> Titles(
         string? englishTitle,
@@ -129,8 +129,8 @@ public static partial class TmdbTexts
     ///   The overviews to store for an entry.
     /// </summary>
     /// <param name="englishOverview">The American English overview, if TMDb has one.</param>
-    /// <param name="translations">The translations TMDb lists, or <see langword="null"/>.</param>
-    /// <param name="languages">The languages to keep besides American English, or <see langword="null"/> for all.</param>
+    /// <param name="translations">The translations TMDb lists, or <c>null</c>.</param>
+    /// <param name="languages">The languages to keep besides American English, or <c>null</c> for all.</param>
     /// <returns>The overviews, in order.</returns>
     public static IReadOnlyList<IText> Overviews(string? englishOverview, TranslationsContainer? translations, IReadOnlySet<TitleLanguage>? languages)
     {
@@ -166,13 +166,13 @@ public static partial class TmdbTexts
     ///   the original title, a translation's text or a generic season name.
     ///   A season's generic name is never English text, even when listed.
     /// </remarks>
-    /// <param name="translations">The translations TMDb lists, or <see langword="null"/>.</param>
+    /// <param name="translations">The translations TMDb lists, or <c>null</c>.</param>
     /// <param name="read">Reads the text out of a translation.</param>
     /// <param name="fallback">The entry's own text.</param>
-    /// <param name="originalTitle">The title in the original language, for a show's or movie's title, or <see langword="null"/>.</param>
+    /// <param name="originalTitle">The title in the original language, for a show's or movie's title, or <c>null</c>.</param>
     /// <param name="originalLanguageCode">The original language's code, if known.</param>
-    /// <param name="seasonNumber">The season's number, for a season's title, or <see langword="null"/>.</param>
-    /// <returns>The text, or <see langword="null"/> when there is none.</returns>
+    /// <param name="seasonNumber">The season's number, for a season's title, or <c>null</c>.</param>
+    /// <returns>The text, or <c>null</c> when there is none.</returns>
     public static string? English(
         TranslationsContainer? translations,
         Func<TranslationData, string?> read,
@@ -206,7 +206,7 @@ public static partial class TmdbTexts
     /// </summary>
     /// <param name="title">The title.</param>
     /// <param name="seasonNumber">The season's number.</param>
-    /// <returns><see langword="true"/> for the season's generic name.</returns>
+    /// <returns><c>true</c> for the season's generic name.</returns>
     public static bool IsGenericSeasonName(string title, int seasonNumber)
         => title.Trim().Equals($"Season {seasonNumber}", StringComparison.InvariantCultureIgnoreCase) ||
             (seasonNumber is 0 && title.Trim().Equals("Specials", StringComparison.InvariantCultureIgnoreCase));
@@ -217,7 +217,7 @@ public static partial class TmdbTexts
 
     /// <summary>
     ///   The languages to keep translations in, from the order the settings
-    ///   give, or <see langword="null"/> to keep them all.
+    ///   give, or <c>null</c> to keep them all.
     /// </summary>
     /// <param name="downloadAll">Whether every translation is kept.</param>
     /// <param name="order">The languages the settings rank.</param>
@@ -295,7 +295,7 @@ public static partial class TmdbTexts
     /// </summary>
     /// <param name="title">The title.</param>
     /// <param name="episodeNumber">The episode's number.</param>
-    /// <returns><see langword="true"/> for a generic title of this episode.</returns>
+    /// <returns><c>true</c> for a generic title of this episode.</returns>
     public static bool IsGenericEpisodeTitle(string title, int episodeNumber)
         => GenericEpisodeTitleRegex().Match(title.Trim()) is { Success: true } match &&
             int.TryParse(match.Groups["n"].ValueSpan, out var number) && number == episodeNumber;
@@ -347,8 +347,8 @@ public static partial class TmdbTexts
     ///   the original language's, in that language's home countries only.
     ///   Only Latin text counts. Home-country and plain ASCII titles go first.
     /// </remarks>
-    /// <param name="alternativeTitles">The alternative titles, or <see langword="null"/>.</param>
-    /// <param name="originalLanguageCode">The original language's code, or <see langword="null"/>.</param>
+    /// <param name="alternativeTitles">The alternative titles, or <c>null</c>.</param>
+    /// <param name="originalLanguageCode">The original language's code, or <c>null</c>.</param>
     /// <returns>The transcriptions' language codes and values, in TMDb's order.</returns>
     public static IReadOnlyList<(string LanguageCode, string Value)> TranscribedTitles(IEnumerable<AlternativeTitle>? alternativeTitles, string? originalLanguageCode)
     {
@@ -470,10 +470,10 @@ public static partial class TmdbTexts
         };
 
     /// <summary>
-    ///   A text trimmed, or <see langword="null"/> when it is blank.
+    ///   A text trimmed, or <c>null</c> when it is blank.
     /// </summary>
     /// <param name="value">The text.</param>
-    /// <returns>The trimmed text, or <see langword="null"/>.</returns>
+    /// <returns>The trimmed text, or <c>null</c>.</returns>
     public static string? Clean(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

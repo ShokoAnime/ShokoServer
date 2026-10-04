@@ -56,7 +56,7 @@ public sealed class PackageReleaseInfo
     public required ReleaseChannel Channel { get; init; }
 
     /// <summary>
-    ///   Release notes, or <see langword="null"/> if not available for this
+    ///   Release notes, or <c>null</c> if not available for this
     ///   release.
     /// </summary>
     [JsonPropertyName("release_notes")]

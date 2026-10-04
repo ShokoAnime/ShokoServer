@@ -20,7 +20,7 @@ public class MetadataImageContributor
     /// Describes a contributor as it is registered now.
     /// </summary>
     /// <param name="info">The contributor's registration.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <c>null</c>.</exception>
     public MetadataImageContributor(MetadataImageContributorInfo info)
     {
         ArgumentNullException.ThrowIfNull(info);
@@ -128,7 +128,7 @@ public class MetadataEntityScopeEntry
     /// </summary>
     /// <param name="scope">The scope.</param>
     /// <returns>The entries.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="scope"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="scope"/> is <c>null</c>.</exception>
     public static List<MetadataEntityScopeEntry> From(MetadataEntityScope scope)
     {
         ArgumentNullException.ThrowIfNull(scope);
@@ -140,7 +140,7 @@ public class MetadataEntityScopeEntry
     /// </summary>
     /// <param name="entries">The entries.</param>
     /// <returns>The scope.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entries"/>, or a source or kind in them, is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entries"/>, or a source or kind in them, is <c>null</c>.</exception>
     public static MetadataEntityScope ToScope(IEnumerable<MetadataEntityScopeEntry> entries)
     {
         ArgumentNullException.ThrowIfNull(entries);

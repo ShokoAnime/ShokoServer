@@ -532,7 +532,7 @@ public class MetadataStudioStore(
     ///   Whether any entry names a stored studio.
     /// </summary>
     /// <param name="studio">The studio; a new one is named by nothing.</param>
-    /// <returns><see langword="true"/> when an entry does.</returns>
+    /// <returns><c>true</c> when an entry does.</returns>
     private bool IsUsed(Metadata_Studio studio)
         => studio.Metadata_StudioID is not 0 && entryRepository.GetByStudioID(studio.Metadata_StudioID).Count > 0;
 
@@ -540,7 +540,7 @@ public class MetadataStudioStore(
     ///   Whether any entry names a stored network.
     /// </summary>
     /// <param name="network">The network; a new one is named by nothing.</param>
-    /// <returns><see langword="true"/> when an entry does.</returns>
+    /// <returns><c>true</c> when an entry does.</returns>
     private bool IsUsed(Metadata_Network network)
         => network.Metadata_NetworkID is not 0 && networkEntryRepository.GetByNetworkID(network.Metadata_NetworkID).Count > 0;
 

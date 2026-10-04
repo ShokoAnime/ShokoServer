@@ -315,7 +315,7 @@ internal sealed class Worker
     /// which is how a job says it stopped because its token was cancelled.
     /// </summary>
     /// <param name="ex">The exception the job ended with.</param>
-    /// <returns><see langword="true"/> when the job stopped for cancellation.</returns>
+    /// <returns><c>true</c> when the job stopped for cancellation.</returns>
     internal static bool IsCancellation(Exception ex)
     {
         for (Exception? current = ex; current != null; current = current.InnerException)

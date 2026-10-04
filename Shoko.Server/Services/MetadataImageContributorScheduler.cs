@@ -36,7 +36,7 @@ public class MetadataImageContributorScheduler(
     /// <param name="prioritize">Whether to queue them ahead of the rest even though they are not forced.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many jobs were queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
     public async Task<int> ScheduleForEntry(MetadataGuid entryID, bool force = false, bool prioritize = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entryID);
@@ -75,7 +75,7 @@ public class MetadataImageContributorScheduler(
     /// <param name="contributorManager">The registered contributors.</param>
     /// <param name="entryID">The series, film or collection.</param>
     /// <returns>The contributors, in plugin load order.</returns>
-    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     public static IReadOnlyList<MetadataImageContributorInfo> GetContributorsCovering(IMetadataImageContributorManager contributorManager, MetadataGuid entryID)
     {
         ArgumentNullException.ThrowIfNull(contributorManager);

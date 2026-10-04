@@ -36,7 +36,7 @@ public static class PluginDatabaseExtensions
     /// name is a new, empty database.
     /// </param>
     /// <returns>The service collection.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="name"/> is not a valid database name.</exception>
     public static IServiceCollection AddPluginDbContext<TPlugin, TContext>(this IServiceCollection services, string name)
         where TPlugin : class, IPlugin
@@ -74,7 +74,7 @@ public static class PluginDatabaseExtensions
     /// </param>
     /// <param name="configure">Names the contexts for the database servers.</param>
     /// <returns>The service collection.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configure"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configure"/> is <c>null</c>.</exception>
     /// <exception cref="ArgumentException"><paramref name="name"/> is not a valid database name.</exception>
     /// <exception cref="InvalidOperationException"><paramref name="configure"/> named one context for both servers.</exception>
     public static IServiceCollection AddPluginDbContext<TPlugin, TContext>(this IServiceCollection services, string name, Action<PluginDbContextOptions<TContext>> configure)

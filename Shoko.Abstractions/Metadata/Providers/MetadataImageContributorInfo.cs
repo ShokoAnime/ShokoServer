@@ -62,7 +62,7 @@ public class MetadataImageContributorInfo
 
     /// <summary>
     ///   The icon the contributor declared, extracted beside its plugin, or
-    ///   <see langword="null"/> when it has none.
+    ///   <c>null</c> when it has none.
     /// </summary>
     public PackageImageInfo? Icon { get; init; }
 

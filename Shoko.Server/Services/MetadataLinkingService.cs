@@ -485,7 +485,7 @@ public class MetadataLinkingService(
     /// <param name="request">What to unlink, naming a film.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> if any link was removed.
+    ///   <c>true</c> if any link was removed.
     /// </returns>
     private async Task<bool> RemoveWholeMovieLink(MetadataSeriesLinkRequest request, CancellationToken cancellationToken)
     {
@@ -663,7 +663,7 @@ public class MetadataLinkingService(
     ///   over a current link too.
     /// </param>
     /// <returns>The same candidates in the same order, with the refusals set.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="candidates"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="candidates"/> is <c>null</c>.</exception>
     public IReadOnlyList<MetadataAutoLinkCandidate> ReviewAutoLinks(
         MetadataSource source,
         int anidbAnimeID,
@@ -709,7 +709,7 @@ public class MetadataLinkingService(
     /// <param name="reviewed">The candidates, with the other refusals set, changed in place.</param>
     /// <param name="source">The source searched.</param>
     /// <param name="linked">
-    ///   The anime's first link on the source, or <see langword="null"/> when
+    ///   The anime's first link on the source, or <c>null</c> when
     ///   it has none or the search replaces its links.
     /// </param>
     internal static void ReviewHints(List<MetadataAutoLinkCandidate> reviewed, MetadataSource source, IMetadataCrossReference? linked)
@@ -768,7 +768,7 @@ public class MetadataLinkingService(
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="anidbAnimeID">The AniDB anime.</param>
-    /// <returns>The link, or <see langword="null"/> when the anime has none on the source.</returns>
+    /// <returns>The link, or <c>null</c> when the anime has none on the source.</returns>
     private IMetadataCrossReference? FirstLink(MetadataSource source, int anidbAnimeID)
         => crossReferences.GetSeriesLinks(anidbAnimeID, source).FirstOrDefault() ??
             (IMetadataCrossReference?)crossReferences.GetMovieLinksForSeries(anidbAnimeID, source).FirstOrDefault();
@@ -779,7 +779,7 @@ public class MetadataLinkingService(
     /// </summary>
     /// <param name="rating">The rating weighed.</param>
     /// <param name="other">The rating it is weighed against.</param>
-    /// <returns><see langword="true"/> when <paramref name="rating"/> ranks higher.</returns>
+    /// <returns><c>true</c> when <paramref name="rating"/> ranks higher.</returns>
     internal static bool Outranks(MatchRating rating, MatchRating other)
         => MetadataMatchingEngine.Priority(rating) < MetadataMatchingEngine.Priority(other);
 
@@ -790,7 +790,7 @@ public class MetadataLinkingService(
     /// </summary>
     /// <param name="hint">The hint.</param>
     /// <param name="pick">The search's pick.</param>
-    /// <returns><see langword="true"/> when taking the hint turns the pick down.</returns>
+    /// <returns><c>true</c> when taking the hint turns the pick down.</returns>
     private static bool Competes(MetadataAutoLinkCandidate hint, MetadataAutoLinkCandidate pick)
         => hint.AnidbEpisodeID is null || pick.AnidbEpisodeID is null || pick.AnidbEpisodeID == hint.AnidbEpisodeID;
 
@@ -806,7 +806,7 @@ public class MetadataLinkingService(
     ///   Whether a candidate is one the search found and nothing turned down.
     /// </summary>
     /// <param name="candidate">The candidate.</param>
-    /// <returns><see langword="true"/> when the search took it.</returns>
+    /// <returns><c>true</c> when the search took it.</returns>
     private static bool IsTakenBySearch(MetadataAutoLinkCandidate candidate)
         => candidate is { Origin: MetadataAutoLinkOrigin.Search, Rejection: null };
 
@@ -866,7 +866,7 @@ public class MetadataLinkingService(
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>The candidates linked.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="candidates"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> or <paramref name="candidates"/> is <c>null</c>.</exception>
     public async Task<IReadOnlyList<MetadataAutoLinkCandidate>> ApplyAutoLinks(
         MetadataSource source,
         int anidbAnimeID,
@@ -1019,7 +1019,7 @@ public class MetadataLinkingService(
     /// <param name="anidbAnimeID">The AniDB anime searched for.</param>
     /// <param name="candidate">The candidate.</param>
     /// <param name="linkable">What may be linked from the source.</param>
-    /// <returns>The refusal, or <see langword="null"/> when the candidate may be linked.</returns>
+    /// <returns>The refusal, or <c>null</c> when the candidate may be linked.</returns>
     private MetadataAutoLinkRejection? Refuse(MetadataSource source, int anidbAnimeID, MetadataAutoLinkCandidate candidate, IReadOnlySet<MetadataEntityType> linkable)
     {
         var entry = candidate.ID;
@@ -1124,7 +1124,7 @@ public class MetadataLinkingService(
     /// </summary>
     /// <param name="link">The link, as read back at some point.</param>
     /// <returns>
-    ///   The stored link, or <see langword="null"/> when it is gone or of a
+    ///   The stored link, or <c>null</c> when it is gone or of a
     ///   level that is not stored.
     /// </returns>
     private IMetadataCrossReference? Stored(IMetadataCrossReference link)

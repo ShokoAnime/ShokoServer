@@ -8,7 +8,7 @@ https://discord.gg/vpeHDsg
 
 - Make sure you are using the latest **Stable** or **Daily** version of Shoko Server otherwise your issue will be closed.
 - Search this repository (top of the page) for the issue or feature you are reporting, make sure it has not been fixed or reported before.
-- If reporting an issue, then you must attach the relevant Shoko Server and Shoko Desktop **LOG FILE**. 
+- If reporting an issue, then you must attach the relevant Shoko Server **LOG FILE**. 
 - If requesting a new feature, please explain in detail the feature itself and the benefits of it being added.
 - If requesting cosmetic changes, please explain in detail why they should be made. 
 - The template below **MUST BE USED** when submitting an issue, no exceptions.
@@ -17,7 +17,7 @@ https://discord.gg/vpeHDsg
 
 Server Version: 
 
-Desktop Version: 
+Web UI Version: 
 
 If you've compiled your own version, please use the last commit you compiled.
 

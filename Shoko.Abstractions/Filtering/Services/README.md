@@ -259,8 +259,10 @@ Four things to build around:
 `GetAllFilteredGroupsWithChains` return `FilteredGroupResult`, which carries the
 resolved group, every chain of group IDs from top level down to the match, and
 the set of series IDs that matched inside that scope. `GetFilteredSeriesInGroup`
-scopes a series read to one group, optionally recursing into sub-groups. The
-service's `Engine` property hands you the raw engine when you need it.
+scopes a series read to one group, optionally recursing into sub-groups.
+`BatchFilterSeries` and `BatchFilterGroups` evaluate many filters at once and
+return the matches per filter. The service's `Engine` property hands you the
+raw engine when you need it.
 
 Every read takes a `CancellationToken`, checked between stages, so pass
 `HttpContext.RequestAborted` from a controller of yours.

@@ -47,7 +47,7 @@ public sealed class StagedProgress : IProgress<decimal>
     ///   Creates stages of equal weight.
     /// </summary>
     /// <param name="parent">
-    ///   Takes the overall progress, or <see langword="null"/> to drop it.
+    ///   Takes the overall progress, or <c>null</c> to drop it.
     /// </param>
     /// <param name="stageCount">How many stages, at least one.</param>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -61,13 +61,13 @@ public sealed class StagedProgress : IProgress<decimal>
     ///   whole.
     /// </summary>
     /// <param name="parent">
-    ///   Takes the overall progress, or <see langword="null"/> to drop it.
+    ///   Takes the overall progress, or <c>null</c> to drop it.
     /// </param>
     /// <param name="weights">
     ///   The stages' weights, none below zero and at least one above it.
     /// </param>
     /// <exception cref="ArgumentNullException">
-    ///   <paramref name="weights"/> is <see langword="null"/>.
+    ///   <paramref name="weights"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="ArgumentException">
     ///   <paramref name="weights"/> is empty, has a negative weight, or adds

@@ -12,7 +12,7 @@ public class AuthenticationFailedEventArgs : EventArgs
 {
     /// <summary>
     ///   The remote address of the client the failure was charged to, or
-    ///   <see langword="null"/> when it was charged to a user rather than a
+    ///   <c>null</c> when it was charged to a user rather than a
     ///   client, or the address could not be read.
     /// </summary>
     public required IPAddress? RemoteAddress { get; init; }
@@ -27,14 +27,14 @@ public class AuthenticationFailedEventArgs : EventArgs
 
     /// <summary>
     ///   The user the failure was charged to, when it was charged to a user;
-    ///   otherwise <see langword="null"/>.
+    ///   otherwise <c>null</c>.
     /// </summary>
     public required IUser? User { get; init; }
 
     /// <summary>
     ///   The path of the request or hub connection that failed, so the core's
     ///   sign-in can be told from a plugin's endpoint, or
-    ///   <see langword="null"/> when there was no request to read it from.
+    ///   <c>null</c> when there was no request to read it from.
     ///   Never the query string, but an endpoint that takes a token or code in
     ///   its route puts it here, so mask such segments before storing it.
     /// </summary>
@@ -49,7 +49,7 @@ public class AuthenticationFailedEventArgs : EventArgs
     /// <summary>
     ///   When the lockout of the client or user ends, in UTC, if this failure
     ///   left one running (started or extended); otherwise
-    ///   <see langword="null"/>.
+    ///   <c>null</c>.
     /// </summary>
     public required DateTime? LockedOutUntil { get; init; }
 

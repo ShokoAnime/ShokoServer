@@ -913,8 +913,8 @@ public class VideoService : IVideoService
     /// <param name="relativePath">Only scan below this path in the folder, when set.</param>
     /// <param name="onlyNewFiles">Only look at files that have no record yet.</param>
     /// <param name="skipEvents">Skip the events and the MyList updates.</param>
-    /// <param name="cleanUpStructure">Remove empty folders afterwards; the import setting when <see langword="null"/>.</param>
-    /// <param name="checkFileSize">Look again at files whose size changed; the import setting when <see langword="null"/>.</param>
+    /// <param name="cleanUpStructure">Remove empty folders afterwards; the import setting when <c>null</c>.</param>
+    /// <param name="checkFileSize">Look again at files whose size changed; the import setting when <c>null</c>.</param>
     /// <param name="forceScan">Look at every file again, even known ones.</param>
     /// <param name="progress">Told how far the scan is, as a percentage from 0 to 100.</param>
     /// <param name="token">Stops the scan; files already looked at stay looked at.</param>

@@ -53,7 +53,7 @@ public interface IExecutableAction
     /// <summary>
     ///   Whether the action is prominent enough to offer on its own, rather
     ///   than inside the group its <see cref="Category"/> names. Defaults to
-    ///   <see langword="false"/>.
+    ///   <c>false</c>.
     /// </summary>
     /// <remarks>
     ///   This says how prominently to offer the action, not what the action
@@ -82,9 +82,9 @@ public interface IExecutableAction
     /// <summary>
     ///   Optional custom message shown to the user when the WebUI prompts for
     ///   confirmation before invoking a destructive action. When
-    ///   <see langword="null"/>, the WebUI falls back to a generic prompt.
+    ///   <c>null</c>, the WebUI falls back to a generic prompt.
     ///   Only meaningful when <see cref="RequiresConfirmation"/> is
-    ///   <see langword="true"/>.
+    ///   <c>true</c>.
     /// </summary>
     string? ConfirmationMessage { get => null; }
 
@@ -113,7 +113,7 @@ public interface IExecutableAction
     ///   pool on the second.
     /// </param>
     /// <returns>
-    ///   A rejection reason, or <see langword="null"/> to allow the
+    ///   A rejection reason, or <c>null</c> to allow the
     ///   invocation.
     /// </returns>
     Task<ActionValidationResult?> Validate(CancellationToken token = default)

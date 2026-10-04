@@ -20,14 +20,14 @@ public class MetadataSourceSettings
     /// <summary>
     /// The provider answering for each entity type, as older settings kept it.
     /// Read into <see cref="Providers"/> on start and never written back.
-    /// <see langword="null"/> is decided as nobody.
+    /// <c>null</c> is decided as nobody.
     /// </summary>
     public Dictionary<MetadataEntityType, Guid?>? Enabled { get; set; }
 
     /// <summary>
     /// Keeps <see cref="Enabled"/> out of the saved settings.
     /// </summary>
-    /// <returns>Always <see langword="false"/>.</returns>
+    /// <returns>Always <c>false</c>.</returns>
     public bool ShouldSerializeEnabled()
         => false;
 

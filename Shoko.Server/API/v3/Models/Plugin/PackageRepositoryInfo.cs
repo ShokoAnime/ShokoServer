@@ -29,7 +29,7 @@ public class PackageRepositoryInfo(AbstractPackageRepositoryInfo repositoryInfo)
     public string Url { get; init; } = repositoryInfo.Url;
 
     /// <summary>
-    ///   When this repository was last synced, or <see langword="null"/> if it
+    ///   When this repository was last synced, or <c>null</c> if it
     ///   hasn't been fetched yet.
     /// </summary>
     public DateTime? LastFetchedAt { get; init; } = repositoryInfo.LastFetchedAt;

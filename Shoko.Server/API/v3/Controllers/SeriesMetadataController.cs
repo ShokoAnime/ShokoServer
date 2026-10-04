@@ -931,7 +931,7 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
     /// <param name="source">The source.</param>
     /// <param name="parentID">The linked series, if any.</param>
     /// <param name="problem">The answer to give when the linked series is not one.</param>
-    /// <returns>The links, or <see langword="null"/> with <paramref name="problem"/> set.</returns>
+    /// <returns>The links, or <c>null</c> with <paramref name="problem"/> set.</returns>
     private IReadOnlyList<IMetadataEpisodeCrossReference>? EpisodeLinks(IShokoSeries series, MetadataSource source, string? parentID, out ActionResult? problem)
     {
         problem = null;
@@ -954,10 +954,10 @@ public class SeriesMetadataController : ShokoMetadataControllerBase
     /// </summary>
     /// <param name="series">The Shoko series.</param>
     /// <param name="source">The source.</param>
-    /// <param name="parentID">The series named, or <see langword="null"/> for the first linked one.</param>
+    /// <param name="parentID">The series named, or <c>null</c> for the first linked one.</param>
     /// <param name="seasonID">The season named, if any.</param>
     /// <param name="problem">The answer to give when there is nothing to match against.</param>
-    /// <returns>The series and season, or <see langword="null"/> with <paramref name="problem"/> set.</returns>
+    /// <returns>The series and season, or <c>null</c> with <paramref name="problem"/> set.</returns>
     private (MetadataGuid Parent, MetadataGuid? Season)? MatchTarget(IShokoSeries series, MetadataSource source, string? parentID, string? seasonID, out ActionResult? problem)
     {
         problem = null;

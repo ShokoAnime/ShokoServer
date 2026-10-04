@@ -31,7 +31,7 @@ public class MovieInfoUpdatedEventArgs : EventArgs
     }
 
     /// <summary>
-    ///   The API token of whoever caused the update, or <see langword="null"/>
+    ///   The API token of whoever caused the update, or <c>null</c>
     ///   when the system did it. Stamped when the event is raised.
     /// </summary>
     public ApiToken? Actor { get; init; }

@@ -105,7 +105,7 @@ public class AiringEventEmitter : BaseEventEmitter, IDisposable
     /// finds it.
     /// </summary>
     /// <param name="airing">The airing.</param>
-    /// <returns>The AniDB anime ID, or <see langword="null"/> when the series is of another source or unknown.</returns>
+    /// <returns>The AniDB anime ID, or <c>null</c> when the series is of another source or unknown.</returns>
     private static int? AnimeIDOf(IEpisodeAiring airing)
         => ((ISeries?)airing.ShokoEpisode?.Series ?? airing.AnidbEpisode?.Series ?? airing.Episode?.Series ?? airing.Schedule.Series) switch
         {

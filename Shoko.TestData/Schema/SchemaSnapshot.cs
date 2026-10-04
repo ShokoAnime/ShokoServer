@@ -11,8 +11,8 @@ namespace Shoko.TestData.Schema;
 /// <param name="Family">Backend-neutral type family; see <see cref="SchemaSnapshot.FamilyOf"/>.</param>
 /// <param name="Size">
 /// <c>"500"</c>, <c>"6,2"</c>, <c>"max"</c>, <c>"double"</c> or <c>"single"</c> for a floating-point
-/// column, or <see langword="null"/> where the backend declares no size (SQLite uses type affinity,
-/// so most of its columns report <see langword="null"/>).
+/// column, or <c>null</c> where the backend declares no size (SQLite uses type affinity,
+/// so most of its columns report <c>null</c>).
 /// </param>
 /// <param name="Nullable">Whether the column accepts nulls.</param>
 /// <param name="PrimaryKey">Whether the column takes part in the primary key.</param>

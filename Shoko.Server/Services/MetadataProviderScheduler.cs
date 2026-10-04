@@ -62,7 +62,7 @@ public class MetadataProviderScheduler(
     ///   A forced refresh is never told to the providers as
     ///   <see cref="MetadataRefreshReason.Scheduled"/>.
     /// </param>
-    /// <param name="options">What to fetch, or <see langword="null"/> for <see cref="FullRefresh"/>.</param>
+    /// <param name="options">What to fetch, or <c>null</c> for <see cref="FullRefresh"/>.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many providers were asked.</returns>
     public async Task<int> ScheduleRefreshForAnime(
@@ -105,10 +105,10 @@ public class MetadataProviderScheduler(
     ///   or the one <paramref name="entryID"/> is refreshed for. 0 when there
     ///   is none.
     /// </param>
-    /// <param name="entryID">One linked entry to refresh instead of everything, or <see langword="null"/>.</param>
+    /// <param name="entryID">One linked entry to refresh instead of everything, or <c>null</c>.</param>
     /// <param name="force">Whether to refresh the entries however recently they were refreshed.</param>
     /// <param name="options">
-    ///   What to fetch and why, or <see langword="null"/> for
+    ///   What to fetch and why, or <c>null</c> for
     ///   <see cref="FullRefresh"/>. A forced refresh is never told it was
     ///   <see cref="MetadataRefreshReason.Scheduled"/>.
     /// </param>
@@ -120,12 +120,12 @@ public class MetadataProviderScheduler(
     /// </param>
     /// <param name="prioritize">Whether to queue it ahead of the rest even though it is not forced.</param>
     /// <returns>
-    ///   <see langword="true"/> when something was queued or ran, or
-    ///   <see langword="false"/> when the anime has no links on the source,
+    ///   <c>true</c> when something was queued or ran, or
+    ///   <c>false</c> when the anime has no links on the source,
     ///   the provider refreshes nothing, or it was asked to run at once while
     ///   it cannot.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <c>null</c>.</exception>
     public async Task<bool> ScheduleRefresh(
         MetadataProviderInfo info,
         int anidbAnimeID,
@@ -176,16 +176,16 @@ public class MetadataProviderScheduler(
     /// </remarks>
     /// <param name="entryID">The series, film, collection, creator, character, studio or network.</param>
     /// <param name="force">Whether to refresh it however recently it was refreshed.</param>
-    /// <param name="options">What to fetch and why, or <see langword="null"/> for <see cref="FullRefresh"/>.</param>
+    /// <param name="options">What to fetch and why, or <c>null</c> for <see cref="FullRefresh"/>.</param>
     /// <param name="immediate">Whether to run the refresh now and wait for it rather than queue it.</param>
     /// <param name="prioritize">Whether to queue it ahead of the rest even though it is not forced.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> when a refresh was queued or ran, or
-    ///   <see langword="false"/> when no enabled provider refreshes the entry
+    ///   <c>true</c> when a refresh was queued or ran, or
+    ///   <c>false</c> when no enabled provider refreshes the entry
     ///   or it was asked to run at once while it cannot.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
     public Task<bool> ScheduleRefreshForEntry(
         MetadataGuid entryID,
         bool force = false,
@@ -223,7 +223,7 @@ public class MetadataProviderScheduler(
     /// <param name="seriesID">The series, on a plugin source.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>A task that completes once the sync is queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="seriesID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="seriesID"/> is <c>null</c>.</exception>
     public async Task ScheduleLinkSync(MetadataGuid seriesID, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(seriesID);
@@ -251,12 +251,12 @@ public class MetadataProviderScheduler(
     /// <param name="immediate">Whether to run the job now and wait for it rather than queue it.</param>
     /// <param name="prioritize">Whether to queue it ahead of the rest even though it is not forced.</param>
     /// <returns>
-    ///   <see langword="true"/> when the job was queued or ran, or
-    ///   <see langword="false"/> when the provider supplies no images, the
+    ///   <c>true</c> when the job was queued or ran, or
+    ///   <c>false</c> when the provider supplies no images, the
     ///   entry is on another source or of a kind the provider is not enabled
     ///   for, or it was asked to run at once while it cannot.
     /// </returns>
-    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     public async Task<bool> ScheduleImages(
         MetadataProviderInfo info,
         MetadataGuid entryID,
@@ -295,11 +295,11 @@ public class MetadataProviderScheduler(
     /// <param name="prioritize">Whether to queue it ahead of the rest even though it is not forced.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> when the job was queued or ran, or
-    ///   <see langword="false"/> when no enabled provider supplies images for
+    ///   <c>true</c> when the job was queued or ran, or
+    ///   <c>false</c> when no enabled provider supplies images for
     ///   the source, or it was asked to run at once while it cannot.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
     public async Task<bool> ScheduleImagesForEntry(
         MetadataGuid entryID,
         bool force = false,
@@ -325,7 +325,7 @@ public class MetadataProviderScheduler(
     /// <param name="force">Whether to download the desired images again even when they are there.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>How many image jobs were queued.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <c>null</c>.</exception>
     public async Task<int> ScheduleImagesForAnime(MetadataProviderInfo info, int anidbAnimeID, bool force = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(info);
@@ -349,8 +349,8 @@ public class MetadataProviderScheduler(
     ///   the core's image job, being on its source and enabled for its kind.
     /// </summary>
     /// <param name="entryID">The series, film or collection.</param>
-    /// <returns><see langword="true"/> when one does.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> when one does.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
     public bool HasImageJobFor(MetadataGuid entryID)
     {
         ArgumentNullException.ThrowIfNull(entryID);
@@ -389,11 +389,11 @@ public class MetadataProviderScheduler(
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> when the search was queued, or
-    ///   <see langword="false"/> when the source has no auto-linker or it is
+    ///   <c>true</c> when the search was queued, or
+    ///   <c>false</c> when the source has no auto-linker or it is
     ///   not configured.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
     public async Task<bool> ScheduleSearch(MetadataSource source, int anidbAnimeID, bool force = false, bool replace = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -419,7 +419,7 @@ public class MetadataProviderScheduler(
     ///   The provider set as a source's auto-linker.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns>The provider, or <see langword="null"/> when the source has none.</returns>
+    /// <returns>The provider, or <c>null</c> when the source has none.</returns>
     public MetadataProviderInfo? GetAutoLinker(MetadataSource source)
         => providerManager.MetadataProviders.FirstOrDefault(info => info.Source == source && info.IsAutoLinker);
 
@@ -429,8 +429,8 @@ public class MetadataProviderScheduler(
     /// </summary>
     /// <param name="info">The auto-linker.</param>
     /// <param name="subject">What the search was for, for the log.</param>
-    /// <returns><see langword="true"/> when it is configured.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> when it is configured.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="info"/> is <c>null</c>.</exception>
     public bool IsConfigured(MetadataProviderInfo info, string subject)
     {
         ArgumentNullException.ThrowIfNull(info);
@@ -456,10 +456,10 @@ public class MetadataProviderScheduler(
     /// </param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
-    ///   <see langword="true"/> once the purge is queued, or
-    ///   <see langword="false"/> when nothing purges the entry's source.
+    ///   <c>true</c> once the purge is queued, or
+    ///   <c>false</c> when nothing purges the entry's source.
     /// </returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entryID"/> is <c>null</c>.</exception>
     public async Task<bool> SchedulePurge(MetadataGuid entryID, bool force = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entryID);
@@ -490,8 +490,8 @@ public class MetadataProviderScheduler(
     /// <param name="prioritize">Whether to queue it ahead of the rest.</param>
     /// <param name="immediate">Whether to run it now and wait for it.</param>
     /// <returns>
-    ///   <see langword="true"/> once it is queued or has run, or
-    ///   <see langword="false"/> when it was to run now but the provider is
+    ///   <c>true</c> once it is queued or has run, or
+    ///   <c>false</c> when it was to run now but the provider is
     ///   paused or the queue holds its jobs back.
     /// </returns>
     private Task<bool> Dispatch(MetadataProviderInfo info, Type jobType, Action<IQueueJob> configure, bool prioritize, bool immediate)
@@ -510,8 +510,8 @@ public class MetadataProviderScheduler(
     /// <param name="prioritize">Whether to queue it ahead of the rest.</param>
     /// <param name="immediate">Whether to run it now and wait for it.</param>
     /// <returns>
-    ///   <see langword="true"/> once it is queued or has run, or
-    ///   <see langword="false"/> when it was to run now but the provider is
+    ///   <c>true</c> once it is queued or has run, or
+    ///   <c>false</c> when it was to run now but the provider is
     ///   paused or the queue holds its jobs back.
     /// </returns>
     internal static async Task<bool> Dispatch(
@@ -569,7 +569,7 @@ public class MetadataProviderScheduler(
     ///   source, or a core source a provider claims.
     /// </summary>
     /// <param name="source">The source.</param>
-    /// <returns><see langword="true"/> when it does.</returns>
+    /// <returns><c>true</c> when it does.</returns>
     public bool IsPurgeable(MetadataSource source)
         => IsPurgeable(source, providerManager.MetadataProviders);
 
@@ -579,7 +579,7 @@ public class MetadataProviderScheduler(
     /// </summary>
     /// <param name="source">The source.</param>
     /// <param name="providers">The registered providers.</param>
-    /// <returns><see langword="true"/> when it may.</returns>
+    /// <returns><c>true</c> when it may.</returns>
     public static bool IsPurgeable(MetadataSource source, IEnumerable<MetadataProviderInfo> providers)
         => !source.IsCore || providers.Any(info => info.Source == source);
 
@@ -593,8 +593,8 @@ public class MetadataProviderScheduler(
     /// </remarks>
     /// <param name="info">The provider.</param>
     /// <param name="entityType">The kind of entry: series, movie or collection.</param>
-    /// <returns><see langword="true"/> when the provider may refresh it.</returns>
-    /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> when the provider may refresh it.</returns>
+    /// <exception cref="ArgumentNullException">An argument is <c>null</c>.</exception>
     public static bool MayRefresh(MetadataProviderInfo info, MetadataEntityType entityType)
     {
         ArgumentNullException.ThrowIfNull(info);
@@ -611,7 +611,7 @@ public class MetadataProviderScheduler(
     /// </summary>
     /// <param name="provider">The provider.</param>
     /// <param name="entityType">The kind of entry.</param>
-    /// <returns><see langword="true"/> for a series, movie or collection provider asked about its own kind.</returns>
+    /// <returns><c>true</c> for a series, movie or collection provider asked about its own kind.</returns>
     public static bool Refreshes(IMetadataProvider provider, MetadataEntityType entityType)
         => entityType == MetadataEntityType.Series ? provider is IMetadataSeriesProvider
             : entityType == MetadataEntityType.Movie ? provider is IMetadataMovieProvider
@@ -623,7 +623,7 @@ public class MetadataProviderScheduler(
     /// </summary>
     /// <param name="anidbAnimeID">The AniDB anime ID.</param>
     /// <param name="source">The source.</param>
-    /// <returns><see langword="true"/> when it has one.</returns>
+    /// <returns><c>true</c> when it has one.</returns>
     private bool IsLinked(int anidbAnimeID, MetadataSource source)
         => anidbAnimeID > 0 && crossReferences.GetLinkedEntries(anidbAnimeID, source).Count > 0;
 

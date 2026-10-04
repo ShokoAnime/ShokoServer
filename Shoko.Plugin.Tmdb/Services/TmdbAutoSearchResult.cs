@@ -51,7 +51,7 @@ internal sealed class TmdbAutoSearchResult
     public bool IsRemote { get; init; }
 
     /// <summary>
-    ///   Why it was turned down, or <see langword="null"/> when it was taken.
+    ///   Why it was turned down, or <c>null</c> when it was taken.
     /// </summary>
     public MetadataAutoLinkRejection? Rejection { get; set; }
 

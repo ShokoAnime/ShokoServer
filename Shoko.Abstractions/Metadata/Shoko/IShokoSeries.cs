@@ -17,7 +17,7 @@ public interface IShokoSeries : ISeries<IShokoSeries, IShokoEpisode>
     int LocalID { get; }
 
     /// <summary>
-    ///   Always <see langword="null"/>: a Shoko series is never refreshed from
+    ///   Always <c>null</c>: a Shoko series is never refreshed from
     ///   a source, and does not take its AniDB anime's time.
     /// </summary>
     DateTime? ISeries.LastRefreshedAt { get => null; }
@@ -159,7 +159,7 @@ public interface IShokoSeries : ISeries<IShokoSeries, IShokoEpisode>
     /// </remarks>
     /// <param name="source">The source being asked about.</param>
     /// <returns>
-    ///   <see langword="true"/> when that source must not link this series on
+    ///   <c>true</c> when that source must not link this series on
     ///   its own.
     /// </returns>
     bool IsAutoLinkingDisabled(MetadataSource source);

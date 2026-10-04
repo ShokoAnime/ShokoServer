@@ -367,11 +367,11 @@ public class ActionService : IActionService
     ///   The invoke entry point. Scope-agnostic on purpose — the caller
     ///   resolves <paramref name="scopeEntity"/> (an <see cref="AnimeSeries"/>,
     ///   <see cref="AnimeGroup"/>, <see cref="AnimeEpisode"/>,
-    ///   <see cref="VideoLocal"/>, or <see langword="null"/> for Global) before
+    ///   <see cref="VideoLocal"/>, or <c>null</c> for Global) before
     ///   calling this.
     /// </summary>
     /// <returns>
-    ///   <see langword="null"/> when the action was accepted and enqueued, or a
+    ///   <c>null</c> when the action was accepted and enqueued, or a
     ///   rejection reason — mapped to a 400 by the controller — when the
     ///   invocation was refused without ever touching the queue.
     /// </returns>
@@ -427,7 +427,7 @@ public class ActionService : IActionService
     ///   nothing after. Scope-agnostic in the same way.
     /// </summary>
     /// <returns>
-    ///   <see langword="null"/> when the action would be accepted, or the
+    ///   <c>null</c> when the action would be accepted, or the
     ///   reason it would be refused.
     /// </returns>
     private async Task<ActionValidationResult?> ValidateCoreAsync(Guid actionId, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
@@ -461,7 +461,7 @@ public class ActionService : IActionService
             : throw new KeyNotFoundException($"No action registered for {actionId}");
 
     /// <summary>
-    ///   The scope an entity implies. A <see langword="null"/> entity is the
+    ///   The scope an entity implies. A <c>null</c> entity is the
     ///   global scope rather than an absent one.
     /// </summary>
     private static ActionScope ScopeOf(object? scopeEntity)
@@ -479,7 +479,7 @@ public class ActionService : IActionService
     ///   entity it would be applied to.
     /// </summary>
     /// <returns>
-    ///   A rejection, or <see langword="null"/> when the action is applicable.
+    ///   A rejection, or <c>null</c> when the action is applicable.
     /// </returns>
     private static ActionValidationResult? CheckApplicable(RegisteredAction registered, ActionScope scope, IUser? caller)
     {
@@ -510,9 +510,9 @@ public class ActionService : IActionService
     ///   series the caller may see.
     /// </summary>
     /// <param name="action">The action.</param>
-    /// <param name="scopeEntity">The entity the action is scoped to, or <see langword="null"/>.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/> for a trusted call.</param>
-    /// <returns>A rejection, or <see langword="null"/> when the caller may act on it.</returns>
+    /// <param name="scopeEntity">The entity the action is scoped to, or <c>null</c>.</param>
+    /// <param name="caller">The invoking user, or <c>null</c> for a trusted call.</param>
+    /// <returns>A rejection, or <c>null</c> when the caller may act on it.</returns>
     internal static ActionValidationResult? CheckVisible(IExecutableAction action, object? scopeEntity, IUser? caller)
     {
         if (AnimeGroupView.IsUnrestricted(caller))
@@ -540,7 +540,7 @@ public class ActionService : IActionService
     ///   context-populated, and discarded, with the same transient lifetime as execution.
     /// </remarks>
     /// <returns>
-    ///   A rejection, or <see langword="null"/> when the entity passed.
+    ///   A rejection, or <c>null</c> when the entity passed.
     /// </returns>
     private async Task<ActionValidationResult?> ValidateEntryAsync(RegisteredAction registered, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller, CancellationToken token)
     {
@@ -577,9 +577,9 @@ public class ActionService : IActionService
     ///   Sets up the job running an action, which its dedup key is taken from.
     /// </summary>
     /// <param name="info">The action.</param>
-    /// <param name="scopeEntity">The entity the action is scoped to, or <see langword="null"/>.</param>
-    /// <param name="parameters">The invocation parameters, or <see langword="null"/>.</param>
-    /// <param name="caller">The invoking user, or <see langword="null"/>.</param>
+    /// <param name="scopeEntity">The entity the action is scoped to, or <c>null</c>.</param>
+    /// <param name="parameters">The invocation parameters, or <c>null</c>.</param>
+    /// <param name="caller">The invoking user, or <c>null</c>.</param>
     /// <returns>The job configurator.</returns>
     private static Action<ActionExecutionJob> ConfigureJob(ExecutableActionInfo info, object? scopeEntity, IReadOnlyDictionary<string, object?>? parameters, IUser? caller)
         => j =>

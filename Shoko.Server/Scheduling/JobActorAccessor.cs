@@ -60,7 +60,7 @@ public sealed class JobActorAccessor : IJobActorAccessor
     ///   the job was queued, or a user removed since, runs it for the system.
     /// </summary>
     /// <param name="actor">The stored actor.</param>
-    /// <returns>The token, or <see langword="null"/> when it is gone.</returns>
+    /// <returns>The token, or <c>null</c> when it is gone.</returns>
     internal ApiToken? Find(JobActor actor)
     {
         if (_userRepository.Value.GetByID(actor.UserID) is not { } user)

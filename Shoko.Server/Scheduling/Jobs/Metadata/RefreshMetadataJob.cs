@@ -87,25 +87,25 @@ public class RefreshMetadataJob<TProvider>(
 
     /// <summary>
     ///   Whether the provider should fetch the cast and crew, or
-    ///   <see langword="null"/> to go by the settings.
+    ///   <c>null</c> to go by the settings.
     /// </summary>
     public bool? DownloadCrewAndCast { get; set; }
 
     /// <summary>
     ///   Whether the provider should fetch a series' alternate orderings, or
-    ///   <see langword="null"/> to go by the settings.
+    ///   <c>null</c> to go by the settings.
     /// </summary>
     public bool? DownloadAlternateOrdering { get; set; }
 
     /// <summary>
     ///   Whether the provider should fetch the networks a series aired on, or
-    ///   <see langword="null"/> to go by the settings.
+    ///   <c>null</c> to go by the settings.
     /// </summary>
     public bool? DownloadNetworks { get; set; }
 
     /// <summary>
     ///   Whether the provider should fetch the collections a film belongs
-    ///   to, or <see langword="null"/> to go by the settings.
+    ///   to, or <c>null</c> to go by the settings.
     /// </summary>
     public bool? DownloadCollections { get; set; }
 
@@ -187,7 +187,7 @@ public class RefreshMetadataJob<TProvider>(
     ///   point into.
     /// </summary>
     /// <param name="source">The provider's source.</param>
-    /// <returns>The entries, or <see langword="null"/> when the one asked for is not valid.</returns>
+    /// <returns>The entries, or <c>null</c> when the one asked for is not valid.</returns>
     private List<MetadataGuid>? GetEntries(MetadataSource source)
     {
         if (EntryID is not null)
@@ -295,7 +295,7 @@ public class RefreshMetadataJob<TProvider>(
     ///   stored collection.
     /// </summary>
     /// <param name="entry">The entry.</param>
-    /// <returns><see langword="true"/> when it is.</returns>
+    /// <returns><c>true</c> when it is.</returns>
     private bool IsStillLinked(MetadataGuid entry)
         => entry.EntityType == MetadataEntityType.Collection
             ? metadataService.GetCollection(entry) is not null

@@ -22,7 +22,7 @@ public sealed record SubmittedAiring
     public required string EpisodeKey { get; init; }
 
     /// <summary>
-    /// The submitted slot, in UTC. <see langword="null"/> means the provider
+    /// The submitted slot, in UTC. <c>null</c> means the provider
     /// reports no slot at all.
     /// </summary>
     public DateTime? AiredAt { get; init; }

@@ -44,7 +44,7 @@ public sealed class MetadataEntryLocks
     /// <param name="entry">The series, movie or collection, which also names its source.</param>
     /// <param name="cancellationToken">Stops the wait.</param>
     /// <returns>A handle that releases the lock when disposed.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <c>null</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled while waiting.</exception>
     public Task<IDisposable> Acquire(MetadataGuid entry, CancellationToken cancellationToken = default)
         => Acquire(_locks, entry, cancellationToken);
@@ -60,7 +60,7 @@ public sealed class MetadataEntryLocks
     /// <param name="entry">The series, movie or collection, which also names its source.</param>
     /// <param name="cancellationToken">Stops the wait.</param>
     /// <returns>A handle that releases the lock when disposed.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <c>null</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled while waiting.</exception>
     public Task<IDisposable> AcquireImages(MetadataGuid entry, CancellationToken cancellationToken = default)
         => Acquire(_imageLocks, entry, cancellationToken);
@@ -72,7 +72,7 @@ public sealed class MetadataEntryLocks
     /// <param name="entry">The entry.</param>
     /// <param name="cancellationToken">Stops the wait.</param>
     /// <returns>A handle that releases the lock when disposed.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <c>null</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled while waiting.</exception>
     private async Task<IDisposable> Acquire(Dictionary<MetadataGuid, EntryLock> locks, MetadataGuid entry, CancellationToken cancellationToken)
     {
@@ -103,8 +103,8 @@ public sealed class MetadataEntryLocks
     ///   Whether somebody holds or waits for an entry's lock.
     /// </summary>
     /// <param name="entry">The series, movie or collection.</param>
-    /// <returns><see langword="true"/> when the lock is in use.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> when the lock is in use.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <c>null</c>.</exception>
     public bool IsInUse(MetadataGuid entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -143,7 +143,7 @@ public sealed class MetadataEntryLocks
     /// </remarks>
     /// <param name="entry">The series, movie or collection.</param>
     /// <returns>A handle that ends the update when disposed.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <c>null</c>.</exception>
     public IDisposable MarkUpdating(MetadataGuid entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -160,8 +160,8 @@ public sealed class MetadataEntryLocks
     ///   Whether an entry is being refreshed or purged.
     /// </summary>
     /// <param name="entry">The series, movie or collection.</param>
-    /// <returns><see langword="true"/> while it is.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> while it is.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <c>null</c>.</exception>
     public bool IsUpdating(MetadataGuid entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
@@ -174,8 +174,8 @@ public sealed class MetadataEntryLocks
     /// </summary>
     /// <param name="entry">The series, movie or collection.</param>
     /// <param name="cancellationToken">Stops the wait.</param>
-    /// <returns><see langword="true"/> when there was one to wait for.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <see langword="null"/>.</exception>
+    /// <returns><c>true</c> when there was one to wait for.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="entry"/> is <c>null</c>.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled while waiting.</exception>
     public async Task<bool> WaitForUpdate(MetadataGuid entry, CancellationToken cancellationToken = default)
     {

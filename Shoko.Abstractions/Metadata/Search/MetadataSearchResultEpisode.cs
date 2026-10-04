@@ -18,7 +18,7 @@ public sealed record MetadataSearchResultEpisode
     public required int EpisodeNumber { get; init; }
 
     /// <summary>
-    ///   When it aired, or <see langword="null"/> when the source does not
+    ///   When it aired, or <c>null</c> when the source does not
     ///   say.
     /// </summary>
     public DateOnly? AiredAt { get; init; }

@@ -237,11 +237,9 @@ public interface IVideoReleaseService
     Task<bool> TryScheduleRescanForVideo(IVideo video, IReleaseInfo existingRelease);
 
     /// <summary>
-    ///   If parallel mode is disabled, then it will run all provided
-    ///   <paramref name="providers"/>, in order, until a
-    ///   release is found or all providers are exhausted. If parallel mode is
-    ///   enabled, then it will run all provided <paramref name="providers"/>
-    ///   in parallel and pick the highest priority valid result.
+    ///   Runs the given <paramref name="providers"/> one after another, in the
+    ///   order given, until one finds a release or all of them are exhausted.
+    ///   A release only counts when it has at least one cross-reference.
     /// </summary>
     /// <remarks>
     ///   This method does not save the found release to the database unless
@@ -352,7 +350,7 @@ public interface IVideoReleaseService
     ///   Optional. Set to <c>true</c> to skip provider-specific post-clear
     ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
-    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <c>null</c> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
     ///   A task that represents the asynchronous operation.
@@ -377,7 +375,7 @@ public interface IVideoReleaseService
     ///   Optional. Set to <c>true</c> to skip provider-specific post-clear
     ///   state sync (e.g. removing the release from a tracking list).
     /// </param>
-    /// <param name="progress">Told how far the work is, from 0 to 100, or <see langword="null"/> for no reports.</param>
+    /// <param name="progress">Told how far the work is, from 0 to 100, or <c>null</c> for no reports.</param>
     /// <param name="cancellationToken">Cancels the work.</param>
     /// <returns>
     ///   A task that represents the asynchronous operation.
