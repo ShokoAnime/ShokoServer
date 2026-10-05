@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Moq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Filtering.Services;
+using Shoko.Abstractions.Filtering.Sorting;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -131,7 +134,8 @@ public class AnidbAnimeCatalogTests
             IReadOnlySet<int>? withBackdrops = null,
             IReadOnlySet<int>? withSeriesPosters = null,
             IReadOnlyDictionary<int, AnidbAnimeChannelAirings>? channelAirings = null,
-            IEnumerable<AniDB_Anime_StartSeasonOverride>? startSeasonOverrides = null
+            IEnumerable<AniDB_Anime_StartSeasonOverride>? startSeasonOverrides = null,
+            IMetadataFilteringService? filtering = null
         )
         {
             var animeTagRepository = CachedRepo.Build<AniDB_Anime_TagRepository, int, AniDB_Anime_Tag>(xref => xref.AniDB_Anime_TagID, animeTags);
@@ -190,7 +194,8 @@ public class AnidbAnimeCatalogTests
                 tagRepository,
                 CachedRepo.Build<CrossRef_File_EpisodeRepository, int, CrossRef_File_Episode>(xref => xref.CrossRef_File_EpisodeID, fileCrossReferences),
                 CachedRepo.Build<VideoLocalRepository, int, VideoLocal>(video => video.VideoLocalID, videos),
-                textManager.Object
+                textManager.Object,
+                filtering ?? Mock.Of<IMetadataFilteringService>()
             );
         }
 
@@ -221,7 +226,8 @@ public class AnidbAnimeCatalogTests
         AniDB_TagRepository tagRepository,
         CrossRef_File_EpisodeRepository fileCrossReferenceRepository,
         VideoLocalRepository videoRepository,
-        IMetadataTextManager textManager
+        IMetadataTextManager textManager,
+        IMetadataFilteringService filteringService
     ) : AnidbAnimeCatalog(
         animeRepository,
         episodeRepository,
@@ -233,6 +239,7 @@ public class AnidbAnimeCatalogTests
         fileCrossReferenceRepository,
         videoRepository,
         textManager,
+        filteringService,
         null!
     )
     {
@@ -359,20 +366,47 @@ public class AnidbAnimeCatalogTests
         Assert.Equal(expected, harness.IDs(new() { InCollection = inCollection }).Order());
     }
 
-    [Theory]
-    [InlineData(InclusionFilter.True, new[] { 1, 2, 3 })]
-    [InlineData(InclusionFilter.Only, new[] { 2 })]
-    [InlineData(InclusionFilter.False, new[] { 1, 3 })]
-    public void IncludeMissing_SplitsOnTheSeriesFiles_LeavingAnimeWithoutASeries(InclusionFilter includeMissing, int[] expected)
+    [Fact]
+    public void Filter_KeepsOnlyTheAnimeOfTheSeriesItPasses()
     {
+        var series = new[] { new AnimeSeries { AnimeSeriesID = 10, AniDB_ID = 1 }, new AnimeSeries { AnimeSeriesID = 20, AniDB_ID = 2 } };
+        var filter = Mock.Of<IFilter>();
+        var filtering = new Mock<IMetadataFilteringService>();
+        filtering
+            .Setup(service => service.GetAllFilteredSeries(filter, null, null, true, It.IsAny<CancellationToken>()))
+            .Returns([series[0]]);
         using var harness = new Harness(
             [Anime(1, "A", Date(2015, 4, 1)), Anime(2, "B", Date(2015, 4, 1)), Anime(3, "C", Date(2015, 4, 1))],
-            series: [new AnimeSeries { AnimeSeriesID = 10, AniDB_ID = 1 }, new AnimeSeries { AnimeSeriesID = 20, AniDB_ID = 2 }],
-            fileCrossReferences: [new CrossRef_File_Episode { CrossRef_File_EpisodeID = 1, AnimeID = 1, EpisodeID = 1, Hash = "AAA", FileSize = 1 }],
-            videos: [new VideoLocal { VideoLocalID = 1, Hash = "AAA", FileSize = 1 }]
+            series: series,
+            filtering: filtering.Object
         );
 
-        Assert.Equal(expected, harness.IDs(new() { IncludeMissing = includeMissing }).Order());
+        Assert.Equal([1], harness.IDs(new() { Filter = filter }));
+    }
+
+    [Theory]
+    [InlineData(true, new[] { 3, 1, 2 })]
+    [InlineData(false, new[] { 1, 2, 3 })]
+    public void Filter_ItsSortingExpressionDecidesTheOrder(bool sorted, int[] expected)
+    {
+        var series = new[]
+        {
+            new AnimeSeries { AnimeSeriesID = 10, AniDB_ID = 1 },
+            new AnimeSeries { AnimeSeriesID = 20, AniDB_ID = 2 },
+            new AnimeSeries { AnimeSeriesID = 30, AniDB_ID = 3 },
+        };
+        var filter = Mock.Of<IFilter>(entry => entry.SortingExpression == (sorted ? Mock.Of<ISortingExpression>() : null));
+        var filtering = new Mock<IMetadataFilteringService>();
+        filtering
+            .Setup(service => service.GetAllFilteredSeries(filter, null, null, !sorted, It.IsAny<CancellationToken>()))
+            .Returns([series[2], series[0], series[1]]);
+        using var harness = new Harness(
+            [Anime(1, "A", Date(2015, 4, 1)), Anime(2, "B", Date(2015, 4, 1)), Anime(3, "C", Date(2015, 4, 1))],
+            series: series,
+            filtering: filtering.Object
+        );
+
+        Assert.Equal(expected, harness.IDs(new() { Filter = filter, OrderBy = AnidbAnimeListOrder.Title }));
     }
 
     [Theory]

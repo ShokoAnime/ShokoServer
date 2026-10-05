@@ -9,6 +9,7 @@ using Namotion.Reflection;
 using NJsonSchema;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Plugin;
@@ -54,7 +55,8 @@ public class AiringScheduleConfigurationTests
             new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
             new(() => new Mock<IMetadataService>().Object),
             new(() => new Mock<IMetadataCrossReferenceStore>().Object),
-            new(() => new Mock<IMetadataLinkingService>().Object)
+            new(() => new Mock<IMetadataLinkingService>().Object),
+            new(() => new Mock<IMetadataFilteringService>().Object)
         );
     }
 
@@ -94,6 +96,8 @@ public class AiringScheduleConfigurationTests
             null!,
             null!,
             _paths,
+            null!,
+            null!,
             null!,
             null!,
             null!

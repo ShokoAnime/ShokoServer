@@ -950,9 +950,9 @@ public partial class AiringScheduleService
 
     /// <summary>
     /// Whether an airing passes the filters on itself, its episode and its
-    /// series: the kinds of showing, the episode types, the user, and the
-    /// restricted, collection and missing filters. The series is only resolved
-    /// when one of them asks for it.
+    /// series: the kinds of showing, the episode types, the user, the
+    /// restricted and collection filters, and the filter. The series is only
+    /// resolved when one of them asks for it.
     /// </summary>
     /// <param name="context">The read the airing belongs to.</param>
     /// <param name="airing">The airing.</param>
@@ -970,27 +970,31 @@ public partial class AiringScheduleService
                 return false;
         }
 
-        if (options is { User: null, IncludeRestricted: InclusionFilter.True, InCollection: InclusionFilter.True, IncludeMissing: InclusionFilter.True })
+        if (options is { User: null, IncludeRestricted: InclusionFilter.True, InCollection: InclusionFilter.True, Filter: null })
             return true;
 
-        return PassesSeriesFilters(context.GetSeriesState(airing), options);
+        var filteredAnimeIDs = options.Filter is { } filter ? context.GetFilteredAnimeIDs(filter, options.User) : null;
+        return PassesSeriesFilters(context.GetSeriesState(airing), options, filteredAnimeIDs);
     }
 
     /// <summary>
-    /// Whether a series passes the filters on it: the user, and the
-    /// restricted, collection and missing filters.
+    /// Whether a series passes the filters on it: the user, the restricted
+    /// and collection filters, and the filter's results.
     /// </summary>
     /// <param name="state">The series' state.</param>
     /// <param name="options">The filters to apply.</param>
+    /// <param name="filteredAnimeIDs">The anime the filter passed, or <c>null</c> without a filter.</param>
     /// <returns><c>true</c> when the series passes every one of them.</returns>
-    internal static bool PassesSeriesFilters(AiringSeriesState state, EpisodeAiringFilteringOptions options)
+    internal static bool PassesSeriesFilters(AiringSeriesState state, EpisodeAiringFilteringOptions options, IReadOnlySet<int>? filteredAnimeIDs = null)
     {
         if (options.User is { } user && state.AnidbAnime is { } anime && !user.IsAllowedToSee(anime))
             return false;
 
+        if (filteredAnimeIDs is not null && (!state.IsInCollection || state.AnidbAnimeID is not { } animeID || !filteredAnimeIDs.Contains(animeID)))
+            return false;
+
         return options.IncludeRestricted.Passes(state.IsRestricted) &&
-            options.InCollection.Passes(state.IsInCollection) &&
-            options.IncludeMissing.Passes(state.IsMissing);
+            options.InCollection.Passes(state.IsInCollection);
     }
 
     /// <summary>

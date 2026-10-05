@@ -31,6 +31,9 @@ public interface IAiringCalendarService
     /// <param name="airingOptions">The airing filters; the read is always next-only.</param>
     /// <param name="today">The current date, which decides whether an anime has finished. Defaults to today in UTC.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="year"/> is not between 1 and 9999.</exception>
+    /// <exception cref="ArgumentNullException">
+    ///   A filter in the options depends on the user and the options name none.
+    /// </exception>
     /// <returns>The anime.</returns>
     IReadOnlyList<SeasonAnimeEntry> GetSeasonAnime(
         int year,
@@ -46,7 +49,9 @@ public interface IAiringCalendarService
     /// </summary>
     /// <remarks>
     ///   Each anime goes to the first section that takes it, an anime no
-    ///   section takes is left out, and empty sections are dropped.
+    ///   section takes is left out, and empty sections are dropped. Each
+    ///   section is sorted by next airing, or keeps the anime's order when
+    ///   the anime filter has a sorting expression.
     /// </remarks>
     /// <param name="year">The year.</param>
     /// <param name="season">The season.</param>
@@ -58,6 +63,9 @@ public interface IAiringCalendarService
     /// <exception cref="ArgumentException">
     ///   <paramref name="sections"/> holds a <c>null</c> section, or two
     ///   sections with the same ID.
+    /// </exception>
+    /// <exception cref="ArgumentNullException">
+    ///   A filter in the options depends on the user and the options name none.
     /// </exception>
     /// <returns>The non-empty sections, in the layout's order.</returns>
     IReadOnlyList<SeasonSection> GetSeasonSections(
@@ -78,6 +86,9 @@ public interface IAiringCalendarService
     /// </remarks>
     /// <param name="options">The filters on the anime counted; the seasons and order are ignored.</param>
     /// <param name="includeImages">Whether to pick a poster and a backdrop for each season.</param>
+    /// <exception cref="ArgumentNullException">
+    ///   A filter in the options depends on the user and the options name none.
+    /// </exception>
     /// <returns>The years, newest first.</returns>
     IReadOnlyList<AnidbAnimeSeasonYear> GetSeasonsByYear(AnidbAnimeListOptions? options = null, bool includeImages = false);
 
@@ -103,6 +114,9 @@ public interface IAiringCalendarService
     /// <param name="airingOptions">The airing filters.</param>
     /// <param name="everyChannel">Whether to keep each episode's other airings, or only its lead.</param>
     /// <exception cref="ArgumentException"><paramref name="to"/> is before <paramref name="from"/>.</exception>
+    /// <exception cref="ArgumentNullException">
+    ///   A filter in the options depends on the user and the options name none.
+    /// </exception>
     /// <returns>The days, in order.</returns>
     IReadOnlyList<AiringCalendarDay> GetCalendarDays(
         DateTimeOffset from,

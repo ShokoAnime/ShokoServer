@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Containers;
@@ -10,6 +11,7 @@ using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.User;
 using Shoko.Server.Extensions;
+using Shoko.Server.Filters;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
@@ -38,6 +40,7 @@ public class AnidbAnimeCatalog(
     CrossRef_File_EpisodeRepository fileCrossReferenceRepository,
     VideoLocalRepository videoRepository,
     IMetadataTextManager textManager,
+    IMetadataFilteringService filteringService,
     AiringScheduleService airingScheduleService
 )
 {
@@ -47,9 +50,13 @@ public class AnidbAnimeCatalog(
     #region Listing
 
     /// <summary>
-    ///   Lists the cached anime matching the options, in their order.
+    ///   Lists the cached anime matching the options, in their order, or in
+    ///   the order of their filter when it has a sorting expression.
     /// </summary>
     /// <param name="options">The filters and order.</param>
+    /// <exception cref="ArgumentNullException">
+    ///   The filter depends on the user and the options name none.
+    /// </exception>
     /// <returns>The anime, each with its Shoko series when there is one.</returns>
     public IReadOnlyList<(AniDB_Anime Anime, AnimeSeries? Series)> GetAnime(AnidbAnimeListOptions? options = null)
     {
@@ -71,7 +78,11 @@ public class AnidbAnimeCatalog(
             inSeasons = anime => channelAirings.ContainsKey(anime.AnimeID);
         }
 
-        var entries = Filter(options, inSeasons)
+        var filtered = Filter(options, inSeasons, GetFilteredAnimeIDs(options));
+        if (options.Filter?.SortingExpression is not null)
+            return [.. filtered.Select(entry => (entry.Anime, entry.Series))];
+
+        var entries = filtered
             .Select(entry => new Entry(entry.Anime, entry.Series, (entry.Title ?? GetTitle(entry.Anime, entry.Series)).ToSortName().ToLowerInvariant()))
             .ToList();
 
@@ -104,6 +115,9 @@ public class AnidbAnimeCatalog(
     /// </remarks>
     /// <param name="options">The filters; the seasons and order are ignored.</param>
     /// <param name="includeImages">Whether to pick a poster and a backdrop for each season.</param>
+    /// <exception cref="ArgumentNullException">
+    ///   The filter depends on the user and the options name none.
+    /// </exception>
     /// <returns>The seasons, the one under way always among them.</returns>
     public IReadOnlyList<AnidbAnimeSeasonCount> GetSeasons(AnidbAnimeListOptions? options = null, bool includeImages = false)
     {
@@ -111,7 +125,7 @@ public class AnidbAnimeCatalog(
         var (current, last) = GetListedSeasons();
         var channelAirings = options.ChannelIDs is { Count: > 0 } channelIDs ? GetChannelAirings(channelIDs) : null;
         var members = new Dictionary<(int Year, YearlySeason Season), List<Member>>();
-        foreach (var (anime, series, _) in Filter(options, inSeasons: null))
+        foreach (var (anime, series, _) in Filter(options, inSeasons: null, GetFilteredAnimeIDs(options)))
         {
             if (anime.SeasonSpan is not { } span)
                 continue;
@@ -281,17 +295,37 @@ public class AnidbAnimeCatalog(
     private sealed record Member(AniDB_Anime Anime, AnimeSeries? Series, SeasonCalendar.SeasonSpan Span);
 
     /// <summary>
+    ///   The anime of the series the options' filter passes, evaluated once
+    ///   for the read.
+    /// </summary>
+    /// <param name="options">The options.</param>
+    /// <exception cref="ArgumentNullException">
+    ///   The filter depends on the user and the options name none.
+    /// </exception>
+    /// <returns>The AniDB anime IDs, in the filter's order, or <c>null</c> without a filter.</returns>
+    private IReadOnlyList<int>? GetFilteredAnimeIDs(AnidbAnimeListOptions options)
+        => options.Filter is { } filter ? filteringService.GetFilteredAnimeIDs(filter, options.User) : null;
+
+    /// <summary>
     ///   Every cached anime passing the filters, the cheap ones first, so a
     ///   title is only worked out for an anime that got that far.
     /// </summary>
-    /// <param name="options">The filters other than the seasons.</param>
+    /// <param name="options">The filters other than the seasons and the filter.</param>
     /// <param name="inSeasons">The season filter, if any.</param>
+    /// <param name="filteredAnimeIDs">The anime the filter passed, in its order, or <c>null</c> for every anime.</param>
     /// <returns>The anime, with their series, and their titles when the prefix needed them.</returns>
-    private IEnumerable<(AniDB_Anime Anime, AnimeSeries? Series, string? Title)> Filter(AnidbAnimeListOptions options, Func<AniDB_Anime, bool>? inSeasons)
+    private IEnumerable<(AniDB_Anime Anime, AnimeSeries? Series, string? Title)> Filter(
+        AnidbAnimeListOptions options,
+        Func<AniDB_Anime, bool>? inSeasons,
+        IReadOnlyList<int>? filteredAnimeIDs
+    )
     {
         var types = options.Types is { Count: > 0 } ? options.Types.ToHashSet() : null;
         var prefix = string.IsNullOrEmpty(options.TitlePrefix) ? null : options.TitlePrefix;
-        foreach (var anime in animeRepository.GetAll())
+        var candidates = filteredAnimeIDs is null
+            ? animeRepository.GetAll()
+            : filteredAnimeIDs.Select(animeRepository.GetByAnimeID).OfType<AniDB_Anime>();
+        foreach (var anime in candidates)
         {
             if (types is not null && !types.Contains(anime.AnimeType))
                 continue;
@@ -304,9 +338,6 @@ public class AnidbAnimeCatalog(
 
             var series = seriesRepository.GetByAnimeID(anime.AnimeID);
             if (!options.InCollection.Passes(series is not null))
-                continue;
-
-            if (options.IncludeMissing is not InclusionFilter.True && !options.IncludeMissing.Passes(series is not null && GetVideoCount(anime.AnimeID) is 0))
                 continue;
 
             if (options.User is { } user && !user.IsAllowedToSee(anime))

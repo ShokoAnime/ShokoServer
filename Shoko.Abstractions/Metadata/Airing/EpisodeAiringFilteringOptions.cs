@@ -77,15 +77,17 @@ public sealed class EpisodeAiringFilteringOptions
     public InclusionFilter InCollection { get; set; } = InclusionFilter.True;
 
     /// <summary>
-    ///   Optional. Filters on whether the airing's series is missing: in the
-    ///   collection, with no local files. Defaults to
-    ///   <see cref="InclusionFilter.True"/>, keeping everything.
+    ///   Optional. If set, will restrict the returned list to only containing
+    ///   airings of the Shoko series the filter passes, evaluated for
+    ///   <see cref="User"/>. Airings of series not in the collection are left
+    ///   out, and series without local files only when the filter says so.
     /// </summary>
     /// <remarks>
-    ///   A series not in the collection is never missing, so
-    ///   <see cref="InclusionFilter.Only"/> leaves none of its airings.
+    ///   The filter is evaluated once per read. A filter that depends on the
+    ///   user needs <see cref="User"/> set, or the read throws an
+    ///   <see cref="ArgumentNullException"/>.
     /// </remarks>
-    public InclusionFilter IncludeMissing { get; set; } = InclusionFilter.True;
+    public IFilter? Filter { get; set; }
 
     /// <summary>
     ///   Optional. Filters on whether the airing's series is restricted (H).

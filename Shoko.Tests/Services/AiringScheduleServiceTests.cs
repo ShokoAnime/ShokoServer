@@ -12,6 +12,7 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -22,6 +23,7 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Plugin;
+using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.Server.Databases;
@@ -2869,28 +2871,54 @@ public class AiringScheduleServiceTests
     }
 
     [Theory]
-    [InlineData(InclusionFilter.Only, InclusionFilter.False, true, false, false)]
-    [InlineData(InclusionFilter.Only, InclusionFilter.True, true, true, false)]
-    [InlineData(InclusionFilter.False, InclusionFilter.True, false, false, true)]
-    [InlineData(InclusionFilter.True, InclusionFilter.Only, false, true, false)]
-    [InlineData(InclusionFilter.True, InclusionFilter.False, true, false, true)]
-    public void SeriesFilters_SplitTheCollectionFromTheMissingFiles(
-        InclusionFilter inCollection,
-        InclusionFilter includeMissing,
-        bool withFiles,
-        bool missing,
-        bool notInCollection
-    )
+    [InlineData(InclusionFilter.Only, true, false)]
+    [InlineData(InclusionFilter.False, false, true)]
+    [InlineData(InclusionFilter.True, true, true)]
+    public void SeriesFilters_SplitOnTheCollection(InclusionFilter inCollection, bool inIt, bool notInIt)
     {
-        var options = new EpisodeAiringFilteringOptions() { InCollection = inCollection, IncludeMissing = includeMissing };
+        var options = new EpisodeAiringFilteringOptions() { InCollection = inCollection };
 
         Assert.Equal(
-            (withFiles, missing, notInCollection),
+            (inIt, notInIt),
             (
                 AiringScheduleService.PassesSeriesFilters(new AiringSeriesState { IsInCollection = true }, options),
-                AiringScheduleService.PassesSeriesFilters(new AiringSeriesState { IsInCollection = true, IsMissing = true }, options),
                 AiringScheduleService.PassesSeriesFilters(AiringSeriesState.Unknown, options)
             )
+        );
+    }
+
+    [Fact]
+    public void SeriesFilters_AFilterKeepsOnlyTheSeriesItPassed()
+    {
+        var options = new EpisodeAiringFilteringOptions() { Filter = Mock.Of<IFilter>() };
+        var passed = new HashSet<int> { 1 };
+
+        Assert.Equal(
+            (true, false, false),
+            (
+                AiringScheduleService.PassesSeriesFilters(new AiringSeriesState { IsInCollection = true, AnidbAnimeID = 1 }, options, passed),
+                AiringScheduleService.PassesSeriesFilters(new AiringSeriesState { IsInCollection = true, AnidbAnimeID = 2 }, options, passed),
+                AiringScheduleService.PassesSeriesFilters(AiringSeriesState.Unknown, options, passed)
+            )
+        );
+    }
+
+    [Fact]
+    public void AReadEvaluatesItsFilterOnce()
+    {
+        using var harness = new Harness();
+        var filter = Mock.Of<IFilter>();
+        var series = Mock.Of<IShokoSeries>(entry => entry.AnidbAnimeID == 1);
+        harness.Filtering
+            .Setup(service => service.GetAllFilteredSeries(filter, null, null, true, It.IsAny<CancellationToken>()))
+            .Returns([series]);
+        var context = new AiringReadContext(harness.Service);
+
+        Assert.Equal([1], context.GetFilteredAnimeIDs(filter, null));
+        Assert.Equal([1], context.GetFilteredAnimeIDs(filter, null));
+        harness.Filtering.Verify(
+            service => service.GetAllFilteredSeries(It.IsAny<IFilter>(), It.IsAny<IUser?>(), It.IsAny<DateTime?>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()),
+            Times.Once
         );
     }
 
@@ -3119,6 +3147,8 @@ public class AiringScheduleServiceTests
 
         public Mock<IMetadataLinkingService> Linking { get; } = new();
 
+        public Mock<IMetadataFilteringService> Filtering { get; } = new();
+
         public AiringScheduleService Service { get; }
 
         /// <summary>The background ticker, wired to the same service instance.</summary>
@@ -3291,7 +3321,8 @@ public class AiringScheduleServiceTests
                 ConfigurationProvider,
                 new(() => Metadata.Object),
                 new(() => CrossReferences.Object),
-                new(() => Linking.Object)
+                new(() => Linking.Object),
+                new(() => Filtering.Object)
             );
             Service.AddParts([Primary, Secondary]);
             // Built here rather than per test, so it is subscribed to the

@@ -114,6 +114,20 @@ public class AiringCalendarServiceTests
     }
 
     [Fact]
+    public void Sections_KeepTheAnimesOrder_WhenToldTo()
+    {
+        var anime = new[]
+        {
+            Anime(1, title: "Unknown"),
+            Anime(2, title: "Soon", next: Airing("soon", 2, Utc(7, 15))),
+        };
+
+        var sections = AiringCalendarService.GroupIntoSections(anime, _fall2026, SeasonSectionDefinition.DefaultLayout, keepOrder: true);
+
+        Assert.Equal([1, 2], sections.Single().Anime.Select(entry => entry.Anime.AnidbID));
+    }
+
+    [Fact]
     public void DefaultLayout_PutsEachAnimeInTheFirstSectionThatTakesIt_AndDropsEmptyOnes()
     {
         var anime = new[]

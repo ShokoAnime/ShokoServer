@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
+using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Services;
@@ -74,7 +75,8 @@ public class AiringScheduleProviderIconTests
             new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object),
             new(() => new Mock<IMetadataService>().Object),
             new(() => new Mock<IMetadataCrossReferenceStore>().Object),
-            new(() => new Mock<IMetadataLinkingService>().Object)
+            new(() => new Mock<IMetadataLinkingService>().Object),
+            new(() => new Mock<IMetadataFilteringService>().Object)
         );
         service.AddParts([new Provider()]);
         return service;
@@ -90,6 +92,8 @@ public class AiringScheduleProviderIconTests
             null!,
             null!,
             _paths,
+            null!,
+            null!,
             null!,
             null!,
             null!

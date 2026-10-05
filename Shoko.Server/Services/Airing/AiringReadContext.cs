@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
+using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Shoko;
+using Shoko.Abstractions.User;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Models.AniDB.Embedded;
 using Shoko.Server.Models.Shoko.Embedded;
@@ -72,6 +74,8 @@ internal sealed class AiringReadContext
     private AiringScheduleServiceSettings? _settings;
 
     private IReadOnlySet<Guid>? _hiddenChannels;
+
+    private (IFilter Filter, IReadOnlySet<int> AnimeIDs)? _filteredAnimeIDs;
 
     /// <summary>
     /// Whether schedules whose provider is gone or disabled, and tracks of a
@@ -473,8 +477,28 @@ internal sealed class AiringReadContext
             AnidbAnime = anime,
             IsRestricted = anime?.IsRestricted ?? series.Restricted,
             IsInCollection = localSeries is not null,
-            IsMissing = localSeries is not null && localSeries.VideoLocals.Count is 0,
+            AnidbAnimeID = anidbAnimeID,
         };
+    }
+
+    /// <summary>
+    /// The AniDB anime of the Shoko series a filter passes for a user,
+    /// evaluated once per read.
+    /// </summary>
+    /// <param name="filter">The filter.</param>
+    /// <param name="user">The user, needed when the filter depends on one.</param>
+    /// <exception cref="ArgumentNullException">
+    /// The filter depends on the user and <paramref name="user"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>The AniDB anime IDs.</returns>
+    public IReadOnlySet<int> GetFilteredAnimeIDs(IFilter filter, IUser? user)
+    {
+        if (_filteredAnimeIDs is { } cached && ReferenceEquals(cached.Filter, filter))
+            return cached.AnimeIDs;
+
+        var animeIDs = _service.GetFilteredAnimeIDs(filter, user).ToHashSet();
+        _filteredAnimeIDs = (filter, animeIDs);
+        return animeIDs;
     }
 
     /// <summary>

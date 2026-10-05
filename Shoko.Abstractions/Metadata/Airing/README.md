@@ -466,7 +466,7 @@ Besides the schedule filters (`ProviderIDs`, `Kinds`, `Languages`) it carries:
 | `EpisodeKinds` | Only airings of these kinds of showing. Leave out both `Rerun` and `DetectedRerun` for no reruns. |
 | `ChannelIDs` | Only these channels, hidden or not. Unset, the channels the server hides (`HiddenChannelIDs`, also `IAiringChannel.IsHidden`) are left out. A schedule read returns its own airings either way. |
 | `InCollection` | An `InclusionFilter` on whether the series has a shoko series. `Only` keeps the collection, `False` keeps what is not in it. |
-| `IncludeMissing` | An `InclusionFilter` on series in the collection with no local files. |
+| `Filter` | An `IFilter` from the filtering system: only airings of the Shoko series it passes for `User`, evaluated once per read. Series not in the collection are left out; series without local files stay unless the filter leaves them out. |
 | `IncludeRestricted` | An `InclusionFilter` on restricted (H) series. |
 | `User` | Leaves out the series the user may not see. |
 | `IncludeDateOnly` | Adds a date-only entry for each AniDB episode with an air date and no airing at all. An undated regular episode of an anime starting by 1970-01-01 (AniDB gives episodes before 1970 no date, or rarely a 1970-01-01 placeholder), which its anime's start date does not stand in for, takes the earliest pre-1970 date of the episodes linked to it instead. |

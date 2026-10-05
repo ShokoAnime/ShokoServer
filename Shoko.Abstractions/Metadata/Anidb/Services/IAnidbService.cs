@@ -108,6 +108,9 @@ public interface IAnidbService
     ///   filtered and ordered by <paramref name="options"/>.
     /// </summary>
     /// <param name="options">The filters and order, or <c>null</c> for every anime by title.</param>
+    /// <exception cref="ArgumentNullException">
+    ///   The options' filter depends on the user and the options name none.
+    /// </exception>
     /// <returns>
     ///   The matching anime, each with its Shoko series, or <c>null</c> when
     ///   it is not in the collection.
@@ -124,6 +127,9 @@ public interface IAnidbService
     /// </summary>
     /// <param name="options">The filters on the anime counted; the seasons and order are ignored.</param>
     /// <param name="includeImages">Whether to pick a poster and a backdrop for each season.</param>
+    /// <exception cref="ArgumentNullException">
+    ///   The options' filter depends on the user and the options name none.
+    /// </exception>
     /// <returns>The seasons.</returns>
     IReadOnlyList<AnidbAnimeSeasonCount> GetCachedAnimeSeasons(AnidbAnimeListOptions? options = null, bool includeImages = false);
 

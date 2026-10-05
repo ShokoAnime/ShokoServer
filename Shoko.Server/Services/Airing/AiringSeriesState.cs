@@ -40,7 +40,8 @@ internal sealed class AiringSeriesState
     public bool IsInCollection { get; init; }
 
     /// <summary>
-    /// Whether the series is in the collection with no local files.
+    /// The AniDB anime behind the series, which is what a filter's results are
+    /// matched against, or <c>null</c> when there is none.
     /// </summary>
-    public bool IsMissing { get; init; }
+    public int? AnidbAnimeID { get; init; }
 }

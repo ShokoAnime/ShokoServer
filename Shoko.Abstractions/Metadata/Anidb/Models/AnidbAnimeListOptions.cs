@@ -60,11 +60,18 @@ public record AnidbAnimeListOptions
     public InclusionFilter IncludeRestricted { get; init; } = InclusionFilter.True;
 
     /// <summary>
-    ///   Optional. Whether to keep the anime whose Shoko series has no
-    ///   local files, leave them out, or keep only them. Anime without a
-    ///   Shoko series count as having files. Defaults to keeping them.
+    ///   Optional. Only the anime of the Shoko series the filter passes,
+    ///   evaluated for <see cref="User"/>. Anime without a Shoko series are
+    ///   left out, and series without local files only when the filter says
+    ///   so. With a sorting expression, the filter's order replaces
+    ///   <see cref="OrderBy"/>.
     /// </summary>
-    public InclusionFilter IncludeMissing { get; init; } = InclusionFilter.True;
+    /// <remarks>
+    ///   The filter is evaluated once per read. A filter that depends on the
+    ///   user needs <see cref="User"/> set, or the read throws an
+    ///   <see cref="ArgumentNullException"/>.
+    /// </remarks>
+    public IFilter? Filter { get; init; }
 
     /// <summary>
     ///   Optional. Only the anime this user is allowed to see.
@@ -74,7 +81,8 @@ public record AnidbAnimeListOptions
     /// <summary>
     ///   Optional. The order. Defaults to <see cref="AnidbAnimeListOrder.AirDate"/>
     ///   when <see cref="Seasons"/> is set, else to
-    ///   <see cref="AnidbAnimeListOrder.Title"/>.
+    ///   <see cref="AnidbAnimeListOrder.Title"/>. Ignored when
+    ///   <see cref="Filter"/> has a sorting expression.
     /// </summary>
     public AnidbAnimeListOrder? OrderBy { get; init; }
 }

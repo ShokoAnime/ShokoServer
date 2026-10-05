@@ -64,18 +64,17 @@ response are always UTC.
   series in the collection, `false` keeps the anime not in it, and `true` keeps
   both. An airing whose series resolves to nothing counts as not in the
   collection.
-- `includeMissing`: the three-state filter on series in the collection with no
-  local files. `false` (the default) hides them, `only` keeps nothing else. A
-  series not in the collection is never missing, so `only` also drops every
-  airing `inCollection` let through for not being in the collection.
 - `includeRestricted`: the three-state filter on restricted (H) series, hidden
   by default.
+- `filterID`: a stored filter's ID, keeping only the airings of the Shoko
+  series it passes for the current user. See *Narrowing by a filter*, below.
 - `entityAnchor`: whose entities the answer is about. See *Entity anchor*,
   below.
 
-So the defaults answer with the series you have files for, `includeMissing=true`
-adds the ones you have none for yet, and `inCollection=true` adds every anime
-the providers know about whether or not it is in the collection.
+So the defaults answer with the series in the collection, files or not, and
+`inCollection=true` adds every anime the providers know about whether or not
+it is in the collection. A filter narrows the collection further, for example
+to the series you have files for.
 
 An item's `Tracks` are the schedule's, repeated on every airing so a row can be
 labelled without a second request. A global release is one item listing every
@@ -112,8 +111,8 @@ own days. The entry sorts at the start of its day in `from`'s offset.
 A date-only entry counts as a `Normal` `Original` showing in no particular
 language on no channel by no provider: `provider`, `channel` and `language`
 leave it out, and so do a `kind` without `Original` and an `episodeKind`
-without `Normal`. `type`, `inCollection`, `includeMissing`,
-`includeRestricted` and `entityAnchor` apply as to any airing.
+without `Normal`. `type`, `inCollection`, `includeRestricted`, `filterID`
+and `entityAnchor` apply as to any airing.
 
 ### Next only
 
@@ -174,7 +173,7 @@ resolved.
 
 `GET /api/v3/AiringSchedule/Channel/{channelID}/Airing` is the same range read
 narrowed to one channel, and filters the same way: `from`, `to`, `provider`,
-`type`, `inCollection`, `includeMissing`, `includeRestricted`,
+`type`, `inCollection`, `includeRestricted`, `filterID`,
 `includeEstimates`, `includeDelayedOriginalSlots`, `preferredOnly`, `nextOnly`,
 `nextPer`, `episodeKind` and `entityAnchor` all mean what they mean on
 `/Airing`, with the same defaults. It has no `includeDateOnly`, since a
@@ -439,7 +438,7 @@ not, and two more serve them grouped (see [Sections](#sections) and
   in, newest first, with how many anime are in each (`Count`) and the season
   under way flagged (`IsCurrent`). Upcoming seasons stop at the one after the
   season under way, which is always listed. It takes `type`, `inCollection`,
-  `includeRestricted`, `includeMissing` and `channel`, and `fromYear` to leave
+  `includeRestricted`, `filterID` and `channel`, and `fromYear` to leave
   out older years. `include=Images` adds a `Poster` and a `Backdrop` for each
   season, from its best rated anime starting in it that has a poster.
 - `GET /api/v3/AiringSchedule/Season/{year}/{season}` lists the anime of one
@@ -498,21 +497,24 @@ scheduled next airing come first, soonest first, then those known only by an
 AniDB air date, then the rest by premiere (an unknown one last); each tier
 then goes by title.
 
-`POST` to the same route with a body brings a layout of your own, taking the
-same query filters:
+`POST` to the same route with a body brings a layout of your own, a filter, or
+both, taking the same query filters:
 
 ```json
 {
   "Sections": [
     { "ID": "tv", "Title": "TV", "Types": ["TV", "Web"], "Continuing": false, "HalfLength": null },
     { "ID": "rest", "Title": "Everything else" }
-  ]
+  ],
+  "Filter": { "ApplyAtSeriesLevel": true, "Expression": { "Type": "HasVideoFiles" } }
 }
 ```
 
-`Types` left out or `null` takes every type, which makes the section the rest
-group; a layout without one leaves the others out. `Continuing` and
-`HalfLength` are `true`, `false` or `null` for both. IDs must be unique.
+`Sections` left out or `null` is the default layout. `Types` left out or
+`null` takes every type, which makes the section the rest group; a layout
+without one leaves the others out. `Continuing` and `HalfLength` are `true`,
+`false` or `null` for both. IDs must be unique. `Filter` is optional and takes
+the place of `filterID`, which may not be sent with it.
 
 ### By year
 
@@ -600,6 +602,29 @@ range. It takes the same filters, but `includeDateOnly` is on by default, and
   airing per episode.
 - Every entry carries the `Airing`, in the shape of the airings endpoint, and
   its `Time` with the zone's offset. Days with nothing on them are left out.
+
+## Narrowing by a filter
+
+The airing reads, the calendar, the season view and the AniDB anime list
+(`GET /api/v3/Series/AniDB`) can be narrowed to the Shoko series a filter
+passes, the filter of `/api/v3/Filter`, evaluated once per request for the
+current user. Anime and airings of series not in the collection are left out,
+and series without local files stay unless the filter leaves them out. Group
+filters and series filters both work: a group filter keeps every series of the
+groups it passes.
+
+- `filterID` names a stored filter. An unknown ID answers `404`.
+- `POST` to the calendar (`/Calendar`), the season list (`/Season`), the years
+  (`/Season/ByYear`), a season's anime (`/Season/{year}/{season}`) or the
+  AniDB anime list (`/api/v3/Series/AniDB`) sends a filter in the body instead,
+  in the shape `POST /api/v3/Filter/Preview/Series` takes, with the same query
+  parameters as the `GET`. A season's sections take it as `Filter` in their
+  body (see [Sections](#sections)).
+
+A filter with a sorting expression decides the order: a season's anime and the
+AniDB anime list come in the filter's order, ignoring `orderBy`, and each
+section keeps that order. Without one they are sorted as usual. Calendar days
+and airings stay in time order either way.
 
 ## Live updates
 

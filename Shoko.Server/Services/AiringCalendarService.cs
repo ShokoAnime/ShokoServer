@@ -61,7 +61,8 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
         return GroupIntoSections(
             GetSeasonAnime(year, season, animeOptions, airingOptions, today),
             (year, season),
-            sections
+            sections,
+            keepOrder: animeOptions?.Filter?.SortingExpression is not null
         );
     }
 
@@ -151,16 +152,19 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
 
     /// <summary>
     ///   Puts each anime in the first section that takes it, drops the empty
-    ///   sections and sorts each by next airing.
+    ///   sections and sorts each by next airing, unless told to keep the
+    ///   anime's order.
     /// </summary>
     /// <param name="anime">The season's anime.</param>
     /// <param name="season">The viewed season.</param>
     /// <param name="sections">The layout.</param>
+    /// <param name="keepOrder">Whether each section keeps the anime's order, as a filter's sorting expression set it.</param>
     /// <returns>The non-empty sections, in the layout's order.</returns>
     internal static IReadOnlyList<SeasonSection> GroupIntoSections(
         IReadOnlyList<SeasonAnimeEntry> anime,
         (int Year, YearlySeason Season) season,
-        IReadOnlyList<SeasonSectionDefinition> sections
+        IReadOnlyList<SeasonSectionDefinition> sections,
+        bool keepOrder = false
     )
     {
         var members = sections.Select(_ => new List<SeasonAnimeEntry>()).ToList();
@@ -182,7 +186,7 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
             .. sections
                 .Select((section, index) => (Section: section, Anime: members[index]))
                 .Where(pair => pair.Anime.Count > 0)
-                .Select(pair => new SeasonSection(pair.Section, [.. pair.Anime.Order(comparer)])),
+                .Select(pair => new SeasonSection(pair.Section, keepOrder ? pair.Anime : [.. pair.Anime.Order(comparer)])),
         ];
     }
 
@@ -327,7 +331,7 @@ public class AiringCalendarService(AnidbAnimeCatalog catalog, IAiringScheduleSer
             EpisodeTypes = options.EpisodeTypes,
             EpisodeKinds = options.EpisodeKinds,
             InCollection = options.InCollection,
-            IncludeMissing = options.IncludeMissing,
+            Filter = options.Filter,
             IncludeRestricted = options.IncludeRestricted,
             User = options.User,
             IncludeEstimates = options.IncludeEstimates,

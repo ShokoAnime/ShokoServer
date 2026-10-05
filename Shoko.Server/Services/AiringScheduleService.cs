@@ -11,6 +11,8 @@ using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Extensions;
+using Shoko.Abstractions.Filtering;
+using Shoko.Abstractions.Filtering.Services;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
@@ -18,8 +20,10 @@ using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Plugin.Models;
+using Shoko.Abstractions.User;
 using Shoko.Abstractions.Utilities;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.Server.Filters;
 using Shoko.Server.Models.Airing;
 using Shoko.Server.Plugin;
 using Shoko.Server.Repositories;
@@ -55,7 +59,8 @@ public partial class AiringScheduleService(
     ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider,
     Lazy<IMetadataService> metadataService,
     Lazy<IMetadataCrossReferenceStore> crossReferenceStore,
-    Lazy<IMetadataLinkingService> linkingService
+    Lazy<IMetadataLinkingService> linkingService,
+    Lazy<IMetadataFilteringService> filteringService
 ) : IAiringScheduleService
 {
     /// <summary>
@@ -105,6 +110,18 @@ public partial class AiringScheduleService(
     /// list yet.
     /// </summary>
     internal IMetadataCrossReferenceStore CrossReferences => crossReferenceStore.Value;
+
+    /// <summary>
+    /// The AniDB anime of the Shoko series a filter passes for a user.
+    /// </summary>
+    /// <param name="filter">The filter.</param>
+    /// <param name="user">The user, needed when the filter depends on one.</param>
+    /// <exception cref="ArgumentNullException">
+    /// The filter depends on the user and <paramref name="user"/> is <c>null</c>.
+    /// </exception>
+    /// <returns>The AniDB anime IDs.</returns>
+    internal IReadOnlyList<int> GetFilteredAnimeIDs(IFilter filter, IUser? user)
+        => filteringService.Value.GetFilteredAnimeIDs(filter, user);
 
     /// <inheritdoc/>
     public ConfigurationInfo ConfigurationInfo => configurationProvider.ConfigurationInfo;

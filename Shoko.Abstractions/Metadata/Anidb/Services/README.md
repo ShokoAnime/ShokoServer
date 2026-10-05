@@ -118,7 +118,12 @@ end date. AniDB sends no episode air dates before 1970, so an anime starting
 earlier starts on its own date, and without dated episodes or an end date
 stays in its first season. Seasons after the one following the
 season under way are yet to be decided and match nothing. The list comes by air date with a season filter, else by preferred
-title, unless `OrderBy` says otherwise. `ChannelIDs` keeps the anime with a
+title, unless `OrderBy` says otherwise. `Filter` takes an `IFilter` from the
+filtering system and keeps the anime of the Shoko series it passes for `User`,
+so anime outside the collection are left out, while series without local files
+stay unless the filter leaves them out. It is evaluated once per read, and a
+filter with a sorting expression gives the list its own order in place of
+`OrderBy`. `ChannelIDs` keeps the anime with a
 stored airing on those channels in the season (its calendar quarter), or one
 still to come from the season under way on; airings are only kept for the
 airing schedule service's retention window, so old seasons hold fewer. The

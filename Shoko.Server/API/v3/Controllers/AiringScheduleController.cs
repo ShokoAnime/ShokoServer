@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -33,6 +34,7 @@ using AiringCalendarDayDto = Shoko.Server.API.v3.Models.Airing.AiringCalendarDay
 using AiringScheduleDto = Shoko.Server.API.v3.Models.Airing.AiringSchedule;
 using ConfigurationInfoDto = Shoko.Server.API.v3.Models.Configuration.ConfigurationInfo;
 using EpisodeAiringDto = Shoko.Server.API.v3.Models.Airing.EpisodeAiring;
+using FilterBody = Shoko.Server.API.v3.Models.Shoko.Filter.Input.CreateOrUpdateFilterBody;
 using SeasonSectionDto = Shoko.Server.API.v3.Models.Airing.SeasonSection;
 
 #nullable enable
@@ -59,6 +61,8 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="anidbCatalog">Lists the cached AniDB anime of the seasons.</param>
 /// <param name="seasonAnimeBuilder">Builds the season view's anime.</param>
 /// <param name="airingCalendarService">Sorts and groups the calendar views.</param>
+/// <param name="filterPresets">The stored filters the reads can be narrowed by.</param>
+/// <param name="filterFactory">Builds the filters sent with a request.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
@@ -74,7 +78,9 @@ public class AiringScheduleController(
     IApplicationPaths applicationPaths,
     AnidbAnimeCatalog anidbCatalog,
     SeasonAnimeBuilder seasonAnimeBuilder,
-    IAiringCalendarService airingCalendarService
+    IAiringCalendarService airingCalendarService,
+    FilterPresetRepository filterPresets,
+    FilterFactory filterFactory
 ) : BaseController(settingsProvider)
 {
     #region Constants
@@ -130,8 +136,8 @@ public class AiringScheduleController(
     /// <param name="type">Only include airings of episodes of these episode types.</param>
     /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
     /// <param name="inCollection">Filter on whether the series is in the collection, which means it has a shoko series. Defaults to only those in it.</param>
-    /// <param name="includeMissing">Include airings of series in the collection with no local files.</param>
     /// <param name="includeRestricted">Include airings of restricted (H) series.</param>
+    /// <param name="filterID">Only include airings of the Shoko series passing this stored filter, for the current user. Series not in the collection are left out.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
     /// <param name="includeDelayedOriginalSlots">Also match a delayed airing by the slot it was moved out of.</param>
     /// <param name="includeDateOnly">Include a date-only entry for each AniDB episode with an air date in the range and no airing at all.</param>
@@ -141,6 +147,9 @@ public class AiringScheduleController(
     /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
     /// <param name="include">Extra display data to resolve for each airing.</param>
     /// <returns>The airings in the time-frame, in airing order.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     [HttpGet("Airing")]
     public ActionResult<List<EpisodeAiringDto>> GetAirings(
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? from = null,
@@ -152,8 +161,8 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.Only,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeDelayedOriginalSlots = true,
         [FromQuery] bool includeDateOnly = false,
@@ -164,6 +173,9 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
     )
     {
+        if (!TryGetStoredFilter(filterID, out var filter))
+            return NotFound(FilterController.FilterNotFound);
+
         if (!TryGetRange(from, to, nextOnly, out var start, out var end))
             return ValidationProblem(ModelState);
 
@@ -176,8 +188,8 @@ public class AiringScheduleController(
             EpisodeTypes = type is { Count: > 0 } ? type : null,
             EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
             InCollection = inCollection.InclusionFilter,
-            IncludeMissing = includeMissing.InclusionFilter,
             IncludeRestricted = includeRestricted.InclusionFilter,
+            Filter = filter,
             User = HttpContext.GetUser(),
             IncludeEstimates = includeEstimates,
             IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
@@ -275,8 +287,8 @@ public class AiringScheduleController(
     /// <param name="type">Only include airings of episodes of these episode types.</param>
     /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
     /// <param name="inCollection">Filter on whether the series is in the collection, which means it has a shoko series. Defaults to only those in it.</param>
-    /// <param name="includeMissing">Include airings of series in the collection with no local files.</param>
     /// <param name="includeRestricted">Include airings of restricted (H) series.</param>
+    /// <param name="filterID">Only include airings of the Shoko series passing this stored filter, for the current user. Series not in the collection are left out.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
     /// <param name="includeDelayedOriginalSlots">Also match a delayed airing by the slot it was moved out of.</param>
     /// <param name="includeDateOnly">Include a date-only entry for each AniDB episode with an air date in the range and no airing at all.</param>
@@ -286,6 +298,7 @@ public class AiringScheduleController(
     /// <returns>The days with airings, in order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     [HttpGet("Calendar")]
     public ActionResult<List<AiringCalendarDayDto>> GetCalendar(
         [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? from = null,
@@ -299,7 +312,90 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.Only,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
+        [FromQuery] bool includeEstimates = true,
+        [FromQuery] bool includeDelayedOriginalSlots = true,
+        [FromQuery] bool includeDateOnly = true,
+        [FromQuery] bool preferredOnly = false,
+        [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
+    )
+    {
+        if (!TryGetStoredFilter(filterID, out var filter))
+            return NotFound(FilterController.FilterNotFound);
+
+        return ReadCalendar(
+            from,
+            to,
+            timeZone,
+            everyChannel,
+            new()
+            {
+                ProviderIDs = provider is { Count: > 0 } ? provider : null,
+                Kinds = kind is { Count: > 0 } ? kind : [AiringKind.Original],
+                Languages = language is { Count: > 0 } ? language : null,
+                ChannelIDs = channel is { Count: > 0 } ? channel : null,
+                EpisodeTypes = type is { Count: > 0 } ? type : null,
+                EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
+                InCollection = inCollection.InclusionFilter,
+                IncludeRestricted = includeRestricted.InclusionFilter,
+                Filter = filter,
+                User = HttpContext.GetUser(),
+                IncludeEstimates = includeEstimates,
+                IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
+                IncludeDateOnly = includeDateOnly,
+                PreferredOnly = preferredOnly,
+                EntityAnchor = entityAnchor,
+            },
+            include
+        );
+    }
+
+    /// <summary>
+    /// Get the days of <c>GET /api/v3/AiringSchedule/Calendar</c> for only the
+    /// Shoko series passing the filter sent in the body.
+    /// </summary>
+    /// <remarks>
+    /// The filter is evaluated for the current user, and series not in the
+    /// collection are left out. The days stay in time order.
+    /// </remarks>
+    /// <param name="body">The filter, as <c>POST /api/v3/Filter/Preview/Series</c> takes it.</param>
+    /// <param name="from">Start of the range, with an offset. Defaults to the start of today in <paramref name="timeZone"/>.</param>
+    /// <param name="to">End of the range, exclusive, with an offset. Defaults to a week after the start.</param>
+    /// <param name="timeZone">The time zone the days are in, as an IANA or Windows ID, or a fixed <c>±HH:MM</c> offset. Defaults to UTC.</param>
+    /// <param name="everyChannel">Keep each episode's other airings, or only its lead.</param>
+    /// <param name="kind">Only include airings whose schedule has a track of these kinds. Defaults to <see cref="AiringKind.Original"/>.</param>
+    /// <param name="language">Only include airings whose schedule has a track in one of these languages.</param>
+    /// <param name="channel">Only include airings on one of these channels, hidden or not. Without it, the hidden channels are left out.</param>
+    /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
+    /// <param name="type">Only include airings of episodes of these episode types.</param>
+    /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
+    /// <param name="inCollection">Filter on whether the series is in the collection, which means it has a shoko series. Defaults to only those in it.</param>
+    /// <param name="includeRestricted">Include airings of restricted (H) series.</param>
+    /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
+    /// <param name="includeDelayedOriginalSlots">Also match a delayed airing by the slot it was moved out of.</param>
+    /// <param name="includeDateOnly">Include a date-only entry for each AniDB episode with an air date in the range and no airing at all.</param>
+    /// <param name="preferredOnly">Only return one airing per episode, using the server's preference.</param>
+    /// <param name="entityAnchor">Which entities the airings are anchored to. <c>Shoko</c> drops the airings that resolve to no shoko episode.</param>
+    /// <param name="include">Extra display data to resolve for each airing.</param>
+    /// <returns>The days with airings, in order.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [HttpPost("Calendar")]
+    public ActionResult<List<AiringCalendarDayDto>> GetCalendarWithFilter(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] FilterBody body,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? from = null,
+        [FromQuery, ModelBinder(typeof(DateTimeOffsetModelBinder))] DateTimeOffset? to = null,
+        [FromQuery] string? timeZone = null,
+        [FromQuery] bool everyChannel = true,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<TitleLanguage>? language = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
+        [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.Only,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeDelayedOriginalSlots = true,
@@ -307,6 +403,55 @@ public class AiringScheduleController(
         [FromQuery] bool preferredOnly = false,
         [FromQuery] AiringEntityAnchor entityAnchor = AiringEntityAnchor.Auto,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringDataToInclude>? include = null
+    )
+    {
+        if (GetBodyFilter(body) is not { } filter)
+            return ValidationProblem(ModelState);
+
+        return ReadCalendar(
+            from,
+            to,
+            timeZone,
+            everyChannel,
+            new()
+            {
+                ProviderIDs = provider is { Count: > 0 } ? provider : null,
+                Kinds = kind is { Count: > 0 } ? kind : [AiringKind.Original],
+                Languages = language is { Count: > 0 } ? language : null,
+                ChannelIDs = channel is { Count: > 0 } ? channel : null,
+                EpisodeTypes = type is { Count: > 0 } ? type : null,
+                EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
+                InCollection = inCollection.InclusionFilter,
+                IncludeRestricted = includeRestricted.InclusionFilter,
+                Filter = filter,
+                User = HttpContext.GetUser(),
+                IncludeEstimates = includeEstimates,
+                IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
+                IncludeDateOnly = includeDateOnly,
+                PreferredOnly = preferredOnly,
+                EntityAnchor = entityAnchor,
+            },
+            include
+        );
+    }
+
+    /// <summary>
+    /// Reads the calendar days of a range for the calendar routes.
+    /// </summary>
+    /// <param name="from">Start of the range, or <c>null</c> for the start of today in the zone.</param>
+    /// <param name="to">End of the range, exclusive, or <c>null</c> for a week after the start.</param>
+    /// <param name="timeZone">The time zone the days are in, or <c>null</c> for UTC.</param>
+    /// <param name="everyChannel">Whether to keep each episode's other airings.</param>
+    /// <param name="options">The airing filters.</param>
+    /// <param name="include">Extra display data to resolve for each airing.</param>
+    /// <returns>The days with airings, in order.</returns>
+    private ActionResult<List<AiringCalendarDayDto>> ReadCalendar(
+        DateTimeOffset? from,
+        DateTimeOffset? to,
+        string? timeZone,
+        bool everyChannel,
+        EpisodeAiringFilteringOptions options,
+        IReadOnlySet<AiringDataToInclude>? include
     )
     {
         var zone = TimeZoneInfo.Utc;
@@ -330,24 +475,6 @@ public class AiringScheduleController(
             return ValidationProblem(ModelState);
         }
 
-        var options = new EpisodeAiringFilteringOptions
-        {
-            ProviderIDs = provider is { Count: > 0 } ? provider : null,
-            Kinds = kind is { Count: > 0 } ? kind : [AiringKind.Original],
-            Languages = language is { Count: > 0 } ? language : null,
-            ChannelIDs = channel is { Count: > 0 } ? channel : null,
-            EpisodeTypes = type is { Count: > 0 } ? type : null,
-            EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
-            InCollection = inCollection.InclusionFilter,
-            IncludeMissing = includeMissing.InclusionFilter,
-            IncludeRestricted = includeRestricted.InclusionFilter,
-            User = HttpContext.GetUser(),
-            IncludeEstimates = includeEstimates,
-            IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
-            IncludeDateOnly = includeDateOnly,
-            PreferredOnly = preferredOnly,
-            EntityAnchor = entityAnchor,
-        };
         var context = new AiringReadCache(this);
         return airingCalendarService.GetCalendarDays(start, end, zone, options, everyChannel)
             .Select(day => new AiringCalendarDayDto
@@ -719,8 +846,8 @@ public class AiringScheduleController(
     /// <param name="type">Only include airings of episodes of these episode types.</param>
     /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
     /// <param name="inCollection">Filter on whether the series is in the collection, which means it has a shoko series. Defaults to only those in it.</param>
-    /// <param name="includeMissing">Include airings of series in the collection with no local files.</param>
     /// <param name="includeRestricted">Include airings of restricted (H) series.</param>
+    /// <param name="filterID">Only include airings of the Shoko series passing this stored filter, for the current user. Series not in the collection are left out.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
     /// <param name="includeDelayedOriginalSlots">Also match a delayed airing by the slot it was moved out of.</param>
     /// <param name="preferredOnly">Only return one airing per episode, using the server's preference.</param>
@@ -741,8 +868,8 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeType>? type = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.Only,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeDelayedOriginalSlots = true,
         [FromQuery] bool preferredOnly = false,
@@ -755,6 +882,9 @@ public class AiringScheduleController(
         if (airingScheduleService.GetChannelByID(channelID) is null)
             return NotFound(ChannelNotFoundWithChannelID);
 
+        if (!TryGetStoredFilter(filterID, out var filter))
+            return NotFound(FilterController.FilterNotFound);
+
         if (!TryGetRange(from, to, nextOnly, out var start, out var end))
             return ValidationProblem(ModelState);
 
@@ -766,8 +896,8 @@ public class AiringScheduleController(
             EpisodeTypes = type is { Count: > 0 } ? type : null,
             EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
             InCollection = inCollection.InclusionFilter,
-            IncludeMissing = includeMissing.InclusionFilter,
             IncludeRestricted = includeRestricted.InclusionFilter,
+            Filter = filter,
             User = HttpContext.GetUser(),
             IncludeEstimates = includeEstimates,
             IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
@@ -1025,30 +1155,66 @@ public class AiringScheduleController(
     ///   without.
     /// </param>
     /// <param name="includeRestricted">Whether to count restricted anime. The user's own restrictions apply on top.</param>
-    /// <param name="includeMissing">
-    ///   Whether to count the anime whose Shoko series has no local files: <c>true</c> for every anime, <c>only</c> for those, <c>false</c> to
-    ///   leave them out. Anime without a Shoko series are not affected.
-    /// </param>
+    /// <param name="filterID">Only count the anime of the Shoko series passing this stored filter, for the current user. Anime not in the collection are left out.</param>
     /// <param name="fromYear">Optional. Leave out the seasons of earlier years. The current season is always listed.</param>
     /// <param name="include">The extra details to add, comma-separated.</param>
     /// <returns>The seasons.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     [HttpGet("Season")]
     public ActionResult<List<AiringSeason>> GetSeasons(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
+        [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
         [FromQuery, Range(1, 9999)] int? fromYear = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null
     )
-        => anidbCatalog.GetSeasons(
-                GetSeasonListOptions(type, channel, inCollection, includeRestricted, includeMissing),
-                includeImages: include?.Contains(AiringSeason.IncludeDetails.Images) ?? false
-            )
-            .Where(season => fromYear is null || season.IsCurrent || season.Year >= fromYear)
-            .Select(season => new AiringSeason(season))
-            .ToList();
+    {
+        if (!TryGetStoredFilter(filterID, out var filter))
+            return NotFound(FilterController.FilterNotFound);
+
+        return ListSeasons(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter), fromYear, include);
+    }
+
+    /// <summary>
+    /// Get the seasons of <c>GET /api/v3/AiringSchedule/Season</c>, counting
+    /// only the anime of the Shoko series passing the filter sent in the body.
+    /// </summary>
+    /// <remarks>
+    /// The filter is evaluated once for the current user, and anime not in
+    /// the collection are left out.
+    /// </remarks>
+    /// <param name="body">The filter, as <c>POST /api/v3/Filter/Preview/Series</c> takes it.</param>
+    /// <param name="type">Only count anime of these types, comma-separated.</param>
+    /// <param name="channel">Only count anime airing on one of these channels, hidden or not, comma-separated.</param>
+    /// <param name="inCollection">
+    ///   Whether to count the anime with a Shoko series: <c>true</c> for every anime, <c>only</c> for those with one, <c>false</c> for those
+    ///   without.
+    /// </param>
+    /// <param name="includeRestricted">Whether to count restricted anime. The user's own restrictions apply on top.</param>
+    /// <param name="fromYear">Optional. Leave out the seasons of earlier years. The current season is always listed.</param>
+    /// <param name="include">The extra details to add, comma-separated.</param>
+    /// <returns>The seasons.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [HttpPost("Season")]
+    public ActionResult<List<AiringSeason>> GetSeasonsWithFilter(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] FilterBody body,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
+        [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery, Range(1, 9999)] int? fromYear = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null
+    )
+    {
+        if (GetBodyFilter(body) is not { } filter)
+            return ValidationProblem(ModelState);
+
+        return ListSeasons(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter), fromYear, include);
+    }
 
     /// <summary>
     /// Get the seasons of <c>/api/v3/AiringSchedule/Season</c> grouped by
@@ -1065,30 +1231,67 @@ public class AiringScheduleController(
     ///   without.
     /// </param>
     /// <param name="includeRestricted">Whether to count restricted anime. The user's own restrictions apply on top.</param>
-    /// <param name="includeMissing">
-    ///   Whether to count the anime whose Shoko series has no local files: <c>true</c> for every anime, <c>only</c> for those, <c>false</c> to
-    ///   leave them out. Anime without a Shoko series are not affected.
-    /// </param>
+    /// <param name="filterID">Only count the anime of the Shoko series passing this stored filter, for the current user. Anime not in the collection are left out.</param>
     /// <param name="fromYear">Optional. Leave out the earlier years. The year of the current season is always listed when it has anime.</param>
     /// <param name="include">The extra details to add, comma-separated.</param>
     /// <returns>The years.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     [HttpGet("Season/ByYear")]
     public ActionResult<List<AiringSeasonYear>> GetSeasonsByYear(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
+        [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
         [FromQuery, Range(1, 9999)] int? fromYear = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null
     )
-        => airingCalendarService.GetSeasonsByYear(
-                GetSeasonListOptions(type, channel, inCollection, includeRestricted, includeMissing),
-                includeImages: include?.Contains(AiringSeason.IncludeDetails.Images) ?? false
-            )
-            .Where(year => fromYear is null || year.Year >= fromYear || year.Seasons.Any(season => season.IsCurrent))
-            .Select(year => new AiringSeasonYear(year))
-            .ToList();
+    {
+        if (!TryGetStoredFilter(filterID, out var filter))
+            return NotFound(FilterController.FilterNotFound);
+
+        return ListSeasonsByYear(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter), fromYear, include);
+    }
+
+    /// <summary>
+    /// Get the years of <c>GET /api/v3/AiringSchedule/Season/ByYear</c>,
+    /// counting only the anime of the Shoko series passing the filter sent in
+    /// the body.
+    /// </summary>
+    /// <remarks>
+    /// The filter is evaluated once for the current user, and anime not in
+    /// the collection are left out.
+    /// </remarks>
+    /// <param name="body">The filter, as <c>POST /api/v3/Filter/Preview/Series</c> takes it.</param>
+    /// <param name="type">Only count anime of these types, comma-separated.</param>
+    /// <param name="channel">Only count anime airing on one of these channels, hidden or not, comma-separated.</param>
+    /// <param name="inCollection">
+    ///   Whether to count the anime with a Shoko series: <c>true</c> for every anime, <c>only</c> for those with one, <c>false</c> for those
+    ///   without.
+    /// </param>
+    /// <param name="includeRestricted">Whether to count restricted anime. The user's own restrictions apply on top.</param>
+    /// <param name="fromYear">Optional. Leave out the earlier years. The year of the current season is always listed when it has anime.</param>
+    /// <param name="include">The extra details to add, comma-separated.</param>
+    /// <returns>The years.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [HttpPost("Season/ByYear")]
+    public ActionResult<List<AiringSeasonYear>> GetSeasonsByYearWithFilter(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] FilterBody body,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
+        [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery, Range(1, 9999)] int? fromYear = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null
+    )
+    {
+        if (GetBodyFilter(body) is not { } filter)
+            return ValidationProblem(ModelState);
+
+        return ListSeasonsByYear(GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter), fromYear, include);
+    }
 
     /// <summary>
     /// Get the cached AniDB anime of a yearly season available to the current
@@ -1121,9 +1324,9 @@ public class AiringScheduleController(
     ///   without.
     /// </param>
     /// <param name="includeRestricted">Whether to include restricted anime. The user's own restrictions apply on top.</param>
-    /// <param name="includeMissing">
-    ///   Whether to include the anime whose Shoko series has no local files: <c>true</c> for every anime, <c>only</c> for those, <c>false</c> to
-    ///   leave them out. Anime without a Shoko series are not affected.
+    /// <param name="filterID">
+    ///   Only the anime of the Shoko series passing this stored filter, for the current user. Anime not in the collection are left out, and
+    ///   with a sorting expression the anime come in the filter's order.
     /// </param>
     /// <param name="kind">Only take airings whose schedule has a track of these kinds. Defaults to <see cref="AiringKind.Original"/>.</param>
     /// <param name="channel">
@@ -1134,6 +1337,8 @@ public class AiringScheduleController(
     /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
     /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
     /// <returns>The anime, by air date.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     [HttpGet("Season/{year}/{season}")]
     public ActionResult<List<SeasonAnime>> GetSeasonAnime(
         [FromRoute, Range(1, 9999)] int year,
@@ -1141,7 +1346,7 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
+        [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
@@ -1149,11 +1354,75 @@ public class AiringScheduleController(
         [FromQuery] bool includeEstimates = true
     )
     {
+        if (!TryGetStoredFilter(filterID, out var filter))
+            return NotFound(FilterController.FilterNotFound);
+
         var (animeOptions, airingOptions) = GetSeasonOptions(
             type,
             inCollection,
             includeRestricted,
-            includeMissing,
+            filter,
+            kind,
+            channel,
+            provider,
+            episodeKind,
+            includeEstimates
+        );
+        return seasonAnimeBuilder.Build(airingCalendarService.GetSeasonAnime(year, season, animeOptions, airingOptions));
+    }
+
+    /// <summary>
+    /// Get the anime of <c>GET /api/v3/AiringSchedule/Season/{year}/{season}</c>
+    /// for only the Shoko series passing the filter sent in the body.
+    /// </summary>
+    /// <remarks>
+    /// The filter is evaluated once for the current user, and anime not in
+    /// the collection are left out. With a sorting expression, the anime come
+    /// in the filter's order.
+    /// </remarks>
+    /// <param name="year">The year.</param>
+    /// <param name="season">The season: <c>Winter</c>, <c>Spring</c>, <c>Summer</c> or <c>Fall</c>, in any case.</param>
+    /// <param name="body">The filter, as <c>POST /api/v3/Filter/Preview/Series</c> takes it.</param>
+    /// <param name="type">Only anime of these types, comma-separated.</param>
+    /// <param name="inCollection">
+    ///   Whether to include the anime with a Shoko series: <c>true</c> for every anime, <c>only</c> for those with one, <c>false</c> for those
+    ///   without.
+    /// </param>
+    /// <param name="includeRestricted">Whether to include restricted anime. The user's own restrictions apply on top.</param>
+    /// <param name="kind">Only take airings whose schedule has a track of these kinds. Defaults to <see cref="AiringKind.Original"/>.</param>
+    /// <param name="channel">
+    ///   Only list anime airing on one of these channels, hidden or not, and only take their airings there. Without it, the hidden channels are
+    ///   left out.
+    /// </param>
+    /// <param name="provider">Only take airings from one of these airing schedule providers.</param>
+    /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
+    /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
+    /// <returns>The anime, by air date or in the filter's order.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [HttpPost("Season/{year}/{season}")]
+    public ActionResult<List<SeasonAnime>> GetSeasonAnimeWithFilter(
+        [FromRoute, Range(1, 9999)] int year,
+        [FromRoute] YearlySeason season,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] FilterBody body,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
+        [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
+        [FromQuery] bool includeEstimates = true
+    )
+    {
+        if (GetBodyFilter(body) is not { } filter)
+            return ValidationProblem(ModelState);
+
+        var (animeOptions, airingOptions) = GetSeasonOptions(
+            type,
+            inCollection,
+            includeRestricted,
+            filter,
             kind,
             channel,
             provider,
@@ -1182,9 +1451,9 @@ public class AiringScheduleController(
     ///   without.
     /// </param>
     /// <param name="includeRestricted">Whether to include restricted anime. The user's own restrictions apply on top.</param>
-    /// <param name="includeMissing">
-    ///   Whether to include the anime whose Shoko series has no local files: <c>true</c> for every anime, <c>only</c> for those, <c>false</c> to
-    ///   leave them out. Anime without a Shoko series are not affected.
+    /// <param name="filterID">
+    ///   Only the anime of the Shoko series passing this stored filter, for the current user. Anime not in the collection are left out, and
+    ///   with a sorting expression each section keeps the filter's order.
     /// </param>
     /// <param name="kind">Only take airings whose schedule has a track of these kinds. Defaults to <see cref="AiringKind.Original"/>.</param>
     /// <param name="channel">
@@ -1195,6 +1464,8 @@ public class AiringScheduleController(
     /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
     /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
     /// <returns>The non-empty sections, in order.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(404)]
     [HttpGet("Season/{year}/{season}/Sections")]
     public ActionResult<List<SeasonSectionDto>> GetSeasonSections(
         [FromRoute, Range(1, 9999)] int year,
@@ -1202,7 +1473,7 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
+        [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
@@ -1210,11 +1481,14 @@ public class AiringScheduleController(
         [FromQuery] bool includeEstimates = true
     )
     {
+        if (!TryGetStoredFilter(filterID, out var filter))
+            return NotFound(FilterController.FilterNotFound);
+
         var (animeOptions, airingOptions) = GetSeasonOptions(
             type,
             inCollection,
             includeRestricted,
-            includeMissing,
+            filter,
             kind,
             channel,
             provider,
@@ -1226,26 +1500,27 @@ public class AiringScheduleController(
 
     /// <summary>
     /// Get the anime of <c>/api/v3/AiringSchedule/Season/{year}/{season}</c>
-    /// in a custom layout's sections, each sorted by next airing.
+    /// in a custom layout's sections, or the default ones, each sorted by next
+    /// airing, optionally for only the Shoko series passing a filter.
     /// </summary>
     /// <remarks>
     /// Each anime goes to the first section that takes it, an anime no
     /// section takes is left out, and empty sections are left out. A section
-    /// without <c>Types</c> takes every type, so it is the rest group.
+    /// without <c>Types</c> takes every type, so it is the rest group. The
+    /// filter, sent in the body or stored, is evaluated once for the current
+    /// user; anime not in the collection are left out, and with a sorting
+    /// expression each section keeps the filter's order.
     /// </remarks>
     /// <param name="year">The year.</param>
     /// <param name="season">The season: <c>Winter</c>, <c>Spring</c>, <c>Summer</c> or <c>Fall</c>, in any case.</param>
-    /// <param name="body">The layout.</param>
+    /// <param name="body">The layout and the filter, each optional.</param>
     /// <param name="type">Only anime of these types, comma-separated.</param>
     /// <param name="inCollection">
     ///   Whether to include the anime with a Shoko series: <c>true</c> for every anime, <c>only</c> for those with one, <c>false</c> for those
     ///   without.
     /// </param>
     /// <param name="includeRestricted">Whether to include restricted anime. The user's own restrictions apply on top.</param>
-    /// <param name="includeMissing">
-    ///   Whether to include the anime whose Shoko series has no local files: <c>true</c> for every anime, <c>only</c> for those, <c>false</c> to
-    ///   leave them out. Anime without a Shoko series are not affected.
-    /// </param>
+    /// <param name="filterID">Only the anime of the Shoko series passing this stored filter. Not together with a filter in the body.</param>
     /// <param name="kind">Only take airings whose schedule has a track of these kinds. Defaults to <see cref="AiringKind.Original"/>.</param>
     /// <param name="channel">
     ///   Only list anime airing on one of these channels, hidden or not, and only take their airings there. Without it, the hidden channels are
@@ -1257,6 +1532,7 @@ public class AiringScheduleController(
     /// <returns>The non-empty sections, in the layout's order.</returns>
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     [HttpPost("Season/{year}/{season}/Sections")]
     public ActionResult<List<SeasonSectionDto>> GetSeasonSectionsWithLayout(
         [FromRoute, Range(1, 9999)] int year,
@@ -1265,7 +1541,7 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
+        [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
@@ -1273,22 +1549,38 @@ public class AiringScheduleController(
         [FromQuery] bool includeEstimates = true
     )
     {
-        var duplicates = body.Sections
+        var duplicates = (body.Sections ?? [])
             .GroupBy(section => section.ID, StringComparer.Ordinal)
             .Where(group => group.Count() > 1)
             .Select(group => group.Key)
             .ToList();
         if (duplicates.Count > 0)
-        {
             ModelState.AddModelError(nameof(body.Sections), $"Section IDs must be unique; {string.Join(", ", duplicates)}");
+
+        if (body.Filter is not null && filterID is not null)
+            ModelState.AddModelError(nameof(filterID), "Send either a filter in the body or a filterID, not both.");
+
+        if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
+
+        IFilter? filter;
+        if (body.Filter is { } filterBody)
+        {
+            if (GetBodyFilter(filterBody) is not { } bodyFilter)
+                return ValidationProblem(ModelState);
+
+            filter = bodyFilter;
+        }
+        else if (!TryGetStoredFilter(filterID, out filter))
+        {
+            return NotFound(FilterController.FilterNotFound);
         }
 
         var (animeOptions, airingOptions) = GetSeasonOptions(
             type,
             inCollection,
             includeRestricted,
-            includeMissing,
+            filter,
             kind,
             channel,
             provider,
@@ -1298,12 +1590,46 @@ public class AiringScheduleController(
         var sections = airingCalendarService.GetSeasonSections(
             year,
             season,
-            [.. body.Sections.Select(section => section.ToDefinition())],
+            body.Sections is { } layout ? [.. layout.Select(section => section.ToDefinition())] : null,
             animeOptions,
             airingOptions
         );
         return BuildSections(sections);
     }
+
+    /// <summary>
+    /// The seasons the season list routes answer with.
+    /// </summary>
+    /// <param name="options">The anime filters.</param>
+    /// <param name="fromYear">The earliest year to keep, the current season aside.</param>
+    /// <param name="include">The extra details to add.</param>
+    /// <returns>The seasons.</returns>
+    private List<AiringSeason> ListSeasons(
+        AnidbAnimeListOptions options,
+        int? fromYear,
+        IReadOnlySet<AiringSeason.IncludeDetails>? include
+    )
+        => anidbCatalog.GetSeasons(options, includeImages: include?.Contains(AiringSeason.IncludeDetails.Images) ?? false)
+            .Where(season => fromYear is null || season.IsCurrent || season.Year >= fromYear)
+            .Select(season => new AiringSeason(season))
+            .ToList();
+
+    /// <summary>
+    /// The years the seasons-by-year routes answer with.
+    /// </summary>
+    /// <param name="options">The anime filters.</param>
+    /// <param name="fromYear">The earliest year to keep, the current season's year aside.</param>
+    /// <param name="include">The extra details to add.</param>
+    /// <returns>The years.</returns>
+    private List<AiringSeasonYear> ListSeasonsByYear(
+        AnidbAnimeListOptions options,
+        int? fromYear,
+        IReadOnlySet<AiringSeason.IncludeDetails>? include
+    )
+        => airingCalendarService.GetSeasonsByYear(options, includeImages: include?.Contains(AiringSeason.IncludeDetails.Images) ?? false)
+            .Where(year => fromYear is null || year.Year >= fromYear || year.Seasons.Any(season => season.IsCurrent))
+            .Select(year => new AiringSeasonYear(year))
+            .ToList();
 
     /// <summary>
     /// The filters a season list read takes.
@@ -1312,14 +1638,14 @@ public class AiringScheduleController(
     /// <param name="channel">Only anime airing on one of these channels.</param>
     /// <param name="inCollection">Whether to keep the anime with a Shoko series.</param>
     /// <param name="includeRestricted">Whether to keep the restricted anime.</param>
-    /// <param name="includeMissing">Whether to keep the anime whose Shoko series has no local files.</param>
+    /// <param name="filter">Only the anime of the Shoko series this filter passes, if any.</param>
     /// <returns>The anime filters.</returns>
     private AnidbAnimeListOptions GetSeasonListOptions(
         HashSet<AnimeType>? type,
         HashSet<Guid>? channel,
         IncludeOnlyFilter inCollection,
         IncludeOnlyFilter includeRestricted,
-        IncludeOnlyFilter includeMissing
+        IFilter? filter
     )
         => new()
         {
@@ -1327,7 +1653,7 @@ public class AiringScheduleController(
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
             InCollection = inCollection.InclusionFilter,
             IncludeRestricted = includeRestricted.InclusionFilter,
-            IncludeMissing = includeMissing.InclusionFilter,
+            Filter = filter,
             User = User,
         };
 
@@ -1338,7 +1664,7 @@ public class AiringScheduleController(
     /// <param name="type">Only anime of these types.</param>
     /// <param name="inCollection">Whether to keep the anime with a Shoko series.</param>
     /// <param name="includeRestricted">Whether to keep the restricted anime.</param>
-    /// <param name="includeMissing">Whether to keep the anime whose Shoko series has no local files.</param>
+    /// <param name="filter">Only the anime of the Shoko series this filter passes, if any.</param>
     /// <param name="kind">Only airings whose schedule has a track of these kinds.</param>
     /// <param name="channel">Only anime airing on one of these channels, and only their airings there.</param>
     /// <param name="provider">Only airings from one of these providers.</param>
@@ -1349,7 +1675,7 @@ public class AiringScheduleController(
         HashSet<AnimeType>? type,
         IncludeOnlyFilter inCollection,
         IncludeOnlyFilter includeRestricted,
-        IncludeOnlyFilter includeMissing,
+        IFilter? filter,
         HashSet<AiringKind>? kind,
         HashSet<Guid>? channel,
         HashSet<Guid>? provider,
@@ -1357,7 +1683,7 @@ public class AiringScheduleController(
         bool includeEstimates
     )
     {
-        var animeOptions = GetSeasonListOptions(type, channel, inCollection, includeRestricted, includeMissing);
+        var animeOptions = GetSeasonListOptions(type, channel, inCollection, includeRestricted, filter);
         var airingOptions = new EpisodeAiringFilteringOptions
         {
             ProviderIDs = provider is { Count: > 0 } ? provider : null,
@@ -1742,6 +2068,29 @@ public class AiringScheduleController(
 
         ModelState.AddModelError(nameof(to), "The end of the range is before its start.");
         return false;
+    }
+
+    /// <summary>
+    /// The stored filter a read is narrowed by.
+    /// </summary>
+    /// <param name="filterID">The ID of the stored filter, or <c>null</c> for none.</param>
+    /// <param name="filter">The filter, or <c>null</c> when none was asked for.</param>
+    /// <returns><c>false</c> when no stored filter has the ID.</returns>
+    private bool TryGetStoredFilter(int? filterID, out IFilter? filter)
+    {
+        filter = filterID is { } id ? filterPresets.GetByID(id) : null;
+        return filterID is null || filter is not null;
+    }
+
+    /// <summary>
+    /// The filter sent in a request's body.
+    /// </summary>
+    /// <param name="body">The filter's body.</param>
+    /// <returns>The filter, or <c>null</c> with model errors when it is invalid.</returns>
+    private IFilter? GetBodyFilter(FilterBody body)
+    {
+        var filter = filterFactory.GetFilterPreset(body, ModelState);
+        return ModelState.IsValid ? filter : null;
     }
 
     /// <summary>

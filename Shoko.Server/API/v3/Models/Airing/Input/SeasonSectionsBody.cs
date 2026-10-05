@@ -3,19 +3,28 @@ using System.ComponentModel.DataAnnotations;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Enums;
 
+using FilterBody = Shoko.Server.API.v3.Models.Shoko.Filter.Input.CreateOrUpdateFilterBody;
+
 #nullable enable
 namespace Shoko.Server.API.v3.Models.Airing.Input;
 
 /// <summary>
-/// A custom layout for the season view.
+/// A custom layout for the season view, and a filter to narrow it by.
 /// </summary>
 public class SeasonSectionsBody
 {
     /// <summary>
-    /// The sections, in order. Each anime goes to the first that takes it.
+    /// The sections, in order, or <c>null</c> for the default layout. Each
+    /// anime goes to the first that takes it.
     /// </summary>
-    [Required]
-    public List<Section> Sections { get; set; } = [];
+    public List<Section>? Sections { get; set; }
+
+    /// <summary>
+    /// Only the anime of the Shoko series this filter passes, or <c>null</c>
+    /// for no filter. Taken as <c>POST /api/v3/Filter/Preview/Series</c>
+    /// takes it.
+    /// </summary>
+    public FilterBody? Filter { get; set; }
 
     /// <summary>
     /// One section of the layout.

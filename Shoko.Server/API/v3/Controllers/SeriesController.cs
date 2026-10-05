@@ -88,7 +88,9 @@ public class SeriesController(
     AnimeSeriesRepository _animeSeries,
     VideoLocal_PlaceRepository _videoLocalPlaces,
     VideoLocal_UserRepository _videoLocalUsers,
-    IShokoGroupManager _groupManagementService
+    IShokoGroupManager _groupManagementService,
+    FilterPresetRepository _filterPresets,
+    FilterFactory _filterFactory
 ) : BaseController(settingsProvider)
 {
     #region Return messages
@@ -503,9 +505,12 @@ public class SeriesController(
     /// <param name="type">Only anime of these types, comma-separated.</param>
     /// <param name="inCollection">Whether to include the anime with a Shoko series: <c>true</c> for every anime, <c>only</c> for those with one, <c>false</c> for those without.</param>
     /// <param name="includeRestricted">Whether to include restricted anime. The user's own restrictions apply on top.</param>
-    /// <param name="includeMissing">Whether to include the anime whose Shoko series has no local files: <c>true</c> for every anime, <c>only</c> for those, <c>false</c> to leave them out. Anime without a Shoko series are not affected.</param>
-    /// <param name="orderBy">The order. Defaults to <c>AirDate</c> with <paramref name="seasons"/>, else to <c>Title</c>.</param>
+    /// <param name="filterID">Only the anime of the Shoko series passing this stored filter, for the current user. Anime not in the collection are left out, and with a sorting expression the anime come in the filter's order.</param>
+    /// <param name="orderBy">The order. Defaults to <c>AirDate</c> with <paramref name="seasons"/>, else to <c>Title</c>. Ignored when the filter has a sorting expression.</param>
     /// <returns>The anime.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
     [HttpGet("AniDB")]
     public ActionResult<ListResult<AnidbAnime>> GetAllAnime(
         [FromQuery, Range(0, 250)] int pageSize = 50,
@@ -515,8 +520,81 @@ public class SeriesController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
+        [FromQuery, Range(1, int.MaxValue)] int? filterID = null,
         [FromQuery] AnidbAnimeListOrder? orderBy = null
+    )
+    {
+        FilterPreset? filter = null;
+        if (filterID is { } id && (filter = _filterPresets.GetByID(id)) is null)
+            return NotFound(FilterController.FilterNotFound);
+
+        return ListAnime(pageSize, page, startsWith, seasons, type, inCollection, includeRestricted, filter, orderBy);
+    }
+
+    /// <summary>
+    /// Get the anime of <c>GET /api/v3/Series/AniDB</c> for only the Shoko
+    /// series passing the filter sent in the body.
+    /// </summary>
+    /// <remarks>
+    /// The filter is evaluated once for the current user, and anime not in
+    /// the collection are left out. With a sorting expression, the anime come
+    /// in the filter's order.
+    /// </remarks>
+    /// <param name="body">The filter, as <c>POST /api/v3/Filter/Preview/Series</c> takes it.</param>
+    /// <param name="pageSize">The page size, or <c>0</c> for every anime.</param>
+    /// <param name="page">The page index.</param>
+    /// <param name="startsWith">Only anime whose preferred title starts with the given query.</param>
+    /// <param name="seasons">Only anime in any of these seasons, comma-separated as <c>{Season} {Year}</c>, like <c>Fall 2026,Winter 2027</c>, by the rule of <c>GET /api/v3/Series/AniDB</c>.</param>
+    /// <param name="type">Only anime of these types, comma-separated.</param>
+    /// <param name="inCollection">Whether to include the anime with a Shoko series: <c>true</c> for every anime, <c>only</c> for those with one, <c>false</c> for those without.</param>
+    /// <param name="includeRestricted">Whether to include restricted anime. The user's own restrictions apply on top.</param>
+    /// <param name="orderBy">The order. Defaults to <c>AirDate</c> with <paramref name="seasons"/>, else to <c>Title</c>. Ignored when the filter has a sorting expression.</param>
+    /// <returns>The anime.</returns>
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [HttpPost("AniDB")]
+    public ActionResult<ListResult<AnidbAnime>> GetAllAnimeWithFilter(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Disallow)] Filter.Input.CreateOrUpdateFilterBody body,
+        [FromQuery, Range(0, 250)] int pageSize = 50,
+        [FromQuery, Range(1, int.MaxValue)] int page = 1,
+        [FromQuery] string startsWith = "",
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<SeasonWithYear>? seasons = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
+        [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery] AnidbAnimeListOrder? orderBy = null
+    )
+    {
+        var filter = _filterFactory.GetFilterPreset(body, ModelState);
+        if (!ModelState.IsValid || filter is null)
+            return ValidationProblem(ModelState);
+
+        return ListAnime(pageSize, page, startsWith, seasons, type, inCollection, includeRestricted, filter, orderBy);
+    }
+
+    /// <summary>
+    /// Lists a page of the cached AniDB anime for the catalogue routes.
+    /// </summary>
+    /// <param name="pageSize">The page size, or <c>0</c> for every anime.</param>
+    /// <param name="page">The page index.</param>
+    /// <param name="startsWith">Only anime whose preferred title starts with this.</param>
+    /// <param name="seasons">Only anime in any of these seasons.</param>
+    /// <param name="type">Only anime of these types.</param>
+    /// <param name="inCollection">Whether to include the anime with a Shoko series.</param>
+    /// <param name="includeRestricted">Whether to include restricted anime.</param>
+    /// <param name="filter">Only the anime of the Shoko series this filter passes, if any.</param>
+    /// <param name="orderBy">The order, if any.</param>
+    /// <returns>The page, or a validation problem for a bad season.</returns>
+    private ActionResult<ListResult<AnidbAnime>> ListAnime(
+        int pageSize,
+        int page,
+        string startsWith,
+        HashSet<SeasonWithYear>? seasons,
+        HashSet<AnimeType>? type,
+        IncludeOnlyFilter inCollection,
+        IncludeOnlyFilter includeRestricted,
+        FilterPreset? filter,
+        AnidbAnimeListOrder? orderBy
     )
     {
         // The comma-delimited binder drops what it cannot read, which would
@@ -538,7 +616,7 @@ public class SeriesController(
             Types = type,
             InCollection = inCollection.InclusionFilter,
             IncludeRestricted = includeRestricted.InclusionFilter,
-            IncludeMissing = includeMissing.InclusionFilter,
+            Filter = filter,
             User = User,
             OrderBy = orderBy,
         };
