@@ -1,0 +1,323 @@
+{
+  "SettingsVersion": 9,
+  "ImagesPath": "/media/shoko-images",
+  "ServerPort": 8112,
+  "Culture": "de",
+  "FirstRun": false,
+  "AutoGroupSeries": true,
+  "AutoGroupSeriesRelationExclusions": [
+    "same setting",
+    "character",
+    "alternative"
+  ],
+  "AutoGroupSeriesUseScoreAlgorithm": true,
+  "LoadImageMetadata": true,
+  "CachingDatabaseTimeout": 240,
+  "Database": {
+    "MySqliteDirectory": "/home/shoko/.shoko/Shoko.CLI/Database",
+    "DatabaseBackupDirectory": "/home/shoko/.shoko/Shoko.CLI/Backups",
+    "Type": "MySQL",
+    "UseDatabaseLock": false,
+    "Username": "shoko",
+    "Password": "database-password-placeholder",
+    "Schema": "shoko_server",
+    "Host": "mariadb:3307",
+    "SQLite_DatabaseFile": "Shoko.db3"
+  },
+  "Quartz": {
+    "DatabaseType": "SQLite",
+    "ConnectionString": "Data Source=/home/shoko/.shoko/Shoko.CLI/Database/Quartz.db3;Mode=ReadWriteCreate;Pooling=True",
+    "MaxThreadPoolSize": 8,
+    "WaitingCacheSize": 250,
+    "LimitedConcurrencyOverrides": {
+      "HashFileJob": 3,
+      "MediaInfoJob": 1
+    }
+  },
+  "Connectivity": {
+    "DisabledMonitorServices": [
+      "WeChat",
+      "Mozilla"
+    ]
+  },
+  "Language": {
+    "UseSynonyms": true,
+    "SeriesTitleLanguageOrder": [
+      "x-jat",
+      "en",
+      "x-main"
+    ],
+    "SeriesTitleSourceOrder": [
+      "TMDB",
+      "AniDB"
+    ],
+    "EpisodeTitleLanguageOrder": [
+      "en",
+      "x-jat"
+    ],
+    "EpisodeTitleSourceOrder": [
+      "AniDB",
+      "TMDB"
+    ],
+    "DescriptionLanguageOrder": [
+      "en",
+      "ja"
+    ],
+    "DescriptionSourceOrder": [
+      "AniDB",
+      "TMDB"
+    ]
+  },
+  "AniDb": {
+    "Username": "anidb-username-placeholder",
+    "Password": "anidb-password-placeholder",
+    "HTTPServerUrl": "http://api.anidb.net:9001",
+    "UDPServerAddress": "api.anidb.net",
+    "UDPServerPort": 9000,
+    "UDPPingFrequency": 45,
+    "ClientPort": 4566,
+    "AVDumpKey": "avdump-key-placeholder",
+    "AVDumpClientPort": 4567,
+    "DownloadRelatedAnime": false,
+    "DownloadSimilarAnime": false,
+    "DownloadReviews": true,
+    "DownloadReleaseGroups": true,
+    "MyList_AddFiles": false,
+    "MyList_StorageState": "Disk",
+    "MyList_DeleteType": "MarkDeleted",
+    "MyList_ReadUnwatched": false,
+    "MyList_ReadWatched": false,
+    "MyList_SetWatched": false,
+    "MyList_SetUnwatched": false,
+    "MyList_RetainedBackupCount": 14,
+    "MyList_UpdateFrequency": "WeekOne",
+    "Calendar_UpdateFrequency": "HoursSix",
+    "Anime_UpdateFrequency": "Daily",
+    "MyListStats_UpdateFrequency": "MonthOne",
+    "File_UpdateFrequency": "WeekOne",
+    "Notification_UpdateFrequency": "HoursTwelve",
+    "Notification_HandleMovedFiles": true,
+    "DownloadCharacters": false,
+    "DownloadCreators": false,
+    "MaxRelationDepth": 2,
+    "MinimumHoursToRedownloadAnimeInfo": 48,
+    "AutomaticallyImportSeries": true,
+    "AVDump": {
+      "MaxConcurrency": 2,
+      "CreqTimeout": 60,
+      "CreqMaxRetries": 5
+    }
+  },
+  "TMDB": {
+    "AutoLink": true,
+    "AutoLinkRestricted": true,
+    "DownloadAllTitles": true,
+    "DownloadAllOverviews": true,
+    "DownloadAllContentRatings": true,
+    "ImageLanguageOrder": [
+      "en",
+      "ja",
+      "none"
+    ],
+    "AutoDownloadCrewAndCast": true,
+    "AutoDownloadCollections": true,
+    "AutoDownloadAlternateOrdering": true,
+    "AutoDownloadBackdrops": false,
+    "MaxAutoBackdrops": 5,
+    "AutoDownloadPosters": false,
+    "MaxAutoPosters": 3,
+    "AutoDownloadLogos": false,
+    "MaxAutoLogos": 2,
+    "AutoDownloadThumbnails": false,
+    "MaxAutoThumbnails": 2,
+    "AutoDownloadStaffImages": false,
+    "MaxAutoStaffImages": 4,
+    "AutoDownloadStudioImages": false,
+    "UserApiKey": "tmdb-api-key-placeholder"
+  },
+  "TvDB": {
+    "AutoLink": true,
+    "AutoFanart": false,
+    "AutoFanartAmount": 5,
+    "AutoWideBanners": false,
+    "AutoWideBannersAmount": 2,
+    "AutoPosters": false,
+    "AutoPostersAmount": 3,
+    "UpdateFrequency": "Daily",
+    "Language": "de"
+  },
+  "Import": {
+    "Hasher": {
+      "MD5": false,
+      "SHA1": false,
+      "CRC": false,
+      "ForceGeneratesAllHashes": true
+    },
+    "VideoExtensions": [
+      "MKV",
+      "AVI",
+      "MP4",
+      "MOV",
+      "OGM",
+      "WMV",
+      "MPG",
+      "MPEG",
+      "MK3D",
+      "M4V",
+      "WEBM",
+      "TS"
+    ],
+    "Exclude": [
+      "[\\\\\\/]\\$RECYCLE\\.BIN[\\\\\\/]",
+      "[\\\\\\/]\\.Recycle\\.Bin[\\\\\\/]",
+      "[\\\\\\/]\\.Trash-\\d+[\\\\\\/]",
+      "[\\\\\\/]@eaDir[\\\\\\/]"
+    ],
+    "RunOnStart": true,
+    "MaxAutoScanAttemptsPerFile": 20,
+    "ScanDropFoldersOnStart": true,
+    "UseExistingFileWatchedStatus": false,
+    "AutomaticallyDeleteDuplicatesOnImport": true,
+    "FileLockChecking": false,
+    "FileLockWaitTimeMS": 6000,
+    "AggressiveFileLockChecking": false,
+    "AggressiveFileLockWaitTimeSeconds": 12,
+    "SkipDiskSpaceChecks": true,
+    "MediaInfoPath": "/usr/bin/mediainfo",
+    "MediaInfoTimeoutMinutes": 10
+  },
+  "Plex": {
+    "Libraries": [
+      1,
+      3
+    ],
+    "Server": "plex.local:32400"
+  },
+  "TraktTv": {
+    "Enabled": true,
+    "AutoLink": true,
+    "AuthToken": "trakt-auth-token-placeholder",
+    "RefreshToken": "trakt-refresh-token-placeholder",
+    "TokenExpirationDate": "1735689600",
+    "UpdateFrequency": "WeekOne",
+    "SyncFrequency": "HoursSix"
+  },
+  "Plugins": {
+    "EnabledPlugins": {
+      "LuaRenamer": true,
+      "Shoko.Plugin.Example": false
+    },
+    "Priority": [
+      "LuaRenamer",
+      "Shoko.Plugin.Example"
+    ],
+    "Renamer": {
+      "EnabledRenamers": {
+        "WebAOM": false,
+        "LuaRenamer": true
+      },
+      "RenameOnImport": true,
+      "MoveOnImport": true,
+      "AllowRelocationInsideDestinationOnImport": false,
+      "DefaultRenamer": "Library Layout"
+    }
+  },
+  "FileQualityFilterEnabled": true,
+  "FileQualityPreferences": {
+    "Require10BitVideo": false,
+    "MaxNumberOfFilesToKeep": 2,
+    "PreferredTypes": [
+      "RESOLUTION",
+      "SOURCE",
+      "VIDEOCODEC",
+      "AUDIOCODEC"
+    ],
+    "PreferredAudioCodecs": [
+      "flac",
+      "aac",
+      "ac3"
+    ],
+    "PreferredResolutions": [
+      "2160p",
+      "1080p",
+      "720p"
+    ],
+    "PreferredSubGroups": [
+      "sallysubs",
+      "kametsu"
+    ],
+    "PreferredVideoCodecs": [
+      "hevc",
+      "av1",
+      "h264"
+    ],
+    "Prefer8BitVideo": true,
+    "AllowDeletionOfImportedFiles": true,
+    "RequiredTypes": [
+      "RESOLUTION",
+      "SUBSTREAMCOUNT"
+    ],
+    "RequiredAudioCodecs": {
+      "Operator": "IN",
+      "Value": [
+        "flac",
+        "aac",
+        "opus"
+      ]
+    },
+    "RequiredAudioStreamCount": {
+      "Operator": "GREATER_EQ",
+      "Value": 2
+    },
+    "RequiredResolutions": {
+      "Operator": "GREATER_EQ",
+      "Value": [
+        "720p"
+      ]
+    },
+    "RequiredSources": {
+      "Operator": "NOTIN",
+      "Value": [
+        "tv",
+        "unknown"
+      ]
+    },
+    "RequiredSubGroups": {
+      "Operator": "NOTIN",
+      "Value": [
+        "erai-raws"
+      ]
+    },
+    "RequiredSubStreamCount": {
+      "Operator": "EQUALS",
+      "Value": 2
+    },
+    "RequiredVideoCodecs": {
+      "Operator": "IN",
+      "Value": [
+        "hevc",
+        "av1"
+      ]
+    },
+    "PreferredSources": [
+      "bd",
+      "www",
+      "dvd"
+    ],
+    "AllowDeletingFilesWithMissingInfo": true
+  },
+  "LogRotator": {
+    "Enabled": true,
+    "Zip": false,
+    "Delete": true,
+    "Delete_Days": "14"
+  },
+  "Linux": {
+    "UID": 1000,
+    "GID": 100,
+    "Permission": 664
+  },
+  "WebUI_Settings": "{\"v3\":{\"theme\":\"theme-shoko-blue\",\"toastPosition\":\"bottom-right\",\"notifications\":true,\"actions\":[\"remove-missing-files-mylist\",\"update-series-stats\"],\"layout\":{},\"updateChannel\":\"Stable\"}}",
+  "TraceLog": true,
+  "SentryOptOut": true
+}

@@ -25,6 +25,18 @@ public static class TestData
         return JsonConvert.DeserializeObject<RegularAirDateCase[]>(jsonString)!;
     });
 
+    /// <summary>
+    /// A fully populated <c>settings-server.json</c> as 5.0.0 wrote it, at
+    /// settings version 9.
+    /// </summary>
+    public static Lazy<string> ServerSettingsV5 { get; } = new(() =>
+    {
+        const string ResourceName = "Shoko.TestData.settings-server.v5.0.json";
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResourceName);
+        using var reader = new StreamReader(stream!);
+        return reader.ReadToEnd();
+    });
+
     public static Lazy<IEnumerable<CrossRef_File_Episode>> CrossRef_File_Episode { get; } = new(() =>
     {
         const string ResourceName = "Shoko.TestData.CrossRef_File_Episode.json";

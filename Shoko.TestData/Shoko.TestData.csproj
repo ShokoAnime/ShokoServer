@@ -21,6 +21,8 @@
       <EmbeddedResource Include="AniDB_File.json" />
       <None Remove="CrossRef_File_Episode.json" />
       <EmbeddedResource Include="CrossRef_File_Episode.json" />
+      <None Remove="settings-server.v5.0.json" />
+      <EmbeddedResource Include="settings-server.v5.0.json" />
     </ItemGroup>
 
 </Project>

@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Actions;
 using Shoko.Abstractions.Core.Services;
 using Shoko.Abstractions.Extensions;
@@ -1363,7 +1362,7 @@ public sealed class ScheduledActionServiceTests : IDisposable
         => _source.Add(action.DefaultTriggers, action.GetType(), action.MinimumInterval);
 
     [Fact]
-    public void OldSettings_BecomeTheTriggersOfTheRealPortedActions()
+    public void CarriedOverFrequencies_BecomeTheTriggersOfTheRealPortedActions()
     {
         var scheduler = Mock.Of<IQueueScheduler>();
         var calendar = AddPorted(new UpdateAnidbCalendarAction(scheduler));
@@ -1372,20 +1371,17 @@ public sealed class ScheduledActionServiceTests : IDisposable
         var notifications = AddPorted(new GetAnidbNotificationsAction(scheduler));
         var mylist = AddPorted(new SyncAnidbMylistOnScheduleAction(scheduler));
         var plugins = AddPorted(new CheckPluginUpdatesAction(scheduler));
-        const string settings = """
+        var path = SettingsMigrations.UpdateFrequencyCarryOverPath(_dataPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, JsonConvert.SerializeObject(new Dictionary<string, int>
         {
-          "SettingsVersion": 24,
-          "AniDb": {
-            "Calendar_UpdateFrequency": "HoursTwelve",
-            "Anime_UpdateFrequency": "EveryHour",
-            "File_UpdateFrequency": "Daily",
-            "Notification_UpdateFrequency": "Never",
-            "MyList": { "UpdateFrequency": "WeekOne" }
-          },
-          "Plugins": { "Updates": { "AutoUpdateFrequency": "Never" } }
-        }
-        """;
-        SettingsMigrations.MigrateSettings(settings, _applicationPaths.Object);
+            [SettingsMigrations.AnidbCalendarFrequency] = 12,
+            [SettingsMigrations.AnidbAnimeFrequency] = 1,
+            [SettingsMigrations.AnidbFileFrequency] = 24,
+            [SettingsMigrations.AnidbNotificationFrequency] = 0,
+            [SettingsMigrations.AnidbMylistFrequency] = 24 * 7,
+            [SettingsMigrations.PluginUpdatesFrequency] = 0,
+        }));
         using var service = Service();
 
         var byId = service.GetScheduledActions().ToDictionary(info => info.ID);
@@ -1398,7 +1394,7 @@ public sealed class ScheduledActionServiceTests : IDisposable
         Assert.True(byId[plugins].HasCustomTriggers);
         Assert.False(byId[files].HasCustomTriggers);
         Assert.False(byId[notifications].HasCustomTriggers);
-        Assert.False(File.Exists(SettingsMigrations.UpdateFrequencyCarryOverPath(_dataPath)));
+        Assert.False(File.Exists(path));
     }
 
     [Fact]
@@ -1524,33 +1520,18 @@ public sealed class ScheduledActionServiceTests : IDisposable
         return (import, _source.Add([], typeof(ScanDropFoldersAction)));
     }
 
-    /// <summary>
-    /// A settings document at the version just before migration 25, with the
-    /// file check's update frequency and the start-up settings in it.
-    /// </summary>
-    private static string StartupSettings(string importBody)
-        => $$"""
-        {
-          "SettingsVersion": 24,
-          "AniDb": { "File_UpdateFrequency": "HoursTwelve" },
-          "Import": {
-            {{importBody}}
-            "UseExistingFileWatchedStatus": true
-          }
-        }
-        """;
-
     [Fact]
-    public void StartupSettingsThatWereOn_AddAStartupTrigger_ToTheTriggersInEffect()
+    public void AStartupCarryOver_AddsAStartupTrigger_ToTheTriggersInEffect()
     {
         var (import, dropScan) = AddStartupCarriedActions();
         var hashing = import[typeof(HashUnhashedFilesAction)];
         SeedRow(hashing, null, ScheduledActionService.SerializeTriggers([ActionTrigger.DailyAt(new(4, 0))]));
         var other = _source.Add([ActionTrigger.Every(TimeSpan.FromHours(24))]);
-        var migrated = JObject.Parse(SettingsMigrations.MigrateSettings(
-            StartupSettings("\"RunOnStart\": true, \"ScanDropFoldersOnStart\": true,"),
-            _applicationPaths.Object
-        ));
+        var frequencies = SettingsMigrations.UpdateFrequencyCarryOverPath(_dataPath);
+        Directory.CreateDirectory(Path.GetDirectoryName(frequencies)!);
+        File.WriteAllText(frequencies, JsonConvert.SerializeObject(new Dictionary<string, int> { [SettingsMigrations.AnidbFileFrequency] = 12 }));
+        var path = SettingsMigrations.StartupTriggerCarryOverPath(_dataPath);
+        File.WriteAllText(path, JsonConvert.SerializeObject(new[] { SettingsMigrations.RunImportOnStart, SettingsMigrations.ScanDropFoldersOnStart }));
         using var service = Service();
 
         var byId = service.GetScheduledActions().ToDictionary(info => info.ID);
@@ -1562,26 +1543,7 @@ public sealed class ScheduledActionServiceTests : IDisposable
             Assert.Equal([ActionTrigger.AtStartup], byId[id].Triggers);
         Assert.Equal([ActionTrigger.AtStartup], byId[dropScan].Triggers);
         Assert.False(byId[other].HasCustomTriggers);
-        Assert.Null(((JObject)migrated["Import"]!).Property("RunOnStart"));
-        Assert.Null(((JObject)migrated["Import"]!).Property("ScanDropFoldersOnStart"));
-        Assert.False(File.Exists(SettingsMigrations.StartupTriggerCarryOverPath(_dataPath)));
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData("\"RunOnStart\": false, \"ScanDropFoldersOnStart\": false,")]
-    public void StartupSettingsThatWereOffOrAbsent_ChangeNoTriggers(string importBody)
-    {
-        var (import, dropScan) = AddStartupCarriedActions();
-        SettingsMigrations.MigrateSettings(StartupSettings(importBody), _applicationPaths.Object);
-        using var service = Service();
-
-        var byId = service.GetScheduledActions().ToDictionary(info => info.ID);
-
-        Assert.False(File.Exists(SettingsMigrations.StartupTriggerCarryOverPath(_dataPath)));
-        Assert.Empty(byId[dropScan].Triggers);
-        foreach (var id in import.Values)
-            Assert.DoesNotContain(ActionTrigger.AtStartup, byId[id].Triggers);
+        Assert.False(File.Exists(path));
     }
 
     [Fact]
