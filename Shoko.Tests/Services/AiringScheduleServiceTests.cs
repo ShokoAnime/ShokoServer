@@ -37,6 +37,7 @@ using Shoko.Server.Server;
 using Shoko.Server.Services;
 using Shoko.Server.Services.Airing;
 using Shoko.Server.Settings;
+using Shoko.Server.Utilities;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
@@ -2027,8 +2028,9 @@ public class AiringScheduleServiceTests
             }
         );
 
+        // TBS premiered the first episode before the range, so AT-X's late showing of it is not next.
         Assert.Equal(
-            [(harness.Episodes[0].ID, atx.ChannelID), (harness.Episodes[1].ID, tbs.ChannelID)],
+            [(harness.Episodes[1].ID, tbs.ChannelID), (harness.Episodes[1].ID, atx.ChannelID)],
             airings.Select(airing => (airing.EpisodeID, airing.Channel!.ChannelID)).ToList()
         );
     }
@@ -2094,6 +2096,55 @@ public class AiringScheduleServiceTests
         ));
 
         Assert.Equal(harness.Air(40, 22), airing.AiredAt);
+    }
+
+    [Fact]
+    public void NextOnly_SkipsAnEpisodeAlreadyPremieredElsewhere()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var atx = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television);
+        harness.Schedule(
+            harness.Primary,
+            "mx",
+            tokyo.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(23, 23)),
+            (1, harness.Air(30, 23)),
+            (2, harness.Air(37, 23))
+        );
+        // A week behind, so its first two episodes air after they premiered on TOKYO MX.
+        harness.Schedule(
+            harness.Secondary,
+            "atx",
+            atx.ChannelID,
+            [new AiringTrackData(AiringKind.Original, "ja")],
+            (0, harness.Air(32, 1)),
+            (1, harness.Air(39, 1))
+        );
+
+        var airing = Assert.Single(harness.Service.GetAiringsForSeries(
+            harness.ShokoSeries,
+            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true }
+        ));
+
+        Assert.Equal((harness.ShokoEpisodes[2].ID, harness.Air(37, 23)), (airing.ShokoEpisode?.ID, airing.AiredAt));
+    }
+
+    [Fact]
+    public void GetAiringsForSeries_ManySeries_AnswersEachAsAlone()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        harness.Weekly("mx", tokyo.ChannelID, 30);
+        harness.OrphanSchedule(harness.Primary, "orphan", tokyo.ChannelID, harness.Air(33, 23));
+        var options = new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true };
+
+        var many = harness.Service.GetAiringsForSeries([harness.ShokoSeries, harness.OrphanSeries, harness.ShokoSeries], options);
+
+        Assert.Equal(2, many.Count);
+        foreach (var series in new[] { harness.ShokoSeries, harness.OrphanSeries })
+            Assert.Equal(harness.Service.GetAiringsForSeries(series, options).Select(airing => airing.ID), many[series.ID].Select(airing => airing.ID));
     }
 
     [Fact]
@@ -2403,27 +2454,44 @@ public class AiringScheduleServiceTests
     }
 
     [Fact]
-    public void NextOnly_SkipsTheDetectedRerunsTheKindFilterLeavesOut()
+    public void NextOnly_ALateRunOfEpisodesAlreadyShownIsNeverNext()
     {
         using var harness = new Harness();
-        var (late, regional) = harness.LateAndRegionalRuns();
+        harness.LateAndRegionalRuns();
 
         var next = harness.Service.GetAiringsForSeries(
             harness.ProviderSeries,
             new EpisodeAiringFilteringOptions() { IncludeEstimates = false, NextOnly = true }
         );
-        var nextNormal = harness.Service.GetAiringsForSeries(
-            harness.ProviderSeries,
-            new EpisodeAiringFilteringOptions()
-            {
-                IncludeEstimates = false,
-                NextOnly = true,
-                EpisodeKinds = new HashSet<EpisodeAiringKind> { EpisodeAiringKind.Normal },
-            }
-        );
 
-        Assert.Equal(late.ID, Assert.Single(next).Schedule?.ID);
-        Assert.Equal(regional.ID, Assert.Single(nextNormal).Schedule?.ID);
+        Assert.Empty(next);
+    }
+
+    #endregion
+
+    #region Anime by Channel
+
+    [Fact]
+    public void GetAnidbAnimeOnChannels_GathersTheQuartersAndWhetherOneIsToCome()
+    {
+        using var harness = new Harness();
+        var anidbEpisode = new Mock<IAnidbEpisode>();
+        anidbEpisode.SetupGet(entry => entry.AnidbAnimeID).Returns(900);
+        foreach (var shokoEpisode in harness.ShokoEpisodes)
+            Mock.Get(shokoEpisode).SetupGet(entry => entry.AnidbEpisode).Returns(anidbEpisode.Object);
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var atx = harness.Service.FindOrRegisterChannel("AT-X", AiringChannelType.Television);
+        var bs11 = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
+        harness.Schedule(harness.Primary, "mx", tokyo.ChannelID, [new AiringTrackData(AiringKind.Original, "ja")], (0, harness.Air(1, 23)));
+        harness.Schedule(harness.Primary, "atx", atx.ChannelID, [new AiringTrackData(AiringKind.Original, "ja")], (1, harness.Air(40, 23)));
+
+        var onTokyo = harness.Service.GetAnidbAnimeOnChannels(new HashSet<Guid> { tokyo.ChannelID });
+        var onAtx = harness.Service.GetAnidbAnimeOnChannels(new HashSet<Guid> { atx.ChannelID });
+
+        Assert.Equal([SeasonCalendar.GetCalendarQuarter(DateOnly.FromDateTime(harness.Air(1, 23)))], onTokyo[900].Seasons);
+        Assert.False(onTokyo[900].HasUpcoming);
+        Assert.True(onAtx[900].HasUpcoming);
+        Assert.Empty(harness.Service.GetAnidbAnimeOnChannels(new HashSet<Guid> { bs11.ChannelID }));
     }
 
     #endregion
@@ -2431,7 +2499,7 @@ public class AiringScheduleServiceTests
     #region Hidden Channels
 
     [Fact]
-    public void AHiddenChannelIsLeftOutUnlessAskedForOrNamed()
+    public void AHiddenChannelIsLeftOutUnlessNamed()
     {
         using var harness = new Harness();
         var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
@@ -2441,19 +2509,28 @@ public class AiringScheduleServiceTests
         harness.Settings.HiddenChannels = [bs11.ChannelID];
 
         var visible = harness.Service.GetAiringsForEpisode(harness.Episodes[0], new EpisodeAiringFilteringOptions() { IncludeEstimates = false });
-        var asked = harness.Service.GetAiringsForEpisode(
-            harness.Episodes[0],
-            new EpisodeAiringFilteringOptions() { IncludeEstimates = false, IncludeHiddenChannels = true }
-        );
         var named = harness.Service.GetAiringsForEpisode(
             harness.Episodes[0],
             new EpisodeAiringFilteringOptions() { IncludeEstimates = false, ChannelIDs = new HashSet<Guid> { bs11.ChannelID } }
         );
 
         Assert.Equal(tokyo.ChannelID, Assert.Single(visible).Channel?.ChannelID);
-        Assert.Equal(2, asked.Count);
         Assert.Equal(bs11.ChannelID, Assert.Single(named).Channel?.ChannelID);
         Assert.Single(harness.Read(hidden));
+    }
+
+    [Fact]
+    public void TheHiddenStateFollowsTheSetting()
+    {
+        using var harness = new Harness();
+        var tokyo = harness.Service.FindOrRegisterChannel("TOKYO MX", AiringChannelType.Television);
+        var bs11 = harness.Service.FindOrRegisterChannel("BS11", AiringChannelType.Television);
+        harness.Settings.HiddenChannels = [bs11.ChannelID];
+
+        Assert.Equal([bs11.ChannelID], harness.Service.HiddenChannelIDs);
+        Assert.True(harness.Service.GetChannelByID(bs11.ChannelID)?.IsHidden);
+        Assert.False(harness.Service.GetChannelByID(tokyo.ChannelID)?.IsHidden);
+        Assert.Equal([bs11.ChannelID], harness.Service.GetAllChannels().Where(channel => channel.IsHidden).Select(channel => channel.ChannelID));
     }
 
     #endregion
@@ -2625,6 +2702,7 @@ public class AiringScheduleServiceTests
             Episodes = episodes;
             ShokoEpisodes = shokoEpisodes;
             shokoSeries.SetupGet(series => series.Episodes).Returns(() => shokoEpisodes);
+            shokoSeries.As<ISeries>().SetupGet(series => series.Episodes).Returns(() => shokoEpisodes);
             linkedSeries.SetupGet(series => series.Episodes).Returns(() => episodes);
 
             var configurationInfo = (ConfigurationInfo)RuntimeHelpers.GetUninitializedObject(typeof(ConfigurationInfo));

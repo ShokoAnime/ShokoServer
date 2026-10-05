@@ -14,6 +14,7 @@ using Shoko.Server.Models.Shoko;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
+using Shoko.Server.Services.Airing;
 using Shoko.Server.Utilities;
 
 using CreatorType = Shoko.Server.Providers.AniDB.CreatorType;
@@ -22,8 +23,8 @@ namespace Shoko.Server.Services;
 
 /// <summary>
 ///   Lists the cached AniDB anime, in the collection or not, for season
-///   views and other browsing, and looks up the extra details such a list
-///   shows for a page of them at a time.
+///   views and other browsing, and looks up the extra details a season
+///   view's cards show.
 /// </summary>
 public class AnidbAnimeCatalog(
     AniDB_AnimeRepository animeRepository,
@@ -35,7 +36,8 @@ public class AnidbAnimeCatalog(
     AniDB_TagRepository tagRepository,
     CrossRef_File_EpisodeRepository fileCrossReferenceRepository,
     VideoLocalRepository videoRepository,
-    IMetadataTextManager textManager
+    IMetadataTextManager textManager,
+    AiringScheduleService airingScheduleService
 )
 {
     // The least prior weight, in votes, the season ranking gives the mean.
@@ -52,14 +54,20 @@ public class AnidbAnimeCatalog(
     {
         options ??= new();
         Func<AniDB_Anime, bool>? inSeasons = null;
+        var channelAirings = options.ChannelIDs is { Count: > 0 } channelIDs ? GetChannelAirings(channelIDs) : null;
         if (options.Seasons is { Count: > 0 })
         {
-            var (_, last) = GetListedSeasons();
+            var (current, last) = GetListedSeasons();
             var seasons = options.Seasons.Where(season => season.CompareTo(last) <= 0).ToHashSet();
             if (seasons.Count == 0)
                 return [];
 
-            inSeasons = anime => anime.SeasonSpan is { } span && span.Seasons.Any(season => season.CompareTo(last) <= 0 && seasons.Contains(season));
+            inSeasons = anime => anime.SeasonSpan is { } span && span.Seasons.Any(season => season.CompareTo(last) <= 0 && seasons.Contains(season)) &&
+                (channelAirings is null || seasons.Any(season => IsOnChannels(channelAirings, anime.AnimeID, season, current)));
+        }
+        else if (channelAirings is not null)
+        {
+            inSeasons = anime => channelAirings.ContainsKey(anime.AnimeID);
         }
 
         var entries = Filter(options, inSeasons)
@@ -98,9 +106,11 @@ public class AnidbAnimeCatalog(
     /// <returns>The seasons, the one under way always among them.</returns>
     public IReadOnlyList<AnidbAnimeSeasonCount> GetSeasons(AnidbAnimeListOptions? options = null, bool includeImages = false)
     {
+        options ??= new();
         var (current, last) = GetListedSeasons();
+        var channelAirings = options.ChannelIDs is { Count: > 0 } channelIDs ? GetChannelAirings(channelIDs) : null;
         var members = new Dictionary<(int Year, YearlySeason Season), List<Member>>();
-        foreach (var (anime, series, _) in Filter(options ?? new(), inSeasons: null))
+        foreach (var (anime, series, _) in Filter(options, inSeasons: null))
         {
             if (anime.SeasonSpan is not { } span)
                 continue;
@@ -108,6 +118,9 @@ public class AnidbAnimeCatalog(
             var member = new Member(anime, series, span);
             foreach (var season in SeasonCalendar.GetSeasons(span, last))
             {
+                if (channelAirings is not null && !IsOnChannels(channelAirings, anime.AnimeID, season, current))
+                    continue;
+
                 if (!members.TryGetValue(season, out var list))
                     members[season] = list = [];
 
@@ -208,11 +221,44 @@ public class AnidbAnimeCatalog(
     /// <param name="series">Its Shoko series, if any.</param>
     /// <param name="type">The image type.</param>
     /// <returns>The image, or <c>null</c> when it has none of the type.</returns>
-    protected virtual IImage? GetImage(AniDB_Anime anime, AnimeSeries? series, ImageEntityType type)
-    {
-        IWithImages entry = series is not null ? series : anime;
-        return entry.GetBestImageForType(type);
-    }
+    private IImage? GetImage(AniDB_Anime anime, AnimeSeries? series, ImageEntityType type)
+        => GetImage(series is not null ? series : anime, type);
+
+    /// <summary>
+    ///   The best image of one type of an anime or a series.
+    /// </summary>
+    /// <param name="entry">The anime or series.</param>
+    /// <param name="type">The image type.</param>
+    /// <returns>The image, or <c>null</c> when it has none of the type.</returns>
+    protected virtual IImage? GetImage(IWithImages entry, ImageEntityType type)
+        => entry.GetBestImageForType(type);
+
+    /// <summary>
+    ///   The stored airings of every AniDB anime on some channels, by anime.
+    /// </summary>
+    /// <param name="channelIDs">The channels.</param>
+    /// <returns>The airings, by AniDB anime ID.</returns>
+    internal virtual IReadOnlyDictionary<int, AnidbAnimeChannelAirings> GetChannelAirings(IReadOnlySet<Guid> channelIDs)
+        => airingScheduleService.GetAnidbAnimeOnChannels(channelIDs);
+
+    /// <summary>
+    ///   Whether an anime is on the channels in a season: it has an airing on
+    ///   them in the season, or one still to come when the season is the one
+    ///   under way or a later one.
+    /// </summary>
+    /// <param name="channelAirings">The anime's airings on the channels.</param>
+    /// <param name="animeID">The AniDB anime ID.</param>
+    /// <param name="season">The season.</param>
+    /// <param name="current">The season under way.</param>
+    /// <returns><c>true</c> when the anime is on the channels in the season.</returns>
+    private static bool IsOnChannels(
+        IReadOnlyDictionary<int, AnidbAnimeChannelAirings> channelAirings,
+        int animeID,
+        (int Year, YearlySeason Season) season,
+        (int Year, YearlySeason Season) current
+    )
+        => channelAirings.TryGetValue(animeID, out var airings) &&
+            (airings.Seasons.Contains(season) || (airings.HasUpcoming && season.CompareTo(current) >= 0));
 
     /// <summary>
     ///   The season under way and the last one listed, the one after it.
@@ -314,6 +360,16 @@ public class AnidbAnimeCatalog(
         IWithOverviews entry = series is not null ? series : anime;
         return (textManager.GetPreferredOverview(entry) ?? entry.DefaultOverview)?.Value;
     }
+
+    /// <summary>
+    ///   The poster of an anime: its series' primary image when it is in the
+    ///   collection and has one, else its own.
+    /// </summary>
+    /// <param name="anime">The anime.</param>
+    /// <param name="series">Its Shoko series, if any.</param>
+    /// <returns>The poster, or <c>null</c> when neither has one.</returns>
+    public IImage? GetPoster(AniDB_Anime anime, AnimeSeries? series)
+        => (series is not null ? GetImage(series, ImageEntityType.Primary) : null) ?? GetImage(anime, ImageEntityType.Primary);
 
     /// <summary>
     ///   The animation studios of many anime, from their "Animation Work"

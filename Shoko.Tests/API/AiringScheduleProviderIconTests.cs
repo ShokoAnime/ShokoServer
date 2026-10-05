@@ -89,7 +89,9 @@ public class AiringScheduleProviderIconTests
             null!,
             null!,
             null!,
-            _paths
+            _paths,
+            null!,
+            null!
         )
         {
             ControllerContext = new()

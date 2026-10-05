@@ -92,7 +92,9 @@ request and cannot get you banned.
 ### Listing the cached anime
 
 `GetCachedAnime(options)` lists the AniDB anime already in the local cache,
-in the collection or not, which is what a season view is built from:
+in the collection or not, which is what a season view is built from. Each
+entry pairs the anime with its Shoko series, or `null` when it is not in the
+collection:
 
 ```csharp
 var fall = anidbService.GetCachedAnime(new AnidbAnimeListOptions
@@ -116,7 +118,13 @@ end date. AniDB sends no episode air dates before 1970, so an anime starting
 earlier starts on its own date, and without dated episodes or an end date
 stays in its first season. Seasons after the one following the
 season under way are yet to be decided and match nothing. The list comes by air date with a season filter, else by preferred
-title, unless `OrderBy` says otherwise.
+title, unless `OrderBy` says otherwise. `ChannelIDs` keeps the anime with a
+stored airing on those channels in the season (its calendar quarter), or one
+still to come from the season under way on; airings are only kept for the
+airing schedule service's retention window, so old seasons hold fewer. The
+next airing of each, as a season view shows it, comes from
+`IAiringScheduleService.GetAiringsForSeries` over the whole list in one read
+(see [`../../Airing/README.md`](../../Airing/README.md#querying-airings)).
 
 `GetCachedAnimeSeasons(options, includeImages)` gives the seasons those anime
 are in by the same rule, newest first, with a count each and the season under

@@ -487,7 +487,8 @@ public class SeriesController(
     /// <summary>
     /// Get a paginated list of the cached <see cref="AnidbAnime"/> available to
     /// the current <see cref="User"/>, in the collection or not. Every filter
-    /// and include is optional.
+    /// is optional. The season view's anime, with what its cards show, are at
+    /// <c>/api/v3/AiringSchedule/Season/{year}/{season}</c>.
     /// </summary>
     /// <param name="pageSize">The page size, or <c>0</c> for every anime.</param>
     /// <param name="page">The page index.</param>
@@ -498,8 +499,6 @@ public class SeriesController(
     /// <param name="includeRestricted">Whether to include restricted anime. The user's own restrictions apply on top.</param>
     /// <param name="includeMissing">Whether to include the anime whose Shoko series has no local files: <c>true</c> for every anime, <c>only</c> for those, <c>false</c> to leave them out. Anime without a Shoko series are not affected.</param>
     /// <param name="orderBy">The order. Defaults to <c>AirDate</c> with <paramref name="seasons"/>, else to <c>Title</c>.</param>
-    /// <param name="include">The extra details to add, comma-separated.</param>
-    /// <param name="tagLimit">The most tags to add with <c>include=Tags</c>.</param>
     /// <returns>The anime.</returns>
     [HttpGet("AniDB")]
     public ActionResult<ListResult<AnidbAnime>> GetAllAnime(
@@ -511,9 +510,7 @@ public class SeriesController(
         [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
-        [FromQuery] AnidbAnimeListOrder? orderBy = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnidbAnime.IncludeDetails>? include = null,
-        [FromQuery, Range(0, 100)] int tagLimit = 5
+        [FromQuery] AnidbAnimeListOrder? orderBy = null
     )
     {
         // The comma-delimited binder drops what it cannot read, which would
@@ -544,71 +541,8 @@ public class SeriesController(
         return new ListResult<AnidbAnime>
         {
             Total = entries.Count,
-            List = ToAnidbAnimeList(pageEntries, include ?? [], tagLimit),
+            List = [.. pageEntries.Select(entry => new AnidbAnime(entry.Anime, entry.Series))],
         };
-    }
-
-    /// <summary>
-    /// Get every season the cached AniDB anime available to the current
-    /// <see cref="User"/> are in, by the rule of the <c>seasons</c> filter of
-    /// <c>/api/v3/Series/AniDB</c>, with how many anime are in each, newest
-    /// first. Upcoming seasons stop at the one after the season under way,
-    /// which is always listed, and flagged.
-    /// </summary>
-    /// <param name="type">Only count anime of these types, comma-separated.</param>
-    /// <param name="inCollection">Whether to count the anime with a Shoko series: <c>true</c> for every anime, <c>only</c> for those with one, <c>false</c> for those without.</param>
-    /// <param name="includeRestricted">Whether to count restricted anime. The user's own restrictions apply on top.</param>
-    /// <param name="includeMissing">Whether to count the anime whose Shoko series has no local files: <c>true</c> for every anime, <c>only</c> for those, <c>false</c> to leave them out. Anime without a Shoko series are not affected.</param>
-    /// <param name="fromYear">Optional. Leave out the seasons of earlier years. The current season is always listed.</param>
-    /// <param name="include">The extra details to add, comma-separated.</param>
-    /// <returns>The seasons.</returns>
-    [HttpGet("AniDB/Seasons")]
-    public ActionResult<List<AnidbSeason>> GetAnidbSeasons(
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
-        [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
-        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
-        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
-        [FromQuery, Range(1, 9999)] int? fromYear = null,
-        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnidbSeason.IncludeDetails>? include = null
-    )
-    {
-        var options = new AnidbAnimeListOptions
-        {
-            Types = type,
-            InCollection = inCollection.InclusionFilter,
-            IncludeRestricted = includeRestricted.InclusionFilter,
-            IncludeMissing = includeMissing.InclusionFilter,
-            User = User,
-        };
-        return _anidbCatalog.GetSeasons(options, includeImages: include?.Contains(AnidbSeason.IncludeDetails.Images) ?? false)
-            .Where(season => fromYear is null || season.IsCurrent || season.Year >= fromYear)
-            .Select(season => new AnidbSeason(season))
-            .ToList();
-    }
-
-    /// <summary>
-    /// Builds the models for a page of the cached anime, with the asked-for
-    /// details looked up for the page alone.
-    /// </summary>
-    /// <param name="entries">The anime and their series.</param>
-    /// <param name="include">The details to add.</param>
-    /// <param name="tagLimit">The most tags to add.</param>
-    /// <returns>The models.</returns>
-    private List<AnidbAnime> ToAnidbAnimeList(
-        IReadOnlyList<(AniDB_Anime Anime, AnimeSeries? Series)> entries,
-        HashSet<AnidbAnime.IncludeDetails> include,
-        int tagLimit
-    )
-    {
-        var studios = AnidbAnimeDetails.LoadStudios(_anidbCatalog, entries, include);
-        return entries
-            .Select(entry =>
-            {
-                var model = new AnidbAnime(entry.Anime, entry.Series);
-                AnidbAnimeDetails.Apply(model, entry.Anime, entry.Series, include, tagLimit, _anidbCatalog, studios);
-                return model;
-            })
-            .ToList();
     }
 
     /// <summary>

@@ -193,9 +193,6 @@ public partial class AiringScheduleService(
             IncludeDelayedOriginalSlots = false,
             IncludeEstimates = false,
             IncludeDisabled = false,
-            // Each subscriber's own filter leaves the hidden channels out again,
-            // and one naming a hidden channel still needs it in the horizon.
-            IncludeHiddenChannels = true,
             // Preference only ever orders a read, and a dispatch is in slot
             // order, so the widest value is also the only sensible one.
             PreferredOnly = false,
@@ -702,7 +699,7 @@ public partial class AiringScheduleService(
 
         var channelID = AiringScheduleUtility.GetChannelID(name, type);
         if (RepoFactory.AiringChannel.GetByChannelID(channelID) is { } existing)
-            return existing;
+            return ToChannelView(existing);
 
         // Registering claims the name: an alias is a hint, a channel called that
         // is the real claim, so any alias holding it is dropped with a warning.
@@ -722,32 +719,40 @@ public partial class AiringScheduleService(
             RepoFactory.AiringChannel.Save(other);
         }
 
-        var channel = new AiringChannel(name, type);
-        RepoFactory.AiringChannel.Save(channel);
+        var row = new AiringChannel(name, type);
+        RepoFactory.AiringChannel.Save(row);
+        var channel = ToChannelView(row);
         ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Added, Channel = channel });
         return channel;
     }
 
     /// <inheritdoc/>
     public IAiringChannel? GetChannelByID(Guid channelID)
-        => RepoFactory.AiringChannel.GetByChannelID(channelID);
+        => RepoFactory.AiringChannel.GetByChannelID(channelID) is { } row ? ToChannelView(row) : null;
 
     /// <inheritdoc/>
     public IAiringChannel? GetChannelByName(string nameOrAlias, AiringChannelType type, bool useAliases = true)
     {
         ArgumentNullException.ThrowIfNull(nameOrAlias);
 
-        return RepoFactory.AiringChannel.GetByName(nameOrAlias, type, useAliases);
+        return RepoFactory.AiringChannel.GetByName(nameOrAlias, type, useAliases) is { } row ? ToChannelView(row) : null;
     }
 
     /// <inheritdoc/>
     public IReadOnlyList<IAiringChannel> GetAllChannels(AiringChannelType? type = null)
-        => RepoFactory.AiringChannel.GetAll()
+    {
+        var hiddenChannelIDs = HiddenChannelIDs;
+        return RepoFactory.AiringChannel.GetAll()
             .Where(channel => type is null || channel.Type == type)
             .OrderBy(channel => channel.Type)
             .ThenBy(channel => channel.Name, StringComparer.Ordinal)
-            .Select(IAiringChannel (channel) => channel)
+            .Select(IAiringChannel (channel) => new AiringChannelView(channel, hiddenChannelIDs.Contains(channel.ChannelID)))
             .ToList();
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlySet<Guid> HiddenChannelIDs
+        => LoadSettings().HiddenChannels.ToHashSet();
 
     /// <inheritdoc/>
     public IAiringChannel AddChannelAliases(IAiringChannel channel, IEnumerable<string> aliases)
@@ -783,7 +788,7 @@ public partial class AiringScheduleService(
 
                 throw new ChannelAliasConflictException(
                     alias.Trim(),
-                    other,
+                    ToChannelView(other),
                     string.Equals(other.NormalizedName, normalizedAlias, StringComparison.Ordinal),
                     nameof(aliases)
                 );
@@ -793,12 +798,13 @@ public partial class AiringScheduleService(
         }
 
         if (added.Count is 0)
-            return row;
+            return ToChannelView(row);
 
         row.Aliases = [.. row.Aliases, .. added];
         RepoFactory.AiringChannel.Save(row);
-        ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Updated, Channel = row });
-        return row;
+        var view = ToChannelView(row);
+        ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Updated, Channel = view });
+        return view;
     }
 
     /// <inheritdoc/>
@@ -822,13 +828,23 @@ public partial class AiringScheduleService(
             .Where(alias => !unwanted.Contains(AiringScheduleUtility.NormalizeChannelName(alias)))
             .ToList();
         if (remaining.Count == row.Aliases.Count)
-            return row;
+            return ToChannelView(row);
 
         row.Aliases = remaining;
         RepoFactory.AiringChannel.Save(row);
-        ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Updated, Channel = row });
-        return row;
+        var view = ToChannelView(row);
+        ChannelRegistered?.Invoke(this, new AiringChannelEventArgs { Reason = UpdateReason.Updated, Channel = view });
+        return view;
     }
+
+    /// <summary>
+    /// A stored channel as the service hands it out, with whether the server
+    /// hides it.
+    /// </summary>
+    /// <param name="row">The stored channel.</param>
+    /// <returns>The channel.</returns>
+    private AiringChannelView ToChannelView(AiringChannel row)
+        => new(row, LoadSettings().HiddenChannels.Contains(row.ChannelID));
 
     #endregion
 

@@ -362,8 +362,8 @@ public class AnidbService : IAnidbService, IAnidbAvdumpService
     #region Cached Anime
 
     /// <inheritdoc/>
-    public IReadOnlyList<IAnidbAnime> GetCachedAnime(AnidbAnimeListOptions? options = null)
-        => [.. Catalog.GetAnime(options).Select(entry => entry.Anime)];
+    public IReadOnlyList<(IAnidbAnime Anime, IShokoSeries? Series)> GetCachedAnime(AnidbAnimeListOptions? options = null)
+        => [.. Catalog.GetAnime(options).Select(entry => ((IAnidbAnime)entry.Anime, (IShokoSeries?)entry.Series))];
 
     /// <inheritdoc/>
     public IReadOnlyList<AnidbAnimeSeasonCount> GetCachedAnimeSeasons(AnidbAnimeListOptions? options = null, bool includeImages = false)

@@ -6,6 +6,7 @@ using Shoko.Abstractions.Exceptions;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Events;
 using Shoko.Abstractions.Metadata.Anidb.Models;
+using Shoko.Abstractions.Metadata.Shoko;
 
 namespace Shoko.Abstractions.Metadata.Anidb.Services;
 
@@ -106,8 +107,11 @@ public interface IAnidbService
     ///   filtered and ordered by <paramref name="options"/>.
     /// </summary>
     /// <param name="options">The filters and order, or <c>null</c> for every anime by title.</param>
-    /// <returns>The matching anime.</returns>
-    IReadOnlyList<IAnidbAnime> GetCachedAnime(AnidbAnimeListOptions? options = null);
+    /// <returns>
+    ///   The matching anime, each with its Shoko series, or <c>null</c> when
+    ///   it is not in the collection.
+    /// </returns>
+    IReadOnlyList<(IAnidbAnime Anime, IShokoSeries? Series)> GetCachedAnime(AnidbAnimeListOptions? options = null);
 
     /// <summary>
     ///   Lists the seasons the cached AniDB anime are in, by the rule on

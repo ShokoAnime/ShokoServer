@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Server.Scheduling.Watchdog;
 using Shoko.Server.Services;
@@ -134,4 +136,18 @@ public class AiringScheduleServiceSettings : INewtonsoftJsonConfiguration, IHidd
     /// </summary>
     [Range(MinimumRetentionMonths, MaximumRetentionMonths)]
     public int RetentionMonths { get; set; } = 12;
+
+    private List<MetadataSource> _seasonDetailSourceOrder = [MetadataSource.TMDB];
+
+    /// <summary>
+    /// The sources whose studios and genres the season view uses, highest
+    /// ranked first. A source not listed is not used, except AniDB, which is
+    /// always used: at its place when listed, else first. Duplicates are
+    /// dropped.
+    /// </summary>
+    public List<MetadataSource> SeasonDetailSourceOrder
+    {
+        get => _seasonDetailSourceOrder;
+        set => _seasonDetailSourceOrder = value.Distinct().ToList();
+    }
 }

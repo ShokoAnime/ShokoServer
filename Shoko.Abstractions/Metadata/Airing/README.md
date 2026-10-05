@@ -385,20 +385,20 @@ never changes what an existing caller gets.
 ### Querying airings
 
 Every airing read takes one `EpisodeAiringFilteringOptions`. A new options
-object filters nothing beyond the disabled providers. Besides the schedule
-filters (`ProviderIDs`, `Kinds`, `Languages`, `ChannelIDs`) it carries:
+object filters nothing beyond the disabled providers and the hidden channels.
+Besides the schedule filters (`ProviderIDs`, `Kinds`, `Languages`) it carries:
 
 | Option | Meaning |
 |---|---|
 | `EpisodeTypes` | Only airings of episodes of these types. |
 | `EpisodeKinds` | Only airings of these kinds of showing. Leave out both `Rerun` and `DetectedRerun` for no reruns. |
-| `IncludeHiddenChannels` | Also returns the channels the server hides. A hidden channel named in `ChannelIDs` is returned either way, and so is a schedule read. |
+| `ChannelIDs` | Only these channels, hidden or not. Unset, the channels the server hides (`HiddenChannelIDs`, also `IAiringChannel.IsHidden`) are left out. A schedule read returns its own airings either way. |
 | `InCollection` | An `InclusionFilter` on whether the series has a shoko series. `Only` keeps the collection, `False` keeps what is not in it. |
 | `IncludeMissing` | An `InclusionFilter` on series in the collection with no local files. |
 | `IncludeRestricted` | An `InclusionFilter` on restricted (H) series. |
 | `User` | Leaves out the series the user may not see. |
 | `IncludeDateOnly` | Adds a date-only entry for each AniDB episode with an air date and no airing at all. An undated regular episode of an anime starting by 1970-01-01 (AniDB gives episodes before 1970 no date, or rarely a 1970-01-01 placeholder), which its anime's start date does not stand in for, takes the earliest pre-1970 date of the episodes linked to it instead. |
-| `NextOnly`, `NextPer` | Keeps the next airing per series, channel and/or kind. |
+| `NextOnly`, `NextPer` | Keeps the next airing per series, channel and/or kind, of an episode still to premiere. |
 
 `GetAiringsInRange` takes a `DateTimeOffset` range, start inclusive and end
 exclusive, compared as instants. A date-only entry (`IsDateOnly`, with
@@ -406,9 +406,31 @@ exclusive, compared as instants. A date-only entry (`IsDateOnly`, with
 its date falls between the calendar dates of the two ends, each read in its own
 offset, so a caller in Tokyo asking for its own day gets that day's entries.
 
-A next-only read keeps, per group, the earliest episode at or after the
-range's start (or now, for an entity read) and answers with that episode's
-best airing by preference.
+A next-only read keeps, per group, the earliest episode still to premiere at or
+after the range's start (or now, for an entity read) and answers with that
+episode's best airing by preference. An episode with a real `Normal` airing
+before that point, on any schedule of any provider and channel and through the
+links the read walks, has premiered, so a regional channel's late showing of
+it is never next, though a plain read still returns it. A date-only entry is
+next until its day is over.
+
+To read many series at once, such as every anime of a season, pass them all to
+`GetAiringsForSeries(IEnumerable<ISeries>, options)`. Each series answers what
+the single-series read would, keyed by its `ID`, while the lookups the series
+share are made once. A season view takes each anime's next airing with an
+empty `NextPer`, then the next airing per channel (`NextPer = { Channel }`) for
+the other airings of that episode:
+
+```csharp
+var anime = anidbService.GetCachedAnime(new AnidbAnimeListOptions { Seasons = [(2026, YearlySeason.Fall)] });
+var series = anime.Select(entry => (ISeries)entry.Series ?? entry.Anime).ToList();
+var next = airingScheduleService.GetAiringsForSeries(series, new EpisodeAiringFilteringOptions
+{
+    NextOnly = true,
+    NextPer = new HashSet<AiringNextGrouping>(),
+    IncludeDateOnly = true,
+});
+```
 
 Every list read sets `IEpisodeAiring.IsPreferred` on the airing of each
 episode that the same read with `PreferredOnly` would keep, window and filters

@@ -42,6 +42,7 @@ using Shoko.QueueProcessor;
 using Shoko.QueueProcessor.Abstractions;
 using Shoko.QueueProcessor.Acquisition.Filters;
 using Shoko.Server.API;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.Databases;
 using Shoko.Server.Extensions;
 using Shoko.Server.Filters;
@@ -632,6 +633,7 @@ public class SystemService : ISystemService
             services.AddAniDB();
             services.AddSingleton<AnidbService>();
             services.AddSingleton<AnidbAnimeCatalog>();
+            services.AddSingleton<SeasonAnimeBuilder>();
             services.AddSingleton<IAnidbService>(sp => sp.GetRequiredService<AnidbService>());
             services.AddSingleton<IAnidbAvdumpService>(sp => sp.GetRequiredService<AnidbService>());
             services.AddSingleton<MylistCache>();

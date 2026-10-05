@@ -35,8 +35,14 @@ public sealed class EpisodeAiringFilteringOptions
 
     /// <summary>
     ///   Optional. If set, will restrict the returned list to only containing
-    ///   airings on one of the given channels.
+    ///   airings on one of the given channels, hidden or not. If unset, the
+    ///   airings on the channels the server hides are left out.
     /// </summary>
+    /// <remarks>
+    ///   The hidden channels are
+    ///   <c>IAiringScheduleService.HiddenChannelIDs</c>. A schedule read
+    ///   returns every airing of its schedule either way.
+    /// </remarks>
     public IReadOnlySet<Guid>? ChannelIDs { get; set; }
 
     /// <summary>
@@ -124,16 +130,6 @@ public sealed class EpisodeAiringFilteringOptions
     public bool IncludeDisabled { get; set; }
 
     /// <summary>
-    ///   Optional. Whether to also return the airings on the channels the
-    ///   server hides. Defaults to <c>false</c>.
-    /// </summary>
-    /// <remarks>
-    ///   A hidden channel named in <see cref="ChannelIDs"/> is returned either
-    ///   way, and so is every airing of a schedule read.
-    /// </remarks>
-    public bool IncludeHiddenChannels { get; set; }
-
-    /// <summary>
     ///   Optional. Whether a range read also matches a delayed airing by its
     ///   original slot, so a week an episode was delayed out of still has
     ///   something to draw its gap from. Defaults to <c>true</c>.
@@ -208,15 +204,20 @@ public sealed class EpisodeAiringFilteringOptions
     /// <remarks>
     ///   <para>
     ///     The next airing is the first one at or after the start of a range
-    ///     read, or at or after now for any other read. In each group the
-    ///     earliest episode wins, and the group answers with that episode's
-    ///     best airing by preference, so the preferred channel and track still
-    ///     decide where it is shown.
+    ///     read, or at or after now for any other read, of an episode still to
+    ///     premiere: an episode with a real
+    ///     <see cref="EpisodeAiringKind.Normal"/> airing before that point, on
+    ///     any schedule of any provider and channel and through the links the
+    ///     read walks, is never next, so a delayed regional broadcast of it is
+    ///     not either. In each group the earliest episode wins, and the group
+    ///     answers with that episode's best airing by preference, so the
+    ///     preferred channel and track still decide where it is shown.
     ///   </para>
     ///   <para>
     ///     A delayed airing's original slot is no airing, so it is never
     ///     next. A date-only entry is next from the start of its day, in the
-    ///     range's offset or in UTC. Subscriptions ignore this.
+    ///     range's offset or in UTC, and not once its AniDB date has passed.
+    ///     Subscriptions ignore this.
     ///   </para>
     /// </remarks>
     public bool NextOnly { get; set; }

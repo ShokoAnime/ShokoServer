@@ -5,12 +5,13 @@ using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Models.Common;
 
-namespace Shoko.Server.API.v3.Models.AniDB;
+namespace Shoko.Server.API.v3.Models.Airing;
 
 /// <summary>
-/// A season with cached AniDB anime in it.
+/// A yearly season of the season view, with how many cached AniDB anime are
+/// in it.
 /// </summary>
-public class AnidbSeason
+public class AiringSeason
 {
     /// <summary>
     /// The year.
@@ -50,9 +51,17 @@ public class AnidbSeason
     /// </summary>
     public Image? Backdrop { get; init; }
 
-    public AnidbSeason() { }
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AiringSeason"/> class.
+    /// </summary>
+    public AiringSeason() { }
 
-    public AnidbSeason(AnidbAnimeSeasonCount season)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AiringSeason"/> class
+    /// from a season of the cached anime.
+    /// </summary>
+    /// <param name="season">The season.</param>
+    public AiringSeason(AnidbAnimeSeasonCount season)
     {
         Year = season.Year;
         AnimeSeason = season.Season;
@@ -69,8 +78,8 @@ public class AnidbSeason
     public enum IncludeDetails
     {
         /// <summary>
-        /// A representative poster and backdrop, in <see cref="AnidbSeason.Poster"/>
-        /// and <see cref="AnidbSeason.Backdrop"/>.
+        /// A representative poster and backdrop, in <see cref="AiringSeason.Poster"/>
+        /// and <see cref="AiringSeason.Backdrop"/>.
         /// </summary>
         Images,
     }

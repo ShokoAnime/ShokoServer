@@ -12,6 +12,7 @@ using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
+using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Shoko;
@@ -19,11 +20,13 @@ using Shoko.Abstractions.Plugin;
 using Shoko.Abstractions.Web.Attributes;
 using Shoko.Server.API.Annotations;
 using Shoko.Server.API.ModelBinders;
+using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Airing;
 using Shoko.Server.API.v3.Models.Airing.Input;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Repositories.Cached;
 using Shoko.Server.Repositories.Cached.AniDB;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 using AiringScheduleDto = Shoko.Server.API.v3.Models.Airing.AiringSchedule;
@@ -51,6 +54,8 @@ namespace Shoko.Server.API.v3.Controllers;
 /// <param name="animeSeries">Shoko series repository.</param>
 /// <param name="animeEpisodes">Shoko episode repository.</param>
 /// <param name="applicationPaths">Finds the providers' icons on disk.</param>
+/// <param name="anidbCatalog">Lists the cached AniDB anime of the seasons.</param>
+/// <param name="seasonAnimeBuilder">Builds the season view's anime.</param>
 [ApiController]
 [Route("/api/v{version:apiVersion}/[controller]")]
 [ApiV3]
@@ -63,7 +68,9 @@ public class AiringScheduleController(
     AniDB_AnimeRepository anidbAnimes,
     AnimeSeriesRepository animeSeries,
     AnimeEpisodeRepository animeEpisodes,
-    IApplicationPaths applicationPaths
+    IApplicationPaths applicationPaths,
+    AnidbAnimeCatalog anidbCatalog,
+    SeasonAnimeBuilder seasonAnimeBuilder
 ) : BaseController(settingsProvider)
 {
     #region Constants
@@ -114,7 +121,7 @@ public class AiringScheduleController(
     /// <param name="to">End of the range, exclusive, with an offset. Defaults to a week after the start.</param>
     /// <param name="kind">Only include airings whose schedule has a track of these kinds. Defaults to <see cref="AiringKind.Original"/>.</param>
     /// <param name="language">Only include airings whose schedule has a track in one of these languages.</param>
-    /// <param name="channel">Only include airings on one of these channels.</param>
+    /// <param name="channel">Only include airings on one of these channels, hidden or not. Without it, the hidden channels are left out.</param>
     /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
     /// <param name="type">Only include airings of episodes of these episode types.</param>
     /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
@@ -123,7 +130,6 @@ public class AiringScheduleController(
     /// <param name="includeRestricted">Include airings of restricted (H) series.</param>
     /// <param name="includeEstimates">Include the airings estimated from the schedules' own lines.</param>
     /// <param name="includeDelayedOriginalSlots">Also match a delayed airing by the slot it was moved out of.</param>
-    /// <param name="includeHiddenChannels">Include airings on hidden channels. One named in <paramref name="channel"/> is included either way.</param>
     /// <param name="includeDateOnly">Include a date-only entry for each AniDB episode with an air date in the range and no airing at all.</param>
     /// <param name="preferredOnly">Only return one airing per episode, using the server's preference.</param>
     /// <param name="nextOnly">Only return the next airing at or after the start of the range, per <paramref name="nextPer"/>.</param>
@@ -146,7 +152,6 @@ public class AiringScheduleController(
         [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
         [FromQuery] bool includeEstimates = true,
         [FromQuery] bool includeDelayedOriginalSlots = true,
-        [FromQuery] bool includeHiddenChannels = false,
         [FromQuery] bool includeDateOnly = false,
         [FromQuery] bool preferredOnly = false,
         [FromQuery] bool nextOnly = false,
@@ -172,7 +177,6 @@ public class AiringScheduleController(
             User = HttpContext.GetUser(),
             IncludeEstimates = includeEstimates,
             IncludeDelayedOriginalSlots = includeDelayedOriginalSlots,
-            IncludeHiddenChannels = includeHiddenChannels,
             IncludeDateOnly = includeDateOnly,
             PreferredOnly = preferredOnly,
             NextOnly = nextOnly,
@@ -485,12 +489,9 @@ public class AiringScheduleController(
     /// <returns>The channels, by name.</returns>
     [HttpGet("Channel")]
     public ActionResult<List<AiringChannel>> GetChannels([FromQuery] AiringChannelType? type = null)
-    {
-        var hiddenChannels = GetHiddenChannels();
-        return airingScheduleService.GetAllChannels(type)
-            .Select(channel => new AiringChannel(channel, hiddenChannels.Contains(channel.ChannelID)))
+        => airingScheduleService.GetAllChannels(type)
+            .Select(channel => new AiringChannel(channel))
             .ToList();
-    }
 
     /// <summary>
     /// Get a channel by one of its names.
@@ -516,7 +517,7 @@ public class AiringScheduleController(
         var types = type.HasValue ? new[] { type.Value } : Enum.GetValues<AiringChannelType>();
         foreach (var channelType in types)
             if (airingScheduleService.GetChannelByName(name, channelType, useAliases) is { } channel)
-                return new AiringChannel(channel, GetHiddenChannels().Contains(channel.ChannelID));
+                return new AiringChannel(channel);
 
         return NotFound(ChannelNotFoundWithName);
     }
@@ -534,15 +535,8 @@ public class AiringScheduleController(
         if (airingScheduleService.GetChannelByID(channelID) is not { } channel)
             return NotFound(ChannelNotFoundWithChannelID);
 
-        return new AiringChannel(channel, GetHiddenChannels().Contains(channel.ChannelID));
+        return new AiringChannel(channel);
     }
-
-    /// <summary>
-    /// The channels the server hides from airing reads.
-    /// </summary>
-    /// <returns>The hidden channels' IDs.</returns>
-    private HashSet<Guid> GetHiddenChannels()
-        => configurationProvider.Load().HiddenChannels.ToHashSet();
 
     /// <summary>
     /// Get what airs on a channel in the given time-frame.
@@ -706,6 +700,145 @@ public class AiringScheduleController(
 
     #endregion
 
+    #region Seasons
+
+    /// <summary>
+    /// Get every yearly season the cached AniDB anime available to the current
+    /// user are in, with how many anime are in each, newest first. Upcoming
+    /// seasons stop at the one after the season under way, which is always
+    /// listed, and flagged.
+    /// </summary>
+    /// <remarks>
+    /// An anime is in a season by the rule of <c>/api/v3/AiringSchedule/Season/{year}/{season}</c>.
+    /// With <paramref name="channel"/>, a season only counts the anime with a
+    /// stored airing on those channels in it, or, for the season under way and
+    /// the next, one still to come, and its images are picked among them. Old
+    /// seasons may have no airings left, so they count fewer anime or none.
+    /// </remarks>
+    /// <param name="type">Only count anime of these types, comma-separated.</param>
+    /// <param name="channel">Only count anime airing on one of these channels, hidden or not, comma-separated.</param>
+    /// <param name="inCollection">
+    ///   Whether to count the anime with a Shoko series: <c>true</c> for every anime, <c>only</c> for those with one, <c>false</c> for those
+    ///   without.
+    /// </param>
+    /// <param name="includeRestricted">Whether to count restricted anime. The user's own restrictions apply on top.</param>
+    /// <param name="includeMissing">
+    ///   Whether to count the anime whose Shoko series has no local files: <c>true</c> for every anime, <c>only</c> for those, <c>false</c> to
+    ///   leave them out. Anime without a Shoko series are not affected.
+    /// </param>
+    /// <param name="fromYear">Optional. Leave out the seasons of earlier years. The current season is always listed.</param>
+    /// <param name="include">The extra details to add, comma-separated.</param>
+    /// <returns>The seasons.</returns>
+    [HttpGet("Season")]
+    public ActionResult<List<AiringSeason>> GetSeasons(
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
+        [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
+        [FromQuery, Range(1, 9999)] int? fromYear = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringSeason.IncludeDetails>? include = null
+    )
+    {
+        var options = new AnidbAnimeListOptions
+        {
+            Types = type,
+            ChannelIDs = channel is { Count: > 0 } ? channel : null,
+            InCollection = inCollection.InclusionFilter,
+            IncludeRestricted = includeRestricted.InclusionFilter,
+            IncludeMissing = includeMissing.InclusionFilter,
+            User = User,
+        };
+        return anidbCatalog.GetSeasons(options, includeImages: include?.Contains(AiringSeason.IncludeDetails.Images) ?? false)
+            .Where(season => fromYear is null || season.IsCurrent || season.Year >= fromYear)
+            .Select(season => new AiringSeason(season))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Get the cached AniDB anime of a yearly season available to the current
+    /// user, in the collection or not, each with what a season view card
+    /// shows and its next airing.
+    /// </summary>
+    /// <remarks>
+    /// An anime starts in the season of its first regular episode, where
+    /// seasons are whole weeks starting with the week of their first day less
+    /// a lead-in of four weeks for TV and one for the rest; a lone premiere up
+    /// to two weeks before a season with the run going on in it starts there,
+    /// and five or more episodes released together with nothing for four
+    /// weeks take no lead-in. After that, it is in every calendar quarter
+    /// holding one of its regular episodes up to the fourth from the end, or,
+    /// when no regular episode is dated, every season from its start date to
+    /// the quarter three weeks before its end date. A season after the one
+    /// following the season under way has no anime. The next airings are read
+    /// through each anime's series, or the anime itself outside the
+    /// collection, and count from now. With <paramref name="channel"/>, only
+    /// the anime with a stored airing on those channels in the season, or one
+    /// still to come, are listed, and their airings come from those channels
+    /// alone. Old seasons may have no airings left, so they list fewer anime
+    /// or none.
+    /// </remarks>
+    /// <param name="year">The year.</param>
+    /// <param name="season">The season: <c>Winter</c>, <c>Spring</c>, <c>Summer</c> or <c>Fall</c>, in any case.</param>
+    /// <param name="type">Only anime of these types, comma-separated.</param>
+    /// <param name="inCollection">
+    ///   Whether to include the anime with a Shoko series: <c>true</c> for every anime, <c>only</c> for those with one, <c>false</c> for those
+    ///   without.
+    /// </param>
+    /// <param name="includeRestricted">Whether to include restricted anime. The user's own restrictions apply on top.</param>
+    /// <param name="includeMissing">
+    ///   Whether to include the anime whose Shoko series has no local files: <c>true</c> for every anime, <c>only</c> for those, <c>false</c> to
+    ///   leave them out. Anime without a Shoko series are not affected.
+    /// </param>
+    /// <param name="kind">Only take airings whose schedule has a track of these kinds. Defaults to <see cref="AiringKind.Original"/>.</param>
+    /// <param name="channel">
+    ///   Only list anime airing on one of these channels, hidden or not, and only take their airings there. Without it, the hidden channels are
+    ///   left out.
+    /// </param>
+    /// <param name="provider">Only take airings from one of these airing schedule providers.</param>
+    /// <param name="episodeKind">Only take airings of these kinds of showing. Defaults to <c>Normal</c> and <c>Advance</c>, leaving out reruns.</param>
+    /// <param name="includeEstimates">Take the airings estimated from the schedules' own lines.</param>
+    /// <returns>The anime, by air date.</returns>
+    [HttpGet("Season/{year}/{season}")]
+    public ActionResult<List<SeasonAnime>> GetSeasonAnime(
+        [FromRoute, Range(1, 9999)] int year,
+        [FromRoute] YearlySeason season,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AnimeType>? type = null,
+        [FromQuery] IncludeOnlyFilter inCollection = IncludeOnlyFilter.True,
+        [FromQuery] IncludeOnlyFilter includeRestricted = IncludeOnlyFilter.False,
+        [FromQuery] IncludeOnlyFilter includeMissing = IncludeOnlyFilter.True,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringKind>? kind = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
+        [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
+        [FromQuery] bool includeEstimates = true
+    )
+    {
+        var channelIDs = channel is { Count: > 0 } ? channel : null;
+        var animeOptions = new AnidbAnimeListOptions
+        {
+            Seasons = [(year, season)],
+            Types = type,
+            ChannelIDs = channelIDs,
+            InCollection = inCollection.InclusionFilter,
+            IncludeRestricted = includeRestricted.InclusionFilter,
+            IncludeMissing = includeMissing.InclusionFilter,
+            User = User,
+        };
+        var airingOptions = new EpisodeAiringFilteringOptions
+        {
+            ProviderIDs = provider is { Count: > 0 } ? provider : null,
+            Kinds = kind is { Count: > 0 } ? kind : [AiringKind.Original],
+            ChannelIDs = channelIDs,
+            EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : [EpisodeAiringKind.Normal, EpisodeAiringKind.Advance],
+            IncludeEstimates = includeEstimates,
+            IncludeDateOnly = true,
+        };
+        return seasonAnimeBuilder.Build(anidbCatalog.GetAnime(animeOptions), airingOptions, DateOnly.FromDateTime(DateTime.UtcNow));
+    }
+
+    #endregion
+
     #region Time Zones
 
     /// <summary>
@@ -773,10 +906,9 @@ public class AiringScheduleController(
     /// <param name="seriesID">The ID of the shoko series.</param>
     /// <param name="kind">Only include airings whose schedule has a track of these kinds.</param>
     /// <param name="language">Only include airings whose schedule has a track in one of these languages.</param>
-    /// <param name="channel">Only include airings on one of these channels.</param>
+    /// <param name="channel">Only include airings on one of these channels, hidden or not. Without it, the hidden channels are left out.</param>
     /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
-    /// <param name="includeHiddenChannels">Include airings on hidden channels. One named in <paramref name="channel"/> is included either way.</param>
     /// <param name="includeDateOnly">Include a date-only entry for each AniDB episode with an air date and no airing at all.</param>
     /// <param name="nextOnly">Only return the next airing from now, per <paramref name="nextPer"/>.</param>
     /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
@@ -797,7 +929,6 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
-        [FromQuery] bool includeHiddenChannels = false,
         [FromQuery] bool includeDateOnly = false,
         [FromQuery] bool nextOnly = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
@@ -819,7 +950,6 @@ public class AiringScheduleController(
             Languages = language is { Count: > 0 } ? language : null,
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
             EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
-            IncludeHiddenChannels = includeHiddenChannels,
             IncludeDateOnly = includeDateOnly,
             NextOnly = nextOnly,
             NextPer = nextPer is { Count: > 0 } ? nextPer : null,
@@ -884,10 +1014,9 @@ public class AiringScheduleController(
     /// <param name="episodeID">The ID of the shoko episode.</param>
     /// <param name="kind">Only include airings whose schedule has a track of these kinds.</param>
     /// <param name="language">Only include airings whose schedule has a track in one of these languages.</param>
-    /// <param name="channel">Only include airings on one of these channels.</param>
+    /// <param name="channel">Only include airings on one of these channels, hidden or not. Without it, the hidden channels are left out.</param>
     /// <param name="provider">Only include airings from one of these airing schedule providers.</param>
     /// <param name="episodeKind">Only include airings of these kinds of showing. Leave out <c>Rerun</c> and <c>DetectedRerun</c> for no reruns.</param>
-    /// <param name="includeHiddenChannels">Include airings on hidden channels. One named in <paramref name="channel"/> is included either way.</param>
     /// <param name="includeDateOnly">Include a date-only entry when the episode has an AniDB air date and no airing at all.</param>
     /// <param name="nextOnly">Only return the next airing from now, per <paramref name="nextPer"/>.</param>
     /// <param name="nextPer">What <paramref name="nextOnly"/> keeps one airing per. Defaults to <see cref="AiringNextGrouping.Series"/>.</param>
@@ -911,7 +1040,6 @@ public class AiringScheduleController(
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? channel = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<Guid>? provider = null,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<EpisodeAiringKind>? episodeKind = null,
-        [FromQuery] bool includeHiddenChannels = false,
         [FromQuery] bool includeDateOnly = false,
         [FromQuery] bool nextOnly = false,
         [FromQuery, ModelBinder(typeof(CommaDelimitedModelBinder))] HashSet<AiringNextGrouping>? nextPer = null,
@@ -938,7 +1066,6 @@ public class AiringScheduleController(
             ChannelIDs = channel is { Count: > 0 } ? channel : null,
             EpisodeKinds = episodeKind is { Count: > 0 } ? episodeKind : null,
             IncludeDisabled = includeDisabled,
-            IncludeHiddenChannels = includeHiddenChannels,
             IncludeDateOnly = includeDateOnly,
             NextOnly = nextOnly,
             NextPer = nextPer is { Count: > 0 } ? nextPer : null,

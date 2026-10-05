@@ -50,15 +50,15 @@ response are always UTC.
   reported as `en` and one another reported as `eng` both answer to `English`,
   while `Portuguese` and `BrazilianPortuguese` are two languages.
 - `channel`: comma-delimited channel IDs, from `GET
-  /api/v3/AiringSchedule/Channel`.
+  /api/v3/AiringSchedule/Channel`. Without it, the channels the server hides
+  are left out; with it, exactly those channels are read, hidden or not. See
+  *Hidden channels*, below.
 - `provider`: comma-delimited airing schedule provider IDs, from `GET
   /api/v3/AiringSchedule/Provider`.
 - `type`: comma-delimited episode types. Omit it for every type.
 - `episodeKind`: comma-delimited kinds of showing, matched against each
   airing's `Kind`. Omit it for every kind. See *Advance screenings and
   reruns*, below.
-- `includeHiddenChannels`: include the channels the server hides. See *Hidden
-  channels*, below.
 - `inCollection`: the three-state filter on whether the series is in the
   collection, which means it has a shoko series. `only` (the default) keeps the
   series in the collection, `false` keeps the anime not in it, and `true` keeps
@@ -127,11 +127,17 @@ combinable:
   counts for each of them, and a date-only entry counts as `Original`.
 
 `nextPer=Series,Channel` is the next airing of each series on each of its
-channels. In each group the earliest episode wins, and the group answers with
-that episode's best airing by the server's preference, so "Ep 5 airs in 19
-hours" shows the channel and track the server would pick, even when another
-channel airs it a little earlier. A delayed airing's original slot is never
-next, and `to` still bounds the read, so widen it for a show on hiatus.
+channels. Next means the next *new* episode: one that premiered before `from`
+(now, for the entity routes), with a real `Normal` airing then on any schedule,
+provider or channel, hidden or not, is never next, so a regional channel airing
+episode 1 a week after Tokyo did is not "Ep 1 airs in 13 hours" but the next
+episode nobody has shown yet. Its late airings are still in a plain range read.
+A date-only entry is next until its day is over. In each group the earliest
+remaining episode wins, and the group answers with that episode's best airing
+by the server's preference, so "Ep 5 airs in 19 hours" shows the channel and
+track the server would pick, even when another channel airs it a little
+earlier. A delayed airing's original slot is never next, and `to` still bounds
+the read, so widen it for a show on hiatus.
 
 The series, episode and schedule airing routes take `nextOnly` and `nextPer`
 too, and count from now.
@@ -172,8 +178,8 @@ narrowed to one channel, and filters the same way: `from`, `to`, `provider`,
 `includeEstimates`, `includeDelayedOriginalSlots`, `preferredOnly`, `nextOnly`,
 `nextPer`, `episodeKind` and `entityAnchor` all mean what they mean on
 `/Airing`, with the same defaults. It has no `includeDateOnly`, since a
-date-only entry is on no channel, and no `includeHiddenChannels`, since naming
-a hidden channel already includes it.
+date-only entry is on no channel, and it answers for a hidden channel, since it
+names one.
 
 `kind` is the one deliberate difference: it defaults to every kind rather than
 to `Original`, because naming a channel has already narrowed the read and a
@@ -227,12 +233,13 @@ lists exist.
 
 ## Hidden channels
 
-The server can hide channels nobody watches: every airing read leaves out the
-airings on them. `includeHiddenChannels=true` brings them back, and a read that
-names a hidden channel, through `channel` or the channel and schedule routes,
-returns it either way. `GET /api/v3/AiringSchedule/Channel` and the other
-channel routes say whether a channel is hidden with `IsHidden`. The list itself
-is `HiddenChannels` in the service's configuration, below.
+The server can hide channels nobody watches: every airing read that names no
+channels leaves out the airings on them. A read that names channels, through
+`channel` or the channel and schedule routes, returns exactly those, hidden or
+not, so a client showing hidden channels lists the channels it wants. `GET
+/api/v3/AiringSchedule/Channel` and the other channel routes say whether a
+channel is hidden with `IsHidden`. The list itself is `HiddenChannels` in the
+service's configuration, below.
 
 ## Estimates
 
@@ -365,9 +372,8 @@ that `linkedEntityAirings` uses: a bool has no room for a third name.
   shoko series, including its seasons' own unless `includeSeasonSchedules=false`.
 - `GET /api/v3/Series/{seriesID}/AiringSchedule/Airing` and `GET
   /api/v3/Episode/{episodeID}/AiringSchedule/Airing`: the airings, best first
-  for the episode route. Both take `provider`, `episodeKind`,
-  `includeHiddenChannels`, `includeDateOnly`, `nextOnly` and `nextPer` as
-  `/Airing` does. A date-only entry is added for an episode with an AniDB air
+  for the episode route. Both take `channel`, `provider`, `episodeKind`,
+  `includeDateOnly`, `nextOnly` and `nextPer` as `/Airing` does. A date-only entry is added for an episode with an AniDB air
   date, or a linked one before 1970, and no airing at all, and next counts
   from now, so `nextOnly=true` on the series route is a season card's
   countdown.
@@ -382,6 +388,51 @@ The `linkedEntitySchedules` and `linkedEntityAirings` queries are the same
 three-state switch as `linkedEntityImages`: `false` for the entity's own,
 `true` to also walk its linked entities, and omitted to let the server decide,
 which means linked for shoko entities and own-only for everything else.
+
+## The season view
+
+Two routes serve a season chart of the cached AniDB anime, in the collection or
+not.
+
+- `GET /api/v3/AiringSchedule/Season` lists the yearly seasons the anime are
+  in, newest first, with how many anime are in each (`Count`) and the season
+  under way flagged (`IsCurrent`). Upcoming seasons stop at the one after the
+  season under way, which is always listed. It takes `type`, `inCollection`,
+  `includeRestricted`, `includeMissing` and `channel`, and `fromYear` to leave
+  out older years. `include=Images` adds a `Poster` and a `Backdrop` for each
+  season, from its best rated anime starting in it that has a poster.
+- `GET /api/v3/AiringSchedule/Season/{year}/{season}` lists the anime of one
+  season, `season` being `Winter`, `Spring`, `Summer` or `Fall` in any case,
+  by air date. It takes the same anime filters, and `kind` (`Original` by
+  default), `provider`, `episodeKind` (`Normal,Advance` by default, leaving
+  out reruns) and `includeEstimates` for the airings.
+
+`channel` works the same on both, as the calendar's channel filter: without
+it, the seasons hold every anime by the rule above and the airings come from
+the visible channels. With it, a season only holds the anime with a stored
+airing on those channels, hidden or not, in its calendar quarter, or, for the
+season under way and the next, one still to come; the counts and images are
+taken among those, and the airings come from those channels alone. Airings are
+only kept for the service's retention window, so an old season counts fewer
+anime, or none, with a channel filter.
+
+Each anime carries what a card shows: `ID` (AniDB), `ShokoID`, `Type`,
+`Title`, `Poster`, `Overview`, `AirDate`, `EndDate`, `EpisodeCount`,
+`Restricted`, `Studios`, `SourceMaterial`, up to five genre `Tags`,
+`VideoCount`, `StartSeason` and `EpisodeDuration`, and its airing:
+
+- `NextAiring`: the next new episode's airing the server prefers, in the
+  `EpisodeAiring` shape of the airings endpoint, or a date-only entry for an
+  episode known only by its AniDB air date. `null` when there is none.
+- `OtherAirings`: that episode's other upcoming airings, the next one on each
+  other channel, in airing order.
+- `AiringStatus`: `Upcoming` with a next airing, `Finished` without one once
+  the end date has passed, else `Unknown`.
+
+The airings are read through each anime's Shoko series, or through the anime
+itself outside the collection, so they need no AniDB ID on the airing to be
+matched. An airing on a provider's series no AniDB anime is linked to is on
+no card.
 
 ## Live updates
 

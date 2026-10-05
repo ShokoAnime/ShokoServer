@@ -16,9 +16,10 @@ namespace Shoko.Server.Models.Airing;
 /// <remarks>
 /// A channel is keyed by its type and its normalised name, so the same station
 /// spelled differently by two providers ends up on one ID, while two names that
-/// never normalise alike stay two channels.
+/// never normalise alike stay two channels. The service hands it out as an
+/// <see cref="IAiringChannel"/> through <c>AiringChannelView</c>.
 /// </remarks>
-public class AiringChannel : IAiringChannel
+public class AiringChannel : IMetadata
 {
     #region Database Columns
 
@@ -114,12 +115,6 @@ public class AiringChannel : IAiringChannel
     #region IMetadata Implementation
 
     MetadataGuid IMetadata.ID => new(MetadataSource.Shoko, MetadataEntityType.Channel, ChannelID.ToString());
-
-    #endregion
-
-    #region IAiringChannel Implementation
-
-    IReadOnlyList<string> IAiringChannel.Aliases => Aliases;
 
     #endregion
 }

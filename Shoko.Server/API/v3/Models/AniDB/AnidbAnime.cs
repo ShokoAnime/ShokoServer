@@ -79,7 +79,8 @@ public class AnidbAnime
     public bool Restricted { get; set; }
 
     /// <summary>
-    /// The preferred poster for the anime.
+    /// The preferred poster for the anime: its Shoko series' when it is in
+    /// the collection, else its own.
     /// </summary>
     public Image? Poster { get; set; }
 
@@ -113,96 +114,6 @@ public class AnidbAnime
     [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
     public bool? Verified { get; set; }
 
-    /// <summary>
-    /// The preferred overview. Only set with <see cref="IncludeDetails.Overview"/>,
-    /// and left out when there is none.
-    /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public string? Overview { get; set; }
-
-    /// <summary>
-    /// The animation studios, in AniDB's order. Only set with
-    /// <see cref="IncludeDetails.Studios"/>.
-    /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<AnimeStudio>? Studios { get; set; }
-
-    /// <summary>
-    /// What the anime was adapted from. Only set with
-    /// <see cref="IncludeDetails.SourceMaterial"/>.
-    /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public SourceMaterial? SourceMaterial { get; set; }
-
-    /// <summary>
-    /// The heaviest genre tags, without spoilers. Only set with
-    /// <see cref="IncludeDetails.Tags"/>.
-    /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public List<AnimeTag>? Tags { get; set; }
-
-    /// <summary>
-    /// The local files of the anime's Shoko series. Only set with
-    /// <see cref="IncludeDetails.Files"/>.
-    /// </summary>
-    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-    public AnimeFiles? Files { get; set; }
-
-    /// <summary>
-    /// The yearly season the anime starts in: the one its first regular
-    /// episode airs in, after an early premiere or a batch drop, else the
-    /// one of its start date. Only sent with
-    /// <see cref="IncludeDetails.StartSeason"/>, and <c>null</c> when it has
-    /// no dates to go by.
-    /// </summary>
-    public SeasonWithYear? StartSeason
-    {
-        get => _startSeason;
-        set
-        {
-            _startSeason = value;
-            _hasStartSeason = true;
-        }
-    }
-
-    private SeasonWithYear? _startSeason;
-
-    private bool _hasStartSeason;
-
-    /// <summary>
-    /// Whether to send <see cref="StartSeason"/>: once set, even to <c>null</c>.
-    /// </summary>
-    /// <returns><c>true</c> when it was set.</returns>
-    public bool ShouldSerializeStartSeason()
-        => _hasStartSeason;
-
-    /// <summary>
-    /// The usual length of a regular episode: the median of the known
-    /// lengths. Only sent with <see cref="IncludeDetails.EpisodeDuration"/>,
-    /// and <c>null</c> when no regular episode has a known length.
-    /// </summary>
-    public TimeSpan? EpisodeDuration
-    {
-        get => _episodeDuration;
-        set
-        {
-            _episodeDuration = value;
-            _hasEpisodeDuration = true;
-        }
-    }
-
-    private TimeSpan? _episodeDuration;
-
-    private bool _hasEpisodeDuration;
-
-    /// <summary>
-    /// Whether to send <see cref="EpisodeDuration"/>: once set, even to <c>null</c>.
-    /// </summary>
-    /// <returns><c>true</c> when it was set.</returns>
-    public bool ShouldSerializeEpisodeDuration()
-        => _hasEpisodeDuration;
-
     private AnidbAnime(int animeId, bool includeTitles, AnimeSeries? series = null, AniDB_Anime? anime = null, ResponseAniDBTitles.Anime? result = null)
     {
         ID = animeId;
@@ -218,7 +129,7 @@ public class AnidbAnime
                 : null;
             Description = anime.Description;
             Restricted = anime.IsRestricted;
-            Poster = (anime as IWithPrimaryImage).PrimaryImage is { } img ? new Image(img) : null;
+            Poster = ((series as IWithPrimaryImage)?.PrimaryImage ?? (anime as IWithPrimaryImage).PrimaryImage) is { } img ? new Image(img) : null;
             EpisodeCount = anime.EpisodeCountNormal;
             Rating = new Rating
             {
@@ -260,14 +171,6 @@ public class AnidbAnime
         }
     }
 
-    /// <summary>
-    /// An empty model, for the caller to fill in.
-    /// </summary>
-    internal AnidbAnime()
-    {
-        Title = string.Empty;
-    }
-
     public AnidbAnime(AniDB_Anime anime, AnimeSeries? series = null, bool includeTitles = true)
         : this(anime.AnimeID, includeTitles, series, anime) { }
 
@@ -296,99 +199,4 @@ public class AnidbAnime
             Type = "User Approval"
         };
     }
-
-    #region Nested Types
-
-    /// <summary>
-    /// The extra details an AniDB anime list can be sent with.
-    /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
-    public enum IncludeDetails
-    {
-        /// <summary>
-        /// The animation studios, in <see cref="AnidbAnime.Studios"/>.
-        /// </summary>
-        Studios,
-
-        /// <summary>
-        /// What the anime was adapted from, in <see cref="AnidbAnime.SourceMaterial"/>.
-        /// </summary>
-        SourceMaterial,
-
-        /// <summary>
-        /// The top genre tags, in <see cref="AnidbAnime.Tags"/>.
-        /// </summary>
-        Tags,
-
-        /// <summary>
-        /// The preferred overview, in <see cref="AnidbAnime.Overview"/>.
-        /// </summary>
-        Overview,
-
-        /// <summary>
-        /// The local file count, in <see cref="AnidbAnime.Files"/>.
-        /// </summary>
-        Files,
-
-        /// <summary>
-        /// The season the anime starts in, in <see cref="AnidbAnime.StartSeason"/>.
-        /// </summary>
-        StartSeason,
-
-        /// <summary>
-        /// The usual length of a regular episode, in <see cref="AnidbAnime.EpisodeDuration"/>.
-        /// </summary>
-        EpisodeDuration,
-    }
-
-    /// <summary>
-    /// An animation studio of an AniDB anime.
-    /// </summary>
-    public class AnimeStudio
-    {
-        /// <summary>
-        /// The AniDB creator ID.
-        /// </summary>
-        [Required]
-        public required int ID { get; init; }
-
-        /// <summary>
-        /// The name.
-        /// </summary>
-        [Required]
-        public required string Name { get; init; }
-    }
-
-    /// <summary>
-    /// A tag of an AniDB anime.
-    /// </summary>
-    public class AnimeTag
-    {
-        /// <summary>
-        /// The AniDB tag ID.
-        /// </summary>
-        [Required]
-        public required int ID { get; init; }
-
-        /// <summary>
-        /// The name.
-        /// </summary>
-        [Required]
-        public required string Name { get; init; }
-    }
-
-    /// <summary>
-    /// The local files of an AniDB anime.
-    /// </summary>
-    public class AnimeFiles
-    {
-        /// <summary>
-        /// How many local files are linked to the anime's Shoko series, each
-        /// counted once; <c>0</c> when there is no series.
-        /// </summary>
-        [Required]
-        public required int VideoCount { get; init; }
-    }
-
-    #endregion
 }

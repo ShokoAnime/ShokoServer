@@ -275,10 +275,13 @@ public sealed class EpisodeAiringNotificationService : BackgroundService
         var from = _watermark > DateTime.MinValue ? _watermark : minute;
         var to = minute + HorizonLength;
         // The read's end is exclusive and the horizon's is not, so it reads one tick past it.
+        // Each subscriber's own filter leaves the hidden channels out again, and
+        // one naming a hidden channel still needs it in the horizon.
         var airings = _service.GetAiringsInRange(
             new DateTimeOffset(from.Ticks, TimeSpan.Zero),
             new DateTimeOffset(to.Ticks + 1, TimeSpan.Zero),
-            options
+            options,
+            includeHiddenChannels: true
         );
 
         _horizon.Clear();

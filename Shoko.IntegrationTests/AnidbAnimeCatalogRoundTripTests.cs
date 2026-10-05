@@ -73,8 +73,8 @@ public class AnidbAnimeCatalogRoundTripTests(DatabaseMigrationFixture fixture)
             episodes.Save([Episode(FirstAnimeID, new(2015, 4, 10)), Episode(LastAnimeID, nextDay)]);
 
             var anidbService = services.GetRequiredService<IAnidbService>();
-            Assert.Equal([FirstAnimeID], anidbService.GetCachedAnime(new() { Seasons = [(2015, YearlySeason.Spring)] }).Select(entry => entry.AnidbID).Where(IsOurs));
-            Assert.Equal([LastAnimeID], anidbService.GetCachedAnime(new() { Seasons = [next] }).Select(entry => entry.AnidbID).Where(IsOurs));
+            Assert.Equal([FirstAnimeID], anidbService.GetCachedAnime(new() { Seasons = [(2015, YearlySeason.Spring)] }).Select(entry => entry.Anime.AnidbID).Where(IsOurs));
+            Assert.Equal([LastAnimeID], anidbService.GetCachedAnime(new() { Seasons = [next] }).Select(entry => entry.Anime.AnidbID).Where(IsOurs));
             Assert.Contains(anidbService.GetCachedAnimeSeasons(), season => season is { Count: > 0 } && (season.Year, season.Season) == next);
 
             var catalog = services.GetRequiredService<AnidbAnimeCatalog>();

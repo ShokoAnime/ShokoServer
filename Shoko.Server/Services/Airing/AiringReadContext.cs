@@ -80,17 +80,25 @@ internal sealed class AiringReadContext
     public bool IncludeDisabled { get; }
 
     /// <summary>
+    /// Whether the schedules on hidden channels are part of this read even
+    /// when it names no channels, as the notification horizon needs.
+    /// </summary>
+    public bool IncludeHiddenChannels { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="AiringReadContext"/> class.
     /// </summary>
     /// <param name="service">The service the read belongs to.</param>
     /// <param name="includeDisabled">Whether disabled providers and kinds are part of the read.</param>
+    /// <param name="includeHiddenChannels">Whether hidden channels are part of the read when it names no channels.</param>
     /// <exception cref="ArgumentNullException"><paramref name="service"/> is <c>null</c>.</exception>
-    public AiringReadContext(AiringScheduleService service, bool includeDisabled = false)
+    public AiringReadContext(AiringScheduleService service, bool includeDisabled = false, bool includeHiddenChannels = false)
     {
         ArgumentNullException.ThrowIfNull(service);
 
         _service = service;
         IncludeDisabled = includeDisabled;
+        IncludeHiddenChannels = includeHiddenChannels;
     }
 
     #region Settings
@@ -195,7 +203,9 @@ internal sealed class AiringReadContext
         if (_channels.TryGetValue(channelID, out var channel))
             return channel;
 
-        return _channels[channelID] = RepoFactory.AiringChannel.GetByChannelID(channelID);
+        return _channels[channelID] = RepoFactory.AiringChannel.GetByChannelID(channelID) is { } row
+            ? new AiringChannelView(row, HiddenChannels.Contains(channelID))
+            : null;
     }
 
     #endregion

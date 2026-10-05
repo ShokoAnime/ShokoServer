@@ -235,6 +235,16 @@ public interface IAiringScheduleService
     IReadOnlyList<IAiringChannel> GetAllChannels(AiringChannelType? type = null);
 
     /// <summary>
+    ///   The IDs of the channels the server hides, as configured. An airing
+    ///   read naming no channels leaves their airings out, and one naming them
+    ///   in <see cref="EpisodeAiringFilteringOptions.ChannelIDs"/> gets them.
+    /// </summary>
+    /// <remarks>
+    ///   Read it when needed, since the setting can change at any time.
+    /// </remarks>
+    IReadOnlySet<Guid> HiddenChannelIDs { get; }
+
+    /// <summary>
     ///   Adds aliases to a channel. An alias equal to the channel's own name,
     ///   or one it already has, is ignored.
     /// </summary>
@@ -757,6 +767,42 @@ public interface IAiringScheduleService
     ///   The airings.
     /// </returns>
     IReadOnlyList<IEpisodeAiring> GetAiringsForSeries(ISeries series, EpisodeAiringFilteringOptions? options = null);
+
+    /// <summary>
+    ///   Gets the airings for every episode of each of many series in one
+    ///   read, such as the next airing of every anime of a season. Each series
+    ///   answers what <see cref="GetAiringsForSeries(ISeries, EpisodeAiringFilteringOptions)"/>
+    ///   would for it alone, while the lookups they share are made once.
+    /// </summary>
+    /// <remarks>
+    ///   <see cref="EpisodeAiringFilteringOptions.NextOnly"/> reduces each
+    ///   series on its own, so an empty
+    ///   <see cref="EpisodeAiringFilteringOptions.NextPer"/> gives each series
+    ///   its single next airing. A series listed twice is read once.
+    /// </remarks>
+    /// <param name="series">
+    ///   The series to get the airings for.
+    /// </param>
+    /// <param name="options">
+    ///   Optional. How to filter and order the airings of every series.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///   <paramref name="series"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <paramref name="series"/> holds a <c>null</c>.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///   Parts have not been added yet.
+    /// </exception>
+    /// <returns>
+    ///   The airings of each series by its <see cref="IMetadata.ID"/>, an
+    ///   empty list for a series with none.
+    /// </returns>
+    IReadOnlyDictionary<MetadataGuid, IReadOnlyList<IEpisodeAiring>> GetAiringsForSeries(
+        IEnumerable<ISeries> series,
+        EpisodeAiringFilteringOptions? options = null
+    );
 
     /// <summary>
     ///   Gets the airings for every episode of the season.

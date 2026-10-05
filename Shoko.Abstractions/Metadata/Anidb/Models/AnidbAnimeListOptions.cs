@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
@@ -32,6 +33,19 @@ public record AnidbAnimeListOptions
     ///   Optional. Only anime of these types.
     /// </summary>
     public IReadOnlyCollection<AnimeType>? Types { get; init; }
+
+    /// <summary>
+    ///   Optional. Only anime with a stored airing on one of these channels,
+    ///   hidden or not: in a season when it is counted for that season, or,
+    ///   for the season under way or a later one, still to come. Without
+    ///   <see cref="Seasons"/>, any such airing will do.
+    /// </summary>
+    /// <remarks>
+    ///   An airing is in the calendar quarter it airs in. Old seasons may
+    ///   have no airings left, since the airing schedule service keeps them
+    ///   only for its retention window, so they count fewer anime or none.
+    /// </remarks>
+    public IReadOnlySet<Guid>? ChannelIDs { get; init; }
 
     /// <summary>
     ///   Optional. Whether to keep the anime with a Shoko series, those

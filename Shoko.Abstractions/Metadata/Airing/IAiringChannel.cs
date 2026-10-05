@@ -45,6 +45,13 @@ public interface IAiringChannel : IMetadata, IWithImages, IWithPrimaryImage
     IReadOnlyList<string> Aliases { get; }
 
     /// <summary>
+    ///   Whether the server hides the channel: an airing read naming no
+    ///   channels leaves its airings out. It reflects the setting when the
+    ///   channel was read.
+    /// </summary>
+    bool IsHidden { get; }
+
+    /// <summary>
     ///   When the channel was first registered.
     /// </summary>
     DateTime CreatedAt { get; }

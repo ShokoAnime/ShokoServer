@@ -93,7 +93,9 @@ public class AiringScheduleConfigurationTests
             null!,
             null!,
             null!,
-            _paths
+            _paths,
+            null!,
+            null!
         )
         {
             ControllerContext = new()

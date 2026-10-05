@@ -2,20 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Moq;
-using Newtonsoft.Json;
+using Shoko.Abstractions.Config;
+using Shoko.Abstractions.Config.Services;
 using Shoko.Abstractions.Filtering;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.Airing;
 using Shoko.Abstractions.Metadata.Anidb;
 using Shoko.Abstractions.Metadata.Anidb.Enums;
 using Shoko.Abstractions.Metadata.Anidb.Models;
 using Shoko.Abstractions.Metadata.Containers;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Image;
 using Shoko.Abstractions.Metadata.Services;
+using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Abstractions.Metadata.Stub;
 using Shoko.Abstractions.User;
 using Shoko.Server.API.v3.Helpers;
-using Shoko.Server.API.v3.Models.AniDB;
+using Shoko.Server.API.v3.Models.Airing;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.Extensions;
 using Shoko.Server.Models.AniDB;
@@ -26,6 +30,8 @@ using Shoko.Server.Repositories.Cached.AniDB;
 using Shoko.Server.Repositories.Direct;
 using Shoko.Server.Server;
 using Shoko.Server.Services;
+using Shoko.Server.Services.Airing;
+using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
@@ -37,8 +43,8 @@ namespace Shoko.Tests.Services;
 
 /// <summary>
 /// Covers <see cref="AnidbAnimeCatalog"/>, the listing behind the AniDB anime
-/// list and its seasons, and the optional details <see cref="AnidbAnimeDetails"/>
-/// adds to the list's models.
+/// list and its seasons, and the season view's anime <see cref="SeasonAnimeBuilder"/>
+/// builds from it.
 /// </summary>
 [Collection(nameof(RepoFactoryCollection))]
 public class AnidbAnimeCatalogTests
@@ -101,6 +107,10 @@ public class AnidbAnimeCatalogTests
     private static Guid BackdropID(int animeID)
         => new(animeID, 1, 0, new byte[8]);
 
+    // The ID of the stand-in poster of an anime's series.
+    private static Guid SeriesPosterID(int animeID)
+        => new(animeID, 2, 0, new byte[8]);
+
     private sealed class Harness : IDisposable
     {
         private readonly RepoFactoryScope _scope = new();
@@ -118,7 +128,9 @@ public class AnidbAnimeCatalogTests
             IEnumerable<CrossRef_File_Episode>? fileCrossReferences = null,
             IEnumerable<VideoLocal>? videos = null,
             IReadOnlySet<int>? withPosters = null,
-            IReadOnlySet<int>? withBackdrops = null
+            IReadOnlySet<int>? withBackdrops = null,
+            IReadOnlySet<int>? withSeriesPosters = null,
+            IReadOnlyDictionary<int, AnidbAnimeChannelAirings>? channelAirings = null
         )
         {
             var animeTagRepository = CachedRepo.Build<AniDB_Anime_TagRepository, int, AniDB_Anime_Tag>(xref => xref.AniDB_Anime_TagID, animeTags);
@@ -162,6 +174,8 @@ public class AnidbAnimeCatalogTests
             Catalog = new ImageCatalog(
                 withPosters ?? new HashSet<int>(),
                 withBackdrops ?? new HashSet<int>(),
+                withSeriesPosters ?? new HashSet<int>(),
+                channelAirings ?? new Dictionary<int, AnidbAnimeChannelAirings>(),
                 animeRepository,
                 episodeRepository,
                 CachedRepo.Build<AnimeSeriesRepository, int, AnimeSeries>(entry => entry.AnimeSeriesID, series),
@@ -184,11 +198,15 @@ public class AnidbAnimeCatalogTests
 
     /// <summary>
     /// A catalog whose anime have a poster or a backdrop only when listed,
-    /// identified by <see cref="PosterID"/> and <see cref="BackdropID"/>.
+    /// identified by <see cref="PosterID"/> and <see cref="BackdropID"/>, whose
+    /// series have a poster only when listed, by <see cref="SeriesPosterID"/>,
+    /// and whose anime air on the asked-for channels as listed.
     /// </summary>
     private sealed class ImageCatalog(
         IReadOnlySet<int> withPosters,
         IReadOnlySet<int> withBackdrops,
+        IReadOnlySet<int> withSeriesPosters,
+        IReadOnlyDictionary<int, AnidbAnimeChannelAirings> channelAirings,
         AniDB_AnimeRepository animeRepository,
         AniDB_EpisodeRepository episodeRepository,
         AnimeSeriesRepository seriesRepository,
@@ -209,14 +227,23 @@ public class AnidbAnimeCatalogTests
         tagRepository,
         fileCrossReferenceRepository,
         videoRepository,
-        textManager
+        textManager,
+        null!
     )
     {
-        protected override IImage? GetImage(AniDB_Anime anime, AnimeSeries? series, ImageEntityType type)
-            => type switch
+        internal override IReadOnlyDictionary<int, AnidbAnimeChannelAirings> GetChannelAirings(IReadOnlySet<Guid> channelIDs)
+            => channelAirings;
+
+        protected override IImage? GetImage(IWithImages entry, ImageEntityType type)
+            => (entry, type) switch
             {
-                ImageEntityType.Primary when withPosters.Contains(anime.AnimeID) => Mock.Of<IImage>(image => image.ID == PosterID(anime.AnimeID)),
-                ImageEntityType.Backdrop when withBackdrops.Contains(anime.AnimeID) => Mock.Of<IImage>(image => image.ID == BackdropID(anime.AnimeID)),
+                (AnimeSeries series, ImageEntityType.Primary) when withSeriesPosters.Contains(series.AniDB_ID)
+                    => Mock.Of<IImage>(image => image.ID == SeriesPosterID(series.AniDB_ID)),
+                (AnimeSeries, _) => null,
+                (AniDB_Anime anime, ImageEntityType.Primary) when withPosters.Contains(anime.AnimeID)
+                    => Mock.Of<IImage>(image => image.ID == PosterID(anime.AnimeID)),
+                (AniDB_Anime anime, ImageEntityType.Backdrop) when withBackdrops.Contains(anime.AnimeID)
+                    => Mock.Of<IImage>(image => image.ID == BackdropID(anime.AnimeID)),
                 _ => null,
             };
     }
@@ -508,6 +535,77 @@ public class AnidbAnimeCatalogTests
 
     #endregion
 
+    #region Channels
+
+    // The asked-for channels; the stand-in catalog answers for any.
+    private static readonly IReadOnlySet<Guid> _channels = new HashSet<Guid> { Guid.NewGuid() };
+
+    // Where an anime's airings on the channels fall.
+    private static AnidbAnimeChannelAirings OnChannels(bool hasUpcoming, params (int Year, YearlySeason Season)[] seasons)
+    {
+        var airings = new AnidbAnimeChannelAirings { HasUpcoming = hasUpcoming };
+        airings.Seasons.UnionWith(seasons);
+        return airings;
+    }
+
+    // Anime 2 airs on the channels in Summer 2015, anime 5 only in Fall 2015.
+    private static Harness ChannelHarness()
+        => new(
+            PastAnime(),
+            PastEpisodes(),
+            channelAirings: new Dictionary<int, AnidbAnimeChannelAirings>
+            {
+                [2] = OnChannels(false, (2015, YearlySeason.Summer)),
+                [5] = OnChannels(false, (2015, YearlySeason.Fall)),
+            }
+        );
+
+    [Fact]
+    public void Channels_ListOnlyTheAnimeAiringOnThemInTheSeason()
+    {
+        using var harness = ChannelHarness();
+
+        Assert.Equal([2, 5], harness.IDs(InSeasons((2015, YearlySeason.Summer))).Order());
+        Assert.Equal([2], harness.IDs(new() { Seasons = [(2015, YearlySeason.Summer)], ChannelIDs = _channels }));
+    }
+
+    [Fact]
+    public void Channels_CountOnlyTheAnimeAiringOnThemInEachSeason()
+    {
+        using var harness = ChannelHarness();
+
+        var all = harness.Catalog.GetSeasons().Where(season => season.Year == 2015).Select(season => (season.Season, season.Count));
+        var onChannels = harness.Catalog.GetSeasons(new() { ChannelIDs = _channels })
+            .Where(season => season.Count > 0)
+            .Select(season => (season.Year, season.Season, season.Count));
+
+        Assert.Equal([(YearlySeason.Fall, 2), (YearlySeason.Summer, 2), (YearlySeason.Spring, 2)], all);
+        // Anime 2 is in Fall too, but airs on the channels in Summer only.
+        Assert.Equal([(2015, YearlySeason.Summer, 1)], onChannels);
+    }
+
+    [Fact]
+    public void Channels_AnUpcomingAiringCountsFromTheSeasonUnderWayOn()
+    {
+        var current = CurrentSeason();
+        var next = SeasonRules.GetNextYearlySeason(current);
+        using var harness = new Harness(
+            [Anime(1, "Running", null), Anime(2, "Old", null)],
+            [.. Episodes(1, MidSeason(current), MidSeason(next)), .. Episodes(2, Day(2015, 4, 10))],
+            channelAirings: new Dictionary<int, AnidbAnimeChannelAirings>
+            {
+                [1] = OnChannels(true),
+                [2] = OnChannels(true),
+            }
+        );
+
+        Assert.Equal([1], harness.IDs(new() { Seasons = [current], ChannelIDs = _channels }));
+        Assert.Equal([1], harness.IDs(new() { Seasons = [next], ChannelIDs = _channels }));
+        Assert.Empty(harness.IDs(new() { Seasons = [(2015, YearlySeason.Spring)], ChannelIDs = _channels }));
+    }
+
+    #endregion
+
     #region Season Images
 
     // The images a season gets, as poster and backdrop IDs.
@@ -624,9 +722,12 @@ public class AnidbAnimeCatalogTests
 
     #endregion
 
-    #region Details
+    #region Season Anime
 
-    private static Harness DetailsHarness()
+    // The day the season view is read on.
+    private static readonly DateOnly _today = new(2026, 10, 5);
+
+    private static Harness CardHarness()
         => new(
             [Anime(1, "Alpha", Date(2015, 4, 1)), Anime(2, "Beta", Date(2015, 4, 1))],
             // Starts in Spring, its Winter special left out; Beta has no episodes.
@@ -683,66 +784,329 @@ public class AnidbAnimeCatalogTests
             ]
         );
 
-    private static AnidbAnime Apply(Harness harness, int animeID, int tagLimit, params AnidbAnime.IncludeDetails[] include)
-    {
-        var entries = harness.Catalog.GetAnime();
-        var (anime, series) = entries.Single(entry => entry.Anime.AnimeID == animeID);
-        var set = include.ToHashSet();
-        var model = new AnidbAnime();
-        AnidbAnimeDetails.Apply(model, anime, series, set, tagLimit, harness.Catalog, AnidbAnimeDetails.LoadStudios(harness.Catalog, entries, set));
-        return model;
-    }
-
-    [Fact]
-    public void Details_NoneAsked_LeavesEveryFieldUnset()
-    {
-        using var harness = DetailsHarness();
-
-        var model = Apply(harness, 1, 5);
-
-        Assert.Null(model.Overview);
-        Assert.Null(model.Studios);
-        Assert.Null(model.SourceMaterial);
-        Assert.Null(model.Tags);
-        Assert.Null(model.Files);
-    }
-
-    [Fact]
-    public void Details_EachAsked_SetsOnlyThatField()
-    {
-        using var harness = DetailsHarness();
-
-        foreach (var detail in Enum.GetValues<AnidbAnime.IncludeDetails>())
+    // An airing of an episode at a time on a channel, or a date-only entry when it has no time.
+    private static IEpisodeAiring Airing(int episodeID, DateTime? airedAt, string? channel = null, DateOnly? airDate = null)
+        => new FakeAiring
         {
-            var model = Apply(harness, 1, 5, detail);
+            ID = Guid.NewGuid(),
+            EpisodeID = new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Episode, episodeID.ToString()),
+            AiredAt = airedAt,
+            IsDateOnly = airedAt is null,
+            AirDate = airDate,
+            Channel = channel is null
+                ? null
+                : Mock.Of<IAiringChannel>(entry => entry.ChannelID == Guid.NewGuid() && entry.Name == channel && entry.Aliases == Array.Empty<string>()),
+        };
 
-            Assert.Equal(detail is AnidbAnime.IncludeDetails.Overview, model.Overview is not null);
-            Assert.Equal(detail is AnidbAnime.IncludeDetails.Studios, model.Studios is not null);
-            Assert.Equal(detail is AnidbAnime.IncludeDetails.SourceMaterial, model.SourceMaterial is not null);
-            Assert.Equal(detail is AnidbAnime.IncludeDetails.Tags, model.Tags is not null);
-            Assert.Equal(detail is AnidbAnime.IncludeDetails.Files, model.Files is not null);
-            Assert.Equal(detail is AnidbAnime.IncludeDetails.StartSeason, model.ShouldSerializeStartSeason());
-            Assert.Equal(detail is AnidbAnime.IncludeDetails.EpisodeDuration, model.ShouldSerializeEpisodeDuration());
-        }
-    }
-
-    [Fact]
-    public void Details_AllAsked_FillsEveryField()
+    // An airing schedule service answering the single next airing and the next airing per channel of each series.
+    private static Mock<IAiringScheduleService> AiringService(
+        Func<ISeries, IReadOnlyList<IEpisodeAiring>> next,
+        Func<ISeries, IReadOnlyList<IEpisodeAiring>>? perChannel = null
+    )
     {
-        using var harness = DetailsHarness();
+        var service = new Mock<IAiringScheduleService>();
+        service
+            .Setup(entry => entry.GetAiringsForSeries(It.IsAny<IEnumerable<ISeries>>(), It.IsAny<EpisodeAiringFilteringOptions?>()))
+            .Returns((IEnumerable<ISeries> series, EpisodeAiringFilteringOptions? options) =>
+                series.ToDictionary(
+                    entry => entry.ID,
+                    entry => options!.NextPer!.Contains(AiringNextGrouping.Channel) ? (perChannel ?? (_ => []))(entry) : next(entry)
+                ));
+        return service;
+    }
 
-        var model = Apply(harness, 1, 5, Enum.GetValues<AnidbAnime.IncludeDetails>());
+    private static List<SeasonAnime> Build(Harness harness, Mock<IAiringScheduleService> airingService)
+        => Build(harness, airingService, Links(), []);
 
-        Assert.Equal("series overview", model.Overview);
-        Assert.Equal(["Studio Two", "Studio One"], model.Studios!.Select(studio => studio.Name));
-        Assert.Equal(SourceMaterial.Manga, model.SourceMaterial);
-        Assert.Equal(["action", "comedy", "fantasy"], model.Tags!.Select(tag => tag.Name));
-        Assert.Equal(2, model.Files!.VideoCount);
-        Assert.Equal(new SeasonWithYear(2015, YearlySeason.Spring), model.StartSeason);
+    // Builds with the given linked series and the season view's sources ranked as given.
+    private static List<SeasonAnime> Build(
+        Harness harness,
+        Mock<IAiringScheduleService> airingService,
+        IMetadataService metadataService,
+        List<MetadataSource> sourceOrder
+    )
+    {
+        var configurationService = new Mock<IConfigurationService>();
+        configurationService
+            .Setup(service => service.Load(It.IsAny<ConfigurationInfo>(), It.IsAny<bool>()))
+            .Returns(new AiringScheduleServiceSettings { SeasonDetailSourceOrder = sourceOrder });
+        var builder = new SeasonAnimeBuilder(
+            harness.Catalog,
+            airingService.Object,
+            metadataService,
+            new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object)
+        );
+        return builder.Build(harness.Catalog.GetAnime(), new EpisodeAiringFilteringOptions(), _today);
+    }
+
+    // A metadata service linking anime 1 to the given series, and nothing else.
+    private static IMetadataService Links(params SeasonAnimeBuilder.LinkedEntry[] series)
+    {
+        var service = new Mock<IMetadataService>();
+        service
+            .Setup(entry => entry.GetSeriesCrossReferences(It.IsAny<int>(), It.IsAny<MetadataSource?>()))
+            .Returns((int animeID, MetadataSource? source) => series
+                .Where(link => animeID == 1 && (source is null || link.Source == source))
+                .Select(link => Mock.Of<IMetadataSeriesCrossReference>(xref => xref.Provider == Mock.Of<ISeries>(entry =>
+                    entry.Studios == link.Studios && entry.Tags == link.Tags
+                )))
+                .ToList());
+        service
+            .Setup(entry => entry.GetMovieCrossReferencesForSeries(It.IsAny<int>(), It.IsAny<MetadataSource?>()))
+            .Returns([]);
+        return service.Object;
+    }
+
+    private static IStudio LinkedStudio(MetadataSource source, string name, StudioType type = StudioType.Animation)
+        => Mock.Of<IStudio>(studio => studio.ID == new MetadataGuid(source, MetadataEntityType.Studio, name)
+            && studio.Source == source
+            && studio.Name == name
+            && studio.StudioType == type);
+
+    private static ITag LinkedTag(MetadataSource source, string name, TagKind kind = TagKind.Genre, bool spoiler = false)
+        => Mock.Of<ITag>(tag => tag.ID == new MetadataGuid(source, MetadataEntityType.Tag, name)
+            && tag.Source == source
+            && tag.Name == name
+            && tag.Kind == kind
+            && tag.IsSpoiler == spoiler);
+
+    private static SeasonAnime.Studio AnidbStudio(string name)
+        => new() { Source = MetadataSource.AniDB, ID = name, Name = name };
+
+    private static SeasonAnime.Tag AnidbGenre(string name)
+        => new() { Source = MetadataSource.AniDB, ID = name, Name = name };
+
+    // AniDB first, then the linked entries' sources in their order.
+    private static IReadOnlyList<MetadataSource> AnidbFirst(IEnumerable<SeasonAnimeBuilder.LinkedEntry> linked)
+        => [MetadataSource.AniDB, .. linked.Select(entry => entry.Source).Distinct()];
+
+    [Fact]
+    public void MergeStudios_AppendsAnimationStudiosOnlyTheLinkedSourcesName()
+    {
+        var linked = new List<SeasonAnimeBuilder.LinkedEntry>
+        {
+            new(TestSources.AniList, [LinkedStudio(TestSources.AniList, "STUDIO ONE"), LinkedStudio(TestSources.AniList, "Financier", StudioType.Production)], []),
+            new(MetadataSource.TMDB, [LinkedStudio(MetadataSource.TMDB, "Studio Three"), LinkedStudio(MetadataSource.TMDB, "Untyped", StudioType.None)], []),
+        };
+
+        var merged = SeasonAnimeBuilder.MergeStudios([AnidbStudio("Studio One")], linked, AnidbFirst(linked));
+
+        Assert.Equal(["Studio One", "Studio Three"], merged.Select(studio => studio.Name));
+        Assert.Equal(MetadataSource.TMDB, merged[1].Source);
     }
 
     [Fact]
-    public void Details_EpisodeDuration_IsTheMedianKnownRegularLength()
+    public void MergeStudios_UntypedStudiosOnlyFillInFromTheTopRankedSourceWithAny()
+    {
+        var linked = new List<SeasonAnimeBuilder.LinkedEntry>
+        {
+            new(TestSources.AniList, [LinkedStudio(TestSources.AniList, "Financier", StudioType.Production)], []),
+            new(MetadataSource.TMDB, [LinkedStudio(MetadataSource.TMDB, "Publisher", StudioType.None)], []),
+            // Another entry of the same source, such as a linked movie.
+            new(MetadataSource.TMDB, [LinkedStudio(MetadataSource.TMDB, "Distributor", StudioType.None)], []),
+            new(TestSources.Plugin, [LinkedStudio(TestSources.Plugin, "Lower Ranked", StudioType.None)], []),
+        };
+
+        Assert.Equal(["Publisher", "Distributor"], SeasonAnimeBuilder.MergeStudios([], linked, AnidbFirst(linked)).Select(studio => studio.Name));
+        // AniDB naming an animation studio is enough to keep them out.
+        Assert.Equal(["Studio One"], SeasonAnimeBuilder.MergeStudios([AnidbStudio("Studio One")], linked, AnidbFirst(linked)).Select(studio => studio.Name));
+    }
+
+    [Fact]
+    public void MergeGenres_RanksTheGenresMostSourcesAgreeOn()
+    {
+        var linked = new List<SeasonAnimeBuilder.LinkedEntry>
+        {
+            new(
+                TestSources.Plugin,
+                [],
+                [LinkedTag(TestSources.Plugin, "Animation"), LinkedTag(TestSources.Plugin, "Drama"), LinkedTag(TestSources.Plugin, "Comedy", spoiler: true)]
+            ),
+            new(
+                TestSources.AniList,
+                [],
+                [LinkedTag(TestSources.AniList, "Drama"), LinkedTag(TestSources.AniList, "Action"), LinkedTag(TestSources.AniList, "isekai", TagKind.Keyword)]
+            ),
+        };
+
+        var merged = SeasonAnimeBuilder.MergeGenres([AnidbGenre("comedy"), AnidbGenre("action"), AnidbGenre("fantasy")], linked, AnidbFirst(linked), 3);
+
+        Assert.Equal(["action", "Drama", "comedy"], merged.Select(tag => tag.Name));
+    }
+
+    [Theory]
+    [InlineData("8bit", "8-bit")]
+    [InlineData("Liden Films", "LIDENFILMS")]
+    [InlineData("J.C.STAFF", "J.C.Staff")]
+    [InlineData("studio MOTHER", "Studio Mother")]
+    [InlineData("Studio_Deen", "Studio Deen")]
+    [InlineData("Kyoto Animation, Inc.", "Kyoto Animation Inc")]
+    [InlineData("IKIF+", "IKIF +")]
+    public void MergeStudios_MatchesNamesWithoutCaseSpacesOrPunctuation(string anidbName, string linkedName)
+    {
+        var linked = new List<SeasonAnimeBuilder.LinkedEntry> { new(TestSources.AniList, [LinkedStudio(TestSources.AniList, linkedName)], []) };
+
+        var merged = SeasonAnimeBuilder.MergeStudios([AnidbStudio(anidbName)], linked, AnidbFirst(linked));
+
+        Assert.Equal([(MetadataSource.AniDB, anidbName)], merged.Select(studio => (studio.Source, studio.Name)));
+    }
+
+    [Fact]
+    public void MergeStudios_NamesWithoutLettersOrDigitsMatchOnlyThemselves()
+    {
+        var linked = new List<SeasonAnimeBuilder.LinkedEntry>
+        {
+            new(TestSources.AniList, [LinkedStudio(TestSources.AniList, "!!!"), LinkedStudio(TestSources.AniList, "???")], []),
+        };
+
+        var merged = SeasonAnimeBuilder.MergeStudios([AnidbStudio("!!!")], linked, AnidbFirst(linked));
+
+        Assert.Equal(["!!!", "???"], merged.Select(studio => studio.Name));
+    }
+
+    [Fact]
+    public void MergeStudios_KeepsPlusApart()
+    {
+        var linked = new List<SeasonAnimeBuilder.LinkedEntry> { new(TestSources.AniList, [LinkedStudio(TestSources.AniList, "IKIF")], []) };
+
+        var merged = SeasonAnimeBuilder.MergeStudios([AnidbStudio("IKIF+")], linked, AnidbFirst(linked));
+
+        Assert.Equal(["IKIF+", "IKIF"], merged.Select(studio => studio.Name));
+    }
+
+    [Fact]
+    public void MergeGenres_CountsPunctuatedSpellingsAsOneGenre()
+    {
+        var linked = new List<SeasonAnimeBuilder.LinkedEntry>
+        {
+            new(TestSources.AniList, [], [LinkedTag(TestSources.AniList, "Slice-of-Life"), LinkedTag(TestSources.AniList, "ANIMATION!")]),
+        };
+
+        var merged = SeasonAnimeBuilder.MergeGenres([AnidbGenre("comedy"), AnidbGenre("Slice of Life")], linked, AnidbFirst(linked), 3);
+
+        Assert.Equal(["Slice of Life", "comedy"], merged.Select(tag => tag.Name));
+    }
+
+    [Fact]
+    public void SeasonAnime_StudiosAndGenres_UseOnlyTheListedSourcesInTheirOrder()
+    {
+        using var harness = CardHarness();
+        var links = Links(
+            // Not listed: its studio and its vote for comedy are left out.
+            new(TestSources.Plugin, [LinkedStudio(TestSources.Plugin, "Plugin Studio")], [LinkedTag(TestSources.Plugin, "comedy")]),
+            new(TestSources.AniList, [LinkedStudio(TestSources.AniList, "AniList Studio")], [LinkedTag(TestSources.AniList, "Mystery")]),
+            new(MetadataSource.TMDB, [LinkedStudio(MetadataSource.TMDB, "TMDB Studio")], [LinkedTag(MetadataSource.TMDB, "Drama")])
+        );
+        SeasonAnime Alpha(List<MetadataSource> sourceOrder)
+            => Build(harness, AiringService(_ => []), links, sourceOrder).Single(anime => anime.ID == 1);
+
+        // AniDB is first unless listed.
+        var aniListFirst = Alpha([TestSources.AniList, MetadataSource.TMDB]);
+        var tmdbFirst = Alpha([MetadataSource.TMDB, TestSources.AniList]);
+        var anidbSecond = Alpha([MetadataSource.TMDB, MetadataSource.AniDB, TestSources.AniList]);
+
+        Assert.Equal(["Studio Two", "Studio One", "AniList Studio", "TMDB Studio"], aniListFirst.Studios.Select(studio => studio.Name));
+        Assert.Equal(["action", "comedy", "fantasy", "Mystery", "Drama"], aniListFirst.Tags.Select(tag => tag.Name));
+        Assert.Equal(["Studio Two", "Studio One", "TMDB Studio", "AniList Studio"], tmdbFirst.Studios.Select(studio => studio.Name));
+        Assert.Equal(["action", "comedy", "fantasy", "Drama", "Mystery"], tmdbFirst.Tags.Select(tag => tag.Name));
+        Assert.Equal(["TMDB Studio", "Studio Two", "Studio One", "AniList Studio"], anidbSecond.Studios.Select(studio => studio.Name));
+        Assert.Equal(["Drama", "action", "comedy", "fantasy", "Mystery"], anidbSecond.Tags.Select(tag => tag.Name));
+    }
+
+    [Fact]
+    public void SeasonAnime_NextAiring_LeadsTheOtherUpcomingAiringsOfItsEpisode()
+    {
+        using var harness = CardHarness();
+        var lead = Airing(1, new DateTime(2026, 10, 6, 14, 30, 0, DateTimeKind.Utc), "BS11");
+        var later = Airing(1, new DateTime(2026, 10, 9, 13, 30, 0, DateTimeKind.Utc), "AT-X");
+        var otherEpisode = Airing(2, new DateTime(2026, 10, 8, 14, 30, 0, DateTimeKind.Utc), "TOKYO MX");
+        // Read through the series for the anime in the collection.
+        var service = AiringService(
+            series => series is AnimeSeries ? [lead] : [],
+            series => series is AnimeSeries ? [lead, otherEpisode, later] : []
+        );
+
+        var alpha = Build(harness, service).Single(anime => anime.ID == 1);
+
+        Assert.Equal(SeasonAnime.NextAiringStatus.Upcoming, alpha.AiringStatus);
+        Assert.Equal(lead.ID, alpha.NextAiring?.ID);
+        Assert.Equal([later.ID], alpha.OtherAirings.Select(airing => airing.ID));
+    }
+
+    [Fact]
+    public void SeasonAnime_DateOnlyNextAiring_HasNoOtherAirings()
+    {
+        using var harness = CardHarness();
+        var dateOnly = Airing(1, null, airDate: new DateOnly(2026, 10, 10));
+        var service = AiringService(series => series is AnimeSeries ? [dateOnly] : []);
+
+        var alpha = Build(harness, service).Single(anime => anime.ID == 1);
+
+        Assert.True(alpha.NextAiring?.IsDateOnly);
+        Assert.Equal(new DateOnly(2026, 10, 10), alpha.NextAiring?.AirDate);
+        Assert.Empty(alpha.OtherAirings);
+        // Nothing has a time, so the airings per channel are never read.
+        service.Verify(entry => entry.GetAiringsForSeries(It.IsAny<IEnumerable<ISeries>>(), It.IsAny<EpisodeAiringFilteringOptions?>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(null, SeasonAnime.NextAiringStatus.Unknown)]
+    [InlineData("2026-10-04", SeasonAnime.NextAiringStatus.Finished)]
+    [InlineData("2026-10-05", SeasonAnime.NextAiringStatus.Unknown)]
+    [InlineData("2026-09", SeasonAnime.NextAiringStatus.Finished)]
+    [InlineData("2026-10", SeasonAnime.NextAiringStatus.Unknown)]
+    public void SeasonAnime_WithoutANextAiring_IsFinishedOnceItsEndHasPassed(string? endDate, SeasonAnime.NextAiringStatus expected)
+    {
+        var anime = Anime(1, "Alpha", Date(2026, 7, 1), endDate: endDate is null ? null : PartialDateOnly.Parse(endDate));
+
+        Assert.Equal(expected, SeasonAnimeBuilder.GetStatus(anime, null, _today));
+        Assert.Equal(SeasonAnime.NextAiringStatus.Upcoming, SeasonAnimeBuilder.GetStatus(anime, Airing(1, null, airDate: _today), _today));
+    }
+
+    [Fact]
+    public void SeasonAnime_Poster_PrefersTheSeriesOne()
+    {
+        using var harness = new Harness(
+            [Anime(1, "Alpha", null), Anime(2, "Beta", null), Anime(3, "Gamma", null)],
+            series: [new AnimeSeries { AnimeSeriesID = 10, AniDB_ID = 1 }, new AnimeSeries { AnimeSeriesID = 20, AniDB_ID = 2 }],
+            withPosters: new HashSet<int> { 1, 2, 3 },
+            withSeriesPosters: new HashSet<int> { 1 }
+        );
+        Guid? PosterOf(int animeID)
+        {
+            var (anime, series) = harness.Catalog.GetAnime().Single(entry => entry.Anime.AnimeID == animeID);
+            return harness.Catalog.GetPoster(anime, series)?.ID;
+        }
+
+        Assert.Equal(SeriesPosterID(1), PosterOf(1));
+        // A series without one falls back to its anime's.
+        Assert.Equal(PosterID(2), PosterOf(2));
+        Assert.Equal(PosterID(3), PosterOf(3));
+    }
+
+    [Fact]
+    public void SeasonAnime_CardDetails_ComeFromTheCatalog()
+    {
+        using var harness = CardHarness();
+
+        var models = Build(harness, AiringService(_ => []));
+        var alpha = models.Single(anime => anime.ID == 1);
+        var beta = models.Single(anime => anime.ID == 2);
+
+        Assert.Equal("series overview", alpha.Overview);
+        Assert.Equal(["Studio Two", "Studio One"], alpha.Studios.Select(studio => studio.Name));
+        Assert.Equal(SourceMaterial.Manga, alpha.SourceMaterial);
+        Assert.Equal(["action", "comedy", "fantasy"], alpha.Tags.Select(tag => tag.Name));
+        Assert.Equal(2, alpha.VideoCount);
+        Assert.Equal(new SeasonWithYear(2015, YearlySeason.Spring), alpha.StartSeason);
+        // Outside the collection: no files, no studios, and the anime's own overview.
+        Assert.Equal(0, beta.VideoCount);
+        Assert.Empty(beta.Studios);
+        Assert.Equal("anime overview", beta.Overview);
+    }
+
+    [Fact]
+    public void EpisodeDuration_IsTheMedianKnownRegularLength()
     {
         var episodes = Episodes(1, Day(2015, 4, 1), Day(2015, 4, 8), Day(2015, 4, 15)).ToList();
         episodes[0].LengthSeconds = 1440;
@@ -751,38 +1115,61 @@ public class AnidbAnimeCatalogTests
         special.LengthSeconds = 300;
         using var harness = new Harness([Anime(1, "Alpha", Date(2015, 4, 1))], [.. episodes, special]);
 
-        Assert.Equal(TimeSpan.FromSeconds(1470), Apply(harness, 1, 5, AnidbAnime.IncludeDetails.EpisodeDuration).EpisodeDuration);
+        Assert.Equal(TimeSpan.FromSeconds(1470), harness.Catalog.GetEpisodeDuration(1));
     }
 
-    [Fact]
-    public void Details_StartSeason_SentAsNullWithoutDates_AndOnlyWhenAsked()
+    /// <summary>
+    /// An airing with only what the season view reads set.
+    /// </summary>
+    private sealed class FakeAiring : IEpisodeAiring
     {
-        using (var undated = new Harness([Anime(1, "Alpha", null)]))
-            Assert.Contains("\"StartSeason\":null", JsonConvert.SerializeObject(Apply(undated, 1, 5, AnidbAnime.IncludeDetails.StartSeason)));
+        public required Guid ID { get; init; }
 
-        using var harness = DetailsHarness();
-        Assert.DoesNotContain("StartSeason", JsonConvert.SerializeObject(Apply(harness, 1, 5)));
-    }
+        public string Key => ID.ToString();
 
-    [Fact]
-    public void Details_AnimeOutsideTheCollection_HasNoFilesOrStudiosButStillTheFields()
-    {
-        using var harness = DetailsHarness();
+        public IAiringSchedule? Schedule => null;
 
-        var model = Apply(harness, 2, 5, AnidbAnime.IncludeDetails.Files, AnidbAnime.IncludeDetails.Studios, AnidbAnime.IncludeDetails.Overview);
+        public Guid? ProviderID => null;
 
-        Assert.Equal(0, model.Files!.VideoCount);
-        Assert.Empty(model.Studios!);
-        Assert.Equal("anime overview", model.Overview);
-    }
+        public string? ProviderName => null;
 
-    [Fact]
-    public void Details_TagLimit_KeepsTheHeaviest()
-    {
-        using var harness = DetailsHarness();
+        public required bool IsDateOnly { get; init; }
 
-        Assert.Equal(["action"], Apply(harness, 1, 1, AnidbAnime.IncludeDetails.Tags).Tags!.Select(tag => tag.Name));
-        Assert.Empty(Apply(harness, 1, 0, AnidbAnime.IncludeDetails.Tags).Tags!);
+        public DateOnly? AirDate { get; init; }
+
+        public required MetadataGuid EpisodeID { get; init; }
+
+        public IEpisode? Episode => null;
+
+        public IAnidbEpisode? AnidbEpisode => null;
+
+        public IShokoEpisode? ShokoEpisode => null;
+
+        public IAiringChannel? Channel { get; init; }
+
+        public string? Url => null;
+
+        public IReadOnlyList<IAiringTrack> Tracks => [];
+
+        public DateTime? AiredAt { get; init; }
+
+        public DateTime? OriginalAiredAt => null;
+
+        public bool IsDelayed => false;
+
+        public bool IsEstimated => false;
+
+        public bool IsPreferred => true;
+
+        public EpisodeAiringKind Kind => EpisodeAiringKind.Normal;
+
+        public TimeSpan? OffsetFromOriginal => null;
+
+        public Guid? LinkID => null;
+
+        public DateTime CreatedAt => DateTime.UnixEpoch;
+
+        public DateTime LastUpdatedAt => DateTime.UnixEpoch;
     }
 
     #endregion
