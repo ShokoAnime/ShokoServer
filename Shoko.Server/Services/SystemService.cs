@@ -634,6 +634,7 @@ public class SystemService : ISystemService
             services.AddSingleton<AnidbService>();
             services.AddSingleton<AnidbAnimeCatalog>();
             services.AddSingleton<SeasonAnimeBuilder>();
+            services.AddSingleton<IAiringCalendarService, AiringCalendarService>();
             services.AddSingleton<IAnidbService>(sp => sp.GetRequiredService<AnidbService>());
             services.AddSingleton<IAnidbAvdumpService>(sp => sp.GetRequiredService<AnidbService>());
             services.AddSingleton<MylistCache>();

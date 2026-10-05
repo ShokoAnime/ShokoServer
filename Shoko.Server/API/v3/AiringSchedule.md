@@ -425,7 +425,8 @@ which means linked for shoko entities and own-only for everything else.
 ## The season view
 
 Two routes serve a season chart of the cached AniDB anime, in the collection or
-not.
+not, and two more serve them grouped (see [Sections](#sections) and
+[By year](#by-year)).
 
 - `GET /api/v3/AiringSchedule/Season` lists the yearly seasons the anime are
   in, newest first, with how many anime are in each (`Count`) and the season
@@ -466,6 +467,78 @@ The airings are read through each anime's Shoko series, or through the anime
 itself outside the collection, so they need no AniDB ID on the airing to be
 matched. An airing on a provider's series no AniDB anime is linked to is on
 no card.
+
+### Sections
+
+`GET /api/v3/AiringSchedule/Season/{year}/{season}/Sections` returns the same
+anime, with the same filters, already grouped and sorted. Each section has an
+`ID`, a `Title` to show as its heading and its `Anime`. The default layout is:
+
+| `ID` | `Title` | Takes |
+|---|---|---|
+| `new` | TV & Web | `TV` and `Web` that started this season, 16 minutes or more an episode |
+| `new-half` | TV & Web (Half Length) | the same, under 16 minutes an episode |
+| `continuing` | Continuing | `TV` and `Web` that started before this season |
+| `movies` | Movies | `Movie` |
+| `other` | OVAs & Specials | everything else |
+
+Each anime goes to the first section that takes it, an anime no section takes is
+left out, and a section that took nothing is left out. An anime with no known start counts as new, and one with
+no known episode length as full length. Within a section the anime with a
+scheduled next airing come first, soonest first, then those known only by an
+AniDB air date, then the rest by premiere (an unknown one last); each tier
+then goes by title.
+
+`POST` to the same route with a body brings a layout of your own, taking the
+same query filters:
+
+```json
+{
+  "Sections": [
+    { "ID": "tv", "Title": "TV", "Types": ["TV", "Web"], "Continuing": false, "HalfLength": null },
+    { "ID": "rest", "Title": "Everything else" }
+  ]
+}
+```
+
+`Types` left out or `null` takes every type, which makes the section the rest
+group; a layout without one leaves the others out. `Continuing` and
+`HalfLength` are `true`, `false` or `null` for both. IDs must be unique.
+
+### By year
+
+`GET /api/v3/AiringSchedule/Season/ByYear` takes the filters of
+`/api/v3/AiringSchedule/Season` and returns its seasons grouped by year:
+each year has its `Year` and its `Seasons`, from winter to fall, and the
+years come newest first. A year whose seasons hold no anime at all is left
+out; a year's empty seasons stay. `fromYear` leaves out earlier years, but
+not the year of the season under way.
+
+## The calendar endpoint
+
+`GET /api/v3/AiringSchedule/Calendar?from=…&to=…&timeZone=…` is the airings
+endpoint laid out for a month, week or agenda view, which only differ by
+range. It takes the same filters, but `includeDateOnly` is on by default, and
+`nextOnly` has no place here.
+
+- `timeZone` is an IANA or Windows ID, or a fixed `±HH:MM` offset, and the
+  days are its days. Without it they are UTC days; an unknown one answers
+  `400`. `from` defaults to the start of today in that zone, and `to` to a
+  week after `from`.
+- A timed airing goes on the day of its slot when that is in the range, else
+  on the day of the slot it was moved out of (with `MovedTo` set), so a delay
+  still shows its gap. One shown at its new slot after a delay has
+  `MovedFrom`. A date-only entry goes on its AniDB air date, which is a date
+  and stays on that day in every zone, with `IsAllDay` set and `Time` at the
+  start of its day.
+- Each day has its local `Date` and its `Episodes`: the date-only entries
+  first, then by time, one per episode. An episode's `Lead` is its preferred
+  airing, else its first timed one, and its `Others` are the rest that day in
+  the same order. An airing of an unknown episode stands alone.
+- `everyChannel=false` leaves `Others` empty, for a view that shows one
+  airing per episode.
+- Every entry carries the `Airing`, in the shape of the airings endpoint, and
+  its `Time` with the zone's offset. Days with nothing on them are left out.
 
 ## Live updates
 

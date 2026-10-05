@@ -19,18 +19,16 @@ using Shoko.Server.Settings;
 namespace Shoko.Server.API.v3.Helpers;
 
 /// <summary>
-/// Builds the season view's anime: the details from the catalog, the studios
-/// and genres from AniDB and the linked sources the settings rank, AniDB at
-/// its place in that order or else first, and the next airings from two
-/// batched reads of the airing schedule service.
+/// Maps the season view's anime to their APIv3 models: the details from the
+/// catalog, and the studios and genres from AniDB and the linked sources the
+/// settings rank, AniDB at its place in that order or else first. The
+/// airings, the sorting and the grouping come from the airing calendar service.
 /// </summary>
 /// <param name="catalog">The cached anime catalog.</param>
-/// <param name="airingScheduleService">The airing schedule service.</param>
 /// <param name="metadataService">The metadata service, for the linked entries of other sources.</param>
 /// <param name="configurationProvider">The airing schedule settings, for the ranked sources.</param>
 public class SeasonAnimeBuilder(
     AnidbAnimeCatalog catalog,
-    IAiringScheduleService airingScheduleService,
     IMetadataService metadataService,
     ConfigurationProvider<AiringScheduleServiceSettings> configurationProvider
 )
@@ -49,79 +47,41 @@ public class SeasonAnimeBuilder(
     /// <summary>
     /// Builds the models for the anime of a season, in their order.
     /// </summary>
-    /// <remarks>
-    /// Each anime is read through its series when it is in the collection,
-    /// else through itself. The first read takes each anime's single next
-    /// airing; the second, only for anime whose next airing has a time, the
-    /// next airing on each channel, which gives that episode's other airings.
-    /// </remarks>
-    /// <param name="entries">The anime, each with its Shoko series when there is one.</param>
-    /// <param name="airingOptions">The airing filters, read next-only on a copy.</param>
-    /// <param name="today">The current date, which decides whether an anime has finished.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="entries"/> or <paramref name="airingOptions"/> is <c>null</c>.</exception>
+    /// <param name="entries">The anime, as the airing calendar service read them.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="entries"/> is <c>null</c>.</exception>
     /// <returns>The models.</returns>
-    public List<SeasonAnime> Build(
-        IReadOnlyList<(AniDB_Anime Anime, AnimeSeries? Series)> entries,
-        EpisodeAiringFilteringOptions airingOptions,
-        DateOnly today
-    )
+    public List<SeasonAnime> Build(IReadOnlyList<SeasonAnimeEntry> entries)
     {
         ArgumentNullException.ThrowIfNull(entries);
-        ArgumentNullException.ThrowIfNull(airingOptions);
 
         var sourceOrder = GetSourceOrder(configurationProvider.Load().SeasonDetailSourceOrder);
-        var studios = catalog.GetStudios([.. entries.Select(entry => entry.Anime.AnimeID)]);
-        var nextAirings = airingScheduleService.GetAiringsForSeries(
-            entries.Select(GetReadEntity),
-            WithNext(airingOptions, new HashSet<AiringNextGrouping>())
-        );
-        var timedEntries = entries
-            .Where(entry => GetNext(nextAirings, entry) is { IsDateOnly: false })
-            .Select(GetReadEntity)
-            .ToList();
-        var channelAirings = timedEntries.Count > 0
-            ? airingScheduleService.GetAiringsForSeries(timedEntries, WithNext(airingOptions, new HashSet<AiringNextGrouping> { AiringNextGrouping.Channel }))
-            : new Dictionary<MetadataGuid, IReadOnlyList<IEpisodeAiring>>();
-        return entries
-            .Select(entry =>
-            {
-                var next = GetNext(nextAirings, entry);
-                var others = next is { IsDateOnly: false } && channelAirings.TryGetValue(GetReadEntity(entry).ID, out var perChannel)
-                    ? GetOtherAirings(next, perChannel)
-                    : [];
-                return Build(entry.Anime, entry.Series, studios, sourceOrder, next, others, today);
-            })
-            .ToList();
+        var studios = catalog.GetStudios([.. entries.Select(entry => entry.Anime.AnidbID)]);
+        return [.. entries.Select(entry => Build(entry, studios, sourceOrder))];
     }
 
     /// <summary>
     /// Builds the model for one anime.
     /// </summary>
-    /// <param name="anime">The anime.</param>
-    /// <param name="series">Its Shoko series, if any.</param>
+    /// <param name="entry">The anime, read by the airing calendar service from the catalog.</param>
     /// <param name="studios">The studios of every anime being built.</param>
     /// <param name="sourceOrder">The sources to use, AniDB included, highest ranked first.</param>
-    /// <param name="next">Its next airing, if any.</param>
-    /// <param name="others">The other upcoming airings of the next airing's episode.</param>
-    /// <param name="today">The current date.</param>
     /// <returns>The model.</returns>
     private SeasonAnime Build(
-        AniDB_Anime anime,
-        AnimeSeries? series,
+        SeasonAnimeEntry entry,
         IReadOnlyDictionary<int, IReadOnlyList<AniDB_Creator>> studios,
-        IReadOnlyList<MetadataSource> sourceOrder,
-        IEpisodeAiring? next,
-        IReadOnlyList<IEpisodeAiring> others,
-        DateOnly today
+        IReadOnlyList<MetadataSource> sourceOrder
     )
     {
+        // The core service reads its entries from the catalog, so they are always the stored models.
+        var anime = (AniDB_Anime)entry.Anime;
+        var series = (AnimeSeries?)entry.Series;
         var linked = GetLinkedEntries(anime.AnimeID, sourceOrder);
         return new()
         {
             ID = anime.AnimeID,
             ShokoID = series?.AnimeSeriesID,
             Type = anime.AnimeType,
-            Title = catalog.GetTitle(anime, series),
+            Title = entry.Title,
             Poster = catalog.GetPoster(anime, series) is { } poster ? new Image(poster) : null,
             Overview = catalog.GetOverview(anime, series),
             AirDate = anime.AirDate,
@@ -143,11 +103,16 @@ public class SeasonAnimeBuilder(
                 SeasonAnime.TagLimit
             ),
             VideoCount = series is null ? 0 : catalog.GetVideoCount(anime.AnimeID),
-            StartSeason = catalog.GetStartSeason(anime) is { } season ? new SeasonWithYear(season.Year, season.Season) : null,
-            EpisodeDuration = catalog.GetEpisodeDuration(anime.AnimeID),
-            AiringStatus = GetStatus(anime, next, today),
-            NextAiring = next is null ? null : new EpisodeAiring(next),
-            OtherAirings = [.. others.Select(airing => new EpisodeAiring(airing))],
+            StartSeason = entry.StartSeason is { } season ? new SeasonWithYear(season.Year, season.Season) : null,
+            EpisodeDuration = entry.EpisodeDuration,
+            AiringStatus = entry.Status switch
+            {
+                SeasonAnimeAiringStatus.Upcoming => SeasonAnime.NextAiringStatus.Upcoming,
+                SeasonAnimeAiringStatus.Finished => SeasonAnime.NextAiringStatus.Finished,
+                _ => SeasonAnime.NextAiringStatus.Unknown,
+            },
+            NextAiring = entry.NextAiring is { } next ? new EpisodeAiring(next) : null,
+            OtherAirings = [.. entry.OtherAirings.Select(airing => new EpisodeAiring(airing))],
         };
     }
 
@@ -351,117 +316,6 @@ public class SeasonAnimeBuilder(
     /// <param name="Studios">Its studios.</param>
     /// <param name="Tags">Its tags.</param>
     internal sealed record LinkedEntry(MetadataSource Source, IReadOnlyList<IStudio> Studios, IReadOnlyList<ITag> Tags);
-
-    #endregion
-
-    #region Airings
-
-    /// <summary>
-    /// The entity an anime's airings are read through: its series when it is
-    /// in the collection, which walks the linked episodes, else itself.
-    /// </summary>
-    /// <param name="entry">The anime and its series.</param>
-    /// <returns>The entity.</returns>
-    private static ISeries GetReadEntity((AniDB_Anime Anime, AnimeSeries? Series) entry)
-        => entry.Series is { } series ? series : entry.Anime;
-
-    /// <summary>
-    /// The airing filters with a next-only read per the given grouping, for
-    /// one series at a time.
-    /// </summary>
-    /// <param name="options">The caller's filters.</param>
-    /// <param name="nextPer">What to keep one airing per; empty for the single next airing.</param>
-    /// <returns>The filters.</returns>
-    private static EpisodeAiringFilteringOptions WithNext(EpisodeAiringFilteringOptions options, IReadOnlySet<AiringNextGrouping> nextPer)
-        => new()
-        {
-            ProviderIDs = options.ProviderIDs,
-            Kinds = options.Kinds,
-            Languages = options.Languages,
-            ChannelIDs = options.ChannelIDs,
-            EpisodeTypes = options.EpisodeTypes,
-            EpisodeKinds = options.EpisodeKinds,
-            InCollection = options.InCollection,
-            IncludeMissing = options.IncludeMissing,
-            IncludeRestricted = options.IncludeRestricted,
-            User = options.User,
-            IncludeEstimates = options.IncludeEstimates,
-            IncludeDateOnly = options.IncludeDateOnly,
-            IncludeDisabled = options.IncludeDisabled,
-            IncludeDelayedOriginalSlots = options.IncludeDelayedOriginalSlots,
-            LinkedEntityAirings = options.LinkedEntityAirings,
-            EntityAnchor = options.EntityAnchor,
-            PreferredChannels = options.PreferredChannels,
-            PreferredTracks = options.PreferredTracks,
-            PreferredOnly = options.PreferredOnly,
-            NextOnly = true,
-            NextPer = nextPer,
-        };
-
-    /// <summary>
-    /// An anime's next airing from the first read.
-    /// </summary>
-    /// <param name="nextAirings">The first read's airings by series.</param>
-    /// <param name="entry">The anime and its series.</param>
-    /// <returns>The next airing, or <c>null</c>.</returns>
-    private static IEpisodeAiring? GetNext(
-        IReadOnlyDictionary<MetadataGuid, IReadOnlyList<IEpisodeAiring>> nextAirings,
-        (AniDB_Anime Anime, AnimeSeries? Series) entry
-    )
-        => nextAirings.TryGetValue(GetReadEntity(entry).ID, out var airings) ? airings.FirstOrDefault() : null;
-
-    /// <summary>
-    /// The other upcoming airings of the next airing's episode, from the next
-    /// airing on each channel, in airing order.
-    /// </summary>
-    /// <param name="next">The next airing.</param>
-    /// <param name="perChannel">The next airing on each channel.</param>
-    /// <returns>The other airings.</returns>
-    internal static IReadOnlyList<IEpisodeAiring> GetOtherAirings(IEpisodeAiring next, IReadOnlyList<IEpisodeAiring> perChannel)
-    {
-        var episodeID = GetEpisodeID(next);
-        return
-        [
-            .. perChannel
-                .Where(airing => airing.ID != next.ID && !airing.IsDateOnly && GetEpisodeID(airing) == episodeID)
-                .OrderBy(airing => airing.AiredAt ?? DateTime.MaxValue)
-                .ThenBy(airing => airing.Channel?.Name ?? string.Empty, StringComparer.Ordinal),
-        ];
-    }
-
-    /// <summary>
-    /// The episode an airing was read for: the Shoko episode, else the AniDB
-    /// one, else the stored one.
-    /// </summary>
-    /// <param name="airing">The airing.</param>
-    /// <returns>The episode's ID.</returns>
-    private static MetadataGuid GetEpisodeID(IEpisodeAiring airing)
-        => airing.ShokoEpisode?.ID ?? airing.AnidbEpisode?.ID ?? airing.EpisodeID;
-
-    /// <summary>
-    /// Whether an anime has a next airing, has finished, or neither is known.
-    /// It has finished when the last day its end date can mean has passed.
-    /// </summary>
-    /// <param name="anime">The anime.</param>
-    /// <param name="next">Its next airing, if any.</param>
-    /// <param name="today">The current date.</param>
-    /// <returns>The status.</returns>
-    internal static SeasonAnime.NextAiringStatus GetStatus(AniDB_Anime anime, IEpisodeAiring? next, DateOnly today)
-    {
-        if (next is not null)
-            return SeasonAnime.NextAiringStatus.Upcoming;
-
-        if (anime.EndDate is not { } endDate)
-            return SeasonAnime.NextAiringStatus.Unknown;
-
-        var lastDay = endDate switch
-        {
-            { Month: { } month, Day: { } day } => new DateOnly(endDate.Year, month, day),
-            { Month: { } month } => new DateOnly(endDate.Year, month, DateTime.DaysInMonth(endDate.Year, month)),
-            _ => new DateOnly(endDate.Year, 12, 31),
-        };
-        return lastDay < today ? SeasonAnime.NextAiringStatus.Finished : SeasonAnime.NextAiringStatus.Unknown;
-    }
 
     #endregion
 }

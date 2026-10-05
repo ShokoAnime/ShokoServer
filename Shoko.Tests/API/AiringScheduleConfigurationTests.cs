@@ -95,6 +95,7 @@ public class AiringScheduleConfigurationTests
             null!,
             _paths,
             null!,
+            null!,
             null!
         )
         {

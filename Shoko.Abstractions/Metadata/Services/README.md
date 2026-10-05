@@ -8,6 +8,7 @@ Every interface here is implemented by the server and called by you.
 | `IShokoGroupManager` | Create, name, nest and delete groups, and move series between them |
 | `IImageManager` | Read, add, link and download images |
 | `IAiringScheduleService` | Read and write broadcast schedules ([`../Airing/README.md`](../Airing/README.md)) |
+| `IAiringCalendarService` | Read a season's anime by section, a range's airings by local day and episode, and the seasons by year, already sorted |
 | `IMetadataTextManager` | Keep, choose and gather the titles and overviews of any entry |
 | `IMetadataProviderManager` | See and set which provider answers for which source and kind, in what order the rest stand by, which sources are reserved, and each source's icon |
 | `IMetadataImageContributorManager` | List the image contributors and turn each one on or off per source and kind |

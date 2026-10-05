@@ -43,8 +43,8 @@ namespace Shoko.Tests.Services;
 
 /// <summary>
 /// Covers <see cref="AnidbAnimeCatalog"/>, the listing behind the AniDB anime
-/// list and its seasons, and the season view's anime <see cref="SeasonAnimeBuilder"/>
-/// builds from it.
+/// list and its seasons, and the season view's anime <see cref="AiringCalendarService"/>
+/// reads and <see cref="SeasonAnimeBuilder"/> maps from it.
 /// </summary>
 [Collection(nameof(RepoFactoryCollection))]
 public class AnidbAnimeCatalogTests
@@ -832,11 +832,11 @@ public class AnidbAnimeCatalogTests
             .Returns(new AiringScheduleServiceSettings { SeasonDetailSourceOrder = sourceOrder });
         var builder = new SeasonAnimeBuilder(
             harness.Catalog,
-            airingService.Object,
             metadataService,
             new ConfigurationProvider<AiringScheduleServiceSettings>(configurationService.Object)
         );
-        return builder.Build(harness.Catalog.GetAnime(), new EpisodeAiringFilteringOptions(), _today);
+        var calendar = new AiringCalendarService(harness.Catalog, airingService.Object);
+        return builder.Build(calendar.BuildEntries(harness.Catalog.GetAnime(), new EpisodeAiringFilteringOptions(), _today));
     }
 
     // A metadata service linking anime 1 to the given series, and nothing else.
@@ -1050,17 +1050,17 @@ public class AnidbAnimeCatalogTests
     }
 
     [Theory]
-    [InlineData(null, SeasonAnime.NextAiringStatus.Unknown)]
-    [InlineData("2026-10-04", SeasonAnime.NextAiringStatus.Finished)]
-    [InlineData("2026-10-05", SeasonAnime.NextAiringStatus.Unknown)]
-    [InlineData("2026-09", SeasonAnime.NextAiringStatus.Finished)]
-    [InlineData("2026-10", SeasonAnime.NextAiringStatus.Unknown)]
-    public void SeasonAnime_WithoutANextAiring_IsFinishedOnceItsEndHasPassed(string? endDate, SeasonAnime.NextAiringStatus expected)
+    [InlineData(null, SeasonAnimeAiringStatus.Unknown)]
+    [InlineData("2026-10-04", SeasonAnimeAiringStatus.Finished)]
+    [InlineData("2026-10-05", SeasonAnimeAiringStatus.Unknown)]
+    [InlineData("2026-09", SeasonAnimeAiringStatus.Finished)]
+    [InlineData("2026-10", SeasonAnimeAiringStatus.Unknown)]
+    public void SeasonAnime_WithoutANextAiring_IsFinishedOnceItsEndHasPassed(string? endDate, SeasonAnimeAiringStatus expected)
     {
         var anime = Anime(1, "Alpha", Date(2026, 7, 1), endDate: endDate is null ? null : PartialDateOnly.Parse(endDate));
 
-        Assert.Equal(expected, SeasonAnimeBuilder.GetStatus(anime, null, _today));
-        Assert.Equal(SeasonAnime.NextAiringStatus.Upcoming, SeasonAnimeBuilder.GetStatus(anime, Airing(1, null, airDate: _today), _today));
+        Assert.Equal(expected, AiringCalendarService.GetStatus(anime, null, _today));
+        Assert.Equal(SeasonAnimeAiringStatus.Upcoming, AiringCalendarService.GetStatus(anime, Airing(1, null, airDate: _today), _today));
     }
 
     [Fact]
