@@ -18,6 +18,7 @@ using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.Common;
 using Shoko.Server.API.v3.Models.TextManagement;
 using Shoko.Server.API.v3.Models.TextManagement.Input;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
 namespace Shoko.Server.API.v3.Controllers;
@@ -413,7 +414,15 @@ public class TextManagementController(IMetadataTextManager textManager, IMetadat
     {
         if (FindEntity(entitySource, entityType, entityID) is not { } id)
             return NotFound(EntityNotFound);
-        return TextChoiceExplainer.Explain(id, kind, PreferredOf(id, kind), DefaultOf(id, kind), SettingsProvider.GetSettings());
+        var seriesDescriptionStep = kind is TextKind.Overview ? (textManager as MetadataTextManager)?.SeriesDescriptionStepOf(id) : null;
+        return TextChoiceExplainer.Explain(
+            id,
+            kind,
+            PreferredOf(id, kind),
+            DefaultOf(id, kind),
+            SettingsProvider.GetSettings(),
+            seriesDescriptionStep
+        );
     }
 
     /// <summary>

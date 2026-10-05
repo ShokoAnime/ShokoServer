@@ -23,6 +23,14 @@ public class Metadata_SeasonRepository(DatabaseFactory databaseFactory) : Metada
         => row.ProviderID;
 
     /// <inheritdoc />
+    /// <remarks>
+    ///   The series is told as well, so a season added to or dropped from it
+    ///   works out again what was chosen from its list of seasons.
+    /// </remarks>
+    protected override IEnumerable<MetadataGuid> TextEntriesOf(Metadata_Season entity, bool removed)
+        => [entity.ID, new(entity.Source, MetadataEntityType.Series, entity.SeriesID)];
+
+    /// <inheritdoc />
     public override void PopulateIndexes()
     {
         base.PopulateIndexes();

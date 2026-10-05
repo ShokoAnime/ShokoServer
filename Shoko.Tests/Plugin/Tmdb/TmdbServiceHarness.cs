@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Shoko.Abstractions.Metadata;
-using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.Plugin.Tmdb;
@@ -84,15 +82,18 @@ internal sealed class TmdbServiceHarness : IDisposable
     public TmdbLinkingService Linker => field ??= new(
         Stores.Series,
         CrossReferences.Object,
-        Linking.Object,
         Engine.Object,
         MetadataService.Object,
-        TmdbTestClient.Configuration(Configuration).Provider,
-        NullLogger<TmdbLinkingService>.Instance
+        TmdbTestClient.Configuration(Configuration).Provider
     );
 
     /// <summary>The refresh service.</summary>
-    public TmdbRefreshService Refresh => field ??= new(ApiClient, Stores, Linker, TmdbTestClient.Configuration(Configuration).Provider, NullLogger<TmdbRefreshService>.Instance);
+    public TmdbRefreshService Refresh => field ??= new(
+        ApiClient,
+        Stores,
+        TmdbTestClient.Configuration(Configuration).Provider,
+        NullLogger<TmdbRefreshService>.Instance
+    );
 
     /// <summary>The entity refresh service.</summary>
     public TmdbEntityRefreshService Entities => field ??= new(ApiClient, Stores, TmdbTestClient.Configuration(Configuration).Provider, NullLogger<TmdbEntityRefreshService>.Instance);
@@ -170,19 +171,4 @@ internal sealed class TmdbServiceHarness : IDisposable
         if (_apiClient.IsValueCreated)
             _apiClient.Value.Dispose();
     }
-}
-
-/// <summary>
-///   Helpers for the links the core hands the plugin.
-/// </summary>
-internal static class TmdbLinks
-{
-    /// <summary>
-    ///   A link from an AniDB anime to a TMDb show.
-    /// </summary>
-    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
-    /// <param name="series">The show.</param>
-    /// <returns>The link.</returns>
-    public static IReadOnlyList<IMetadataCrossReference> SeriesLink(int anidbAnimeID, MetadataGuid series)
-        => [Mock.Of<IMetadataSeriesCrossReference>(link => link.AnidbAnimeID == anidbAnimeID && link.ProviderID == series)];
 }

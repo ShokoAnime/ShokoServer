@@ -79,6 +79,13 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     private const int MaxDaysStartedAfterEnd = 60;
 
     /// <summary>
+    ///   How many days before an anime's start a series (or its season lining
+    ///   up best) may begin and still rank as the anime, about two broadcast
+    ///   seasons, so a two-cour entry holding the anime's second cour counts.
+    /// </summary>
+    private const int MaxDaysStartedBeforeStart = 180;
+
+    /// <summary>
     ///   Ratings assigned with no title and no number evidence, and so the only
     ///   ones a coincidental air-date hit can put out of order.
     /// </summary>
@@ -116,8 +123,9 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     ///   Titles first, then the regular broadcast's year (the best season's,
     ///   the entry's own or its broadcast season's), or first episodes within
     ///   three days or aligned air dates where the year fails. Ties go to an
-    ///   entry begun in time, then a hinted one, an aligned one, and the
-    ///   closest episode count.
+    ///   entry whose titles carry the anime's sequel number, then one begun in
+    ///   time, a hinted one, an aligned one, and the closest known episode
+    ///   count.
     /// </remarks>
     /// <param name="anime">The anime being matched.</param>
     /// <param name="candidates">
@@ -150,9 +158,13 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
                 .ToList();
         var (year, dateText) = SeriesDateOf(anime);
         var firstEpisodeDate = FirstEpisodeDateOf(anime);
+        var animeStart = AnidbRegularAirDates.RegularStartOf(anime.AirDate, SafeEpisodes(anime)) is { IsComplete: true } regularStart
+            ? regularStart.ToDateOnly()
+            : firstEpisodeDate;
         var episodeCount = anime.EpisodeCounts.Episodes;
         var endedAt = anime.EndDate is { IsComplete: true } ended ? ended.ToDateOnly() : (DateOnly?)null;
         var datedEpisodes = DatedRegularEpisodes(anime);
+        var animeNumber = SequelNumberOf(anime, options.Query);
 
         var judged = new List<Judgement<MetadataSeriesSearchResult>>(candidates.Count);
         for (var index = 0; index < candidates.Count; index++)
@@ -177,10 +189,10 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
             var alignment = AlignEpisodes(datedEpisodes, seasons);
             var alignedSeason = alignment is { IsConclusive: true } ? seasons.FirstOrDefault(season => season.SeasonNumber == alignment.SeasonNumber) : null;
             var bestSeason = alignedSeason ?? seasons
-                .OrderBy(season => EpisodeDifference(episodeCount, season.EpisodeCount))
+                .OrderBy(season => EpisodeDifference(episodeCount, season.EpisodeCount) ?? int.MaxValue)
                 .ThenBy(season => year is { } known && season.FirstAiredAt?.Year == known ? 0 : 1)
                 .FirstOrDefault();
-            var episodeDifference = bestSeason is null ? int.MaxValue : EpisodeDifference(episodeCount, bestSeason.EpisodeCount);
+            var episodeDifference = bestSeason is null ? null : EpisodeDifference(episodeCount, bestSeason.EpisodeCount);
             var dateMatches = year is { } wanted && (
                 bestSeason?.FirstAiredAt?.Year == wanted ||
                 candidate.FirstAiredAt?.Year == wanted ||
@@ -206,6 +218,16 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
             // so between two matching alike (shows sharing a title) the timely one wins.
             var startedAt = StartOf(candidate);
             var startedLate = startedAt is { } began && endedAt is { } lastAired && began.DayNumber - lastAired.DayNumber > MaxDaysStartedAfterEnd;
+
+            // The season lining up best tells when the anime's part of a long show began,
+            // and one whose episodes aired on the anime's days holds it however early.
+            var seasonStart = candidate.Seasons is null
+                ? startedAt
+                : bestSeason?.FirstEpisodeAiredAt ?? (bestSeason?.FirstAiredAt is { IsComplete: true } seasonStarted ? seasonStarted.ToDateOnly() : null);
+            var daysEarly = alignedSeason is null && seasonStart is { } seasonBegan && animeStart is { } animeBegan
+                ? animeBegan.DayNumber - seasonBegan.DayNumber
+                : 0;
+            var candidateNumbers = NamesOf(candidate).Select(TitleVariants.SequelNumber).OfType<int>().ToHashSet();
             var filter = candidate switch
             {
                 { IsRestricted: true } when !options.IncludeRestricted => MatchRejectionReason.Restricted,
@@ -228,6 +250,16 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
                 StartedLate = startedLate
                     ? $"it began on {startedAt:yyyy-MM-dd}, more than {MaxDaysStartedAfterEnd} days after the anime ended on {endedAt:yyyy-MM-dd}"
                     : null,
+                DaysStartedEarly = daysEarly > MaxDaysStartedBeforeStart ? daysEarly : 0,
+                StartedEarly = daysEarly > MaxDaysStartedBeforeStart
+                    ? $"it began on {seasonStart:yyyy-MM-dd}, {daysEarly} days before the anime started on {animeStart:yyyy-MM-dd}"
+                    : null,
+                Numbering = animeNumber is not { } wantedNumber || candidateNumbers.Count is 0 ? NumberMatch.Unknown
+                    : candidateNumbers.Contains(wantedNumber) ? NumberMatch.Same
+                    : NumberMatch.Different,
+                NumberText = candidateNumbers.Count is 0
+                    ? $"its titles carry no number, the anime's carrying {animeNumber}"
+                    : $"its titles number it {string.Join(" or ", candidateNumbers.Order())}, the anime's {animeNumber}",
                 Comparison = $"Compared {dateText} and {episodeCount} episodes with {candidateText}.{alignmentText}",
                 Alignment = alignment,
             });
@@ -307,7 +339,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
                 candidate.OtherReleaseDates.Any(date => date.Year == wanted)
             );
             var filter = candidate.IsRestricted && !options.IncludeRestricted ? MatchRejectionReason.Restricted : MatchRejectionReason.None;
-            judged.Add(new(candidate, index, Rate(title, dateMatches), title, dateMatches, int.MaxValue, null, filter)
+            judged.Add(new(candidate, index, Rate(title, dateMatches), title, dateMatches, null, null, filter)
             {
                 Hinted = options.HintedIDs.Contains(candidate.ID),
                 FilterDetails = filter is MatchRejectionReason.Restricted ? "It is marked as adult, and adult entries were not allowed." : null,
@@ -342,6 +374,17 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     }
 
     /// <summary>
+    ///   Whether a candidate's titles carry the anime's sequel or season
+    ///   number, best first.
+    /// </summary>
+    private enum NumberMatch
+    {
+        Same = 0,
+        Unknown = 1,
+        Different = 2,
+    }
+
+    /// <summary>
     ///   One candidate as judged, before it is ranked.
     /// </summary>
     /// <param name="Candidate">The candidate.</param>
@@ -349,7 +392,10 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     /// <param name="Rating">How well it matched.</param>
     /// <param name="Title">How closely its titles matched.</param>
     /// <param name="DateMatches">Whether its date agreed.</param>
-    /// <param name="EpisodeDifference">How far its episode count was off.</param>
+    /// <param name="EpisodeDifference">
+    ///   How far its episode count was off, or <c>null</c> when either count
+    ///   is unknown.
+    /// </param>
     /// <param name="SeasonNumber">Its season that lines up best.</param>
     /// <param name="Filter">Why it may not be taken at all, if anything.</param>
     private sealed record Judgement<T>(
@@ -358,7 +404,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
         MatchRating Rating,
         TitleEvidence Title,
         bool DateMatches,
-        int EpisodeDifference,
+        int? EpisodeDifference,
         int? SeasonNumber,
         MatchRejectionReason Filter
     ) where T : MetadataSearchResult
@@ -374,6 +420,29 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
         ///   <c>null</c>.
         /// </summary>
         public string? StartedLate { get; init; }
+
+        /// <summary>
+        ///   How many days before the anime's start the candidate (or its
+        ///   season lining up best) began, when that was too long before to
+        ///   be the anime, or <c>0</c>.
+        /// </summary>
+        public int DaysStartedEarly { get; init; }
+
+        /// <summary>
+        ///   When the candidate and the anime began, as a clause, when
+        ///   <see cref="DaysStartedEarly"/> is set, or <c>null</c>.
+        /// </summary>
+        public string? StartedEarly { get; init; }
+
+        /// <summary>
+        ///   Whether its titles carry the anime's sequel or season number.
+        /// </summary>
+        public NumberMatch Numbering { get; init; } = NumberMatch.Unknown;
+
+        /// <summary>
+        ///   The numbers its titles and the anime's carry, as a clause.
+        /// </summary>
+        public string NumberText { get; init; } = string.Empty;
 
         /// <summary>
         ///   What was compared, as a sentence.
@@ -480,6 +549,13 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     ///   the first, and the first when nothing about it agreed, was not
     ///   taken.
     /// </summary>
+    /// <remarks>
+    ///   Between candidates rated alike: the anime's sequel number, then
+    ///   beginning neither after the anime ended nor long before it began
+    ///   (closest first), a hint, aligned episodes, the episode count and the
+    ///   source's order. An unknown episode count takes the best known one
+    ///   of its tie, so it neither wins nor loses on the count.
+    /// </remarks>
     /// <param name="judged">The candidates as judged, in the source's order.</param>
     /// <param name="byEpisodeCount">
     ///   Whether the episode count settles a tie before the source's order.
@@ -491,13 +567,26 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
     private static IEnumerable<(Judgement<T> Judgement, MatchRejectionReason Rejection, string? Details)> Rank<T>(List<Judgement<T>> judged, bool byEpisodeCount)
         where T : MetadataSearchResult
     {
+        var countKeys = new int[judged.Count];
+        if (byEpisodeCount)
+        {
+            foreach (var tie in judged.GroupBy(TieOf))
+            {
+                var best = tie.Min(judgement => judgement.EpisodeDifference) ?? 0;
+                foreach (var judgement in tie)
+                    countKeys[judgement.Index] = judgement.EpisodeDifference ?? best;
+            }
+        }
+
         var ordered = judged
             .OrderBy(judgement => judgement.Filter is not MatchRejectionReason.None)
             .ThenBy(judgement => Priority(judgement.Rating))
+            .ThenBy(judgement => judgement.Numbering)
             .ThenBy(judgement => judgement.StartedLate is not null)
+            .ThenBy(judgement => judgement.DaysStartedEarly)
             .ThenBy(judgement => !judgement.Hinted)
             .ThenBy(judgement => !judgement.IsAligned)
-            .ThenBy(judgement => byEpisodeCount ? judgement.EpisodeDifference : 0)
+            .ThenBy(judgement => countKeys[judgement.Index])
             .ThenBy(judgement => judgement.Index)
             .ToList();
         var winner = ordered[0] is { Filter: MatchRejectionReason.None, Rating: not MatchRating.None } first ? first : null;
@@ -510,26 +599,61 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
                 yield return (judgement, judgement.Filter, judgement.FilterDetails);
             else if (winner is null || judgement.Rating is MatchRating.None)
                 yield return (judgement, MatchRejectionReason.TitleMismatch, $"Neither its titles nor its date matched. {judgement.Comparison}");
-            else if (Priority(judgement.Rating) == Priority(winner.Rating) && judgement.StartedLate is { } late && winner.StartedLate is null)
-                yield return (judgement, MatchRejectionReason.DateMismatch, $"Rated {judgement.Rating} like {taken}, but {late}, where the one taken did not. {judgement.Comparison}");
-            else if (Priority(judgement.Rating) == Priority(winner.Rating) && winner.Hinted && !judgement.Hinted && judgement.StartedLate is null)
-                yield return (judgement, MatchRejectionReason.Outranked, $"Rated {judgement.Rating} like {taken}, which another source names as the anime's own. {judgement.Comparison}");
-            else if (Priority(judgement.Rating) == Priority(winner.Rating) && winner.IsAligned && !judgement.IsAligned && judgement.StartedLate is null)
-                yield return (
-                    judgement,
-                    MatchRejectionReason.DateMismatch,
-                    $"Rated {judgement.Rating} like {taken}, whose episodes aired on the anime's days. {judgement.Comparison}"
-                );
             else if (Priority(judgement.Rating) == Priority(winner.Rating))
-                yield return byEpisodeCount && judgement.EpisodeDifference > winner.EpisodeDifference
-                    ? (judgement, MatchRejectionReason.EpisodeCountMismatch, $"Rated {judgement.Rating} like {taken}, whose episode count is closer. {judgement.Comparison}")
-                    : (judgement, MatchRejectionReason.Outranked, $"Rated {judgement.Rating} like {taken}, which came first. {judgement.Comparison}");
+                yield return ExplainTie(judgement, winner, $"Rated {judgement.Rating} like {taken}");
             else if (Strength(judgement.Title) < Strength(winner.Title))
                 yield return (judgement, MatchRejectionReason.TitleMismatch, $"Rated {judgement.Rating}, its titles matching less closely than those of {taken}. {judgement.Comparison}");
             else if (winner.DateMatches && !judgement.DateMatches)
                 yield return (judgement, MatchRejectionReason.DateMismatch, $"Rated {judgement.Rating}, its titles matching as well as {taken}, whose date agreed. {judgement.Comparison}");
             else
                 yield return (judgement, MatchRejectionReason.Outranked, $"Rated {judgement.Rating}, below {taken}. {judgement.Comparison}");
+        }
+
+        // Everything that settles a tie before the episode count.
+        static (bool, int, NumberMatch, bool, int, bool, bool) TieOf(Judgement<T> judgement)
+            => (
+                judgement.Filter is not MatchRejectionReason.None,
+                Priority(judgement.Rating),
+                judgement.Numbering,
+                judgement.StartedLate is not null,
+                judgement.DaysStartedEarly,
+                judgement.Hinted,
+                judgement.IsAligned
+            );
+
+        // The first tie-break, in the order above, the one taken won on.
+        (Judgement<T>, MatchRejectionReason, string?) ExplainTie(Judgement<T> loser, Judgement<T> chosen, string rated)
+        {
+            if (loser.Numbering != chosen.Numbering)
+            {
+                var chosenTitles = chosen.Numbering is NumberMatch.Same ? "whose titles carry the anime's number" : "whose titles carry no other number";
+                return (loser, MatchRejectionReason.TitleMismatch, $"{rated}, {chosenTitles}, where {loser.NumberText}. {loser.Comparison}");
+            }
+
+            if (loser.StartedLate is { } late && chosen.StartedLate is null)
+                return (loser, MatchRejectionReason.DateMismatch, $"{rated}, but {late}, where the one taken did not. {loser.Comparison}");
+
+            if (loser.DaysStartedEarly != chosen.DaysStartedEarly)
+            {
+                var than = chosen.DaysStartedEarly is 0 ? "where the one taken did not begin that early" : "earlier than the one taken";
+                return (loser, MatchRejectionReason.DateMismatch, $"{rated}, but {loser.StartedEarly}, {than}. {loser.Comparison}");
+            }
+
+            if (chosen.Hinted && !loser.Hinted)
+                return (loser, MatchRejectionReason.Outranked, $"{rated}, which another source names as the anime's own. {loser.Comparison}");
+
+            if (chosen.IsAligned && !loser.IsAligned)
+                return (loser, MatchRejectionReason.DateMismatch, $"{rated}, whose episodes aired on the anime's days. {loser.Comparison}");
+
+            if (countKeys[loser.Index] != countKeys[chosen.Index])
+            {
+                var closer = chosen.EpisodeDifference is null
+                    ? "whose episode count is unknown, and another candidate's is closer than its own"
+                    : "whose episode count is closer";
+                return (loser, MatchRejectionReason.EpisodeCountMismatch, $"{rated}, {closer}. {loser.Comparison}");
+            }
+
+            return (loser, MatchRejectionReason.Outranked, $"{rated}, which came first. {loser.Comparison}");
         }
 
         static int Strength(TitleEvidence title) => title switch
@@ -618,8 +742,14 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Select(name => name!)];
 
-    private static int EpisodeDifference(int anidbCount, int? sourceCount)
-        => sourceCount is { } count ? Math.Abs(anidbCount - count) : int.MaxValue;
+    /// <summary>
+    ///   How far a candidate's episode count is off the anime's.
+    /// </summary>
+    /// <param name="anidbCount">The anime's episode count, <c>0</c> when unknown.</param>
+    /// <param name="sourceCount">The candidate's, <c>null</c> or <c>0</c> when unknown.</param>
+    /// <returns>The difference, or <c>null</c> when either count is unknown.</returns>
+    private static int? EpisodeDifference(int anidbCount, int? sourceCount)
+        => anidbCount > 0 && sourceCount is > 0 ? Math.Abs(anidbCount - sourceCount.Value) : null;
 
     /// <summary>
     ///   The year an anime's regular broadcast started, falling back on its
@@ -650,6 +780,22 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
                 : $"episode {secondEpisode.EpisodeNumber} airing on {episodeAirDate:yyyy-MM-dd}");
         return (null, "the anime, undated,");
     }
+
+    /// <summary>
+    ///   The sequel or season number an anime goes by: the highest its query
+    ///   and its own full titles carry, as a search by its prequel's title says
+    ///   nothing of the anime's own number.
+    /// </summary>
+    /// <param name="anime">The anime.</param>
+    /// <param name="query">The title the source was searched with, if any.</param>
+    /// <returns>The number, or <c>null</c> when no title tells.</returns>
+    private static int? SequelNumberOf(IAnidbAnime anime, string? query)
+        => SafeTitles(anime)
+            .Where(title => !IsExactOnly(title))
+            .Select(title => title.Value)
+            .Append(query)
+            .Select(TitleVariants.SequelNumber)
+            .Max();
 
     /// <summary>
     ///   When a candidate series began: its own date, or else its earliest

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Metadata;
+using Shoko.Abstractions.Metadata.CrossReferences;
 using Shoko.Abstractions.Metadata.Providers;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
@@ -28,8 +29,10 @@ namespace Shoko.Server.Scheduling.Jobs.Metadata;
 ///   its own refreshes. The provider writes the stores itself; the core takes each
 ///   entry's lock, skips one refreshed within <see cref="MetadataRefreshState.FreshFor"/>
 ///   unless forced, records the refresh unless it was quick, then queues the episode
-///   link sync and, when asked, the images. A failed entry keeps its refresh time and
-///   does not stop the rest, but the job fails afterwards so the queue retries it.
+///   link sync, the episode matching of the anime and of every anime linked to a
+///   refreshed series unless it was quick, and, when asked, the images. A failed entry
+///   keeps its refresh time and does not stop the rest, but the job fails afterwards so
+///   the queue retries it.
 /// </remarks>
 /// <typeparam name="TProvider">The provider to refresh from.</typeparam>
 [DatabaseRequired]
@@ -263,9 +266,9 @@ public class RefreshMetadataJob<TProvider>(
         }
 
         var lastRefreshedAt = refreshState.GetLastRefreshedAt(entry);
-        if (!Force && lastRefreshedAt is { } last && DateTime.UtcNow - last.ToUniversalTime() < MetadataRefreshState.FreshFor)
+        if (!Force && MetadataRefreshState.IsFresh(lastRefreshedAt))
         {
-            _logger.LogDebug("Not refreshing {Entry}, which {Provider} last refreshed at {LastRefreshedAt}.", entry, info.Name, last);
+            _logger.LogDebug("Not refreshing {Entry}, which {Provider} last refreshed at {LastRefreshedAt}.", entry, info.Name, lastRefreshedAt);
             return false;
         }
 
@@ -317,10 +320,11 @@ public class RefreshMetadataJob<TProvider>(
 
     /// <summary>
     ///   Queues what follows a refresh: the sync of each refreshed series'
-    ///   episode links, and, when images were asked for and this is not a
-    ///   quick refresh, the images of the refreshed entries and the stored
-    ///   collections holding them: the owner's image job, or the image
-    ///   contributors' jobs when the owner's does not run.
+    ///   episode links, the episode matching unless this is a quick refresh,
+    ///   and, when images were asked for and this is not a quick refresh, the
+    ///   images of the refreshed entries and the stored collections holding
+    ///   them: the owner's image job, or the image contributors' jobs when the
+    ///   owner's does not run.
     /// </summary>
     /// <param name="info">The provider's info.</param>
     /// <param name="refreshed">The entries the provider refreshed.</param>
@@ -329,11 +333,22 @@ public class RefreshMetadataJob<TProvider>(
     /// <returns>A task that completes once the jobs are queued.</returns>
     private async Task ScheduleFollowUps(MetadataProviderInfo info, List<MetadataGuid> refreshed, HashSet<MetadataGuid> firstRefreshed, CancellationToken token)
     {
+        // A quick refresh leaves out too much to match against.
+        if (!QuickRefresh)
+        {
+            foreach (var anidbAnimeID in GetAnimeToMatch(refreshed))
+                await Queue(
+                    "the episode matching",
+                    $"AniDB anime {anidbAnimeID}",
+                    () => providerScheduler.ScheduleEpisodeMatch(info.Source, anidbAnimeID, token)
+                ).ConfigureAwait(false);
+        }
+
         if (refreshed.Count is 0)
             return;
 
         foreach (var entry in refreshed.Where(entry => entry.EntityType == MetadataEntityType.Series))
-            await Queue("the episode link sync", entry, () => providerScheduler.ScheduleLinkSync(entry, token)).ConfigureAwait(false);
+            await Queue("the episode link sync", entry.ToString(), () => providerScheduler.ScheduleLinkSync(entry, token)).ConfigureAwait(false);
 
         if (!DownloadImages || QuickRefresh)
             return;
@@ -353,7 +368,7 @@ public class RefreshMetadataJob<TProvider>(
         foreach (var entry in withImages)
         {
             var isNew = firstRefreshed.Contains(entry);
-            await Queue("the images", entry, async () =>
+            await Queue("the images", entry.ToString(), async () =>
             {
                 if (!ownerImages || !await providerScheduler.ScheduleImages(info, entry, cancellationToken: token, isNew: isNew).ConfigureAwait(false))
                     await contributorScheduler.ScheduleForEntry(entry, isNew: isNew, cancellationToken: token).ConfigureAwait(false);
@@ -362,15 +377,37 @@ public class RefreshMetadataJob<TProvider>(
     }
 
     /// <summary>
+    ///   The anime whose episodes are matched again after the job: the one
+    ///   it ran for, whether or not anything was due, and every anime linked
+    ///   to a series it refreshed.
+    /// </summary>
+    /// <param name="refreshed">The entries the provider refreshed.</param>
+    /// <returns>The AniDB anime IDs, each once.</returns>
+    private List<int> GetAnimeToMatch(List<MetadataGuid> refreshed)
+    {
+        var anime = new List<int>();
+        if (AnimeID > 0)
+            anime.Add(AnimeID);
+
+        anime.AddRange(refreshed
+            .Where(entry => entry.EntityType == MetadataEntityType.Series)
+            .SelectMany(crossReferences.GetLinksTo)
+            .OfType<IMetadataSeriesCrossReference>()
+            .Select(link => link.AnidbAnimeID)
+            .Where(anidbAnimeID => anidbAnimeID > 0));
+        return [.. anime.Distinct()];
+    }
+
+    /// <summary>
     ///   Queues one follow-up job, logging a failure rather than failing the
     ///   refresh that already happened.
     /// </summary>
     /// <param name="what">What is queued, for the log.</param>
-    /// <param name="entry">The entry it is queued for.</param>
+    /// <param name="subject">What it is queued for, for the log.</param>
     /// <param name="queue">Queues it.</param>
     /// <returns>A task that completes once it is queued.</returns>
     /// <exception cref="OperationCanceledException">The job was cancelled.</exception>
-    private async Task Queue(string what, MetadataGuid entry, Func<Task> queue)
+    private async Task Queue(string what, string subject, Func<Task> queue)
     {
         try
         {
@@ -378,7 +415,7 @@ public class RefreshMetadataJob<TProvider>(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(ex, "Failed to queue {What} of {Entry}.", what, entry);
+            _logger.LogError(ex, "Failed to queue {What} of {Subject}.", what, subject);
         }
     }
 

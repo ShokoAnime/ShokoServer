@@ -1132,6 +1132,102 @@ public class MetadataMatchingEngineTests
 
     #endregion
 
+    #region Tie-breaks
+
+    // AniDB 19779 against AniList: the second season's count is unknown, and
+    // the first season's known count used to win the tie for it.
+    [Fact]
+    public void MatchSeries_TakesTheSequelByItsNumber_OverTheFirstSeason()
+    {
+        var anime = SeriesAnime(new(2026, 1, 10), 24, titles: ["ガチアクタ 2"]);
+        var matches = Matcher().MatchSeries(anime,
+        [
+            Series("178025", "Gachiakuta", aired: new(2025, 7, 6), alternateTitles: ["ガチアクタ"]) with { EpisodeCount = 24 },
+            Series("204436", "Gachiakuta Season 2", alternateTitles: ["ガチアクタ 第2期"]),
+        ], new() { Query = "ガチアクタ 2", QueryLanguage = TitleLanguage.Japanese, SeasonsAreSeparateEntries = true });
+
+        Assert.Equal(["204436", "178025"], matches.Select(match => match.Candidate.ID.ID));
+        Assert.All(matches, match => Assert.Equal(MatchRating.TitleKindaMatches, match.Rating));
+        Assert.Equal(MatchRejectionReason.TitleMismatch, matches[1].Rejection);
+    }
+
+    // A show holding every season is the sequel's entry when no other is
+    // offered, whatever its title's number and its start say.
+    [Fact]
+    public void MatchSeries_TakesASoleShowForASequel()
+    {
+        var anime = SeriesAnime(new(2026, 1, 10), 24, titles: ["Gachiakuta Season 2"]);
+        var match = Assert.Single(Matcher().MatchSeries(anime,
+            [Series("1", "Gachiakuta", aired: new(2025, 7, 6), seasons: [Season(1, 24, new(2025, 7, 6))])],
+            new() { Query = "Gachiakuta Season 2" }));
+
+        Assert.Equal(MatchRejectionReason.None, match.Rejection);
+    }
+
+    // An unknown episode count neither wins nor loses the tie: the source's
+    // order settles it either way round.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MatchSeries_AnUnknownEpisodeCountIsNeutral(bool unknownFirst)
+    {
+        var unknown = Series("1", "Kaguya", aired: new(2021, 1, 2));
+        var known = Series("2", "Kaguya", aired: new(2021, 1, 2)) with { EpisodeCount = 24 };
+        var matches = Matcher().MatchSeries(SeriesAnime(new(2021, 1, 2), 12), unknownFirst ? [unknown, known] : [known, unknown], new() { Query = "Kaguya" });
+
+        Assert.Equal(unknownFirst ? ["1", "2"] : ["2", "1"], matches.Select(match => match.Candidate.ID.ID));
+        Assert.Equal(MatchRejectionReason.Outranked, matches[1].Rejection);
+    }
+
+    // One begun long before the anime loses a tie, the earliest last.
+    [Fact]
+    public void MatchSeries_AnEarlyStartLosesATie()
+    {
+        var matches = Matcher().MatchSeries(SeriesAnime(new(2021, 1, 2), 12),
+        [
+            Series("1", "Kaguya", aired: new(2019, 4, 6)),
+            Series("2", "Kaguya", aired: new(2017, 1, 7)),
+            Series("3", "Kaguya", aired: new(2020, 12, 19)),
+        ], new() { Query = "Kaguya" });
+
+        Assert.Equal(["3", "1", "2"], matches.Select(match => match.Candidate.ID.ID));
+        Assert.Equal(
+            [MatchRejectionReason.None, MatchRejectionReason.DateMismatch, MatchRejectionReason.DateMismatch],
+            matches.Select(match => match.Rejection)
+        );
+    }
+
+    // Titles numbering another season lose a tie the source's order and the
+    // episode count would have given them.
+    [Fact]
+    public void MatchSeries_AnotherNumberLosesATie()
+    {
+        var matches = Matcher().MatchSeries(SeriesAnime(new(2020, 4, 11), 12),
+        [
+            Series("1", "Kaguya-sama") with { EpisodeCount = 12 },
+            Series("2", "Kaguya-sama Season 2") with { EpisodeCount = 13 },
+        ], new() { Query = "Kaguya-sama Season 2" });
+
+        Assert.Equal(["2", "1"], matches.Select(match => match.Candidate.ID.ID));
+        Assert.Equal(MatchRejectionReason.TitleMismatch, matches[1].Rejection);
+    }
+
+    // The number only settles a tie: a better rating still wins.
+    [Fact]
+    public void MatchSeries_TheNumberNeverBeatsABetterRating()
+    {
+        var matches = Matcher().MatchSeries(SeriesAnime(new(2020, 4, 11), 12),
+        [
+            Series("1", "Kaguya-sama", aired: new(2020, 4, 11)),
+            Series("2", "Kaguya-sama Season 2"),
+        ], new() { Query = "Kaguya-sama Season 2" });
+
+        Assert.Equal(["1", "2"], matches.Select(match => match.Candidate.ID.ID));
+        Assert.Equal([MatchRating.DateAndTitleMatches, MatchRating.TitleMatches], matches.Select(match => match.Rating));
+    }
+
+    #endregion
+
     #region Episode alignment
 
     // A split cour: the second half of a 24-episode season begun the year before,

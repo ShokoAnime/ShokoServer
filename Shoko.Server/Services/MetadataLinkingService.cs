@@ -1487,13 +1487,116 @@ public class MetadataLinkingService(
         CancellationToken cancellationToken = default
     )
     {
+        var (matched, _) = await MatchAndSaveEpisodes(
+            anidbAnimeID,
+            providerSeriesID,
+            providerSeasonID,
+            useExisting,
+            save,
+            considerOtherLinks,
+            [],
+            cancellationToken
+        ).ConfigureAwait(false);
+        return matched;
+    }
+
+    /// <summary>
+    ///   Matches an anime's episodes again against every series it is linked
+    ///   to on a source, as after a refresh, and writes the episodes whose
+    ///   links changed.
+    /// </summary>
+    /// <remarks>
+    ///   The links a person made and the ones the matching rated best are
+    ///   kept, so an episode left unmatched or linked to nothing by the
+    ///   matching is filled once the source has it. An episode whose links all
+    ///   point into another series the anime is linked to is left to that
+    ///   series. A series that cannot be matched is skipped.
+    /// </remarks>
+    /// <param name="source">The source.</param>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <returns>How many episode links were written.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public async Task<int> RematchEpisodes(MetadataSource source, int anidbAnimeID, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (anidbAnimeID <= 0 || TryProvider(source, MetadataEntityType.Episode) is null)
+            return 0;
+
+        var seriesIDs = crossReferences.GetSeriesLinks(anidbAnimeID, source)
+            .Select(link => link.ProviderID)
+            .OfType<MetadataGuid>()
+            .Where(id => id.EntityType == MetadataEntityType.Series)
+            .Distinct()
+            .ToList();
+        var written = 0;
+        foreach (var seriesID in seriesIDs)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var (_, count) = await MatchAndSaveEpisodes(
+                    anidbAnimeID,
+                    seriesID,
+                    null,
+                    useExisting: true,
+                    save: true,
+                    considerOtherLinks: null,
+                    [.. seriesIDs.Where(id => id != seriesID)],
+                    cancellationToken
+                ).ConfigureAwait(false);
+                written += count;
+            }
+            catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException or ArgumentException)
+            {
+                logger.LogDebug(ex, "Unable to match the episodes of AniDB anime {AnimeID} against {SeriesID} again.", anidbAnimeID, seriesID);
+            }
+        }
+
+        return written;
+    }
+
+    /// <summary>
+    ///   Matches an anime's episodes against a series and, when asked, writes
+    ///   the episodes whose links the matching changed.
+    /// </summary>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <param name="providerSeriesID">The provider series to match into.</param>
+    /// <param name="providerSeasonID">One season of it, or <c>null</c> for the whole series.</param>
+    /// <param name="useExisting">Whether to hand the links already on record to the matching.</param>
+    /// <param name="save">Whether to write the result.</param>
+    /// <param name="considerOtherLinks">
+    ///   Whether to leave out the episodes other anime are linked to, or
+    ///   <c>null</c> for the provider's default.
+    /// </param>
+    /// <param name="otherSeries">
+    ///   The anime's other series on the source, whose episodes' links are
+    ///   not written over.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <returns>The links the matching came up with, and how many were written.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="providerSeriesID"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">The series or season is on another source, or of another kind.</exception>
+    /// <exception cref="NotSupportedException">No enabled provider links episodes on the source.</exception>
+    private async Task<(IReadOnlyList<IMetadataEpisodeCrossReference> Matched, int Written)> MatchAndSaveEpisodes(
+        int anidbAnimeID,
+        MetadataGuid providerSeriesID,
+        MetadataGuid? providerSeasonID,
+        bool useExisting,
+        bool save,
+        bool? considerOtherLinks,
+        IReadOnlyCollection<MetadataGuid> otherSeries,
+        CancellationToken cancellationToken
+    )
+    {
         ArgumentNullException.ThrowIfNull(providerSeriesID);
         var source = providerSeriesID.Source;
         CheckRequest(source, MetadataEntityType.Series, providerSeriesID, nameof(providerSeriesID));
         CheckRequest(source, MetadataEntityType.Season, providerSeasonID, nameof(providerSeasonID));
         var provider = Provider(source, MetadataEntityType.Episode);
         if (anidbAnimeRepository.GetByAnimeID(anidbAnimeID) is not { } anime)
-            return [];
+            return ([], 0);
 
         // Only the levels that are ever linked, so a provider is not left to
         // decide what counts as an episode.
@@ -1501,7 +1604,8 @@ public class MetadataLinkingService(
             .Where(episode => episode.EpisodeType is EpisodeType.Episode or EpisodeType.Special)
             .Cast<IAnidbEpisode>()
             .ToList();
-        var existing = useExisting ? crossReferences.GetEpisodeLinksForSeries(anidbAnimeID, source) : null;
+        var stored = crossReferences.GetEpisodeLinksForSeries(anidbAnimeID, source);
+        var existing = useExisting ? stored : null;
 
         var matched = await provider
             .MatchEpisodes(anime, anidbEpisodes, providerSeriesID, providerSeasonID, existing, considerOtherLinks, cancellationToken)
@@ -1513,22 +1617,28 @@ public class MetadataLinkingService(
             .Select(match => match.ToLinkData(source))
             .Select(link => source.IsCore ? link with { SeasonID = null, SeasonNumber = null, EpisodeNumber = null } : link)
             .ToList();
+        var written = 0;
         if (save)
         {
             // The result is the whole picture for each episode it names, the
             // kept links included, so it replaces what those episodes had.
-            using var linkChanges = _linkChanges.Begin();
-            await crossReferences.MergeEpisodeLinks(
-                links,
-                options: new() { ReplaceExisting = true, WrittenBy = WriterOf(provider) },
-                cancellationToken: cancellationToken
-            ).ConfigureAwait(false);
+            var changed = ChangedEpisodeLinks(links, stored, otherSeries);
+            if (changed.Count > 0)
+            {
+                using var linkChanges = _linkChanges.Begin();
+                await crossReferences.MergeEpisodeLinks(
+                    changed,
+                    options: new() { ReplaceExisting = true, WrittenBy = WriterOf(provider) },
+                    cancellationToken: cancellationToken
+                ).ConfigureAwait(false);
+                written = changed.Count;
+            }
         }
 
         // What the provider left alone is still part of the picture, so the
         // links already on record come back beside the ones it came up with.
         var kept = existing?.Where(link => !matched.Any(match => match.AnidbEpisode.AnidbID == link.AnidbEpisodeID)) ?? [];
-        return
+        IReadOnlyList<IMetadataEpisodeCrossReference> result =
         [
             .. kept,
             .. links.Select(IMetadataEpisodeCrossReference (link, index) => new CrossRef_AniDB_Metadata_Episode
@@ -1545,6 +1655,56 @@ public class MetadataLinkingService(
                 Ordering = matched[index].Ordering,
             }),
         ];
+        return (result, written);
+    }
+
+    /// <summary>
+    ///   The links of each episode whose matched links differ from the ones
+    ///   on record, leaving out the episodes linked only into another series.
+    /// </summary>
+    /// <remarks>
+    ///   A link differs when it names another entry, is rated otherwise or
+    ///   sits elsewhere among the episode's links, or carries a series, season
+    ///   or number other than the stored one. What a link leaves out is filled
+    ///   in by the store, so it is no change.
+    /// </remarks>
+    /// <param name="links">The matched links, each episode's in their order.</param>
+    /// <param name="stored">The anime's episode links on the source.</param>
+    /// <param name="otherSeries">The anime's other series on the source.</param>
+    /// <returns>The links to write.</returns>
+    internal static List<MetadataEpisodeLinkData> ChangedEpisodeLinks(
+        IReadOnlyList<MetadataEpisodeLinkData> links,
+        IReadOnlyList<IMetadataEpisodeCrossReference> stored,
+        IReadOnlyCollection<MetadataGuid> otherSeries
+    )
+    {
+        var storedByEpisode = stored
+            .GroupBy(link => link.AnidbEpisodeID)
+            .ToDictionary(group => group.Key, group => group.OrderBy(link => link.Ordering).ToList());
+        return
+        [
+            .. links
+                .GroupBy(link => link.AnidbEpisodeID)
+                .Where(group => !storedByEpisode.TryGetValue(group.Key, out var current) || (!IsUnderOtherSeries(current) && !IsSame([.. group], current)))
+                .SelectMany(group => group),
+        ];
+
+        bool IsUnderOtherSeries(List<IMetadataEpisodeCrossReference> current)
+            => otherSeries.Count > 0 &&
+                current.Any(link => link.ProviderID is not null) &&
+                current.Where(link => link.ProviderID is not null).All(link => link.ProviderParentID is { } parentID && otherSeries.Contains(parentID));
+
+        static bool IsSame(List<MetadataEpisodeLinkData> matched, List<IMetadataEpisodeCrossReference> current)
+            => matched.Count == current.Count && matched.Zip(current).All(pair =>
+                pair.First.ProviderID == pair.Second.ProviderID &&
+                pair.First.MatchRating == pair.Second.MatchRating &&
+                Keeps(pair.First.ProviderParentID, pair.Second.ProviderParentID) &&
+                Keeps(pair.First.SeasonID, pair.Second.SeasonID) &&
+                Keeps(pair.First.SeasonNumber, pair.Second.SeasonNumber) &&
+                Keeps(pair.First.EpisodeNumber, pair.Second.EpisodeNumber));
+
+        static bool Keeps(object? written, object? current)
+            => written is null || Equals(written, current);
     }
 
     #endregion

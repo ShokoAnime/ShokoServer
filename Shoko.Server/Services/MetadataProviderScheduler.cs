@@ -238,6 +238,32 @@ public class MetadataProviderScheduler(
         }, ct: cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///   Queue the matching of an anime's episodes against every series it is
+    ///   linked to on a source, merging with one already queued.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <param name="anidbAnimeID">The AniDB anime ID.</param>
+    /// <param name="cancellationToken">Cancels the work.</param>
+    /// <returns>
+    ///   <c>true</c> when the matching was queued, or <c>false</c> when
+    ///   the anime is linked to no series on the source.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <c>null</c>.</exception>
+    public async Task<bool> ScheduleEpisodeMatch(MetadataSource source, int anidbAnimeID, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (anidbAnimeID <= 0 || !crossReferences.GetSeriesLinks(anidbAnimeID, source).Any(link => link.ProviderID?.EntityType == MetadataEntityType.Series))
+            return false;
+
+        await scheduler.Enqueue<MatchMetadataEpisodesJob>(job =>
+        {
+            job.Source = source.Value;
+            job.AnimeID = anidbAnimeID;
+        }, ct: cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
     #endregion
 
     #region Images

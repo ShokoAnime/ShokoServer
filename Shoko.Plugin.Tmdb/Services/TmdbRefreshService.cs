@@ -29,13 +29,11 @@ namespace Shoko.Plugin.Tmdb.Services;
 /// </remarks>
 /// <param name="apiClient">The TMDb client.</param>
 /// <param name="stores">The core's stores.</param>
-/// <param name="linkingService">Matches the linked anime's episodes again.</param>
 /// <param name="configurationProvider">The plugin's configuration.</param>
 /// <param name="logger">The logger.</param>
 public sealed class TmdbRefreshService(
     TmdbApiClient apiClient,
     TmdbStores stores,
-    TmdbLinkingService linkingService,
     ConfigurationProvider<TmdbConfiguration> configurationProvider,
     ILogger<TmdbRefreshService> logger
 )
@@ -50,11 +48,11 @@ public sealed class TmdbRefreshService(
     ///   The show's titles, overviews, content ratings, tags, studios and
     ///   suggestions are always written. The networks, the episode groups as
     ///   orderings and the credits follow the options, or the settings where
-    ///   they leave it open; a quick refresh leaves them out, fetches no
-    ///   episode on its own and matches no episodes. A refresh with a last
-    ///   refresh time inside the changes window only fetches the seasons and
-    ///   episodes TMDb changed since. A show TMDb no longer has is left as it
-    ///   was stored.
+    ///   they leave it open; a quick refresh leaves them out and fetches no
+    ///   episode on its own. A refresh with a last refresh time inside the
+    ///   changes window only fetches the seasons and episodes TMDb changed
+    ///   since. A show TMDb no longer has is left as it was stored. The core
+    ///   matches the linked anime's episodes again once the refresh is done.
     /// </remarks>
     /// <param name="showID">The TMDb show ID.</param>
     /// <param name="options">What kind of refresh it is.</param>
@@ -181,9 +179,6 @@ public sealed class TmdbRefreshService(
 
         if (downloadOrderings)
             await UpdateOrderings(show, data.Episodes.Select(episode => episode.ID).ToHashSet(), cancellationToken).ConfigureAwait(false);
-
-        if (!quick)
-            await linkingService.MatchLinkedEpisodes(show.Id, cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation(
             "Refreshed TMDb show {ShowID} ({Title}): {Changes} changes to the show and its {Seasons} seasons and {Episodes} episodes.",

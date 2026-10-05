@@ -18,6 +18,7 @@ using Shoko.Server.API.v3.Controllers;
 using Shoko.Server.API.v3.Helpers;
 using Shoko.Server.API.v3.Models.TextManagement;
 using Shoko.Server.API.v3.Models.TextManagement.Input;
+using Shoko.Server.Services;
 using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
 using Xunit;
@@ -521,6 +522,28 @@ public class TextManagementControllerTests
 
         Assert.Equal((TextChoiceStep.LanguageOrder, (TitleLanguage?)TitleLanguage.English), StepOf(_anime, TextKind.Overview, overview, null));
         Assert.Equal(TextChoiceStep.Default, StepOf(_anime, TextKind.Overview, overview, overview, s => s.Language.DescriptionLanguageOrder = ["de"]).Step);
+    }
+
+    [Theory]
+    [InlineData(SeriesDescriptionStep.Entry, TextChoiceStep.LanguageOrder)]
+    [InlineData(SeriesDescriptionStep.FirstSeasonShow, TextChoiceStep.FirstSeasonFallback)]
+    [InlineData(SeriesDescriptionStep.LaterSeasonShow, TextChoiceStep.ShowFallback)]
+    public void ASeriesOverviewNamesTheShowFallbackThatAnswered(SeriesDescriptionStep walked, TextChoiceStep expected)
+    {
+        var series = new MetadataGuid(MetadataSource.Shoko, MetadataEntityType.Series, "3");
+        var settings = new ServerSettings();
+
+        Assert.Equal(expected, TextChoiceExplainer.StepOf(series, TextKind.Overview, Overview(2, "Described.", MetadataSource.TMDB), null, settings, walked).Step);
+    }
+
+    [Fact]
+    public void AnAnidbNoteIsTheLastResortOnlyForASeriesOverview()
+    {
+        var series = new MetadataGuid(MetadataSource.Shoko, MetadataEntityType.Series, "3");
+        var note = Overview(null, "* Based on a manga.");
+
+        Assert.Equal((TextChoiceStep.NoteFallback, (TitleLanguage?)TitleLanguage.English), StepOf(series, TextKind.Overview, note, null));
+        Assert.Equal(TextChoiceStep.LanguageOrder, StepOf(_anime, TextKind.Overview, note, null).Step);
     }
 
     #endregion

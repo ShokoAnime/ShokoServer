@@ -27,8 +27,9 @@ public class TextChoice
     /// <summary>
     ///   The configured language the text was found in, as a code such as
     ///   <c>x-main</c> or <c>en</c>, for <see cref="TextChoiceStep.LanguageOrder"/>,
-    ///   <see cref="TextChoiceStep.GenericTitle"/> and
-    ///   <see cref="TextChoiceStep.LanguagePreference"/>; otherwise <c>null</c>.
+    ///   <see cref="TextChoiceStep.GenericTitle"/>,
+    ///   <see cref="TextChoiceStep.LanguagePreference"/> and the overview
+    ///   fallbacks; otherwise <c>null</c>.
     /// </summary>
     public string? Language { get; set; }
 
@@ -76,6 +77,12 @@ public enum TextChoiceStep
     ///   The first text found walking the configured languages and, in each,
     ///   the sources in their order.
     /// </summary>
+    /// <remarks>
+    ///   For a Shoko series' overview, each source answers from the entry
+    ///   that fits the anime best: the whole show when every regular season
+    ///   is linked, else the lowest linked season. AniDB's description is
+    ///   passed over while it holds only notes.
+    /// </remarks>
     LanguageOrder = 3,
 
     /// <summary>
@@ -94,4 +101,22 @@ public enum TextChoiceStep
     ///   A synthesized generic title, for an episode no source named.
     /// </summary>
     Synthesized = 6,
+
+    /// <summary>
+    ///   A Shoko series' overview read off the show, at once, as the linked
+    ///   first season had none in the language.
+    /// </summary>
+    FirstSeasonFallback = 7,
+
+    /// <summary>
+    ///   A Shoko series' overview read off the show, as the linked later
+    ///   season had none in the language and no source's best entry had one.
+    /// </summary>
+    ShowFallback = 8,
+
+    /// <summary>
+    ///   AniDB's description holding only notes, such as what the anime is
+    ///   based on, taken as the last resort in the language.
+    /// </summary>
+    NoteFallback = 9,
 }

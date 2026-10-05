@@ -18,6 +18,7 @@ using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Abstractions.Metadata.Storage;
 using Shoko.QueueProcessor.Abstractions;
+using Shoko.Server.Filters;
 using Shoko.Server.Models.AniDB;
 using Shoko.Server.Models.CrossReference;
 using Shoko.Server.Models.Shoko;
@@ -1450,6 +1451,148 @@ public class MetadataLinkingServiceTests
         Assert.Equal([("a", 0), ("b", 1)], preview.Select(link => (link.ProviderID!.ID, link.Ordering)));
         Assert.Empty(store.Episodes);
         Assert.Empty(queued);
+    }
+
+    #endregion
+
+    #region Matching again
+
+    private static readonly DateOnly s_firstAired = new(2024, 1, 7);
+
+    private static IAnidbEpisode AiredAnidbEpisode(int anidbEpisodeID, int number)
+    {
+        var episode = new Mock<IAnidbEpisode>();
+        episode.SetupGet(e => e.AnidbID).Returns(anidbEpisodeID);
+        episode.SetupGet(e => e.AnidbAnimeID).Returns(AnimeID);
+        episode.SetupGet(e => e.ID).Returns(new MetadataGuid(MetadataSource.AniDB, MetadataEntityType.Episode, anidbEpisodeID.ToString()));
+        episode.SetupGet(e => e.Type).Returns(EpisodeType.Episode);
+        episode.SetupGet(e => e.EpisodeNumber).Returns(number);
+        episode.SetupGet(e => e.AirDate).Returns(s_firstAired.AddDays(7 * (number - 1)));
+        episode.SetupGet(e => e.Titles).Returns([]);
+        episode.SetupGet(e => e.ShokoEpisodes).Returns([]);
+        return episode.Object;
+    }
+
+    private static IEpisode AiredCandidate(MetadataGuid series, int number)
+    {
+        var candidate = new Mock<IEpisode>();
+        candidate.SetupGet(e => e.ID).Returns(new MetadataGuid(Source, MetadataEntityType.Episode, $"e{number}"));
+        candidate.SetupGet(e => e.SeriesID).Returns(series);
+        candidate.SetupGet(e => e.Type).Returns(EpisodeType.Episode);
+        candidate.SetupGet(e => e.EpisodeNumber).Returns(number);
+        candidate.SetupGet(e => e.AirDate).Returns(s_firstAired.AddDays(7 * (number - 1)));
+        candidate.SetupGet(e => e.Titles).Returns([]);
+        return candidate.Object;
+    }
+
+    private static CrossRef_AniDB_Metadata_Episode StoredEpisodeLink(int anidbEpisodeID, int? number, MatchRating rating)
+        => new()
+        {
+            Source = Source,
+            AnidbAnimeID = AnimeID,
+            AnidbEpisodeID = anidbEpisodeID,
+            ProviderID = number is null ? string.Empty : $"e{number}",
+            ProviderParentID = number is null ? string.Empty : "s1",
+            EpisodeNumber = number,
+            MatchRating = rating,
+        };
+
+    [Fact]
+    public async Task MatchingAgainFillsWhatTheMatchingLeftEmpty_KeepsAPersonsLinksAndRefusals_AndWritesNothingTheSecondTime()
+    {
+        var store = new LinkTables();
+        store.Series.Add(SeriesLink("s1"));
+        store.Episodes.AddRange([
+            StoredEpisodeLink(11, 1, MatchRating.DateAndNumberMatches),
+            StoredEpisodeLink(12, 2, MatchRating.UserVerified),
+            StoredEpisodeLink(13, null, MatchRating.None),
+            StoredEpisodeLink(14, null, MatchRating.UserVerified),
+        ]);
+        var (service, provider, _, _) = Build(store.Store, anidbAnime: Anime());
+        var series = new MetadataGuid(Source, MetadataEntityType.Series, "s1");
+        var anidbEpisodes = Enumerable.Range(1, 4).Select(number => AiredAnidbEpisode(10 + number, number)).ToList();
+        var candidates = Enumerable.Range(1, 4).Select(number => AiredCandidate(series, number)).ToList();
+        var engine = new MetadataMatchingEngine(NullLogger<MetadataMatchingEngine>.Instance, new FuzzySearchService());
+        provider
+            .Setup(p => p.MatchEpisodes(
+                It.IsAny<IAnidbAnime>(),
+                It.IsAny<IReadOnlyList<IAnidbEpisode>>(),
+                series,
+                It.IsAny<MetadataGuid?>(),
+                It.IsAny<IReadOnlyList<IMetadataEpisodeCrossReference>?>(),
+                It.IsAny<bool?>(),
+                It.IsAny<CancellationToken>()
+            ))
+            .ReturnsAsync((
+                IAnidbAnime _,
+                IReadOnlyList<IAnidbEpisode> _,
+                MetadataGuid _,
+                MetadataGuid? _,
+                IReadOnlyList<IMetadataEpisodeCrossReference>? existing,
+                bool? _,
+                CancellationToken _
+            ) => engine.MatchEpisodes(anidbEpisodes, candidates, existing, new() { Strategy = EpisodeMatchStrategy.DateThenNumber }));
+        var token = TestContext.Current.CancellationToken;
+        var before = store.Episodes.ToDictionary(link => link.AnidbEpisodeID, link => link.CrossRef_AniDB_Metadata_EpisodeID);
+
+        Assert.Equal(1, await service.RematchEpisodes(Source, AnimeID, token));
+        Assert.Equal(0, await service.RematchEpisodes(Source, AnimeID, token));
+
+        Assert.Equal(
+            [
+                (11, "e1", MatchRating.DateAndNumberMatches),
+                (12, "e2", MatchRating.UserVerified),
+                (13, "e3", MatchRating.DateAndNumberMatches),
+                (14, "", MatchRating.UserVerified),
+            ],
+            store.Episodes.OrderBy(link => link.AnidbEpisodeID).Select(link => (link.AnidbEpisodeID, link.ProviderID, link.MatchRating))
+        );
+        Assert.Equal(before[11], Assert.Single(store.Episodes, link => link.AnidbEpisodeID == 11).CrossRef_AniDB_Metadata_EpisodeID);
+        Assert.Equal(before[14], Assert.Single(store.Episodes, link => link.AnidbEpisodeID == 14).CrossRef_AniDB_Metadata_EpisodeID);
+    }
+
+    [Fact]
+    public async Task MatchingAgainLeavesAnEpisodeLinkedIntoAnotherLinkedSeriesToThatSeries()
+    {
+        var store = new LinkTables();
+        store.Series.AddRange([SeriesLink("s1"), SeriesLink("s2")]);
+        var linked = StoredEpisodeLink(11, 1, MatchRating.FirstAvailable);
+        linked.ProviderParentID = "s2";
+        store.Episodes.Add(linked);
+        var anidbEpisode = new AniDB_Episode { AniDB_EpisodeID = 1, EpisodeID = 11, AnimeID = AnimeID, EpisodeType = EpisodeType.Episode };
+        var episodes = CachedRepo.Build<AniDB_EpisodeRepository, int, AniDB_Episode>(row => row.AniDB_EpisodeID, anidbEpisode);
+        var (service, provider, _, _) = Build(store.Store, anidbAnime: Anime(), anidbEpisodes: episodes);
+        provider
+            .Setup(p => p.MatchEpisodes(
+                It.IsAny<IAnidbAnime>(),
+                It.IsAny<IReadOnlyList<IAnidbEpisode>>(),
+                It.IsAny<MetadataGuid>(),
+                It.IsAny<MetadataGuid?>(),
+                It.IsAny<IReadOnlyList<IMetadataEpisodeCrossReference>?>(),
+                It.IsAny<bool?>(),
+                It.IsAny<CancellationToken>()
+            ))
+            .ReturnsAsync((
+                IAnidbAnime _,
+                IReadOnlyList<IAnidbEpisode> _,
+                MetadataGuid series,
+                MetadataGuid? _,
+                IReadOnlyList<IMetadataEpisodeCrossReference>? _,
+                bool? _,
+                CancellationToken _
+            ) =>
+            [
+                new EpisodeMatch
+                {
+                    AnidbEpisode = anidbEpisode,
+                    Candidate = AiredCandidate(series, series.ID == "s1" ? 2 : 1),
+                    Rating = MatchRating.FirstAvailable,
+                },
+            ]);
+
+        Assert.Equal(0, await service.RematchEpisodes(Source, AnimeID, TestContext.Current.CancellationToken));
+
+        Assert.Equal("e1", Assert.Single(store.Episodes).ProviderID);
     }
 
     #endregion

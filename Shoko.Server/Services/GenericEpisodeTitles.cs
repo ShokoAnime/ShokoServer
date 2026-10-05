@@ -338,7 +338,7 @@ internal static class GenericEpisodeTitles
     /// </summary>
     /// <param name="text">The number, as the forms match it.</param>
     /// <returns>The number, or <c>null</c> when it is empty or too large.</returns>
-    private static int? ParseNumber(string text)
+    internal static int? ParseNumber(string text)
     {
         // Without a unit, numerals are read digit by digit, as in 二〇.
         var positional = !text.Any(character => character is '十' or '百' or '千');

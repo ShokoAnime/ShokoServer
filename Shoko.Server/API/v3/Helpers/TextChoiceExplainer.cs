@@ -4,6 +4,7 @@ using Shoko.Abstractions.Extensions;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Server.API.v3.Models.TextManagement;
+using Shoko.Server.Providers.AniDB;
 using Shoko.Server.Services;
 using Shoko.Server.Settings;
 
@@ -16,7 +17,9 @@ namespace Shoko.Server.API.v3.Helpers;
 /// <remarks>
 ///   The chooser does not record its steps, so they are read back from the
 ///   text: a user's preference on it, the first configured language it
-///   answers for a ranked source, or else the default.
+///   answers for a ranked source, or else the default. A Shoko series'
+///   overview also says which of its fallbacks answered: the show behind the
+///   first or a later linked season, or AniDB's notes.
 /// </remarks>
 internal static class TextChoiceExplainer
 {
@@ -30,10 +33,18 @@ internal static class TextChoiceExplainer
     /// <param name="chosen">The text chosen for the entry, or <c>null</c>.</param>
     /// <param name="defaultText">The entry's default, or <c>null</c>.</param>
     /// <param name="settings">The settings, which give the language and source orders.</param>
+    /// <param name="seriesDescriptionStep">The step of a Shoko series' description walk, or <c>null</c> for any other choice.</param>
     /// <returns>The choice, with its step.</returns>
-    internal static TextChoice Explain(MetadataGuid entityID, TextKind kind, IText? chosen, IText? defaultText, IServerSettings settings)
+    internal static TextChoice Explain(
+        MetadataGuid entityID,
+        TextKind kind,
+        IText? chosen,
+        IText? defaultText,
+        IServerSettings settings,
+        SeriesDescriptionStep? seriesDescriptionStep = null
+    )
     {
-        var (step, language) = StepOf(entityID, kind, chosen, defaultText, settings);
+        var (step, language) = StepOf(entityID, kind, chosen, defaultText, settings, seriesDescriptionStep);
         return new()
         {
             Kind = kind,
@@ -54,8 +65,16 @@ internal static class TextChoiceExplainer
     /// <param name="chosen">The text chosen for the entry, or <c>null</c>.</param>
     /// <param name="defaultText">The entry's default, or <c>null</c>.</param>
     /// <param name="settings">The settings, which give the language and source orders.</param>
+    /// <param name="seriesDescriptionStep">The step of a Shoko series' description walk, or <c>null</c> for any other choice.</param>
     /// <returns>The step, and the language for the steps that walk languages.</returns>
-    internal static (TextChoiceStep Step, TitleLanguage? Language) StepOf(MetadataGuid entityID, TextKind kind, IText? chosen, IText? defaultText, IServerSettings settings)
+    internal static (TextChoiceStep Step, TitleLanguage? Language) StepOf(
+        MetadataGuid entityID,
+        TextKind kind,
+        IText? chosen,
+        IText? defaultText,
+        IServerSettings settings,
+        SeriesDescriptionStep? seriesDescriptionStep = null
+    )
     {
         if (chosen is null)
             return (TextChoiceStep.None, null);
@@ -86,11 +105,39 @@ internal static class TextChoiceExplainer
                     continue;
 
                 var generic = episode && kind is TextKind.Title && GenericEpisodeTitles.LooksGeneric(chosen.Value);
-                return (generic ? TextChoiceStep.GenericTitle : TextChoiceStep.LanguageOrder, language);
+                return (generic ? TextChoiceStep.GenericTitle : WalkStepOf(entityID, kind, chosen, seriesDescriptionStep), language);
             }
         }
 
         return (TextChoiceStep.Default, null);
+    }
+
+    /// <summary>
+    ///   The step of the language walk that found a text: the walk itself, or
+    ///   one of a Shoko series' overview fallbacks.
+    /// </summary>
+    /// <remarks>
+    ///   AniDB's notes are only ever taken as the last resort, so the text
+    ///   alone tells them apart.
+    /// </remarks>
+    /// <param name="entityID">The entry.</param>
+    /// <param name="kind">Titles or overviews.</param>
+    /// <param name="chosen">The text chosen for the entry.</param>
+    /// <param name="seriesDescriptionStep">The step of a Shoko series' description walk, or <c>null</c> when not known.</param>
+    /// <returns>The step.</returns>
+    private static TextChoiceStep WalkStepOf(MetadataGuid entityID, TextKind kind, IText chosen, SeriesDescriptionStep? seriesDescriptionStep)
+    {
+        var seriesOverview = kind is TextKind.Overview && entityID.Source == MetadataSource.Shoko && entityID.EntityType == MetadataEntityType.Series;
+        if (!seriesOverview)
+            return TextChoiceStep.LanguageOrder;
+
+        return seriesDescriptionStep switch
+        {
+            SeriesDescriptionStep.FirstSeasonShow => TextChoiceStep.FirstSeasonFallback,
+            SeriesDescriptionStep.LaterSeasonShow => TextChoiceStep.ShowFallback,
+            _ when chosen.Source == MetadataSource.AniDB && AnidbDescriptionMarkup.IsNoteOnly(chosen.Value) => TextChoiceStep.NoteFallback,
+            _ => TextChoiceStep.LanguageOrder,
+        };
     }
 
     /// <summary>

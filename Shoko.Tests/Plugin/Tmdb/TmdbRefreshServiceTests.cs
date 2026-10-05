@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Moq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Enums;
 using Shoko.Abstractions.Metadata.Providers;
@@ -271,20 +270,6 @@ public sealed class TmdbRefreshServiceTests : IDisposable
     {
         Assert.False(await _harness.Refresh.RefreshShow(1001, new(), TestContext.Current.CancellationToken));
         Assert.Empty(_harness.StoreData.Series);
-    }
-
-    [Fact]
-    public async Task TheLinkedAnimesEpisodesAreMatchedAgain()
-    {
-        _harness.RouteShow();
-        _harness.CrossReferences.Setup(mock => mock.GetLinksTo(_show)).Returns(TmdbLinks.SeriesLink(42, _show));
-        _harness.Linking
-            .Setup(mock => mock.MatchEpisodes(42, _show, null, true, true, null, It.IsAny<System.Threading.CancellationToken>()))
-            .ReturnsAsync([]);
-
-        await _harness.Refresh.RefreshShow(1001, new(), TestContext.Current.CancellationToken);
-
-        _harness.Linking.Verify(mock => mock.MatchEpisodes(42, _show, null, true, true, null, It.IsAny<System.Threading.CancellationToken>()), Times.Once);
     }
 
     [Fact]

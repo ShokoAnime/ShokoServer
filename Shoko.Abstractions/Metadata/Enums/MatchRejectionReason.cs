@@ -26,8 +26,8 @@ public enum MatchRejectionReason : byte
     Outranked = 1,
 
     /// <summary>
-    ///   Its titles did not match, or matched less closely than the one
-    ///   taken.
+    ///   Its titles did not match, matched less closely than the one taken,
+    ///   or carried another sequel or season number than the anime's.
     /// </summary>
     TitleMismatch = 2,
 

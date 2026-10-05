@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Shoko.Abstractions.Config;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Metadata.Anidb;
@@ -27,19 +24,15 @@ namespace Shoko.Plugin.Tmdb.Services;
 /// </remarks>
 /// <param name="seriesStore">The core's store of shows.</param>
 /// <param name="crossReferences">The core's store of links.</param>
-/// <param name="linkingService">The core's linking service.</param>
 /// <param name="matchingEngine">The core's episode matcher.</param>
 /// <param name="metadataService">The core's metadata service, for an ordering's groups.</param>
 /// <param name="configurationProvider">The plugin's configuration.</param>
-/// <param name="logger">The logger.</param>
 public sealed class TmdbLinkingService(
     IMetadataSeriesStore seriesStore,
     IMetadataCrossReferenceStore crossReferences,
-    IMetadataLinkingService linkingService,
     IMetadataMatchingEngine matchingEngine,
     IMetadataService metadataService,
-    ConfigurationProvider<TmdbConfiguration> configurationProvider,
-    ILogger<TmdbLinkingService> logger
+    ConfigurationProvider<TmdbConfiguration> configurationProvider
 )
 {
     #region Matching
@@ -118,44 +111,6 @@ public sealed class TmdbLinkingService(
 
         // A group of one of the show's orderings, numbered as the group numbers it.
         return metadataService.GetSeason(seasonID) is { } group && group.SeriesID == series.ID ? group.Episodes : null;
-    }
-
-    /// <summary>
-    ///   Matches the episodes of every anime linked to a show again, keeping
-    ///   the links already there, as a refresh does.
-    /// </summary>
-    /// <remarks>
-    ///   A matching that cannot run is logged and is no reason to fail the
-    ///   refresh, as the show is stored by then.
-    /// </remarks>
-    /// <param name="showID">The TMDb show ID.</param>
-    /// <param name="cancellationToken">Cancels the work.</param>
-    /// <returns>How many anime were matched.</returns>
-    public async Task<int> MatchLinkedEpisodes(int showID, CancellationToken cancellationToken = default)
-    {
-        var seriesID = TmdbIds.Series(showID);
-        var anime = crossReferences.GetLinksTo(seriesID)
-            .OfType<IMetadataSeriesCrossReference>()
-            .Select(link => link.AnidbAnimeID)
-            .Where(id => id > 0)
-            .Distinct()
-            .ToList();
-        var matched = 0;
-        foreach (var anidbAnimeID in anime)
-        {
-            try
-            {
-                var links = await linkingService.MatchEpisodes(anidbAnimeID, seriesID, useExisting: true, save: true, cancellationToken: cancellationToken).ConfigureAwait(false);
-                logger.LogDebug("Matched {Count} TMDb episode links for AniDB anime {AnidbID} against TMDb show {ShowID}.", links.Count, anidbAnimeID, showID);
-                matched++;
-            }
-            catch (Exception ex) when (ex is NotSupportedException or InvalidOperationException or ArgumentException)
-            {
-                logger.LogDebug(ex, "Unable to match the episodes of AniDB anime {AnidbID} against TMDb show {ShowID}.", anidbAnimeID, showID);
-            }
-        }
-
-        return matched;
     }
 
     #endregion

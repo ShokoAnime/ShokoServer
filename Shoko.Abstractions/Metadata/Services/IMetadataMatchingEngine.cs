@@ -53,8 +53,12 @@ public interface IMetadataMatchingEngine
     ///   title or date agreed; every other entry says why it was not, and
     ///   what was compared in <see cref="SeriesMatch.Details"/>. A date agrees
     ///   on the year, or when the first episode aired within three days of the
-    ///   anime's first regular one. Between two rated alike, one begun more
-    ///   than two months after the anime ended loses.
+    ///   anime's first regular one. Between two rated alike, one whose titles
+    ///   carry another sequel or season number than the anime's loses, then
+    ///   one begun more than two months after the anime ended, then one (or
+    ///   its season lining up best) begun more than half a year before the
+    ///   anime, the earlier of two such losing. An unknown episode count
+    ///   neither wins nor loses a tie.
     /// </returns>
     IReadOnlyList<SeriesMatch> MatchSeries(IAnidbAnime anime, IReadOnlyList<MetadataSeriesSearchResult> candidates, SeriesMatchOptions? options = null);
 

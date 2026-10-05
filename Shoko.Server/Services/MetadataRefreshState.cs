@@ -62,6 +62,15 @@ public class MetadataRefreshState(
     public static readonly TimeSpan FreshFor = TimeSpan.FromHours(1);
 
     /// <summary>
+    ///   Whether an entry last refreshed at a time is still fresh, so a
+    ///   refresh that is not forced skips it.
+    /// </summary>
+    /// <param name="lastRefreshedAt">When it was last refreshed, or <c>null</c> when it never was.</param>
+    /// <returns><c>true</c> when it was refreshed within <see cref="FreshFor"/>.</returns>
+    public static bool IsFresh(DateTime? lastRefreshedAt)
+        => lastRefreshedAt is { } last && DateTime.UtcNow - last.ToUniversalTime() < FreshFor;
+
+    /// <summary>
     ///   Reads when an entry was last refreshed off the entry itself.
     /// </summary>
     /// <param name="entry">The entry, or <c>null</c>.</param>

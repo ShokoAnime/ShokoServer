@@ -484,7 +484,7 @@ public static partial class AnidbRegularAirDates
     public static Note ReadNote(string? description)
     {
         var note = new Note();
-        foreach (var rawLine in Clean(description).Split('\n'))
+        foreach (var rawLine in AnidbDescriptionMarkup.ToPlainText(description).Split('\n'))
         {
             var line = rawLine.Trim();
             Match? regular = null;
@@ -590,15 +590,6 @@ public static partial class AnidbRegularAirDates
     }
 
     /// <summary>
-    ///   Drops AniDB's italic and bold markup and keeps only the text of its
-    ///   links.
-    /// </summary>
-    /// <param name="description">The description.</param>
-    /// <returns>The plain text.</returns>
-    private static string Clean(string? description)
-        => AnidbLink().Replace(Markup().Replace(description ?? string.Empty, string.Empty), "$1");
-
-    /// <summary>
     ///   Reads a count written in digits or words.
     /// </summary>
     /// <param name="value">The count, such as <c>3</c>, <c>three</c> or <c>a</c>.</param>
@@ -698,12 +689,6 @@ public static partial class AnidbRegularAirDates
         @"|\bIt\s+was\s+(?:\w+\s+)?(?:streamed|distributed)\b[^.]*\b(?:starting|from|ahead)\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex EveryEpisode();
-
-    [GeneratedRegex(@"\[/?[ib]\]", RegexOptions.CultureInvariant)]
-    private static partial Regex Markup();
-
-    [GeneratedRegex(@"https?://anidb\.net/\S+ \[([^\]]*)\]", RegexOptions.CultureInvariant)]
-    private static partial Regex AnidbLink();
 
     #endregion
 

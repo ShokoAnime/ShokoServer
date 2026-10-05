@@ -1826,24 +1826,81 @@ public class MetadataTextManager : IMetadataTextManager
     /// <param name="series">The series.</param>
     /// <returns>The preferred description, or <c>null</c> when none speaks a preferred language.</returns>
     private IText? ChoosePreferredDescriptionOf(AnimeSeries series)
-        => OverallPick(((IMetadata)series).ID, TextKind.Overview) ?? Guarded(series, () =>
+        => WalkPreferredDescriptionOf(series).Text;
+
+    /// <summary>
+    ///   The step of the walk that chose a Shoko series' description, for
+    ///   explaining the choice.
+    /// </summary>
+    /// <param name="entityID">The entry.</param>
+    /// <returns>The step, or <c>null</c> when the entry is not a stored Shoko series.</returns>
+    internal SeriesDescriptionStep? SeriesDescriptionStepOf(MetadataGuid entityID)
+        => entityID.Source == MetadataSource.Shoko &&
+            entityID.EntityType == MetadataEntityType.Series &&
+            entityID.TryGetNumericID<int>(out var seriesID) &&
+            RepoFactory.AnimeSeries.GetByID(seriesID) is { } series
+                ? WalkPreferredDescriptionOf(series).Step
+                : null;
+
+    /// <summary>
+    ///   Walks to the series' preferred overview: the user's overall pick,
+    ///   else the first description found in the preferred languages.
+    /// </summary>
+    /// <param name="series">The series.</param>
+    /// <returns>The description, or <c>null</c>, and the step that chose it.</returns>
+    private (IText? Text, SeriesDescriptionStep Step) WalkPreferredDescriptionOf(AnimeSeries series)
+        => OverallPick(((IMetadata)series).ID, TextKind.Overview) is { } overall
+            ? (overall, SeriesDescriptionStep.OverallPreference)
+            : Guarded(series, () => WalkDescriptionLanguages(series), (null, SeriesDescriptionStep.None));
+
+    /// <summary>
+    ///   Walks the preferred languages for a series' description.
+    /// </summary>
+    /// <remarks>
+    ///   In each language, every source's best-fitting entry is asked in
+    ///   order, a first season falling back to its show at once. Then the
+    ///   shows behind later seasons are asked, and last AniDB's description
+    ///   when it holds only notes.
+    /// </remarks>
+    /// <param name="series">The series.</param>
+    /// <returns>The description, or <c>null</c>, and the step that chose it.</returns>
+    private (IText? Text, SeriesDescriptionStep Step) WalkDescriptionLanguages(AnimeSeries series)
+    {
+        var anidbDescription = AnimeOf(series)?.Description;
+        var anidbNoteOnly = Providers.AniDB.AnidbDescriptionMarkup.IsNoteOnly(anidbDescription);
+        var sources = ISettingsProvider.Instance.GetSettings().Language.DescriptionSourceOrder;
+        var perSource = new Dictionary<MetadataSource, SourceDescriptions>();
+        foreach (var language in Languages.PreferredDescriptionNamingLanguages)
         {
-            var anidbDescription = AnimeOf(series)?.Description;
-            var perSource = new Dictionary<MetadataSource, IReadOnlyList<IText>>();
-            foreach (var language in Languages.PreferredDescriptionNamingLanguages)
-                foreach (var source in ISettingsProvider.Instance.GetSettings().Language.DescriptionSourceOrder)
+            foreach (var source in sources)
+            {
+                if (source == MetadataSource.AniDB)
                 {
-                    var description = source switch
-                    {
-                        _ when source == MetadataSource.AniDB => AnidbDescription(anidbDescription, language.Language),
-                        _ => Pick(Cached(perSource, source, () => SeriesDescriptionsFrom(series, source)), language.Language, useSynonyms: false),
-                    };
-                    if (description is not null)
-                        return description;
+                    if (!anidbNoteOnly && AnidbDescription(anidbDescription, language.Language) is { } anidb)
+                        return (anidb, SeriesDescriptionStep.Entry);
+                    continue;
                 }
 
-            return null;
-        }, null);
+                if (!perSource.TryGetValue(source, out var texts))
+                    perSource[source] = texts = SeriesDescriptionsFrom(series, source);
+                if (Pick(texts.Entry, language.Language, useSynonyms: false) is { } found)
+                    return (found, SeriesDescriptionStep.Entry);
+                if (texts.ShowAtOnce && Pick(texts.Show, language.Language, useSynonyms: false) is { } firstSeasonShow)
+                    return (firstSeasonShow, SeriesDescriptionStep.FirstSeasonShow);
+            }
+
+            foreach (var source in sources)
+            {
+                if (perSource.TryGetValue(source, out var texts) && !texts.ShowAtOnce && Pick(texts.Show, language.Language, useSynonyms: false) is { } laterSeasonShow)
+                    return (laterSeasonShow, SeriesDescriptionStep.LaterSeasonShow);
+            }
+
+            if (anidbNoteOnly && sources.Contains(MetadataSource.AniDB) && AnidbDescription(anidbDescription, language.Language) is { } note)
+                return (note, SeriesDescriptionStep.AnidbNote);
+        }
+
+        return (null, SeriesDescriptionStep.None);
+    }
 
     /// <summary>
     ///   The list behind the series' <see cref="IWithOverviews.Overviews"/>.
@@ -1869,13 +1926,29 @@ public class MetadataTextManager : IMetadataTextManager
 
     /// <summary>
     ///   A source's descriptions for a series: what it contributed, then
-    ///   those of the entry that speaks for the anime on it.
+    ///   those of the entry that speaks for the anime on it, and those of the
+    ///   show to fall back on when that entry is one of its seasons.
     /// </summary>
     /// <param name="series">The series.</param>
     /// <param name="source">The source.</param>
     /// <returns>The descriptions.</returns>
-    private IReadOnlyList<IText> SeriesDescriptionsFrom(AnimeSeries series, MetadataSource source)
-        => [.. GetContributedOverviews(series, source), .. Descriptions(SeriesDescriptionEntry(series.AniDB_ID, AnimeTypeOf(series), source, () => EpisodesOf(series.AniDB_ID)))];
+    private SourceDescriptions SeriesDescriptionsFrom(AnimeSeries series, MetadataSource source)
+    {
+        var entries = SeriesDescriptionEntriesOf(series.AniDB_ID, AnimeTypeOf(series), source, () => EpisodesOf(series.AniDB_ID));
+        return new(
+            [.. GetContributedOverviews(series, source), .. Descriptions(entries.Entry)],
+            Descriptions(entries.Show),
+            entries.ShowAtOnce
+        );
+    }
+
+    /// <summary>
+    ///   One source's descriptions for a series, as the walk reads them.
+    /// </summary>
+    /// <param name="Entry">The contributed descriptions, then those of the best-fitting entry.</param>
+    /// <param name="Show">The show's descriptions, when the entry is one of its seasons.</param>
+    /// <param name="ShowAtOnce">Whether the show is asked right after the entry.</param>
+    private readonly record struct SourceDescriptions(IReadOnlyList<IText> Entry, IReadOnlyList<IText> Show, bool ShowAtOnce);
 
     /// <summary>
     ///   The entry whose titles speak for a whole anime on a source: its one
@@ -1893,24 +1966,29 @@ public class MetadataTextManager : IMetadataTextManager
     }
 
     /// <summary>
-    ///   The entry whose descriptions speak for a whole anime on a source,
+    ///   The entries whose descriptions speak for a whole anime on a source,
     ///   read off the same side as its titles.
     /// </summary>
     /// <remarks>
     ///   On the series side, that is the part of the one series the anime
-    ///   covers, and nothing when no episode of it is linked; the films are
-    ///   not asked then, so titles and descriptions never come from two
-    ///   different entries' sides.
+    ///   covers, as <see cref="ShowDescriptionEntries"/> works it out; the
+    ///   films are not asked then, so titles and descriptions never come from
+    ///   two different entries' sides.
     /// </remarks>
     /// <param name="anidbAnimeID">The AniDB anime.</param>
     /// <param name="animeType">The anime's type, which decides which side is asked first.</param>
     /// <param name="source">The source.</param>
     /// <param name="episodes">Reads every AniDB episode of the anime, with its type and English title.</param>
-    /// <returns>The entry, or <c>null</c> when the speaking side says nothing.</returns>
-    internal IMetadata? SeriesDescriptionEntry(int anidbAnimeID, AnimeType animeType, MetadataSource source, Func<IEnumerable<(int ID, EpisodeType Type, string? Title)>> episodes)
+    /// <returns>The entries, with no entry when the speaking side says nothing.</returns>
+    internal SeriesDescriptionEntries SeriesDescriptionEntriesOf(
+        int anidbAnimeID,
+        AnimeType animeType,
+        MetadataSource source,
+        Func<IEnumerable<(int ID, EpisodeType Type, string? Title)>> episodes
+    )
     {
         var (show, film) = SpeakingSide(anidbAnimeID, animeType, source, episodes);
-        return show is null ? film : ShowDescriptionEntry(anidbAnimeID, show, source);
+        return show is null ? new(film, null, false) : ShowDescriptionEntries(anidbAnimeID, show, source);
     }
 
     /// <summary>
@@ -1941,31 +2019,105 @@ public class MetadataTextManager : IMetadataTextManager
     }
 
     /// <summary>
-    ///   The part of an anime's one linked series that describes it on a
+    ///   The parts of an anime's one linked series that describe it on a
     ///   source.
     /// </summary>
     /// <remarks>
-    ///   A series with no linked episodes says nothing. An anime covering only
-    ///   specials reads its one linked episode; one starting past the first
-    ///   season reads that season rather than the whole series.
+    ///   An anime covering every regular season reads the whole series, and
+    ///   one covering only specials its one linked episode. Otherwise it reads
+    ///   its lowest linked regular season, with the series to fall back on:
+    ///   at once for the first season, else once every source was asked.
     /// </remarks>
     /// <param name="anidbAnimeID">The AniDB anime.</param>
     /// <param name="show">The one stored series the anime is linked to.</param>
     /// <param name="source">The source.</param>
-    /// <returns>The entry, or <c>null</c> when the series says nothing.</returns>
-    private IMetadata? ShowDescriptionEntry(int anidbAnimeID, IMetadata show, MetadataSource source)
+    /// <returns>The entries, with no entry when the series says nothing.</returns>
+    private SeriesDescriptionEntries ShowDescriptionEntries(int anidbAnimeID, IMetadata show, MetadataSource source)
     {
-        // A series linked with none of its episodes is a link nothing has
-        // confirmed, so it is not trusted to describe the anime.
-        var seasons = Links(AnidbAnimeID(anidbAnimeID), _metadataService.GetSeasonCrossReferences(anidbAnimeID, source));
+        var animeID = AnidbAnimeID(anidbAnimeID);
+        var seasons = Links(animeID, _metadataService.GetSeasonCrossReferences(anidbAnimeID, source));
         if (seasons.Count is 0)
-            return null;
+            return new(SpeaksWithoutSeasons(anidbAnimeID, show, source) ? show : null, null, false);
 
-        if (seasons.All(season => season.SeasonNumber is 0))
-            return OnlyEntry(Links(AnidbAnimeID(anidbAnimeID), _metadataService.GetEpisodeCrossReferencesForSeries(anidbAnimeID, source)));
+        // Season 0 is read only when the anime covers nothing else.
+        var regular = seasons.Where(season => season.SeasonNumber > 0).ToList();
+        if (regular.Count is 0)
+            return new(OnlyEntry(Links(animeID, _metadataService.GetEpisodeCrossReferencesForSeries(anidbAnimeID, source))), null, false);
 
-        var first = seasons.Where(season => season.SeasonNumber is not 0).MinBy(season => season.SeasonNumber)!;
-        return first.SeasonNumber is 1 ? show : first.Provider;
+        if (CoversEveryRegularSeason(show, regular))
+            return new(show, null, false);
+
+        var lowest = regular.MinBy(season => season.SeasonNumber)!;
+        return new(lowest.Provider, show, lowest.SeasonNumber is 1);
+    }
+
+    /// <summary>
+    ///   Whether a series no linked episode places in a season speaks for the
+    ///   anime as a whole, as AniDB's anime does.
+    /// </summary>
+    /// <remarks>
+    ///   It does when its source keeps no seasons for it, or when episode
+    ///   links confirm it while naming no season. A series with seasons and no
+    ///   linked episode is a link nothing has confirmed, so it says nothing.
+    /// </remarks>
+    /// <param name="anidbAnimeID">The AniDB anime.</param>
+    /// <param name="show">The one stored series the anime is linked to.</param>
+    /// <param name="source">The source.</param>
+    /// <returns><c>true</c> when the series speaks for the anime.</returns>
+    private bool SpeaksWithoutSeasons(int anidbAnimeID, IMetadata show, MetadataSource source)
+        => ReadSeasons(show) is [] ||
+            Links(AnidbAnimeID(anidbAnimeID), _metadataService.GetEpisodeCrossReferencesForSeries(anidbAnimeID, source)).Any(link => link.ProviderID is not null);
+
+    /// <summary>
+    ///   Whether the linked seasons are every regular season of a series with
+    ///   episodes in it.
+    /// </summary>
+    /// <param name="show">The series.</param>
+    /// <param name="linked">The linked regular seasons, at least one.</param>
+    /// <returns><c>true</c> when the series lists a linked season and no unlinked regular one with episodes.</returns>
+    private bool CoversEveryRegularSeason(IMetadata show, IReadOnlyList<IMetadataSeasonCrossReference> linked)
+    {
+        var linkedIDs = linked.Select(season => season.ProviderID).OfType<MetadataGuid>().ToHashSet();
+        var regular = ReadSeasons(show).Where(season => season.SeasonNumber > 0).ToList();
+        return regular.Any(season => linkedIDs.Contains(season.ID)) &&
+            regular.All(season => linkedIDs.Contains(season.ID) || EpisodeCountOf(season) is 0);
+    }
+
+    /// <summary>
+    ///   A series' seasons, where a series whose seasons throw costs only its
+    ///   own description.
+    /// </summary>
+    /// <param name="show">The series.</param>
+    /// <returns>The seasons, or none when the entry is no series or they could not be read.</returns>
+    private IReadOnlyList<ISeason> ReadSeasons(IMetadata show)
+    {
+        try
+        {
+            return (show as ISeries)?.Seasons ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Reading the seasons of {Entry} threw and was skipped.", show.ID);
+            return [];
+        }
+    }
+
+    /// <summary>
+    ///   How many episodes a season holds.
+    /// </summary>
+    /// <param name="season">The season.</param>
+    /// <returns>The count, or <c>0</c> when they could not be read.</returns>
+    private int EpisodeCountOf(ISeason season)
+    {
+        try
+        {
+            return season.Episodes.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Reading the episodes of {Entry} threw and was skipped.", season.ID);
+            return 0;
+        }
     }
 
     /// <summary>

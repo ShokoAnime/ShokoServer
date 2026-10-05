@@ -214,33 +214,55 @@ public class MetadataTextManagerTests
 
     private static readonly MetadataGuid _show = new(TestSources.Plugin, MetadataEntityType.Series, "81");
 
-    private static readonly MetadataGuid _season = new(TestSources.Plugin, MetadataEntityType.Season, "81-2");
+    private static MetadataGuid SeasonID(int seasonNumber)
+        => new(TestSources.Plugin, MetadataEntityType.Season, $"81-{seasonNumber}");
 
-    private static IMetadataSeriesCrossReference ShowLink()
+    private static ISeason Season(int seasonNumber, bool withEpisodes = true)
     {
+        var season = new Mock<ISeason>();
+        season.SetupGet(s => s.ID).Returns(SeasonID(seasonNumber));
+        season.SetupGet(s => s.SeasonNumber).Returns(seasonNumber);
+        season.SetupGet(s => s.Episodes).Returns(withEpisodes ? [Mock.Of<IEpisode>()] : []);
+        return season.Object;
+    }
+
+    /// <summary>
+    /// A link to the show, which keeps the seasons given.
+    /// </summary>
+    private static IMetadataSeriesCrossReference ShowLink(params ISeason[] seasons)
+    {
+        var show = new Mock<ISeries>();
+        show.SetupGet(s => s.ID).Returns(_show);
+        show.SetupGet(s => s.Source).Returns(_show.Source);
+        show.SetupGet(s => s.Seasons).Returns(seasons);
         var link = new Mock<IMetadataSeriesCrossReference>();
         link.SetupGet(l => l.ProviderID).Returns(_show);
         link.SetupGet(l => l.Source).Returns(_show.Source);
-        link.SetupGet(l => l.Provider).Returns(Entry<ISeries>(_show));
+        link.SetupGet(l => l.Provider).Returns(show.Object);
         return link.Object;
     }
 
     private static IMetadataSeasonCrossReference SeasonLink(int seasonNumber)
     {
         var link = new Mock<IMetadataSeasonCrossReference>();
-        link.SetupGet(l => l.ProviderID).Returns(_season);
-        link.SetupGet(l => l.Source).Returns(_season.Source);
+        link.SetupGet(l => l.ProviderID).Returns(SeasonID(seasonNumber));
+        link.SetupGet(l => l.Source).Returns(TestSources.Plugin);
         link.SetupGet(l => l.SeasonNumber).Returns(seasonNumber);
-        link.SetupGet(l => l.Provider).Returns(Entry<ISeason>(_season));
+        link.SetupGet(l => l.Provider).Returns(Entry<ISeason>(SeasonID(seasonNumber)));
         return link.Object;
     }
 
     private static IEnumerable<(int ID, EpisodeType Type, string? Title)> OneFilmEpisode()
         => [(1, EpisodeType.Episode, "Complete Movie")];
 
+    private static SeriesDescriptionEntries DescriptionEntries(MetadataTextManager manager, AnimeType animeType = AnimeType.TV)
+        => manager.SeriesDescriptionEntriesOf(AnimeID, animeType, TestSources.Plugin, OneFilmEpisode);
+
     private static (MetadataGuid? Title, MetadataGuid? Description) SeriesEntries(MetadataTextManager manager, AnimeType animeType)
-        => (manager.SeriesTitleEntry(AnimeID, animeType, TestSources.Plugin, OneFilmEpisode)?.ID,
-            manager.SeriesDescriptionEntry(AnimeID, animeType, TestSources.Plugin, OneFilmEpisode)?.ID);
+        => (manager.SeriesTitleEntry(AnimeID, animeType, TestSources.Plugin, OneFilmEpisode)?.ID, DescriptionEntries(manager, animeType).Entry?.ID);
+
+    private static (MetadataGuid? Entry, MetadataGuid? Show, bool ShowAtOnce) Read(SeriesDescriptionEntries entries)
+        => (entries.Entry?.ID, entries.Show?.ID, entries.ShowAtOnce);
 
     [Theory]
     [InlineData(AnimeType.Movie)]
@@ -248,7 +270,7 @@ public class MetadataTextManagerTests
     [InlineData(AnimeType.TVSpecial)]
     public void AMovieWithBothSides_ReadsItsFilm(AnimeType animeType)
     {
-        var manager = Manager([FilmLink(1, _film)], seriesLinks: [ShowLink()], seasonLinks: [SeasonLink(1)]);
+        var manager = Manager([FilmLink(1, _film)], seriesLinks: [ShowLink(Season(1))], seasonLinks: [SeasonLink(1)]);
 
         Assert.Equal((_film, _film), SeriesEntries(manager, animeType));
     }
@@ -259,7 +281,7 @@ public class MetadataTextManagerTests
     [InlineData(AnimeType.Other)]
     public void AnOvaWithBothSides_ReadsItsSeries(AnimeType animeType)
     {
-        var manager = Manager([FilmLink(1, _film)], seriesLinks: [ShowLink()], seasonLinks: [SeasonLink(1)]);
+        var manager = Manager([FilmLink(1, _film)], seriesLinks: [ShowLink(Season(1))], seasonLinks: [SeasonLink(1)]);
 
         Assert.Equal((_show, _show), SeriesEntries(manager, animeType));
     }
@@ -267,15 +289,15 @@ public class MetadataTextManagerTests
     [Fact]
     public void AMovieWithoutFilms_FallsToItsSeries()
     {
-        var manager = Manager([], seriesLinks: [ShowLink()], seasonLinks: [SeasonLink(2)]);
+        var manager = Manager([], seriesLinks: [ShowLink(Season(1), Season(2))], seasonLinks: [SeasonLink(2)]);
 
-        Assert.Equal((_show, _season), SeriesEntries(manager, AnimeType.Movie));
+        Assert.Equal((_show, SeasonID(2)), SeriesEntries(manager, AnimeType.Movie));
     }
 
     [Fact]
     public void AMovieWhoseFilmsSayNothing_FallsToItsSeries()
     {
-        var manager = Manager([FilmLink(2, _film)], seriesLinks: [ShowLink()], seasonLinks: [SeasonLink(1)]);
+        var manager = Manager([FilmLink(2, _film)], seriesLinks: [ShowLink(Season(1))], seasonLinks: [SeasonLink(1)]);
 
         Assert.Equal((_show, _show), SeriesEntries(manager, AnimeType.Movie));
     }
@@ -293,7 +315,7 @@ public class MetadataTextManagerTests
     [Fact]
     public void ASeriesWithNoLinkedEpisodes_GivesItsTitlesButNoFilmDescription()
     {
-        var manager = Manager([FilmLink(1, _film)], seriesLinks: [ShowLink()]);
+        var manager = Manager([FilmLink(1, _film)], seriesLinks: [ShowLink(Season(1))]);
 
         Assert.Equal((_show, null), SeriesEntries(manager, AnimeType.OVA));
     }
@@ -301,9 +323,69 @@ public class MetadataTextManagerTests
     [Fact]
     public void AMovieWithAFilm_IgnoresASeriesWithNoLinkedEpisodes()
     {
-        var manager = Manager([FilmLink(1, _film)], seriesLinks: [ShowLink()]);
+        var manager = Manager([FilmLink(1, _film)], seriesLinks: [ShowLink(Season(1))]);
 
         Assert.Equal((_film, _film), SeriesEntries(manager, AnimeType.Movie));
+    }
+
+    #endregion
+
+    #region Season or Show
+
+    [Fact]
+    public void EveryRegularSeasonWithEpisodesLinked_ReadsTheWholeShow()
+    {
+        var show = ShowLink(Season(0), Season(1), Season(2), Season(3, withEpisodes: false));
+        var manager = Manager([], seriesLinks: [show], seasonLinks: [SeasonLink(1), SeasonLink(2)]);
+
+        Assert.Equal((_show, null, false), Read(DescriptionEntries(manager)));
+    }
+
+    [Fact]
+    public void TheFirstSeasonAlone_ReadsItThenTheShowAtOnce()
+    {
+        var manager = Manager([], seriesLinks: [ShowLink(Season(1), Season(2))], seasonLinks: [SeasonLink(1)]);
+
+        Assert.Equal((SeasonID(1), _show, true), Read(DescriptionEntries(manager)));
+    }
+
+    [Theory]
+    [InlineData(new[] { 2 })]
+    [InlineData(new[] { 3, 2 })]
+    [InlineData(new[] { 0, 2 })]
+    public void ALaterSeason_ReadsTheLowestRegularOneThenTheShowLate(int[] linked)
+    {
+        var show = ShowLink(Season(0), Season(1), Season(2), Season(3), Season(4));
+        var manager = Manager([], seriesLinks: [show], seasonLinks: [.. linked.Select(SeasonLink)]);
+
+        Assert.Equal((SeasonID(2), _show, false), Read(DescriptionEntries(manager)));
+    }
+
+    [Fact]
+    public void SpecialsAlone_ReadTheOneLinkedEpisode()
+    {
+        var episodeID = new MetadataGuid(TestSources.Plugin, MetadataEntityType.Episode, "81-0-1");
+        var episodeLink = new Mock<IMetadataEpisodeCrossReference>();
+        episodeLink.SetupGet(l => l.ProviderID).Returns(episodeID);
+        episodeLink.SetupGet(l => l.Provider).Returns(Entry<IEpisode>(episodeID));
+        var manager = Manager([], [episodeLink.Object], seriesLinks: [ShowLink(Season(0), Season(1))], seasonLinks: [SeasonLink(0)]);
+
+        Assert.Equal((episodeID, null, false), Read(DescriptionEntries(manager)));
+    }
+
+    [Theory]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, false)]
+    public void ASeriesNoLinkPlacesInASeason_SpeaksWhenItsSourceKeepsNoSeasonsOrEpisodesConfirmIt(bool keepsSeasons, bool episodeLinked, bool speaks)
+    {
+        var episodeLink = new Mock<IMetadataEpisodeCrossReference>();
+        episodeLink.SetupGet(l => l.ProviderID).Returns(new MetadataGuid(TestSources.Plugin, MetadataEntityType.Episode, "1"));
+        var show = keepsSeasons ? ShowLink(Season(1)) : ShowLink();
+        var manager = Manager([], episodeLinked ? [episodeLink.Object] : [], seriesLinks: [show]);
+
+        Assert.Equal(speaks ? _show : null, DescriptionEntries(manager).Entry?.ID);
     }
 
     #endregion
