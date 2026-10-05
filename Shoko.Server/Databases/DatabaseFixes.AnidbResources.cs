@@ -51,7 +51,7 @@ public partial class DatabaseFixes
             animeID => xmlUtils.LoadAnimeHTTPFromFile(animeID).GetAwaiter().GetResult(),
             parser,
             (response, animeID) => AnimeCreator.CreateResources(response, animeID),
-            animeID => QueueAnidbResourceRefresh(scheduler, animeID),
+            animeID => QueueAnidbAnimeRefresh(scheduler, animeID),
             () => progress.Advance()
         );
 
@@ -135,7 +135,7 @@ public partial class DatabaseFixes
     /// </summary>
     /// <param name="scheduler">The queue.</param>
     /// <param name="animeID">The AniDB anime ID.</param>
-    internal static void QueueAnidbResourceRefresh(IQueueScheduler scheduler, int animeID)
+    internal static void QueueAnidbAnimeRefresh(IQueueScheduler scheduler, int animeID)
         => scheduler.Enqueue<GetAniDBAnimeJob>(job => (job.AnimeID, job.SkipSupplementaryUpdate) = (animeID, true)).GetAwaiter().GetResult();
 
     #endregion

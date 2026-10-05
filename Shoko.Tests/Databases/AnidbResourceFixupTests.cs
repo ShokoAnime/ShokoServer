@@ -81,7 +81,7 @@ public class AnidbResourceFixupTests
             .Callback<Action<GetAniDBAnimeJob>?, bool, DateTimeOffset?, CancellationToken>((action, _, _, _) => configure = action)
             .Returns(Task.CompletedTask);
 
-        DatabaseFixes.QueueAnidbResourceRefresh(scheduler.Object, 8);
+        DatabaseFixes.QueueAnidbAnimeRefresh(scheduler.Object, 8);
 
         var job = new GetAniDBAnimeJob(null!, null!, null!, null!);
         Assert.NotNull(configure);

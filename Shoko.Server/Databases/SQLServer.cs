@@ -1578,6 +1578,7 @@ public class SQLServer(SystemService systemService) : BaseDatabase<SqlConnection
         new(192, 308, "CREATE TABLE AniDB_Anime_StartSeasonOverride ( AniDB_Anime_StartSeasonOverrideID INT IDENTITY(1,1) NOT NULL, AnimeID INT NOT NULL, Year INT NOT NULL, Season TINYINT NOT NULL, UserID INT NULL, CreatedAt DATETIME NOT NULL, UpdatedAt DATETIME NOT NULL, CONSTRAINT PK_AniDB_Anime_StartSeasonOverride PRIMARY KEY CLUSTERED (AniDB_Anime_StartSeasonOverrideID) );"),
         new(192, 309, "CREATE UNIQUE INDEX UIX_AniDB_Anime_StartSeasonOverride_AnimeID ON AniDB_Anime_StartSeasonOverride(AnimeID);"),
         new(192, 310, "ALTER TABLE AiringChannel ADD IsHidden BIT NOT NULL DEFAULT 0;"),
+        new(192, 311, DatabaseFixes.RestoreAnidbAnimeDates),
     ];
 
     #endregion

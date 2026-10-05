@@ -1695,6 +1695,7 @@ public class MySQL(SystemService systemService) : BaseDatabase<MySqlConnection>(
         new(194, 302, "CREATE TABLE `AniDB_Anime_StartSeasonOverride` ( `AniDB_Anime_StartSeasonOverrideID` INT NOT NULL AUTO_INCREMENT, `AnimeID` INT NOT NULL, `Year` INT NOT NULL, `Season` TINYINT UNSIGNED NOT NULL, `UserID` INT NULL, `CreatedAt` DATETIME NOT NULL, `UpdatedAt` DATETIME NOT NULL, PRIMARY KEY (`AniDB_Anime_StartSeasonOverrideID`) );"),
         new(194, 303, "CREATE UNIQUE INDEX `UIX_AniDB_Anime_StartSeasonOverride_AnimeID` ON `AniDB_Anime_StartSeasonOverride`(`AnimeID`);"),
         new(194, 304, "ALTER TABLE `AiringChannel` ADD COLUMN `IsHidden` BIT NOT NULL DEFAULT 0;"),
+        new(194, 305, DatabaseFixes.RestoreAnidbAnimeDates),
     ];
 
     #endregion
