@@ -7,6 +7,7 @@ using Newtonsoft.Json.Linq;
 using Shoko.Abstractions.Metadata;
 using Shoko.Abstractions.Plugin;
 using Shoko.Server.Settings;
+using Shoko.Tests.Infrastructure;
 using Xunit;
 
 namespace Shoko.Tests.Settings;
@@ -119,20 +120,23 @@ public sealed class SettingsMigrationSourceValueTests : IDisposable
         // Migration 26 then moves what is left of the section to the plugin.
         Assert.Null(migrated["TMDB"]);
         Assert.Equal(["UserApiKey"], TmdbPluginFile().Properties().Select(property => property.Name));
-        var entry = (JObject)Assert.Single((JArray)migrated["Image"]!["MetadataSources"]!);
+        // Migration 29 then moves the entry under the metadata settings.
+        var entry = (JObject)Assert.Single((JArray)migrated["Metadata"]!["Sources"]!);
         Assert.Equal("tmdb", entry["Source"]!.Value<string>());
-        Assert.Equal(["en", "x-main"], Strings(entry["ImageLanguageOrder"]));
-        Assert.False(entry["AutoDownloadPosters"]!.Value<bool>());
-        Assert.Equal(3, entry["MaxAutoBackdrops"]!.Value<int>());
-        Assert.False(entry["AutoDownloadStudioImages"]!.Value<bool>());
+        var images = entry["Images"]!;
+        Assert.Equal(["en", "x-main"], Strings(images["ImageLanguageOrder"]));
+        Assert.False(images["AutoDownloadPosters"]!.Value<bool>());
+        Assert.Equal(3, images["MaxAutoBackdrops"]!.Value<int>());
+        Assert.False(images["AutoDownloadStudioImages"]!.Value<bool>());
+        Assert.Null(migrated["Image"]!["MetadataSources"]);
         Assert.True(migrated["Image"]!["AutoPurge"]!.Value<bool>());
 
         // The entry loads as TMDB's image settings, with the user's values and
         // the defaults for the rest.
         var serializer = JsonSerializer.Create(new() { ObjectCreationHandling = ObjectCreationHandling.Replace });
-        var image = migrated["Image"]!.ToObject<ImageSettings>(serializer)!;
-        var settings = image.GetMetadataSourceSettings(MetadataSource.TMDB);
-        Assert.NotSame(image.MetadataSourceDefaults, settings);
+        var metadata = migrated["Metadata"]!.ToObject<MetadataSettings>(serializer)!;
+        var settings = metadata.GetImageSettings(MetadataSource.TMDB);
+        Assert.NotSame(metadata.SourceDefaults.Images, settings);
         Assert.False(settings.AutoDownloadPosters);
         Assert.True(settings.AutoDownloadLogos);
         Assert.Equal(3, settings.MaxAutoBackdrops);
@@ -157,12 +161,12 @@ public sealed class SettingsMigrationSourceValueTests : IDisposable
             """);
 
         var serializer = JsonSerializer.Create(new() { ObjectCreationHandling = ObjectCreationHandling.Replace });
-        var image = migrated["Image"]!.ToObject<ImageSettings>(serializer)!;
-        var tmdb = image.GetMetadataSourceSettings(MetadataSource.TMDB);
+        var metadata = migrated["Metadata"]!.ToObject<MetadataSettings>(serializer)!;
+        var tmdb = metadata.GetImageSettings(MetadataSource.TMDB);
         Assert.False(tmdb.AutoDownloadBanners);
         Assert.False(tmdb.AnyEnabled);
         Assert.False(tmdb.AnyEnabledFor(MetadataEntityType.Series));
-        Assert.False(migrated["Image"]!["MetadataSources"]![0]!["AutoDownloadBanners"]!.Value<bool>());
+        Assert.False(migrated["Metadata"]!["Sources"]![0]!["Images"]!["AutoDownloadBanners"]!.Value<bool>());
     }
 
     [Fact]
@@ -172,6 +176,32 @@ public sealed class SettingsMigrationSourceValueTests : IDisposable
 
         Assert.Null(migrated["Image"]);
         Assert.Equal("keep-me", TmdbPluginFile()["UserApiKey"]!.Value<string>());
+    }
+
+    [Fact]
+    public void ThePerSourceImageSettings_MoveUnderTheMetadataSettings()
+    {
+        var migrated = Migrate("""
+            {
+              "SettingsVersion": 28,
+              "Image": {
+                "AutoPurge": false,
+                "MetadataSourceDefaults": { "MaxAutoPosters": 2 },
+                "MetadataSources": [{ "Source": "tmdb", "AutoDownloadLogos": false }]
+              },
+              "Metadata": { "PurgeOrphanedAfterDays": 3 }
+            }
+            """);
+
+        var serializer = JsonSerializer.Create(new() { ObjectCreationHandling = ObjectCreationHandling.Replace });
+        var metadata = migrated["Metadata"]!.ToObject<MetadataSettings>(serializer)!;
+        Assert.Equal(3, metadata.PurgeOrphanedAfterDays);
+        Assert.Equal(2, metadata.GetImageSettings(TestSources.Plugin).MaxAutoPosters);
+        var tmdb = Assert.Single(metadata.Sources);
+        Assert.Equal(MetadataSource.TMDB, tmdb.Source);
+        Assert.False(tmdb.Images!.AutoDownloadLogos);
+        Assert.Null(tmdb.EpisodeMatchLookAheadDays);
+        Assert.Equal(["AutoPurge"], ((JObject)migrated["Image"]!).Properties().Select(property => property.Name));
     }
 
     [Fact]

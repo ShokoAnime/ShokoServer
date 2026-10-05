@@ -1512,7 +1512,11 @@ public class MetadataLinkingServiceTests
         var series = new MetadataGuid(Source, MetadataEntityType.Series, "s1");
         var anidbEpisodes = Enumerable.Range(1, 4).Select(number => AiredAnidbEpisode(10 + number, number)).ToList();
         var candidates = Enumerable.Range(1, 4).Select(number => AiredCandidate(series, number)).ToList();
-        var engine = new MetadataMatchingEngine(NullLogger<MetadataMatchingEngine>.Instance, new FuzzySearchService());
+        var engine = new MetadataMatchingEngine(
+            NullLogger<MetadataMatchingEngine>.Instance,
+            new FuzzySearchService(),
+            MetadataMatchingEngineTests.LookAhead()
+        );
         provider
             .Setup(p => p.MatchEpisodes(
                 It.IsAny<IAnidbAnime>(),

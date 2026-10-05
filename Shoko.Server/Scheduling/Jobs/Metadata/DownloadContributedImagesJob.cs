@@ -98,7 +98,7 @@ public class DownloadContributedImagesJob<TContributor>(
             return;
         }
 
-        var settings = settingsProvider.GetSettings().Image.GetMetadataSourceSettings(info.Source);
+        var settings = settingsProvider.GetSettings().Metadata.GetImageSettings(info.Source);
         if (!settings.AnyEnabled)
         {
             _logger.LogDebug("Not downloading images for {Entry}: no image type is downloaded for {Source}.", entry, info.Source);

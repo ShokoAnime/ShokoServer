@@ -205,32 +205,3 @@ public class MetadataImageSettings
 
     #endregion
 }
-
-/// <summary>
-/// Which images to download for one metadata source with a provider, in
-/// place of the shared defaults.
-/// </summary>
-public class MetadataSourceImageSettings : MetadataImageSettings
-{
-    /// <summary>
-    /// The source these settings are for.
-    /// </summary>
-    [Key]
-    [Display(Name = "Source")]
-    [Required]
-    public MetadataSource Source { get; set; } = MetadataSource.User;
-
-    /// <summary>
-    /// Refuses a core source, whose images the core handles itself.
-    /// </summary>
-    /// <param name="config">The settings to check.</param>
-    /// <returns>The errors, by member name.</returns>
-    [ConfigurationAction(ConfigurationActionType.Validate)]
-    public static IReadOnlyDictionary<string, IReadOnlyList<string>> Validate(MetadataSourceImageSettings config)
-    {
-        var errors = new Dictionary<string, IReadOnlyList<string>>();
-        if (config.Source.IsCore)
-            errors.Add(nameof(config.Source), [$"{nameof(config.Source)} must be a plugin source; the core handles {config.Source.Value} images itself."]);
-        return errors;
-    }
-}

@@ -750,7 +750,7 @@ public class MetadataProviderJobTests
         var quick = new RefreshHarness();
         var off = new RefreshHarness();
         var notAsked = new RefreshHarness();
-        off.Settings.Image.MetadataSourceDefaults = NoImages();
+        off.Settings.Metadata.SourceDefaults.Images = NoImages();
         var quickJob = quick.Job(Info(quick.Provider), Links(series: ["1"]));
         quickJob.AnimeID = AnimeID;
         quickJob.QuickRefresh = true;
@@ -783,7 +783,7 @@ public class MetadataProviderJobTests
         var off = new RefreshHarness();
         var noImages = new RefreshHarness();
         var series = ID(MetadataEntityType.Series, "1");
-        off.Settings.Image.MetadataSourceDefaults = NoImages();
+        off.Settings.Metadata.SourceDefaults.Images = NoImages();
         foreach (var harness in new[] { off, noImages })
             harness.Contributors.SetupGet(m => m.ImageContributors).Returns([ContributorInfo(new ImageOnlyContributor())]);
         var offJob = off.Job(Info(off.Provider), Links(series: ["1"]));
@@ -898,10 +898,9 @@ public class MetadataProviderJobTests
 
     #region Images
 
-    private static MetadataSourceImageSettings NoImages()
+    private static MetadataImageSettings NoImages()
         => new()
         {
-            Source = Source,
             AutoDownloadBackdrops = false,
             AutoDownloadLogos = false,
             AutoDownloadPosters = false,
@@ -1034,13 +1033,13 @@ public class MetadataProviderJobTests
         series.SetupGet(s => s.Episodes).Returns([]);
         harness.Metadata.Setup(m => m.GetSeries(seriesID)).Returns(series.Object);
         harness.Contributors.SetupGet(m => m.ImageContributors).Returns([ContributorInfo(new ImageOnlyContributor())]);
-        harness.Settings.Image.MetadataSources.Add(NoImages());
+        harness.Settings.Metadata.Sources.Add(new() { Source = Source, Images = NoImages() });
 
         // No image type downloaded for the owner's source.
         await harness.Job(seriesID.ToString()).Execute();
 
         // The provider is disabled, or off for series.
-        harness.Settings.Image.MetadataSources.Clear();
+        harness.Settings.Metadata.Sources.Clear();
         await harness.Job(seriesID.ToString(), Info(harness.Provider, enabled: false)).Execute();
         await harness.Job(seriesID.ToString(), Info(harness.Provider, entityTypes: [MetadataEntityType.Movie])).Execute();
 
@@ -1115,7 +1114,7 @@ public class MetadataProviderJobTests
         await harness.Job(movieID.ToString(), Info(harness.Provider, enabled: false)).Execute();
 
         // No image type downloaded.
-        harness.Settings.Image.MetadataSources.Add(NoImages());
+        harness.Settings.Metadata.Sources.Add(new() { Source = Source, Images = NoImages() });
         await harness.Job(movieID.ToString()).Execute();
 
         Assert.Empty(harness.Provider.ImagesAsked);
@@ -1211,7 +1210,7 @@ public class MetadataProviderJobTests
         movie.SetupGet(m => m.OriginalLanguageCode).Returns("ja");
         movie.SetupGet(m => m.Crew).Returns([Mock.Of<ICrew>(crew => crew.CreatorID == creatorID && crew.Creator == creator)]);
         harness.Metadata.Setup(m => m.GetMovie(movieID)).Returns(movie.Object);
-        harness.Settings.Image.MetadataSources.Add(new() { Source = Source, AutoDownloadStaffImages = false });
+        harness.Settings.Metadata.Sources.Add(new() { Source = Source, Images = new() { AutoDownloadStaffImages = false } });
 
         await harness.Job(movieID.ToString()).Execute();
 

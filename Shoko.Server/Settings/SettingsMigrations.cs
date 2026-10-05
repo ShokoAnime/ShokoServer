@@ -94,6 +94,7 @@ public static partial class SettingsMigrations
         { 26, MigrateTmdbSettingsToPlugin },
         { 27, (settings, paths) => MigrateStartupSettingsToTriggers(settings, paths.DataPath) },
         { 28, MigrateTmdbDownloadSwitchesToKinds },
+        { 29, (settings, _) => MigrateImageSourceSettingsToMetadata(settings) },
     };
 
     /// <summary>
@@ -574,6 +575,58 @@ public static partial class SettingsMigrations
 
         File.WriteAllText(path, configuration.ToString());
         return settings;
+    }
+
+    #endregion
+
+    #region Metadata Source Settings
+
+    /// <summary>
+    ///   Moves the per-source image settings into the per-source metadata
+    ///   settings, as migration 29: the defaults become
+    ///   <c>Metadata.SourceDefaults.Images</c>, and each source's entry the
+    ///   <c>Images</c> of its entry in <c>Metadata.Sources</c>.
+    /// </summary>
+    /// <param name="settings">The settings JSON being migrated.</param>
+    /// <returns>The settings JSON with the image settings moved.</returns>
+    private static string MigrateImageSourceSettingsToMetadata(string settings)
+    {
+        var currentSettings = JObject.Parse(settings);
+        if (currentSettings["Image"] is not JObject image)
+            return settings;
+
+        var defaults = image.Property("MetadataSourceDefaults");
+        var sources = image.Property("MetadataSources");
+        if (defaults is null && sources is null)
+            return settings;
+
+        defaults?.Remove();
+        sources?.Remove();
+        if (currentSettings["Metadata"] is not JObject metadata)
+            currentSettings["Metadata"] = metadata = new JObject();
+
+        if (defaults?.Value is JObject imageDefaults)
+        {
+            if (metadata["SourceDefaults"] is not JObject sourceDefaults)
+                metadata["SourceDefaults"] = sourceDefaults = new JObject();
+            sourceDefaults["Images"] = imageDefaults.DeepClone();
+        }
+
+        if (sources?.Value is JArray entries)
+        {
+            if (metadata["Sources"] is not JArray metadataSources)
+                metadata["Sources"] = metadataSources = new JArray();
+            foreach (var entry in entries.OfType<JObject>())
+            {
+                if (entry.Property("Source") is not { } source)
+                    continue;
+
+                source.Remove();
+                metadataSources.Add(new JObject { ["Source"] = source.Value.DeepClone(), ["Images"] = entry.DeepClone() });
+            }
+        }
+
+        return currentSettings.ToString();
     }
 
     #endregion

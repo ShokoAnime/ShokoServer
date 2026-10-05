@@ -101,6 +101,11 @@ public interface IMetadataMatchingEngine
     /// <summary>
     ///   Line two sets of episodes up.
     /// </summary>
+    /// <remarks>
+    ///   An AniDB episode airing later than the look-ahead of the candidates'
+    ///   source allows, counted from its earliest showing, is left unmatched.
+    ///   The look-ahead is a server setting, for every source and per source.
+    /// </remarks>
     /// <param name="anidbEpisodes">The AniDB episodes, as they come.</param>
     /// <param name="providerEpisodes">
     ///   The source's episodes, in whatever order it keeps them.

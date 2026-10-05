@@ -14,6 +14,7 @@ using Shoko.Abstractions.Metadata.Matching;
 using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Services;
 using Shoko.Server.Providers;
+using Shoko.Server.Settings;
 using Shoko.Server.Utilities;
 
 using AnidbRegularAirDates = Shoko.Server.Providers.AniDB.AnidbRegularAirDates;
@@ -27,18 +28,26 @@ namespace Shoko.Server.Services;
 /// <remarks>
 ///   <see cref="EpisodeMatchStrategy.DateAndTitleWithinSeasons"/> serves
 ///   seasoned sources and <see cref="EpisodeMatchStrategy.DateThenNumber"/>
-///   flat ones. It reads and writes nothing; which candidates to offer and
-///   how a match becomes a link stay with the source.
+///   flat ones. It stores nothing and reads only how far ahead episodes are
+///   matched; which candidates to offer and how a match becomes a link stay
+///   with the source.
 /// </remarks>
 /// <param name="logger">The logger.</param>
 /// <param name="fuzzySearch">Tells titles that nearly match apart.</param>
-public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuzzySearchService fuzzySearch) : IMetadataMatchingEngine
+/// <param name="settingsProvider">Tells how far ahead each source's episodes are matched.</param>
+public class MetadataMatchingEngine(
+    ILogger<MetadataMatchingEngine> logger,
+    IFuzzySearchService fuzzySearch,
+    ISettingsProvider settingsProvider
+) : IMetadataMatchingEngine
 {
     #region Constants
 
     private readonly ILogger<MetadataMatchingEngine> _logger = logger;
 
     private readonly IFuzzySearchService _fuzzySearch = fuzzySearch;
+
+    private readonly ISettingsProvider _settingsProvider = settingsProvider;
 
     private static readonly Dictionary<char, char> _characterReplacementDict = new()
     {
@@ -1071,7 +1080,12 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
         if (anidb.Count == 0)
             return [];
 
-        var context = BuildContext(strategy, anidb, providerEpisodes);
+        // Matched up to the look-ahead of the candidates' source, counted in
+        // whole UTC days.
+        var source = providerEpisodes.FirstOrDefault(episode => episode is not null)?.Source;
+        var lookAheadDays = _settingsProvider.GetSettings().Metadata.GetEpisodeMatchLookAheadDays(source);
+        var latestAirDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(lookAheadDays);
+        var context = BuildContext(strategy, anidb, providerEpisodes, latestAirDate);
         _logger.LogTrace(
             "Matching {AnidbCount} AniDB episodes against {ProviderCount} provider episodes. (Strategy: {Strategy}, Use Existing: {UseExisting}, Include Specials: {IncludeSpecials})",
             anidb.Count, providerEpisodes.Count, strategy, existingByEpisode is not null, options.IncludeSpecials);
@@ -1214,6 +1228,11 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
 
         public required List<IEpisode> SpecialPool { get; set; }
 
+        /// <summary>
+        ///   The last day an AniDB episode may air on and still be matched.
+        /// </summary>
+        public required DateOnly LatestAirDate { get; init; }
+
         public Dictionary<int, Pairing> PrimaryByAnidbID { get; } = [];
 
         /// <summary>
@@ -1229,7 +1248,12 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
             => TitleCandidates.GetOrAdd(episode, static candidate => TitleCandidatesOf(candidate, OriginalLanguageOf(candidate)));
     }
 
-    private static MatchContext BuildContext(EpisodeMatchStrategy strategy, List<IAnidbEpisode> anidb, IReadOnlyList<IEpisode> providerEpisodes)
+    private static MatchContext BuildContext(
+        EpisodeMatchStrategy strategy,
+        List<IAnidbEpisode> anidb,
+        IReadOnlyList<IEpisode> providerEpisodes,
+        DateOnly latestAirDate
+    )
     {
         var animeType = anidb
             .Select(episode => episode.Series?.Type)
@@ -1271,6 +1295,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
                 .ToDictionary(group => group.Key, group => group.First()),
             NormalPool = normalPool,
             SpecialPool = specialPool,
+            LatestAirDate = latestAirDate,
         };
     }
 
@@ -1586,7 +1611,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
 
         // An episode shown early is out already, so its earliest date decides
         // what is still to come; the regular date is what the source has.
-        if ((episode.EarlyAirDate ?? episode.AirDate) is { } shownOn && shownOn > DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))
+        if ((episode.EarlyAirDate ?? episode.AirDate) is { } shownOn && shownOn > context.LatestAirDate)
         {
             _logger.LogTrace("Skipping future episode {AnidbEpisodeID}", episode.AnidbID);
             return MatchResult.Miss;
@@ -1702,7 +1727,7 @@ public class MetadataMatchingEngine(ILogger<MetadataMatchingEngine> logger, IFuz
 
         // An episode shown early is out already, so its earliest date decides
         // what is still to come; the regular date is what the source has.
-        if ((episode.EarlyAirDate ?? episode.AirDate) is { } shownOn && shownOn > DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1)))
+        if ((episode.EarlyAirDate ?? episode.AirDate) is { } shownOn && shownOn > context.LatestAirDate)
         {
             _logger.LogTrace("Skipping future episode {AnidbEpisodeID}", episode.AnidbID);
             return MatchResult.Miss;

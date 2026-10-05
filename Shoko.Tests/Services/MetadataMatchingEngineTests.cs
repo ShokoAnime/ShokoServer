@@ -13,6 +13,7 @@ using Shoko.Abstractions.Metadata.Search;
 using Shoko.Abstractions.Metadata.Shoko;
 using Shoko.Server.Filters;
 using Shoko.Server.Services;
+using Shoko.Server.Settings;
 using Shoko.Tests.Infrastructure;
 using Xunit;
 
@@ -29,7 +30,20 @@ public class MetadataMatchingEngineTests
 {
     private static readonly DateOnly _firstAired = new(2024, 1, 7);
 
-    private static MetadataMatchingEngine Matcher() => new(NullLogger<MetadataMatchingEngine>.Instance, new FuzzySearchService());
+    private static MetadataMatchingEngine Matcher(int? lookAheadDays = null)
+        => new(NullLogger<MetadataMatchingEngine>.Instance, new FuzzySearchService(), LookAhead(lookAheadDays));
+
+    /// <summary>
+    ///   Settings matching every source's episodes up to the given days ahead,
+    ///   or up to the default.
+    /// </summary>
+    internal static ISettingsProvider LookAhead(int? days = null)
+    {
+        var settings = new ServerSettings();
+        if (days is { } value)
+            settings.Metadata.SourceDefaults.EpisodeMatchLookAheadDays = value;
+        return new StubSettingsProvider(settings);
+    }
 
     #region Within seasons
 
@@ -93,6 +107,36 @@ public class MetadataMatchingEngineTests
 
         Assert.Equal("101", match.Candidate?.ID.ID);
         Assert.Equal(MatchRating.DateAndNumberMatches, match.Rating);
+    }
+
+    // An episode is matched once it airs within the source's look-ahead, and
+    // held back a day past it, whichever strategy runs.
+    [Theory]
+    [InlineData(7, 7, EpisodeMatchStrategy.DateThenNumber, true)]
+    [InlineData(7, 8, EpisodeMatchStrategy.DateThenNumber, false)]
+    [InlineData(0, 0, EpisodeMatchStrategy.DateAndTitleWithinSeasons, true)]
+    [InlineData(0, 1, EpisodeMatchStrategy.DateAndTitleWithinSeasons, false)]
+    public void AnUpcomingEpisode_IsMatchedOnlyWithinTheLookAhead(int lookAheadDays, int daysAhead, EpisodeMatchStrategy strategy, bool matched)
+    {
+        var airDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(daysAhead);
+        var anidb = new List<IAnidbEpisode> { AnidbEpisode(1, 1, airDate, title: "Alpha") };
+        var provider = new List<IEpisode> { ProviderEpisode(101, 1, 1, airDate, "Alpha") };
+
+        var match = Assert.Single(Matcher(lookAheadDays).MatchEpisodes(anidb, provider, options: new EpisodeMatchOptions { Strategy = strategy }));
+
+        Assert.Equal(matched ? "101" : null, match.Candidate?.ID.ID);
+    }
+
+    [Fact]
+    public void ASourceLookAhead_WinsOverTheDefault()
+    {
+        var settings = new MetadataSettings { SourceDefaults = { EpisodeMatchLookAheadDays = 3 } };
+        settings.Sources.Add(new() { Source = TestSources.Plugin, EpisodeMatchLookAheadDays = 10 });
+        settings.Sources.Add(new() { Source = MetadataSource.TMDB });
+
+        Assert.Equal(10, settings.GetEpisodeMatchLookAheadDays(TestSources.Plugin));
+        Assert.Equal(3, settings.GetEpisodeMatchLookAheadDays(MetadataSource.TMDB));
+        Assert.Equal(3, settings.GetEpisodeMatchLookAheadDays(null));
     }
 
     // A title that is right but a date that is nowhere near still places the

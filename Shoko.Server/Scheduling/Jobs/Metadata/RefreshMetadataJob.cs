@@ -344,7 +344,7 @@ public class RefreshMetadataJob<TProvider>(
         // The owner's image job queues the contributors once it has run, so
         // they are queued here only for what it does not run for.
         var ownerImages = info.Provider is IMetadataImageProvider &&
-            settingsProvider.GetSettings().Image.GetMetadataSourceSettings(info.Source).AnyEnabled;
+            settingsProvider.GetSettings().Metadata.GetImageSettings(info.Source).AnyEnabled;
         var withImages = refreshed
             .Concat(refreshed
                 .Where(entry => entry.EntityType != MetadataEntityType.Collection)

@@ -115,8 +115,8 @@ public sealed class SettingsMigrationAutoLinkTests : IDisposable
         Assert.Null(plugin["AutoLink"]);
         Assert.Null(plugin["AutoLinkRestricted"]);
         Assert.Equal("keep-me", plugin["UserApiKey"]!.Value<string>());
-        // Migration 23 moves TMDB's image switches to its image entry.
-        Assert.True(migrated["Image"]!["MetadataSources"]![0]!["AutoDownloadPosters"]!.Value<bool>());
+        // Migrations 23 and 29 move TMDB's image switches to its source entry.
+        Assert.True(migrated["Metadata"]!["Sources"]![0]!["Images"]!["AutoDownloadPosters"]!.Value<bool>());
     }
 
     [Fact]

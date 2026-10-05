@@ -551,6 +551,13 @@ leave out episodes other anime are linked to (`null` for your default). Answer
 with an `EpisodeMatch` for every episode you decided on, kept links included,
 and write nothing: the core saves the result when asked.
 
+An AniDB episode is matched only once it airs within the look-ahead of your
+source, counted from its earliest showing: 7 days after today unless an admin
+sets another value for every source or for yours in the server settings
+(`Metadata.SourceDefaults` and `Metadata.Sources`), from 0 (only what aired by
+today) to 365. `IMetadataMatchingEngine.MatchEpisodes` applies it for you and
+leaves a later episode unmatched; do the same if you match without it.
+
 ## Moving links between servers
 
 `IMetadataCrossReferenceTransferService` exports and imports a source's links
@@ -694,7 +701,7 @@ refreshes and purges them the same way:
 - Its refresh calls write the series, movie, collection, people, studio, tag,
   suggestion and ordering stores, and the texts through the series and movie
   data. A genre joining two with `&` is stored as one tag per part.
-- Its image settings are TMDb's entry in the per-source image settings. It
+- Its image settings are TMDb's entry in the per-source metadata settings. It
   saves the images each entry names as its defaults with the entry, and hands
   over a person's images only when a refresh fetched the person within two
   hours.

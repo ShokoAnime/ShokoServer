@@ -142,7 +142,7 @@ public class RefreshMetadataEntityJob<TProvider>(
     {
         var token = cancellationAccessor.Token;
         var ownerImages = info.Provider is IMetadataImageProvider &&
-            settingsProvider.GetSettings().Image.GetMetadataSourceSettings(info.Source).AnyEnabled;
+            settingsProvider.GetSettings().Metadata.GetImageSettings(info.Source).AnyEnabled;
         try
         {
             if (!ownerImages || !await providerScheduler.ScheduleImages(info, entity, cancellationToken: token, isNew: isNew).ConfigureAwait(false))

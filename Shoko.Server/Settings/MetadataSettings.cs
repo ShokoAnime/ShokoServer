@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Shoko.Abstractions.Config.Attributes;
 using Shoko.Abstractions.Config.Enums;
+using Shoko.Abstractions.Metadata;
 
 namespace Shoko.Server.Settings;
 
@@ -35,4 +38,46 @@ public class MetadataSettings
     [Range(0, 365)]
     [DefaultValue(14)]
     public int AutoPurgeUnlinkedAfterDays { get; set; } = 14;
+
+    /// <summary>
+    /// What the core does with every plugin source that has no value of its
+    /// own in <see cref="Sources"/>.
+    /// </summary>
+    [Display(Name = "Metadata Source Defaults")]
+    public MetadataSourceDefaults SourceDefaults { get; set; } = new();
+
+    /// <summary>
+    /// What the core does with each plugin source, keyed by source, in place
+    /// of <see cref="SourceDefaults"/>.
+    /// </summary>
+    [Display(Name = "Metadata Sources")]
+    [List(ListType = DisplayListType.ComplexTab)]
+    public List<MetadataSourceOverrides> Sources { get; set; } = [];
+
+    /// <summary>
+    /// How many days after today an AniDB episode may air and still be
+    /// matched to one of a source's episodes: the source's own value, else
+    /// the default.
+    /// </summary>
+    /// <param name="source">The source, or <c>null</c> for the default.</param>
+    /// <returns>The days.</returns>
+    public int GetEpisodeMatchLookAheadDays(MetadataSource? source)
+        => GetOverrides(source)?.EpisodeMatchLookAheadDays ?? SourceDefaults.EpisodeMatchLookAheadDays;
+
+    /// <summary>
+    /// Which images to download for a source: its own settings, else the
+    /// default.
+    /// </summary>
+    /// <param name="source">The source.</param>
+    /// <returns>The settings.</returns>
+    public MetadataImageSettings GetImageSettings(MetadataSource source)
+        => GetOverrides(source)?.Images ?? SourceDefaults.Images;
+
+    /// <summary>
+    /// The source's own entry in <see cref="Sources"/>, if it has one.
+    /// </summary>
+    /// <param name="source">The source, or <c>null</c>.</param>
+    /// <returns>The entry, or <c>null</c>.</returns>
+    private MetadataSourceOverrides? GetOverrides(MetadataSource? source)
+        => source is null ? null : Sources.FirstOrDefault(overrides => overrides.Source == source);
 }

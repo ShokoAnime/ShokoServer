@@ -19,16 +19,16 @@ public class SettingsJsonPatchTests
     {
         var settings = new ServerSettings();
 
-        Assert.Equal(new[] { "none", "x-main", "en" }, settings.Image.MetadataSourceDefaults.InternalImageLanguageOrder);
+        Assert.Equal(new[] { "none", "x-main", "en" }, settings.Metadata.SourceDefaults.Images.InternalImageLanguageOrder);
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("replace", "/Image/MetadataSourceDefaults/ImageLanguageOrder/0", null, "fr"));
+        patch.Operations.Add(new Operation<ServerSettings>("replace", "/Metadata/SourceDefaults/Images/ImageLanguageOrder/0", null, "fr"));
         patch.ApplyTo(settings);
 
-        Assert.Equal(new[] { "fr", "x-main", "en" }, settings.Image.MetadataSourceDefaults.InternalImageLanguageOrder);
+        Assert.Equal(new[] { "fr", "x-main", "en" }, settings.Metadata.SourceDefaults.Images.InternalImageLanguageOrder);
         Assert.Equal(
             new[] { TitleLanguage.French, TitleLanguage.Main, TitleLanguage.English },
-            settings.Image.MetadataSourceDefaults.ImageLanguageOrder);
+            settings.Metadata.SourceDefaults.Images.ImageLanguageOrder);
     }
 
     [Fact]
@@ -37,11 +37,11 @@ public class SettingsJsonPatchTests
         var settings = new ServerSettings();
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("remove", "/Image/MetadataSourceDefaults/ImageLanguageOrder/0", null, null));
+        patch.Operations.Add(new Operation<ServerSettings>("remove", "/Metadata/SourceDefaults/Images/ImageLanguageOrder/0", null, null));
         patch.ApplyTo(settings);
 
-        Assert.Equal(new[] { "x-main", "en" }, settings.Image.MetadataSourceDefaults.InternalImageLanguageOrder);
-        Assert.Equal(new[] { TitleLanguage.Main, TitleLanguage.English }, settings.Image.MetadataSourceDefaults.ImageLanguageOrder);
+        Assert.Equal(new[] { "x-main", "en" }, settings.Metadata.SourceDefaults.Images.InternalImageLanguageOrder);
+        Assert.Equal(new[] { TitleLanguage.Main, TitleLanguage.English }, settings.Metadata.SourceDefaults.Images.ImageLanguageOrder);
     }
 
     [Fact]
@@ -50,13 +50,13 @@ public class SettingsJsonPatchTests
         var settings = new ServerSettings();
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("add", "/Image/MetadataSourceDefaults/ImageLanguageOrder/-", null, "de"));
+        patch.Operations.Add(new Operation<ServerSettings>("add", "/Metadata/SourceDefaults/Images/ImageLanguageOrder/-", null, "de"));
         patch.ApplyTo(settings);
 
-        Assert.Equal(new[] { "none", "x-main", "en", "de" }, settings.Image.MetadataSourceDefaults.InternalImageLanguageOrder);
+        Assert.Equal(new[] { "none", "x-main", "en", "de" }, settings.Metadata.SourceDefaults.Images.InternalImageLanguageOrder);
         Assert.Equal(
             new[] { TitleLanguage.None, TitleLanguage.Main, TitleLanguage.English, TitleLanguage.German },
-            settings.Image.MetadataSourceDefaults.ImageLanguageOrder);
+            settings.Metadata.SourceDefaults.Images.ImageLanguageOrder);
     }
 
     [Fact]
@@ -65,11 +65,11 @@ public class SettingsJsonPatchTests
         var settings = new ServerSettings();
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Replace(s => s.Image.MetadataSourceDefaults.InternalImageLanguageOrder, new List<string> { "en", "de", "en", "nonsense" });
+        patch.Replace(s => s.Metadata.SourceDefaults.Images.InternalImageLanguageOrder, new List<string> { "en", "de", "en", "nonsense" });
         patch.ApplyTo(settings);
 
-        Assert.Equal(new[] { "en", "de" }, settings.Image.MetadataSourceDefaults.InternalImageLanguageOrder);
-        Assert.Equal(new[] { TitleLanguage.English, TitleLanguage.German }, settings.Image.MetadataSourceDefaults.ImageLanguageOrder);
+        Assert.Equal(new[] { "en", "de" }, settings.Metadata.SourceDefaults.Images.InternalImageLanguageOrder);
+        Assert.Equal(new[] { TitleLanguage.English, TitleLanguage.German }, settings.Metadata.SourceDefaults.Images.ImageLanguageOrder);
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class SettingsJsonPatchTests
         var modelState = new ModelStateDictionary();
 
         var patch = new JsonPatchDocument<ServerSettings>();
-        patch.Operations.Add(new Operation<ServerSettings>("replace", "/Image/MetadataSourceDefaults/ImageLanguageOrder/99", null, "fr"));
+        patch.Operations.Add(new Operation<ServerSettings>("replace", "/Metadata/SourceDefaults/Images/ImageLanguageOrder/99", null, "fr"));
         patch.ApplyTo(settings, modelState);
 
         Assert.False(modelState.IsValid);

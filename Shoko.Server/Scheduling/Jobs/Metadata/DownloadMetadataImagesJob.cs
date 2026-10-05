@@ -103,7 +103,7 @@ public class DownloadMetadataImagesJob<TProvider>(
         // The contributors are queued even when the owner is not asked, as
         // they keep their own switches and image settings.
         var ownerAsked = false;
-        var settings = settingsProvider.GetSettings().Image.GetMetadataSourceSettings(source);
+        var settings = settingsProvider.GetSettings().Metadata.GetImageSettings(source);
         if (!info.Enabled)
         {
             _logger.LogDebug("Not downloading images from {Provider}, which is disabled.", info.Name);

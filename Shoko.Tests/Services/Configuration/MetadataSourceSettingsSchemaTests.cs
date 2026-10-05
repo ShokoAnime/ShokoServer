@@ -7,15 +7,16 @@ using Xunit;
 namespace Shoko.Tests.Services.Configuration;
 
 /// <summary>
-/// Checks that the per-source image section of the server settings round-trips.
+/// Checks that the per-source metadata section of the server settings round-trips.
 /// </summary>
-public class MetadataImageSettingsSchemaTests
+public class MetadataSourceSettingsSchemaTests
 {
     [Fact]
     public void ThePerSourceSettingsRoundTrip()
     {
         var settings = new ServerSettings();
-        settings.Image.MetadataSources.Add(new() { Source = TestSources.Plugin, MaxAutoPosters = 3, InternalImageLanguageOrder = ["ja"] });
+        settings.Metadata.Sources.Add(new() { Source = TestSources.Plugin, Images = new() { MaxAutoPosters = 3, InternalImageLanguageOrder = ["ja"] } });
+        settings.Metadata.Sources.Add(new() { Source = TestSources.AniList, EpisodeMatchLookAheadDays = 2 });
 
         var json = JsonConvert.SerializeObject(settings, ServerSettings.SerializationSettings);
         var read = JsonConvert.DeserializeObject<ServerSettings>(json, new JsonSerializerSettings
@@ -24,9 +25,11 @@ public class MetadataImageSettingsSchemaTests
             ObjectCreationHandling = ObjectCreationHandling.Replace,
         })!;
 
-        var own = Assert.Single(read.Image.MetadataSources);
-        Assert.Equal(TestSources.Plugin, own.Source);
+        Assert.Equal(2, read.Metadata.Sources.Count);
+        var own = read.Metadata.GetImageSettings(TestSources.Plugin);
         Assert.Equal(3, own.MaxAutoPosters);
         Assert.Equal([Abstractions.Metadata.Enums.TitleLanguage.Japanese], own.ImageLanguageOrder);
+        Assert.Null(read.Metadata.Sources[1].Images);
+        Assert.Equal(2, read.Metadata.GetEpisodeMatchLookAheadDays(TestSources.AniList));
     }
 }

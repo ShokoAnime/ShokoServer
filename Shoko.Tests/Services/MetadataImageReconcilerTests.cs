@@ -465,17 +465,17 @@ public class MetadataImageReconcilerTests
     }
 
     [Fact]
-    public void TheSourcesOwnSettingsWinOverTheDefaults()
+    public void TheSourcesOwnSettingsWinOverTheDefaults_AndAnEntryWithoutThemUsesTheDefaults()
     {
-        var settings = new ImageSettings();
-        var own = new MetadataSourceImageSettings { Source = Source, AutoDownloadLogos = false };
-        settings.MetadataSources.Add(own);
+        var settings = new MetadataSettings();
+        var own = new MetadataImageSettings { AutoDownloadLogos = false };
+        settings.Sources.Add(new() { Source = Source, Images = own });
+        settings.Sources.Add(new() { Source = TestSources.AniList, EpisodeMatchLookAheadDays = 1 });
 
-        Assert.Same(own, settings.GetMetadataSourceSettings(Source));
-        Assert.Same(settings.MetadataSourceDefaults, settings.GetMetadataSourceSettings(TestSources.AniList));
-        Assert.NotEmpty(MetadataSourceImageSettings.Validate(new() { Source = MetadataSource.AniDB }));
-        Assert.Empty(MetadataSourceImageSettings.Validate(new() { Source = MetadataSource.TMDB }));
-        Assert.Empty(MetadataSourceImageSettings.Validate(own));
+        Assert.Same(own, settings.GetImageSettings(Source));
+        Assert.Same(settings.SourceDefaults.Images, settings.GetImageSettings(TestSources.AniList));
+        Assert.NotEmpty(MetadataSourceOverrides.Validate(new() { Source = MetadataSource.AniDB }));
+        Assert.Empty(MetadataSourceOverrides.Validate(new() { Source = MetadataSource.TMDB }));
     }
 
     [Fact]
