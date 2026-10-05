@@ -11,6 +11,14 @@
   ],
   "Dev": [
     {
+      "version": "6.0.0.496",
+      "tag": "v6.0.0-dev.496",
+      "commit": "cf3d46ef64d31e19caaba159225a0177922134c0",
+      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.496/Shoko.CLI_Framework_any-x64.zip",
+      "date": "2026-10-05T03:02:43Z",
+      "releaseNotes": "\n`fix`: **Stop a shared entry's image job from waiting on its own lock**:\n\n- Let `MetadataImageReconciler.Reconcile` skip the shared entity's lock when the image job already holds it, and wait on it with the job's token\n- An image job for a creator, character, studio or network of a plugin source (TMDb included since it became a plugin) waited on its own entry lock forever, filling the provider's pool\n"
+    },
+    {
       "version": "6.0.0.495",
       "tag": "v6.0.0-dev.495",
       "commit": "87e893dc5df955d9f259de765e988b84fcc58009",
@@ -241,14 +249,6 @@
       "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.467/Shoko.CLI_Framework_any-x64.zip",
       "date": "2026-09-15T21:59:55Z",
       "releaseNotes": "\n`fix` (`import`): **Fall back to the episode watched record when transferring state**:\n\nSetWatchedStateIfNeeded only copied watched state from still-existing\nsibling files, so replacing a watched release (e.g. TV with blu-ray)\nafter the watched copy was deleted left the new file unwatched, even\nthough the episode-level record still carried the state.\n\n- Add an episode-level AnimeEpisode_User fallback (newest watched date\n  and playback count) under UseExistingFileWatchedStatus\n- Skip users whose new file is already watched to avoid overwrites\n"
-    },
-    {
-      "version": "6.0.0.466",
-      "tag": "v6.0.0-dev.466",
-      "commit": "fb254f8ad7bbee03e2292a4285b7c9acc32cf293",
-      "downloadUrl": "https://github.com/ShokoAnime/ShokoServer/releases/download/v6.0.0-dev.466/Shoko.CLI_Framework_any-x64.zip",
-      "date": "2026-09-15T18:20:04Z",
-      "releaseNotes": "\n`fix` (`anidb`): **Read `code` attribute from `<error>` in mylist response** ([#1440](https://github.com/ShokoAnime/ShokoServer/pull/1440)):\n\nAniDB's error element uses `code`, not `value`. The wrong attribute\nname made `Attribute(\"code\")!` throw `ArgumentNullException` on any\nerror response (e.g. `<error code=\"310\">illegal input or access\ndenied</error>`), masking the real error and crashing MyList refresh.\n"
     }
   ]
 }
